@@ -41,7 +41,7 @@ namespace BecquerelMonitor
 			foreach (Peak peak in list)
 			{
 				Row row = new Row();
-				string text = "(不明)";
+				string text = "(Unknown)";
 				string text2 = "－";
 				if (peak.Nuclide != null)
 				{
