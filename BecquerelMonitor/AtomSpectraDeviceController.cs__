@@ -1,0 +1,274 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO.Ports;
+using System.Linq;
+using System.Text;
+
+namespace BecquerelMonitor
+{
+    class AtomSpectraDeviceController : DeviceController
+    {
+        private PulseDetector pulseDetector = new PulseDetector();
+        private ResultDataStatus resultDataStatus = null;
+        private SerialPort port = null;
+        private byte[] input_buffer = new byte[1024];
+        private int[] hystogram = new int[8192];
+        private int cpu_load;
+        private int cps;
+        private String name;
+        //protocol
+        private const byte SHPROTO_START = (0xFE | 0x80);
+        private const byte SHPROTO_ESC = (0xFD | 0x80);
+        private const byte SHPROTO_FINISH = (0xA5 | 0x80);
+        private const int MAX_DATA_COUNT = 65535;
+        private bool rx_esc = false;
+        private ushort rx_crc = 0;
+        private int packet_cmd;
+        private int packet_length;
+        private List<byte> packet = new List<byte>();
+        private List<byte> outcomming = new List<byte>();
+
+        public AtomSpectraDeviceController()
+        {
+            port = new SerialPort(
+                           "COM1",
+                           600000,
+                           Parity.None,
+                           8,
+                           StopBits.One
+            );
+        }
+
+        public void sendCommand(string command)
+        {
+            byte[] ascii = Encoding.ASCII.GetBytes(command);
+            byte[] array = new byte[ascii.Length + 1];
+            array[0] = 0x03;
+            Array.Copy(ascii, 0, array, 1, ascii.Length);
+            string ignore;
+            while (received_lines.TryDequeue(out ignore)) ;
+            send_packet(array);
+        }
+
+        public bool waitForAnswer(string answer, int timeout_ms)
+        {
+            long ms = timeNowMs() + timeout_ms;
+            string str = null;
+            while (!received_lines.TryDequeue(out str) && (timeNowMs() < ms)) ;
+            if (str == null) return false;
+            int index = str.IndexOf('\r');
+            if (index != -1)
+            {
+                str = str.Substring(0, index);
+            }
+            return answer.Equals(str);
+        }
+
+        private long timeNowMs()
+        {
+            return DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+        }
+
+        private void send_packet(byte[] data)
+        {
+            ushort packet_crc = 0xFFFF;
+            outcomming.Enqueue(0xFF);
+            outcomming.Enqueue(SHPROTO_START);
+            foreach (byte d in data)
+            {
+                packet_crc = crc16(packet_crc, d);
+                add2buff_escape(d);
+            }
+            add2buff_escape((byte)(packet_crc & 0xff));
+            add2buff_escape((byte)(packet_crc >> 8));
+            outcomming.Enqueue(SHPROTO_FINISH);
+            onDataReceivedEvent.Set();
+        }
+
+        public double CPS
+        {
+            get { return (double)this.cps; }
+        }
+
+        private void add2buff_escape(byte tx_byte)
+        {
+            if (tx_byte == SHPROTO_ESC || tx_byte == SHPROTO_START || tx_byte == SHPROTO_FINISH)
+            {
+                outcomming.Enqueue(SHPROTO_ESC);
+                outcomming.Enqueue((byte)((~tx_byte) & 0xFF));
+            }
+            else
+            {
+                outcomming.Enqueue(tx_byte);
+            }
+        }
+
+        private void Port_DataReceived(object sender, SerialDataReceivedEventArgs e)
+        {
+            int incoming = port.BytesToRead;
+            if (incoming > input_buffer.Length) incoming = input_buffer.Length;
+            port.Read(input_buffer, 0, incoming);
+            for (int i = 0; i < incoming; i++)
+            {
+                if (!search_packet(input_buffer[i])) continue;
+                if (packet_cmd == 0x01) //hystogram
+                {
+                    int offset = packet[0] | (packet[1] << 8);
+                    int count = (packet_length - 4) / 4;
+                    for (int j = 0; j < count; j++)
+                    {
+                        int index = offset + j;
+                        if (index < hystogram.Length)
+                        {
+                            int value = packet[j * 4 + 2] | (packet[j * 4 + 3] << 8) | (packet[j * 4 + 4] << 16) | (packet[j * 4 + 5] << 24);
+                            hystogram[index] = value & 0x7FFFFFF;
+                        }
+                    }
+                }
+                else if (packet_cmd == 0x04) //elapsed time
+                {
+                    int elapsed_time = (packet[0] | (packet[1] << 8) | (packet[2] << 16) | (packet[3] << 24));
+                    elapsed_time &= 0x7FFFFFF;
+                    cpu_load = packet[4] | (packet[5] << 8);
+                    cps = packet[6] | (packet[7] << 8) | (packet[8] << 16) | (packet[9] << 24);
+                    //elapsed_time_static = elapsed_time;
+                    //cps_static = cps;
+                    DataReady?.Invoke(this, new AtomSpectraVCPInDataReadyArgs(hystogram, cpu_load, elapsed_time));
+                }
+                else if (packet_cmd == 0x03) //printf
+                {
+                    byte[] arr = new byte[packet_length];
+                    packet.CopyTo(0, arr, 0, packet_length);
+                    string str = Encoding.ASCII.GetString(arr, 0, packet_length);
+                    received_lines.Enqueue(str);
+                    Trace.WriteLine("Line received: " + str);
+                }
+            }  
+        }
+
+        public ushort crc16(ushort crc, byte data)
+        {
+            crc = (ushort)(crc ^ data);
+            for (byte i = 0; i < 8; ++i)
+            {
+                if (((ushort)(crc & 0x0001)) != 0)
+                    crc = (ushort)((crc >> 1) ^ 0xA001); // polynomial used by MODBUS
+                else
+                    crc = (ushort)(crc >> 1); // right shift
+            }
+            return crc;
+        }
+
+        public bool search_packet(byte rx_byte)
+        {
+            switch (rx_byte)
+            {
+                case SHPROTO_START: // clear all buffers
+                    packet.Clear();
+                    rx_esc = false;
+                    rx_crc = 0xFFFF;
+                    packet_length = 0;
+                    break;
+                case SHPROTO_ESC:
+                    rx_esc = true; // set esc status, skip esc byte
+                    break;
+                case SHPROTO_FINISH: // got packet, mark it to be parsed
+                    packet_length -= 3;
+                    if (rx_crc != 0)
+                    {
+                        // crc16 with data and crc itself gives zero result
+                        return false;
+                    }
+                    return true;
+                default: // just add byte to packet
+                    if (rx_esc)
+                    {
+                        rx_esc = false;
+                        rx_byte = (byte)(~rx_byte);
+                    }
+                    if (packet.Count < MAX_DATA_COUNT)
+                    {
+                        if (packet_length == 0)
+                        {
+                            packet_cmd = rx_byte;
+                        }
+                        else
+                        {
+                            packet.Add(rx_byte);
+                        }
+                        packet_length++;
+                    }
+                    rx_crc = crc16(rx_crc, rx_byte);
+                    break;
+            }
+            return false;
+        }
+
+        public double getCPS()
+        {
+            return cps;
+        }
+
+        public override void ClearMeasurementResult(ResultData resultData)
+        {
+            sendCommand("-rst");
+        }
+
+        public override bool StartMeasurement(ResultData resultData)
+        {
+            ResultDataStatus resultDataStatus = resultData.ResultDataStatus;
+            this.resultDataStatus = resultDataStatus;
+            if (resultData.DeviceConfig.InputDeviceConfig.GetType() == typeof(AtomSpectraDeviceConfig))
+            {
+                this.pulseDetector.Pulses = resultData.PulseCollection;
+                this.pulseDetector.EnergySpectrum = resultData.EnergySpectrum;
+                AtomSpectraDeviceConfig deviceConfig = (AtomSpectraDeviceConfig)resultData.DeviceConfig.InputDeviceConfig;
+                if (dataIn == null)
+                {
+                    dataIn = new AtomSpectraVCPIn(deviceConfig.ComPortName, 600000);
+                    dataIn.DataReady += DataIn_DataReady;
+                }
+                dataIn.sendCommand("-sta");
+                resultDataStatus.Recording = dataIn.waitForAnswer("-ok", 1000);
+                Trace.WriteLine("");
+            }
+            return false;
+        }
+
+        private void DataIn_DataReady(object sender, AtomSpectraVCPInDataReadyArgs e)
+        {
+            this.pulseDetector.EnergySpectrum.Spectrum = e.Hystogram;
+            this.pulseDetector.EnergySpectrum.MeasurementTime = e.ElapsedTime;
+            int sum = 0;
+            foreach(int ch in e.Hystogram)
+            {
+                sum += ch;
+            }
+            this.pulseDetector.EnergySpectrum.TotalPulseCount = sum;
+            this.pulseDetector.EnergySpectrum.ValidPulseCount = sum;
+            this.pulseDetector.EnergySpectrum.ChannelPitch = 1;
+        }
+
+        public override void StopMeasurement(ResultData resultData)
+        {
+            ResultDataStatus resultDataStatus = resultData.ResultDataStatus;
+            if (dataIn != null)
+            {
+                dataIn.sendCommand("-sto");
+                resultDataStatus.Recording = !dataIn.waitForAnswer("-ok", 1000);
+            }
+            
+        }
+
+        public PulseDetector PulseDetector
+        {
+            get {
+                return this.pulseDetector;
+            }
+            set {
+                this.pulseDetector = value;
+            }
+        }
+    }
+}

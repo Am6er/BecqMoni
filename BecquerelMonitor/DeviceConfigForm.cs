@@ -1,0 +1,1195 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Drawing;
+using System.IO;
+using System.Windows.Forms;
+using BecquerelMonitor.Properties;
+using MaNet;
+using XPTable.Editors;
+using XPTable.Events;
+using XPTable.Models;
+using XPTable.Renderers;
+
+namespace BecquerelMonitor
+{
+	// Token: 0x02000066 RID: 102
+	public partial class DeviceConfigForm : Form
+	{
+		// Token: 0x1700019A RID: 410
+		// (get) Token: 0x06000511 RID: 1297 RVA: 0x00020428 File Offset: 0x0001E628
+		// (set) Token: 0x06000512 RID: 1298 RVA: 0x00020430 File Offset: 0x0001E630
+		public DeviceConfigInfo ActiveDeviceConfig
+		{
+			get
+			{
+				return this.activeDeviceConfig;
+			}
+			set
+			{
+				this.activeDeviceConfig = value;
+			}
+		}
+
+		// Token: 0x06000513 RID: 1299 RVA: 0x0002043C File Offset: 0x0001E63C
+		public DeviceConfigForm()
+		{
+			this.InitializeComponent();
+			base.Icon = Resources.becqmoni;
+			this.button4.Enabled = false;
+			this.DisableForm();
+			this.button3.Enabled = true;
+			this.button4.Enabled = false;
+			this.button12.Enabled = false;
+			this.button6.Enabled = false;
+			this.button5.Enabled = true;
+			GlobalConfigInfo globalConfig = this.globalConfigManager.GlobalConfig;
+			this.numericUpDown1.Increment = (decimal)globalConfig.ChartViewConfig.Energy2ndCoefficientStep;
+			this.numericUpDown2.Increment = (decimal)globalConfig.ChartViewConfig.EnergyCoefficientStep;
+			this.numericUpDown3.Increment = (decimal)globalConfig.ChartViewConfig.EnergyOffsetStep;
+			this.UpdateMultipointButtonState();
+			this.comboBox4.Items.Clear();
+			foreach (DeviceType item in DeviceType.DeviceTypeList)
+			{
+				this.comboBox4.Items.Add(item);
+			}
+			foreach (ThermometerType item2 in ThermometerType.ThermometerTypeList)
+			{
+				this.comboBox1.Items.Add(item2);
+			}
+			int[] deviceConfigListColumnSizes = this.globalConfigManager.GlobalConfig.DeviceConfigListColumnSizes;
+			for (int i = 0; i < this.columnModel1.Columns.Count; i++)
+			{
+				this.columnModel1.Columns[i].Width = ((deviceConfigListColumnSizes[i] > 32) ? deviceConfigListColumnSizes[i] : 32);
+			}
+			this.groupBox3.Visible = false;
+			this.groupBox2.Top = 24;
+		}
+
+		// Token: 0x06000514 RID: 1300 RVA: 0x0002067C File Offset: 0x0001E87C
+		void DeviceConfigForm_Load(object sender, EventArgs e)
+		{
+			this.ListupConfigFiles();
+		}
+
+		// Token: 0x06000515 RID: 1301 RVA: 0x00020684 File Offset: 0x0001E884
+		void DeviceConfigForm_FormClosing(object sender, FormClosingEventArgs e)
+		{
+			if (!this.ConfirmSaveDeviceConfig())
+			{
+				return;
+			}
+			if (this.inputDeviceForm != null)
+			{
+				this.inputDeviceForm.FormClosing();
+			}
+			this.ClearChannelPickupState();
+			this.globalConfigManager.GlobalConfig.DeviceConfigFormWidth = base.Width;
+			this.globalConfigManager.GlobalConfig.DeviceConfigFormHeight = base.Height;
+			int[] array = new int[this.columnModel1.Columns.Count];
+			this.globalConfigManager.GlobalConfig.DeviceConfigListColumnSizes = array;
+			for (int i = 0; i < this.columnModel1.Columns.Count; i++)
+			{
+				array[i] = this.columnModel1.Columns[i].Width;
+			}
+		}
+
+		// Token: 0x06000516 RID: 1302 RVA: 0x00020748 File Offset: 0x0001E948
+		public void ListupConfigFiles()
+		{
+			this.table1.SuspendLayout();
+			this.tableModel1.Rows.Clear();
+			this.tableModel1.Selections.Clear();
+			foreach (DeviceConfigInfo deviceConfigInfo in this.manager.DeviceConfigList)
+			{
+				DeviceConfigInfo deviceConfigInfo2 = deviceConfigInfo.Clone();
+				Row row = new Row();
+				row.Cells.Add(new Cell(deviceConfigInfo2.Name));
+				row.Cells.Add(new Cell(deviceConfigInfo2.LastUpdated.ToShortDateString() + " " + deviceConfigInfo2.LastUpdated.ToLongTimeString()));
+				row.Tag = deviceConfigInfo2;
+				this.tableModel1.Rows.Add(row);
+				if (this.activeDeviceConfig != null && this.activeDeviceConfig.Guid == deviceConfigInfo2.Guid)
+				{
+					this.activeDeviceConfig = deviceConfigInfo2;
+					this.tableModel1.Selections.AddCell(row.Index, 0);
+				}
+			}
+			this.table1.ResumeLayout();
+		}
+
+		// Token: 0x06000517 RID: 1303 RVA: 0x00020894 File Offset: 0x0001EA94
+		void UpdateConfigFilesList()
+		{
+			foreach (object obj in this.tableModel1.Rows)
+			{
+				Row row = (Row)obj;
+				DeviceConfigInfo deviceConfigInfo = (DeviceConfigInfo)row.Tag;
+				row.Cells[0].Text = deviceConfigInfo.Name;
+				row.Cells[1].Text = deviceConfigInfo.LastUpdated.ToShortDateString() + " " + deviceConfigInfo.LastUpdated.ToLongTimeString();
+			}
+		}
+
+		// Token: 0x06000518 RID: 1304 RVA: 0x00020954 File Offset: 0x0001EB54
+		public void UpdateModifiedConfigFile()
+		{
+			this.ListupConfigFiles();
+			if (this.activeDeviceConfig != null)
+			{
+				this.LoadFormContents(this.activeDeviceConfig);
+			}
+		}
+
+		// Token: 0x06000519 RID: 1305 RVA: 0x00020974 File Offset: 0x0001EB74
+		void button3_Click(object sender, EventArgs e)
+		{
+			if (!this.ConfirmSaveDeviceConfig())
+			{
+				return;
+			}
+			string text = this.AssignNewFilename();
+			if (text == null)
+			{
+				return;
+			}
+			DeviceConfigInfo config = this.manager.CreateConfig(text);
+			this.activeDeviceConfig = config;
+			this.LoadFormContents(config);
+			this.ListupConfigFiles();
+			this.textBox1.SelectAll();
+			this.textBox1.Focus();
+		}
+
+		// Token: 0x0600051A RID: 1306 RVA: 0x000209D8 File Offset: 0x0001EBD8
+		void button12_Click(object sender, EventArgs e)
+		{
+			if (!this.ConfirmSaveDeviceConfig())
+			{
+				return;
+			}
+			string filename = Path.GetFileNameWithoutExtension(this.activeDeviceConfig.Filename) + " (コピー).xml";
+			DeviceConfigInfo deviceConfigInfo = this.manager.DuplicateConfig(this.activeDeviceConfig, filename);
+			if (deviceConfigInfo == null)
+			{
+				return;
+			}
+			this.activeDeviceConfig = deviceConfigInfo;
+			this.LoadFormContents(deviceConfigInfo);
+			this.ListupConfigFiles();
+			this.textBox1.SelectAll();
+			this.textBox1.Focus();
+		}
+
+		// Token: 0x0600051B RID: 1307 RVA: 0x00020A58 File Offset: 0x0001EC58
+		void button4_Click(object sender, EventArgs e)
+		{
+			if (this.activeDeviceConfig == null)
+			{
+				return;
+			}
+			DialogResult dialogResult = MessageBox.Show(string.Format(Resources.MessageRemoveDeviceConfig, this.activeDeviceConfig.Name), Resources.ConfirmationDialogTitle, MessageBoxButtons.OKCancel, MessageBoxIcon.Exclamation);
+			if (dialogResult == DialogResult.OK)
+			{
+				this.manager.DeleteConfig(this.activeDeviceConfig);
+				this.activeDeviceConfig = null;
+				this.DisableForm();
+				this.ListupConfigFiles();
+			}
+		}
+
+		// Token: 0x0600051C RID: 1308 RVA: 0x00020AC4 File Offset: 0x0001ECC4
+        //Save button from device configuration form
+		void button6_Click(object sender, EventArgs e)
+		{
+			if (this.activeDeviceConfig == null)
+			{
+				return;
+			}
+			if (!this.SaveFormContents(this.activeDeviceConfig))
+			{
+				MessageBox.Show(Resources.ERRInvalidInputForm);
+				return;
+			}
+			if (!this.manager.SaveConfig(this.activeDeviceConfig))
+			{
+				MessageBox.Show(Resources.ERRDuplicateConfigName);
+				return;
+			}
+			this.ResetActiveDeviceConfigDirty();
+			this.ListupConfigFiles();
+		}
+
+		// Token: 0x0600051D RID: 1309 RVA: 0x00020B2C File Offset: 0x0001ED2C
+		string ConvertNameToFilename(string name)
+		{
+			char[] invalidFileNameChars = Path.GetInvalidFileNameChars();
+			foreach (char oldChar in invalidFileNameChars)
+			{
+				name = name.Replace(oldChar, '_');
+			}
+			return name + ".xml";
+		}
+
+		// Token: 0x0600051E RID: 1310 RVA: 0x00020B70 File Offset: 0x0001ED70
+		string AssignNewFilename()
+		{
+			for (int i = 1; i < 999; i++)
+			{
+				string text = Resources.NewDeviceConfigPrefix + "(" + i.ToString() + ").xml";
+				bool flag = false;
+				foreach (DeviceConfigInfo deviceConfigInfo in this.manager.DeviceConfigList)
+				{
+					if (text == deviceConfigInfo.Filename)
+					{
+						flag = true;
+						break;
+					}
+				}
+				if (!flag)
+				{
+					return text;
+				}
+			}
+			return null;
+		}
+
+		// Token: 0x0600051F RID: 1311 RVA: 0x00020C20 File Offset: 0x0001EE20
+		void button5_Click(object sender, EventArgs e)
+		{
+			if (!this.ConfirmSaveDeviceConfig())
+			{
+				return;
+			}
+			base.Close();
+		}
+
+		// Token: 0x06000520 RID: 1312 RVA: 0x00020C34 File Offset: 0x0001EE34
+		void PrepareDeviceForm(DeviceType type)
+		{
+			if (type != null)
+			{
+				if (this.inputDeviceForm == null || this.inputDeviceForm.GetType() != type.DeviceConfigFormType)
+				{
+					if (this.inputDeviceForm != null)
+					{
+						this.inputDeviceForm.FormClosing();
+					}
+					this.inputDeviceForm = (InputDeviceForm)Activator.CreateInstance(type.DeviceConfigFormType, new object[]
+					{
+						this
+					});
+					this.tabControl1.TabPages[1].Controls.Clear();
+					this.tabControl1.TabPages[1].Controls.Add(this.inputDeviceForm);
+					this.inputDeviceForm.Initialize();
+					this.comboBox4.SelectedItem = type;
+					this.selectedDeviceIndex = this.comboBox4.SelectedIndex;
+					return;
+				}
+			}
+			else
+			{
+				this.inputDeviceForm = new InputDeviceForm();
+				this.comboBox4.SelectedItem = null;
+				this.selectedDeviceIndex = -1;
+				this.tabControl1.TabPages[1].Controls.Clear();
+				this.tabControl1.TabPages[1].Controls.Add(this.inputDeviceForm);
+			}
+		}
+
+		// Token: 0x06000521 RID: 1313 RVA: 0x00020D64 File Offset: 0x0001EF64
+		void PrepareThermometerForm(ThermometerType type)
+		{
+			if (type != null)
+			{
+				if (this.thermometerForm == null || this.thermometerForm.GetType() != type.ThermometerFormType)
+				{
+					if (this.thermometerForm != null)
+					{
+						this.thermometerForm.FormClosing();
+					}
+					this.thermometerForm = (ThermometerForm)Activator.CreateInstance(type.ThermometerFormType, new object[]
+					{
+						this
+					});
+					this.tabControl1.TabPages[2].Controls.Clear();
+					this.tabControl1.TabPages[2].Controls.Add(this.thermometerForm);
+					this.thermometerForm.Initialize();
+					this.comboBox1.SelectedItem = type;
+					this.selectedThermometerIndex = this.comboBox1.SelectedIndex;
+					return;
+				}
+			}
+			else
+			{
+				this.thermometerForm = new ThermometerForm();
+				this.comboBox1.SelectedItem = null;
+				this.selectedThermometerIndex = -1;
+				this.tabControl1.TabPages[2].Controls.Clear();
+				this.tabControl1.TabPages[2].Controls.Add(this.thermometerForm);
+			}
+		}
+
+		// Token: 0x06000522 RID: 1314 RVA: 0x00020E94 File Offset: 0x0001F094
+		void LoadFormContents(DeviceConfigInfo config)
+		{
+			this.contentsLoading = true;
+			this.textBox1.Text = config.Name;
+			this.doubleTextBox5.Text = config.DefaultMeasurementTime.ToString();
+			this.integerTextBox1.Text = config.NumberOfChannels.ToString();
+			this.doubleTextBox6.Text = config.ChannelPitch.ToString();
+			this.textBox19.Text = config.Note;
+			this.deviceFormLoading = true;
+			DeviceType type = null;
+			DeviceType.DeviceTypeMap.TryGetValue(config.DeviceType, out type);
+			this.PrepareDeviceForm(type);
+			this.inputDeviceForm.LoadFormContents(config.InputDeviceConfig);
+			this.deviceFormLoading = false;
+			this.deviceFormLoading = true;
+			ThermometerType type2 = null;
+			ThermometerType.ThermometerTypeMap.TryGetValue(config.ThermometerType, out type2);
+			this.PrepareThermometerForm(type2);
+			this.thermometerForm.LoadFormContents(config.ThermometerConfig);
+			this.deviceFormLoading = false;
+			PolynomialEnergyCalibration polynomialEnergyCalibration = (PolynomialEnergyCalibration)config.EnergyCalibration;
+			decimal num = (decimal)polynomialEnergyCalibration.Coefficients[2];
+			if (num > this.numericUpDown1.Maximum)
+			{
+				this.numericUpDown1.Value = this.numericUpDown1.Maximum;
+			}
+			else if (num < this.numericUpDown1.Minimum)
+			{
+				this.numericUpDown1.Value = this.numericUpDown1.Minimum;
+			}
+			else
+			{
+				this.numericUpDown1.Value = num;
+			}
+			num = (decimal)polynomialEnergyCalibration.Coefficients[1];
+			if (num > this.numericUpDown2.Maximum)
+			{
+				this.numericUpDown2.Value = this.numericUpDown2.Maximum;
+			}
+			else if (num < this.numericUpDown2.Minimum)
+			{
+				this.numericUpDown2.Value = this.numericUpDown2.Minimum;
+			}
+			else
+			{
+				this.numericUpDown2.Value = num;
+			}
+			num = (decimal)polynomialEnergyCalibration.Coefficients[0];
+			if (num > this.numericUpDown7.Maximum)
+			{
+				this.numericUpDown7.Value = this.numericUpDown7.Maximum;
+			}
+			else if (num < this.numericUpDown7.Minimum)
+			{
+				this.numericUpDown7.Value = this.numericUpDown7.Minimum;
+			}
+			else
+			{
+				this.numericUpDown7.Value = num;
+			}
+			this.ShowCalibrationPoints();
+			this.UpdateMultipointButtonState();
+			this.tableModel3.Rows.Clear();
+			if (config.StabilizerConfig != null)
+			{
+				foreach (TargetPeak targetPeak in config.StabilizerConfig.TargetPeaks)
+				{
+					Row row = new Row();
+					row.Cells.Add(new Cell(targetPeak.Nuclide));
+					row.Cells.Add(new Cell(targetPeak.Energy));
+					row.Cells.Add(new Cell(targetPeak.Error));
+					this.tableModel3.Rows.Add(row);
+				}
+			}
+			DoseRateConfig doseRateConfig = config.DoseRateConfig;
+			if (doseRateConfig != null)
+			{
+				this.doubleTextBox1.Text = doseRateConfig.Sensitivity.ToString();
+				this.doubleTextBox2.Text = doseRateConfig.LowerBound.ToString();
+				this.doubleTextBox3.Text = doseRateConfig.UpperBound.ToString();
+			}
+			SimplePeakDetectionMethodConfig simplePeakDetectionMethodConfig = (SimplePeakDetectionMethodConfig)config.PeakDetectionMethodConfig;
+			this.numericUpDown4.Value = simplePeakDetectionMethodConfig.PolynomialOrder;
+			this.numericUpDown3.Value = simplePeakDetectionMethodConfig.WindowSize;
+			this.numericUpDown5.Value = (decimal)simplePeakDetectionMethodConfig.Threshold;
+			this.numericUpDown6.Value = (decimal)simplePeakDetectionMethodConfig.Tolerance;
+			this.textBox17.Text = config.BackgroundSpectrumPathname;
+			this.contentsLoading = false;
+		}
+
+		// Token: 0x06000523 RID: 1315 RVA: 0x000212F0 File Offset: 0x0001F4F0
+		bool SaveFormContents(DeviceConfigInfo config)
+		{
+			try
+			{
+				if (config.Guid == null || config.Guid == "")
+				{
+					config.Guid = Guid.NewGuid().ToString();
+				}
+				config.Name = this.textBox1.Text;
+				config.Filename = this.textBox18.Text;
+				DeviceType deviceType = (DeviceType)this.comboBox4.SelectedItem;
+				ThermometerType thermometerType = (ThermometerType)this.comboBox1.SelectedItem;
+				config.DeviceType = ((deviceType != null) ? deviceType.Id : "");
+				config.ThermometerType = ((thermometerType != null) ? thermometerType.Id : "None");
+				config.DefaultMeasurementTime = int.Parse(this.doubleTextBox5.Text);
+				config.NumberOfChannels = int.Parse(this.integerTextBox1.Text);
+				config.ChannelPitch = double.Parse(this.doubleTextBox6.Text);
+				config.Note = this.textBox19.Text;
+				this.inputDeviceForm.SaveFormContents(config.InputDeviceConfig);
+				this.thermometerForm.SaveFormContents(config.ThermometerConfig);
+				PolynomialEnergyCalibration polynomialEnergyCalibration = (PolynomialEnergyCalibration)config.EnergyCalibration;
+				polynomialEnergyCalibration.Coefficients[2] = (double)this.numericUpDown1.Value;
+				polynomialEnergyCalibration.Coefficients[1] = (double)this.numericUpDown2.Value;
+				polynomialEnergyCalibration.Coefficients[0] = (double)this.numericUpDown7.Value;
+				if (config.StabilizerConfig == null)
+				{
+					config.StabilizerConfig = new StabilizerConfig();
+				}
+				config.StabilizerConfig.TargetPeaks = new List<TargetPeak>();
+				foreach (object obj in this.tableModel3.Rows)
+				{
+					Row row = (Row)obj;
+					TargetPeak targetPeak = new TargetPeak();
+					targetPeak.Nuclide = row.Cells[0].Text;
+					targetPeak.Energy = (decimal)row.Cells[1].Data;
+					targetPeak.Error = (decimal)row.Cells[2].Data;
+					config.StabilizerConfig.TargetPeaks.Add(targetPeak);
+				}
+				DoseRateConfig doseRateConfig = config.DoseRateConfig;
+				doseRateConfig.Sensitivity = this.doubleTextBox1.GetValue();
+				doseRateConfig.LowerBound = this.doubleTextBox2.GetValue();
+				doseRateConfig.UpperBound = this.doubleTextBox3.GetValue();
+				SimplePeakDetectionMethodConfig simplePeakDetectionMethodConfig = (SimplePeakDetectionMethodConfig)config.PeakDetectionMethodConfig;
+				simplePeakDetectionMethodConfig.PolynomialOrder = (int)this.numericUpDown4.Value;
+				simplePeakDetectionMethodConfig.WindowSize = (int)this.numericUpDown3.Value;
+				simplePeakDetectionMethodConfig.Threshold = (double)this.numericUpDown5.Value;
+				simplePeakDetectionMethodConfig.Tolerance = (double)this.numericUpDown6.Value;
+				config.BackgroundSpectrumPathname = this.textBox17.Text;
+			}
+			catch (Exception)
+			{
+				return false;
+			}
+			return true;
+		}
+
+		// Token: 0x06000524 RID: 1316 RVA: 0x00021668 File Offset: 0x0001F868
+		void EnableForm()
+		{
+			this.tabControl1.Enabled = true;
+		}
+
+		// Token: 0x06000525 RID: 1317 RVA: 0x00021678 File Offset: 0x0001F878
+		void DisableForm()
+		{
+			this.tabControl1.Enabled = false;
+		}
+
+		// Token: 0x06000526 RID: 1318 RVA: 0x00021688 File Offset: 0x0001F888
+		void table1_SelectionChanged(object sender, SelectionEventArgs e)
+		{
+			if (this.reenter)
+			{
+				return;
+			}
+			this.reenter = true;
+			DeviceConfigInfo deviceConfigInfo = null;
+			Row row = null;
+			if (this.table1.SelectedItems.Length > 0)
+			{
+				deviceConfigInfo = (DeviceConfigInfo)this.table1.SelectedItems[0].Tag;
+				row = this.table1.SelectedItems[0];
+			}
+			if (deviceConfigInfo != this.activeDeviceConfig)
+			{
+				this.calibrationPoints.Clear();
+			}
+			if (!this.ConfirmSaveDeviceConfig())
+			{
+				this.ListupConfigFiles();
+				this.reenter = false;
+				return;
+			}
+			if (deviceConfigInfo != null)
+			{
+				this.activeDeviceConfig = deviceConfigInfo;
+				this.tableModel1.Selections.Clear();
+				this.tableModel1.Selections.AddCell(row.Index, 0);
+				this.LoadFormContents(this.activeDeviceConfig);
+				this.button4.Enabled = true;
+				this.button12.Enabled = true;
+				this.EnableForm();
+			}
+			else
+			{
+				this.button4.Enabled = false;
+				this.button12.Enabled = false;
+				this.DisableForm();
+			}
+			this.reenter = false;
+		}
+
+		// Token: 0x06000527 RID: 1319 RVA: 0x000217AC File Offset: 0x0001F9AC
+		bool ConfirmSaveDeviceConfig()
+		{
+			if (this.activeDeviceConfig != null && this.activeDeviceConfig.Dirty)
+			{
+				DialogResult dialogResult = MessageBox.Show(Resources.MSGConfirmSaveConfig, Resources.ConfirmationDialogTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation);
+				if (dialogResult == DialogResult.Yes)
+				{
+					this.SaveFormContents(this.activeDeviceConfig);
+					if (!this.manager.SaveConfig(this.activeDeviceConfig))
+					{
+						MessageBox.Show(Resources.ERRDuplicateConfigName);
+						return false;
+					}
+				}
+				else
+				{
+					this.activeDeviceConfig = this.manager.DeviceConfigMap[this.activeDeviceConfig.Guid].Clone();
+				}
+				this.ResetActiveDeviceConfigDirty();
+				this.ListupConfigFiles();
+			}
+			return true;
+		}
+
+		// Token: 0x06000528 RID: 1320 RVA: 0x00021858 File Offset: 0x0001FA58
+		void textBox1_TextChanged(object sender, EventArgs e)
+		{
+			this.textBox18.Text = this.ConvertNameToFilename(this.textBox1.Text);
+			this.SetActiveDeviceConfigDirty();
+		}
+
+		// Token: 0x06000529 RID: 1321 RVA: 0x0002187C File Offset: 0x0001FA7C
+		void doubleTextBox5_TextChanged(object sender, EventArgs e)
+		{
+			this.SetActiveDeviceConfigDirty();
+		}
+
+		// Token: 0x0600052A RID: 1322 RVA: 0x00021884 File Offset: 0x0001FA84
+		void integerTextBox1_TextChanged(object sender, EventArgs e)
+		{
+			this.SetActiveDeviceConfigDirty();
+		}
+
+		// Token: 0x0600052B RID: 1323 RVA: 0x0002188C File Offset: 0x0001FA8C
+		void doubleTextBox6_TextChanged(object sender, EventArgs e)
+		{
+			this.SetActiveDeviceConfigDirty();
+		}
+
+		// Token: 0x0600052C RID: 1324 RVA: 0x00021894 File Offset: 0x0001FA94
+		void textBox19_TextChanged(object sender, EventArgs e)
+		{
+			this.SetActiveDeviceConfigDirty();
+		}
+
+		// Token: 0x0600052D RID: 1325 RVA: 0x0002189C File Offset: 0x0001FA9C
+		void numericUpDown1_ValueChanged(object sender, EventArgs e)
+		{
+			this.SetActiveDeviceConfigDirty();
+		}
+
+		// Token: 0x0600052E RID: 1326 RVA: 0x000218A4 File Offset: 0x0001FAA4
+		void numericUpDown2_ValueChanged(object sender, EventArgs e)
+		{
+			this.SetActiveDeviceConfigDirty();
+		}
+
+		// Token: 0x0600052F RID: 1327 RVA: 0x000218AC File Offset: 0x0001FAAC
+		void numericUpDown7_ValueChanged(object sender, EventArgs e)
+		{
+			this.SetActiveDeviceConfigDirty();
+		}
+
+		// Token: 0x06000530 RID: 1328 RVA: 0x000218B4 File Offset: 0x0001FAB4
+		void textBox17_TextChanged(object sender, EventArgs e)
+		{
+			this.SetActiveDeviceConfigDirty();
+		}
+
+		// Token: 0x06000531 RID: 1329 RVA: 0x000218BC File Offset: 0x0001FABC
+		void button7_Click(object sender, EventArgs e)
+		{
+			OpenFileDialog openFileDialog = new OpenFileDialog();
+			string text = this.textBox17.Text;
+			if (text != null && !(text == ""))
+			{
+				openFileDialog.InitialDirectory = Path.GetDirectoryName(text);
+				openFileDialog.FileName = Path.GetFileName(text);
+			}
+			openFileDialog.Title = Resources.BackgroundSelectionDialogTitle;
+			openFileDialog.Filter = Resources.SpectrumFileFilter;
+			openFileDialog.FilterIndex = 1;
+			openFileDialog.RestoreDirectory = true;
+			if (openFileDialog.ShowDialog() != DialogResult.OK)
+			{
+				return;
+			}
+			this.textBox17.Text = openFileDialog.FileName;
+			this.SetActiveDeviceConfigDirty();
+		}
+
+		// Token: 0x06000532 RID: 1330 RVA: 0x00021958 File Offset: 0x0001FB58
+		public void SetActiveDeviceConfigDirty()
+		{
+			if (this.contentsLoading)
+			{
+				return;
+			}
+			if (this.activeDeviceConfig == null)
+			{
+				return;
+			}
+			this.activeDeviceConfig.Dirty = true;
+			this.button6.Enabled = true;
+		}
+
+		// Token: 0x06000533 RID: 1331 RVA: 0x0002198C File Offset: 0x0001FB8C
+		public void ResetActiveDeviceConfigDirty()
+		{
+			if (this.activeDeviceConfig == null)
+			{
+				return;
+			}
+			this.activeDeviceConfig.Dirty = false;
+			this.button6.Enabled = false;
+		}
+
+		// Token: 0x06000534 RID: 1332 RVA: 0x000219B4 File Offset: 0x0001FBB4
+		void button8_Click(object sender, EventArgs e)
+		{
+			MainForm mainForm = (MainForm)base.Owner;
+			DocEnergySpectrum activeDocument = mainForm.ActiveDocument;
+			if (activeDocument != null)
+			{
+				this.channelPickupProcessing = true;
+				activeDocument.EnergySpectrumView.ChannelPickuped += this.energySpectrumView_ChannelPickuped;
+			}
+			this.UpdateMultipointButtonState();
+		}
+
+		// Token: 0x06000535 RID: 1333 RVA: 0x00021A04 File Offset: 0x0001FC04
+		void UpdateMultipointButtonState()
+		{
+			this.button1.Enabled = (this.calibrationPoints.Count > 0 && !this.channelPickupProcessing && this.multipointModified);
+			this.button8.Enabled = (this.calibrationPoints.Count < 3 && !this.channelPickupProcessing);
+			this.button9.Enabled = (this.calibrationPoints.Count > 0 && !this.channelPickupProcessing);
+			this.button11.Enabled = this.channelPickupProcessing;
+			if (this.calibrationDone)
+			{
+				this.label36.Text = Resources.MSGCalibrationDone;
+				return;
+			}
+			if (this.channelPickupProcessing || this.calibrationPoints.Count < 3)
+			{
+				this.label36.Text = Resources.MSGPickUpCalibrationPoint;
+				return;
+			}
+			this.label36.Text = Resources.MSGProceedCalibration;
+		}
+
+		// Token: 0x06000536 RID: 1334 RVA: 0x00021B08 File Offset: 0x0001FD08
+		void energySpectrumView_ChannelPickuped(object sender, ChannelPickupedEventArgs e)
+		{
+			if (!this.channelPickupProcessing)
+			{
+				return;
+			}
+			decimal energy = Math.Round((decimal)this.activeDeviceConfig.EnergyCalibration.ChannelToEnergy((double)e.Channel), 2);
+			CalibrationPoint item = new CalibrationPoint(e.Channel, energy);
+			this.calibrationPoints.Add(item);
+			this.multipointModified = true;
+			this.calibrationDone = false;
+			this.ShowCalibrationPoints();
+			this.ClearChannelPickupState();
+		}
+
+		// Token: 0x06000537 RID: 1335 RVA: 0x00021B7C File Offset: 0x0001FD7C
+		void button11_Click(object sender, EventArgs e)
+		{
+			this.ClearChannelPickupState();
+		}
+
+		// Token: 0x06000538 RID: 1336 RVA: 0x00021B84 File Offset: 0x0001FD84
+		void ClearChannelPickupState()
+		{
+			MainForm mainForm = (MainForm)base.Owner;
+			DocEnergySpectrum activeDocument = mainForm.ActiveDocument;
+			if (activeDocument != null)
+			{
+				activeDocument.EnergySpectrumView.ChannelPickuped -= this.energySpectrumView_ChannelPickuped;
+			}
+			this.channelPickupProcessing = false;
+			this.UpdateMultipointButtonState();
+		}
+
+		// Token: 0x06000539 RID: 1337 RVA: 0x00021BD4 File Offset: 0x0001FDD4
+		void button9_Click(object sender, EventArgs e)
+		{
+			int num;
+			if (this.table2.SelectedItems.Length >= 1)
+			{
+				num = this.table2.SelectedItems[0].Index;
+			}
+			else
+			{
+				num = 0;
+			}
+			if (num < 0 && num >= this.calibrationPoints.Count)
+			{
+				return;
+			}
+			this.calibrationPoints.RemoveAt(num);
+			this.tableModel2.Selections.Clear();
+			this.multipointModified = true;
+			this.calibrationDone = false;
+			this.ShowCalibrationPoints();
+			this.UpdateMultipointButtonState();
+		}
+
+		// Token: 0x0600053A RID: 1338 RVA: 0x00021C68 File Offset: 0x0001FE68
+		void ShowCalibrationPoints()
+		{
+			int num = 1;
+			this.table2.SuspendLayout();
+			this.tableModel2.Rows.Clear();
+			this.calibrationPoints.Sort();
+			foreach (CalibrationPoint calibrationPoint in this.calibrationPoints)
+			{
+				Row row = new Row();
+				row.Cells.Add(new Cell(num.ToString()));
+				row.Cells.Add(new Cell(calibrationPoint.Channel));
+				row.Cells.Add(new Cell(calibrationPoint.Energy));
+				this.tableModel2.Rows.Add(row);
+				num++;
+			}
+			this.table2.ResumeLayout();
+		}
+
+		// Token: 0x0600053B RID: 1339 RVA: 0x00021D5C File Offset: 0x0001FF5C
+		void table2_SelectionChanged(object sender, SelectionEventArgs e)
+		{
+			this.UpdateMultipointButtonState();
+		}
+
+		// Token: 0x0600053C RID: 1340 RVA: 0x00021D64 File Offset: 0x0001FF64
+		void table2_EditingStopped(object sender, CellEditEventArgs e)
+		{
+			Cell cell = e.Cell;
+			Row row = cell.Row;
+			try
+			{
+				if (e.Column == 1)
+				{
+					string text = ((NumberCellEditor)e.Editor).TextBox.Text;
+					this.calibrationPoints[row.Index].Channel = (int)decimal.Parse(text);
+					this.multipointModified = true;
+					this.calibrationDone = false;
+					this.UpdateMultipointButtonState();
+				}
+				else if (e.Column == 2)
+				{
+					string text2 = ((NumberCellEditor)e.Editor).TextBox.Text;
+					this.calibrationPoints[row.Index].Energy = decimal.Parse(text2);
+					this.multipointModified = true;
+					this.UpdateMultipointButtonState();
+				}
+			}
+			catch (Exception)
+			{
+				e.Cancel = true;
+			}
+		}
+
+		// Token: 0x0600053D RID: 1341 RVA: 0x00021E48 File Offset: 0x00020048
+		void button1_Click(object sender, EventArgs e)
+		{
+			PolynomialEnergyCalibration polynomialEnergyCalibration = new PolynomialEnergyCalibration();
+			if (this.calibrationPoints.Count == 1)
+			{
+				int channel = this.calibrationPoints[0].Channel;
+				double num = (double)this.calibrationPoints[0].Energy;
+				double num2 = num / (double)channel;
+				double num3 = 0.0;
+				if (num2 < 0.01)
+				{
+					MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
+					return;
+				}
+				polynomialEnergyCalibration.Coefficients[2] = 0.0;
+				polynomialEnergyCalibration.Coefficients[1] = num2;
+				polynomialEnergyCalibration.Coefficients[0] = num3;
+			}
+			else if (this.calibrationPoints.Count == 2)
+			{
+				int channel2 = this.calibrationPoints[0].Channel;
+				int channel3 = this.calibrationPoints[1].Channel;
+				double num4 = (double)this.calibrationPoints[0].Energy;
+				double num5 = (double)this.calibrationPoints[1].Energy;
+				double num6 = (num5 - num4) / (double)(channel3 - channel2);
+				double num7 = num4 - num6 * (double)channel2;
+				if (num6 < 0.01)
+				{
+					MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
+					return;
+				}
+				polynomialEnergyCalibration.Coefficients[2] = 0.0;
+				polynomialEnergyCalibration.Coefficients[1] = num6;
+				polynomialEnergyCalibration.Coefficients[0] = num7;
+			}
+			else
+			{
+				if (this.calibrationPoints.Count == 3)
+				{
+					int channel4 = this.calibrationPoints[0].Channel;
+					int channel5 = this.calibrationPoints[1].Channel;
+					int channel6 = this.calibrationPoints[2].Channel;
+					Matrix matrix = new Matrix(3, 3);
+					matrix.Array[0][0] = (double)(channel4 * channel4);
+					matrix.Array[0][1] = (double)channel4;
+					matrix.Array[0][2] = 1.0;
+					matrix.Array[1][0] = (double)(channel5 * channel5);
+					matrix.Array[1][1] = (double)channel5;
+					matrix.Array[1][2] = 1.0;
+					matrix.Array[2][0] = (double)(channel6 * channel6);
+					matrix.Array[2][1] = (double)channel6;
+					matrix.Array[2][2] = 1.0;
+					Matrix matrix2 = new Matrix(3, 1);
+					matrix2.Array[0][0] = (double)this.calibrationPoints[0].Energy;
+					matrix2.Array[1][0] = (double)this.calibrationPoints[1].Energy;
+					matrix2.Array[2][0] = (double)this.calibrationPoints[2].Energy;
+					Matrix matrix3 = new Matrix(3, 1);
+					try
+					{
+						matrix3 = matrix.Solve(matrix2);
+					}
+					catch (Exception)
+					{
+						MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
+						return;
+					}
+					if (matrix3.Array[1][0] >= 0.01)
+					{
+						polynomialEnergyCalibration.Coefficients[2] = matrix3.Array[0][0];
+						polynomialEnergyCalibration.Coefficients[1] = matrix3.Array[1][0];
+						polynomialEnergyCalibration.Coefficients[0] = matrix3.Array[2][0];
+						goto IL_390;
+					}
+					MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
+					return;
+				}
+				MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
+			}
+			IL_390:
+			this.numericUpDown1.Value = (decimal)polynomialEnergyCalibration.Coefficients[2];
+			this.numericUpDown2.Value = (decimal)polynomialEnergyCalibration.Coefficients[1];
+			this.numericUpDown7.Value = (decimal)polynomialEnergyCalibration.Coefficients[0];
+			this.multipointModified = false;
+			this.calibrationDone = true;
+			this.UpdateMultipointButtonState();
+		}
+
+		// Token: 0x0600053E RID: 1342 RVA: 0x00022254 File Offset: 0x00020454
+		public void SetLowerThreshold(DeviceConfigInfo deviceConfig, double threshold)
+		{
+			bool flag = false;
+			foreach (object obj in this.tableModel1.Rows)
+			{
+				Row row = (Row)obj;
+				DeviceConfigInfo deviceConfigInfo = (DeviceConfigInfo)row.Tag;
+				if (deviceConfig.Guid == deviceConfigInfo.Guid)
+				{
+					flag = true;
+					this.tableModel1.Selections.Clear();
+					this.tableModel1.Selections.AddCell(row.Index, 0);
+					break;
+				}
+			}
+			if (!flag)
+			{
+				return;
+			}
+			this.tabControl1.SelectedIndex = 1;
+			TextBox lowerThresholdTextBox = this.inputDeviceForm.LowerThresholdTextBox;
+			if (lowerThresholdTextBox != null)
+			{
+				lowerThresholdTextBox.Text = threshold.ToString();
+				lowerThresholdTextBox.SelectAll();
+				lowerThresholdTextBox.Focus();
+			}
+		}
+
+		// Token: 0x0600053F RID: 1343 RVA: 0x00022350 File Offset: 0x00020550
+		public void SetUpperThreshold(DeviceConfigInfo deviceConfig, double threshold)
+		{
+			bool flag = false;
+			foreach (object obj in this.tableModel1.Rows)
+			{
+				Row row = (Row)obj;
+				DeviceConfigInfo deviceConfigInfo = (DeviceConfigInfo)row.Tag;
+				if (deviceConfig.Guid == deviceConfigInfo.Guid)
+				{
+					flag = true;
+					this.tableModel1.Selections.Clear();
+					this.tableModel1.Selections.AddCell(row.Index, 0);
+					break;
+				}
+			}
+			if (!flag)
+			{
+				return;
+			}
+			this.tabControl1.SelectedIndex = 1;
+			TextBox upperThresholdTextBox = this.inputDeviceForm.UpperThresholdTextBox;
+			if (upperThresholdTextBox != null)
+			{
+				upperThresholdTextBox.Text = threshold.ToString();
+				upperThresholdTextBox.SelectAll();
+				upperThresholdTextBox.Focus();
+			}
+		}
+
+		// Token: 0x06000540 RID: 1344 RVA: 0x0002244C File Offset: 0x0002064C
+		public void ShowStabilizerForm(DeviceConfigInfo deviceConfig)
+		{
+			bool flag = false;
+			foreach (object obj in this.tableModel1.Rows)
+			{
+				Row row = (Row)obj;
+				DeviceConfigInfo deviceConfigInfo = (DeviceConfigInfo)row.Tag;
+				if (deviceConfig.Guid == deviceConfigInfo.Guid)
+				{
+					flag = true;
+					this.tableModel1.Selections.Clear();
+					this.tableModel1.Selections.AddCell(row.Index, 0);
+					break;
+				}
+			}
+			if (!flag)
+			{
+				return;
+			}
+			this.tabControl1.SelectedIndex = 3;
+		}
+
+		// Token: 0x06000541 RID: 1345 RVA: 0x00022514 File Offset: 0x00020714
+		void numericUpDown4_ValueChanged(object sender, EventArgs e)
+		{
+			int num = (int)this.numericUpDown4.Value;
+			int num2 = (int)this.numericUpDown3.Value;
+			if (num2 <= num)
+			{
+				num2 = num + 1;
+				if (num2 % 2 == 0)
+				{
+					num2++;
+				}
+				this.numericUpDown3.Value = num2;
+			}
+			this.SetActiveDeviceConfigDirty();
+		}
+
+		// Token: 0x06000542 RID: 1346 RVA: 0x00022578 File Offset: 0x00020778
+		void numericUpDown3_ValueChanged(object sender, EventArgs e)
+		{
+			int num = (int)this.numericUpDown4.Value;
+			int num2 = (int)this.numericUpDown3.Value;
+			if (num2 <= num)
+			{
+				num2 = num + 1;
+				if (num2 % 2 == 0)
+				{
+					num2++;
+				}
+				this.numericUpDown3.Value = num2;
+			}
+			else if (num2 % 2 == 0)
+			{
+				num2++;
+				this.numericUpDown3.Value = num2;
+			}
+			this.SetActiveDeviceConfigDirty();
+		}
+
+		// Token: 0x06000543 RID: 1347 RVA: 0x000225FC File Offset: 0x000207FC
+		void numericUpDown5_ValueChanged(object sender, EventArgs e)
+		{
+			this.SetActiveDeviceConfigDirty();
+		}
+
+		// Token: 0x06000544 RID: 1348 RVA: 0x00022604 File Offset: 0x00020804
+		void numericUpDown6_ValueChanged(object sender, EventArgs e)
+		{
+			this.SetActiveDeviceConfigDirty();
+		}
+
+		// Token: 0x06000545 RID: 1349 RVA: 0x0002260C File Offset: 0x0002080C
+		void comboBox4_SelectedIndexChanged(object sender, EventArgs e)
+		{
+			if (this.deviceFormLoading || this.selectedDeviceIndex == this.comboBox4.SelectedIndex)
+			{
+				return;
+			}
+			if (DialogResult.No == MessageBox.Show(Resources.MSGDeviceTypeChanging, Resources.ConfirmationDialogTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation))
+			{
+				this.deviceFormLoading = true;
+				this.comboBox4.SelectedIndex = this.selectedDeviceIndex;
+				this.deviceFormLoading = false;
+				return;
+			}
+			this.selectedDeviceIndex = this.comboBox4.SelectedIndex;
+			DeviceType deviceType = (DeviceType)this.comboBox4.SelectedItem;
+			this.deviceFormLoading = true;
+			this.PrepareDeviceForm(deviceType);
+			InputDeviceConfig inputDeviceConfig = (InputDeviceConfig)Activator.CreateInstance(deviceType.DeviceConfigType);
+			this.activeDeviceConfig.InputDeviceConfig = inputDeviceConfig;
+			this.inputDeviceForm.LoadFormContents(inputDeviceConfig);
+			this.deviceFormLoading = false;
+			this.SetActiveDeviceConfigDirty();
+		}
+
+		// Token: 0x06000546 RID: 1350 RVA: 0x000226E0 File Offset: 0x000208E0
+		void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+		{
+			if (this.deviceFormLoading || this.selectedThermometerIndex == this.comboBox1.SelectedIndex)
+			{
+				return;
+			}
+			if (DialogResult.No == MessageBox.Show(Resources.MSGThermometerTypeChanging, Resources.ConfirmationDialogTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation))
+			{
+				this.deviceFormLoading = true;
+				this.comboBox1.SelectedIndex = this.selectedThermometerIndex;
+				this.deviceFormLoading = false;
+				return;
+			}
+			this.selectedThermometerIndex = this.comboBox1.SelectedIndex;
+			ThermometerType thermometerType = (ThermometerType)this.comboBox1.SelectedItem;
+			this.deviceFormLoading = true;
+			this.PrepareThermometerForm(thermometerType);
+			ThermometerConfig thermometerConfig = (ThermometerConfig)Activator.CreateInstance(thermometerType.ThermometerConfigType);
+			if (thermometerType.Id == "None")
+			{
+				this.activeDeviceConfig.ThermometerConfig = null;
+			}
+			else
+			{
+				this.activeDeviceConfig.ThermometerConfig = thermometerConfig;
+			}
+			this.thermometerForm.LoadFormContents(thermometerConfig);
+			this.deviceFormLoading = false;
+			this.SetActiveDeviceConfigDirty();
+		}
+
+		// Token: 0x06000547 RID: 1351 RVA: 0x000227D8 File Offset: 0x000209D8
+		void doubleTextBox1_TextChanged(object sender, EventArgs e)
+		{
+			this.SetActiveDeviceConfigDirty();
+		}
+
+		// Token: 0x06000548 RID: 1352 RVA: 0x000227E0 File Offset: 0x000209E0
+		void doubleTextBox2_TextChanged(object sender, EventArgs e)
+		{
+			this.SetActiveDeviceConfigDirty();
+		}
+
+		// Token: 0x06000549 RID: 1353 RVA: 0x000227E8 File Offset: 0x000209E8
+		void doubleTextBox3_TextChanged(object sender, EventArgs e)
+		{
+			this.SetActiveDeviceConfigDirty();
+		}
+
+		// Token: 0x0600054A RID: 1354 RVA: 0x000227F0 File Offset: 0x000209F0
+		void button10_Click(object sender, EventArgs e)
+		{
+			Row row = new Row();
+			row.Cells.Add(new Cell(""));
+			row.Cells.Add(new Cell(0m));
+			row.Cells.Add(new Cell(10m));
+			this.tableModel3.Rows.Add(row);
+			this.SetActiveDeviceConfigDirty();
+		}
+
+		// Token: 0x0600054B RID: 1355 RVA: 0x00022870 File Offset: 0x00020A70
+		void button2_Click(object sender, EventArgs e)
+		{
+			if (this.table3.SelectedItems.Length <= 0)
+			{
+				return;
+			}
+			Row row = this.table3.SelectedItems[0];
+			this.tableModel3.Rows.RemoveAt(row.Index);
+			this.SetActiveDeviceConfigDirty();
+		}
+
+		// Token: 0x0600054C RID: 1356 RVA: 0x000228C4 File Offset: 0x00020AC4
+		void table3_EditingStopped(object sender, CellEditEventArgs e)
+		{
+			Cell cell = e.Cell;
+			Row row = cell.Row;
+			try
+			{
+				if (e.Column == 1)
+				{
+					string text = ((NumberCellEditor)e.Editor).TextBox.Text;
+					this.SetActiveDeviceConfigDirty();
+				}
+				else if (e.Column == 2)
+				{
+					string text2 = ((NumberCellEditor)e.Editor).TextBox.Text;
+					this.SetActiveDeviceConfigDirty();
+				}
+			}
+			catch (Exception)
+			{
+				e.Cancel = true;
+			}
+		}
+
+		// Token: 0x040002BB RID: 699
+		DeviceConfigManager manager = DeviceConfigManager.GetInstance();
+
+		// Token: 0x040002BC RID: 700
+		DeviceConfigInfo activeDeviceConfig;
+
+		// Token: 0x040002BD RID: 701
+		GlobalConfigManager globalConfigManager = GlobalConfigManager.GetInstance();
+
+		// Token: 0x040002BE RID: 702
+		bool contentsLoading;
+
+		// Token: 0x040002BF RID: 703
+		bool channelPickupProcessing;
+
+		// Token: 0x040002C0 RID: 704
+		bool calibrationDone;
+
+		// Token: 0x040002C1 RID: 705
+		bool multipointModified;
+
+		// Token: 0x040002C2 RID: 706
+		List<CalibrationPoint> calibrationPoints = new List<CalibrationPoint>();
+
+		// Token: 0x040002C3 RID: 707
+		InputDeviceForm inputDeviceForm;
+
+		// Token: 0x040002C4 RID: 708
+		ThermometerForm thermometerForm;
+
+		// Token: 0x040002C5 RID: 709
+		bool reenter;
+
+		// Token: 0x040002C6 RID: 710
+		int selectedDeviceIndex = -1;
+
+		// Token: 0x040002C7 RID: 711
+		bool deviceFormLoading;
+
+		// Token: 0x040002C8 RID: 712
+		int selectedThermometerIndex = -1;
+	}
+}

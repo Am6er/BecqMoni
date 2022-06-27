@@ -1,0 +1,682 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{D463F11B-8ED5-4730-9259-44EA9D6A3C66}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>BecquerelMonitor</RootNamespace>
+    <AssemblyName>BecquerelMonitor</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>BecquerelMonitor.ico</ApplicationIcon>
+    <StartupObject>BecquerelMonitor.Program</StartupObject>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="RJCP.SerialPortStream, Version=2.2.0.0, Culture=neutral, PublicKeyToken=5f5e7b70c6a74deb, processorArchitecture=MSIL">
+      <HintPath>..\packages\SerialPortStream.2.2.0\lib\net40\RJCP.SerialPortStream.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Design" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+    <Reference Include="WeifenLuo.WinFormsUI.Docking">
+      <HintPath>..\packages\DockPanelSuite.3.0.6\lib\net40\WeifenLuo.WinFormsUI.Docking.dll</HintPath>
+    </Reference>
+    <Reference Include="XPTable">
+      <HintPath>..\packages\XPTable.1.6.1.140\lib\net20\XPTable.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <AppDesigner Include="Properties\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AboutForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="AboutForm.Designer.cs">
+      <DependentUpon>AboutForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="AddSpectrumToDocumentEventArgs.cs" />
+    <Compile Include="AddSpectrumToDocumentEventHandler.cs" />
+    <Compile Include="AtomSpectraDeviceConfig.cs" />
+    <Compile Include="AtomSpectraDeviceController.cs" />
+    <Compile Include="AtomSpectraVCPDeviceForm.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="AtomSpectraVCPDeviceForm.Designer.cs">
+      <DependentUpon>AtomSpectraVCPDeviceForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="AtomSpectraVCPIn.cs" />
+    <Compile Include="AudioInputDeviceConfig.cs" />
+    <Compile Include="AudioInputDeviceController.cs" />
+    <Compile Include="AudioInputDeviceForm.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="AudioInputDeviceForm.Designer.cs">
+      <DependentUpon>AudioInputDeviceForm.resx</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="AudioVolumeController.cs" />
+    <Compile Include="BackgroundMode.cs" />
+    <Compile Include="BuiltinThermometerConfig.cs" />
+    <Compile Include="CalibrationPoint.cs" />
+    <Compile Include="CDATA.cs" />
+    <Compile Include="ChannelPickupedEventArgs.cs" />
+    <Compile Include="ChartType.cs" />
+    <Compile Include="ChartViewConfig.cs" />
+    <Compile Include="ColorComboTestApp\ColorChangeArgs.cs" />
+    <Compile Include="ColorComboTestApp\ColorChangedHandler.cs" />
+    <Compile Include="ColorComboTestApp\ColorComboBox.Designer.cs">
+      <DependentUpon>ColorComboBox.resx</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="ColorConfig.cs" />
+    <Compile Include="ContextMenuForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ContextMenuForm.Designer.cs">
+      <DependentUpon>ContextMenuForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\StatusMessage.Designer.cs">
+      <DependentUpon>StatusMessage.resx</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="CoreAudioApi\AudioEndpointVolume.cs" />
+    <Compile Include="CoreAudioApi\AudioEndpointVolumeCallback.cs" />
+    <Compile Include="CoreAudioApi\AudioEndpointVolumeChannel.cs" />
+    <Compile Include="CoreAudioApi\AudioEndpointVolumeChannels.cs" />
+    <Compile Include="CoreAudioApi\AudioEndpointVolumeNotificationDelegate.cs" />
+    <Compile Include="CoreAudioApi\AudioEndpointVolumeStepInformation.cs" />
+    <Compile Include="CoreAudioApi\AudioEndPointVolumeVolumeRange.cs" />
+    <Compile Include="CoreAudioApi\AudioMeterInformation.cs" />
+    <Compile Include="CoreAudioApi\AudioMeterInformationChannels.cs" />
+    <Compile Include="CoreAudioApi\AudioSessionControl.cs" />
+    <Compile Include="CoreAudioApi\AudioSessionDisconnectReason.cs" />
+    <Compile Include="CoreAudioApi\AudioSessionManager.cs" />
+    <Compile Include="CoreAudioApi\AudioSessionState.cs" />
+    <Compile Include="CoreAudioApi\AudioVolumeNotificationData.cs" />
+    <Compile Include="CoreAudioApi\EDataFlow.cs" />
+    <Compile Include="CoreAudioApi\EDeviceState.cs" />
+    <Compile Include="CoreAudioApi\EEndpointHardwareSupport.cs" />
+    <Compile Include="CoreAudioApi\ERole.cs" />
+    <Compile Include="CoreAudioApi\Interfaces\AUDIO_VOLUME_NOTIFICATION_DATA.cs" />
+    <Compile Include="CoreAudioApi\Interfaces\Blob.cs" />
+    <Compile Include="CoreAudioApi\Interfaces\CLSCTX.cs" />
+    <Compile Include="CoreAudioApi\Interfaces\EStgmAccess.cs" />
+    <Compile Include="CoreAudioApi\Interfaces\IAudioEndpointVolume.cs" />
+    <Compile Include="CoreAudioApi\Interfaces\IAudioEndpointVolumeCallback.cs" />
+    <Compile Include="CoreAudioApi\Interfaces\IAudioMeterInformation.cs" />
+    <Compile Include="CoreAudioApi\Interfaces\IAudioPeakMeter.cs" />
+    <Compile Include="CoreAudioApi\Interfaces\IAudioSessionControl2.cs" />
+    <Compile Include="CoreAudioApi\Interfaces\IAudioSessionEnumerator.cs" />
+    <Compile Include="CoreAudioApi\Interfaces\IAudioSessionEvents.cs" />
+    <Compile Include="CoreAudioApi\Interfaces\IAudioSessionManager2.cs" />
+    <Compile Include="CoreAudioApi\Interfaces\IMMDevice.cs" />
+    <Compile Include="CoreAudioApi\Interfaces\IMMDeviceCollection.cs" />
+    <Compile Include="CoreAudioApi\Interfaces\IMMDeviceEnumerator.cs" />
+    <Compile Include="CoreAudioApi\Interfaces\IMMEndpoint.cs" />
+    <Compile Include="CoreAudioApi\Interfaces\IPropertyStore.cs" />
+    <Compile Include="CoreAudioApi\Interfaces\ISimpleAudioVolume.cs" />
+    <Compile Include="CoreAudioApi\MMDevice.cs" />
+    <Compile Include="CoreAudioApi\MMDeviceCollection.cs" />
+    <Compile Include="CoreAudioApi\MMDeviceEnumerator.cs" />
+    <Compile Include="CoreAudioApi\PKEY.cs" />
+    <Compile Include="CoreAudioApi\PropertyKey.cs" />
+    <Compile Include="CoreAudioApi\PropertyStore.cs" />
+    <Compile Include="CoreAudioApi\PropertyStoreProperty.cs" />
+    <Compile Include="CoreAudioApi\PropVariant.cs" />
+    <Compile Include="CoreAudioApi\SessionCollection.cs" />
+    <Compile Include="CoreAudioApi\SimpleAudioVolume.cs" />
+    <Compile Include="CoreAudioApi\_MMDeviceEnumerator.cs" />
+    <Compile Include="CoreAudioTestForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="CoreAudioTestForm.Designer.cs">
+      <DependentUpon>CoreAudioTestForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="CorrelativePulseDetector.cs" />
+    <Compile Include="DCControlPanel.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DCControlPanel.Designer.cs">
+      <DependentUpon>DCControlPanel.cs</DependentUpon>
+    </Compile>
+    <Compile Include="DCDebugPanel.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DCDebugPanel.Designer.cs">
+      <DependentUpon>DCDebugPanel.cs</DependentUpon>
+    </Compile>
+    <Compile Include="DCDoseRateView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DCDoseRateView.Designer.cs">
+      <DependentUpon>DCDoseRateView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="DCEnergyCalibrationView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DCEnergyCalibrationView.Designer.cs">
+      <DependentUpon>DCEnergyCalibrationView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="DCPeakDetectionView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DCPeakDetectionView.Designer.cs">
+      <DependentUpon>DCPeakDetectionView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="DCPulseView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DCPulseView.Designer.cs">
+      <DependentUpon>DCPulseView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="DCResultView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DCResultView.Designer.cs">
+      <DependentUpon>DCResultView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="DCSampleInfoView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DCSampleInfoView.Designer.cs">
+      <DependentUpon>DCSampleInfoView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="DCSpectrumExplorerView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DCSpectrumExplorerView.Designer.cs">
+      <DependentUpon>DCSpectrumExplorerView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="DCSpectrumListView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DCSpectrumListView.Designer.cs">
+      <DependentUpon>DCSpectrumListView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="DCSpectrumView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DCSpectrumView.Designer.cs">
+      <DependentUpon>DCSpectrumView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="DCStatusMessageView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DCStatusMessageView.Designer.cs">
+      <DependentUpon>DCStatusMessageView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="DeviceConfigChangedEventArgs.cs" />
+    <Compile Include="DeviceConfigForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DeviceConfigForm.Designer.cs">
+      <DependentUpon>DeviceConfigForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="DeviceConfigInfo.cs" />
+    <Compile Include="DeviceConfigInfo_097b.cs" />
+    <Compile Include="DeviceConfigManager.cs" />
+    <Compile Include="DeviceConfigReference.cs" />
+    <Compile Include="DeviceController.cs" />
+    <Compile Include="DeviceType.cs" />
+    <Compile Include="DocEnergySpectrum.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DocEnergySpectrum.Designer.cs">
+      <DependentUpon>DocEnergySpectrum.cs</DependentUpon>
+    </Compile>
+    <Compile Include="DocumentManager.cs" />
+    <Compile Include="DoseRate.cs" />
+    <Compile Include="DoseRateConfig.cs" />
+    <Compile Include="DoseRateManager.cs" />
+    <Compile Include="DoubleTextBox.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="DrawingMode.cs" />
+    <Compile Include="EasyControlConfig.cs" />
+    <Compile Include="EnergyCalibration.cs" />
+    <Compile Include="EnergyCalibrationChangedEventArgs.cs" />
+    <Compile Include="EnergyResolutionCalculator.cs" />
+    <Compile Include="EnergyResolutionResult.cs" />
+    <Compile Include="EnergySpectrum.cs" />
+    <Compile Include="EnergySpectrumView.Designer.cs">
+      <DependentUpon>EnergySpectrumView.resx</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="EnergySpectrum_097b.cs" />
+    <Compile Include="Form1.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form1.Designer.cs">
+      <DependentUpon>Form1.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GlobalConfigForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="GlobalConfigForm.Designer.cs">
+      <DependentUpon>GlobalConfigForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GlobalConfigInfo.cs" />
+    <Compile Include="GlobalConfigManager.cs" />
+    <Compile Include="HorizontalMagnification.cs" />
+    <Compile Include="HorizontalUnit.cs" />
+    <Compile Include="IconPanel.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="InputDeviceConfig.cs" />
+    <Compile Include="InputDeviceForm.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="InputDeviceForm.Designer.cs">
+      <DependentUpon>InputDeviceForm.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+    </Compile>
+    <Compile Include="IntegerTextBox.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="LayoutMode.cs" />
+    <Compile Include="LegendCellRenderer.cs" />
+    <Compile Include="LimitExpiredForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="LimitExpiredForm.Designer.cs">
+      <DependentUpon>LimitExpiredForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MagnificationReference.cs" />
+    <Compile Include="MainForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MainForm.Designer.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MaNet\CholeskyDecomposition.cs" />
+    <Compile Include="MaNet\EigenvalueDecomposition.cs" />
+    <Compile Include="MaNet\LUDecomposition.cs" />
+    <Compile Include="MaNet\Maths.cs" />
+    <Compile Include="MaNet\Matrix.cs" />
+    <Compile Include="MaNet\QRDecomposition.cs" />
+    <Compile Include="MaNet\SingularValueDecomposition.cs" />
+    <Compile Include="MeasurementConfig.cs" />
+    <Compile Include="MeasurementController.cs" />
+    <Compile Include="MeasurementResult.cs" />
+    <Compile Include="MeasurementResultCollection.cs" />
+    <Compile Include="MeasurementResultManager.cs" />
+    <Compile Include="MenuStripEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="NakedKingThermometerConfig.cs" />
+    <Compile Include="NoneThermometerConfig.cs" />
+    <Compile Include="NonlinearEnergyCalibration.cs" />
+    <Compile Include="NuclideDefinition.cs" />
+    <Compile Include="NuclideDefinitionFile.cs" />
+    <Compile Include="NuclideDefinitionForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="NuclideDefinitionForm.Designer.cs">
+      <DependentUpon>NuclideDefinitionForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="NuclideDefinitionManager.cs" />
+    <Compile Include="OutofChannelException.cs" />
+    <Compile Include="Peak.cs" />
+    <Compile Include="PeakDetectionMethodConfig.cs" />
+    <Compile Include="PeakDetector.cs" />
+    <Compile Include="PeakMode.cs" />
+    <Compile Include="PeakStabilizer.cs" />
+    <Compile Include="PercentageProgressBar.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="PolynomialEnergyCalibration.cs" />
+    <Compile Include="PRAHomageMethodConfig.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">
+      <DependentUpon>Resources.resx</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <DependentUpon>Settings.settings</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+    <Compile Include="Pulse.cs" />
+    <Compile Include="PulseCollection.cs" />
+    <Compile Include="PulseData.cs" />
+    <Compile Include="PulseDecayView.Designer.cs">
+      <DependentUpon>PulseDecayView.resx</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="PulseDetectionMethodConfig.cs" />
+    <Compile Include="PulseDetector.cs" />
+    <Compile Include="PulseView.Designer.cs">
+      <DependentUpon>PulseView.resx</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="RepeatButton.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="resfinder.cs" />
+    <Compile Include="ResultCorrection.cs" />
+    <Compile Include="ResultData.cs" />
+    <Compile Include="ResultDataFile.cs" />
+    <Compile Include="ResultDataFile_097b.cs" />
+    <Compile Include="ResultDataStatus.cs" />
+    <Compile Include="ResultData_093b.cs" />
+    <Compile Include="ResultData_097b.cs" />
+    <Compile Include="ResultTranslation.cs" />
+    <Compile Include="ResultValueCellRenderer.cs" />
+    <Compile Include="ROIConfigData.cs" />
+    <Compile Include="ROIConfigForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ROIConfigForm.Designer.cs">
+      <DependentUpon>ROIConfigForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ROIConfigManager.cs" />
+    <Compile Include="ROIConfigReference.cs" />
+    <Compile Include="ROICovellMethodControl.Designer.cs">
+      <DependentUpon>ROICovellMethodControl.resx</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="ROICovellMethodData.cs" />
+    <Compile Include="ROIDefinitionData.cs" />
+    <Compile Include="ROIPrimitiveControl.Designer.cs">
+      <DependentUpon>ROIPrimitiveControl.resx</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="ROIPrimitiveData.cs" />
+    <Compile Include="ROIPrimitiveDefinition.cs" />
+    <Compile Include="ROIPrimitiveOperation.cs" />
+    <Compile Include="ROIReferenceControl.Designer.cs">
+      <DependentUpon>ROIReferenceControl.resx</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="ROIReferenceData.cs" />
+    <Compile Include="ROISimpleDifferenceControl.Designer.cs">
+      <DependentUpon>ROISimpleDifferenceControl.resx</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="ROISimpleDifferenceData.cs" />
+    <Compile Include="SampleInfoData.cs" />
+    <Compile Include="SavitzkyGolayMethod.cs" />
+    <Compile Include="SerialInputDeviceConfig.cs" />
+    <Compile Include="SerializableColor.cs" />
+    <Compile Include="ShowEnergyCalibrationViewEventArgs.cs" />
+    <Compile Include="ShowEnergyCalibrationViewEventHandler.cs" />
+    <Compile Include="SimplePeakDetectionMethodConfig.cs" />
+    <Compile Include="SmoothingMethod.cs" />
+    <Compile Include="SoundConfig.cs" />
+    <Compile Include="StabilizerConfig.cs" />
+    <Compile Include="StandardPulseRecorder.cs" />
+    <Compile Include="StandardPulseView.Designer.cs">
+      <DependentUpon>StandardPulseView.resx</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="StartupForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="StartupForm.Designer.cs">
+      <DependentUpon>StartupForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="TargetPeak.cs" />
+    <Compile Include="ThermometerConfig.cs" />
+    <Compile Include="ThermometerController.cs" />
+    <Compile Include="ThermometerForm.Designer.cs">
+      <DependentUpon>ThermometerForm.resx</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="ThermometerType.cs" />
+    <Compile Include="ToolStripCheckBox.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="ToolStripEnergyCalibration.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="ToolStripEnergyCalibrationButton.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="ToolStripEnergyCalibrationControl.Designer.cs">
+      <DependentUpon>ToolStripEnergyCalibrationControl.resx</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="ToolStripEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="ToolStripNumericUpdown.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="ToolStripRadioButton.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="ToolWindow.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ToolWindow.Designer.cs">
+      <DependentUpon>ToolWindow.cs</DependentUpon>
+    </Compile>
+    <Compile Include="USBThermometerConfig.cs" />
+    <Compile Include="VerticalFittingMode.cs" />
+    <Compile Include="VerticalScaleType.cs" />
+    <Compile Include="VerticalUnit.cs" />
+    <Compile Include="VolumeUnit.cs" />
+    <Compile Include="WeightUnit.cs" />
+    <Compile Include="WinConst.cs" />
+    <Compile Include="WinMM\BadDeviceIdException.cs" />
+    <Compile Include="WinMM\DataReadyEventArgs.cs" />
+    <Compile Include="WinMM\InvalidHandleException.cs" />
+    <Compile Include="WinMM\InvalidParameterException.cs" />
+    <Compile Include="WinMM\MMSystemException.cs" />
+    <Compile Include="WinMM\NativeMethods.cs" />
+    <Compile Include="WinMM\PlaySound.cs" />
+    <Compile Include="WinMM\Properties\Resources.Designer.cs">
+      <DependentUpon>Resources.resx</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="WinMM\Volume.cs" />
+    <Compile Include="WinMM\WaveFormat.cs" />
+    <Compile Include="WinMM\WaveFormats.cs" />
+    <Compile Include="WinMM\WaveFormatTag.cs" />
+    <Compile Include="WinMM\WaveIn.cs" />
+    <Compile Include="WinMM\WaveInDeviceCaps.cs" />
+    <Compile Include="WinMM\WaveInMessage.cs" />
+    <Compile Include="WinMM\WaveInSafeHandle.cs" />
+    <Compile Include="WinMM\WaveOut.cs" />
+    <Compile Include="WinMM\WaveOutDeviceCaps.cs" />
+    <Compile Include="WinMM\WaveOutMessage.cs" />
+    <Compile Include="WinMM\WaveOutMessageReceivedEventArgs.cs" />
+    <Compile Include="WinMM\WaveOutSafeHandle.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="AboutForm.resx">
+      <DependentUpon>AboutForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="AtomSpectraVCPDeviceForm.resx">
+      <DependentUpon>AtomSpectraVCPDeviceForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="AudioInputDeviceForm.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>AudioInputDeviceForm.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ColorComboTestApp\ColorComboBox.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>ColorComboBox.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ContextMenuForm.resx">
+      <DependentUpon>ContextMenuForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Controls\StatusMessage.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>StatusMessage.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="CoreAudioTestForm.resx">
+      <DependentUpon>CoreAudioTestForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DCControlPanel.resx">
+      <DependentUpon>DCControlPanel.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DCDebugPanel.resx">
+      <DependentUpon>DCDebugPanel.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DCDoseRateView.resx">
+      <DependentUpon>DCDoseRateView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DCEnergyCalibrationView.resx">
+      <DependentUpon>DCEnergyCalibrationView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DCPeakDetectionView.resx">
+      <DependentUpon>DCPeakDetectionView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DCPulseView.resx">
+      <DependentUpon>DCPulseView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DCResultView.resx">
+      <DependentUpon>DCResultView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DCSampleInfoView.resx">
+      <DependentUpon>DCSampleInfoView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DCSpectrumExplorerView.resx">
+      <DependentUpon>DCSpectrumExplorerView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DCSpectrumListView.resx">
+      <DependentUpon>DCSpectrumListView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DCSpectrumView.resx">
+      <DependentUpon>DCSpectrumView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DCStatusMessageView.resx">
+      <DependentUpon>DCStatusMessageView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DeviceConfigForm.resx">
+      <DependentUpon>DeviceConfigForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DocEnergySpectrum.resx">
+      <DependentUpon>DocEnergySpectrum.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="EnergySpectrumView.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>EnergySpectrumView.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="GlobalConfigForm.resx">
+      <DependentUpon>GlobalConfigForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="InputDeviceForm.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>InputDeviceForm.Designer.cs</LastGenOutput>
+      <DependentUpon>InputDeviceForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="LimitExpiredForm.resx">
+      <DependentUpon>LimitExpiredForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MainForm.resx">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="NuclideDefinitionForm.resx">
+      <DependentUpon>NuclideDefinitionForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="PulseDecayView.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>PulseDecayView.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="PulseView.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>PulseView.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ROIConfigForm.resx">
+      <DependentUpon>ROIConfigForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ROICovellMethodControl.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>ROICovellMethodControl.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ROIPrimitiveControl.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>ROIPrimitiveControl.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ROIReferenceControl.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>ROIReferenceControl.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ROISimpleDifferenceControl.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>ROISimpleDifferenceControl.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="StandardPulseView.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>StandardPulseView.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="StartupForm.resx">
+      <DependentUpon>StartupForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ThermometerForm.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>ThermometerForm.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ToolStripEnergyCalibrationControl.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>ToolStripEnergyCalibrationControl.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ToolWindow.resx">
+      <DependentUpon>ToolWindow.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinMM\Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.manifest" />
+    <None Include="packages.config" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

@@ -1,0 +1,268 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Devices" xml:space="preserve">
+    <value>&lt;?xml version="1.0" encoding="utf-8" ?&gt;
+&lt;devices&gt;
+&lt;manufacturer id="1" name="Microsoft Corporation"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="2" name="Creative Labs, Inc"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="3" name="Media Vision, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="4" name="Fujitsu Corp."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="20" name="Artisoft, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="21" name="Turtle Beach, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="22" name="IBM Corporation"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="23" name="Vocaltec LTD."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="24" name="Roland"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="25" name="DSP Solutions, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="26" name="NEC"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="27" name="ATI"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="28" name="Wang Laboratories, Inc"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="29" name="Tandy Corporation"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="30" name="Voyetra"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="31" name="Antex Electronics Corporation"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="32" name="ICL Personal Systems"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="33" name="Intel Corporation"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="34" name="Advanced Gravis"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="35" name="Video Associates Labs, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="36" name="InterActive Inc"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="37" name="Yamaha Corporation of America"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="38" name="Everex Systems, Inc"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="39" name="Echo Speech Corporation"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="40" name="Sierra Semiconductor Corp"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="41" name="Computer Aided Technologies"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="42" name="APPS Software International"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="43" name="DSP Group, Inc"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="44" name="microEngineering Labs"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="45" name="Computer Friends, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="46" name="ESS Technology"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="47" name="Audio, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="48" name="Motorola, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="49" name="Canopus, co., Ltd."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="50" name="Seiko Epson Corporation"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="51" name="Truevision"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="52" name="Aztech Labs, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="53" name="Videologic"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="54" name="SCALACS"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="55" name="Korg Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="56" name="Audio Processing Technology"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="57" name="Integrated Circuit Systems, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="58" name="Iterated Systems, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="59" name="Metheus"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="60" name="Logitech, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="61" name="Winnov, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="62" name="NCR Corporation"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="63" name="EXAN"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="64" name="AST Research Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="65" name="Willow Pond Corporation"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="66" name="Sonic Foundry"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="67" name="Vitec Multimedia"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="68" name="MOSCOM Corporation"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="69" name="Silicon Soft, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="73" name="Supermac"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="74" name="Audio Processing Technology"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="76" name="Speech Compression"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="77" name="Ahead, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="78" name="Dolby Laboratories"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="79" name="OKI"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="80" name="AuraVision Corporation"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="81" name="Ing C. Olivetti &amp;amp; C., S.p.A."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="82" name="I/O Magic Corporation"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="83" name="Matsushita Electric Industrial Co., LTD."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="84" name="Control Resources Limited"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="85" name="Xebec Multimedia Solutions Limited"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="86" name="New Media Corporation"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="87" name="Natural MicroSystems"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="88" name="Lyrrus Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="89" name="Compusic"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="90" name="OPTi Computers Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="91" name="Adlib Accessories Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="92" name="Compaq Computer Corp."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="93" name="Dialogic Corporation"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="94" name="InSoft, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="95" name="M.P. Technologies, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="96" name="Weitek"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="97" name="Lernout &amp;amp; Hauspie"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="98" name="Quanta Computer Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="99" name="Apple Computer, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="100" name="Digital Equipment Corporation"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="101" name="Mark of the Unicorn"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="102" name="Workbit Corporation"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="103" name="Ositech Communications Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="104" name="miro Computer Products AG"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="105" name="Cirrus Logic"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="106" name="ISOLUTION  B.V."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="107" name="Horizons Technology, Inc"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="108" name="Computer Concepts Ltd"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="109" name="Voice Technologies Group, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="110" name="Radius"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="111" name="Rockwell International"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="112" name="Co. XYZ for testing"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="113" name="Opcode Systems"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="114" name="Voxware Inc"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="115" name="Northern Telecom Limited"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="116" name="APICOM"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="117" name="Grande Software"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="118" name="ADDX"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="119" name="Wildcat Canyon Software"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="120" name="Rhetorex Inc"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="121" name="Brooktree Corporation"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="125" name="ENSONIQ Corporation"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="126" name="///FAST Multimedia AG"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="127" name="NVidia Corporation"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="128" name="OKSORI Co., Ltd."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="129" name="DiAcoustics, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="130" name="Gulbransen, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="131" name="Kay Elemetrics, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="132" name="Crystal Semiconductor Corporation"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="133" name="Splash Studios"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="134" name="Quarterdeck Corporation"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="135" name="TDK Corporation"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="136" name="Digital Audio Labs, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="137" name="Seer Systems, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="138" name="PictureTel Corporation"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="139" name="AT&amp;amp;T Microelectronics"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="140" name="Osprey Technologies, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="141" name="Mediatrix Peripherals"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="142" name="SounDesignS M.C.S. Ltd."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="143" name="A.L. Digital Ltd."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="144" name="Spectrum Signal Processing, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="145" name="Electronic Courseware Systems, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="146" name="AMD"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="147" name="Core Dynamics"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="148" name="CANAM Computers"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="149" name="Softsound, Ltd."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="150" name="Norris Communications, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="151" name="Danka Data Devices"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="152" name="EuPhonics"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="153" name="Precept Software, Inc."&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="154" name="Crystal Net Corporation"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="155" name="Chromatic Research, Inc"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="156" name="Voice Information Systems, Inc"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="157" name="Vienna Systems"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="158" name="Connectix Corporation"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="159" name="Gadget Labs LLC"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="160" name="Frontier Design Group LLC"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="161" name="Viona Development GmbH"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="162" name="Casio Computer Co., LTD"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="163" name="Diamond Multimedia"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="164" name="S3"&gt;&lt;/manufacturer&gt;
+&lt;manufacturer id="172" name="Fraunhofer"&gt;&lt;/manufacturer&gt;
+&lt;/devices&gt;</value>
+  </data>
+</root>
