@@ -104,8 +104,8 @@ namespace BecquerelMonitor
                 {
                     AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).sendCommand("-sto");
                     commands_accepted &= AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("-ok", 1000); 
-                    AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).sendCommand("-rst");
-                    commands_accepted &= AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("-ok", 1000); 
+                    //AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).sendCommand("-rst");
+                    //commands_accepted &= AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("-ok", 1000); 
                 }
                 AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).sendCommand("-sta");
                 commands_accepted &= AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("-ok", 1000);
