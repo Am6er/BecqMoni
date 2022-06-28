@@ -620,11 +620,16 @@ namespace BecquerelMonitor
 						MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
 						return;
 					}
-					this.energyCalibration.Coefficients[4] = matrix3.Array[0][0];
-					this.energyCalibration.Coefficients[3] = matrix3.Array[1][0];
-					this.energyCalibration.Coefficients[2] = matrix3.Array[2][0];
-					this.energyCalibration.Coefficients[1] = matrix3.Array[3][0];
-					this.energyCalibration.Coefficients[0] = matrix3.Array[4][0];
+					if (this.energyCalibration.PolynomialOrder == 2)
+                    {
+						this.energyCalibration.Coefficients = new double[5];
+						this.energyCalibration.PolynomialOrder = 4;
+                    }
+					this.energyCalibration.Coefficients[4] = (double)matrix3.Array[0][0];
+					this.energyCalibration.Coefficients[3] = (double)matrix3.Array[1][0];
+					this.energyCalibration.Coefficients[2] = (double)matrix3.Array[2][0];
+					this.energyCalibration.Coefficients[1] = (double)matrix3.Array[3][0];
+					this.energyCalibration.Coefficients[0] = (double)matrix3.Array[4][0];
 					goto IL_3B5;
 					MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
 					return;
