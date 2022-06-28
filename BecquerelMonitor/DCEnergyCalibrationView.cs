@@ -566,50 +566,22 @@ namespace BecquerelMonitor
 
 				if (this.calibrationPoints.Count == 5)
 				{
-					int channel0 = this.calibrationPoints[0].Channel;
-					int channel1 = this.calibrationPoints[1].Channel;
-					int channel2 = this.calibrationPoints[2].Channel;
-					int channel3 = this.calibrationPoints[3].Channel;
-					int channel4 = this.calibrationPoints[4].Channel;
-
 					Matrix matrix = new Matrix(5, 5);
 
-					matrix.Array[0][0] = (double)(channel0 * channel0 * channel0 * channel0);
-					matrix.Array[0][1] = (double)(channel0 * channel0 * channel0);
-					matrix.Array[0][2] = (double)(channel0 * channel0);
-					matrix.Array[0][3] = (double)channel0;
-					matrix.Array[0][4] = 1.0;
-
-					matrix.Array[1][0] = (double)(channel1 * channel1 * channel1 * channel1);
-					matrix.Array[1][1] = (double)(channel1 * channel1 * channel1);
-					matrix.Array[1][2] = (double)(channel1 * channel1);
-					matrix.Array[1][3] = (double)channel1;
-					matrix.Array[1][4] = 1.0;
-
-					matrix.Array[2][0] = (double)(channel2 * channel2 * channel2 * channel2);
-					matrix.Array[2][1] = (double)(channel2 * channel2 * channel2);
-					matrix.Array[2][2] = (double)(channel2 * channel2);
-					matrix.Array[2][3] = (double)channel2;
-					matrix.Array[2][4] = 1.0;
-
-					matrix.Array[3][0] = (double)(channel3 * channel3 * channel3 * channel3);
-					matrix.Array[3][1] = (double)(channel3 * channel3 * channel3);
-					matrix.Array[3][2] = (double)(channel3 * channel3);
-					matrix.Array[3][3] = (double)channel3;
-					matrix.Array[3][4] = 1.0;
-
-					matrix.Array[4][0] = (double)(channel4 * channel4 * channel4 * channel4);
-					matrix.Array[4][1] = (double)(channel4 * channel4 * channel4);
-					matrix.Array[4][2] = (double)(channel4 * channel4);
-					matrix.Array[4][3] = (double)channel4;
-					matrix.Array[4][4] = 1.0;
+					for (int i = 0; i < 5; i++)
+                    {
+						for (int j = 0; j < 5; j++)
+                        {
+							matrix.Array[i][j] = (double)Math.Pow(this.calibrationPoints[i].Channel, 4 - j);
+                        }
+                    }
 
 					Matrix matrix2 = new Matrix(5, 1);
-					matrix2.Array[0][0] = (double)this.calibrationPoints[0].Energy;
-					matrix2.Array[1][0] = (double)this.calibrationPoints[1].Energy;
-					matrix2.Array[2][0] = (double)this.calibrationPoints[2].Energy;
-					matrix2.Array[3][0] = (double)this.calibrationPoints[3].Energy;
-					matrix2.Array[4][0] = (double)this.calibrationPoints[4].Energy;
+					for (int i = 0; i < 5; i++)
+                    {
+						matrix2.Array[i][0] = (double)this.calibrationPoints[i].Energy;
+					}
+
 					Matrix matrix3 = new Matrix(5, 1);
 					try
 					{

@@ -2,507 +2,585 @@
 
 namespace MaNet
 {
-	// Token: 0x020001E2 RID: 482
-	[Serializable]
-	public class SingularValueDecomposition
-	{
-		// Token: 0x06001667 RID: 5735 RVA: 0x0006E54C File Offset: 0x0006C74C
-		public SingularValueDecomposition(Matrix Arg)
-		{
-			double[][] array = Arg.ArrayCopy();
-			this.m = Arg.RowDimension;
-			this.n = Arg.ColumnDimension;
-			int num = Math.Min(this.m, this.n);
-			this.s = new double[Math.Min(this.m + 1, this.n)];
-			this.U = new double[this.m][];
-			for (int i = 0; i < this.m; i++)
-			{
-				this.U[i] = new double[this.m];
-			}
-			this.V = new double[this.n][];
-			for (int j = 0; j < this.n; j++)
-			{
-				this.V[j] = new double[this.n];
-			}
-			double[] array2 = new double[this.n];
-			double[] array3 = new double[this.m];
-			bool flag = true;
-			bool flag2 = true;
-			int num2 = Math.Min(this.m - 1, this.n);
-			int num3 = Math.Max(0, Math.Min(this.n - 2, this.m));
-			for (int k = 0; k < Math.Max(num2, num3); k++)
-			{
-				if (k < num2)
-				{
-					this.s[k] = 0.0;
-					for (int l = k; l < this.m; l++)
-					{
-						this.s[k] = Maths.Hypot(this.s[k], array[l][k]);
-					}
-					if (this.s[k] != 0.0)
-					{
-						if (array[k][k] < 0.0)
-						{
-							this.s[k] = -this.s[k];
-						}
-						for (int m = k; m < this.m; m++)
-						{
-							array[m][k] /= this.s[k];
-						}
-						array[k][k] += 1.0;
-					}
-					this.s[k] = -this.s[k];
-				}
-				for (int n = k + 1; n < this.n; n++)
-				{
-					if (k < num2 & this.s[k] != 0.0)
-					{
-						double num4 = 0.0;
-						for (int num5 = k; num5 < this.m; num5++)
-						{
-							num4 += array[num5][k] * array[num5][n];
-						}
-						num4 = -num4 / array[k][k];
-						for (int num6 = k; num6 < this.m; num6++)
-						{
-							array[num6][n] += num4 * array[num6][k];
-						}
-					}
-					array2[n] = array[k][n];
-				}
-				if (flag & k < num2)
-				{
-					for (int num7 = k; num7 < this.m; num7++)
-					{
-						this.U[num7][k] = array[num7][k];
-					}
-				}
-				if (k < num3)
-				{
-					array2[k] = 0.0;
-					for (int num8 = k + 1; num8 < this.n; num8++)
-					{
-						array2[k] = Maths.Hypot(array2[k], array2[num8]);
-					}
-					if (array2[k] != 0.0)
-					{
-						if (array2[k + 1] < 0.0)
-						{
-							array2[k] = -array2[k];
-						}
-						for (int num9 = k + 1; num9 < this.n; num9++)
-						{
-							array2[num9] /= array2[k];
-						}
-						array2[k + 1] += 1.0;
-					}
-					array2[k] = -array2[k];
-					if (k + 1 < this.m & array2[k] != 0.0)
-					{
-						for (int num10 = k + 1; num10 < this.m; num10++)
-						{
-							array3[num10] = 0.0;
-						}
-						for (int num11 = k + 1; num11 < this.n; num11++)
-						{
-							for (int num12 = k + 1; num12 < this.m; num12++)
-							{
-								array3[num12] += array2[num11] * array[num12][num11];
-							}
-						}
-						for (int num13 = k + 1; num13 < this.n; num13++)
-						{
-							double num14 = -array2[num13] / array2[k + 1];
-							for (int num15 = k + 1; num15 < this.m; num15++)
-							{
-								array[num15][num13] += num14 * array3[num15];
-							}
-						}
-					}
-					if (flag2)
-					{
-						for (int num16 = k + 1; num16 < this.n; num16++)
-						{
-							this.V[num16][k] = array2[num16];
-						}
-					}
-				}
-			}
-			int num17 = Math.Min(this.n, this.m + 1);
-			if (num2 < this.n)
-			{
-				this.s[num2] = array[num2][num2];
-			}
-			if (this.m < num17)
-			{
-				this.s[num17 - 1] = 0.0;
-			}
-			if (num3 + 1 < num17)
-			{
-				array2[num3] = array[num3][num17 - 1];
-			}
-			array2[num17 - 1] = 0.0;
-			if (flag)
-			{
-				for (int num18 = num2; num18 < num; num18++)
-				{
-					for (int num19 = 0; num19 < this.m; num19++)
-					{
-						this.U[num19][num18] = 0.0;
-					}
-					this.U[num18][num18] = 1.0;
-				}
-				for (int num20 = num2 - 1; num20 >= 0; num20--)
-				{
-					if (this.s[num20] != 0.0)
-					{
-						for (int num21 = num20 + 1; num21 < num; num21++)
-						{
-							double num22 = 0.0;
-							for (int num23 = num20; num23 < this.m; num23++)
-							{
-								num22 += this.U[num23][num20] * this.U[num23][num21];
-							}
-							num22 = -num22 / this.U[num20][num20];
-							for (int num24 = num20; num24 < this.m; num24++)
-							{
-								this.U[num24][num21] += num22 * this.U[num24][num20];
-							}
-						}
-						for (int num25 = num20; num25 < this.m; num25++)
-						{
-							this.U[num25][num20] = -this.U[num25][num20];
-						}
-						this.U[num20][num20] = 1.0 + this.U[num20][num20];
-						for (int num26 = 0; num26 < num20 - 1; num26++)
-						{
-							this.U[num26][num20] = 0.0;
-						}
-					}
-					else
-					{
-						for (int num27 = 0; num27 < this.m; num27++)
-						{
-							this.U[num27][num20] = 0.0;
-						}
-						this.U[num20][num20] = 1.0;
-					}
-				}
-			}
-			if (flag2)
-			{
-				for (int num28 = this.n - 1; num28 >= 0; num28--)
-				{
-					if (num28 < num3 & array2[num28] != 0.0)
-					{
-						for (int num29 = num28 + 1; num29 < num; num29++)
-						{
-							double num30 = 0.0;
-							for (int num31 = num28 + 1; num31 < this.n; num31++)
-							{
-								num30 += this.V[num31][num28] * this.V[num31][num29];
-							}
-							num30 = -num30 / this.V[num28 + 1][num28];
-							for (int num32 = num28 + 1; num32 < this.n; num32++)
-							{
-								this.V[num32][num29] += num30 * this.V[num32][num28];
-							}
-						}
-					}
-					for (int num33 = 0; num33 < this.n; num33++)
-					{
-						this.V[num33][num28] = 0.0;
-					}
-					this.V[num28][num28] = 1.0;
-				}
-			}
-			int num34 = num17 - 1;
-			int num35 = 0;
-			double num36 = Math.Pow(2.0, -52.0);
-			double num37 = Math.Pow(2.0, -966.0);
-			while (num17 > 0)
-			{
-				int num38 = num17 - 2;
-				while (num38 >= -1 && num38 != -1)
-				{
-					if (Math.Abs(array2[num38]) <= num37 + num36 * (Math.Abs(this.s[num38]) + Math.Abs(this.s[num38 + 1])))
-					{
-						array2[num38] = 0.0;
-						break;
-					}
-					num38--;
-				}
-				int num39;
-				if (num38 == num17 - 2)
-				{
-					num39 = 4;
-				}
-				else
-				{
-					int num40 = num17 - 1;
-					while (num40 >= num38 && num40 != num38)
-					{
-						double num41 = ((num40 != num17) ? Math.Abs(array2[num40]) : 0.0) + ((num40 != num38 + 1) ? Math.Abs(array2[num40 - 1]) : 0.0);
-						if (Math.Abs(this.s[num40]) <= num37 + num36 * num41)
-						{
-							this.s[num40] = 0.0;
-							break;
-						}
-						num40--;
-					}
-					if (num40 == num38)
-					{
-						num39 = 3;
-					}
-					else if (num40 == num17 - 1)
-					{
-						num39 = 1;
-					}
-					else
-					{
-						num39 = 2;
-						num38 = num40;
-					}
-				}
-				num38++;
-				switch (num39)
-				{
-				case 1:
-				{
-					double num42 = array2[num17 - 2];
-					array2[num17 - 2] = 0.0;
-					for (int num43 = num17 - 2; num43 >= num38; num43--)
-					{
-						double num44 = Maths.Hypot(this.s[num43], num42);
-						double num45 = this.s[num43] / num44;
-						double num46 = num42 / num44;
-						this.s[num43] = num44;
-						if (num43 != num38)
-						{
-							num42 = -num46 * array2[num43 - 1];
-							array2[num43 - 1] = num45 * array2[num43 - 1];
-						}
-						if (flag2)
-						{
-							for (int num47 = 0; num47 < this.n; num47++)
-							{
-								num44 = num45 * this.V[num47][num43] + num46 * this.V[num47][num17 - 1];
-								this.V[num47][num17 - 1] = -num46 * this.V[num47][num43] + num45 * this.V[num47][num17 - 1];
-								this.V[num47][num43] = num44;
-							}
-						}
-					}
-					break;
-				}
-				case 2:
-				{
-					double num48 = array2[num38 - 1];
-					array2[num38 - 1] = 0.0;
-					for (int num49 = num38; num49 < num17; num49++)
-					{
-						double num50 = Maths.Hypot(this.s[num49], num48);
-						double num51 = this.s[num49] / num50;
-						double num52 = num48 / num50;
-						this.s[num49] = num50;
-						num48 = -num52 * array2[num49];
-						array2[num49] = num51 * array2[num49];
-						if (flag)
-						{
-							for (int num53 = 0; num53 < this.m; num53++)
-							{
-								num50 = num51 * this.U[num53][num49] + num52 * this.U[num53][num38 - 1];
-								this.U[num53][num38 - 1] = -num52 * this.U[num53][num49] + num51 * this.U[num53][num38 - 1];
-								this.U[num53][num49] = num50;
-							}
-						}
-					}
-					break;
-				}
-				case 3:
-				{
-					double num54 = Math.Max(Math.Max(Math.Max(Math.Max(Math.Abs(this.s[num17 - 1]), Math.Abs(this.s[num17 - 2])), Math.Abs(array2[num17 - 2])), Math.Abs(this.s[num38])), Math.Abs(array2[num38]));
-					double num55 = this.s[num17 - 1] / num54;
-					double num56 = this.s[num17 - 2] / num54;
-					double num57 = array2[num17 - 2] / num54;
-					double num58 = this.s[num38] / num54;
-					double num59 = array2[num38] / num54;
-					double num60 = ((num56 + num55) * (num56 - num55) + num57 * num57) / 2.0;
-					double num61 = num55 * num57 * (num55 * num57);
-					double num62 = 0.0;
-					if (num60 != 0.0 | num61 != 0.0)
-					{
-						num62 = Math.Sqrt(num60 * num60 + num61);
-						if (num60 < 0.0)
-						{
-							num62 = -num62;
-						}
-						num62 = num61 / (num60 + num62);
-					}
-					double num63 = (num58 + num55) * (num58 - num55) + num62;
-					double num64 = num58 * num59;
-					for (int num65 = num38; num65 < num17 - 1; num65++)
-					{
-						double num66 = Maths.Hypot(num63, num64);
-						double num67 = num63 / num66;
-						double num68 = num64 / num66;
-						if (num65 != num38)
-						{
-							array2[num65 - 1] = num66;
-						}
-						num63 = num67 * this.s[num65] + num68 * array2[num65];
-						array2[num65] = num67 * array2[num65] - num68 * this.s[num65];
-						num64 = num68 * this.s[num65 + 1];
-						this.s[num65 + 1] = num67 * this.s[num65 + 1];
-						if (flag2)
-						{
-							for (int num69 = 0; num69 < this.n; num69++)
-							{
-								num66 = num67 * this.V[num69][num65] + num68 * this.V[num69][num65 + 1];
-								this.V[num69][num65 + 1] = -num68 * this.V[num69][num65] + num67 * this.V[num69][num65 + 1];
-								this.V[num69][num65] = num66;
-							}
-						}
-						num66 = Maths.Hypot(num63, num64);
-						num67 = num63 / num66;
-						num68 = num64 / num66;
-						this.s[num65] = num66;
-						num63 = num67 * array2[num65] + num68 * this.s[num65 + 1];
-						this.s[num65 + 1] = -num68 * array2[num65] + num67 * this.s[num65 + 1];
-						num64 = num68 * array2[num65 + 1];
-						array2[num65 + 1] = num67 * array2[num65 + 1];
-						if (flag && num65 < this.m - 1)
-						{
-							for (int num70 = 0; num70 < this.m; num70++)
-							{
-								num66 = num67 * this.U[num70][num65] + num68 * this.U[num70][num65 + 1];
-								this.U[num70][num65 + 1] = -num68 * this.U[num70][num65] + num67 * this.U[num70][num65 + 1];
-								this.U[num70][num65] = num66;
-							}
-						}
-					}
-					array2[num17 - 2] = num63;
-					num35++;
-					break;
-				}
-				case 4:
-					if (this.s[num38] <= 0.0)
-					{
-						this.s[num38] = ((this.s[num38] < 0.0) ? (-this.s[num38]) : 0.0);
-						if (flag2)
-						{
-							for (int num71 = 0; num71 <= num34; num71++)
-							{
-								this.V[num71][num38] = -this.V[num71][num38];
-							}
-						}
-					}
-					while (num38 < num34 && this.s[num38] < this.s[num38 + 1])
-					{
-						double num72 = this.s[num38];
-						this.s[num38] = this.s[num38 + 1];
-						this.s[num38 + 1] = num72;
-						if (flag2 && num38 < this.n - 1)
-						{
-							for (int num73 = 0; num73 < this.n; num73++)
-							{
-								num72 = this.V[num73][num38 + 1];
-								this.V[num73][num38 + 1] = this.V[num73][num38];
-								this.V[num73][num38] = num72;
-							}
-						}
-						if (flag && num38 < this.m - 1)
-						{
-							for (int num74 = 0; num74 < this.m; num74++)
-							{
-								num72 = this.U[num74][num38 + 1];
-								this.U[num74][num38 + 1] = this.U[num74][num38];
-								this.U[num74][num38] = num72;
-							}
-						}
-						num38++;
-					}
-					num35 = 0;
-					num17--;
-					break;
-				}
-			}
-		}
 
-		// Token: 0x06001668 RID: 5736 RVA: 0x0006F844 File Offset: 0x0006DA44
-		public Matrix getU()
-		{
-			return new Matrix(this.U, this.m, Math.Min(this.m + 1, this.n));
-		}
 
-		// Token: 0x06001669 RID: 5737 RVA: 0x0006F86C File Offset: 0x0006DA6C
-		public Matrix getV()
-		{
-			return new Matrix(this.V, this.n, this.n);
-		}
 
-		// Token: 0x0600166A RID: 5738 RVA: 0x0006F888 File Offset: 0x0006DA88
-		public double[] getSingularValues()
-		{
-			return this.s;
-		}
+ /// <summary>
+    /// Singular Value Decomposition of a matrix
+    /// For an m-by-n matrix A with m >= n, the singular value decomposition is
+     ///an m-by-n orthogonal matrix U, an n-by-n diagonal matrix S, and
+     ///an n-by-n orthogonal matrix V so that A = U*S*V'.
+     ///
+    /// The singular values, sigma[k] = S[k][k], are ordered so that
+   ///  sigma[0] >= sigma[1] >= ... >= sigma[n-1].
+   ///  
+   /// The singular value decompostion always exists, so the constructor will
+  ///  never fail.  The matrix condition number and the effective numerical
+ ///    rank can be computed from this decomposition.
+ ///    
+ /// There may be some confusion as other conventions are also in use. 
+ ///            Plesase see http://mathworld.wolfram.com/SingularValueDecomposition.html 
+  ///           * which is part of mathematica's documentation
+  ///    
+ /// 
+ /// </summary>
+    [Serializable]
+public class SingularValueDecomposition 
+        {
 
-		// Token: 0x0600166B RID: 5739 RVA: 0x0006F890 File Offset: 0x0006DA90
-		public Matrix getS()
-		{
-			Matrix matrix = new Matrix(this.n, this.n);
-			double[][] array = matrix.Array;
-			for (int i = 0; i < this.n; i++)
-			{
-				for (int j = 0; j < this.n; j++)
-				{
-					array[i][j] = 0.0;
-				}
-				array[i][i] = this.s[i];
-			}
-			return matrix;
-		}
 
-		// Token: 0x0600166C RID: 5740 RVA: 0x0006F908 File Offset: 0x0006DB08
-		public double Norm2()
-		{
-			return this.s[0];
-		}
 
-		// Token: 0x0600166D RID: 5741 RVA: 0x0006F914 File Offset: 0x0006DB14
-		public double Cond()
-		{
-			return this.s[0] / this.s[Math.Min(this.m, this.n) - 1];
-		}
+            /** Singular Value Decomposition.
+            <P>
+            For an m-by-n matrix A with m >= n, the singular value decomposition is
+            an m-by-n orthogonal matrix U, an n-by-n diagonal matrix S, and
+            an n-by-n orthogonal matrix V so that A = U*S*V'.
+            <P>
+            The singular values, sigma[k] = S[k][k], are ordered so that
+            sigma[0] >= sigma[1] >= ... >= sigma[n-1].
+            <P>
+            The singular value decompostion always exists, so the constructor will
+            never fail.  The matrix condition number and the effective numerical
+            rank can be computed from this decomposition.
+    
+             There may be some confusion as other conventions are also in use. 
+             Plesase see http://mathworld.wolfram.com/SingularValueDecomposition.html 
+             * which is part of mathematica's documentation
+      
+             * Note that there are several conflicting notational conventions in use in the literature.
+             * Press et al. (1992) define  to be an  matrix,  as , and  as . 
+             * However, Mathematica defines  as an ,  as , and  as . In both systems,  
+             * and  have orthogonal columns so that 
+     
+            */
+/* ------------------------
+   Class variables
+ * ------------------------ */
 
-		// Token: 0x0600166E RID: 5742 RVA: 0x0006F93C File Offset: 0x0006DB3C
-		public int Rank()
-		{
-			double num = Math.Pow(2.0, -52.0);
-			double num2 = (double)Math.Max(this.m, this.n) * this.s[0] * num;
-			int num3 = 0;
-			for (int i = 0; i < this.s.Length; i++)
-			{
-				if (this.s[i] > num2)
-				{
-					num3++;
-				}
-			}
-			return num3;
-		}
+   /** Arrays for internal storage of U and V.
+   @serial internal storage of U.
+   @serial internal storage of V.
+   */
+   private double[][] U, V;
 
-		// Token: 0x04000D14 RID: 3348
-		double[][] U;
+   /** Array for internal storage of singular values.
+   @serial internal storage of singular values.
+   */
+   private double[] s;
 
-		// Token: 0x04000D15 RID: 3349
-		double[][] V;
+   /** Row and column dimensions.
+   @serial row dimension.
+   @serial column dimension.
+   */
+   private int m, n;
 
-		// Token: 0x04000D16 RID: 3350
-		double[] s;
+/* ------------------------
+   Constructor
+ * ------------------------ */
 
-		// Token: 0x04000D17 RID: 3351
-		int m;
+ 
+///<summary>Construct the singular value decomposition</summary>
+///<param name="Arg">Rectangular matrix</param>
+///<returns>Structure to access U, S and V.</returns>
+   public SingularValueDecomposition (Matrix Arg) {
 
-		// Token: 0x04000D18 RID: 3352
-		int n;
-	}
+      // Derived from LINPACK code.
+      // Initialize.
+      double[][] A = Arg.ArrayCopy();
+      m = Arg.RowDimension;
+      n = Arg.ColumnDimension;
+
+      /* Apparently the failing cases are only a proper subset of (m<n), 
+	 so let's not throw error.  Correct fix to come later?
+      if (m<n) {
+	  throw new System.ArgumentException("Jama SVD only works for m >= n"); }
+      */
+      int nu = Math.Min(m,n);
+      s = new double [Math.Min(m+1,n)];
+      U = new double [m][];
+      for (int i = 0; i < m; i++)//Added by KJ
+      {
+          U[i] = new double[m];
+      }
+      V = new double [n][];
+      for (int i = 0; i < n; i++)//Added by KJ
+      {
+          V[i] = new double[n];
+      }
+      double[] e = new double [n];
+      double[] work = new double [m];
+      bool wantu = true;
+      bool wantv = true;
+
+      // Reduce A to bidiagonal form, storing the diagonal elements
+      // in s and the super-diagonal elements in e.
+
+      int nct = Math.Min(m-1,n);
+      int nrt = Math.Max(0,Math.Min(n-2,m));
+      for (int k = 0; k < Math.Max(nct,nrt); k++) {
+         if (k < nct) {
+
+            // Compute the transformation for the k-th column and
+            // place the k-th diagonal in s[k].
+            // Compute 2-norm of k-th column without under/overflow.
+            s[k] = 0;
+            for (int i = k; i < m; i++) {
+               s[k] = Maths.Hypot(s[k],A[i][k]);
+            }
+            if (s[k] != 0.0) {
+               if (A[k][k] < 0.0) {
+                  s[k] = -s[k];
+               }
+               for (int i = k; i < m; i++) {
+                  A[i][k] /= s[k];
+               }
+               A[k][k] += 1.0;
+            }
+            s[k] = -s[k];
+         }
+         for (int j = k+1; j < n; j++) {
+            if ((k < nct) & (s[k] != 0.0))  {
+
+            // Apply the transformation.
+
+               double t = 0;
+               for (int i = k; i < m; i++) {
+                  t += A[i][k]*A[i][j];
+               }
+               t = -t/A[k][k];
+               for (int i = k; i < m; i++) {
+                  A[i][j] += t*A[i][k];
+               }
+            }
+
+            // Place the k-th row of A into e for the
+            // subsequent calculation of the row transformation.
+
+            e[j] = A[k][j];
+         }
+         if (wantu & (k < nct)) {
+
+            // Place the transformation in U for subsequent back
+            // multiplication.
+
+            for (int i = k; i < m; i++) {
+               U[i][k] = A[i][k];
+            }
+         }
+         if (k < nrt) {
+
+            // Compute the k-th row transformation and place the
+            // k-th super-diagonal in e[k].
+            // Compute 2-norm without under/overflow.
+            e[k] = 0;
+            for (int i = k+1; i < n; i++) {
+               e[k] = Maths.Hypot(e[k],e[i]);
+            }
+            if (e[k] != 0.0) {
+               if (e[k+1] < 0.0) {
+                  e[k] = -e[k];
+               }
+               for (int i = k+1; i < n; i++) {
+                  e[i] /= e[k];
+               }
+               e[k+1] += 1.0;
+            }
+            e[k] = -e[k];
+            if ((k+1 < m) & (e[k] != 0.0)) {
+
+            // Apply the transformation.
+
+               for (int i = k+1; i < m; i++) {
+                  work[i] = 0.0;
+               }
+               for (int j = k+1; j < n; j++) {
+                  for (int i = k+1; i < m; i++) {
+                     work[i] += e[j]*A[i][j];
+                  }
+               }
+               for (int j = k+1; j < n; j++) {
+                  double t = -e[j]/e[k+1];
+                  for (int i = k+1; i < m; i++) {
+                     A[i][j] += t*work[i];
+                  }
+               }
+            }
+            if (wantv) {
+
+            // Place the transformation in V for subsequent
+            // back multiplication.
+
+               for (int i = k+1; i < n; i++) {
+                  V[i][k] = e[i];
+               }
+            }
+         }
+      }
+
+      // Set up the final bidiagonal matrix or order p.
+
+      int p = Math.Min(n,m+1);
+      if (nct < n) {
+         s[nct] = A[nct][nct];
+      }
+      if (m < p) {
+         s[p-1] = 0.0;
+      }
+      if (nrt+1 < p) {
+         e[nrt] = A[nrt][p-1];
+      }
+      e[p-1] = 0.0;
+
+      // If required, generate U.
+
+      if (wantu) {
+         for (int j = nct; j < nu; j++) {
+            for (int i = 0; i < m; i++) {
+               U[i][j] = 0.0;
+            }
+            U[j][j] = 1.0;
+         }
+         for (int k = nct-1; k >= 0; k--) {
+            if (s[k] != 0.0) {
+               for (int j = k+1; j < nu; j++) {
+                  double t = 0;
+                  for (int i = k; i < m; i++) {
+                     t += U[i][k]*U[i][j];
+                  }
+                  t = -t/U[k][k];
+                  for (int i = k; i < m; i++) {
+                     U[i][j] += t*U[i][k];
+                  }
+               }
+               for (int i = k; i < m; i++ ) {
+                  U[i][k] = -U[i][k];
+               }
+               U[k][k] = 1.0 + U[k][k];
+               for (int i = 0; i < k-1; i++) {
+                  U[i][k] = 0.0;
+               }
+            } else {
+               for (int i = 0; i < m; i++) {
+                  U[i][k] = 0.0;
+               }
+               U[k][k] = 1.0;
+            }
+         }
+      }
+
+      // If required, generate V.
+
+      if (wantv) {
+         for (int k = n-1; k >= 0; k--) {
+            if ((k < nrt) & (e[k] != 0.0)) {
+               for (int j = k+1; j < nu; j++) {
+                  double t = 0;
+                  for (int i = k+1; i < n; i++) {
+                     t += V[i][k]*V[i][j];
+                  }
+                  t = -t/V[k+1][k];
+                  for (int i = k+1; i < n; i++) {
+                     V[i][j] += t*V[i][k];
+                  }
+               }
+            }
+            for (int i = 0; i < n; i++) {
+               V[i][k] = 0.0;
+            }
+            V[k][k] = 1.0;
+         }
+      }
+
+      // Main iteration loop for the singular values.
+
+      int pp = p-1;
+      int iter = 0;
+      double eps = Math.Pow(2.0,-52.0);
+      double tiny = Math.Pow(2.0,-966.0);
+      while (p > 0) {
+         int k,kase;
+
+         // Here is where a test for too many iterations would go.
+
+         // This section of the program inspects for
+         // negligible elements in the s and e arrays.  On
+         // completion the variables kase and k are set as follows.
+
+         // kase = 1     if s(p) and e[k-1] are negligible and k<p
+         // kase = 2     if s(k) is negligible and k<p
+         // kase = 3     if e[k-1] is negligible, k<p, and
+         //              s(k), ..., s(p) are not negligible (qr step).
+         // kase = 4     if e(p-1) is negligible (convergence).
+
+         for (k = p-2; k >= -1; k--) {
+            if (k == -1) {
+               break;
+            }
+            if (Math.Abs(e[k]) <=
+                  tiny + eps*(Math.Abs(s[k]) + Math.Abs(s[k+1]))) {
+               e[k] = 0.0;
+               break;
+            }
+         }
+         if (k == p-2) {
+            kase = 4;
+         } else {
+            int ks;
+            for (ks = p-1; ks >= k; ks--) {
+               if (ks == k) {
+                  break;
+               }
+               double t = (ks != p ? Math.Abs(e[ks]) : 0.0) + 
+                          (ks != k+1 ? Math.Abs(e[ks-1]) : 0.0);
+               if (Math.Abs(s[ks]) <= tiny + eps*t)  {
+                  s[ks] = 0.0;
+                  break;
+               }
+            }
+            if (ks == k) {
+               kase = 3;
+            } else if (ks == p-1) {
+               kase = 1;
+            } else {
+               kase = 2;
+               k = ks;
+            }
+         }
+         k++;
+
+         // Perform the task indicated by kase.
+
+         switch (kase) {
+
+            // Deflate negligible s(p).
+
+            case 1: {
+               double f = e[p-2];
+               e[p-2] = 0.0;
+               for (int j = p-2; j >= k; j--) {
+                  double t = Maths.Hypot(s[j],f);
+                  double cs = s[j]/t;
+                  double sn = f/t;
+                  s[j] = t;
+                  if (j != k) {
+                     f = -sn*e[j-1];
+                     e[j-1] = cs*e[j-1];
+                  }
+                  if (wantv) {
+                     for (int i = 0; i < n; i++) {
+                        t = cs*V[i][j] + sn*V[i][p-1];
+                        V[i][p-1] = -sn*V[i][j] + cs*V[i][p-1];
+                        V[i][j] = t;
+                     }
+                  }
+               }
+            }
+            break;
+
+            // Split at negligible s(k).
+
+            case 2: {
+               double f = e[k-1];
+               e[k-1] = 0.0;
+               for (int j = k; j < p; j++) {
+                  double t = Maths.Hypot(s[j],f);
+                  double cs = s[j]/t;
+                  double sn = f/t;
+                  s[j] = t;
+                  f = -sn*e[j];
+                  e[j] = cs*e[j];
+                  if (wantu) {
+                     for (int i = 0; i < m; i++) {
+                        t = cs*U[i][j] + sn*U[i][k-1];
+                        U[i][k-1] = -sn*U[i][j] + cs*U[i][k-1];
+                        U[i][j] = t;
+                     }
+                  }
+               }
+            }
+            break;
+
+            // Perform one qr step.
+
+            case 3: {
+
+               // Calculate the shift.
+   
+               double scale = Math.Max(Math.Max(Math.Max(Math.Max(
+                       Math.Abs(s[p-1]),Math.Abs(s[p-2])),Math.Abs(e[p-2])), 
+                       Math.Abs(s[k])),Math.Abs(e[k]));
+               double sp = s[p-1]/scale;
+               double spm1 = s[p-2]/scale;
+               double epm1 = e[p-2]/scale;
+               double sk = s[k]/scale;
+               double ek = e[k]/scale;
+               double b = ((spm1 + sp)*(spm1 - sp) + epm1*epm1)/2.0;
+               double c = (sp*epm1)*(sp*epm1);
+               double shift = 0.0;
+               if ((b != 0.0) | (c != 0.0)) {
+                  shift = Math.Sqrt(b*b + c);
+                  if (b < 0.0) {
+                     shift = -shift;
+                  }
+                  shift = c/(b + shift);
+               }
+               double f = (sk + sp)*(sk - sp) + shift;
+               double g = sk*ek;
+   
+               // Chase zeros.
+   
+               for (int j = k; j < p-1; j++) {
+                  double t = Maths.Hypot(f,g);
+                  double cs = f/t;
+                  double sn = g/t;
+                  if (j != k) {
+                     e[j-1] = t;
+                  }
+                  f = cs*s[j] + sn*e[j];
+                  e[j] = cs*e[j] - sn*s[j];
+                  g = sn*s[j+1];
+                  s[j+1] = cs*s[j+1];
+                  if (wantv) {
+                     for (int i = 0; i < n; i++) {
+                        t = cs*V[i][j] + sn*V[i][j+1];
+                        V[i][j+1] = -sn*V[i][j] + cs*V[i][j+1];
+                        V[i][j] = t;
+                     }
+                  }
+                  t = Maths.Hypot(f,g);
+                  cs = f/t;
+                  sn = g/t;
+                  s[j] = t;
+                  f = cs*e[j] + sn*s[j+1];
+                  s[j+1] = -sn*e[j] + cs*s[j+1];
+                  g = sn*e[j+1];
+                  e[j+1] = cs*e[j+1];
+                  if (wantu && (j < m-1)) {
+                     for (int i = 0; i < m; i++) {
+                        t = cs*U[i][j] + sn*U[i][j+1];
+                        U[i][j+1] = -sn*U[i][j] + cs*U[i][j+1];
+                        U[i][j] = t;
+                     }
+                  }
+               }
+               e[p-2] = f;
+               iter = iter + 1;
+            }
+            break;
+
+            // Convergence.
+
+            case 4: {
+
+               // Make the singular values positive.
+   
+               if (s[k] <= 0.0) {
+                  s[k] = (s[k] < 0.0 ? -s[k] : 0.0);
+                  if (wantv) {
+                     for (int i = 0; i <= pp; i++) {
+                        V[i][k] = -V[i][k];
+                     }
+                  }
+               }
+   
+               // Order the singular values.
+   
+               while (k < pp) {
+                  if (s[k] >= s[k+1]) {
+                     break;
+                  }
+                  double t = s[k];
+                  s[k] = s[k+1];
+                  s[k+1] = t;
+                  if (wantv && (k < n-1)) {
+                     for (int i = 0; i < n; i++) {
+                        t = V[i][k+1]; V[i][k+1] = V[i][k]; V[i][k] = t;
+                     }
+                  }
+                  if (wantu && (k < m-1)) {
+                     for (int i = 0; i < m; i++) {
+                        t = U[i][k+1]; U[i][k+1] = U[i][k]; U[i][k] = t;
+                     }
+                  }
+                  k++;
+               }
+               iter = 0;
+               p--;
+            }
+            break;
+         }
+      }
+   }
+
+/* ------------------------
+   Public Methods
+ * ------------------------ */
+ 
+  ///<summary>Return the left singular vectors</summary>
+  ///<returns>U</returns>
+   public Matrix getU () {
+      return new Matrix(U,m,Math.Min(m+1,n));
+   }
+
+
+    ///<summary>Return the right singular vectors</summary>
+    ///<returns>V</returns>
+   public Matrix getV () {
+      return new Matrix(V,n,n);
+   }
+
+
+   ///<Sumary>Return the one-dimensional array of singular values</Sumary>
+   ///<returns>diagonal of S</returns>
+   public double[] getSingularValues () {
+      return s;
+   }
+
+ 
+
+///<summary>Return the diagonal matrix of singular values</summary>
+///<returns >S</returns>
+   public Matrix getS () {
+      Matrix X = new Matrix(n,n);
+      double[][] S = X.Array;
+      for (int i = 0; i < n; i++) {
+         for (int j = 0; j < n; j++) {
+            S[i][j] = 0.0;
+         }
+         S[i][i] = s[i];
+      }
+      return X;
+   }
+
+ 
+///<summary>Two norm</summary>
+///<returns>max(S)</returns>
+   public double Norm2 () {
+      return s[0];
+   }
+
+  
+///<summary>Two norm condition number</summary>
+///<returns>max(S)/min(S)</returns>
+   public double Cond () {
+      return s[0]/s[Math.Min(m,n)-1];
+   }
+
+
+
+///<summary>Effective numerical matrix rank</summary>
+///<returns>Number of nonnegligible singular values.</returns>
+   public int Rank () {
+      double eps = Math.Pow(2.0,-52.0);
+      double tol = Math.Max(m,n)*s[0]*eps;
+      int r = 0;
+      for (int i = 0; i < s.Length; i++) {
+         if (s[i] > tol) {
+            r++;
+         }
+      }
+      return r;
+   }
+}
+
 }

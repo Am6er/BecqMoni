@@ -1,284 +1,418 @@
 ﻿using System;
 
+
 namespace MaNet
 {
-	// Token: 0x020001E4 RID: 484
-	[Serializable]
-	public class LUDecomposition
-	{
-		// Token: 0x06001677 RID: 5751 RVA: 0x00070020 File Offset: 0x0006E220
-		public LUDecomposition(Matrix A)
-		{
-			this.LU = A.ArrayCopy();
-			this.m = A.RowDimension;
-			this.n = A.ColumnDimension;
-			this.piv = new int[this.m];
-			for (int i = 0; i < this.m; i++)
-			{
-				this.piv[i] = i;
-			}
-			this.pivsign = 1;
-			double[] array = new double[this.m];
-			for (int j = 0; j < this.n; j++)
-			{
-				for (int k = 0; k < this.m; k++)
-				{
-					array[k] = this.LU[k][j];
-				}
-				for (int l = 0; l < this.m; l++)
-				{
-					double[] array2 = this.LU[l];
-					int num = Math.Min(l, j);
-					double num2 = 0.0;
-					for (int m = 0; m < num; m++)
-					{
-						num2 += array2[m] * array[m];
-					}
-					array2[j] = (array[l] -= num2);
-				}
-				int num3 = j;
-				for (int n = j + 1; n < this.m; n++)
-				{
-					if (Math.Abs(array[n]) > Math.Abs(array[num3]))
-					{
-						num3 = n;
-					}
-				}
-				if (num3 != j)
-				{
-					for (int num4 = 0; num4 < this.n; num4++)
-					{
-						double num5 = this.LU[num3][num4];
-						this.LU[num3][num4] = this.LU[j][num4];
-						this.LU[j][num4] = num5;
-					}
-					int num6 = this.piv[num3];
-					this.piv[num3] = this.piv[j];
-					this.piv[j] = num6;
-					this.pivsign = -this.pivsign;
-				}
-				if (j < this.m && this.LU[j][j] != 0.0)
-				{
-					for (int num7 = j + 1; num7 < this.m; num7++)
-					{
-						this.LU[num7][j] /= this.LU[j][j];
-					}
-				}
-			}
-		}
+    
 
-		// Token: 0x06001678 RID: 5752 RVA: 0x00070284 File Offset: 0x0006E484
-		public bool IsNonsingular()
-		{
-			if (this.m != this.n)
-			{
-				return false;
-			}
-			for (int i = 0; i < this.n; i++)
-			{
-				if (this.LU[i][i] == 0.0)
-				{
-					return false;
-				}
-			}
-			return true;
-		}
+  
+/// <summary>
+/// LU Decomposition of a Matrix
+/// 
+///For an m-by-n matrix A with m >= n, the LU decomposition is an m-by-n
+///unit lower triangular matrix L, an n-by-n upper triangular matrix U,
+///and a permutation vector piv of length m so that A(piv,:) = L*U.
+///If m  &lt; n, then L is m-by-m and U is m-by-n.
+///
+/// The LU decompostion with pivoting always exists, even if the matrix is
+/// singular, so the constructor will never fail.  The primary use of the
+///LU decomposition is in the solution of square systems of simultaneous
+///linear equations.  This will fail if isNonsingular() returns false.
+/// </summary>
+    [Serializable]
+public class LUDecomposition 
+        {
+ /** 
+   <P>
+   For an m-by-n matrix A with m >= n, the LU decomposition is an m-by-n
+   unit lower triangular matrix L, an n-by-n upper triangular matrix U,
+   and a permutation vector piv of length m so that A(piv,:) = L*U.
+   If m < n, then L is m-by-m and U is m-by-n.
+   <P>
+   The LU decompostion with pivoting always exists, even if the matrix is
+   singular, so the constructor will never fail.  The primary use of the
+   LU decomposition is in the solution of square systems of simultaneous
+   linear equations.  This will fail if isNonsingular() returns false.
+   */
 
-		// Token: 0x06001679 RID: 5753 RVA: 0x000702DC File Offset: 0x0006E4DC
-		public Matrix GetL()
-		{
-			if (this.m >= this.n)
-			{
-				Matrix matrix = new Matrix(this.m, this.n);
-				double[][] array = matrix.Array;
-				for (int i = 0; i < this.m; i++)
-				{
-					for (int j = 0; j < this.n; j++)
-					{
-						if (i > j)
-						{
-							array[i][j] = this.LU[i][j];
-						}
-						else if (i == j)
-						{
-							array[i][j] = 1.0;
-						}
-						else
-						{
-							array[i][j] = 0.0;
-						}
-					}
-				}
-				return matrix;
-			}
-			Matrix matrix2 = new Matrix(this.m, this.m);
-			double[][] array2 = matrix2.Array;
-			for (int k = 0; k < this.m; k++)
-			{
-				for (int l = 0; l < this.m; l++)
-				{
-					if (k > l)
-					{
-						array2[k][l] = this.LU[k][l];
-					}
-					else if (k == l)
-					{
-						array2[k][l] = 1.0;
-					}
-					else
-					{
-						array2[k][l] = 0.0;
-					}
-				}
-			}
-			return matrix2;
-		}
+    /** IMPORTANT WARNING
+   
+     */
+/* ------------------------
+   Class variables
+ * ------------------------ */
 
-		// Token: 0x0600167A RID: 5754 RVA: 0x00070448 File Offset: 0x0006E648
-		public Matrix GetU()
-		{
-			if (this.m >= this.n)
-			{
-				Matrix matrix = new Matrix(this.n, this.n);
-				double[][] array = matrix.Array;
-				for (int i = 0; i < this.n; i++)
-				{
-					for (int j = 0; j < this.n; j++)
-					{
-						if (i <= j)
-						{
-							array[i][j] = this.LU[i][j];
-						}
-						else
-						{
-							array[i][j] = 0.0;
-						}
-					}
-				}
-				return matrix;
-			}
-			Matrix matrix2 = new Matrix(this.m, this.n);
-			double[][] array2 = matrix2.Array;
-			for (int k = 0; k < this.m; k++)
-			{
-				for (int l = 0; l < this.n; l++)
-				{
-					if (k <= l)
-					{
-						array2[k][l] = this.LU[k][l];
-					}
-					else
-					{
-						array2[k][l] = 0.0;
-					}
-				}
-			}
-			return matrix2;
-		}
+   /** Array for internal storage of decomposition.
+   @serial internal array storage.
+   */
+   private double[][] LU;
 
-		// Token: 0x0600167B RID: 5755 RVA: 0x00070570 File Offset: 0x0006E770
-		public int[] getPivot()
-		{
-			int[] array = new int[this.m];
-			for (int i = 0; i < this.m; i++)
-			{
-				array[i] = this.piv[i];
-			}
-			return array;
-		}
+   /** Row and column dimensions, and pivot sign.
+   @serial column dimension.
+   @serial row dimension.
+   @serial pivot sign.
+   */
+   private int m, n, pivsign; 
 
-		// Token: 0x0600167C RID: 5756 RVA: 0x000705B0 File Offset: 0x0006E7B0
-		public Matrix GetP()
-		{
-			int[] pivot = this.getPivot();
-			Matrix matrix = new Matrix(pivot.Length);
-			for (int i = 0; i < pivot.Length; i++)
-			{
-				matrix.Array[i][pivot[i]] = 1.0;
-			}
-			return matrix;
-		}
+   /** Internal storage of pivot vector.
+   @serial pivot vector.
+   */
+   private int[] piv;
 
-		// Token: 0x0600167D RID: 5757 RVA: 0x000705FC File Offset: 0x0006E7FC
-		public double[] getDoublePivot()
-		{
-			double[] array = new double[this.m];
-			for (int i = 0; i < this.m; i++)
-			{
-				array[i] = (double)this.piv[i];
-			}
-			return array;
-		}
+/* ------------------------
+   Constructor
+ * ------------------------ */
 
-		// Token: 0x0600167E RID: 5758 RVA: 0x0007063C File Offset: 0x0006E83C
-		public double det()
-		{
-			if (this.m != this.n)
-			{
-				throw new ArgumentException("Matrix must be square.");
-			}
-			double num = (double)this.pivsign;
-			for (int i = 0; i < this.n; i++)
-			{
-				num *= this.LU[i][i];
-			}
-			return num;
-		}
+   /** LU Decomposition
+   @param  A   Rectangular matrix
+   @return     Structure to access L, U and piv.
+   */
 
-		// Token: 0x0600167F RID: 5759 RVA: 0x00070698 File Offset: 0x0006E898
-		public Matrix solve(Matrix B)
-		{
-			if (B.RowDimension != this.m)
-			{
-				throw new ArgumentException("Matrix row dimensions must agree.");
-			}
-			if (!this.IsNonsingular())
-			{
-				throw new Exception("Matrix is singular.");
-			}
-			int columnDimension = B.ColumnDimension;
-			Matrix matrix = B.GetMatrix(this.piv, 0, columnDimension - 1);
-			double[][] array = matrix.Array;
-			for (int i = 0; i < this.n; i++)
-			{
-				for (int j = i + 1; j < this.n; j++)
-				{
-					for (int k = 0; k < columnDimension; k++)
-					{
-						array[j][k] -= array[i][k] * this.LU[j][i];
-					}
-				}
-			}
-			for (int l = this.n - 1; l >= 0; l--)
-			{
-				for (int m = 0; m < columnDimension; m++)
-				{
-					array[l][m] /= this.LU[l][l];
-				}
-				for (int n = 0; n < l; n++)
-				{
-					for (int num = 0; num < columnDimension; num++)
-					{
-						array[n][num] -= array[l][num] * this.LU[n][l];
-					}
-				}
-			}
-			return matrix;
-		}
+   public LUDecomposition (Matrix A) {
 
-		// Token: 0x04000D1E RID: 3358
-		double[][] LU;
+   // Use a "left-looking", dot-product, Crout/Doolittle algorithm.
 
-		// Token: 0x04000D1F RID: 3359
-		int m;
+      LU = A.ArrayCopy();
+      m = A.RowDimension;
+      n = A.ColumnDimension;
+      piv = new int[m];
+      for (int i = 0; i < m; i++) {
+         piv[i] = i;
+      }
+      pivsign = 1;
+      double[] LUrowi;
+      double[] LUcolj = new double[m];
 
-		// Token: 0x04000D20 RID: 3360
-		int n;
+      // Outer loop.
 
-		// Token: 0x04000D21 RID: 3361
-		int pivsign;
+      for (int j = 0; j < n; j++) {
 
-		// Token: 0x04000D22 RID: 3362
-		int[] piv;
-	}
+         // Make a copy of the j-th column to localize references.
+
+         for (int i = 0; i < m; i++) {
+            LUcolj[i] = LU[i][j];
+         }
+
+         // Apply previous transformations.
+
+         for (int i = 0; i < m; i++) {
+            LUrowi = LU[i];
+
+            // Most of the time is spent in the following dot product.
+
+            int kmax = Math.Min(i,j);
+            double s = 0.0;
+            for (int k = 0; k < kmax; k++) {
+               s += LUrowi[k]*LUcolj[k];
+            }
+
+            LUrowi[j] = LUcolj[i] -= s;
+         }
+   
+         // Find pivot and exchange if necessary.
+
+         int p = j;
+         for (int i = j+1; i < m; i++) {
+            if (Math.Abs(LUcolj[i]) > Math.Abs(LUcolj[p])) {
+               p = i;
+            }
+         }
+         if (p != j) {
+            for (int k = 0; k < n; k++) {
+               double t = LU[p][k]; LU[p][k] = LU[j][k]; LU[j][k] = t;
+            }
+            int k2 = piv[p]; piv[p] = piv[j]; piv[j] = k2;
+            pivsign = -pivsign;
+         }
+
+         // Compute multipliers.
+         
+         if (j < m && LU[j][j] != 0.0) {
+            for (int i = j+1; i < m; i++) {
+               LU[i][j] /= LU[j][j];
+            }
+         }
+      }
+   }
+
+/* ------------------------
+   Temporary, experimental code.
+   ------------------------ *\
+
+   \** LU Decomposition, computed by Gaussian elimination.
+   <P>
+   This constructor computes L and U with the "daxpy"-based elimination
+   algorithm used in LINPACK and MATLAB.  In Java, we suspect the dot-product,
+   Crout algorithm will be faster.  We have temporarily included this
+   constructor until timing experiments confirm this suspicion.
+   <P>
+   @param  A             Rectangular matrix
+   @param  linpackflag   Use Gaussian elimination.  Actual value ignored.
+   @return               Structure to access L, U and piv.
+   *\
+
+   public LUDecomposition (Matrix A, int linpackflag) {
+      // Initialize.
+      LU = A.getArrayCopy();
+      m = A.RowDimension;
+      n = A.ColumnDimension;
+      piv = new int[m];
+      for (int i = 0; i < m; i++) {
+         piv[i] = i;
+      }
+      pivsign = 1;
+      // Main loop.
+      for (int k = 0; k < n; k++) {
+         // Find pivot.
+         int p = k;
+         for (int i = k+1; i < m; i++) {
+            if (Math.Abs(LU[i][k]) > Math.Abs(LU[p][k])) {
+               p = i;
+            }
+         }
+         // Exchange if necessary.
+         if (p != k) {
+            for (int j = 0; j < n; j++) {
+               double t = LU[p][j]; LU[p][j] = LU[k][j]; LU[k][j] = t;
+            }
+            int t = piv[p]; piv[p] = piv[k]; piv[k] = t;
+            pivsign = -pivsign;
+         }
+         // Compute multipliers and eliminate k-th column.
+         if (LU[k][k] != 0.0) {
+            for (int i = k+1; i < m; i++) {
+               LU[i][k] /= LU[k][k];
+               for (int j = k+1; j < n; j++) {
+                  LU[i][j] -= LU[i][k]*LU[k][j];
+               }
+            }
+         }
+      }
+   }
+
+\* ------------------------
+   End of temporary code.
+ * ------------------------ */
+
+/* ------------------------
+   Public Methods
+ * ------------------------ */
+
+   /** Is the matrix nonsingular?
+   @return     true if U, and hence A, is nonsingular.
+   */
+
+   public bool IsNonsingular () {
+       if (m != n) return false;// Added to deal with fat and skinny matrices
+      for (int j = 0; j < n; j++) {
+         if (LU[j][j] == 0)
+            return false;
+      }
+      return true;
+   }
+
+   /** Return lower triangular factor
+   @return     L
+   */
+
+   public Matrix GetL () {
+       if (m >= n) //For correct Dimensions with square or skinny matrices
+       {
+           Matrix X = new Matrix(m, n);
+           double[][] L = X.Array;
+           for (int i = 0; i < m; i++)
+           {
+               for (int j = 0; j < n; j++)
+               {
+                   if (i > j)
+                   {
+                       L[i][j] = LU[i][j];
+                   }
+                   else if (i == j)
+                   {
+                       L[i][j] = 1.0;
+                   }
+                   else
+                   {
+                       L[i][j] = 0.0;
+                   }
+               }
+           }
+           return X;
+       }
+       else// For when n > m, Fat matrix
+       {
+           Matrix X = new Matrix(m, m);
+           double[][] L = X.Array;
+           for (int i = 0; i < m; i++)
+           {
+               for (int j = 0; j < m; j++)
+               {
+                   if (i > j)
+                   {
+                       L[i][j] = LU[i][j];
+                   }
+                   else if (i == j)
+                   {
+                       L[i][j] = 1.0;
+                   }
+                   else
+                   {
+                       L[i][j] = 0.0;
+                   }
+               }
+           }
+           return X;
+
+       }
+   }
+
+   /** Return upper triangular factor
+   @return     U
+   */
+
+   public Matrix GetU () {
+       //For correct Dimensions with Fat matrices
+       if (m >= n)
+       {
+           Matrix X = new Matrix(n, n);
+           double[][] U = X.Array;
+           for (int i = 0; i < n; i++)
+           {
+               for (int j = 0; j < n; j++)
+               {
+                   if (i <= j)
+                   {
+                       U[i][j] = LU[i][j];
+                   }
+                   else
+                   {
+                       U[i][j] = 0.0;
+                   }
+               }
+           }
+           return X;
+       }
+       else // this case added for when n > m
+       {
+           Matrix X = new Matrix(m,n );
+           double[][] U = X.Array;
+           for (int i = 0; i < m; i++)
+           {
+               for (int j = 0; j <n ; j++)
+               {
+                   if (i <= j)
+                   {
+                       U[i][j] = LU[i][j];
+                   }
+                   else
+                   {
+                       U[i][j] = 0.0;
+                   }
+               }
+           }
+           return X;
+
+       }
+   }
+
+   /** Return pivot permutation vector
+   @return     piv
+   */
+
+   public int[] getPivot () {
+      int[] p = new int[m];
+      for (int i = 0; i < m; i++) {
+         p[i] = piv[i];
+      }
+      return p;
+   }
+
+    /// <summary>
+    /// Returns the Pivot Permutation matrix such that L*U = P*A
+    /// </summary>
+   /// <returns> Pivot Permutation matrix</returns>
+   public Matrix GetP()
+   {
+
+       int[] pivots = getPivot();
+       Matrix X = new Matrix(pivots.Length);
+       for (int i = 0; i < pivots.Length; i++)
+       {
+           X.Array[i][pivots[i]] = 1;
+       }
+       return X;
+   }
+
+   /** Return pivot permutation vector as a one-dimensional double array
+   @return     (double) piv
+   */
+
+   public double[] getDoublePivot () {
+      double[] vals = new double[m];
+      for (int i = 0; i < m; i++) {
+         vals[i] = (double) piv[i];
+      }
+      return vals;
+   }
+
+   /** Determinant
+   @return     det(A)
+   @exception  System.ArgumentException  Matrix must be square
+   */
+
+   public double det () {
+      if (m != n) {
+         throw new System.ArgumentException("Matrix must be square.");
+      }
+      double d = (double) pivsign;
+      for (int j = 0; j < n; j++) {
+         d *= LU[j][j];
+      }
+      return d;
+   }
+
+   /** Solve A*X = B
+   @param  B   A Matrix with as many rows as A and any number of columns.
+   @return     X so that L*U*X = B(piv,:)
+   @exception  System.ArgumentException Matrix row dimensions must agree.
+   @exception  System.Exception  Matrix is singular.
+   */
+
+   public Matrix solve (Matrix B) {
+      if (B.RowDimension != m) {
+         throw new ArgumentException("Matrix row dimensions must agree.");
+      }
+      if (!this.IsNonsingular()) {
+         throw new Exception("Matrix is singular.");
+      }
+
+      // Copy right hand side with pivoting
+      int nx = B.ColumnDimension;
+      Matrix Xmat = B.GetMatrix(piv,0,nx-1);
+      double[][] X = Xmat.Array;
+
+      // Solve L*Y = B(piv,:)
+      for (int k = 0; k < n; k++) {
+         for (int i = k+1; i < n; i++) {
+            for (int j = 0; j < nx; j++) {
+               X[i][j] -= X[k][j]*LU[i][k];
+            }
+         }
+      }
+      // Solve U*X = Y;
+      for (int k = n-1; k >= 0; k--) {
+         for (int j = 0; j < nx; j++) {
+            X[k][j] /= LU[k][k];
+         }
+         for (int i = 0; i < k; i++) {
+            for (int j = 0; j < nx; j++) {
+               X[i][j] -= X[k][j]*LU[i][k];
+            }
+         }
+      }
+      return Xmat;
+   }
+}
+
 }

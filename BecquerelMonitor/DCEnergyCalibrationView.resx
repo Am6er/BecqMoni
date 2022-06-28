@@ -172,7 +172,7 @@
     <value>table1</value>
   </data>
   <data name="table1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>214, 77</value>
+    <value>214, 92</value>
   </data>
   <data name="textBox15.Location" type="System.Drawing.Point, System.Drawing">
     <value>14, 40</value>
@@ -265,7 +265,7 @@
     <value>Top, Left, Right</value>
   </data>
   <data name="numericUpDown1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>111, 19</value>
+    <value>140, 19</value>
   </data>
   <data name="label1.Text" xml:space="preserve">
     <value>1st Coeff.(d)</value>
@@ -274,7 +274,7 @@
     <value>69, 12</value>
   </data>
   <data name="numericUpDown3.Size" type="System.Drawing.Size, System.Drawing">
-    <value>111, 19</value>
+    <value>140, 19</value>
   </data>
   <data name="button6.Location" type="System.Drawing.Point, System.Drawing">
     <value>14, 218</value>
@@ -304,7 +304,7 @@
     <value>Energy[keV] = ax^4 + bx^3 + cx^2 + dx + e (x = Channel Number)</value>
   </data>
   <data name="numericUpDown2.Size" type="System.Drawing.Size, System.Drawing">
-    <value>111, 19</value>
+    <value>140, 19</value>
   </data>
   <data name="numberColumn1.Text" xml:space="preserve">
     <value>Energy</value>
@@ -499,7 +499,7 @@
     <value>89, 13</value>
   </data>
   <data name="numericUpDown4.Size" type="System.Drawing.Size, System.Drawing">
-    <value>111, 19</value>
+    <value>140, 19</value>
   </data>
   <data name="&gt;&gt;numericUpDown5.Name" xml:space="preserve">
     <value>numericUpDown5</value>
@@ -520,7 +520,7 @@
     <value>89, 42</value>
   </data>
   <data name="numericUpDown5.Size" type="System.Drawing.Size, System.Drawing">
-    <value>111, 19</value>
+    <value>140, 19</value>
   </data>
   <data name="button12.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
@@ -544,7 +544,7 @@
     <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="button12.Location" type="System.Drawing.Point, System.Drawing">
-    <value>205, 10</value>
+    <value>235, 10</value>
   </data>
   <data name="button12.Text" xml:space="preserve">
     <value>Reset</value>
@@ -574,7 +574,7 @@
     <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="button13.Location" type="System.Drawing.Point, System.Drawing">
-    <value>205, 39</value>
+    <value>235, 39</value>
   </data>
   <data name="button13.Text" xml:space="preserve">
     <value>Reset</value>
@@ -715,7 +715,7 @@
     <value>XPTable.Models.TableModel, BecquerelMonitorPlus, Version=1.0.23.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="button1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>205, 68</value>
+    <value>235, 68</value>
   </data>
   <data name="button2.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
@@ -811,7 +811,7 @@
     <value>$this</value>
   </data>
   <data name="button3.Location" type="System.Drawing.Point, System.Drawing">
-    <value>205, 126</value>
+    <value>235, 126</value>
   </data>
   <data name="label1.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -850,7 +850,7 @@
     <value>7</value>
   </data>
   <data name="label36.Location" type="System.Drawing.Point, System.Drawing">
-    <value>9, 119</value>
+    <value>9, 129</value>
   </data>
   <data name="panel1.TabIndex" type="System.Int32, mscorlib">
     <value>37</value>
@@ -943,7 +943,7 @@
     <value>14</value>
   </data>
   <data name="button2.Location" type="System.Drawing.Point, System.Drawing">
-    <value>205, 97</value>
+    <value>235, 97</value>
   </data>
   <data name="button5.Text" xml:space="preserve">
     <value>Configure...</value>

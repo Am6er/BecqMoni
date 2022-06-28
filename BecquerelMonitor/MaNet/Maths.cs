@@ -1,29 +1,54 @@
 ﻿using System;
 
+
 namespace MaNet
 {
-	// Token: 0x020001E7 RID: 487
-	static class Maths
-	{
-		// Token: 0x060016D9 RID: 5849 RVA: 0x00074A88 File Offset: 0x00072C88
-		public static double Hypot(double a, double b)
-		{
-			double num;
-			if (Math.Abs(a) > Math.Abs(b))
-			{
-				num = b / a;
-				num = Math.Abs(a) * Math.Sqrt(1.0 + num * num);
-			}
-			else if (b != 0.0)
-			{
-				num = a / b;
-				num = Math.Abs(b) * Math.Sqrt(1.0 + num * num);
-			}
-			else
-			{
-				num = 0.0;
-			}
-			return num;
-		}
-	}
+    /// <summary>
+    /// Minor staic class to hold hypot method
+    /// </summary>
+   static  class Maths
+    {
+
+       
+
+
+       /// <summary>
+       ///  sqrt(a^2 + b^2) without under/overflow.
+       /// </summary>
+       /// <param name="a">a</param>
+       /// <param name="b">a</param>
+       /// <returns>the length of the radius defined by a and b</returns>
+        public static double Hypot(double a, double b)
+        {  
+
+            double r;
+
+            if (Math.Abs(a) > Math.Abs(b))
+            {
+
+                r = b / a;
+
+                r = Math.Abs(a) * Math.Sqrt(1 + r * r);
+
+            }
+            else if (b != 0)
+            {
+
+                r = a / b;
+
+                r = Math.Abs(b) * Math.Sqrt(1 + r * r);
+
+            }
+            else
+            {
+
+                r = 0.0;
+
+            }
+
+            return r;
+
+         }
+
+    }
 }

@@ -1,221 +1,250 @@
 ﻿using System;
 
+
 namespace MaNet
 {
-	// Token: 0x020001E3 RID: 483
-	[Serializable]
-	public class QRDecomposition
-	{
-		// Token: 0x170006BE RID: 1726
-		// (get) Token: 0x0600166F RID: 5743 RVA: 0x0006F9B0 File Offset: 0x0006DBB0
-		// (set) Token: 0x06001670 RID: 5744 RVA: 0x0006F9B8 File Offset: 0x0006DBB8
-		public double RankTolerance
-		{
-			get
-			{
-				return this.mRankTolerance;
-			}
-			set
-			{
-				this.mRankTolerance = value;
-			}
-		}
+  
 
-		// Token: 0x06001671 RID: 5745 RVA: 0x0006F9C4 File Offset: 0x0006DBC4
-		public QRDecomposition(Matrix A)
-		{
-			this.QR = A.ArrayCopy();
-			this.m = A.RowDimension;
-			this.n = A.ColumnDimension;
-			this.Rdiag = new double[this.n];
-			for (int i = 0; i < this.n; i++)
-			{
-				double num = 0.0;
-				for (int j = i; j < this.m; j++)
-				{
-					num = Maths.Hypot(num, this.QR[j][i]);
-				}
-				if (num != 0.0)
-				{
-					if (this.QR[i][i] < 0.0)
-					{
-						num = -num;
-					}
-					for (int k = i; k < this.m; k++)
-					{
-						this.QR[k][i] /= num;
-					}
-					this.QR[i][i] += 1.0;
-					for (int l = i + 1; l < this.n; l++)
-					{
-						double num2 = 0.0;
-						for (int m = i; m < this.m; m++)
-						{
-							num2 += this.QR[m][i] * this.QR[m][l];
-						}
-						num2 = -num2 / this.QR[i][i];
-						for (int n = i; n < this.m; n++)
-						{
-							this.QR[n][l] += num2 * this.QR[n][i];
-						}
-					}
-				}
-				this.Rdiag[i] = -num;
-			}
-		}
 
-		// Token: 0x06001672 RID: 5746 RVA: 0x0006FB98 File Offset: 0x0006DD98
-		public bool IsFullRank()
-		{
-			for (int i = 0; i < this.n; i++)
-			{
-				if (Math.Abs(this.Rdiag[i]) <= this.mRankTolerance)
-				{
-					return false;
-				}
-			}
-			return true;
-		}
+ 
 
-		// Token: 0x06001673 RID: 5747 RVA: 0x0006FBD8 File Offset: 0x0006DDD8
-		public Matrix GetH()
-		{
-			Matrix matrix = new Matrix(this.m, this.n);
-			double[][] array = matrix.Array;
-			for (int i = 0; i < this.m; i++)
-			{
-				for (int j = 0; j < this.n; j++)
-				{
-					if (i >= j)
-					{
-						array[i][j] = this.QR[i][j];
-					}
-					else
-					{
-						array[i][j] = 0.0;
-					}
-				}
-			}
-			return matrix;
-		}
+ /// <summary>
+ /// QR Decomposition.
+/// For an m-by-n matrix A with m >= n, the QR decomposition is an m-by-n
+ ///  orthogonal matrix Q and an n-by-n upper triangular matrix R so that
+ ///  A = Q*R.
+ ///  
+ /// The QR decompostion always exists, even if the matrix does not have
+ ///      full rank, so the constructor will never fail.  The primary use of the
+  ///     QR decomposition is in the least squares solution of nonsquare systems
+  ///     of simultaneous linear equations.  This will fail if isFullRank()
+ ///      returns false.
+ /// </summary>
+        [Serializable]
+public class QRDecomposition {
+    /** QR Decomposition.
+    <P>
+       For an m-by-n matrix A with m >= n, the QR decomposition is an m-by-n
+       orthogonal matrix Q and an n-by-n upper triangular matrix R so that
+       A = Q*R.
+    <P>
+       The QR decompostion always exists, even if the matrix does not have
+       full rank, so the constructor will never fail.  The primary use of the
+       QR decomposition is in the least squares solution of nonsquare systems
+       of simultaneous linear equations.  This will fail if isFullRank()
+       returns false.
+    */
+/* ------------------------
+   Class variables
+ * ------------------------ */
 
-		// Token: 0x06001674 RID: 5748 RVA: 0x0006FC60 File Offset: 0x0006DE60
-		public Matrix GetR()
-		{
-			Matrix matrix = new Matrix(this.n, this.n);
-			double[][] array = matrix.Array;
-			for (int i = 0; i < this.n; i++)
-			{
-				for (int j = 0; j < this.n; j++)
-				{
-					if (i < j)
-					{
-						array[i][j] = this.QR[i][j];
-					}
-					else if (i == j)
-					{
-						array[i][j] = this.Rdiag[i];
-					}
-					else
-					{
-						array[i][j] = 0.0;
-					}
-				}
-			}
-			return matrix;
-		}
+   /** Array for internal storage of decomposition.
+   @serial internal array storage.
+   */
+   private double[][] QR;
 
-		// Token: 0x06001675 RID: 5749 RVA: 0x0006FD08 File Offset: 0x0006DF08
-		public Matrix GetQ()
-		{
-			Matrix matrix = new Matrix(this.m, this.n);
-			double[][] array = matrix.Array;
-			for (int i = this.n - 1; i >= 0; i--)
-			{
-				for (int j = 0; j < this.m; j++)
-				{
-					array[j][i] = 0.0;
-				}
-				array[i][i] = 1.0;
-				for (int k = i; k < this.n; k++)
-				{
-					if (this.QR[i][i] != 0.0)
-					{
-						double num = 0.0;
-						for (int l = i; l < this.m; l++)
-						{
-							num += this.QR[l][i] * array[l][k];
-						}
-						num = -num / this.QR[i][i];
-						for (int m = i; m < this.m; m++)
-						{
-							array[m][k] += num * this.QR[m][i];
-						}
-					}
-				}
-			}
-			return matrix;
-		}
+   /** Row and column dimensions.
+   @serial column dimension.
+   @serial row dimension.
+   */
+   private int m, n;
 
-		// Token: 0x06001676 RID: 5750 RVA: 0x0006FE50 File Offset: 0x0006E050
-		public Matrix Solve(Matrix B)
-		{
-			if (B.RowDimension != this.m)
-			{
-				throw new ArgumentException("Matrix row dimensions must agree.");
-			}
-			if (!this.IsFullRank())
-			{
-				throw new Exception("Matrix is rank deficient.");
-			}
-			int columnDimension = B.ColumnDimension;
-			double[][] array = B.ArrayCopy();
-			for (int i = 0; i < this.n; i++)
-			{
-				for (int j = 0; j < columnDimension; j++)
-				{
-					double num = 0.0;
-					for (int k = i; k < this.m; k++)
-					{
-						num += this.QR[k][i] * array[k][j];
-					}
-					num = -num / this.QR[i][i];
-					for (int l = i; l < this.m; l++)
-					{
-						array[l][j] += num * this.QR[l][i];
-					}
-				}
-			}
-			for (int m = this.n - 1; m >= 0; m--)
-			{
-				for (int n = 0; n < columnDimension; n++)
-				{
-					array[m][n] /= this.Rdiag[m];
-				}
-				for (int num2 = 0; num2 < m; num2++)
-				{
-					for (int num3 = 0; num3 < columnDimension; num3++)
-					{
-						array[num2][num3] -= array[m][num3] * this.QR[num2][m];
-					}
-				}
-			}
-			return new Matrix(array, this.n, columnDimension).GetMatrix(0, this.n - 1, 0, columnDimension - 1);
-		}
+   /** Array for internal storage of diagonal of R.
+   @serial diagonal of R.
+   */
+   private double[] Rdiag;
 
-		// Token: 0x04000D19 RID: 3353
-		double[][] QR;
 
-		// Token: 0x04000D1A RID: 3354
-		int m;
 
-		// Token: 0x04000D1B RID: 3355
-		int n;
+   private double mRankTolerance;
 
-		// Token: 0x04000D1C RID: 3356
-		double[] Rdiag;
+    /// <summary>
+    /// How close a value needs to be to zero in order to be considered zero for the purpose of 
+    /// full rank determination;
+    /// </summary>
+   public double RankTolerance 
+   {
+       get{return mRankTolerance;}
+       set { mRankTolerance = value; }
+   }
 
-		// Token: 0x04000D1D RID: 3357
-		double mRankTolerance;
-	}
+
+
+/* ------------------------
+   Constructor
+ * ------------------------ */
+
+ 
+   ///<summary>QR Decomposition, computed by Householder reflections.</summary>
+   ///<param name="A">Rectangular matrix</param>
+   ///<returns>Structure to access R and the Householder vectors and compute Q.</returns>
+   public QRDecomposition (Matrix A) {
+      // Initialize.
+      QR = A.ArrayCopy();
+      m = A.RowDimension;
+      n = A.ColumnDimension;
+      Rdiag = new double[n];
+
+      // Main loop.
+      for (int k = 0; k < n; k++) {
+         // Compute 2-norm of k-th column without under/overflow.
+         double nrm = 0;
+         for (int i = k; i < m; i++) {
+            nrm = Maths.Hypot(nrm,QR[i][k]);
+         }
+
+         if (nrm != 0.0) {
+            // Form k-th Householder vector.
+            if (QR[k][k] < 0) {
+               nrm = -nrm;
+            }
+            for (int i = k; i < m; i++) {
+               QR[i][k] /= nrm;
+            }
+            QR[k][k] += 1.0;
+
+            // Apply transformation to remaining columns.
+            for (int j = k+1; j < n; j++) {
+               double s = 0.0; 
+               for (int i = k; i < m; i++) {
+                  s += QR[i][k]*QR[i][j];
+               }
+               s = -s/QR[k][k];
+               for (int i = k; i < m; i++) {
+                  QR[i][j] += s*QR[i][k];
+               }
+            }
+         }
+         Rdiag[k] = -nrm;
+      }
+   }
+
+/* ------------------------
+   Public Methods
+ * ------------------------ */
+
+ 
+///<summary> Is the matrix full rank?</summary>
+///<remarks>It is mathematically true that one can find the rank by checking the diagonal values of R, 
+///and on an machine using some sort of infinite precision numerics it would be dependable. However on 
+///a machine with rounding errors it is easy to get situation where the result is supposed to be zero 
+///but comes across as something like 1.0E-16. Be careful!</remarks>
+///<returns>true if R, and hence A, has full rank.</returns>
+   public bool IsFullRank () {
+      for (int j = 0; j < n; j++) {
+         //if (Rdiag[j] == 0) return false; original 
+          if (Math.Abs(Rdiag[j]) <= mRankTolerance) return false; //kj version
+      }
+      return true;
+   }
+
+ 
+   ///<summary>Return the Householder vectors</summary>
+   ///<returns>Lower trapezoidal matrix whose columns define the reflections</returns>
+   public Matrix GetH () {
+      Matrix X = new Matrix(m,n);
+      double[][] H = X.Array;
+      for (int i = 0; i < m; i++) {
+         for (int j = 0; j < n; j++) {
+            if (i >= j) {
+               H[i][j] = QR[i][j];
+            } else {
+               H[i][j] = 0.0;
+            }
+         }
+      }
+      return X;
+   }
+
+ 
+   ///<summary>Return the upper triangular factor</summary>
+   public Matrix GetR () {
+      Matrix X = new Matrix(n,n);
+      double[][] R = X.Array;
+      for (int i = 0; i < n; i++) {
+         for (int j = 0; j < n; j++) {
+            if (i < j) {
+               R[i][j] = QR[i][j];
+            } else if (i == j) {
+               R[i][j] = Rdiag[i];
+            } else {
+               R[i][j] = 0.0;
+            }
+         }
+      }
+      return X;
+   }
+
+ 
+   ///<summary>Generate and return the (economy-sized) orthogonal factor</summary>
+   ///<returns>Q</returns>
+   public Matrix GetQ () {
+      Matrix X = new Matrix(m,n);
+      double[][] Q = X.Array;
+      for (int k = n-1; k >= 0; k--) {
+         for (int i = 0; i < m; i++) {
+            Q[i][k] = 0.0;
+         }
+         Q[k][k] = 1.0;
+         for (int j = k; j < n; j++) {
+            if (QR[k][k] != 0) {
+               double s = 0.0;
+               for (int i = k; i < m; i++) {
+                  s += QR[i][k]*Q[i][j];
+               }
+               s = -s/QR[k][k];
+               for (int i = k; i < m; i++) {
+                  Q[i][j] += s*QR[i][k];
+               }
+            }
+         }
+      }
+      return X;
+   }
+
+   
+   ///<Sumary>Least squares solution of A*X = B</Sumary>
+   ///<param name="B">A Matrix with as many rows as A and any number of columns.</param>
+   ///<returns> X that minimizes the two norm of Q*R*X-B.</returns>
+   public Matrix Solve (Matrix B) {
+      if (B.RowDimension != m) {
+         throw new ArgumentException("Matrix row dimensions must agree.");
+      }
+      if (!IsFullRank()) {
+         throw new Exception("Matrix is rank deficient.");
+      }
+      
+      // Copy right hand side
+      int nx = B.ColumnDimension;
+      double[][] X = B.ArrayCopy();
+
+      // Compute Y = transpose(Q)*B
+      for (int k = 0; k < n; k++) {
+         for (int j = 0; j < nx; j++) {
+            double s = 0.0; 
+            for (int i = k; i < m; i++) {
+               s += QR[i][k]*X[i][j];
+            }
+            s = -s/QR[k][k];
+            for (int i = k; i < m; i++) {
+               X[i][j] += s*QR[i][k];
+            }
+         }
+      }
+      // Solve R*X = Y;
+      for (int k = n-1; k >= 0; k--) {
+         for (int j = 0; j < nx; j++) {
+            X[k][j] /= Rdiag[k];
+         }
+         for (int i = 0; i < k; i++) {
+            for (int j = 0; j < nx; j++) {
+               X[i][j] -= X[k][j]*QR[i][k];
+            }
+         }
+      }
+      return (new Matrix(X,n,nx).GetMatrix(0,n-1,0,nx-1));
+   }
+}
+
+
 }

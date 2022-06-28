@@ -137,22 +137,22 @@ namespace BecquerelMonitor
 				double x3 = -b / (4.0 * a) - S + Math.Sqrt(-4.0 * S * S - 2.0 * p - q / S) / 2.0;
 				double x4 = -b / (4.0 * a) - S - Math.Sqrt(-4.0 * S * S - 2.0 * p - q / S) / 2.0;
 
-				if (x1 > 0)
+				if (x1 > 0 && x1 < 10000.0)
                 {
 					return x1;
                 }
 
-				if (x2 > 0)
+				if (x2 > 0 && x2 < 10000.0)
 				{
 					return x2;
 				}
 
-				if (x3 > 0)
+				if (x3 > 0 && x1 < 10000.0)
 				{
 					return x3;
 				}
 
-				if (x4 > 0)
+				if (x4 > 0 && x1 < 10000.0)
 				{
 					return x4;
 				}

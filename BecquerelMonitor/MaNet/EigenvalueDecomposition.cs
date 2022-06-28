@@ -1,895 +1,985 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
 namespace MaNet
 {
-	// Token: 0x020001E5 RID: 485
-	[Serializable]
-	public class EigenvalueDecomposition
-	{
-		// Token: 0x06001680 RID: 5760 RVA: 0x00070814 File Offset: 0x0006EA14
-		void tred2()
-		{
-			for (int i = 0; i < this.n; i++)
-			{
-				this.d[i] = this.V[this.n - 1][i];
-			}
-			for (int j = this.n - 1; j > 0; j--)
-			{
-				double num = 0.0;
-				double num2 = 0.0;
-				for (int k = 0; k < j; k++)
-				{
-					num += Math.Abs(this.d[k]);
-				}
-				if (num == 0.0)
-				{
-					this.e[j] = this.d[j - 1];
-					for (int l = 0; l < j; l++)
-					{
-						this.d[l] = this.V[j - 1][l];
-						this.V[j][l] = 0.0;
-						this.V[l][j] = 0.0;
-					}
-				}
-				else
-				{
-					for (int m = 0; m < j; m++)
-					{
-						this.d[m] /= num;
-						num2 += this.d[m] * this.d[m];
-					}
-					double num3 = this.d[j - 1];
-					double num4 = Math.Sqrt(num2);
-					if (num3 > 0.0)
-					{
-						num4 = -num4;
-					}
-					this.e[j] = num * num4;
-					num2 -= num3 * num4;
-					this.d[j - 1] = num3 - num4;
-					for (int n = 0; n < j; n++)
-					{
-						this.e[n] = 0.0;
-					}
-					for (int num5 = 0; num5 < j; num5++)
-					{
-						num3 = this.d[num5];
-						this.V[num5][j] = num3;
-						num4 = this.e[num5] + this.V[num5][num5] * num3;
-						for (int num6 = num5 + 1; num6 <= j - 1; num6++)
-						{
-							num4 += this.V[num6][num5] * this.d[num6];
-							this.e[num6] += this.V[num6][num5] * num3;
-						}
-						this.e[num5] = num4;
-					}
-					num3 = 0.0;
-					for (int num7 = 0; num7 < j; num7++)
-					{
-						this.e[num7] /= num2;
-						num3 += this.e[num7] * this.d[num7];
-					}
-					double num8 = num3 / (num2 + num2);
-					for (int num9 = 0; num9 < j; num9++)
-					{
-						this.e[num9] -= num8 * this.d[num9];
-					}
-					for (int num10 = 0; num10 < j; num10++)
-					{
-						num3 = this.d[num10];
-						num4 = this.e[num10];
-						for (int num11 = num10; num11 <= j - 1; num11++)
-						{
-							this.V[num11][num10] -= num3 * this.e[num11] + num4 * this.d[num11];
-						}
-						this.d[num10] = this.V[j - 1][num10];
-						this.V[j][num10] = 0.0;
-					}
-				}
-				this.d[j] = num2;
-			}
-			for (int num12 = 0; num12 < this.n - 1; num12++)
-			{
-				this.V[this.n - 1][num12] = this.V[num12][num12];
-				this.V[num12][num12] = 1.0;
-				double num13 = this.d[num12 + 1];
-				if (num13 != 0.0)
-				{
-					for (int num14 = 0; num14 <= num12; num14++)
-					{
-						this.d[num14] = this.V[num14][num12 + 1] / num13;
-					}
-					for (int num15 = 0; num15 <= num12; num15++)
-					{
-						double num16 = 0.0;
-						for (int num17 = 0; num17 <= num12; num17++)
-						{
-							num16 += this.V[num17][num12 + 1] * this.V[num17][num15];
-						}
-						for (int num18 = 0; num18 <= num12; num18++)
-						{
-							this.V[num18][num15] -= num16 * this.d[num18];
-						}
-					}
-				}
-				for (int num19 = 0; num19 <= num12; num19++)
-				{
-					this.V[num19][num12 + 1] = 0.0;
-				}
-			}
-			for (int num20 = 0; num20 < this.n; num20++)
-			{
-				this.d[num20] = this.V[this.n - 1][num20];
-				this.V[this.n - 1][num20] = 0.0;
-			}
-			this.V[this.n - 1][this.n - 1] = 1.0;
-			this.e[0] = 0.0;
-		}
 
-		// Token: 0x06001681 RID: 5761 RVA: 0x00070DB8 File Offset: 0x0006EFB8
-		void tql2()
-		{
-			for (int i = 1; i < this.n; i++)
-			{
-				this.e[i - 1] = this.e[i];
-			}
-			this.e[this.n - 1] = 0.0;
-			double num = 0.0;
-			double num2 = 0.0;
-			double num3 = Math.Pow(2.0, -52.0);
-			for (int j = 0; j < this.n; j++)
-			{
-				num2 = Math.Max(num2, Math.Abs(this.d[j]) + Math.Abs(this.e[j]));
-				int num4 = j;
-				while (num4 < this.n && Math.Abs(this.e[num4]) > num3 * num2)
-				{
-					num4++;
-				}
-				if (num4 > j)
-				{
-					int num5 = 0;
-					do
-					{
-						num5++;
-						double num6 = this.d[j];
-						double num7 = (this.d[j + 1] - num6) / (2.0 * this.e[j]);
-						double num8 = Maths.Hypot(num7, 1.0);
-						if (num7 < 0.0)
-						{
-							num8 = -num8;
-						}
-						this.d[j] = this.e[j] / (num7 + num8);
-						this.d[j + 1] = this.e[j] * (num7 + num8);
-						double num9 = this.d[j + 1];
-						double num10 = num6 - this.d[j];
-						for (int k = j + 2; k < this.n; k++)
-						{
-							this.d[k] -= num10;
-						}
-						num += num10;
-						num7 = this.d[num4];
-						double num11 = 1.0;
-						double num12 = num11;
-						double num13 = num11;
-						double num14 = this.e[j + 1];
-						double num15 = 0.0;
-						double num16 = 0.0;
-						for (int l = num4 - 1; l >= j; l--)
-						{
-							num13 = num12;
-							num12 = num11;
-							num16 = num15;
-							num6 = num11 * this.e[l];
-							num10 = num11 * num7;
-							num8 = Maths.Hypot(num7, this.e[l]);
-							this.e[l + 1] = num15 * num8;
-							num15 = this.e[l] / num8;
-							num11 = num7 / num8;
-							num7 = num11 * this.d[l] - num15 * num6;
-							this.d[l + 1] = num10 + num15 * (num11 * num6 + num15 * this.d[l]);
-							for (int m = 0; m < this.n; m++)
-							{
-								num10 = this.V[m][l + 1];
-								this.V[m][l + 1] = num15 * this.V[m][l] + num11 * num10;
-								this.V[m][l] = num11 * this.V[m][l] - num15 * num10;
-							}
-						}
-						num7 = -num15 * num16 * num13 * num14 * this.e[j] / num9;
-						this.e[j] = num15 * num7;
-						this.d[j] = num11 * num7;
-					}
-					while (Math.Abs(this.e[j]) > num3 * num2);
-				}
-				this.d[j] = this.d[j] + num;
-				this.e[j] = 0.0;
-			}
-			for (int n = 0; n < this.n - 1; n++)
-			{
-				int num17 = n;
-				double num18 = this.d[n];
-				for (int num19 = n + 1; num19 < this.n; num19++)
-				{
-					if (this.d[num19] < num18)
-					{
-						num17 = num19;
-						num18 = this.d[num19];
-					}
-				}
-				if (num17 != n)
-				{
-					this.d[num17] = this.d[n];
-					this.d[n] = num18;
-					for (int num20 = 0; num20 < this.n; num20++)
-					{
-						num18 = this.V[num20][n];
-						this.V[num20][n] = this.V[num20][num17];
-						this.V[num20][num17] = num18;
-					}
-				}
-			}
-		}
 
-		// Token: 0x06001682 RID: 5762 RVA: 0x00071250 File Offset: 0x0006F450
-		void orthes()
-		{
-			int num = 0;
-			int num2 = this.n - 1;
-			for (int i = num + 1; i <= num2 - 1; i++)
-			{
-				double num3 = 0.0;
-				for (int j = i; j <= num2; j++)
-				{
-					num3 += Math.Abs(this.H[j][i - 1]);
-				}
-				if (num3 != 0.0)
-				{
-					double num4 = 0.0;
-					for (int k = num2; k >= i; k--)
-					{
-						this.ort[k] = this.H[k][i - 1] / num3;
-						num4 += this.ort[k] * this.ort[k];
-					}
-					double num5 = Math.Sqrt(num4);
-					if (this.ort[i] > 0.0)
-					{
-						num5 = -num5;
-					}
-					num4 -= this.ort[i] * num5;
-					this.ort[i] = this.ort[i] - num5;
-					for (int l = i; l < this.n; l++)
-					{
-						double num6 = 0.0;
-						for (int m = num2; m >= i; m--)
-						{
-							num6 += this.ort[m] * this.H[m][l];
-						}
-						num6 /= num4;
-						for (int n = i; n <= num2; n++)
-						{
-							this.H[n][l] -= num6 * this.ort[n];
-						}
-					}
-					for (int num7 = 0; num7 <= num2; num7++)
-					{
-						double num8 = 0.0;
-						for (int num9 = num2; num9 >= i; num9--)
-						{
-							num8 += this.ort[num9] * this.H[num7][num9];
-						}
-						num8 /= num4;
-						for (int num10 = i; num10 <= num2; num10++)
-						{
-							this.H[num7][num10] -= num8 * this.ort[num10];
-						}
-					}
-					this.ort[i] = num3 * this.ort[i];
-					this.H[i][i - 1] = num3 * num5;
-				}
-			}
-			for (int num11 = 0; num11 < this.n; num11++)
-			{
-				for (int num12 = 0; num12 < this.n; num12++)
-				{
-					this.V[num11][num12] = ((num11 == num12) ? 1.0 : 0.0);
-				}
-			}
-			for (int num13 = num2 - 1; num13 >= num + 1; num13--)
-			{
-				if (this.H[num13][num13 - 1] != 0.0)
-				{
-					for (int num14 = num13 + 1; num14 <= num2; num14++)
-					{
-						this.ort[num14] = this.H[num14][num13 - 1];
-					}
-					for (int num15 = num13; num15 <= num2; num15++)
-					{
-						double num16 = 0.0;
-						for (int num17 = num13; num17 <= num2; num17++)
-						{
-							num16 += this.ort[num17] * this.V[num17][num15];
-						}
-						num16 = num16 / this.ort[num13] / this.H[num13][num13 - 1];
-						for (int num18 = num13; num18 <= num2; num18++)
-						{
-							this.V[num18][num15] += num16 * this.ort[num18];
-						}
-					}
-				}
-			}
-		}
+    /// <summary>
+/// Eigenvalues and eigenvectors of a real matrix. 
+/// 
+///   If A is symmetric, then A = V*D*V' where the eigenvalue matrix D is
+///   diagonal and the eigenvector matrix V is orthogonal.
+///   I.e. A = V.times(D.times(V.transpose())) and 
+///   V.times(V.transpose()) equals the identity matrix.
+/// 
+///   If A is not symmetric, then the eigenvalue matrix D is block diagonal
+/// with the real eigenvalues in 1-by-1 blocks and any complex eigenvalues,
+///  lambda + i*mu, in 2-by-2 blocks, [lambda, mu; -mu, lambda].  The
+///   columns of V represent the eigenvectors in the sense that A*V = V*D,
+///   i.e. A.times(V) equals V.times(D).  The matrix V may be badly
+///    conditioned, or even singular, so the validity of the equation
+///    A = V*D*inverse(V) depends upon V.cond().
+    /// </summary>
+        [Serializable]
+public class EigenvalueDecomposition
+        {
+/** Eigenvalues and eigenvectors of a real matrix. 
+<P>
+    If A is symmetric, then A = V*D*V' where the eigenvalue matrix D is
+    diagonal and the eigenvector matrix V is orthogonal.
+    I.e. A = V.times(D.times(V.transpose())) and 
+    V.times(V.transpose()) equals the identity matrix.
+<P>
+    If A is not symmetric, then the eigenvalue matrix D is block diagonal
+    with the real eigenvalues in 1-by-1 blocks and any complex eigenvalues,
+    lambda + i*mu, in 2-by-2 blocks, [lambda, mu; -mu, lambda].  The
+    columns of V represent the eigenvectors in the sense that A*V = V*D,
+    i.e. A.times(V) equals V.times(D).  The matrix V may be badly
+    conditioned, or even singular, so the validity of the equation
+    A = V*D*inverse(V) depends upon V.cond().
+**/
+/* ------------------------
+   Class variables
+ * ------------------------ */
 
-		// Token: 0x06001683 RID: 5763 RVA: 0x00071628 File Offset: 0x0006F828
-		void cdiv(double xr, double xi, double yr, double yi)
-		{
-			double num;
-			double num2;
-			if (Math.Abs(yr) > Math.Abs(yi))
-			{
-				num = yi / yr;
-				num2 = yr + num * yi;
-				this.cdivr = (xr + num * xi) / num2;
-				this.cdivi = (xi - num * xr) / num2;
-				return;
-			}
-			num = yr / yi;
-			num2 = yi + num * yr;
-			this.cdivr = (num * xr + xi) / num2;
-			this.cdivi = (num * xi - xr) / num2;
-		}
+   /** Row and column dimension (square matrix).
+   @serial matrix dimension.
+   */
+   private int n;
 
-		// Token: 0x06001684 RID: 5764 RVA: 0x00071698 File Offset: 0x0006F898
-		void hqr2()
-		{
-			int num = this.n;
-			int i = num - 1;
-			int num2 = 0;
-			int num3 = num - 1;
-			double num4 = Math.Pow(2.0, -52.0);
-			double num5 = 0.0;
-			double num6 = 0.0;
-			double num7 = 0.0;
-			double num8 = 0.0;
-			double num9 = 0.0;
-			double num10 = 0.0;
-			double num11 = 0.0;
-			for (int j = 0; j < num; j++)
-			{
-				if (j < num2 | j > num3)
-				{
-					this.d[j] = this.H[j][j];
-					this.e[j] = 0.0;
-				}
-				for (int k = Math.Max(j - 1, 0); k < num; k++)
-				{
-					num11 += Math.Abs(this.H[j][k]);
-				}
-			}
-			int num12 = 0;
-			while (i >= num2)
-			{
-				int l;
-				for (l = i; l > num2; l--)
-				{
-					num9 = Math.Abs(this.H[l - 1][l - 1]) + Math.Abs(this.H[l][l]);
-					if (num9 == 0.0)
-					{
-						num9 = num11;
-					}
-					if (Math.Abs(this.H[l][l - 1]) < num4 * num9)
-					{
-						break;
-					}
-				}
-				if (l == i)
-				{
-					this.H[i][i] = this.H[i][i] + num5;
-					this.d[i] = this.H[i][i];
-					this.e[i] = 0.0;
-					i--;
-					num12 = 0;
-				}
-				else if (l == i - 1)
-				{
-					double num13 = this.H[i][i - 1] * this.H[i - 1][i];
-					num6 = (this.H[i - 1][i - 1] - this.H[i][i]) / 2.0;
-					num7 = num6 * num6 + num13;
-					num10 = Math.Sqrt(Math.Abs(num7));
-					this.H[i][i] = this.H[i][i] + num5;
-					this.H[i - 1][i - 1] = this.H[i - 1][i - 1] + num5;
-					double num14 = this.H[i][i];
-					if (num7 >= 0.0)
-					{
-						if (num6 >= 0.0)
-						{
-							num10 = num6 + num10;
-						}
-						else
-						{
-							num10 = num6 - num10;
-						}
-						this.d[i - 1] = num14 + num10;
-						this.d[i] = this.d[i - 1];
-						if (num10 != 0.0)
-						{
-							this.d[i] = num14 - num13 / num10;
-						}
-						this.e[i - 1] = 0.0;
-						this.e[i] = 0.0;
-						num14 = this.H[i][i - 1];
-						num9 = Math.Abs(num14) + Math.Abs(num10);
-						num6 = num14 / num9;
-						num7 = num10 / num9;
-						num8 = Math.Sqrt(num6 * num6 + num7 * num7);
-						num6 /= num8;
-						num7 /= num8;
-						for (int m = i - 1; m < num; m++)
-						{
-							num10 = this.H[i - 1][m];
-							this.H[i - 1][m] = num7 * num10 + num6 * this.H[i][m];
-							this.H[i][m] = num7 * this.H[i][m] - num6 * num10;
-						}
-						for (int n = 0; n <= i; n++)
-						{
-							num10 = this.H[n][i - 1];
-							this.H[n][i - 1] = num7 * num10 + num6 * this.H[n][i];
-							this.H[n][i] = num7 * this.H[n][i] - num6 * num10;
-						}
-						for (int num15 = num2; num15 <= num3; num15++)
-						{
-							num10 = this.V[num15][i - 1];
-							this.V[num15][i - 1] = num7 * num10 + num6 * this.V[num15][i];
-							this.V[num15][i] = num7 * this.V[num15][i] - num6 * num10;
-						}
-					}
-					else
-					{
-						this.d[i - 1] = num14 + num6;
-						this.d[i] = num14 + num6;
-						this.e[i - 1] = num10;
-						this.e[i] = -num10;
-					}
-					i -= 2;
-					num12 = 0;
-				}
-				else
-				{
-					double num14 = this.H[i][i];
-					double num16 = 0.0;
-					double num13 = 0.0;
-					if (l < i)
-					{
-						num16 = this.H[i - 1][i - 1];
-						num13 = this.H[i][i - 1] * this.H[i - 1][i];
-					}
-					if (num12 == 10)
-					{
-						num5 += num14;
-						for (int num17 = num2; num17 <= i; num17++)
-						{
-							this.H[num17][num17] -= num14;
-						}
-						num9 = Math.Abs(this.H[i][i - 1]) + Math.Abs(this.H[i - 1][i - 2]);
-						num16 = (num14 = 0.75 * num9);
-						num13 = -0.4375 * num9 * num9;
-					}
-					if (num12 == 30)
-					{
-						num9 = (num16 - num14) / 2.0;
-						num9 = num9 * num9 + num13;
-						if (num9 > 0.0)
-						{
-							num9 = Math.Sqrt(num9);
-							if (num16 < num14)
-							{
-								num9 = -num9;
-							}
-							num9 = num14 - num13 / ((num16 - num14) / 2.0 + num9);
-							for (int num18 = num2; num18 <= i; num18++)
-							{
-								this.H[num18][num18] -= num9;
-							}
-							num5 += num9;
-							num16 = (num14 = (num13 = 0.964));
-						}
-					}
-					num12++;
-					int num19;
-					for (num19 = i - 2; num19 >= l; num19--)
-					{
-						num10 = this.H[num19][num19];
-						num8 = num14 - num10;
-						num9 = num16 - num10;
-						num6 = (num8 * num9 - num13) / this.H[num19 + 1][num19] + this.H[num19][num19 + 1];
-						num7 = this.H[num19 + 1][num19 + 1] - num10 - num8 - num9;
-						num8 = this.H[num19 + 2][num19 + 1];
-						num9 = Math.Abs(num6) + Math.Abs(num7) + Math.Abs(num8);
-						num6 /= num9;
-						num7 /= num9;
-						num8 /= num9;
-						if (num19 == l || Math.Abs(this.H[num19][num19 - 1]) * (Math.Abs(num7) + Math.Abs(num8)) < num4 * (Math.Abs(num6) * (Math.Abs(this.H[num19 - 1][num19 - 1]) + Math.Abs(num10) + Math.Abs(this.H[num19 + 1][num19 + 1]))))
-						{
-							break;
-						}
-					}
-					for (int num20 = num19 + 2; num20 <= i; num20++)
-					{
-						this.H[num20][num20 - 2] = 0.0;
-						if (num20 > num19 + 2)
-						{
-							this.H[num20][num20 - 3] = 0.0;
-						}
-					}
-					for (int num21 = num19; num21 <= i - 1; num21++)
-					{
-						bool flag = num21 != i - 1;
-						if (num21 != num19)
-						{
-							num6 = this.H[num21][num21 - 1];
-							num7 = this.H[num21 + 1][num21 - 1];
-							num8 = (flag ? this.H[num21 + 2][num21 - 1] : 0.0);
-							num14 = Math.Abs(num6) + Math.Abs(num7) + Math.Abs(num8);
-							if (num14 != 0.0)
-							{
-								num6 /= num14;
-								num7 /= num14;
-								num8 /= num14;
-							}
-						}
-						if (num14 == 0.0)
-						{
-							break;
-						}
-						num9 = Math.Sqrt(num6 * num6 + num7 * num7 + num8 * num8);
-						if (num6 < 0.0)
-						{
-							num9 = -num9;
-						}
-						if (num9 != 0.0)
-						{
-							if (num21 != num19)
-							{
-								this.H[num21][num21 - 1] = -num9 * num14;
-							}
-							else if (l != num19)
-							{
-								this.H[num21][num21 - 1] = -this.H[num21][num21 - 1];
-							}
-							num6 += num9;
-							num14 = num6 / num9;
-							num16 = num7 / num9;
-							num10 = num8 / num9;
-							num7 /= num6;
-							num8 /= num6;
-							for (int num22 = num21; num22 < num; num22++)
-							{
-								num6 = this.H[num21][num22] + num7 * this.H[num21 + 1][num22];
-								if (flag)
-								{
-									num6 += num8 * this.H[num21 + 2][num22];
-									this.H[num21 + 2][num22] = this.H[num21 + 2][num22] - num6 * num10;
-								}
-								this.H[num21][num22] = this.H[num21][num22] - num6 * num14;
-								this.H[num21 + 1][num22] = this.H[num21 + 1][num22] - num6 * num16;
-							}
-							for (int num23 = 0; num23 <= Math.Min(i, num21 + 3); num23++)
-							{
-								num6 = num14 * this.H[num23][num21] + num16 * this.H[num23][num21 + 1];
-								if (flag)
-								{
-									num6 += num10 * this.H[num23][num21 + 2];
-									this.H[num23][num21 + 2] = this.H[num23][num21 + 2] - num6 * num8;
-								}
-								this.H[num23][num21] = this.H[num23][num21] - num6;
-								this.H[num23][num21 + 1] = this.H[num23][num21 + 1] - num6 * num7;
-							}
-							for (int num24 = num2; num24 <= num3; num24++)
-							{
-								num6 = num14 * this.V[num24][num21] + num16 * this.V[num24][num21 + 1];
-								if (flag)
-								{
-									num6 += num10 * this.V[num24][num21 + 2];
-									this.V[num24][num21 + 2] = this.V[num24][num21 + 2] - num6 * num8;
-								}
-								this.V[num24][num21] = this.V[num24][num21] - num6;
-								this.V[num24][num21 + 1] = this.V[num24][num21 + 1] - num6 * num7;
-							}
-						}
-					}
-				}
-			}
-			if (num11 == 0.0)
-			{
-				return;
-			}
-			for (i = num - 1; i >= 0; i--)
-			{
-				num6 = this.d[i];
-				num7 = this.e[i];
-				if (num7 == 0.0)
-				{
-					int num25 = i;
-					this.H[i][i] = 1.0;
-					for (int num26 = i - 1; num26 >= 0; num26--)
-					{
-						double num13 = this.H[num26][num26] - num6;
-						num8 = 0.0;
-						for (int num27 = num25; num27 <= i; num27++)
-						{
-							num8 += this.H[num26][num27] * this.H[num27][i];
-						}
-						if (this.e[num26] < 0.0)
-						{
-							num10 = num13;
-							num9 = num8;
-						}
-						else
-						{
-							num25 = num26;
-							double num28;
-							if (this.e[num26] == 0.0)
-							{
-								if (num13 != 0.0)
-								{
-									this.H[num26][i] = -num8 / num13;
-								}
-								else
-								{
-									this.H[num26][i] = -num8 / (num4 * num11);
-								}
-							}
-							else
-							{
-								double num14 = this.H[num26][num26 + 1];
-								double num16 = this.H[num26 + 1][num26];
-								num7 = (this.d[num26] - num6) * (this.d[num26] - num6) + this.e[num26] * this.e[num26];
-								num28 = (num14 * num9 - num10 * num8) / num7;
-								this.H[num26][i] = num28;
-								if (Math.Abs(num14) > Math.Abs(num10))
-								{
-									this.H[num26 + 1][i] = (-num8 - num13 * num28) / num14;
-								}
-								else
-								{
-									this.H[num26 + 1][i] = (-num9 - num16 * num28) / num10;
-								}
-							}
-							num28 = Math.Abs(this.H[num26][i]);
-							if (num4 * num28 * num28 > 1.0)
-							{
-								for (int num29 = num26; num29 <= i; num29++)
-								{
-									this.H[num29][i] = this.H[num29][i] / num28;
-								}
-							}
-						}
-					}
-				}
-				else if (num7 < 0.0)
-				{
-					int num30 = i - 1;
-					if (Math.Abs(this.H[i][i - 1]) > Math.Abs(this.H[i - 1][i]))
-					{
-						this.H[i - 1][i - 1] = num7 / this.H[i][i - 1];
-						this.H[i - 1][i] = -(this.H[i][i] - num6) / this.H[i][i - 1];
-					}
-					else
-					{
-						this.cdiv(0.0, -this.H[i - 1][i], this.H[i - 1][i - 1] - num6, num7);
-						this.H[i - 1][i - 1] = this.cdivr;
-						this.H[i - 1][i] = this.cdivi;
-					}
-					this.H[i][i - 1] = 0.0;
-					this.H[i][i] = 1.0;
-					for (int num31 = i - 2; num31 >= 0; num31--)
-					{
-						double num32 = 0.0;
-						double num33 = 0.0;
-						for (int num34 = num30; num34 <= i; num34++)
-						{
-							num32 += this.H[num31][num34] * this.H[num34][i - 1];
-							num33 += this.H[num31][num34] * this.H[num34][i];
-						}
-						double num13 = this.H[num31][num31] - num6;
-						if (this.e[num31] < 0.0)
-						{
-							num10 = num13;
-							num8 = num32;
-							num9 = num33;
-						}
-						else
-						{
-							num30 = num31;
-							if (this.e[num31] == 0.0)
-							{
-								this.cdiv(-num32, -num33, num13, num7);
-								this.H[num31][i - 1] = this.cdivr;
-								this.H[num31][i] = this.cdivi;
-							}
-							else
-							{
-								double num14 = this.H[num31][num31 + 1];
-								double num16 = this.H[num31 + 1][num31];
-								double num35 = (this.d[num31] - num6) * (this.d[num31] - num6) + this.e[num31] * this.e[num31] - num7 * num7;
-								double num36 = (this.d[num31] - num6) * 2.0 * num7;
-								if (num35 == 0.0 & num36 == 0.0)
-								{
-									num35 = num4 * num11 * (Math.Abs(num13) + Math.Abs(num7) + Math.Abs(num14) + Math.Abs(num16) + Math.Abs(num10));
-								}
-								this.cdiv(num14 * num8 - num10 * num32 + num7 * num33, num14 * num9 - num10 * num33 - num7 * num32, num35, num36);
-								this.H[num31][i - 1] = this.cdivr;
-								this.H[num31][i] = this.cdivi;
-								if (Math.Abs(num14) > Math.Abs(num10) + Math.Abs(num7))
-								{
-									this.H[num31 + 1][i - 1] = (-num32 - num13 * this.H[num31][i - 1] + num7 * this.H[num31][i]) / num14;
-									this.H[num31 + 1][i] = (-num33 - num13 * this.H[num31][i] - num7 * this.H[num31][i - 1]) / num14;
-								}
-								else
-								{
-									this.cdiv(-num8 - num16 * this.H[num31][i - 1], -num9 - num16 * this.H[num31][i], num10, num7);
-									this.H[num31 + 1][i - 1] = this.cdivr;
-									this.H[num31 + 1][i] = this.cdivi;
-								}
-							}
-							double num28 = Math.Max(Math.Abs(this.H[num31][i - 1]), Math.Abs(this.H[num31][i]));
-							if (num4 * num28 * num28 > 1.0)
-							{
-								for (int num37 = num31; num37 <= i; num37++)
-								{
-									this.H[num37][i - 1] = this.H[num37][i - 1] / num28;
-									this.H[num37][i] = this.H[num37][i] / num28;
-								}
-							}
-						}
-					}
-				}
-			}
-			for (int num38 = 0; num38 < num; num38++)
-			{
-				if (num38 < num2 | num38 > num3)
-				{
-					for (int num39 = num38; num39 < num; num39++)
-					{
-						this.V[num38][num39] = this.H[num38][num39];
-					}
-				}
-			}
-			for (int num40 = num - 1; num40 >= num2; num40--)
-			{
-				for (int num41 = num2; num41 <= num3; num41++)
-				{
-					num10 = 0.0;
-					for (int num42 = num2; num42 <= Math.Min(num40, num3); num42++)
-					{
-						num10 += this.V[num41][num42] * this.H[num42][num40];
-					}
-					this.V[num41][num40] = num10;
-				}
-			}
-		}
+   /** Symmetry flag.
+   @serial internal symmetry flag.
+   */
+   private bool issymmetric;
 
-		// Token: 0x06001685 RID: 5765 RVA: 0x00072BCC File Offset: 0x00070DCC
-		public EigenvalueDecomposition(Matrix Arg)
-		{
-			double[][] array = Arg.Array;
-			this.n = Arg.ColumnDimension;
-			this.V = new double[this.n][];
-			for (int i = 0; i < this.V.Length; i++)
-			{
-				this.V[i] = new double[this.n];
-			}
-			this.d = new double[this.n];
-			this.e = new double[this.n];
-			this.issymmetric = true;
-			int num = 0;
-			while (num < this.n & this.issymmetric)
-			{
-				int num2 = 0;
-				while (num2 < this.n & this.issymmetric)
-				{
-					this.issymmetric = (array[num2][num] == array[num][num2]);
-					num2++;
-				}
-				num++;
-			}
-			if (this.issymmetric)
-			{
-				for (int j = 0; j < this.n; j++)
-				{
-					for (int k = 0; k < this.n; k++)
-					{
-						this.V[j][k] = array[j][k];
-					}
-				}
-				this.tred2();
-				this.tql2();
-				return;
-			}
-			this.H = new double[this.n][];
-			for (int l = 0; l < this.H.Length; l++)
-			{
-				this.H[l] = new double[this.n];
-			}
-			this.ort = new double[this.n];
-			for (int m = 0; m < this.n; m++)
-			{
-				for (int n = 0; n < this.n; n++)
-				{
-					this.H[n][m] = array[n][m];
-				}
-			}
-			this.orthes();
-			this.hqr2();
-		}
+   /** Arrays for internal storage of eigenvalues.
+   @serial internal storage of eigenvalues.
+   */
+   private double[] d, e;
 
-		// Token: 0x06001686 RID: 5766 RVA: 0x00072DC0 File Offset: 0x00070FC0
-		public Matrix getV()
-		{
-			return new Matrix(this.V, this.n, this.n);
-		}
+   /** Array for internal storage of eigenvectors.
+   @serial internal storage of eigenvectors.
+   */
+   private double[][] V;
 
-		// Token: 0x06001687 RID: 5767 RVA: 0x00072DDC File Offset: 0x00070FDC
-		public double[] getRealEigenvalues()
-		{
-			return this.d;
-		}
+   /** Array for internal storage of nonsymmetric Hessenberg form.
+   @serial internal storage of nonsymmetric Hessenberg form.
+   */
+   private double[][] H;
 
-		// Token: 0x06001688 RID: 5768 RVA: 0x00072DE4 File Offset: 0x00070FE4
-		public double[] getImagEigenvalues()
-		{
-			return this.e;
-		}
+   /** Working storage for nonsymmetric algorithm.
+   @serial working storage for nonsymmetric algorithm.
+   */
+   private double[] ort;
 
-		// Token: 0x06001689 RID: 5769 RVA: 0x00072DEC File Offset: 0x00070FEC
-		public Matrix getD()
-		{
-			Matrix matrix = new Matrix(this.n, this.n);
-			double[][] array = matrix.Array;
-			for (int i = 0; i < this.n; i++)
-			{
-				for (int j = 0; j < this.n; j++)
-				{
-					array[i][j] = 0.0;
-				}
-				array[i][i] = this.d[i];
-				if (this.e[i] > 0.0)
-				{
-					array[i][i + 1] = this.e[i];
-				}
-				else if (this.e[i] < 0.0)
-				{
-					array[i][i - 1] = this.e[i];
-				}
-			}
-			return matrix;
-		}
+/* ------------------------
+   Private Methods
+ * ------------------------ */
 
-		// Token: 0x04000D23 RID: 3363
-		int n;
+   /// <summary>
+   /// Symmetric Householder reduction to tridiagonal form
+   /// </summary>
+   private void tred2 () {
 
-		// Token: 0x04000D24 RID: 3364
-		bool issymmetric;
+   //  This is derived from the Algol procedures tred2 by
+   //  Bowdler, Martin, Reinsch, and Wilkinson, Handbook for
+   //  Auto. Comp., Vol.ii-Linear Algebra, and the corresponding
+   //  Fortran subroutine in EISPACK.
 
-		// Token: 0x04000D25 RID: 3365
-		double[] d;
+      for (int j = 0; j < n; j++) {
+         d[j] = V[n-1][j];
+      }
 
-		// Token: 0x04000D26 RID: 3366
-		double[] e;
+      // Householder reduction to tridiagonal form.
+   
+      for (int i = n-1; i > 0; i--) {
+   
+         // Scale to avoid under/overflow.
+   
+         double scale = 0.0;
+         double h = 0.0;
+         for (int k = 0; k < i; k++) {
+            scale = scale + Math.Abs(d[k]);
+         }
+         if (scale == 0.0) {
+            e[i] = d[i-1];
+            for (int j = 0; j < i; j++) {
+               d[j] = V[i-1][j];
+               V[i][j] = 0.0;
+               V[j][i] = 0.0;
+            }
+         } else {
+   
+            // Generate Householder vector.
+   
+            for (int k = 0; k < i; k++) {
+               d[k] /= scale;
+               h += d[k] * d[k];
+            }
+            double f = d[i-1];
+            double g = Math.Sqrt(h);
+            if (f > 0) {
+               g = -g;
+            }
+            e[i] = scale * g;
+            h = h - f * g;
+            d[i-1] = f - g;
+            for (int j = 0; j < i; j++) {
+               e[j] = 0.0;
+            }
+   
+            // Apply similarity transformation to remaining columns.
+   
+            for (int j = 0; j < i; j++) {
+               f = d[j];
+               V[j][i] = f;
+               g = e[j] + V[j][j] * f;
+               for (int k = j+1; k <= i-1; k++) {
+                  g += V[k][j] * d[k];
+                  e[k] += V[k][j] * f;
+               }
+               e[j] = g;
+            }
+            f = 0.0;
+            for (int j = 0; j < i; j++) {
+               e[j] /= h;
+               f += e[j] * d[j];
+            }
+            double hh = f / (h + h);
+            for (int j = 0; j < i; j++) {
+               e[j] -= hh * d[j];
+            }
+            for (int j = 0; j < i; j++) {
+               f = d[j];
+               g = e[j];
+               for (int k = j; k <= i-1; k++) {
+                  V[k][j] -= (f * e[k] + g * d[k]);
+               }
+               d[j] = V[i-1][j];
+               V[i][j] = 0.0;
+            }
+         }
+         d[i] = h;
+      }
+   
+      // Accumulate transformations.
+   
+      for (int i = 0; i < n-1; i++) {
+         V[n-1][i] = V[i][i];
+         V[i][i] = 1.0;
+         double h = d[i+1];
+         if (h != 0.0) {
+            for (int k = 0; k <= i; k++) {
+               d[k] = V[k][i+1] / h;
+            }
+            for (int j = 0; j <= i; j++) {
+               double g = 0.0;
+               for (int k = 0; k <= i; k++) {
+                  g += V[k][i+1] * V[k][j];
+               }
+               for (int k = 0; k <= i; k++) {
+                  V[k][j] -= g * d[k];
+               }
+            }
+         }
+         for (int k = 0; k <= i; k++) {
+            V[k][i+1] = 0.0;
+         }
+      }
+      for (int j = 0; j < n; j++) {
+         d[j] = V[n-1][j];
+         V[n-1][j] = 0.0;
+      }
+      V[n-1][n-1] = 1.0;
+      e[0] = 0.0;
+   } 
 
-		// Token: 0x04000D27 RID: 3367
-		double[][] V;
+ 
+   /// <summary>
+   /// Symmetric tridiagonal QL algorithm.
+   /// </summary>
+   private void tql2 () {
 
-		// Token: 0x04000D28 RID: 3368
-		double[][] H;
+   //  This is derived from the Algol procedures tql2, by
+   //  Bowdler, Martin, Reinsch, and Wilkinson, Handbook for
+   //  Auto. Comp., Vol.ii-Linear Algebra, and the corresponding
+   //  Fortran subroutine in EISPACK.
+   
+      for (int i = 1; i < n; i++) {
+         e[i-1] = e[i];
+      }
+      e[n-1] = 0.0;
+   
+      double f = 0.0;
+      double tst1 = 0.0;
+      double eps = Math.Pow(2.0,-52.0);
+      for (int l = 0; l < n; l++) {
 
-		// Token: 0x04000D29 RID: 3369
-		double[] ort;
+         // Find small subdiagonal element
+   
+         tst1 = Math.Max(tst1,Math.Abs(d[l]) + Math.Abs(e[l]));
+         int m = l;
+         while (m < n) {
+            if (Math.Abs(e[m]) <= eps*tst1) {
+               break;
+            }
+            m++;
+         }
+   
+         // If m == l, d[l] is an eigenvalue,
+         // otherwise, iterate.
+   
+         if (m > l) {
+            int iter = 0;
+            do {
+               iter = iter + 1;  // (Could check iteration count here.)
+   
+               // Compute implicit shift
+   
+               double g = d[l];
+               double p = (d[l+1] - g) / (2.0 * e[l]);
+               double r = Maths.Hypot(p,1.0);
+               if (p < 0) {
+                  r = -r;
+               }
+               d[l] = e[l] / (p + r);
+               d[l+1] = e[l] * (p + r);
+               double dl1 = d[l+1];
+               double h = g - d[l];
+               for (int i = l+2; i < n; i++) {
+                  d[i] -= h;
+               }
+               f = f + h;
+   
+               // Implicit QL transformation.
+   
+               p = d[m];
+               double c = 1.0;
+               double c2 = c;
+               double c3 = c;
+               double el1 = e[l+1];
+               double s = 0.0;
+               double s2 = 0.0;
+               for (int i = m-1; i >= l; i--) {
+                  c3 = c2;
+                  c2 = c;
+                  s2 = s;
+                  g = c * e[i];
+                  h = c * p;
+                  r = Maths.Hypot(p,e[i]);
+                  e[i+1] = s * r;
+                  s = e[i] / r;
+                  c = p / r;
+                  p = c * d[i] - s * g;
+                  d[i+1] = h + s * (c * g + s * d[i]);
+   
+                  // Accumulate transformation.
+   
+                  for (int k = 0; k < n; k++) {
+                     h = V[k][i+1];
+                     V[k][i+1] = s * V[k][i] + c * h;
+                     V[k][i] = c * V[k][i] - s * h;
+                  }
+               }
+               p = -s * s2 * c3 * el1 * e[l] / dl1;
+               e[l] = s * p;
+               d[l] = c * p;
+   
+               // Check for convergence.
+   
+            } while (Math.Abs(e[l]) > eps*tst1);
+         }
+         d[l] = d[l] + f;
+         e[l] = 0.0;
+      }
+     
+      // Sort eigenvalues and corresponding vectors.
+   
+      for (int i = 0; i < n-1; i++) {
+         int k = i;
+         double p = d[i];
+         for (int j = i+1; j < n; j++) {
+            if (d[j] < p) {
+               k = j;
+               p = d[j];
+            }
+         }
+         if (k != i) {
+            d[k] = d[i];
+            d[i] = p;
+            for (int j = 0; j < n; j++) {
+               p = V[j][i];
+               V[j][i] = V[j][k];
+               V[j][k] = p;
+            }
+         }
+      }
+   }
 
-		// Token: 0x04000D2A RID: 3370
-		[NonSerialized]
-		double cdivr;
+   // Nonsymmetric reduction to Hessenberg form.
 
-		// Token: 0x04000D2B RID: 3371
-		[NonSerialized]
-		double cdivi;
-	}
+   private void orthes () {
+   
+      //  This is derived from the Algol procedures orthes and ortran,
+      //  by Martin and Wilkinson, Handbook for Auto. Comp.,
+      //  Vol.ii-Linear Algebra, and the corresponding
+      //  Fortran subroutines in EISPACK.
+   
+      int low = 0;
+      int high = n-1;
+   
+      for (int m = low+1; m <= high-1; m++) {
+   
+         // Scale column.
+   
+         double scale = 0.0;
+         for (int i = m; i <= high; i++) {
+            scale = scale + Math.Abs(H[i][m-1]);
+         }
+         if (scale != 0.0) {
+   
+            // Compute Householder transformation.
+   
+            double h = 0.0;
+            for (int i = high; i >= m; i--) {
+               ort[i] = H[i][m-1]/scale;
+               h += ort[i] * ort[i];
+            }
+            double g = Math.Sqrt(h);
+            if (ort[m] > 0) {
+               g = -g;
+            }
+            h = h - ort[m] * g;
+            ort[m] = ort[m] - g;
+   
+            // Apply Householder similarity transformation
+            // H = (I-u*u'/h)*H*(I-u*u')/h)
+   
+            for (int j = m; j < n; j++) {
+               double f = 0.0;
+               for (int i = high; i >= m; i--) {
+                  f += ort[i]*H[i][j];
+               }
+               f = f/h;
+               for (int i = m; i <= high; i++) {
+                  H[i][j] -= f*ort[i];
+               }
+           }
+   
+           for (int i = 0; i <= high; i++) {
+               double f = 0.0;
+               for (int j = high; j >= m; j--) {
+                  f += ort[j]*H[i][j];
+               }
+               f = f/h;
+               for (int j = m; j <= high; j++) {
+                  H[i][j] -= f*ort[j];
+               }
+            }
+            ort[m] = scale*ort[m];
+            H[m][m-1] = scale*g;
+         }
+      }
+   
+      // Accumulate transformations (Algol's ortran).
+
+      for (int i = 0; i < n; i++) {
+         for (int j = 0; j < n; j++) {
+            V[i][j] = (i == j ? 1.0 : 0.0);
+         }
+      }
+
+      for (int m = high-1; m >= low+1; m--) {
+         if (H[m][m-1] != 0.0) {
+            for (int i = m+1; i <= high; i++) {
+               ort[i] = H[i][m-1];
+            }
+            for (int j = m; j <= high; j++) {
+               double g = 0.0;
+               for (int i = m; i <= high; i++) {
+                  g += ort[i] * V[i][j];
+               }
+               // Double division avoids possible underflow
+               g = (g / ort[m]) / H[m][m-1];
+               for (int i = m; i <= high; i++) {
+                  V[i][j] += g * ort[i];
+               }
+            }
+         }
+      }
+   }
+
+
+   // Complex scalar division.
+[NonSerialized]
+   private  double cdivr, cdivi;
+   private void cdiv(double xr, double xi, double yr, double yi) {
+      double r,d;
+      if (Math.Abs(yr) > Math.Abs(yi)) {
+         r = yi/yr;
+         d = yr + r*yi;
+         cdivr = (xr + r*xi)/d;
+         cdivi = (xi - r*xr)/d;
+      } else {
+         r = yr/yi;
+         d = yi + r*yr;
+         cdivr = (r*xr + xi)/d;
+         cdivi = (r*xi - xr)/d;
+      }
+   }
+
+
+   // Nonsymmetric reduction from Hessenberg to real Schur form.
+
+   private void hqr2 () {
+   
+      //  This is derived from the Algol procedure hqr2,
+      //  by Martin and Wilkinson, Handbook for Auto. Comp.,
+      //  Vol.ii-Linear Algebra, and the corresponding
+      //  Fortran subroutine in EISPACK.
+   
+      // Initialize
+   
+      int nn = this.n;
+      int n = nn-1;
+      int low = 0;
+      int high = nn-1;
+      double eps = Math.Pow(2.0,-52.0);
+      double exshift = 0.0;
+      double p=0,q=0,r=0,s=0,z=0,t,w,x,y;
+   
+      // Store roots isolated by balanc and compute matrix norm
+   
+      double norm = 0.0;
+      for (int i = 0; i < nn; i++) {
+         if (i < low | i > high) {
+            d[i] = H[i][i];
+            e[i] = 0.0;
+         }
+         for (int j = Math.Max(i-1,0); j < nn; j++) {
+            norm = norm + Math.Abs(H[i][j]);
+         }
+      }
+   
+      // Outer loop over eigenvalue index
+   
+      int iter = 0;
+      while (n >= low) {
+   
+         // Look for single small sub-diagonal element
+   
+         int l = n;
+         while (l > low) {
+            s = Math.Abs(H[l-1][l-1]) + Math.Abs(H[l][l]);
+            if (s == 0.0) {
+               s = norm;
+            }
+            if (Math.Abs(H[l][l-1]) < eps * s) {
+               break;
+            }
+            l--;
+         }
+       
+         // Check for convergence
+         // One root found
+   
+         if (l == n) {
+            H[n][n] = H[n][n] + exshift;
+            d[n] = H[n][n];
+            e[n] = 0.0;
+            n--;
+            iter = 0;
+   
+         // Two roots found
+   
+         } else if (l == n-1) {
+            w = H[n][n-1] * H[n-1][n];
+            p = (H[n-1][n-1] - H[n][n]) / 2.0;
+            q = p * p + w;
+            z = Math.Sqrt(Math.Abs(q));
+            H[n][n] = H[n][n] + exshift;
+            H[n-1][n-1] = H[n-1][n-1] + exshift;
+            x = H[n][n];
+   
+            // Real pair
+   
+            if (q >= 0) {
+               if (p >= 0) {
+                  z = p + z;
+               } else {
+                  z = p - z;
+               }
+               d[n-1] = x + z;
+               d[n] = d[n-1];
+               if (z != 0.0) {
+                  d[n] = x - w / z;
+               }
+               e[n-1] = 0.0;
+               e[n] = 0.0;
+               x = H[n][n-1];
+               s = Math.Abs(x) + Math.Abs(z);
+               p = x / s;
+               q = z / s;
+               r = Math.Sqrt(p * p+q * q);
+               p = p / r;
+               q = q / r;
+   
+               // Row modification
+   
+               for (int j = n-1; j < nn; j++) {
+                  z = H[n-1][j];
+                  H[n-1][j] = q * z + p * H[n][j];
+                  H[n][j] = q * H[n][j] - p * z;
+               }
+   
+               // Column modification
+   
+               for (int i = 0; i <= n; i++) {
+                  z = H[i][n-1];
+                  H[i][n-1] = q * z + p * H[i][n];
+                  H[i][n] = q * H[i][n] - p * z;
+               }
+   
+               // Accumulate transformations
+   
+               for (int i = low; i <= high; i++) {
+                  z = V[i][n-1];
+                  V[i][n-1] = q * z + p * V[i][n];
+                  V[i][n] = q * V[i][n] - p * z;
+               }
+   
+            // Complex pair
+   
+            } else {
+               d[n-1] = x + p;
+               d[n] = x + p;
+               e[n-1] = z;
+               e[n] = -z;
+            }
+            n = n - 2;
+            iter = 0;
+   
+         // No convergence yet
+   
+         } else {
+   
+            // Form shift
+   
+            x = H[n][n];
+            y = 0.0;
+            w = 0.0;
+            if (l < n) {
+               y = H[n-1][n-1];
+               w = H[n][n-1] * H[n-1][n];
+            }
+   
+            // Wilkinson's original ad hoc shift
+   
+            if (iter == 10) {
+               exshift += x;
+               for (int i = low; i <= n; i++) {
+                  H[i][i] -= x;
+               }
+               s = Math.Abs(H[n][n-1]) + Math.Abs(H[n-1][n-2]);
+               x = y = 0.75 * s;
+               w = -0.4375 * s * s;
+            }
+
+            // MATLAB's new ad hoc shift
+
+            if (iter == 30) {
+                s = (y - x) / 2.0;
+                s = s * s + w;
+                if (s > 0) {
+                    s = Math.Sqrt(s);
+                    if (y < x) {
+                       s = -s;
+                    }
+                    s = x - w / ((y - x) / 2.0 + s);
+                    for (int i = low; i <= n; i++) {
+                       H[i][i] -= s;
+                    }
+                    exshift += s;
+                    x = y = w = 0.964;
+                }
+            }
+   
+            iter = iter + 1;   // (Could check iteration count here.)
+   
+            // Look for two consecutive small sub-diagonal elements
+   
+            int m = n-2;
+            while (m >= l) {
+               z = H[m][m];
+               r = x - z;
+               s = y - z;
+               p = (r * s - w) / H[m+1][m] + H[m][m+1];
+               q = H[m+1][m+1] - z - r - s;
+               r = H[m+2][m+1];
+               s = Math.Abs(p) + Math.Abs(q) + Math.Abs(r);
+               p = p / s;
+               q = q / s;
+               r = r / s;
+               if (m == l) {
+                  break;
+               }
+               if (Math.Abs(H[m][m-1]) * (Math.Abs(q) + Math.Abs(r)) <
+                  eps * (Math.Abs(p) * (Math.Abs(H[m-1][m-1]) + Math.Abs(z) +
+                  Math.Abs(H[m+1][m+1])))) {
+                     break;
+               }
+               m--;
+            }
+   
+            for (int i = m+2; i <= n; i++) {
+               H[i][i-2] = 0.0;
+               if (i > m+2) {
+                  H[i][i-3] = 0.0;
+               }
+            }
+   
+            // Double QR step involving rows l:n and columns m:n
+   
+            for (int k = m; k <= n-1; k++) {
+               bool notlast = (k != n-1);
+               if (k != m) {
+                  p = H[k][k-1];
+                  q = H[k+1][k-1];
+                  r = (notlast ? H[k+2][k-1] : 0.0);
+                  x = Math.Abs(p) + Math.Abs(q) + Math.Abs(r);
+                  if (x != 0.0) {
+                     p = p / x;
+                     q = q / x;
+                     r = r / x;
+                  }
+               }
+               if (x == 0.0) {
+                  break;
+               }
+               s = Math.Sqrt(p * p + q * q + r * r);
+               if (p < 0) {
+                  s = -s;
+               }
+               if (s != 0) {
+                  if (k != m) {
+                     H[k][k-1] = -s * x;
+                  } else if (l != m) {
+                     H[k][k-1] = -H[k][k-1];
+                  }
+                  p = p + s;
+                  x = p / s;
+                  y = q / s;
+                  z = r / s;
+                  q = q / p;
+                  r = r / p;
+   
+                  // Row modification
+   
+                  for (int j = k; j < nn; j++) {
+                     p = H[k][j] + q * H[k+1][j];
+                     if (notlast) {
+                        p = p + r * H[k+2][j];
+                        H[k+2][j] = H[k+2][j] - p * z;
+                     }
+                     H[k][j] = H[k][j] - p * x;
+                     H[k+1][j] = H[k+1][j] - p * y;
+                  }
+   
+                  // Column modification
+   
+                  for (int i = 0; i <= Math.Min(n,k+3); i++) {
+                     p = x * H[i][k] + y * H[i][k+1];
+                     if (notlast) {
+                        p = p + z * H[i][k+2];
+                        H[i][k+2] = H[i][k+2] - p * r;
+                     }
+                     H[i][k] = H[i][k] - p;
+                     H[i][k+1] = H[i][k+1] - p * q;
+                  }
+   
+                  // Accumulate transformations
+   
+                  for (int i = low; i <= high; i++) {
+                     p = x * V[i][k] + y * V[i][k+1];
+                     if (notlast) {
+                        p = p + z * V[i][k+2];
+                        V[i][k+2] = V[i][k+2] - p * r;
+                     }
+                     V[i][k] = V[i][k] - p;
+                     V[i][k+1] = V[i][k+1] - p * q;
+                  }
+               }  // (s != 0)
+            }  // k loop
+         }  // check convergence
+      }  // while (n >= low)
+      
+      // Backsubstitute to find vectors of upper triangular form
+
+      if (norm == 0.0) {
+         return;
+      }
+   
+      for (n = nn-1; n >= 0; n--) {
+         p = d[n];
+         q = e[n];
+   
+         // Real vector
+   
+         if (q == 0) {
+            int l = n;
+            H[n][n] = 1.0;
+            for (int i = n-1; i >= 0; i--) {
+               w = H[i][i] - p;
+               r = 0.0;
+               for (int j = l; j <= n; j++) {
+                  r = r + H[i][j] * H[j][n];
+               }
+               if (e[i] < 0.0) {
+                  z = w;
+                  s = r;
+               } else {
+                  l = i;
+                  if (e[i] == 0.0) {
+                     if (w != 0.0) {
+                        H[i][n] = -r / w;
+                     } else {
+                        H[i][n] = -r / (eps * norm);
+                     }
+   
+                  // Solve real equations
+   
+                  } else {
+                     x = H[i][i+1];
+                     y = H[i+1][i];
+                     q = (d[i] - p) * (d[i] - p) + e[i] * e[i];
+                     t = (x * s - z * r) / q;
+                     H[i][n] = t;
+                     if (Math.Abs(x) > Math.Abs(z)) {
+                        H[i+1][n] = (-r - w * t) / x;
+                     } else {
+                        H[i+1][n] = (-s - y * t) / z;
+                     }
+                  }
+   
+                  // Overflow control
+   
+                  t = Math.Abs(H[i][n]);
+                  if ((eps * t) * t > 1) {
+                     for (int j = i; j <= n; j++) {
+                        H[j][n] = H[j][n] / t;
+                     }
+                  }
+               }
+            }
+   
+         // Complex vector
+   
+         } else if (q < 0) {
+            int l = n-1;
+
+            // Last vector component imaginary so matrix is triangular
+   
+            if (Math.Abs(H[n][n-1]) > Math.Abs(H[n-1][n])) {
+               H[n-1][n-1] = q / H[n][n-1];
+               H[n-1][n] = -(H[n][n] - p) / H[n][n-1];
+            } else {
+               cdiv(0.0,-H[n-1][n],H[n-1][n-1]-p,q);
+               H[n-1][n-1] = cdivr;
+               H[n-1][n] = cdivi;
+            }
+            H[n][n-1] = 0.0;
+            H[n][n] = 1.0;
+            for (int i = n-2; i >= 0; i--) {
+               double ra,sa,vr,vi;
+               ra = 0.0;
+               sa = 0.0;
+               for (int j = l; j <= n; j++) {
+                  ra = ra + H[i][j] * H[j][n-1];
+                  sa = sa + H[i][j] * H[j][n];
+               }
+               w = H[i][i] - p;
+   
+               if (e[i] < 0.0) {
+                  z = w;
+                  r = ra;
+                  s = sa;
+               } else {
+                  l = i;
+                  if (e[i] == 0) {
+                     cdiv(-ra,-sa,w,q);
+                     H[i][n-1] = cdivr;
+                     H[i][n] = cdivi;
+                  } else {
+   
+                     // Solve complex equations
+   
+                     x = H[i][i+1];
+                     y = H[i+1][i];
+                     vr = (d[i] - p) * (d[i] - p) + e[i] * e[i] - q * q;
+                     vi = (d[i] - p) * 2.0 * q;
+                     if (vr == 0.0 & vi == 0.0) {
+                        vr = eps * norm * (Math.Abs(w) + Math.Abs(q) +
+                        Math.Abs(x) + Math.Abs(y) + Math.Abs(z));
+                     }
+                     cdiv(x*r-z*ra+q*sa,x*s-z*sa-q*ra,vr,vi);
+                     H[i][n-1] = cdivr;
+                     H[i][n] = cdivi;
+                     if (Math.Abs(x) > (Math.Abs(z) + Math.Abs(q))) {
+                        H[i+1][n-1] = (-ra - w * H[i][n-1] + q * H[i][n]) / x;
+                        H[i+1][n] = (-sa - w * H[i][n] - q * H[i][n-1]) / x;
+                     } else {
+                        cdiv(-r-y*H[i][n-1],-s-y*H[i][n],z,q);
+                        H[i+1][n-1] = cdivr;
+                        H[i+1][n] = cdivi;
+                     }
+                  }
+   
+                  // Overflow control
+
+                  t = Math.Max(Math.Abs(H[i][n-1]),Math.Abs(H[i][n]));
+                  if ((eps * t) * t > 1) {
+                     for (int j = i; j <= n; j++) {
+                        H[j][n-1] = H[j][n-1] / t;
+                        H[j][n] = H[j][n] / t;
+                     }
+                  }
+               }
+            }
+         }
+      }
+   
+      // Vectors of isolated roots
+   
+      for (int i = 0; i < nn; i++) {
+         if (i < low | i > high) {
+            for (int j = i; j < nn; j++) {
+               V[i][j] = H[i][j];
+            }
+         }
+      }
+   
+      // Back transformation to get eigenvectors of original matrix
+   
+      for (int j = nn-1; j >= low; j--) {
+         for (int i = low; i <= high; i++) {
+            z = 0.0;
+            for (int k = low; k <= Math.Min(j,high); k++) {
+               z = z + V[i][k] * H[k][j];
+            }
+            V[i][j] = z;
+         }
+      }
+   }
+
+
+/* ------------------------
+   Constructor
+ * ------------------------ */
+
+ 
+
+   ///<summary> Check for symmetry, then construct the eigenvalue decomposition</summary>
+   ///<param name="Arg">Square matrix</param>
+   ///<returns>Structure to access D and V.</returns>
+   public EigenvalueDecomposition (Matrix Arg) {
+      double[][] A = Arg.Array;
+      n = Arg.ColumnDimension;
+      V = new double[n][];
+      for (int i = 0; i < V.Length; i++)//Added by kj
+      {
+          V[i] = new double[n];
+      }
+      d = new double[n];
+      e = new double[n];
+
+      issymmetric = true;
+      for (int j = 0; (j < n) & issymmetric; j++) {
+         for (int i = 0; (i < n) & issymmetric; i++) {
+            issymmetric = (A[i][j] == A[j][i]);
+         }
+      }
+
+      if (issymmetric) {
+         for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+               V[i][j] = A[i][j];
+            }
+         }
+   
+         // Tridiagonalize.
+         tred2();
+   
+         // Diagonalize.
+         tql2();
+
+      } else {
+         H = new double[n][];
+         for (int i = 0; i < H.Length; i++)//Added by kj
+         {
+             H[i] = new double[n];
+         }
+         ort = new double[n];
+         
+         for (int j = 0; j < n; j++) {
+            for (int i = 0; i < n; i++) {
+               H[i][j] = A[i][j];
+            }
+         }
+   
+         // Reduce to Hessenberg form.
+         orthes();
+   
+         // Reduce Hessenberg to real Schur form.
+         hqr2();
+      }
+   }
+
+/* ------------------------
+   Public Methods
+ * ------------------------ */
+ 
+
+///<summary>Return the eigenvector matrix</summary>
+///<returns>V</returns>
+   public Matrix getV () {
+      return new Matrix(V,n,n);
+   }
+ 
+///<summary>Return the real parts of the eigenvalues</summary>
+///<returns>real(diag(D))</returns>
+   public double[] getRealEigenvalues () {
+      return d;
+   }
+
+
+  ///<Sumary>Return the imaginary parts of the eigenvalues</Sumary>
+  ///<returns> imag(diag(D))</returns>
+   public double[] getImagEigenvalues () {
+      return e;
+   }
+
+
+   ///<summary>Return the block diagonal eigenvalue matrix</summary>
+   ///<returns>D</returns>
+   public Matrix getD () {
+      Matrix X = new Matrix(n,n);
+      double[][] D = X.Array;
+      for (int i = 0; i < n; i++) {
+         for (int j = 0; j < n; j++) {
+            D[i][j] = 0.0;
+         }
+         D[i][i] = d[i];
+         if (e[i] > 0) {
+            D[i][i+1] = e[i];
+         } else if (e[i] < 0) {
+            D[i][i-1] = e[i];
+         }
+      }
+      return X;
+   }
+}
+
 }
