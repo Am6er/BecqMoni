@@ -21,9 +21,6 @@ namespace BecquerelMonitor
 			this.mainForm = mainForm;
 			this.InitializeComponent();
 			GlobalConfigInfo globalConfig = this.globalConfigManager.GlobalConfig;
-			this.numericUpDown1.Increment = (decimal)globalConfig.ChartViewConfig.Energy2ndCoefficientStep;
-			this.numericUpDown2.Increment = (decimal)globalConfig.ChartViewConfig.EnergyCoefficientStep;
-			this.numericUpDown3.Increment = (decimal)globalConfig.ChartViewConfig.EnergyOffsetStep;
 			this.UpdateMultipointButtonState();
 		}
 
@@ -37,9 +34,6 @@ namespace BecquerelMonitor
 		public void UpdateEnergyCalibrationConfig()
 		{
 			GlobalConfigInfo globalConfig = this.globalConfigManager.GlobalConfig;
-			this.numericUpDown1.Increment = (decimal)globalConfig.ChartViewConfig.Energy2ndCoefficientStep;
-			this.numericUpDown2.Increment = (decimal)globalConfig.ChartViewConfig.EnergyCoefficientStep;
-			this.numericUpDown3.Increment = (decimal)globalConfig.ChartViewConfig.EnergyOffsetStep;
 		}
 
 		// Token: 0x06000816 RID: 2070 RVA: 0x0002DD8C File Offset: 0x0002BF8C
@@ -48,44 +42,13 @@ namespace BecquerelMonitor
 			this.energyCalibration = (PolynomialEnergyCalibration)energyCalibration.Clone();
 			this.defaultEnergyCalibration = (PolynomialEnergyCalibration)defaultEnergyCalibration.Clone();
 			this.formLoading = true;
-			decimal num = (decimal)this.energyCalibration.Coefficients[2];
-			if (num > this.numericUpDown1.Maximum)
-			{
-				this.numericUpDown1.Value = this.numericUpDown1.Maximum;
-			}
-			else if (num < this.numericUpDown1.Minimum)
-			{
-				this.numericUpDown1.Value = this.numericUpDown1.Minimum;
-			}
-			else
-			{
-				this.numericUpDown1.Value = num;
-			}
-			num = (decimal)this.energyCalibration.Coefficients[1];
-			if (num > this.numericUpDown2.Maximum)
-			{
-				this.numericUpDown2.Value = this.numericUpDown2.Maximum;
-			}
-			else if (num < this.numericUpDown2.Minimum)
-			{
-				this.numericUpDown2.Value = this.numericUpDown2.Minimum;
-			}
-			else
-			{
-				this.numericUpDown2.Value = num;
-			}
-			num = (decimal)this.energyCalibration.Coefficients[0];
-			if (num > this.numericUpDown3.Maximum)
-			{
-				this.numericUpDown3.Value = this.numericUpDown3.Maximum;
-			}
-			else if (num < this.numericUpDown3.Minimum)
-			{
-				this.numericUpDown3.Value = this.numericUpDown3.Minimum;
-			}
-			else
-			{
-				this.numericUpDown3.Value = num;
+			this.numericUpDown3.Text = this.energyCalibration.Coefficients[0].ToString();
+			this.numericUpDown2.Text = this.energyCalibration.Coefficients[1].ToString();
+			this.numericUpDown1.Text = this.energyCalibration.Coefficients[2].ToString();
+			if (this.energyCalibration.PolynomialOrder == 4)
+            {
+				this.numericUpDown5.Text = this.energyCalibration.Coefficients[3].ToString();
+				this.numericUpDown4.Text = this.energyCalibration.Coefficients[4].ToString();
 			}
 			this.formLoading = false;
 			this.calibrationPoints.Clear();
@@ -100,8 +63,57 @@ namespace BecquerelMonitor
 			{
 				return;
 			}
-			this.energyCalibration.Coefficients[2] = (double)this.numericUpDown1.Value;
-			this.UpdateEnergyCalibration();
+			double result = 0;
+			if (fromStringtoDouble(this.numericUpDown1.Text, result))
+			{
+				this.numericUpDown1.ForeColor = Color.Black;
+				this.energyCalibration.Coefficients[2] = result;
+				this.UpdateEnergyCalibration();
+
+			} else
+            {
+				this.numericUpDown1.ForeColor = Color.Red;
+            }
+		}
+
+		void numericUpDown4_ValueChanged(object sender, EventArgs e)
+		{
+			if (this.formLoading)
+			{
+				return;
+			}
+			double result = 0;
+			if (fromStringtoDouble(this.numericUpDown4.Text, result))
+			{
+				this.numericUpDown4.ForeColor = Color.Black;
+				this.energyCalibration.Coefficients[4] = result;
+				this.UpdateEnergyCalibration();
+
+			}
+			else
+			{
+				this.numericUpDown4.ForeColor = Color.Red;
+			}
+		}
+
+		void numericUpDown5_ValueChanged(object sender, EventArgs e)
+		{
+			if (this.formLoading)
+			{
+				return;
+			}
+			double result = 0;
+			if (fromStringtoDouble(this.numericUpDown5.Text, result))
+			{
+				this.numericUpDown5.ForeColor = Color.Black;
+				this.energyCalibration.Coefficients[3] = result;
+				this.UpdateEnergyCalibration();
+
+			}
+			else
+			{
+				this.numericUpDown5.ForeColor = Color.Red;
+			}
 		}
 
 		// Token: 0x06000818 RID: 2072 RVA: 0x0002DFA0 File Offset: 0x0002C1A0
@@ -111,8 +123,18 @@ namespace BecquerelMonitor
 			{
 				return;
 			}
-			this.energyCalibration.Coefficients[1] = (double)this.numericUpDown2.Value;
-			this.UpdateEnergyCalibration();
+			double result = 0;
+			if (fromStringtoDouble(this.numericUpDown2.Text, result))
+			{
+				this.numericUpDown2.ForeColor = Color.Black;
+				this.energyCalibration.Coefficients[1] = result;
+				this.UpdateEnergyCalibration();
+
+			}
+			else
+			{
+				this.numericUpDown2.ForeColor = Color.Red;
+			}
 		}
 
 		// Token: 0x06000819 RID: 2073 RVA: 0x0002DFD4 File Offset: 0x0002C1D4
@@ -122,7 +144,31 @@ namespace BecquerelMonitor
 			{
 				return;
 			}
-			this.energyCalibration.Coefficients[0] = (double)this.numericUpDown3.Value;
+			double result = 0;
+			if (fromStringtoDouble(this.numericUpDown3.Text, result))
+			{
+				this.numericUpDown3.ForeColor = Color.Black;
+				this.energyCalibration.Coefficients[0] = result;
+				this.UpdateEnergyCalibration();
+
+			}
+			else
+			{
+				this.numericUpDown3.ForeColor = Color.Red;
+			}
+		}
+
+		void button12_Click(object sender, EventArgs e)
+		{
+			this.energyCalibration.Coefficients[3] = this.defaultEnergyCalibration.Coefficients[3];
+			this.numericUpDown4.Text = this.energyCalibration.Coefficients[3].ToString();
+			this.UpdateEnergyCalibration();
+		}
+
+		void button13_Click(object sender, EventArgs e)
+		{
+			this.energyCalibration.Coefficients[4] = this.defaultEnergyCalibration.Coefficients[4];
+			this.numericUpDown5.Text = this.energyCalibration.Coefficients[4].ToString();
 			this.UpdateEnergyCalibration();
 		}
 
@@ -130,7 +176,7 @@ namespace BecquerelMonitor
 		void button1_Click(object sender, EventArgs e)
 		{
 			this.energyCalibration.Coefficients[2] = this.defaultEnergyCalibration.Coefficients[2];
-			this.numericUpDown1.Value = (decimal)this.energyCalibration.Coefficients[2];
+			this.numericUpDown1.Text = this.energyCalibration.Coefficients[2].ToString();
 			this.UpdateEnergyCalibration();
 		}
 
@@ -138,7 +184,7 @@ namespace BecquerelMonitor
 		void button2_Click(object sender, EventArgs e)
 		{
 			this.energyCalibration.Coefficients[1] = this.defaultEnergyCalibration.Coefficients[1];
-			this.numericUpDown2.Value = (decimal)this.energyCalibration.Coefficients[1];
+			this.numericUpDown2.Text = this.energyCalibration.Coefficients[1].ToString();
 			this.UpdateEnergyCalibration();
 		}
 
@@ -146,7 +192,7 @@ namespace BecquerelMonitor
 		void button3_Click(object sender, EventArgs e)
 		{
 			this.energyCalibration.Coefficients[0] = this.defaultEnergyCalibration.Coefficients[0];
-			this.numericUpDown3.Value = (decimal)this.energyCalibration.Coefficients[0];
+			this.numericUpDown3.Text = this.energyCalibration.Coefficients[0].ToString();
 			this.UpdateEnergyCalibration();
 		}
 
@@ -269,6 +315,22 @@ namespace BecquerelMonitor
 
 		// Token: 0x06000827 RID: 2087 RVA: 0x0002E418 File Offset: 0x0002C618
 		void numericUpDown3_KeyDown(object sender, KeyEventArgs e)
+		{
+			if (e.KeyCode == Keys.Return)
+			{
+				e.SuppressKeyPress = true;
+			}
+		}
+
+		void numericUpDown4_KeyDown(object sender, KeyEventArgs e)
+		{
+			if (e.KeyCode == Keys.Return)
+			{
+				e.SuppressKeyPress = true;
+			}
+		}
+
+		void numericUpDown5_KeyDown(object sender, KeyEventArgs e)
 		{
 			if (e.KeyCode == Keys.Return)
 			{
@@ -500,13 +562,29 @@ namespace BecquerelMonitor
 				MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
 			}
 			IL_3B5:
-			this.numericUpDown1.Value = (decimal)this.energyCalibration.Coefficients[2];
-			this.numericUpDown2.Value = (decimal)this.energyCalibration.Coefficients[1];
-			this.numericUpDown3.Value = (decimal)this.energyCalibration.Coefficients[0];
+			this.numericUpDown1.Text = this.energyCalibration.Coefficients[2].ToString();
+			this.numericUpDown2.Text = this.energyCalibration.Coefficients[1].ToString();
+			this.numericUpDown3.Text = this.energyCalibration.Coefficients[0].ToString();
+			this.numericUpDown4.Text = this.energyCalibration.Coefficients[3].ToString();
+			this.numericUpDown5.Text = this.energyCalibration.Coefficients[4].ToString();
 			this.multipointModified = false;
 			this.calibrationDone = true;
 			this.UpdateMultipointButtonState();
 		}
+
+		bool fromStringtoDouble(string str, double res)
+        {
+			double result;
+			if (double.TryParse(str.ToString(System.Globalization.CultureInfo.InvariantCulture), 
+				System.Globalization.NumberStyles.Float, 
+				System.Globalization.CultureInfo.InvariantCulture, 
+				out result) & result > -100 & result < 100)
+            {
+				return true;
+            }
+				//System.Windows.Forms.MessageBox.Show("Error while converting text to double: " + str);
+				return false;
+        }
 
 		// Token: 0x06000832 RID: 2098 RVA: 0x0002ED00 File Offset: 0x0002CF00
 		void DCEnergyCalibrationView_FormClosing(object sender, FormClosingEventArgs e)
