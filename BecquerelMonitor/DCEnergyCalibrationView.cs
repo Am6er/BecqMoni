@@ -59,7 +59,7 @@ namespace BecquerelMonitor
 		// Token: 0x06000817 RID: 2071 RVA: 0x0002DF6C File Offset: 0x0002C16C
 		void numericUpDown1_ValueChanged(object sender, EventArgs e)
 		{
-			if (this.formLoading)
+			if (this.formLoading || this.calibrationDone == false)
 			{
 				return;
 			}
@@ -78,7 +78,7 @@ namespace BecquerelMonitor
 
 		void numericUpDown4_ValueChanged(object sender, EventArgs e)
 		{
-			if (this.formLoading)
+			if (this.formLoading || this.calibrationDone == false)
 			{
 				return;
 			}
@@ -98,7 +98,7 @@ namespace BecquerelMonitor
 
 		void numericUpDown5_ValueChanged(object sender, EventArgs e)
 		{
-			if (this.formLoading)
+			if (this.formLoading || this.calibrationDone == false)
 			{
 				return;
 			}
@@ -119,7 +119,7 @@ namespace BecquerelMonitor
 		// Token: 0x06000818 RID: 2072 RVA: 0x0002DFA0 File Offset: 0x0002C1A0
 		void numericUpDown2_ValueChanged(object sender, EventArgs e)
 		{
-			if (this.formLoading)
+			if (this.formLoading || this.calibrationDone == false)
 			{
 				return;
 			}
@@ -140,7 +140,7 @@ namespace BecquerelMonitor
 		// Token: 0x06000819 RID: 2073 RVA: 0x0002DFD4 File Offset: 0x0002C1D4
 		void numericUpDown3_ValueChanged(object sender, EventArgs e)
 		{
-			if (this.formLoading)
+			if (this.formLoading || this.calibrationDone == false)
 			{
 				return;
 			}
@@ -353,8 +353,8 @@ namespace BecquerelMonitor
 		// Token: 0x06000829 RID: 2089 RVA: 0x0002E478 File Offset: 0x0002C678
 		void UpdateMultipointButtonState()
 		{
-			this.button7.Enabled = (this.calibrationPoints.Count > 0 && !this.channelPickupProcessing && this.multipointModified);
-			this.button8.Enabled = (this.calibrationPoints.Count < 3 && !this.channelPickupProcessing);
+			this.button7.Enabled = (this.calibrationPoints.Count > 0 && !this.channelPickupProcessing && this.multipointModified && this.calibrationPoints.Count != 4);
+			this.button8.Enabled = (this.calibrationPoints.Count < 5 && !this.channelPickupProcessing);
 			this.button9.Enabled = (this.calibrationPoints.Count > 0 && !this.channelPickupProcessing);
 			this.button11.Enabled = this.channelPickupProcessing;
 			if (this.calibrationDone)
@@ -362,7 +362,7 @@ namespace BecquerelMonitor
 				this.label36.Text = Resources.MSGCalibrationDone;
 				return;
 			}
-			if (this.channelPickupProcessing || this.calibrationPoints.Count < 3)
+			if (this.channelPickupProcessing || this.calibrationPoints.Count < 5)
 			{
 				this.label36.Text = Resources.MSGPickUpCalibrationPoint;
 				return;
@@ -475,6 +475,13 @@ namespace BecquerelMonitor
 					this.multipointModified = true;
 					this.calibrationDone = false;
 					this.UpdateMultipointButtonState();
+				} else if (e.Column == 4)
+				{
+					string text2 = ((NumberCellEditor)e.Editor).TextBox.Text;
+					this.calibrationPoints[row.Index].Energy = decimal.Parse(text2);
+					this.multipointModified = true;
+					this.calibrationDone = false;
+					this.UpdateMultipointButtonState();
 				}
 			}
 			catch (Exception)
@@ -549,24 +556,91 @@ namespace BecquerelMonitor
 						MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
 						return;
 					}
-					if (matrix3.Array[1][0] >= 0.01)
-					{
-						this.energyCalibration.Coefficients[2] = matrix3.Array[0][0];
-						this.energyCalibration.Coefficients[1] = matrix3.Array[1][0];
-						this.energyCalibration.Coefficients[0] = matrix3.Array[2][0];
-						goto IL_3B5;
-					}
+					this.energyCalibration.Coefficients[2] = matrix3.Array[0][0];
+					this.energyCalibration.Coefficients[1] = matrix3.Array[1][0];
+					this.energyCalibration.Coefficients[0] = matrix3.Array[2][0];
+					goto IL_3B5;
 					MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
 					return;
 				}
+
+				if (this.calibrationPoints.Count == 5)
+				{
+					int channel0 = this.calibrationPoints[0].Channel;
+					int channel1 = this.calibrationPoints[1].Channel;
+					int channel2 = this.calibrationPoints[2].Channel;
+					int channel3 = this.calibrationPoints[3].Channel;
+					int channel4 = this.calibrationPoints[4].Channel;
+
+					Matrix matrix = new Matrix(5, 5);
+
+					matrix.Array[0][0] = (double)(channel0 * channel0 * channel0 * channel0);
+					matrix.Array[0][1] = (double)(channel0 * channel0 * channel0);
+					matrix.Array[0][2] = (double)(channel0 * channel0);
+					matrix.Array[0][3] = (double)channel0;
+					matrix.Array[0][4] = 1.0;
+
+					matrix.Array[1][0] = (double)(channel1 * channel1 * channel1 * channel1);
+					matrix.Array[1][1] = (double)(channel1 * channel1 * channel1);
+					matrix.Array[1][2] = (double)(channel1 * channel1);
+					matrix.Array[1][3] = (double)channel1;
+					matrix.Array[1][4] = 1.0;
+
+					matrix.Array[2][0] = (double)(channel2 * channel2 * channel2 * channel2);
+					matrix.Array[2][1] = (double)(channel2 * channel2 * channel2);
+					matrix.Array[2][2] = (double)(channel2 * channel2);
+					matrix.Array[2][3] = (double)channel2;
+					matrix.Array[2][4] = 1.0;
+
+					matrix.Array[3][0] = (double)(channel3 * channel3 * channel3 * channel3);
+					matrix.Array[3][1] = (double)(channel3 * channel3 * channel3);
+					matrix.Array[3][2] = (double)(channel3 * channel3);
+					matrix.Array[3][3] = (double)channel3;
+					matrix.Array[3][4] = 1.0;
+
+					matrix.Array[4][0] = (double)(channel4 * channel4 * channel4 * channel4);
+					matrix.Array[4][1] = (double)(channel4 * channel4 * channel4);
+					matrix.Array[4][2] = (double)(channel4 * channel4);
+					matrix.Array[4][3] = (double)channel4;
+					matrix.Array[4][4] = 1.0;
+
+					Matrix matrix2 = new Matrix(5, 1);
+					matrix2.Array[0][0] = (double)this.calibrationPoints[0].Energy;
+					matrix2.Array[1][0] = (double)this.calibrationPoints[1].Energy;
+					matrix2.Array[2][0] = (double)this.calibrationPoints[2].Energy;
+					matrix2.Array[3][0] = (double)this.calibrationPoints[3].Energy;
+					matrix2.Array[4][0] = (double)this.calibrationPoints[4].Energy;
+					Matrix matrix3 = new Matrix(5, 1);
+					try
+					{
+						matrix3 = matrix.Solve(matrix2);
+					}
+					catch (Exception)
+					{
+						MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
+						return;
+					}
+					this.energyCalibration.Coefficients[4] = matrix3.Array[0][0];
+					this.energyCalibration.Coefficients[3] = matrix3.Array[1][0];
+					this.energyCalibration.Coefficients[2] = matrix3.Array[2][0];
+					this.energyCalibration.Coefficients[1] = matrix3.Array[3][0];
+					this.energyCalibration.Coefficients[0] = matrix3.Array[4][0];
+					goto IL_3B5;
+					MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
+					return;
+				}
+
 				MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
 			}
-			IL_3B5:
+		IL_3B5:
 			this.numericUpDown1.Text = this.energyCalibration.Coefficients[2].ToString();
 			this.numericUpDown2.Text = this.energyCalibration.Coefficients[1].ToString();
 			this.numericUpDown3.Text = this.energyCalibration.Coefficients[0].ToString();
-			this.numericUpDown4.Text = this.energyCalibration.Coefficients[3].ToString();
-			this.numericUpDown5.Text = this.energyCalibration.Coefficients[4].ToString();
+			if (this.energyCalibration.PolynomialOrder == 4)
+            {
+				this.numericUpDown4.Text = this.energyCalibration.Coefficients[3].ToString();
+				this.numericUpDown5.Text = this.energyCalibration.Coefficients[4].ToString();
+			}
 			this.multipointModified = false;
 			this.calibrationDone = true;
 			this.UpdateMultipointButtonState();

@@ -74,10 +74,13 @@ namespace BecquerelMonitor
 		// Token: 0x06000733 RID: 1843 RVA: 0x00029DD4 File Offset: 0x00027FD4
 		public override double ChannelToEnergy(double n)
 		{
-			if (this.polynomialOrder != 2)
+			if (this.polynomialOrder == 4)
 			{
-				//throw new NotImplementedException();
 				return this.coefficients[4] * n * n * n * n + this.coefficients[3] * n * n * n + this.coefficients[2] * n * n + this.coefficients[1] * n + this.coefficients[0];
+			}
+			if (this.polynomialOrder == 3)
+			{
+				return this.coefficients[3] * n * n * n + this.coefficients[2] * n * n + this.coefficients[1] * n + this.coefficients[0];
 			}
 			return this.coefficients[2] * n * n + this.coefficients[1] * n + this.coefficients[0];
 		}
@@ -113,55 +116,52 @@ namespace BecquerelMonitor
 					return (-num2 + Math.Sqrt(num4)) / (2.0 * num);
 				}
 			}
-			else
+			if (this.polynomialOrder == 4)
             {
-				if (this.polynomialOrder == 4)
+				double e = this.coefficients[0] - enrg;
+				double d = this.coefficients[1];
+				double c = this.coefficients[2];
+				double b = this.coefficients[3];
+				double a = this.coefficients[4];
+					
+
+				// https://en.wikipedia.org/wiki/Quartic_function
+				double p = (8.0 * a * c - 3.0 * b * b) / (8.0 * a * a);
+				double q = (b * b * b - 4.0 * a * b * c + 8.0 * a * a * d) / (8.0 * a * a * a);
+				double delta0 = c * c - 3.0 * b * d + 12.0 * a * e;
+				double delta1 = 2.0 * c * c * c - 9.0 * b * c * d + 27.0 * b * b * e + 27.0 * a * d * d - 72.0 * a * c * e;
+				double Q = Math.Pow((delta1 + Math.Sqrt(delta1 * delta1 - 4.0 * delta0 * delta0 * delta0)) / 2.0, 1.0 / 3.0);
+				double S = 0.5 * Math.Sqrt(-2.0 * p / 3.0 + (Q + delta0 / Q) / (3.0 * a));
+				double x1 = -b / (4.0 * a) - S + Math.Sqrt(-4.0 * S * S - 2.0 * p + q / S) / 2.0;
+				double x2 = -b / (4.0 * a) - S - Math.Sqrt(-4.0 * S * S - 2.0 * p + q / S) / 2.0;
+				double x3 = -b / (4.0 * a) - S + Math.Sqrt(-4.0 * S * S - 2.0 * p - q / S) / 2.0;
+				double x4 = -b / (4.0 * a) - S - Math.Sqrt(-4.0 * S * S - 2.0 * p - q / S) / 2.0;
+
+				if (x1 > 0)
                 {
-					double e = this.coefficients[0] - enrg;
-					double d = this.coefficients[1];
-					double c = this.coefficients[2];
-					double b = this.coefficients[3];
-					double a = this.coefficients[4];
+					return x1;
+                }
 
-					//https://en.wikipedia.org/wiki/Quartic_function
-					double p = (8.0 * a * c - 3.0 * b * b) / (8.0 * a * a);
-					double q = (b * b * b - 4.0 * a * b * c + 8.0 * a * a * d) / (8.0 * a * a * a);
-					double delta0 = c * c - 3.0 * b * d + 12.0 * a * e;
-					double delta1 = 2.0 * c * c * c - 9.0 * b * c * d + 27.0 * b * b * e + 27.0 * a * d * d - 72.0 * a * c * e;
-					double Q = Math.Pow((delta1 + Math.Sqrt(delta1 * delta1 - 4.0 * delta0 * delta0 * delta0)) / 2.0, 1.0 / 3.0);
-					double S = 0.5 * Math.Sqrt(-2.0 * p / 3.0 + (Q + delta0 / Q) / (3.0 * a));
-					double x1 = -b / (4.0 * a) - S + Math.Sqrt(-4.0 * S * S - 2.0 * p + q / S) / 2.0;
-					double x2 = -b / (4.0 * a) - S - Math.Sqrt(-4.0 * S * S - 2.0 * p + q / S) / 2.0;
-					double x3 = -b / (4.0 * a) - S + Math.Sqrt(-4.0 * S * S - 2.0 * p - q / S) / 2.0;
-					double x4 = -b / (4.0 * a) - S - Math.Sqrt(-4.0 * S * S - 2.0 * p - q / S) / 2.0;
-
-					if (x1 > 0)
-                    {
-						return x1;
-                    }
-
-					if (x2 > 0)
-					{
-						return x2;
-					}
-
-					if (x3 > 0)
-					{
-						return x3;
-					}
-
-					if (x4 > 0)
-					{
-						return x4;
-					}
-
-					return 0;
-
-				} else
-                {
-					throw new NotImplementedException();
+				if (x2 > 0)
+				{
+					return x2;
 				}
+
+				if (x3 > 0)
+				{
+					return x3;
+				}
+
+				if (x4 > 0)
+				{
+					return x4;
+				}
+
+				return 0;
+
 			}
+
+			throw new NotImplementedException();
 		}
 
 		// Token: 0x06000735 RID: 1845 RVA: 0x00029EF8 File Offset: 0x000280F8
