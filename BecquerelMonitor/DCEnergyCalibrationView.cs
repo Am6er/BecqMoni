@@ -49,6 +49,10 @@ namespace BecquerelMonitor
             {
 				this.numericUpDown5.Text = this.energyCalibration.Coefficients[3].ToString();
 				this.numericUpDown4.Text = this.energyCalibration.Coefficients[4].ToString();
+			} else
+            {
+				this.numericUpDown5.Text = "";
+				this.numericUpDown4.Text = "";
 			}
 			this.formLoading = false;
 			this.calibrationPoints.Clear();
@@ -615,8 +619,8 @@ namespace BecquerelMonitor
 			this.numericUpDown3.Text = this.energyCalibration.Coefficients[0].ToString();
 			if (this.energyCalibration.PolynomialOrder == 4)
             {
-				this.numericUpDown4.Text = this.energyCalibration.Coefficients[3].ToString();
-				this.numericUpDown5.Text = this.energyCalibration.Coefficients[4].ToString();
+				this.numericUpDown5.Text = this.energyCalibration.Coefficients[3].ToString();
+				this.numericUpDown4.Text = this.energyCalibration.Coefficients[4].ToString();
 			}
 			this.multipointModified = false;
 			this.calibrationDone = true;
