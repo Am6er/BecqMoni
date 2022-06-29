@@ -347,6 +347,112 @@ namespace BecquerelMonitor
 			docEnergySpectrum2.UpdateEnergySpectrum();
 			return docEnergySpectrum2;
 		}
+		public void ImportDocumentAtomSpectra(DocEnergySpectrum doc)
+		{
+			OpenFileDialog openFileDialog = new OpenFileDialog();
+			openFileDialog.Title = Resources.ImportAtomSpectraFileDialogTitle;
+			openFileDialog.Filter = Resources.AtomSpectraFileFilter;
+			openFileDialog.FilterIndex = 1;
+			openFileDialog.RestoreDirectory = true;
+			if (openFileDialog.ShowDialog() != DialogResult.OK)
+			{
+				return;
+			}
+			string filename = openFileDialog.FileName;
+			GC.Collect();
+
+			EnergySpectrum energySpectrum = doc.ActiveResultData.EnergySpectrum;
+			energySpectrum.Initialize();
+			ResultDataStatus resultDataStatus = doc.ActiveResultData.ResultDataStatus;
+			SampleInfoData info = doc.ActiveResultData.SampleInfo;
+
+			try
+			{
+				Cursor.Current = Cursors.WaitCursor;
+				using (StreamReader streamReader = new StreamReader(filename, Encoding.GetEncoding("UTF-8")))
+				{
+
+					string fileformat = streamReader.ReadLine();
+					if (fileformat != "FORMAT: 3")
+					{
+						MessageBox.Show("Error. Can not open this file. Expected format 3, got: " + fileformat);
+						return;
+					}
+					string SpectrumSummaryText = streamReader.ReadLine();
+					int TotalPulseCount = int.Parse(SpectrumSummaryText.Split(new string[] { "," }, StringSplitOptions.None)[0].Split(new string[] { "Counts: " }, StringSplitOptions.None)[1]);
+
+					energySpectrum.TotalPulseCount = TotalPulseCount;
+					energySpectrum.ValidPulseCount = TotalPulseCount;
+
+					string Time1 = streamReader.ReadLine();
+					string Time2 = streamReader.ReadLine();
+					string Lattitude = streamReader.ReadLine();
+					string Longitude = streamReader.ReadLine();
+					string SpectrumName = streamReader.ReadLine();
+
+					TimeSpan time = TimeSpan.FromMilliseconds(double.Parse(Time1));
+					DateTime dateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+					info.Time = dateTime.Add(time).ToLocalTime();
+
+					info.Note = SpectrumSummaryText;
+					info.Name = SpectrumName;
+					doc.Filename = SpectrumName + ".xml";
+					doc.Text = SpectrumName;
+					info.Location = Lattitude + ", " + Longitude;
+
+					if (streamReader.ReadLine() != "")
+                    {
+						MessageBox.Show("Error. Expected empty line separator, got: " + fileformat);
+						return;
+					}
+
+					int ElapsedTime = ((int)double.Parse(streamReader.ReadLine()));
+					energySpectrum.MeasurementTime = ElapsedTime;
+					resultDataStatus.TotalTime = TimeSpan.FromSeconds(ElapsedTime);
+					resultDataStatus.ElapsedTime = TimeSpan.FromSeconds(ElapsedTime);
+					resultDataStatus.PresetTime = ElapsedTime;
+
+					int NumberOfChanels = int.Parse(streamReader.ReadLine());
+					int PolynomialOrder = int.Parse(streamReader.ReadLine());
+
+					if (PolynomialOrder == 3 || PolynomialOrder > 4)
+                    {
+						throw new Exception("Unsupported calibration points number. Got polynom order = " + PolynomialOrder);
+                    }
+
+					double[] coefficients = new double[PolynomialOrder + 1];
+
+					for (int i = 0; i < coefficients.Length; i++)
+                    {
+                        coefficients[i] = double.Parse(streamReader.ReadLine());
+                    }
+
+					for (int i = 0; i < NumberOfChanels; i++)
+                    {
+						energySpectrum.Spectrum[i] = int.Parse(streamReader.ReadLine());
+                    }
+
+					streamReader.Close();
+
+					PolynomialEnergyCalibration energyCalibration = (PolynomialEnergyCalibration)energySpectrum.EnergyCalibration;
+					energyCalibration.PolynomialOrder = PolynomialOrder;
+					for (int i = 0; i < coefficients.Length; i++)
+					{
+						energyCalibration.Coefficients[i] = coefficients[i];
+					}
+
+					BecquerelMonitor.MainForm mf = (MainForm) MainForm.ActiveForm;
+					mf.UpdateAppTitle();
+
+				}
+				Cursor.Current = Cursors.Default;
+			}
+			catch (Exception ex)
+			{
+				MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message, ex.StackTrace));
+				return;
+			}
+		}
 
 		// Token: 0x06000272 RID: 626 RVA: 0x00009FD4 File Offset: 0x000081D4
 		public void CloseDocument(DocEnergySpectrum doc)
@@ -388,6 +494,11 @@ namespace BecquerelMonitor
 			saveFileDialog.Filter = Resources.SpectrumFileFilter;
 			saveFileDialog.FilterIndex = 1;
 			saveFileDialog.RestoreDirectory = true;
+			if (doc.Filename.Length > 1)
+            {
+				saveFileDialog.FileName = doc.Filename;
+
+			}
 			if (saveFileDialog.ShowDialog() != DialogResult.OK)
 			{
 				return false;

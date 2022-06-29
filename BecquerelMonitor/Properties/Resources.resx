@@ -344,6 +344,9 @@ http://xptable.sourceforge.net/</value>
   <data name="ImportOldFormatFileDialogTitle" xml:space="preserve">
     <value>Import Old Format (0.93Beta or earlier) Spectrum File</value>
   </data>
+  <data name="ImportAtomSpectraFileDialogTitle" xml:space="preserve">
+    <value>Import Atom Spectra Spectrum File</value>
+  </data>
   <data name="Zoomin" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         Qk0WBQAAAAAAADYEAAAoAAAADgAAAA4AAAABAAgAAAAAAAAAAAAAAAAAAAAAAAABAAAAAQAAAAD//wD/
@@ -2119,6 +2122,9 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="SpectrumFileFilter" xml:space="preserve">
     <value>Spectrum Files (*.xml)|*.xml|All Files (*.*)|*.*</value>
+  </data>
+  <data name="AtomSpectraFileFilter" xml:space="preserve">
+    <value>Atom Spectra Files (*.txt)|*.txt|All Files (*.*)|*.*</value>
   </data>
   <data name="RestartRequiredMessage" xml:space="preserve">
     <value>Restart application to apply settings.</value>

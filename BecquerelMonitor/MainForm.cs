@@ -1166,6 +1166,11 @@ namespace BecquerelMonitor
 			}
 		}
 
+		public void UpdateAppTitle()
+        {
+			this.UpdateApplicationTitle();
+        }
+
 		// Token: 0x06000A7E RID: 2686 RVA: 0x0003E698 File Offset: 0x0003C898
 		void ファイルFToolStripMenuItem_DropDownOpening(object sender, EventArgs e)
 		{
@@ -1615,6 +1620,15 @@ namespace BecquerelMonitor
 				this.SubscribeDocumentEvent(docEnergySpectrum);
 				docEnergySpectrum.Show(this.dockPanel1);
 				this.ShowMeasurementResult(true);
+			}
+		}
+
+		void AtomSpectraStripMenuItem_Click(object sender, EventArgs e)
+		{
+			if (this.activeDocument != null)
+			{
+				this.documentManager.ImportDocumentAtomSpectra(this.activeDocument);
+				this.UpdateAllView();
 			}
 		}
 

@@ -137,22 +137,22 @@ namespace BecquerelMonitor
 				double x3 = -b / (4.0 * a) - S + Math.Sqrt(-4.0 * S * S - 2.0 * p - q / S) / 2.0;
 				double x4 = -b / (4.0 * a) - S - Math.Sqrt(-4.0 * S * S - 2.0 * p - q / S) / 2.0;
 
-				if (x1 > 0 && x1 < 10000.0)
+				if (x1 > 0 && x1 < 100000.0)
                 {
 					return x1;
                 }
 
-				if (x2 > 0 && x2 < 10000.0)
+				if (x2 > 0 && x2 < 100000.0)
 				{
 					return x2;
 				}
 
-				if (x3 > 0 && x1 < 10000.0)
+				if (x3 > 0 && x3 < 100000.0)
 				{
 					return x3;
 				}
 
-				if (x4 > 0 && x1 < 10000.0)
+				if (x4 > 0 && x4 < 100000.0)
 				{
 					return x4;
 				}
@@ -161,7 +161,7 @@ namespace BecquerelMonitor
 
 			}
 
-			throw new NotImplementedException();
+			throw new NotImplementedException("Four point calibration not implemented yet. Only 2,3,5 points exist.");
 		}
 
 		// Token: 0x06000735 RID: 1845 RVA: 0x00029EF8 File Offset: 0x000280F8

@@ -821,6 +821,12 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("ImportOldFormatFileDialogTitle", resourceCulture);
             }
         }
+
+        internal static string ImportAtomSpectraFileDialogTitle {
+            get {
+                return ResourceManager.GetString("ImportAtomSpectraFileDialogTitle", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Ищет локализованную строку, похожую на Import Spectra From File.
@@ -1328,6 +1334,12 @@ namespace BecquerelMonitor.Properties {
         internal static string SpectrumFileFilter {
             get {
                 return ResourceManager.GetString("SpectrumFileFilter", resourceCulture);
+            }
+        }
+
+        internal static string AtomSpectraFileFilter {
+            get {
+                return ResourceManager.GetString("AtomSpectraFileFilter", resourceCulture);
             }
         }
         

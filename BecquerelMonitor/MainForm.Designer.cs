@@ -50,6 +50,7 @@
 			this.toolStripSeparator4 = new global::System.Windows.Forms.ToolStripSeparator();
 			this.インポ\u30FCトIToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.ベクモニ旧形式v093bToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.AtomSpectraStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.cSVFileToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.エクスポ\u30FCトEToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.cSVCToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
@@ -159,13 +160,17 @@
 			componentResourceManager.ApplyResources(this.インポ\u30FCトIToolStripMenuItem, "インポートIToolStripMenuItem");
 			this.インポ\u30FCトIToolStripMenuItem.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
-				this.ベクモニ旧形式v093bToolStripMenuItem,
-				this.cSVFileToolStripMenuItem
+				this.cSVFileToolStripMenuItem,
+				this.AtomSpectraStripMenuItem,
+				this.ベクモニ旧形式v093bToolStripMenuItem
 			});
 			this.インポ\u30FCトIToolStripMenuItem.Name = "インポートIToolStripMenuItem";
 			componentResourceManager.ApplyResources(this.ベクモニ旧形式v093bToolStripMenuItem, "ベクモニ旧形式v093bToolStripMenuItem");
+			componentResourceManager.ApplyResources(this.AtomSpectraStripMenuItem, "AtomSpectraStripMenuItem");
 			this.ベクモニ旧形式v093bToolStripMenuItem.Name = "ベクモニ旧形式v093bToolStripMenuItem";
 			this.ベクモニ旧形式v093bToolStripMenuItem.Click += new global::System.EventHandler(this.ベクモニ旧形式v093bToolStripMenuItem_Click);
+			this.AtomSpectraStripMenuItem.Name = "AtomSpectraStripMenuItem";
+			this.AtomSpectraStripMenuItem.Click += new global::System.EventHandler(this.AtomSpectraStripMenuItem_Click);
 			componentResourceManager.ApplyResources(this.cSVFileToolStripMenuItem, "cSVFileToolStripMenuItem");
 			this.cSVFileToolStripMenuItem.Name = "cSVFileToolStripMenuItem";
 			this.cSVFileToolStripMenuItem.Click += new global::System.EventHandler(this.cSVファイルCToolStripMenuItem_Click);
@@ -544,6 +549,8 @@
 
 		// Token: 0x040005A7 RID: 1447
 		global::System.Windows.Forms.ToolStripMenuItem ベクモニ旧形式v093bToolStripMenuItem;
+
+		global::System.Windows.Forms.ToolStripMenuItem AtomSpectraStripMenuItem;
 
 		// Token: 0x040005A8 RID: 1448
 		global::System.Windows.Forms.ToolStripMenuItem スペクトル一覧LToolStripMenuItem;
