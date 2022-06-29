@@ -375,75 +375,78 @@ namespace BecquerelMonitor
 					string fileformat = streamReader.ReadLine();
 					if (fileformat != "FORMAT: 3")
 					{
-						MessageBox.Show("Error. Can not open this file. Expected format 3, got: " + fileformat);
-						return;
+						throw new Exception("Error. Can not open this file. Expected format 3, got: " + fileformat);
+					} else
+                    {
+						string SpectrumSummaryText = streamReader.ReadLine();
+						int TotalPulseCount = int.Parse(SpectrumSummaryText.Split(new string[] { "," }, StringSplitOptions.None)[0].Split(new string[] { "Counts: " }, StringSplitOptions.None)[1]);
+
+						energySpectrum.TotalPulseCount = TotalPulseCount;
+						energySpectrum.ValidPulseCount = TotalPulseCount;
+
+						string Time1 = streamReader.ReadLine();
+						string Time2 = streamReader.ReadLine();
+						string Lattitude = streamReader.ReadLine();
+						string Longitude = streamReader.ReadLine();
+						string SpectrumName = streamReader.ReadLine();
+
+						TimeSpan time = TimeSpan.FromMilliseconds(double.Parse(Time1));
+						DateTime dateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+						info.Time = dateTime.Add(time).ToLocalTime();
+
+						info.Note = SpectrumSummaryText;
+						info.Name = SpectrumName;
+						doc.Filename = SpectrumName + ".xml";
+						doc.Text = SpectrumName;
+						info.Location = Lattitude + ", " + Longitude;
+
+						if (streamReader.ReadLine() != "")
+						{
+							MessageBox.Show("Error. Expected empty line separator, got: " + fileformat);
+							return;
+						}
+
+						int ElapsedTime = ((int)double.Parse(streamReader.ReadLine()));
+						energySpectrum.MeasurementTime = ElapsedTime;
+						resultDataStatus.TotalTime = TimeSpan.FromSeconds(ElapsedTime);
+						resultDataStatus.ElapsedTime = TimeSpan.FromSeconds(ElapsedTime);
+						resultDataStatus.PresetTime = ElapsedTime;
+
+						int NumberOfChanels = int.Parse(streamReader.ReadLine());
+						int PolynomialOrder = int.Parse(streamReader.ReadLine());
+
+						if (PolynomialOrder > 4)
+						{
+							throw new Exception("Unsupported calibration points number. Got polynom order = " + PolynomialOrder);
+						}
+
+						double[] coefficients = new double[PolynomialOrder + 1];
+
+						for (int i = 0; i < coefficients.Length; i++)
+						{
+							coefficients[i] = double.Parse(streamReader.ReadLine());
+						}
+
+						for (int i = 0; i < NumberOfChanels; i++)
+						{
+							energySpectrum.Spectrum[i] = int.Parse(streamReader.ReadLine());
+						}
+
+						streamReader.Close();
+
+						PolynomialEnergyCalibration energyCalibration = (PolynomialEnergyCalibration)energySpectrum.EnergyCalibration;
+						energyCalibration.PolynomialOrder = PolynomialOrder;
+						for (int i = 0; i < coefficients.Length; i++)
+						{
+							energyCalibration.Coefficients[i] = coefficients[i];
+						}
+						//doc.Dirty = true;
+						//doc.UpdateEnergySpectrum();
+
+						BecquerelMonitor.MainForm mf = (MainForm)MainForm.ActiveForm;
+						mf.UpdateAppTitle();
+						mf.UpdateEnergyCalibrationView();
 					}
-					string SpectrumSummaryText = streamReader.ReadLine();
-					int TotalPulseCount = int.Parse(SpectrumSummaryText.Split(new string[] { "," }, StringSplitOptions.None)[0].Split(new string[] { "Counts: " }, StringSplitOptions.None)[1]);
-
-					energySpectrum.TotalPulseCount = TotalPulseCount;
-					energySpectrum.ValidPulseCount = TotalPulseCount;
-
-					string Time1 = streamReader.ReadLine();
-					string Time2 = streamReader.ReadLine();
-					string Lattitude = streamReader.ReadLine();
-					string Longitude = streamReader.ReadLine();
-					string SpectrumName = streamReader.ReadLine();
-
-					TimeSpan time = TimeSpan.FromMilliseconds(double.Parse(Time1));
-					DateTime dateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
-					info.Time = dateTime.Add(time).ToLocalTime();
-
-					info.Note = SpectrumSummaryText;
-					info.Name = SpectrumName;
-					doc.Filename = SpectrumName + ".xml";
-					doc.Text = SpectrumName;
-					info.Location = Lattitude + ", " + Longitude;
-
-					if (streamReader.ReadLine() != "")
-                    {
-						MessageBox.Show("Error. Expected empty line separator, got: " + fileformat);
-						return;
-					}
-
-					int ElapsedTime = ((int)double.Parse(streamReader.ReadLine()));
-					energySpectrum.MeasurementTime = ElapsedTime;
-					resultDataStatus.TotalTime = TimeSpan.FromSeconds(ElapsedTime);
-					resultDataStatus.ElapsedTime = TimeSpan.FromSeconds(ElapsedTime);
-					resultDataStatus.PresetTime = ElapsedTime;
-
-					int NumberOfChanels = int.Parse(streamReader.ReadLine());
-					int PolynomialOrder = int.Parse(streamReader.ReadLine());
-
-					if (PolynomialOrder == 3 || PolynomialOrder > 4)
-                    {
-						throw new Exception("Unsupported calibration points number. Got polynom order = " + PolynomialOrder);
-                    }
-
-					double[] coefficients = new double[PolynomialOrder + 1];
-
-					for (int i = 0; i < coefficients.Length; i++)
-                    {
-                        coefficients[i] = double.Parse(streamReader.ReadLine());
-                    }
-
-					for (int i = 0; i < NumberOfChanels; i++)
-                    {
-						energySpectrum.Spectrum[i] = int.Parse(streamReader.ReadLine());
-                    }
-
-					streamReader.Close();
-
-					PolynomialEnergyCalibration energyCalibration = (PolynomialEnergyCalibration)energySpectrum.EnergyCalibration;
-					energyCalibration.PolynomialOrder = PolynomialOrder;
-					for (int i = 0; i < coefficients.Length; i++)
-					{
-						energyCalibration.Coefficients[i] = coefficients[i];
-					}
-
-					BecquerelMonitor.MainForm mf = (MainForm) MainForm.ActiveForm;
-					mf.UpdateAppTitle();
-
 				}
 				Cursor.Current = Cursors.Default;
 			}

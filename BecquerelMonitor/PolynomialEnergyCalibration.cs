@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Xml.Serialization;
+using MathNet.Numerics;
 
 namespace BecquerelMonitor
 {
@@ -118,50 +119,27 @@ namespace BecquerelMonitor
 			}
 			if (this.polynomialOrder == 4)
             {
-				double e = this.coefficients[0] - enrg;
-				double d = this.coefficients[1];
-				double c = this.coefficients[2];
-				double b = this.coefficients[3];
-				double a = this.coefficients[4];
-					
-
-				// https://en.wikipedia.org/wiki/Quartic_function
-				double p = (8.0 * a * c - 3.0 * b * b) / (8.0 * a * a);
-				double q = (b * b * b - 4.0 * a * b * c + 8.0 * a * a * d) / (8.0 * a * a * a);
-				double delta0 = c * c - 3.0 * b * d + 12.0 * a * e;
-				double delta1 = 2.0 * c * c * c - 9.0 * b * c * d + 27.0 * b * b * e + 27.0 * a * d * d - 72.0 * a * c * e;
-				double Q = Math.Pow((delta1 + Math.Sqrt(delta1 * delta1 - 4.0 * delta0 * delta0 * delta0)) / 2.0, 1.0 / 3.0);
-				double S = 0.5 * Math.Sqrt(-2.0 * p / 3.0 + (Q + delta0 / Q) / (3.0 * a));
-				double x1 = -b / (4.0 * a) - S + Math.Sqrt(-4.0 * S * S - 2.0 * p + q / S) / 2.0;
-				double x2 = -b / (4.0 * a) - S - Math.Sqrt(-4.0 * S * S - 2.0 * p + q / S) / 2.0;
-				double x3 = -b / (4.0 * a) - S + Math.Sqrt(-4.0 * S * S - 2.0 * p - q / S) / 2.0;
-				double x4 = -b / (4.0 * a) - S - Math.Sqrt(-4.0 * S * S - 2.0 * p - q / S) / 2.0;
-
-				if (x1 > 0 && x1 < 100000.0)
+				Func<double, double> f1 = x => this.coefficients[4]*x*x*x*x + this.coefficients[3]*x*x*x + this.coefficients[2]*x*x + this.coefficients[1]*x + this.coefficients[0] - enrg;
+				try
                 {
-					return x1;
-                }
-
-				if (x2 > 0 && x2 < 100000.0)
-				{
-					return x2;
+					double roots = FindRoots.OfFunction(f1, 0, 10000, accuracy: 0.1, maxIterations: 10000);
+					return roots;
+				} catch
+                {
+					throw new Exception(String.Format("Calibration coefficients are incorrect channels for Energy: " + enrg));
 				}
+			}
 
-				if (x3 > 0 && x3 < 100000.0)
-				{
-					return x3;
-				}
+			if (this.polynomialOrder == 3)
+			{
 
-				if (x4 > 0 && x4 < 100000.0)
-				{
-					return x4;
-				}
-
-				return 0;
+				Func<double, double> f1 = x => this.coefficients[3] * x * x * x + this.coefficients[2] * x * x + this.coefficients[1] * x + this.coefficients[0] - enrg;
+				double roots = FindRoots.OfFunction(f1, 0, 10000);
+				return roots;
 
 			}
 
-			throw new NotImplementedException("Four point calibration not implemented yet. Only 2,3,5 points exist.");
+			throw new NotImplementedException("Four point calibration not implemented yet. Only 2,3,4,5 points exist.");
 		}
 
 		// Token: 0x06000735 RID: 1845 RVA: 0x00029EF8 File Offset: 0x000280F8

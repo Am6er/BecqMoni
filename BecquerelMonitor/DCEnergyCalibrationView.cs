@@ -60,6 +60,29 @@ namespace BecquerelMonitor
 			this.UpdateMultipointButtonState();
 		}
 
+		public void SetEnergyCalibration1(EnergyCalibration energyCalibration)
+		{
+			this.energyCalibration = (PolynomialEnergyCalibration)energyCalibration.Clone();
+			this.formLoading = true;
+			this.numericUpDown3.Text = this.energyCalibration.Coefficients[0].ToString();
+			this.numericUpDown2.Text = this.energyCalibration.Coefficients[1].ToString();
+			this.numericUpDown1.Text = this.energyCalibration.Coefficients[2].ToString();
+			if (this.energyCalibration.PolynomialOrder == 4)
+			{
+				this.numericUpDown5.Text = this.energyCalibration.Coefficients[3].ToString();
+				this.numericUpDown4.Text = this.energyCalibration.Coefficients[4].ToString();
+			}
+			else
+			{
+				this.numericUpDown5.Text = "";
+				this.numericUpDown4.Text = "";
+			}
+			this.formLoading = false;
+			this.calibrationPoints.Clear();
+			this.ShowCalibrationPoints();
+			this.UpdateMultipointButtonState();
+		}
+
 		// Token: 0x06000817 RID: 2071 RVA: 0x0002DF6C File Offset: 0x0002C16C
 		void numericUpDown1_ValueChanged(object sender, EventArgs e)
 		{
