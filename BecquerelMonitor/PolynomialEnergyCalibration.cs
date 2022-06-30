@@ -77,18 +77,31 @@ namespace BecquerelMonitor
 		{
 			if (this.polynomialOrder == 4)
 			{
-				return this.coefficients[4] * n * n * n * n + this.coefficients[3] * n * n * n + this.coefficients[2] * n * n + this.coefficients[1] * n + this.coefficients[0];
+				return this.coefficients[4] * Math.Pow(n,4) + this.coefficients[3] * Math.Pow(n, 3) + this.coefficients[2] * Math.Pow(n, 2) + this.coefficients[1] * n + this.coefficients[0];
 			}
 			if (this.polynomialOrder == 3)
 			{
-				return this.coefficients[3] * n * n * n + this.coefficients[2] * n * n + this.coefficients[1] * n + this.coefficients[0];
+				return this.coefficients[3] * Math.Pow(n, 3) + this.coefficients[2] * Math.Pow(n, 2) + this.coefficients[1] * n + this.coefficients[0];
 			}
-			return this.coefficients[2] * n * n + this.coefficients[1] * n + this.coefficients[0];
+			if (this.polynomialOrder == 2)
+			{
+				return this.coefficients[2] * Math.Pow(n, 2) + this.coefficients[1] * n + this.coefficients[0];
+			}
+			if (this.polynomialOrder == 1)
+			{
+				return this.coefficients[1] * n + this.coefficients[0];
+			}
+			return this.coefficients[0];
 		}
 
 		// Token: 0x06000734 RID: 1844 RVA: 0x00029E1C File Offset: 0x0002801C
 		public override double EnergyToChannel(double enrg)
 		{
+			if (enrg < 0 || enrg < this.coefficients[0])
+            {
+				return 0;
+            }
+
 			if (this.polynomialOrder == 2)
 			{
 				enrg += 1E-07;
@@ -119,11 +132,15 @@ namespace BecquerelMonitor
 			}
 			if (this.polynomialOrder == 4)
             {
-				Func<double, double> f1 = x => this.coefficients[4]*x*x*x*x + this.coefficients[3]*x*x*x + this.coefficients[2]*x*x + this.coefficients[1]*x + this.coefficients[0] - enrg;
+				Func<double, double> f1 = x => this.coefficients[4] * x * x * x * x + this.coefficients[3] * x * x * x + this.coefficients[2] * x * x + this.coefficients[1] * x + this.coefficients[0] - enrg;
 				try
                 {
-					double roots = FindRoots.OfFunction(f1, 0, 10000, accuracy: 0.1, maxIterations: 10000);
-					return roots;
+					double roots = FindRoots.OfFunction(f1, 0, 10000, accuracy: 0.00001, maxIterations: 10000);
+					//if (Math.Round(roots,0) == 6626)
+					//{
+					//	System.Windows.Forms.MessageBox.Show("Root = " + roots + " Energy = " + enrg);
+					//}
+					return Math.Round(roots, 2);
 				} catch
                 {
 					throw new Exception(String.Format("Calibration coefficients are incorrect channels for Energy: " + enrg));
@@ -134,8 +151,8 @@ namespace BecquerelMonitor
 			{
 
 				Func<double, double> f1 = x => this.coefficients[3] * x * x * x + this.coefficients[2] * x * x + this.coefficients[1] * x + this.coefficients[0] - enrg;
-				double roots = FindRoots.OfFunction(f1, 0, 10000);
-				return roots;
+				double roots = FindRoots.OfFunction(f1, 0, 10000, accuracy: 0.00001, maxIterations: 10000);
+				return Math.Round(roots, 2);
 
 			}
 

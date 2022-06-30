@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using MaNet;
+using MathNet.Numerics.LinearAlgebra;
 
 namespace BecquerelMonitor
 {
@@ -86,40 +86,33 @@ namespace BecquerelMonitor
 			{
 				if (calibrationPeaks.Count != 2)
 				{
-					int channel2 = calibrationPeaks[0].Channel;
-					int channel3 = calibrationPeaks[1].Channel;
-					int channel4 = calibrationPeaks[2].Channel;
-					Matrix matrix = new Matrix(3, 3);
-					matrix.Array[0][0] = (double)(channel2 * channel2);
-					matrix.Array[0][1] = (double)channel2;
-					matrix.Array[0][2] = 1.0;
-					matrix.Array[1][0] = (double)(channel3 * channel3);
-					matrix.Array[1][1] = (double)channel3;
-					matrix.Array[1][2] = 1.0;
-					matrix.Array[2][0] = (double)(channel4 * channel4);
-					matrix.Array[2][1] = (double)channel4;
-					matrix.Array[2][2] = 1.0;
-					Matrix matrix2 = new Matrix(3, 1);
-					matrix2.Array[0][0] = calibrationPeaks[0].Energy;
-					matrix2.Array[1][0] = calibrationPeaks[1].Energy;
-					matrix2.Array[2][0] = calibrationPeaks[2].Energy;
-					Matrix matrix3 = new Matrix(3, 1);
+					int ch1 = calibrationPeaks[0].Channel;
+					int ch2 = calibrationPeaks[1].Channel;
+					int ch3 = calibrationPeaks[2].Channel;
+					Matrix<double> matrix = Matrix<double>.Build.DenseOfArray(new double[,] {
+						{ (double)(ch1 * ch1), (double)ch1, 1.0 },
+						{ (double)(ch2 * ch2), (double)ch2, 1.0 },
+						{ (double)(ch3 * ch3), (double)ch3, 1.0 },
+					});
+					Vector<double> matrix2 = Vector<double>.Build.Dense(new double[] {
+						(double)calibrationPeaks[0].Energy,
+						(double)calibrationPeaks[1].Energy,
+						(double)calibrationPeaks[2].Energy
+					});
+					double[] matrix3;
 					try
 					{
-						matrix3 = matrix.Solve(matrix2);
+						matrix3 = matrix.Solve(matrix2).ToArray();
 					}
 					catch (Exception)
 					{
 						return;
 					}
-					if (matrix3.Array[1][0] >= 0.01)
-					{
-						polynomialEnergyCalibration2.Coefficients[2] = matrix3.Array[0][0];
-						polynomialEnergyCalibration2.Coefficients[1] = matrix3.Array[1][0];
-						polynomialEnergyCalibration2.Coefficients[0] = matrix3.Array[2][0];
-						goto IL_52F;
-					}
-					return;
+
+					polynomialEnergyCalibration2.Coefficients[2] = matrix3[0];
+					polynomialEnergyCalibration2.Coefficients[1] = matrix3[1];
+					polynomialEnergyCalibration2.Coefficients[0] = matrix3[2];
+					goto IL_52F;
 				}
 				double num10 = (double)calibrationPeaks[0].Channel;
 				double num11 = (double)calibrationPeaks[1].Channel;

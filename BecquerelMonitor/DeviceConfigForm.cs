@@ -5,7 +5,7 @@ using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
 using BecquerelMonitor.Properties;
-using MaNet;
+using MathNet.Numerics.LinearAlgebra;
 using XPTable.Editors;
 using XPTable.Events;
 using XPTable.Models;
@@ -846,42 +846,33 @@ namespace BecquerelMonitor
 			{
 				if (this.calibrationPoints.Count == 3)
 				{
-					int channel4 = this.calibrationPoints[0].Channel;
-					int channel5 = this.calibrationPoints[1].Channel;
-					int channel6 = this.calibrationPoints[2].Channel;
-					Matrix matrix = new Matrix(3, 3);
-					matrix.Array[0][0] = (double)(channel4 * channel4);
-					matrix.Array[0][1] = (double)channel4;
-					matrix.Array[0][2] = 1.0;
-					matrix.Array[1][0] = (double)(channel5 * channel5);
-					matrix.Array[1][1] = (double)channel5;
-					matrix.Array[1][2] = 1.0;
-					matrix.Array[2][0] = (double)(channel6 * channel6);
-					matrix.Array[2][1] = (double)channel6;
-					matrix.Array[2][2] = 1.0;
-					Matrix matrix2 = new Matrix(3, 1);
-					matrix2.Array[0][0] = (double)this.calibrationPoints[0].Energy;
-					matrix2.Array[1][0] = (double)this.calibrationPoints[1].Energy;
-					matrix2.Array[2][0] = (double)this.calibrationPoints[2].Energy;
-					Matrix matrix3 = new Matrix(3, 1);
+					int ch1 = this.calibrationPoints[0].Channel;
+					int ch2 = this.calibrationPoints[1].Channel;
+					int ch3 = this.calibrationPoints[2].Channel;
+					Matrix<double> matrix = Matrix<double>.Build.DenseOfArray(new double[,] {
+						{ (double)(ch1 * ch1), (double)ch1, 1.0 },
+						{ (double)(ch2 * ch2), (double)ch2, 1.0 },
+						{ (double)(ch3 * ch3), (double)ch3, 1.0 },
+					});
+					Vector<double> matrix2 = Vector<double>.Build.Dense(new double[] {
+						(double)this.calibrationPoints[0].Energy,
+						(double)this.calibrationPoints[1].Energy,
+						(double)this.calibrationPoints[2].Energy
+					});
+					double[] matrix3;
 					try
 					{
-						matrix3 = matrix.Solve(matrix2);
+						matrix3 = matrix.Solve(matrix2).ToArray();
 					}
 					catch (Exception)
 					{
 						MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
 						return;
 					}
-					if (matrix3.Array[1][0] >= 0.01)
-					{
-						polynomialEnergyCalibration.Coefficients[2] = matrix3.Array[0][0];
-						polynomialEnergyCalibration.Coefficients[1] = matrix3.Array[1][0];
-						polynomialEnergyCalibration.Coefficients[0] = matrix3.Array[2][0];
-						goto IL_390;
-					}
-					MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
-					return;
+					polynomialEnergyCalibration.Coefficients[2] = matrix3[0];
+					polynomialEnergyCalibration.Coefficients[1] = matrix3[1];
+					polynomialEnergyCalibration.Coefficients[0] = matrix3[2];
+					goto IL_390;
 				}
 				MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
 			}

@@ -4,7 +4,8 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
 using BecquerelMonitor.Properties;
-using MaNet;
+using MathNet.Numerics.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Double.Solvers;
 using XPTable.Editors;
 using XPTable.Events;
 using XPTable.Models;
@@ -556,82 +557,78 @@ namespace BecquerelMonitor
 			{
 				if (this.calibrationPoints.Count == 3)
 				{
-					int channel4 = this.calibrationPoints[0].Channel;
-					int channel5 = this.calibrationPoints[1].Channel;
-					int channel6 = this.calibrationPoints[2].Channel;
-					Matrix matrix = new Matrix(3, 3);
-					matrix.Array[0][0] = (double)(channel4 * channel4);
-					matrix.Array[0][1] = (double)channel4;
-					matrix.Array[0][2] = 1.0;
-					matrix.Array[1][0] = (double)(channel5 * channel5);
-					matrix.Array[1][1] = (double)channel5;
-					matrix.Array[1][2] = 1.0;
-					matrix.Array[2][0] = (double)(channel6 * channel6);
-					matrix.Array[2][1] = (double)channel6;
-					matrix.Array[2][2] = 1.0;
-					Matrix matrix2 = new Matrix(3, 1);
-					matrix2.Array[0][0] = (double)this.calibrationPoints[0].Energy;
-					matrix2.Array[1][0] = (double)this.calibrationPoints[1].Energy;
-					matrix2.Array[2][0] = (double)this.calibrationPoints[2].Energy;
-					Matrix matrix3 = new Matrix(3, 1);
+					int ch1 = this.calibrationPoints[0].Channel;
+					int ch2 = this.calibrationPoints[1].Channel;
+					int ch3 = this.calibrationPoints[2].Channel;
+					Matrix<double> matrix = Matrix<double>.Build.DenseOfArray(new double[,] {
+						{ (double)(ch1 * ch1), (double)ch1, 1.0 },
+						{ (double)(ch2 * ch2), (double)ch2, 1.0 },
+						{ (double)(ch3 * ch3), (double)ch3, 1.0 },
+					});
+					Vector<double> matrix2 = Vector<double>.Build.Dense(new double[] {
+						(double)this.calibrationPoints[0].Energy,
+						(double)this.calibrationPoints[1].Energy,
+						(double)this.calibrationPoints[2].Energy
+					});
+					double[] matrix3;
 					try
 					{
-						matrix3 = matrix.Solve(matrix2);
+						matrix3 = matrix.Solve(matrix2).ToArray();
 					}
 					catch (Exception)
 					{
 						MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
 						return;
 					}
-					this.energyCalibration.Coefficients[2] = matrix3.Array[0][0];
-					this.energyCalibration.Coefficients[1] = matrix3.Array[1][0];
-					this.energyCalibration.Coefficients[0] = matrix3.Array[2][0];
+					this.energyCalibration.Coefficients[2] = matrix3[0];
+					this.energyCalibration.Coefficients[1] = matrix3[1];
+					this.energyCalibration.Coefficients[0] = matrix3[2];
 					goto IL_3B5;
-					MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
-					return;
 				}
 
 				if (this.calibrationPoints.Count == 5)
 				{
-					Matrix matrix = new Matrix(5, 5);
+					int ch1 = this.calibrationPoints[0].Channel;
+					int ch2 = this.calibrationPoints[1].Channel;
+					int ch3 = this.calibrationPoints[2].Channel;
+					int ch4 = this.calibrationPoints[3].Channel;
+					int ch5 = this.calibrationPoints[4].Channel;
 
-					for (int i = 0; i < 5; i++)
-                    {
-						for (int j = 0; j < 5; j++)
-                        {
-							matrix.Array[i][j] = (double)Math.Pow(this.calibrationPoints[i].Channel, 4 - j);
-                        }
-                    }
-
-					Matrix matrix2 = new Matrix(5, 1);
-					for (int i = 0; i < 5; i++)
-                    {
-						matrix2.Array[i][0] = (double)this.calibrationPoints[i].Energy;
-					}
-
-					Matrix matrix3 = new Matrix(5, 1);
+					Matrix<double> matrix = Matrix<double>.Build.DenseOfArray(new double[,] {
+						{ (double)Math.Pow(ch1,4), (double)Math.Pow(ch1,3), (double)Math.Pow(ch1,2), (double)ch1, 1.0 },
+						{ (double)Math.Pow(ch2,4), (double)Math.Pow(ch2,3), (double)Math.Pow(ch2,2), (double)ch2, 1.0 },
+						{ (double)Math.Pow(ch3,4), (double)Math.Pow(ch3,3), (double)Math.Pow(ch3,2), (double)ch3, 1.0 },
+						{ (double)Math.Pow(ch4,4), (double)Math.Pow(ch4,3), (double)Math.Pow(ch4,2), (double)ch4, 1.0 },
+						{ (double)Math.Pow(ch5,4), (double)Math.Pow(ch5,3), (double)Math.Pow(ch5,2), (double)ch5, 1.0 }
+					});
+					Vector<double> matrix2 = Vector<double>.Build.Dense(new double[] {
+						(double)this.calibrationPoints[0].Energy,
+						(double)this.calibrationPoints[1].Energy,
+						(double)this.calibrationPoints[2].Energy,
+						(double)this.calibrationPoints[3].Energy,
+						(double)this.calibrationPoints[4].Energy
+					});
+					double[] matrix3;
 					try
 					{
-						matrix3 = matrix.Solve(matrix2);
+						matrix3 = matrix.Solve(matrix2).ToArray();
 					}
 					catch (Exception)
 					{
 						MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
 						return;
 					}
-					if (this.energyCalibration.PolynomialOrder == 2)
+					if (this.energyCalibration.PolynomialOrder == 2 || this.energyCalibration.PolynomialOrder == 3)
                     {
 						this.energyCalibration.Coefficients = new double[5];
 						this.energyCalibration.PolynomialOrder = 4;
                     }
-					this.energyCalibration.Coefficients[4] = (double)matrix3.Array[0][0];
-					this.energyCalibration.Coefficients[3] = (double)matrix3.Array[1][0];
-					this.energyCalibration.Coefficients[2] = (double)matrix3.Array[2][0];
-					this.energyCalibration.Coefficients[1] = (double)matrix3.Array[3][0];
-					this.energyCalibration.Coefficients[0] = (double)matrix3.Array[4][0];
+					this.energyCalibration.Coefficients[4] = (double)matrix3[0];
+					this.energyCalibration.Coefficients[3] = (double)matrix3[1];
+					this.energyCalibration.Coefficients[2] = (double)matrix3[2];
+					this.energyCalibration.Coefficients[1] = (double)matrix3[3];
+					this.energyCalibration.Coefficients[0] = (double)matrix3[4];
 					goto IL_3B5;
-					MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
-					return;
 				}
 
 				MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
