@@ -87,88 +87,44 @@ namespace BecquerelMonitor
 		// Token: 0x06000817 RID: 2071 RVA: 0x0002DF6C File Offset: 0x0002C16C
 		void numericUpDown1_ValueChanged(object sender, EventArgs e)
 		{
-			if (this.formLoading || this.calibrationDone == false)
+			/*if (this.formLoading ) // || this.calibrationDone == false)
 			{
 				return;
-			}
-			double result = 0;
-			if (fromStringtoDouble(this.numericUpDown1.Text, result))
-			{
-				this.numericUpDown1.ForeColor = Color.Black;
-				this.energyCalibration.Coefficients[2] = result;
-				this.UpdateEnergyCalibration();
+			}*/
 
-			} else
-            {
-				this.numericUpDown1.ForeColor = Color.Red;
-            }
 		}
 
 		void numericUpDown4_ValueChanged(object sender, EventArgs e)
 		{
-			if (this.formLoading || this.calibrationDone == false)
+			/*if (this.formLoading ) // || this.calibrationDone == false)
 			{
 				return;
-			}
-			double result = 0;
-			if (fromStringtoDouble(this.numericUpDown4.Text, result))
-			{
-				this.numericUpDown4.ForeColor = Color.Black;
-				this.energyCalibration.Coefficients[4] = result;
-				this.UpdateEnergyCalibration();
-
-			}
-			else
-			{
-				this.numericUpDown4.ForeColor = Color.Red;
-			}
+			}*/
 		}
 
 		void numericUpDown5_ValueChanged(object sender, EventArgs e)
 		{
-			if (this.formLoading || this.calibrationDone == false)
+			/*if (this.formLoading ) // || this.calibrationDone == false)
 			{
 				return;
-			}
-			double result = 0;
-			if (fromStringtoDouble(this.numericUpDown5.Text, result))
-			{
-				this.numericUpDown5.ForeColor = Color.Black;
-				this.energyCalibration.Coefficients[3] = result;
-				this.UpdateEnergyCalibration();
+			}*/
 
-			}
-			else
-			{
-				this.numericUpDown5.ForeColor = Color.Red;
-			}
 		}
 
 		// Token: 0x06000818 RID: 2072 RVA: 0x0002DFA0 File Offset: 0x0002C1A0
 		void numericUpDown2_ValueChanged(object sender, EventArgs e)
 		{
-			if (this.formLoading || this.calibrationDone == false)
+			/*if (this.formLoading) // || this.calibrationDone == false)
 			{
 				return;
-			}
-			double result = 0;
-			if (fromStringtoDouble(this.numericUpDown2.Text, result))
-			{
-				this.numericUpDown2.ForeColor = Color.Black;
-				this.energyCalibration.Coefficients[1] = result;
-				this.UpdateEnergyCalibration();
+			}*/
 
-			}
-			else
-			{
-				this.numericUpDown2.ForeColor = Color.Red;
-			}
 		}
 
 		// Token: 0x06000819 RID: 2073 RVA: 0x0002DFD4 File Offset: 0x0002C1D4
 		void numericUpDown3_ValueChanged(object sender, EventArgs e)
 		{
-			if (this.formLoading || this.calibrationDone == false)
+			/*if (this.formLoading) // || this.calibrationDone == false)
 			{
 				return;
 			}
@@ -183,7 +139,7 @@ namespace BecquerelMonitor
 			else
 			{
 				this.numericUpDown3.ForeColor = Color.Red;
-			}
+			}*/
 		}
 
 		void button12_Click(object sender, EventArgs e)
@@ -328,6 +284,17 @@ namespace BecquerelMonitor
 		{
 			if (e.KeyCode == Keys.Return)
 			{
+				try
+                {
+					double result = fromStringtoDouble(this.numericUpDown1.Text);
+					this.numericUpDown1.ForeColor = Color.Black;
+					this.energyCalibration.Coefficients[2] = result;
+					this.UpdateEnergyCalibration();
+				} catch
+                {
+					this.numericUpDown1.Text = this.energyCalibration.Coefficients[2].ToString();
+					this.numericUpDown1.ForeColor = Color.Red;
+				}
 				e.SuppressKeyPress = true;
 			}
 		}
@@ -337,6 +304,17 @@ namespace BecquerelMonitor
 		{
 			if (e.KeyCode == Keys.Return)
 			{
+                try
+                {
+					double result = fromStringtoDouble(this.numericUpDown2.Text);
+					this.numericUpDown2.ForeColor = Color.Black;
+					this.energyCalibration.Coefficients[1] = result;
+					this.UpdateEnergyCalibration();
+				} catch
+                {
+					this.numericUpDown2.Text = this.energyCalibration.Coefficients[1].ToString();
+					this.numericUpDown2.ForeColor = Color.Red;
+				}
 				e.SuppressKeyPress = true;
 			}
 		}
@@ -346,6 +324,18 @@ namespace BecquerelMonitor
 		{
 			if (e.KeyCode == Keys.Return)
 			{
+                try
+                {
+					double result = fromStringtoDouble(this.numericUpDown3.Text);
+					this.numericUpDown3.ForeColor = Color.Black;
+					this.energyCalibration.Coefficients[0] = result;
+					this.UpdateEnergyCalibration();
+				}
+                catch
+                {
+					this.numericUpDown3.Text = this.energyCalibration.Coefficients[0].ToString();
+					this.numericUpDown3.ForeColor = Color.Red;
+				}
 				e.SuppressKeyPress = true;
 			}
 		}
@@ -354,6 +344,18 @@ namespace BecquerelMonitor
 		{
 			if (e.KeyCode == Keys.Return)
 			{
+				try
+                {
+					double result = fromStringtoDouble(this.numericUpDown4.Text);
+					this.numericUpDown4.ForeColor = Color.Black;
+					this.energyCalibration.Coefficients[4] = result;
+					this.UpdateEnergyCalibration();
+				}
+                catch
+                {
+					this.numericUpDown4.Text = this.energyCalibration.Coefficients[4].ToString();
+					this.numericUpDown4.ForeColor = Color.Red;
+				}
 				e.SuppressKeyPress = true;
 			}
 		}
@@ -362,6 +364,18 @@ namespace BecquerelMonitor
 		{
 			if (e.KeyCode == Keys.Return)
 			{
+				try
+                {
+					double result = fromStringtoDouble(this.numericUpDown5.Text);
+					this.numericUpDown5.ForeColor = Color.Black;
+					this.energyCalibration.Coefficients[3] = result;
+					this.UpdateEnergyCalibration();
+				}
+				catch
+                {
+					this.numericUpDown5.Text = this.energyCalibration.Coefficients[3].ToString();
+					this.numericUpDown5.ForeColor = Color.Red;
+				}
 				e.SuppressKeyPress = true;
 			}
 		}
@@ -647,19 +661,25 @@ namespace BecquerelMonitor
 			this.UpdateMultipointButtonState();
 		}
 
-		bool fromStringtoDouble(string str, double res)
+		double fromStringtoDouble(string str)
         {
 			double result;
 			if (double.TryParse(str.ToString(System.Globalization.CultureInfo.InvariantCulture), 
 				System.Globalization.NumberStyles.Float, 
 				System.Globalization.CultureInfo.InvariantCulture, 
-				out result) & result > -100 & result < 100)
+				out result))
             {
-				return true;
+				if (result > -100.0 && result < 100.0)
+				{
+					return result;
+				} else
+                {
+					throw new Exception();
+                }
             }
-				//System.Windows.Forms.MessageBox.Show("Error while converting text to double: " + str);
-				return false;
-        }
+			//System.Windows.Forms.MessageBox.Show("Error while converting text to double: " + str);
+			throw new Exception();
+		}
 
 		// Token: 0x06000832 RID: 2098 RVA: 0x0002ED00 File Offset: 0x0002CF00
 		void DCEnergyCalibrationView_FormClosing(object sender, FormClosingEventArgs e)
