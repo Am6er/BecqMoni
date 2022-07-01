@@ -45,32 +45,24 @@ namespace BecquerelMonitor
 			this.formLoading = true;
 			this.numericUpDown3.Text = this.energyCalibration.Coefficients[0].ToString();
 			this.numericUpDown2.Text = this.energyCalibration.Coefficients[1].ToString();
-			this.numericUpDown1.Text = this.energyCalibration.Coefficients[2].ToString();
-			if (this.energyCalibration.PolynomialOrder == 4)
-            {
-				this.numericUpDown5.Text = this.energyCalibration.Coefficients[3].ToString();
-				this.numericUpDown4.Text = this.energyCalibration.Coefficients[4].ToString();
-			} else
-            {
-				this.numericUpDown5.Text = "";
-				this.numericUpDown4.Text = "";
+			if (this.energyCalibration.PolynomialOrder >= 2)
+			{
+				this.numericUpDown1.Text = this.energyCalibration.Coefficients[2].ToString();
 			}
-			this.formLoading = false;
-			this.calibrationPoints.Clear();
-			this.ShowCalibrationPoints();
-			this.UpdateMultipointButtonState();
-		}
-
-		public void SetEnergyCalibration1(EnergyCalibration energyCalibration)
-		{
-			this.energyCalibration = (PolynomialEnergyCalibration)energyCalibration.Clone();
-			this.formLoading = true;
-			this.numericUpDown3.Text = this.energyCalibration.Coefficients[0].ToString();
-			this.numericUpDown2.Text = this.energyCalibration.Coefficients[1].ToString();
-			this.numericUpDown1.Text = this.energyCalibration.Coefficients[2].ToString();
-			if (this.energyCalibration.PolynomialOrder == 4)
+			else
+			{
+				this.numericUpDown1.Text = "";
+			}
+			if (this.energyCalibration.PolynomialOrder >= 3)
 			{
 				this.numericUpDown5.Text = this.energyCalibration.Coefficients[3].ToString();
+			}
+			else
+			{
+				this.numericUpDown5.Text = "";
+			}
+			if (this.energyCalibration.PolynomialOrder == 4)
+			{
 				this.numericUpDown4.Text = this.energyCalibration.Coefficients[4].ToString();
 			}
 			else

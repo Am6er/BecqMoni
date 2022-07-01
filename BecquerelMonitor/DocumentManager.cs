@@ -440,12 +440,11 @@ namespace BecquerelMonitor
 						{
 							energyCalibration.Coefficients[i] = coefficients[i];
 						}
-						//doc.Dirty = true;
-						//doc.UpdateEnergySpectrum();
 
 						BecquerelMonitor.MainForm mf = (MainForm)MainForm.ActiveForm;
 						mf.UpdateAppTitle();
 						mf.UpdateEnergyCalibrationView();
+						doc.EnergySpectrumView.FitHorizontalScale();
 					}
 				}
 				Cursor.Current = Cursors.Default;

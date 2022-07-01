@@ -102,6 +102,21 @@ namespace BecquerelMonitor
 				return 0;
             }
 
+			if (this.polynomialOrder == 1)
+            {
+				double k = this.coefficients[1];
+				double b = this.coefficients[0] - enrg;
+				
+				if (k == 0)
+                {
+					System.Windows.Forms.MessageBox.Show("For y = k*x - b, k != 0. Assuming this error, and set k = 1.");
+					return (enrg - b);
+                } else
+                {
+					return (enrg - b) / k;
+                }
+			}
+
 			if (this.polynomialOrder == 2)
 			{
 				enrg += 1E-07;
@@ -136,14 +151,11 @@ namespace BecquerelMonitor
 				try
                 {
 					double roots = FindRoots.OfFunction(f1, 0, 10000, accuracy: 0.00001, maxIterations: 10000);
-					//if (Math.Round(roots,0) == 6626)
-					//{
-					//	System.Windows.Forms.MessageBox.Show("Root = " + roots + " Energy = " + enrg);
-					//}
 					return Math.Round(roots, 2);
 				} catch
                 {
-					throw new Exception(String.Format("Calibration coefficients are incorrect channels for Energy: " + enrg));
+					//throw new Exception(String.Format("Calibration coefficients are incorrect channels for Energy: " + enrg));
+					System.Windows.Forms.MessageBox.Show("Calibration coefficients are incorrect channels for Energy: " + enrg);
 				}
 			}
 
@@ -151,9 +163,15 @@ namespace BecquerelMonitor
 			{
 
 				Func<double, double> f1 = x => this.coefficients[3] * x * x * x + this.coefficients[2] * x * x + this.coefficients[1] * x + this.coefficients[0] - enrg;
-				double roots = FindRoots.OfFunction(f1, 0, 10000, accuracy: 0.00001, maxIterations: 10000);
-				return Math.Round(roots, 2);
-
+                try
+                {
+					double roots = FindRoots.OfFunction(f1, 0, 10000, accuracy: 0.00001, maxIterations: 10000);
+					return Math.Round(roots, 2);
+				} catch
+                {
+					System.Windows.Forms.MessageBox.Show("Calibration coefficients are incorrect channels for Energy: " + enrg);
+					//throw new Exception(String.Format("Calibration coefficients are incorrect channels for Energy: " + enrg));
+				}
 			}
 
 			throw new NotImplementedException("Four point calibration not implemented yet. Only 2,3,4,5 points exist.");
