@@ -72,6 +72,15 @@ namespace BecquerelMonitor
 			return true;
 		}
 
+		public bool CheckCalibration()
+        {
+			if (ChannelToEnergy(1) < ChannelToEnergy(10000))
+			{
+				return true;
+            }
+			return false;
+        }
+
 		// Token: 0x06000733 RID: 1843 RVA: 0x00029DD4 File Offset: 0x00027FD4
 		public override double ChannelToEnergy(double n)
 		{
@@ -150,12 +159,14 @@ namespace BecquerelMonitor
 				Func<double, double> f1 = x => this.coefficients[4] * x * x * x * x + this.coefficients[3] * x * x * x + this.coefficients[2] * x * x + this.coefficients[1] * x + this.coefficients[0] - enrg;
 				try
                 {
-					double roots = FindRoots.OfFunction(f1, 0, 10000, accuracy: 0.00001, maxIterations: 10000);
+					double roots = FindRoots.OfFunction(f1, 0, 100000);
+					//System.Windows.Forms.MessageBox.Show("Calibration coefficients are incorrect channels for Energy: " + enrg + " roots = " + roots);
 					return Math.Round(roots, 2);
 				} catch
                 {
 					//throw new Exception(String.Format("Calibration coefficients are incorrect channels for Energy: " + enrg));
-					System.Windows.Forms.MessageBox.Show("Calibration coefficients are incorrect channels for Energy: " + enrg);
+					//System.Windows.Forms.MessageBox.Show("Calibration coefficients are incorrect channels for Energy: " + enrg);
+					return 0;
 				}
 			}
 
@@ -165,12 +176,13 @@ namespace BecquerelMonitor
 				Func<double, double> f1 = x => this.coefficients[3] * x * x * x + this.coefficients[2] * x * x + this.coefficients[1] * x + this.coefficients[0] - enrg;
                 try
                 {
-					double roots = FindRoots.OfFunction(f1, 0, 10000, accuracy: 0.00001, maxIterations: 10000);
+					double roots = FindRoots.OfFunction(f1, 0, 10000);
 					return Math.Round(roots, 2);
 				} catch
                 {
-					System.Windows.Forms.MessageBox.Show("Calibration coefficients are incorrect channels for Energy: " + enrg);
+					//System.Windows.Forms.MessageBox.Show("Calibration coefficients are incorrect channels for Energy: " + enrg);
 					//throw new Exception(String.Format("Calibration coefficients are incorrect channels for Energy: " + enrg));
+					return 0;
 				}
 			}
 

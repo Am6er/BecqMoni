@@ -95,7 +95,7 @@ namespace BecquerelMonitor
 					}
 				}
 			}
-			catch (Exception exc)
+			catch (Exception)
 			{
 				Directory.CreateDirectory("config\\device");
 				MessageBox.Show(Resources.ERRLoadingDeviceConfigFailed, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
@@ -207,7 +207,7 @@ namespace BecquerelMonitor
 					xmlSerializer.Serialize(fileStream, deviceConfigInfo);
 				}
 			}
-			catch (Exception exc)
+			catch (Exception)
 			{
 				MessageBox.Show(Resources.ERRSavingDeviceConfigFailed, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
 				return false;

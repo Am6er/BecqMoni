@@ -634,6 +634,11 @@ namespace BecquerelMonitor
 					this.energyCalibration.Coefficients[2] = (double)matrix3[2];
 					this.energyCalibration.Coefficients[1] = (double)matrix3[3];
 					this.energyCalibration.Coefficients[0] = (double)matrix3[4];
+					if (!this.energyCalibration.CheckCalibration())
+					{
+						MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
+						return;
+					}
 					goto IL_3B5;
 				}
 
@@ -643,14 +648,23 @@ namespace BecquerelMonitor
 			this.numericUpDown1.Text = this.energyCalibration.Coefficients[2].ToString();
 			this.numericUpDown2.Text = this.energyCalibration.Coefficients[1].ToString();
 			this.numericUpDown3.Text = this.energyCalibration.Coefficients[0].ToString();
-			if (this.energyCalibration.PolynomialOrder == 4)
+			if (this.energyCalibration.PolynomialOrder >= 3)
             {
 				this.numericUpDown5.Text = this.energyCalibration.Coefficients[3].ToString();
+			}
+			if (this.energyCalibration.PolynomialOrder == 4)
+			{
 				this.numericUpDown4.Text = this.energyCalibration.Coefficients[4].ToString();
 			}
+			if (!this.energyCalibration.CheckCalibration())
+            {
+				MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
+				return;
+            }
 			this.multipointModified = false;
 			this.calibrationDone = true;
 			this.UpdateMultipointButtonState();
+			this.UpdateEnergyCalibration();
 		}
 
 		double fromStringtoDouble(string str)

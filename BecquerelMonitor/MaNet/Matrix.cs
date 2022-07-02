@@ -367,7 +367,7 @@ public class Matrix :ICloneable , IEnumerable<double[]>
                B[i-i0][j-j0] = A[i][j];
             }
          }
-      } catch(IndexOutOfRangeException e) {
+      } catch(IndexOutOfRangeException) {
          throw new IndexOutOfRangeException("Submatrix indices");
       }
       return X;
@@ -387,7 +387,7 @@ public class Matrix :ICloneable , IEnumerable<double[]>
                B[i][j] = A[r[i]][c[j]];
             }
          }
-      } catch(IndexOutOfRangeException e) {
+      } catch(IndexOutOfRangeException) {
          throw new IndexOutOfRangeException("Submatrix indices");
       }
       return X;
@@ -408,7 +408,7 @@ public class Matrix :ICloneable , IEnumerable<double[]>
                B[i-i0][j] = A[i][c[j]];
             }
          }
-      } catch(IndexOutOfRangeException e) {
+      } catch(IndexOutOfRangeException) {
          throw new IndexOutOfRangeException("Submatrix indices");
       }
       return X;
@@ -430,7 +430,7 @@ public class Matrix :ICloneable , IEnumerable<double[]>
                B[i][j-j0] = A[r[i]][j];
             }
          }
-      } catch(System.IndexOutOfRangeException e) {
+      } catch(System.IndexOutOfRangeException) {
          throw new System.IndexOutOfRangeException("Submatrix indices");
       }
       return X;
@@ -461,7 +461,7 @@ public class Matrix :ICloneable , IEnumerable<double[]>
                A[i][j] = X.Get(i-i0,j-j0);
             }
          }
-      } catch(IndexOutOfRangeException e) {
+      } catch(IndexOutOfRangeException) {
          throw new IndexOutOfRangeException("Submatrix indices");
       }
    }
@@ -513,7 +513,7 @@ public class Matrix :ICloneable , IEnumerable<double[]>
                A[i][c[j]] = X.Get(i-i0,j);
             }
          }
-      } catch(IndexOutOfRangeException e) {
+      } catch(IndexOutOfRangeException) {
          throw new IndexOutOfRangeException("Submatrix indices");
       }
    }
