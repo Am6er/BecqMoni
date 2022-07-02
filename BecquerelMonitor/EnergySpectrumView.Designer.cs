@@ -1209,6 +1209,11 @@ namespace BecquerelMonitor
             }
         }
 
+        public double getNumberOfChannels()
+        {
+            return (double)this.numberOfChannels;
+        }
+
         // Token: 0x060004B6 RID: 1206 RVA: 0x00018404 File Offset: 0x00016604
         void DrawFWHM(Graphics g)
         {

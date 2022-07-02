@@ -74,11 +74,16 @@ namespace BecquerelMonitor
 
 		public bool CheckCalibration()
         {
-			if (ChannelToEnergy(1) < ChannelToEnergy(10000))
-			{
-				return true;
+			BecquerelMonitor.MainForm mf = (MainForm)MainForm.ActiveForm;
+			double MaximumChannel = mf.ActiveDocument.EnergySpectrumView.getNumberOfChannels();
+			for (int i = 1; i <= MaximumChannel; i++)
+            {
+				if (this.ChannelToEnergy(i-1) > this.ChannelToEnergy(i))
+                {
+					return false;
+                }
             }
-			return false;
+			return true;
         }
 
 		// Token: 0x06000733 RID: 1843 RVA: 0x00029DD4 File Offset: 0x00027FD4
