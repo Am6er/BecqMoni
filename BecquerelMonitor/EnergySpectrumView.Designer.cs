@@ -2888,6 +2888,8 @@ namespace BecquerelMonitor
                 dialog.Filter = "png file (*.png)|*.png";
                 dialog.FilterIndex = 1;
                 dialog.RestoreDirectory = true;
+                MainForm mf = (MainForm)MainForm.ActiveForm;
+                dialog.FileName = mf.ActiveDocument.Text;
                 if (dialog.ShowDialog() == DialogResult.OK)
                 {
                     try

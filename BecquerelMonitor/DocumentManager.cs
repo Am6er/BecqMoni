@@ -441,6 +441,11 @@ namespace BecquerelMonitor
 							energyCalibration.Coefficients[i] = coefficients[i];
 						}
 
+						if (!energyCalibration.CheckCalibration())
+						{
+							MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
+						}
+
 						BecquerelMonitor.MainForm mf = (MainForm)MainForm.ActiveForm;
 						mf.UpdateAppTitle();
 						mf.UpdateEnergyCalibrationView();
