@@ -281,6 +281,11 @@ namespace BecquerelMonitor
 					double result = fromStringtoDouble(this.numericUpDown1.Text);
 					this.numericUpDown1.ForeColor = Color.Black;
 					this.energyCalibration.Coefficients[2] = result;
+					if (!energyCalibration.CheckCalibration())
+                    {
+						MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
+						throw new Exception();
+					}
 					this.UpdateEnergyCalibration();
 				} catch
                 {
@@ -301,6 +306,11 @@ namespace BecquerelMonitor
 					double result = fromStringtoDouble(this.numericUpDown2.Text);
 					this.numericUpDown2.ForeColor = Color.Black;
 					this.energyCalibration.Coefficients[1] = result;
+					if (!energyCalibration.CheckCalibration())
+					{
+						MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
+						throw new Exception();
+					}
 					this.UpdateEnergyCalibration();
 				} catch
                 {
@@ -321,6 +331,11 @@ namespace BecquerelMonitor
 					double result = fromStringtoDouble(this.numericUpDown3.Text);
 					this.numericUpDown3.ForeColor = Color.Black;
 					this.energyCalibration.Coefficients[0] = result;
+					if (!energyCalibration.CheckCalibration())
+					{
+						MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
+						throw new Exception();
+					}
 					this.UpdateEnergyCalibration();
 				}
                 catch
@@ -341,6 +356,11 @@ namespace BecquerelMonitor
 					double result = fromStringtoDouble(this.numericUpDown4.Text);
 					this.numericUpDown4.ForeColor = Color.Black;
 					this.energyCalibration.Coefficients[4] = result;
+					if (!energyCalibration.CheckCalibration())
+					{
+						MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
+						throw new Exception();
+					}
 					this.UpdateEnergyCalibration();
 				}
                 catch
@@ -361,6 +381,11 @@ namespace BecquerelMonitor
 					double result = fromStringtoDouble(this.numericUpDown5.Text);
 					this.numericUpDown5.ForeColor = Color.Black;
 					this.energyCalibration.Coefficients[3] = result;
+					if (!energyCalibration.CheckCalibration())
+					{
+						MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
+						throw new Exception();
+					}
 					this.UpdateEnergyCalibration();
 				}
 				catch
