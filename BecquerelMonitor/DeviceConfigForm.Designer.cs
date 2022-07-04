@@ -30,6 +30,8 @@
 			this.button4 = new global::System.Windows.Forms.Button();
 			this.button5 = new global::System.Windows.Forms.Button();
 			this.button6 = new global::System.Windows.Forms.Button();
+			this.button13 = new global::System.Windows.Forms.Button();
+			this.button14 = new global::System.Windows.Forms.Button();
 			this.label18 = new global::System.Windows.Forms.Label();
 			this.tabControl1 = new global::System.Windows.Forms.TabControl();
 			this.tabPage1 = new global::System.Windows.Forms.TabPage();
@@ -390,6 +392,9 @@
 			this.groupBox1.Controls.Add(this.numericUpDown1);
 			this.groupBox1.Controls.Add(this.numericUpDown2);
 			this.groupBox1.Controls.Add(this.numericUpDown7);
+			//TODO: Add VCP visibility.
+			this.groupBox1.Controls.Add(this.button13);
+			this.groupBox1.Controls.Add(this.button14);
 			this.groupBox1.Name = "groupBox1";
 			this.groupBox1.TabStop = false;
 			componentResourceManager.ApplyResources(this.label43, "label43");
@@ -418,6 +423,16 @@
 			componentResourceManager.ApplyResources(this.numericUpDown7, "numericUpDown7");
 			this.numericUpDown7.Name = "numericUpDown7";
 			this.numericUpDown7.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.numericUpDown7_KeyDown);
+
+			this.button13.Name = "button13";
+			this.button13.UseVisualStyleBackColor = true;
+			this.button13.Click += new global::System.EventHandler(this.button13_Click);
+			componentResourceManager.ApplyResources(this.button13, "button13");
+			this.button14.Name = "button14";
+			this.button14.UseVisualStyleBackColor = true;
+			this.button14.Click += new global::System.EventHandler(this.button14_Click);
+			componentResourceManager.ApplyResources(this.button14, "button14");
+
 			componentResourceManager.ApplyResources(this.label8, "label8");
 			this.label8.Name = "label8";
 			componentResourceManager.ApplyResources(this.textBox15, "textBox15");
@@ -676,6 +691,10 @@
 
 		// Token: 0x04000268 RID: 616
 		global::System.Windows.Forms.Button button6;
+
+		global::System.Windows.Forms.Button button13;
+
+		global::System.Windows.Forms.Button button14;
 
 		// Token: 0x04000269 RID: 617
 		global::XPTable.Models.TextColumn textColumn2;

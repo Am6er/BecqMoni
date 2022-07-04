@@ -276,6 +276,20 @@ namespace BecquerelMonitor
 					});
 					this.tabControl1.TabPages[1].Controls.Clear();
 					this.tabControl1.TabPages[1].Controls.Add(this.inputDeviceForm);
+					if (this.activeDeviceConfig.DeviceType == "AtomSpectraVCP")
+                    {
+						this.button13.Enabled = true;
+						this.button13.Visible = true;
+						this.button14.Enabled = true;
+						this.button14.Visible = true;
+					} else
+                    {
+						this.button13.Enabled = false;
+						this.button13.Visible = false;
+						this.button14.Enabled = false;
+						this.button14.Visible = false;
+					}
+						
 					this.inputDeviceForm.Initialize();
 					this.comboBox4.SelectedItem = type;
 					this.selectedDeviceIndex = this.comboBox4.SelectedIndex;
@@ -350,11 +364,18 @@ namespace BecquerelMonitor
 			if (polynomialEnergyCalibration.PolynomialOrder >= 3)
             {
 				this.numericUpDown9.Text = polynomialEnergyCalibration.Coefficients[3].ToString();
-            }
+            } else
+            {
+				this.numericUpDown9.Text = "";
+			}
 			if (polynomialEnergyCalibration.PolynomialOrder == 4)
             {
 				this.numericUpDown8.Text = polynomialEnergyCalibration.Coefficients[4].ToString();
-            }
+            } else
+            {
+				this.numericUpDown8.Text = "";
+
+			}
 			this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString();
 			this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString();
 			this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString();
@@ -643,6 +664,121 @@ namespace BecquerelMonitor
 					this.numericUpDown2.ForeColor = Color.Red;
 				}
 				e.SuppressKeyPress = true;
+			}
+		}
+
+		void button13_Click(object sender, EventArgs e)
+        {
+			if (this.activeDeviceConfig.DeviceType == "AtomSpectraVCP")
+            {
+				try
+                {
+					AtomSpectraDeviceConfig deviceconfig = (AtomSpectraDeviceConfig)this.activeDeviceConfig.InputDeviceConfig;
+					AtomSpectraVCPIn device = new AtomSpectraVCPIn(this.activeDeviceConfig.Guid);
+					device.setPort(deviceconfig.ComPortName);
+					device.sendCommand("-cal");
+					String result = device.getCommandOutput(2000);
+					string[] separator = new string[] { "\r\n" };
+					string[] result_arr = result.Split(separator, StringSplitOptions.None);
+					string[] CalibrationCoefficients = new string[5];
+					if (result != null)
+					{
+						CalibrationCoefficients[0] = result_arr[1] + result_arr[0];
+						CalibrationCoefficients[1] = result_arr[3] + result_arr[2];
+						CalibrationCoefficients[2] = result_arr[5] + result_arr[4];
+						CalibrationCoefficients[3] = result_arr[7] + result_arr[6];
+						CalibrationCoefficients[4] = result_arr[9] + result_arr[8];
+
+						PolynomialEnergyCalibration polynomialEnergyCalibration = (PolynomialEnergyCalibration)this.activeDeviceConfig.EnergyCalibration;
+						List<double> coeff_list = new List<double>();
+						for (int i = 0; i < CalibrationCoefficients.Length; i++)
+						{
+							if (CalibrationCoefficients[i] != "FFFFFFFFFFFFFFFF")
+							{
+								byte[] floatVals = BitConverter.GetBytes(ulong.Parse(CalibrationCoefficients[i], System.Globalization.NumberStyles.AllowHexSpecifier));
+								coeff_list.Add(BitConverter.ToDouble(floatVals, 0));
+							}
+						}
+						polynomialEnergyCalibration.PolynomialOrder = coeff_list.Count;
+						polynomialEnergyCalibration.Coefficients = coeff_list.ToArray();
+						if (polynomialEnergyCalibration.PolynomialOrder >= 2)
+						{
+							this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString();
+							this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString();
+							this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString();
+						}
+						if (polynomialEnergyCalibration.PolynomialOrder >= 3)
+						{
+							this.numericUpDown9.Text = polynomialEnergyCalibration.Coefficients[3].ToString();
+						}
+						if (polynomialEnergyCalibration.PolynomialOrder == 4)
+						{
+							this.numericUpDown8.Text = polynomialEnergyCalibration.Coefficients[4].ToString();
+						}
+
+					}
+					else
+					{
+						MessageBox.Show("Couldn't read device data from Port: " + deviceconfig.ComPortName);
+					}
+					device.Dispose();
+				}
+                catch
+                {
+					MessageBox.Show("Couldn't read device data from Port! ");
+				}
+			}
+        }
+
+		void button14_Click(object sender, EventArgs e)
+		{
+			if (this.activeDeviceConfig.DeviceType == "AtomSpectraVCP")
+			{
+				if (this.button6.Enabled)
+                {
+					MessageBox.Show("Save configuration before writing config to Atom Pro device.");
+					return;
+                }
+				try
+                {
+					Cursor.Current = Cursors.WaitCursor;
+					PolynomialEnergyCalibration polynomialEnergyCalibration = (PolynomialEnergyCalibration)this.activeDeviceConfig.EnergyCalibration;
+					List<string> result_list = new List<string>();
+					for (int i = 0; i < polynomialEnergyCalibration.Coefficients.Length; i++)
+					{
+						string result_str = BitConverter.DoubleToInt64Bits(polynomialEnergyCalibration.Coefficients[i]).ToString("X");
+						result_list.Add(result_str.Substring(result_str.Length / 2));
+						result_list.Add(result_str.Substring(0, result_str.Length / 2));
+					}
+
+					bool commands_accepted = true;
+					System.Diagnostics.Trace.WriteLine("commands_accepted = " + commands_accepted);
+					AtomSpectraDeviceConfig deviceconfig = (AtomSpectraDeviceConfig)this.activeDeviceConfig.InputDeviceConfig;
+					AtomSpectraVCPIn device = new AtomSpectraVCPIn(this.activeDeviceConfig.Guid);
+					device.setPort(deviceconfig.ComPortName);
+					System.Threading.Thread.Sleep(600);
+					for (int i = 0; i < result_list.Count; i++)
+					{
+						device.sendCommand("-cal " + i + " " + result_list[i]);
+						bool result = device.waitForAnswer("ok", 1000);
+						commands_accepted &= result;
+						System.Diagnostics.Trace.WriteLine("result = " + result);
+					}
+					device.Dispose();
+					Cursor.Current = Cursors.Default;
+					if (commands_accepted)
+					{
+						MessageBox.Show("Coefficients uploaded to Atom Spectra Pro successfully.");
+					}
+					else
+					{
+						MessageBox.Show("Error! Some coefficients uploaded with error! Check connection and reupload it again.");
+					}
+				}
+				catch (Exception ex)
+                {
+					MessageBox.Show("Error! Some coefficients uploaded with error! Check connection and reupload it again." + ex.Message);
+				}
 			}
 		}
 

@@ -73,6 +73,7 @@ namespace BecquerelMonitor
             // 
             // AtomSpectraVCPDeviceForm
             // 
+            comPortsBox.SelectedIndexChanged += ComPortsBox_SelectedIndexChanged;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.CommandLineOut);
