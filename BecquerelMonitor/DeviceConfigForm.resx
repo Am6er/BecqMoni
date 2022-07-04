@@ -360,9 +360,6 @@
   <data name="$this.Text" xml:space="preserve">
     <value>Edit Device Configuration</value>
   </data>
-  <data name="numericUpDown2.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
-  </data>
   <data name="textBox19.Multiline" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
@@ -484,7 +481,7 @@
     <value>0</value>
   </data>
   <data name="label7.Location" type="System.Drawing.Point, System.Drawing">
-    <value>11, 44</value>
+    <value>228, 44</value>
   </data>
   <data name="&gt;&gt;label36.Parent" xml:space="preserve">
     <value>panel1</value>
@@ -652,7 +649,7 @@
     <value>groupBox3</value>
   </data>
   <data name="label3.Text" xml:space="preserve">
-    <value>2nd Coeff.(a)</value>
+    <value>2nd Coeff.(c)</value>
   </data>
   <data name="label3.Size" type="System.Drawing.Size, System.Drawing">
     <value>71, 12</value>
@@ -673,13 +670,13 @@
     <value>tabPage1</value>
   </data>
   <data name="numericUpDown7.Location" type="System.Drawing.Point, System.Drawing">
-    <value>89, 71</value>
+    <value>300, 71</value>
   </data>
   <data name="textBox15.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Left, Right</value>
   </data>
   <data name="numericUpDown1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>81, 19</value>
+    <value>140, 19</value>
   </data>
   <data name="numericUpDown4.TabIndex" type="System.Int32, mscorlib">
     <value>7</value>
@@ -748,7 +745,7 @@
     <value>69, 12</value>
   </data>
   <data name="label7.Text" xml:space="preserve">
-    <value>1st Coeff.(b)</value>
+    <value>1st Coeff.(d)</value>
   </data>
   <data name="integerTextBox1.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
     <value>Right</value>
@@ -814,10 +811,10 @@
     <value>448, 16</value>
   </data>
   <data name="textBox15.Text" xml:space="preserve">
-    <value>Energy[keV] = ax^2 + bx + c  (x = Channel Number)</value>
+    <value>Energy[keV] = ax^4 + bx^3 + cx^2 + dx + e (x = Channel Number)</value>
   </data>
   <data name="numericUpDown2.Size" type="System.Drawing.Size, System.Drawing">
-    <value>81, 19</value>
+    <value>140, 19</value>
   </data>
   <data name="&gt;&gt;textBox18.ZOrder" xml:space="preserve">
     <value>13</value>
@@ -832,7 +829,7 @@
     <value>Peak Detection</value>
   </data>
   <data name="numericUpDown7.Size" type="System.Drawing.Size, System.Drawing">
-    <value>81, 19</value>
+    <value>140, 19</value>
   </data>
   <data name="tabControl1.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Bottom, Right</value>
@@ -868,7 +865,7 @@
     <value>numericUpDown1</value>
   </data>
   <data name="&gt;&gt;numericUpDown1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="tabPage5.TabIndex" type="System.Int32, mscorlib">
     <value>4</value>
@@ -891,6 +888,108 @@
   <data name="label8.Size" type="System.Drawing.Size, System.Drawing">
     <value>422, 12</value>
   </data>
+  <data name="label43.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="label43.Location" type="System.Drawing.Point, System.Drawing">
+    <value>5, 15</value>
+  </data>
+  <data name="&gt;&gt;label43.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label43.Name" xml:space="preserve">
+    <value>label43</value>
+  </data>
+  <data name="label43.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="&gt;&gt;label43.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="label43.TabIndex" type="System.Int32, mscorlib">
+    <value>20</value>
+  </data>
+  <data name="&gt;&gt;label43.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="label43.Text" xml:space="preserve">
+    <value>4th Coeff.(a)</value>
+  </data>
+  <data name="label43.Size" type="System.Drawing.Size, System.Drawing">
+    <value>71, 12</value>
+  </data>
+  <data name="label44.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="label44.Location" type="System.Drawing.Point, System.Drawing">
+    <value>5, 44</value>
+  </data>
+  <data name="&gt;&gt;label44.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label44.Name" xml:space="preserve">
+    <value>label44</value>
+  </data>
+  <data name="label44.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="&gt;&gt;label44.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="label44.TabIndex" type="System.Int32, mscorlib">
+    <value>20</value>
+  </data>
+  <data name="&gt;&gt;label44.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="label44.Text" xml:space="preserve">
+    <value>3rd Coeff.(b)</value>
+  </data>
+  <data name="label44.Size" type="System.Drawing.Size, System.Drawing">
+    <value>71, 12</value>
+  </data>
+  <data name="numericUpDown8.Size" type="System.Drawing.Size, System.Drawing">
+    <value>140, 19</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown8.Name" xml:space="preserve">
+    <value>numericUpDown8</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown8.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="numericUpDown8.TabIndex" type="System.Int32, mscorlib">
+    <value>12</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown8.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown8.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <data name="numericUpDown8.Location" type="System.Drawing.Point, System.Drawing">
+    <value>75, 13</value>
+  </data>
+  <data name="numericUpDown9.Size" type="System.Drawing.Size, System.Drawing">
+    <value>140, 19</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown9.Name" xml:space="preserve">
+    <value>numericUpDown9</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown9.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="numericUpDown9.TabIndex" type="System.Int32, mscorlib">
+    <value>12</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown9.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown9.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <data name="numericUpDown9.Location" type="System.Drawing.Point, System.Drawing">
+    <value>75, 42</value>
+  </data>
   <data name="label11.Location" type="System.Drawing.Point, System.Drawing">
     <value>197, 35</value>
   </data>
@@ -908,9 +1007,6 @@
   </data>
   <data name="groupBox1.Size" type="System.Drawing.Size, System.Drawing">
     <value>450, 100</value>
-  </data>
-  <data name="numericUpDown1.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
   </data>
   <data name="label9.Text" xml:space="preserve">
     <value>Multipoint Calibration</value>
@@ -949,7 +1045,7 @@
     <value>15</value>
   </data>
   <data name="numericUpDown2.Location" type="System.Drawing.Point, System.Drawing">
-    <value>89, 42</value>
+    <value>300, 42</value>
   </data>
   <data name="&gt;&gt;panel1.Parent" xml:space="preserve">
     <value>tabPage2</value>
@@ -991,13 +1087,13 @@
     <value>numericUpDown2</value>
   </data>
   <data name="&gt;&gt;numericUpDown2.Type" xml:space="preserve">
-    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;numericUpDown7.Name" xml:space="preserve">
     <value>numericUpDown7</value>
   </data>
   <data name="&gt;&gt;numericUpDown7.Type" xml:space="preserve">
-    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="button9.Location" type="System.Drawing.Point, System.Drawing">
     <value>251, 5</value>
@@ -1879,7 +1975,7 @@
     <value>NoControl</value>
   </data>
   <data name="label3.Location" type="System.Drawing.Point, System.Drawing">
-    <value>11, 15</value>
+    <value>228, 15</value>
   </data>
   <data name="tabPage2.TabIndex" type="System.Int32, mscorlib">
     <value>1</value>
@@ -2190,9 +2286,6 @@
   <data name="numberColumn4.ToolTipText" xml:space="preserve">
     <value />
   </data>
-  <data name="numericUpDown7.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
-  </data>
   <data name="textBox18.Location" type="System.Drawing.Point, System.Drawing">
     <value>110, 42</value>
   </data>
@@ -2311,7 +2404,7 @@
     <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="numericUpDown1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>89, 13</value>
+    <value>300, 13</value>
   </data>
   <data name="$this.AutoScaleDimensions" type="System.Drawing.SizeF, System.Drawing">
     <value>6, 12</value>
@@ -2395,7 +2488,7 @@
     <value>NoControl</value>
   </data>
   <data name="label6.Location" type="System.Drawing.Point, System.Drawing">
-    <value>11, 73</value>
+    <value>228, 73</value>
   </data>
   <data name="doubleTextBox3.TabIndex" type="System.Int32, mscorlib">
     <value>26</value>

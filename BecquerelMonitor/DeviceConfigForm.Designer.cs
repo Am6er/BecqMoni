@@ -78,9 +78,13 @@
 			this.label3 = new global::System.Windows.Forms.Label();
 			this.label6 = new global::System.Windows.Forms.Label();
 			this.label7 = new global::System.Windows.Forms.Label();
-			this.numericUpDown1 = new global::System.Windows.Forms.NumericUpDown();
-			this.numericUpDown2 = new global::System.Windows.Forms.NumericUpDown();
-			this.numericUpDown7 = new global::System.Windows.Forms.NumericUpDown();
+			this.label43 = new global::System.Windows.Forms.Label();
+			this.label44 = new global::System.Windows.Forms.Label();
+			this.numericUpDown1 = new global::System.Windows.Forms.TextBox();
+			this.numericUpDown2 = new global::System.Windows.Forms.TextBox();
+			this.numericUpDown7 = new global::System.Windows.Forms.TextBox();
+			this.numericUpDown8 = new global::System.Windows.Forms.TextBox();
+			this.numericUpDown9 = new global::System.Windows.Forms.TextBox();
 			this.label8 = new global::System.Windows.Forms.Label();
 			this.textBox15 = new global::System.Windows.Forms.TextBox();
 			this.tabPage5 = new global::System.Windows.Forms.TabPage();
@@ -124,9 +128,6 @@
 			this.panel1.SuspendLayout();
 			((global::System.ComponentModel.ISupportInitialize)this.table2).BeginInit();
 			this.groupBox1.SuspendLayout();
-			((global::System.ComponentModel.ISupportInitialize)this.numericUpDown1).BeginInit();
-			((global::System.ComponentModel.ISupportInitialize)this.numericUpDown2).BeginInit();
-			((global::System.ComponentModel.ISupportInitialize)this.numericUpDown7).BeginInit();
 			this.tabPage5.SuspendLayout();
 			this.groupBox3.SuspendLayout();
 			this.groupBox2.SuspendLayout();
@@ -379,93 +380,44 @@
 			componentResourceManager.ApplyResources(this.label36, "label36");
 			this.label36.Name = "label36";
 			componentResourceManager.ApplyResources(this.groupBox1, "groupBox1");
+			this.groupBox1.Controls.Add(this.label43);
+			this.groupBox1.Controls.Add(this.label44);
 			this.groupBox1.Controls.Add(this.label3);
 			this.groupBox1.Controls.Add(this.label6);
 			this.groupBox1.Controls.Add(this.label7);
+			this.groupBox1.Controls.Add(this.numericUpDown8);
+			this.groupBox1.Controls.Add(this.numericUpDown9);
 			this.groupBox1.Controls.Add(this.numericUpDown1);
 			this.groupBox1.Controls.Add(this.numericUpDown2);
 			this.groupBox1.Controls.Add(this.numericUpDown7);
 			this.groupBox1.Name = "groupBox1";
 			this.groupBox1.TabStop = false;
+			componentResourceManager.ApplyResources(this.label43, "label43");
+			this.label3.Name = "label43";
+			componentResourceManager.ApplyResources(this.label44, "label44");
+			this.label3.Name = "label44";
 			componentResourceManager.ApplyResources(this.label3, "label3");
 			this.label3.Name = "label3";
 			componentResourceManager.ApplyResources(this.label6, "label6");
 			this.label6.Name = "label6";
 			componentResourceManager.ApplyResources(this.label7, "label7");
 			this.label7.Name = "label7";
+
+			componentResourceManager.ApplyResources(this.numericUpDown8, "numericUpDown8");
+			this.numericUpDown8.Name = "numericUpDown8";
+			this.numericUpDown8.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.numericUpDown8_KeyDown);
+			componentResourceManager.ApplyResources(this.numericUpDown9, "numericUpDown9");
+			this.numericUpDown9.Name = "numericUpDown9";
+			this.numericUpDown9.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.numericUpDown9_KeyDown);
 			componentResourceManager.ApplyResources(this.numericUpDown1, "numericUpDown1");
-			this.numericUpDown1.DecimalPlaces = 7;
-			this.numericUpDown1.Increment = new decimal(new int[]
-			{
-				1,
-				0,
-				0,
-				262144
-			});
-			global::System.Windows.Forms.NumericUpDown numericUpDown = this.numericUpDown1;
-			int[] array4 = new int[4];
-			array4[0] = 10;
-			numericUpDown.Maximum = new decimal(array4);
-			this.numericUpDown1.Minimum = new decimal(new int[]
-			{
-				10,
-				0,
-				0,
-				int.MinValue
-			});
 			this.numericUpDown1.Name = "numericUpDown1";
-			this.numericUpDown1.ValueChanged += new global::System.EventHandler(this.numericUpDown1_ValueChanged);
+			this.numericUpDown1.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.numericUpDown1_KeyDown);
 			componentResourceManager.ApplyResources(this.numericUpDown2, "numericUpDown2");
-			this.numericUpDown2.DecimalPlaces = 4;
-			this.numericUpDown2.Increment = new decimal(new int[]
-			{
-				1,
-				0,
-				0,
-				131072
-			});
-			global::System.Windows.Forms.NumericUpDown numericUpDown2 = this.numericUpDown2;
-			int[] array5 = new int[4];
-			array5[0] = 1000;
-			numericUpDown2.Maximum = new decimal(array5);
-			this.numericUpDown2.Minimum = new decimal(new int[]
-			{
-				1,
-				0,
-				0,
-				131072
-			});
 			this.numericUpDown2.Name = "numericUpDown2";
-			this.numericUpDown2.Value = new decimal(new int[]
-			{
-				1,
-				0,
-				0,
-				131072
-			});
-			this.numericUpDown2.ValueChanged += new global::System.EventHandler(this.numericUpDown2_ValueChanged);
+			this.numericUpDown2.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.numericUpDown2_KeyDown);
 			componentResourceManager.ApplyResources(this.numericUpDown7, "numericUpDown7");
-			this.numericUpDown7.DecimalPlaces = 4;
-			this.numericUpDown7.Increment = new decimal(new int[]
-			{
-				1,
-				0,
-				0,
-				131072
-			});
-			global::System.Windows.Forms.NumericUpDown numericUpDown3 = this.numericUpDown7;
-			int[] array6 = new int[4];
-			array6[0] = 10000;
-			numericUpDown3.Maximum = new decimal(array6);
-			this.numericUpDown7.Minimum = new decimal(new int[]
-			{
-				10000,
-				0,
-				0,
-				int.MinValue
-			});
 			this.numericUpDown7.Name = "numericUpDown7";
-			this.numericUpDown7.ValueChanged += new global::System.EventHandler(this.numericUpDown7_ValueChanged);
+			this.numericUpDown7.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.numericUpDown7_KeyDown);
 			componentResourceManager.ApplyResources(this.label8, "label8");
 			this.label8.Name = "label8";
 			componentResourceManager.ApplyResources(this.textBox15, "textBox15");
@@ -673,9 +625,6 @@
 			((global::System.ComponentModel.ISupportInitialize)this.table2).EndInit();
 			this.groupBox1.ResumeLayout(false);
 			this.groupBox1.PerformLayout();
-			((global::System.ComponentModel.ISupportInitialize)this.numericUpDown1).EndInit();
-			((global::System.ComponentModel.ISupportInitialize)this.numericUpDown2).EndInit();
-			((global::System.ComponentModel.ISupportInitialize)this.numericUpDown7).EndInit();
 			this.tabPage5.ResumeLayout(false);
 			this.groupBox3.ResumeLayout(false);
 			this.groupBox3.PerformLayout();
@@ -876,16 +825,24 @@
 		global::System.Windows.Forms.Label label7;
 
 		// Token: 0x0400029A RID: 666
-		global::System.Windows.Forms.NumericUpDown numericUpDown1;
+		global::System.Windows.Forms.TextBox numericUpDown1;
 
 		// Token: 0x0400029B RID: 667
-		global::System.Windows.Forms.NumericUpDown numericUpDown2;
+		global::System.Windows.Forms.TextBox numericUpDown2;
 
 		// Token: 0x0400029C RID: 668
-		global::System.Windows.Forms.NumericUpDown numericUpDown7;
+		global::System.Windows.Forms.TextBox numericUpDown7;
+
+		global::System.Windows.Forms.TextBox numericUpDown8;
+
+		global::System.Windows.Forms.TextBox numericUpDown9;
 
 		// Token: 0x0400029D RID: 669
 		global::System.Windows.Forms.Label label8;
+
+		global::System.Windows.Forms.Label label43;
+
+		global::System.Windows.Forms.Label label44;
 
 		// Token: 0x0400029E RID: 670
 		global::System.Windows.Forms.TextBox textBox15;

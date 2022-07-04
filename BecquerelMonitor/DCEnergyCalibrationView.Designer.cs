@@ -107,27 +107,22 @@
 			int[] array = new int[4];
 			array[0] = 10000;
 			this.numericUpDown3.Name = "numericUpDown3";
-			this.numericUpDown3.TextChanged += new global::System.EventHandler(this.numericUpDown3_ValueChanged);
 			this.numericUpDown3.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.numericUpDown3_KeyDown);
 			componentResourceManager.ApplyResources(this.numericUpDown2, "numericUpDown2");
 			global::System.Windows.Forms.TextBox numericUpDown2 = this.numericUpDown2;
 			this.numericUpDown2.Name = "numericUpDown2";
-			this.numericUpDown2.TextChanged += new global::System.EventHandler(this.numericUpDown2_ValueChanged);
 			this.numericUpDown2.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.numericUpDown2_KeyDown);
 			componentResourceManager.ApplyResources(this.numericUpDown1, "numericUpDown1");
 			global::System.Windows.Forms.TextBox numericUpDown1 = this.numericUpDown1;
 			this.numericUpDown1.Name = "numericUpDown1";
-			this.numericUpDown1.TextChanged += new global::System.EventHandler(this.numericUpDown1_ValueChanged);
 			this.numericUpDown1.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.numericUpDown1_KeyDown);
 			componentResourceManager.ApplyResources(this.numericUpDown4, "numericUpDown4");
 			global::System.Windows.Forms.TextBox numericUpDown4 = this.numericUpDown4;
 			this.numericUpDown4.Name = "numericUpDown4";
-			this.numericUpDown4.TextChanged += new global::System.EventHandler(this.numericUpDown4_ValueChanged);
 			this.numericUpDown4.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.numericUpDown4_KeyDown);
 			componentResourceManager.ApplyResources(this.numericUpDown5, "numericUpDown5");
 			global::System.Windows.Forms.TextBox numericUpDown5 = this.numericUpDown5;
 			this.numericUpDown5.Name = "numericUpDown5";
-			this.numericUpDown5.TextChanged += new global::System.EventHandler(this.numericUpDown5_ValueChanged);
 			this.numericUpDown5.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.numericUpDown5_KeyDown);
 
 

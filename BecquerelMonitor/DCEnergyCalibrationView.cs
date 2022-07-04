@@ -76,64 +76,6 @@ namespace BecquerelMonitor
 			this.UpdateMultipointButtonState();
 		}
 
-		// Token: 0x06000817 RID: 2071 RVA: 0x0002DF6C File Offset: 0x0002C16C
-		void numericUpDown1_ValueChanged(object sender, EventArgs e)
-		{
-			/*if (this.formLoading ) // || this.calibrationDone == false)
-			{
-				return;
-			}*/
-
-		}
-
-		void numericUpDown4_ValueChanged(object sender, EventArgs e)
-		{
-			/*if (this.formLoading ) // || this.calibrationDone == false)
-			{
-				return;
-			}*/
-		}
-
-		void numericUpDown5_ValueChanged(object sender, EventArgs e)
-		{
-			/*if (this.formLoading ) // || this.calibrationDone == false)
-			{
-				return;
-			}*/
-
-		}
-
-		// Token: 0x06000818 RID: 2072 RVA: 0x0002DFA0 File Offset: 0x0002C1A0
-		void numericUpDown2_ValueChanged(object sender, EventArgs e)
-		{
-			/*if (this.formLoading) // || this.calibrationDone == false)
-			{
-				return;
-			}*/
-
-		}
-
-		// Token: 0x06000819 RID: 2073 RVA: 0x0002DFD4 File Offset: 0x0002C1D4
-		void numericUpDown3_ValueChanged(object sender, EventArgs e)
-		{
-			/*if (this.formLoading) // || this.calibrationDone == false)
-			{
-				return;
-			}
-			double result = 0;
-			if (fromStringtoDouble(this.numericUpDown3.Text, result))
-			{
-				this.numericUpDown3.ForeColor = Color.Black;
-				this.energyCalibration.Coefficients[0] = result;
-				this.UpdateEnergyCalibration();
-
-			}
-			else
-			{
-				this.numericUpDown3.ForeColor = Color.Red;
-			}*/
-		}
-
 		void button12_Click(object sender, EventArgs e)
 		{
 			this.energyCalibration.Coefficients[3] = this.defaultEnergyCalibration.Coefficients[3];
