@@ -699,7 +699,13 @@ namespace BecquerelMonitor
 								coeff_list.Add(BitConverter.ToDouble(floatVals, 0));
 							}
 						}
-						polynomialEnergyCalibration.PolynomialOrder = coeff_list.Count;
+						if (coeff_list.Count == 0)
+                        {
+							MessageBox.Show("This device doesn't contain calibration coefficients. Write them first.");
+							device.Dispose();
+							return;
+						}
+						polynomialEnergyCalibration.PolynomialOrder = coeff_list.Count - 1;
 						polynomialEnergyCalibration.Coefficients = coeff_list.ToArray();
 						if (polynomialEnergyCalibration.PolynomialOrder >= 2)
 						{
@@ -724,17 +730,17 @@ namespace BecquerelMonitor
 							this.numericUpDown8.Text = "";
 
 						}
-
 					}
 					else
 					{
 						MessageBox.Show("Couldn't read device data from Port: " + deviceconfig.ComPortName);
 					}
 					device.Dispose();
+					SetActiveDeviceConfigDirty();
 				}
                 catch
                 {
-					MessageBox.Show("Couldn't read device data from Port! ");
+					MessageBox.Show("Couldn't read device data from Port!");
 				}
 			}
         }
@@ -765,22 +771,25 @@ namespace BecquerelMonitor
 					AtomSpectraDeviceConfig deviceconfig = (AtomSpectraDeviceConfig)this.activeDeviceConfig.InputDeviceConfig;
 					AtomSpectraVCPIn device = new AtomSpectraVCPIn(this.activeDeviceConfig.Guid);
 					device.setPort(deviceconfig.ComPortName);
-					System.Threading.Thread.Sleep(600);
+					System.Threading.Thread.Sleep(2000);
+					string status_msg = "";
 					for (int i = 0; i < result_list.Count; i++)
 					{
 						device.sendCommand("-cal " + i + " " + result_list[i]);
-						bool result = device.waitForAnswer("ok", 1000);
+						bool result = device.waitForAnswer("ok", 2000);
 						commands_accepted &= result;
 						System.Diagnostics.Trace.WriteLine("result = " + result);
+						status_msg = status_msg + "-cal " + i + " " + result_list[i] + " -- result: " + result + Environment.NewLine;
 					}
 					if (result_list.Count < 9)
                     {
 						for (int i = result_list.Count; i <= 9; i++)
                         {
 							device.sendCommand("-cal " + i + "FFFFFFFF");
-							bool result = device.waitForAnswer("ok", 1000);
+							bool result = device.waitForAnswer("ok", 2000);
 							commands_accepted &= result;
 							System.Diagnostics.Trace.WriteLine("result = " + result);
+							status_msg = status_msg + "-cal " + i + "FFFFFFFF" + " -- result: " + result + Environment.NewLine;
 						}
                     }
 					device.Dispose();
@@ -791,7 +800,7 @@ namespace BecquerelMonitor
 					}
 					else
 					{
-						MessageBox.Show("Error! Some coefficients uploaded with error! Check connection and reupload it again.");
+						MessageBox.Show("Error! Some coefficients uploaded with error! Check connection and reupload it again." + Environment.NewLine + status_msg); ;
 					}
 				}
 				catch (Exception ex)

@@ -45,6 +45,8 @@ namespace BecquerelMonitor
             // 
             // CommandLineIn
             // 
+            this.CommandLineIn.AutoCompleteMode = System.Windows.Forms.AutoCompleteMode.Suggest;
+            this.CommandLineIn.AutoCompleteSource = System.Windows.Forms.AutoCompleteSource.HistoryList;
             this.CommandLineIn.Location = new System.Drawing.Point(20, 145);
             this.CommandLineIn.Name = "CommandLineIn";
             this.CommandLineIn.Size = new System.Drawing.Size(428, 20);
@@ -73,7 +75,6 @@ namespace BecquerelMonitor
             // 
             // AtomSpectraVCPDeviceForm
             // 
-            comPortsBox.SelectedIndexChanged += ComPortsBox_SelectedIndexChanged;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.CommandLineOut);
@@ -81,6 +82,7 @@ namespace BecquerelMonitor
             this.Controls.Add(this.label1);
             this.Controls.Add(this.comPortsBox);
             this.Name = "AtomSpectraVCPDeviceForm";
+            comPortsBox.SelectedIndexChanged += ComPortsBox_SelectedIndexChanged;
             this.Controls.SetChildIndex(this.comPortsBox, 0);
             this.Controls.SetChildIndex(this.label1, 0);
             this.Controls.SetChildIndex(this.CommandLineIn, 0);
