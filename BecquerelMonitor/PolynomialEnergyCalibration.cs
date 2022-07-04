@@ -74,8 +74,7 @@ namespace BecquerelMonitor
 
 		public bool CheckCalibration()
         {
-			BecquerelMonitor.MainForm mf = (MainForm)MainForm.ActiveForm;
-			double MaximumChannel = mf.ActiveDocument.EnergySpectrumView.getNumberOfChannels();
+			double MaximumChannel = 10000;
 			for (int i = 1; i <= MaximumChannel; i++)
             {
 				if (this.ChannelToEnergy(i-1) > this.ChannelToEnergy(i))
