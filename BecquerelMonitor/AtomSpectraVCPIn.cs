@@ -173,6 +173,16 @@ namespace BecquerelMonitor
             return answer.Equals(str);   
         }
 
+        public String getCommandOutput(int timeout_ms)
+        {
+            long ms = timeNowMs() + timeout_ms;
+            string str = null;
+            while (!received_lines.TryDequeue(out str) && (timeNowMs() < ms)) ;
+            if (str == null) return "";
+            int index = str.IndexOf('\r');
+            return str;
+        }
+
         private long timeNowMs()
         {
             return DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;

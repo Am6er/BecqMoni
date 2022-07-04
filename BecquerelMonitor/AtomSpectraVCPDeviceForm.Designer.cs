@@ -14,6 +14,8 @@ namespace BecquerelMonitor
 
         // Token: 0x0400096A RID: 2410
         IContainer components;
-
+        private TextBox CommandLineIn;
+        private TextBox CommandLineOut;
+        private Label label2;
     }
 }

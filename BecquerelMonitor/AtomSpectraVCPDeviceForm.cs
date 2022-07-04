@@ -21,6 +21,9 @@ namespace BecquerelMonitor
         {
             this.comPortsBox = new System.Windows.Forms.ComboBox();
             this.label1 = new System.Windows.Forms.Label();
+            this.CommandLineIn = new System.Windows.Forms.TextBox();
+            this.CommandLineOut = new System.Windows.Forms.TextBox();
+            this.label2 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // comPortsBox
@@ -40,18 +43,50 @@ namespace BecquerelMonitor
             this.label1.TabIndex = 99;
             this.label1.Text = "COM Port:";
             // 
+            // CommandLineIn
+            // 
+            this.CommandLineIn.Location = new System.Drawing.Point(20, 145);
+            this.CommandLineIn.Name = "CommandLineIn";
+            this.CommandLineIn.Size = new System.Drawing.Size(428, 20);
+            this.CommandLineIn.TabIndex = 100;
+            this.CommandLineIn.KeyDown += new System.Windows.Forms.KeyEventHandler(this.CommandLineIn_KeyDown);
+            // 
+            // CommandLineOut
+            // 
+            this.CommandLineOut.Location = new System.Drawing.Point(20, 171);
+            this.CommandLineOut.Multiline = true;
+            this.CommandLineOut.Name = "CommandLineOut";
+            this.CommandLineOut.ReadOnly = true;
+            this.CommandLineOut.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.CommandLineOut.Size = new System.Drawing.Size(428, 409);
+            this.CommandLineOut.TabIndex = 101;
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(17, 116);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(343, 26);
+            this.label2.TabIndex = 102;
+            this.label2.Text = "Type command and press Enter. Some commands ARE HAZARDOUS!\r\n You must completely " +
+    "sure, what you are doing.";
+            // 
             // AtomSpectraVCPDeviceForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.Controls.Add(this.label2);
+            this.Controls.Add(this.CommandLineOut);
+            this.Controls.Add(this.CommandLineIn);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.comPortsBox);
             this.Name = "AtomSpectraVCPDeviceForm";
             this.Controls.SetChildIndex(this.comPortsBox, 0);
             this.Controls.SetChildIndex(this.label1, 0);
+            this.Controls.SetChildIndex(this.CommandLineIn, 0);
+            this.Controls.SetChildIndex(this.CommandLineOut, 0);
+            this.Controls.SetChildIndex(this.label2, 0);
             this.ResumeLayout(false);
             this.PerformLayout();
-
-            comPortsBox.SelectedIndexChanged += ComPortsBox_SelectedIndexChanged;
 
         }
 
@@ -228,5 +263,26 @@ namespace BecquerelMonitor
 
         // Token: 0x04000998 RID: 2456
         AtomSpectraDeviceConfig tempConfig;
+
+        private void CommandLineIn_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Return)
+            {
+                try
+                {
+                    AtomSpectraVCPIn device = new AtomSpectraVCPIn("Test");
+                    device.setPort(comPortsBox.SelectedItem.ToString());
+                    device.sendCommand(this.CommandLineIn.Text);
+                    this.CommandLineOut.Text = device.getCommandOutput(2000);
+                    device.Dispose();
+                }
+                catch
+                {
+                    
+                }
+                this.CommandLineIn.Text = "";
+                e.SuppressKeyPress = true;
+            }
+        }
     }
 }
