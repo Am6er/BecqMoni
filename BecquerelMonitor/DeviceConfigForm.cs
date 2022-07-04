@@ -710,10 +710,19 @@ namespace BecquerelMonitor
 						if (polynomialEnergyCalibration.PolynomialOrder >= 3)
 						{
 							this.numericUpDown9.Text = polynomialEnergyCalibration.Coefficients[3].ToString();
+						} 
+						else
+                        {
+							this.numericUpDown9.Text = "";
 						}
 						if (polynomialEnergyCalibration.PolynomialOrder == 4)
 						{
 							this.numericUpDown8.Text = polynomialEnergyCalibration.Coefficients[4].ToString();
+						}
+						else
+                        {
+							this.numericUpDown8.Text = "";
+
 						}
 
 					}
@@ -764,6 +773,16 @@ namespace BecquerelMonitor
 						commands_accepted &= result;
 						System.Diagnostics.Trace.WriteLine("result = " + result);
 					}
+					if (result_list.Count < 9)
+                    {
+						for (int i = result_list.Count; i <= 9; i++)
+                        {
+							device.sendCommand("-cal " + i + "FFFFFFFF");
+							bool result = device.waitForAnswer("ok", 1000);
+							commands_accepted &= result;
+							System.Diagnostics.Trace.WriteLine("result = " + result);
+						}
+                    }
 					device.Dispose();
 					Cursor.Current = Cursors.Default;
 					if (commands_accepted)
