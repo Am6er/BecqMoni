@@ -17,6 +17,7 @@ namespace BecquerelMonitor
         private ComboBox comPortsBox;
         private Label label1;
         TextBox doubleTextBox1;
+        AutoCompleteStringCollection autoComplete = new AutoCompleteStringCollection();
 
         void InitializeComponent()
         {
@@ -46,8 +47,9 @@ namespace BecquerelMonitor
             // 
             // CommandLineIn
             // 
-            this.CommandLineIn.AutoCompleteMode = System.Windows.Forms.AutoCompleteMode.Suggest;
-            this.CommandLineIn.AutoCompleteSource = System.Windows.Forms.AutoCompleteSource.HistoryList;
+            this.CommandLineIn.AutoCompleteMode = System.Windows.Forms.AutoCompleteMode.SuggestAppend;
+            this.CommandLineIn.AutoCompleteSource = System.Windows.Forms.AutoCompleteSource.CustomSource;
+            this.CommandLineIn.AutoCompleteCustomSource = autoComplete;
             this.CommandLineIn.Location = new System.Drawing.Point(20, 145);
             this.CommandLineIn.Name = "CommandLineIn";
             this.CommandLineIn.Size = new System.Drawing.Size(428, 20);
@@ -274,6 +276,7 @@ namespace BecquerelMonitor
             {
                 try
                 {
+                    autoComplete.Add(this.CommandLineIn.Text);
                     List<AtomSpectraVCPIn> instances = AtomSpectraVCPIn.getAllInstances();
                     AtomSpectraVCPIn device;
                     bool runexist = false;
