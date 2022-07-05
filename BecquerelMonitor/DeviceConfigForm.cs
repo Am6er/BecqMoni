@@ -671,10 +671,10 @@ namespace BecquerelMonitor
         {
 			if (this.activeDeviceConfig.DeviceType == "AtomSpectraVCP")
             {
+				AtomSpectraDeviceConfig deviceconfig = (AtomSpectraDeviceConfig)this.activeDeviceConfig.InputDeviceConfig;
+				AtomSpectraVCPIn device = new AtomSpectraVCPIn(this.activeDeviceConfig.Guid);
 				try
                 {
-					AtomSpectraDeviceConfig deviceconfig = (AtomSpectraDeviceConfig)this.activeDeviceConfig.InputDeviceConfig;
-					AtomSpectraVCPIn device = new AtomSpectraVCPIn(this.activeDeviceConfig.Guid);
 					device.setPort(deviceconfig.ComPortName);
 					device.sendCommand("-cal");
 					String result = device.getCommandOutput(2000);
@@ -805,7 +805,7 @@ namespace BecquerelMonitor
 				}
 				catch (Exception ex)
                 {
-					MessageBox.Show("Error! Some coefficients uploaded with error! Check connection and reupload it again." + ex.Message);
+					MessageBox.Show("Error! Some coefficients uploaded with error! Check connection and reupload it again." + Environment.NewLine + ex.Message);
 				}
 			}
 		}
@@ -900,8 +900,8 @@ namespace BecquerelMonitor
 		// Token: 0x06000535 RID: 1333 RVA: 0x00021A04 File Offset: 0x0001FC04
 		void UpdateMultipointButtonState()
 		{
-			this.button1.Enabled = (this.calibrationPoints.Count > 0 && !this.channelPickupProcessing && this.multipointModified);
-			this.button8.Enabled = (this.calibrationPoints.Count < 3 && !this.channelPickupProcessing);
+			this.button1.Enabled = (this.calibrationPoints.Count > 0 && !this.channelPickupProcessing && this.multipointModified && this.calibrationPoints.Count != 4);
+			this.button8.Enabled = (this.calibrationPoints.Count < 5 && !this.channelPickupProcessing);
 			this.button9.Enabled = (this.calibrationPoints.Count > 0 && !this.channelPickupProcessing);
 			this.button11.Enabled = this.channelPickupProcessing;
 			if (this.calibrationDone)
@@ -909,7 +909,7 @@ namespace BecquerelMonitor
 				this.label36.Text = Resources.MSGCalibrationDone;
 				return;
 			}
-			if (this.channelPickupProcessing || this.calibrationPoints.Count < 3)
+			if (this.channelPickupProcessing || this.calibrationPoints.Count < 5)
 			{
 				this.label36.Text = Resources.MSGPickUpCalibrationPoint;
 				return;
@@ -1023,6 +1023,14 @@ namespace BecquerelMonitor
 					this.multipointModified = true;
 					this.UpdateMultipointButtonState();
 				}
+				else if (e.Column == 4)
+				{
+					string text2 = ((NumberCellEditor)e.Editor).TextBox.Text;
+					this.calibrationPoints[row.Index].Energy = decimal.Parse(text2);
+					this.multipointModified = true;
+					this.calibrationDone = false;
+					this.UpdateMultipointButtonState();
+				}
 			}
 			catch (Exception)
 			{
@@ -1098,6 +1106,57 @@ namespace BecquerelMonitor
 					polynomialEnergyCalibration.Coefficients[0] = matrix3[2];
 					goto IL_390;
 				}
+
+				if (this.calibrationPoints.Count == 5)
+				{
+					int ch1 = this.calibrationPoints[0].Channel;
+					int ch2 = this.calibrationPoints[1].Channel;
+					int ch3 = this.calibrationPoints[2].Channel;
+					int ch4 = this.calibrationPoints[3].Channel;
+					int ch5 = this.calibrationPoints[4].Channel;
+
+					Matrix<double> matrix = Matrix<double>.Build.DenseOfArray(new double[,] {
+						{ (double)Math.Pow(ch1,4), (double)Math.Pow(ch1,3), (double)Math.Pow(ch1,2), (double)ch1, 1.0 },
+						{ (double)Math.Pow(ch2,4), (double)Math.Pow(ch2,3), (double)Math.Pow(ch2,2), (double)ch2, 1.0 },
+						{ (double)Math.Pow(ch3,4), (double)Math.Pow(ch3,3), (double)Math.Pow(ch3,2), (double)ch3, 1.0 },
+						{ (double)Math.Pow(ch4,4), (double)Math.Pow(ch4,3), (double)Math.Pow(ch4,2), (double)ch4, 1.0 },
+						{ (double)Math.Pow(ch5,4), (double)Math.Pow(ch5,3), (double)Math.Pow(ch5,2), (double)ch5, 1.0 }
+					});
+					Vector<double> matrix2 = Vector<double>.Build.Dense(new double[] {
+						(double)this.calibrationPoints[0].Energy,
+						(double)this.calibrationPoints[1].Energy,
+						(double)this.calibrationPoints[2].Energy,
+						(double)this.calibrationPoints[3].Energy,
+						(double)this.calibrationPoints[4].Energy
+					});
+					double[] matrix3;
+					try
+					{
+						matrix3 = matrix.Solve(matrix2).ToArray();
+					}
+					catch (Exception)
+					{
+						MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
+						return;
+					}
+					if (polynomialEnergyCalibration.PolynomialOrder == 2 || polynomialEnergyCalibration.PolynomialOrder == 3)
+                    {
+						polynomialEnergyCalibration.Coefficients = new double[5];
+						polynomialEnergyCalibration.PolynomialOrder = 4;
+                    }
+					polynomialEnergyCalibration.Coefficients[4] = (double)matrix3[0];
+					polynomialEnergyCalibration.Coefficients[3] = (double)matrix3[1];
+					polynomialEnergyCalibration.Coefficients[2] = (double)matrix3[2];
+					polynomialEnergyCalibration.Coefficients[1] = (double)matrix3[3];
+					polynomialEnergyCalibration.Coefficients[0] = (double)matrix3[4];
+					if (!polynomialEnergyCalibration.CheckCalibration())
+					{
+						MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
+						return;
+					}
+					goto IL_390;
+				}
+
 				MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
 			}
 			IL_390:
@@ -1112,9 +1171,15 @@ namespace BecquerelMonitor
 			this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString();
 			this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString();
 			this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString();
+			if (!polynomialEnergyCalibration.CheckCalibration())
+			{
+				MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
+				return;
+			}
 			this.multipointModified = false;
 			this.calibrationDone = true;
 			this.UpdateMultipointButtonState();
+			this.SetActiveDeviceConfigDirty();
 		}
 
 		// Token: 0x0600053E RID: 1342 RVA: 0x00022254 File Offset: 0x00020454
