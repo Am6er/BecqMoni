@@ -59,6 +59,11 @@ namespace BecquerelMonitor
             }
         }
 
+        public static List<AtomSpectraVCPIn> getAllInstances()
+        {
+            return instances;
+        }
+
         public static AtomSpectraVCPIn getInstance(string guid)
         {
             foreach (AtomSpectraVCPIn s in instances)
@@ -304,6 +309,7 @@ namespace BecquerelMonitor
                             if (size >= tx_buffer.Length)
                             {
                                 port.Write(tx_buffer, 0, tx_buffer.Length);
+                                //port.Flush();
                                 size = 0;
                             }
                         }

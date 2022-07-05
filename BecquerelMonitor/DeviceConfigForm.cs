@@ -672,10 +672,21 @@ namespace BecquerelMonitor
 			if (this.activeDeviceConfig.DeviceType == "AtomSpectraVCP")
             {
 				AtomSpectraDeviceConfig deviceconfig = (AtomSpectraDeviceConfig)this.activeDeviceConfig.InputDeviceConfig;
-				AtomSpectraVCPIn device = new AtomSpectraVCPIn(this.activeDeviceConfig.Guid);
+				AtomSpectraVCPIn device;
+				List<AtomSpectraVCPIn> instances = AtomSpectraVCPIn.getAllInstances();
+				bool runexist = false;
+				if (instances.Count > 0)
+                {
+					device = instances[0];
+					runexist = true;
+                } else
+                {
+					device = new AtomSpectraVCPIn(this.activeDeviceConfig.Guid);
+					device.setPort(deviceconfig.ComPortName);
+				}
+
 				try
                 {
-					device.setPort(deviceconfig.ComPortName);
 					device.sendCommand("-cal");
 					String result = device.getCommandOutput(2000);
 					string[] separator = new string[] { "\r\n" };
@@ -735,7 +746,10 @@ namespace BecquerelMonitor
 					{
 						MessageBox.Show("Couldn't read device data from Port: " + deviceconfig.ComPortName);
 					}
-					device.Dispose();
+					if (!runexist)
+					{
+						device.Dispose();
+					}
 					SetActiveDeviceConfigDirty();
 				}
                 catch
@@ -769,9 +783,20 @@ namespace BecquerelMonitor
 					bool commands_accepted = true;
 					System.Diagnostics.Trace.WriteLine("commands_accepted = " + commands_accepted);
 					AtomSpectraDeviceConfig deviceconfig = (AtomSpectraDeviceConfig)this.activeDeviceConfig.InputDeviceConfig;
-					AtomSpectraVCPIn device = new AtomSpectraVCPIn(this.activeDeviceConfig.Guid);
-					device.setPort(deviceconfig.ComPortName);
-					System.Threading.Thread.Sleep(2000);
+					AtomSpectraVCPIn device;
+					List<AtomSpectraVCPIn> instances = AtomSpectraVCPIn.getAllInstances();
+					bool runexist = false;
+					if (instances.Count > 0)
+					{
+						device = instances[0];
+						runexist = true;
+					}
+					else
+					{
+						device = new AtomSpectraVCPIn(this.activeDeviceConfig.Guid);
+						device.setPort(deviceconfig.ComPortName);
+						System.Threading.Thread.Sleep(2000);
+					}
 					string status_msg = "";
 					for (int i = 0; i < result_list.Count; i++)
 					{
@@ -792,7 +817,10 @@ namespace BecquerelMonitor
 							status_msg = status_msg + "-cal " + i + "FFFFFFFF" + " -- result: " + result + Environment.NewLine;
 						}
                     }
-					device.Dispose();
+					if (!runexist)
+					{
+						device.Dispose();
+					}
 					Cursor.Current = Cursors.Default;
 					if (commands_accepted)
 					{

@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
+using System.Collections.Generic;
 using BecquerelMonitor.Properties;
 using WinMM;
 using System.IO.Ports;
@@ -273,11 +274,24 @@ namespace BecquerelMonitor
             {
                 try
                 {
-                    AtomSpectraVCPIn device = new AtomSpectraVCPIn("Test");
-                    device.setPort(comPortsBox.SelectedItem.ToString());
+                    List<AtomSpectraVCPIn> instances = AtomSpectraVCPIn.getAllInstances();
+                    AtomSpectraVCPIn device;
+                    bool runexist = false;
+                    if (instances.Count > 0)
+                    {
+                        device = instances[0];
+                        runexist = true;
+                    } else
+                    {
+                        device = new AtomSpectraVCPIn("Test");
+                        device.setPort(comPortsBox.SelectedItem.ToString());
+                    }
                     device.sendCommand(this.CommandLineIn.Text);
                     this.CommandLineOut.Text = device.getCommandOutput(2000);
-                    device.Dispose();
+                    if (!runexist)
+                    {
+                        device.Dispose();
+                    }
                 }
                 catch
                 {
