@@ -2409,6 +2409,8 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x060004C3 RID: 1219 RVA: 0x0001B334 File Offset: 0x00019534
+        NuclideDefinitionManager nuclideManager = NuclideDefinitionManager.GetInstance();
+
         void ShowCursorValues(Graphics g)
         {
             int num = 190;
@@ -2439,6 +2441,21 @@ namespace BecquerelMonitor
                         num4 = (int)(((num5 - this.energyViewOffset) * this.pixelPerEnergy + 0.5) * this.horizontalScale) + this.scrollX + this.left;
                     }
                     g.DrawLine(pen, num4, 0, num4, this.height);
+                    int percent = 1;
+                    foreach (NuclideDefinition nuclideDefinition in this.nuclideManager.NuclideDefinitions)
+                    {
+                        if (this.cursorEnergy >= nuclideDefinition.Energy-(5 + (int)Math.Round(nuclideDefinition.Energy * percent/100, 0)) && this.cursorEnergy <= nuclideDefinition.Energy + (5 + (int)Math.Round(nuclideDefinition.Energy * percent / 100, 0)))
+                        {
+                            Peak peak = new Peak();
+                            peak.Energy = nuclideDefinition.Energy;
+                            peak.Nuclide = nuclideDefinition;
+                            Pen pen2 = new Pen(colorConfig.PeakFigureColor.Color);
+                            Brush brush = new SolidBrush(colorConfig.PeakFigureColor.Color);
+                            Brush brush2 = new SolidBrush(colorConfig.PeakBackgroundColor.Color);
+                            this.DrawPeakFlag(g, peak, this.cursorX, 2, pen2, brush, brush2);
+                            break;
+                        }
+                    }
                 }
                 int num6 = 94;
                 g.FillRectangle(Brushes.DarkGray, num2, num3, num, num6);
