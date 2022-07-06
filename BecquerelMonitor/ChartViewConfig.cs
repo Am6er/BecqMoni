@@ -170,6 +170,30 @@ namespace BecquerelMonitor
 			}
 		}
 
+		public decimal EnergyPitch
+		{
+			get
+			{
+				return this.energyPitch;
+			}
+			set
+			{
+				this.energyPitch = value;
+			}
+		}
+
+		public decimal EnergyPercent
+		{
+			get
+			{
+				return this.energyPercent;
+			}
+			set
+			{
+				this.energyPercent = value;
+			}
+		}
+
 		// Token: 0x17000403 RID: 1027
 		// (get) Token: 0x06000F67 RID: 3943 RVA: 0x0005700C File Offset: 0x0005520C
 		// (set) Token: 0x06000F68 RID: 3944 RVA: 0x00057014 File Offset: 0x00055214
@@ -307,6 +331,12 @@ namespace BecquerelMonitor
 
 		// Token: 0x040008DB RID: 2267
 		int chartRefreshCycle = 500;
+
+		decimal energyPitch = 5;
+
+		decimal energyPercent = 1;
+
+
 
 		// Token: 0x040008DC RID: 2268
 		MagnificationReference magnificationReference;

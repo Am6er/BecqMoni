@@ -180,7 +180,7 @@
     <value>240, 22</value>
   </data>
   <data name="基本設定BToolStripMenuItem.Text" xml:space="preserve">
-    <value>&amp;Preference...</value>
+    <value>&amp;Preferences</value>
   </data>
   <data name="&gt;&gt;menuStrip1.Name" xml:space="preserve">
     <value>menuStrip1</value>

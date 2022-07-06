@@ -2441,10 +2441,12 @@ namespace BecquerelMonitor
                         num4 = (int)(((num5 - this.energyViewOffset) * this.pixelPerEnergy + 0.5) * this.horizontalScale) + this.scrollX + this.left;
                     }
                     g.DrawLine(pen, num4, 0, num4, this.height);
-                    int percent = 1;
+                    int percent = (int)this.globalConfigManager.GlobalConfig.ChartViewConfig.EnergyPercent;
+                    int pitch = (int)this.globalConfigManager.GlobalConfig.ChartViewConfig.EnergyPitch;
                     foreach (NuclideDefinition nuclideDefinition in this.nuclideManager.NuclideDefinitions)
                     {
-                        if (this.cursorEnergy >= nuclideDefinition.Energy-(5 + (int)Math.Round(nuclideDefinition.Energy * percent/100, 0)) && this.cursorEnergy <= nuclideDefinition.Energy + (5 + (int)Math.Round(nuclideDefinition.Energy * percent / 100, 0)))
+                        if (this.cursorEnergy >= nuclideDefinition.Energy-(pitch + (int)Math.Round(nuclideDefinition.Energy * percent/100, 0)) &&
+                            this.cursorEnergy <= nuclideDefinition.Energy + (pitch + (int)Math.Round(nuclideDefinition.Energy * percent / 100, 0)))
                         {
                             Peak peak = new Peak();
                             peak.Energy = nuclideDefinition.Energy;

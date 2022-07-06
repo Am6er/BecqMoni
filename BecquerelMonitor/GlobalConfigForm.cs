@@ -76,6 +76,8 @@ namespace BecquerelMonitor
 			this.doubleTextBox3.Text = globalConfig.ChartViewConfig.Energy2ndCoefficientStep.ToString();
 			this.doubleTextBox1.Text = globalConfig.ChartViewConfig.EnergyCoefficientStep.ToString();
 			this.doubleTextBox2.Text = globalConfig.ChartViewConfig.EnergyOffsetStep.ToString();
+			this.numericUpDown8.Value = globalConfig.ChartViewConfig.EnergyPitch;
+			this.numericUpDown9.Value = globalConfig.ChartViewConfig.EnergyPercent;
 			this.numericUpDown1.Value = globalConfig.ChartViewConfig.NumberOfSMADataPoints;
 			this.numericUpDown2.Value = globalConfig.ChartViewConfig.NumberOfWMADataPoints;
 			this.numericUpDown3.Value = globalConfig.ChartViewConfig.ChartRefreshCycle;
@@ -179,6 +181,8 @@ namespace BecquerelMonitor
 			globalConfig.ColorConfig.PeakLineColor.Color = this.colorComboBox27.SelectedColor;
 			globalConfig.ColorConfig.CursorColor.Color = this.colorComboBox15.SelectedColor;
 			globalConfig.ColorConfig.BlankAreaColor.Color = this.colorComboBox13.SelectedColor;
+			globalConfig.ChartViewConfig.EnergyPitch = this.numericUpDown8.Value;
+			globalConfig.ChartViewConfig.EnergyPercent = this.numericUpDown9.Value;
 			globalConfig.ChartViewConfig.DefaultVerticalUnit = (VerticalUnit)this.comboBox1.SelectedIndex;
 			globalConfig.ChartViewConfig.DefaultVerticalScaleType = (VerticalScaleType)this.comboBox2.SelectedIndex;
 			globalConfig.ChartViewConfig.DefaultChartType = (ChartType)this.comboBox3.SelectedIndex;
