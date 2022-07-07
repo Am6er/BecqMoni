@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PublishUrlHistory>Z:\becqmoni\|C:\Users\Amber\Documents\BecqMoni\|C:\Users\Amber\Documents\|publish\</PublishUrlHistory>
+    <InstallUrlHistory>https://amba.cloud/becqmoni/</InstallUrlHistory>
+    <SupportUrlHistory>https://amba.cloud/becqmoni</SupportUrlHistory>
+    <UpdateUrlHistory />
+    <BootstrapperUrlHistory />
+    <ErrorReportUrlHistory />
+    <FallbackCulture>en-US</FallbackCulture>
+    <VerifyUploadedFiles>false</VerifyUploadedFiles>
+  </PropertyGroup>
+</Project>

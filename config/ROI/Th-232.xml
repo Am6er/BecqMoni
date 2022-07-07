@@ -1,0 +1,140 @@
+<?xml version="1.0"?>
+<ROIConfigData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <FormatVersion>120920</FormatVersion>
+  <Guid>2a2a89a2-72cc-4eeb-b394-2f3e0885d253</Guid>
+  <Name>Th-232</Name>
+  <LastUpdated>2022-06-30T17:50:10.0921384+03:00</LastUpdated>
+  <ROIDefinitions>
+    <ROIDefinitionData>
+      <Name>X-ray Th-232</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>77.11</PeakEnergy>
+      <LowerLimit>49</LowerLimit>
+      <UpperLimit>114</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>1</HalfLife>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Pb-212 (Th-232)</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>238.632</PeakEnergy>
+      <LowerLimit>212</LowerLimit>
+      <UpperLimit>265</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>0.0012146119</HalfLife>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Ac-228 (Th-232)</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>332.37</PeakEnergy>
+      <LowerLimit>314</LowerLimit>
+      <UpperLimit>369</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>0.0007020548</HalfLife>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Ac-228 (Th-232)</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>463</PeakEnergy>
+      <LowerLimit>442</LowerLimit>
+      <UpperLimit>477</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>0.0007020548</HalfLife>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Tl-208 (Th-232)</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>583</PeakEnergy>
+      <LowerLimit>541</LowerLimit>
+      <UpperLimit>625</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>5.89802130898021E-06</HalfLife>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Ac-228 (Th-232)</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>911</PeakEnergy>
+      <LowerLimit>862</LowerLimit>
+      <UpperLimit>932</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>0.0007020548</HalfLife>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Ac-228 (Th-232)</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>1588.2</PeakEnergy>
+      <LowerLimit>1517</LowerLimit>
+      <UpperLimit>1650</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>0.0007020548</HalfLife>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Tl-208 (Th-232)</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>2614</PeakEnergy>
+      <LowerLimit>2493</LowerLimit>
+      <UpperLimit>2719</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>5.89802130898021E-06</HalfLife>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Ac-228 (Th-232)</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>968.97</PeakEnergy>
+      <LowerLimit>941</LowerLimit>
+      <UpperLimit>1004</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>0.0007020548</HalfLife>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Tl-208 (Th-232)</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>510</PeakEnergy>
+      <LowerLimit>484</LowerLimit>
+      <UpperLimit>532</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>5.89802130898021E-06</HalfLife>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+  </ROIDefinitions>
+  <Note />
+</ROIConfigData>

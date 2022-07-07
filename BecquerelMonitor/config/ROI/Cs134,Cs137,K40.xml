@@ -1,0 +1,137 @@
+<?xml version="1.0"?>
+<ROIConfigData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <FormatVersion>120920</FormatVersion>
+  <Guid>63afa7cf-0dc5-44d7-8933-535c84c4c18c</Guid>
+  <Name>Cs134,Cs137,K40</Name>
+  <LastUpdated>2022-07-01T12:10:17.0768306+03:00</LastUpdated>
+  <ROIDefinitions>
+    <ROIDefinitionData>
+      <Name>Cs137</Name>
+      <Enabled>false</Enabled>
+      <PeakEnergy>662</PeakEnergy>
+      <LowerLimit>601</LowerLimit>
+      <UpperLimit>714</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>290</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>30.07</HalfLife>
+      <Note><![CDATA[Cs134(605keV)
+Cs134(796keV)
+K40]]></Note>
+      <ROIPrimitives>
+        <ROISimpleDifferenceData>
+          <PrimitiveType>BG difference</PrimitiveType>
+          <OperationType>Addition</OperationType>
+          <Coefficient>1</Coefficient>
+          <CoefficientError>0</CoefficientError>
+          <Note><![CDATA[Cs137(662keV)
+Cs134(605keV)]]></Note>
+          <LowerLimit>536</LowerLimit>
+          <UpperLimit>730</UpperLimit>
+        </ROISimpleDifferenceData>
+        <ROIReferenceData>
+          <PrimitiveType>Reference</PrimitiveType>
+          <OperationType>Subtraction</OperationType>
+          <Coefficient>1.9</Coefficient>
+          <CoefficientError>0</CoefficientError>
+          <Note><![CDATA[Excluded components of Cs134 (605keV)
+Emission ratio 563keV (8.4%), 569keV (15%), 605keV (97.6%)
+From 796 keV (85.5%) and 802kev (8.69%), the coefficient is approximately 121 / 94.19
+It was 1.9 in Eiya in that it was obtained by adding the scattering fraction multiplied by the peak efficiency ratio to this.
+In order to be accurate, calibration by measuring multiple concentrations is necessary in the future.]]></Note>
+          <Reference>Cs134</Reference>
+        </ROIReferenceData>
+        <ROIReferenceData>
+          <PrimitiveType>Reference</PrimitiveType>
+          <OperationType>Subtraction</OperationType>
+          <Coefficient>0.3870788</Coefficient>
+          <CoefficientError>0</CoefficientError>
+          <Note><![CDATA[Excludes K40 scattering components
+It was determined by measurement of KCl.]]></Note>
+          <Reference>K40</Reference>
+        </ROIReferenceData>
+      </ROIPrimitives>
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Cs134</Name>
+      <Enabled>false</Enabled>
+      <PeakEnergy>796</PeakEnergy>
+      <LowerLimit>730</LowerLimit>
+      <UpperLimit>862</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>47.74944</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>2.0648</HalfLife>
+      <Note />
+      <ROIPrimitives>
+        <ROISimpleDifferenceData>
+          <PrimitiveType>BG difference</PrimitiveType>
+          <OperationType>Addition</OperationType>
+          <Coefficient>1</Coefficient>
+          <CoefficientError>0</CoefficientError>
+          <Note />
+          <LowerLimit>730</LowerLimit>
+          <UpperLimit>862</UpperLimit>
+        </ROISimpleDifferenceData>
+        <ROIReferenceData>
+          <PrimitiveType>Reference</PrimitiveType>
+          <OperationType>Subtraction</OperationType>
+          <Coefficient>0.2467934</Coefficient>
+          <CoefficientError>0</CoefficientError>
+          <Note />
+          <Reference>K40</Reference>
+        </ROIReferenceData>
+      </ROIPrimitives>
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>K40</Name>
+      <Enabled>false</Enabled>
+      <PeakEnergy>1460</PeakEnergy>
+      <LowerLimit>1350</LowerLimit>
+      <UpperLimit>1570</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>635.928</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>1277000000</HalfLife>
+      <Note />
+      <ROIPrimitives>
+        <ROISimpleDifferenceData>
+          <PrimitiveType>BG difference</PrimitiveType>
+          <OperationType>Addition</OperationType>
+          <Coefficient>1</Coefficient>
+          <CoefficientError>0</CoefficientError>
+          <Note />
+          <LowerLimit>1350</LowerLimit>
+          <UpperLimit>1570</UpperLimit>
+        </ROISimpleDifferenceData>
+      </ROIPrimitives>
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Co60</Name>
+      <Enabled>false</Enabled>
+      <PeakEnergy>1172</PeakEnergy>
+      <LowerLimit>1100</LowerLimit>
+      <UpperLimit>1200</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>0</HalfLife>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Co60</Name>
+      <Enabled>false</Enabled>
+      <PeakEnergy>1332</PeakEnergy>
+      <LowerLimit>1300</LowerLimit>
+      <UpperLimit>1400</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>0</HalfLife>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+  </ROIDefinitions>
+  <Note><![CDATA[ROI]]></Note>
+</ROIConfigData>

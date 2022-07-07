@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<DeviceConfigInfo xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <FormatVersion>120920</FormatVersion>
+  <Guid>1a0651a2-0b84-4c4e-8be8-c2d286eb82eb</Guid>
+  <Name>AtomSpectraVCP</Name>
+  <LastUpdated>2022-07-06T20:42:13.9517064+03:00</LastUpdated>
+  <DefaultMeasurementTime>360000</DefaultMeasurementTime>
+  <ChannelPitch>1</ChannelPitch>
+  <NumberOfChannels>8192</NumberOfChannels>
+  <DeviceType>AtomSpectraVCP</DeviceType>
+  <ThermometerType>None</ThermometerType>
+  <EnergyCalibrationType>Polynomial</EnergyCalibrationType>
+  <Note />
+  <AtomSpectraDeviceConfig>
+    <ComPortName>COM5</ComPortName>
+  </AtomSpectraDeviceConfig>
+  <PolynomialEnergyCalibration>
+    <PolynomialOrder>4</PolynomialOrder>
+    <Coefficients>
+      <Coefficient>-4.04442977905</Coefficient>
+      <Coefficient>0.361012011766</Coefficient>
+      <Coefficient>1.11079998533E-05</Coefficient>
+      <Coefficient>-1.51335999288E-09</Coefficient>
+      <Coefficient>9.33381993115E-14</Coefficient>
+    </Coefficients>
+  </PolynomialEnergyCalibration>
+  <StabilizerConfig>
+    <TargetPeaks />
+  </StabilizerConfig>
+  <DoseRateConfig>
+    <Sensitivity>0</Sensitivity>
+    <LowerBound>0</LowerBound>
+    <UpperBound>10000</UpperBound>
+  </DoseRateConfig>
+  <PeakDetectionMethodConfig>
+    <PolynomialOrder>1</PolynomialOrder>
+    <WindowSize>35</WindowSize>
+    <Threshold>1</Threshold>
+    <Tolerance>10</Tolerance>
+  </PeakDetectionMethodConfig>
+  <BackgroundSpectrumPathname />
+</DeviceConfigInfo>

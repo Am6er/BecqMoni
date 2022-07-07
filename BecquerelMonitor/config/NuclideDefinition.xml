@@ -1,0 +1,401 @@
+<?xml version="1.0"?>
+<NuclideDefinitionFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <NuclideDefinitions>
+    <Nuclide>
+      <Name>x-rays</Name>
+      <Energy>20</Energy>
+      <HalfLife>0</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>x-rays</Name>
+      <Energy>26</Energy>
+      <HalfLife>432</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>x-rays</Name>
+      <Energy>32</Energy>
+      <HalfLife>1</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>x-rays</Name>
+      <Energy>43</Energy>
+      <HalfLife>0</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Pb-210/x-rays</Name>
+      <Energy>46</Energy>
+      <HalfLife>22.3</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>x-rays</Name>
+      <Energy>55</Energy>
+      <HalfLife>0</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Am-241</Name>
+      <Energy>59</Energy>
+      <HalfLife>432</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Am-243</Name>
+      <Energy>74</Energy>
+      <HalfLife>7370</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>x-rays</Name>
+      <Energy>80</Energy>
+      <HalfLife>0</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>x-rays</Name>
+      <Energy>90</Energy>
+      <HalfLife>0</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>x-rays</Name>
+      <Energy>100</Energy>
+      <HalfLife>0</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Np-239</Name>
+      <Energy>106</Energy>
+      <HalfLife>0.0064383561643835616</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>U-238/U-234</Name>
+      <Energy>113.5</Energy>
+      <HalfLife>4470000000</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Eu-152</Name>
+      <Energy>125</Energy>
+      <HalfLife>13.5</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Ac-228/Pu-239</Name>
+      <Energy>132</Energy>
+      <HalfLife>0.0007020547945205</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>U-235</Name>
+      <Energy>145</Energy>
+      <HalfLife>700000000</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Pu-238</Name>
+      <Energy>152</Energy>
+      <HalfLife>87.7</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Ra-226/U-235</Name>
+      <Energy>185</Energy>
+      <HalfLife>0</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Lu-176</Name>
+      <Energy>202</Energy>
+      <HalfLife>38500000000</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>U-237/Am-241</Name>
+      <Energy>209</Energy>
+      <HalfLife>432</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Ac-228</Name>
+      <Energy>211</Energy>
+      <HalfLife>0.0007020547945205</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Cm-243/Np-239</Name>
+      <Energy>228</Energy>
+      <HalfLife>0.00643835616438356</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Pb-212/Pb-214</Name>
+      <Energy>238</Energy>
+      <HalfLife>0.001214611872146</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Pb-214\Pb-212</Name>
+      <Energy>242</Energy>
+      <HalfLife>0</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Cm-243/Np-239</Name>
+      <Energy>277</Energy>
+      <HalfLife>0.00643835616438356</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>I-131</Name>
+      <Energy>284</Energy>
+      <HalfLife>0.022</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Pb-214</Name>
+      <Energy>295</Energy>
+      <HalfLife>4.946727549467E-05</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Lu-176</Name>
+      <Energy>307</Energy>
+      <HalfLife>38500000000</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Np-239</Name>
+      <Energy>315</Energy>
+      <HalfLife>0.0064383561643835616</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Am-241</Name>
+      <Energy>332</Energy>
+      <HalfLife>432</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Ac-228</Name>
+      <Energy>338</Energy>
+      <HalfLife>0.0007020547945205</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Eu-152</Name>
+      <Energy>345</Energy>
+      <HalfLife>13.5</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Pb-214</Name>
+      <Energy>353</Energy>
+      <HalfLife>4.946727549467E-05</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Ba-133</Name>
+      <Energy>358</Energy>
+      <HalfLife>10.5</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>I-131</Name>
+      <Energy>364</Energy>
+      <HalfLife>0.022</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Am-241</Name>
+      <Energy>372</Energy>
+      <HalfLife>432</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Pu-241</Name>
+      <Energy>400</Energy>
+      <HalfLife>1</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Ac-228</Name>
+      <Energy>409</Energy>
+      <HalfLife>0.0007020547945205</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Ac-228</Name>
+      <Energy>463</Energy>
+      <HalfLife>0.0007020547945205</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Tl-208</Name>
+      <Energy>510</Energy>
+      <HalfLife>5.808599695586E-06</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Annihilation</Name>
+      <Energy>511</Energy>
+      <HalfLife>1</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Tl-208</Name>
+      <Energy>583</Energy>
+      <HalfLife>5.808599695586E-06</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Bi-214</Name>
+      <Energy>609</Energy>
+      <HalfLife>3.614916286149E-05</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>I-131</Name>
+      <Energy>636</Energy>
+      <HalfLife>0.022</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Cs-137</Name>
+      <Energy>662</Energy>
+      <HalfLife>30.07</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>I-131</Name>
+      <Energy>722</Energy>
+      <HalfLife>0.022</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Bi-212/Ac-228</Name>
+      <Energy>727</Energy>
+      <HalfLife>0.000115201674277</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Pa-234m</Name>
+      <Energy>766</Energy>
+      <HalfLife>2.226E-06</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Bi-214</Name>
+      <Energy>768</Energy>
+      <HalfLife>3.614916286149E-05</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Ac-228</Name>
+      <Energy>794</Energy>
+      <HalfLife>0.0007020547945205</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Cs-134</Name>
+      <Energy>798</Energy>
+      <HalfLife>2.0648</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Ac-228</Name>
+      <Energy>835</Energy>
+      <HalfLife>0.0007020547945205</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Ac-228</Name>
+      <Energy>911</Energy>
+      <HalfLife>0.0007020547945205</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Ac-228</Name>
+      <Energy>964</Energy>
+      <HalfLife>0.0007020547945205</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Ac-228</Name>
+      <Energy>968</Energy>
+      <HalfLife>0.0007020547945205</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Pa-234m</Name>
+      <Energy>1001</Energy>
+      <HalfLife>2.226E-06</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Bi-214</Name>
+      <Energy>1120</Energy>
+      <HalfLife>3.614916286149E-05</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Co-60</Name>
+      <Energy>1173</Energy>
+      <HalfLife>5.2713</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Bi-214</Name>
+      <Energy>1238</Energy>
+      <HalfLife>3.614916286149E-05</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Co-60</Name>
+      <Energy>1332</Energy>
+      <HalfLife>5.2713</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Bi-214</Name>
+      <Energy>1377</Energy>
+      <HalfLife>3.614916286149E-05</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>K40</Name>
+      <Energy>1460</Energy>
+      <HalfLife>1277000000</HalfLife>
+      <Note><![CDATA[Cs134(1365keV)やサムピークが近いので要注意]]></Note>
+    </Nuclide>
+    <Nuclide>
+      <Name>Ac-228</Name>
+      <Energy>1588</Energy>
+      <HalfLife>0.0007020547945205</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Bi-214</Name>
+      <Energy>1764</Energy>
+      <HalfLife>3.614916286149E-05</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Bi-214</Name>
+      <Energy>2204</Energy>
+      <HalfLife>3.614916286149E-05</HalfLife>
+      <Note />
+    </Nuclide>
+    <Nuclide>
+      <Name>Tl-208</Name>
+      <Energy>2650</Energy>
+      <HalfLife>5.808599695586E-06</HalfLife>
+      <Note />
+    </Nuclide>
+  </NuclideDefinitions>
+</NuclideDefinitionFile>

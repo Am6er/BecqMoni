@@ -1,0 +1,286 @@
+<?xml version="1.0"?>
+<ROIConfigData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <FormatVersion>120920</FormatVersion>
+  <Guid>2e2183f7-d72c-4aac-8f0e-e384e3640f98</Guid>
+  <Name>Atom Spectra 2</Name>
+  <LastUpdated>2022-03-04T08:55:58.1170989+03:00</LastUpdated>
+  <ROIDefinitions>
+    <ROIDefinitionData>
+      <Name>Cs-137</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>662</PeakEnergy>
+      <LowerLimit>600</LowerLimit>
+      <UpperLimit>720</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>27.38</BecquerelCoefficient>
+      <BecquerelCoefficientError>0.38</BecquerelCoefficientError>
+      <HalfLife>30.07</HalfLife>
+      <Note />
+      <ROIPrimitives>
+        <ROISimpleDifferenceData>
+          <PrimitiveType>BG difference</PrimitiveType>
+          <OperationType>Addition</OperationType>
+          <Coefficient>1</Coefficient>
+          <CoefficientError>0</CoefficientError>
+          <Note />
+          <LowerLimit>600</LowerLimit>
+          <UpperLimit>720</UpperLimit>
+        </ROISimpleDifferenceData>
+      </ROIPrimitives>
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Ra-226</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>186</PeakEnergy>
+      <LowerLimit>173</LowerLimit>
+      <UpperLimit>205</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>43.05</BecquerelCoefficient>
+      <BecquerelCoefficientError>0.247</BecquerelCoefficientError>
+      <HalfLife>1602</HalfLife>
+      <Note />
+      <ROIPrimitives>
+        <ROISimpleDifferenceData>
+          <PrimitiveType>BG difference</PrimitiveType>
+          <OperationType>Addition</OperationType>
+          <Coefficient>1</Coefficient>
+          <CoefficientError>0</CoefficientError>
+          <Note />
+          <LowerLimit>173</LowerLimit>
+          <UpperLimit>205</UpperLimit>
+        </ROISimpleDifferenceData>
+      </ROIPrimitives>
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Am-241</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>59</PeakEnergy>
+      <LowerLimit>40</LowerLimit>
+      <UpperLimit>75</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>17.52</BecquerelCoefficient>
+      <BecquerelCoefficientError>0.22</BecquerelCoefficientError>
+      <HalfLife>432</HalfLife>
+      <Note />
+      <ROIPrimitives>
+        <ROISimpleDifferenceData>
+          <PrimitiveType>BG difference</PrimitiveType>
+          <OperationType>Addition</OperationType>
+          <Coefficient>1</Coefficient>
+          <CoefficientError>0</CoefficientError>
+          <Note />
+          <LowerLimit>40</LowerLimit>
+          <UpperLimit>75</UpperLimit>
+        </ROISimpleDifferenceData>
+      </ROIPrimitives>
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>K-40</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>1460</PeakEnergy>
+      <LowerLimit>1360</LowerLimit>
+      <UpperLimit>1560</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>509.635</BecquerelCoefficient>
+      <BecquerelCoefficientError>11.36</BecquerelCoefficientError>
+      <HalfLife>1277000000</HalfLife>
+      <Note />
+      <ROIPrimitives>
+        <ROISimpleDifferenceData>
+          <PrimitiveType>BG difference</PrimitiveType>
+          <OperationType>Addition</OperationType>
+          <Coefficient>1</Coefficient>
+          <CoefficientError>0</CoefficientError>
+          <Note />
+          <LowerLimit>1360</LowerLimit>
+          <UpperLimit>1560</UpperLimit>
+        </ROISimpleDifferenceData>
+      </ROIPrimitives>
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Co-60</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>1173</PeakEnergy>
+      <LowerLimit>1100</LowerLimit>
+      <UpperLimit>1250</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>43.97</BecquerelCoefficient>
+      <BecquerelCoefficientError>0.94</BecquerelCoefficientError>
+      <HalfLife>5.2713</HalfLife>
+      <Note />
+      <ROIPrimitives>
+        <ROISimpleDifferenceData>
+          <PrimitiveType>BG difference</PrimitiveType>
+          <OperationType>Addition</OperationType>
+          <Coefficient>1</Coefficient>
+          <CoefficientError>0</CoefficientError>
+          <Note />
+          <LowerLimit>1100</LowerLimit>
+          <UpperLimit>1250</UpperLimit>
+        </ROISimpleDifferenceData>
+      </ROIPrimitives>
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Lu-176</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>307</PeakEnergy>
+      <LowerLimit>280</LowerLimit>
+      <UpperLimit>340</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>6.27</BecquerelCoefficient>
+      <BecquerelCoefficientError>0.05</BecquerelCoefficientError>
+      <HalfLife>38500000000</HalfLife>
+      <Note />
+      <ROIPrimitives>
+        <ROISimpleDifferenceData>
+          <PrimitiveType>BG difference</PrimitiveType>
+          <OperationType>Addition</OperationType>
+          <Coefficient>1</Coefficient>
+          <CoefficientError>0</CoefficientError>
+          <Note />
+          <LowerLimit>280</LowerLimit>
+          <UpperLimit>340</UpperLimit>
+        </ROISimpleDifferenceData>
+      </ROIPrimitives>
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Eu-152</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>122</PeakEnergy>
+      <LowerLimit>102</LowerLimit>
+      <UpperLimit>142</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>15.44</BecquerelCoefficient>
+      <BecquerelCoefficientError>0.13</BecquerelCoefficientError>
+      <HalfLife>13.5</HalfLife>
+      <Note />
+      <ROIPrimitives>
+        <ROISimpleDifferenceData>
+          <PrimitiveType>BG difference</PrimitiveType>
+          <OperationType>Addition</OperationType>
+          <Coefficient>1</Coefficient>
+          <CoefficientError>0</CoefficientError>
+          <Note />
+          <LowerLimit>102</LowerLimit>
+          <UpperLimit>142</UpperLimit>
+        </ROISimpleDifferenceData>
+      </ROIPrimitives>
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>I-131</Name>
+      <Enabled>false</Enabled>
+      <PeakEnergy>364</PeakEnergy>
+      <LowerLimit>314</LowerLimit>
+      <UpperLimit>414</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>13</BecquerelCoefficient>
+      <BecquerelCoefficientError>0.12</BecquerelCoefficientError>
+      <HalfLife>0.022</HalfLife>
+      <Note />
+      <ROIPrimitives>
+        <ROISimpleDifferenceData>
+          <PrimitiveType>BG difference</PrimitiveType>
+          <OperationType>Addition</OperationType>
+          <Coefficient>1</Coefficient>
+          <CoefficientError>0</CoefficientError>
+          <Note />
+          <LowerLimit>314</LowerLimit>
+          <UpperLimit>414</UpperLimit>
+        </ROISimpleDifferenceData>
+      </ROIPrimitives>
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>U-235</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>185</PeakEnergy>
+      <LowerLimit>173</LowerLimit>
+      <UpperLimit>205</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>2.65</BecquerelCoefficient>
+      <BecquerelCoefficientError>0.0213</BecquerelCoefficientError>
+      <HalfLife>700000000</HalfLife>
+      <Note />
+      <ROIPrimitives>
+        <ROISimpleDifferenceData>
+          <PrimitiveType>BG difference</PrimitiveType>
+          <OperationType>Addition</OperationType>
+          <Coefficient>1</Coefficient>
+          <CoefficientError>0</CoefficientError>
+          <Note />
+          <LowerLimit>173</LowerLimit>
+          <UpperLimit>205</UpperLimit>
+        </ROISimpleDifferenceData>
+      </ROIPrimitives>
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>U-238</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>1001</PeakEnergy>
+      <LowerLimit>940</LowerLimit>
+      <UpperLimit>1060</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>4462.25</BecquerelCoefficient>
+      <BecquerelCoefficientError>8.92</BecquerelCoefficientError>
+      <HalfLife>4470000000</HalfLife>
+      <Note />
+      <ROIPrimitives>
+        <ROISimpleDifferenceData>
+          <PrimitiveType>BG difference</PrimitiveType>
+          <OperationType>Addition</OperationType>
+          <Coefficient>1</Coefficient>
+          <CoefficientError>0</CoefficientError>
+          <Note />
+          <LowerLimit>940</LowerLimit>
+          <UpperLimit>1060</UpperLimit>
+        </ROISimpleDifferenceData>
+      </ROIPrimitives>
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Th-232</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>2614</PeakEnergy>
+      <LowerLimit>2550</LowerLimit>
+      <UpperLimit>2820</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>100.9</BecquerelCoefficient>
+      <BecquerelCoefficientError>3.86</BecquerelCoefficientError>
+      <HalfLife>14000000000</HalfLife>
+      <Note />
+      <ROIPrimitives>
+        <ROISimpleDifferenceData>
+          <PrimitiveType>BG difference</PrimitiveType>
+          <OperationType>Addition</OperationType>
+          <Coefficient>1</Coefficient>
+          <CoefficientError>0</CoefficientError>
+          <Note />
+          <LowerLimit>2550</LowerLimit>
+          <UpperLimit>2820</UpperLimit>
+        </ROISimpleDifferenceData>
+      </ROIPrimitives>
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Kr-85</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>513</PeakEnergy>
+      <LowerLimit>490</LowerLimit>
+      <UpperLimit>540</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>2373.69</BecquerelCoefficient>
+      <BecquerelCoefficientError>29.67</BecquerelCoefficientError>
+      <HalfLife>10.739</HalfLife>
+      <Note />
+      <ROIPrimitives>
+        <ROISimpleDifferenceData>
+          <PrimitiveType>BG difference</PrimitiveType>
+          <OperationType>Addition</OperationType>
+          <Coefficient>1</Coefficient>
+          <CoefficientError>0</CoefficientError>
+          <Note />
+          <LowerLimit>490</LowerLimit>
+          <UpperLimit>540</UpperLimit>
+        </ROISimpleDifferenceData>
+      </ROIPrimitives>
+    </ROIDefinitionData>
+  </ROIDefinitions>
+  <Note />
+</ROIConfigData>
