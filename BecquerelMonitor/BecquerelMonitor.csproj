@@ -12,7 +12,7 @@
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationIcon>BecquerelMonitor.ico</ApplicationIcon>
+    <ApplicationIcon>logo_atom.ico</ApplicationIcon>
     <StartupObject>BecquerelMonitor.Program</StartupObject>
     <IsWebBootstrapper>true</IsWebBootstrapper>
     <PublishUrl>Z:\becqmoni\</PublishUrl>
@@ -32,8 +32,8 @@
     <MinimumRequiredVersion>2022.07.06.0</MinimumRequiredVersion>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
-    <ApplicationRevision>19</ApplicationRevision>
-    <ApplicationVersion>2022.07.07.19</ApplicationVersion>
+    <ApplicationRevision>20</ApplicationRevision>
+    <ApplicationVersion>2022.07.07.20</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -734,6 +734,7 @@
     <Folder Include="config\sound\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="BecquerelMonitor.ico" />
     <Content Include="config\BecquerelMonitor.xml" />
     <Content Include="config\device\AtomSpectraVCP.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -763,6 +764,7 @@
     <Content Include="config\ROI\Th-232.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="logo_atom.ico" />
   </ItemGroup>
   <ItemGroup>
     <PublishFile Include="config\BecquerelMonitor.xml">
