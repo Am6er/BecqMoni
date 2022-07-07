@@ -66,7 +66,7 @@ namespace BecquerelMonitor
 			XmlSerializer xmlSerializer2 = new XmlSerializer(typeof(DeviceConfigInfo));
 			try
 			{
-				string[] files = Directory.GetFiles("config\\device\\", "*.xml");
+				string[] files = Directory.GetFiles(userDirectory + "config\\device\\", "*.xml");
 				foreach (string path in files)
 				{
 					DeviceConfigInfo deviceConfigInfo;
@@ -97,7 +97,7 @@ namespace BecquerelMonitor
 			}
 			catch (Exception)
 			{
-				Directory.CreateDirectory("config\\device");
+				Directory.CreateDirectory(userDirectory + "config\\device");
 				MessageBox.Show(Resources.ERRLoadingDeviceConfigFailed, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
 			}
 			this.deviceConfigList.Sort();
@@ -113,7 +113,7 @@ namespace BecquerelMonitor
 			deviceConfigInfo.OriginalFilename = filename;
 			deviceConfigInfo.Filename = filename;
 			deviceConfigInfo.Name = Path.GetFileNameWithoutExtension(filename);
-			string path = "config\\device\\" + deviceConfigInfo.Filename;
+			string path = userDirectory + "config\\device\\" + deviceConfigInfo.Filename;
 			AudioInputDeviceConfig audioInputDeviceConfig = (AudioInputDeviceConfig)deviceConfigInfo.InputDeviceConfig;
 			WaveInDeviceCaps audioInputDevice = null;
 			if (WaveIn.Devices.Count > 0)
@@ -155,7 +155,7 @@ namespace BecquerelMonitor
 			deviceConfigInfo.Name = config.Name + Resources.CopyPostfix;
 			try
 			{
-				string path = "config\\device\\" + deviceConfigInfo.Filename;
+				string path = userDirectory + "config\\device\\" + deviceConfigInfo.Filename;
 				using (FileStream fileStream = new FileStream(path, FileMode.Create))
 				{
 					XmlSerializer xmlSerializer = new XmlSerializer(typeof(DeviceConfigInfo));
@@ -187,7 +187,7 @@ namespace BecquerelMonitor
 			{
 				try
 				{
-					File.Delete("config\\device\\" + devConfig.OriginalFilename);
+					File.Delete(userDirectory + "config\\device\\" + devConfig.OriginalFilename);
 				}
 				catch (Exception)
 				{
@@ -200,7 +200,7 @@ namespace BecquerelMonitor
 			deviceConfigInfo = devConfig.Clone();
 			try
 			{
-				string path = "config\\device\\" + deviceConfigInfo.Filename;
+				string path = userDirectory + "config\\device\\" + deviceConfigInfo.Filename;
 				using (FileStream fileStream = new FileStream(path, FileMode.Create))
 				{
 					XmlSerializer xmlSerializer = new XmlSerializer(typeof(DeviceConfigInfo));
@@ -228,7 +228,7 @@ namespace BecquerelMonitor
 			DeviceConfigInfo deviceConfigInfo = this.deviceConfigMap[devConfig.Guid];
 			try
 			{
-				File.Delete("config\\device\\" + deviceConfigInfo.OriginalFilename);
+				File.Delete(userDirectory + "config\\device\\" + deviceConfigInfo.OriginalFilename);
 			}
 			catch (Exception)
 			{
@@ -241,8 +241,10 @@ namespace BecquerelMonitor
 			}
 		}
 
+		string userDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\";
+
 		// Token: 0x04000327 RID: 807
-		const string configPath = "config\\device\\";
+		string configPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\config\\device\\";
 
 		// Token: 0x04000328 RID: 808
 		List<DeviceConfigInfo> deviceConfigList = new List<DeviceConfigInfo>();

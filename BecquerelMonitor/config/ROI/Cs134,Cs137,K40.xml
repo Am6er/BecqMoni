@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <ROIConfigData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <FormatVersion>120920</FormatVersion>
-  <Guid>63afa7cf-0dc5-44d7-8933-535c84c4c18c</Guid>
+  <Guid>63afa7cf-0dc5-44d7-8933-535c84c4c18d</Guid>
   <Name>Cs134,Cs137,K40</Name>
   <LastUpdated>2022-07-01T12:10:17.0768306+03:00</LastUpdated>
   <ROIDefinitions>

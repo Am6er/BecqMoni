@@ -66,7 +66,7 @@ namespace BecquerelMonitor
 			XmlSerializer xmlSerializer = new XmlSerializer(typeof(NuclideDefinitionFile));
 			try
 			{
-				using (FileStream fileStream = new FileStream("config\\NuclideDefinition.xml", FileMode.Open))
+				using (FileStream fileStream = new FileStream(userDirectory + "config\\NuclideDefinition.xml", FileMode.Open))
 				{
 					this.nuclideDefinitionFile = (NuclideDefinitionFile)xmlSerializer.Deserialize(fileStream);
 				}
@@ -87,7 +87,7 @@ namespace BecquerelMonitor
 			XmlSerializer xmlSerializer = new XmlSerializer(typeof(NuclideDefinitionFile));
 			try
 			{
-				using (FileStream fileStream = new FileStream("config\\NuclideDefinition.xml", FileMode.Create))
+				using (FileStream fileStream = new FileStream(userDirectory + "config\\NuclideDefinition.xml", FileMode.Create))
 				{
 					xmlSerializer.Serialize(fileStream, this.nuclideDefinitionFile);
 				}
@@ -126,8 +126,10 @@ namespace BecquerelMonitor
 			this.nuclideDefinitionFile.NuclideDefinitions.Add(nuclideDefinition4);
 		}
 
+		string userDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\";
+
 		// Token: 0x04000512 RID: 1298
-		const string nuclideDefinitionFilename = "config\\NuclideDefinition.xml";
+		string nuclideDefinitionFilename = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\config\\NuclideDefinition.xml";
 
 		// Token: 0x04000513 RID: 1299
 		static NuclideDefinitionManager instance = new NuclideDefinitionManager();

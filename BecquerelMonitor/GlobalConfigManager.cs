@@ -41,7 +41,7 @@ namespace BecquerelMonitor
 			XmlSerializer xmlSerializer = new XmlSerializer(typeof(GlobalConfigInfo));
 			try
 			{
-				using (FileStream fileStream = new FileStream("config\\BecquerelMonitor.xml", FileMode.Open))
+				using (FileStream fileStream = new FileStream(userDirectory + "config\\BecquerelMonitor.xml", FileMode.Open))
 				{
 					this.globalConfig = (GlobalConfigInfo)xmlSerializer.Deserialize(fileStream);
 				}
@@ -72,7 +72,7 @@ namespace BecquerelMonitor
 			XmlSerializer xmlSerializer = new XmlSerializer(typeof(GlobalConfigInfo));
 			try
 			{
-				using (FileStream fileStream = new FileStream("config\\BecquerelMonitor.xml", FileMode.Create))
+				using (FileStream fileStream = new FileStream(userDirectory + "config\\BecquerelMonitor.xml", FileMode.Create))
 				{
 					xmlSerializer.Serialize(fileStream, this.globalConfig);
 				}
@@ -83,8 +83,10 @@ namespace BecquerelMonitor
 			}
 		}
 
+		string userDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\";
+
 		// Token: 0x0400032F RID: 815
-		const string globalConfigFile = "config\\BecquerelMonitor.xml";
+		string globalConfigFile = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\config\\BecquerelMonitor.xml";
 
 		// Token: 0x04000330 RID: 816
 		public string VersionString = "1.0";

@@ -87,6 +87,27 @@ namespace BecquerelMonitor
             originalContext = SynchronizationContext.Current;
 			string directoryName = Path.GetDirectoryName(Application.ExecutablePath);
 			Environment.CurrentDirectory = directoryName;
+			if (!Directory.Exists(userDirectory) || !Directory.Exists(userDirectoryConfig))
+			{
+				try
+                {
+					Directory.CreateDirectory(userDirectory);
+					Directory.CreateDirectory(userDirectory + "\\config");
+					foreach (string dirPath in Directory.GetDirectories(directoryName + "\\config", "*", SearchOption.AllDirectories))
+					{
+						Directory.CreateDirectory(dirPath.Replace(directoryName + "\\config", userDirectoryConfig));
+					}
+					foreach (string newPath in Directory.GetFiles(directoryName + "\\config", "*.*", SearchOption.AllDirectories))
+					{
+						File.Copy(newPath, newPath.Replace(directoryName + "\\config", userDirectoryConfig), true);
+					}
+
+				}
+				catch (Exception ex)
+				{
+					MessageBox.Show(ex.Message);
+				}
+			}
 			this.UpdateApplicationTitle();
 			this.globalConfigManager = GlobalConfigManager.GetInstance();
 			this.globalConfig = this.globalConfigManager.GlobalConfig;
@@ -1936,7 +1957,7 @@ namespace BecquerelMonitor
 		string LayoutConfigFile(LayoutMode mode)
 		{
 			string str = "ExpertMode.xml";
-			return "config\\layout\\" + str;
+			return userDirectory + "\\config\\layout\\" + str;
 		}
 
 		// Token: 0x06000AB1 RID: 2737 RVA: 0x0003FD20 File Offset: 0x0003DF20
@@ -2067,5 +2088,8 @@ namespace BecquerelMonitor
 
 		// Token: 0x040005EA RID: 1514
 		int countChart;
+
+		string userDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni";
+		string userDirectoryConfig = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\config";
 	}
 }
