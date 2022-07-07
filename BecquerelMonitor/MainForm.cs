@@ -894,12 +894,13 @@ namespace BecquerelMonitor
 		// Token: 0x06000A6A RID: 2666 RVA: 0x0003DF18 File Offset: 0x0003C118
 		void UpdateApplicationTitle()
 		{
+			string version = GlobalConfigManager.GetInstance().VersionString;
 			if (this.activeDocument != null)
 			{
-				this.Text = BecquerelMonitor.Properties.Resources.ApplicationTitle + " - " + Path.GetFileName(this.activeDocument.Filename);
+				this.Text = BecquerelMonitor.Properties.Resources.ApplicationTitle + " " + version + " - " + Path.GetFileName(this.activeDocument.Filename);
 				return;
 			}
-			this.Text = BecquerelMonitor.Properties.Resources.ApplicationTitle;
+			this.Text = BecquerelMonitor.Properties.Resources.ApplicationTitle + " " + version;
 		}
 
 		// Token: 0x06000A6B RID: 2667 RVA: 0x0003DF58 File Offset: 0x0003C158
@@ -1250,7 +1251,7 @@ namespace BecquerelMonitor
 				}
 				if (info.UpdateAvailable)
 				{
-					DialogResult dialogResult = MessageBox.Show("A new fersion is available: " + info.AvailableVersion.ToString() + Environment.NewLine +
+					DialogResult dialogResult = MessageBox.Show("A new version is available: " + info.AvailableVersion.ToString() + Environment.NewLine +
 						"Before updating save all unsaved data. Application WILL RESTART!" + Environment.NewLine + "Install update? ",
 						"Update avalable", MessageBoxButtons.OKCancel);
 					if (dialogResult == DialogResult.OK)

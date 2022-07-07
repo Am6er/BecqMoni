@@ -30,16 +30,7 @@ namespace BecquerelMonitor
 
 			base.Icon = Resources.becqmoni;
 
-			try
-			{
-				ApplicationDeployment currentDeployment = ApplicationDeployment.CurrentDeployment;
-				this.label2.Text = "Version + " + currentDeployment.CurrentVersion.ToString();
-			}
-			catch
-			{
-				this.label2.Text = string.Format(Resources.VersionString, GlobalConfigManager.GetInstance().VersionString);
-			}
-			
+			this.label2.Text = "Version " + GlobalConfigManager.GetInstance().VersionString;
 			this.textBox1.Text = Resources.LibraryLicensesMessage;
 			this.RecalcPosition();
 		}

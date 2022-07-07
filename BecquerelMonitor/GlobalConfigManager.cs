@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows.Forms;
 using System.Xml.Serialization;
 using BecquerelMonitor.Properties;
+using System.Deployment.Application;
 
 namespace BecquerelMonitor
 {
@@ -56,6 +57,19 @@ namespace BecquerelMonitor
 				this.globalConfig = new GlobalConfigInfo();
 				this.globalConfig.ColorConfig.InitializeSpectrumColor();
 			}
+
+			try
+			{
+				ApplicationDeployment currentDeployment = ApplicationDeployment.CurrentDeployment;
+				this.VersionString = currentDeployment.CurrentVersion.ToString();
+			}
+			catch
+			{
+				System.Reflection.Assembly assembly = System.Reflection.Assembly.GetExecutingAssembly();
+				System.Diagnostics.FileVersionInfo fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
+				this.VersionString = fvi.FileVersion;
+			}
+
 			this.isLoaded = true;
 		}
 
@@ -83,7 +97,7 @@ namespace BecquerelMonitor
 			}
 		}
 
-		string userDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\";
+	string userDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\";
 
 		// Token: 0x0400032F RID: 815
 		string globalConfigFile = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\config\\BecquerelMonitor.xml";
