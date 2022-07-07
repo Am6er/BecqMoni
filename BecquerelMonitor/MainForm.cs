@@ -1250,11 +1250,13 @@ namespace BecquerelMonitor
 				}
 				if (info.UpdateAvailable)
 				{
-					DialogResult dialogResult = MessageBox.Show("A new fersion is available: " + info.AvailableVersion.ToString() + ". Install update?", "Update avalable", MessageBoxButtons.OKCancel);
+					DialogResult dialogResult = MessageBox.Show("A new fersion is available: " + info.AvailableVersion.ToString() + Environment.NewLine +
+						"Before updating save all unsaved data. Application WILL RESTART!" + Environment.NewLine + "Install update? ",
+						"Update avalable", MessageBoxButtons.OKCancel);
 					if (dialogResult == DialogResult.OK)
 					{
 						updateCheck.Update();
-						MessageBox.Show("Update finished. Application will restart.");
+						MessageBox.Show("Update finished. Application WILL RESTART.");
 						Application.Restart();
 					}
 				}
@@ -1262,8 +1264,6 @@ namespace BecquerelMonitor
 				{
 					MessageBox.Show("No new version avalable. Current version: " + updateCheck.CurrentVersion.ToString());
 				}
-                
-
             } catch (Exception ex)
             {
 				MessageBox.Show("Cann't install the latest version. Error happens." + Environment.NewLine + ex.Message);
