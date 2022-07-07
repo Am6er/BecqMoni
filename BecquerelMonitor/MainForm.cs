@@ -12,6 +12,7 @@ using System.Windows.Forms;
 using System.Xml.Serialization;
 using BecquerelMonitor.Properties;
 using WeifenLuo.WinFormsUI.Docking;
+using System.Deployment.Application;
 
 namespace BecquerelMonitor
 {
@@ -1228,6 +1229,45 @@ namespace BecquerelMonitor
 			{
 				Owner = this
 			}.ShowDialog();
+		}
+
+		void UpdatesAToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			try
+            {
+				ApplicationDeployment updateCheck = null;
+				UpdateCheckInfo info = null;
+
+				try
+                {
+					updateCheck = ApplicationDeployment.CurrentDeployment;
+					info = updateCheck.CheckForDetailedUpdate();
+				}
+				catch
+				{
+					MessageBox.Show("This application works in standalone mode. If you want to use update re-install it.");
+					return;
+				}
+				if (info.UpdateAvailable)
+				{
+					DialogResult dialogResult = MessageBox.Show("A new fersion is available: " + info.AvailableVersion.ToString() + ". Install update?", "Update avalable", MessageBoxButtons.OKCancel);
+					if (dialogResult == DialogResult.OK)
+					{
+						updateCheck.Update();
+						MessageBox.Show("Update finished. Application will restart.");
+						Application.Restart();
+					}
+				}
+				else
+				{
+					MessageBox.Show("No new version avalable. Current version: " + updateCheck.CurrentVersion.ToString());
+				}
+                
+
+            } catch (Exception ex)
+            {
+				MessageBox.Show("Cann't install the latest version. Error happens." + Environment.NewLine + ex.Message);
+            }
 		}
 
 		// Token: 0x06000A81 RID: 2689 RVA: 0x0003E80C File Offset: 0x0003CA0C

@@ -97,6 +97,7 @@
 			this.マニュアルMToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSeparator3 = new global::System.Windows.Forms.ToolStripSeparator();
 			this.バ\u30FCジョン情報AToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.UpdatesAToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.statusStrip1 = new global::System.Windows.Forms.StatusStrip();
 			this.toolStripStatusLabel1 = new global::System.Windows.Forms.ToolStripStatusLabel();
 			this.toolStripStatusLabel2 = new global::System.Windows.Forms.ToolStripStatusLabel();
@@ -347,6 +348,7 @@
 			{
 				this.マニュアルMToolStripMenuItem,
 				this.toolStripSeparator3,
+				this.UpdatesAToolStripMenuItem,
 				this.バ\u30FCジョン情報AToolStripMenuItem
 			});
 			this.ヘルプHToolStripMenuItem.Name = "ヘルプHToolStripMenuItem";
@@ -358,6 +360,11 @@
 			componentResourceManager.ApplyResources(this.バ\u30FCジョン情報AToolStripMenuItem, "バージョン情報AToolStripMenuItem");
 			this.バ\u30FCジョン情報AToolStripMenuItem.Name = "バージョン情報AToolStripMenuItem";
 			this.バ\u30FCジョン情報AToolStripMenuItem.Click += new global::System.EventHandler(this.バ\u30FCジョン情報AToolStripMenuItem_Click);
+
+			componentResourceManager.ApplyResources(this.UpdatesAToolStripMenuItem, "UpdatesAToolStripMenuItem");
+			this.UpdatesAToolStripMenuItem.Name = "UpdatesAToolStripMenuItem";
+			this.UpdatesAToolStripMenuItem.Click += new global::System.EventHandler(this.UpdatesAToolStripMenuItem_Click);
+
 			componentResourceManager.ApplyResources(this.statusStrip1, "statusStrip1");
 			this.statusStrip1.Items.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
@@ -522,6 +529,8 @@
 
 		// Token: 0x0400059E RID: 1438
 		global::System.Windows.Forms.ToolStripMenuItem バ\u30FCジョン情報AToolStripMenuItem;
+
+		global::System.Windows.Forms.ToolStripMenuItem UpdatesAToolStripMenuItem;
 
 		// Token: 0x0400059F RID: 1439
 		global::System.Windows.Forms.ToolStripSeparator toolStripSeparator4;

@@ -761,6 +761,18 @@
   <data name="バージョン情報AToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>184, 22</value>
   </data>
+  <data name="UpdatesAToolStripMenuItem.Text" xml:space="preserve">
+    <value>&amp;Check for updates...</value>
+  </data>
+    <data name="UpdatesAToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+    <value>184, 22</value>
+  </data>
+  <data name="&gt;&gt;UpdatesAToolStripMenuItem.Name" xml:space="preserve">
+    <value>UpdatesAToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;UpdatesAToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
   <data name="toolStripMenuItem6.Size" type="System.Drawing.Size, System.Drawing">
     <value>202, 22</value>
   </data>
