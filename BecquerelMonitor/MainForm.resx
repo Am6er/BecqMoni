@@ -237,7 +237,7 @@
     <value>BecqMoni old format (v0.93Beta or earlier)</value>
   </data>
   <data name="AtomSpectraStripMenuItem.Text" xml:space="preserve">
-    <value>Atom Spectra Android application format (*.txt) version 3</value>
+    <value>Atom Spectra Android format (*.txt) version 3</value>
   </data>
     <data name="AtomSpectraStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>326, 22</value>
@@ -258,6 +258,18 @@
     <value>N42StripMenuItem</value>
   </data>
   <data name="&gt;&gt;N42StripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="N42ExpStripMenuItem.Text" xml:space="preserve">
+    <value>N42 file</value>
+  </data>
+    <data name="N42ExpStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+    <value>326, 22</value>
+  </data>
+    <data name="&gt;&gt;N42ExpStripMenuItem.Name" xml:space="preserve">
+    <value>N42ExpStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;N42ExpStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;languageToolStripMenuItem.Name" xml:space="preserve">

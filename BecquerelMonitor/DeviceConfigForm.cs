@@ -366,14 +366,14 @@ namespace BecquerelMonitor
 				this.numericUpDown9.Text = polynomialEnergyCalibration.Coefficients[3].ToString();
             } else
             {
-				this.numericUpDown9.Text = "";
+				this.numericUpDown9.Text = "0";
 			}
 			if (polynomialEnergyCalibration.PolynomialOrder == 4)
             {
 				this.numericUpDown8.Text = polynomialEnergyCalibration.Coefficients[4].ToString();
             } else
             {
-				this.numericUpDown8.Text = "";
+				this.numericUpDown8.Text = "0";
 
 			}
 			this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString();
@@ -730,7 +730,7 @@ namespace BecquerelMonitor
 						} 
 						else
                         {
-							this.numericUpDown9.Text = "";
+							this.numericUpDown9.Text = "0";
 						}
 						if (polynomialEnergyCalibration.PolynomialOrder == 4)
 						{
@@ -738,7 +738,7 @@ namespace BecquerelMonitor
 						}
 						else
                         {
-							this.numericUpDown8.Text = "";
+							this.numericUpDown8.Text = "0";
 
 						}
 					}
@@ -776,8 +776,15 @@ namespace BecquerelMonitor
 					for (int i = 0; i < polynomialEnergyCalibration.Coefficients.Length; i++)
 					{
 						string result_str = BitConverter.DoubleToInt64Bits(polynomialEnergyCalibration.Coefficients[i]).ToString("X");
-						result_list.Add(result_str.Substring(result_str.Length / 2));
-						result_list.Add(result_str.Substring(0, result_str.Length / 2));
+						if (result_str == "0")
+                        {
+							result_list.Add("00000000");
+							result_list.Add("00000000");
+                        } else
+                        {
+							result_list.Add(result_str.Substring(result_str.Length / 2));
+							result_list.Add(result_str.Substring(0, result_str.Length / 2));
+						}
 					}
 
 					bool commands_accepted = true;
@@ -810,11 +817,11 @@ namespace BecquerelMonitor
                     {
 						for (int i = result_list.Count; i <= 9; i++)
                         {
-							device.sendCommand("-cal " + i + "FFFFFFFF");
+							device.sendCommand("-cal " + i + "0");
 							bool result = device.waitForAnswer("ok", 2000);
 							commands_accepted &= result;
 							System.Diagnostics.Trace.WriteLine("result = " + result);
-							status_msg = status_msg + "-cal " + i + "FFFFFFFF" + " -- result: " + result + Environment.NewLine;
+							status_msg = status_msg + "-cal " + i + "0" + " -- result: " + result + Environment.NewLine;
 						}
                     }
 					if (!runexist)
@@ -1070,6 +1077,10 @@ namespace BecquerelMonitor
 		void button1_Click(object sender, EventArgs e)
 		{
 			PolynomialEnergyCalibration polynomialEnergyCalibration = new PolynomialEnergyCalibration();
+			for (int i = 0; i < polynomialEnergyCalibration.Coefficients.Length; i++)
+			{
+				polynomialEnergyCalibration.Coefficients[i] = 0.0;
+			}
 			if (this.calibrationPoints.Count == 1)
 			{
 				int channel = this.calibrationPoints[0].Channel;
@@ -1084,6 +1095,7 @@ namespace BecquerelMonitor
 				polynomialEnergyCalibration.Coefficients[2] = 0.0;
 				polynomialEnergyCalibration.Coefficients[1] = num2;
 				polynomialEnergyCalibration.Coefficients[0] = num3;
+				polynomialEnergyCalibration.PolynomialOrder = 2;
 			}
 			else if (this.calibrationPoints.Count == 2)
 			{
@@ -1101,6 +1113,7 @@ namespace BecquerelMonitor
 				polynomialEnergyCalibration.Coefficients[2] = 0.0;
 				polynomialEnergyCalibration.Coefficients[1] = num6;
 				polynomialEnergyCalibration.Coefficients[0] = num7;
+				polynomialEnergyCalibration.PolynomialOrder = 2;
 			}
 			else
 			{
@@ -1132,6 +1145,7 @@ namespace BecquerelMonitor
 					polynomialEnergyCalibration.Coefficients[2] = matrix3[0];
 					polynomialEnergyCalibration.Coefficients[1] = matrix3[1];
 					polynomialEnergyCalibration.Coefficients[0] = matrix3[2];
+					polynomialEnergyCalibration.PolynomialOrder = 2;
 					goto IL_390;
 				}
 
@@ -1177,6 +1191,7 @@ namespace BecquerelMonitor
 					polynomialEnergyCalibration.Coefficients[2] = (double)matrix3[2];
 					polynomialEnergyCalibration.Coefficients[1] = (double)matrix3[3];
 					polynomialEnergyCalibration.Coefficients[0] = (double)matrix3[4];
+					polynomialEnergyCalibration.PolynomialOrder = 4;
 					if (!polynomialEnergyCalibration.CheckCalibration())
 					{
 						MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
@@ -1187,7 +1202,12 @@ namespace BecquerelMonitor
 
 				MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
 			}
-			IL_390:
+		IL_390:
+			this.numericUpDown1.Text = "0";
+			this.numericUpDown2.Text = "0";
+			this.numericUpDown7.Text = "0";
+			this.numericUpDown8.Text = "0";
+			this.numericUpDown9.Text = "0";
 			if (polynomialEnergyCalibration.PolynomialOrder >= 3)
 			{
 				this.numericUpDown9.Text = polynomialEnergyCalibration.Coefficients[3].ToString();

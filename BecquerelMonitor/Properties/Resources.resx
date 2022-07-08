@@ -3028,7 +3028,7 @@ http://xptable.sourceforge.net/</value>
   <data name="clear" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
-        vQAADr0BR/uQrQAAAEZJREFUOE9jGH7gPxTjAoTk4QqwKcInhwKwKcQmhhcga0DGJAGKNIMARQaga4Zh
+        vAAADrwBlbxySQAAAEZJREFUOE9jGH7gPxTjAoTk4QqwKcInhwKwKcQmhhcga0DGJAGKNIMARQaga4Zh
         ogA2DdjEsAJ8CvHJwQEhBQQNGHKAgQEA8tYzzfPQPqsAAAAASUVORK5CYII=
 </value>
   </data>
@@ -3115,7 +3115,7 @@ http://xptable.sourceforge.net/</value>
   <data name="start" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
-        vQAADr0BR/uQrQAAAEtJREFUOE/di8EKwCAMxfr/Pz13iCBpK8JOM5iLzYuLed63yvcZHk857/HIktU4
+        vAAADrwBlbxySQAAAEtJREFUOE/di8EKwCAMxfr/Pz13iCBpK8JOM5iLzYuLed63yvcZHk857/HIktU4
         7iTPOOwkzzjsJM847CSvcWzJ9ng05XzGp/GfiBihTZdpCrO9WQAAAABJRU5ErkJggg==
 </value>
   </data>
@@ -3497,7 +3497,7 @@ http://xptable.sourceforge.net/</value>
   <data name="stop" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
-        vQAADr0BR/uQrQAAAD5JREFUOE/dyrEJADAQxLDff+mkCqSQF3jBNeZmp/PtUUs6qyWd1ZLOaklntaSz
+        vAAADrwBlbxySQAAAD5JREFUOE/dyrEJADAQxLDff+mkCqSQF3jBNeZmp/PtUUs6qyWd1ZLOaklntaSz
         WtJZLemslnRWSzqr7TBzARehO8XpxDhYAAAAAElFTkSuQmCC
 </value>
   </data>
@@ -3896,5 +3896,8 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="N42FileFilter" xml:space="preserve">
     <value>N42 Files (*.N42)|*.N42|All Files (*.*)|*.*</value>
+  </data>
+  <data name="N42ExportDialogTitle" xml:space="preserve">
+    <value>Export N42 file</value>
   </data>
 </root>

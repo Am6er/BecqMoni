@@ -1705,6 +1705,15 @@ namespace BecquerelMonitor
 			}
 		}
 
+		void N42ExpStripMenuItem_Click(object sender, EventArgs e)
+		{
+			if (this.activeDocument != null)
+			{
+				this.documentManager.ExportDocumentN42(this.activeDocument);
+				this.UpdateAllView();
+			}
+		}
+
 		// Token: 0x06000A97 RID: 2711 RVA: 0x0003F5A8 File Offset: 0x0003D7A8
 		void ROIConfigManager_ROIConfigListChanged(object sender, EventArgs e)
 		{

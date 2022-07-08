@@ -494,6 +494,10 @@ namespace BecquerelMonitor
 		// Token: 0x06000831 RID: 2097 RVA: 0x0002E8C0 File Offset: 0x0002CAC0
 		void button7_Click(object sender, EventArgs e)
 		{
+			for (int i = 0; i < this.energyCalibration.Coefficients.Length; i++)
+            {
+				this.energyCalibration.Coefficients[i] = 0.0;
+            }
 			if (this.calibrationPoints.Count == 1)
 			{
 				int channel = this.calibrationPoints[0].Channel;
@@ -508,6 +512,7 @@ namespace BecquerelMonitor
 				this.energyCalibration.Coefficients[2] = 0.0;
 				this.energyCalibration.Coefficients[1] = num2;
 				this.energyCalibration.Coefficients[0] = num3;
+				this.energyCalibration.PolynomialOrder = 2;
 			}
 			else if (this.calibrationPoints.Count == 2)
 			{
@@ -525,6 +530,7 @@ namespace BecquerelMonitor
 				this.energyCalibration.Coefficients[2] = 0.0;
 				this.energyCalibration.Coefficients[1] = num6;
 				this.energyCalibration.Coefficients[0] = num7;
+				this.energyCalibration.PolynomialOrder = 2;
 			}
 			else
 			{
@@ -556,6 +562,7 @@ namespace BecquerelMonitor
 					this.energyCalibration.Coefficients[2] = matrix3[0];
 					this.energyCalibration.Coefficients[1] = matrix3[1];
 					this.energyCalibration.Coefficients[0] = matrix3[2];
+					this.energyCalibration.PolynomialOrder = 2;
 					goto IL_3B5;
 				}
 
@@ -601,6 +608,7 @@ namespace BecquerelMonitor
 					this.energyCalibration.Coefficients[2] = (double)matrix3[2];
 					this.energyCalibration.Coefficients[1] = (double)matrix3[3];
 					this.energyCalibration.Coefficients[0] = (double)matrix3[4];
+					this.energyCalibration.PolynomialOrder = 4;
 					if (!this.energyCalibration.CheckCalibration())
 					{
 						MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
@@ -612,6 +620,11 @@ namespace BecquerelMonitor
 				MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
 			}
 		IL_3B5:
+			this.numericUpDown1.Text = "0";
+			this.numericUpDown2.Text = "0";
+			this.numericUpDown3.Text = "0";
+			this.numericUpDown4.Text = "0";
+			this.numericUpDown5.Text = "0";
 			this.numericUpDown1.Text = this.energyCalibration.Coefficients[2].ToString();
 			this.numericUpDown2.Text = this.energyCalibration.Coefficients[1].ToString();
 			this.numericUpDown3.Text = this.energyCalibration.Coefficients[0].ToString();
