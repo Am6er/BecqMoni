@@ -32,8 +32,8 @@
     <MinimumRequiredVersion>2022.07.06.0</MinimumRequiredVersion>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
-    <ApplicationRevision>20</ApplicationRevision>
-    <ApplicationVersion>2022.07.07.20</ApplicationVersion>
+    <ApplicationRevision>2</ApplicationRevision>
+    <ApplicationVersion>2022.07.08.2</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -380,6 +380,15 @@
     <Compile Include="MenuStripEx.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="N42\ChannelData.cs" />
+    <Compile Include="N42\EnergyCalibration.cs" />
+    <Compile Include="N42\GrossCounts.cs" />
+    <Compile Include="N42\RadDetectorInformation.cs" />
+    <Compile Include="N42\RadInstrumentData.cs" />
+    <Compile Include="N42\RadInstrumentInformation.cs" />
+    <Compile Include="N42\RadInstrumentVersion.cs" />
+    <Compile Include="N42\RadMeasurement.cs" />
+    <Compile Include="N42\Spectrum.cs" />
     <Compile Include="NakedKingThermometerConfig.cs" />
     <Compile Include="NoneThermometerConfig.cs" />
     <Compile Include="NonlinearEnergyCalibration.cs" />

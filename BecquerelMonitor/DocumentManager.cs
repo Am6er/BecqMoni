@@ -5,6 +5,8 @@ using System.Text;
 using System.Windows.Forms;
 using System.Xml.Serialization;
 using BecquerelMonitor.Properties;
+using BecquerelMonitor.N42;
+using System.Xml;
 
 namespace BecquerelMonitor
 {
@@ -347,6 +349,7 @@ namespace BecquerelMonitor
 			docEnergySpectrum2.UpdateEnergySpectrum();
 			return docEnergySpectrum2;
 		}
+
 		public void ImportDocumentAtomSpectra(DocEnergySpectrum doc)
 		{
 			OpenFileDialog openFileDialog = new OpenFileDialog();
@@ -446,9 +449,6 @@ namespace BecquerelMonitor
 							MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
 						}
 
-						BecquerelMonitor.MainForm mf = (MainForm)MainForm.ActiveForm;
-						mf.UpdateAppTitle();
-						mf.UpdateEnergyCalibrationView();
 						doc.EnergySpectrumView.FitHorizontalScale();
 					}
 				}
@@ -460,6 +460,146 @@ namespace BecquerelMonitor
 				return;
 			}
 		}
+
+		public void ImportDocumentN42(DocEnergySpectrum doc)
+		{
+			OpenFileDialog openFileDialog = new OpenFileDialog();
+			openFileDialog.Title = Resources.ImportN42FileDialogTitle;
+			openFileDialog.Filter = Resources.N42FileFilter;
+			openFileDialog.FilterIndex = 1;
+			openFileDialog.RestoreDirectory = true;
+			if (openFileDialog.ShowDialog() != DialogResult.OK)
+			{
+				return;
+			}
+			string filename = openFileDialog.FileName;
+			GC.Collect();
+
+			EnergySpectrum energySpectrum = doc.ActiveResultData.EnergySpectrum;
+			energySpectrum.Initialize();
+			ResultDataStatus resultDataStatus = doc.ActiveResultData.ResultDataStatus;
+			SampleInfoData info = doc.ActiveResultData.SampleInfo;
+
+			try
+			{
+				Cursor.Current = Cursors.WaitCursor;
+				XmlSerializer ser = new XmlSerializer(typeof(RadInstrumentData));
+				RadInstrumentData radInstrumentData = new RadInstrumentData();
+				using (XmlReader reader = XmlReader.Create(filename))
+				{
+					radInstrumentData = (RadInstrumentData)ser.Deserialize(reader);
+				}
+				RadMeasurement radMeasurement = radInstrumentData.RadMeasurement[0];
+				energySpectrum.TotalPulseCount = 0;
+				try
+                {
+					energySpectrum.TotalPulseCount = int.Parse(radMeasurement.GrossCounts[0].TotalCounts);
+				} catch { }
+				energySpectrum.ValidPulseCount = energySpectrum.TotalPulseCount;
+				
+				string SpectrumName = filename.Substring(filename.LastIndexOf("\\")+1, filename.LastIndexOf(".") - filename.LastIndexOf("\\")-1);
+
+				doc.Filename = SpectrumName + ".xml";
+				doc.Text = SpectrumName;
+
+				info.Time = DateTime.Now;
+				try
+                {
+					info.Time = XmlConvert.ToDateTime(radMeasurement.StartDateTime, System.Xml.XmlDateTimeSerializationMode.RoundtripKind);
+				} catch {}
+				
+				info.Name = SpectrumName;
+				info.Note = "";
+				try
+                {
+					foreach (RadInstrumentInformation radIterator in radInstrumentData.RadInstrumentInformation)
+					{
+						info.Note = info.Note + radIterator.RadInstrumentManufacturerName + " - " + radIterator.RadInstrumentModelName + Environment.NewLine;
+						foreach (RadInstrumentVersion radInsIterator in radIterator.RadInstrumentVersion)
+                        {
+							info.Note = info.Note + radInsIterator.RadInstrumentComponentName + " - " + radInsIterator.RadInstrumentComponentVersion + Environment.NewLine;
+						}
+
+					}
+
+					foreach (RadDetectorInformation radDetIterator in radInstrumentData.RadDetectorInformation)
+                    {
+						info.Note = info.Note + radDetIterator.RadDetectorCategoryCode + " - " + radDetIterator.RadDetectorKindCode + Environment.NewLine;
+					}
+				}
+				catch 
+				{ }
+				N42.Spectrum n42Spectrum = radMeasurement.Spectrum[0];
+
+				int ElapsedTime = (int)XmlConvert.ToTimeSpan(n42Spectrum.LiveTimeDuration).TotalSeconds;
+				energySpectrum.MeasurementTime = ElapsedTime;
+				resultDataStatus.TotalTime = TimeSpan.FromSeconds(ElapsedTime);
+				resultDataStatus.ElapsedTime = TimeSpan.FromSeconds(ElapsedTime);
+				resultDataStatus.PresetTime = ElapsedTime;
+
+				string[] n42SpectrimCounts = n42Spectrum.ChannelData.Value.Replace("\n", string.Empty).Split(new string[] { " " }, StringSplitOptions.None);
+				n42SpectrimCounts = Array.FindAll(n42SpectrimCounts, isNotN42SpectrumValid);
+				int NumberOfChanels = n42SpectrimCounts.Length;
+
+				for (int i = 0; i < NumberOfChanels; i++)
+				{
+					energySpectrum.Spectrum[i] = int.Parse(n42SpectrimCounts[i]);
+				}
+
+				try
+                {
+					string[] n42CalibrationCoeff = radInstrumentData.EnergyCalibration[0].CoefficientValues.Replace("\n", string.Empty).Split(new string[] { " " }, StringSplitOptions.None);
+					n42CalibrationCoeff = Array.FindAll(n42CalibrationCoeff, isNotN42SpectrumValid);
+					int PolynomialOrder = n42CalibrationCoeff.Length - 1;
+
+					if (PolynomialOrder > 4)
+					{
+						throw new Exception("Unsupported calibration points number. Got polynom order = " + PolynomialOrder);
+					}
+
+					double[] coefficients = new double[PolynomialOrder + 1];
+
+					for (int i = 0; i < coefficients.Length; i++)
+					{
+						coefficients[i] = double.Parse(n42CalibrationCoeff[i]);
+					}
+					PolynomialEnergyCalibration energyCalibration = (PolynomialEnergyCalibration)energySpectrum.EnergyCalibration;
+					energyCalibration.PolynomialOrder = PolynomialOrder;
+					for (int i = 0; i < coefficients.Length; i++)
+					{
+						energyCalibration.Coefficients[i] = coefficients[i];
+					}
+
+					if (!energyCalibration.CheckCalibration())
+					{
+						MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
+					}
+				} catch 
+				{
+					MessageBox.Show("N42 EnergyBoundaryValues not supported. Using current calibration.");
+				}
+
+				doc.EnergySpectrumView.FitHorizontalScale();
+
+				Cursor.Current = Cursors.Default;
+			}
+			catch (Exception ex)
+			{
+				MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message, ex.StackTrace));
+				return;
+			}
+		}
+
+		private bool isNotN42SpectrumValid(string str)
+        {
+			if (str == "" || str == "\n")
+            {
+				return false;
+            } else
+            {
+				return true;
+            }
+        }
 
 		// Token: 0x06000272 RID: 626 RVA: 0x00009FD4 File Offset: 0x000081D4
 		public void CloseDocument(DocEnergySpectrum doc)

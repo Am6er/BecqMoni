@@ -832,6 +832,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Import N42 Spectrum File.
+        /// </summary>
+        internal static string ImportN42FileDialogTitle {
+            get {
+                return ResourceManager.GetString("ImportN42FileDialogTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Import Old Format (0.93Beta or earlier) Spectrum File.
         /// </summary>
         internal static string ImportOldFormatFileDialogTitle {
@@ -1131,6 +1140,15 @@ namespace BecquerelMonitor.Properties {
         internal static string MultipointCalibrationString {
             get {
                 return ResourceManager.GetString("MultipointCalibrationString", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to N42 Files (*.N42)|*.N42|All Files (*.*)|*.*.
+        /// </summary>
+        internal static string N42FileFilter {
+            get {
+                return ResourceManager.GetString("N42FileFilter", resourceCulture);
             }
         }
         

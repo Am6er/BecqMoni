@@ -1522,6 +1522,8 @@ namespace BecquerelMonitor
 			docEnergySpectrum.UpdateEnergySpectrum();
 			this.ShowMeasurementResult(true);
 			this.dcSpectrumListView.ShowSpectrumList(docEnergySpectrum);
+			this.UpdateApplicationTitle();
+			this.UpdateEnergyCalibrationView();
 		}
 
 		// Token: 0x06000A90 RID: 2704 RVA: 0x0003EFA0 File Offset: 0x0003D1A0
@@ -1690,6 +1692,15 @@ namespace BecquerelMonitor
 			if (this.activeDocument != null)
 			{
 				this.documentManager.ImportDocumentAtomSpectra(this.activeDocument);
+				this.UpdateAllView();
+			}
+		}
+
+		void N42StripMenuItem_Click(object sender, EventArgs e)
+		{
+			if (this.activeDocument != null)
+			{
+				this.documentManager.ImportDocumentN42(this.activeDocument);
 				this.UpdateAllView();
 			}
 		}

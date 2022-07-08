@@ -233,7 +233,7 @@
   <data name="BecqMoniLogo" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAMYAAAAiCAYAAAAETqbJAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAL
-        DQAACw0B7QfALAAAAAd0SU1FB9wKGhcuCi6HjGkAAA19SURBVHhe7ZsJrBbVFcfZ90WQRaAsGqTQskW2
+        DAAACwwBP0AiyAAAAAd0SU1FB9wKGhcuCi6HjGkAAA19SURBVHhe7ZsJrBbVFcfZ90WQRaAsGqTQskW2
         GrCxrBaVVVlEEYUKhIatQcpigECDTTQoa4FaW2opBBpAUDbRUBRbsLFlEUvCpriUfZF9uT3/8507nHu/
         mXnz3mtKgPkl//fdufeceTPfzLlz7r3zFUhJSUlJSUlJSUlJSUlJSUlJ+R9hIpDmlKTI95YTF0jHSJ+S
         /kDqRioou7gloeOP4iippJg5UP16tghBTG4qcihxFCV1If2G9A/SKdJVJWzjGr9Gqi+7zYLafkJaRNpP
@@ -3028,7 +3028,7 @@ http://xptable.sourceforge.net/</value>
   <data name="clear" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
-        vgAADr4B6kKxwAAAAEZJREFUOE9jGH7gPxTjAoTk4QqwKcInhwKwKcQmhhcga0DGJAGKNIMARQaga4Zh
+        vQAADr0BR/uQrQAAAEZJREFUOE9jGH7gPxTjAoTk4QqwKcInhwKwKcQmhhcga0DGJAGKNIMARQaga4Zh
         ogA2DdjEsAJ8CvHJwQEhBQQNGHKAgQEA8tYzzfPQPqsAAAAASUVORK5CYII=
 </value>
   </data>
@@ -3115,7 +3115,7 @@ http://xptable.sourceforge.net/</value>
   <data name="start" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
-        vgAADr4B6kKxwAAAAEtJREFUOE/di8EKwCAMxfr/Pz13iCBpK8JOM5iLzYuLed63yvcZHk857/HIktU4
+        vQAADr0BR/uQrQAAAEtJREFUOE/di8EKwCAMxfr/Pz13iCBpK8JOM5iLzYuLed63yvcZHk857/HIktU4
         7iTPOOwkzzjsJM847CSvcWzJ9ng05XzGp/GfiBihTZdpCrO9WQAAAABJRU5ErkJggg==
 </value>
   </data>
@@ -3273,7 +3273,7 @@ http://xptable.sourceforge.net/</value>
   <data name="ベクモニロゴ" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAMYAAAAiCAYAAAAETqbJAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAL
-        DQAACw0B7QfALAAAAAd0SU1FB9wKBwcmFKIEFzAAAA40SURBVHhe7ZwJrBXVGceVVRZlB9EqAWQHBVEE
+        DAAACwwBP0AiyAAAAAd0SU1FB9wKBwcmFKIEFzAAAA40SURBVHhe7ZwJrBXVGceVVRZlB9EqAWQHBVEE
         BFlKFIQENFgrjQsoKotC0RA1pVYNrcSi9AkWSQGbSBGMYAJ0ERURCYUCVlS0bLEKFncWARV4p///d78z
         npkz9zH3vrk+0ftL/tyzfN+ZuffNN3O24ZQiRYoUKVKkSJEiP3iMMXdAnzh6HVoOPaImRYr8uMDFb4Mi
         jmJwFDl5wcX7c2iDo0FadUJg+y/IlJSUmIYNG5rOnTubwYMHm7vvvpvFZL6aJkb9SlXHHB3XMipv9DAV
@@ -3497,7 +3497,7 @@ http://xptable.sourceforge.net/</value>
   <data name="stop" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
-        vgAADr4B6kKxwAAAAD5JREFUOE/dyrEJADAQxLDff+mkCqSQF3jBNeZmp/PtUUs6qyWd1ZLOaklntaSz
+        vQAADr0BR/uQrQAAAD5JREFUOE/dyrEJADAQxLDff+mkCqSQF3jBNeZmp/PtUUs6qyWd1ZLOaklntaSz
         WtJZLemslnRWSzqr7TBzARehO8XpxDhYAAAAAElFTkSuQmCC
 </value>
   </data>
@@ -3890,5 +3890,11 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="DeviceTypeAtomSpectraVCP" xml:space="preserve">
     <value>AtomSpectraVCP</value>
+  </data>
+  <data name="ImportN42FileDialogTitle" xml:space="preserve">
+    <value>Import N42 Spectrum File</value>
+  </data>
+  <data name="N42FileFilter" xml:space="preserve">
+    <value>N42 Files (*.N42)|*.N42|All Files (*.*)|*.*</value>
   </data>
 </root>

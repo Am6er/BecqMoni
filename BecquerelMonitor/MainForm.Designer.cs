@@ -51,6 +51,7 @@
 			this.インポ\u30FCトIToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.ベクモニ旧形式v093bToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.AtomSpectraStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.N42StripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.cSVFileToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.エクスポ\u30FCトEToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.cSVCToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
@@ -161,17 +162,21 @@
 			componentResourceManager.ApplyResources(this.インポ\u30FCトIToolStripMenuItem, "インポートIToolStripMenuItem");
 			this.インポ\u30FCトIToolStripMenuItem.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
-				this.cSVFileToolStripMenuItem,
 				this.AtomSpectraStripMenuItem,
+				this.N42StripMenuItem,
+				this.cSVFileToolStripMenuItem,
 				this.ベクモニ旧形式v093bToolStripMenuItem
 			});
 			this.インポ\u30FCトIToolStripMenuItem.Name = "インポートIToolStripMenuItem";
 			componentResourceManager.ApplyResources(this.ベクモニ旧形式v093bToolStripMenuItem, "ベクモニ旧形式v093bToolStripMenuItem");
 			componentResourceManager.ApplyResources(this.AtomSpectraStripMenuItem, "AtomSpectraStripMenuItem");
+			componentResourceManager.ApplyResources(this.N42StripMenuItem, "N42StripMenuItem");
 			this.ベクモニ旧形式v093bToolStripMenuItem.Name = "ベクモニ旧形式v093bToolStripMenuItem";
 			this.ベクモニ旧形式v093bToolStripMenuItem.Click += new global::System.EventHandler(this.ベクモニ旧形式v093bToolStripMenuItem_Click);
 			this.AtomSpectraStripMenuItem.Name = "AtomSpectraStripMenuItem";
 			this.AtomSpectraStripMenuItem.Click += new global::System.EventHandler(this.AtomSpectraStripMenuItem_Click);
+			this.N42StripMenuItem.Name = "N42StripMenuItem";
+			this.N42StripMenuItem.Click += new global::System.EventHandler(this.N42StripMenuItem_Click);
 			componentResourceManager.ApplyResources(this.cSVFileToolStripMenuItem, "cSVFileToolStripMenuItem");
 			this.cSVFileToolStripMenuItem.Name = "cSVFileToolStripMenuItem";
 			this.cSVFileToolStripMenuItem.Click += new global::System.EventHandler(this.cSVファイルCToolStripMenuItem_Click);
@@ -560,6 +565,8 @@
 		global::System.Windows.Forms.ToolStripMenuItem ベクモニ旧形式v093bToolStripMenuItem;
 
 		global::System.Windows.Forms.ToolStripMenuItem AtomSpectraStripMenuItem;
+
+		global::System.Windows.Forms.ToolStripMenuItem N42StripMenuItem;
 
 		// Token: 0x040005A8 RID: 1448
 		global::System.Windows.Forms.ToolStripMenuItem スペクトル一覧LToolStripMenuItem;
