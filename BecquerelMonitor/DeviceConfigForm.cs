@@ -716,6 +716,11 @@ namespace BecquerelMonitor
 							device.Dispose();
 							return;
 						}
+						this.numericUpDown1.Text = "0";
+						this.numericUpDown2.Text = "0";
+						this.numericUpDown7.Text = "0";
+						this.numericUpDown8.Text = "0";
+						this.numericUpDown9.Text = "0";
 						polynomialEnergyCalibration.PolynomialOrder = coeff_list.Count - 1;
 						polynomialEnergyCalibration.Coefficients = coeff_list.ToArray();
 						if (polynomialEnergyCalibration.PolynomialOrder >= 2)
@@ -727,19 +732,10 @@ namespace BecquerelMonitor
 						if (polynomialEnergyCalibration.PolynomialOrder >= 3)
 						{
 							this.numericUpDown9.Text = polynomialEnergyCalibration.Coefficients[3].ToString();
-						} 
-						else
-                        {
-							this.numericUpDown9.Text = "0";
 						}
 						if (polynomialEnergyCalibration.PolynomialOrder == 4)
 						{
 							this.numericUpDown8.Text = polynomialEnergyCalibration.Coefficients[4].ToString();
-						}
-						else
-                        {
-							this.numericUpDown8.Text = "0";
-
 						}
 					}
 					else
@@ -935,7 +931,7 @@ namespace BecquerelMonitor
 		// Token: 0x06000535 RID: 1333 RVA: 0x00021A04 File Offset: 0x0001FC04
 		void UpdateMultipointButtonState()
 		{
-			this.button1.Enabled = (this.calibrationPoints.Count > 0 && !this.channelPickupProcessing && this.multipointModified && this.calibrationPoints.Count != 4);
+			this.button1.Enabled = (this.calibrationPoints.Count > 0 && !this.channelPickupProcessing && this.multipointModified);
 			this.button8.Enabled = (this.calibrationPoints.Count < 5 && !this.channelPickupProcessing);
 			this.button9.Enabled = (this.calibrationPoints.Count > 0 && !this.channelPickupProcessing);
 			this.button11.Enabled = this.channelPickupProcessing;
@@ -1181,17 +1177,60 @@ namespace BecquerelMonitor
 						MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
 						return;
 					}
-					if (polynomialEnergyCalibration.PolynomialOrder == 2 || polynomialEnergyCalibration.PolynomialOrder == 3)
-                    {
-						polynomialEnergyCalibration.Coefficients = new double[5];
-						polynomialEnergyCalibration.PolynomialOrder = 4;
-                    }
+					polynomialEnergyCalibration.Coefficients = new double[5];
+					polynomialEnergyCalibration.PolynomialOrder = 4;
+                    
 					polynomialEnergyCalibration.Coefficients[4] = (double)matrix3[0];
 					polynomialEnergyCalibration.Coefficients[3] = (double)matrix3[1];
 					polynomialEnergyCalibration.Coefficients[2] = (double)matrix3[2];
 					polynomialEnergyCalibration.Coefficients[1] = (double)matrix3[3];
 					polynomialEnergyCalibration.Coefficients[0] = (double)matrix3[4];
 					polynomialEnergyCalibration.PolynomialOrder = 4;
+					if (!polynomialEnergyCalibration.CheckCalibration())
+					{
+						MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
+						return;
+					}
+					goto IL_390;
+				}
+
+				if (this.calibrationPoints.Count == 4)
+				{
+					int ch1 = this.calibrationPoints[0].Channel;
+					int ch2 = this.calibrationPoints[1].Channel;
+					int ch3 = this.calibrationPoints[2].Channel;
+					int ch4 = this.calibrationPoints[3].Channel;
+
+					Matrix<double> matrix = Matrix<double>.Build.DenseOfArray(new double[,] {
+						{ (double)Math.Pow(ch1,3), (double)Math.Pow(ch1,2), (double)ch1, 1.0 },
+						{ (double)Math.Pow(ch2,3), (double)Math.Pow(ch2,2), (double)ch2, 1.0 },
+						{ (double)Math.Pow(ch3,3), (double)Math.Pow(ch3,2), (double)ch3, 1.0 },
+						{ (double)Math.Pow(ch4,3), (double)Math.Pow(ch4,2), (double)ch4, 1.0 }
+					});
+					Vector<double> matrix2 = Vector<double>.Build.Dense(new double[] {
+						(double)this.calibrationPoints[0].Energy,
+						(double)this.calibrationPoints[1].Energy,
+						(double)this.calibrationPoints[2].Energy,
+						(double)this.calibrationPoints[3].Energy,
+					});
+					double[] matrix3;
+					try
+					{
+						matrix3 = matrix.Solve(matrix2).ToArray();
+					}
+					catch (Exception)
+					{
+						MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
+						return;
+					}
+					polynomialEnergyCalibration.Coefficients = new double[4];
+					polynomialEnergyCalibration.PolynomialOrder = 3;
+
+					polynomialEnergyCalibration.Coefficients[3] = (double)matrix3[0];
+					polynomialEnergyCalibration.Coefficients[2] = (double)matrix3[1];
+					polynomialEnergyCalibration.Coefficients[1] = (double)matrix3[2];
+					polynomialEnergyCalibration.Coefficients[0] = (double)matrix3[3];
+
 					if (!polynomialEnergyCalibration.CheckCalibration())
 					{
 						MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
