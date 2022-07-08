@@ -1144,6 +1144,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Export N42 file.
+        /// </summary>
+        internal static string N42ExportDialogTitle {
+            get {
+                return ResourceManager.GetString("N42ExportDialogTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to N42 Files (*.N42)|*.N42|All Files (*.*)|*.*.
         /// </summary>
         internal static string N42FileFilter {
