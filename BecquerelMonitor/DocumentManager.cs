@@ -623,7 +623,9 @@ namespace BecquerelMonitor
 				N42.EnergyCalibration radEnergyCalibration = new N42.EnergyCalibration();
 				RadMeasurement radMeasurement = new RadMeasurement();
 				GrossCounts grossCounts = new GrossCounts();
+				GrossCounts grossCountsBg = new GrossCounts();
 				N42.Spectrum radSpectrum = new N42.Spectrum();
+				N42.Spectrum radSpectrumBg = new N42.Spectrum();
 
 				radInstrumentInformation.RadInstrumentManufacturerName = "Unknown";
 				radInstrumentInformation.RadInstrumentModelName = "Unknown";
@@ -656,7 +658,7 @@ namespace BecquerelMonitor
 
 				PolynomialEnergyCalibration polynomialEnergyCalibration = (PolynomialEnergyCalibration)doc.ActiveResultData.EnergySpectrum.EnergyCalibration;
 				radEnergyCalibration.CoefficientValues = "";
-				for (int i = 0; i < polynomialEnergyCalibration.PolynomialOrder; i++)
+				for (int i = 0; i < polynomialEnergyCalibration.PolynomialOrder + 1; i++)
                 {
 					radEnergyCalibration.CoefficientValues = radEnergyCalibration.CoefficientValues + polynomialEnergyCalibration.Coefficients[i].ToString() + " ";
 
@@ -668,7 +670,7 @@ namespace BecquerelMonitor
 
 				radSpectrum.ChannelData = new ChannelData();
 				radSpectrum.ChannelData.Value = "";
-				radSpectrum.id = "SpectrumData";
+				radSpectrum.id = "Foreground";
 				radSpectrum.radDetectorInformationReference = "Detector";
 				radSpectrum.energyCalibrationReference = "SpectrumCalibration";
 				radSpectrum.ChannelData.compressionCode = "None";
@@ -677,21 +679,61 @@ namespace BecquerelMonitor
 					radSpectrum.ChannelData.Value = radSpectrum.ChannelData.Value + doc.ActiveResultData.EnergySpectrum.Spectrum[i].ToString() + " ";
 
 				}
-				radSpectrum.LiveTimeDuration = "PT" + doc.ActiveResultData.PresetTime + ".00S";
-				radMeasurement.Spectrum = new N42.Spectrum[1];
+				radSpectrum.LiveTimeDuration = "PT" + doc.ActiveResultData.EnergySpectrum.MeasurementTime + "S";
+
+
+				if (doc.ActiveResultData.BackgroundEnergySpectrum != null)
+				{
+					radMeasurement.Spectrum = new N42.Spectrum[2];
+					radMeasurement.GrossCounts = new GrossCounts[2];
+
+				} else
+                {
+					radMeasurement.Spectrum = new N42.Spectrum[1];
+					radMeasurement.GrossCounts = new GrossCounts[1];
+				}
+
+
 				radMeasurement.Spectrum[0] = new N42.Spectrum();
 				radMeasurement.Spectrum[0] = radSpectrum;
 				radMeasurement.RealTimeDuration = radSpectrum.LiveTimeDuration;
 				grossCounts.TotalCounts = doc.ActiveResultData.EnergySpectrum.TotalPulseCount.ToString();
-				grossCounts.id = "GrossForeground";
+				grossCounts.id = "Foreground";
 				grossCounts.radDetectorInformationReference = "Detector";
-				radMeasurement.GrossCounts = new GrossCounts[1];
+				
 				radMeasurement.GrossCounts[0] = new GrossCounts();
 				radMeasurement.GrossCounts[0] = grossCounts;
 				radMeasurement.StartDateTime = doc.ActiveResultData.StartTime.ToString();
 				radMeasurement.id = "SpectrumMeasurement";
+
+				if (doc.ActiveResultData.BackgroundEnergySpectrum != null)
+                {
+					radSpectrumBg.ChannelData = new ChannelData();
+					radSpectrumBg.ChannelData.Value = "";
+					radSpectrumBg.id = "Background";
+					radSpectrumBg.radDetectorInformationReference = "Detector";
+					radSpectrumBg.energyCalibrationReference = "SpectrumCalibration";
+					radSpectrumBg.ChannelData.compressionCode = "None";
+					for (int i = 0; i < doc.ActiveResultData.BackgroundEnergySpectrum.Spectrum.Length; i++)
+					{
+						radSpectrumBg.ChannelData.Value = radSpectrumBg.ChannelData.Value + doc.ActiveResultData.BackgroundEnergySpectrum.Spectrum[i].ToString() + " ";
+
+					}
+					radSpectrumBg.LiveTimeDuration = "PT" + doc.ActiveResultData.BackgroundEnergySpectrum.MeasurementTime + "S";
+
+					radMeasurement.Spectrum[1] = new N42.Spectrum();
+					radMeasurement.Spectrum[1] = radSpectrumBg;
+					grossCountsBg.TotalCounts = doc.ActiveResultData.BackgroundEnergySpectrum.TotalPulseCount.ToString();
+					grossCountsBg.id = "Background";
+					grossCountsBg.radDetectorInformationReference = "Detector";
+
+					radMeasurement.GrossCounts[1] = new GrossCounts();
+					radMeasurement.GrossCounts[1] = grossCountsBg;
+				}
+
 				radInstrumentData.RadMeasurement = new RadMeasurement[1];
 				radInstrumentData.RadMeasurement[0] = radMeasurement;
+
 
 				using (var writer = new System.IO.StreamWriter(fileName))
 				{
