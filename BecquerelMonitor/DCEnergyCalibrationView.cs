@@ -40,35 +40,31 @@ namespace BecquerelMonitor
 		// Token: 0x06000816 RID: 2070 RVA: 0x0002DD8C File Offset: 0x0002BF8C
 		public void SetEnergyCalibration(EnergyCalibration energyCalibration, EnergyCalibration defaultEnergyCalibration)
 		{
+			this.numericUpDown1.Text = "0";
+			this.numericUpDown2.Text = "0";
+			this.numericUpDown3.Text = "0";
+			this.numericUpDown4.Text = "0";
+			this.numericUpDown5.Text = "0";
+
+
 			this.energyCalibration = (PolynomialEnergyCalibration)energyCalibration.Clone();
 			this.defaultEnergyCalibration = (PolynomialEnergyCalibration)defaultEnergyCalibration.Clone();
 			this.formLoading = true;
 			this.numericUpDown3.Text = this.energyCalibration.Coefficients[0].ToString();
 			this.numericUpDown2.Text = this.energyCalibration.Coefficients[1].ToString();
+
+
 			if (this.energyCalibration.PolynomialOrder >= 2)
 			{
 				this.numericUpDown1.Text = this.energyCalibration.Coefficients[2].ToString();
-			}
-			else
-			{
-				this.numericUpDown1.Text = "";
 			}
 			if (this.energyCalibration.PolynomialOrder >= 3)
 			{
 				this.numericUpDown5.Text = this.energyCalibration.Coefficients[3].ToString();
 			}
-			else
-			{
-				this.numericUpDown5.Text = "";
-			}
 			if (this.energyCalibration.PolynomialOrder == 4)
 			{
 				this.numericUpDown4.Text = this.energyCalibration.Coefficients[4].ToString();
-			}
-			else
-			{
-				this.numericUpDown5.Text = "";
-				this.numericUpDown4.Text = "";
 			}
 			this.formLoading = false;
 			this.calibrationPoints.Clear();
@@ -354,7 +350,7 @@ namespace BecquerelMonitor
 		// Token: 0x06000829 RID: 2089 RVA: 0x0002E478 File Offset: 0x0002C678
 		void UpdateMultipointButtonState()
 		{
-			this.button7.Enabled = (this.calibrationPoints.Count > 0 && !this.channelPickupProcessing && this.multipointModified && this.calibrationPoints.Count != 4);
+			this.button7.Enabled = (this.calibrationPoints.Count > 0 && !this.channelPickupProcessing && this.multipointModified);
 			this.button8.Enabled = (this.calibrationPoints.Count < 5 && !this.channelPickupProcessing);
 			this.button9.Enabled = (this.calibrationPoints.Count > 0 && !this.channelPickupProcessing);
 			this.button11.Enabled = this.channelPickupProcessing;
@@ -563,6 +559,51 @@ namespace BecquerelMonitor
 					this.energyCalibration.Coefficients[1] = matrix3[1];
 					this.energyCalibration.Coefficients[0] = matrix3[2];
 					this.energyCalibration.PolynomialOrder = 2;
+					goto IL_3B5;
+				}
+
+				if (this.calibrationPoints.Count == 4)
+				{
+					int ch1 = this.calibrationPoints[0].Channel;
+					int ch2 = this.calibrationPoints[1].Channel;
+					int ch3 = this.calibrationPoints[2].Channel;
+					int ch4 = this.calibrationPoints[3].Channel;
+
+					Matrix<double> matrix = Matrix<double>.Build.DenseOfArray(new double[,] {
+						{ (double)Math.Pow(ch1,3), (double)Math.Pow(ch1,2), (double)ch1, 1.0 },
+						{ (double)Math.Pow(ch2,3), (double)Math.Pow(ch2,2), (double)ch2, 1.0 },
+						{ (double)Math.Pow(ch3,3), (double)Math.Pow(ch3,2), (double)ch3, 1.0 },
+						{ (double)Math.Pow(ch4,3), (double)Math.Pow(ch4,2), (double)ch4, 1.0 }
+					});
+					Vector<double> matrix2 = Vector<double>.Build.Dense(new double[] {
+						(double)this.calibrationPoints[0].Energy,
+						(double)this.calibrationPoints[1].Energy,
+						(double)this.calibrationPoints[2].Energy,
+						(double)this.calibrationPoints[3].Energy
+					});
+					double[] matrix3;
+					try
+					{
+						matrix3 = matrix.Solve(matrix2).ToArray();
+					}
+					catch (Exception)
+					{
+						MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
+						return;
+					}
+					this.energyCalibration.Coefficients = new double[4];
+					this.energyCalibration.PolynomialOrder = 3;
+
+					this.energyCalibration.Coefficients[3] = (double)matrix3[0];
+					this.energyCalibration.Coefficients[2] = (double)matrix3[1];
+					this.energyCalibration.Coefficients[1] = (double)matrix3[2];
+					this.energyCalibration.Coefficients[0] = (double)matrix3[3];
+
+					if (!this.energyCalibration.CheckCalibration())
+					{
+						MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
+						return;
+					}
 					goto IL_3B5;
 				}
 
