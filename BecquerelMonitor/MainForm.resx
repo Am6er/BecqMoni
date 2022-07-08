@@ -248,6 +248,18 @@
   <data name="&gt;&gt;AtomSpectraStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
+  <data name="N42StripMenuItem.Text" xml:space="preserve">
+    <value>N42 file format</value>
+  </data>
+    <data name="N42StripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+    <value>326, 22</value>
+  </data>
+    <data name="&gt;&gt;N42StripMenuItem.Name" xml:space="preserve">
+    <value>N42StripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;N42StripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
   <data name="&gt;&gt;languageToolStripMenuItem.Name" xml:space="preserve">
     <value>languageToolStripMenuItem</value>
   </data>
