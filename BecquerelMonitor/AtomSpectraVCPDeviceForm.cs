@@ -290,7 +290,8 @@ namespace BecquerelMonitor
                         device.setPort(comPortsBox.SelectedItem.ToString());
                     }
                     device.sendCommand(this.CommandLineIn.Text);
-                    this.CommandLineOut.Text = device.getCommandOutput(2000);
+                    this.CommandLineOut.Text = ">> " + this.CommandLineIn.Text + Environment.NewLine
+                        + device.getCommandOutput(2000) + Environment.NewLine + this.CommandLineOut.Text;
                     if (!runexist)
                     {
                         device.Dispose();
@@ -300,7 +301,7 @@ namespace BecquerelMonitor
                 {
                     
                 }
-                this.CommandLineIn.Text = "";
+                //this.CommandLineIn.Text = "";
                 e.SuppressKeyPress = true;
             }
         }
