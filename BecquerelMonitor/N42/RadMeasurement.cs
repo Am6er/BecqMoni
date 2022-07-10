@@ -1,4 +1,6 @@
-﻿namespace BecquerelMonitor.N42
+﻿using System.Collections.Generic;
+
+namespace BecquerelMonitor.N42
 {
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("xsd", "4.8.3928.0")]
@@ -9,17 +11,25 @@
     public partial class RadMeasurement
     {
 
-        private string measurementClassCodeField;
+        private string measurementClassCodeField; //Foreground or Background
 
-        private string startDateTimeField;
+        private string startDateTimeField; //2022-06-18T12:04:06.184+03:00
 
-        private string realTimeDurationField;
+        private string realTimeDurationField; //PT6264.00S
 
         private Spectrum[] spectrumField;
 
         private GrossCounts[] grossCountsField;
 
-        private string idField;
+        private string idField; // SpectrumMeasurement or BackgroundMeasurement
+
+        public RadMeasurement()
+        {
+            this.measurementClassCodeField = "";
+            this.startDateTimeField = "";
+            this.realTimeDurationField = "";
+            this.idField = "someMeasurement";
+        }
 
         /// <remarks/>
         public string MeasurementClassCode

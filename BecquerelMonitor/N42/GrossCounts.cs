@@ -15,6 +15,13 @@
 
         private string radDetectorInformationReferenceField;
 
+        public GrossCounts()
+        {
+            this.totalCountsField = "0";
+            this.idField = "Grosssome";
+            this.radDetectorInformationReferenceField = "Detector";
+        }
+
         /// <remarks/>
         public string TotalCounts
         {

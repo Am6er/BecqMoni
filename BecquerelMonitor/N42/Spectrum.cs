@@ -1,4 +1,6 @@
-﻿namespace BecquerelMonitor.N42
+﻿using System;
+
+namespace BecquerelMonitor.N42
 {
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("xsd", "4.8.3928.0")]
@@ -9,7 +11,7 @@
     public partial class Spectrum
     {
 
-        private string liveTimeDurationField;
+        private string liveTimeDurationField; //PT6264.00S
 
         private ChannelData channelDataField;
 
@@ -18,6 +20,15 @@
         private string radDetectorInformationReferenceField;
 
         private string energyCalibrationReferenceField;
+
+        public Spectrum()
+        {
+            this.liveTimeDurationField = "";
+            this.channelDataField = new ChannelData();
+            this.idField = "someData";
+            this.radDetectorInformationReferenceField = "Detector";
+        }
+
 
         /// <remarks/>
         public string LiveTimeDuration
