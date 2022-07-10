@@ -13,6 +13,12 @@
 
         private string radInstrumentComponentVersionField;
 
+        public RadInstrumentVersion()
+        {
+            this.radInstrumentComponentVersionField = "";
+            this.radInstrumentComponentNameField = "";
+        }
+
         /// <remarks/>
         public string RadInstrumentComponentName
         {

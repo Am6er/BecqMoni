@@ -15,6 +15,13 @@
 
         private string idField;
 
+        public RadDetectorInformation()
+        {
+            this.radDetectorKindCodeField = "Unknown";
+            this.radDetectorCategoryCodeField = "Gamma";
+            this.idField = "Detector";
+        }
+
         /// <remarks/>
         public string RadDetectorCategoryCode
         {

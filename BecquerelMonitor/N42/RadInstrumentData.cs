@@ -1,4 +1,7 @@
-﻿namespace BecquerelMonitor.N42
+﻿using System.Collections.Generic;
+using System;
+
+namespace BecquerelMonitor.N42
 {
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("xsd", "4.8.3928.0")]
@@ -19,6 +22,11 @@
         private RadMeasurement[] radMeasurementField;
 
         private string n42DocUUIDField;
+
+        public RadInstrumentData()
+        {
+            this.n42DocUUIDField = Guid.NewGuid().ToString();
+        }
 
         /// <remarks/>
         [System.Xml.Serialization.XmlElementAttribute("RadInstrumentInformation")]
