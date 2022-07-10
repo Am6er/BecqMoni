@@ -32,8 +32,8 @@
     <MinimumRequiredVersion>2022.07.06.0</MinimumRequiredVersion>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
-    <ApplicationRevision>0</ApplicationRevision>
-    <ApplicationVersion>2022.07.10.0</ApplicationVersion>
+    <ApplicationRevision>2</ApplicationRevision>
+    <ApplicationVersion>2022.07.10.2</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -550,6 +550,7 @@
       <DependentUpon>ToolWindow.cs</DependentUpon>
     </Compile>
     <Compile Include="USBThermometerConfig.cs" />
+    <Compile Include="Hash\Crc32.cs" />
     <Compile Include="VerticalFittingMode.cs" />
     <Compile Include="VerticalScaleType.cs" />
     <Compile Include="VerticalUnit.cs" />
