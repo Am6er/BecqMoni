@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.IO;
+using System.Text;
 using System.Windows.Forms;
 using BecquerelMonitor.Properties;
 using MathNet.Numerics.LinearAlgebra;
@@ -10,6 +11,7 @@ using XPTable.Editors;
 using XPTable.Events;
 using XPTable.Models;
 using XPTable.Renderers;
+using BecquerelMonitor.Hash;
 
 namespace BecquerelMonitor
 {
@@ -694,11 +696,26 @@ namespace BecquerelMonitor
 					string[] CalibrationCoefficients = new string[5];
 					if (result != null)
 					{
-						CalibrationCoefficients[0] = result_arr[1] + result_arr[0];
-						CalibrationCoefficients[1] = result_arr[3] + result_arr[2];
-						CalibrationCoefficients[2] = result_arr[5] + result_arr[4];
-						CalibrationCoefficients[3] = result_arr[7] + result_arr[6];
-						CalibrationCoefficients[4] = result_arr[9] + result_arr[8];
+						CalibrationCoefficients[0] = result_arr[0] + result_arr[1];
+						CalibrationCoefficients[1] = result_arr[2] + result_arr[3];
+						CalibrationCoefficients[2] = result_arr[4] + result_arr[5];
+						CalibrationCoefficients[3] = result_arr[6] + result_arr[7];
+						CalibrationCoefficients[4] = result_arr[8] + result_arr[9];
+
+						string result_str = "";
+						for (int i = 0; i < 10; i++)
+                        {
+							result_str = result_str + result_arr[i];
+						}
+						
+						byte[] bytes = Encoding.ASCII.GetBytes(result_str);
+						uint crc32 = Crc32.Compute(bytes);
+
+						if (uint.Parse(result_arr[10], System.Globalization.NumberStyles.AllowHexSpecifier) != crc32)
+                        {
+							MessageBox.Show("Incrorrect Crc32 checksum! Possible borken coefficients. Try to upload them again.");
+							return;
+                        }
 
 						PolynomialEnergyCalibration polynomialEnergyCalibration = (PolynomialEnergyCalibration)this.activeDeviceConfig.EnergyCalibration;
 						List<double> coeff_list = new List<double>();
@@ -778,10 +795,29 @@ namespace BecquerelMonitor
 							result_list.Add("00000000");
                         } else
                         {
-							result_list.Add(result_str.Substring(result_str.Length / 2));
 							result_list.Add(result_str.Substring(0, result_str.Length / 2));
+							result_list.Add(result_str.Substring(result_str.Length / 2));
 						}
 					}
+
+					if (result_list.Count < 9)
+                    {
+						for (int i = result_list.Count; i <= 9; i++)
+						{
+							result_list.Add("00000000");
+						}
+					}
+
+					string result_string = "";
+					for (int i = 0; i < 10; i++)
+					{
+						result_string = result_string + result_list[i];
+					}
+
+					byte[] bytes = Encoding.ASCII.GetBytes(result_string);
+					uint crc32 = Crc32.Compute(bytes);
+
+					result_list.Add(crc32.ToString("X"));
 
 					bool commands_accepted = true;
 					System.Diagnostics.Trace.WriteLine("commands_accepted = " + commands_accepted);
@@ -809,17 +845,6 @@ namespace BecquerelMonitor
 						System.Diagnostics.Trace.WriteLine("result = " + result);
 						status_msg = status_msg + "-cal " + i + " " + result_list[i] + " -- result: " + result + Environment.NewLine;
 					}
-					if (result_list.Count < 9)
-                    {
-						for (int i = result_list.Count; i <= 9; i++)
-                        {
-							device.sendCommand("-cal " + i + "0");
-							bool result = device.waitForAnswer("ok", 2000);
-							commands_accepted &= result;
-							System.Diagnostics.Trace.WriteLine("result = " + result);
-							status_msg = status_msg + "-cal " + i + "0" + " -- result: " + result + Environment.NewLine;
-						}
-                    }
 					if (!runexist)
 					{
 						device.Dispose();
