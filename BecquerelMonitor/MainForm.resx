@@ -731,6 +731,18 @@
   <data name="toolStripSeparator7.Size" type="System.Drawing.Size, System.Drawing">
     <value>187, 6</value>
   </data>
+  <data name="OpenConfigNToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+    <value>240, 22</value>
+  </data>
+  <data name="OpenConfigNToolStripMenuItem.Text" xml:space="preserve">
+    <value>Open config dir in Explorer...</value>
+  </data>
+  <data name="&gt;&gt;OpenConfigNToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;OpenConfigNToolStripMenuItem.Name" xml:space="preserve">
+    <value>OpenConfigNToolStripMenuItem</value>
+  </data>
   <data name="データを名前を付けて保存RToolStripMenuItem.Text" xml:space="preserve">
     <value>Save &amp;As...</value>
   </data>

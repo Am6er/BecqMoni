@@ -86,13 +86,13 @@ namespace BecquerelMonitor
 		}
 
 		// Token: 0x040006B4 RID: 1716
-		int polynomialOrder = 5;
+		int polynomialOrder = 1;
 
 		// Token: 0x040006B5 RID: 1717
-		int windowSize = 21;
+		int windowSize = 35;
 
 		// Token: 0x040006B6 RID: 1718
-		double threshold = 10.0;
+		double threshold = 1.0;
 
 		// Token: 0x040006B7 RID: 1719
 		double tolerance = 10.0;
