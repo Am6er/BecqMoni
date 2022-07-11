@@ -83,7 +83,7 @@ namespace BecquerelMonitor
 		}
 
 		// Token: 0x06000A47 RID: 2631 RVA: 0x0003C5C8 File Offset: 0x0003A7C8
-		public MainForm()
+		public MainForm(string[] args)
 		{
             originalContext = SynchronizationContext.Current;
 			string directoryName = Path.GetDirectoryName(Application.ExecutablePath);
@@ -143,6 +143,10 @@ namespace BecquerelMonitor
 			this.startupForm.MessageText = BecquerelMonitor.Properties.Resources.InitializingMessage;
 			this.startupForm.Show();
 			this.startupForm.Refresh();
+			if (args != null && args.Length == 1)
+            {
+				this.OpenFileName = args[0];
+            }
 		}
 
 		// Token: 0x06000A48 RID: 2632 RVA: 0x0003C778 File Offset: 0x0003A978
@@ -214,6 +218,11 @@ namespace BecquerelMonitor
 			{
 				docEnergySpectrum.SetDefaultHorizontalScale();
 			}
+
+			if (OpenFileName != null)
+            {
+				this.OpenExistingDocument(this.OpenFileName);
+            }
 		}
 
 		// Token: 0x06000A49 RID: 2633 RVA: 0x0003CA98 File Offset: 0x0003AC98
@@ -2157,5 +2166,6 @@ namespace BecquerelMonitor
 
 		string userDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni";
 		string userDirectoryConfig = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\config";
+		string OpenFileName;
 	}
 }
