@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Windows.Forms;
 using System.Xml;
 
@@ -147,7 +148,7 @@ namespace BecquerelMonitor.N42
         {
             int SpectrumCount = rad.RadMeasurement.Length;
 
-            string SpectrumName = filename.Substring(filename.LastIndexOf("\\") + 1, filename.LastIndexOf(".") - filename.LastIndexOf("\\") - 1);
+            string SpectrumName = Path.GetFileNameWithoutExtension(filename);
             doc.Filename = SpectrumName + ".xml";
             doc.Text = SpectrumName;
 

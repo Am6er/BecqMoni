@@ -497,7 +497,7 @@ namespace BecquerelMonitor
 				} catch { }
 				energySpectrum.ValidPulseCount = energySpectrum.TotalPulseCount;
 				
-				string SpectrumName = filename.Substring(filename.LastIndexOf("\\")+1, filename.LastIndexOf(".") - filename.LastIndexOf("\\")-1);
+				string SpectrumName = Path.GetFileNameWithoutExtension(filename);
 
 				doc.Filename = SpectrumName + ".xml";
 				doc.Text = SpectrumName;

@@ -23,17 +23,17 @@
     <UpdateInterval>7</UpdateInterval>
     <UpdateIntervalUnits>Days</UpdateIntervalUnits>
     <UpdatePeriodically>false</UpdatePeriodically>
-    <UpdateRequired>false</UpdateRequired>
+    <UpdateRequired>true</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
     <InstallUrl>https://amba.cloud/becqmoni/</InstallUrl>
-    <SupportUrl>https://amba.cloud/becqmoni/</SupportUrl>
+    <SupportUrl>https://t.me/software_kbradar</SupportUrl>
     <ProductName>BecqMoni</ProductName>
     <PublisherName>Amber</PublisherName>
-    <MinimumRequiredVersion>2022.07.06.0</MinimumRequiredVersion>
+    <MinimumRequiredVersion>2022.07.08.7</MinimumRequiredVersion>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
-    <ApplicationRevision>1</ApplicationRevision>
-    <ApplicationVersion>2022.07.11.1</ApplicationVersion>
+    <ApplicationRevision>4</ApplicationRevision>
+    <ApplicationVersion>2022.07.11.4</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -888,6 +888,14 @@
       <IncludeHash>True</IncludeHash>
       <FileType>File</FileType>
     </PublishFile>
+  </ItemGroup>
+  <ItemGroup>
+    <FileAssociation Include=".xml">
+      <Visible>False</Visible>
+      <Description>BecqMoni Spectrum</Description>
+      <Progid>BecqMoni</Progid>
+      <DefaultIcon>logo_atom.ico</DefaultIcon>
+    </FileAssociation>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
