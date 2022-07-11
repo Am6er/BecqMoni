@@ -32,8 +32,8 @@
     <MinimumRequiredVersion>2022.07.06.0</MinimumRequiredVersion>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
-    <ApplicationRevision>2</ApplicationRevision>
-    <ApplicationVersion>2022.07.10.2</ApplicationVersion>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>2022.07.11.0</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>

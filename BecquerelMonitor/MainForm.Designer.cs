@@ -93,6 +93,7 @@
 			this.デバイス構成の編集DToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.rOI定義RToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.核種定義の編集NToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.OpenConfigNToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSeparator5 = new global::System.Windows.Forms.ToolStripSeparator();
 			this.基本設定BToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.ヘルプHToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
@@ -335,6 +336,7 @@
 				this.デバイス構成の編集DToolStripMenuItem,
 				this.rOI定義RToolStripMenuItem,
 				this.核種定義の編集NToolStripMenuItem,
+				this.OpenConfigNToolStripMenuItem,
 				this.toolStripSeparator5,
 				this.基本設定BToolStripMenuItem
 			});
@@ -348,6 +350,9 @@
 			componentResourceManager.ApplyResources(this.核種定義の編集NToolStripMenuItem, "核種定義の編集NToolStripMenuItem");
 			this.核種定義の編集NToolStripMenuItem.Name = "核種定義の編集NToolStripMenuItem";
 			this.核種定義の編集NToolStripMenuItem.Click += new global::System.EventHandler(this.核種定義の編集NToolStripMenuItem_Click);
+			componentResourceManager.ApplyResources(this.OpenConfigNToolStripMenuItem, "OpenConfigNToolStripMenuItem");
+			this.OpenConfigNToolStripMenuItem.Name = "OpenConfigNToolStripMenuItem";
+			this.OpenConfigNToolStripMenuItem.Click += new global::System.EventHandler(this.OpenConfigNToolStripMenuItem_Click);
 			componentResourceManager.ApplyResources(this.toolStripSeparator5, "toolStripSeparator5");
 			this.toolStripSeparator5.Name = "toolStripSeparator5";
 			componentResourceManager.ApplyResources(this.基本設定BToolStripMenuItem, "基本設定BToolStripMenuItem");
@@ -613,6 +618,8 @@
 
 		// Token: 0x040005B4 RID: 1460
 		global::System.Windows.Forms.ToolStripMenuItem 核種定義の編集NToolStripMenuItem;
+
+		global::System.Windows.Forms.ToolStripMenuItem OpenConfigNToolStripMenuItem;
 
 		// Token: 0x040005B5 RID: 1461
 		global::System.Windows.Forms.ToolStripMenuItem fWHM用ToolStripMenuItem;

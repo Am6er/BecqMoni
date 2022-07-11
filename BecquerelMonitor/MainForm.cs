@@ -990,6 +990,11 @@ namespace BecquerelMonitor
 			this.ShowNuclideDefinitionForm();
 		}
 
+		void OpenConfigNToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			Process.Start("explorer.exe", userDirectoryConfig);
+		}
+
 		// Token: 0x06000A72 RID: 2674 RVA: 0x0003E23C File Offset: 0x0003C43C
 		public NuclideDefinitionForm ShowNuclideDefinitionForm()
 		{
