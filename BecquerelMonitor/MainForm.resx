@@ -438,6 +438,12 @@
   <data name="測定開始SToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Start Measurement</value>
   </data>
+  <data name="測定開始SToolStripMenuItem.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
+    <value>Ctrl+M</value>
+  </data>
+  <data name="測定停止TToolStripMenuItem.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
+    <value>Ctrl+P</value>
+  </data>
   <data name="測定開始SToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>190, 22</value>
   </data>
