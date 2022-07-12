@@ -327,12 +327,6 @@
       <DesignTime>True</DesignTime>
     </Compile>
     <Compile Include="EnergySpectrum_097b.cs" />
-    <Compile Include="Form1.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Form1.Designer.cs">
-      <DependentUpon>Form1.cs</DependentUpon>
-    </Compile>
     <Compile Include="GlobalConfigForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -360,12 +354,6 @@
     </Compile>
     <Compile Include="LayoutMode.cs" />
     <Compile Include="LegendCellRenderer.cs" />
-    <Compile Include="LimitExpiredForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="LimitExpiredForm.Designer.cs">
-      <DependentUpon>LimitExpiredForm.cs</DependentUpon>
-    </Compile>
     <Compile Include="MagnificationReference.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
@@ -670,9 +658,6 @@
       <LastGenOutput>InputDeviceForm.Designer.cs</LastGenOutput>
       <DependentUpon>InputDeviceForm.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="LimitExpiredForm.resx">
-      <DependentUpon>LimitExpiredForm.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -898,13 +883,6 @@
       <FileType>File</FileType>
     </PublishFile>
   </ItemGroup>
-  <ItemGroup>
-    <FileAssociation Include=".xml">
-      <Visible>False</Visible>
-      <Description>BecqMoni Spectrum</Description>
-      <Progid>BecqMoni</Progid>
-      <DefaultIcon>logo_atom.ico</DefaultIcon>
-    </FileAssociation>
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -204,14 +204,6 @@ namespace BecquerelMonitor
 			this.timer.Interval = 100;
 			this.timer.Tick += this.OnTimer;
 			this.timer.Start();
-			DateTime now = DateTime.Now;
-			DateTime t = GlobalConfigManager.GetInstance().LimitDate.AddDays(1.0);
-			if (now > t)
-			{
-				LimitExpiredForm limitExpiredForm = new LimitExpiredForm();
-				limitExpiredForm.ShowDialog();
-				base.Close();
-			}
 			this.startupForm.Close();
 			this.startupForm = null;
 			foreach (DocEnergySpectrum docEnergySpectrum in this.documentManager.DocumentList)
