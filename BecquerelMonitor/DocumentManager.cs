@@ -549,6 +549,10 @@ namespace BecquerelMonitor
 
 				try
                 {
+					if (radInstrumentData.EnergyCalibration[0].CoefficientValues.Length <= 1)
+                    {
+						throw new Exception();
+                    }
 					string[] n42CalibrationCoeff = radInstrumentData.EnergyCalibration[0].CoefficientValues.Replace(',', '.').Replace("\n", string.Empty).Split(new string[] { " " }, StringSplitOptions.None);
 					n42CalibrationCoeff = Array.FindAll(n42CalibrationCoeff, isNotN42SpectrumValid);
 					int PolynomialOrder = n42CalibrationCoeff.Length - 1;
