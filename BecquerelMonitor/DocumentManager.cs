@@ -409,7 +409,7 @@ namespace BecquerelMonitor
 							return;
 						}
 
-						int ElapsedTime = ((int)double.Parse(streamReader.ReadLine()));
+						int ElapsedTime = (int)XmlConvert.ToDouble(streamReader.ReadLine());
 						energySpectrum.MeasurementTime = ElapsedTime;
 						resultDataStatus.TotalTime = TimeSpan.FromSeconds(ElapsedTime);
 						resultDataStatus.ElapsedTime = TimeSpan.FromSeconds(ElapsedTime);
@@ -427,12 +427,12 @@ namespace BecquerelMonitor
 
 						for (int i = 0; i < coefficients.Length; i++)
 						{
-							coefficients[i] = double.Parse(streamReader.ReadLine());
+							coefficients[i] = XmlConvert.ToDouble(streamReader.ReadLine());
 						}
 
 						for (int i = 0; i < NumberOfChanels; i++)
 						{
-							energySpectrum.Spectrum[i] = int.Parse(streamReader.ReadLine());
+							energySpectrum.Spectrum[i] = XmlConvert.ToInt32(streamReader.ReadLine());
 						}
 
 						streamReader.Close();
@@ -493,7 +493,7 @@ namespace BecquerelMonitor
 				energySpectrum.TotalPulseCount = 0;
 				try
                 {
-					energySpectrum.TotalPulseCount = int.Parse(radMeasurement.GrossCounts[0].TotalCounts);
+					energySpectrum.TotalPulseCount = XmlConvert.ToInt32(radMeasurement.GrossCounts[0].TotalCounts);
 				} catch { }
 				energySpectrum.ValidPulseCount = energySpectrum.TotalPulseCount;
 				
@@ -505,6 +505,7 @@ namespace BecquerelMonitor
 				info.Time = DateTime.Now;
 				try
                 {
+					//TODO:FIX 'The string '12.07.2022 14:22:48' is not a valid AllXsd value.'
 					info.Time = XmlConvert.ToDateTime(radMeasurement.StartDateTime, System.Xml.XmlDateTimeSerializationMode.RoundtripKind);
 				} catch {}
 				
@@ -543,12 +544,12 @@ namespace BecquerelMonitor
 
 				for (int i = 0; i < NumberOfChanels; i++)
 				{
-					energySpectrum.Spectrum[i] = int.Parse(n42SpectrimCounts[i]);
+					energySpectrum.Spectrum[i] = XmlConvert.ToInt32(n42SpectrimCounts[i]);
 				}
 
 				try
                 {
-					string[] n42CalibrationCoeff = radInstrumentData.EnergyCalibration[0].CoefficientValues.Replace("\n", string.Empty).Split(new string[] { " " }, StringSplitOptions.None);
+					string[] n42CalibrationCoeff = radInstrumentData.EnergyCalibration[0].CoefficientValues.Replace(',', '.').Replace("\n", string.Empty).Split(new string[] { " " }, StringSplitOptions.None);
 					n42CalibrationCoeff = Array.FindAll(n42CalibrationCoeff, isNotN42SpectrumValid);
 					int PolynomialOrder = n42CalibrationCoeff.Length - 1;
 
@@ -557,11 +558,11 @@ namespace BecquerelMonitor
 						throw new Exception("Unsupported calibration points number. Got polynom order = " + PolynomialOrder);
 					}
 
-					double[] coefficients = new double[PolynomialOrder + 1];
+					double[] coefficients = new double[n42CalibrationCoeff.Length];
 
 					for (int i = 0; i < coefficients.Length; i++)
 					{
-						coefficients[i] = double.Parse(n42CalibrationCoeff[i]);
+						coefficients[i] = XmlConvert.ToDouble(n42CalibrationCoeff[i]);
 					}
 					PolynomialEnergyCalibration energyCalibration = (PolynomialEnergyCalibration)energySpectrum.EnergyCalibration;
 					energyCalibration.PolynomialOrder = PolynomialOrder;
