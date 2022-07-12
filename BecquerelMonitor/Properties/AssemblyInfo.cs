@@ -17,4 +17,4 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("BecquerelMonitor")]
 [assembly: RuntimeCompatibility(WrapNonExceptionThrows = true)]
 [assembly: ComVisible(false)]
-[assembly: NeutralResourcesLanguage("en-US")]
+[assembly: NeutralResourcesLanguage("")]
