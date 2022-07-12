@@ -255,6 +255,12 @@ namespace BecquerelMonitor
 		// Token: 0x06000296 RID: 662 RVA: 0x0000B9E4 File Offset: 0x00009BE4
 		public void ShowRecordingStatus()
 		{
+			bool flag = DCControlPanel.exept_flag;
+			if (flag)
+			{
+				DCControlPanel.exept_flag = false;
+				this.StopMeasurement();
+			}
 			DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
 			if (activeDocument == null)
 			{
@@ -647,5 +653,7 @@ namespace BecquerelMonitor
 
 		// Token: 0x040000D1 RID: 209
 		bool formUpdating;
+
+		public static bool exept_flag;
 	}
 }
