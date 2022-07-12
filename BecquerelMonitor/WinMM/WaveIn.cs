@@ -6,6 +6,8 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Xml;
 using BecquerelMonitor.WinMM.Properties;
+using System.Windows.Forms;
+using BecquerelMonitor;
 
 namespace WinMM
 {
@@ -280,25 +282,26 @@ namespace WinMM
 						{
 							Monitor.Wait(this.bufferingLock);
 						}
-						goto IL_5E;
 					}
-					goto IL_58;
-					IL_5E:
-					if (this.bufferQueueCount < this.bufferQueueSize)
+					for (; ; )
 					{
-						if (this.buffering)
+						if (!(this.bufferQueueCount < this.bufferQueueSize))
 						{
-							goto IL_58;
+							break;
 						}
+						if (!this.buffering)
+						{
+							break;
+						}
+						this.AddBuffer();
 					}
+				IL_A4:
 					while (this.bufferReleaseQueue.Count > 0)
 					{
 						this.ProcessDone();
 					}
 					continue;
-					IL_58:
-					this.AddBuffer();
-					goto IL_5E;
+					goto IL_A4;
 				}
 				while (this.bufferReleaseQueue.Count > 0 || this.bufferQueueCount > 0)
 				{
@@ -308,21 +311,22 @@ namespace WinMM
 						{
 							Monitor.Wait(this.bufferingLock, 1000);
 						}
-						goto IL_E2;
 					}
-					goto IL_DC;
-					IL_E2:
-					if (this.bufferReleaseQueue.Count <= 0)
+					for (; ; )
 					{
-						continue;
+						if (this.bufferReleaseQueue.Count <= 0)
+						{
+							break;
+						}
+						this.ProcessDone();
 					}
-					IL_DC:
-					this.ProcessDone();
-					goto IL_E2;
 				}
 			}
-			catch (ThreadAbortException)
+			catch (Exception ex)
 			{
+				DCControlPanel.exept_flag = true;
+				MessageBox.Show("Неожиданное отключение устройства!", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Hand);
+				Thread.Sleep(500);
 			}
 		}
 
