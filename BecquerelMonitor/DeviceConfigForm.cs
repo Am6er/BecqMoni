@@ -112,6 +112,10 @@ namespace BecquerelMonitor
 					this.activeDeviceConfig = deviceConfigInfo2;
 					this.tableModel1.Selections.AddCell(row.Index, 0);
 				}
+				if (this.table1.SortingColumn != -1)
+                {
+					this.table1.Sort();
+                }
 			}
 			this.table1.ResumeLayout();
 		}
