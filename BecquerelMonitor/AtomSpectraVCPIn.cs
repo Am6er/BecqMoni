@@ -1,4 +1,4 @@
-﻿using RJCP.IO.Ports;
+﻿using System.IO.Ports;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -13,7 +13,7 @@ namespace BecquerelMonitor
     {
         //public static int cps_static;
         //public static int elapsed_time_static;
-        private SerialPortStream port = null;
+        private SerialPort port = null;
         private Thread readerThread;
         private volatile bool thread_alive = true;
         private ManualResetEvent onDataReceivedEvent = new ManualResetEvent(false);
@@ -92,7 +92,7 @@ namespace BecquerelMonitor
         {
             this.guid = guid;
             Trace.WriteLine("AtomSpectraVCPIn instance created " + guid);
-            port = new SerialPortStream();
+            port = new SerialPort();
             port.BaudRate = 600000;
             port.DataBits = 8;
             port.Parity = Parity.None;
