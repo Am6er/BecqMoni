@@ -33,8 +33,8 @@
     <MinimumRequiredVersion>2022.07.08.7</MinimumRequiredVersion>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
-    <ApplicationRevision>4</ApplicationRevision>
-    <ApplicationVersion>2022.07.12.4</ApplicationVersion>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>2022.07.14.0</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -99,9 +99,6 @@
     </Reference>
     <Reference Include="WeifenLuo.WinFormsUI.Docking.ThemeVS2015, Version=1.0.0.0, Culture=neutral, PublicKeyToken=5cded1a1a0a7b481, processorArchitecture=MSIL">
       <HintPath>..\packages\DockPanelSuite.ThemeVS2015.3.1.0\lib\net40\WeifenLuo.WinFormsUI.Docking.ThemeVS2015.dll</HintPath>
-    </Reference>
-    <Reference Include="XPTable">
-      <HintPath>..\packages\XPTable.1.6.1.140\lib\net20\XPTable.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -578,6 +575,214 @@
     <Compile Include="WinMM\WaveOutMessage.cs" />
     <Compile Include="WinMM\WaveOutMessageReceivedEventArgs.cs" />
     <Compile Include="WinMM\WaveOutSafeHandle.cs" />
+    <Compile Include="XPTable\Editors\CellEditor.cs" />
+    <Compile Include="XPTable\Editors\ColorCellEditor.cs" />
+    <Compile Include="XPTable\Editors\ComboBoxCellEditor.cs" />
+    <Compile Include="XPTable\Editors\DateTimeCellEditor.cs" />
+    <Compile Include="XPTable\Editors\DoubleCellEditor.cs" />
+    <Compile Include="XPTable\Editors\DropDownCellEditor.cs" />
+    <Compile Include="XPTable\Editors\DropDownContainer.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="XPTable\Editors\DropDownStyle.cs" />
+    <Compile Include="XPTable\Editors\EditStartAction.cs" />
+    <Compile Include="XPTable\Editors\ICellEditor.cs" />
+    <Compile Include="XPTable\Editors\IEditorUsesRendererButtons.cs" />
+    <Compile Include="XPTable\Editors\IKeyMessageFilterClient.cs" />
+    <Compile Include="XPTable\Editors\IMouseMessageFilterClient.cs" />
+    <Compile Include="XPTable\Editors\KeyMessageFilter.cs" />
+    <Compile Include="XPTable\Editors\MouseMessageFilter.cs" />
+    <Compile Include="XPTable\Editors\NumberCellEditor.cs" />
+    <Compile Include="XPTable\Editors\TextCellEditor.cs" />
+    <Compile Include="XPTable\Events\CellButtonEventArgs.cs" />
+    <Compile Include="XPTable\Events\CellCheckBoxEventArgs.cs" />
+    <Compile Include="XPTable\Events\CellEditEventArgs.cs" />
+    <Compile Include="XPTable\Events\CellEventArgs.cs" />
+    <Compile Include="XPTable\Events\CellEventArgsBase.cs" />
+    <Compile Include="XPTable\Events\CellEventType.cs" />
+    <Compile Include="XPTable\Events\CellFocusEventArgs.cs" />
+    <Compile Include="XPTable\Events\CellKeyEventArgs.cs" />
+    <Compile Include="XPTable\Events\CellMouseEventArgs.cs" />
+    <Compile Include="XPTable\Events\ColumnEventArgs.cs" />
+    <Compile Include="XPTable\Events\ColumnEventType.cs" />
+    <Compile Include="XPTable\Events\ColumnModelEventArgs.cs" />
+    <Compile Include="XPTable\Events\DoubleCellEditEventArgs.cs" />
+    <Compile Include="XPTable\Events\HandledHeaderMouseEventArgs.cs" />
+    <Compile Include="XPTable\Events\HeaderMouseEventArgs.cs" />
+    <Compile Include="XPTable\Events\NumericCellEditEventArgs.cs" />
+    <Compile Include="XPTable\Events\PaintCellEventArgs.cs" />
+    <Compile Include="XPTable\Events\PaintHeaderEventArgs.cs" />
+    <Compile Include="XPTable\Events\RowEventArgs.cs" />
+    <Compile Include="XPTable\Events\RowEventType.cs" />
+    <Compile Include="XPTable\Events\SelectionEventArgs.cs" />
+    <Compile Include="XPTable\Events\TableEventArgs.cs" />
+    <Compile Include="XPTable\Events\TableEventType.cs" />
+    <Compile Include="XPTable\Events\TableModelEventArgs.cs" />
+    <Compile Include="XPTable\Events\ToolTipEventArgs.cs" />
+    <Compile Include="XPTable\Filters\IColumnFilter.cs" />
+    <Compile Include="XPTable\Filters\IRowFilter.cs" />
+    <Compile Include="XPTable\Filters\RowFilter.cs" />
+    <Compile Include="XPTable\Filters\TextColumnFilter.cs" />
+    <Compile Include="XPTable\Filters\TextColumnFilterDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="XPTable\Models\ButtonColumn.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="XPTable\Models\Cell.cs" />
+    <Compile Include="XPTable\Models\CellCheckStyle.cs" />
+    <Compile Include="XPTable\Models\CellCollection.cs" />
+    <Compile Include="XPTable\Models\CellImageStyle.cs" />
+    <Compile Include="XPTable\Models\CellPadding.cs" />
+    <Compile Include="XPTable\Models\CellPos.cs" />
+    <Compile Include="XPTable\Models\CellStyle.cs" />
+    <Compile Include="XPTable\Models\CheckBoxColumn.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="XPTable\Models\CheckBoxColumnStyle.cs" />
+    <Compile Include="XPTable\Models\ColorColumn.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="XPTable\Models\Column.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="XPTable\Models\ColumnAlignment.cs" />
+    <Compile Include="XPTable\Models\ColumnAutoResizeMode.cs" />
+    <Compile Include="XPTable\Models\ColumnCollection.cs" />
+    <Compile Include="XPTable\Models\ColumnHeaderRegion.cs" />
+    <Compile Include="XPTable\Models\ColumnModel.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="XPTable\Models\ColumnState.cs" />
+    <Compile Include="XPTable\Models\ComboBoxColumn.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="XPTable\Models\ControlColumn.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="XPTable\Models\ControlFactory.cs" />
+    <Compile Include="XPTable\Models\DataSourceColumnBinder.cs" />
+    <Compile Include="XPTable\Models\DateTimeColumn.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="XPTable\Models\Design\CellCollectionEditor.cs" />
+    <Compile Include="XPTable\Models\Design\CellConverter.cs" />
+    <Compile Include="XPTable\Models\Design\ColumnCollectionEditor.cs" />
+    <Compile Include="XPTable\Models\Design\HelpfulCollectionEditor.cs" />
+    <Compile Include="XPTable\Models\Design\RowCollectionEditor.cs" />
+    <Compile Include="XPTable\Models\Design\RowComparer.cs" />
+    <Compile Include="XPTable\Models\Design\RowConverter.cs" />
+    <Compile Include="XPTable\Models\DoubleColumn.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="XPTable\Models\DragDropHelper.cs" />
+    <Compile Include="XPTable\Models\DropDownColumn.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="XPTable\Models\GridLines.cs" />
+    <Compile Include="XPTable\Models\GridLineStyle.cs" />
+    <Compile Include="XPTable\Models\GroupColumn.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="XPTable\Models\HeaderContextMenu.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="XPTable\Models\ImageColumn.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="XPTable\Models\ImageSizeMode.cs" />
+    <Compile Include="XPTable\Models\NumberColumn.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="XPTable\Models\ProgressBarColumn.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="XPTable\Models\Row.cs" />
+    <Compile Include="XPTable\Models\RowAlignment.cs" />
+    <Compile Include="XPTable\Models\RowCollection.cs" />
+    <Compile Include="XPTable\Models\RowStyle.cs" />
+    <Compile Include="XPTable\Models\ScrollPosition.cs" />
+    <Compile Include="XPTable\Models\SelectionStyle.cs" />
+    <Compile Include="XPTable\Models\ShowColumnsDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="XPTable\Models\ShowColumnsDialog.Designer.cs">
+      <DependentUpon>ShowColumnsDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="XPTable\Models\Table.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="XPTable\Models\TableModel.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="XPTable\Models\TableRegion.cs" />
+    <Compile Include="XPTable\Models\TableState.cs" />
+    <Compile Include="XPTable\Models\TextColumn.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="XPTable\Renderers\ButtonCellRenderer.cs" />
+    <Compile Include="XPTable\Renderers\ButtonRendererData.cs" />
+    <Compile Include="XPTable\Renderers\CellRenderer.cs" />
+    <Compile Include="XPTable\Renderers\CheckBoxCellRenderer.cs" />
+    <Compile Include="XPTable\Renderers\CheckBoxRendererData.cs" />
+    <Compile Include="XPTable\Renderers\ColorCellRenderer.cs" />
+    <Compile Include="XPTable\Renderers\ComboBoxCellRenderer.cs" />
+    <Compile Include="XPTable\Renderers\ControlCellRenderer.cs" />
+    <Compile Include="XPTable\Renderers\ControlRendererData.cs" />
+    <Compile Include="XPTable\Renderers\DateTimeCellRenderer.cs" />
+    <Compile Include="XPTable\Renderers\DoubleCellRenderer.cs" />
+    <Compile Include="XPTable\Renderers\DragDropRenderer.cs" />
+    <Compile Include="XPTable\Renderers\DropDownCellRenderer.cs" />
+    <Compile Include="XPTable\Renderers\DropDownRendererData.cs" />
+    <Compile Include="XPTable\Renderers\FlatHeaderRenderer.cs" />
+    <Compile Include="XPTable\Renderers\GradientHeaderRenderer.cs" />
+    <Compile Include="XPTable\Renderers\GroupCellRenderer.cs" />
+    <Compile Include="XPTable\Renderers\GroupRendererData.cs" />
+    <Compile Include="XPTable\Renderers\HeaderRenderer.cs" />
+    <Compile Include="XPTable\Renderers\ICellRenderer.cs" />
+    <Compile Include="XPTable\Renderers\IDragDropRenderer.cs" />
+    <Compile Include="XPTable\Renderers\IHeaderRenderer.cs" />
+    <Compile Include="XPTable\Renderers\ImageCellRenderer.cs" />
+    <Compile Include="XPTable\Renderers\IRenderer.cs" />
+    <Compile Include="XPTable\Renderers\NumberCellRenderer.cs" />
+    <Compile Include="XPTable\Renderers\NumberRendererData.cs" />
+    <Compile Include="XPTable\Renderers\ProgressBarCellRenderer.cs" />
+    <Compile Include="XPTable\Renderers\Renderer.cs" />
+    <Compile Include="XPTable\Renderers\TextCellRenderer.cs" />
+    <Compile Include="XPTable\Renderers\TextWithButtonCellRenderer.cs" />
+    <Compile Include="XPTable\Renderers\XPHeaderRenderer.cs" />
+    <Compile Include="XPTable\Sorting\CheckBoxComparer.cs" />
+    <Compile Include="XPTable\Sorting\ColorComparer.cs" />
+    <Compile Include="XPTable\Sorting\ComparerBase.cs" />
+    <Compile Include="XPTable\Sorting\DateTimeComparer.cs" />
+    <Compile Include="XPTable\Sorting\HeapSorter.cs" />
+    <Compile Include="XPTable\Sorting\IComparerCollection.cs" />
+    <Compile Include="XPTable\Sorting\ImageComparer.cs" />
+    <Compile Include="XPTable\Sorting\InsertionSorter.cs" />
+    <Compile Include="XPTable\Sorting\MergeSorter.cs" />
+    <Compile Include="XPTable\Sorting\NumberComparer.cs" />
+    <Compile Include="XPTable\Sorting\ShellSorter.cs" />
+    <Compile Include="XPTable\Sorting\SortColumn.cs" />
+    <Compile Include="XPTable\Sorting\SortColumnCollection.cs" />
+    <Compile Include="XPTable\Sorting\SorterBase.cs" />
+    <Compile Include="XPTable\Sorting\SortType.cs" />
+    <Compile Include="XPTable\Sorting\TextComparer.cs" />
+    <Compile Include="XPTable\Themes\ColumnHeaderStates.cs" />
+    <Compile Include="XPTable\Themes\ThemeManager.cs" />
+    <Compile Include="XPTable\Themes\UpDownStates.cs" />
+    <Compile Include="XPTable\Win32\AsciiChars.cs" />
+    <Compile Include="XPTable\Win32\DLLVERSIONINFO.cs" />
+    <Compile Include="XPTable\Win32\KeyEventFFlags.cs" />
+    <Compile Include="XPTable\Win32\MSG.cs" />
+    <Compile Include="XPTable\Win32\NativeMethods.cs" />
+    <Compile Include="XPTable\Win32\NativeWindow.cs" />
+    <Compile Include="XPTable\Win32\POINT.cs" />
+    <Compile Include="XPTable\Win32\RECT.cs" />
+    <Compile Include="XPTable\Win32\SIZE.cs" />
+    <Compile Include="XPTable\Win32\TRACKMOUSEEVENT.cs" />
+    <Compile Include="XPTable\Win32\WindowExtendedStyles.cs" />
+    <Compile Include="XPTable\Win32\WindowMessages.cs" />
+    <Compile Include="XPTable\Win32\WindowStyles.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="AboutForm.resx">
@@ -717,6 +922,12 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <EmbeddedResource Include="XPTable\Models\Table.resx">
+      <DependentUpon>Table.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="XPTable\Models\TableModel.resx">
+      <DependentUpon>TableModel.cs</DependentUpon>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
@@ -770,6 +981,10 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="logo_atom.ico" />
+    <Content Include="XPTable\Models\ColumnModel.bmp" />
+    <Content Include="XPTable\Models\Table.bmp" />
+    <Content Include="XPTable\Models\TableModel.bmp" />
+    <Content Include="XPTable\Resources\XPTable32x32.png" />
   </ItemGroup>
   <ItemGroup>
     <PublishFile Include="config\BecquerelMonitor.xml">
