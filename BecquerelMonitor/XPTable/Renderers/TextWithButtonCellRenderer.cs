@@ -1,5 +1,5 @@
 /*
- * Copyright © 2014, Patrick Schaller
+ * Copyright ? 2014, Patrick Schaller
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, 
@@ -41,7 +41,7 @@ namespace XPTable.Renderers
     public class TextWithButtonCellRenderer : CellRenderer
     {
         #region Constructor
-        
+
         /// <summary>
         /// Initializes a new instance of the ComboBoxCellRenderer class with 
         /// default settings
@@ -52,10 +52,10 @@ namespace XPTable.Renderers
             this.ButtonWidth = 24;
             this.ButtonText = "...";
             this.ButtonStringFormat = new StringFormat(this.StringFormat)
-                                          {
-                                              Alignment = StringAlignment.Center,
-                                              LineAlignment = StringAlignment.Center
-                                          };
+            {
+                Alignment = StringAlignment.Center,
+                LineAlignment = StringAlignment.Center
+            };
         }
 
         /// <summary>
