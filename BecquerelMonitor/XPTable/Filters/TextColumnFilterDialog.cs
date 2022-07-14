@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 using System.Windows.Forms;
 
 namespace XPTable.Filters
@@ -36,11 +34,11 @@ namespace XPTable.Filters
         /// Returns all items that are checked
         /// </summary>
         /// <returns></returns>
-        public string [] GetCheckedItems()
+        public string[] GetCheckedItems()
         {
             var items = new List<string>();
 
-            foreach(string item in filterList.CheckedItems)
+            foreach (string item in filterList.CheckedItems)
             {
                 items.Add(item);
             }
@@ -79,8 +77,8 @@ namespace XPTable.Filters
             // 
             // filterList
             // 
-            this.filterList.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
+            this.filterList.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.filterList.CheckOnClick = true;
             this.filterList.FormattingEnabled = true;

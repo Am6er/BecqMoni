@@ -1,5 +1,3 @@
-using System;
-
 namespace XPTable.Models
 {
     public class ScrollPosition

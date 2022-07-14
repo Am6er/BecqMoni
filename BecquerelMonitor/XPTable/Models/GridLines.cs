@@ -24,34 +24,32 @@
  * OF SUCH DAMAGE.
  */
 
-using System;
-
 namespace XPTable.Models
 {
-	/// <summary>
-	/// Specifies how a Table draws grid lines between its rows and columns
-	/// </summary>
-	public enum GridLines
-	{
-		/// <summary>
-		/// No grid lines are drawn
-		/// </summary>
-		None = 0,
+    /// <summary>
+    /// Specifies how a Table draws grid lines between its rows and columns
+    /// </summary>
+    public enum GridLines
+    {
+        /// <summary>
+        /// No grid lines are drawn
+        /// </summary>
+        None = 0,
 
-		/// <summary>
-		/// Grid lines are only drawn between columns
-		/// </summary>
-		Columns = 1,
+        /// <summary>
+        /// Grid lines are only drawn between columns
+        /// </summary>
+        Columns = 1,
 
-		/// <summary>
-		/// Grid lines are only drawn between rows
-		/// </summary>
-		Rows = 2,
+        /// <summary>
+        /// Grid lines are only drawn between rows
+        /// </summary>
+        Rows = 2,
 
-		/// <summary>
-		/// Grid lines are drawn between rows and columns
-		/// </summary>
-		Both = 3,
+        /// <summary>
+        /// Grid lines are drawn between rows and columns
+        /// </summary>
+        Both = 3,
 
         /// <summary>
         /// Grid lines are only drawn between families of rows (i.e. main row plus sub row)
@@ -62,5 +60,5 @@ namespace XPTable.Models
         /// Grid lines are only drawn between families of rows (i.e. main row plus sub row) and parent columns
         /// </summary>
         RowsColumnsOnlyParent = 5
-	}
+    }
 }

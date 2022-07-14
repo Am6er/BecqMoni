@@ -34,46 +34,46 @@ using XPTable.Models;
 
 namespace XPTable.Sorting
 {
-	/// <summary>
-	/// Base class for comparers used to sort the Cells contained in a TableModel
-	/// </summary>
-	public abstract class ComparerBase : IComparer
-	{
-		#region Class Data
+    /// <summary>
+    /// Base class for comparers used to sort the Cells contained in a TableModel
+    /// </summary>
+    public abstract class ComparerBase : IComparer
+    {
+        #region Class Data
 
-		/// <summary>
-		/// The TableModel that contains the Cells to be sorted
-		/// </summary>
-		private TableModel tableModel;
+        /// <summary>
+        /// The TableModel that contains the Cells to be sorted
+        /// </summary>
+        private TableModel tableModel;
 
-		/// <summary>
-		/// The index of the Column to be sorted
-		/// </summary>
-		private int column;
-
-
-		#endregion
-		
-
-		#region Constructor
-		
-		/// <summary>
-		/// Initializes a new instance of the ComparerBase class with the specified 
-		/// TableModel, Column index and SortOrder
-		/// </summary>
-		/// <param name="tableModel">The TableModel that contains the data to be sorted</param>
-		/// <param name="column">The index of the Column to be sorted</param>
-		/// <param name="sortOrder">Specifies how the Column is to be sorted</param>
-		public ComparerBase(TableModel tableModel, int column, SortOrder sortOrder)
-		{
-			this.tableModel = tableModel;
-			this.column = column;
-		}
-
-		#endregion
+        /// <summary>
+        /// The index of the Column to be sorted
+        /// </summary>
+        private int column;
 
 
-		#region Methods
+        #endregion
+
+
+        #region Constructor
+
+        /// <summary>
+        /// Initializes a new instance of the ComparerBase class with the specified 
+        /// TableModel, Column index and SortOrder
+        /// </summary>
+        /// <param name="tableModel">The TableModel that contains the data to be sorted</param>
+        /// <param name="column">The index of the Column to be sorted</param>
+        /// <param name="sortOrder">Specifies how the Column is to be sorted</param>
+        public ComparerBase(TableModel tableModel, int column, SortOrder sortOrder)
+        {
+            this.tableModel = tableModel;
+            this.column = column;
+        }
+
+        #endregion
+
+
+        #region Methods
 
         /// <summary>
         /// Compares two objects and returns a value indicating whether one is less 
@@ -121,36 +121,36 @@ namespace XPTable.Sorting
         /// <param name="cell2"></param>
         /// <returns></returns>
         protected abstract int CompareCells(Cell cell1, Cell cell2);
-		#endregion
+        #endregion
 
 
-		#region Properties
+        #region Properties
 
-		/// <summary>
-		/// Gets the TableModel that contains the Cells to be sorted
-		/// </summary>
-		public TableModel TableModel
-		{
-			get
-			{
-				return this.tableModel;
-			}
-		}
-
-
-		/// <summary>
-		/// Gets the index of the Column to be sorted
-		/// </summary>
-		public int SortColumn
-		{
-			get
-			{
-				return this.column;
-			}
-		}
+        /// <summary>
+        /// Gets the TableModel that contains the Cells to be sorted
+        /// </summary>
+        public TableModel TableModel
+        {
+            get
+            {
+                return this.tableModel;
+            }
+        }
 
 
+        /// <summary>
+        /// Gets the index of the Column to be sorted
+        /// </summary>
+        public int SortColumn
+        {
+            get
+            {
+                return this.column;
+            }
+        }
 
-		#endregion
-	}
+
+
+        #endregion
+    }
 }

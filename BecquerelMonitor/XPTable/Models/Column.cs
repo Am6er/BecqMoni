@@ -75,12 +75,12 @@ namespace XPTable.Models
         /// The default width of a Column
         /// </summary>
         public static readonly int DefaultWidth = 75;
-        
+
         /// <summary>
         /// The maximum width of a Column
         /// </summary>
         public static readonly int MaximumWidth = 1024;
-        
+
         /// <summary>
         /// The minimum width of a Column
         /// </summary>
@@ -95,7 +95,7 @@ namespace XPTable.Models
         /// The text displayed in the Column's header
         /// </summary>
         private string text;
-        
+
         /// <summary>
         /// A string that specifies how a Column's Cell contents are formatted
         /// </summary>
@@ -288,7 +288,7 @@ namespace XPTable.Models
 
             // Mateusz [PEYN] Adamus (peyn@tlen.pl)
             // Added STATE_RESIZABLE to column's initialization
-            this.state = (byte) (STATE_ENABLED | STATE_EDITABLE | STATE_VISIBLE | STATE_SELECTABLE | STATE_SORTABLE | STATE_RESIZABLE );
+            this.state = (byte)(STATE_ENABLED | STATE_EDITABLE | STATE_VISIBLE | STATE_SELECTABLE | STATE_SORTABLE | STATE_RESIZABLE);
         }
         #endregion
 
@@ -345,7 +345,7 @@ namespace XPTable.Models
         /// <param name="value">The new value of the state</param>
         internal void SetState(int flag, bool value)
         {
-            this.state = (byte) (value ? (this.state | flag) : (this.state & ~flag));
+            this.state = (byte)(value ? (this.state | flag) : (this.state & ~flag));
         }
         #endregion
 
@@ -364,7 +364,7 @@ namespace XPTable.Models
             {
                 if (value == null)
                     value = "";
-                
+
                 if (!value.Equals(this.text))
                 {
                     string oldText = this.text;
@@ -411,9 +411,9 @@ namespace XPTable.Models
             get { return this.alignment; }
             set
             {
-                if (!Enum.IsDefined(typeof(ColumnAlignment), value)) 
-                    throw new InvalidEnumArgumentException("value", (int) value, typeof(ColumnAlignment));
-                    
+                if (!Enum.IsDefined(typeof(ColumnAlignment), value))
+                    throw new InvalidEnumArgumentException("value", (int)value, typeof(ColumnAlignment));
+
                 if (this.alignment != value)
                 {
                     ColumnAlignment oldAlignment = this.alignment;
@@ -583,8 +583,8 @@ namespace XPTable.Models
             get { return this.ColumnState; }
             set
             {
-                if (!Enum.IsDefined(typeof(ColumnState), value)) 
-                    throw new InvalidEnumArgumentException("value", (int) value, typeof(ColumnState));
+                if (!Enum.IsDefined(typeof(ColumnState), value))
+                    throw new InvalidEnumArgumentException("value", (int)value, typeof(ColumnState));
                 if (this.columnState != value)
                 {
                     ColumnState oldState = this.columnState;
@@ -635,18 +635,18 @@ namespace XPTable.Models
         /// <summary>
         /// Gets or sets whether the Column is able to be resized
         /// </summary>
-        [ Category( "Appearance" ),
-        DefaultValue( true ),
-        Description( "Determines whether the column is able to be resized." ) ]
+        [Category("Appearance"),
+        DefaultValue(true),
+        Description("Determines whether the column is able to be resized.")]
         public virtual bool Resizable
         {
-            get { return this.GetState( STATE_RESIZABLE ); }
+            get { return this.GetState(STATE_RESIZABLE); }
             set
             {
                 bool resizable = this.Resizable;
-                this.SetState( STATE_RESIZABLE, value );
-                if( resizable != value)
-                    this.OnPropertyChanged( new ColumnEventArgs( this, ColumnEventType.ResizableChanged, resizable ) );
+                this.SetState(STATE_RESIZABLE, value);
+                if (resizable != value)
+                    this.OnPropertyChanged(new ColumnEventArgs(this, ColumnEventType.ResizableChanged, resizable));
             }
         }
 
@@ -733,7 +733,7 @@ namespace XPTable.Models
                 }
             }
         }
-        
+
         /// <summary>
         /// Gets or sets the user specified Comparer type that is used to edit the 
         /// Column's Cells
@@ -741,17 +741,17 @@ namespace XPTable.Models
         [Browsable(false),
         DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public Type Comparer
-         {
-             get { return this.comparer; }
-             set
-             {
-                 if (this.comparer != value)
-                 {
-                     this.comparer = value;
-                     this.OnPropertyChanged(new ColumnEventArgs(this, ColumnEventType.ComparerChanged, null));
-                 }
-             }
-         }
+        {
+            get { return this.comparer; }
+            set
+            {
+                if (this.comparer != value)
+                {
+                    this.comparer = value;
+                    this.OnPropertyChanged(new ColumnEventArgs(this, ColumnEventType.ComparerChanged, null));
+                }
+            }
+        }
 
         /// <summary>
         /// Gets the Type of the default Comparer used to compare the Column's Cells when 
@@ -780,9 +780,9 @@ namespace XPTable.Models
             get { return this.SortOrder; }
             set
             {
-                if (!Enum.IsDefined(typeof(SortOrder), value)) 
-                    throw new InvalidEnumArgumentException("value", (int) value, typeof(SortOrder));
-                
+                if (!Enum.IsDefined(typeof(SortOrder), value))
+                    throw new InvalidEnumArgumentException("value", (int)value, typeof(SortOrder));
+
                 if (this.sortOrder != value)
                 {
                     SortOrder oldOrder = this.sortOrder;
@@ -813,7 +813,7 @@ namespace XPTable.Models
             {
                 bool editable = this.GetState(STATE_EDITABLE);
                 this.SetState(STATE_EDITABLE, value);
-                
+
                 if (editable != value)
                     this.OnPropertyChanged(new ColumnEventArgs(this, ColumnEventType.EditableChanged, editable));
             }
@@ -852,9 +852,9 @@ namespace XPTable.Models
             set
             {
                 bool enabled = this.GetState(STATE_ENABLED);
-                
+
                 this.SetState(STATE_ENABLED, value);
-                
+
                 if (enabled != value)
                     this.OnPropertyChanged(new ColumnEventArgs(this, ColumnEventType.EnabledChanged, enabled));
             }
@@ -884,9 +884,9 @@ namespace XPTable.Models
             set
             {
                 bool selectable = this.Selectable;
-                
+
                 this.SetState(STATE_SELECTABLE, value);
-                
+
                 if (selectable != value)
                     this.OnPropertyChanged(new ColumnEventArgs(this, ColumnEventType.SelectableChanged, selectable));
             }
@@ -907,7 +907,7 @@ namespace XPTable.Models
             {
                 if (value == null)
                     value = "";
-                
+
                 if (!value.Equals(this.tooltipText))
                 {
                     string oldTip = this.tooltipText;
@@ -973,7 +973,7 @@ namespace XPTable.Models
                 // check if the ColumnModel that the Colum belongs to is able to 
                 // raise events (if it can't, the Colum shouldn't raise events either)
                 if (this.ColumnModel != null)
-					return this.ColumnModel.CanRaiseEventsInternal;
+                    return this.ColumnModel.CanRaiseEventsInternal;
                 else
                     return true;
             }
@@ -996,13 +996,13 @@ namespace XPTable.Models
         protected virtual void OnPropertyChanged(ColumnEventArgs e)
         {
             if (this.ColumnModel != null)
-                e.SetIndex(this.ColumnModel.Columns.IndexOf(this)); 
-            
+                e.SetIndex(this.ColumnModel.Columns.IndexOf(this));
+
             if (this.CanRaiseEvents)
             {
                 if (this.ColumnModel != null)
                     this.ColumnModel.OnColumnPropertyChanged(e);
-                
+
                 if (PropertyChanged != null)
                     PropertyChanged(this, e);
             }

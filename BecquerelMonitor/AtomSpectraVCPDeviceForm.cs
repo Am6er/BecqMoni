@@ -1,16 +1,12 @@
-﻿using System;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Drawing;
-using System.Windows.Forms;
+﻿using BecquerelMonitor.Properties;
+using System;
 using System.Collections.Generic;
-using BecquerelMonitor.Properties;
-using WinMM;
 using System.IO.Ports;
+using System.Windows.Forms;
 
 namespace BecquerelMonitor
 {
-// Token: 0x02000142 RID: 322
+    // Token: 0x02000142 RID: 322
     public partial class AtomSpectraVCPDeviceForm : InputDeviceForm
     {
         TextBox doubleTextBox2;
@@ -131,7 +127,7 @@ namespace BecquerelMonitor
             comPortsBox.Items.Clear();
             comPortsBox.Items.Add("-------");
             comPortsBox.Items.AddRange(SerialPort.GetPortNames());
-            if(comPortsBox.Items.Count > 1)
+            if (comPortsBox.Items.Count > 1)
             {
                 comPortsBox.SelectedIndex = 1;
             }
@@ -140,7 +136,7 @@ namespace BecquerelMonitor
         // Token: 0x06001041 RID: 4161 RVA: 0x00059CB4 File Offset: 0x00057EB4
         public override void FormClosing()
         {
-        
+
         }
 
         // Token: 0x06001043 RID: 4163 RVA: 0x00059D54 File Offset: 0x00057F54
@@ -150,7 +146,8 @@ namespace BecquerelMonitor
             bool flag = false;
             if (atomSpectraVCPInputDevice.ComPortName != null)
             {
-                foreach(string s in comPortsBox.Items){
+                foreach (string s in comPortsBox.Items)
+                {
                     if (s.Equals(atomSpectraVCPInputDevice.ComPortName))
                     {
                         comPortsBox.SelectedItem = s;
@@ -166,7 +163,8 @@ namespace BecquerelMonitor
                 {
                     atomSpectraVCPInputDevice.ComPortName = comPortsBox.Items[1].ToString();
                     comPortsBox.SelectedIndex = 0;
-                } else
+                }
+                else
                 {
                     atomSpectraVCPInputDevice.ComPortName = "COM1";
                 }
@@ -215,7 +213,7 @@ namespace BecquerelMonitor
         // Token: 0x06001046 RID: 4166 RVA: 0x0005A37C File Offset: 0x0005857C
         void StopPulseRecording()
         {
-           
+
             this.SetActiveDeviceConfigDirty();
         }
 
@@ -284,7 +282,8 @@ namespace BecquerelMonitor
                     {
                         device = instances[0];
                         runexist = true;
-                    } else
+                    }
+                    else
                     {
                         device = new AtomSpectraVCPIn("Test");
                         device.setPort(comPortsBox.SelectedItem.ToString());
@@ -299,7 +298,7 @@ namespace BecquerelMonitor
                 }
                 catch
                 {
-                    
+
                 }
                 //this.CommandLineIn.Text = "";
                 e.SuppressKeyPress = true;

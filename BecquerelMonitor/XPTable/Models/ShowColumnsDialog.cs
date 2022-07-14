@@ -1,5 +1,4 @@
 using System;
-using System.Drawing;
 using System.Windows.Forms;
 using XPTable.Events;
 using XPTable.Win32;
@@ -15,9 +14,9 @@ namespace XPTable.Models
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.Container components = null;
-			
+
         private ColumnModel model = null;
-			
+
         private Label label1;
         private Button upButton;
         private Button downButton;
@@ -52,15 +51,15 @@ namespace XPTable.Models
             cellStyle.Padding = new CellPadding(6, 0, 0, 0);
 
             this.columnTable.BeginUpdate();
-				
-            for (int i=0; i<model.Columns.Count; i++)
+
+            for (int i = 0; i < model.Columns.Count; i++)
             {
                 Row row = new Row();
-				
+
                 Cell cell = new Cell(model.Columns[i].Text, model.Columns[i].Visible);
                 cell.Tag = model.Columns[i].Width;
                 cell.CellStyle = cellStyle;
-				
+
                 row.Cells.Add(cell);
 
                 this.columnTable.TableModel.Rows.Add(row);
@@ -95,7 +94,7 @@ namespace XPTable.Models
         private void OnShowClick(object sender, System.EventArgs e)
         {
             int[] indicies = this.columnTable.SelectedIndicies;
-				
+
             if (indicies.Length > 0)
             {
                 this.columnTable.TableModel[indicies[0], 0].Checked = true;
@@ -113,7 +112,7 @@ namespace XPTable.Models
         private void OnHideClick(object sender, System.EventArgs e)
         {
             int[] indicies = this.columnTable.SelectedIndicies;
-				
+
             if (indicies.Length > 0)
             {
                 this.columnTable.TableModel[indicies[0], 0].Checked = false;
@@ -131,7 +130,7 @@ namespace XPTable.Models
         private void OnOkClick(object sender, EventArgs e)
         {
             int[] indicies = this.columnTable.SelectedIndicies;
-				
+
             if (indicies.Length > 0)
             {
                 if (this.widthTextBox.Text.Length == 0)
@@ -152,11 +151,11 @@ namespace XPTable.Models
                     }
                 }
             }
-				
-            for (int i=0; i<this.columnTable.TableModel.Rows.Count; i++)
+
+            for (int i = 0; i < this.columnTable.TableModel.Rows.Count; i++)
             {
                 this.model.Columns[i].Visible = this.columnTable.TableModel[i, 0].Checked;
-                this.model.Columns[i].Width = (int) this.columnTable.TableModel[i, 0].Tag;
+                this.model.Columns[i].Width = (int)this.columnTable.TableModel[i, 0].Tag;
             }
 
             this.Close();
@@ -190,7 +189,7 @@ namespace XPTable.Models
                     }
                 }
             }
-				
+
             if (e.NewSelectedIndicies.Length > 0)
             {
                 this.showButton.Enabled = !this.columnTable.TableModel[e.NewSelectedIndicies[0], 0].Checked;
@@ -207,7 +206,7 @@ namespace XPTable.Models
             }
         }
 
-			
+
         /// <summary>
         /// 
         /// </summary>

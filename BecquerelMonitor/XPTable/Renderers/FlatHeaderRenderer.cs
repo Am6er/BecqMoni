@@ -26,93 +26,91 @@
 
 
 using System;
-using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
 
 using XPTable.Events;
 using XPTable.Models;
-using XPTable.Themes;
 
 
 namespace XPTable.Renderers
 {
-	/// <summary>
-	/// A HeaderRenderer that draws flat Column headers
-	/// </summary>
-	public class FlatHeaderRenderer : HeaderRenderer
-	{
-		#region Constructor
-		
-		/// <summary>
-		/// Initializes a new instance of the XPHeaderRenderer class 
-		/// with default settings
-		/// </summary>
-		public FlatHeaderRenderer() : base()
-		{
-			this.SetBackBrushColor(SystemColors.Control);
-		}
+    /// <summary>
+    /// A HeaderRenderer that draws flat Column headers
+    /// </summary>
+    public class FlatHeaderRenderer : HeaderRenderer
+    {
+        #region Constructor
 
-		#endregion
+        /// <summary>
+        /// Initializes a new instance of the XPHeaderRenderer class 
+        /// with default settings
+        /// </summary>
+        public FlatHeaderRenderer() : base()
+        {
+            this.SetBackBrushColor(SystemColors.Control);
+        }
 
-
-		#region Events
-
-		#region Paint
-
-		/// <summary>
-		/// Raises the PaintBackground event
-		/// </summary>
-		/// <param name="e">A PaintHeaderEventArgs that contains the event data</param>
-		protected override void OnPaintBackground(PaintHeaderEventArgs e)
-		{
-			base.OnPaintBackground(e);
-
-			e.Graphics.FillRectangle(this.BackBrush, this.Bounds);
-		}
+        #endregion
 
 
-		/// <summary>
-		/// Raises the Paint event
-		/// </summary>
-		/// <param name="e">A PaintHeaderEventArgs that contains the event data</param>
-		protected override void OnPaint(PaintHeaderEventArgs e)
-		{
-			base.OnPaint(e);
+        #region Events
 
-			if (e.Column == null)
-			{
-				return;
-			}
+        #region Paint
 
-			Rectangle textRect = this.ClientRectangle;
-			Rectangle imageRect = Rectangle.Empty;
+        /// <summary>
+        /// Raises the PaintBackground event
+        /// </summary>
+        /// <param name="e">A PaintHeaderEventArgs that contains the event data</param>
+        protected override void OnPaintBackground(PaintHeaderEventArgs e)
+        {
+            base.OnPaintBackground(e);
+
+            e.Graphics.FillRectangle(this.BackBrush, this.Bounds);
+        }
+
+
+        /// <summary>
+        /// Raises the Paint event
+        /// </summary>
+        /// <param name="e">A PaintHeaderEventArgs that contains the event data</param>
+        protected override void OnPaint(PaintHeaderEventArgs e)
+        {
+            base.OnPaint(e);
+
+            if (e.Column == null)
+            {
+                return;
+            }
+
+            Rectangle textRect = this.ClientRectangle;
+            Rectangle imageRect = Rectangle.Empty;
 
             int imageWidth = 0;
             int arrowWidth = 0;
             int textWidth = 0;
 
-			if (e.Column.Image != null)
-			{
-				imageRect = this.CalcImageRect();
+            if (e.Column.Image != null)
+            {
+                imageRect = this.CalcImageRect();
 
-				textRect.Width -= imageRect.Width;
-				textRect.X += imageRect.Width;
+                textRect.Width -= imageRect.Width;
+                textRect.X += imageRect.Width;
 
-				if (e.Column.ImageOnRight)
-				{
-					imageRect.X = this.ClientRectangle.Right - imageRect.Width;
-					textRect.X = this.ClientRectangle.X;
-				}
+                if (e.Column.ImageOnRight)
+                {
+                    imageRect.X = this.ClientRectangle.Right - imageRect.Width;
+                    textRect.X = this.ClientRectangle.X;
+                }
 
-				this.DrawColumnHeaderImage(e.Graphics, e.Column.Image, imageRect, e.Column.Enabled);
+                this.DrawColumnHeaderImage(e.Graphics, e.Column.Image, imageRect, e.Column.Enabled);
                 imageWidth = imageRect.Width;
-			}
+            }
 
-			if (e.Column.SortOrder != SortOrder.None)
-			{
-				Rectangle arrowRect = this.CalcSortArrowRect();
-				
+            if (e.Column.SortOrder != SortOrder.None)
+            {
+                Rectangle arrowRect = this.CalcSortArrowRect();
+
                 if (this.Alignment == ColumnAlignment.Right)
                 {
                     arrowRect.X = textRect.Left;
@@ -121,13 +119,13 @@ namespace XPTable.Renderers
                 }
                 else
                 {
-				arrowRect.X = textRect.Right - arrowRect.Width;
-				textRect.Width -= arrowRect.Width;
+                    arrowRect.X = textRect.Right - arrowRect.Width;
+                    textRect.Width -= arrowRect.Width;
                 }
 
-				this.DrawSortArrow(e.Graphics, arrowRect, e.Column.SortOrder, e.Column.Enabled);
+                this.DrawSortArrow(e.Graphics, arrowRect, e.Column.SortOrder, e.Column.Enabled);
                 arrowWidth = arrowRect.Width;
-			}
+            }
 
             if (e.Column.Text != null && e.Column.Text.Length > 0 && textRect.Width > 0)
             {
@@ -159,10 +157,10 @@ namespace XPTable.Renderers
             {
                 e.Column.ContentWidth = imageWidth + arrowWidth + textWidth;
             }
-		}
+        }
 
-		#endregion
+        #endregion
 
-		#endregion
-	}
+        #endregion
+    }
 }

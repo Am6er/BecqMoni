@@ -32,118 +32,117 @@ using System.Windows.Forms;
 
 using XPTable.Events;
 using XPTable.Models;
-using XPTable.Themes;
 
 
 namespace XPTable.Renderers
 {
-	/// <summary>
-	/// A CellRenderer that draws Cell contents as a DateTime
-	/// </summary>
-	public class DateTimeCellRenderer : DropDownCellRenderer
-	{
-		#region Class Data
+    /// <summary>
+    /// A CellRenderer that draws Cell contents as a DateTime
+    /// </summary>
+    public class DateTimeCellRenderer : DropDownCellRenderer
+    {
+        #region Class Data
 
-		/// <summary>
-		/// The format of the date and time displayed in the Cell
-		/// </summary>
-		private DateTimePickerFormat dateFormat;
+        /// <summary>
+        /// The format of the date and time displayed in the Cell
+        /// </summary>
+        private DateTimePickerFormat dateFormat;
 
-		#endregion
-		
-		
-		#region Constructor
-		
-		/// <summary>
-		/// Initializes a new instance of the DateTimeCellRenderer class with 
-		/// default settings
-		/// </summary>
-		public DateTimeCellRenderer() : base()
-		{
-			this.dateFormat = DateTimePickerFormat.Long;
-			this.Format = DateTimeColumn.LongDateFormat;
-		}
-
-		#endregion
+        #endregion
 
 
-		#region Properties
+        #region Constructor
 
-		/// <summary>
-		/// Gets or sets the format of the date and time displayed in the Cell
-		/// </summary>
-		public DateTimePickerFormat DateTimeFormat
-		{
-			get
-			{
-				return this.dateFormat;
-			}
+        /// <summary>
+        /// Initializes a new instance of the DateTimeCellRenderer class with 
+        /// default settings
+        /// </summary>
+        public DateTimeCellRenderer() : base()
+        {
+            this.dateFormat = DateTimePickerFormat.Long;
+            this.Format = DateTimeColumn.LongDateFormat;
+        }
 
-			set
-			{
-				if (!Enum.IsDefined(typeof(DateTimePickerFormat), value)) 
-				{
-					throw new InvalidEnumArgumentException("value", (int) value, typeof(DateTimePickerFormat));
-				}
-					
-				this.dateFormat = value;
-			}
-		}
-
-		#endregion
+        #endregion
 
 
-		#region Events
+        #region Properties
 
-		#region Paint
+        /// <summary>
+        /// Gets or sets the format of the date and time displayed in the Cell
+        /// </summary>
+        public DateTimePickerFormat DateTimeFormat
+        {
+            get
+            {
+                return this.dateFormat;
+            }
 
-		/// <summary>
-		/// Raises the PaintCell event
-		/// </summary>
-		/// <param name="e">A PaintCellEventArgs that contains the event data</param>
-		public override void OnPaintCell(PaintCellEventArgs e)
-		{
-			if (e.Table.ColumnModel.Columns[e.Column] is DateTimeColumn)
-			{
-				DateTimeColumn column = (DateTimeColumn) e.Table.ColumnModel.Columns[e.Column];
+            set
+            {
+                if (!Enum.IsDefined(typeof(DateTimePickerFormat), value))
+                {
+                    throw new InvalidEnumArgumentException("value", (int)value, typeof(DateTimePickerFormat));
+                }
 
-				this.DateTimeFormat = column.DateTimeFormat;
-				this.Format = column.CustomDateTimeFormat;
-			}
-			else
-			{
-				this.DateTimeFormat = DateTimePickerFormat.Long;
-				this.Format = "";
-			}
-			
-			base.OnPaintCell(e);
-		}
+                this.dateFormat = value;
+            }
+        }
 
-		/// <summary>
-		/// Raises the Paint event
-		/// </summary>
-		/// <param name="e">A PaintCellEventArgs that contains the event data</param>
-		protected override void OnPaint(PaintCellEventArgs e)
-		{
-			base.OnPaint(e);
+        #endregion
 
-			// don't bother going any further if the Cell is null 
-			// or doesn't contain any data
-			if (e.Cell == null || e.Cell.Data == null || !(e.Cell.Data is DateTime))
-				return;
 
-			Rectangle buttonRect = this.CalcDropDownButtonBounds();
-			Rectangle textRect = this.ClientRectangle;
-			
-			if (this.ShowDropDownButton)
-				textRect.Width -= buttonRect.Width - 1;
+        #region Events
 
-            string dateText = FormatDate((DateTime) e.Cell.Data);
+        #region Paint
 
-			// draw the text
-			if (e.Enabled)
+        /// <summary>
+        /// Raises the PaintCell event
+        /// </summary>
+        /// <param name="e">A PaintCellEventArgs that contains the event data</param>
+        public override void OnPaintCell(PaintCellEventArgs e)
+        {
+            if (e.Table.ColumnModel.Columns[e.Column] is DateTimeColumn)
+            {
+                DateTimeColumn column = (DateTimeColumn)e.Table.ColumnModel.Columns[e.Column];
+
+                this.DateTimeFormat = column.DateTimeFormat;
+                this.Format = column.CustomDateTimeFormat;
+            }
+            else
+            {
+                this.DateTimeFormat = DateTimePickerFormat.Long;
+                this.Format = "";
+            }
+
+            base.OnPaintCell(e);
+        }
+
+        /// <summary>
+        /// Raises the Paint event
+        /// </summary>
+        /// <param name="e">A PaintCellEventArgs that contains the event data</param>
+        protected override void OnPaint(PaintCellEventArgs e)
+        {
+            base.OnPaint(e);
+
+            // don't bother going any further if the Cell is null 
+            // or doesn't contain any data
+            if (e.Cell == null || e.Cell.Data == null || !(e.Cell.Data is DateTime))
+                return;
+
+            Rectangle buttonRect = this.CalcDropDownButtonBounds();
+            Rectangle textRect = this.ClientRectangle;
+
+            if (this.ShowDropDownButton)
+                textRect.Width -= buttonRect.Width - 1;
+
+            string dateText = FormatDate((DateTime)e.Cell.Data);
+
+            // draw the text
+            if (e.Enabled)
                 DrawString(e.Graphics, dateText, this.Font, this.ForeBrush, textRect, e.Cell.WordWrap);
-			else
+            else
                 DrawString(e.Graphics, dateText, this.Font, this.GrayTextBrush, textRect, e.Cell.WordWrap);
 
             if (e.Cell.WidthNotSet)
@@ -152,18 +151,18 @@ namespace XPTable.Renderers
                 e.Cell.ContentWidth = (int)Math.Ceiling(size.Width) + (this.ShowDropDownButton ? buttonRect.Width : 0);
             }
 
-			if( (e.Focused && e.Enabled)
-				// only if we want to show selection rectangle
-				&& ( e.Table.ShowSelectionRectangle ) )
-			{
-				Rectangle focusRect = this.ClientRectangle;
+            if ((e.Focused && e.Enabled)
+                // only if we want to show selection rectangle
+                && (e.Table.ShowSelectionRectangle))
+            {
+                Rectangle focusRect = this.ClientRectangle;
 
-				if (this.ShowDropDownButton)
-					focusRect.Width -= buttonRect.Width;
-				
-				ControlPaint.DrawFocusRectangle(e.Graphics, focusRect);
-			}
-		}
+                if (this.ShowDropDownButton)
+                    focusRect.Width -= buttonRect.Width;
+
+                ControlPaint.DrawFocusRectangle(e.Graphics, focusRect);
+            }
+        }
 
         /// <summary>
         /// Returns the string used to display this date.
@@ -197,8 +196,8 @@ namespace XPTable.Renderers
 
             return dateTime.ToString(format, this.FormatProvider);
         }
-		#endregion
+        #endregion
 
-		#endregion
-	}
+        #endregion
+    }
 }

@@ -1,9 +1,8 @@
-﻿using System.IO.Ports;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
+using System.IO.Ports;
 using System.Text;
 using System.Threading;
 
@@ -130,11 +129,11 @@ namespace BecquerelMonitor
             try
             {
                 //if (port.IsOpen)
-               // {
+                // {
                 //    port.DiscardInBuffer();
                 //    port.DiscardOutBuffer();
                 //    port.Close();
-               // }
+                // }
             }
             catch (Exception)
             {
@@ -160,7 +159,7 @@ namespace BecquerelMonitor
             array[0] = 0x03;
             Array.Copy(ascii, 0, array, 1, ascii.Length);
             string ignore;
-            while (received_lines.TryDequeue(out ignore));
+            while (received_lines.TryDequeue(out ignore)) ;
             send_packet(array);
         }
 
@@ -175,7 +174,7 @@ namespace BecquerelMonitor
             {
                 str = str.Substring(0, index);
             }
-            return answer.Equals(str);   
+            return answer.Equals(str);
         }
 
         public String getCommandOutput(int timeout_ms)
@@ -272,7 +271,7 @@ namespace BecquerelMonitor
                 {
                     try
                     {
-                        if(port.IsOpen) port.Close();
+                        if (port.IsOpen) port.Close();
                         if (name != null)
                         {
                             port.PortName = this.name;
@@ -289,7 +288,8 @@ namespace BecquerelMonitor
                         try
                         {
                             port.Close();
-                        } catch (Exception)
+                        }
+                        catch (Exception)
                         {
 
                         }
@@ -297,7 +297,7 @@ namespace BecquerelMonitor
                         continue;
                     }
                 }
-                else if(state == State.Connected)
+                else if (state == State.Connected)
                 {
                     try
                     {
@@ -354,7 +354,8 @@ namespace BecquerelMonitor
                                 //cps_static = cps;
                                 hystogram.CopyTo(hystogram_buffered, 0);
                                 if (DataReady != null) DataReady(this, new AtomSpectraVCPInDataReadyArgs(hystogram_buffered, cpu_load, elapsed_time, invalid_pulses));
-                            } else if(packet_cmd == 0x03) //printf
+                            }
+                            else if (packet_cmd == 0x03) //printf
                             {
                                 byte[] arr = new byte[packet_length];
                                 packet.CopyTo(0, arr, 0, packet_length);
@@ -395,7 +396,7 @@ namespace BecquerelMonitor
 
         public double CPS
         {
-            get { return (double) this.cps;  }
+            get { return (double)this.cps; }
         }
 
         private void add2buff_escape(byte tx_byte)
@@ -413,12 +414,12 @@ namespace BecquerelMonitor
 
         public int InvalidPulses
         {
-            get { return invalid_pulses;  }
+            get { return invalid_pulses; }
         }
 
         public void Dispose()
         {
-            if(timer != null) timer.Dispose();
+            if (timer != null) timer.Dispose();
             if (readerThread != null)
             {
                 Trace.WriteLine("Try to close port...");

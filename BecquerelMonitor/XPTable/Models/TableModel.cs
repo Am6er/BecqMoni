@@ -28,7 +28,6 @@
 using System;
 using System.Collections;
 using System.ComponentModel;
-using System.ComponentModel.Design;
 using System.Drawing;
 using System.Drawing.Design;
 

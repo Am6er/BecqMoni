@@ -1,10 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO.Ports;
-using System.Linq;
-using System.Text;
-using System.Windows.Forms;
 
 namespace BecquerelMonitor
 {
@@ -103,7 +97,7 @@ namespace BecquerelMonitor
                 if (new_document_created)
                 {
                     AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).sendCommand("-sto");
-                    commands_accepted &= AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("-ok", 1000); 
+                    commands_accepted &= AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("-ok", 1000);
                     //AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).sendCommand("-rst");
                     //commands_accepted &= AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("-ok", 1000); 
                 }
@@ -112,8 +106,9 @@ namespace BecquerelMonitor
                 if (new_document_created)
                 {
                     resultData.StartTime = DateTime.Now;
-                    if (commands_accepted )new_document_created = false;
-                } else
+                    if (commands_accepted) new_document_created = false;
+                }
+                else
                 {
                     //resultData.StartTime.Add = stopTimestamp;
                 }
@@ -159,7 +154,7 @@ namespace BecquerelMonitor
             this.pulseDetector.EnergySpectrum.TotalPulseCount = sum + e.InvalidPulses;
             this.pulseDetector.EnergySpectrum.ValidPulseCount = sum;
             this.pulseDetector.EnergySpectrum.ChannelPitch = 1;
-            if(this.resultData != null)
+            if (this.resultData != null)
             {
                 resultData.ResultDataStatus.TotalTime = TimeSpan.FromSeconds(e.ElapsedTime);
                 resultData.ResultDataStatus.ElapsedTime = resultData.ResultDataStatus.TotalTime;
@@ -171,9 +166,9 @@ namespace BecquerelMonitor
             ResultDataStatus resultDataStatus = resultData.ResultDataStatus;
             if (deviceGuid != null)
             {
-                  AtomSpectraVCPIn.getInstance(deviceGuid).sendCommand("-sto");
-                  resultData.EndTime = DateTime.Now;
-                  resultDataStatus.Recording = !AtomSpectraVCPIn.getInstance(deviceGuid).waitForAnswer("-ok", 1000);
+                AtomSpectraVCPIn.getInstance(deviceGuid).sendCommand("-sto");
+                resultData.EndTime = DateTime.Now;
+                resultDataStatus.Recording = !AtomSpectraVCPIn.getInstance(deviceGuid).waitForAnswer("-ok", 1000);
             }
         }
 

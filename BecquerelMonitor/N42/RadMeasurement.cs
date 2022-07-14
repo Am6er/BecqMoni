@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace BecquerelMonitor.N42
+﻿namespace BecquerelMonitor.N42
 {
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("xsd", "4.8.3928.0")]

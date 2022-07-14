@@ -25,47 +25,45 @@
  */
 
 
-using System;
-
 using XPTable.Models;
 
 
 namespace XPTable.Events
 {
-	#region Delegates
+    #region Delegates
 
-	/// <summary>
-	/// Represents the method that will handle the CellButtonClicked event of a Table
-	/// </summary>
-	public delegate void CellButtonEventHandler(object sender, CellButtonEventArgs e);
+    /// <summary>
+    /// Represents the method that will handle the CellButtonClicked event of a Table
+    /// </summary>
+    public delegate void CellButtonEventHandler(object sender, CellButtonEventArgs e);
 
-	#endregion
+    #endregion
 
 
 
-	#region CellButtonEventArgs
-	
-	/// <summary>
-	/// Provides data for the CellButtonClicked event of a Table
-	/// </summary>
-	public class CellButtonEventArgs : CellEventArgsBase
-	{
-		#region Constructor
-		
-		/// <summary>
-		/// Initializes a new instance of the CellButtonEventArgs class with 
-		/// the specified Cell source, row index and column index
-		/// </summary>
-		/// <param name="source">The Cell that raised the event</param>
-		/// <param name="column">The Column index of the Cell</param>
-		/// <param name="row">The Row index of the Cell</param>
-		public CellButtonEventArgs(Cell source, int column, int row) : base(source, column, row)
-		{
-			
-		}
+    #region CellButtonEventArgs
 
-		#endregion
-	}
+    /// <summary>
+    /// Provides data for the CellButtonClicked event of a Table
+    /// </summary>
+    public class CellButtonEventArgs : CellEventArgsBase
+    {
+        #region Constructor
 
-	#endregion
+        /// <summary>
+        /// Initializes a new instance of the CellButtonEventArgs class with 
+        /// the specified Cell source, row index and column index
+        /// </summary>
+        /// <param name="source">The Cell that raised the event</param>
+        /// <param name="column">The Column index of the Cell</param>
+        /// <param name="row">The Row index of the Cell</param>
+        public CellButtonEventArgs(Cell source, int column, int row) : base(source, column, row)
+        {
+
+        }
+
+        #endregion
+    }
+
+    #endregion
 }

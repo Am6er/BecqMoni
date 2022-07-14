@@ -1,12 +1,8 @@
-using System;
-using System.ComponentModel;
 using System.Drawing;
-using System.Globalization;
 using System.Windows.Forms;
 
 using XPTable.Events;
 using XPTable.Models;
-using XPTable.Themes;
 
 namespace XPTable.Renderers
 {

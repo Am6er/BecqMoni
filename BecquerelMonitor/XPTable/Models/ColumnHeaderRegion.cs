@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace XPTable.Models
+﻿namespace XPTable.Models
 {
     /// <summary>
     /// Specifies the part of the ColumnHeader the user has clicked

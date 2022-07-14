@@ -1,6 +1,4 @@
-using System;
 using System.Drawing;
-using System.Text;
 
 using XPTable.Models;
 

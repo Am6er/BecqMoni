@@ -36,14 +36,15 @@ namespace BecquerelMonitor.N42
             if (doc.ActiveResultData.BackgroundEnergySpectrum != null)
             {
                 bgexist = true;
-                rad.EnergyCalibration = new EnergyCalibration[SpectrumCount+1];
-                rad.RadMeasurement = new RadMeasurement[SpectrumCount+1];
-            } else
+                rad.EnergyCalibration = new EnergyCalibration[SpectrumCount + 1];
+                rad.RadMeasurement = new RadMeasurement[SpectrumCount + 1];
+            }
+            else
             {
                 rad.EnergyCalibration = new EnergyCalibration[SpectrumCount];
                 rad.RadMeasurement = new RadMeasurement[SpectrumCount];
             }
-            
+
 
             for (int i = 0; i < SpectrumCount; i++)
             {

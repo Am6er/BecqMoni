@@ -27,7 +27,6 @@
 
 using System;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 using System.Windows.Forms;
@@ -76,7 +75,7 @@ namespace XPTable.Renderers
 
 
         #region Constructor
-        
+
         /// <summary>
         /// Initializes a new instance of the NumberCellRenderer class with 
         /// default settings
@@ -171,7 +170,7 @@ namespace XPTable.Renderers
                 this.SetRendererData(cell, rendererData);
             }
 
-            return (NumberRendererData) rendererData;
+            return (NumberRendererData)rendererData;
         }
 
 
@@ -239,11 +238,11 @@ namespace XPTable.Renderers
 
             set
             {
-                if (!Enum.IsDefined(typeof(LeftRightAlignment), value)) 
+                if (!Enum.IsDefined(typeof(LeftRightAlignment), value))
                 {
-                    throw new InvalidEnumArgumentException("value", (int) value, typeof(LeftRightAlignment));
+                    throw new InvalidEnumArgumentException("value", (int)value, typeof(LeftRightAlignment));
                 }
-                    
+
                 this.upDownAlignment = value;
             }
         }
@@ -262,7 +261,7 @@ namespace XPTable.Renderers
             set
             {
                 this.maximum = value;
-                
+
                 if (this.minimum > this.maximum)
                 {
                     this.minimum = this.maximum;
@@ -284,7 +283,7 @@ namespace XPTable.Renderers
             set
             {
                 this.minimum = value;
-                
+
                 if (this.minimum > this.maximum)
                 {
                     this.maximum = value;
@@ -411,14 +410,14 @@ namespace XPTable.Renderers
                     NumberRendererData rendererData = this.GetNumberRendererData(e.Cell);
 
                     rendererData.ClickPoint = new Point(e.X, e.Y);
-                    
+
                     if (this.CalcButtonBounds().Contains(e.X, e.Y))
                     {
                         if (!(e.Table.ColumnModel.GetCellEditor(e.CellPos.Column) is NumberCellEditor))
                         {
                             throw new InvalidOperationException("Cannot edit Cell as NumberCellRenderer requires a NumberColumn that uses a NumberCellEditor");
                         }
-                        
+
                         if (!e.Table.IsEditing)
                         {
                             e.Table.EditCell(e.CellPos);    // Editing may be cancelled by an event handler
@@ -451,7 +450,7 @@ namespace XPTable.Renderers
         #endregion
 
         #region MouseMove
-    
+
         /// <summary>
         /// Raises the MouseMove event
         /// </summary>
@@ -479,7 +478,7 @@ namespace XPTable.Renderers
 
                                     if (this.TableUsingNumericCellEditor(e.Table, e.CellPos))
                                     {
-                                        ((IEditorUsesRendererButtons) e.Table.EditingCellEditor).OnEditorButtonMouseDown(this, e);
+                                        ((IEditorUsesRendererButtons)e.Table.EditingCellEditor).OnEditorButtonMouseDown(this, e);
                                     }
                                 }
                                 else if (this.GetDownButtonBounds().Contains(rendererData.ClickPoint))
@@ -488,7 +487,7 @@ namespace XPTable.Renderers
 
                                     if (this.TableUsingNumericCellEditor(e.Table, e.CellPos))
                                     {
-                                        ((IEditorUsesRendererButtons) e.Table.EditingCellEditor).OnEditorButtonMouseUp(this, e);
+                                        ((IEditorUsesRendererButtons)e.Table.EditingCellEditor).OnEditorButtonMouseUp(this, e);
                                     }
                                 }
                             }
@@ -517,7 +516,7 @@ namespace XPTable.Renderers
 
                                     if (this.TableUsingNumericCellEditor(e.Table, e.CellPos))
                                     {
-                                        ((IEditorUsesRendererButtons) e.Table.EditingCellEditor).OnEditorButtonMouseDown(this, e);
+                                        ((IEditorUsesRendererButtons)e.Table.EditingCellEditor).OnEditorButtonMouseDown(this, e);
                                     }
                                 }
                                 else if (this.GetUpButtonBounds().Contains(rendererData.ClickPoint))
@@ -526,7 +525,7 @@ namespace XPTable.Renderers
 
                                     if (this.TableUsingNumericCellEditor(e.Table, e.CellPos))
                                     {
-                                        ((IEditorUsesRendererButtons) e.Table.EditingCellEditor).OnEditorButtonMouseUp(this, e);
+                                        ((IEditorUsesRendererButtons)e.Table.EditingCellEditor).OnEditorButtonMouseUp(this, e);
                                     }
                                 }
                             }
@@ -552,7 +551,7 @@ namespace XPTable.Renderers
 
                             if (this.TableUsingNumericCellEditor(e.Table, e.CellPos))
                             {
-                                ((IEditorUsesRendererButtons) e.Table.EditingCellEditor).OnEditorButtonMouseUp(this, e);
+                                ((IEditorUsesRendererButtons)e.Table.EditingCellEditor).OnEditorButtonMouseUp(this, e);
                             }
 
                             e.Table.Invalidate(e.CellRect);
@@ -596,7 +595,7 @@ namespace XPTable.Renderers
                 this.Maximum = 100;
                 this.Minimum = 0;
             }
-            
+
             base.OnPaintCell(e);
         }
 
@@ -619,7 +618,7 @@ namespace XPTable.Renderers
             {
                 UpDownState upButtonState = this.GetNumberRendererData(e.Cell).UpButtonState;
                 UpDownState downButtonState = this.GetNumberRendererData(e.Cell).DownButtonState;
-                
+
                 if (!e.Enabled)
                 {
                     upButtonState = UpDownState.Disabled;
@@ -629,7 +628,7 @@ namespace XPTable.Renderers
                 ThemeManager.DrawUpDownButtons(e.Graphics, this.GetUpButtonBounds(), upButtonState, this.GetDownButtonBounds(), downButtonState);
             }
         }
-        
+
         /// <summary>
         /// Raises the Paint event
         /// </summary>
@@ -667,7 +666,7 @@ namespace XPTable.Renderers
             if (e.Cell.WidthNotSet)
             {
                 SizeF size = e.Graphics.MeasureString(text, this.Font);
-                e.Cell.ContentWidth = (int) Math.Ceiling(size.Width);
+                e.Cell.ContentWidth = (int)Math.Ceiling(size.Width);
             }
 
             //Draw the formatted or raw value (striked out) if an error occured

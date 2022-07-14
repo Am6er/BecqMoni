@@ -26,10 +26,8 @@
 
 
 using System;
-using System.Windows.Forms;
-
-using XPTable.Models;
 using XPTable.Events;
+using XPTable.Models;
 
 
 namespace XPTable.Renderers

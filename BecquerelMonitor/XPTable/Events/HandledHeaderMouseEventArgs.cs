@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace XPTable.Events
+﻿namespace XPTable.Events
 {
     /// <summary>
     /// Provides data for the HeaderFilterClick events of a Table
