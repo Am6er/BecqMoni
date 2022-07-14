@@ -33,8 +33,8 @@
     <MinimumRequiredVersion>2022.07.08.7</MinimumRequiredVersion>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
-    <ApplicationRevision>0</ApplicationRevision>
-    <ApplicationVersion>2022.07.14.0</ApplicationVersion>
+    <ApplicationRevision>1</ApplicationRevision>
+    <ApplicationVersion>2022.07.14.1</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -981,10 +981,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="logo_atom.ico" />
-    <Content Include="XPTable\Models\ColumnModel.bmp" />
-    <Content Include="XPTable\Models\Table.bmp" />
-    <Content Include="XPTable\Models\TableModel.bmp" />
-    <Content Include="XPTable\Resources\XPTable32x32.png" />
   </ItemGroup>
   <ItemGroup>
     <PublishFile Include="config\BecquerelMonitor.xml">
