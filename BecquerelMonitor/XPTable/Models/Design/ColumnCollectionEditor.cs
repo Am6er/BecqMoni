@@ -28,147 +28,144 @@
 using System;
 using System.ComponentModel;
 using System.ComponentModel.Design;
-using System.Drawing;
-using System.Windows.Forms;
 
 using XPTable.Events;
-using XPTable.Models;
 
 
 namespace XPTable.Models.Design
 {
-	/// <summary>
-	/// Provides a user interface that can edit collections of Columns 
-	/// at design time
-	/// </summary>
-	public class ColumnCollectionEditor : HelpfulCollectionEditor
-	{
+    /// <summary>
+    /// Provides a user interface that can edit collections of Columns 
+    /// at design time
+    /// </summary>
+    public class ColumnCollectionEditor : HelpfulCollectionEditor
+    {
         /// <summary>
         /// The ColumnCollection being edited
         /// </summary>
         private ColumnCollection columnCollection;
 
-		/// <summary>
-		/// Constructor
-		/// </summary>
-		/// <param name="type">The type of the collection to be edited</param>
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="type">The type of the collection to be edited</param>
         public ColumnCollectionEditor(Type type)
             : base(type)
         {
         }
 
-		/// <summary>
-		/// If the property grid is available it's HelpVisible property is set to true, the help pane backcolor is changed and
-		/// the CommandsVisibleIfAvailable property is set to true ((hot) commands are elsewhere known as designer verbs).
-		/// </summary>
-		/// <returns>The CollectionEditor.CollectionForm returned from base method</returns>
-		protected override CollectionEditor.CollectionForm CreateCollectionForm()
-		{
-			CollectionEditor.CollectionForm collectionForm = base.CreateCollectionForm();
+        /// <summary>
+        /// If the property grid is available it's HelpVisible property is set to true, the help pane backcolor is changed and
+        /// the CommandsVisibleIfAvailable property is set to true ((hot) commands are elsewhere known as designer verbs).
+        /// </summary>
+        /// <returns>The CollectionEditor.CollectionForm returned from base method</returns>
+        protected override CollectionEditor.CollectionForm CreateCollectionForm()
+        {
+            CollectionEditor.CollectionForm collectionForm = base.CreateCollectionForm();
 
-			if (this.PropertyGrid != null)
-			{
-				this.PropertyGrid.HelpVisible = true;
-				this.PropertyGrid.HelpBackColor = System.Drawing.SystemColors.InactiveCaption;
-				this.PropertyGrid.CommandsVisibleIfAvailable = true;
-			}
+            if (this.PropertyGrid != null)
+            {
+                this.PropertyGrid.HelpVisible = true;
+                this.PropertyGrid.HelpBackColor = System.Drawing.SystemColors.InactiveCaption;
+                this.PropertyGrid.CommandsVisibleIfAvailable = true;
+            }
 
-			return collectionForm;
-		}
+            return collectionForm;
+        }
 
-		/// <summary>
-		/// Gets the data types that this collection editor can contain
-		/// </summary>
-		/// <returns>An array of data types that this collection can contain</returns>
-		protected override Type[] CreateNewItemTypes()
-		{
-		    return new[]
-		           {
-		               typeof(TextColumn),
-		               typeof(ButtonColumn),
-		               typeof(CheckBoxColumn),
-		               typeof(ColorColumn),
-		               typeof(ComboBoxColumn),
-		               typeof(DateTimeColumn),
-		               typeof(ImageColumn),
-		               typeof(NumberColumn),
-		               typeof(DoubleColumn),
-		               typeof(ProgressBarColumn),
-		               typeof(GroupColumn)
-		           };
-		}
-		
-		/// <summary>
-		/// Creates a new instance of the specified collection item type
-		/// </summary>
-		/// <param name="itemType">The type of item to create</param>
-		/// <returns>A new instance of the specified object</returns>
-		protected override object CreateInstance(Type itemType)
-		{
-			Column column = (Column) base.CreateInstance(itemType);
+        /// <summary>
+        /// Gets the data types that this collection editor can contain
+        /// </summary>
+        /// <returns>An array of data types that this collection can contain</returns>
+        protected override Type[] CreateNewItemTypes()
+        {
+            return new[]
+                   {
+                       typeof(TextColumn),
+                       typeof(ButtonColumn),
+                       typeof(CheckBoxColumn),
+                       typeof(ColorColumn),
+                       typeof(ComboBoxColumn),
+                       typeof(DateTimeColumn),
+                       typeof(ImageColumn),
+                       typeof(NumberColumn),
+                       typeof(DoubleColumn),
+                       typeof(ProgressBarColumn),
+                       typeof(GroupColumn)
+                   };
+        }
 
-			this.columnCollection.Add(column);
+        /// <summary>
+        /// Creates a new instance of the specified collection item type
+        /// </summary>
+        /// <param name="itemType">The type of item to create</param>
+        /// <returns>A new instance of the specified object</returns>
+        protected override object CreateInstance(Type itemType)
+        {
+            Column column = (Column)base.CreateInstance(itemType);
 
-			column.PropertyChanged += new ColumnEventHandler(this.column_PropertyChanged);
+            this.columnCollection.Add(column);
 
-			return column;
-		}
+            column.PropertyChanged += new ColumnEventHandler(this.column_PropertyChanged);
 
-		/// <summary>
-		/// Destroys the specified instance of the object
-		/// </summary>
-		/// <param name="instance">The object to destroy</param>
-		protected override void DestroyInstance(object instance)
-		{
+            return column;
+        }
+
+        /// <summary>
+        /// Destroys the specified instance of the object
+        /// </summary>
+        /// <param name="instance">The object to destroy</param>
+        protected override void DestroyInstance(object instance)
+        {
             if (instance != null && instance is Column)
-			{
+            {
                 Column column = (Column)instance;
 
-				this.columnCollection.Remove(column);
-				column.PropertyChanged -= new ColumnEventHandler(this.column_PropertyChanged);
-				column.Dispose();
-			}
-			base.DestroyInstance(instance);
-		}
+                this.columnCollection.Remove(column);
+                column.PropertyChanged -= new ColumnEventHandler(this.column_PropertyChanged);
+                column.Dispose();
+            }
+            base.DestroyInstance(instance);
+        }
 
-		/// <summary>
-		/// Edits the value of the specified object using the specified 
-		/// service provider and context
-		/// </summary>
-		/// <param name="context">An ITypeDescriptorContext that can be used to gain additional context information</param>
-		/// <param name="isp">A service provider object through which editing services can be obtained</param>
-		/// <param name="value">the value of the object under edit</param>
-		/// <returns>The new value of the object. If the value is not changed, this should return the original value</returns>
-		public override object EditValue(ITypeDescriptorContext context, IServiceProvider isp, object value)
-		{
-			this.columnCollection = (ColumnCollection) value;
+        /// <summary>
+        /// Edits the value of the specified object using the specified 
+        /// service provider and context
+        /// </summary>
+        /// <param name="context">An ITypeDescriptorContext that can be used to gain additional context information</param>
+        /// <param name="isp">A service provider object through which editing services can be obtained</param>
+        /// <param name="value">the value of the object under edit</param>
+        /// <returns>The new value of the object. If the value is not changed, this should return the original value</returns>
+        public override object EditValue(ITypeDescriptorContext context, IServiceProvider isp, object value)
+        {
+            this.columnCollection = (ColumnCollection)value;
 
             foreach (Column column in this.columnCollection)
-			{
-				column.PropertyChanged += new ColumnEventHandler(this.column_PropertyChanged);
-			}
+            {
+                column.PropertyChanged += new ColumnEventHandler(this.column_PropertyChanged);
+            }
 
-			object newCollection = base.EditValue(context, isp, value);
+            object newCollection = base.EditValue(context, isp, value);
 
             ColumnModel columns = (ColumnModel)context.Instance;
 
-			if (columns.Table != null)
-			{
-				columns.Table.PerformLayout();
-				columns.Table.Refresh();
-			}
+            if (columns.Table != null)
+            {
+                columns.Table.PerformLayout();
+                columns.Table.Refresh();
+            }
 
-			return newCollection;
-		}
+            return newCollection;
+        }
 
-		/// <summary>
-		/// Handler for a Column's PropertyChanged event
-		/// </summary>
-		/// <param name="sender">The object that raised the event</param>
-		/// <param name="e">A ColumnEventArgs that contains the event data</param>
-		private void column_PropertyChanged(object sender, ColumnEventArgs e)
-		{
+        /// <summary>
+        /// Handler for a Column's PropertyChanged event
+        /// </summary>
+        /// <param name="sender">The object that raised the event</param>
+        /// <param name="e">A ColumnEventArgs that contains the event data</param>
+        private void column_PropertyChanged(object sender, ColumnEventArgs e)
+        {
             this.columnCollection.ColumnModel.OnColumnPropertyChanged(e);
-		}
-	}
+        }
+    }
 }

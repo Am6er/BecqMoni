@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Drawing;
-using System.Text;
 using System.Windows.Forms;
 using XPTable.Events;
 using XPTable.Models;
@@ -81,7 +79,7 @@ namespace XPTable.Filters
             Point screenPos = e.Table.PointToScreen(new Point(e.HeaderRect.Left, e.HeaderRect.Bottom));
 
             dialog.StartPosition = FormStartPosition.Manual;
-            
+
             dialog.Location = screenPos;
 
             return dialog;

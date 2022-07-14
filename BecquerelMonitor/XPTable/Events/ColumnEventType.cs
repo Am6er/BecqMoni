@@ -24,10 +24,6 @@
  * OF SUCH DAMAGE.
  */
 
-
-using System;
-
-
 namespace XPTable.Events
 {
     /// <summary>
@@ -151,5 +147,5 @@ namespace XPTable.Events
         /// Occurs when the value of a Column's Filter property changes
         /// </summary>
         FilterChanged = 22,
-}
+    }
 }

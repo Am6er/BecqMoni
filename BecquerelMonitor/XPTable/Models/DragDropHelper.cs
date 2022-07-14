@@ -1,18 +1,7 @@
-using System;
 using System.Collections;
-using System.ComponentModel;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Windows.Forms;
-using System.Windows.Forms.VisualStyles;
-
-using XPTable.Editors;
-using XPTable.Events;
-using XPTable.Models;
 using XPTable.Renderers;
-using XPTable.Sorting;
-using XPTable.Themes;
-using XPTable.Win32;
 
 namespace XPTable.Models
 {
@@ -205,7 +194,7 @@ namespace XPTable.Models
                     }
                     else
                         if (!drgevent.Data.GetDataPresent(typeof(DragItemData).ToString()))
-                            drgevent.Effect = _table.DragDropExternalTypeEffectSelector(sender, drgevent);
+                        drgevent.Effect = _table.DragDropExternalTypeEffectSelector(sender, drgevent);
 
                     if (drgevent.Effect != DragDropEffects.None)
                         _renderer.PaintDragDrop(g, hoverItem, _table.RowRect(nRow));

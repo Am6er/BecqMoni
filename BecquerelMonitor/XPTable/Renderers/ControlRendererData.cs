@@ -1,16 +1,11 @@
-using System;
-using System.ComponentModel;
-using System.Drawing;
 using System.Windows.Forms;
-
-using XPTable.Themes;
 
 namespace XPTable.Renderers
 {
-	/// <summary>
-	/// Contains the control shown in a control column.
-	/// </summary>
-	public class ControlRendererData
+    /// <summary>
+    /// Contains the control shown in a control column.
+    /// </summary>
+    public class ControlRendererData
     {
         #region Class Data
         private Control control;
@@ -22,7 +17,7 @@ namespace XPTable.Renderers
         /// </summary>
         /// <param name="cellControl"></param>
         public ControlRendererData(Control cellControl)
-		{
+        {
             this.control = cellControl;
         }
         #endregion

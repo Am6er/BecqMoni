@@ -25,7 +25,6 @@
  */
 
 
-using System;
 using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
@@ -35,50 +34,50 @@ using XPTable.Models;
 
 namespace XPTable.Renderers
 {
-	/// <summary>
-	/// Base class for Renderers that draw Column headers
-	/// </summary>
-	public abstract class HeaderRenderer : Renderer, IHeaderRenderer
-	{
-		#region Constructor
-		
-		/// <summary>
-		/// Initializes a new instance of the HeaderRenderer class with default settings
-		/// </summary>
-		protected HeaderRenderer() : base()
-		{
-			this.StringFormat.Alignment = StringAlignment.Near;
-		}
+    /// <summary>
+    /// Base class for Renderers that draw Column headers
+    /// </summary>
+    public abstract class HeaderRenderer : Renderer, IHeaderRenderer
+    {
+        #region Constructor
 
-		#endregion
+        /// <summary>
+        /// Initializes a new instance of the HeaderRenderer class with default settings
+        /// </summary>
+        protected HeaderRenderer() : base()
+        {
+            this.StringFormat.Alignment = StringAlignment.Near;
+        }
+
+        #endregion
 
 
-		#region Methods
+        #region Methods
 
-		/// <summary>
-		/// Returns a Rectangle that represents the size and location of the Image 
-		/// displayed on the ColumnHeader
-		/// </summary>
-		/// <returns>A Rectangle that represents the size and location of the Image 
-		/// displayed on the ColumnHeader</returns>
-		protected Rectangle CalcImageRect()
-		{
-			Rectangle imageRect = this.ClientRectangle;
+        /// <summary>
+        /// Returns a Rectangle that represents the size and location of the Image 
+        /// displayed on the ColumnHeader
+        /// </summary>
+        /// <returns>A Rectangle that represents the size and location of the Image 
+        /// displayed on the ColumnHeader</returns>
+        protected Rectangle CalcImageRect()
+        {
+            Rectangle imageRect = this.ClientRectangle;
 
-			if (imageRect.Width > 16)
-			{
-				imageRect.Width = 16;
-			}
+            if (imageRect.Width > 16)
+            {
+                imageRect.Width = 16;
+            }
 
-			if (imageRect.Height > 16)
-			{
-				imageRect.Height = 16;
+            if (imageRect.Height > 16)
+            {
+                imageRect.Height = 16;
 
-				imageRect.Y += (this.ClientRectangle.Height - imageRect.Height) / 2;
-			}
+                imageRect.Y += (this.ClientRectangle.Height - imageRect.Height) / 2;
+            }
 
-			return imageRect;
-		}
+            return imageRect;
+        }
 
         /// <summary>
         /// Returns a Rectangle that represents the size and location of the filter button shown in the ColumnHeader
@@ -104,68 +103,68 @@ namespace XPTable.Renderers
         }
 
 
-		/// <summary>
-		/// Returns a Rectangle that represents the size and location of the sort arrow
-		/// </summary>
-		/// <returns>A Rectangle that represents the size and location of the sort arrow</returns>
-		protected Rectangle CalcSortArrowRect()
-		{
-			Rectangle arrowRect = this.ClientRectangle;
+        /// <summary>
+        /// Returns a Rectangle that represents the size and location of the sort arrow
+        /// </summary>
+        /// <returns>A Rectangle that represents the size and location of the sort arrow</returns>
+        protected Rectangle CalcSortArrowRect()
+        {
+            Rectangle arrowRect = this.ClientRectangle;
 
-			arrowRect.Width = 12;
-			arrowRect.X = this.ClientRectangle.Right - arrowRect.Width;
+            arrowRect.Width = 12;
+            arrowRect.X = this.ClientRectangle.Right - arrowRect.Width;
 
-			return arrowRect;
-		}
+            return arrowRect;
+        }
 
-		#endregion
-		
-
-		#region Properties
-		
-		/// <summary>
-		/// Overrides Renderer.ClientRectangle
-		/// </summary>
-		[Browsable(false)]
-		public override Rectangle ClientRectangle
-		{
-			get
-			{
-				Rectangle client = new Rectangle(this.Bounds.Location, this.Bounds.Size);
-				
-				//
-				client.Inflate(-2, -2);
-
-				return client;
-			}
-		}
-
-		#endregion
+        #endregion
 
 
-		#region Events
+        #region Properties
 
-		#region Mouse
+        /// <summary>
+        /// Overrides Renderer.ClientRectangle
+        /// </summary>
+        [Browsable(false)]
+        public override Rectangle ClientRectangle
+        {
+            get
+            {
+                Rectangle client = new Rectangle(this.Bounds.Location, this.Bounds.Size);
 
-		#region MouseEnter
+                //
+                client.Inflate(-2, -2);
 
-		/// <summary>
-		/// Raises the MouseEnter event
-		/// </summary>
-		/// <param name="e">A HeaderMouseEventArgs that contains the event data</param>
-		public virtual void OnMouseEnter(HeaderMouseEventArgs e)
-		{
-			this.Bounds = e.HeaderRect;
+                return client;
+            }
+        }
 
-			bool tooltipActive = e.Table.ToolTip.Active;
+        #endregion
 
-			if (tooltipActive)
-				e.Table.ToolTip.Active = false;
 
-			e.Table.ResetMouseEventArgs();
+        #region Events
 
-			if (tooltipActive)
-			{
+        #region Mouse
+
+        #region MouseEnter
+
+        /// <summary>
+        /// Raises the MouseEnter event
+        /// </summary>
+        /// <param name="e">A HeaderMouseEventArgs that contains the event data</param>
+        public virtual void OnMouseEnter(HeaderMouseEventArgs e)
+        {
+            this.Bounds = e.HeaderRect;
+
+            bool tooltipActive = e.Table.ToolTip.Active;
+
+            if (tooltipActive)
+                e.Table.ToolTip.Active = false;
+
+            e.Table.ResetMouseEventArgs();
+
+            if (tooltipActive)
+            {
                 if (e.Column != null)
                 {
                     HeaderToolTipEventArgs args = new HeaderToolTipEventArgs(e.Column, new Point(e.X, e.Y));
@@ -186,213 +185,213 @@ namespace XPTable.Renderers
                 {
                     e.Table.ToolTip.SetToolTip(e.Table, string.Empty);
                 }
-				e.Table.ToolTip.Active = true;
-			}
-		}
-		#endregion
+                e.Table.ToolTip.Active = true;
+            }
+        }
+        #endregion
 
-		#region MouseLeave
+        #region MouseLeave
 
-		/// <summary>
-		/// Raises the MouseLeave event
-		/// </summary>
-		/// <param name="e">A HeaderMouseEventArgs that contains the event data</param>
-		public virtual void OnMouseLeave(HeaderMouseEventArgs e)
-		{
-			this.Bounds = e.HeaderRect;
-		}
+        /// <summary>
+        /// Raises the MouseLeave event
+        /// </summary>
+        /// <param name="e">A HeaderMouseEventArgs that contains the event data</param>
+        public virtual void OnMouseLeave(HeaderMouseEventArgs e)
+        {
+            this.Bounds = e.HeaderRect;
+        }
 
-		#endregion
+        #endregion
 
-		#region MouseUp
+        #region MouseUp
 
-		/// <summary>
-		/// Raises the MouseUp event
-		/// </summary>
-		/// <param name="e">A HeaderMouseEventArgs that contains the event data</param>
-		public virtual void OnMouseUp(HeaderMouseEventArgs e)
-		{
-			this.Bounds = e.HeaderRect;
-		}
+        /// <summary>
+        /// Raises the MouseUp event
+        /// </summary>
+        /// <param name="e">A HeaderMouseEventArgs that contains the event data</param>
+        public virtual void OnMouseUp(HeaderMouseEventArgs e)
+        {
+            this.Bounds = e.HeaderRect;
+        }
 
-		#endregion
+        #endregion
 
-		#region MouseDown
+        #region MouseDown
 
-		/// <summary>
-		/// Raises the MouseDown event
-		/// </summary>
-		/// <param name="e">A HeaderMouseEventArgs that contains the event data</param>
-		public virtual void OnMouseDown(HeaderMouseEventArgs e)
-		{
-			if (!e.Table.Focused)
-			{
-				e.Table.Focus();
-			}
-			
-			this.Bounds = e.HeaderRect;
-		}
+        /// <summary>
+        /// Raises the MouseDown event
+        /// </summary>
+        /// <param name="e">A HeaderMouseEventArgs that contains the event data</param>
+        public virtual void OnMouseDown(HeaderMouseEventArgs e)
+        {
+            if (!e.Table.Focused)
+            {
+                e.Table.Focus();
+            }
 
-		#endregion
+            this.Bounds = e.HeaderRect;
+        }
 
-		#region MouseMove
+        #endregion
 
-		/// <summary>
-		/// Raises the MouseMove event
-		/// </summary>
-		/// <param name="e">A HeaderMouseEventArgs that contains the event data</param>
-		public virtual void OnMouseMove(HeaderMouseEventArgs e)
-		{
-			this.Bounds = e.HeaderRect;
-		}
+        #region MouseMove
 
-		#endregion
+        /// <summary>
+        /// Raises the MouseMove event
+        /// </summary>
+        /// <param name="e">A HeaderMouseEventArgs that contains the event data</param>
+        public virtual void OnMouseMove(HeaderMouseEventArgs e)
+        {
+            this.Bounds = e.HeaderRect;
+        }
 
-		#region Click
+        #endregion
 
-		/// <summary>
-		/// Raises the Click event
-		/// </summary>
-		/// <param name="e">A HeaderMouseEventArgs that contains the event data</param>
-		public virtual void OnClick(HeaderMouseEventArgs e)
-		{
-			this.Bounds = e.HeaderRect;
-		}
+        #region Click
+
+        /// <summary>
+        /// Raises the Click event
+        /// </summary>
+        /// <param name="e">A HeaderMouseEventArgs that contains the event data</param>
+        public virtual void OnClick(HeaderMouseEventArgs e)
+        {
+            this.Bounds = e.HeaderRect;
+        }
 
 
-		/// <summary>
-		/// Raises the DoubleClick event
-		/// </summary>
-		/// <param name="e">A HeaderMouseEventArgs that contains the event data</param>
-		public virtual void OnDoubleClick(HeaderMouseEventArgs e)
-		{
-			this.Bounds = e.HeaderRect;
-		}
+        /// <summary>
+        /// Raises the DoubleClick event
+        /// </summary>
+        /// <param name="e">A HeaderMouseEventArgs that contains the event data</param>
+        public virtual void OnDoubleClick(HeaderMouseEventArgs e)
+        {
+            this.Bounds = e.HeaderRect;
+        }
 
-		#endregion
+        #endregion
 
-		#endregion
-		
-		#region Paint
+        #endregion
 
-		/// <summary>
-		/// Raises the PaintHeader event
-		/// </summary>
-		/// <param name="e">A PaintHeaderEventArgs that contains the event data</param>
-		public virtual void OnPaintHeader(PaintHeaderEventArgs e)
-		{
+        #region Paint
+
+        /// <summary>
+        /// Raises the PaintHeader event
+        /// </summary>
+        /// <param name="e">A PaintHeaderEventArgs that contains the event data</param>
+        public virtual void OnPaintHeader(PaintHeaderEventArgs e)
+        {
             // Apply the column alignment to the header
             if ((e.Column != null) && (e.Table != null) && (e.Table.HeaderAlignWithColumn))
                 this.Alignment = e.Column.Alignment;
 
-			// paint the Column header's background
-			this.OnPaintBackground(e);
+            // paint the Column header's background
+            this.OnPaintBackground(e);
 
-			// paint the Column headers foreground
-			this.OnPaint(e);
-		}
-
-
-		/// <summary>
-		/// Raises the PaintBackground event
-		/// </summary>
-		/// <param name="e">A PaintHeaderEventArgs that contains the event data</param>
-		protected virtual void OnPaintBackground(PaintHeaderEventArgs e)
-		{
-			
-		}
+            // paint the Column headers foreground
+            this.OnPaint(e);
+        }
 
 
-		/// <summary>
-		/// Raises the Paint event
-		/// </summary>
-		/// <param name="e">A PaintHeaderEventArgs that contains the event data</param>
-		protected virtual void OnPaint(PaintHeaderEventArgs e)
-		{
-			
-		}
-		
-		
-		/// <summary>
-		/// Draws the Image contained in the ColumnHeader
-		/// </summary>
-		/// <param name="g">The Graphics used to paint the Image</param>
-		/// <param name="image">The Image to be drawn</param>
-		/// <param name="imageRect">A rectangle that specifies the Size and 
-		/// Location of the Image</param>
-		/// <param name="enabled">Specifies whether the Image should be drawn 
-		/// in an enabled state</param>
-		protected void DrawColumnHeaderImage(Graphics g, Image image, Rectangle imageRect, bool enabled)
-		{
-			if (enabled)
-			{
-				g.DrawImage(image, imageRect);
-			}
-			else
-			{
-				using (Image im = new Bitmap(image, imageRect.Width, imageRect.Height))
-				{
-					ControlPaint.DrawImageDisabled(g, im, imageRect.X, imageRect.Y, this.BackBrush.Color);
-				}
-			}
-		}
+        /// <summary>
+        /// Raises the PaintBackground event
+        /// </summary>
+        /// <param name="e">A PaintHeaderEventArgs that contains the event data</param>
+        protected virtual void OnPaintBackground(PaintHeaderEventArgs e)
+        {
+
+        }
 
 
-		/// <summary>
-		/// Draws the ColumnHeader's sort arrow
-		/// </summary>
-		/// <param name="g">The Graphics to draw on</param>
-		/// <param name="drawRect">A Rectangle that specifies the location 
-		/// of the sort arrow</param>
-		/// <param name="direction">The direction of the sort arrow</param>
-		/// <param name="enabled">Specifies whether the sort arrow should be 
-		/// drawn in an enabled state</param>
-		protected virtual void DrawSortArrow(Graphics g, Rectangle drawRect, SortOrder direction, bool enabled)
-		{
-			if (direction != SortOrder.None)
-			{
-				using (Font font = new Font("Marlett", 9f))
-				{
-					using (StringFormat format = new StringFormat())
-					{
+        /// <summary>
+        /// Raises the Paint event
+        /// </summary>
+        /// <param name="e">A PaintHeaderEventArgs that contains the event data</param>
+        protected virtual void OnPaint(PaintHeaderEventArgs e)
+        {
+
+        }
+
+
+        /// <summary>
+        /// Draws the Image contained in the ColumnHeader
+        /// </summary>
+        /// <param name="g">The Graphics used to paint the Image</param>
+        /// <param name="image">The Image to be drawn</param>
+        /// <param name="imageRect">A rectangle that specifies the Size and 
+        /// Location of the Image</param>
+        /// <param name="enabled">Specifies whether the Image should be drawn 
+        /// in an enabled state</param>
+        protected void DrawColumnHeaderImage(Graphics g, Image image, Rectangle imageRect, bool enabled)
+        {
+            if (enabled)
+            {
+                g.DrawImage(image, imageRect);
+            }
+            else
+            {
+                using (Image im = new Bitmap(image, imageRect.Width, imageRect.Height))
+                {
+                    ControlPaint.DrawImageDisabled(g, im, imageRect.X, imageRect.Y, this.BackBrush.Color);
+                }
+            }
+        }
+
+
+        /// <summary>
+        /// Draws the ColumnHeader's sort arrow
+        /// </summary>
+        /// <param name="g">The Graphics to draw on</param>
+        /// <param name="drawRect">A Rectangle that specifies the location 
+        /// of the sort arrow</param>
+        /// <param name="direction">The direction of the sort arrow</param>
+        /// <param name="enabled">Specifies whether the sort arrow should be 
+        /// drawn in an enabled state</param>
+        protected virtual void DrawSortArrow(Graphics g, Rectangle drawRect, SortOrder direction, bool enabled)
+        {
+            if (direction != SortOrder.None)
+            {
+                using (Font font = new Font("Marlett", 9f))
+                {
+                    using (StringFormat format = new StringFormat())
+                    {
                         if (this.Alignment == XPTable.Models.ColumnAlignment.Right)
                             format.Alignment = StringAlignment.Near;
                         else
-						format.Alignment = StringAlignment.Far;
-						format.LineAlignment = StringAlignment.Center;
+                            format.Alignment = StringAlignment.Far;
+                        format.LineAlignment = StringAlignment.Center;
 
-						if (direction == SortOrder.Ascending)
-						{
-							if (enabled)
-							{
-								g.DrawString("t", font, SystemBrushes.ControlDarkDark, drawRect, format);
-							}
-							else
-							{
-								using (SolidBrush brush = new SolidBrush(SystemPens.GrayText.Color))
-								{
-									g.DrawString("t", font, brush, drawRect, format);
-								}
-							}
-						}
-						else
-						{
-							if (enabled)
-							{
-								g.DrawString("u", font, SystemBrushes.ControlDarkDark, drawRect, format);
-							}
-							else
-							{
-								using (SolidBrush brush = new SolidBrush(SystemPens.GrayText.Color))
-								{
-									g.DrawString("u", font, brush, drawRect, format);
-								}
-							}
-						}
-					}
-				}
-			}
-		}
+                        if (direction == SortOrder.Ascending)
+                        {
+                            if (enabled)
+                            {
+                                g.DrawString("t", font, SystemBrushes.ControlDarkDark, drawRect, format);
+                            }
+                            else
+                            {
+                                using (SolidBrush brush = new SolidBrush(SystemPens.GrayText.Color))
+                                {
+                                    g.DrawString("t", font, brush, drawRect, format);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (enabled)
+                            {
+                                g.DrawString("u", font, SystemBrushes.ControlDarkDark, drawRect, format);
+                            }
+                            else
+                            {
+                                using (SolidBrush brush = new SolidBrush(SystemPens.GrayText.Color))
+                                {
+                                    g.DrawString("u", font, brush, drawRect, format);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         #endregion
 

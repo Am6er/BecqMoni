@@ -24,10 +24,9 @@
  * OF SUCH DAMAGE.
  */
 
-using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
-using System.Collections.Generic;
 
 namespace XPTable.Models
 {
@@ -59,7 +58,7 @@ namespace XPTable.Models
 
         Dictionary<AllProperties, bool> isPropertySet;
 
-        enum AllProperties 
+        enum AllProperties
         {
             BackColor,
             ForeColor,
@@ -126,7 +125,7 @@ namespace XPTable.Models
                 this.foreColor = value;
                 PropertyIsSet(AllProperties.ForeColor);
             }
-    }
+        }
 
         /// <summary>
         /// Gets or sets the vertical alignment of the text displayed in the Row

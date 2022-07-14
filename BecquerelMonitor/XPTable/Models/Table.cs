@@ -25,7 +25,6 @@
  */
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
@@ -36,7 +35,6 @@ using System.Windows.Forms.VisualStyles;
 using XPTable.Editors;
 using XPTable.Events;
 using XPTable.Filters;
-using XPTable.Models;
 using XPTable.Renderers;
 using XPTable.Sorting;
 using XPTable.Themes;
@@ -7711,7 +7709,7 @@ namespace XPTable.Models
             if (this.hotColumn != -1)
             {
                 this.SetInternalColumnState(this.hotColumn, ColumnState.Normal);
-            
+
                 this.ResetHotColumn();
             }
         }

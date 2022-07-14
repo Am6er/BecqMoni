@@ -24,8 +24,6 @@
  * OF SUCH DAMAGE.
  */
 
-using System;
-
 namespace XPTable.Models
 {
     /// <summary>

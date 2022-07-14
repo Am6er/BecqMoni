@@ -25,10 +25,8 @@
  */
 
 
-using System;
 using System.Drawing;
 using System.Windows.Forms;
-using System.Windows.Forms.Design;
 
 using XPTable.Events;
 using XPTable.Models;
@@ -153,9 +151,9 @@ namespace XPTable.Editors
 
             // raise the BeginEdit event
             var e = new CellEditEventArgs(cell, this, table, cellPos.Row, cellPos.Column, cellRect)
-                        {
-                            Handled = userSetEditorValues
-                        };
+            {
+                Handled = userSetEditorValues
+            };
 
             this.OnBeginEdit(e);
 
@@ -265,7 +263,7 @@ namespace XPTable.Editors
             if (!e.Cancel && !e.Handled)
             {
                 this.SetCellValue();
-				this.table.OnEditingStopped(e);
+                this.table.OnEditingStopped(e);
             }
 
             this.RemoveEditControl();

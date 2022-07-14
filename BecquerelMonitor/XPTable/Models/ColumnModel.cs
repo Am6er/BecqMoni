@@ -25,7 +25,6 @@
  */
 
 using System;
-using System.Collections;
 using System.ComponentModel;
 using System.Drawing;
 
@@ -44,7 +43,7 @@ namespace XPTable.Models
     /// CellRenderer or CellEditor has been created for a particular Column. 
     /// </summary>
     [DesignTimeVisible(true),
-    ToolboxItem(true), 
+    ToolboxItem(true),
     ToolboxBitmap(typeof(ColumnModel))]
     public class ColumnModel : Component
     {
@@ -66,7 +65,7 @@ namespace XPTable.Models
         public event EventHandler HeaderHeightChanged;
 
         #endregion
-        
+
         #region Class Data
 
         /// <summary>
@@ -83,7 +82,7 @@ namespace XPTable.Models
         /// The maximum height of a column header
         /// </summary>
         public static readonly int MaximumHeaderHeight = 128;
-        
+
         /// <summary>
         /// The collection of Column's contained in the ColumnModel
         /// </summary>
@@ -141,14 +140,14 @@ namespace XPTable.Models
             {
                 throw new ArgumentNullException("columns", "string[] cannot be null");
             }
-            
+
             this.Init();
 
             if (columns.Length > 0)
             {
                 Column[] cols = new Column[columns.Length];
 
-                for (int i=0; i<columns.Length; i++)
+                for (int i = 0; i < columns.Length; i++)
                 {
                     cols[i] = new TextColumn(columns[i]);
                 }
@@ -169,7 +168,7 @@ namespace XPTable.Models
             {
                 throw new ArgumentNullException("columns", "Column[] cannot be null");
             }
-            
+
             this.Init();
 
             if (columns.Length > 0)
@@ -185,7 +184,7 @@ namespace XPTable.Models
         private void Init()
         {
             this.columns = null;
-            
+
             this.table = null;
             this.headerHeight = ColumnModel.DefaultHeaderHeight;
 
@@ -209,14 +208,14 @@ namespace XPTable.Models
         /// </summary>
         /// <param name="xPosition">The x-coordinate to check</param>
         /// <returns>The index of the Column or -1 if no Column is found</returns>
-        public int ColumnIndexAtX(int xPosition) 
+        public int ColumnIndexAtX(int xPosition)
         {
             if (xPosition < 0 || xPosition > this.VisibleColumnsWidth)
             {
                 return -1;
             }
 
-            for (int i=0; i<this.Columns.Count; i++)
+            for (int i = 0; i < this.Columns.Count; i++)
             {
                 if (this.Columns[i].Visible && xPosition < this.Columns[i].Right)
                 {
@@ -234,13 +233,13 @@ namespace XPTable.Models
         /// <param name="xPosition">The x-coordinate to check</param>
         /// <returns>The Column that lies on the specified position, 
         /// or null if not found</returns>
-        public Column ColumnAtX(int xPosition) 
+        public Column ColumnAtX(int xPosition)
         {
             if (xPosition < 0 || xPosition > this.VisibleColumnsWidth)
             {
                 return null;
             }
-            
+
             int index = this.ColumnIndexAtX(xPosition);
 
             if (index != -1)
@@ -275,7 +274,7 @@ namespace XPTable.Models
         {
             // check if we actually own the column
             int index = this.Columns.IndexOf(column);
-            
+
             if (index == -1)
                 return Rectangle.Empty;
 
@@ -324,20 +323,20 @@ namespace XPTable.Models
             {
                 return null;
             }
-            
+
             name = name.ToUpper();
-            
+
             if (!this.cellEditors.ContainsKey(name))
             {
                 if (this.cellEditors.Count == 0)
                 {
                     this.SetCellEditor(DefaultKey, new TextCellEditor());
                 }
-                
+
                 return null;
             }
 
-            return (ICellEditor) this.cellEditors[name];
+            return (ICellEditor)this.cellEditors[name];
         }
 
 
@@ -377,7 +376,7 @@ namespace XPTable.Models
             {
                 return;
             }
-            
+
             name = name.ToUpper();
 
             if (this.cellEditors.ContainsKey(name))
@@ -433,16 +432,16 @@ namespace XPTable.Models
             {
                 name = DefaultKey;
             }
-            
+
             name = name.ToUpper();
-            
+
             if (!this.cellRenderers.ContainsKey(name))
             {
                 if (!this.cellRenderers.ContainsKey(DefaultKey))
                 {
                     this.SetCellRenderer(DefaultKey, new TextCellRenderer());
                 }
-                
+
                 return this.cellRenderers[DefaultKey];
             }
 
@@ -479,7 +478,7 @@ namespace XPTable.Models
             {
                 return;
             }
-            
+
             name = name.ToUpper();
 
             if (this.cellRenderers.ContainsKey(name))
@@ -540,7 +539,7 @@ namespace XPTable.Models
             {
                 return -1;
             }
-            
+
             if (index <= 0)
             {
                 return -1;
@@ -548,17 +547,17 @@ namespace XPTable.Models
 
             if (index >= this.Columns.Count)
             {
-                if (this.Columns[this.Columns.Count-1].Visible)
+                if (this.Columns[this.Columns.Count - 1].Visible)
                 {
                     return this.Columns.Count - 1;
                 }
-                
+
                 index = this.Columns.Count - 1;
             }
 
-            for (int i=index; i>0; i--)
+            for (int i = index; i > 0; i--)
             {
-                if (this.Columns[i-1].Visible)
+                if (this.Columns[i - 1].Visible)
                 {
                     return i - 1;
                 }
@@ -585,15 +584,15 @@ namespace XPTable.Models
             {
                 return -1;
             }
-            
+
             if (index >= this.Columns.Count - 1)
             {
                 return -1;
             }
 
-            for (int i=index; i<this.Columns.Count-1; i++)
+            for (int i = index; i < this.Columns.Count - 1; i++)
             {
-                if (this.Columns[i+1].Visible)
+                if (this.Columns[i + 1].Visible)
                 {
                     return i + 1;
                 }
@@ -621,7 +620,7 @@ namespace XPTable.Models
             {
                 if (this.columns == null)
                     this.columns = new ColumnCollection(this);
-                
+
                 return this.columns;
             }
         }
@@ -641,7 +640,7 @@ namespace XPTable.Models
                     value = ColumnModel.MinimumHeaderHeight;
                 else if (value > ColumnModel.MaximumHeaderHeight)
                     value = ColumnModel.MaximumHeaderHeight;
-                
+
                 if (this.headerHeight != value)
                 {
                     this.headerHeight = value;
@@ -672,7 +671,7 @@ namespace XPTable.Models
             {
                 if (this.VisibleColumnCount == 0)
                     return Rectangle.Empty;
-                
+
                 return new Rectangle(0, 0, this.VisibleColumnsWidth, this.HeaderHeight);
             }
         }
@@ -806,7 +805,7 @@ namespace XPTable.Models
                 {
                     this.Table.OnColumnAdded(e);
                 }
-                
+
                 if (ColumnAdded != null)
                 {
                     ColumnAdded(this, e);
@@ -825,14 +824,14 @@ namespace XPTable.Models
             {
                 e.Column.ColumnModel = null;
             }
-            
+
             if (this.CanRaiseEvents)
             {
                 if (this.Table != null)
                 {
                     this.Table.OnColumnRemoved(e);
                 }
-                
+
                 if (ColumnRemoved != null)
                 {
                     ColumnRemoved(this, e);
@@ -853,7 +852,7 @@ namespace XPTable.Models
                 {
                     this.Table.OnHeaderHeightChanged(e);
                 }
-                
+
                 if (HeaderHeightChanged != null)
                 {
                     HeaderHeightChanged(this, e);
@@ -872,7 +871,7 @@ namespace XPTable.Models
             {
                 this.Columns.RecalcWidthCache();
             }
-            
+
             if (this.CanRaiseEvents)
             {
                 if (this.Table != null)

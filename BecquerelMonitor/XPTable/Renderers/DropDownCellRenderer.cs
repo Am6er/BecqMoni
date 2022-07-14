@@ -25,7 +25,6 @@
  */
 
 
-using System;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Windows.Forms.VisualStyles;
@@ -38,343 +37,343 @@ using XPTable.Themes;
 
 namespace XPTable.Renderers
 {
-	/// <summary>
-	/// Base class for CellRenderers that Cell contents like ComboBoxes
-	/// </summary>
-	public abstract class DropDownCellRenderer : CellRenderer
-	{
-		#region Class Data
+    /// <summary>
+    /// Base class for CellRenderers that Cell contents like ComboBoxes
+    /// </summary>
+    public abstract class DropDownCellRenderer : CellRenderer
+    {
+        #region Class Data
 
-		/// <summary>
-		/// The width of the DropDownCellRenderer's dropdown button
-		/// </summary>
-		private int buttonWidth;
+        /// <summary>
+        /// The width of the DropDownCellRenderer's dropdown button
+        /// </summary>
+        private int buttonWidth;
 
-		/// <summary>
-		/// Specifies whether the DropDownCellRenderer dropdown button should be drawn
-		/// </summary>
-		private bool showButton;
+        /// <summary>
+        /// Specifies whether the DropDownCellRenderer dropdown button should be drawn
+        /// </summary>
+        private bool showButton;
 
-		#endregion
-
-
-		#region Constructor
-		
-		/// <summary>
-		/// Initializes a new instance of the DropDownCellRenderer class with 
-		/// default settings
-		/// </summary>
-		protected DropDownCellRenderer() : base()
-		{
-			this.buttonWidth = 15;
-			this.showButton = true;
-		}
-
-		#endregion
+        #endregion
 
 
-		#region Methods
+        #region Constructor
 
-		/// <summary>
-		/// Gets the Rectangle that specifies the Size and Location of 
-		/// the current Cell's dropdown button
-		/// </summary>
-		/// <returns>A Rectangle that specifies the Size and Location of 
-		/// the current Cell's dropdown button</returns>
-		protected internal Rectangle CalcDropDownButtonBounds()
-		{
-			Rectangle buttonRect = this.ClientRectangle;
+        /// <summary>
+        /// Initializes a new instance of the DropDownCellRenderer class with 
+        /// default settings
+        /// </summary>
+        protected DropDownCellRenderer() : base()
+        {
+            this.buttonWidth = 15;
+            this.showButton = true;
+        }
 
-			buttonRect.Width = this.ButtonWidth;
-			buttonRect.X = this.ClientRectangle.Right - buttonRect.Width;
-
-			if (buttonRect.Width > this.ClientRectangle.Width)
-			{
-				buttonRect = this.ClientRectangle;
-			}
-
-			return buttonRect;
-		}
+        #endregion
 
 
-		/// <summary>
-		/// Gets the DropDownRendererData specific data used by the Renderer from 
-		/// the specified Cell
-		/// </summary>
-		/// <param name="cell">The Cell to get the DropDownRendererData data for</param>
-		/// <returns>The DropDownRendererData data for the specified Cell</returns>
-		protected DropDownRendererData GetDropDownRendererData(Cell cell)
-		{
-			object rendererData = this.GetRendererData(cell);
+        #region Methods
 
-			if (rendererData == null || !(rendererData is DropDownRendererData))
-			{
-				rendererData = new DropDownRendererData();
+        /// <summary>
+        /// Gets the Rectangle that specifies the Size and Location of 
+        /// the current Cell's dropdown button
+        /// </summary>
+        /// <returns>A Rectangle that specifies the Size and Location of 
+        /// the current Cell's dropdown button</returns>
+        protected internal Rectangle CalcDropDownButtonBounds()
+        {
+            Rectangle buttonRect = this.ClientRectangle;
 
-				this.SetRendererData(cell, rendererData);
-			}
+            buttonRect.Width = this.ButtonWidth;
+            buttonRect.X = this.ClientRectangle.Right - buttonRect.Width;
 
-			return (DropDownRendererData) rendererData;
-		}
+            if (buttonRect.Width > this.ClientRectangle.Width)
+            {
+                buttonRect = this.ClientRectangle;
+            }
 
-		#endregion
-
-
-		#region Properties
-
-		/// <summary>
-		/// Gets or sets the width of the dropdown button
-		/// </summary>
-		protected internal int ButtonWidth
-		{
-			get
-			{
-				return this.buttonWidth;
-			}
-
-			set
-			{
-				this.buttonWidth = value;
-			}
-		}
+            return buttonRect;
+        }
 
 
-		/// <summary>
-		/// Gets or sets whether the DropDownCellRenderer dropdown button should be drawn
-		/// </summary>
-		protected bool ShowDropDownButton
-		{
-			get
-			{
-				return this.showButton;
-			}
+        /// <summary>
+        /// Gets the DropDownRendererData specific data used by the Renderer from 
+        /// the specified Cell
+        /// </summary>
+        /// <param name="cell">The Cell to get the DropDownRendererData data for</param>
+        /// <returns>The DropDownRendererData data for the specified Cell</returns>
+        protected DropDownRendererData GetDropDownRendererData(Cell cell)
+        {
+            object rendererData = this.GetRendererData(cell);
 
-			set
-			{
-				this.showButton = value;
-			}
-		}
+            if (rendererData == null || !(rendererData is DropDownRendererData))
+            {
+                rendererData = new DropDownRendererData();
 
-		#endregion
+                this.SetRendererData(cell, rendererData);
+            }
+
+            return (DropDownRendererData)rendererData;
+        }
+
+        #endregion
 
 
-		#region Events
+        #region Properties
 
-		#region Mouse
+        /// <summary>
+        /// Gets or sets the width of the dropdown button
+        /// </summary>
+        protected internal int ButtonWidth
+        {
+            get
+            {
+                return this.buttonWidth;
+            }
 
-		#region MouseLeave
+            set
+            {
+                this.buttonWidth = value;
+            }
+        }
 
-		/// <summary>
-		/// Raises the MouseLeave event
-		/// </summary>
-		/// <param name="e">A CellMouseEventArgs that contains the event data</param>
-		public override void OnMouseLeave(CellMouseEventArgs e)
-		{
-			base.OnMouseLeave(e);
 
-			if (this.ShowDropDownButton || (e.Table.IsEditing && e.CellPos == e.Table.EditingCell))
-			{
-				if (e.Table.IsCellEditable(e.CellPos))
-				{
-					// get the button renderer data
-					DropDownRendererData rendererData = this.GetDropDownRendererData(e.Cell);
+        /// <summary>
+        /// Gets or sets whether the DropDownCellRenderer dropdown button should be drawn
+        /// </summary>
+        protected bool ShowDropDownButton
+        {
+            get
+            {
+                return this.showButton;
+            }
 
-					if (rendererData.ButtonState != ComboBoxState.Normal)
-					{
-						rendererData.ButtonState = ComboBoxState.Normal;
+            set
+            {
+                this.showButton = value;
+            }
+        }
 
-						e.Table.Invalidate(e.CellRect);
-					}
-				}
-			}
-		}
+        #endregion
 
-		#endregion
 
-		#region MouseUp
+        #region Events
 
-		/// <summary>
-		/// Raises the MouseUp event
-		/// </summary>
-		/// <param name="e">A CellMouseEventArgs that contains the event data</param>
-		public override void OnMouseUp(CellMouseEventArgs e)
-		{
-			base.OnMouseUp(e);
+        #region Mouse
 
-			if (this.ShowDropDownButton || (e.Table.IsEditing && e.CellPos == e.Table.EditingCell))
-			{
-				if (e.Table.IsCellEditable(e.CellPos))
-				{
-					// get the renderer data
-					DropDownRendererData rendererData = this.GetDropDownRendererData(e.Cell);
+        #region MouseLeave
 
-					if (this.CalcDropDownButtonBounds().Contains(e.X, e.Y))
-					{
-						rendererData.ButtonState = ComboBoxState.Hot;
+        /// <summary>
+        /// Raises the MouseLeave event
+        /// </summary>
+        /// <param name="e">A CellMouseEventArgs that contains the event data</param>
+        public override void OnMouseLeave(CellMouseEventArgs e)
+        {
+            base.OnMouseLeave(e);
 
-						e.Table.Invalidate(e.CellRect);
-					}
-				}
-			}
-		}
+            if (this.ShowDropDownButton || (e.Table.IsEditing && e.CellPos == e.Table.EditingCell))
+            {
+                if (e.Table.IsCellEditable(e.CellPos))
+                {
+                    // get the button renderer data
+                    DropDownRendererData rendererData = this.GetDropDownRendererData(e.Cell);
 
-		#endregion
+                    if (rendererData.ButtonState != ComboBoxState.Normal)
+                    {
+                        rendererData.ButtonState = ComboBoxState.Normal;
 
-		#region MouseDown
+                        e.Table.Invalidate(e.CellRect);
+                    }
+                }
+            }
+        }
 
-		/// <summary>
-		/// Raises the MouseDown event
-		/// </summary>
-		/// <param name="e">A CellMouseEventArgs that contains the event data</param>
-		public override void OnMouseDown(CellMouseEventArgs e)
-		{
-			base.OnMouseDown(e);
+        #endregion
 
-		    if (!this.ShowDropDownButton && (!e.Table.IsEditing || e.CellPos != e.Table.EditingCell))
-		    {
-		        return;
-		    }
+        #region MouseUp
 
-		    if (!e.Table.IsCellEditable(e.CellPos))
-		    {
-		        return;
-		    }
+        /// <summary>
+        /// Raises the MouseUp event
+        /// </summary>
+        /// <param name="e">A CellMouseEventArgs that contains the event data</param>
+        public override void OnMouseUp(CellMouseEventArgs e)
+        {
+            base.OnMouseUp(e);
 
-		    // get the button renderer data
-		    DropDownRendererData rendererData = this.GetDropDownRendererData(e.Cell);
+            if (this.ShowDropDownButton || (e.Table.IsEditing && e.CellPos == e.Table.EditingCell))
+            {
+                if (e.Table.IsCellEditable(e.CellPos))
+                {
+                    // get the renderer data
+                    DropDownRendererData rendererData = this.GetDropDownRendererData(e.Cell);
 
-		    if (!this.CalcDropDownButtonBounds().Contains(e.X, e.Y))
-		    {
-		        return;
-		    }
+                    if (this.CalcDropDownButtonBounds().Contains(e.X, e.Y))
+                    {
+                        rendererData.ButtonState = ComboBoxState.Hot;
 
-            var isDropDownCellEditor = e.Table.ColumnModel.GetCellEditor(e.CellPos.Column) is DropDownCellEditor;
-            if (!isDropDownCellEditor)
-		    {
-		        // var msg = "Cannot edit Cell as DropDownCellRenderer requires a DropDownColumn " +
-		        //    "that uses a DropDownCellEditor";
-		        // throw new InvalidOperationException(msg);
+                        e.Table.Invalidate(e.CellRect);
+                    }
+                }
+            }
+        }
+
+        #endregion
+
+        #region MouseDown
+
+        /// <summary>
+        /// Raises the MouseDown event
+        /// </summary>
+        /// <param name="e">A CellMouseEventArgs that contains the event data</param>
+        public override void OnMouseDown(CellMouseEventArgs e)
+        {
+            base.OnMouseDown(e);
+
+            if (!this.ShowDropDownButton && (!e.Table.IsEditing || e.CellPos != e.Table.EditingCell))
+            {
                 return;
             }
 
-		    rendererData.ButtonState = ComboBoxState.Pressed;
+            if (!e.Table.IsCellEditable(e.CellPos))
+            {
+                return;
+            }
 
-		    if (!e.Table.IsEditing)
-		    {
-		        e.Table.EditCell(e.CellPos);
-		    }
+            // get the button renderer data
+            DropDownRendererData rendererData = this.GetDropDownRendererData(e.Cell);
 
-		    //netus - fix from John Boyce on 2006-02-08
-		    if (e.Table.IsEditing)
-		    {
-		        ((IEditorUsesRendererButtons)e.Table.EditingCellEditor).OnEditorButtonMouseDown(this, e);
+            if (!this.CalcDropDownButtonBounds().Contains(e.X, e.Y))
+            {
+                return;
+            }
 
-		        e.Table.Invalidate(e.CellRect);
-		    }
-		}
+            var isDropDownCellEditor = e.Table.ColumnModel.GetCellEditor(e.CellPos.Column) is DropDownCellEditor;
+            if (!isDropDownCellEditor)
+            {
+                // var msg = "Cannot edit Cell as DropDownCellRenderer requires a DropDownColumn " +
+                //    "that uses a DropDownCellEditor";
+                // throw new InvalidOperationException(msg);
+                return;
+            }
 
-		#endregion
+            rendererData.ButtonState = ComboBoxState.Pressed;
 
-		#region MouseMove
-	
-		/// <summary>
-		/// Raises the MouseMove event
-		/// </summary>
-		/// <param name="e">A CellMouseEventArgs that contains the event data</param>
-		public override void OnMouseMove(XPTable.Events.CellMouseEventArgs e)
-		{
-			base.OnMouseMove(e);
+            if (!e.Table.IsEditing)
+            {
+                e.Table.EditCell(e.CellPos);
+            }
 
-			if (this.ShowDropDownButton || (e.Table.IsEditing && e.CellPos == e.Table.EditingCell))
-			{
-				if (e.Table.IsCellEditable(e.CellPos))
-				{
-					// get the button renderer data
-					DropDownRendererData rendererData = this.GetDropDownRendererData(e.Cell);
+            //netus - fix from John Boyce on 2006-02-08
+            if (e.Table.IsEditing)
+            {
+                ((IEditorUsesRendererButtons)e.Table.EditingCellEditor).OnEditorButtonMouseDown(this, e);
 
-					if (this.CalcDropDownButtonBounds().Contains(e.X, e.Y))
-					{
-						if (rendererData.ButtonState == ComboBoxState.Normal)
-						{
-							if (e.Button == MouseButtons.Left && e.Row == e.Table.LastMouseDownCell.Row && e.Column == e.Table.LastMouseDownCell.Column)
-							{
-								rendererData.ButtonState = ComboBoxState.Pressed;
-							}
-							else
-							{
-								rendererData.ButtonState = ComboBoxState.Hot;
-							}
+                e.Table.Invalidate(e.CellRect);
+            }
+        }
 
-							e.Table.Invalidate(e.CellRect);
-						}
-					}
-					else
-					{
-						if (rendererData.ButtonState != ComboBoxState.Normal)
-						{
-							rendererData.ButtonState = ComboBoxState.Normal;
+        #endregion
 
-							e.Table.Invalidate(e.CellRect);
-						}
-					}
-				}
-			}
-		}
+        #region MouseMove
 
-		#endregion
+        /// <summary>
+        /// Raises the MouseMove event
+        /// </summary>
+        /// <param name="e">A CellMouseEventArgs that contains the event data</param>
+        public override void OnMouseMove(XPTable.Events.CellMouseEventArgs e)
+        {
+            base.OnMouseMove(e);
 
-		#endregion
+            if (this.ShowDropDownButton || (e.Table.IsEditing && e.CellPos == e.Table.EditingCell))
+            {
+                if (e.Table.IsCellEditable(e.CellPos))
+                {
+                    // get the button renderer data
+                    DropDownRendererData rendererData = this.GetDropDownRendererData(e.Cell);
 
-		#region Paint
+                    if (this.CalcDropDownButtonBounds().Contains(e.X, e.Y))
+                    {
+                        if (rendererData.ButtonState == ComboBoxState.Normal)
+                        {
+                            if (e.Button == MouseButtons.Left && e.Row == e.Table.LastMouseDownCell.Row && e.Column == e.Table.LastMouseDownCell.Column)
+                            {
+                                rendererData.ButtonState = ComboBoxState.Pressed;
+                            }
+                            else
+                            {
+                                rendererData.ButtonState = ComboBoxState.Hot;
+                            }
 
-		/// <summary>
-		/// Raises the PaintCell event
-		/// </summary>
-		/// <param name="e">A PaintCellEventArgs that contains the event data</param>
-		public override void OnPaintCell(PaintCellEventArgs e)
-		{
-			if (e.Table.ColumnModel.Columns[e.Column] is DropDownColumn)
-			{
-				this.showButton = ((DropDownColumn) e.Table.ColumnModel.Columns[e.Column]).ShowDropDownButton;
-			}
-			else
-			{
-				this.showButton = true;
-			}
-			
-			base.OnPaintCell(e);
-		}
+                            e.Table.Invalidate(e.CellRect);
+                        }
+                    }
+                    else
+                    {
+                        if (rendererData.ButtonState != ComboBoxState.Normal)
+                        {
+                            rendererData.ButtonState = ComboBoxState.Normal;
+
+                            e.Table.Invalidate(e.CellRect);
+                        }
+                    }
+                }
+            }
+        }
+
+        #endregion
+
+        #endregion
+
+        #region Paint
+
+        /// <summary>
+        /// Raises the PaintCell event
+        /// </summary>
+        /// <param name="e">A PaintCellEventArgs that contains the event data</param>
+        public override void OnPaintCell(PaintCellEventArgs e)
+        {
+            if (e.Table.ColumnModel.Columns[e.Column] is DropDownColumn)
+            {
+                this.showButton = ((DropDownColumn)e.Table.ColumnModel.Columns[e.Column]).ShowDropDownButton;
+            }
+            else
+            {
+                this.showButton = true;
+            }
+
+            base.OnPaintCell(e);
+        }
 
 
-		/// <summary>
-		/// Paints the Cells background
-		/// </summary>
-		/// <param name="e">A PaintCellEventArgs that contains the event data</param>
-		protected override void OnPaintBackground(PaintCellEventArgs e)
-		{
-			base.OnPaintBackground(e);
+        /// <summary>
+        /// Paints the Cells background
+        /// </summary>
+        /// <param name="e">A PaintCellEventArgs that contains the event data</param>
+        protected override void OnPaintBackground(PaintCellEventArgs e)
+        {
+            base.OnPaintBackground(e);
 
-			// don't bother going any further if the Cell is null 
-			if (e.Cell == null)
-			{
-				return;
-			}
+            // don't bother going any further if the Cell is null 
+            if (e.Cell == null)
+            {
+                return;
+            }
 
-			if (this.ShowDropDownButton || (e.Table.IsEditing && e.CellPos == e.Table.EditingCell))
-			{
-				ComboBoxState state = this.GetDropDownRendererData(e.Cell).ButtonState;
+            if (this.ShowDropDownButton || (e.Table.IsEditing && e.CellPos == e.Table.EditingCell))
+            {
+                ComboBoxState state = this.GetDropDownRendererData(e.Cell).ButtonState;
 
-				if (!e.Enabled)
-				{
-					state = ComboBoxState.Disabled;
-				}
+                if (!e.Enabled)
+                {
+                    state = ComboBoxState.Disabled;
+                }
 
-				ThemeManager.DrawComboBoxButton(e.Graphics, this.CalcDropDownButtonBounds(), state);
-			}
-		}
+                ThemeManager.DrawComboBoxButton(e.Graphics, this.CalcDropDownButtonBounds(), state);
+            }
+        }
 
-		#endregion
+        #endregion
 
-		#endregion
-	}
+        #endregion
+    }
 }

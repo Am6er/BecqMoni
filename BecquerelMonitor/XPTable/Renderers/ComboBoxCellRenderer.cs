@@ -26,14 +26,10 @@
 
 
 using System;
-using System.ComponentModel;
 using System.Drawing;
-using System.Globalization;
 using System.Windows.Forms;
 
 using XPTable.Events;
-using XPTable.Models;
-using XPTable.Themes;
 
 
 namespace XPTable.Renderers
@@ -44,14 +40,14 @@ namespace XPTable.Renderers
     public class ComboBoxCellRenderer : DropDownCellRenderer
     {
         #region Constructor
-        
+
         /// <summary>
         /// Initializes a new instance of the ComboBoxCellRenderer class with 
         /// default settings
         /// </summary>
         public ComboBoxCellRenderer() : base()
         {
-            
+
         }
 
         #endregion
@@ -118,7 +114,7 @@ namespace XPTable.Renderers
                 {
                     focusRect.Width -= buttonRect.Width;
                 }
-                
+
                 ControlPaint.DrawFocusRectangle(e.Graphics, focusRect);
             }
         }

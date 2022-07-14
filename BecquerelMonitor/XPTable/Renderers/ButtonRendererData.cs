@@ -30,92 +30,90 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms.VisualStyles;
 
-using XPTable.Themes;
-
 
 namespace XPTable.Renderers
 {
-	/// <summary>
-	/// Contains information about the current state of a Cell's button
-	/// </summary>
-	public class ButtonRendererData
-	{
-		#region Class Data
+    /// <summary>
+    /// Contains information about the current state of a Cell's button
+    /// </summary>
+    public class ButtonRendererData
+    {
+        #region Class Data
 
-		/// <summary>
-		/// The current state of the button
-		/// </summary>
-		private PushButtonState buttonState;
-		
-		/// <summary>
-		/// The x coordinate of the last mouse click point
-		/// </summary>
-		private int clickX;
+        /// <summary>
+        /// The current state of the button
+        /// </summary>
+        private PushButtonState buttonState;
 
-		/// <summary>
-		/// The y coordinate of the last mouse click point
-		/// </summary>
-		private int clickY;
+        /// <summary>
+        /// The x coordinate of the last mouse click point
+        /// </summary>
+        private int clickX;
 
-		#endregion
+        /// <summary>
+        /// The y coordinate of the last mouse click point
+        /// </summary>
+        private int clickY;
 
-
-		#region Constructor
-		
-		/// <summary>
-		/// Initializes a new instance of the ButtonRendererData class
-		/// </summary>
-		public ButtonRendererData()
-		{
-			this.buttonState = PushButtonState.Normal;
-			this.clickX = -1;
-			this.clickY = -1;
-		}
-
-		#endregion
+        #endregion
 
 
-		#region Properties
+        #region Constructor
 
-		/// <summary>
-		/// Gets or sets the current state of the button
-		/// </summary>
-		public PushButtonState ButtonState
-		{
-			get
-			{
-				return this.buttonState;
-			}
+        /// <summary>
+        /// Initializes a new instance of the ButtonRendererData class
+        /// </summary>
+        public ButtonRendererData()
+        {
+            this.buttonState = PushButtonState.Normal;
+            this.clickX = -1;
+            this.clickY = -1;
+        }
 
-			set
-			{
-				if (!Enum.IsDefined(typeof(PushButtonState), value)) 
-				{
-					throw new InvalidEnumArgumentException("value", (int) value, typeof(PushButtonState));
-				}
-					
-				this.buttonState = value;
-			}
-		}
-		
+        #endregion
 
-		/// <summary>
-		/// Gets or sets the Point that the mouse was last clicked in the button
-		/// </summary>
-		public Point ClickPoint
-		{
-			get
-			{
-				return new Point(this.clickX, this.clickY);
-			}
 
-			set
-			{
-				this.clickX = value.X;
-				this.clickY = value.Y;
-			}
-		}
+        #region Properties
 
-		#endregion
-	}
+        /// <summary>
+        /// Gets or sets the current state of the button
+        /// </summary>
+        public PushButtonState ButtonState
+        {
+            get
+            {
+                return this.buttonState;
+            }
+
+            set
+            {
+                if (!Enum.IsDefined(typeof(PushButtonState), value))
+                {
+                    throw new InvalidEnumArgumentException("value", (int)value, typeof(PushButtonState));
+                }
+
+                this.buttonState = value;
+            }
+        }
+
+
+        /// <summary>
+        /// Gets or sets the Point that the mouse was last clicked in the button
+        /// </summary>
+        public Point ClickPoint
+        {
+            get
+            {
+                return new Point(this.clickX, this.clickY);
+            }
+
+            set
+            {
+                this.clickX = value.X;
+                this.clickY = value.Y;
+            }
+        }
+
+        #endregion
+    }
 }

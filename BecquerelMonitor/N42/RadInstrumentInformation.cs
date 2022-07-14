@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace BecquerelMonitor.N42
+﻿namespace BecquerelMonitor.N42
 {
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("xsd", "4.8.3928.0")]
@@ -28,7 +25,7 @@ namespace BecquerelMonitor.N42
             this.radInstrumentModelNameField = "Unknown";
             this.radInstrumentClassCodeField = "Radionuclide Identifier";
             this.idField = "RadInstrument";
-            
+
         }
 
         /// <remarks/>
