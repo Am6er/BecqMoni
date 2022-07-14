@@ -325,7 +325,7 @@ namespace WinMM
 			catch (Exception ex)
 			{
 				DCControlPanel.exept_flag = true;
-				MessageBox.Show("Неожиданное отключение устройства!", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Hand);
+				MessageBox.Show("Device disconnected from audio port!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Hand);
 				Thread.Sleep(500);
 			}
 		}

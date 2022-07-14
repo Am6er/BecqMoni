@@ -188,7 +188,7 @@ namespace BecquerelMonitor.Controls
 			{
 				this.fontSize = 16;
 			}
-			this.font = new Font("メイリオ", (float)this.fontSize, FontStyle.Bold, GraphicsUnit.Pixel);
+			this.font = new Font("Microsoft Sans Serif", (float)this.fontSize, FontStyle.Bold, GraphicsUnit.Pixel);
 			this.speed = base.Height / 32;
 		}
 
