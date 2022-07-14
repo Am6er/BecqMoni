@@ -68,8 +68,8 @@ namespace BecquerelMonitor.N42
                 for (int i = 0; i < energyCalibration.Coefficients.Length; i++)
                 {
                     rad.EnergyCalibration[SpectrumCount].CoefficientValues = rad.EnergyCalibration[SpectrumCount].CoefficientValues + energyCalibration.Coefficients[i].ToString() + " ";
-
                 }
+                rad.EnergyCalibration[SpectrumCount].CoefficientValues = rad.EnergyCalibration[SpectrumCount].CoefficientValues.Replace(',', '.');
 
                 //RadMeasurement
                 rad.RadMeasurement[SpectrumCount] = new RadMeasurement
@@ -141,6 +141,7 @@ namespace BecquerelMonitor.N42
                 output.CoefficientValues = output.CoefficientValues + energyCalibration.Coefficients[i].ToString() + " ";
 
             }
+            output.CoefficientValues = output.CoefficientValues.Replace(',', '.');
             return output;
         }
 
