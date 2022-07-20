@@ -456,7 +456,7 @@ namespace BecquerelMonitor
         List<Peak> detectedPeaks = new List<Peak>();
 
         // Token: 0x04000375 RID: 885
-        PeakDetectionMethodConfig peakDetectionMethodConfig = new SimplePeakDetectionMethodConfig();
+        PeakDetectionMethodConfig peakDetectionMethodConfig = new FWHMPeakDetectionMethodConfig();
 
         // Token: 0x04000376 RID: 886
         List<Peak> calibrationPeaks = new List<Peak>();

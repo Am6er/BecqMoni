@@ -1053,6 +1053,54 @@
   <data name="&gt;&gt;label7.ZOrder" xml:space="preserve">
     <value>2</value>
   </data>
+    <data name="numericUpDown10.Location" type="System.Drawing.Point, System.Drawing">
+    <value>330, 30</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown10.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown10.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="numericUpDown10.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
+    <value>Right</value>
+  </data>
+  <data name="numericUpDown10.TabIndex" type="System.Int32, mscorlib">
+    <value>7</value>
+  </data>
+  <data name="numericUpDown10.Size" type="System.Drawing.Size, System.Drawing">
+    <value>73, 19</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown10.Name" xml:space="preserve">
+    <value>numericUpDown10</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown10.Type" xml:space="preserve">
+    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="numericUpDown11.Location" type="System.Drawing.Point, System.Drawing">
+    <value>330, 55</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown11.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown11.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="numericUpDown11.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
+    <value>Right</value>
+  </data>
+  <data name="numericUpDown11.TabIndex" type="System.Int32, mscorlib">
+    <value>7</value>
+  </data>
+  <data name="numericUpDown11.Size" type="System.Drawing.Size, System.Drawing">
+    <value>73, 19</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown11.Name" xml:space="preserve">
+    <value>numericUpDown11</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown11.Type" xml:space="preserve">
+    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
   <data name="&gt;&gt;numericUpDown3.ZOrder" xml:space="preserve">
     <value>4</value>
   </data>
@@ -1172,6 +1220,66 @@
   </data>
   <data name="label40.Location" type="System.Drawing.Point, System.Drawing">
     <value>18, 32</value>
+  </data>
+  <data name="&gt;&gt;label45.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="label45.TabIndex" type="System.Int32, mscorlib">
+    <value>10</value>
+  </data>
+  <data name="label45.Size" type="System.Drawing.Size, System.Drawing">
+    <value>92, 12</value>
+  </data>
+  <data name="label45.Text" xml:space="preserve">
+    <value>FWHM peak max keV</value>
+  </data>
+  <data name="label45.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="label45.Location" type="System.Drawing.Point, System.Drawing">
+    <value>208, 32</value>
+  </data>
+  <data name="&gt;&gt;label45.Name" xml:space="preserve">
+    <value>label45</value>
+  </data>
+  <data name="&gt;&gt;label45.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label45.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="label45.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="&gt;&gt;label46.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="label46.TabIndex" type="System.Int32, mscorlib">
+    <value>10</value>
+  </data>
+  <data name="label46.Size" type="System.Drawing.Size, System.Drawing">
+    <value>92, 12</value>
+  </data>
+  <data name="label46.Text" xml:space="preserve">
+    <value>FWHM peak width keV</value>
+  </data>
+  <data name="label46.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="label46.Location" type="System.Drawing.Point, System.Drawing">
+    <value>208, 57</value>
+  </data>
+  <data name="&gt;&gt;label46.Name" xml:space="preserve">
+    <value>label46</value>
+  </data>
+  <data name="&gt;&gt;label46.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label46.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="label46.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
   </data>
   <data name="doubleTextBox6.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
     <value>Right</value>
@@ -1459,7 +1567,7 @@
     <value>True</value>
   </data>
   <data name="label38.Text" xml:space="preserve">
-    <value>Threshold</value>
+    <value>FWHM at 0 ch</value>
   </data>
   <data name="label38.Size" type="System.Drawing.Size, System.Drawing">
     <value>55, 12</value>
@@ -1564,7 +1672,7 @@
     <value>tabPage4</value>
   </data>
   <data name="label39.Text" xml:space="preserve">
-    <value>Window Width</value>
+    <value>Max Items</value>
   </data>
   <data name="label39.Size" type="System.Drawing.Size, System.Drawing">
     <value>75, 12</value>
@@ -2563,7 +2671,7 @@
     <value>92, 12</value>
   </data>
   <data name="label40.Text" xml:space="preserve">
-    <value>Polynomial Order</value>
+    <value>Min SNR</value>
   </data>
   <data name="integerTextBox1.Size" type="System.Drawing.Size, System.Drawing">
     <value>75, 19</value>

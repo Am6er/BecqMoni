@@ -513,8 +513,8 @@ namespace BecquerelMonitor
             }
             activeResultData.EnergySpectrum.EnergyCalibration = activeResultData.DeviceConfig.EnergyCalibration.Clone();
             this.mainForm.UpdateEnergyCalibrationView();
-            SimplePeakDetectionMethodConfig simplePeakDetectionMethodConfig = (SimplePeakDetectionMethodConfig)activeResultData.DeviceConfig.PeakDetectionMethodConfig;
-            activeResultData.PeakDetectionMethodConfig = (SimplePeakDetectionMethodConfig)simplePeakDetectionMethodConfig.Clone();
+            FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)activeResultData.DeviceConfig.PeakDetectionMethodConfig;
+            activeResultData.PeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)FWHMPeakDetectionMethodConfig.Clone();
             string backgroundSpectrumFile = activeResultData.BackgroundSpectrumFile;
             string fileName = Path.GetFileName(activeResultData.DeviceConfig.BackgroundSpectrumPathname);
             activeResultData.BackgroundSpectrumFile = fileName;

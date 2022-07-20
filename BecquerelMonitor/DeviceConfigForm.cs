@@ -407,11 +407,36 @@ namespace BecquerelMonitor
                 this.doubleTextBox2.Text = doseRateConfig.LowerBound.ToString();
                 this.doubleTextBox3.Text = doseRateConfig.UpperBound.ToString();
             }
-            SimplePeakDetectionMethodConfig simplePeakDetectionMethodConfig = (SimplePeakDetectionMethodConfig)config.PeakDetectionMethodConfig;
-            this.numericUpDown4.Value = simplePeakDetectionMethodConfig.PolynomialOrder;
-            this.numericUpDown3.Value = simplePeakDetectionMethodConfig.WindowSize;
-            this.numericUpDown5.Value = (decimal)simplePeakDetectionMethodConfig.Threshold;
-            this.numericUpDown6.Value = (decimal)simplePeakDetectionMethodConfig.Tolerance;
+            FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)config.PeakDetectionMethodConfig;
+            this.numberColumn4.Minimum = 1;
+            this.numberColumn4.Maximum = 10000;
+            this.numberColumn4.Increment = 1;
+            this.numericUpDown4.Value = (decimal)FWHMPeakDetectionMethodConfig.Min_SNR;
+
+            this.numberColumn3.Minimum = 1;
+            this.numberColumn3.Maximum = 1000;
+            this.numberColumn3.Increment = 1;
+            this.numericUpDown3.Value = FWHMPeakDetectionMethodConfig.Max_Items;
+
+            this.numericUpDown5.Minimum = 1;
+            this.numericUpDown5.Maximum = 1000;
+            this.numericUpDown5.Increment = 1;
+            this.numericUpDown5.Value = (decimal)FWHMPeakDetectionMethodConfig.FWHM_AT_0;
+
+            this.numericUpDown6.Minimum = 0;
+            this.numericUpDown6.Maximum = 100;
+            this.numericUpDown6.Increment = 1;
+            this.numericUpDown6.Value = (decimal)FWHMPeakDetectionMethodConfig.Tolerance;
+
+            this.numericUpDown10.Minimum = 1;
+            this.numericUpDown10.Maximum = 100000;
+            this.numericUpDown10.Increment = 1;
+            this.numericUpDown10.Value = (decimal)FWHMPeakDetectionMethodConfig.En_Fwhm;
+
+            this.numericUpDown11.Minimum = 1;
+            this.numericUpDown11.Maximum = 1000;
+            this.numericUpDown11.Increment = 1;
+            this.numericUpDown11.Value = (decimal)FWHMPeakDetectionMethodConfig.Width_Fwhm;
             this.textBox17.Text = config.BackgroundSpectrumPathname;
             this.contentsLoading = false;
         }
@@ -468,11 +493,13 @@ namespace BecquerelMonitor
                 doseRateConfig.Sensitivity = this.doubleTextBox1.GetValue();
                 doseRateConfig.LowerBound = this.doubleTextBox2.GetValue();
                 doseRateConfig.UpperBound = this.doubleTextBox3.GetValue();
-                SimplePeakDetectionMethodConfig simplePeakDetectionMethodConfig = (SimplePeakDetectionMethodConfig)config.PeakDetectionMethodConfig;
-                simplePeakDetectionMethodConfig.PolynomialOrder = (int)this.numericUpDown4.Value;
-                simplePeakDetectionMethodConfig.WindowSize = (int)this.numericUpDown3.Value;
-                simplePeakDetectionMethodConfig.Threshold = (double)this.numericUpDown5.Value;
-                simplePeakDetectionMethodConfig.Tolerance = (double)this.numericUpDown6.Value;
+                FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)config.PeakDetectionMethodConfig;
+                FWHMPeakDetectionMethodConfig.Min_SNR = (double)this.numericUpDown4.Value;
+                FWHMPeakDetectionMethodConfig.Max_Items = (int)this.numericUpDown3.Value;
+                FWHMPeakDetectionMethodConfig.FWHM_AT_0 = (double)this.numericUpDown5.Value;
+                FWHMPeakDetectionMethodConfig.Tolerance = (double)this.numericUpDown6.Value;
+                FWHMPeakDetectionMethodConfig.En_Fwhm = (double)this.numericUpDown10.Value;
+                FWHMPeakDetectionMethodConfig.Width_Fwhm = (double)this.numericUpDown11.Value;
                 config.BackgroundSpectrumPathname = this.textBox17.Text;
             }
             catch (Exception)
@@ -1387,39 +1414,12 @@ namespace BecquerelMonitor
         // Token: 0x06000541 RID: 1345 RVA: 0x00022514 File Offset: 0x00020714
         void numericUpDown4_ValueChanged(object sender, EventArgs e)
         {
-            int num = (int)this.numericUpDown4.Value;
-            int num2 = (int)this.numericUpDown3.Value;
-            if (num2 <= num)
-            {
-                num2 = num + 1;
-                if (num2 % 2 == 0)
-                {
-                    num2++;
-                }
-                this.numericUpDown3.Value = num2;
-            }
             this.SetActiveDeviceConfigDirty();
         }
 
         // Token: 0x06000542 RID: 1346 RVA: 0x00022578 File Offset: 0x00020778
         void numericUpDown3_ValueChanged(object sender, EventArgs e)
         {
-            int num = (int)this.numericUpDown4.Value;
-            int num2 = (int)this.numericUpDown3.Value;
-            if (num2 <= num)
-            {
-                num2 = num + 1;
-                if (num2 % 2 == 0)
-                {
-                    num2++;
-                }
-                this.numericUpDown3.Value = num2;
-            }
-            else if (num2 % 2 == 0)
-            {
-                num2++;
-                this.numericUpDown3.Value = num2;
-            }
             this.SetActiveDeviceConfigDirty();
         }
 
@@ -1431,6 +1431,16 @@ namespace BecquerelMonitor
 
         // Token: 0x06000544 RID: 1348 RVA: 0x00022604 File Offset: 0x00020804
         void numericUpDown6_ValueChanged(object sender, EventArgs e)
+        {
+            this.SetActiveDeviceConfigDirty();
+        }
+
+        void numericUpDown10_ValueChanged(object sender, EventArgs e)
+        {
+            this.SetActiveDeviceConfigDirty();
+        }
+
+        void numericUpDown11_ValueChanged(object sender, EventArgs e)
         {
             this.SetActiveDeviceConfigDirty();
         }

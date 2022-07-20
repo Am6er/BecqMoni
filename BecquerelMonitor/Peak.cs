@@ -18,6 +18,30 @@
             }
         }
 
+        public double SNR
+        {
+            get
+            {
+                return this.snr;
+            }
+            set
+            {
+                this.snr = value;
+            }
+        }
+
+        public double FWHM
+        {
+            get
+            {
+                return this.fwhm;
+            }
+            set
+            {
+                this.fwhm = value;
+            }
+        }
+
         // Token: 0x170002D9 RID: 729
         // (get) Token: 0x06000AB4 RID: 2740 RVA: 0x0003FDD4 File Offset: 0x0003DFD4
         // (set) Token: 0x06000AB5 RID: 2741 RVA: 0x0003FDDC File Offset: 0x0003DFDC
@@ -110,5 +134,9 @@
 
         // Token: 0x040005F0 RID: 1520
         int rightChannel;
+
+        double snr;
+
+        double fwhm;
     }
 }

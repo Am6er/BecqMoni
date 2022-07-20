@@ -722,8 +722,8 @@ namespace BecquerelMonitor
                     if (resultData.DeviceConfigReference.Guid == deviceConfigInfo.Guid)
                     {
                         resultData.DeviceConfig = deviceConfigInfo;
-                        SimplePeakDetectionMethodConfig simplePeakDetectionMethodConfig = (SimplePeakDetectionMethodConfig)deviceConfigInfo.PeakDetectionMethodConfig;
-                        resultData.PeakDetectionMethodConfig = (SimplePeakDetectionMethodConfig)simplePeakDetectionMethodConfig.Clone();
+                        FWHMPeakDetectionMethodConfig simplePeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)deviceConfigInfo.PeakDetectionMethodConfig;
+                        resultData.PeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)simplePeakDetectionMethodConfig.Clone();
                         break;
                     }
                 }

@@ -299,7 +299,7 @@ namespace BecquerelMonitor
         // Token: 0x170003C0 RID: 960
         // (get) Token: 0x06000E94 RID: 3732 RVA: 0x00054758 File Offset: 0x00052958
         // (set) Token: 0x06000E95 RID: 3733 RVA: 0x00054760 File Offset: 0x00052960
-        [XmlElement(typeof(SimplePeakDetectionMethodConfig))]
+        [XmlElement(typeof(FWHMPeakDetectionMethodConfig))]
         public PeakDetectionMethodConfig PeakDetectionMethodConfig
         {
             get
@@ -347,7 +347,7 @@ namespace BecquerelMonitor
         public DeviceConfigInfo_097b()
         {
             this.pulseDetectionMethodConfig = new PRAHomageMethodConfig();
-            this.peakDetectionMethodConfig = new SimplePeakDetectionMethodConfig();
+            this.peakDetectionMethodConfig = new FWHMPeakDetectionMethodConfig();
         }
 
         // Token: 0x06000E9B RID: 3739 RVA: 0x00054864 File Offset: 0x00052A64

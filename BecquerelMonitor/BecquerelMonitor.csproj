@@ -33,8 +33,8 @@
     <MinimumRequiredVersion>2022.07.08.7</MinimumRequiredVersion>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
-    <ApplicationRevision>2</ApplicationRevision>
-    <ApplicationVersion>2022.07.14.2</ApplicationVersion>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>2022.07.20.0</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -324,6 +324,14 @@
       <DesignTime>True</DesignTime>
     </Compile>
     <Compile Include="EnergySpectrum_097b.cs" />
+    <Compile Include="FWHMPeakDetectionConfig.cs" />
+    <Compile Include="FWHMPeakDetector\PeakFilter.cs" />
+    <Compile Include="FWHMPeakDetector\PeakFilterError.cs" />
+    <Compile Include="FWHMPeakDetector\PeakFinder.cs" />
+    <Compile Include="FWHMPeakDetector\PeakFinderError.cs" />
+    <Compile Include="FWHMPeakDetector\PeakFinderWarning.cs" />
+    <Compile Include="FWHMPeakDetector\Spectrum.cs" />
+    <Compile Include="FWHMPeakDetector\SpectrumError.cs" />
     <Compile Include="GlobalConfigForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -483,12 +491,10 @@
     </Compile>
     <Compile Include="ROISimpleDifferenceData.cs" />
     <Compile Include="SampleInfoData.cs" />
-    <Compile Include="SavitzkyGolayMethod.cs" />
     <Compile Include="SerialInputDeviceConfig.cs" />
     <Compile Include="SerializableColor.cs" />
     <Compile Include="ShowEnergyCalibrationViewEventArgs.cs" />
     <Compile Include="ShowEnergyCalibrationViewEventHandler.cs" />
-    <Compile Include="SimplePeakDetectionMethodConfig.cs" />
     <Compile Include="SmoothingMethod.cs" />
     <Compile Include="SoundConfig.cs" />
     <Compile Include="StabilizerConfig.cs" />

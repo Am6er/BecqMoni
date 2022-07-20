@@ -17,12 +17,51 @@ namespace BecquerelMonitor
         // Token: 0x0600043E RID: 1086 RVA: 0x0001423C File Offset: 0x0001243C
         public void ShowPeakDetectionResult()
         {
+            this.FormLoading = true;
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
             ResultData activeResultData = activeDocument.ActiveResultData;
-            SimplePeakDetectionMethodConfig simplePeakDetectionMethodConfig = (SimplePeakDetectionMethodConfig)activeResultData.PeakDetectionMethodConfig;
-            this.numericUpDown1.Value = simplePeakDetectionMethodConfig.PolynomialOrder;
-            this.numericUpDown2.Value = simplePeakDetectionMethodConfig.WindowSize;
-            this.numericUpDown3.Value = (decimal)simplePeakDetectionMethodConfig.Threshold;
+            DeviceConfigInfo deviceConfigInfo = activeResultData.DeviceConfig;
+            if (deviceConfigInfo.Guid == null)
+            {
+                List<DeviceConfigInfo> deviceConfigInfos = DeviceConfigManager.GetInstance().DeviceConfigList;
+                DateTime maxTime = new DateTime();
+                DeviceConfigInfo lastConfigInfo = null;
+                foreach (DeviceConfigInfo devinfo in deviceConfigInfos)
+                {
+                    if (lastConfigInfo == null)
+                    {
+                        lastConfigInfo = devinfo;
+                        maxTime = devinfo.LastUpdated;
+                    } else
+                    {
+                        if (devinfo.LastUpdated > maxTime)
+                        {
+                            lastConfigInfo=devinfo;
+                            maxTime=devinfo.LastUpdated;
+                        }
+                    }
+                }
+                deviceConfigInfo = lastConfigInfo;
+                activeResultData.DeviceConfig.PeakDetectionMethodConfig = deviceConfigInfo.PeakDetectionMethodConfig;
+            }
+            activeResultData.PeakDetectionMethodConfig = deviceConfigInfo.PeakDetectionMethodConfig;
+            FWHMPeakDetectionMethodConfig fwhmPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)activeResultData.PeakDetectionMethodConfig;
+            this.numericUpDown1.Minimum = 1;
+            this.numericUpDown1.Maximum = 10000;
+            this.numericUpDown1.Increment = 1;
+            this.numericUpDown1.Value = (decimal)fwhmPeakDetectionMethodConfig.Min_SNR;
+
+            this.numericUpDown2.Minimum = 1;
+            this.numericUpDown2.Maximum = 1000;
+            this.numericUpDown2.Increment = 1;
+            this.numericUpDown2.Value = fwhmPeakDetectionMethodConfig.Max_Items;
+
+            this.numericUpDown3.Minimum = 0;
+            this.numericUpDown3.Maximum = 100;
+            this.numericUpDown3.Increment = 1;
+            this.numericUpDown3.Value = (decimal)fwhmPeakDetectionMethodConfig.Tolerance;
+
+            this.FormLoading = false;
             this.UpdatePeakDetectionResult();
         }
 
@@ -34,6 +73,13 @@ namespace BecquerelMonitor
             PeakDetector peakDetector = new PeakDetector();
             List<Peak> list = peakDetector.DetectPeak(activeResultData);
             this.tableModel1.Rows.Clear();
+            if (Correct_min_snr == true)
+            {
+                this.numericUpDown1.Value = (decimal)Min_snr_value;
+                this.numericUpDown1.ForeColor = System.Drawing.Color.Red;
+                Correct_min_snr = false;
+                Min_snr_value = 0.0;
+            }
             foreach (Peak peak in list)
             {
                 Row row = new Row();
@@ -50,70 +96,57 @@ namespace BecquerelMonitor
                 row.Cells.Add(new Cell(peak.Energy.ToString("f2")));
                 row.Cells.Add(new Cell(text2));
                 row.Cells.Add(new Cell(peak.Channel.ToString()));
+                row.Cells.Add(new Cell(peak.SNR.ToString()));
+                row.Cells.Add(new Cell(peak.FWHM.ToString()));
                 this.tableModel1.Rows.Add(row);
             }
+            this.table1.AutoResizeColumnWidths();
         }
 
         // Token: 0x06000440 RID: 1088 RVA: 0x00014468 File Offset: 0x00012668
         void numericUpDown1_ValueChanged(object sender, EventArgs e)
         {
-            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
-            ResultData activeResultData = activeDocument.ActiveResultData;
-            SimplePeakDetectionMethodConfig simplePeakDetectionMethodConfig = (SimplePeakDetectionMethodConfig)activeResultData.PeakDetectionMethodConfig;
-            simplePeakDetectionMethodConfig.PolynomialOrder = (int)this.numericUpDown1.Value;
-            if (simplePeakDetectionMethodConfig.PolynomialOrder >= simplePeakDetectionMethodConfig.WindowSize)
+            if (this.FormLoading == false)
             {
-                int num = simplePeakDetectionMethodConfig.PolynomialOrder + 1;
-                if (num % 2 == 0)
+                if (!Correct_min_snr)
                 {
-                    num++;
+                    this.numericUpDown1.ForeColor = System.Drawing.Color.Black;
                 }
-                this.numericUpDown2.Value = num;
-                simplePeakDetectionMethodConfig.WindowSize = num;
+                DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+                ResultData activeResultData = activeDocument.ActiveResultData;
+                FWHMPeakDetectionMethodConfig fwhmPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)activeResultData.PeakDetectionMethodConfig;
+                fwhmPeakDetectionMethodConfig.Min_SNR = (double)((int)this.numericUpDown1.Value);
+                this.UpdatePeakDetectionResult();
+                activeDocument.EnergySpectrumView.Invalidate();
             }
-            this.UpdatePeakDetectionResult();
-            activeDocument.EnergySpectrumView.Invalidate();
         }
 
         // Token: 0x06000441 RID: 1089 RVA: 0x00014500 File Offset: 0x00012700
         void numericUpDown2_ValueChanged(object sender, EventArgs e)
         {
-            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
-            ResultData activeResultData = activeDocument.ActiveResultData;
-            SimplePeakDetectionMethodConfig simplePeakDetectionMethodConfig = (SimplePeakDetectionMethodConfig)activeResultData.PeakDetectionMethodConfig;
-            int num = (int)this.numericUpDown2.Value;
-            if (num == simplePeakDetectionMethodConfig.WindowSize)
+            if (this.FormLoading == false)
             {
-                return;
+                DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+                ResultData activeResultData = activeDocument.ActiveResultData;
+                FWHMPeakDetectionMethodConfig fwhmPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)activeResultData.PeakDetectionMethodConfig;
+                fwhmPeakDetectionMethodConfig.Max_Items = (int)this.numericUpDown2.Value;
+                this.UpdatePeakDetectionResult();
+                activeDocument.EnergySpectrumView.Invalidate();
             }
-            if (num <= simplePeakDetectionMethodConfig.PolynomialOrder)
-            {
-                num = simplePeakDetectionMethodConfig.PolynomialOrder + 1;
-                if (num % 2 == 0)
-                {
-                    num++;
-                }
-                this.numericUpDown2.Value = num;
-            }
-            else if (num % 2 == 0)
-            {
-                num++;
-                this.numericUpDown2.Value = num;
-            }
-            simplePeakDetectionMethodConfig.WindowSize = num;
-            this.UpdatePeakDetectionResult();
-            activeDocument.EnergySpectrumView.Invalidate();
         }
 
         // Token: 0x06000442 RID: 1090 RVA: 0x000145BC File Offset: 0x000127BC
         void numericUpDown3_ValueChanged(object sender, EventArgs e)
         {
-            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
-            ResultData activeResultData = activeDocument.ActiveResultData;
-            SimplePeakDetectionMethodConfig simplePeakDetectionMethodConfig = (SimplePeakDetectionMethodConfig)activeResultData.PeakDetectionMethodConfig;
-            simplePeakDetectionMethodConfig.Threshold = (double)((int)this.numericUpDown3.Value);
-            this.UpdatePeakDetectionResult();
-            activeDocument.EnergySpectrumView.Invalidate();
+            if (this.FormLoading == false)
+            {
+                DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+                ResultData activeResultData = activeDocument.ActiveResultData;
+                FWHMPeakDetectionMethodConfig fwhmPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)activeResultData.PeakDetectionMethodConfig;
+                fwhmPeakDetectionMethodConfig.Tolerance = (double)((int)this.numericUpDown3.Value);
+                this.UpdatePeakDetectionResult();
+                activeDocument.EnergySpectrumView.Invalidate();
+            }
         }
 
         // Token: 0x06000443 RID: 1091 RVA: 0x00014614 File Offset: 0x00012814
@@ -130,5 +163,10 @@ namespace BecquerelMonitor
 
         // Token: 0x040001B5 RID: 437
         GlobalConfigManager globalConfigManager = GlobalConfigManager.GetInstance();
+
+        bool FormLoading = false;
+
+        public static bool Correct_min_snr = false;
+        public static double Min_snr_value = 0.0;
     }
 }
