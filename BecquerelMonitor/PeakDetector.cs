@@ -6,96 +6,83 @@ namespace BecquerelMonitor
     // Token: 0x02000065 RID: 101
     public class PeakDetector
     {
-        // Token: 0x0600050D RID: 1293 RVA: 0x0001DC68 File Offset: 0x0001BE68
         public List<Peak> DetectPeak(ResultData resultData)
         {
             EnergySpectrum energySpectrum = resultData.EnergySpectrum;
-            SimplePeakDetectionMethodConfig simplePeakDetectionMethodConfig = (SimplePeakDetectionMethodConfig)resultData.PeakDetectionMethodConfig;
-            int numberOfChannels = energySpectrum.NumberOfChannels;
-            int polynomialOrder = simplePeakDetectionMethodConfig.PolynomialOrder;
-            int num = simplePeakDetectionMethodConfig.WindowSize / 2;
-            double threshold = simplePeakDetectionMethodConfig.Threshold;
-            double num2 = simplePeakDetectionMethodConfig.Tolerance / 100.0;
-            double num3 = 0.0;
-            for (int i = 0; i < numberOfChannels; i++)
+            FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)resultData.PeakDetectionMethodConfig;
+            List<Peak> peaks = new List<Peak>();
+            int sum = 0;
+            for (int i = 0; i < energySpectrum.Spectrum.Length; i++)
             {
-                if (num3 < (double)energySpectrum.Spectrum[i])
-                {
-                    num3 = (double)energySpectrum.Spectrum[i];
-                }
+                sum += energySpectrum.Spectrum[i];
             }
-            double[] array = SavitzkyGolayMethod.CalcSavitzkyGolayWeight(1, polynomialOrder, num);
-            double[] array2 = new double[numberOfChannels];
-            for (int j = num; j < numberOfChannels - num; j++)
+            if (sum == 0)
             {
-                double num4 = 0.0;
-                for (int k = j - num; k <= j + num; k++)
-                {
-                    num4 += (double)energySpectrum.Spectrum[k] * array[k - (j - num)];
-                }
-                array2[j] = num4;
+                return peaks;
             }
-            List<Peak> list = new List<Peak>();
+            
+            double Fwhm_Ch = energySpectrum.EnergyCalibration.EnergyToChannel(FWHMPeakDetectionMethodConfig.En_Fwhm);
+            double Fwhm_Width_Ch_min = energySpectrum.EnergyCalibration.EnergyToChannel(FWHMPeakDetectionMethodConfig.En_Fwhm - FWHMPeakDetectionMethodConfig.Width_Fwhm);
+            double Fwhm_Width_Ch_max = energySpectrum.EnergyCalibration.EnergyToChannel(FWHMPeakDetectionMethodConfig.En_Fwhm + FWHMPeakDetectionMethodConfig.Width_Fwhm);
+            double Fwhm_Width_Ch = (Fwhm_Width_Ch_max - Fwhm_Width_Ch_min)/2;
+
+            FWHMPeakDetector.Spectrum spec = new FWHMPeakDetector.Spectrum(energySpectrum);
+            int mul = energySpectrum.NumberOfChannels / 1000;
+            if (mul > 0)
+            {
+                spec.combine_bins(mul);
+            }
+            FWHMPeakDetector.PeakFilter kernel = new FWHMPeakDetector.PeakFilter(Fwhm_Ch, Fwhm_Width_Ch, FWHMPeakDetectionMethodConfig.FWHM_AT_0);
+            FWHMPeakDetector.PeakFinder finder = new FWHMPeakDetector.PeakFinder(spec, kernel);
+            finder.find_peaks(-1, -1, FWHMPeakDetectionMethodConfig.Min_SNR, FWHMPeakDetectionMethodConfig.Max_Items);
+
             resultData.DetectedPeaks.Clear();
-            double num5 = 0.0;
-            double num6 = 0.0;
-            double num7 = double.PositiveInfinity;
-            for (int l = num; l < numberOfChannels - num; l++)
+            
+            if (finder.centroids != null)
             {
-                double num8 = array2[l];
-                if (num6 < num8)
+                for (int i = 0; i < finder.centroids.Length; i++)
                 {
-                    num6 = num8;
-                }
-                if ((double)energySpectrum.Spectrum[l] < num7)
-                {
-                    num7 = (double)energySpectrum.Spectrum[l];
-                }
-                if (num5 > 0.0 && num8 < 0.0 && num6 > threshold && energySpectrum.Spectrum[l] > 0)
-                {
+                    double centroid = finder.centroids[i];
+                    double snr = finder.snrs[i];
+                    double fwhm = finder.fwhms[i];
+                    NuclideDefinition bestNuclide = null;
+                    double minDelta = -1;
                     Peak peak = new Peak();
-                    peak.Energy = energySpectrum.EnergyCalibration.ChannelToEnergy((double)l);
-                    if (energySpectrum.Spectrum[l] > energySpectrum.Spectrum[l - 1])
+                    peak.Channel = (int)Math.Round(centroid);
+                    peak.Energy = energySpectrum.EnergyCalibration.ChannelToEnergy(centroid);
+                    peak.SNR = (int)snr;
+                    peak.FWHM = (int)fwhm;
+                    foreach (NuclideDefinition nuclideDefinition in this.nuclideManager.NuclideDefinitions)
                     {
-                        peak.Channel = l;
+                        double delta = Math.Abs((peak.Energy - nuclideDefinition.Energy) / nuclideDefinition.Energy);
+                        double tol = FWHMPeakDetectionMethodConfig.Tolerance;
+                        if (delta < tol / 100.0 && delta < tol)
+                        {
+                            if (minDelta == -1)
+                            {
+                                bestNuclide = nuclideDefinition;
+                                minDelta = delta;
+                            } else
+                            {
+                                if (delta < minDelta)
+                                {
+                                    bestNuclide = nuclideDefinition;
+                                    minDelta = delta;
+                                }
+                            }
+                        }
+                        peak.Nuclide = bestNuclide;
                     }
-                    else
-                    {
-                        peak.Channel = l - 1;
-                    }
-                    list.Add(peak);
+
+                    peaks.Add(peak);
                     resultData.DetectedPeaks.Add(peak);
-                    num6 = 0.0;
-                    num7 = (double)energySpectrum.Spectrum[l];
-                }
-                num5 = num8;
-            }
-            foreach (NuclideDefinition nuclideDefinition in this.nuclideManager.NuclideDefinitions)
-            {
-                Peak peak2 = null;
-                double num9 = num2;
-                foreach (Peak peak3 in list)
-                {
-                    double num10 = Math.Abs((peak3.Energy - nuclideDefinition.Energy) / nuclideDefinition.Energy);
-                    if (num10 < num2 && num10 < num9)
-                    {
-                        num9 = num10;
-                        peak2 = peak3;
-                    }
-                }
-                if (peak2 != null)
-                {
-                    if (peak2.Nuclide == null)
-                    {
-                        peak2.Nuclide = nuclideDefinition;
-                    }
-                    else if (Math.Abs(peak2.Energy - nuclideDefinition.Energy) < Math.Abs(peak2.Energy - peak2.Nuclide.Energy))
-                    {
-                        peak2.Nuclide = nuclideDefinition;
-                    }
                 }
             }
-            return list;
+            finder = null;
+            kernel = null;
+            spec = null;
+            GC.Collect();
+            return peaks;
         }
 
         // Token: 0x0400025C RID: 604

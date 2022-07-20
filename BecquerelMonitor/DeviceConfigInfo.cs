@@ -289,7 +289,7 @@ namespace BecquerelMonitor
         // Token: 0x17000339 RID: 825
         // (get) Token: 0x06000C1D RID: 3101 RVA: 0x000481FC File Offset: 0x000463FC
         // (set) Token: 0x06000C1E RID: 3102 RVA: 0x00048204 File Offset: 0x00046404
-        [XmlElement(typeof(SimplePeakDetectionMethodConfig))]
+        [XmlElement(typeof(FWHMPeakDetectionMethodConfig))]
         public PeakDetectionMethodConfig PeakDetectionMethodConfig
         {
             get
@@ -340,7 +340,7 @@ namespace BecquerelMonitor
             this.energyCalibration = new PolynomialEnergyCalibration();
             this.doseRateConfig = new DoseRateConfig();
             this.stabilizerConfig = new StabilizerConfig();
-            this.peakDetectionMethodConfig = new SimplePeakDetectionMethodConfig();
+            this.peakDetectionMethodConfig = new FWHMPeakDetectionMethodConfig();
         }
 
         // Token: 0x06000C24 RID: 3108 RVA: 0x00048320 File Offset: 0x00046520

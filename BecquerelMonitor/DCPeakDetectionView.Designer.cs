@@ -1,4 +1,6 @@
-﻿namespace BecquerelMonitor
+﻿using XPTable.Models;
+
+namespace BecquerelMonitor
 {
 	// Token: 0x0200004F RID: 79
 	public partial class DCPeakDetectionView : global::BecquerelMonitor.ToolWindow
@@ -27,6 +29,8 @@
 			this.textColumn3 = new global::XPTable.Models.TextColumn();
 			this.textColumn1 = new global::XPTable.Models.TextColumn();
 			this.textColumn4 = new global::XPTable.Models.TextColumn();
+			this.textColumn5 = new global::XPTable.Models.TextColumn();
+			this.textColumn6 = new global::XPTable.Models.TextColumn();
 			this.textColumn2 = new global::XPTable.Models.TextColumn();
 			this.tableModel1 = new global::XPTable.Models.TableModel();
 			this.numericUpDown1 = new global::System.Windows.Forms.NumericUpDown();
@@ -62,7 +66,9 @@
 				this.textColumn3,
 				this.textColumn1,
 				this.textColumn4,
-				this.textColumn2
+				this.textColumn2,
+				this.textColumn5,
+				this.textColumn6
 			});
 			this.textColumn3.Editable = false;
 			this.textColumn3.IsTextTrimmed = false;
@@ -82,40 +88,32 @@
 			this.textColumn2.Editable = false;
 			this.textColumn2.IsTextTrimmed = false;
 			this.textColumn2.Sortable = false;
+			componentResourceManager.ApplyResources(this.textColumn5, "textColumn5");
+			this.textColumn5.Alignment = global::XPTable.Models.ColumnAlignment.Right;
+			this.textColumn5.Editable = false;
+			this.textColumn5.IsTextTrimmed = false;
+			this.textColumn5.Sortable = false;
+			componentResourceManager.ApplyResources(this.textColumn6, "textColumn6");
+			this.textColumn6.Alignment = global::XPTable.Models.ColumnAlignment.Right;
+			this.textColumn6.Editable = false;
+			this.textColumn6.IsTextTrimmed = false;
+			this.textColumn6.Sortable = false;
 			componentResourceManager.ApplyResources(this.textColumn2, "textColumn2");
+			this.textColumn1.AutoResizeMode = ColumnAutoResizeMode.Grow;
+			this.textColumn3.AutoResizeMode = ColumnAutoResizeMode.Grow;
+			this.textColumn4.AutoResizeMode = ColumnAutoResizeMode.Grow;
 			componentResourceManager.ApplyResources(this.numericUpDown1, "numericUpDown1");
 			global::System.Windows.Forms.NumericUpDown numericUpDown = this.numericUpDown1;
-			int[] array = new int[4];
-			array[0] = 10;
-			numericUpDown.Maximum = new decimal(array);
 			global::System.Windows.Forms.NumericUpDown numericUpDown2 = this.numericUpDown1;
-			int[] array2 = new int[4];
-			array2[0] = 1;
-			numericUpDown2.Minimum = new decimal(array2);
 			this.numericUpDown1.Name = "numericUpDown1";
 			global::System.Windows.Forms.NumericUpDown numericUpDown3 = this.numericUpDown1;
-			int[] array3 = new int[4];
-			array3[0] = 1;
-			numericUpDown3.Value = new decimal(array3);
 			this.numericUpDown1.ValueChanged += new global::System.EventHandler(this.numericUpDown1_ValueChanged);
 			global::System.Windows.Forms.NumericUpDown numericUpDown4 = this.numericUpDown2;
-			int[] array4 = new int[4];
-			array4[0] = 2;
-			numericUpDown4.Increment = new decimal(array4);
 			componentResourceManager.ApplyResources(this.numericUpDown2, "numericUpDown2");
 			global::System.Windows.Forms.NumericUpDown numericUpDown5 = this.numericUpDown2;
-			int[] array5 = new int[4];
-			array5[0] = 99;
-			numericUpDown5.Maximum = new decimal(array5);
 			global::System.Windows.Forms.NumericUpDown numericUpDown6 = this.numericUpDown2;
-			int[] array6 = new int[4];
-			array6[0] = 1;
-			numericUpDown6.Minimum = new decimal(array6);
 			this.numericUpDown2.Name = "numericUpDown2";
 			global::System.Windows.Forms.NumericUpDown numericUpDown7 = this.numericUpDown2;
-			int[] array7 = new int[4];
-			array7[0] = 1;
-			numericUpDown7.Value = new decimal(array7);
 			this.numericUpDown2.ValueChanged += new global::System.EventHandler(this.numericUpDown2_ValueChanged);
 			componentResourceManager.ApplyResources(this.label1, "label1");
 			this.label1.Name = "label1";
@@ -126,9 +124,6 @@
 			this.numericUpDown3.DecimalPlaces = 2;
 			componentResourceManager.ApplyResources(this.numericUpDown3, "numericUpDown3");
 			global::System.Windows.Forms.NumericUpDown numericUpDown8 = this.numericUpDown3;
-			int[] array8 = new int[4];
-			array8[0] = 100000;
-			numericUpDown8.Maximum = new decimal(array8);
 			this.numericUpDown3.Name = "numericUpDown3";
 			global::System.Windows.Forms.NumericUpDown numericUpDown9 = this.numericUpDown3;
 			int[] array9 = new int[4];
@@ -181,6 +176,10 @@
 
 		// Token: 0x040001BC RID: 444
 		global::XPTable.Models.TextColumn textColumn2;
+
+		global::XPTable.Models.TextColumn textColumn5;
+
+		global::XPTable.Models.TextColumn textColumn6;
 
 		// Token: 0x040001BD RID: 445
 		global::System.Windows.Forms.NumericUpDown numericUpDown1;
