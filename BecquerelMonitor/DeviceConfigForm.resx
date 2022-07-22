@@ -1231,7 +1231,7 @@
     <value>92, 12</value>
   </data>
   <data name="label45.Text" xml:space="preserve">
-    <value>FWHM peak max keV</value>
+    <value>FWHM peak in ch</value>
   </data>
   <data name="label45.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -1261,7 +1261,7 @@
     <value>92, 12</value>
   </data>
   <data name="label46.Text" xml:space="preserve">
-    <value>FWHM peak width keV</value>
+    <value>FWHM peak width ch</value>
   </data>
   <data name="label46.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>

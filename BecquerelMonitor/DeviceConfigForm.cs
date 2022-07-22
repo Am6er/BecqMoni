@@ -431,7 +431,7 @@ namespace BecquerelMonitor
             this.numericUpDown10.Minimum = 1;
             this.numericUpDown10.Maximum = 100000;
             this.numericUpDown10.Increment = 1;
-            this.numericUpDown10.Value = (decimal)FWHMPeakDetectionMethodConfig.En_Fwhm;
+            this.numericUpDown10.Value = (decimal)FWHMPeakDetectionMethodConfig.Ch_Fwhm;
 
             this.numericUpDown11.Minimum = 1;
             this.numericUpDown11.Maximum = 1000;
@@ -498,7 +498,7 @@ namespace BecquerelMonitor
                 FWHMPeakDetectionMethodConfig.Max_Items = (int)this.numericUpDown3.Value;
                 FWHMPeakDetectionMethodConfig.FWHM_AT_0 = (double)this.numericUpDown5.Value;
                 FWHMPeakDetectionMethodConfig.Tolerance = (double)this.numericUpDown6.Value;
-                FWHMPeakDetectionMethodConfig.En_Fwhm = (double)this.numericUpDown10.Value;
+                FWHMPeakDetectionMethodConfig.Ch_Fwhm = (double)this.numericUpDown10.Value;
                 FWHMPeakDetectionMethodConfig.Width_Fwhm = (double)this.numericUpDown11.Value;
                 config.BackgroundSpectrumPathname = this.textBox17.Text;
             }

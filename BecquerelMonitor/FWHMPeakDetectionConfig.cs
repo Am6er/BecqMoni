@@ -27,15 +27,15 @@
             }
         }
 
-        public double En_Fwhm
+        public double Ch_Fwhm
         {
             get
             {
-                return this.en_fwhm;
+                return this.ch_fwhm;
             }
             set
             {
-                this.en_fwhm = value;
+                this.ch_fwhm = value;
             }
         }
 
@@ -84,7 +84,7 @@
         {
             this.tolerance = config.tolerance;
             this.fwhm_at_0 = config.fwhm_at_0;
-            this.en_fwhm = config.en_fwhm;
+            this.ch_fwhm = config.ch_fwhm;
             this.width_fwhm = config.width_fwhm;
             this.min_snr = config.min_snr;
             this.max_items = config.max_items;
@@ -99,7 +99,7 @@
 
         double fwhm_at_0 = 15.0;
 
-        double en_fwhm = 1459.0;
+        double ch_fwhm = 1459.0;
 
         double width_fwhm = 195;
 
