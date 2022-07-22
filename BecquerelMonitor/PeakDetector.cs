@@ -23,7 +23,7 @@ namespace BecquerelMonitor
 
             FWHMPeakDetector.Spectrum spec = new FWHMPeakDetector.Spectrum(energySpectrum);
             int mul = energySpectrum.NumberOfChannels / 1000;
-            if (mul > 0)
+            if (mul > 1)
             {
                 spec.combine_bins(mul);
             }
