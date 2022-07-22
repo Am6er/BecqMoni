@@ -264,10 +264,20 @@ namespace BecquerelMonitor.FWHMPeakDetector
                 xmax = bin_edges.Max();
             }
 
-            if (xmin < bin_edges.Min() || xmax > bin_edges.Max() || xmin > bin_edges.Max() || xmax < bin_edges.Min() || xmin > xmax)
+            if (xmin < bin_edges.Min())
             {
-                throw new PeakFinderError("x-axis range " + xmin + "-" + xmax + " is invalid");
+                xmin = bin_edges.Min();
             }
+
+            if (xmax > bin_edges.Max())
+            {
+                xmax = bin_edges.Max();
+            }
+
+            //if ( xmin > bin_edges.Max() || xmax < bin_edges.Min() || xmin > xmax)
+            //{
+            //    throw new PeakFinderError("x-axis range " + xmin + "-" + xmax + " is invalid");
+            //}
 
             if (min_snr < 0 || min_snr > this.snr.Max())
             {

@@ -1,4 +1,5 @@
-﻿using MathNet.Numerics;
+﻿using BecquerelMonitor.Properties;
+using MathNet.Numerics;
 using System;
 using System.Xml.Serialization;
 
@@ -193,7 +194,7 @@ namespace BecquerelMonitor
                 }
             }
 
-            throw new NotImplementedException("Four point calibration not implemented yet. Only 2,3,4,5 points exist.");
+            throw new NotImplementedException(String.Format(Resources.ERRUnsupportedCalibrationMethod, this.polynomialOrder));
         }
 
         // Token: 0x06000735 RID: 1845 RVA: 0x00029EF8 File Offset: 0x000280F8

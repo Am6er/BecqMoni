@@ -31,7 +31,7 @@ namespace BecquerelMonitor
 
             if (!(deviceConfig.InputDeviceConfig is AudioInputDeviceConfig))
             {
-                MessageBox.Show("Missmatched device configuration: to solve this create new file and use Audio Input device.", "Error!");
+                MessageBox.Show(Resources.ERRDeviceMismatchConfiguration, Resources.ErrorExclamation);
                 return false;
             }
 

@@ -167,7 +167,7 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            string filename = Path.GetFileNameWithoutExtension(this.activeDeviceConfig.Filename) + " (コピー).xml";
+            string filename = Path.GetFileNameWithoutExtension(this.activeDeviceConfig.Filename) + " (Copy).xml";
             DeviceConfigInfo deviceConfigInfo = this.manager.DuplicateConfig(this.activeDeviceConfig, filename);
             if (deviceConfigInfo == null)
             {
@@ -759,7 +759,7 @@ namespace BecquerelMonitor
 
                         if (uint.Parse(result_arr[10], System.Globalization.NumberStyles.AllowHexSpecifier) != crc32)
                         {
-                            MessageBox.Show("Incrorrect Crc32 checksum! Possible borken coefficients. Try to upload them again.");
+                            MessageBox.Show(Resources.ERRIncorrectCRC);
                             return;
                         }
 
@@ -775,7 +775,7 @@ namespace BecquerelMonitor
                         }
                         if (coeff_list.Count == 0)
                         {
-                            MessageBox.Show("This device doesn't contain calibration coefficients. Write them first.");
+                            MessageBox.Show(Resources.ERREmptyCoefficients);
                             device.Dispose();
                             return;
                         }
@@ -803,7 +803,7 @@ namespace BecquerelMonitor
                     }
                     else
                     {
-                        MessageBox.Show("Couldn't read device data from Port: " + deviceconfig.ComPortName);
+                        MessageBox.Show(String.Format(Resources.ERRReadDataFromPort, deviceconfig.ComPortName));
                     }
                     if (!runexist)
                     {
@@ -813,7 +813,7 @@ namespace BecquerelMonitor
                 }
                 catch
                 {
-                    MessageBox.Show("Couldn't read device data from Port!");
+                    MessageBox.Show(Resources.ERRReadDataFromPort_Empty);
                 }
             }
         }
@@ -824,7 +824,7 @@ namespace BecquerelMonitor
             {
                 if (this.button6.Enabled)
                 {
-                    MessageBox.Show("Save configuration before writing config to Atom Pro device.");
+                    MessageBox.Show(Resources.MSGSaveBeforeWritingData);
                     return;
                 }
                 try
@@ -899,16 +899,16 @@ namespace BecquerelMonitor
                     Cursor.Current = Cursors.Default;
                     if (commands_accepted)
                     {
-                        MessageBox.Show("Coefficients uploaded to Atom Spectra Pro successfully.");
+                        MessageBox.Show(Resources.MSGCoefficientsUploadedSuccesfull);
                     }
                     else
                     {
-                        MessageBox.Show("Error! Some coefficients uploaded with error! Check connection and reupload it again." + Environment.NewLine + status_msg); ;
+                        MessageBox.Show(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + status_msg); ;
                     }
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("Error! Some coefficients uploaded with error! Check connection and reupload it again." + Environment.NewLine + ex.Message);
+                    MessageBox.Show(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + ex.Message);
                 }
             }
         }
@@ -1260,7 +1260,7 @@ namespace BecquerelMonitor
                     polynomialEnergyCalibration.PolynomialOrder = 4;
                     if (!polynomialEnergyCalibration.CheckCalibration())
                     {
-                        MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
+                        MessageBox.Show(Resources.CalibrationFunctionError);
                         return;
                     }
                     goto IL_390;
@@ -1305,7 +1305,7 @@ namespace BecquerelMonitor
 
                     if (!polynomialEnergyCalibration.CheckCalibration())
                     {
-                        MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
+                        MessageBox.Show(Resources.CalibrationFunctionError);
                         return;
                     }
                     goto IL_390;
@@ -1332,7 +1332,7 @@ namespace BecquerelMonitor
             this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString();
             if (!polynomialEnergyCalibration.CheckCalibration())
             {
-                MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
+                MessageBox.Show(Resources.CalibrationFunctionError);
                 return;
             }
             this.multipointModified = false;

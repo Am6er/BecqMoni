@@ -390,8 +390,8 @@ namespace BecquerelMonitor
                 return;
             }
             OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Title = "Specify background spectrum";
-            openFileDialog.Filter = "Spectrum file (*.xml)|*.xml|All files (*.*)|*.*";
+            openFileDialog.Title = Resources.BackgroundSelectionDialogTitle;
+            openFileDialog.Filter = Resources.SpectrumFileFilter;
             openFileDialog.FilterIndex = 1;
             openFileDialog.RestoreDirectory = true;
             if (openFileDialog.ShowDialog() != DialogResult.OK)
@@ -495,13 +495,20 @@ namespace BecquerelMonitor
             double channelPitch = activeResultData.EnergySpectrum.ChannelPitch;
             if (numberOfChannels != activeResultData.DeviceConfig.NumberOfChannels || channelPitch != activeResultData.DeviceConfig.ChannelPitch)
             {
+                DialogResult dialogResult = MessageBox.Show(Resources.MSGInitializingSpectrum,
+                    Resources.ConfirmationDialogTitle,
+                    MessageBoxButtons.OKCancel,
+                    MessageBoxIcon.Exclamation);
+                if (dialogResult == DialogResult.Cancel)
+                {
+                    return false;
+                }
+                if (dialogResult == DialogResult.Cancel)
+                {
+                    return false;
+                }
                 if (activeResultData.EnergySpectrum.ValidPulseCount > 0 && activeResultData.PulseCollection.Pulses.Count == 0)
                 {
-                    DialogResult dialogResult = MessageBox.Show(Resources.MSGInitializingSpectrum, Resources.ConfirmationDialogTitle, MessageBoxButtons.OKCancel, MessageBoxIcon.Exclamation);
-                    if (dialogResult == DialogResult.Cancel)
-                    {
-                        return false;
-                    }
                     activeResultData.EnergySpectrum.Initialize();
                     resultDataStatus.TotalTime = TimeSpan.FromSeconds(0.0);
                     resultDataStatus.ElapsedTime = TimeSpan.FromSeconds(0.0);
