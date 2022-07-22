@@ -20,11 +20,6 @@ namespace BecquerelMonitor
             {
                 return peaks;
             }
-            
-            double Fwhm_Ch = energySpectrum.EnergyCalibration.EnergyToChannel(FWHMPeakDetectionMethodConfig.En_Fwhm);
-            double Fwhm_Width_Ch_min = energySpectrum.EnergyCalibration.EnergyToChannel(FWHMPeakDetectionMethodConfig.En_Fwhm - FWHMPeakDetectionMethodConfig.Width_Fwhm);
-            double Fwhm_Width_Ch_max = energySpectrum.EnergyCalibration.EnergyToChannel(FWHMPeakDetectionMethodConfig.En_Fwhm + FWHMPeakDetectionMethodConfig.Width_Fwhm);
-            double Fwhm_Width_Ch = (Fwhm_Width_Ch_max - Fwhm_Width_Ch_min)/2;
 
             FWHMPeakDetector.Spectrum spec = new FWHMPeakDetector.Spectrum(energySpectrum);
             int mul = energySpectrum.NumberOfChannels / 1000;
@@ -32,7 +27,10 @@ namespace BecquerelMonitor
             {
                 spec.combine_bins(mul);
             }
-            FWHMPeakDetector.PeakFilter kernel = new FWHMPeakDetector.PeakFilter(Fwhm_Ch, Fwhm_Width_Ch, FWHMPeakDetectionMethodConfig.FWHM_AT_0);
+            FWHMPeakDetector.PeakFilter kernel = new FWHMPeakDetector.PeakFilter(
+                FWHMPeakDetectionMethodConfig.Ch_Fwhm, 
+                FWHMPeakDetectionMethodConfig.Width_Fwhm,
+                FWHMPeakDetectionMethodConfig.FWHM_AT_0);
             FWHMPeakDetector.PeakFinder finder = new FWHMPeakDetector.PeakFinder(spec, kernel);
             finder.find_peaks(-1, -1, FWHMPeakDetectionMethodConfig.Min_SNR, FWHMPeakDetectionMethodConfig.Max_Items);
 
