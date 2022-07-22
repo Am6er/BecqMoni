@@ -218,7 +218,7 @@ namespace BecquerelMonitor
                     this.energyCalibration.Coefficients[2] = result;
                     if (!energyCalibration.CheckCalibration())
                     {
-                        MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
+                        MessageBox.Show(Resources.CalibrationFunctionError);
                         throw new Exception();
                     }
                     this.UpdateEnergyCalibration();
@@ -244,7 +244,7 @@ namespace BecquerelMonitor
                     this.energyCalibration.Coefficients[1] = result;
                     if (!energyCalibration.CheckCalibration())
                     {
-                        MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
+                        MessageBox.Show(Resources.CalibrationFunctionError);
                         throw new Exception();
                     }
                     this.UpdateEnergyCalibration();
@@ -270,7 +270,7 @@ namespace BecquerelMonitor
                     this.energyCalibration.Coefficients[0] = result;
                     if (!energyCalibration.CheckCalibration())
                     {
-                        MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
+                        MessageBox.Show(Resources.CalibrationFunctionError);
                         throw new Exception();
                     }
                     this.UpdateEnergyCalibration();
@@ -295,7 +295,7 @@ namespace BecquerelMonitor
                     this.energyCalibration.Coefficients[4] = result;
                     if (!energyCalibration.CheckCalibration())
                     {
-                        MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
+                        MessageBox.Show(Resources.CalibrationFunctionError);
                         throw new Exception();
                     }
                     this.UpdateEnergyCalibration();
@@ -320,7 +320,7 @@ namespace BecquerelMonitor
                     this.energyCalibration.Coefficients[3] = result;
                     if (!energyCalibration.CheckCalibration())
                     {
-                        MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
+                        MessageBox.Show(Resources.CalibrationFunctionError);
                         throw new Exception();
                     }
                     this.UpdateEnergyCalibration();
@@ -601,7 +601,7 @@ namespace BecquerelMonitor
 
                     if (!this.energyCalibration.CheckCalibration())
                     {
-                        MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
+                        MessageBox.Show(Resources.CalibrationFunctionError);
                         return;
                     }
                     goto IL_3B5;
@@ -652,7 +652,7 @@ namespace BecquerelMonitor
                     this.energyCalibration.PolynomialOrder = 4;
                     if (!this.energyCalibration.CheckCalibration())
                     {
-                        MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
+                        MessageBox.Show(Resources.CalibrationFunctionError);
                         return;
                     }
                     goto IL_3B5;
@@ -679,7 +679,7 @@ namespace BecquerelMonitor
             }
             if (!this.energyCalibration.CheckCalibration())
             {
-                MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
+                MessageBox.Show(Resources.CalibrationFunctionError);
                 return;
             }
             this.multipointModified = false;

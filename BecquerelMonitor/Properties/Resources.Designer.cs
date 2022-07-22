@@ -147,6 +147,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The calibration function should be monotonically increasing at channel &gt; 0. Re-check Calibration points!.
+        /// </summary>
+        internal static string CalibrationFunctionError {
+            get {
+                return ResourceManager.GetString("CalibrationFunctionError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
         internal static System.Drawing.Bitmap channel {
@@ -510,6 +519,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Missmatched device configuration: to solve this create new file and use Audio Input device..
+        /// </summary>
+        internal static string ERRDeviceMismatchConfiguration {
+            get {
+                return ResourceManager.GetString("ERRDeviceMismatchConfiguration", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Duplicate or invalid configuration name..
         /// </summary>
         internal static string ERRDuplicateConfigName {
@@ -537,11 +555,38 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to This device doesn&apos;t contain calibration coefficients. Write them first..
+        /// </summary>
+        internal static string ERREmptyCoefficients {
+            get {
+                return ResourceManager.GetString("ERREmptyCoefficients", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Empty port name.
+        /// </summary>
+        internal static string ERREmptyPortName {
+            get {
+                return ResourceManager.GetString("ERREmptyPortName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Excel may not be installed.
         /// </summary>
         internal static string ERRExcelNotInstalled {
             get {
                 return ResourceManager.GetString("ERRExcelNotInstalled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error. Expected empty line separator, got: {0}.
+        /// </summary>
+        internal static string ERRExpectedLineSeparator {
+            get {
+                return ResourceManager.GetString("ERRExpectedLineSeparator", resourceCulture);
             }
         }
         
@@ -580,6 +625,15 @@ namespace BecquerelMonitor.Properties {
         internal static string ERRIncompatibleChannelParameters {
             get {
                 return ResourceManager.GetString("ERRIncompatibleChannelParameters", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Incrorrect Crc32 checksum! Possible borken coefficients. Try to upload them again..
+        /// </summary>
+        internal static string ERRIncorrectCRC {
+            get {
+                return ResourceManager.GetString("ERRIncorrectCRC", resourceCulture);
             }
         }
         
@@ -710,6 +764,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Error. Can not open this file. Expected format 3, got: {0}.
+        /// </summary>
+        internal static string ERROpenAtomSpectraFormat {
+            get {
+                return ResourceManager.GetString("ERROpenAtomSpectraFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Error.
         /// </summary>
         internal static string ErrorDialogTitle {
@@ -719,11 +782,38 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Error!.
+        /// </summary>
+        internal static string ErrorExclamation {
+            get {
+                return ResourceManager.GetString("ErrorExclamation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Error.
         /// </summary>
         internal static string ErrorString {
             get {
                 return ResourceManager.GetString("ErrorString", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Couldn&apos;t read device data from Port: {0}.
+        /// </summary>
+        internal static string ERRReadDataFromPort {
+            get {
+                return ResourceManager.GetString("ERRReadDataFromPort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Couldn&apos;t read device data from Port!.
+        /// </summary>
+        internal static string ERRReadDataFromPort_Empty {
+            get {
+                return ResourceManager.GetString("ERRReadDataFromPort_Empty", resourceCulture);
             }
         }
         
@@ -760,6 +850,51 @@ namespace BecquerelMonitor.Properties {
         internal static string ERRSavingROIConfigFailed {
             get {
                 return ResourceManager.GetString("ERRSavingROIConfigFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to N42 EnergyBoundaryValues not supported. Using current calibration..
+        /// </summary>
+        internal static string ERRUnsuportedEnergyBoundaryN42 {
+            get {
+                return ResourceManager.GetString("ERRUnsuportedEnergyBoundaryN42", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unsupported calibration method polynom order {0}. Only 2,3,4,5 points exist..
+        /// </summary>
+        internal static string ERRUnsupportedCalibrationMethod {
+            get {
+                return ResourceManager.GetString("ERRUnsupportedCalibrationMethod", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unsupported calibration points number. Got polynom order = {0}.
+        /// </summary>
+        internal static string ERRUnsupportedCalibrationOrder {
+            get {
+                return ResourceManager.GetString("ERRUnsupportedCalibrationOrder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This application works in standalone mode. If you want to use update re-install it..
+        /// </summary>
+        internal static string ERRUpdateApp {
+            get {
+                return ResourceManager.GetString("ERRUpdateApp", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error! Some coefficients uploaded with error! Check connection and reupload it again..
+        /// </summary>
+        internal static string ERRUploadCoefficeintsToDevice {
+            get {
+                return ResourceManager.GetString("ERRUploadCoefficeintsToDevice", resourceCulture);
             }
         }
         
@@ -973,6 +1108,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Coefficients uploaded to Atom Spectra Pro successfully..
+        /// </summary>
+        internal static string MSGCoefficientsUploadedSuccesfull {
+            get {
+                return ResourceManager.GetString("MSGCoefficientsUploadedSuccesfull", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Configuration has been modified. Save?.
         /// </summary>
         internal static string MSGConfirmSaveConfig {
@@ -1045,7 +1189,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Spectrum will be initialized due to incompatible parameters and no pulse data..
+        ///   Looks up a localized string similar to Spectrum will be ERASED due to incompatible parameters (number of channels and channel pitch) and no pulse data..
         /// </summary>
         internal static string MSGInitializingSpectrum {
             get {
@@ -1059,6 +1203,15 @@ namespace BecquerelMonitor.Properties {
         internal static string MSGNewNuclideDefinitionFileCreated {
             get {
                 return ResourceManager.GetString("MSGNewNuclideDefinitionFileCreated", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No new version avalable. Current version: {0}.
+        /// </summary>
+        internal static string MSGNoNewVersion {
+            get {
+                return ResourceManager.GetString("MSGNoNewVersion", resourceCulture);
             }
         }
         
@@ -1104,6 +1257,24 @@ namespace BecquerelMonitor.Properties {
         internal static string MSGProceedCalibration {
             get {
                 return ResourceManager.GetString("MSGProceedCalibration", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update finished. Application WILL RESTART..
+        /// </summary>
+        internal static string MSGRestartNeeded {
+            get {
+                return ResourceManager.GetString("MSGRestartNeeded", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Save configuration before writing config to Atom Pro device..
+        /// </summary>
+        internal static string MSGSaveBeforeWritingData {
+            get {
+                return ResourceManager.GetString("MSGSaveBeforeWritingData", resourceCulture);
             }
         }
         

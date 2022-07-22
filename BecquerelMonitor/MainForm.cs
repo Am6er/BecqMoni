@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BecquerelMonitor.Properties;
+using System;
 using System.Collections.Generic;
 using System.Deployment.Application;
 using System.Diagnostics;
@@ -1249,7 +1250,7 @@ namespace BecquerelMonitor
                 }
                 catch
                 {
-                    MessageBox.Show("This application works in standalone mode. If you want to use update re-install it.");
+                    MessageBox.Show(Resources.ERRUpdateApp);
                     return;
                 }
                 if (info.UpdateAvailable)
@@ -1260,13 +1261,13 @@ namespace BecquerelMonitor
                     if (dialogResult == DialogResult.OK)
                     {
                         updateCheck.Update();
-                        MessageBox.Show("Update finished. Application WILL RESTART.");
+                        MessageBox.Show(Resources.MSGRestartNeeded);
                         Application.Restart();
                     }
                 }
                 else
                 {
-                    MessageBox.Show("No new version avalable. Current version: " + updateCheck.CurrentVersion.ToString());
+                    MessageBox.Show(String.Format(Resources.MSGNoNewVersion, updateCheck.CurrentVersion.ToString()));
                 }
             }
             catch (Exception ex)

@@ -378,7 +378,7 @@ namespace BecquerelMonitor
                     string fileformat = streamReader.ReadLine();
                     if (fileformat != "FORMAT: 3")
                     {
-                        throw new Exception("Error. Can not open this file. Expected format 3, got: " + fileformat);
+                        throw new Exception(String.Format(Resources.ERROpenAtomSpectraFormat, fileformat));
                     }
                     else
                     {
@@ -406,7 +406,7 @@ namespace BecquerelMonitor
 
                         if (streamReader.ReadLine() != "")
                         {
-                            MessageBox.Show("Error. Expected empty line separator, got: " + fileformat);
+                            MessageBox.Show(String.Format(Resources.ERRExpectedLineSeparator, fileformat));
                             return;
                         }
 
@@ -421,7 +421,7 @@ namespace BecquerelMonitor
 
                         if (PolynomialOrder > 4)
                         {
-                            throw new Exception("Unsupported calibration points number. Got polynom order = " + PolynomialOrder);
+                            throw new Exception(String.Format(Resources.ERRUnsupportedCalibrationOrder, PolynomialOrder));
                         }
 
                         double[] coefficients = new double[PolynomialOrder + 1];
@@ -447,7 +447,7 @@ namespace BecquerelMonitor
 
                         if (!energyCalibration.CheckCalibration())
                         {
-                            MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
+                            MessageBox.Show(Resources.CalibrationFunctionError);
                         }
 
                         doc.EnergySpectrumView.FitHorizontalScale();
@@ -562,7 +562,7 @@ namespace BecquerelMonitor
 
                     if (PolynomialOrder > 4)
                     {
-                        throw new Exception("Unsupported calibration points number. Got polynom order = " + PolynomialOrder);
+                        throw new Exception(String.Format(Resources.ERRUnsupportedCalibrationOrder, PolynomialOrder));
                     }
 
                     double[] coefficients = new double[n42CalibrationCoeff.Length];
@@ -580,12 +580,12 @@ namespace BecquerelMonitor
 
                     if (!energyCalibration.CheckCalibration())
                     {
-                        MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
+                        MessageBox.Show(Resources.CalibrationFunctionError);
                     }
                 }
                 catch
                 {
-                    MessageBox.Show("N42 EnergyBoundaryValues not supported. Using current calibration.");
+                    MessageBox.Show(Resources.ERRUnsuportedEnergyBoundaryN42);
                 }
 
                 doc.EnergySpectrumView.FitHorizontalScale();

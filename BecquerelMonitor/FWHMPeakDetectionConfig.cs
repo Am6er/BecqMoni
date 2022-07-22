@@ -124,9 +124,9 @@
 
         double fwhm_at_0 = 15.0;
 
-        double ch_fwhm = 1459.0;
+        double ch_fwhm = 3756.0;
 
-        double width_fwhm = 195;
+        double width_fwhm = 103;
 
         double min_snr = 10;
 
@@ -134,6 +134,6 @@
 
         double min_range_en = 30; //keV
 
-        double max_range_en = 3000; //keV
+        double max_range_en = 2800; //keV
     }
 }

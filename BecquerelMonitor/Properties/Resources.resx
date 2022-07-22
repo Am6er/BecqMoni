@@ -149,7 +149,7 @@
     <value>Device configuration is not selected.</value>
   </data>
   <data name="MSGInitializingSpectrum" xml:space="preserve">
-    <value>Spectrum will be initialized due to incompatible parameters and no pulse data.</value>
+    <value>Spectrum will be ERASED due to incompatible parameters (number of channels and channel pitch) and no pulse data.</value>
   </data>
   <data name="ERRDetectedErrorWhileCommunication" xml:space="preserve">
     <value>Error detected while communicating with device.
@@ -4165,5 +4165,62 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="N42ExportDialogTitle" xml:space="preserve">
     <value>Export N42 file</value>
+  </data>
+  <data name="CalibrationFunctionError" xml:space="preserve">
+    <value>The calibration function should be monotonically increasing at channel &gt; 0. Re-check Calibration points!</value>
+  </data>
+  <data name="ERRDeviceMismatchConfiguration" xml:space="preserve">
+    <value>Missmatched device configuration: to solve this create new file and use Audio Input device.</value>
+  </data>
+  <data name="ERREmptyCoefficients" xml:space="preserve">
+    <value>This device doesn't contain calibration coefficients. Write them first.</value>
+  </data>
+  <data name="ERREmptyPortName" xml:space="preserve">
+    <value>Empty port name</value>
+  </data>
+  <data name="ERRExpectedLineSeparator" xml:space="preserve">
+    <value>Error. Expected empty line separator, got: {0}</value>
+  </data>
+  <data name="ERRIncorrectCRC" xml:space="preserve">
+    <value>Incrorrect Crc32 checksum! Possible borken coefficients. Try to upload them again.</value>
+  </data>
+  <data name="ERROpenAtomSpectraFormat" xml:space="preserve">
+    <value>Error. Can not open this file. Expected format 3, got: {0}</value>
+  </data>
+  <data name="ErrorExclamation" xml:space="preserve">
+    <value>Error!</value>
+  </data>
+  <data name="ERRReadDataFromPort" xml:space="preserve">
+    <value>Couldn't read device data from Port: {0}</value>
+  </data>
+  <data name="ERRReadDataFromPort_Empty" xml:space="preserve">
+    <value>Couldn't read device data from Port!</value>
+  </data>
+  <data name="ERRUnsuportedEnergyBoundaryN42" xml:space="preserve">
+    <value>N42 EnergyBoundaryValues not supported. Using current calibration.</value>
+  </data>
+  <data name="ERRUnsupportedCalibrationMethod" xml:space="preserve">
+    <value>Unsupported calibration method polynom order {0}. Only 2,3,4,5 points exist.</value>
+  </data>
+  <data name="ERRUnsupportedCalibrationOrder" xml:space="preserve">
+    <value>Unsupported calibration points number. Got polynom order = {0}</value>
+  </data>
+  <data name="ERRUpdateApp" xml:space="preserve">
+    <value>This application works in standalone mode. If you want to use update re-install it.</value>
+  </data>
+  <data name="ERRUploadCoefficeintsToDevice" xml:space="preserve">
+    <value>Error! Some coefficients uploaded with error! Check connection and reupload it again.</value>
+  </data>
+  <data name="MSGCoefficientsUploadedSuccesfull" xml:space="preserve">
+    <value>Coefficients uploaded to Atom Spectra Pro successfully.</value>
+  </data>
+  <data name="MSGNoNewVersion" xml:space="preserve">
+    <value>No new version avalable. Current version: {0}</value>
+  </data>
+  <data name="MSGRestartNeeded" xml:space="preserve">
+    <value>Update finished. Application WILL RESTART.</value>
+  </data>
+  <data name="MSGSaveBeforeWritingData" xml:space="preserve">
+    <value>Save configuration before writing config to Atom Pro device.</value>
   </data>
 </root>

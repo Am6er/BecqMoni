@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BecquerelMonitor.Properties;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -280,7 +281,7 @@ namespace BecquerelMonitor
                         }
                         else
                         {
-                            throw new Exception("Empty port name");
+                            throw new Exception(Resources.ERREmptyPortName);
                         }
                     }
                     catch (Exception)
