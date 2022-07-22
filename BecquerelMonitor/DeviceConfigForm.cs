@@ -437,6 +437,17 @@ namespace BecquerelMonitor
             this.numericUpDown11.Maximum = 1000;
             this.numericUpDown11.Increment = 1;
             this.numericUpDown11.Value = (decimal)FWHMPeakDetectionMethodConfig.Width_Fwhm;
+
+            this.numericUpDown12.Minimum = 1;
+            this.numericUpDown12.Maximum = 10000;
+            this.numericUpDown12.Increment = 1;
+            this.numericUpDown12.Value = (decimal)FWHMPeakDetectionMethodConfig.Min_Range;
+
+            this.numericUpDown13.Minimum = 1;
+            this.numericUpDown13.Maximum = 10000;
+            this.numericUpDown13.Increment = 1;
+            this.numericUpDown13.Value = (decimal)FWHMPeakDetectionMethodConfig.Max_Range;
+
             this.textBox17.Text = config.BackgroundSpectrumPathname;
             this.contentsLoading = false;
         }
@@ -500,6 +511,8 @@ namespace BecquerelMonitor
                 FWHMPeakDetectionMethodConfig.Tolerance = (double)this.numericUpDown6.Value;
                 FWHMPeakDetectionMethodConfig.Ch_Fwhm = (double)this.numericUpDown10.Value;
                 FWHMPeakDetectionMethodConfig.Width_Fwhm = (double)this.numericUpDown11.Value;
+                FWHMPeakDetectionMethodConfig.Min_Range = (double)this.numericUpDown12.Value;
+                FWHMPeakDetectionMethodConfig.Max_Range = (double)this.numericUpDown13.Value;
                 config.BackgroundSpectrumPathname = this.textBox17.Text;
             }
             catch (Exception)
@@ -1442,6 +1455,24 @@ namespace BecquerelMonitor
 
         void numericUpDown11_ValueChanged(object sender, EventArgs e)
         {
+            this.SetActiveDeviceConfigDirty();
+        }
+
+        void numericUpDown12_ValueChanged(object sender, EventArgs e)
+        {
+            if (this.numericUpDown12.Value >= this.numericUpDown13.Value)
+            {
+                this.numericUpDown13.Value = this.numericUpDown12.Value + 1;
+            }
+            this.SetActiveDeviceConfigDirty();
+        }
+
+        void numericUpDown13_ValueChanged(object sender, EventArgs e)
+        {
+            if (this.numericUpDown12.Value >= this.numericUpDown13.Value)
+            {
+                this.numericUpDown13.Value = this.numericUpDown12.Value + 1;
+            }
             this.SetActiveDeviceConfigDirty();
         }
 

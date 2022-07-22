@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Windows.Forms;
 
 namespace BecquerelMonitor
 {
@@ -21,6 +22,9 @@ namespace BecquerelMonitor
                 return peaks;
             }
 
+            int min_range_ch = (int)energySpectrum.EnergyCalibration.EnergyToChannel(FWHMPeakDetectionMethodConfig.Min_Range);
+            int max_range_ch = (int)energySpectrum.EnergyCalibration.EnergyToChannel(FWHMPeakDetectionMethodConfig.Max_Range);
+
             FWHMPeakDetector.Spectrum spec = new FWHMPeakDetector.Spectrum(energySpectrum);
             int mul = energySpectrum.NumberOfChannels / 1000;
             if (mul > 1)
@@ -32,7 +36,7 @@ namespace BecquerelMonitor
                 FWHMPeakDetectionMethodConfig.Width_Fwhm,
                 FWHMPeakDetectionMethodConfig.FWHM_AT_0);
             FWHMPeakDetector.PeakFinder finder = new FWHMPeakDetector.PeakFinder(spec, kernel);
-            finder.find_peaks(-1, -1, FWHMPeakDetectionMethodConfig.Min_SNR, FWHMPeakDetectionMethodConfig.Max_Items);
+            finder.find_peaks(min_range_ch, max_range_ch, FWHMPeakDetectionMethodConfig.Min_SNR, FWHMPeakDetectionMethodConfig.Max_Items);
 
             resultData.DetectedPeaks.Clear();
             
