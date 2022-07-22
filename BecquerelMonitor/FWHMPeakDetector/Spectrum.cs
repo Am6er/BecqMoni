@@ -169,11 +169,6 @@ namespace BecquerelMonitor.FWHMPeakDetector
 
         public void combine_bins(int mul)
         {
-            if (mul == 1)
-            {
-                return;
-            }
-
             int new_size = this.counts.Length / mul;
 
             if (new_size == 0)
