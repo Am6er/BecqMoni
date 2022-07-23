@@ -2443,20 +2443,36 @@ namespace BecquerelMonitor
                     g.DrawLine(pen, num4, 0, num4, this.height);
                     int percent = (int)this.globalConfigManager.GlobalConfig.ChartViewConfig.EnergyPercent;
                     int pitch = (int)this.globalConfigManager.GlobalConfig.ChartViewConfig.EnergyPitch;
+                    double best_Energy = 0;
+                    NuclideDefinition best_Nuclide = new NuclideDefinition();
                     foreach (NuclideDefinition nuclideDefinition in this.nuclideManager.NuclideDefinitions)
                     {
                         if (this.cursorEnergy >= nuclideDefinition.Energy-(pitch + (int)Math.Round(nuclideDefinition.Energy * percent/100, 0)) &&
                             this.cursorEnergy <= nuclideDefinition.Energy + (pitch + (int)Math.Round(nuclideDefinition.Energy * percent / 100, 0)))
                         {
-                            Peak peak = new Peak();
-                            peak.Energy = nuclideDefinition.Energy;
-                            peak.Nuclide = nuclideDefinition;
-                            Pen pen2 = new Pen(colorConfig.PeakFigureColor.Color);
-                            Brush brush = new SolidBrush(colorConfig.PeakFigureColor.Color);
-                            Brush brush2 = new SolidBrush(colorConfig.PeakBackgroundColor.Color);
-                            this.DrawPeakFlag(g, peak, this.cursorX, 2, pen2, brush, brush2);
-                            break;
+                            if (best_Energy == 0)
+                            {
+                                best_Energy = nuclideDefinition.Energy;
+                                best_Nuclide = nuclideDefinition;
+                            } else
+                            {
+                                if (Math.Abs(this.cursorEnergy - best_Energy) > Math.Abs(this.cursorEnergy - nuclideDefinition.Energy))
+                                {
+                                    best_Energy = nuclideDefinition.Energy;
+                                    best_Nuclide = nuclideDefinition;
+                                }
+                            }
                         }
+                    }
+                    if (best_Energy != 0)
+                    {
+                        Peak peak = new Peak();
+                        peak.Energy = best_Energy;
+                        peak.Nuclide = best_Nuclide;
+                        Pen pen2 = new Pen(colorConfig.PeakFigureColor.Color);
+                        Brush brush = new SolidBrush(colorConfig.PeakFigureColor.Color);
+                        Brush brush2 = new SolidBrush(colorConfig.PeakBackgroundColor.Color);
+                        this.DrawPeakFlag(g, peak, this.cursorX, 2, pen2, brush, brush2);
                     }
                 }
                 int num6 = 94;
