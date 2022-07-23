@@ -4223,4 +4223,11 @@ http://xptable.sourceforge.net/</value>
   <data name="MSGSaveBeforeWritingData" xml:space="preserve">
     <value>Save configuration before writing config to Atom Pro device.</value>
   </data>
+  <data name="MSGAtomSpectraWarning" xml:space="preserve">
+    <value>Type command and press Enter. Some commands ARE HAZARDOUS!
+You must be completely sure, what you are doing.</value>
+  </data>
+  <data name="MSGComPort" xml:space="preserve">
+    <value>COM Port:</value>
+  </data>
 </root>

@@ -1,0 +1,532 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="ApplicationTitle" xml:space="preserve">
+    <value>BecqMoni ATOM Edition</value>
+  </data>
+  <data name="AtomSpectraFileFilter" xml:space="preserve">
+    <value>Файлы Atom Spectra (*.txt)|*.txt|Все файлы (*.*)|*.*</value>
+  </data>
+  <data name="BackgroundSelectionDialogTitle" xml:space="preserve">
+    <value>Выберите файл фонового спектра</value>
+  </data>
+  <data name="CalibrationFunctionError" xml:space="preserve">
+    <value>Функция калибровки должна монотонно возрастать при увеличиении канала. Проверьте калибровку!</value>
+  </data>
+  <data name="ChartHeaderBGCounts" xml:space="preserve">
+    <value>Фоновых имп:</value>
+  </data>
+  <data name="ChartHeaderChannel" xml:space="preserve">
+    <value>Канал:</value>
+  </data>
+  <data name="ChartHeaderCountBGRatio" xml:space="preserve">
+    <value>Соотн. фона:</value>
+  </data>
+  <data name="ChartHeaderEnergy" xml:space="preserve">
+    <value>Энергия[кэВ]:</value>
+  </data>
+  <data name="ChartHeaderFWHM" xml:space="preserve">
+    <value>ПШПВ:</value>
+  </data>
+  <data name="ChartHeaderGrossCounts" xml:space="preserve">
+    <value>Всего импульсов:</value>
+  </data>
+  <data name="ChartHeaderNetCounts" xml:space="preserve">
+    <value>Имп. над фоном:</value>
+  </data>
+  <data name="ChartHeaderNetCps" xml:space="preserve">
+    <value>CPS над фоном:</value>
+  </data>
+  <data name="ChartHeaderSelection" xml:space="preserve">
+    <value>Выбранная область</value>
+  </data>
+  <data name="ConfirmationDialogTitle" xml:space="preserve">
+    <value>Подтверждение</value>
+  </data>
+  <data name="CopyPostfix" xml:space="preserve">
+    <value> (Копия)</value>
+  </data>
+  <data name="CsvExportDialogTitle" xml:space="preserve">
+    <value>Экспорт в CSV файл</value>
+  </data>
+  <data name="CsvFileFilter" xml:space="preserve">
+    <value>Файлы CSV (*.csv)|*.csv|Все файлы (*.*)|*.*</value>
+  </data>
+  <data name="CsvImportDialogTitle" xml:space="preserve">
+    <value>Импорт из CSV файла</value>
+  </data>
+  <data name="DeleteSpectrumMessage" xml:space="preserve">
+    <value>Удалить спектр "{0}"?</value>
+  </data>
+  <data name="DeleteUnnamedSpectrumMessage" xml:space="preserve">
+    <value>Удалить безымянный спектр?</value>
+  </data>
+  <data name="DeviceTypeAtomSpectraVCP" xml:space="preserve">
+    <value>AtomSpectraVCP</value>
+  </data>
+  <data name="DeviceTypeAudioInput" xml:space="preserve">
+    <value>Audio Input Device</value>
+  </data>
+  <data name="DeviceTypeLEMCA" xml:space="preserve">
+    <value>LEMCA USB Adaptor</value>
+  </data>
+  <data name="ERRAlreadyOpen" xml:space="preserve">
+    <value>Выбранный файл уже открыт в приложении.</value>
+  </data>
+  <data name="ERRAudioDeviceNotFound" xml:space="preserve">
+    <value>Выбранное аудио устройство не найдено.</value>
+  </data>
+  <data name="ERRBackgroundLoadFailure" xml:space="preserve">
+    <value>Не удалось загрузить спектр фона "{0}".</value>
+  </data>
+  <data name="ERRCannotConnectDevice" xml:space="preserve">
+    <value>Не удалось подключиться к устройству. Проверьте кабель и питание устройства.</value>
+  </data>
+  <data name="ERRCannotDeleteSpectrum" xml:space="preserve">
+    <value>Не могу удалить спектр. По крайней мере один спектр нужен в файле.</value>
+  </data>
+  <data name="ERRCannotOpenWavFile" xml:space="preserve">
+    <value>Не могу открыть WAV файл.</value>
+  </data>
+  <data name="ERRCannotOverwrite" xml:space="preserve">
+    <value>Не могу перезаписать уже открытый файл.</value>
+  </data>
+  <data name="ERRCannotRetreiveDeviceData" xml:space="preserve">
+    <value>Не могу получить данные с устройства.</value>
+  </data>
+  <data name="ERRDetectedErrorWhileCommunication" xml:space="preserve">
+    <value>Обнаружена ошибка в процессе работы с устройством.</value>
+  </data>
+  <data name="ERRDeviceConfigNotSelected" xml:space="preserve">
+    <value>Не выбрана конфигурация устройства.</value>
+  </data>
+  <data name="ERRDeviceMismatchConfiguration" xml:space="preserve">
+    <value>Несоответствие с конфигурацией устройства. Чтобы это исправить создайте новый спектр и используйте Audio Input Device</value>
+  </data>
+  <data name="ERRDuplicateConfigName" xml:space="preserve">
+    <value>Такая конфигурация уже присутствует, выберите другое имя</value>
+  </data>
+  <data name="ERRDuplicateDeviceConfigGUID" xml:space="preserve">
+    <value>Одинаковые GUID в разных файлах конфигурации устройств "{0}"</value>
+  </data>
+  <data name="ERRDuplicateROIConfigGUID" xml:space="preserve">
+    <value>Одинаковые GUID в разных файлах конфигурации ROI "{0}"</value>
+  </data>
+  <data name="ERREmptyCoefficients" xml:space="preserve">
+    <value>Это устройство не содержит коэффициенты калибровки, сначала нужно их туда записать.</value>
+  </data>
+  <data name="ERREmptyPortName" xml:space="preserve">
+    <value>Имя COM порта пустое</value>
+  </data>
+  <data name="ERRExcelNotInstalled" xml:space="preserve">
+    <value>MS Excell не установлен</value>
+  </data>
+  <data name="ERRExpectedLineSeparator" xml:space="preserve">
+    <value>Ошибка в импортируемом файле. Вместо пустой строки пришло: {0}</value>
+  </data>
+  <data name="ERRFileOpenFailure" xml:space="preserve">
+    <value>Файл "{0}" не может быть открыт.
+({1})</value>
+  </data>
+  <data name="ERRFileSaveFailure" xml:space="preserve">
+    <value>Файл "{0}" не может быть сохранён.
+({1})</value>
+  </data>
+  <data name="ERRFirmwareMustBeUpdated" xml:space="preserve">
+    <value>Прошивка должна быть обновлена до последней версии.</value>
+  </data>
+  <data name="ERRIncompatibleChannelParameters" xml:space="preserve">
+    <value>Несовместимые параметры каналов.</value>
+  </data>
+  <data name="ERRIncorrectCRC" xml:space="preserve">
+    <value>Некорректная сумма Crc32! Возможно коэфициенты калибровки некорректны. Проведите процедуру загрузки коэфициентов калибровки на устройство заново.</value>
+  </data>
+  <data name="ERRInputDeviceNotSet" xml:space="preserve">
+    <value>Устройство ввода не выбрано.</value>
+  </data>
+  <data name="ERRInputInteger" xml:space="preserve">
+    <value>Введённое число - целое.</value>
+  </data>
+  <data name="ERRInputNumber" xml:space="preserve">
+    <value>Введённый текст - число.</value>
+  </data>
+  <data name="ERRInvalidChannelOrEnergyValues" xml:space="preserve">
+    <value>Некорректный канал или значения энергий</value>
+  </data>
+  <data name="ERRInvalidDeviceType" xml:space="preserve">
+    <value>Некорректный тип устройства</value>
+  </data>
+  <data name="ERRInvalidInputForm" xml:space="preserve">
+    <value>Некорректная форма ввода.</value>
+  </data>
+  <data name="ERRInvalidPresetTime" xml:space="preserve">
+    <value>Некорректное предустановленное время.</value>
+  </data>
+  <data name="ERRInvalidROIPrimitive" xml:space="preserve">
+    <value>Некорретный примитив ROI.</value>
+  </data>
+  <data name="ERRInvalidROIPrimitiveOperation" xml:space="preserve">
+    <value>Некорректная операция с примитивом ROI.</value>
+  </data>
+  <data name="ERRLoadingDeviceConfigFailed" xml:space="preserve">
+    <value>Не удалось загрузить файлы конфигураций устройств.</value>
+  </data>
+  <data name="ERRLoadingGlobalConfigFailed" xml:space="preserve">
+    <value>Не удалось загрузить конфигурационный файл приложения.</value>
+  </data>
+  <data name="ERRLoadingNuclideDefinitionFile" xml:space="preserve">
+    <value>Не удалось загрузить библиотеку изотопов.</value>
+  </data>
+  <data name="ERRLoadingROIConfigFailed" xml:space="preserve">
+    <value>Не удалось загрузить конфигурационный файл ROI.</value>
+  </data>
+  <data name="ERRNotSupportedWavFormat" xml:space="preserve">
+    <value>Выбранный формат WAV не поддерживается аудио устройством.</value>
+  </data>
+  <data name="ERROpenAtomSpectraFormat" xml:space="preserve">
+    <value>Ошибка. Не могу импортировать файл Atom Spectra. Ожидался формат версией 3, получена версия: {0}</value>
+  </data>
+  <data name="ErrorDialogTitle" xml:space="preserve">
+    <value>Ошибка</value>
+  </data>
+  <data name="ErrorExclamation" xml:space="preserve">
+    <value>Ошибка!</value>
+  </data>
+  <data name="ErrorString" xml:space="preserve">
+    <value>Ошибка</value>
+  </data>
+  <data name="ERRReadDataFromPort" xml:space="preserve">
+    <value>Не могу прочитать данные с устройства по COM порту: {0}</value>
+  </data>
+  <data name="ERRReadDataFromPort_Empty" xml:space="preserve">
+    <value>Не могу прочитать данные с устройства по COM порту!</value>
+  </data>
+  <data name="ERRSavingDeviceConfigFailed" xml:space="preserve">
+    <value>Не удалось сохранить конфигурационный файл устройства.</value>
+  </data>
+  <data name="ERRSavingGlobalConfigFailed" xml:space="preserve">
+    <value>Не удалось сохранить конфигурационный файл приложения.</value>
+  </data>
+  <data name="ERRSavingNuclideDefinitionFile" xml:space="preserve">
+    <value>Не удалось сохранить файл библиотеки изотопов.</value>
+  </data>
+  <data name="ERRSavingROIConfigFailed" xml:space="preserve">
+    <value>Не удалось сохранить конфигурационный файл ROI.</value>
+  </data>
+  <data name="ERRUnsuportedEnergyBoundaryN42" xml:space="preserve">
+    <value>Объект спецификации N42 - EnergyBoundaryValues не поддерживается в приложении. Используйте калибровки полиномом.</value>
+  </data>
+  <data name="ERRUnsupportedCalibrationMethod" xml:space="preserve">
+    <value>Не поддерживаемый метод калибровки полиномом {0} порядка. Поддерживаются полиномы 1,2,3,4 порядков.</value>
+  </data>
+  <data name="ERRUnsupportedCalibrationOrder" xml:space="preserve">
+    <value>Не поддерживается такое количество точек калибровки. Порядок полинома получается: {0}. Должен быть 1,2,3,4 порядка.</value>
+  </data>
+  <data name="ERRUpdateApp" xml:space="preserve">
+    <value>Этот экземпляр приложения работает в ограниченном режиме. Такое приложение не будет обновляться. Необходимо установить приложение через setup.exe.</value>
+  </data>
+  <data name="ERRUploadCoefficeintsToDevice" xml:space="preserve">
+    <value>Некоторые коэффициенты были загружены с ошибкой! Проверьте подключение к устройству, кабель и попробуйте загрузить заново.</value>
+  </data>
+  <data name="ExportSpectraToFileDialogTitle" xml:space="preserve">
+    <value>Экспорт выбранного спектра в файл</value>
+  </data>
+  <data name="ImportAtomSpectraFileDialogTitle" xml:space="preserve">
+    <value>Импорт файла Atom Spectra</value>
+  </data>
+  <data name="ImportN42FileDialogTitle" xml:space="preserve">
+    <value>Импорт файла формата N42</value>
+  </data>
+  <data name="ImportOldFormatFileDialogTitle" xml:space="preserve">
+    <value>Импорт спектра старого формата BQMoni (0.93Beta и раньше)</value>
+  </data>
+  <data name="ImportSpectraFromFileDialogTitle" xml:space="preserve">
+    <value>Импорт спектра из файла</value>
+  </data>
+  <data name="InitializingMessage" xml:space="preserve">
+    <value>Загрузка...</value>
+  </data>
+  <data name="InvalidValueDialogTitle" xml:space="preserve">
+    <value>Некорректное введённое значение</value>
+  </data>
+  <data name="LibraryLicensesMessage" xml:space="preserve">
+    <value>based on pulse shape discrimination algorithm of PRA for audio input devices
+http://www.physics.usyd.edu.au/~marek/pra/index.html
+
+using DockPanel Suite library
+http://sourceforge.net/projects/dockpanelsuite/
+
+using WinMM.Net library
+http://winmm.codeplex.com/
+
+using XPTable library
+http://xptable.sourceforge.net/</value>
+  </data>
+  <data name="LoadingFileMessage" xml:space="preserve">
+    <value>Загружается файл ( {0} )...</value>
+  </data>
+  <data name="MessageRemoveDeviceConfig" xml:space="preserve">
+    <value>Удалить конфигурацию устройства "{0}"?</value>
+  </data>
+  <data name="MSGAtomSpectraWarning" xml:space="preserve">
+    <value>Вводите команду и нажимайте Enter. Некоторые команды - ОПАСНЫ!
+Вы должны полностью понимать, что делаете, чтобы не словить кирпич!</value>
+  </data>
+  <data name="MSGCalibrationDone" xml:space="preserve">
+    <value>Калибровка по энергии выполнена.</value>
+  </data>
+  <data name="MSGClearSpectrum" xml:space="preserve">
+    <value>Очистить спектр?</value>
+  </data>
+  <data name="MSGCoefficientsUploadedSuccesfull" xml:space="preserve">
+    <value>Коэффициенты калибровки успешно загружены в Atom Spectra Pro.</value>
+  </data>
+  <data name="MSGComPort" xml:space="preserve">
+    <value>COM порт:</value>
+  </data>
+  <data name="MSGConfirmSaveConfig" xml:space="preserve">
+    <value>Конфигурационный файл был изменён. Сохранить?</value>
+  </data>
+  <data name="MSGDeleteNuclideDefinition" xml:space="preserve">
+    <value>Удалить изотоп "{0}"?</value>
+  </data>
+  <data name="MSGDeleteROIConfig" xml:space="preserve">
+    <value>Удалить конфигурацию ROI "{0}"?</value>
+  </data>
+  <data name="MSGDeleteROIDefinition" xml:space="preserve">
+    <value>Удалить ROI "{0}"?</value>
+  </data>
+  <data name="MSGDeleteROIPrimitive" xml:space="preserve">
+    <value>Удалить примитив ROI?</value>
+  </data>
+  <data name="MSGDeviceTypeChanging" xml:space="preserve">
+    <value>Изменение типа устройства приведёт к общей реинициализации всех параметров. ГОТОВЫ? :)</value>
+  </data>
+  <data name="MSGFileOverwriteConfirmation" xml:space="preserve">
+    <value>Файл спектра "{0}" был изменён. Сохранить?</value>
+  </data>
+  <data name="MSGInitializeAllColorSetting" xml:space="preserve">
+    <value>Инициализировать заново настройки цветов?</value>
+  </data>
+  <data name="MSGInitializingSpectrum" xml:space="preserve">
+    <value>Спектр будет УДАЛЁН ввиду несовместимых параметров спектра с параметрами выбранного устройства: количество каналов, шаг канала.</value>
+  </data>
+  <data name="MSGNewNuclideDefinitionFileCreated" xml:space="preserve">
+    <value>Новый файл библиотеки изотопов успешно создан.</value>
+  </data>
+  <data name="MSGNoNewVersion" xml:space="preserve">
+    <value>Новой версии нету :( Ваша версия приложения: {0}</value>
+  </data>
+  <data name="MSGPickUpCalibrationPoint" xml:space="preserve">
+    <value>Выберите точку калибровки из спектра.</value>
+  </data>
+  <data name="MSGPickUpChannel1" xml:space="preserve">
+    <value>Выберите канал #1 из спектра.</value>
+  </data>
+  <data name="MSGPickUpChannel2" xml:space="preserve">
+    <value>Выберите канал #2 из спектра.</value>
+  </data>
+  <data name="MSGPickUpChannel3" xml:space="preserve">
+    <value>Выберите канал #3 из спектра.</value>
+  </data>
+  <data name="MSGProceedCalibration" xml:space="preserve">
+    <value>Изменить значения и нажать кнопку выполнить.</value>
+  </data>
+  <data name="MSGRestartNeeded" xml:space="preserve">
+    <value>Обновление приложения завершено успешно. Сейчас приложение БУДЕТ ПЕРЕЗАГРУЖЕНО.</value>
+  </data>
+  <data name="MSGSaveBeforeWritingData" xml:space="preserve">
+    <value>Сохраните конфигурацию устройства перед тем, как записывать изменения в Atom Spectra Pro.</value>
+  </data>
+  <data name="MSGSaveEnergyCalibration" xml:space="preserve">
+    <value>Сохранить параметры калибровки в текущей конфигурации устройства?</value>
+  </data>
+  <data name="MSGSavingNuclideDefinition" xml:space="preserve">
+    <value>Библиотека изотопов была изменена. Сохранить?</value>
+  </data>
+  <data name="MSGThermometerTypeChanging" xml:space="preserve">
+    <value>Изменение типа термометра приведёт к реинициализации всех полей. ОК?</value>
+  </data>
+  <data name="MultipointCalibrationString" xml:space="preserve">
+    <value>Калибровка</value>
+  </data>
+  <data name="N42ExportDialogTitle" xml:space="preserve">
+    <value>Экспорт файла N42</value>
+  </data>
+  <data name="N42FileFilter" xml:space="preserve">
+    <value>Файлы N42 (*.N42)|*.N42|Все файлы (*.*)|*.*</value>
+  </data>
+  <data name="NewDeviceConfigPrefix" xml:space="preserve">
+    <value>Новая конфигурация устройства</value>
+  </data>
+  <data name="NewFilePrefix" xml:space="preserve">
+    <value>Новый файл</value>
+  </data>
+  <data name="NewROIConfigPrefix" xml:space="preserve">
+    <value>Новая конфигурация ROI</value>
+  </data>
+  <data name="NotificationDialogTitle" xml:space="preserve">
+    <value>Сообщение</value>
+  </data>
+  <data name="OpenFileDialogTitle" xml:space="preserve">
+    <value>Открыть файл спектра</value>
+  </data>
+  <data name="PercentCharacter" xml:space="preserve">
+    <value>%</value>
+  </data>
+  <data name="ProgressString" xml:space="preserve">
+    <value> ({0}%)</value>
+  </data>
+  <data name="RestartRequiredMessage" xml:space="preserve">
+    <value>Перезагрузите приложение для применения настроек.</value>
+  </data>
+  <data name="ROIPrimitiveOperationTypeAddition" xml:space="preserve">
+    <value>Дополнение</value>
+  </data>
+  <data name="ROIPrimitiveOperationTypeSubtraction" xml:space="preserve">
+    <value>Вычитание</value>
+  </data>
+  <data name="ROIPrimitiveTypeBGDifference" xml:space="preserve">
+    <value>Разница с Фоном</value>
+  </data>
+  <data name="ROIPrimitiveTypeCovellMethod" xml:space="preserve">
+    <value>Метод Ковела</value>
+  </data>
+  <data name="ROIPrimitiveTypeROIReference" xml:space="preserve">
+    <value>Ссылка на ROI</value>
+  </data>
+  <data name="SaveFileDialogTitle" xml:space="preserve">
+    <value>Сохранить спектр как</value>
+  </data>
+  <data name="SpectrumFileFilter" xml:space="preserve">
+    <value>Файлы спектра (*.xml)|*.xml|Все файлы (*.*)|*.*</value>
+  </data>
+  <data name="ThermometerTypeNone" xml:space="preserve">
+    <value>Нет</value>
+  </data>
+  <data name="UnknownNuclide" xml:space="preserve">
+    <value>(неизвестный)</value>
+  </data>
+  <data name="UnnamedSpectrumName" xml:space="preserve">
+    <value>(безымянный)</value>
+  </data>
+  <data name="VersionString" xml:space="preserve">
+    <value>версия {0}</value>
+  </data>
+</root>

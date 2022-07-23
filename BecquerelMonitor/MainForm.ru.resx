@@ -1,0 +1,714 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="&gt;&gt;$this.Name" xml:space="preserve">
+    <value>MainForm</value>
+  </data>
+  <data name="&gt;&gt;$this.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Form, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;AtomSpectraStripMenuItem.Name" xml:space="preserve">
+    <value>AtomSpectraStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;AtomSpectraStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;cSVCToolStripMenuItem.Name" xml:space="preserve">
+    <value>cSVCToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;cSVCToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;cSVFileToolStripMenuItem.Name" xml:space="preserve">
+    <value>cSVFileToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;cSVFileToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;dockPanel1.Name" xml:space="preserve">
+    <value>dockPanel1</value>
+  </data>
+  <data name="&gt;&gt;dockPanel1.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;dockPanel1.Type" xml:space="preserve">
+    <value>WeifenLuo.WinFormsUI.Docking.DockPanel, WeifenLuo.WinFormsUI.Docking, Version=2.7.0.0, Culture=neutral, PublicKeyToken=5cded1a1a0a7b481</value>
+  </data>
+  <data name="&gt;&gt;dockPanel1.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="&gt;&gt;expertLayoutToolStripMenuItem.Name" xml:space="preserve">
+    <value>expertLayoutToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;expertLayoutToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;fWHM用ToolStripMenuItem.Name" xml:space="preserve">
+    <value>fWHM用ToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;fWHM用ToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;imageList1.Name" xml:space="preserve">
+    <value>imageList1</value>
+  </data>
+  <data name="&gt;&gt;imageList1.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ImageList, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;jaJPToolStripMenuItem.Name" xml:space="preserve">
+    <value>jaJPToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;jaJPToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;languageToolStripMenuItem.Name" xml:space="preserve">
+    <value>languageToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;languageToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;menuStrip1.Name" xml:space="preserve">
+    <value>menuStrip1</value>
+  </data>
+  <data name="&gt;&gt;menuStrip1.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;menuStrip1.Type" xml:space="preserve">
+    <value>BecquerelMonitor.MenuStripEx, BecquerelMonitorPlus, Version=1.0.20.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;menuStrip1.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <data name="&gt;&gt;N42ExpStripMenuItem.Name" xml:space="preserve">
+    <value>N42ExpStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;N42ExpStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;N42StripMenuItem.Name" xml:space="preserve">
+    <value>N42StripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;N42StripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;neutralToolStripMenuItem.Name" xml:space="preserve">
+    <value>neutralToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;neutralToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;OpenConfigNToolStripMenuItem.Name" xml:space="preserve">
+    <value>OpenConfigNToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;OpenConfigNToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;oSDefaultToolStripMenuItem.Name" xml:space="preserve">
+    <value>oSDefaultToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;oSDefaultToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;rOI定義RToolStripMenuItem.Name" xml:space="preserve">
+    <value>rOI定義RToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;rOI定義RToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;statusStrip1.Name" xml:space="preserve">
+    <value>statusStrip1</value>
+  </data>
+  <data name="&gt;&gt;statusStrip1.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;statusStrip1.Type" xml:space="preserve">
+    <value>System.Windows.Forms.StatusStrip, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;statusStrip1.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="&gt;&gt;toolStripMenuItem1.Name" xml:space="preserve">
+    <value>toolStripMenuItem1</value>
+  </data>
+  <data name="&gt;&gt;toolStripMenuItem1.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;toolStripMenuItem2.Name" xml:space="preserve">
+    <value>toolStripMenuItem2</value>
+  </data>
+  <data name="&gt;&gt;toolStripMenuItem2.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;toolStripMenuItem3.Name" xml:space="preserve">
+    <value>toolStripMenuItem3</value>
+  </data>
+  <data name="&gt;&gt;toolStripMenuItem3.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;toolStripMenuItem4.Name" xml:space="preserve">
+    <value>toolStripMenuItem4</value>
+  </data>
+  <data name="&gt;&gt;toolStripMenuItem4.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;toolStripMenuItem5.Name" xml:space="preserve">
+    <value>toolStripMenuItem5</value>
+  </data>
+  <data name="&gt;&gt;toolStripMenuItem5.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;toolStripMenuItem6.Name" xml:space="preserve">
+    <value>toolStripMenuItem6</value>
+  </data>
+  <data name="&gt;&gt;toolStripMenuItem6.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;toolStripMenuItem7.Name" xml:space="preserve">
+    <value>toolStripMenuItem7</value>
+  </data>
+  <data name="&gt;&gt;toolStripMenuItem7.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;toolStripSeparator1.Name" xml:space="preserve">
+    <value>toolStripSeparator1</value>
+  </data>
+  <data name="&gt;&gt;toolStripSeparator1.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripSeparator, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;toolStripSeparator2.Name" xml:space="preserve">
+    <value>toolStripSeparator2</value>
+  </data>
+  <data name="&gt;&gt;toolStripSeparator2.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripSeparator, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;toolStripSeparator3.Name" xml:space="preserve">
+    <value>toolStripSeparator3</value>
+  </data>
+  <data name="&gt;&gt;toolStripSeparator3.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripSeparator, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;toolStripSeparator4.Name" xml:space="preserve">
+    <value>toolStripSeparator4</value>
+  </data>
+  <data name="&gt;&gt;toolStripSeparator4.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripSeparator, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;toolStripSeparator5.Name" xml:space="preserve">
+    <value>toolStripSeparator5</value>
+  </data>
+  <data name="&gt;&gt;toolStripSeparator5.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripSeparator, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;toolStripSeparator6.Name" xml:space="preserve">
+    <value>toolStripSeparator6</value>
+  </data>
+  <data name="&gt;&gt;toolStripSeparator6.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripSeparator, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;toolStripSeparator7.Name" xml:space="preserve">
+    <value>toolStripSeparator7</value>
+  </data>
+  <data name="&gt;&gt;toolStripSeparator7.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripSeparator, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;toolStripSeparator8.Name" xml:space="preserve">
+    <value>toolStripSeparator8</value>
+  </data>
+  <data name="&gt;&gt;toolStripSeparator8.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripSeparator, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;toolStripSeparator9.Name" xml:space="preserve">
+    <value>toolStripSeparator9</value>
+  </data>
+  <data name="&gt;&gt;toolStripSeparator9.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripSeparator, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;toolStripStatusLabel1.Name" xml:space="preserve">
+    <value>toolStripStatusLabel1</value>
+  </data>
+  <data name="&gt;&gt;toolStripStatusLabel1.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripStatusLabel, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;toolStripStatusLabel2.Name" xml:space="preserve">
+    <value>toolStripStatusLabel2</value>
+  </data>
+  <data name="&gt;&gt;toolStripStatusLabel2.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripStatusLabel, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;UpdatesAToolStripMenuItem.Name" xml:space="preserve">
+    <value>UpdatesAToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;UpdatesAToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;userLayoutToolStripMenuItem.Name" xml:space="preserve">
+    <value>userLayoutToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;userLayoutToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;インポートIToolStripMenuItem.Name" xml:space="preserve">
+    <value>インポートIToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;インポートIToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;エクスポートEToolStripMenuItem.Name" xml:space="preserve">
+    <value>エクスポートEToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;エクスポートEToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;コントロールパネルCToolStripMenuItem.Name" xml:space="preserve">
+    <value>コントロールパネルCToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;コントロールパネルCToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;スペクトルSToolStripMenuItem.Name" xml:space="preserve">
+    <value>スペクトルSToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;スペクトルSToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;スペクトル一覧LToolStripMenuItem.Name" xml:space="preserve">
+    <value>スペクトル一覧LToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;スペクトル一覧LToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;ツールTToolStripMenuItem1.Name" xml:space="preserve">
+    <value>ツールTToolStripMenuItem1</value>
+  </data>
+  <data name="&gt;&gt;ツールTToolStripMenuItem1.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;デバイス構成の編集DToolStripMenuItem.Name" xml:space="preserve">
+    <value>デバイス構成の編集DToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;デバイス構成の編集DToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;データを保存SToolStripMenuItem.Name" xml:space="preserve">
+    <value>データを保存SToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;データを保存SToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;データを名前を付けて保存RToolStripMenuItem.Name" xml:space="preserve">
+    <value>データを名前を付けて保存RToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;データを名前を付けて保存RToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;データを閉じるCToolStripMenuItem.Name" xml:space="preserve">
+    <value>データを閉じるCToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;データを閉じるCToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;データを開くToolStripMenuItem.Name" xml:space="preserve">
+    <value>データを開くToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;データを開くToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;データ消去CToolStripMenuItem.Name" xml:space="preserve">
+    <value>データ消去CToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;データ消去CToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;バージョン情報AToolStripMenuItem.Name" xml:space="preserve">
+    <value>バージョン情報AToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;バージョン情報AToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;パルス表示PToolStripMenuItem.Name" xml:space="preserve">
+    <value>パルス表示PToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;パルス表示PToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;ピーク検出DToolStripMenuItem.Name" xml:space="preserve">
+    <value>ピーク検出DToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;ピーク検出DToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;ファイルFToolStripMenuItem.Name" xml:space="preserve">
+    <value>ファイルFToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;ファイルFToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;ヘルプHToolStripMenuItem.Name" xml:space="preserve">
+    <value>ヘルプHToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;ヘルプHToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;ベクモニ旧形式v093bToolStripMenuItem.Name" xml:space="preserve">
+    <value>ベクモニ旧形式v093bToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;ベクモニ旧形式v093bToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;マニュアルMToolStripMenuItem.Name" xml:space="preserve">
+    <value>マニュアルMToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;マニュアルMToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;削除DToolStripMenuItem.Name" xml:space="preserve">
+    <value>削除DToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;削除DToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;基本設定BToolStripMenuItem.Name" xml:space="preserve">
+    <value>基本設定BToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;基本設定BToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;新規スペクトルNToolStripMenuItem.Name" xml:space="preserve">
+    <value>新規スペクトルNToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;新規スペクトルNToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;新規スペクトルNToolStripMenuItem1.Name" xml:space="preserve">
+    <value>新規スペクトルNToolStripMenuItem1</value>
+  </data>
+  <data name="&gt;&gt;新規スペクトルNToolStripMenuItem1.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;既存ファイルから追加FToolStripMenuItem.Name" xml:space="preserve">
+    <value>既存ファイルから追加FToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;既存ファイルから追加FToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;核種定義の編集NToolStripMenuItem.Name" xml:space="preserve">
+    <value>核種定義の編集NToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;核種定義の編集NToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;測定停止TToolStripMenuItem.Name" xml:space="preserve">
+    <value>測定停止TToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;測定停止TToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;測定結果表示RToolStripMenuItem.Name" xml:space="preserve">
+    <value>測定結果表示RToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;測定結果表示RToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;測定開始SToolStripMenuItem.Name" xml:space="preserve">
+    <value>測定開始SToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;測定開始SToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;終了XToolStripMenuItem.Name" xml:space="preserve">
+    <value>終了XToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;終了XToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;表示TToolStripMenuItem.Name" xml:space="preserve">
+    <value>表示TToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;表示TToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;試料情報SToolStripMenuItem.Name" xml:space="preserve">
+    <value>試料情報SToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;試料情報SToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="AtomSpectraStripMenuItem.Text" xml:space="preserve">
+    <value>Формат Atom Spectra v3</value>
+  </data>
+  <data name="cSVCToolStripMenuItem.Text" xml:space="preserve">
+    <value>Файл &amp;CSV</value>
+  </data>
+  <data name="cSVFileToolStripMenuItem.Text" xml:space="preserve">
+    <value>Файл CSV</value>
+  </data>
+  <data name="expertLayoutToolStripMenuItem.Text" xml:space="preserve">
+    <value>Экспертный режим</value>
+  </data>
+  <data name="fWHM用ToolStripMenuItem.Text" xml:space="preserve">
+    <value>для ПШПВ</value>
+  </data>
+  <data name="jaJPToolStripMenuItem.Text" xml:space="preserve">
+    <value>Russian</value>
+  </data>
+  <data name="languageToolStripMenuItem.Text" xml:space="preserve">
+    <value>&amp;Язык</value>
+  </data>
+  <data name="menuStrip1.Text" xml:space="preserve">
+    <value>menuStrip1</value>
+  </data>
+  <data name="N42ExpStripMenuItem.Text" xml:space="preserve">
+    <value>Файл N42</value>
+  </data>
+  <data name="N42StripMenuItem.Text" xml:space="preserve">
+    <value>файл формата N42</value>
+  </data>
+  <data name="neutralToolStripMenuItem.Text" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="OpenConfigNToolStripMenuItem.Text" xml:space="preserve">
+    <value>Открыть папку конфигурации приложения в Windows Explorer...</value>
+  </data>
+  <data name="oSDefaultToolStripMenuItem.Text" xml:space="preserve">
+    <value>(OS Default)</value>
+  </data>
+  <data name="rOI定義RToolStripMenuItem.Text" xml:space="preserve">
+    <value>Редактировать конфигурации &amp;ROI...</value>
+  </data>
+  <data name="statusStrip1.Text" xml:space="preserve">
+    <value>statusStrip1</value>
+  </data>
+  <data name="toolStripMenuItem1.Text" xml:space="preserve">
+    <value>&amp;Экспорт в файл</value>
+  </data>
+  <data name="toolStripMenuItem2.Text" xml:space="preserve">
+    <value>Отчёт...</value>
+  </data>
+  <data name="toolStripMenuItem3.Text" xml:space="preserve">
+    <value>Статус измерений</value>
+  </data>
+  <data name="toolStripMenuItem4.Text" xml:space="preserve">
+    <value>&amp;Калибровка энергии</value>
+  </data>
+  <data name="toolStripMenuItem5.Text" xml:space="preserve">
+    <value>Мощность Д&amp;озы</value>
+  </data>
+  <data name="toolStripMenuItem7.Text" xml:space="preserve">
+    <value>Расположение</value>
+  </data>
+  <data name="UpdatesAToolStripMenuItem.Text" xml:space="preserve">
+    <value>&amp;Проверить обновление...</value>
+  </data>
+  <data name="userLayoutToolStripMenuItem.Text" xml:space="preserve">
+    <value>Пользовательский режим</value>
+  </data>
+  <data name="インポートIToolStripMenuItem.Text" xml:space="preserve">
+    <value>&amp;Импорт</value>
+  </data>
+  <data name="エクスポートEToolStripMenuItem.Text" xml:space="preserve">
+    <value>&amp;Экспорт</value>
+  </data>
+  <data name="コントロールパネルCToolStripMenuItem.Text" xml:space="preserve">
+    <value>Управление измерением</value>
+  </data>
+  <data name="スペクトルSToolStripMenuItem.Text" xml:space="preserve">
+    <value>&amp;Спектр</value>
+  </data>
+  <data name="スペクトル一覧LToolStripMenuItem.Text" xml:space="preserve">
+    <value>Список спектров</value>
+  </data>
+  <data name="ツールTToolStripMenuItem1.Text" xml:space="preserve">
+    <value>&amp;Инструменты</value>
+  </data>
+  <data name="デバイス構成の編集DToolStripMenuItem.Text" xml:space="preserve">
+    <value>Конфигурация устройства...</value>
+  </data>
+  <data name="データを保存SToolStripMenuItem.Text" xml:space="preserve">
+    <value>&amp;Сохранить</value>
+  </data>
+  <data name="データを名前を付けて保存RToolStripMenuItem.Text" xml:space="preserve">
+    <value>Сохранить как</value>
+  </data>
+  <data name="データを閉じるCToolStripMenuItem.Text" xml:space="preserve">
+    <value>&amp;Закрыть</value>
+  </data>
+  <data name="データを開くToolStripMenuItem.Text" xml:space="preserve">
+    <value>&amp;Открыть...</value>
+  </data>
+  <data name="データ消去CToolStripMenuItem.Text" xml:space="preserve">
+    <value>&amp;Очистить спектр</value>
+  </data>
+  <data name="バージョン情報AToolStripMenuItem.Text" xml:space="preserve">
+    <value>&amp;О BQMoni...</value>
+  </data>
+  <data name="パルス表示PToolStripMenuItem.Text" xml:space="preserve">
+    <value>&amp;Монитор импульсов</value>
+  </data>
+  <data name="ピーク検出DToolStripMenuItem.Text" xml:space="preserve">
+    <value>Определение пиков</value>
+  </data>
+  <data name="ファイルFToolStripMenuItem.Text" xml:space="preserve">
+    <value>&amp;Файл</value>
+  </data>
+  <data name="ヘルプHToolStripMenuItem.Text" xml:space="preserve">
+    <value>&amp;Помощь</value>
+  </data>
+  <data name="ベクモニ旧形式v093bToolStripMenuItem.Text" xml:space="preserve">
+    <value>Старый формат BecqMoni (v0.93Beta или ранее)</value>
+  </data>
+  <data name="マニュアルMToolStripMenuItem.Text" xml:space="preserve">
+    <value>&amp;Инструкция</value>
+  </data>
+  <data name="削除DToolStripMenuItem.Text" xml:space="preserve">
+    <value>&amp;Удалить</value>
+  </data>
+  <data name="基本設定BToolStripMenuItem.Text" xml:space="preserve">
+    <value>&amp;Настройки</value>
+  </data>
+  <data name="新規スペクトルNToolStripMenuItem.Text" xml:space="preserve">
+    <value>&amp;Новый</value>
+  </data>
+  <data name="新規スペクトルNToolStripMenuItem1.Text" xml:space="preserve">
+    <value>&amp;Новый</value>
+  </data>
+  <data name="既存ファイルから追加FToolStripMenuItem.Text" xml:space="preserve">
+    <value>&amp;Импорт из файла</value>
+  </data>
+  <data name="核種定義の編集NToolStripMenuItem.Text" xml:space="preserve">
+    <value>Редактировать библиотеку изотопов...</value>
+  </data>
+  <data name="測定停止TToolStripMenuItem.Text" xml:space="preserve">
+    <value>Остановить измерение</value>
+  </data>
+  <data name="測定結果表示RToolStripMenuItem.Text" xml:space="preserve">
+    <value>Результат измерений</value>
+  </data>
+  <data name="測定開始SToolStripMenuItem.Text" xml:space="preserve">
+    <value>&amp;Начало измерения</value>
+  </data>
+  <data name="終了XToolStripMenuItem.Text" xml:space="preserve">
+    <value>Выход</value>
+  </data>
+  <data name="表示TToolStripMenuItem.Text" xml:space="preserve">
+    <value>&amp;Обзор</value>
+  </data>
+  <data name="試料情報SToolStripMenuItem.Text" xml:space="preserve">
+    <value>&amp;Информация об образце</value>
+  </data>
+</root>

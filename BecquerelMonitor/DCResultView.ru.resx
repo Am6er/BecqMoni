@@ -117,7 +117,142 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="label1.Text" xml:space="preserve">
-    <value>COM Port:</value>
+  <data name="$this.TabText" xml:space="preserve">
+    <value>Результат измерений</value>
+  </data>
+  <data name="$this.Text" xml:space="preserve">
+    <value>Результат измерений</value>
+  </data>
+  <data name="&gt;&gt;$this.Name" xml:space="preserve">
+    <value>DCResultView</value>
+  </data>
+  <data name="&gt;&gt;$this.Type" xml:space="preserve">
+    <value>BecquerelMonitor.ToolWindow, BecquerelMonitorPlus, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;button1.Name" xml:space="preserve">
+    <value>button1</value>
+  </data>
+  <data name="&gt;&gt;button1.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;button1.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;button1.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="&gt;&gt;columnModel1.Name" xml:space="preserve">
+    <value>columnModel1</value>
+  </data>
+  <data name="&gt;&gt;columnModel1.Type" xml:space="preserve">
+    <value>XPTable.Models.ColumnModel, BecquerelMonitorPlus, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;comboBox1.Name" xml:space="preserve">
+    <value>comboBox1</value>
+  </data>
+  <data name="&gt;&gt;comboBox1.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;comboBox1.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;comboBox1.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="&gt;&gt;comboBox2.Name" xml:space="preserve">
+    <value>comboBox2</value>
+  </data>
+  <data name="&gt;&gt;comboBox2.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;comboBox2.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;comboBox2.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="&gt;&gt;table1.Name" xml:space="preserve">
+    <value>table1</value>
+  </data>
+  <data name="&gt;&gt;table1.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;table1.Type" xml:space="preserve">
+    <value>XPTable.Models.Table, BecquerelMonitorPlus, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;table1.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <data name="&gt;&gt;tableModel1.Name" xml:space="preserve">
+    <value>tableModel1</value>
+  </data>
+  <data name="&gt;&gt;tableModel1.Type" xml:space="preserve">
+    <value>XPTable.Models.TableModel, BecquerelMonitorPlus, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;textColumn1.Name" xml:space="preserve">
+    <value>textColumn1</value>
+  </data>
+  <data name="&gt;&gt;textColumn1.Type" xml:space="preserve">
+    <value>XPTable.Models.TextColumn, BecquerelMonitorPlus, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;textColumn2.Name" xml:space="preserve">
+    <value>textColumn2</value>
+  </data>
+  <data name="&gt;&gt;textColumn2.Type" xml:space="preserve">
+    <value>XPTable.Models.TextColumn, BecquerelMonitorPlus, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;textColumn3.Name" xml:space="preserve">
+    <value>textColumn3</value>
+  </data>
+  <data name="&gt;&gt;textColumn3.Type" xml:space="preserve">
+    <value>XPTable.Models.TextColumn, BecquerelMonitorPlus, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;textColumn4.Name" xml:space="preserve">
+    <value>textColumn4</value>
+  </data>
+  <data name="&gt;&gt;textColumn4.Type" xml:space="preserve">
+    <value>XPTable.Models.TextColumn, BecquerelMonitorPlus, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="button1.Text" xml:space="preserve">
+    <value>Ред. ROI...</value>
+  </data>
+  <data name="comboBox1.Items" xml:space="preserve">
+    <value>Импульсы</value>
+  </data>
+  <data name="comboBox1.Items1" xml:space="preserve">
+    <value>cps</value>
+  </data>
+  <data name="comboBox1.Items2" xml:space="preserve">
+    <value>Бк</value>
+  </data>
+  <data name="comboBox1.Items3" xml:space="preserve">
+    <value>Бк/кг</value>
+  </data>
+  <data name="comboBox1.Items4" xml:space="preserve">
+    <value>Бк/л</value>
+  </data>
+  <data name="comboBox2.Items" xml:space="preserve">
+    <value>Нет коррекции</value>
+  </data>
+  <data name="comboBox2.Items1" xml:space="preserve">
+    <value>Корр. пер. полураспада</value>
+  </data>
+  <data name="table1.NoItemsText" xml:space="preserve">
+    <value />
+  </data>
+  <data name="table1.Text" xml:space="preserve">
+    <value>table1</value>
+  </data>
+  <data name="textColumn1.Text" xml:space="preserve">
+    <value>ROI</value>
+  </data>
+  <data name="textColumn2.Text" xml:space="preserve">
+    <value>Результат</value>
+  </data>
+  <data name="textColumn3.Text" xml:space="preserve">
+    <value>Неопредел.</value>
+  </data>
+  <data name="textColumn4.Text" xml:space="preserve">
+    <value>МДА</value>
   </data>
 </root>

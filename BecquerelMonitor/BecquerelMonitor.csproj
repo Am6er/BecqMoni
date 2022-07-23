@@ -33,8 +33,8 @@
     <MinimumRequiredVersion>2022.07.08.7</MinimumRequiredVersion>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
-    <ApplicationRevision>0</ApplicationRevision>
-    <ApplicationVersion>2022.07.23.0</ApplicationVersion>
+    <ApplicationRevision>1</ApplicationRevision>
+    <ApplicationVersion>2022.07.24.1</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -794,12 +794,21 @@
     <EmbeddedResource Include="AboutForm.resx">
       <DependentUpon>AboutForm.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="AboutForm.ru.resx">
+      <DependentUpon>AboutForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="AtomSpectraVCPDeviceForm.resx">
+      <DependentUpon>AtomSpectraVCPDeviceForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="AtomSpectraVCPDeviceForm.ru.resx">
       <DependentUpon>AtomSpectraVCPDeviceForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="AudioInputDeviceForm.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>AudioInputDeviceForm.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="AudioInputDeviceForm.ru.resx">
+      <DependentUpon>AudioInputDeviceForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="ColorComboTestApp\ColorComboBox.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
@@ -818,6 +827,9 @@
     <EmbeddedResource Include="DCControlPanel.resx">
       <DependentUpon>DCControlPanel.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="DCControlPanel.ru.resx">
+      <DependentUpon>DCControlPanel.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="DCDebugPanel.resx">
       <DependentUpon>DCDebugPanel.cs</DependentUpon>
     </EmbeddedResource>
@@ -827,16 +839,31 @@
     <EmbeddedResource Include="DCEnergyCalibrationView.resx">
       <DependentUpon>DCEnergyCalibrationView.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="DCEnergyCalibrationView.ru.resx">
+      <DependentUpon>DCEnergyCalibrationView.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="DCPeakDetectionView.resx">
+      <DependentUpon>DCPeakDetectionView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DCPeakDetectionView.ru.resx">
       <DependentUpon>DCPeakDetectionView.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="DCPulseView.resx">
       <DependentUpon>DCPulseView.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="DCPulseView.ru.resx">
+      <DependentUpon>DCPulseView.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="DCResultView.resx">
       <DependentUpon>DCResultView.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="DCResultView.ru.resx">
+      <DependentUpon>DCResultView.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="DCSampleInfoView.resx">
+      <DependentUpon>DCSampleInfoView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DCSampleInfoView.ru.resx">
       <DependentUpon>DCSampleInfoView.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="DCSpectrumExplorerView.resx">
@@ -845,7 +872,13 @@
     <EmbeddedResource Include="DCSpectrumListView.resx">
       <DependentUpon>DCSpectrumListView.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="DCSpectrumListView.ru.resx">
+      <DependentUpon>DCSpectrumListView.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="DCSpectrumView.resx">
+      <DependentUpon>DCSpectrumView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DCSpectrumView.ru.resx">
       <DependentUpon>DCSpectrumView.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="DCStatusMessageView.resx">
@@ -854,7 +887,13 @@
     <EmbeddedResource Include="DeviceConfigForm.resx">
       <DependentUpon>DeviceConfigForm.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="DeviceConfigForm.ru.resx">
+      <DependentUpon>DeviceConfigForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="DocEnergySpectrum.resx">
+      <DependentUpon>DocEnergySpectrum.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DocEnergySpectrum.ru.resx">
       <DependentUpon>DocEnergySpectrum.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="EnergySpectrumView.resx">
@@ -862,6 +901,9 @@
       <LastGenOutput>EnergySpectrumView.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="GlobalConfigForm.resx">
+      <DependentUpon>GlobalConfigForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="GlobalConfigForm.ru.resx">
       <DependentUpon>GlobalConfigForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="InputDeviceForm.resx">
@@ -872,13 +914,20 @@
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="MainForm.ru.resx">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="NuclideDefinitionForm.resx">
+      <DependentUpon>NuclideDefinitionForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="NuclideDefinitionForm.ru.resx">
       <DependentUpon>NuclideDefinitionForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.ru.resx" />
     <EmbeddedResource Include="PulseDecayView.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>PulseDecayView.Designer.cs</LastGenOutput>
@@ -888,6 +937,9 @@
       <LastGenOutput>PulseView.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="ROIConfigForm.resx">
+      <DependentUpon>ROIConfigForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ROIConfigForm.ru.resx">
       <DependentUpon>ROIConfigForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="ROICovellMethodControl.resx">
@@ -911,6 +963,9 @@
       <LastGenOutput>StandardPulseView.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="StartupForm.resx">
+      <DependentUpon>StartupForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="StartupForm.ru.resx">
       <DependentUpon>StartupForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="ThermometerForm.resx">
