@@ -1,0 +1,1572 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="$this.Text" xml:space="preserve">
+    <value>Редактировать конфигурацию устройства</value>
+  </data>
+  <data name="&gt;&gt;$this.Name" xml:space="preserve">
+    <value>DeviceConfigForm</value>
+  </data>
+  <data name="&gt;&gt;$this.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Form, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;button1.Name" xml:space="preserve">
+    <value>button1</value>
+  </data>
+  <data name="&gt;&gt;button1.Parent" xml:space="preserve">
+    <value>panel1</value>
+  </data>
+  <data name="&gt;&gt;button1.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;button1.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <data name="&gt;&gt;button10.Name" xml:space="preserve">
+    <value>button10</value>
+  </data>
+  <data name="&gt;&gt;button10.Parent" xml:space="preserve">
+    <value>panel2</value>
+  </data>
+  <data name="&gt;&gt;button10.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;button10.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="&gt;&gt;button11.Name" xml:space="preserve">
+    <value>button11</value>
+  </data>
+  <data name="&gt;&gt;button11.Parent" xml:space="preserve">
+    <value>panel1</value>
+  </data>
+  <data name="&gt;&gt;button11.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;button11.ZOrder" xml:space="preserve">
+    <value>4</value>
+  </data>
+  <data name="&gt;&gt;button12.Name" xml:space="preserve">
+    <value>button12</value>
+  </data>
+  <data name="&gt;&gt;button12.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;button12.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;button12.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="&gt;&gt;button13.Name" xml:space="preserve">
+    <value>button13</value>
+  </data>
+  <data name="&gt;&gt;button13.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;button13.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;button14.Name" xml:space="preserve">
+    <value>button14</value>
+  </data>
+  <data name="&gt;&gt;button14.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;button14.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;button2.Name" xml:space="preserve">
+    <value>button2</value>
+  </data>
+  <data name="&gt;&gt;button2.Parent" xml:space="preserve">
+    <value>panel2</value>
+  </data>
+  <data name="&gt;&gt;button2.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;button2.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="&gt;&gt;button3.Name" xml:space="preserve">
+    <value>button3</value>
+  </data>
+  <data name="&gt;&gt;button3.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;button3.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;button3.ZOrder" xml:space="preserve">
+    <value>5</value>
+  </data>
+  <data name="&gt;&gt;button4.Name" xml:space="preserve">
+    <value>button4</value>
+  </data>
+  <data name="&gt;&gt;button4.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;button4.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;button4.ZOrder" xml:space="preserve">
+    <value>4</value>
+  </data>
+  <data name="&gt;&gt;button5.Name" xml:space="preserve">
+    <value>button5</value>
+  </data>
+  <data name="&gt;&gt;button5.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;button5.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;button5.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <data name="&gt;&gt;button6.Name" xml:space="preserve">
+    <value>button6</value>
+  </data>
+  <data name="&gt;&gt;button6.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;button6.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;button6.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="&gt;&gt;button7.Name" xml:space="preserve">
+    <value>button7</value>
+  </data>
+  <data name="&gt;&gt;button7.Parent" xml:space="preserve">
+    <value>tabPage4</value>
+  </data>
+  <data name="&gt;&gt;button7.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;button7.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="&gt;&gt;button8.Name" xml:space="preserve">
+    <value>button8</value>
+  </data>
+  <data name="&gt;&gt;button8.Parent" xml:space="preserve">
+    <value>panel1</value>
+  </data>
+  <data name="&gt;&gt;button8.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;button8.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="&gt;&gt;button9.Name" xml:space="preserve">
+    <value>button9</value>
+  </data>
+  <data name="&gt;&gt;button9.Parent" xml:space="preserve">
+    <value>panel1</value>
+  </data>
+  <data name="&gt;&gt;button9.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;button9.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="&gt;&gt;columnModel1.Name" xml:space="preserve">
+    <value>columnModel1</value>
+  </data>
+  <data name="&gt;&gt;columnModel1.Type" xml:space="preserve">
+    <value>XPTable.Models.ColumnModel, BecquerelMonitorPlus, Version=1.0.22.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;columnModel2.Name" xml:space="preserve">
+    <value>columnModel2</value>
+  </data>
+  <data name="&gt;&gt;columnModel2.Type" xml:space="preserve">
+    <value>XPTable.Models.ColumnModel, BecquerelMonitorPlus, Version=1.0.22.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;columnModel3.Name" xml:space="preserve">
+    <value>columnModel3</value>
+  </data>
+  <data name="&gt;&gt;columnModel3.Type" xml:space="preserve">
+    <value>XPTable.Models.ColumnModel, BecquerelMonitorPlus, Version=1.0.22.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;comboBox1.Name" xml:space="preserve">
+    <value>comboBox1</value>
+  </data>
+  <data name="&gt;&gt;comboBox1.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;comboBox1.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;comboBox1.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="&gt;&gt;comboBox4.Name" xml:space="preserve">
+    <value>comboBox4</value>
+  </data>
+  <data name="&gt;&gt;comboBox4.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;comboBox4.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;comboBox4.ZOrder" xml:space="preserve">
+    <value>11</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox1.Name" xml:space="preserve">
+    <value>doubleTextBox1</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox1.Parent" xml:space="preserve">
+    <value>groupBox3</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox1.Type" xml:space="preserve">
+    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitorPlus, Version=1.0.22.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox1.ZOrder" xml:space="preserve">
+    <value>7</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox2.Name" xml:space="preserve">
+    <value>doubleTextBox2</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox2.Parent" xml:space="preserve">
+    <value>groupBox3</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox2.Type" xml:space="preserve">
+    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitorPlus, Version=1.0.22.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox2.ZOrder" xml:space="preserve">
+    <value>4</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox3.Name" xml:space="preserve">
+    <value>doubleTextBox3</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox3.Parent" xml:space="preserve">
+    <value>groupBox3</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox3.Type" xml:space="preserve">
+    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitorPlus, Version=1.0.22.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox3.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox5.Name" xml:space="preserve">
+    <value>doubleTextBox5</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox5.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox5.Type" xml:space="preserve">
+    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitorPlus, Version=1.0.22.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox5.ZOrder" xml:space="preserve">
+    <value>6</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox6.Name" xml:space="preserve">
+    <value>doubleTextBox6</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox6.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox6.Type" xml:space="preserve">
+    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitorPlus, Version=1.0.22.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox6.ZOrder" xml:space="preserve">
+    <value>4</value>
+  </data>
+  <data name="&gt;&gt;groupBox1.Name" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;groupBox1.Parent" xml:space="preserve">
+    <value>tabPage2</value>
+  </data>
+  <data name="&gt;&gt;groupBox1.Type" xml:space="preserve">
+    <value>System.Windows.Forms.GroupBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;groupBox1.ZOrder" xml:space="preserve">
+    <value>4</value>
+  </data>
+  <data name="&gt;&gt;groupBox2.Name" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;groupBox2.Parent" xml:space="preserve">
+    <value>tabPage5</value>
+  </data>
+  <data name="&gt;&gt;groupBox2.Type" xml:space="preserve">
+    <value>System.Windows.Forms.GroupBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;groupBox2.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="&gt;&gt;groupBox3.Name" xml:space="preserve">
+    <value>groupBox3</value>
+  </data>
+  <data name="&gt;&gt;groupBox3.Parent" xml:space="preserve">
+    <value>tabPage5</value>
+  </data>
+  <data name="&gt;&gt;groupBox3.Type" xml:space="preserve">
+    <value>System.Windows.Forms.GroupBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;groupBox3.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="&gt;&gt;integerTextBox1.Name" xml:space="preserve">
+    <value>integerTextBox1</value>
+  </data>
+  <data name="&gt;&gt;integerTextBox1.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;integerTextBox1.Type" xml:space="preserve">
+    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitorPlus, Version=1.0.22.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;integerTextBox1.ZOrder" xml:space="preserve">
+    <value>5</value>
+  </data>
+  <data name="&gt;&gt;label1.Name" xml:space="preserve">
+    <value>label1</value>
+  </data>
+  <data name="&gt;&gt;label1.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;label1.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label1.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="&gt;&gt;label10.Name" xml:space="preserve">
+    <value>label10</value>
+  </data>
+  <data name="&gt;&gt;label10.Parent" xml:space="preserve">
+    <value>groupBox3</value>
+  </data>
+  <data name="&gt;&gt;label10.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label10.ZOrder" xml:space="preserve">
+    <value>8</value>
+  </data>
+  <data name="&gt;&gt;label11.Name" xml:space="preserve">
+    <value>label11</value>
+  </data>
+  <data name="&gt;&gt;label11.Parent" xml:space="preserve">
+    <value>groupBox3</value>
+  </data>
+  <data name="&gt;&gt;label11.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label11.ZOrder" xml:space="preserve">
+    <value>6</value>
+  </data>
+  <data name="&gt;&gt;label12.Name" xml:space="preserve">
+    <value>label12</value>
+  </data>
+  <data name="&gt;&gt;label12.Parent" xml:space="preserve">
+    <value>groupBox3</value>
+  </data>
+  <data name="&gt;&gt;label12.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label12.ZOrder" xml:space="preserve">
+    <value>5</value>
+  </data>
+  <data name="&gt;&gt;label13.Name" xml:space="preserve">
+    <value>label13</value>
+  </data>
+  <data name="&gt;&gt;label13.Parent" xml:space="preserve">
+    <value>groupBox3</value>
+  </data>
+  <data name="&gt;&gt;label13.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label13.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="&gt;&gt;label14.Name" xml:space="preserve">
+    <value>label14</value>
+  </data>
+  <data name="&gt;&gt;label14.Parent" xml:space="preserve">
+    <value>groupBox3</value>
+  </data>
+  <data name="&gt;&gt;label14.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label14.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="&gt;&gt;label15.Name" xml:space="preserve">
+    <value>label15</value>
+  </data>
+  <data name="&gt;&gt;label15.Parent" xml:space="preserve">
+    <value>groupBox3</value>
+  </data>
+  <data name="&gt;&gt;label15.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label15.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="&gt;&gt;label16.Name" xml:space="preserve">
+    <value>label16</value>
+  </data>
+  <data name="&gt;&gt;label16.Parent" xml:space="preserve">
+    <value>tabPage4</value>
+  </data>
+  <data name="&gt;&gt;label16.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label16.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="&gt;&gt;label18.Name" xml:space="preserve">
+    <value>label18</value>
+  </data>
+  <data name="&gt;&gt;label18.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;label18.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label18.ZOrder" xml:space="preserve">
+    <value>16</value>
+  </data>
+  <data name="&gt;&gt;label19.Name" xml:space="preserve">
+    <value>label19</value>
+  </data>
+  <data name="&gt;&gt;label19.Parent" xml:space="preserve">
+    <value>tabPage2</value>
+  </data>
+  <data name="&gt;&gt;label19.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label19.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="&gt;&gt;label2.Name" xml:space="preserve">
+    <value>label2</value>
+  </data>
+  <data name="&gt;&gt;label2.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;label2.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label2.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="&gt;&gt;label21.Name" xml:space="preserve">
+    <value>label21</value>
+  </data>
+  <data name="&gt;&gt;label21.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;label21.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label21.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <data name="&gt;&gt;label23.Name" xml:space="preserve">
+    <value>label23</value>
+  </data>
+  <data name="&gt;&gt;label23.Parent" xml:space="preserve">
+    <value>tabPage4</value>
+  </data>
+  <data name="&gt;&gt;label23.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label23.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <data name="&gt;&gt;label24.Name" xml:space="preserve">
+    <value>label24</value>
+  </data>
+  <data name="&gt;&gt;label24.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;label24.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label24.ZOrder" xml:space="preserve">
+    <value>14</value>
+  </data>
+  <data name="&gt;&gt;label25.Name" xml:space="preserve">
+    <value>label25</value>
+  </data>
+  <data name="&gt;&gt;label25.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;label25.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label25.ZOrder" xml:space="preserve">
+    <value>12</value>
+  </data>
+  <data name="&gt;&gt;label26.Name" xml:space="preserve">
+    <value>label26</value>
+  </data>
+  <data name="&gt;&gt;label26.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;label26.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label26.ZOrder" xml:space="preserve">
+    <value>9</value>
+  </data>
+  <data name="&gt;&gt;label27.Name" xml:space="preserve">
+    <value>label27</value>
+  </data>
+  <data name="&gt;&gt;label27.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;label27.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label27.ZOrder" xml:space="preserve">
+    <value>8</value>
+  </data>
+  <data name="&gt;&gt;label28.Name" xml:space="preserve">
+    <value>label28</value>
+  </data>
+  <data name="&gt;&gt;label28.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;label28.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label28.ZOrder" xml:space="preserve">
+    <value>7</value>
+  </data>
+  <data name="&gt;&gt;label3.Name" xml:space="preserve">
+    <value>label3</value>
+  </data>
+  <data name="&gt;&gt;label3.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;label3.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label3.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="&gt;&gt;label31.Name" xml:space="preserve">
+    <value>label31</value>
+  </data>
+  <data name="&gt;&gt;label31.Parent" xml:space="preserve">
+    <value>tabPage4</value>
+  </data>
+  <data name="&gt;&gt;label31.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label31.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="&gt;&gt;label36.Name" xml:space="preserve">
+    <value>label36</value>
+  </data>
+  <data name="&gt;&gt;label36.Parent" xml:space="preserve">
+    <value>panel1</value>
+  </data>
+  <data name="&gt;&gt;label36.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label36.ZOrder" xml:space="preserve">
+    <value>5</value>
+  </data>
+  <data name="&gt;&gt;label38.Name" xml:space="preserve">
+    <value>label38</value>
+  </data>
+  <data name="&gt;&gt;label38.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;label38.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label38.ZOrder" xml:space="preserve">
+    <value>8</value>
+  </data>
+  <data name="&gt;&gt;label39.Name" xml:space="preserve">
+    <value>label39</value>
+  </data>
+  <data name="&gt;&gt;label39.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;label39.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label39.ZOrder" xml:space="preserve">
+    <value>6</value>
+  </data>
+  <data name="&gt;&gt;label4.Name" xml:space="preserve">
+    <value>label4</value>
+  </data>
+  <data name="&gt;&gt;label4.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;label4.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label4.ZOrder" xml:space="preserve">
+    <value>17</value>
+  </data>
+  <data name="&gt;&gt;label40.Name" xml:space="preserve">
+    <value>label40</value>
+  </data>
+  <data name="&gt;&gt;label40.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;label40.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label40.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="&gt;&gt;label41.Name" xml:space="preserve">
+    <value>label41</value>
+  </data>
+  <data name="&gt;&gt;label41.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;label41.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label41.ZOrder" xml:space="preserve">
+    <value>5</value>
+  </data>
+  <data name="&gt;&gt;label42.Name" xml:space="preserve">
+    <value>label42</value>
+  </data>
+  <data name="&gt;&gt;label42.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;label42.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label42.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="&gt;&gt;label43.Name" xml:space="preserve">
+    <value>label43</value>
+  </data>
+  <data name="&gt;&gt;label43.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;label43.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label43.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="&gt;&gt;label44.Name" xml:space="preserve">
+    <value>label44</value>
+  </data>
+  <data name="&gt;&gt;label44.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;label44.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label44.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="&gt;&gt;label45.Name" xml:space="preserve">
+    <value>label45</value>
+  </data>
+  <data name="&gt;&gt;label45.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;label45.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label45.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="&gt;&gt;label46.Name" xml:space="preserve">
+    <value>label46</value>
+  </data>
+  <data name="&gt;&gt;label46.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;label46.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label46.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="&gt;&gt;label47.Name" xml:space="preserve">
+    <value>label47</value>
+  </data>
+  <data name="&gt;&gt;label47.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;label47.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label47.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="&gt;&gt;label48.Name" xml:space="preserve">
+    <value>label48</value>
+  </data>
+  <data name="&gt;&gt;label48.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;label48.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label48.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="&gt;&gt;label5.Name" xml:space="preserve">
+    <value>label5</value>
+  </data>
+  <data name="&gt;&gt;label5.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;label5.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label5.ZOrder" xml:space="preserve">
+    <value>6</value>
+  </data>
+  <data name="&gt;&gt;label6.Name" xml:space="preserve">
+    <value>label6</value>
+  </data>
+  <data name="&gt;&gt;label6.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;label6.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label6.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="&gt;&gt;label7.Name" xml:space="preserve">
+    <value>label7</value>
+  </data>
+  <data name="&gt;&gt;label7.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;label7.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label7.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="&gt;&gt;label8.Name" xml:space="preserve">
+    <value>label8</value>
+  </data>
+  <data name="&gt;&gt;label8.Parent" xml:space="preserve">
+    <value>tabPage2</value>
+  </data>
+  <data name="&gt;&gt;label8.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label8.ZOrder" xml:space="preserve">
+    <value>5</value>
+  </data>
+  <data name="&gt;&gt;label9.Name" xml:space="preserve">
+    <value>label9</value>
+  </data>
+  <data name="&gt;&gt;label9.Parent" xml:space="preserve">
+    <value>tabPage2</value>
+  </data>
+  <data name="&gt;&gt;label9.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label9.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="&gt;&gt;numberColumn1.Name" xml:space="preserve">
+    <value>numberColumn1</value>
+  </data>
+  <data name="&gt;&gt;numberColumn1.Type" xml:space="preserve">
+    <value>XPTable.Models.NumberColumn, BecquerelMonitorPlus, Version=1.0.22.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;numberColumn2.Name" xml:space="preserve">
+    <value>numberColumn2</value>
+  </data>
+  <data name="&gt;&gt;numberColumn2.Type" xml:space="preserve">
+    <value>XPTable.Models.NumberColumn, BecquerelMonitorPlus, Version=1.0.22.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;numberColumn3.Name" xml:space="preserve">
+    <value>numberColumn3</value>
+  </data>
+  <data name="&gt;&gt;numberColumn3.Type" xml:space="preserve">
+    <value>XPTable.Models.NumberColumn, BecquerelMonitorPlus, Version=1.0.22.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;numberColumn4.Name" xml:space="preserve">
+    <value>numberColumn4</value>
+  </data>
+  <data name="&gt;&gt;numberColumn4.Type" xml:space="preserve">
+    <value>XPTable.Models.NumberColumn, BecquerelMonitorPlus, Version=1.0.22.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown1.Name" xml:space="preserve">
+    <value>numericUpDown1</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown1.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown1.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown1.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown10.Name" xml:space="preserve">
+    <value>numericUpDown10</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown10.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown10.Type" xml:space="preserve">
+    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown10.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown11.Name" xml:space="preserve">
+    <value>numericUpDown11</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown11.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown11.Type" xml:space="preserve">
+    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown11.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown12.Name" xml:space="preserve">
+    <value>numericUpDown12</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown12.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown12.Type" xml:space="preserve">
+    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown12.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown13.Name" xml:space="preserve">
+    <value>numericUpDown13</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown13.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown13.Type" xml:space="preserve">
+    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown13.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown2.Name" xml:space="preserve">
+    <value>numericUpDown2</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown2.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown2.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown2.ZOrder" xml:space="preserve">
+    <value>4</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown3.Name" xml:space="preserve">
+    <value>numericUpDown3</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown3.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown3.Type" xml:space="preserve">
+    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown3.ZOrder" xml:space="preserve">
+    <value>4</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown4.Name" xml:space="preserve">
+    <value>numericUpDown4</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown4.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown4.Type" xml:space="preserve">
+    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown4.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown5.Name" xml:space="preserve">
+    <value>numericUpDown5</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown5.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown5.Type" xml:space="preserve">
+    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown5.ZOrder" xml:space="preserve">
+    <value>7</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown6.Name" xml:space="preserve">
+    <value>numericUpDown6</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown6.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown6.Type" xml:space="preserve">
+    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown6.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown7.Name" xml:space="preserve">
+    <value>numericUpDown7</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown7.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown7.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown7.ZOrder" xml:space="preserve">
+    <value>5</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown8.Name" xml:space="preserve">
+    <value>numericUpDown8</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown8.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown8.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown8.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown9.Name" xml:space="preserve">
+    <value>numericUpDown9</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown9.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown9.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown9.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <data name="&gt;&gt;panel1.Name" xml:space="preserve">
+    <value>panel1</value>
+  </data>
+  <data name="&gt;&gt;panel1.Parent" xml:space="preserve">
+    <value>tabPage2</value>
+  </data>
+  <data name="&gt;&gt;panel1.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Panel, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;panel1.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <data name="&gt;&gt;panel2.Name" xml:space="preserve">
+    <value>panel2</value>
+  </data>
+  <data name="&gt;&gt;panel2.Parent" xml:space="preserve">
+    <value>tabPage2</value>
+  </data>
+  <data name="&gt;&gt;panel2.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Panel, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;panel2.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="&gt;&gt;tabControl1.Name" xml:space="preserve">
+    <value>tabControl1</value>
+  </data>
+  <data name="&gt;&gt;tabControl1.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;tabControl1.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TabControl, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;tabControl1.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="&gt;&gt;table1.Name" xml:space="preserve">
+    <value>table1</value>
+  </data>
+  <data name="&gt;&gt;table1.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;table1.Type" xml:space="preserve">
+    <value>XPTable.Models.Table, BecquerelMonitorPlus, Version=1.0.22.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;table1.ZOrder" xml:space="preserve">
+    <value>7</value>
+  </data>
+  <data name="&gt;&gt;table2.Name" xml:space="preserve">
+    <value>table2</value>
+  </data>
+  <data name="&gt;&gt;table2.Parent" xml:space="preserve">
+    <value>panel1</value>
+  </data>
+  <data name="&gt;&gt;table2.Type" xml:space="preserve">
+    <value>XPTable.Models.Table, BecquerelMonitorPlus, Version=1.0.22.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;table2.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="&gt;&gt;table3.Name" xml:space="preserve">
+    <value>table3</value>
+  </data>
+  <data name="&gt;&gt;table3.Parent" xml:space="preserve">
+    <value>panel2</value>
+  </data>
+  <data name="&gt;&gt;table3.Type" xml:space="preserve">
+    <value>XPTable.Models.Table, BecquerelMonitorPlus, Version=1.0.22.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;table3.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="&gt;&gt;tableModel1.Name" xml:space="preserve">
+    <value>tableModel1</value>
+  </data>
+  <data name="&gt;&gt;tableModel1.Type" xml:space="preserve">
+    <value>XPTable.Models.TableModel, BecquerelMonitorPlus, Version=1.0.22.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;tableModel2.Name" xml:space="preserve">
+    <value>tableModel2</value>
+  </data>
+  <data name="&gt;&gt;tableModel2.Type" xml:space="preserve">
+    <value>XPTable.Models.TableModel, BecquerelMonitorPlus, Version=1.0.22.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;tableModel3.Name" xml:space="preserve">
+    <value>tableModel3</value>
+  </data>
+  <data name="&gt;&gt;tableModel3.Type" xml:space="preserve">
+    <value>XPTable.Models.TableModel, BecquerelMonitorPlus, Version=1.0.22.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;tabPage1.Name" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;tabPage1.Parent" xml:space="preserve">
+    <value>tabControl1</value>
+  </data>
+  <data name="&gt;&gt;tabPage1.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TabPage, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;tabPage1.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="&gt;&gt;tabPage2.Name" xml:space="preserve">
+    <value>tabPage2</value>
+  </data>
+  <data name="&gt;&gt;tabPage2.Parent" xml:space="preserve">
+    <value>tabControl1</value>
+  </data>
+  <data name="&gt;&gt;tabPage2.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TabPage, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;tabPage2.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <data name="&gt;&gt;tabPage3.Name" xml:space="preserve">
+    <value>tabPage3</value>
+  </data>
+  <data name="&gt;&gt;tabPage3.Parent" xml:space="preserve">
+    <value>tabControl1</value>
+  </data>
+  <data name="&gt;&gt;tabPage3.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TabPage, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;tabPage3.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="&gt;&gt;tabPage4.Name" xml:space="preserve">
+    <value>tabPage4</value>
+  </data>
+  <data name="&gt;&gt;tabPage4.Parent" xml:space="preserve">
+    <value>tabControl1</value>
+  </data>
+  <data name="&gt;&gt;tabPage4.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TabPage, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;tabPage4.ZOrder" xml:space="preserve">
+    <value>5</value>
+  </data>
+  <data name="&gt;&gt;tabPage5.Name" xml:space="preserve">
+    <value>tabPage5</value>
+  </data>
+  <data name="&gt;&gt;tabPage5.Parent" xml:space="preserve">
+    <value>tabControl1</value>
+  </data>
+  <data name="&gt;&gt;tabPage5.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TabPage, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;tabPage5.ZOrder" xml:space="preserve">
+    <value>4</value>
+  </data>
+  <data name="&gt;&gt;tabPage6.Name" xml:space="preserve">
+    <value>tabPage6</value>
+  </data>
+  <data name="&gt;&gt;tabPage6.Parent" xml:space="preserve">
+    <value>tabControl1</value>
+  </data>
+  <data name="&gt;&gt;tabPage6.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TabPage, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;tabPage6.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="&gt;&gt;textBox1.Name" xml:space="preserve">
+    <value>textBox1</value>
+  </data>
+  <data name="&gt;&gt;textBox1.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;textBox1.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;textBox1.ZOrder" xml:space="preserve">
+    <value>15</value>
+  </data>
+  <data name="&gt;&gt;textBox15.Name" xml:space="preserve">
+    <value>textBox15</value>
+  </data>
+  <data name="&gt;&gt;textBox15.Parent" xml:space="preserve">
+    <value>tabPage2</value>
+  </data>
+  <data name="&gt;&gt;textBox15.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;textBox15.ZOrder" xml:space="preserve">
+    <value>6</value>
+  </data>
+  <data name="&gt;&gt;textBox17.Name" xml:space="preserve">
+    <value>textBox17</value>
+  </data>
+  <data name="&gt;&gt;textBox17.Parent" xml:space="preserve">
+    <value>tabPage4</value>
+  </data>
+  <data name="&gt;&gt;textBox17.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;textBox17.ZOrder" xml:space="preserve">
+    <value>4</value>
+  </data>
+  <data name="&gt;&gt;textBox18.Name" xml:space="preserve">
+    <value>textBox18</value>
+  </data>
+  <data name="&gt;&gt;textBox18.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;textBox18.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;textBox18.ZOrder" xml:space="preserve">
+    <value>13</value>
+  </data>
+  <data name="&gt;&gt;textBox19.Name" xml:space="preserve">
+    <value>textBox19</value>
+  </data>
+  <data name="&gt;&gt;textBox19.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;textBox19.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;textBox19.ZOrder" xml:space="preserve">
+    <value>10</value>
+  </data>
+  <data name="&gt;&gt;textColumn1.Name" xml:space="preserve">
+    <value>textColumn1</value>
+  </data>
+  <data name="&gt;&gt;textColumn1.Type" xml:space="preserve">
+    <value>XPTable.Models.TextColumn, BecquerelMonitorPlus, Version=1.0.22.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;textColumn2.Name" xml:space="preserve">
+    <value>textColumn2</value>
+  </data>
+  <data name="&gt;&gt;textColumn2.Type" xml:space="preserve">
+    <value>XPTable.Models.TextColumn, BecquerelMonitorPlus, Version=1.0.22.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;textColumn3.Name" xml:space="preserve">
+    <value>textColumn3</value>
+  </data>
+  <data name="&gt;&gt;textColumn3.Type" xml:space="preserve">
+    <value>XPTable.Models.TextColumn, BecquerelMonitorPlus, Version=1.0.22.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;textColumn4.Name" xml:space="preserve">
+    <value>textColumn4</value>
+  </data>
+  <data name="&gt;&gt;textColumn4.Type" xml:space="preserve">
+    <value>XPTable.Models.TextColumn, BecquerelMonitorPlus, Version=1.0.22.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="button1.Text" xml:space="preserve">
+    <value>Выполнить калибровку</value>
+  </data>
+  <data name="button10.Text" xml:space="preserve">
+    <value>Новый</value>
+  </data>
+  <data name="button11.Text" xml:space="preserve">
+    <value>Отмена</value>
+  </data>
+  <data name="button12.Text" xml:space="preserve">
+    <value>Дубль</value>
+  </data>
+  <data name="button13.Text" xml:space="preserve">
+    <value>Читать из Atom Pro</value>
+  </data>
+  <data name="button14.Text" xml:space="preserve">
+    <value>Писать в Atom Pro</value>
+  </data>
+  <data name="button2.Text" xml:space="preserve">
+    <value>Удалить</value>
+  </data>
+  <data name="button3.Text" xml:space="preserve">
+    <value>Новый</value>
+  </data>
+  <data name="button4.Text" xml:space="preserve">
+    <value>Удалить</value>
+  </data>
+  <data name="button5.Text" xml:space="preserve">
+    <value>Закрыть</value>
+  </data>
+  <data name="button6.Text" xml:space="preserve">
+    <value>Сохранить</value>
+  </data>
+  <data name="button7.Text" xml:space="preserve">
+    <value>Выбрать...</value>
+  </data>
+  <data name="button8.Text" xml:space="preserve">
+    <value>Выбрать канал</value>
+  </data>
+  <data name="button9.Text" xml:space="preserve">
+    <value>Удалить</value>
+  </data>
+  <data name="groupBox2.Text" xml:space="preserve">
+    <value>Определение пиков</value>
+  </data>
+  <data name="groupBox3.Text" xml:space="preserve">
+    <value>Мощность дозы</value>
+  </data>
+  <data name="label1.Text" xml:space="preserve">
+    <value>Тип термометра</value>
+  </data>
+  <data name="label10.Text" xml:space="preserve">
+    <value>Чувствит...</value>
+  </data>
+  <data name="label11.Text" xml:space="preserve">
+    <value>cpm/μSv/h</value>
+  </data>
+  <data name="label12.Text" xml:space="preserve">
+    <value>Нижн. граница</value>
+  </data>
+  <data name="label13.Text" xml:space="preserve">
+    <value>Верхняя граница</value>
+  </data>
+  <data name="label14.Text" xml:space="preserve">
+    <value>кэВ</value>
+  </data>
+  <data name="label15.Text" xml:space="preserve">
+    <value>кэВ</value>
+  </data>
+  <data name="label16.Text" xml:space="preserve">
+    <value>Выбрать спектр фона по умолчанию</value>
+  </data>
+  <data name="label18.Text" xml:space="preserve">
+    <value>Кол-во каналов</value>
+  </data>
+  <data name="label19.Text" xml:space="preserve">
+    <value>Настройки стабилизатора</value>
+  </data>
+  <data name="label2.Text" xml:space="preserve">
+    <value>(1 для цифровых спектрометров)</value>
+  </data>
+  <data name="label21.Text" xml:space="preserve">
+    <value>Шаг канала</value>
+  </data>
+  <data name="label23.Text" xml:space="preserve">
+    <value>Фоновый спектр</value>
+  </data>
+  <data name="label24.Text" xml:space="preserve">
+    <value>Имя файла</value>
+  </data>
+  <data name="label25.Text" xml:space="preserve">
+    <value>Тип устройства</value>
+  </data>
+  <data name="label26.Text" xml:space="preserve">
+    <value>Запись</value>
+  </data>
+  <data name="label27.Text" xml:space="preserve">
+    <value>Лимит времени</value>
+  </data>
+  <data name="label28.Text" xml:space="preserve">
+    <value>сек.</value>
+  </data>
+  <data name="label3.Text" xml:space="preserve">
+    <value>2 коэф.(c)</value>
+  </data>
+  <data name="label31.Text" xml:space="preserve">
+    <value>(должны включать идентичные параметры канала что и у устройства)</value>
+  </data>
+  <data name="label36.Text" xml:space="preserve">
+    <value>Выберите канал из спектра</value>
+  </data>
+  <data name="label38.Text" xml:space="preserve">
+    <value>ПШПВ в 0 канале</value>
+  </data>
+  <data name="label39.Text" xml:space="preserve">
+    <value>Макс № пик</value>
+  </data>
+  <data name="label4.Text" xml:space="preserve">
+    <value>Имя</value>
+  </data>
+  <data name="label40.Text" xml:space="preserve">
+    <value>Мин. ОСШ</value>
+  </data>
+  <data name="label41.Text" xml:space="preserve">
+    <value>Допуск</value>
+  </data>
+  <data name="label42.Text" xml:space="preserve">
+    <value>%</value>
+  </data>
+  <data name="label43.Text" xml:space="preserve">
+    <value>4 коэф.(a)</value>
+  </data>
+  <data name="label44.Text" xml:space="preserve">
+    <value>3 коэф.(b)</value>
+  </data>
+  <data name="label45.Text" xml:space="preserve">
+    <value>Канал пика ПШПВ</value>
+  </data>
+  <data name="label46.Text" xml:space="preserve">
+    <value>ПШ пика в каналах</value>
+  </data>
+  <data name="label47.Text" xml:space="preserve">
+    <value>Мин. поиск пика кэВ</value>
+  </data>
+  <data name="label48.Text" xml:space="preserve">
+    <value>Макс. поиск пика кэВ</value>
+  </data>
+  <data name="label5.Text" xml:space="preserve">
+    <value>Список конфигураций устройств</value>
+  </data>
+  <data name="label6.Text" xml:space="preserve">
+    <value>Смещ. (c)</value>
+  </data>
+  <data name="label7.Text" xml:space="preserve">
+    <value>1 коэф.(d)</value>
+  </data>
+  <data name="label8.Text" xml:space="preserve">
+    <value>Укажите калибровку по пикам известных изотопов</value>
+  </data>
+  <data name="label9.Text" xml:space="preserve">
+    <value>Калибровка</value>
+  </data>
+  <data name="numberColumn1.Text" xml:space="preserve">
+    <value>Энергия</value>
+  </data>
+  <data name="numberColumn1.ToolTipText" xml:space="preserve">
+    <value />
+  </data>
+  <data name="numberColumn2.Text" xml:space="preserve">
+    <value>Канал</value>
+  </data>
+  <data name="numberColumn2.ToolTipText" xml:space="preserve">
+    <value />
+  </data>
+  <data name="numberColumn3.Text" xml:space="preserve">
+    <value>Энергия</value>
+  </data>
+  <data name="numberColumn3.ToolTipText" xml:space="preserve">
+    <value />
+  </data>
+  <data name="numberColumn4.Text" xml:space="preserve">
+    <value>Ошибка%</value>
+  </data>
+  <data name="numberColumn4.ToolTipText" xml:space="preserve">
+    <value />
+  </data>
+  <data name="table1.NoItemsText" xml:space="preserve">
+    <value>Нет конфигурации</value>
+  </data>
+  <data name="table1.Text" xml:space="preserve">
+    <value>table1</value>
+  </data>
+  <data name="table2.NoItemsText" xml:space="preserve">
+    <value>Нет точек калибровки</value>
+  </data>
+  <data name="table2.Text" xml:space="preserve">
+    <value>table2</value>
+  </data>
+  <data name="table3.NoItemsText" xml:space="preserve">
+    <value>Нет настроек</value>
+  </data>
+  <data name="table3.Text" xml:space="preserve">
+    <value>table3</value>
+  </data>
+  <data name="tabPage1.Text" xml:space="preserve">
+    <value>Основное</value>
+  </data>
+  <data name="tabPage2.Text" xml:space="preserve">
+    <value>Калибровка энергии</value>
+  </data>
+  <data name="tabPage3.Text" xml:space="preserve">
+    <value>Особенности устройства</value>
+  </data>
+  <data name="tabPage4.Text" xml:space="preserve">
+    <value>Фон</value>
+  </data>
+  <data name="tabPage5.Text" xml:space="preserve">
+    <value>Анализ</value>
+  </data>
+  <data name="tabPage6.Text" xml:space="preserve">
+    <value>Темп. компенсация</value>
+  </data>
+  <data name="textBox15.Text" xml:space="preserve">
+    <value>Энергия[кэВ] = ax^4 + bx^3 + cx^2 + dx + e (x = номер канала)</value>
+  </data>
+  <data name="textColumn1.Text" xml:space="preserve">
+    <value>Имя конфигурации</value>
+  </data>
+  <data name="textColumn1.ToolTipText" xml:space="preserve">
+    <value />
+  </data>
+  <data name="textColumn2.Text" xml:space="preserve">
+    <value>Обновлён</value>
+  </data>
+  <data name="textColumn2.ToolTipText" xml:space="preserve">
+    <value />
+  </data>
+  <data name="textColumn3.Text" xml:space="preserve">
+    <value>#</value>
+  </data>
+  <data name="textColumn3.ToolTipText" xml:space="preserve">
+    <value />
+  </data>
+  <data name="textColumn4.Text" xml:space="preserve">
+    <value>Нуклид</value>
+  </data>
+  <data name="textColumn4.ToolTipText" xml:space="preserve">
+    <value />
+  </data>
+</root>

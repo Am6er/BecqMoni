@@ -1090,6 +1090,16 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Type command and press Enter. Some commands ARE HAZARDOUS!
+        ///You must be completely sure, what you are doing..
+        /// </summary>
+        internal static string MSGAtomSpectraWarning {
+            get {
+                return ResourceManager.GetString("MSGAtomSpectraWarning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Energy calibration is done..
         /// </summary>
         internal static string MSGCalibrationDone {
@@ -1113,6 +1123,15 @@ namespace BecquerelMonitor.Properties {
         internal static string MSGCoefficientsUploadedSuccesfull {
             get {
                 return ResourceManager.GetString("MSGCoefficientsUploadedSuccesfull", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to COM Port:.
+        /// </summary>
+        internal static string MSGComPort {
+            get {
+                return ResourceManager.GetString("MSGComPort", resourceCulture);
             }
         }
         

@@ -117,8 +117,9 @@ namespace BecquerelMonitor
             }
             if (this.globalConfig.Language != "OS")
             {
-                Thread.CurrentThread.CurrentCulture = new CultureInfo(this.globalConfig.Language);
-                Thread.CurrentThread.CurrentUICulture = new CultureInfo(this.globalConfig.Language);
+                //Thread.CurrentThread.CurrentCulture = new CultureInfo(this.globalConfig.Language);
+                //Thread.CurrentThread.CurrentUICulture = new CultureInfo(this.globalConfig.Language);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(this.globalConfig.Language);
             }
             DeviceType.InitializeDeviceTypes();
             ThermometerType.InitializeThermometerTypes();
@@ -1791,7 +1792,7 @@ namespace BecquerelMonitor
         // Token: 0x06000A9C RID: 2716 RVA: 0x0003F754 File Offset: 0x0003D954
         void マニュアルMToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Process.Start("http://blog.livedoor.jp/kabuworkman-becqmoni/archives/3500217.html");
+            Process.Start("https://t.me/software_kbradar");
         }
 
         // Token: 0x06000A9D RID: 2717 RVA: 0x0003F764 File Offset: 0x0003D964
@@ -1908,7 +1909,7 @@ namespace BecquerelMonitor
         // Token: 0x06000AAA RID: 2730 RVA: 0x0003F9F8 File Offset: 0x0003DBF8
         void jaJPToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            this.globalConfigManager.GlobalConfig.Language = "ja-JP";
+            this.globalConfigManager.GlobalConfig.Language = "ru-RU";
             this.UpdateLanguageCheckState();
             MessageBox.Show(BecquerelMonitor.Properties.Resources.RestartRequiredMessage);
         }
@@ -1922,7 +1923,7 @@ namespace BecquerelMonitor
                 toolStripMenuItem.Checked = false;
             }
             string language = this.globalConfigManager.GlobalConfig.Language;
-            if (language == "ja-JP")
+            if (language == "ru-RU")
             {
                 this.jaJPToolStripMenuItem.Checked = true;
                 return;

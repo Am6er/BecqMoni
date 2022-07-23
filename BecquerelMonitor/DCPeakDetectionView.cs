@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BecquerelMonitor.Properties;
+using System;
 using System.Collections.Generic;
 using XPTable.Models;
 
@@ -83,7 +84,7 @@ namespace BecquerelMonitor
             foreach (Peak peak in list)
             {
                 Row row = new Row();
-                string text = "(Unknown)";
+                string text = Resources.UnknownNuclide;
                 string text2 = "－";
                 if (peak.Nuclide != null)
                 {
