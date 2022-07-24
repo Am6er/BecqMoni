@@ -1432,7 +1432,7 @@
     <value>Выберите канал из спектра</value>
   </data>
   <data name="label38.Text" xml:space="preserve">
-    <value>ПШПВ в 0 канале</value>
+    <value>FWHM в 0 канале</value>
   </data>
   <data name="label39.Text" xml:space="preserve">
     <value>Макс № пик</value>
@@ -1441,7 +1441,7 @@
     <value>Имя</value>
   </data>
   <data name="label40.Text" xml:space="preserve">
-    <value>Мин. ОСШ</value>
+    <value>Мин. SNR</value>
   </data>
   <data name="label41.Text" xml:space="preserve">
     <value>Допуск</value>
@@ -1456,10 +1456,10 @@
     <value>3 коэф.(b)</value>
   </data>
   <data name="label45.Text" xml:space="preserve">
-    <value>Канал пика ПШПВ</value>
+    <value>Канал пика FWHM</value>
   </data>
   <data name="label46.Text" xml:space="preserve">
-    <value>ПШ пика в каналах</value>
+    <value>FW пика в каналах</value>
   </data>
   <data name="label47.Text" xml:space="preserve">
     <value>Мин. поиск пика keV</value>
