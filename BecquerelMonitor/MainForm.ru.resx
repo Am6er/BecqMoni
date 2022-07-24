@@ -577,7 +577,7 @@
     <value>Файл N42</value>
   </data>
   <data name="N42StripMenuItem.Text" xml:space="preserve">
-    <value>файл формата N42</value>
+    <value>Файл формата N42</value>
   </data>
   <data name="neutralToolStripMenuItem.Text" xml:space="preserve">
     <value>English</value>
@@ -661,7 +661,7 @@
     <value>&amp;Монитор импульсов</value>
   </data>
   <data name="ピーク検出DToolStripMenuItem.Text" xml:space="preserve">
-    <value>Определение пиков</value>
+    <value>Обнаружение пиков</value>
   </data>
   <data name="ファイルFToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Файл</value>
@@ -706,7 +706,7 @@
     <value>Выход</value>
   </data>
   <data name="表示TToolStripMenuItem.Text" xml:space="preserve">
-    <value>&amp;Обзор</value>
+    <value>&amp;Вид</value>
   </data>
   <data name="試料情報SToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Информация об образце</value>

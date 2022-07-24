@@ -1363,7 +1363,7 @@
     <value>Удалить</value>
   </data>
   <data name="groupBox2.Text" xml:space="preserve">
-    <value>Определение пиков</value>
+    <value>Обнаружение пиков</value>
   </data>
   <data name="groupBox3.Text" xml:space="preserve">
     <value>Мощность дозы</value>
@@ -1384,10 +1384,10 @@
     <value>Верхняя граница</value>
   </data>
   <data name="label14.Text" xml:space="preserve">
-    <value>кэВ</value>
+    <value>keV</value>
   </data>
   <data name="label15.Text" xml:space="preserve">
-    <value>кэВ</value>
+    <value>keV</value>
   </data>
   <data name="label16.Text" xml:space="preserve">
     <value>Выбрать спектр фона по умолчанию</value>
@@ -1414,13 +1414,13 @@
     <value>Тип устройства</value>
   </data>
   <data name="label26.Text" xml:space="preserve">
-    <value>Запись</value>
+    <value>Заметки</value>
   </data>
   <data name="label27.Text" xml:space="preserve">
     <value>Лимит времени</value>
   </data>
   <data name="label28.Text" xml:space="preserve">
-    <value>сек.</value>
+    <value>sec.</value>
   </data>
   <data name="label3.Text" xml:space="preserve">
     <value>2 коэф.(c)</value>
@@ -1462,10 +1462,10 @@
     <value>ПШ пика в каналах</value>
   </data>
   <data name="label47.Text" xml:space="preserve">
-    <value>Мин. поиск пика кэВ</value>
+    <value>Мин. поиск пика keV</value>
   </data>
   <data name="label48.Text" xml:space="preserve">
-    <value>Макс. поиск пика кэВ</value>
+    <value>Макс. поиск пика keV</value>
   </data>
   <data name="label5.Text" xml:space="preserve">
     <value>Список конфигураций устройств</value>
@@ -1477,7 +1477,7 @@
     <value>1 коэф.(d)</value>
   </data>
   <data name="label8.Text" xml:space="preserve">
-    <value>Укажите калибровку по пикам известных изотопов</value>
+    <value>Выберите параметры так, чтобы пики соответствовали известным энергиям.</value>
   </data>
   <data name="label9.Text" xml:space="preserve">
     <value>Калибровка</value>
@@ -1543,7 +1543,7 @@
     <value>Темп. компенсация</value>
   </data>
   <data name="textBox15.Text" xml:space="preserve">
-    <value>Энергия[кэВ] = ax^4 + bx^3 + cx^2 + dx + e (x = номер канала)</value>
+    <value>Энергия[keV] = ax^4 + bx^3 + cx^2 + dx + e (x = номер канала)</value>
   </data>
   <data name="textColumn1.Text" xml:space="preserve">
     <value>Имя конфигурации</value>

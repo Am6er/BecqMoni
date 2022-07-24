@@ -139,7 +139,7 @@
     <value>Соотн. фона:</value>
   </data>
   <data name="ChartHeaderEnergy" xml:space="preserve">
-    <value>Энергия[кэВ]:</value>
+    <value>Энергия[keV]:</value>
   </data>
   <data name="ChartHeaderFWHM" xml:space="preserve">
     <value>ПШПВ:</value>

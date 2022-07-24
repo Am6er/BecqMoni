@@ -556,7 +556,7 @@
     <value>Очистить конфигурацию ROI</value>
   </data>
   <data name="checkBox1.Text" xml:space="preserve">
-    <value>Автоматически сохранить при завершении</value>
+    <value>Автоматическое сохранение в конце изменения</value>
   </data>
   <data name="comboBox1.ToolTip" xml:space="preserve">
     <value>Выбрать конфигурацию устройства</value>
@@ -568,16 +568,16 @@
     <value>Preset Measurement Time</value>
   </data>
   <data name="label10.Text" xml:space="preserve">
-    <value>Конфиг. ROI</value>
+    <value>Настр. ROI</value>
   </data>
   <data name="label2.Text" xml:space="preserve">
-    <value>Скор. счт (cps)</value>
+    <value>Скор. счет cps</value>
   </data>
   <data name="label3.Text" xml:space="preserve">
-    <value>Конфиг. устр.</value>
+    <value>Устройство.</value>
   </data>
   <data name="label4.Text" xml:space="preserve">
-    <value>Всего имп.</value>
+    <value>Всего импульсов</value>
   </data>
   <data name="label5.Text" xml:space="preserve">
     <value>Корректн. имп.</value>

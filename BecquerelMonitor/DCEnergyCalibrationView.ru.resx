@@ -598,7 +598,7 @@
     <value>2 коэф.(c)</value>
   </data>
   <data name="label5.Text" xml:space="preserve">
-    <value>Выполните калибровку по пикам известных вам изотопов</value>
+    <value>Выберите параметры так, чтобы пики соответствовали известным энергиям</value>
   </data>
   <data name="label6.Text" xml:space="preserve">
     <value>4 коэф.(a)</value>
