@@ -897,10 +897,10 @@ namespace BecquerelMonitor
             string version = GlobalConfigManager.GetInstance().VersionString;
             if (this.activeDocument != null)
             {
-                this.Text = BecquerelMonitor.Properties.Resources.ApplicationTitle + " " + version + " - " + Path.GetFileName(this.activeDocument.Filename);
+                this.Text = Resources.ApplicationTitle + " " + version + " - " + Path.GetFileName(this.activeDocument.Filename);
                 return;
             }
-            this.Text = BecquerelMonitor.Properties.Resources.ApplicationTitle + " " + version;
+            this.Text = Resources.ApplicationTitle + " " + version;
         }
 
         // Token: 0x06000A6B RID: 2667 RVA: 0x0003DF58 File Offset: 0x0003C158
@@ -1194,11 +1194,6 @@ namespace BecquerelMonitor
             }
         }
 
-        public void UpdateAppTitle()
-        {
-            this.UpdateApplicationTitle();
-        }
-
         // Token: 0x06000A7E RID: 2686 RVA: 0x0003E698 File Offset: 0x0003C898
         void ファイルFToolStripMenuItem_DropDownOpening(object sender, EventArgs e)
         {
@@ -1256,9 +1251,8 @@ namespace BecquerelMonitor
                 }
                 if (info.UpdateAvailable)
                 {
-                    DialogResult dialogResult = MessageBox.Show("A new version is available: " + info.AvailableVersion.ToString() + Environment.NewLine +
-                        "Before updating save all unsaved data. Application WILL RESTART!" + Environment.NewLine + "Install update? ",
-                        "Update avalable", MessageBoxButtons.OKCancel);
+                    DialogResult dialogResult = MessageBox.Show(String.Format(Resources.MSGUpdateLong,info.AvailableVersion.ToString()),
+                        Resources.MSGUpdateShort, MessageBoxButtons.OKCancel);
                     if (dialogResult == DialogResult.OK)
                     {
                         updateCheck.Update();
@@ -1273,7 +1267,7 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Cann't install the latest version. Error happens." + Environment.NewLine + ex.Message);
+                MessageBox.Show(String.Format(Resources.ERRUpdateExc, ex.Message));
             }
         }
 
@@ -1409,6 +1403,7 @@ namespace BecquerelMonitor
             DocEnergySpectrum docEnergySpectrum = (DocEnergySpectrum)sender;
             if (!this.mainFormClosing)
             {
+                //this.dockPanel1.DocumentStyle = 
                 this.documentManager.DocumentList.Remove(docEnergySpectrum);
                 GC.Collect();
             }
