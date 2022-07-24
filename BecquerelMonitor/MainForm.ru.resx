@@ -562,7 +562,7 @@
     <value>Экспертный режим</value>
   </data>
   <data name="fWHM用ToolStripMenuItem.Text" xml:space="preserve">
-    <value>для ПШПВ</value>
+    <value>для FWHM</value>
   </data>
   <data name="jaJPToolStripMenuItem.Text" xml:space="preserve">
     <value>Russian</value>

@@ -289,7 +289,7 @@
     <value>Ред. изотоп...</value>
   </data>
   <data name="label1.Text" xml:space="preserve">
-    <value>Мин ОСШ</value>
+    <value>Мин SNR</value>
   </data>
   <data name="label2.Text" xml:space="preserve">
     <value>Макс № пик</value>
@@ -319,9 +319,9 @@
     <value>Ошибка</value>
   </data>
   <data name="textColumn5.Text" xml:space="preserve">
-    <value>ОСШ</value>
+    <value>SNR</value>
   </data>
   <data name="textColumn6.Text" xml:space="preserve">
-    <value>ПШПВ</value>
+    <value>FWHM</value>
   </data>
 </root>

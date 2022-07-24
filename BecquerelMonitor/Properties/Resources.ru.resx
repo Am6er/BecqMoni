@@ -142,7 +142,7 @@
     <value>Энергия[keV]:</value>
   </data>
   <data name="ChartHeaderFWHM" xml:space="preserve">
-    <value>ПШПВ:</value>
+    <value>FWHM:</value>
   </data>
   <data name="ChartHeaderGrossCounts" xml:space="preserve">
     <value>Всего импульсов:</value>
