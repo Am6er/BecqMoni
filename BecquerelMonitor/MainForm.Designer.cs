@@ -447,6 +447,8 @@ namespace BecquerelMonitor
 			dockPanelSkin.DockPaneStripSkin = dockPaneStripSkin;
 			//this.dockPanel1.Skin = dockPanelSkin;
 			this.dockPanel1.ActiveDocumentChanged += new global::System.EventHandler(this.dockPanel1_ActiveDocumentChanged);
+			this.dockPanel1.DocumentStyle = DocumentStyle.DockingMdi;
+			this.dockPanel1.ShowAutoHideContentOnHover = true;
 			this.dockPanel1.ContentRemoved += new global::System.EventHandler<global::WeifenLuo.WinFormsUI.Docking.DockContentEventArgs>(this.dockPanel1_ContentRemoved);
 			this.imageList1.ImageStream = (global::System.Windows.Forms.ImageListStreamer)componentResourceManager.GetObject("imageList1.ImageStream");
 			this.imageList1.TransparentColor = global::System.Drawing.Color.Transparent;

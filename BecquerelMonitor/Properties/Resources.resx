@@ -4230,4 +4230,16 @@ You must be completely sure, what you are doing.</value>
   <data name="MSGComPort" xml:space="preserve">
     <value>COM Port:</value>
   </data>
+  <data name="ERRUpdateExc" xml:space="preserve">
+    <value>Cann't install the latest version. Error happens.
+{0}</value>
+  </data>
+  <data name="MSGUpdateLong" xml:space="preserve">
+    <value>A new version is available: {0}.
+Before updating save all unsaved data. Application WILL RESTART!
+Install update?</value>
+  </data>
+  <data name="MSGUpdateShort" xml:space="preserve">
+    <value>Update avalable</value>
+  </data>
 </root>

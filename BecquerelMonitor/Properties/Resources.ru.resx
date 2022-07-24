@@ -341,6 +341,10 @@
   <data name="ERRUpdateApp" xml:space="preserve">
     <value>Этот экземпляр приложения работает в ограниченном режиме. Такое приложение не будет обновляться. Необходимо установить приложение через setup.exe.</value>
   </data>
+  <data name="ERRUpdateExc" xml:space="preserve">
+    <value>Произошла ошибка, не могу установить обновление.
+ {0}</value>
+  </data>
   <data name="ERRUploadCoefficeintsToDevice" xml:space="preserve">
     <value>Некоторые коэффициенты были загружены с ошибкой! Проверьте подключение к устройству, кабель и попробуйте загрузить заново.</value>
   </data>
@@ -462,6 +466,15 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="MSGThermometerTypeChanging" xml:space="preserve">
     <value>Изменение типа термометра приведёт к реинициализации всех полей. ОК?</value>
+  </data>
+  <data name="MSGUpdateLong" xml:space="preserve">
+    <value>Доступна новая версия: {0}.
+Перед обновлением сохраните все не сохранённые данные.
+После обновления приложения БУДЕТ ПЕРЕЗАГРУЖЕНО!
+Установить обновлениее?</value>
+  </data>
+  <data name="MSGUpdateShort" xml:space="preserve">
+    <value>Доступно обновление</value>
   </data>
   <data name="MultipointCalibrationString" xml:space="preserve">
     <value>Калибровка</value>

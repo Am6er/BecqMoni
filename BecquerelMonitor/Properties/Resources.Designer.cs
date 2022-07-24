@@ -890,6 +890,16 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Cann&apos;t install the latest version. Error happens.
+        ///{0}.
+        /// </summary>
+        internal static string ERRUpdateExc {
+            get {
+                return ResourceManager.GetString("ERRUpdateExc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Error! Some coefficients uploaded with error! Check connection and reupload it again..
         /// </summary>
         internal static string ERRUploadCoefficeintsToDevice {
@@ -1321,6 +1331,26 @@ namespace BecquerelMonitor.Properties {
         internal static string MSGThermometerTypeChanging {
             get {
                 return ResourceManager.GetString("MSGThermometerTypeChanging", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to A new version is available: {0}.
+        ///Before updating save all unsaved data. Application WILL RESTART!
+        ///Install update?.
+        /// </summary>
+        internal static string MSGUpdateLong {
+            get {
+                return ResourceManager.GetString("MSGUpdateLong", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update avalable.
+        /// </summary>
+        internal static string MSGUpdateShort {
+            get {
+                return ResourceManager.GetString("MSGUpdateShort", resourceCulture);
             }
         }
         
