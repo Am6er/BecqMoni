@@ -394,16 +394,16 @@
     <value>Полураспад</value>
   </data>
   <data name="label4.Text" xml:space="preserve">
-    <value>кэВ</value>
+    <value>keV</value>
   </data>
   <data name="label5.Text" xml:space="preserve">
     <value>Список изотопов</value>
   </data>
   <data name="label6.Text" xml:space="preserve">
-    <value>лет</value>
+    <value>year</value>
   </data>
   <data name="label7.Text" xml:space="preserve">
-    <value>Запись</value>
+    <value>Заметки</value>
   </data>
   <data name="table1.NoItemsText" xml:space="preserve">
     <value>Нет ни одного изотопа</value>

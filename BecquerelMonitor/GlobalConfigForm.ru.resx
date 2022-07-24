@@ -2515,28 +2515,28 @@
     <value>Справа</value>
   </data>
   <data name="comboBox12.Items" xml:space="preserve">
-    <value>Литр (л)</value>
+    <value>Литр (l)</value>
   </data>
   <data name="comboBox12.Items1" xml:space="preserve">
-    <value>Милилитр (мл)</value>
+    <value>Милилитр (ml)</value>
   </data>
   <data name="comboBox13.Items" xml:space="preserve">
-    <value>Килограмм (кг)</value>
+    <value>Килограмм (kg)</value>
   </data>
   <data name="comboBox13.Items1" xml:space="preserve">
-    <value>Gram (g)</value>
+    <value>Грамм (g)</value>
   </data>
   <data name="comboBox14.Items" xml:space="preserve">
-    <value>Результат ≧ k раз стандартного отклонения</value>
+    <value>Результат > k раз стандартного отклонения</value>
   </data>
   <data name="comboBox14.Items1" xml:space="preserve">
-    <value>Результат ≧ МДА</value>
+    <value>Результат > MDA</value>
   </data>
   <data name="comboBox15.Items" xml:space="preserve">
-    <value>1-й фон, 2-й. спектр</value>
+    <value>1-й фон, 2-й образец</value>
   </data>
   <data name="comboBox15.Items1" xml:space="preserve">
-    <value>1-й Спектр, 2-й фон</value>
+    <value>1-й образец, 2-й фон</value>
   </data>
   <data name="comboBox2.Items" xml:space="preserve">
     <value>Линейный</value>
@@ -2575,7 +2575,7 @@
     <value>Ск. среднее с весом</value>
   </data>
   <data name="comboBox7.Items" xml:space="preserve">
-    <value>Виден</value>
+    <value>Отобразить</value>
   </data>
   <data name="comboBox7.Items1" xml:space="preserve">
     <value>Скрыто</value>
@@ -2587,19 +2587,19 @@
     <value>Нормальный</value>
   </data>
   <data name="comboBox9.Items" xml:space="preserve">
-    <value>Виден</value>
+    <value>Отобразить</value>
   </data>
   <data name="comboBox9.Items1" xml:space="preserve">
     <value>Скрыто</value>
   </data>
   <data name="groupBox1.Text" xml:space="preserve">
-    <value>Конфигурация графика по умолчанию</value>
+    <value>Конфигурация диаграммы по умолчанию</value>
   </data>
   <data name="groupBox10.Text" xml:space="preserve">
     <value>Конфигурация файла результата</value>
   </data>
   <data name="groupBox2.Text" xml:space="preserve">
-    <value>Атрибуты графика по умолчанию</value>
+    <value>Атрибуты диаграммы по умолчанию</value>
   </data>
   <data name="groupBox3.Text" xml:space="preserve">
     <value>Другие цвета</value>
@@ -2623,10 +2623,10 @@
     <value>Время измерения образца</value>
   </data>
   <data name="label1.Text" xml:space="preserve">
-    <value>Вертик. единица</value>
+    <value>Ед. изм. оси Y</value>
   </data>
   <data name="label10.Text" xml:space="preserve">
-    <value>Граница ROI</value>
+    <value>Область ROI</value>
   </data>
   <data name="label11.Text" xml:space="preserve">
     <value>Фон ROI</value>
@@ -2641,22 +2641,22 @@
     <value>Оси</value>
   </data>
   <data name="label15.Text" xml:space="preserve">
-    <value>Число</value>
+    <value>Номер</value>
   </data>
   <data name="label16.Text" xml:space="preserve">
-    <value>Датчик</value>
+    <value>Шкала осей</value>
   </data>
   <data name="label17.Text" xml:space="preserve">
-    <value>Пробел</value>
+    <value>Белая часть</value>
   </data>
   <data name="label18.Text" xml:space="preserve">
-    <value>Сетка (Светл)</value>
+    <value>Сетка (светлая)</value>
   </data>
   <data name="label19.Text" xml:space="preserve">
-    <value>Внутри выбр. обл.</value>
+    <value>Выбор чистой обл.</value>
   </data>
   <data name="label2.Text" xml:space="preserve">
-    <value>Вертик. масштаб</value>
+    <value>Верт. шкала</value>
   </data>
   <data name="label20.Text" xml:space="preserve">
     <value>Курсор</value>
@@ -2671,19 +2671,19 @@
     <value>Сглаживание</value>
   </data>
   <data name="label24.Text" xml:space="preserve">
-    <value>Ширина окна</value>
+    <value>Ширина окна СКС</value>
   </data>
   <data name="label25.Text" xml:space="preserve">
-    <value>Область внутри ROI</value>
+    <value>Чист. часть ROI</value>
   </data>
   <data name="label26.Text" xml:space="preserve">
-    <value>Ширина окна</value>
+    <value>Ширина окна СКВС</value>
   </data>
   <data name="label27.Text" xml:space="preserve">
-    <value>Время обн. графика</value>
+    <value>Цикл обн. диагр.</value>
   </data>
   <data name="label28.Text" xml:space="preserve">
-    <value>мсек</value>
+    <value>msec</value>
   </data>
   <data name="label29.Text" xml:space="preserve">
     <value>Spectrum1</value>
@@ -2722,7 +2722,7 @@
     <value>Флаг пика</value>
   </data>
   <data name="label4.Text" xml:space="preserve">
-    <value>Вертик. автомасш.</value>
+    <value>Режим верт. оси</value>
   </data>
   <data name="label40.Text" xml:space="preserve">
     <value>Флаг пика</value>
@@ -2734,10 +2734,10 @@
     <value>Линия пика</value>
   </data>
   <data name="label43.Text" xml:space="preserve">
-    <value>Горизонт. масш.</value>
+    <value>Гориз. шкала</value>
   </data>
   <data name="label44.Text" xml:space="preserve">
-    <value>Критерий увеличения</value>
+    <value>Привязка масшт.</value>
   </data>
   <data name="label45.Text" xml:space="preserve">
     <value>Ед. объёма</value>
@@ -2746,16 +2746,16 @@
     <value>Ед. веса</value>
   </data>
   <data name="label47.Text" xml:space="preserve">
-    <value>Ур. неопр.</value>
+    <value>Ур. неопред.</value>
   </data>
   <data name="label48.Text" xml:space="preserve">
-    <value>Ур. опр. (k)</value>
+    <value>Ур. детектир. (k)</value>
   </data>
   <data name="label49.Text" xml:space="preserve">
     <value>σ</value>
   </data>
   <data name="label5.Text" xml:space="preserve">
-    <value>Горизонт. единица</value>
+    <value>Ед. изм. оси X</value>
   </data>
   <data name="label50.Text" xml:space="preserve">
     <value>σ</value>
@@ -2767,7 +2767,7 @@
     <value>2-й коэфф.</value>
   </data>
   <data name="label54.Text" xml:space="preserve">
-    <value>Условия определения</value>
+    <value>Сост. обнаружения</value>
   </data>
   <data name="label55.Text" xml:space="preserve">
     <value>％</value>
@@ -2785,7 +2785,7 @@
     <value>Spectrum15</value>
   </data>
   <data name="label6.Text" xml:space="preserve">
-    <value>Текущий спектр</value>
+    <value>Акт. спектр (образец)</value>
   </data>
   <data name="label60.Text" xml:space="preserve">
     <value>Spectrum14</value>
@@ -2800,7 +2800,7 @@
     <value>Spectrum11</value>
   </data>
   <data name="label64.Text" xml:space="preserve">
-    <value>Последов. отрисовки</value>
+    <value>Порядок отображения</value>
   </data>
   <data name="label65.Text" xml:space="preserve">
     <value>Конфиг. устр.</value>
@@ -2818,7 +2818,7 @@
     <value>Selection2</value>
   </data>
   <data name="label7.Text" xml:space="preserve">
-    <value>Текущий спектр (фон)</value>
+    <value>Акт. спектр (фон)</value>
   </data>
   <data name="label70.Text" xml:space="preserve">
     <value>Selection3</value>
@@ -2872,13 +2872,13 @@
     <value>Отобр. пика под курсором [E-(Шаг + Проц*E); E+(Шаг + Проц*E)]</value>
   </data>
   <data name="label86.Text" xml:space="preserve">
-    <value>Шаг: абс. значение в кэВ</value>
+    <value>Шаг: абс. значение в keV</value>
   </data>
   <data name="label87.Text" xml:space="preserve">
     <value>Процент: процент от энергии изотопа</value>
   </data>
   <data name="label9.Text" xml:space="preserve">
-    <value>Сетка (Тёмн.)</value>
+    <value>Сетка (тёмная)</value>
   </data>
   <data name="tabPage1.Text" xml:space="preserve">
     <value>График</value>

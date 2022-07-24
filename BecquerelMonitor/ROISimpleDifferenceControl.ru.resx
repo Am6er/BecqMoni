@@ -117,35 +117,71 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="$this.TabText" xml:space="preserve">
-    <value>Обнаружение пиков</value>
-  </data>
-  <data name="$this.Text" xml:space="preserve">
-    <value>Обнаружение пиков</value>
-  </data>
   <data name="&gt;&gt;$this.Name" xml:space="preserve">
-    <value>DCPeakDetectionView</value>
+    <value>ROISimpleDifferenceControl</value>
   </data>
   <data name="&gt;&gt;$this.Type" xml:space="preserve">
-    <value>BecquerelMonitor.ToolWindow, BecquerelMonitorPlus, Version=1.0.16.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.ROIPrimitiveControl, BecquerelMonitor, Version=0.9.9.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
-  <data name="&gt;&gt;button1.Name" xml:space="preserve">
-    <value>button1</value>
+  <data name="&gt;&gt;comboBox1.Name" xml:space="preserve">
+    <value>comboBox1</value>
   </data>
-  <data name="&gt;&gt;button1.Parent" xml:space="preserve">
+  <data name="&gt;&gt;comboBox1.Parent" xml:space="preserve">
     <value>$this</value>
   </data>
-  <data name="&gt;&gt;button1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  <data name="&gt;&gt;comboBox1.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;button1.ZOrder" xml:space="preserve">
+  <data name="&gt;&gt;comboBox1.ZOrder" xml:space="preserve">
+    <value>13</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox1.Name" xml:space="preserve">
+    <value>doubleTextBox1</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox1.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox1.Type" xml:space="preserve">
+    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitor, Version=0.9.9.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox1.ZOrder" xml:space="preserve">
+    <value>10</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox2.Name" xml:space="preserve">
+    <value>doubleTextBox2</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox2.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox2.Type" xml:space="preserve">
+    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitor, Version=0.9.9.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox2.ZOrder" xml:space="preserve">
+    <value>9</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox3.Name" xml:space="preserve">
+    <value>doubleTextBox3</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox3.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox3.Type" xml:space="preserve">
+    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitor, Version=0.9.9.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox3.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox4.Name" xml:space="preserve">
+    <value>doubleTextBox4</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox4.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox4.Type" xml:space="preserve">
+    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitor, Version=0.9.9.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox4.ZOrder" xml:space="preserve">
     <value>1</value>
-  </data>
-  <data name="&gt;&gt;columnModel1.Name" xml:space="preserve">
-    <value>columnModel1</value>
-  </data>
-  <data name="&gt;&gt;columnModel1.Type" xml:space="preserve">
-    <value>XPTable.Models.ColumnModel, BecquerelMonitorPlus, Version=1.0.16.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;label1.Name" xml:space="preserve">
     <value>label1</value>
@@ -157,7 +193,7 @@
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;label1.ZOrder" xml:space="preserve">
-    <value>5</value>
+    <value>12</value>
   </data>
   <data name="&gt;&gt;label2.Name" xml:space="preserve">
     <value>label2</value>
@@ -169,7 +205,7 @@
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;label2.ZOrder" xml:space="preserve">
-    <value>4</value>
+    <value>8</value>
   </data>
   <data name="&gt;&gt;label3.Name" xml:space="preserve">
     <value>label3</value>
@@ -181,7 +217,7 @@
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;label3.ZOrder" xml:space="preserve">
-    <value>3</value>
+    <value>7</value>
   </data>
   <data name="&gt;&gt;label4.Name" xml:space="preserve">
     <value>label4</value>
@@ -193,135 +229,96 @@
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;label4.ZOrder" xml:space="preserve">
-    <value>0</value>
-  </data>
-  <data name="&gt;&gt;numericUpDown1.Name" xml:space="preserve">
-    <value>numericUpDown1</value>
-  </data>
-  <data name="&gt;&gt;numericUpDown1.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;numericUpDown1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;numericUpDown1.ZOrder" xml:space="preserve">
-    <value>7</value>
-  </data>
-  <data name="&gt;&gt;numericUpDown2.Name" xml:space="preserve">
-    <value>numericUpDown2</value>
-  </data>
-  <data name="&gt;&gt;numericUpDown2.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;numericUpDown2.Type" xml:space="preserve">
-    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;numericUpDown2.ZOrder" xml:space="preserve">
     <value>6</value>
   </data>
-  <data name="&gt;&gt;numericUpDown3.Name" xml:space="preserve">
-    <value>numericUpDown3</value>
+  <data name="&gt;&gt;label5.Name" xml:space="preserve">
+    <value>label5</value>
   </data>
-  <data name="&gt;&gt;numericUpDown3.Parent" xml:space="preserve">
+  <data name="&gt;&gt;label5.Parent" xml:space="preserve">
     <value>$this</value>
   </data>
-  <data name="&gt;&gt;numericUpDown3.Type" xml:space="preserve">
-    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  <data name="&gt;&gt;label5.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;numericUpDown3.ZOrder" xml:space="preserve">
-    <value>2</value>
+  <data name="&gt;&gt;label5.ZOrder" xml:space="preserve">
+    <value>5</value>
   </data>
-  <data name="&gt;&gt;table1.Name" xml:space="preserve">
-    <value>table1</value>
+  <data name="&gt;&gt;label6.Name" xml:space="preserve">
+    <value>label6</value>
   </data>
-  <data name="&gt;&gt;table1.Parent" xml:space="preserve">
+  <data name="&gt;&gt;label6.Parent" xml:space="preserve">
     <value>$this</value>
   </data>
-  <data name="&gt;&gt;table1.Type" xml:space="preserve">
-    <value>XPTable.Models.Table, BecquerelMonitorPlus, Version=1.0.16.0, Culture=neutral, PublicKeyToken=null</value>
+  <data name="&gt;&gt;label6.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;table1.ZOrder" xml:space="preserve">
-    <value>8</value>
+  <data name="&gt;&gt;label6.ZOrder" xml:space="preserve">
+    <value>0</value>
   </data>
-  <data name="&gt;&gt;tableModel1.Name" xml:space="preserve">
-    <value>tableModel1</value>
+  <data name="&gt;&gt;label7.Name" xml:space="preserve">
+    <value>label7</value>
   </data>
-  <data name="&gt;&gt;tableModel1.Type" xml:space="preserve">
-    <value>XPTable.Models.TableModel, BecquerelMonitorPlus, Version=1.0.16.0, Culture=neutral, PublicKeyToken=null</value>
+  <data name="&gt;&gt;label7.Parent" xml:space="preserve">
+    <value>$this</value>
   </data>
-  <data name="&gt;&gt;textColumn1.Name" xml:space="preserve">
-    <value>textColumn1</value>
+  <data name="&gt;&gt;label7.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;textColumn1.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitorPlus, Version=1.0.16.0, Culture=neutral, PublicKeyToken=null</value>
+  <data name="&gt;&gt;label7.ZOrder" xml:space="preserve">
+    <value>4</value>
   </data>
-  <data name="&gt;&gt;textColumn2.Name" xml:space="preserve">
-    <value>textColumn2</value>
+  <data name="&gt;&gt;label8.Name" xml:space="preserve">
+    <value>label8</value>
   </data>
-  <data name="&gt;&gt;textColumn2.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitorPlus, Version=1.0.16.0, Culture=neutral, PublicKeyToken=null</value>
+  <data name="&gt;&gt;label8.Parent" xml:space="preserve">
+    <value>$this</value>
   </data>
-  <data name="&gt;&gt;textColumn3.Name" xml:space="preserve">
-    <value>textColumn3</value>
+  <data name="&gt;&gt;label8.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;textColumn3.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitorPlus, Version=1.0.16.0, Culture=neutral, PublicKeyToken=null</value>
+  <data name="&gt;&gt;label8.ZOrder" xml:space="preserve">
+    <value>3</value>
   </data>
-  <data name="&gt;&gt;textColumn4.Name" xml:space="preserve">
-    <value>textColumn4</value>
+  <data name="&gt;&gt;textBox1.Name" xml:space="preserve">
+    <value>textBox1</value>
   </data>
-  <data name="&gt;&gt;textColumn4.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitorPlus, Version=1.0.16.0, Culture=neutral, PublicKeyToken=null</value>
+  <data name="&gt;&gt;textBox1.Parent" xml:space="preserve">
+    <value>$this</value>
   </data>
-  <data name="&gt;&gt;textColumn5.Name" xml:space="preserve">
-    <value>textColumn5</value>
+  <data name="&gt;&gt;textBox1.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;textColumn5.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitorPlus, Version=1.0.16.0, Culture=neutral, PublicKeyToken=null</value>
+  <data name="&gt;&gt;textBox1.ZOrder" xml:space="preserve">
+    <value>11</value>
   </data>
-  <data name="&gt;&gt;textColumn6.Name" xml:space="preserve">
-    <value>textColumn6</value>
+  <data name="comboBox1.Items" xml:space="preserve">
+    <value>加算</value>
   </data>
-  <data name="&gt;&gt;textColumn6.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitorPlus, Version=1.0.16.0, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="button1.Text" xml:space="preserve">
-    <value>Ред. изотоп...</value>
+  <data name="comboBox1.Items1" xml:space="preserve">
+    <value>減算</value>
   </data>
   <data name="label1.Text" xml:space="preserve">
-    <value>Мин ОСШ</value>
+    <value>Операция</value>
   </data>
   <data name="label2.Text" xml:space="preserve">
-    <value>Макс № пик</value>
+    <value>Ниж. граница</value>
   </data>
   <data name="label3.Text" xml:space="preserve">
-    <value>Допуск</value>
+    <value>Верх.граница</value>
   </data>
   <data name="label4.Text" xml:space="preserve">
-    <value>Обнаруженные пики</value>
+    <value>keV</value>
   </data>
-  <data name="table1.NoItemsText" xml:space="preserve">
-    <value />
+  <data name="label5.Text" xml:space="preserve">
+    <value>keV</value>
   </data>
-  <data name="table1.Text" xml:space="preserve">
-    <value>table1</value>
+  <data name="label6.Text" xml:space="preserve">
+    <value>±</value>
   </data>
-  <data name="textColumn1.Text" xml:space="preserve">
-    <value>Энергия</value>
+  <data name="label7.Text" xml:space="preserve">
+    <value>Заметки</value>
   </data>
-  <data name="textColumn2.Text" xml:space="preserve">
-    <value>Канал</value>
-  </data>
-  <data name="textColumn3.Text" xml:space="preserve">
-    <value>Изотоп</value>
-  </data>
-  <data name="textColumn4.Text" xml:space="preserve">
-    <value>Ошибка</value>
-  </data>
-  <data name="textColumn5.Text" xml:space="preserve">
-    <value>ОСШ</value>
-  </data>
-  <data name="textColumn6.Text" xml:space="preserve">
-    <value>ПШПВ</value>
+  <data name="label8.Text" xml:space="preserve">
+    <value>Коэффициент</value>
   </data>
 </root>

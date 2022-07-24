@@ -33,8 +33,8 @@
     <MinimumRequiredVersion>2022.07.08.7</MinimumRequiredVersion>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
-    <ApplicationRevision>1</ApplicationRevision>
-    <ApplicationVersion>2022.07.24.1</ApplicationVersion>
+    <ApplicationRevision>2</ApplicationRevision>
+    <ApplicationVersion>2022.07.24.2</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -946,6 +946,7 @@
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>ROICovellMethodControl.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <EmbeddedResource Include="ROICovellMethodControl.ru.resx" />
     <EmbeddedResource Include="ROIPrimitiveControl.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>ROIPrimitiveControl.Designer.cs</LastGenOutput>
@@ -954,10 +955,12 @@
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>ROIReferenceControl.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <EmbeddedResource Include="ROIReferenceControl.ru.resx" />
     <EmbeddedResource Include="ROISimpleDifferenceControl.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>ROISimpleDifferenceControl.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <EmbeddedResource Include="ROISimpleDifferenceControl.ru.resx" />
     <EmbeddedResource Include="StandardPulseView.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>StandardPulseView.Designer.cs</LastGenOutput>

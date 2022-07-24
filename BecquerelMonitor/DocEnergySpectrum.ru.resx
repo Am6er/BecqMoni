@@ -676,7 +676,7 @@
     <value>Без авто масштабирования</value>
   </data>
   <data name="エネルギー表示ToolStripMenuItem.Text" xml:space="preserve">
-    <value>Энергия (кэВ)</value>
+    <value>Энергия (keV)</value>
   </data>
   <data name="カウント表示ToolStripMenuItem.Text" xml:space="preserve">
     <value>Имп.</value>

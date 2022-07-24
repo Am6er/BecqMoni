@@ -328,7 +328,7 @@
     <value>yyyy/MM/dd HH:mm</value>
   </data>
   <data name="label1.Text" xml:space="preserve">
-    <value>Дата изм.</value>
+    <value>Дата отбора</value>
   </data>
   <data name="label2.Text" xml:space="preserve">
     <value>Вес</value>
@@ -337,21 +337,21 @@
     <value>Объём</value>
   </data>
   <data name="label4.Text" xml:space="preserve">
-    <value>Запись</value>
+    <value>Заметки</value>
   </data>
   <data name="label5.Text" xml:space="preserve">
-    <value>кг</value>
+    <value>kg</value>
   </data>
   <data name="label6.Text" xml:space="preserve">
-    <value>л</value>
+    <value>l</value>
   </data>
   <data name="label7.Text" xml:space="preserve">
     <value>Имя</value>
   </data>
   <data name="label8.Text" xml:space="preserve">
-    <value>Место</value>
+    <value>Место отбора</value>
   </data>
   <data name="label9.Text" xml:space="preserve">
-    <value>Дата изм.</value>
+    <value>Дата измерения</value>
   </data>
 </root>
