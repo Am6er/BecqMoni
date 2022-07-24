@@ -283,8 +283,9 @@ namespace BecquerelMonitor.FWHMPeakDetector
             {
                 if (this.snr.Max() > 1)
                 {
-                    BecquerelMonitor.DCPeakDetectionView.Correct_min_snr = true;
-                    BecquerelMonitor.DCPeakDetectionView.Min_snr_value = Math.Truncate(this.snr.Max());
+                    return;
+                    //BecquerelMonitor.DCPeakDetectionView.Correct_min_snr = true;
+                    //BecquerelMonitor.DCPeakDetectionView.Min_snr_value = Math.Truncate(this.snr.Max());
                 }
                 if (this.snr.Max() <= 1)
                 {

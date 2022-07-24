@@ -74,13 +74,6 @@ namespace BecquerelMonitor
             PeakDetector peakDetector = new PeakDetector();
             List<Peak> list = peakDetector.DetectPeak(activeResultData);
             this.tableModel1.Rows.Clear();
-            if (Correct_min_snr == true)
-            {
-                this.numericUpDown1.Value = (decimal)Min_snr_value;
-                this.numericUpDown1.ForeColor = System.Drawing.Color.Red;
-                Correct_min_snr = false;
-                Min_snr_value = 0.0;
-            }
             foreach (Peak peak in list)
             {
                 Row row = new Row();
@@ -109,10 +102,6 @@ namespace BecquerelMonitor
         {
             if (this.FormLoading == false)
             {
-                if (!Correct_min_snr)
-                {
-                    this.numericUpDown1.ForeColor = System.Drawing.Color.Black;
-                }
                 DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
                 ResultData activeResultData = activeDocument.ActiveResultData;
                 FWHMPeakDetectionMethodConfig fwhmPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)activeResultData.PeakDetectionMethodConfig;
@@ -166,8 +155,5 @@ namespace BecquerelMonitor
         GlobalConfigManager globalConfigManager = GlobalConfigManager.GetInstance();
 
         bool FormLoading = false;
-
-        public static bool Correct_min_snr = false;
-        public static double Min_snr_value = 0.0;
     }
 }
