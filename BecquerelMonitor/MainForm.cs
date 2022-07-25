@@ -773,14 +773,27 @@ namespace BecquerelMonitor
         // Token: 0x06000A66 RID: 2662 RVA: 0x0003D9CC File Offset: 0x0003BBCC
         void デ\u30FCタを開くToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            DocEnergySpectrum docEnergySpectrum = this.documentManager.OpenDocument();
-            if (docEnergySpectrum != null)
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.Title = Resources.OpenFileDialogTitle;
+            openFileDialog.Filter = Resources.SpectrumFileFilter;
+            openFileDialog.Multiselect = true;
+            openFileDialog.FilterIndex = 1;
+            openFileDialog.RestoreDirectory = true;
+            if (openFileDialog.ShowDialog() != DialogResult.OK)
             {
-                docEnergySpectrum.DockAreas = DockAreas.Document;
-                this.SubscribeDocumentEvent(docEnergySpectrum);
-                docEnergySpectrum.Show(this.dockPanel1);
-                docEnergySpectrum.SetDefaultHorizontalScale();
-                this.ShowMeasurementResult(true);
+                return;
+            }
+            foreach (string fileName in openFileDialog.FileNames)
+            {
+                DocEnergySpectrum docEnergySpectrum = this.documentManager.OpenDocument(fileName);
+                if (docEnergySpectrum != null)
+                {
+                    docEnergySpectrum.DockAreas = DockAreas.Document;
+                    this.SubscribeDocumentEvent(docEnergySpectrum);
+                    docEnergySpectrum.Show(this.dockPanel1);
+                    docEnergySpectrum.SetDefaultHorizontalScale();
+                    this.ShowMeasurementResult(true);
+                }
             }
         }
 
