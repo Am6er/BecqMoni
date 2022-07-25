@@ -90,6 +90,7 @@ namespace BecquerelMonitor
             return docEnergySpectrum;
         }
 
+        /*
         // Token: 0x0600026D RID: 621 RVA: 0x000095B0 File Offset: 0x000077B0
         public DocEnergySpectrum OpenDocument()
         {
@@ -105,6 +106,7 @@ namespace BecquerelMonitor
             string fileName = openFileDialog.FileName;
             return this.OpenDocument(fileName);
         }
+        */
 
         // Token: 0x0600026E RID: 622 RVA: 0x0000960C File Offset: 0x0000780C
         public DocEnergySpectrum OpenDocument(string filename)
