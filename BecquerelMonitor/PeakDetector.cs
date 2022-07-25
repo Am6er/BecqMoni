@@ -51,7 +51,7 @@ namespace BecquerelMonitor
                     double minDelta = -1;
                     Peak peak = new Peak();
                     peak.Channel = (int)Math.Round(centroid);
-                    peak.Energy = energySpectrum.EnergyCalibration.ChannelToEnergy(centroid);
+                    peak.Energy = energySpectrum.EnergyCalibration.ChannelToEnergy(peak.Channel);
                     peak.SNR = (int)snr;
                     peak.FWHM = (int)fwhm;
                     foreach (NuclideDefinition nuclideDefinition in this.nuclideManager.NuclideDefinitions)
