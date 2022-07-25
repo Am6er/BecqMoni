@@ -620,7 +620,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Channel mismatch between device and imported spectra file. Exceeds wil be TRUNCATED!
+        ///   Looks up a localized string similar to Channel mismatch between device and imported spectra file.
         ///Device channels: {0}, spectrum files channels: {1}.
         /// </summary>
         internal static string ERRImportAtomSpectra {

@@ -1629,12 +1629,23 @@ namespace BecquerelMonitor
         // Token: 0x06000A92 RID: 2706 RVA: 0x0003F2C0 File Offset: 0x0003D4C0
         void cSVファイルCToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.Title = Resources.CsvImportDialogTitle;
+            openFileDialog.Filter = Resources.CsvFileFilter;
+            openFileDialog.FilterIndex = 1;
+            openFileDialog.RestoreDirectory = true;
+            if (openFileDialog.ShowDialog() != DialogResult.OK)
+            {
+                return;
+            }
             if (this.activeDocument != null)
             {
-                int presetTime = this.dcControlPanel.PresetTime;
-                this.documentManager.ImportCsvToDocument(this.activeDocument, presetTime);
-                this.UpdateAllView();
+                CreateDocument();
             }
+
+            int presetTime = this.dcControlPanel.PresetTime;
+            this.documentManager.ImportCsvToDocument(this.activeDocument, presetTime, openFileDialog.FileName);
+            this.UpdateAllView();
         }
 
         // Token: 0x06000A93 RID: 2707 RVA: 0x0003F300 File Offset: 0x0003D500
@@ -1701,22 +1712,59 @@ namespace BecquerelMonitor
             }
         }
 
+        void CreateDocument()
+        {
+            DocEnergySpectrum docEnergySpectrum = this.documentManager.CreateDocument();
+            if (docEnergySpectrum != null)
+            {
+                docEnergySpectrum.DockAreas = DockAreas.Document;
+                this.SubscribeDocumentEvent(docEnergySpectrum);
+                docEnergySpectrum.Show(this.dockPanel1);
+                docEnergySpectrum.SetDefaultHorizontalScale();
+                this.ShowMeasurementResult(true);
+            }
+        }
+
         void AtomSpectraStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (this.activeDocument != null)
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.Title = Resources.ImportAtomSpectraFileDialogTitle;
+            openFileDialog.Filter = Resources.AtomSpectraFileFilter;
+            openFileDialog.FilterIndex = 1;
+            openFileDialog.RestoreDirectory = true;
+            if (openFileDialog.ShowDialog() != DialogResult.OK)
             {
-                this.documentManager.ImportDocumentAtomSpectra(this.activeDocument);
-                this.UpdateAllView();
+                return;
             }
+
+            if (this.activeDocument == null)
+            {
+                CreateDocument();
+            }
+
+            this.documentManager.ImportDocumentAtomSpectra(this.activeDocument, openFileDialog.FileName);
+            this.UpdateAllView();
         }
 
         void N42StripMenuItem_Click(object sender, EventArgs e)
         {
-            if (this.activeDocument != null)
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.Title = Resources.ImportN42FileDialogTitle;
+            openFileDialog.Filter = Resources.N42FileFilter;
+            openFileDialog.FilterIndex = 1;
+            openFileDialog.RestoreDirectory = true;
+            if (openFileDialog.ShowDialog() != DialogResult.OK)
             {
-                this.documentManager.ImportDocumentN42(this.activeDocument);
-                this.UpdateAllView();
+                return;
             }
+
+            if (this.activeDocument == null)
+            {
+                CreateDocument();
+            }
+
+            this.documentManager.ImportDocumentN42(this.activeDocument, openFileDialog.FileName);
+            this.UpdateAllView();
         }
 
         void N42ExpStripMenuItem_Click(object sender, EventArgs e)

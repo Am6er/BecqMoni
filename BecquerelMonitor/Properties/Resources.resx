@@ -4243,7 +4243,7 @@ Install update?</value>
     <value>Update avalable</value>
   </data>
   <data name="ERRImportAtomSpectra" xml:space="preserve">
-    <value>Channel mismatch between device and imported spectra file. Exceeds wil be TRUNCATED!
+    <value>Channel mismatch between device and imported spectra file.
 Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="Warning" xml:space="preserve">

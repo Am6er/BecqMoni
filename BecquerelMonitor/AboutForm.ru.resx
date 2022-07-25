@@ -238,13 +238,13 @@
     <value>OK</value>
   </data>
   <data name="label1.Text" xml:space="preserve">
-    <value>BecqMoni</value>
+    <value>BecqMoni ATOM Edition</value>
   </data>
   <data name="label2.Text" xml:space="preserve">
     <value>версия xxxx</value>
   </data>
   <data name="label3.Text" xml:space="preserve">
-    <value>Copyright (C) 2011-2012 kabuworkman.  All rights reserved.</value>
+    <value>Свободное использование</value>
   </data>
   <data name="label6.Text" xml:space="preserve">
     <value>Благодарности</value>

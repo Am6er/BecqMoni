@@ -352,19 +352,36 @@ namespace BecquerelMonitor
             return docEnergySpectrum2;
         }
 
-        public void ImportDocumentAtomSpectra(DocEnergySpectrum doc)
+        public void ImportDocumentAtomSpectra(DocEnergySpectrum doc, string filename)
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Title = Resources.ImportAtomSpectraFileDialogTitle;
-            openFileDialog.Filter = Resources.AtomSpectraFileFilter;
-            openFileDialog.FilterIndex = 1;
-            openFileDialog.RestoreDirectory = true;
-            if (openFileDialog.ShowDialog() != DialogResult.OK)
+            GC.Collect();
+
+            try
             {
+                using (StreamReader streamReader = new StreamReader(filename, Encoding.GetEncoding("UTF-8")))
+                {
+                    string NumOfChannels = streamReader.ReadLine();
+                    for (int i = 0; i < 9; i++)
+                    {
+                        NumOfChannels = streamReader.ReadLine();
+                    }
+                    if (doc.ActiveResultData.EnergySpectrum.NumberOfChannels != Convert.ToInt32(NumOfChannels))
+                    {
+                        MessageBox.Show(String.Format(Resources.ERRImportAtomSpectra,
+                            doc.ActiveResultData.EnergySpectrum.NumberOfChannels,
+                            NumOfChannels), Resources.Warning, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+                        doc.ActiveResultData.EnergySpectrum = new EnergySpectrum(1.0, Convert.ToInt32(NumOfChannels));
+                        doc.ActiveResultData.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
+                        doc.ActiveResultData.DeviceConfig = new DeviceConfigInfo();
+                    }
+                }
+            } catch (Exception ex)
+            {
+                MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message, ex.StackTrace));
                 return;
             }
-            string filename = openFileDialog.FileName;
-            GC.Collect();
+            
 
             EnergySpectrum energySpectrum = doc.ActiveResultData.EnergySpectrum;
             energySpectrum.Initialize();
@@ -433,13 +450,6 @@ namespace BecquerelMonitor
                             coefficients[i] = XmlConvert.ToDouble(streamReader.ReadLine());
                         }
 
-                        //TODO: Think about EnergySpectrum(resultData.DeviceConfig.ChannelPitch, resultData.DeviceConfig.NumberOfChannels);
-
-                        if (energySpectrum.NumberOfChannels < NumberOfChanels)
-                        {
-                            MessageBox.Show(String.Format(Resources.ERRImportAtomSpectra, energySpectrum.NumberOfChannels,  NumberOfChanels), Resources.Warning, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        }
-
                         for (int i = 0; i < energySpectrum.Spectrum.Length; i++)
                         {
                             energySpectrum.Spectrum[i] = XmlConvert.ToInt32(streamReader.ReadLine());
@@ -449,6 +459,7 @@ namespace BecquerelMonitor
 
                         PolynomialEnergyCalibration energyCalibration = (PolynomialEnergyCalibration)energySpectrum.EnergyCalibration;
                         energyCalibration.PolynomialOrder = PolynomialOrder;
+                        energyCalibration.Coefficients = new double[PolynomialOrder + 1];
                         for (int i = 0; i < coefficients.Length; i++)
                         {
                             energyCalibration.Coefficients[i] = coefficients[i];
@@ -471,18 +482,8 @@ namespace BecquerelMonitor
             }
         }
 
-        public void ImportDocumentN42(DocEnergySpectrum doc)
+        public void ImportDocumentN42(DocEnergySpectrum doc, string filename)
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Title = Resources.ImportN42FileDialogTitle;
-            openFileDialog.Filter = Resources.N42FileFilter;
-            openFileDialog.FilterIndex = 1;
-            openFileDialog.RestoreDirectory = true;
-            if (openFileDialog.ShowDialog() != DialogResult.OK)
-            {
-                return;
-            }
-            string filename = openFileDialog.FileName;
             GC.Collect();
 
             EnergySpectrum energySpectrum = doc.ActiveResultData.EnergySpectrum;
@@ -843,18 +844,8 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000279 RID: 633 RVA: 0x0000A5F0 File Offset: 0x000087F0
-        public void ImportCsvToDocument(DocEnergySpectrum doc, int presetTime)
+        public void ImportCsvToDocument(DocEnergySpectrum doc, int presetTime, string fileName)
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Title = Resources.CsvImportDialogTitle;
-            openFileDialog.Filter = Resources.CsvFileFilter;
-            openFileDialog.FilterIndex = 1;
-            openFileDialog.RestoreDirectory = true;
-            if (openFileDialog.ShowDialog() != DialogResult.OK)
-            {
-                return;
-            }
-            string fileName = openFileDialog.FileName;
             List<int> list = new List<int>();
             int num = 0;
             try
