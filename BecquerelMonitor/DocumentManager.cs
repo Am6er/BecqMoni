@@ -431,7 +431,14 @@ namespace BecquerelMonitor
                             coefficients[i] = XmlConvert.ToDouble(streamReader.ReadLine());
                         }
 
-                        for (int i = 0; i < NumberOfChanels; i++)
+                        //TODO: Think about EnergySpectrum(resultData.DeviceConfig.ChannelPitch, resultData.DeviceConfig.NumberOfChannels);
+
+                        if (energySpectrum.NumberOfChannels < NumberOfChanels)
+                        {
+                            MessageBox.Show(String.Format(Resources.ERRImportAtomSpectra, energySpectrum.NumberOfChannels,  NumberOfChanels), Resources.Warning, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        }
+
+                        for (int i = 0; i < energySpectrum.Spectrum.Length; i++)
                         {
                             energySpectrum.Spectrum[i] = XmlConvert.ToInt32(streamReader.ReadLine());
                         }

@@ -251,6 +251,10 @@
   <data name="ERRFirmwareMustBeUpdated" xml:space="preserve">
     <value>Прошивка должна быть обновлена до последней версии.</value>
   </data>
+  <data name="ERRImportAtomSpectra" xml:space="preserve">
+    <value>Несоответствие числа каналов между выбранным устройством и импортируемым спектром. Излишки каналов будут ОБРЕЗАНЫ!
+Каналов в устройстве: {0}, каналов в файле спектра: {1}</value>
+  </data>
   <data name="ERRIncompatibleChannelParameters" xml:space="preserve">
     <value>Несовместимые параметры каналов.</value>
   </data>
@@ -541,5 +545,8 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="VersionString" xml:space="preserve">
     <value>версия {0}</value>
+  </data>
+  <data name="Warning" xml:space="preserve">
+    <value>Предупреждение</value>
   </data>
 </root>

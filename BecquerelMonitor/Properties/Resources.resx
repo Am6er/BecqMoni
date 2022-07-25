@@ -4242,4 +4242,11 @@ Install update?</value>
   <data name="MSGUpdateShort" xml:space="preserve">
     <value>Update avalable</value>
   </data>
+  <data name="ERRImportAtomSpectra" xml:space="preserve">
+    <value>Channel mismatch between device and imported spectra file. Exceeds wil be TRUNCATED!
+Device channels: {0}, spectrum files channels: {1}</value>
+  </data>
+  <data name="Warning" xml:space="preserve">
+    <value>Warning</value>
+  </data>
 </root>
