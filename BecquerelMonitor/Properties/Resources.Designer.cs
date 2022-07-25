@@ -620,6 +620,16 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Channel mismatch between device and imported spectra file. Exceeds wil be TRUNCATED!
+        ///Device channels: {0}, spectrum files channels: {1}.
+        /// </summary>
+        internal static string ERRImportAtomSpectra {
+            get {
+                return ResourceManager.GetString("ERRImportAtomSpectra", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Incompatible channel parameters..
         /// </summary>
         internal static string ERRIncompatibleChannelParameters {
@@ -1659,6 +1669,15 @@ namespace BecquerelMonitor.Properties {
         internal static string VersionString {
             get {
                 return ResourceManager.GetString("VersionString", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Warning.
+        /// </summary>
+        internal static string Warning {
+            get {
+                return ResourceManager.GetString("Warning", resourceCulture);
             }
         }
         
