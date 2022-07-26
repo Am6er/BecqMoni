@@ -1064,6 +1064,15 @@ namespace BecquerelMonitor
             this.CloseActiveDocument();
         }
 
+        void CloseAllToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            int docCount = this.documentManager.DocumentList.Count;
+            for (int i = 1; i <= docCount; i++)
+            {
+                this.CloseActiveDocument();
+            }
+        }
+
         // Token: 0x06000A75 RID: 2677 RVA: 0x0003E3E8 File Offset: 0x0003C5E8
         void CloseActiveDocument()
         {
@@ -1090,6 +1099,8 @@ namespace BecquerelMonitor
                     this.documentManager.CloseDocument(this.activeDocument);
                 }
             }
+
+            GC.Collect();
         }
 
         // Token: 0x06000A76 RID: 2678 RVA: 0x0003E440 File Offset: 0x0003C640
@@ -1214,6 +1225,7 @@ namespace BecquerelMonitor
             this.デ\u30FCタを保存SToolStripMenuItem.Enabled = enabled;
             this.デ\u30FCタを名前を付けて保存RToolStripMenuItem.Enabled = (this.activeDocument != null);
             this.デ\u30FCタを閉じるCToolStripMenuItem.Enabled = (this.activeDocument != null);
+            this.CloseAllToolStripMenuItem.Enabled = (this.activeDocument != null);
         }
 
         // Token: 0x06000A7F RID: 2687 RVA: 0x0003E700 File Offset: 0x0003C900

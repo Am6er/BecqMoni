@@ -70,6 +70,7 @@ namespace BecquerelMonitor
 			this.測定開始SToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.測定停止TToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.デ\u30FCタ消去CToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.CloseAllToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.表示TToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripMenuItem6 = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.コントロ\u30FCルパネルCToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
@@ -131,6 +132,7 @@ namespace BecquerelMonitor
 				this.デ\u30FCタを保存SToolStripMenuItem,
 				this.デ\u30FCタを名前を付けて保存RToolStripMenuItem,
 				this.デ\u30FCタを閉じるCToolStripMenuItem,
+				this.CloseAllToolStripMenuItem,
 				this.toolStripSeparator6,
 				this.toolStripMenuItem2,
 				this.toolStripSeparator4,
@@ -156,6 +158,9 @@ namespace BecquerelMonitor
 			componentResourceManager.ApplyResources(this.デ\u30FCタを閉じるCToolStripMenuItem, "データを閉じるCToolStripMenuItem");
 			this.デ\u30FCタを閉じるCToolStripMenuItem.Name = "データを閉じるCToolStripMenuItem";
 			this.デ\u30FCタを閉じるCToolStripMenuItem.Click += new global::System.EventHandler(this.デ\u30FCタを閉じるCToolStripMenuItem_Click);
+			componentResourceManager.ApplyResources(this.CloseAllToolStripMenuItem, "CloseAllToolStripMenuItem");
+			this.CloseAllToolStripMenuItem.Name = "CloseAllToolStripMenuItem";
+			this.CloseAllToolStripMenuItem.Click += new global::System.EventHandler(this.CloseAllToolStripMenuItem_Click);
 			componentResourceManager.ApplyResources(this.toolStripSeparator6, "toolStripSeparator6");
 			this.toolStripSeparator6.Name = "toolStripSeparator6";
 			componentResourceManager.ApplyResources(this.toolStripMenuItem2, "toolStripMenuItem2");
@@ -634,6 +639,8 @@ namespace BecquerelMonitor
 
 		// Token: 0x040005B7 RID: 1463
 		global::System.Windows.Forms.ToolStripMenuItem toolStripMenuItem2;
+
+		global::System.Windows.Forms.ToolStripMenuItem CloseAllToolStripMenuItem;
 
 		// Token: 0x040005B8 RID: 1464
 		global::System.Windows.Forms.ToolStripSeparator toolStripSeparator6;

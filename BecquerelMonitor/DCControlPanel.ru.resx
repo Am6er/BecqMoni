@@ -574,7 +574,7 @@
     <value>Скор. счет cps</value>
   </data>
   <data name="label3.Text" xml:space="preserve">
-    <value>Устройство.</value>
+    <value>Устройство</value>
   </data>
   <data name="label4.Text" xml:space="preserve">
     <value>Всего импульсов</value>

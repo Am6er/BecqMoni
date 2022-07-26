@@ -576,8 +576,23 @@
   <data name="&gt;&gt;menuStrip1.Parent" xml:space="preserve">
     <value>$this</value>
   </data>
+  <data name="CloseAllToolStripMenuItem.Text" xml:space="preserve">
+    <value>Close &amp;All</value>
+  </data>
+  <data name="CloseAllToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+    <value>171, 22</value>
+  </data>
+  <data name="&gt;&gt;CloseAllToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;CloseAllToolStripMenuItem.Name" xml:space="preserve">
+    <value>CloseAllToolStripMenuItem</value>
+  </data>
   <data name="データを閉じるCToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Close</value>
+  </data>
+  <data name="データを閉じるCToolStripMenuItem.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
+    <value>Ctrl+W</value>
   </data>
   <data name="データを閉じるCToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>171, 22</value>

@@ -465,6 +465,18 @@
   <data name="&gt;&gt;ヘルプHToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
+  <data name="CloseAllToolStripMenuItem.Text" xml:space="preserve">
+    <value>Закрыть &amp;Всё</value>
+  </data>
+  <data name="CloseAllToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+    <value>171, 22</value>
+  </data>
+  <data name="&gt;&gt;CloseAllToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;CloseAllToolStripMenuItem.Name" xml:space="preserve">
+    <value>CloseAllToolStripMenuItem</value>
+  </data>
   <data name="&gt;&gt;ベクモニ旧形式v093bToolStripMenuItem.Name" xml:space="preserve">
     <value>ベクモニ旧形式v093bToolStripMenuItem</value>
   </data>
@@ -647,6 +659,9 @@
   </data>
   <data name="データを閉じるCToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Закрыть</value>
+  </data>
+  <data name="データを閉じるCToolStripMenuItem.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
+    <value>Ctrl+W</value>
   </data>
   <data name="データを開くToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Открыть...</value>
