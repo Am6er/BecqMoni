@@ -141,7 +141,7 @@
     </Nuclide>
     <Nuclide>
       <Name>Pb-214\Pb-212</Name>
-      <Energy>242</Energy>
+      <Energy>241</Energy>
       <HalfLife>0</HalfLife>
       <Note />
     </Nuclide>
@@ -195,13 +195,13 @@
     </Nuclide>
     <Nuclide>
       <Name>Pb-214</Name>
-      <Energy>353</Energy>
+      <Energy>351</Energy>
       <HalfLife>4.946727549467E-05</HalfLife>
       <Note />
     </Nuclide>
     <Nuclide>
       <Name>Ba-133</Name>
-      <Energy>358</Energy>
+      <Energy>356</Energy>
       <HalfLife>10.5</HalfLife>
       <Note />
     </Nuclide>
@@ -279,7 +279,7 @@
     </Nuclide>
     <Nuclide>
       <Name>Bi-212/Ac-228</Name>
-      <Energy>727</Energy>
+      <Energy>726</Energy>
       <HalfLife>0.000115201674277</HalfLife>
       <Note />
     </Nuclide>
@@ -393,7 +393,7 @@
     </Nuclide>
     <Nuclide>
       <Name>Tl-208</Name>
-      <Energy>2650</Energy>
+      <Energy>2614</Energy>
       <HalfLife>5.808599695586E-06</HalfLife>
       <Note />
     </Nuclide>
