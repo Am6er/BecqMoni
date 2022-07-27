@@ -1144,193 +1144,56 @@ namespace BecquerelMonitor
         // Token: 0x0600053D RID: 1341 RVA: 0x00021E48 File Offset: 0x00020048
         void button1_Click(object sender, EventArgs e)
         {
-            PolynomialEnergyCalibration polynomialEnergyCalibration = new PolynomialEnergyCalibration();
-            for (int i = 0; i < polynomialEnergyCalibration.Coefficients.Length; i++)
+            PolynomialEnergyCalibration energyCalibration = new PolynomialEnergyCalibration();
+            for (int i = 0; i < energyCalibration.Coefficients.Length; i++)
             {
-                polynomialEnergyCalibration.Coefficients[i] = 0.0;
+                energyCalibration.Coefficients[i] = 0.0;
             }
-            if (this.calibrationPoints.Count == 1)
+            double[] matrix;
+            try
             {
-                int channel = this.calibrationPoints[0].Channel;
-                double num = (double)this.calibrationPoints[0].Energy;
-                double num2 = num / (double)channel;
-                double num3 = 0.0;
-                if (num2 < 0.01)
+                if (this.calibrationPoints.Count >= 5)
                 {
-                    MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
-                    return;
+                    matrix = Utils.CalibrationSolver.Solve(this.calibrationPoints, 4);
                 }
-                polynomialEnergyCalibration.Coefficients[2] = 0.0;
-                polynomialEnergyCalibration.Coefficients[1] = num2;
-                polynomialEnergyCalibration.Coefficients[0] = num3;
-                polynomialEnergyCalibration.PolynomialOrder = 2;
+                else
+                {
+                    matrix = Utils.CalibrationSolver.Solve(this.calibrationPoints, this.calibrationPoints.Count - 1);
+                }
+                if (matrix == null) throw new Exception("Error");
             }
-            else if (this.calibrationPoints.Count == 2)
+            catch (Exception)
             {
-                int channel2 = this.calibrationPoints[0].Channel;
-                int channel3 = this.calibrationPoints[1].Channel;
-                double num4 = (double)this.calibrationPoints[0].Energy;
-                double num5 = (double)this.calibrationPoints[1].Energy;
-                double num6 = (num5 - num4) / (double)(channel3 - channel2);
-                double num7 = num4 - num6 * (double)channel2;
-                if (num6 < 0.01)
-                {
-                    MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
-                    return;
-                }
-                polynomialEnergyCalibration.Coefficients[2] = 0.0;
-                polynomialEnergyCalibration.Coefficients[1] = num6;
-                polynomialEnergyCalibration.Coefficients[0] = num7;
-                polynomialEnergyCalibration.PolynomialOrder = 2;
-            }
-            else
-            {
-                if (this.calibrationPoints.Count == 3)
-                {
-                    int ch1 = this.calibrationPoints[0].Channel;
-                    int ch2 = this.calibrationPoints[1].Channel;
-                    int ch3 = this.calibrationPoints[2].Channel;
-                    Matrix<double> matrix = Matrix<double>.Build.DenseOfArray(new double[,] {
-                        { (double)(ch1 * ch1), (double)ch1, 1.0 },
-                        { (double)(ch2 * ch2), (double)ch2, 1.0 },
-                        { (double)(ch3 * ch3), (double)ch3, 1.0 },
-                    });
-                    Vector<double> matrix2 = Vector<double>.Build.Dense(new double[] {
-                        (double)this.calibrationPoints[0].Energy,
-                        (double)this.calibrationPoints[1].Energy,
-                        (double)this.calibrationPoints[2].Energy
-                    });
-                    double[] matrix3;
-                    try
-                    {
-                        matrix3 = matrix.Solve(matrix2).ToArray();
-                    }
-                    catch (Exception)
-                    {
-                        MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
-                        return;
-                    }
-                    polynomialEnergyCalibration.Coefficients[2] = matrix3[0];
-                    polynomialEnergyCalibration.Coefficients[1] = matrix3[1];
-                    polynomialEnergyCalibration.Coefficients[0] = matrix3[2];
-                    polynomialEnergyCalibration.PolynomialOrder = 2;
-                    goto IL_390;
-                }
-
-                if (this.calibrationPoints.Count == 5)
-                {
-                    int ch1 = this.calibrationPoints[0].Channel;
-                    int ch2 = this.calibrationPoints[1].Channel;
-                    int ch3 = this.calibrationPoints[2].Channel;
-                    int ch4 = this.calibrationPoints[3].Channel;
-                    int ch5 = this.calibrationPoints[4].Channel;
-
-                    Matrix<double> matrix = Matrix<double>.Build.DenseOfArray(new double[,] {
-                        { (double)Math.Pow(ch1,4), (double)Math.Pow(ch1,3), (double)Math.Pow(ch1,2), (double)ch1, 1.0 },
-                        { (double)Math.Pow(ch2,4), (double)Math.Pow(ch2,3), (double)Math.Pow(ch2,2), (double)ch2, 1.0 },
-                        { (double)Math.Pow(ch3,4), (double)Math.Pow(ch3,3), (double)Math.Pow(ch3,2), (double)ch3, 1.0 },
-                        { (double)Math.Pow(ch4,4), (double)Math.Pow(ch4,3), (double)Math.Pow(ch4,2), (double)ch4, 1.0 },
-                        { (double)Math.Pow(ch5,4), (double)Math.Pow(ch5,3), (double)Math.Pow(ch5,2), (double)ch5, 1.0 }
-                    });
-                    Vector<double> matrix2 = Vector<double>.Build.Dense(new double[] {
-                        (double)this.calibrationPoints[0].Energy,
-                        (double)this.calibrationPoints[1].Energy,
-                        (double)this.calibrationPoints[2].Energy,
-                        (double)this.calibrationPoints[3].Energy,
-                        (double)this.calibrationPoints[4].Energy
-                    });
-                    double[] matrix3;
-                    try
-                    {
-                        matrix3 = matrix.Solve(matrix2).ToArray();
-                    }
-                    catch (Exception)
-                    {
-                        MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
-                        return;
-                    }
-                    polynomialEnergyCalibration.Coefficients = new double[5];
-                    polynomialEnergyCalibration.PolynomialOrder = 4;
-
-                    polynomialEnergyCalibration.Coefficients[4] = (double)matrix3[0];
-                    polynomialEnergyCalibration.Coefficients[3] = (double)matrix3[1];
-                    polynomialEnergyCalibration.Coefficients[2] = (double)matrix3[2];
-                    polynomialEnergyCalibration.Coefficients[1] = (double)matrix3[3];
-                    polynomialEnergyCalibration.Coefficients[0] = (double)matrix3[4];
-                    polynomialEnergyCalibration.PolynomialOrder = 4;
-                    if (!polynomialEnergyCalibration.CheckCalibration())
-                    {
-                        MessageBox.Show(Resources.CalibrationFunctionError);
-                        return;
-                    }
-                    goto IL_390;
-                }
-
-                if (this.calibrationPoints.Count == 4)
-                {
-                    int ch1 = this.calibrationPoints[0].Channel;
-                    int ch2 = this.calibrationPoints[1].Channel;
-                    int ch3 = this.calibrationPoints[2].Channel;
-                    int ch4 = this.calibrationPoints[3].Channel;
-
-                    Matrix<double> matrix = Matrix<double>.Build.DenseOfArray(new double[,] {
-                        { (double)Math.Pow(ch1,3), (double)Math.Pow(ch1,2), (double)ch1, 1.0 },
-                        { (double)Math.Pow(ch2,3), (double)Math.Pow(ch2,2), (double)ch2, 1.0 },
-                        { (double)Math.Pow(ch3,3), (double)Math.Pow(ch3,2), (double)ch3, 1.0 },
-                        { (double)Math.Pow(ch4,3), (double)Math.Pow(ch4,2), (double)ch4, 1.0 }
-                    });
-                    Vector<double> matrix2 = Vector<double>.Build.Dense(new double[] {
-                        (double)this.calibrationPoints[0].Energy,
-                        (double)this.calibrationPoints[1].Energy,
-                        (double)this.calibrationPoints[2].Energy,
-                        (double)this.calibrationPoints[3].Energy,
-                    });
-                    double[] matrix3;
-                    try
-                    {
-                        matrix3 = matrix.Solve(matrix2).ToArray();
-                    }
-                    catch (Exception)
-                    {
-                        MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
-                        return;
-                    }
-                    polynomialEnergyCalibration.Coefficients = new double[4];
-                    polynomialEnergyCalibration.PolynomialOrder = 3;
-
-                    polynomialEnergyCalibration.Coefficients[3] = (double)matrix3[0];
-                    polynomialEnergyCalibration.Coefficients[2] = (double)matrix3[1];
-                    polynomialEnergyCalibration.Coefficients[1] = (double)matrix3[2];
-                    polynomialEnergyCalibration.Coefficients[0] = (double)matrix3[3];
-
-                    if (!polynomialEnergyCalibration.CheckCalibration())
-                    {
-                        MessageBox.Show(Resources.CalibrationFunctionError);
-                        return;
-                    }
-                    goto IL_390;
-                }
-
                 MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
+                return;
             }
-        IL_390:
+
+            energyCalibration.Coefficients = new double[matrix.Length];
+            energyCalibration.PolynomialOrder = matrix.Length - 1;
+            energyCalibration.Coefficients = matrix;
+
+            if (!energyCalibration.CheckCalibration())
+            {
+                MessageBox.Show(Resources.CalibrationFunctionError);
+                return;
+            }
             this.numericUpDown1.Text = "0";
             this.numericUpDown2.Text = "0";
             this.numericUpDown7.Text = "0";
             this.numericUpDown8.Text = "0";
             this.numericUpDown9.Text = "0";
-            if (polynomialEnergyCalibration.PolynomialOrder >= 3)
+            if (energyCalibration.PolynomialOrder >= 3)
             {
-                this.numericUpDown9.Text = polynomialEnergyCalibration.Coefficients[3].ToString();
+                this.numericUpDown9.Text = energyCalibration.Coefficients[3].ToString();
             }
-            if (polynomialEnergyCalibration.PolynomialOrder == 4)
+            if (energyCalibration.PolynomialOrder == 4)
             {
-                this.numericUpDown8.Text = polynomialEnergyCalibration.Coefficients[4].ToString();
+                this.numericUpDown8.Text = energyCalibration.Coefficients[4].ToString();
             }
-            this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString();
-            this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString();
-            this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString();
-            if (!polynomialEnergyCalibration.CheckCalibration())
+            this.numericUpDown1.Text = energyCalibration.Coefficients[2].ToString();
+            this.numericUpDown2.Text = energyCalibration.Coefficients[1].ToString();
+            this.numericUpDown7.Text = energyCalibration.Coefficients[0].ToString();
+            if (!energyCalibration.CheckCalibration())
             {
                 MessageBox.Show(Resources.CalibrationFunctionError);
                 return;

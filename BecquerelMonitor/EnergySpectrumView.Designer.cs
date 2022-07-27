@@ -1244,6 +1244,7 @@ namespace BecquerelMonitor
                 return;
             }
             this.selectionFWHM = energyResolutionResult.Resolution;
+            this.selectionFullWidth = (int)(energyResolutionResult.RightChannel - energyResolutionResult.LeftChannel);
             int num3 = -1;
             int y = -1;
             int num8;
@@ -2605,7 +2606,8 @@ namespace BecquerelMonitor
                 if (this.selectionFWHM > 0.0)
                 {
                     g.DrawString(Resources.ChartHeaderFWHM, this.Font, Brushes.Black, r2);
-                    g.DrawString((this.selectionFWHM * 100.0).ToString("f2") + Resources.PercentCharacter, this.Font, Brushes.Black, r2, this.farFormat);
+                    g.DrawString((this.selectionFWHM * 100.0).ToString("f2") + Resources.PercentCharacter +
+                        " " + (this.selectionFullWidth).ToString() + " ch", this.Font, Brushes.Black, r2, this.farFormat);
                 }
             }
         }
@@ -3177,6 +3179,8 @@ namespace BecquerelMonitor
 
         // Token: 0x04000211 RID: 529
         double selectionFWHM;
+
+        int selectionFullWidth;
 
         // Token: 0x04000212 RID: 530
         int cursorX = -1;
