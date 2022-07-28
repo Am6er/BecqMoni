@@ -33,8 +33,8 @@
     <MinimumRequiredVersion>2022.07.08.7</MinimumRequiredVersion>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
-    <ApplicationRevision>1</ApplicationRevision>
-    <ApplicationVersion>2022.07.27.1</ApplicationVersion>
+    <ApplicationRevision>2</ApplicationRevision>
+    <ApplicationVersion>2022.07.27.2</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -839,9 +839,11 @@
     </EmbeddedResource>
     <EmbeddedResource Include="DCEnergyCalibrationView.resx">
       <DependentUpon>DCEnergyCalibrationView.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="DCEnergyCalibrationView.ru.resx">
       <DependentUpon>DCEnergyCalibrationView.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="DCPeakDetectionView.resx">
       <DependentUpon>DCPeakDetectionView.cs</DependentUpon>

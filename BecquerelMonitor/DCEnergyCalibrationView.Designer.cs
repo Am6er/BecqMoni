@@ -26,6 +26,7 @@
 			this.label4 = new global::System.Windows.Forms.Label();
 			this.label6 = new global::System.Windows.Forms.Label();
 			this.label7 = new global::System.Windows.Forms.Label();
+			this.label37 = new global::System.Windows.Forms.Label();
 			this.button3 = new global::System.Windows.Forms.Button();
 			this.button2 = new global::System.Windows.Forms.Button();
 			this.button1 = new global::System.Windows.Forms.Button();
@@ -37,6 +38,7 @@
 			this.numericUpDown1 = new global::System.Windows.Forms.TextBox();
 			this.numericUpDown4 = new global::System.Windows.Forms.TextBox();
 			this.numericUpDown5 = new global::System.Windows.Forms.TextBox();
+			this.numericUpDown6 = new global::System.Windows.Forms.NumericUpDown();
 			this.numericUpDown3 = new global::System.Windows.Forms.TextBox();
 			this.button4 = new global::System.Windows.Forms.Button();
 			this.button5 = new global::System.Windows.Forms.Button();
@@ -191,7 +193,17 @@
 			this.panel1.Controls.Add(this.button7);
 			this.panel1.Controls.Add(this.button11);
 			this.panel1.Controls.Add(this.label36);
+			this.panel1.Controls.Add(this.numericUpDown6);
+			this.panel1.Controls.Add(this.label37);
 			this.panel1.Name = "panel1";
+			componentResourceManager.ApplyResources(this.numericUpDown6, "numericUpDown6");
+			this.numericUpDown6.Name = "numericUpDown6";
+			this.numericUpDown6.Increment = 1;
+			this.numericUpDown6.Minimum = 0;
+			this.numericUpDown6.Maximum = 4;
+			this.numericUpDown6.Value = 0;
+			componentResourceManager.ApplyResources(this.label37, "label37");
+			this.label37.Name = "label37";
 			componentResourceManager.ApplyResources(this.button9, "button9");
 			this.button9.Name = "button9";
 			this.button9.UseVisualStyleBackColor = true;
@@ -310,6 +322,8 @@
 
 		global::System.Windows.Forms.TextBox numericUpDown5;
 
+		global::System.Windows.Forms.NumericUpDown numericUpDown6;
+
 		// Token: 0x04000429 RID: 1065
 		global::System.Windows.Forms.Button button4;
 
@@ -349,6 +363,8 @@
 		global::System.Windows.Forms.Label label6;
 
 		global::System.Windows.Forms.Label label7;
+
+		global::System.Windows.Forms.Label label37;
 
 		// Token: 0x04000435 RID: 1077
 		global::System.Windows.Forms.Panel panel1;

@@ -440,6 +440,14 @@ namespace BecquerelMonitor
                 this.tableModel1.Rows.Add(row);
                 num++;
             }
+            if (num <= 5 && num >= 2)
+            {
+                this.numericUpDown6.Value = num-2;
+            } else
+            {
+                if (num == 1) this.numericUpDown6.Value = 0;
+                this.numericUpDown6.Value = 4;
+            }
             this.table1.ResumeLayout();
         }
 
@@ -494,17 +502,12 @@ namespace BecquerelMonitor
             {
                 this.energyCalibration.Coefficients[i] = 0.0;
             }
+
+            int PolynomOrder = (int)this.numericUpDown6.Value;
             double[] matrix;
             try
             {
-                if (this.calibrationPoints.Count >= 5)
-                {
-                    matrix = Utils.CalibrationSolver.Solve(this.calibrationPoints, 4);
-                }
-                else
-                {
-                    matrix = Utils.CalibrationSolver.Solve(this.calibrationPoints, this.calibrationPoints.Count - 1);
-                }
+                matrix = Utils.CalibrationSolver.Solve(this.calibrationPoints, PolynomOrder);
                 if (matrix == null) throw new Exception("Error");
             }
             catch (Exception)
@@ -527,9 +530,12 @@ namespace BecquerelMonitor
             this.numericUpDown3.Text = "0";
             this.numericUpDown4.Text = "0";
             this.numericUpDown5.Text = "0";
-            this.numericUpDown1.Text = this.energyCalibration.Coefficients[2].ToString();
             this.numericUpDown2.Text = this.energyCalibration.Coefficients[1].ToString();
             this.numericUpDown3.Text = this.energyCalibration.Coefficients[0].ToString();
+            if (this.energyCalibration.PolynomialOrder >= 2)
+            {
+                this.numericUpDown1.Text = this.energyCalibration.Coefficients[2].ToString();
+            }
             if (this.energyCalibration.PolynomialOrder >= 3)
             {
                 this.numericUpDown5.Text = this.energyCalibration.Coefficients[3].ToString();
