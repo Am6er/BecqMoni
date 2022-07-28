@@ -26,7 +26,7 @@ namespace BecquerelMonitor
             int max_range_ch = (int)energySpectrum.EnergyCalibration.EnergyToChannel(FWHMPeakDetectionMethodConfig.Max_Range);
 
             FWHMPeakDetector.Spectrum spec = new FWHMPeakDetector.Spectrum(energySpectrum);
-            int mul = energySpectrum.NumberOfChannels / 1000;
+            int mul = energySpectrum.NumberOfChannels / 1024;
             if (mul > 1)
             {
                 spec.combine_bins(mul);
