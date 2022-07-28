@@ -414,6 +414,60 @@
   <data name="&gt;&gt;numericUpDown2.Name" xml:space="preserve">
     <value>numericUpDown2</value>
   </data>
+  <data name="numericUpDown6.Size" type="System.Drawing.Size, System.Drawing">
+    <value>40, 19</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown6.Name" xml:space="preserve">
+    <value>numericUpDown6</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown6.Type" xml:space="preserve">
+    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="numericUpDown6.TabIndex" type="System.Int32, mscorlib">
+    <value>1</value>
+  </data>
+  <data name="numericUpDown6.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
+    <value>Right</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown6.Parent" xml:space="preserve">
+    <value>panel1</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown6.ZOrder" xml:space="preserve">
+    <value>7</value>
+  </data>
+  <data name="numericUpDown6.Location" type="System.Drawing.Point, System.Drawing">
+    <value>325, 5</value>
+  </data>
+  <data name="&gt;&gt;label37.Parent" xml:space="preserve">
+    <value>panel1</value>
+  </data>
+  <data name="&gt;&gt;label37.ZOrder" xml:space="preserve">
+    <value>5</value>
+  </data>
+  <data name="label37.TabIndex" type="System.Int32, mscorlib">
+    <value>10</value>
+  </data>
+  <data name="label37.Size" type="System.Drawing.Size, System.Drawing">
+    <value>206, 12</value>
+  </data>
+  <data name="label37.Text" xml:space="preserve">
+    <value>Полином:</value>
+  </data>
+  <data name="label37.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="label37.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="label37.Location" type="System.Drawing.Point, System.Drawing">
+    <value>250, 8</value>
+  </data>
+  <data name="&gt;&gt;label37.Name" xml:space="preserve">
+    <value>label37</value>
+  </data>
+  <data name="&gt;&gt;label37.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
   <data name="&gt;&gt;numericUpDown2.Parent" xml:space="preserve">
     <value>groupBox1</value>
   </data>
@@ -577,7 +631,7 @@
     <value>Выбрать канал</value>
   </data>
   <data name="button9.Text" xml:space="preserve">
-    <value>удалить</value>
+    <value>Удалить</value>
   </data>
   <data name="checkBox1.Text" xml:space="preserve">
     <value>Стабилиз.</value>
