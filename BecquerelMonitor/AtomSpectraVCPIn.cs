@@ -354,7 +354,29 @@ namespace BecquerelMonitor
                                 //elapsed_time_static = elapsed_time;
                                 //cps_static = cps;
                                 hystogram.CopyTo(hystogram_buffered, 0);
-                                if (DataReady != null) DataReady(this, new AtomSpectraVCPInDataReadyArgs(hystogram_buffered, cpu_load, elapsed_time, invalid_pulses));
+                                int channels = DeviceConfigManager.GetInstance().DeviceConfigMap[GUID].NumberOfChannels;
+                                if (hystogram_buffered.Length > channels)
+                                {
+                                    int[] hystogram_compress = new int[channels];
+                                    int mul = hystogram_buffered.Length / channels;
+                                    try
+                                    {
+                                        for (int ch = 0; ch < channels; ch++)
+                                        {
+                                            for (int cch = 0; cch < mul; cch++)
+                                            {
+                                                hystogram_compress[ch] += hystogram_buffered[ch * mul + cch];
+                                            }
+                                        }
+                                    } catch (Exception ex)
+                                    {
+                                        Trace.WriteLine(ex);
+                                    }
+                                    if (DataReady != null) DataReady(this, new AtomSpectraVCPInDataReadyArgs(hystogram_compress, cpu_load, elapsed_time, invalid_pulses));
+                                } else
+                                {
+                                    if (DataReady != null) DataReady(this, new AtomSpectraVCPInDataReadyArgs(hystogram_buffered, cpu_load, elapsed_time, invalid_pulses));
+                                }
                             }
                             else if (packet_cmd == 0x03) //printf
                             {
