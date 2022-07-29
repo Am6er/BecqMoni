@@ -166,6 +166,17 @@ namespace BecquerelMonitor
             }
         }
 
+        void ToolStripMenuItem1_Opening(object sender, EventArgs e)
+        {
+            if (this.table1.SelectedItems.Length == 0)
+            {
+                this.toolStripMenuItem1.Enabled = false;
+            } else
+            {
+                this.toolStripMenuItem1.Enabled = true;
+            }
+        }
+
 
         // Token: 0x06000443 RID: 1091 RVA: 0x00014614 File Offset: 0x00012814
         void button1_Click(object sender, EventArgs e)
