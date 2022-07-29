@@ -114,6 +114,7 @@ namespace BecquerelMonitor
 			});
 			this.contextMenuStrip1.Name = "contextMenuStrip1";
 			this.table1.ContextMenuStrip = this.contextMenuStrip1;
+			this.contextMenuStrip1.Opening += this.ToolStripMenuItem1_Opening;
 			componentResourceManager.ApplyResources(this.toolStripMenuItem1, "toolStripMenuItem1");
 			this.toolStripMenuItem1.Name = "toolStripMenuItem1";
 			this.toolStripMenuItem1.Click += new global::System.EventHandler(this.ToolStripMenuItem1_Click);
