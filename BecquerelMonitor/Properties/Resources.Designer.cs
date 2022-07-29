@@ -427,6 +427,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Error while adding channel {0}. Error message: {1}.
+        /// </summary>
+        internal static string ERRAddCalibrationPoints {
+            get {
+                return ResourceManager.GetString("ERRAddCalibrationPoints", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Specified file is already open..
         /// </summary>
         internal static string ERRAlreadyOpen {

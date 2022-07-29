@@ -38,6 +38,8 @@ namespace BecquerelMonitor
 			this.label1 = new global::System.Windows.Forms.Label();
 			this.label2 = new global::System.Windows.Forms.Label();
 			this.label3 = new global::System.Windows.Forms.Label();
+			this.contextMenuStrip1 = new global::System.Windows.Forms.ContextMenuStrip();
+			this.toolStripMenuItem1 = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.numericUpDown3 = new global::System.Windows.Forms.NumericUpDown();
 			this.button1 = new global::System.Windows.Forms.Button();
 			this.label4 = new global::System.Windows.Forms.Label();
@@ -45,6 +47,7 @@ namespace BecquerelMonitor
 			((global::System.ComponentModel.ISupportInitialize)this.numericUpDown1).BeginInit();
 			((global::System.ComponentModel.ISupportInitialize)this.numericUpDown2).BeginInit();
 			((global::System.ComponentModel.ISupportInitialize)this.numericUpDown3).BeginInit();
+			this.contextMenuStrip1.SuspendLayout();
 			base.SuspendLayout();
 			componentResourceManager.ApplyResources(this.table1, "table1");
 			this.table1.BorderColor = global::System.Drawing.Color.Black;
@@ -61,6 +64,7 @@ namespace BecquerelMonitor
 			this.table1.SortedColumnBackColor = global::System.Drawing.Color.White;
 			this.table1.TableModel = this.tableModel1;
 			this.table1.UnfocusedBorderColor = global::System.Drawing.Color.Black;
+			this.table1.MultiSelect = true;
 			this.columnModel1.Columns.AddRange(new global::XPTable.Models.Column[]
 			{
 				this.textColumn3,
@@ -102,6 +106,19 @@ namespace BecquerelMonitor
 			this.textColumn1.AutoResizeMode = ColumnAutoResizeMode.Grow;
 			this.textColumn3.AutoResizeMode = ColumnAutoResizeMode.Grow;
 			this.textColumn4.AutoResizeMode = ColumnAutoResizeMode.Grow;
+
+			componentResourceManager.ApplyResources(this.contextMenuStrip1, "contextMenuStrip1");
+			this.contextMenuStrip1.Items.AddRange(new global::System.Windows.Forms.ToolStripItem[]
+			{
+				this.toolStripMenuItem1
+			});
+			this.contextMenuStrip1.Name = "contextMenuStrip1";
+			this.table1.ContextMenuStrip = this.contextMenuStrip1;
+			componentResourceManager.ApplyResources(this.toolStripMenuItem1, "toolStripMenuItem1");
+			this.toolStripMenuItem1.Name = "toolStripMenuItem1";
+			this.toolStripMenuItem1.Click += new global::System.EventHandler(this.ToolStripMenuItem1_Click);
+			this.ContextMenuStrip = this.contextMenuStrip1;
+
 			componentResourceManager.ApplyResources(this.numericUpDown1, "numericUpDown1");
 			global::System.Windows.Forms.NumericUpDown numericUpDown = this.numericUpDown1;
 			global::System.Windows.Forms.NumericUpDown numericUpDown2 = this.numericUpDown1;
@@ -152,12 +169,13 @@ namespace BecquerelMonitor
 			((global::System.ComponentModel.ISupportInitialize)this.numericUpDown1).EndInit();
 			((global::System.ComponentModel.ISupportInitialize)this.numericUpDown2).EndInit();
 			((global::System.ComponentModel.ISupportInitialize)this.numericUpDown3).EndInit();
+			this.contextMenuStrip1.ResumeLayout(false);
 			base.ResumeLayout(false);
 			base.PerformLayout();
 		}
 
-		// Token: 0x040001B6 RID: 438
-		global::System.ComponentModel.IContainer components;
+        // Token: 0x040001B6 RID: 438
+        global::System.ComponentModel.IContainer components;
 
 		// Token: 0x040001B7 RID: 439
 		global::XPTable.Models.Table table1;
@@ -207,5 +225,9 @@ namespace BecquerelMonitor
 
 		// Token: 0x040001C5 RID: 453
 		global::System.Windows.Forms.Label label4;
+
+		global::System.Windows.Forms.ToolStripMenuItem toolStripMenuItem1;
+
+		global::System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
 	}
 }

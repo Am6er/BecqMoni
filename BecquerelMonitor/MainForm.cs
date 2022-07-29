@@ -120,6 +120,9 @@ namespace BecquerelMonitor
                 //Thread.CurrentThread.CurrentCulture = new CultureInfo(this.globalConfig.Language);
                 //Thread.CurrentThread.CurrentUICulture = new CultureInfo(this.globalConfig.Language);
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(this.globalConfig.Language);
+                System.Globalization.CultureInfo customCulture = (System.Globalization.CultureInfo)System.Threading.Thread.CurrentThread.CurrentCulture.Clone();
+                customCulture.NumberFormat.NumberDecimalSeparator = ".";
+                System.Threading.Thread.CurrentThread.CurrentCulture = customCulture;
             }
             DeviceType.InitializeDeviceTypes();
             ThermometerType.InitializeThermometerTypes();
@@ -953,6 +956,11 @@ namespace BecquerelMonitor
             this.deviceConfigForm.Show();
             this.deviceConfigForm.Activate();
             return this.deviceConfigForm;
+        }
+
+        public void addCalibration(int channel, decimal energy)
+        {
+            this.dcEnergyCalibrationView.AddCalibration(channel, energy);
         }
 
         // Token: 0x06000A6E RID: 2670 RVA: 0x0003E0BC File Offset: 0x0003C2BC

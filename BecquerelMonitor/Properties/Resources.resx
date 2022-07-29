@@ -4249,4 +4249,7 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="Warning" xml:space="preserve">
     <value>Warning</value>
   </data>
+  <data name="ERRAddCalibrationPoints" xml:space="preserve">
+    <value>Error while adding channel {0}. Error message: {1}</value>
+  </data>
 </root>

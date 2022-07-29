@@ -1,6 +1,7 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
+using System.Windows.Forms;
 using XPTable.Models;
 
 namespace BecquerelMonitor
@@ -138,6 +139,33 @@ namespace BecquerelMonitor
                 activeDocument.EnergySpectrumView.Invalidate();
             }
         }
+
+        void ToolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+            int channel = 0;
+            decimal diff;
+            decimal energy;
+            foreach (Row row in this.table1.SelectedItems)
+            {
+                try
+                {
+                    channel = Convert.ToInt32(row.Cells[3].Text);
+                    if (row.Cells[2].Text.Length > 1)
+                    {
+                        diff = Convert.ToDecimal(row.Cells[2].Text.Split(new string[] { " " }, StringSplitOptions.None)[0]);
+                    } else
+                    {
+                        diff = 0;
+                    }
+                    energy = Convert.ToDecimal(row.Cells[1].Text) + diff;
+                    this.mainForm.addCalibration(channel, energy);
+                } catch (Exception ex)
+                {
+                    MessageBox.Show(String.Format(Resources.ERRAddCalibrationPoints, channel.ToString(), ex.Message), Resources.ErrorExclamation, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
 
         // Token: 0x06000443 RID: 1091 RVA: 0x00014614 File Offset: 0x00012814
         void button1_Click(object sender, EventArgs e)

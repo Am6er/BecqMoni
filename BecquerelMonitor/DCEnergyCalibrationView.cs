@@ -382,6 +382,16 @@ namespace BecquerelMonitor
             this.ClearChannelPickupState();
         }
 
+        public void AddCalibration(int channel, decimal energy)
+        {
+            CalibrationPoint item = new CalibrationPoint(channel, energy);
+            this.calibrationPoints.Add(item);
+            this.multipointModified = true;
+            this.calibrationDone = false;
+            this.ShowCalibrationPoints();
+            this.UpdateMultipointButtonState();
+        }
+
         // Token: 0x0600082B RID: 2091 RVA: 0x0002E5F4 File Offset: 0x0002C7F4
         void button11_Click(object sender, EventArgs e)
         {
@@ -416,7 +426,13 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            this.calibrationPoints.RemoveAt(num);
+            try
+            {
+                this.calibrationPoints.RemoveAt(num);
+            } catch
+            {
+
+            }
             this.tableModel1.Selections.Clear();
             this.multipointModified = true;
             this.calibrationDone = false;
