@@ -1,6 +1,7 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO.Ports;
 using System.Windows.Forms;
 
@@ -13,6 +14,7 @@ namespace BecquerelMonitor
         private ComboBox comPortsBox;
         private Label label1;
         TextBox doubleTextBox1;
+        private string ComPort = "-------";
         AutoCompleteStringCollection autoComplete = new AutoCompleteStringCollection();
 
         void InitializeComponent()
@@ -81,6 +83,7 @@ namespace BecquerelMonitor
             this.Controls.Add(this.comPortsBox);
             this.Name = "AtomSpectraVCPDeviceForm";
             comPortsBox.SelectedIndexChanged += ComPortsBox_SelectedIndexChanged;
+            comPortsBox.DropDown += ComPortsBox_DropDown;
             this.Controls.SetChildIndex(this.comPortsBox, 0);
             this.Controls.SetChildIndex(this.label1, 0);
             this.Controls.SetChildIndex(this.CommandLineIn, 0);
@@ -89,6 +92,36 @@ namespace BecquerelMonitor
             this.ResumeLayout(false);
             this.PerformLayout();
 
+        }
+
+        private void ComPortsBox_DropDown(object sender, EventArgs e)
+        {
+            fillPorts();
+        }
+
+        private void fillPorts()
+        {
+            comPortsBox.Items.Clear();
+            comPortsBox.Items.Add("-------");
+            comPortsBox.Items.AddRange(SerialPort.GetPortNames());
+            if (comPortsBox.Items.Count > 1)
+            {
+                if (comPortsBox.Items.Contains(this.ComPort))
+                {
+                    comPortsBox.SelectedIndex = comPortsBox.Items.IndexOf(this.ComPort);
+                    comPortsBox.ForeColor = Color.Black;
+                    label1.ForeColor = Color.Black;
+                    label1.Text = Resources.MSGComPort;
+                }
+                else
+                {
+                    comPortsBox.Items.Add(this.ComPort);
+                    comPortsBox.SelectedIndex = comPortsBox.Items.Count - 1;
+                    comPortsBox.ForeColor = Color.Red;
+                    label1.ForeColor = Color.Red;
+                    label1.Text = Resources.MSGComPort + " " + Resources.ErrorString;
+                }
+            }
         }
 
         private void ComPortsBox_SelectedIndexChanged(object sender, EventArgs e)
@@ -123,13 +156,7 @@ namespace BecquerelMonitor
             this.deviceConfigForm = deviceConfigForm;
             base.DeviceTypeString = Resources.DeviceTypeAtomSpectraVCP;
 
-            comPortsBox.Items.Clear();
-            comPortsBox.Items.Add("-------");
-            comPortsBox.Items.AddRange(SerialPort.GetPortNames());
-            if (comPortsBox.Items.Count > 1)
-            {
-                comPortsBox.SelectedIndex = 1;
-            }
+            fillPorts();
         }
 
         // Token: 0x06001041 RID: 4161 RVA: 0x00059CB4 File Offset: 0x00057EB4
@@ -142,33 +169,8 @@ namespace BecquerelMonitor
         public override void LoadFormContents(InputDeviceConfig inputConfig)
         {
             AtomSpectraDeviceConfig atomSpectraVCPInputDevice = (AtomSpectraDeviceConfig)inputConfig;
-            bool flag = false;
-            if (atomSpectraVCPInputDevice.ComPortName != null)
-            {
-                foreach (string s in comPortsBox.Items)
-                {
-                    if (s.Equals(atomSpectraVCPInputDevice.ComPortName))
-                    {
-                        comPortsBox.SelectedItem = s;
-                        flag = true;
-                        break;
-                    }
-                }
-            }
-            if (!flag)
-            {
-                //MessageBox.Show(Resources.ERRAudioDeviceNotFound);
-                if (comPortsBox.Items.Count > 1)
-                {
-                    atomSpectraVCPInputDevice.ComPortName = comPortsBox.Items[1].ToString();
-                    comPortsBox.SelectedIndex = 0;
-                }
-                else
-                {
-                    atomSpectraVCPInputDevice.ComPortName = "COM1";
-                }
-                this.SetActiveDeviceConfigDirty();
-            }
+            this.ComPort = atomSpectraVCPInputDevice.ComPortName;
+            fillPorts();
         }
 
         // Token: 0x06001044 RID: 4164 RVA: 0x00059FDC File Offset: 0x000581DC
