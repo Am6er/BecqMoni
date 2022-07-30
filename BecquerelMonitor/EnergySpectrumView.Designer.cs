@@ -2574,7 +2574,11 @@ namespace BecquerelMonitor
                     }
                     num19 += num21;
                     num18 -= num21;
-                    peakcounts -= (continuum);
+                    if (continuum < num21)
+                    {
+                        continuum = num21;
+                    }
+                    peakcounts -= continuum;
                 }
                 double num23 = 0.0;
                 if (this.energySpectrum.MeasurementTime != 0.0)
