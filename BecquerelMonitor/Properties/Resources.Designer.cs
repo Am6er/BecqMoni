@@ -166,6 +166,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to ch.
+        /// </summary>
+        internal static string ChartChannelShort {
+            get {
+                return ResourceManager.GetString("ChartChannelShort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Background Counts:.
         /// </summary>
         internal static string ChartHeaderBGCounts {
@@ -234,6 +243,15 @@ namespace BecquerelMonitor.Properties {
         internal static string ChartHeaderNetCps {
             get {
                 return ResourceManager.GetString("ChartHeaderNetCps", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Peak counts:.
+        /// </summary>
+        internal static string ChartHeaderPeakCounts {
+            get {
+                return ResourceManager.GetString("ChartHeaderPeakCounts", resourceCulture);
             }
         }
         

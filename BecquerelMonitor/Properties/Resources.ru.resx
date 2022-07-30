@@ -129,6 +129,9 @@
   <data name="CalibrationFunctionError" xml:space="preserve">
     <value>Функция калибровки должна монотонно возрастать при увеличиении канала. Проверьте калибровку!</value>
   </data>
+  <data name="ChartChannelShort" xml:space="preserve">
+    <value>ch</value>
+  </data>
   <data name="ChartHeaderBGCounts" xml:space="preserve">
     <value>Фоновых имп:</value>
   </data>
@@ -152,6 +155,9 @@
   </data>
   <data name="ChartHeaderNetCps" xml:space="preserve">
     <value>CPS над фоном:</value>
+  </data>
+  <data name="ChartHeaderPeakCounts" xml:space="preserve">
+    <value>Имп. в пике:</value>
   </data>
   <data name="ChartHeaderSelection" xml:space="preserve">
     <value>Выбранная область</value>
