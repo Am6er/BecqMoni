@@ -4252,4 +4252,10 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="ERRAddCalibrationPoints" xml:space="preserve">
     <value>Error while adding channel {0}. Error message: {1}</value>
   </data>
+  <data name="ChartHeaderPeakCounts" xml:space="preserve">
+    <value>Peak counts:</value>
+  </data>
+  <data name="ChartChannelShort" xml:space="preserve">
+    <value>ch</value>
+  </data>
 </root>

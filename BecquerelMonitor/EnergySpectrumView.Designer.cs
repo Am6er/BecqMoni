@@ -2526,7 +2526,7 @@ namespace BecquerelMonitor
             }
             if (this.selectionStart != -1)
             {
-                int num12 = 166;
+                int num12 = 180;
                 g.FillRectangle(Brushes.DarkGray, num2, num3, num, num12);
                 g.FillRectangle(Brushes.White, num2 - 3, num3 - 3, num, num12);
                 g.DrawRectangle(Pens.Black, num2 - 3, num3 - 3, num, num12);
@@ -2547,11 +2547,18 @@ namespace BecquerelMonitor
                 double num17 = 0.0;
                 double num18 = 0.0;
                 double num19 = 0.0;
+                double peakcounts = 0.0;
                 for (int i = num13; i <= num14; i++)
                 {
                     int num20 = this.energySpectrum.Spectrum[i];
+                    double continuum = getY(i, num13, num14, this.energySpectrum.Spectrum[num13], this.energySpectrum.Spectrum[num14]);
+                    if (continuum > num20)
+                    {
+                        continuum = num20;
+                    }
                     num17 += (double)num20;
-                    num18 += (double)num20;
+                    num18 += (double)(num20);
+                    peakcounts += (double)num20;
                     double num21 = 0.0;
                     if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
                     {
@@ -2567,6 +2574,7 @@ namespace BecquerelMonitor
                     }
                     num19 += num21;
                     num18 -= num21;
+                    peakcounts -= (continuum - num21);
                 }
                 double num23 = 0.0;
                 if (this.energySpectrum.MeasurementTime != 0.0)
@@ -2603,12 +2611,39 @@ namespace BecquerelMonitor
                 g.DrawString(Resources.ChartHeaderNetCps, this.Font, Brushes.Black, r2);
                 g.DrawString(num23.ToString("f4"), this.Font, Brushes.Black, r2, this.farFormat);
                 r2.Y += 16;
+                g.DrawString(Resources.ChartHeaderPeakCounts, this.Font, Brushes.Black, r2);
+                g.DrawString(peakcounts.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                r2.Y += 16;
                 if (this.selectionFWHM > 0.0)
                 {
                     g.DrawString(Resources.ChartHeaderFWHM, this.Font, Brushes.Black, r2);
                     g.DrawString((this.selectionFWHM * 100.0).ToString("f2") + Resources.PercentCharacter +
-                        " " + (this.selectionFullWidth).ToString() + " ch", this.Font, Brushes.Black, r2, this.farFormat);
+                        "  " + (this.selectionFullWidth).ToString() + " " + Resources.ChartChannelShort,
+                        this.Font, Brushes.Black, r2, this.farFormat);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Y = k*x + b
+        /// using known points (x1,y1), (x2, y2)
+        /// </summary>
+        /// <param name="X"></param>
+        /// <param name="x1"></param>
+        /// <param name="x2"></param>
+        /// <param name="y1"></param>
+        /// <param name="y2"></param>
+        /// <returns></returns>
+        private double getY(int X, int x1, int x2, int y1, int y2)
+        {
+            if (x1 - x2 != 0)
+            {
+                double k = k = (y1 - y2) / (x1 - x2);
+                double b = y1 - x1 * (y1 - y2) / (x1 - x2);
+                return k * X + b;
+            } else
+            {
+                return 0;
             }
         }
 
