@@ -50,7 +50,7 @@ namespace BecquerelMonitor
                     NuclideDefinition bestNuclide = null;
                     double minDelta = -1;
                     Peak peak = new Peak();
-                    peak.Channel = (int)Math.Round(centroid + 1);
+                    peak.Channel = (int)Math.Round(centroid);
                     peak.Energy = energySpectrum.EnergyCalibration.ChannelToEnergy(peak.Channel);
                     peak.SNR = (int)snr;
                     peak.FWHM = (int)fwhm;
