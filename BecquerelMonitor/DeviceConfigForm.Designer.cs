@@ -1,4 +1,6 @@
-﻿namespace BecquerelMonitor
+﻿using BecquerelMonitor.Properties;
+
+namespace BecquerelMonitor
 {
 	// Token: 0x02000066 RID: 102
 	public partial class DeviceConfigForm : global::System.Windows.Forms.Form
@@ -49,6 +51,7 @@
 			this.label48 = new global::System.Windows.Forms.Label();
 			this.label27 = new global::System.Windows.Forms.Label();
 			this.label26 = new global::System.Windows.Forms.Label();
+			this.label49 = new global::System.Windows.Forms.Label();
 			this.textBox19 = new global::System.Windows.Forms.TextBox();
 			this.comboBox4 = new global::System.Windows.Forms.ComboBox();
 			this.label25 = new global::System.Windows.Forms.Label();
@@ -453,6 +456,7 @@
 			this.tabPage5.BackColor = global::System.Drawing.SystemColors.Control;
 			this.tabPage5.Controls.Add(this.groupBox3);
 			this.tabPage5.Controls.Add(this.groupBox2);
+			this.tabPage5.Controls.Add(this.label49);
 			this.tabPage5.Name = "tabPage5";
 			componentResourceManager.ApplyResources(this.groupBox3, "groupBox3");
 			this.groupBox3.Controls.Add(this.label15);
@@ -466,6 +470,9 @@
 			this.groupBox3.Controls.Add(this.label10);
 			this.groupBox3.Name = "groupBox3";
 			this.groupBox3.TabStop = false;
+			componentResourceManager.ApplyResources(this.label49, "label49");
+			this.label49.Name = "label49";
+			this.label49.Text = Resources.FWHMPeakConfigDescription;
 			componentResourceManager.ApplyResources(this.label15, "label15");
 			this.label15.Name = "label15";
 			componentResourceManager.ApplyResources(this.label14, "label14");
@@ -911,6 +918,8 @@
 
 		// Token: 0x040002A6 RID: 678
 		global::System.Windows.Forms.Label label15;
+
+		global::System.Windows.Forms.Label label49;
 
 		// Token: 0x040002A7 RID: 679
 		global::System.Windows.Forms.Label label14;

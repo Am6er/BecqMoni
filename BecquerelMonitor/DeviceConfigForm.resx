@@ -705,6 +705,36 @@
   <data name="label41.Location" type="System.Drawing.Point, System.Drawing">
     <value>18, 131</value>
   </data>
+  <data name="&gt;&gt;label49.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="label49.TabIndex" type="System.Int32, mscorlib">
+    <value>10</value>
+  </data>
+  <data name="label49.Size" type="System.Drawing.Size, System.Drawing">
+    <value>92, 12</value>
+  </data>
+  <data name="label49.Text" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="label49.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="label49.Location" type="System.Drawing.Point, System.Drawing">
+    <value>18, 231</value>
+  </data>
+  <data name="&gt;&gt;label49.Name" xml:space="preserve">
+    <value>label49</value>
+  </data>
+  <data name="&gt;&gt;label49.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label49.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="label49.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
   <data name="textBox19.Size" type="System.Drawing.Size, System.Drawing">
     <value>343, 119</value>
   </data>
@@ -1261,7 +1291,7 @@
     <value>92, 12</value>
   </data>
   <data name="label46.Text" xml:space="preserve">
-    <value>FWHM peak width ch</value>
+    <value>FW peak width ch</value>
   </data>
   <data name="label46.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
