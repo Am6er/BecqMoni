@@ -71,15 +71,15 @@ namespace BecquerelMonitor
 
         void button12_Click(object sender, EventArgs e)
         {
-            this.energyCalibration.Coefficients[3] = this.defaultEnergyCalibration.Coefficients[3];
-            this.numericUpDown4.Text = this.energyCalibration.Coefficients[3].ToString();
+            this.energyCalibration.Coefficients[4] = this.defaultEnergyCalibration.Coefficients[4];
+            this.numericUpDown4.Text = this.energyCalibration.Coefficients[4].ToString();
             this.UpdateEnergyCalibration();
         }
 
         void button13_Click(object sender, EventArgs e)
         {
-            this.energyCalibration.Coefficients[4] = this.defaultEnergyCalibration.Coefficients[4];
-            this.numericUpDown5.Text = this.energyCalibration.Coefficients[4].ToString();
+            this.energyCalibration.Coefficients[3] = this.defaultEnergyCalibration.Coefficients[3];
+            this.numericUpDown5.Text = this.energyCalibration.Coefficients[3].ToString();
             this.UpdateEnergyCalibration();
         }
 
