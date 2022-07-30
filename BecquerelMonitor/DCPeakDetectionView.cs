@@ -95,7 +95,7 @@ namespace BecquerelMonitor
                 row.Cells.Add(new Cell(peak.FWHM.ToString()));
                 this.tableModel1.Rows.Add(row);
             }
-            this.table1.AutoResizeColumnWidths();
+            //this.table1.AutoResizeColumnWidths();
         }
 
         // Token: 0x06000440 RID: 1088 RVA: 0x00014468 File Offset: 0x00012668

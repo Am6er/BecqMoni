@@ -126,6 +126,9 @@
   <data name="BackgroundSelectionDialogTitle" xml:space="preserve">
     <value>Выберите файл фонового спектра</value>
   </data>
+  <data name="ButtonRefresh" xml:space="preserve">
+    <value>Обновить</value>
+  </data>
   <data name="CalibrationFunctionError" xml:space="preserve">
     <value>Функция калибровки должна монотонно возрастать при увеличиении канала. Проверьте калибровку!</value>
   </data>
@@ -364,6 +367,30 @@
   <data name="ExportSpectraToFileDialogTitle" xml:space="preserve">
     <value>Экспорт выбранного спектра в файл</value>
   </data>
+  <data name="FWHMPeakConfigDescription" xml:space="preserve">
+    <value>Как настраивать Поиск Пиков:
+
+FWHM в 0 канале - Должен быть выбран согласно вашему
+ fwhm максимально близко к 0 keV. Выделить такой пик 
+мышкой и внесите значение чуть меньше чем "FWHM ch"
+ в эту настройку.
+
+Канал пика FWHM - Выберите пик по центру спектра. 
+Великолепно для этого подходит пик K-40. 
+Введите значение положения центроида в каналах.
+
+FW пика в каналах - Ширина пика в каналах. Выбранный
+ пик из параметра "FWHM peak in ch" выделите мышкой
+ и введите сюда значение "FWHM ch".
+
+Обратите внимание, что FWHM пиков, указанные в 
+табличке "Обнаруженные пики" - это FWHM "очищенных"
+ от шумов пиков. И они не подойдут для прописывания
+ их в настройках поиска пиков. Наоборот, в настройках
+ поиска пиков следует указывать именно FWHM пиков
+ с учётом шумов (то есть как вы их сейчас видите 
+на спектре).</value>
+  </data>
   <data name="ImportAtomSpectraFileDialogTitle" xml:space="preserve">
     <value>Импорт файла Atom Spectra</value>
   </data>
@@ -381,6 +408,9 @@
   </data>
   <data name="InvalidValueDialogTitle" xml:space="preserve">
     <value>Некорректное введённое значение</value>
+  </data>
+  <data name="LabelVCPSpectraInfo" xml:space="preserve">
+    <value>Статус: {0}</value>
   </data>
   <data name="LibraryLicensesMessage" xml:space="preserve">
     <value>based on pulse shape discrimination algorithm of PRA for audio input devices
@@ -551,6 +581,12 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="UnnamedSpectrumName" xml:space="preserve">
     <value>(безымянный)</value>
+  </data>
+  <data name="VCPDeviceStatusConnected" xml:space="preserve">
+    <value>Подключён</value>
+  </data>
+  <data name="VCPDeviceStatusUnknown" xml:space="preserve">
+    <value>Неизвестно</value>
   </data>
   <data name="VersionString" xml:space="preserve">
     <value>версия {0}</value>

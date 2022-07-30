@@ -24,6 +24,8 @@ namespace BecquerelMonitor
             this.CommandLineIn = new System.Windows.Forms.TextBox();
             this.CommandLineOut = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
+            this.label3 = new System.Windows.Forms.Label();
+            this.button1 = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // comPortsBox
@@ -31,7 +33,7 @@ namespace BecquerelMonitor
             this.comPortsBox.FormattingEnabled = true;
             this.comPortsBox.Location = new System.Drawing.Point(135, 73);
             this.comPortsBox.Name = "comPortsBox";
-            this.comPortsBox.Size = new System.Drawing.Size(121, 21);
+            this.comPortsBox.Size = new System.Drawing.Size(60, 21);
             this.comPortsBox.TabIndex = 98;
             // 
             // label1
@@ -42,6 +44,24 @@ namespace BecquerelMonitor
             this.label1.Size = new System.Drawing.Size(56, 13);
             this.label1.TabIndex = 99;
             this.label1.Text = Resources.MSGComPort;
+            //
+            // button 1
+            //
+            this.button1.AutoSize = true;
+            this.button1.Location = new System.Drawing.Point(200, 72);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(56, 13);
+            this.button1.TabIndex = 103;
+            this.button1.Text = Resources.ButtonRefresh;
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(260, 76);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(56, 13);
+            this.label3.TabIndex = 104;
+            this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusUnknown);
             // 
             // CommandLineIn
             // 
@@ -80,21 +100,25 @@ namespace BecquerelMonitor
             this.Controls.Add(this.CommandLineOut);
             this.Controls.Add(this.CommandLineIn);
             this.Controls.Add(this.label1);
+            this.Controls.Add(this.label3);
+            this.Controls.Add(this.button1);
+            button1.Click += Button1_Click;
             this.Controls.Add(this.comPortsBox);
             this.Name = "AtomSpectraVCPDeviceForm";
             comPortsBox.SelectedIndexChanged += ComPortsBox_SelectedIndexChanged;
-            comPortsBox.DropDown += ComPortsBox_DropDown;
             this.Controls.SetChildIndex(this.comPortsBox, 0);
             this.Controls.SetChildIndex(this.label1, 0);
             this.Controls.SetChildIndex(this.CommandLineIn, 0);
             this.Controls.SetChildIndex(this.CommandLineOut, 0);
             this.Controls.SetChildIndex(this.label2, 0);
+            this.Controls.SetChildIndex(this.label3, 0);
+            this.Controls.SetChildIndex(this.button1, 0);
             this.ResumeLayout(false);
             this.PerformLayout();
 
         }
 
-        private void ComPortsBox_DropDown(object sender, EventArgs e)
+        private void Button1_Click(object sender, EventArgs e)
         {
             fillPorts();
         }
@@ -104,28 +128,28 @@ namespace BecquerelMonitor
             comPortsBox.Items.Clear();
             comPortsBox.Items.Add("-------");
             comPortsBox.Items.AddRange(SerialPort.GetPortNames());
+
             if (comPortsBox.Items.Count > 1)
             {
                 if (comPortsBox.Items.Contains(this.ComPort))
                 {
                     comPortsBox.SelectedIndex = comPortsBox.Items.IndexOf(this.ComPort);
-                    comPortsBox.ForeColor = Color.Black;
-                    label1.ForeColor = Color.Black;
-                    label1.Text = Resources.MSGComPort;
+                    label3.ForeColor = Color.Green;
+                    this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusConnected);
                 }
                 else
                 {
                     comPortsBox.Items.Add(this.ComPort);
                     comPortsBox.SelectedIndex = comPortsBox.Items.Count - 1;
-                    comPortsBox.ForeColor = Color.Red;
-                    label1.ForeColor = Color.Red;
-                    label1.Text = Resources.MSGComPort + " " + Resources.ErrorString;
+                    label3.ForeColor = Color.Red;
+                    this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusUnknown);
                 }
             }
         }
 
         private void ComPortsBox_SelectedIndexChanged(object sender, EventArgs e)
         {
+            //fillPorts();
             SetActiveDeviceConfigDirty();
         }
 

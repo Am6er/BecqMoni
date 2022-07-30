@@ -17,5 +17,7 @@ namespace BecquerelMonitor
         private TextBox CommandLineIn;
         private TextBox CommandLineOut;
         private Label label2;
+        private Label label3;
+        private Button button1;
     }
 }

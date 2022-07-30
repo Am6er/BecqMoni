@@ -571,7 +571,7 @@
     <value>Настр. ROI</value>
   </data>
   <data name="label2.Text" xml:space="preserve">
-    <value>Скор. счет cps</value>
+    <value>Скор. счета cps</value>
   </data>
   <data name="label3.Text" xml:space="preserve">
     <value>Устройство</value>

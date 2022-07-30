@@ -147,6 +147,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Refresh.
+        /// </summary>
+        internal static string ButtonRefresh {
+            get {
+                return ResourceManager.GetString("ButtonRefresh", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The calibration function should be monotonically increasing at channel &gt; 0. Re-check Calibration points!.
         /// </summary>
         internal static string CalibrationFunctionError {
@@ -975,6 +984,26 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to How to set Peak Detection values:
+        ///
+        ///FWHM at 0 ch - Should be selected according to your fwhm as close to 0 
+        ///keV as possible. Select such a peak with the mouse and enter
+        /// a value slightly less, than &quot;FWHM ch&quot; in this setting.
+        ///
+        ///FWHM peak in ch - Choose peak in the center of the spectrum.
+        ///The K-40 peak should be great. Enter the value of center 
+        ///position in the channels.
+        ///
+        ///FW peak width ch - The width of the peak in channels. Select peak from
+        /// the &quot;FWHM peak in ch&quot; parameter with the mouse and enter t [rest of string was truncated]&quot;;.
+        /// </summary>
+        internal static string FWHMPeakConfigDescription {
+            get {
+                return ResourceManager.GetString("FWHMPeakConfigDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
         internal static System.Drawing.Bitmap HD {
@@ -1056,6 +1085,15 @@ namespace BecquerelMonitor.Properties {
         internal static string InvalidValueDialogTitle {
             get {
                 return ResourceManager.GetString("InvalidValueDialogTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Status: {0}.
+        /// </summary>
+        internal static string LabelVCPSpectraInfo {
+            get {
+                return ResourceManager.GetString("LabelVCPSpectraInfo", resourceCulture);
             }
         }
         
@@ -1687,6 +1725,24 @@ namespace BecquerelMonitor.Properties {
             get {
                 object obj = ResourceManager.GetObject("Up", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Connected.
+        /// </summary>
+        internal static string VCPDeviceStatusConnected {
+            get {
+                return ResourceManager.GetString("VCPDeviceStatusConnected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unknown.
+        /// </summary>
+        internal static string VCPDeviceStatusUnknown {
+            get {
+                return ResourceManager.GetString("VCPDeviceStatusUnknown", resourceCulture);
             }
         }
         
