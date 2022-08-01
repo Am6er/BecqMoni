@@ -1086,21 +1086,8 @@ namespace BecquerelMonitor
         {
             if (this.activeDocument != null)
             {
-                //Destroy VCP threads
-                if (this.activeDocument.ActiveResultData.MeasurementController.DeviceController is AtomSpectraDeviceController)
-                {
-                    string guid = this.activeDocument.ActiveResultData.DeviceConfig.Guid;
-                    int documents_with_same_device_config_guid = 0;
-                    foreach (DocEnergySpectrum docEnergySpectrum in this.documentManager.DocumentList)
-                    {
-                        if (guid.Equals(docEnergySpectrum.ActiveResultData.DeviceConfig.Guid)) documents_with_same_device_config_guid++;
-                    }
-                    if (documents_with_same_device_config_guid < 2)
-                    {
-                        AtomSpectraVCPIn.cleanUp(this.activeDocument.ActiveResultData.DeviceConfig.Guid);
-                    }
-                }
                 this.StopRecordingOrTesting(this.activeDocument);
+                this.DestroyVCPThreads(this.activeDocument);
                 if (this.ConfirmSaveDocument(this.activeDocument))
                 {
                     this.UnsubscribeDocumentEvent(this.activeDocument);
@@ -1119,6 +1106,7 @@ namespace BecquerelMonitor
                 if (docEnergySpectrum.Filename == filename)
                 {
                     this.StopRecordingOrTesting(docEnergySpectrum);
+                    this.DestroyVCPThreads(docEnergySpectrum);
                     if (force || this.ConfirmSaveDocument(docEnergySpectrum))
                     {
                         this.UnsubscribeDocumentEvent(docEnergySpectrum);
@@ -1184,6 +1172,7 @@ namespace BecquerelMonitor
             {
                 this.dcSampleInfoView.SaveFormContents();
                 this.StopRecordingOrTesting(this.activeDocument);
+                this.DestroyVCPThreads(this.activeDocument);
                 if (!this.activeDocument.IsNamed)
                 {
                     this.documentManager.SaveDocumentWithName(this.activeDocument);
@@ -1200,6 +1189,7 @@ namespace BecquerelMonitor
             if (doc != null)
             {
                 this.StopRecordingOrTesting(doc);
+                this.DestroyVCPThreads(doc);
                 if (!this.activeDocument.IsNamed)
                 {
                     this.documentManager.SaveDocumentWithName(doc);
@@ -1409,6 +1399,26 @@ namespace BecquerelMonitor
             deviceConfigForm.SetUpperThreshold(deviceConfig, threshold);
         }
 
+        void DestroyVCPThreads (DocEnergySpectrum docEnergySpectrum)
+        {
+            if (docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController is AtomSpectraDeviceController)
+            {
+                string guid = docEnergySpectrum.ActiveResultData.DeviceConfig.Guid;
+                int documents_with_same_device_config_guid = 0;
+                foreach (DocEnergySpectrum doc in this.documentManager.DocumentList)
+                {
+                    if (guid.Equals(doc.ActiveResultData.DeviceConfig.Guid) && doc.ActiveResultData.MeasurementController.DeviceController != null)
+                    {
+                        documents_with_same_device_config_guid++;
+                    }
+                }
+                if (documents_with_same_device_config_guid < 2)
+                {
+                    AtomSpectraVCPIn.cleanUp(docEnergySpectrum.ActiveResultData.DeviceConfig.Guid);
+                }
+            }
+        }
+
         // Token: 0x06000A87 RID: 2695 RVA: 0x0003EBB8 File Offset: 0x0003CDB8
         void DocEnergySpectrum_FormClosing(object sender, FormClosingEventArgs e)
         {
@@ -1418,6 +1428,7 @@ namespace BecquerelMonitor
             }
             DocEnergySpectrum docEnergySpectrum = (DocEnergySpectrum)sender;
             this.StopRecordingOrTesting(docEnergySpectrum);
+            this.DestroyVCPThreads(docEnergySpectrum);
             if (!this.ConfirmSaveDocument(docEnergySpectrum))
             {
                 e.Cancel = true;
