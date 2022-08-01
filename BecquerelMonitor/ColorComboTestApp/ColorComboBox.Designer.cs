@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BecquerelMonitor.Properties;
+using System;
 using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
@@ -428,7 +429,7 @@ namespace ColorComboTestApp
 					}
 					this.moreColorsBtn = new Button();
 					this.moreColorsBtn.FlatStyle = FlatStyle.Flat;
-					this.moreColorsBtn.Text = "その他の色...";
+					this.moreColorsBtn.Text = Resources.ColorBTN;
 					this.moreColorsBtn.Location = new Point(3, num2 + 20);
 					this.moreColorsBtn.ClientSize = new Size(this.extended ? 160 : 80, 24);
 					this.moreColorsBtn.Click += this.OnMoreClicked;

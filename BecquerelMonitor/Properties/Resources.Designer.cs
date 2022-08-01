@@ -294,6 +294,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Other color....
+        /// </summary>
+        internal static string ColorBTN {
+            get {
+                return ResourceManager.GetString("ColorBTN", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Confirmation.
         /// </summary>
         internal static string ConfirmationDialogTitle {

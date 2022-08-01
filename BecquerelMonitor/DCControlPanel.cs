@@ -503,10 +503,6 @@ namespace BecquerelMonitor
                 {
                     return false;
                 }
-                if (dialogResult == DialogResult.Cancel)
-                {
-                    return false;
-                }
                 if (activeResultData.EnergySpectrum.ValidPulseCount > 0 && activeResultData.PulseCollection.Pulses.Count == 0)
                 {
                     activeResultData.EnergySpectrum.Initialize();
