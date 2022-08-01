@@ -1150,15 +1150,21 @@ namespace BecquerelMonitor
                 energyCalibration.Coefficients[i] = 0.0;
             }
             double[] matrix;
+            List<CalibrationPoint> points = this.calibrationPoints;
+            if (points.Count == 1)
+            {
+                CalibrationPoint zero = new CalibrationPoint(0, 0);
+                points.Add(zero);
+            }
             try
             {
                 if (this.calibrationPoints.Count >= 5)
                 {
-                    matrix = Utils.CalibrationSolver.Solve(this.calibrationPoints, 4);
+                    matrix = Utils.CalibrationSolver.Solve(points, 4);
                 }
                 else
                 {
-                    matrix = Utils.CalibrationSolver.Solve(this.calibrationPoints, this.calibrationPoints.Count - 1);
+                    matrix = Utils.CalibrationSolver.Solve(points, points.Count - 1);
                 }
                 if (matrix == null) throw new Exception("Error");
             }
@@ -1182,6 +1188,10 @@ namespace BecquerelMonitor
             this.numericUpDown7.Text = "0";
             this.numericUpDown8.Text = "0";
             this.numericUpDown9.Text = "0";
+            if (energyCalibration.PolynomialOrder >= 2)
+            {
+                this.numericUpDown1.Text = energyCalibration.Coefficients[2].ToString();
+            }
             if (energyCalibration.PolynomialOrder >= 3)
             {
                 this.numericUpDown9.Text = energyCalibration.Coefficients[3].ToString();
@@ -1190,7 +1200,6 @@ namespace BecquerelMonitor
             {
                 this.numericUpDown8.Text = energyCalibration.Coefficients[4].ToString();
             }
-            this.numericUpDown1.Text = energyCalibration.Coefficients[2].ToString();
             this.numericUpDown2.Text = energyCalibration.Coefficients[1].ToString();
             this.numericUpDown7.Text = energyCalibration.Coefficients[0].ToString();
             if (!energyCalibration.CheckCalibration())

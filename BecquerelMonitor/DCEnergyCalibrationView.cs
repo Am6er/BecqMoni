@@ -521,9 +521,16 @@ namespace BecquerelMonitor
 
             int PolynomOrder = (int)this.numericUpDown6.Value;
             double[] matrix;
+            List<CalibrationPoint> points = this.calibrationPoints;
+            if (points.Count == 1)
+            {
+                CalibrationPoint zero = new CalibrationPoint(0, 0);
+                points.Add(zero);
+                PolynomOrder += 1;
+            }
             try
             {
-                matrix = Utils.CalibrationSolver.Solve(this.calibrationPoints, PolynomOrder);
+                matrix = Utils.CalibrationSolver.Solve(points, PolynomOrder);
                 if (matrix == null) throw new Exception("Error");
             }
             catch (Exception)
