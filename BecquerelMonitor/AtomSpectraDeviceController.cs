@@ -146,19 +146,22 @@ namespace BecquerelMonitor
 
         private void update_hystogram(AtomSpectraVCPInDataReadyArgs e)
         {
-            e.Hystogram.CopyTo(this.pulseDetector.EnergySpectrum.Spectrum, 0);
-            int sum = 0;
-            foreach (int ch in e.Hystogram)
+            if (this.resultDataStatus.Recording)
             {
-                sum += ch;
-            }
-            this.pulseDetector.EnergySpectrum.TotalPulseCount = sum + e.InvalidPulses;
-            this.pulseDetector.EnergySpectrum.ValidPulseCount = sum;
-            this.pulseDetector.EnergySpectrum.ChannelPitch = 1;
-            if (this.resultData != null)
-            {
-                resultData.ResultDataStatus.TotalTime = TimeSpan.FromSeconds(e.ElapsedTime);
-                resultData.ResultDataStatus.ElapsedTime = resultData.ResultDataStatus.TotalTime;
+                e.Hystogram.CopyTo(this.pulseDetector.EnergySpectrum.Spectrum, 0);
+                int sum = 0;
+                foreach (int ch in e.Hystogram)
+                {
+                    sum += ch;
+                }
+                this.pulseDetector.EnergySpectrum.TotalPulseCount = sum + e.InvalidPulses;
+                this.pulseDetector.EnergySpectrum.ValidPulseCount = sum;
+                this.pulseDetector.EnergySpectrum.ChannelPitch = 1;
+                if (this.resultData != null)
+                {
+                    resultData.ResultDataStatus.TotalTime = TimeSpan.FromSeconds(e.ElapsedTime);
+                    resultData.ResultDataStatus.ElapsedTime = resultData.ResultDataStatus.TotalTime;
+                }
             }
         }
 
