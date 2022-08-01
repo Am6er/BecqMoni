@@ -4291,4 +4291,7 @@ see peak in spectrum now).</value>
   <data name="VCPDeviceStatusUnknown" xml:space="preserve">
     <value>Unknown</value>
   </data>
+  <data name="ColorBTN" xml:space="preserve">
+    <value>Other color...</value>
+  </data>
 </root>

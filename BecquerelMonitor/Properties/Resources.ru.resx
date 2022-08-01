@@ -165,6 +165,9 @@
   <data name="ChartHeaderSelection" xml:space="preserve">
     <value>Выбранная область</value>
   </data>
+  <data name="ColorBTN" xml:space="preserve">
+    <value>Другие цвета...</value>
+  </data>
   <data name="ConfirmationDialogTitle" xml:space="preserve">
     <value>Подтверждение</value>
   </data>

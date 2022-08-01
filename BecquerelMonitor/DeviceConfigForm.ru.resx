@@ -1074,9 +1074,11 @@
   <data name="&gt;&gt;numericUpDown9.ZOrder" xml:space="preserve">
     <value>3</value>
   </data>
+  <assembly alias="mscorlib" name="mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
   <data name="label49.TabIndex" type="System.Int32, mscorlib">
     <value>10</value>
   </data>
+  <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
   <data name="label49.Size" type="System.Drawing.Size, System.Drawing">
     <value>92, 12</value>
   </data>
@@ -1098,6 +1100,7 @@
   <data name="&gt;&gt;label49.ZOrder" xml:space="preserve">
     <value>0</value>
   </data>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
   <data name="label49.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
   </data>
@@ -1423,7 +1426,7 @@
     <value>Кол-во каналов</value>
   </data>
   <data name="label19.Text" xml:space="preserve">
-    <value>Настройки стабилизатора</value>
+    <value>Настройки автокалибратора</value>
   </data>
   <data name="label2.Text" xml:space="preserve">
     <value>(1 для цифровых спектрометров)</value>
