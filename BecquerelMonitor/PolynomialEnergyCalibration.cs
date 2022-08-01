@@ -101,11 +101,7 @@ namespace BecquerelMonitor
             {
                 return this.coefficients[2] * Math.Pow(n, 2) + this.coefficients[1] * n + this.coefficients[0];
             }
-            if (this.polynomialOrder == 1)
-            {
-                return this.coefficients[1] * n + this.coefficients[0];
-            }
-            return this.coefficients[0];
+            return this.coefficients[1] * n + this.coefficients[0];
         }
 
         // Token: 0x06000734 RID: 1844 RVA: 0x00029E1C File Offset: 0x0002801C
@@ -119,17 +115,9 @@ namespace BecquerelMonitor
             if (this.polynomialOrder == 1)
             {
                 double k = this.coefficients[1];
-                double b = this.coefficients[0] - enrg;
-
-                if (k == 0)
-                {
-                    System.Windows.Forms.MessageBox.Show("For y = k*x - b, k != 0. Assuming this error, and set k = 1.");
-                    return (enrg - b);
-                }
-                else
-                {
-                    return (enrg - b) / k;
-                }
+                double b = this.coefficients[0];
+                if (k == 0) k = 1;
+                return (enrg - b) / k;
             }
 
             if (this.polynomialOrder == 2)
