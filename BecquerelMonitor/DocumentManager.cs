@@ -470,7 +470,6 @@ namespace BecquerelMonitor
                             MessageBox.Show(Resources.CalibrationFunctionError);
                         }
 
-                        doc.EnergySpectrumView.FitHorizontalScale();
                     }
                 }
                 Cursor.Current = Cursors.Default;
@@ -597,8 +596,6 @@ namespace BecquerelMonitor
                 {
                     MessageBox.Show(Resources.ERRUnsuportedEnergyBoundaryN42);
                 }
-
-                doc.EnergySpectrumView.FitHorizontalScale();
 
                 Cursor.Current = Cursors.Default;
             }
