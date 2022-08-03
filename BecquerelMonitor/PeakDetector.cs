@@ -35,8 +35,15 @@ namespace BecquerelMonitor
                 FWHMPeakDetectionMethodConfig.Ch_Fwhm, 
                 FWHMPeakDetectionMethodConfig.Width_Fwhm,
                 FWHMPeakDetectionMethodConfig.FWHM_AT_0);
-            FWHMPeakDetector.PeakFinder finder = new FWHMPeakDetector.PeakFinder(spec, kernel);
-            finder.find_peaks(min_range_ch, max_range_ch, FWHMPeakDetectionMethodConfig.Min_SNR, FWHMPeakDetectionMethodConfig.Max_Items);
+            FWHMPeakDetector.PeakFinder finder = new FWHMPeakDetector.PeakFinder(
+                spec, 
+                kernel,
+                fwhm_tol_min: FWHMPeakDetectionMethodConfig.Min_FWHM_Tol,
+                fwhm_tol_max: FWHMPeakDetectionMethodConfig.Max_FWHM_Tol);
+            finder.find_peaks(min_range_ch,
+                max_range_ch, 
+                FWHMPeakDetectionMethodConfig.Min_SNR, 
+                FWHMPeakDetectionMethodConfig.Max_Items);
 
             resultData.DetectedPeaks.Clear();
             

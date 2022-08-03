@@ -702,8 +702,62 @@
   <data name="label1.Size" type="System.Drawing.Size, System.Drawing">
     <value>101, 12</value>
   </data>
-  <data name="label41.Location" type="System.Drawing.Point, System.Drawing">
+  <data name="label50.Text" xml:space="preserve">
+    <value>Min Δ FWHM %</value>
+  </data>
+  <data name="label50.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="label50.Location" type="System.Drawing.Point, System.Drawing">
     <value>18, 131</value>
+  </data>
+  <data name="&gt;&gt;label50.Name" xml:space="preserve">
+    <value>label50</value>
+  </data>
+  <data name="&gt;&gt;label50.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="label50.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="label50.TabIndex" type="System.Int32, mscorlib">
+    <value>16</value>
+  </data>
+  <data name="&gt;&gt;label50.ZOrder" xml:space="preserve">
+    <value>5</value>
+  </data>
+  <data name="&gt;&gt;label50.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="label51.Text" xml:space="preserve">
+    <value>Max Δ FWHM %</value>
+  </data>
+  <data name="label51.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="label51.Location" type="System.Drawing.Point, System.Drawing">
+    <value>18, 155</value>
+  </data>
+  <data name="&gt;&gt;label51.Name" xml:space="preserve">
+    <value>label51</value>
+  </data>
+  <data name="&gt;&gt;label51.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="label51.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="label51.TabIndex" type="System.Int32, mscorlib">
+    <value>16</value>
+  </data>
+  <data name="&gt;&gt;label51.ZOrder" xml:space="preserve">
+    <value>5</value>
+  </data>
+  <data name="&gt;&gt;label51.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="label41.Location" type="System.Drawing.Point, System.Drawing">
+    <value>18, 107</value>
   </data>
   <data name="&gt;&gt;label49.Parent" xml:space="preserve">
     <value>groupBox2</value>
@@ -853,7 +907,7 @@
     <value>0</value>
   </data>
   <data name="groupBox2.Size" type="System.Drawing.Size, System.Drawing">
-    <value>441, 166</value>
+    <value>441, 190</value>
   </data>
   <data name="groupBox2.Text" xml:space="preserve">
     <value>Peak Detection</value>
@@ -1756,7 +1810,7 @@
     <value>XPTable.Models.TableModel, BecquerelMonitorPlus, Version=1.0.22.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="label42.Location" type="System.Drawing.Point, System.Drawing">
-    <value>197, 131</value>
+    <value>192, 107</value>
   </data>
   <data name="label1.Location" type="System.Drawing.Point, System.Drawing">
     <value>6, 96</value>
@@ -2083,7 +2137,7 @@
     <value>7</value>
   </data>
   <data name="numericUpDown6.Location" type="System.Drawing.Point, System.Drawing">
-    <value>118, 129</value>
+    <value>118, 105</value>
   </data>
   <data name="&gt;&gt;tabPage5.Type" xml:space="preserve">
     <value>System.Windows.Forms.TabPage, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
@@ -2509,6 +2563,54 @@
     <value>numericUpDown13</value>
   </data>
   <data name="&gt;&gt;numericUpDown13.Type" xml:space="preserve">
+    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="numericUpDown14.Location" type="System.Drawing.Point, System.Drawing">
+    <value>118, 130</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown14.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown14.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="numericUpDown14.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
+    <value>Right</value>
+  </data>
+  <data name="numericUpDown14.TabIndex" type="System.Int32, mscorlib">
+    <value>7</value>
+  </data>
+  <data name="numericUpDown14.Size" type="System.Drawing.Size, System.Drawing">
+    <value>73, 19</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown14.Name" xml:space="preserve">
+    <value>numericUpDown14</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown14.Type" xml:space="preserve">
+    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="numericUpDown15.Location" type="System.Drawing.Point, System.Drawing">
+    <value>118, 155</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown15.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown15.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="numericUpDown15.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
+    <value>Right</value>
+  </data>
+  <data name="numericUpDown15.TabIndex" type="System.Int32, mscorlib">
+    <value>7</value>
+  </data>
+  <data name="numericUpDown15.Size" type="System.Drawing.Size, System.Drawing">
+    <value>73, 19</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown15.Name" xml:space="preserve">
+    <value>numericUpDown14</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown15.Type" xml:space="preserve">
     <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="button2.Size" type="System.Drawing.Size, System.Drawing">

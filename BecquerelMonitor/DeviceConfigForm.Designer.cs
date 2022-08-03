@@ -52,6 +52,8 @@ namespace BecquerelMonitor
 			this.label27 = new global::System.Windows.Forms.Label();
 			this.label26 = new global::System.Windows.Forms.Label();
 			this.label49 = new global::System.Windows.Forms.Label();
+			this.label50 = new global::System.Windows.Forms.Label();
+			this.label51 = new global::System.Windows.Forms.Label();
 			this.textBox19 = new global::System.Windows.Forms.TextBox();
 			this.comboBox4 = new global::System.Windows.Forms.ComboBox();
 			this.label25 = new global::System.Windows.Forms.Label();
@@ -117,6 +119,8 @@ namespace BecquerelMonitor
 			this.numericUpDown11 = new global::System.Windows.Forms.NumericUpDown();
 			this.numericUpDown12 = new global::System.Windows.Forms.NumericUpDown();
 			this.numericUpDown13 = new global::System.Windows.Forms.NumericUpDown();
+			this.numericUpDown14 = new global::System.Windows.Forms.NumericUpDown();
+			this.numericUpDown15 = new global::System.Windows.Forms.NumericUpDown();
 			this.label41 = new global::System.Windows.Forms.Label();
 			this.label39 = new global::System.Windows.Forms.Label();
 			this.numericUpDown5 = new global::System.Windows.Forms.NumericUpDown();
@@ -508,24 +512,32 @@ namespace BecquerelMonitor
 			this.groupBox2.Controls.Add(this.label46);
 			this.groupBox2.Controls.Add(this.label47);
 			this.groupBox2.Controls.Add(this.label48);
+			this.groupBox2.Controls.Add(this.label50);
+			this.groupBox2.Controls.Add(this.label51);
 			this.groupBox2.Controls.Add(this.numericUpDown10);
 			this.groupBox2.Controls.Add(this.numericUpDown11);
 			this.groupBox2.Controls.Add(this.numericUpDown12);
 			this.groupBox2.Controls.Add(this.numericUpDown13);
+			this.groupBox2.Controls.Add(this.numericUpDown14);
+			this.groupBox2.Controls.Add(this.numericUpDown15);
 			this.groupBox2.Name = "groupBox2";
 			this.groupBox2.TabStop = false;
 			componentResourceManager.ApplyResources(this.label40, "label40");
 			this.label40.Name = "label40";
 			componentResourceManager.ApplyResources(this.label45, "label45");
-			this.label40.Name = "label45";
+			this.label45.Name = "label45";
 			componentResourceManager.ApplyResources(this.label46, "label46");
-			this.label40.Name = "label46";
+			this.label46.Name = "label46";
 			componentResourceManager.ApplyResources(this.label42, "label42");
 			this.label42.Name = "label42";
 			componentResourceManager.ApplyResources(this.label47, "label47");
-			this.label40.Name = "label47";
+			this.label47.Name = "label47";
 			componentResourceManager.ApplyResources(this.label48, "label48");
-			this.label40.Name = "label48";
+			this.label48.Name = "label48";
+			componentResourceManager.ApplyResources(this.label50, "label50");
+			this.label50.Name = "label50";
+			componentResourceManager.ApplyResources(this.label51, "label51");
+			this.label51.Name = "label51";
 
 			componentResourceManager.ApplyResources(this.numericUpDown4, "numericUpDown4");
 			global::System.Windows.Forms.NumericUpDown numericUpDown4 = this.numericUpDown4;
@@ -576,6 +588,15 @@ namespace BecquerelMonitor
 			componentResourceManager.ApplyResources(this.label39, "label39");
 			this.label39.Name = "label39";
 
+			componentResourceManager.ApplyResources(this.numericUpDown14, "numericUpDown14");
+			global::System.Windows.Forms.NumericUpDown numericUpDown14 = this.numericUpDown14;
+			this.numericUpDown14.Name = "numericUpDown14";
+			this.numericUpDown14.ValueChanged += new global::System.EventHandler(this.numericUpDown14_ValueChanged);
+
+			componentResourceManager.ApplyResources(this.numericUpDown15, "numericUpDown15");
+			global::System.Windows.Forms.NumericUpDown numericUpDown15 = this.numericUpDown15;
+			this.numericUpDown15.Name = "numericUpDown15";
+			this.numericUpDown15.ValueChanged += new global::System.EventHandler(this.numericUpDown15_ValueChanged);
 			
 			//global::System.Windows.Forms.NumericUpDown numericUpDown12 = this.numericUpDown12;
 			//global::System.Windows.Forms.NumericUpDown numericUpDown13 = this.numericUpDown13;
@@ -809,6 +830,10 @@ namespace BecquerelMonitor
 
 		global::System.Windows.Forms.NumericUpDown numericUpDown13;
 
+		global::System.Windows.Forms.NumericUpDown numericUpDown14;
+
+		global::System.Windows.Forms.NumericUpDown numericUpDown15;
+
 		// Token: 0x04000285 RID: 645
 		global::System.Windows.Forms.NumericUpDown numericUpDown5;
 
@@ -920,6 +945,10 @@ namespace BecquerelMonitor
 		global::System.Windows.Forms.Label label15;
 
 		global::System.Windows.Forms.Label label49;
+
+		global::System.Windows.Forms.Label label50;
+
+		global::System.Windows.Forms.Label label51;
 
 		// Token: 0x040002A7 RID: 679
 		global::System.Windows.Forms.Label label14;
