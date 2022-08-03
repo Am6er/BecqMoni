@@ -263,6 +263,12 @@ namespace BecquerelMonitor
             this.view.DrawingMode = globalConfig.ChartViewConfig.DefaultDrawingMode;
             this.view.PeakMode = globalConfig.ChartViewConfig.DefaultPeakMode;
             this.SetToolStripIcons();
+            toolStripContainer1.BottomToolStripPanel.SuspendLayout();
+            toolStrip1.Dock = DockStyle.None;
+            toolStrip2.Dock = DockStyle.None;
+            toolStrip1.Location = new Point(globalConfig.ToolStrip1_X, 0);
+            toolStrip2.Location = new Point(globalConfig.ToolStrip2_X, 0);
+            toolStripContainer1.BottomToolStripPanel.ResumeLayout();
         }
 
         // Token: 0x06000320 RID: 800 RVA: 0x0000F9E4 File Offset: 0x0000DBE4
@@ -995,11 +1001,8 @@ namespace BecquerelMonitor
         // Token: 0x0600035C RID: 860 RVA: 0x00010AF0 File Offset: 0x0000ECF0
         void toolStrip1_EndDrag(object sender, EventArgs e)
         {
-            if (this.toolStrip1.Parent.Parent != this.toolStripContainer1)
-            {
-                this.toolStripContainer1.BottomToolStripPanel.Controls.Add(this.toolStrip1);
-                this.toolStrip1.Left = 0;
-            }
+            GlobalConfigInfo gc = GlobalConfigManager.GetInstance().GlobalConfig;
+            gc.ToolStrip1_X = this.toolStrip1.Location.X;
         }
 
         // Token: 0x0600035D RID: 861 RVA: 0x00010B44 File Offset: 0x0000ED44
@@ -1011,11 +1014,8 @@ namespace BecquerelMonitor
         // Token: 0x0600035E RID: 862 RVA: 0x00010B58 File Offset: 0x0000ED58
         void toolStrip2_EndDrag(object sender, EventArgs e)
         {
-            if (this.toolStrip2.Parent.Parent != this.toolStripContainer1)
-            {
-                this.toolStripContainer1.BottomToolStripPanel.Controls.Add(this.toolStrip2);
-                this.toolStrip2.Left = 0;
-            }
+            GlobalConfigInfo gc = GlobalConfigManager.GetInstance().GlobalConfig;
+            gc.ToolStrip2_X = this.toolStrip2.Location.X;
         }
 
         // Token: 0x0600035F RID: 863 RVA: 0x00010BAC File Offset: 0x0000EDAC
