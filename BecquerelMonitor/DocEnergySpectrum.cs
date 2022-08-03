@@ -4,6 +4,7 @@ using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
 using WeifenLuo.WinFormsUI.Docking;
+using System.Diagnostics;
 
 namespace BecquerelMonitor
 {
@@ -247,6 +248,7 @@ namespace BecquerelMonitor
         // Token: 0x0600031F RID: 799 RVA: 0x0000F8A8 File Offset: 0x0000DAA8
         public DocEnergySpectrum()
         {
+            this.formLoading = true;
             this.InitializeComponent();
             this.resultDataFile = new ResultDataFile();
             this.resultDataFile.InitFormatVersion();
@@ -269,6 +271,7 @@ namespace BecquerelMonitor
             toolStrip1.Location = new Point(globalConfig.ToolStrip1_X, 0);
             toolStrip2.Location = new Point(globalConfig.ToolStrip2_X, 0);
             toolStripContainer1.BottomToolStripPanel.ResumeLayout();
+            this.formLoading = false;
         }
 
         // Token: 0x06000320 RID: 800 RVA: 0x0000F9E4 File Offset: 0x0000DBE4
@@ -992,30 +995,28 @@ namespace BecquerelMonitor
             this.ShowEnergyCalibrationView(this, new ShowEnergyCalibrationViewEventArgs(this.activeEnergyCalibration));
         }
 
-        // Token: 0x0600035B RID: 859 RVA: 0x00010ADC File Offset: 0x0000ECDC
-        void toolStrip1_BeginDrag(object sender, EventArgs e)
-        {
-            this.toolStrip1.Tag = this.toolStripContainer1;
-        }
-
         // Token: 0x0600035C RID: 860 RVA: 0x00010AF0 File Offset: 0x0000ECF0
-        void toolStrip1_EndDrag(object sender, EventArgs e)
+        void toolStrip1_LocationChanged(object sender, EventArgs e)
         {
-            GlobalConfigInfo gc = GlobalConfigManager.GetInstance().GlobalConfig;
-            gc.ToolStrip1_X = this.toolStrip1.Location.X;
-        }
-
-        // Token: 0x0600035D RID: 861 RVA: 0x00010B44 File Offset: 0x0000ED44
-        void toolStrip2_BeginDrag(object sender, EventArgs e)
-        {
-            this.toolStrip2.Tag = this.toolStripContainer1;
+            if (!this.formLoading)
+            {
+                GlobalConfigInfo gc = GlobalConfigManager.GetInstance().GlobalConfig;
+                gc.ToolStrip1_X = this.toolStrip1.Location.X;
+                gc.ToolStrip2_X = this.toolStrip2.Location.X;
+                Trace.WriteLine(String.Format("toolStrip1: {0} - {1} toolStrip2: {2} - {3}", gc.ToolStrip1_X, gc.ToolStrip1_X + this.toolStrip1.Width, gc.ToolStrip2_X, gc.ToolStrip2_X + this.toolStrip2.Width));
+            }
         }
 
         // Token: 0x0600035E RID: 862 RVA: 0x00010B58 File Offset: 0x0000ED58
-        void toolStrip2_EndDrag(object sender, EventArgs e)
+        void toolStrip2_LocationChanged(object sender, EventArgs e)
         {
-            GlobalConfigInfo gc = GlobalConfigManager.GetInstance().GlobalConfig;
-            gc.ToolStrip2_X = this.toolStrip2.Location.X;
+            if (!this.formLoading)
+            {
+                GlobalConfigInfo gc = GlobalConfigManager.GetInstance().GlobalConfig;
+                gc.ToolStrip1_X = this.toolStrip1.Location.X;
+                gc.ToolStrip2_X = this.toolStrip2.Location.X;
+                Trace.WriteLine(String.Format("toolStrip1: {0} - {1} toolStrip2: {2} - {3}", gc.ToolStrip1_X, gc.ToolStrip1_X + this.toolStrip1.Width, gc.ToolStrip2_X, gc.ToolStrip2_X + this.toolStrip2.Width));
+            }
         }
 
         // Token: 0x0600035F RID: 863 RVA: 0x00010BAC File Offset: 0x0000EDAC
@@ -1188,5 +1189,7 @@ namespace BecquerelMonitor
 
         // Token: 0x04000154 RID: 340
         bool isActivating;
+
+        bool formLoading = true;
     }
 }
