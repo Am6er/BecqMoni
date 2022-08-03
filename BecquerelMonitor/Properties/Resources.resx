@@ -4294,4 +4294,7 @@ see peak in spectrum now).</value>
   <data name="ColorBTN" xml:space="preserve">
     <value>Other color...</value>
   </data>
+  <data name="AtomSpectraExportDialogTitle" xml:space="preserve">
+    <value>Export Atom Spectra v3 file</value>
+  </data>
 </root>

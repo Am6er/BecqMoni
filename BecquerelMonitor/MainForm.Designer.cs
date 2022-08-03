@@ -55,6 +55,7 @@ namespace BecquerelMonitor
 			this.AtomSpectraStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.N42StripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.N42ExpStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.AtomSpectraExpStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.cSVFileToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.エクスポ\u30FCトEToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.cSVCToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
@@ -193,6 +194,7 @@ namespace BecquerelMonitor
 			this.エクスポ\u30FCトEToolStripMenuItem.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
 				this.N42ExpStripMenuItem,
+				this.AtomSpectraExpStripMenuItem,
 				this.cSVCToolStripMenuItem,
 				this.fWHM用ToolStripMenuItem
 			});
@@ -200,6 +202,9 @@ namespace BecquerelMonitor
 			componentResourceManager.ApplyResources(this.N42ExpStripMenuItem, "N42ExpStripMenuItem");
 			this.N42ExpStripMenuItem.Name = "N42ExpStripMenuItem";
 			this.N42ExpStripMenuItem.Click += new global::System.EventHandler(this.N42ExpStripMenuItem_Click);
+			componentResourceManager.ApplyResources(this.AtomSpectraExpStripMenuItem, "AtomSpectraExpStripMenuItem");
+			this.AtomSpectraExpStripMenuItem.Name = "AtomSpectraExpStripMenuItem";
+			this.AtomSpectraExpStripMenuItem.Click += new global::System.EventHandler(this.AtomSpectraExpStripMenuItem_Click);
 			componentResourceManager.ApplyResources(this.cSVCToolStripMenuItem, "cSVCToolStripMenuItem");
 			this.cSVCToolStripMenuItem.Name = "cSVCToolStripMenuItem";
 			this.cSVCToolStripMenuItem.Click += new global::System.EventHandler(this.cSVCToolStripMenuItem_Click);
@@ -589,6 +594,8 @@ namespace BecquerelMonitor
 		global::System.Windows.Forms.ToolStripMenuItem N42StripMenuItem;
 
 		global::System.Windows.Forms.ToolStripMenuItem N42ExpStripMenuItem;
+
+		global::System.Windows.Forms.ToolStripMenuItem AtomSpectraExpStripMenuItem;
 
 		// Token: 0x040005A8 RID: 1448
 		global::System.Windows.Forms.ToolStripMenuItem スペクトル一覧LToolStripMenuItem;

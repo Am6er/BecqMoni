@@ -621,6 +621,75 @@ namespace BecquerelMonitor
             }
         }
 
+        public void ExportDocumentAtomSpectra(DocEnergySpectrum doc)
+        {
+            GC.Collect();
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.Title = Resources.AtomSpectraExportDialogTitle;
+            saveFileDialog.Filter = Resources.AtomSpectraFileFilter;
+            saveFileDialog.FilterIndex = 1;
+            saveFileDialog.RestoreDirectory = true;
+            saveFileDialog.FileName = doc.Text + ".txt";
+            if (saveFileDialog.ShowDialog() != DialogResult.OK)
+            {
+                return;
+            }
+            Cursor.Current = Cursors.WaitCursor;
+            string fileName = saveFileDialog.FileName;
+
+            EnergySpectrum energySpectrum = doc.ActiveResultData.EnergySpectrum;
+            SampleInfoData info = doc.ActiveResultData.SampleInfo;
+            PolynomialEnergyCalibration polynomialEnergyCalibration = (PolynomialEnergyCalibration)energySpectrum.EnergyCalibration;
+            try
+            {
+                using (var writer = new System.IO.StreamWriter(fileName))
+                {
+                    //FORMAT: 3
+                    writer.WriteLine("FORMAT: 3");
+                    //2022.02.04 14:21:15 +0300 Counts: 41129508, ~cps: 227.430, Time: 180845.00 s, Coord: 55°40'56.189" N 37°35'40.792" E at 2022.02.04 14:20:47 +0300
+                    string title = info.Time.ToLocalTime().ToString("yyyy.MM.dd HH:mm:ss zzzz");
+                    title += " Counts: " + energySpectrum.TotalPulseCount;
+                    title += ", ~cps: " + (energySpectrum.TotalPulseCount / energySpectrum.MeasurementTime).ToString("f3");
+                    title += ", Time: " + energySpectrum.MeasurementTime + " s";
+                    writer.WriteLine(title);
+                    //1643973675060 Measurement time
+                    writer.WriteLine(info.Time.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds);
+                    //1643973647530 GPS taken time
+                    writer.WriteLine("0");
+                    //55.682275
+                    writer.WriteLine("0");
+                    //37.594665
+                    writer.WriteLine("0");
+                    //Am241
+                    writer.WriteLine(doc.Text);
+                    //Empty Line
+                    writer.WriteLine("");
+                    //180845.000000
+                    writer.WriteLine(energySpectrum.MeasurementTime);
+                    //8192
+                    writer.WriteLine(energySpectrum.NumberOfChannels);
+                    //4
+                    writer.WriteLine(polynomialEnergyCalibration.PolynomialOrder);
+                    //Write coefficients
+                    for (int i = 0; i <= polynomialEnergyCalibration.PolynomialOrder; i++)
+                    {
+                        writer.WriteLine(polynomialEnergyCalibration.Coefficients[i]);
+                    }
+                    //Write Channels
+                    for (int i = 0; i < energySpectrum.NumberOfChannels; i++)
+                    {
+                        writer.WriteLine(energySpectrum.Spectrum[i]);
+                    }
+                    writer.Flush();
+                }
+
+            } catch (Exception ex)
+            {
+                MessageBox.Show(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message));
+            }
+            Cursor.Current = Cursors.Default;
+        }
+
         public void ExportDocumentN42(DocEnergySpectrum doc)
         {
             SaveFileDialog saveFileDialog = new SaveFileDialog();
@@ -646,12 +715,12 @@ namespace BecquerelMonitor
                     xmlSerializer.Serialize(writer, rad);
                     writer.Flush();
                 }
-                Cursor.Current = Cursors.Default;
             }
             catch (Exception ex)
             {
                 MessageBox.Show(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message));
             }
+            Cursor.Current = Cursors.Default;
         }
 
         // Token: 0x06000272 RID: 626 RVA: 0x00009FD4 File Offset: 0x000081D4

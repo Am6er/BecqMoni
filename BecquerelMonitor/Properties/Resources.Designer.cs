@@ -70,6 +70,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Export Atom Spectra v3 file.
+        /// </summary>
+        internal static string AtomSpectraExportDialogTitle {
+            get {
+                return ResourceManager.GetString("AtomSpectraExportDialogTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Atom Spectra Files (*.txt)|*.txt|All Files (*.*)|*.*.
         /// </summary>
         internal static string AtomSpectraFileFilter {
