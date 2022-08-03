@@ -25,6 +25,9 @@ namespace BecquerelMonitor
             int min_range_ch = (int)energySpectrum.EnergyCalibration.EnergyToChannel(FWHMPeakDetectionMethodConfig.Min_Range);
             int max_range_ch = (int)energySpectrum.EnergyCalibration.EnergyToChannel(FWHMPeakDetectionMethodConfig.Max_Range);
 
+            double fwhm_tol_min = ((double)FWHMPeakDetectionMethodConfig.Min_FWHM_Tol) / 100;
+            double fwhm_tol_max = ((double)FWHMPeakDetectionMethodConfig.Max_FWHM_Tol) / 100;
+
             FWHMPeakDetector.Spectrum spec = new FWHMPeakDetector.Spectrum(energySpectrum);
             int mul = energySpectrum.NumberOfChannels / 1024;
             if (mul > 1)
@@ -38,8 +41,8 @@ namespace BecquerelMonitor
             FWHMPeakDetector.PeakFinder finder = new FWHMPeakDetector.PeakFinder(
                 spec, 
                 kernel,
-                fwhm_tol_min: FWHMPeakDetectionMethodConfig.Min_FWHM_Tol,
-                fwhm_tol_max: FWHMPeakDetectionMethodConfig.Max_FWHM_Tol);
+                fwhm_tol_min: fwhm_tol_min,
+                fwhm_tol_max: fwhm_tol_max);
             finder.find_peaks(min_range_ch,
                 max_range_ch, 
                 FWHMPeakDetectionMethodConfig.Min_SNR, 
