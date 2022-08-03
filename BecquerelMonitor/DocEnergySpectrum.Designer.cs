@@ -114,7 +114,6 @@
 			this.toolStrip2.Name = "toolStrip2";
 			this.toolStrip2.SuppressHighlighting = false;
 			this.toolTip1.SetToolTip(this.toolStrip2, componentResourceManager.GetString("toolStrip2.ToolTip"));
-			this.toolStrip2.LocationChanged += new global::System.EventHandler(this.toolStrip2_LocationChanged);
 			componentResourceManager.ApplyResources(this.toolStripLabel2, "toolStripLabel2");
 			this.toolStripLabel2.Name = "toolStripLabel2";
 			componentResourceManager.ApplyResources(this.toolStripSplitButton7, "toolStripSplitButton7");
@@ -225,7 +224,6 @@
 			this.toolStrip1.Name = "toolStrip1";
 			this.toolStrip1.SuppressHighlighting = false;
 			this.toolTip1.SetToolTip(this.toolStrip1, componentResourceManager.GetString("toolStrip1.ToolTip"));
-			this.toolStrip1.LocationChanged += new global::System.EventHandler(this.toolStrip1_LocationChanged);
 			componentResourceManager.ApplyResources(this.toolStripLabel1, "toolStripLabel1");
 			this.toolStripLabel1.Name = "toolStripLabel1";
 			componentResourceManager.ApplyResources(this.toolStripSplitButton1, "toolStripSplitButton1");
