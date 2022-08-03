@@ -352,30 +352,6 @@ namespace BecquerelMonitor
             }
         }
 
-        public int ToolStrip1_X
-        {
-            get
-            {
-                return this.toolStrip1_x;
-            }
-            set
-            {
-                this.toolStrip1_x = value;
-            }
-        }
-
-        public int ToolStrip2_X
-        {
-            get
-            {
-                return this.toolStrip2_x;
-            }
-            set
-            {
-                this.toolStrip2_x = value;
-            }
-        }
-
         // Token: 0x040008AF RID: 2223
         int mainFormTop = 100;
 
@@ -452,8 +428,5 @@ namespace BecquerelMonitor
 
         // Token: 0x040008C5 RID: 2245
         SoundConfig soundConfig = new SoundConfig();
-
-        int toolStrip1_x = 3;
-        int toolStrip2_x = 325;
     }
 }
