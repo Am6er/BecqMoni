@@ -1,6 +1,5 @@
 ﻿using BecquerelMonitor.Hash;
 using BecquerelMonitor.Properties;
-using MathNet.Numerics.LinearAlgebra;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -448,6 +447,18 @@ namespace BecquerelMonitor
             this.numericUpDown13.Increment = 1;
             this.numericUpDown13.Value = (decimal)FWHMPeakDetectionMethodConfig.Max_Range;
 
+            this.numericUpDown14.DecimalPlaces = 1;
+            this.numericUpDown14.Minimum = 0.1m;
+            this.numericUpDown14.Maximum = 0.9m;
+            this.numericUpDown14.Increment = 0.1m;
+            this.numericUpDown14.Value = (decimal)FWHMPeakDetectionMethodConfig.Min_FWHM_Tol;
+
+            this.numericUpDown15.DecimalPlaces = 1;
+            this.numericUpDown15.Minimum = 1.1m;
+            this.numericUpDown15.Maximum = 1.9m;
+            this.numericUpDown15.Increment = 0.1m;
+            this.numericUpDown15.Value = (decimal)FWHMPeakDetectionMethodConfig.Max_FWHM_Tol;
+
             this.textBox17.Text = config.BackgroundSpectrumPathname;
             this.contentsLoading = false;
         }
@@ -513,6 +524,8 @@ namespace BecquerelMonitor
                 FWHMPeakDetectionMethodConfig.Width_Fwhm = (double)this.numericUpDown11.Value;
                 FWHMPeakDetectionMethodConfig.Min_Range = (double)this.numericUpDown12.Value;
                 FWHMPeakDetectionMethodConfig.Max_Range = (double)this.numericUpDown13.Value;
+                FWHMPeakDetectionMethodConfig.Min_FWHM_Tol = (double)this.numericUpDown14.Value;
+                FWHMPeakDetectionMethodConfig.Max_FWHM_Tol = (double)this.numericUpDown15.Value;
                 config.BackgroundSpectrumPathname = this.textBox17.Text;
             }
             catch (Exception)
@@ -1344,6 +1357,24 @@ namespace BecquerelMonitor
             if (this.numericUpDown12.Value >= this.numericUpDown13.Value)
             {
                 this.numericUpDown13.Value = this.numericUpDown12.Value + 1;
+            }
+            this.SetActiveDeviceConfigDirty();
+        }
+
+        void numericUpDown14_ValueChanged(object sender, EventArgs e)
+        {
+            if (this.numericUpDown14.Value >= this.numericUpDown15.Value)
+            {
+                this.numericUpDown15.Value = this.numericUpDown14.Value + 0.1m;
+            }
+            this.SetActiveDeviceConfigDirty();
+        }
+
+        void numericUpDown15_ValueChanged(object sender, EventArgs e)
+        {
+            if (this.numericUpDown14.Value >= this.numericUpDown15.Value)
+            {
+                this.numericUpDown15.Value = this.numericUpDown14.Value + 0.1m;
             }
             this.SetActiveDeviceConfigDirty();
         }

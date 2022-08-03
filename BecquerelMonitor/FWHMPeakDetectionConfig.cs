@@ -99,6 +99,30 @@
             }
         }
 
+        public double Min_FWHM_Tol
+        {
+            get
+            {
+                return this.min_fwhm_tol;
+            }
+            set
+            {
+                this.min_fwhm_tol = value;
+            }
+        }
+
+        public double Max_FWHM_Tol
+        {
+            get
+            {
+                return this.max_fwhm_tol;
+            }
+            set
+            {
+                this.max_fwhm_tol = value;
+            }
+        }
+
         public FWHMPeakDetectionMethodConfig()
         {
         }
@@ -113,6 +137,8 @@
             this.max_items = config.max_items;
             this.min_range_en = config.min_range_en;
             this.max_range_en = config.max_range_en;
+            this.min_fwhm_tol = config.min_fwhm_tol;
+            this.max_fwhm_tol = config.max_fwhm_tol;
         }
 
         public override PeakDetectionMethodConfig Clone()
@@ -135,5 +161,9 @@
         double min_range_en = 30; //keV
 
         double max_range_en = 2800; //keV
+
+        double min_fwhm_tol = 0.5;
+
+        double max_fwhm_tol = 1.5;
     }
 }
