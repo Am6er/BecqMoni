@@ -99,7 +99,7 @@
             }
         }
 
-        public double Min_FWHM_Tol
+        public decimal Min_FWHM_Tol
         {
             get
             {
@@ -111,7 +111,7 @@
             }
         }
 
-        public double Max_FWHM_Tol
+        public decimal Max_FWHM_Tol
         {
             get
             {
@@ -162,8 +162,8 @@
 
         double max_range_en = 2800; //keV
 
-        double min_fwhm_tol = 0.5;
+        decimal min_fwhm_tol = 50;
 
-        double max_fwhm_tol = 1.5;
+        decimal max_fwhm_tol = 150;
     }
 }
