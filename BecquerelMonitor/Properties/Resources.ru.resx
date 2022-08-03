@@ -120,6 +120,9 @@
   <data name="ApplicationTitle" xml:space="preserve">
     <value>BecqMoni ATOM Edition</value>
   </data>
+  <data name="AtomSpectraExportDialogTitle" xml:space="preserve">
+    <value>Экспорт файла Atom Spectra v3</value>
+  </data>
   <data name="AtomSpectraFileFilter" xml:space="preserve">
     <value>Файлы Atom Spectra (*.txt)|*.txt|Все файлы (*.*)|*.*</value>
   </data>
