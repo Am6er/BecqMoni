@@ -230,11 +230,13 @@ namespace BecquerelMonitor
             this.dcPeakDetectionView = new DCPeakDetectionView(this);
             this.dcSpectrumExplorerView = new DCSpectrumExplorerView(this);
             this.dcEnergyCalibrationView = new DCEnergyCalibrationView(this);
+            this.nucBaseView = new NucBase.NucBase(this);
             this.dcControlPanel.Enabled = false;
             this.dcSampleInfoView.Enabled = false;
             this.dcSpectrumListView.Enabled = false;
             this.dcPeakDetectionView.Enabled = false;
             this.dcEnergyCalibrationView.Enabled = false;
+
         }
 
         // Token: 0x06000A4A RID: 2634 RVA: 0x0003CB48 File Offset: 0x0003AD48
@@ -1014,6 +1016,11 @@ namespace BecquerelMonitor
         void OpenConfigNToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Process.Start("explorer.exe", userDirectoryConfig);
+        }
+
+        void NucDB_Click(object sender, EventArgs e)
+        {
+            this.nucBaseView.Show();
         }
 
         // Token: 0x06000A72 RID: 2674 RVA: 0x0003E23C File Offset: 0x0003C43C
@@ -2212,6 +2219,8 @@ namespace BecquerelMonitor
 
         // Token: 0x040005DD RID: 1501
         DCDoseRateView dcDoseRateView;
+
+        NucBase.NucBase nucBaseView;
 
         // Token: 0x040005DE RID: 1502
         List<DCResultView> dcResultViewList = new List<DCResultView>();
