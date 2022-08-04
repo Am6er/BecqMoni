@@ -1561,6 +1561,96 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to α.
+        /// </summary>
+        internal static string NucBase_Alpha_Label {
+            get {
+                return ResourceManager.GetString("NucBase.Alpha.Label", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to decay_rads.
+        /// </summary>
+        internal static string NucBase_API_Data_Method {
+            get {
+                return ResourceManager.GetString("NucBase.API.Data.Method", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to https://www-nds.iaea.org/relnsd/v0/data?fields={0}&amp;nuclides={1}&amp;rad_types={2}.
+        /// </summary>
+        internal static string NucBase_API_IAEA {
+            get {
+                return ResourceManager.GetString("NucBase.API.IAEA", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to β-.
+        /// </summary>
+        internal static string NucBase_BettaMinus_Label {
+            get {
+                return ResourceManager.GetString("NucBase.BettaMinus.Label", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to EC.
+        /// </summary>
+        internal static string NucBase_EC {
+            get {
+                return ResourceManager.GetString("NucBase.EC", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to g.
+        /// </summary>
+        internal static string NucBase_Gamma {
+            get {
+                return ResourceManager.GetString("NucBase.Gamma", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to γ.
+        /// </summary>
+        internal static string NucBase_Gamma_Label {
+            get {
+                return ResourceManager.GetString("NucBase.Gamma.Label", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to IT.
+        /// </summary>
+        internal static string NucBase_IT {
+            get {
+                return ResourceManager.GetString("NucBase.IT", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:77.0) Gecko/20100101 Firefox/77.0.
+        /// </summary>
+        internal static string NucBase_User_Agent {
+            get {
+                return ResourceManager.GetString("NucBase.User-Agent", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to x.
+        /// </summary>
+        internal static string NucBase_X_Ray {
+            get {
+                return ResourceManager.GetString("NucBase.X-Ray", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Open Spectrum File.
         /// </summary>
         internal static string OpenFileDialogTitle {

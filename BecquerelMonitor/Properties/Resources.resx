@@ -4297,4 +4297,34 @@ see peak in spectrum now).</value>
   <data name="AtomSpectraExportDialogTitle" xml:space="preserve">
     <value>Export Atom Spectra v3 file</value>
   </data>
+  <data name="NucBase.API.Data.Method" xml:space="preserve">
+    <value>decay_rads</value>
+  </data>
+  <data name="NucBase.API.IAEA" xml:space="preserve">
+    <value>https://www-nds.iaea.org/relnsd/v0/data?fields={0}&amp;nuclides={1}&amp;rad_types={2}</value>
+  </data>
+  <data name="NucBase.Gamma" xml:space="preserve">
+    <value>g</value>
+  </data>
+  <data name="NucBase.Gamma.Label" xml:space="preserve">
+    <value>γ</value>
+  </data>
+  <data name="NucBase.User-Agent" xml:space="preserve">
+    <value>Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:77.0) Gecko/20100101 Firefox/77.0</value>
+  </data>
+  <data name="NucBase.X-Ray" xml:space="preserve">
+    <value>x</value>
+  </data>
+  <data name="NucBase.Alpha.Label" xml:space="preserve">
+    <value>α</value>
+  </data>
+  <data name="NucBase.BettaMinus.Label" xml:space="preserve">
+    <value>β-</value>
+  </data>
+  <data name="NucBase.EC" xml:space="preserve">
+    <value>EC</value>
+  </data>
+  <data name="NucBase.IT" xml:space="preserve">
+    <value>IT</value>
+  </data>
 </root>
