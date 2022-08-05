@@ -230,7 +230,6 @@ namespace BecquerelMonitor
             this.dcPeakDetectionView = new DCPeakDetectionView(this);
             this.dcSpectrumExplorerView = new DCSpectrumExplorerView(this);
             this.dcEnergyCalibrationView = new DCEnergyCalibrationView(this);
-            this.nucBaseView = new NucBase.NucBase(this);
             this.dcControlPanel.Enabled = false;
             this.dcSampleInfoView.Enabled = false;
             this.dcSpectrumListView.Enabled = false;
@@ -1020,15 +1019,8 @@ namespace BecquerelMonitor
 
         void NucDB_Click(object sender, EventArgs e)
         {
-            try
-            {
-                this.nucBaseView.Show();
-                this.nucBaseView.Activate();
-            } catch (Exception ex)
-            {
-
-            }
-            
+            this.nucBaseView = new NucBase.NucBase(this);
+            this.nucBaseView.Show();
         }
 
         // Token: 0x06000A72 RID: 2674 RVA: 0x0003E23C File Offset: 0x0003C43C
