@@ -4321,8 +4321,17 @@ see peak in spectrum now).</value>
   <data name="NucBase.BettaMinus.Label" xml:space="preserve">
     <value>β-</value>
   </data>
+  <data name="NucBase.DaughtersFetchError" xml:space="preserve">
+    <value>Not all daughters fetched for isotope {0}. Message: {1}</value>
+  </data>
+  <data name="NucBase.DecayRadsFetchError" xml:space="preserve">
+    <value>Failed to fetch decay radiation. SQL string: {0}. Message: {1}</value>
+  </data>
   <data name="NucBase.EC" xml:space="preserve">
     <value>EC</value>
+  </data>
+  <data name="NucBase.IsotopeFetchError" xml:space="preserve">
+    <value>Failed to fetch Isotope: {0}. {1}</value>
   </data>
   <data name="NucBase.IT" xml:space="preserve">
     <value>IT</value>

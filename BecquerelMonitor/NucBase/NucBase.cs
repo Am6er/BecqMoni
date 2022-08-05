@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Globalization;
 using BecquerelMonitor;
+using System.ComponentModel;
 
 namespace BecquerelMonitor.NucBase
 {
@@ -17,10 +18,14 @@ namespace BecquerelMonitor.NucBase
             this.mainForm = mainForm;
             this.Icon = Resources.becqmoni;
             this.IncludeDecayChainCheckBox.Enabled = false;
-            GlobalConfigInfo globalConfig = GlobalConfigManager.GetInstance().GlobalConfig;
         }
 
         private void SearchButton_Click(object sender, EventArgs e)
+        {
+            DoSearch();
+        }
+
+        private void DoSearch()
         {
             GC.Collect();
             string isotope = this.IsotopeTextBox.Text.Trim().Replace("-", "").ToUpper();
@@ -34,7 +39,7 @@ namespace BecquerelMonitor.NucBase
                 lowEnergy = Convert.ToDouble(this.LowEnrgTextBox.Text);
             }
             double highEnergy = 0.0;
-            if (this.HighEnrgTextBox.Text.Length !=0)
+            if (this.HighEnrgTextBox.Text.Length != 0)
             {
                 highEnergy = Convert.ToDouble(this.HighEnrgTextBox.Text);
             }
@@ -43,71 +48,76 @@ namespace BecquerelMonitor.NucBase
             {
                 intensity = Convert.ToDouble(this.IntencityTextBox.Text);
             }
-            double half_life = -2;
-            if (this.HalfLifeUOMComboBox.Text.Equals("STABLE"))
+            double half_life = -1;
+            if (this.HalfLifeUOMComboBox.SelectedText.Length > 0 && this.HalfLifeTextBox.Text.Length > 0)
             {
-                half_life = -1;
-            } else
-            {
-                if (this.HalfLifeTextBox.Text.Length > 0)
+                double coeff;
+                switch (this.HalfLifeUOMComboBox.Text)
                 {
-                    double coeff;
-                    switch (this.HalfLifeUOMComboBox.Text)
-                    {
-                        case "s":
-                            coeff = 1;
-                            break;
-                        case "m":
-                            coeff = 60;
-                            break;
-                        case "h":
-                            coeff = 3600;
-                            break;
-                        case "Y":
-                            coeff = 1314000;
-                            break;
-                        case "ms":
-                            coeff = 1.0 / 1000.0;
-                            break;
-                        case "us":
-                            coeff = 1.0 / 1000000.0;
-                            break;
-                        case "ns":
-                            coeff = 1.0 / 1000000000.0;
-                            break;
-                        default:
-                            coeff = 1.0;
-                            break;
-                    }
-                    half_life = coeff * Convert.ToDouble(this.HalfLifeTextBox.Text);
+                    case "s":
+                        coeff = 1;
+                        break;
+                    case "m":
+                        coeff = 60;
+                        break;
+                    case "h":
+                        coeff = 3600;
+                        break;
+                    case "Y":
+                        coeff = 1314000;
+                        break;
+                    case "ms":
+                        coeff = 1.0 / 1000.0;
+                        break;
+                    case "us":
+                        coeff = 1.0 / 1000000.0;
+                        break;
+                    case "ns":
+                        coeff = 1.0 / 1000000000.0;
+                        break;
+                    default:
+                        coeff = 1.0;
+                        break;
                 }
+                half_life = coeff * Convert.ToDouble(this.HalfLifeTextBox.Text);
             }
-            
+
 
             NucBaseFramework fw = new NucBaseFramework();
 
             if (!incDecayChain)
             {
                 List<DecayRad> decayRads = fw.getDecayRad(isotope, intensity: intensity, lowEnergy: lowEnergy, highEnergy: highEnergy, half_life_sec: half_life);
-                this.ResultDataGridView.Rows.Clear();
-                foreach (DecayRad decrad in decayRads)
+                if (decayRads != null)
                 {
-                    this.ResultDataGridView.Rows.Add(decrad.Name, decrad.DecayLine, decrad.Energy, decrad.Intensity, decrad.XrayType, decrad.DecayTypeString);
-                }
-            } else
-            {
-                List<string> daughters = fw.GetDaughters(isotope);
-                daughters.Add(isotope);
-                this.ResultDataGridView.Rows.Clear();
-                foreach (string daughter in daughters)
-                {
-                    List<DecayRad> decayRads = fw.getDecayRad(daughter, intensity: intensity, lowEnergy: lowEnergy, highEnergy: highEnergy, half_life_sec: half_life);
+                    this.ResultDataGridView.Rows.Clear();
                     foreach (DecayRad decrad in decayRads)
                     {
                         this.ResultDataGridView.Rows.Add(decrad.Name, decrad.DecayLine, decrad.Energy, decrad.Intensity, decrad.XrayType, decrad.DecayTypeString);
                     }
+                    RestoreSorting();
                 }
-
+            }
+            else
+            {
+                List<string> daughters = fw.GetDaughters(isotope);
+                daughters.Add(isotope);
+                if (daughters.Count > 0)
+                {
+                    this.ResultDataGridView.Rows.Clear();
+                    foreach (string daughter in daughters)
+                    {
+                        List<DecayRad> decayRads = fw.getDecayRad(daughter, intensity: intensity, lowEnergy: lowEnergy, highEnergy: highEnergy, half_life_sec: half_life);
+                        if (decayRads != null)
+                        {
+                            foreach (DecayRad decrad in decayRads)
+                            {
+                                this.ResultDataGridView.Rows.Add(decrad.Name, decrad.DecayLine, decrad.Energy, decrad.Intensity, decrad.XrayType, decrad.DecayTypeString);
+                            }
+                        }
+                    }
+                    RestoreSorting();
+                }
             }
 
 
@@ -116,25 +126,26 @@ namespace BecquerelMonitor.NucBase
                 return;
             }
             Nuclide nuc = fw.getNuclude(isotope);
-            this.IsotopeNameLabel.Text = isotope;
-            this.IsotopeZLabel.Text = nuc.Z.ToString();
-            this.IsotopeNLabel.Text = nuc.N.ToString();
-            this.IsotopeHLLabel.Text = nuc.HalfLife.ToString() + " " + nuc.HalfLifeUOM;
-
-            this.ParentsDataGridView.Rows.Clear();
-            foreach (Decay parent in nuc.Parents)
+            if (nuc != null)
             {
-                this.ParentsDataGridView.Rows.Add(parent.NucName, parent.DecayTypeString, parent.DecayPercent);
-            }
+                this.IsotopeNameLabel.Text = isotope;
+                this.IsotopeZLabel.Text = nuc.Z.ToString();
+                this.IsotopeNLabel.Text = nuc.N.ToString();
+                this.IsotopeHLLabel.Text = nuc.HalfLife.ToString() + " " + nuc.HalfLifeUOM;
 
-            this.DaughtersDataGridView.Rows.Clear();
-            foreach(Decay daughter in nuc.Daughters)
-            {
-                this.DaughtersDataGridView.Rows.Add(daughter.NucName, daughter.DecayTypeString, daughter.DecayPercent);
+                this.ParentsDataGridView.Rows.Clear();
+                foreach (Decay parent in nuc.Parents)
+                {
+                    this.ParentsDataGridView.Rows.Add(parent.NucName, parent.DecayTypeString, parent.DecayPercent);
+                }
+
+                this.DaughtersDataGridView.Rows.Clear();
+                foreach (Decay daughter in nuc.Daughters)
+                {
+                    this.DaughtersDataGridView.Rows.Add(daughter.NucName, daughter.DecayTypeString, daughter.DecayPercent);
+                }
             }
         }
-
-        Form mainForm;
 
         private void ResultDataGridView_CellClick(object sender, DataGridViewCellEventArgs e)
         {
@@ -175,14 +186,83 @@ namespace BecquerelMonitor.NucBase
             }
         }
 
-        private void HalfLifeUOMComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        private void RestoreSorting()
         {
-            if (this.HalfLifeUOMComboBox.SelectedItem.ToString().Equals("STABLE"))
+            ListSortDirection direction;
+            if (this.ResultDataGridView.SortOrder == SortOrder.Ascending) direction = ListSortDirection.Ascending;
+            else direction = ListSortDirection.Descending;
+            if (this.ResultDataGridView.SortedColumn != null)
             {
-                this.HalfLifeTextBox.Enabled = false;
-            } else
+                this.ResultDataGridView.Sort(this.ResultDataGridView.SortedColumn, direction);
+            }
+        }
+
+        Form mainForm;
+
+        private void IsotopeTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
             {
-                this.HalfLifeTextBox.Enabled = true;
+                DoSearch();
+            }
+        }
+
+        private void IntencityTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                DoSearch();
+            }
+        }
+
+        private void HalfLifeTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                DoSearch();
+            }
+        }
+
+        private void LowEnrgTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                DoSearch();
+            }
+        }
+
+        private void HighEnrgTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                DoSearch();
+            }
+        }
+
+        private void ResultDataGridView_CellEnter(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex == -1)
+            {
+                return;
+            }
+            string isotope = this.ResultDataGridView.Rows[e.RowIndex].Cells[0].Value.ToString();
+            NucBaseFramework fw = new NucBaseFramework();
+            Nuclide nuc = fw.getNuclude(isotope);
+            this.IsotopeNameLabel.Text = isotope;
+            this.IsotopeZLabel.Text = nuc.Z.ToString();
+            this.IsotopeNLabel.Text = nuc.N.ToString();
+            this.IsotopeHLLabel.Text = nuc.HalfLife.ToString() + " " + nuc.HalfLifeUOM;
+
+            this.ParentsDataGridView.Rows.Clear();
+            foreach (Decay parent in nuc.Parents)
+            {
+                this.ParentsDataGridView.Rows.Add(parent.NucName, parent.DecayTypeString, parent.DecayPercent);
+            }
+
+            this.DaughtersDataGridView.Rows.Clear();
+            foreach (Decay daughter in nuc.Daughters)
+            {
+                this.DaughtersDataGridView.Rows.Add(daughter.NucName, daughter.DecayTypeString, daughter.DecayPercent);
             }
         }
     }

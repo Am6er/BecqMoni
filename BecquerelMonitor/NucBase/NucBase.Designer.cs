@@ -29,6 +29,9 @@
         private void InitializeComponent()
         {
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.HalfLifeUOMComboBox = new System.Windows.Forms.ComboBox();
+            this.HalfLifeTextBox = new System.Windows.Forms.TextBox();
+            this.label12 = new System.Windows.Forms.Label();
             this.label11 = new System.Windows.Forms.Label();
             this.HighEnrgTextBox = new System.Windows.Forms.TextBox();
             this.label10 = new System.Windows.Forms.Label();
@@ -43,14 +46,8 @@
             this.panel1 = new System.Windows.Forms.Panel();
             this.label7 = new System.Windows.Forms.Label();
             this.DaughtersDataGridView = new System.Windows.Forms.DataGridView();
-            this.NameColumn1 = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.TypeColumn1 = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.PercentColumn1 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.label6 = new System.Windows.Forms.Label();
             this.ParentsDataGridView = new System.Windows.Forms.DataGridView();
-            this.NameColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.TypeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.PercentColum = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.IsotopeHLLabel = new System.Windows.Forms.Label();
             this.label5 = new System.Windows.Forms.Label();
@@ -67,9 +64,12 @@
             this.IntensityColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.XRayTypeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.DecaModeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.label12 = new System.Windows.Forms.Label();
-            this.HalfLifeTextBox = new System.Windows.Forms.TextBox();
-            this.HalfLifeUOMComboBox = new System.Windows.Forms.ComboBox();
+            this.NameColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.TypeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.PercentColum = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.NameColumn1 = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.TypeColumn1 = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.PercentColumn1 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.groupBox1.SuspendLayout();
             this.panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.DaughtersDataGridView)).BeginInit();
@@ -101,6 +101,41 @@
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Search Isotope";
             // 
+            // HalfLifeUOMComboBox
+            // 
+            this.HalfLifeUOMComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.HalfLifeUOMComboBox.FormattingEnabled = true;
+            this.HalfLifeUOMComboBox.Items.AddRange(new object[] {
+            "ns",
+            "us",
+            "ms",
+            "s",
+            "m",
+            "h",
+            "d",
+            "Y"});
+            this.HalfLifeUOMComboBox.Location = new System.Drawing.Point(509, 19);
+            this.HalfLifeUOMComboBox.Name = "HalfLifeUOMComboBox";
+            this.HalfLifeUOMComboBox.Size = new System.Drawing.Size(68, 21);
+            this.HalfLifeUOMComboBox.TabIndex = 13;
+            // 
+            // HalfLifeTextBox
+            // 
+            this.HalfLifeTextBox.Location = new System.Drawing.Point(464, 20);
+            this.HalfLifeTextBox.Name = "HalfLifeTextBox";
+            this.HalfLifeTextBox.Size = new System.Drawing.Size(41, 20);
+            this.HalfLifeTextBox.TabIndex = 12;
+            this.HalfLifeTextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.HalfLifeTextBox_KeyDown);
+            // 
+            // label12
+            // 
+            this.label12.AutoSize = true;
+            this.label12.Location = new System.Drawing.Point(412, 23);
+            this.label12.Name = "label12";
+            this.label12.Size = new System.Drawing.Size(51, 13);
+            this.label12.TabIndex = 11;
+            this.label12.Text = "Half-life >";
+            // 
             // label11
             // 
             this.label11.AutoSize = true;
@@ -118,6 +153,7 @@
             this.HighEnrgTextBox.TabIndex = 9;
             this.HighEnrgTextBox.Text = "3000";
             this.HighEnrgTextBox.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            this.HighEnrgTextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.HighEnrgTextBox_KeyDown);
             // 
             // label10
             // 
@@ -136,6 +172,7 @@
             this.LowEnrgTextBox.TabIndex = 7;
             this.LowEnrgTextBox.Text = "0";
             this.LowEnrgTextBox.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            this.LowEnrgTextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.LowEnrgTextBox_KeyDown);
             // 
             // label9
             // 
@@ -154,6 +191,7 @@
             this.IntencityTextBox.TabIndex = 5;
             this.IntencityTextBox.Text = "6";
             this.IntencityTextBox.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            this.IntencityTextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.IntencityTextBox_KeyDown);
             // 
             // IncludeDecayChainCheckBox
             // 
@@ -191,6 +229,7 @@
             this.IsotopeTextBox.TabIndex = 1;
             this.IsotopeTextBox.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             this.IsotopeTextBox.TextChanged += new System.EventHandler(this.IsotopeTextBox_TextChanged);
+            this.IsotopeTextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.IsotopeTextBox_KeyDown);
             // 
             // SearchButton
             // 
@@ -229,6 +268,9 @@
             // 
             // DaughtersDataGridView
             // 
+            this.DaughtersDataGridView.AllowUserToAddRows = false;
+            this.DaughtersDataGridView.AllowUserToDeleteRows = false;
+            this.DaughtersDataGridView.AllowUserToResizeRows = false;
             this.DaughtersDataGridView.BackgroundColor = System.Drawing.SystemColors.Window;
             this.DaughtersDataGridView.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.DaughtersDataGridView.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
@@ -237,29 +279,12 @@
             this.PercentColumn1});
             this.DaughtersDataGridView.Location = new System.Drawing.Point(724, 111);
             this.DaughtersDataGridView.Name = "DaughtersDataGridView";
+            this.DaughtersDataGridView.ReadOnly = true;
             this.DaughtersDataGridView.RowHeadersVisible = false;
             this.DaughtersDataGridView.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.DaughtersDataGridView.ShowEditingIcon = false;
-            this.DaughtersDataGridView.Size = new System.Drawing.Size(240, 273);
+            this.DaughtersDataGridView.Size = new System.Drawing.Size(240, 267);
             this.DaughtersDataGridView.TabIndex = 4;
-            // 
-            // NameColumn1
-            // 
-            this.NameColumn1.HeaderText = "Name";
-            this.NameColumn1.Name = "NameColumn1";
-            this.NameColumn1.ReadOnly = true;
-            // 
-            // TypeColumn1
-            // 
-            this.TypeColumn1.HeaderText = "Type";
-            this.TypeColumn1.Name = "TypeColumn1";
-            this.TypeColumn1.ReadOnly = true;
-            // 
-            // PercentColumn1
-            // 
-            this.PercentColumn1.HeaderText = "%";
-            this.PercentColumn1.Name = "PercentColumn1";
-            this.PercentColumn1.ReadOnly = true;
             // 
             // label6
             // 
@@ -272,6 +297,9 @@
             // 
             // ParentsDataGridView
             // 
+            this.ParentsDataGridView.AllowUserToAddRows = false;
+            this.ParentsDataGridView.AllowUserToDeleteRows = false;
+            this.ParentsDataGridView.AllowUserToResizeRows = false;
             this.ParentsDataGridView.BackgroundColor = System.Drawing.SystemColors.Window;
             this.ParentsDataGridView.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.ParentsDataGridView.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
@@ -280,29 +308,12 @@
             this.PercentColum});
             this.ParentsDataGridView.Location = new System.Drawing.Point(448, 111);
             this.ParentsDataGridView.Name = "ParentsDataGridView";
+            this.ParentsDataGridView.ReadOnly = true;
             this.ParentsDataGridView.RowHeadersVisible = false;
             this.ParentsDataGridView.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.ParentsDataGridView.ShowEditingIcon = false;
-            this.ParentsDataGridView.Size = new System.Drawing.Size(240, 273);
+            this.ParentsDataGridView.Size = new System.Drawing.Size(240, 267);
             this.ParentsDataGridView.TabIndex = 2;
-            // 
-            // NameColumn
-            // 
-            this.NameColumn.HeaderText = "Name";
-            this.NameColumn.Name = "NameColumn";
-            this.NameColumn.ReadOnly = true;
-            // 
-            // TypeColumn
-            // 
-            this.TypeColumn.HeaderText = "Type";
-            this.TypeColumn.Name = "TypeColumn";
-            this.TypeColumn.ReadOnly = true;
-            // 
-            // PercentColum
-            // 
-            this.PercentColum.HeaderText = "%";
-            this.PercentColum.Name = "PercentColum";
-            this.PercentColum.ReadOnly = true;
             // 
             // groupBox2
             // 
@@ -393,6 +404,7 @@
             // 
             this.ResultDataGridView.AllowUserToAddRows = false;
             this.ResultDataGridView.AllowUserToDeleteRows = false;
+            this.ResultDataGridView.AllowUserToResizeRows = false;
             this.ResultDataGridView.BackgroundColor = System.Drawing.SystemColors.Window;
             this.ResultDataGridView.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.ResultDataGridView.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
@@ -408,9 +420,10 @@
             this.ResultDataGridView.RowHeadersVisible = false;
             this.ResultDataGridView.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.ResultDataGridView.ShowEditingIcon = false;
-            this.ResultDataGridView.Size = new System.Drawing.Size(424, 387);
+            this.ResultDataGridView.Size = new System.Drawing.Size(434, 378);
             this.ResultDataGridView.TabIndex = 0;
             this.ResultDataGridView.CellClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.ResultDataGridView_CellClick);
+            this.ResultDataGridView.CellEnter += new System.Windows.Forms.DataGridViewCellEventHandler(this.ResultDataGridView_CellEnter);
             // 
             // NameColumn2
             // 
@@ -456,41 +469,49 @@
             this.DecaModeColumn.ReadOnly = true;
             this.DecaModeColumn.Width = 50;
             // 
-            // label12
+            // NameColumn
             // 
-            this.label12.AutoSize = true;
-            this.label12.Location = new System.Drawing.Point(412, 23);
-            this.label12.Name = "label12";
-            this.label12.Size = new System.Drawing.Size(51, 13);
-            this.label12.TabIndex = 11;
-            this.label12.Text = "Half-life >";
+            this.NameColumn.HeaderText = "Name";
+            this.NameColumn.Name = "NameColumn";
+            this.NameColumn.ReadOnly = true;
             // 
-            // HalfLifeTextBox
+            // TypeColumn
             // 
-            this.HalfLifeTextBox.Location = new System.Drawing.Point(464, 20);
-            this.HalfLifeTextBox.Name = "HalfLifeTextBox";
-            this.HalfLifeTextBox.Size = new System.Drawing.Size(41, 20);
-            this.HalfLifeTextBox.TabIndex = 12;
+            this.TypeColumn.FillWeight = 60F;
+            this.TypeColumn.HeaderText = "Type";
+            this.TypeColumn.Name = "TypeColumn";
+            this.TypeColumn.ReadOnly = true;
+            this.TypeColumn.Width = 60;
             // 
-            // HalfLifeUOMComboBox
+            // PercentColum
             // 
-            this.HalfLifeUOMComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.HalfLifeUOMComboBox.FormattingEnabled = true;
-            this.HalfLifeUOMComboBox.Items.AddRange(new object[] {
-            "ns",
-            "us",
-            "ms",
-            "s",
-            "m",
-            "h",
-            "d",
-            "Y",
-            "STABLE"});
-            this.HalfLifeUOMComboBox.Location = new System.Drawing.Point(509, 19);
-            this.HalfLifeUOMComboBox.Name = "HalfLifeUOMComboBox";
-            this.HalfLifeUOMComboBox.Size = new System.Drawing.Size(68, 21);
-            this.HalfLifeUOMComboBox.TabIndex = 13;
-            this.HalfLifeUOMComboBox.SelectedIndexChanged += new System.EventHandler(this.HalfLifeUOMComboBox_SelectedIndexChanged);
+            this.PercentColum.FillWeight = 140F;
+            this.PercentColum.HeaderText = "%";
+            this.PercentColum.Name = "PercentColum";
+            this.PercentColum.ReadOnly = true;
+            this.PercentColum.Width = 140;
+            // 
+            // NameColumn1
+            // 
+            this.NameColumn1.HeaderText = "Name";
+            this.NameColumn1.Name = "NameColumn1";
+            this.NameColumn1.ReadOnly = true;
+            // 
+            // TypeColumn1
+            // 
+            this.TypeColumn1.FillWeight = 60F;
+            this.TypeColumn1.HeaderText = "Type";
+            this.TypeColumn1.Name = "TypeColumn1";
+            this.TypeColumn1.ReadOnly = true;
+            this.TypeColumn1.Width = 60;
+            // 
+            // PercentColumn1
+            // 
+            this.PercentColumn1.FillWeight = 140F;
+            this.PercentColumn1.HeaderText = "%";
+            this.PercentColumn1.Name = "PercentColumn1";
+            this.PercentColumn1.ReadOnly = true;
+            this.PercentColumn1.Width = 140;
             // 
             // NucBase
             // 
@@ -539,13 +560,7 @@
         private System.Windows.Forms.Label IsotopeHLLabel;
         private System.Windows.Forms.DataGridView ParentsDataGridView;
         private System.Windows.Forms.Label label6;
-        private System.Windows.Forms.DataGridViewTextBoxColumn NameColumn;
-        private System.Windows.Forms.DataGridViewTextBoxColumn TypeColumn;
-        private System.Windows.Forms.DataGridViewTextBoxColumn PercentColum;
         private System.Windows.Forms.DataGridView DaughtersDataGridView;
-        private System.Windows.Forms.DataGridViewTextBoxColumn NameColumn1;
-        private System.Windows.Forms.DataGridViewTextBoxColumn TypeColumn1;
-        private System.Windows.Forms.DataGridViewTextBoxColumn PercentColumn1;
         private System.Windows.Forms.Label label7;
         private System.Windows.Forms.Label label11;
         private System.Windows.Forms.TextBox HighEnrgTextBox;
@@ -564,5 +579,11 @@
         private System.Windows.Forms.ComboBox HalfLifeUOMComboBox;
         private System.Windows.Forms.TextBox HalfLifeTextBox;
         private System.Windows.Forms.Label label12;
+        private System.Windows.Forms.DataGridViewTextBoxColumn NameColumn1;
+        private System.Windows.Forms.DataGridViewTextBoxColumn TypeColumn1;
+        private System.Windows.Forms.DataGridViewTextBoxColumn PercentColumn1;
+        private System.Windows.Forms.DataGridViewTextBoxColumn NameColumn;
+        private System.Windows.Forms.DataGridViewTextBoxColumn TypeColumn;
+        private System.Windows.Forms.DataGridViewTextBoxColumn PercentColum;
     }
 }
