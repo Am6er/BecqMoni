@@ -16,7 +16,7 @@ namespace BecquerelMonitor.NucBase
         SqliteConnection CreateConnection()
         {
             string DBPath = Environment.CurrentDirectory + "\\nucdb.sqlite;";
-            sqlite_conn = new SqliteConnection("Data Source=" + DBPath);
+            sqlite_conn = new SqliteConnection("Data Source=" + DBPath + "Mode=ReadOnly;Cache=Shared;");
             try
             {
                 sqlite_conn.Open();
