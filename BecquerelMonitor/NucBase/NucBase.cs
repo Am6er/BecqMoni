@@ -100,7 +100,7 @@ namespace BecquerelMonitor.NucBase
             }
             else
             {
-                List<string> daughters = fw.GetDaughters(isotope);
+                List<string> daughters = fw.GetDaughters(isotope, intensity);
                 daughters.Add(isotope);
                 if (daughters.Count > 0)
                 {

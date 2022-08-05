@@ -38,10 +38,6 @@ namespace BecquerelMonitor.NucBase
             sqlite_datareader = sqlite_cmd.ExecuteReader();
 
             return sqlite_datareader;
-            //while (sqlite_datareader.Read())
-            //{
-            //    string myreader = sqlite_datareader.GetString(0);
-            //}
         }
 
         public void Close()

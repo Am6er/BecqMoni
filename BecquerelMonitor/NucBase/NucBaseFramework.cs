@@ -131,17 +131,18 @@ namespace BecquerelMonitor.NucBase
         List<string> daughters = new List<string>();
         int depth = 0;
 
-        public List<string> GetDaughters(string nucname)
+        public List<string> GetDaughters(string nucname, double instencity)
         {
             daughters.Clear();
-            GetRecursiveDaughters(nucname);
+            GetRecursiveDaughters(nucname, instencity);
             return daughters.Distinct().ToList();
         }
 
-        private void GetRecursiveDaughters(string nucname)
+        private void GetRecursiveDaughters(string nucname, double intencity)
         {
             DataBase db = new DataBase();
-            SqliteDataReader reader = db.ReadData("select daughter_nucid from decay_chain where nucid = '" + nucname + "' and perc not null;");
+            SqliteDataReader reader = db.ReadData("select daughter_nucid from decay_chain where nucid = '" + nucname +
+                "' and perc not null and cast(perc as float) >= " + intencity + ";");
             int count = 1;
             try
             {
@@ -158,7 +159,7 @@ namespace BecquerelMonitor.NucBase
                     if (depth > 100) break;
                     foreach (string d in d_count)
                     {
-                        GetRecursiveDaughters(d);
+                        GetRecursiveDaughters(d, intencity);
                     }
                 }
             } catch (Exception ex)
