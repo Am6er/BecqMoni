@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -23,7 +23,7 @@ namespace BecquerelMonitor.NucBase
             Nuclide nuc = new Nuclide();
             try
             {
-                SQLiteDataReader reader = db.ReadData("select z, n, half_life, ifnull(half_life_unit, '') from nuclides where nucid = '" + nucname + "' and half_life not null");
+                SqliteDataReader reader = db.ReadData("select z, n, half_life, ifnull(half_life_unit, '') from nuclides where nucid = '" + nucname + "' and half_life not null");
                 reader.Read();
                 nuc.Z = reader.GetInt32(0);
                 nuc.N = reader.GetInt32(1);
@@ -100,7 +100,7 @@ namespace BecquerelMonitor.NucBase
             List<DecayRad> decayRads = new List<DecayRad>();
             try
             {
-                SQLiteDataReader reader = db.ReadData(sql);
+                SqliteDataReader reader = db.ReadData(sql);
                 while (reader.Read())
                 {
                     DecayRad decrad = new DecayRad();
@@ -141,7 +141,7 @@ namespace BecquerelMonitor.NucBase
         private void GetRecursiveDaughters(string nucname)
         {
             DataBase db = new DataBase();
-            SQLiteDataReader reader = db.ReadData("select daughter_nucid from decay_chain where nucid = '" + nucname + "' and perc not null;");
+            SqliteDataReader reader = db.ReadData("select daughter_nucid from decay_chain where nucid = '" + nucname + "' and perc not null;");
             int count = 1;
             try
             {
