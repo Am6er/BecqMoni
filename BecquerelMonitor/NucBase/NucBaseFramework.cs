@@ -30,7 +30,7 @@ namespace BecquerelMonitor.NucBase
                 nuc.HalfLife = reader.GetString(2);
                 nuc.HalfLifeUOM = reader.GetString(3);
 
-                reader = db.ReadData("select daughter_nucid, perc, dec_type from decay_chain where nucid = '" + nucname + "'");
+                reader = db.ReadData("select daughter_nucid, ifnull(perc, '?'), dec_type from decay_chain where nucid = '" + nucname + "'");
                 while (reader.Read())
                 {
                     Decay dec = new Decay();
@@ -40,7 +40,7 @@ namespace BecquerelMonitor.NucBase
                     nuc.Daughters.Add(dec);
                 }
 
-                reader = db.ReadData("select nucid, perc, dec_type from decay_chain where daughter_nucid = '" + nucname + "' and perc not null");
+                reader = db.ReadData("select nucid, ifnull(perc, '?'), dec_type from decay_chain where daughter_nucid = '" + nucname + "' and perc not null");
                 while (reader.Read())
                 {
                     Decay dec = new Decay();
