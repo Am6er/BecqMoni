@@ -4,6 +4,8 @@ using System.Data.SQLite;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
+using BecquerelMonitor.Properties;
 
 namespace BecquerelMonitor.NucBase
 {
@@ -18,33 +20,43 @@ namespace BecquerelMonitor.NucBase
         public Nuclide getNuclude(string nucname)
         {
             DataBase db = new DataBase();
-            SQLiteDataReader reader = db.ReadData("select z, n, half_life, ifnull(half_life_unit, '') from nuclides where nucid = '" + nucname + "' and half_life not null");
             Nuclide nuc = new Nuclide();
-            reader.Read();
-            nuc.Z = reader.GetInt32(0);
-            nuc.N = reader.GetInt32(1);
-            nuc.HalfLife = reader.GetString(2);
-            nuc.HalfLifeUOM = reader.GetString(3);
-
-            reader = db.ReadData("select daughter_nucid, perc, dec_type from decay_chain where nucid = '" + nucname + "'");
-            while (reader.Read())
+            try
             {
-                Decay dec = new Decay();
-                dec.NucName = reader.GetString(0);
-                dec.DecayPercent = reader.GetString(1);
-                dec.DecayType = Convert.ToInt32(reader.GetString(2));
-                nuc.Daughters.Add(dec);
-            }
+                SQLiteDataReader reader = db.ReadData("select z, n, half_life, ifnull(half_life_unit, '') from nuclides where nucid = '" + nucname + "' and half_life not null");
+                reader.Read();
+                nuc.Z = reader.GetInt32(0);
+                nuc.N = reader.GetInt32(1);
+                nuc.HalfLife = reader.GetString(2);
+                nuc.HalfLifeUOM = reader.GetString(3);
 
-            reader = db.ReadData("select nucid, perc, dec_type from decay_chain where daughter_nucid = '" + nucname + "' and perc not null");
-            while (reader.Read())
-            {
-                Decay dec = new Decay();
-                dec.NucName = reader.GetString(0);
-                dec.DecayPercent = reader.GetString(1);
-                dec.DecayType = Convert.ToInt32(reader.GetString(2));
-                nuc.Parents.Add(dec);
+                reader = db.ReadData("select daughter_nucid, perc, dec_type from decay_chain where nucid = '" + nucname + "'");
+                while (reader.Read())
+                {
+                    Decay dec = new Decay();
+                    dec.NucName = reader.GetString(0);
+                    dec.DecayPercent = reader.GetString(1);
+                    dec.DecayType = Convert.ToInt32(reader.GetString(2));
+                    nuc.Daughters.Add(dec);
+                }
+
+                reader = db.ReadData("select nucid, perc, dec_type from decay_chain where daughter_nucid = '" + nucname + "' and perc not null");
+                while (reader.Read())
+                {
+                    Decay dec = new Decay();
+                    dec.NucName = reader.GetString(0);
+                    dec.DecayPercent = reader.GetString(1);
+                    dec.DecayType = Convert.ToInt32(reader.GetString(2));
+                    nuc.Parents.Add(dec);
+                }
             }
+            catch (Exception ex)
+            {
+                MessageBox.Show(String.Format(Resources.NucBase_IsotopeFetchError, nucname, ex.Message),
+                    Resources.ErrorExclamation, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                nuc = null;
+            }
+            
             db.Close();
             return nuc;
         }
@@ -84,31 +96,34 @@ namespace BecquerelMonitor.NucBase
             {
                 sql += "cast(nuc.half_life_sec as float) > " + half_life_sec + " and ";
             }
-
-            if (half_life_sec == -1)
-            {
-                sql += "nuc.half_life = 'STABLE' and ";
-            }
             sql += " 1=1";
-
-                SQLiteDataReader reader = db.ReadData(sql);
             List<DecayRad> decayRads = new List<DecayRad>();
-            while (reader.Read())
+            try
             {
-                DecayRad decrad = new DecayRad();
-                decrad.Name = reader.GetString(0);
-                decrad.Energy = Convert.ToDouble(reader.GetDouble(1));
-                string intensitystr = reader.GetString(2);
-                if (intensitystr.IndexOf("(") != -1)
+                SQLiteDataReader reader = db.ReadData(sql);
+                while (reader.Read())
                 {
-                    intensitystr = intensitystr.Replace("(", "").Replace(")", "").Trim();
+                    DecayRad decrad = new DecayRad();
+                    decrad.Name = reader.GetString(0);
+                    decrad.Energy = Convert.ToDouble(reader.GetDouble(1));
+                    string intensitystr = reader.GetString(2);
+                    if (intensitystr.IndexOf("(") != -1)
+                    {
+                        intensitystr = intensitystr.Replace("(", "").Replace(")", "").Trim();
+                    }
+                    decrad.Intensity = Convert.ToDouble(intensitystr);
+                    decrad.DecayLine = reader.GetString(3);
+                    decrad.XrayType = reader.GetString(4);
+                    decrad.DecayType = Convert.ToInt32(reader.GetString(5));
+                    decayRads.Add(decrad);
                 }
-                decrad.Intensity = Convert.ToDouble(intensitystr);
-                decrad.DecayLine = reader.GetString(3);
-                decrad.XrayType = reader.GetString(4);
-                decrad.DecayType = Convert.ToInt32(reader.GetString(5));
-                decayRads.Add(decrad);
+            } catch (Exception ex)
+            {
+                MessageBox.Show(String.Format(Resources.NucBase_DecayRadsFetchError, sql, ex.Message),
+                    Resources.ErrorExclamation, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                decayRads = null;
             }
+            
             db.Close();
             return decayRads;
         }
@@ -128,22 +143,28 @@ namespace BecquerelMonitor.NucBase
             DataBase db = new DataBase();
             SQLiteDataReader reader = db.ReadData("select daughter_nucid from decay_chain where nucid = '" + nucname + "' and perc not null;");
             int count = 1;
-            while (count > 0)
+            try
             {
-                List<string> d_count = new List<string>();
-                while (reader.Read())
+                while (count > 0)
                 {
-                    d_count.Add(reader.GetString(0));
-                    daughters.Add(reader.GetString(0));
+                    List<string> d_count = new List<string>();
+                    while (reader.Read())
+                    {
+                        d_count.Add(reader.GetString(0));
+                        daughters.Add(reader.GetString(0));
+                    }
+                    count = d_count.Count;
+                    depth++;
+                    if (depth > 100) break;
+                    foreach (string d in d_count)
+                    {
+                        GetRecursiveDaughters(d);
+                    }
                 }
-                count = d_count.Count;
-                depth++;
-                Console.WriteLine(depth);
-                if (depth > 100) break;
-                foreach (string d in d_count)
-                {
-                    GetRecursiveDaughters(d);
-                }
+            } catch (Exception ex)
+            {
+                MessageBox.Show(String.Format(Resources.NucBase_DaughtersFetchError, nucname, ex.Message),
+                Resources.ErrorExclamation, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
             db.Close();
         }

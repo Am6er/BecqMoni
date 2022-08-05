@@ -1597,6 +1597,24 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Not all daughters fetched for isotope {0}. Message: {1}.
+        /// </summary>
+        internal static string NucBase_DaughtersFetchError {
+            get {
+                return ResourceManager.GetString("NucBase.DaughtersFetchError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to fetch decay radiation. SQL string: {0}. Message: {1}.
+        /// </summary>
+        internal static string NucBase_DecayRadsFetchError {
+            get {
+                return ResourceManager.GetString("NucBase.DecayRadsFetchError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to EC.
         /// </summary>
         internal static string NucBase_EC {
@@ -1620,6 +1638,15 @@ namespace BecquerelMonitor.Properties {
         internal static string NucBase_Gamma_Label {
             get {
                 return ResourceManager.GetString("NucBase.Gamma.Label", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to fetch Isotope: {0}. {1}.
+        /// </summary>
+        internal static string NucBase_IsotopeFetchError {
+            get {
+                return ResourceManager.GetString("NucBase.IsotopeFetchError", resourceCulture);
             }
         }
         
