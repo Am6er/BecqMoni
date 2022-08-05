@@ -959,10 +959,8 @@
     <EmbeddedResource Include="MainForm.ru.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="NucBase\NucBase.ru.resx" />
     <EmbeddedResource Include="NucBase\NucBase.resx">
-      <DependentUpon>NucBase.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="NucBase\NucBase.ru.resx">
       <DependentUpon>NucBase.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="NuclideDefinitionForm.resx">
