@@ -49,7 +49,7 @@ namespace BecquerelMonitor.NucBase
                 intensity = Convert.ToDouble(this.IntencityTextBox.Text);
             }
             double half_life = -1;
-            if (this.HalfLifeUOMComboBox.SelectedText.Length > 0 && this.HalfLifeTextBox.Text.Length > 0)
+            if (this.HalfLifeUOMComboBox.Text.Length > 0 && this.HalfLifeTextBox.Text.Length > 0)
             {
                 double coeff;
                 switch (this.HalfLifeUOMComboBox.Text)
@@ -63,8 +63,11 @@ namespace BecquerelMonitor.NucBase
                     case "h":
                         coeff = 3600;
                         break;
+                    case "d":
+                        coeff = 86400;
+                        break;
                     case "Y":
-                        coeff = 1314000;
+                        coeff = 31536000;
                         break;
                     case "ms":
                         coeff = 1.0 / 1000.0;
@@ -246,23 +249,26 @@ namespace BecquerelMonitor.NucBase
                 return;
             }
             string isotope = this.ResultDataGridView.Rows[e.RowIndex].Cells[0].Value.ToString();
-            NucBaseFramework fw = new NucBaseFramework();
-            Nuclide nuc = fw.getNuclude(isotope);
-            this.IsotopeNameLabel.Text = isotope;
-            this.IsotopeZLabel.Text = nuc.Z.ToString();
-            this.IsotopeNLabel.Text = nuc.N.ToString();
-            this.IsotopeHLLabel.Text = nuc.HalfLife.ToString() + " " + nuc.HalfLifeUOM;
-
-            this.ParentsDataGridView.Rows.Clear();
-            foreach (Decay parent in nuc.Parents)
+            if (isotope != null)
             {
-                this.ParentsDataGridView.Rows.Add(parent.NucName, parent.DecayTypeString, parent.DecayPercent);
-            }
+                NucBaseFramework fw = new NucBaseFramework();
+                Nuclide nuc = fw.getNuclude(isotope);
+                this.IsotopeNameLabel.Text = isotope;
+                this.IsotopeZLabel.Text = nuc.Z.ToString();
+                this.IsotopeNLabel.Text = nuc.N.ToString();
+                this.IsotopeHLLabel.Text = nuc.HalfLife.ToString() + " " + nuc.HalfLifeUOM;
 
-            this.DaughtersDataGridView.Rows.Clear();
-            foreach (Decay daughter in nuc.Daughters)
-            {
-                this.DaughtersDataGridView.Rows.Add(daughter.NucName, daughter.DecayTypeString, daughter.DecayPercent);
+                this.ParentsDataGridView.Rows.Clear();
+                foreach (Decay parent in nuc.Parents)
+                {
+                    this.ParentsDataGridView.Rows.Add(parent.NucName, parent.DecayTypeString, parent.DecayPercent);
+                }
+
+                this.DaughtersDataGridView.Rows.Clear();
+                foreach (Decay daughter in nuc.Daughters)
+                {
+                    this.DaughtersDataGridView.Rows.Add(daughter.NucName, daughter.DecayTypeString, daughter.DecayPercent);
+                }
             }
         }
     }
