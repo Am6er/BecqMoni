@@ -1020,8 +1020,15 @@ namespace BecquerelMonitor
 
         void NucDB_Click(object sender, EventArgs e)
         {
-            this.nucBaseView.Show();
-            this.nucBaseView.Activate();
+            try
+            {
+                this.nucBaseView.Show();
+                this.nucBaseView.Activate();
+            } catch (Exception ex)
+            {
+
+            }
+            
         }
 
         // Token: 0x06000A72 RID: 2674 RVA: 0x0003E23C File Offset: 0x0003C43C

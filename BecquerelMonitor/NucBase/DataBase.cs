@@ -1,25 +1,22 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Data.SQLite;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.Data.Sqlite;
 using System.Windows.Forms;
 
 namespace BecquerelMonitor.NucBase
 {
     public class DataBase
     {
-        SQLiteConnection sqlite_conn;
+        SqliteConnection sqlite_conn;
 
         public DataBase()
         {
             CreateConnection();
         }
 
-        SQLiteConnection CreateConnection()
+        SqliteConnection CreateConnection()
         {
-            sqlite_conn = new SQLiteConnection("Data Source=NucBase/DB/nucdb.sqlite; Version = 3; New = True; Compress = True;");
+            string DBPath = Environment.CurrentDirectory + "\\nucdb.sqlite;";
+            sqlite_conn = new SqliteConnection("Data Source=" + DBPath);
             try
             {
                 sqlite_conn.Open();
@@ -31,10 +28,10 @@ namespace BecquerelMonitor.NucBase
             return sqlite_conn;
         }
 
-        public SQLiteDataReader ReadData(string sqlcmd)
+        public SqliteDataReader ReadData(string sqlcmd)
         {
-            SQLiteDataReader sqlite_datareader;
-            SQLiteCommand sqlite_cmd;
+            SqliteDataReader sqlite_datareader;
+            SqliteCommand sqlite_cmd;
             sqlite_cmd = sqlite_conn.CreateCommand();
             sqlite_cmd.CommandText = sqlcmd;
 
