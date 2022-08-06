@@ -1027,6 +1027,7 @@
     <None Include="NucBaseDataSet.xss">
       <DependentUpon>NucBaseDataSet.xsd</DependentUpon>
     </None>
+    <None Include="nucdb.sqlite" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
