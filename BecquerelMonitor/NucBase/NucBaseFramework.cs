@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using Microsoft.Data.Sqlite;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using BecquerelMonitor.Properties;
 
@@ -23,7 +21,7 @@ namespace BecquerelMonitor.NucBase
             Nuclide nuc = new Nuclide();
             try
             {
-                SqliteDataReader reader = db.ReadData("select z, n, half_life, ifnull(half_life_unit, '') from nuclides where nucid = '" + nucname + "' and half_life not null");
+                SqliteDataReader reader = db.ReadData("select z, n, ifnull(half_life, '?'), ifnull(half_life_unit, '') from nuclides where nucid = '" + nucname + "' and half_life not null");
                 reader.Read();
                 nuc.Z = reader.GetInt32(0);
                 nuc.N = reader.GetInt32(1);
@@ -40,7 +38,7 @@ namespace BecquerelMonitor.NucBase
                     nuc.Daughters.Add(dec);
                 }
 
-                reader = db.ReadData("select nucid, ifnull(perc, '?'), dec_type from decay_chain where daughter_nucid = '" + nucname + "' and perc not null");
+                reader = db.ReadData("select nucid, ifnull(perc, '?'), dec_type from decay_chain where daughter_nucid = '" + nucname + "'");
                 while (reader.Read())
                 {
                     Decay dec = new Decay();
@@ -64,14 +62,14 @@ namespace BecquerelMonitor.NucBase
         public List<DecayRad> getDecayRad(string nucname, double intensity = 0.0, double lowEnergy = 0.0, double highEnergy = 3000.0, double half_life_sec = 0)
         {
             DataBase db = new DataBase();
-            string sql = "select dr.parent_nucid, dr.energy_num, dr.intensity, dr.type_a, dr.type_c, dr.dec_type, nuc.half_life, nuc.half_life_unit from decay_radiations as dr, nuclides nuc where dr.parent_nucid = nuc.nucid and dr.type_a in ('G', 'X') and ";
+            string sql = "select dr.parent_nucid, dr.energy_num, dr.intensity_num, dr.type_a, dr.type_c, dr.dec_type, nuc.half_life, nuc.half_life_unit from decay_radiations as dr, nuclides nuc where dr.parent_nucid = nuc.nucid and dr.type_a in ('G', 'X') and ";
             if (nucname.Length > 0)
             {
                 sql += "dr.parent_nucid = '" + nucname + "' and ";
             }
             if (intensity >= 0.0)
             {
-                sql += "cast(dr.intensity as float) >= " + intensity + " and ";
+                sql += "cast(dr.intensity_num as float) >= " + intensity + " and ";
             }
             if (highEnergy == 0.0 && lowEnergy == 0.0)
             {
