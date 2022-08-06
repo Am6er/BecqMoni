@@ -81,8 +81,6 @@
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Devart.Data, Version=5.0.2938.0, Culture=neutral, PublicKeyToken=09af7300eec23701" />
-    <Reference Include="Devart.Data.SQLite, Version=6.0.0.0, Culture=neutral, PublicKeyToken=09af7300eec23701, processorArchitecture=MSIL" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
@@ -458,7 +456,6 @@
     <Compile Include="RepeatButton.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="resfinder.cs" />
     <Compile Include="ResultCorrection.cs" />
     <Compile Include="ResultData.cs" />
     <Compile Include="ResultDataFile.cs" />
@@ -1030,9 +1027,6 @@
     <None Include="NucBaseDataSet.xss">
       <DependentUpon>NucBaseDataSet.xsd</DependentUpon>
     </None>
-    <Content Include="nucdb.sqlite">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
