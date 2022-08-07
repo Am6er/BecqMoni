@@ -295,6 +295,18 @@ namespace BecquerelMonitor
                 resultData.EnergySpectrum.EnergyCalibration = resultData.DeviceConfig.EnergyCalibration.Clone();
                 resultData.PresetTime = resultData.DeviceConfig.DefaultMeasurementTime;
                 resultData.ResultDataStatus.PresetTime = resultData.PresetTime;
+                resultData.PeakDetectionMethodConfig = resultData.DeviceConfig.PeakDetectionMethodConfig.Clone();
+                FWHMPeakDetectionMethodConfig cfg = (FWHMPeakDetectionMethodConfig)resultData.PeakDetectionMethodConfig;
+                FWHMPeakDetectionMethodConfig devcfg = (FWHMPeakDetectionMethodConfig)resultData.DeviceConfig.PeakDetectionMethodConfig;
+                if (GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.DefaultPeakMode == PeakMode.Visible)
+                {
+                    cfg.Enabled = true;
+                    devcfg.Enabled = true;
+                } else
+                {
+                    cfg.Enabled = false;
+                    devcfg.Enabled = false;
+                }
             }
             else
             {
@@ -919,10 +931,18 @@ namespace BecquerelMonitor
                 case PeakMode.Visible:
                     peakMode = PeakMode.Invisible;
                     image = BecquerelMonitor.Properties.Resources.nopeak;
+                    FWHMPeakDetectionMethodConfig cfg = (FWHMPeakDetectionMethodConfig)this.ActiveResultData.PeakDetectionMethodConfig;
+                    FWHMPeakDetectionMethodConfig devcfg = (FWHMPeakDetectionMethodConfig)this.ActiveResultData.DeviceConfig.PeakDetectionMethodConfig;
+                    cfg.Enabled = false;
+                    devcfg.Enabled = false;
                     break;
                 case PeakMode.Invisible:
                     peakMode = PeakMode.Visible;
                     image = BecquerelMonitor.Properties.Resources.peak;
+                    FWHMPeakDetectionMethodConfig peakConfig = (FWHMPeakDetectionMethodConfig)this.ActiveResultData.PeakDetectionMethodConfig;
+                    FWHMPeakDetectionMethodConfig devConfig = (FWHMPeakDetectionMethodConfig)this.ActiveResultData.DeviceConfig.PeakDetectionMethodConfig;
+                    peakConfig.Enabled = true;
+                    devConfig.Enabled = true;
                     break;
             }
             this.view.PeakMode = peakMode;
@@ -942,6 +962,8 @@ namespace BecquerelMonitor
         {
             this.view.PeakMode = PeakMode.Visible;
             this.toolStripSplitButton9.Image = BecquerelMonitor.Properties.Resources.peak;
+            FWHMPeakDetectionMethodConfig cfg = (FWHMPeakDetectionMethodConfig)this.ActiveResultData.PeakDetectionMethodConfig;
+            cfg.Enabled = true;
             this.RefreshView();
         }
 
@@ -950,6 +972,8 @@ namespace BecquerelMonitor
         {
             this.view.PeakMode = PeakMode.Invisible;
             this.toolStripSplitButton9.Image = BecquerelMonitor.Properties.Resources.nopeak;
+            FWHMPeakDetectionMethodConfig cfg = (FWHMPeakDetectionMethodConfig)this.ActiveResultData.PeakDetectionMethodConfig;
+            cfg.Enabled = false;
             this.RefreshView();
         }
 
