@@ -442,6 +442,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Empty device list! You should add new device first!.
+        /// </summary>
+        internal static string EmptyDeviceList {
+            get {
+                return ResourceManager.GetString("EmptyDeviceList", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
         internal static System.Drawing.Bitmap ene {
