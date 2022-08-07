@@ -4336,4 +4336,7 @@ see peak in spectrum now).</value>
   <data name="NucBase.IT" xml:space="preserve">
     <value>IT</value>
   </data>
+  <data name="EmptyDeviceList" xml:space="preserve">
+    <value>Empty device list! You should add new device first!</value>
+  </data>
 </root>

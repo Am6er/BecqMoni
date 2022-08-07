@@ -201,6 +201,9 @@
   <data name="DeviceTypeLEMCA" xml:space="preserve">
     <value>LEMCA USB Adaptor</value>
   </data>
+  <data name="EmptyDeviceList" xml:space="preserve">
+    <value>Пустой список устройств! Сначала добавьте новое устройство!</value>
+  </data>
   <data name="ERRAddCalibrationPoints" xml:space="preserve">
     <value>Ошибка при  добавлении калибровки канал: {0}. Текст ошибки: {1}</value>
   </data>

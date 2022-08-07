@@ -190,6 +190,7 @@ namespace BecquerelMonitor
         // Token: 0x06000295 RID: 661 RVA: 0x0000B7CC File Offset: 0x000099CC
         public void ShowDocumentStatus()
         {
+            UpdateDeviceConfigList();
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
             if (activeDocument == null)
             {
