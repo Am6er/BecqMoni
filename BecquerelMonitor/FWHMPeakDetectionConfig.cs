@@ -123,6 +123,18 @@
             }
         }
 
+        public bool Enabled
+        {
+            get
+            {
+                return this.enabled;
+            }
+            set
+            {
+                this.enabled = value;
+            }
+        }
+
         public FWHMPeakDetectionMethodConfig()
         {
         }
@@ -165,5 +177,7 @@
         decimal min_fwhm_tol = 50;
 
         decimal max_fwhm_tol = 150;
+
+        bool enabled = true;
     }
 }

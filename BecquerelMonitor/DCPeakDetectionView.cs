@@ -71,6 +71,11 @@ namespace BecquerelMonitor
         public void UpdatePeakDetectionResult()
         {
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+            FWHMPeakDetectionMethodConfig peakConfig = (FWHMPeakDetectionMethodConfig) activeDocument.ActiveResultData.PeakDetectionMethodConfig;
+            if (!peakConfig.Enabled)
+            {
+                return;
+            }
             ResultData activeResultData = activeDocument.ActiveResultData;
             PeakDetector peakDetector = new PeakDetector();
             List<Peak> list = peakDetector.DetectPeak(activeResultData);
