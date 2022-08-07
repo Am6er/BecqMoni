@@ -51,6 +51,7 @@
 			this.label8 = new global::System.Windows.Forms.Label();
 			this.textBox1 = new global::System.Windows.Forms.TextBox();
 			this.button10 = new global::System.Windows.Forms.Button();
+			this.button11 = new global::System.Windows.Forms.Button();
 			this.textBox10 = new global::System.Windows.Forms.TextBox();
 			this.label9 = new global::System.Windows.Forms.Label();
 			this.label3 = new global::System.Windows.Forms.Label();
@@ -62,6 +63,11 @@
 			this.imageList1.Images.SetKeyName(1, "stop.ico");
 			this.imageList1.Images.SetKeyName(2, "clear.ico");
 			this.imageList1.Images.SetKeyName(3, "reload.ico");
+			componentResourceManager.ApplyResources(this.button11, "button11");
+			this.button11.Name = "button11";
+			this.toolTip1.SetToolTip(this.button11, componentResourceManager.GetString("button11.ToolTip"));
+			this.button11.UseVisualStyleBackColor = true;
+			this.button11.Click += new global::System.EventHandler(this.button11_Click);
 			componentResourceManager.ApplyResources(this.button9, "button9");
 			this.button9.ImageList = this.imageList1;
 			this.button9.Name = "button9";
@@ -128,6 +134,7 @@
 			this.groupBox1.Controls.Add(this.integerTextBox1);
 			this.groupBox1.Controls.Add(this.percentageProgressBar1);
 			this.groupBox1.Controls.Add(this.button1);
+			this.groupBox1.Controls.Add(this.button11);
 			this.groupBox1.Controls.Add(this.button2);
 			this.groupBox1.Controls.Add(this.label7);
 			this.groupBox1.Controls.Add(this.label6);
@@ -329,5 +336,7 @@
 
 		// Token: 0x040000F3 RID: 243
 		global::System.Windows.Forms.Button button9;
+
+		global::System.Windows.Forms.Button button11;
 	}
 }

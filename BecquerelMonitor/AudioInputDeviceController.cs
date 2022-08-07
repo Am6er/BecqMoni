@@ -97,6 +97,16 @@ namespace BecquerelMonitor
             return true;
         }
 
+        public override bool AttachToDevice(ResultData resultData)
+        {
+            return false;
+        }
+
+        public override void DetachFromDevice(ResultData resultData)
+        {
+            throw new NotImplementedException();
+        }
+
         // Token: 0x06000971 RID: 2417 RVA: 0x000375D8 File Offset: 0x000357D8
         public WaveFormat ConstructWaveFormat(AudioInputDeviceConfig audioConfig)
         {

@@ -35,8 +35,8 @@
     <MinimumRequiredVersion>2022.07.08.7</MinimumRequiredVersion>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
-    <ApplicationRevision>2</ApplicationRevision>
-    <ApplicationVersion>2022.08.7.2</ApplicationVersion>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>2022.08.8.0</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -1013,6 +1013,7 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <None Include="Resources\attach.ico" />
     <None Include="app.config" />
     <None Include="app.manifest" />
     <None Include="BecquerelMonitor_TemporaryKey.pfx" />

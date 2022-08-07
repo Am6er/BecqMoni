@@ -92,6 +92,17 @@ namespace BecquerelMonitor
             return true;
         }
 
+        public bool AttachToDevice()
+        {
+            ResultDataStatus resultDataStatus = this.resultData.ResultDataStatus;
+            if (!this.CreateDeviceController())
+            {
+                return false;
+            }
+            this.deviceController.AttachToDevice(this.resultData);
+            return true;
+        }
+
         // Token: 0x060006AC RID: 1708 RVA: 0x00028070 File Offset: 0x00026270
         bool CreateDeviceController()
         {
@@ -135,6 +146,19 @@ namespace BecquerelMonitor
                 return;
             }
             this.deviceController.StopMeasurement(this.resultData);
+            if (this.MeasurementTerminated != null)
+            {
+                this.MeasurementTerminated(this, new EventArgs());
+            }
+        }
+
+        public void DetachFromDevice()
+        {
+            if (this.deviceController == null)
+            {
+                return;
+            }
+            this.deviceController.DetachFromDevice(this.resultData);
             if (this.MeasurementTerminated != null)
             {
                 this.MeasurementTerminated(this, new EventArgs());

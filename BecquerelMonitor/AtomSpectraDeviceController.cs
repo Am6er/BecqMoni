@@ -122,6 +122,69 @@ namespace BecquerelMonitor
             return false;
         }
 
+        public override bool AttachToDevice(ResultData resultData)
+        {
+            ResultDataStatus resultDataStatus = resultData.ResultDataStatus;
+            this.resultData = resultData;
+            deviceGuid = resultData.DeviceConfig.Guid;
+            this.resultDataStatus = resultDataStatus;
+            if (resultData.DeviceConfig.InputDeviceConfig.GetType() == typeof(AtomSpectraDeviceConfig))
+            {
+                this.pulseDetector.Pulses = resultData.PulseCollection;
+                this.pulseDetector.EnergySpectrum = resultData.EnergySpectrum;
+                AtomSpectraDeviceConfig deviceConfig = (AtomSpectraDeviceConfig)resultData.DeviceConfig.InputDeviceConfig;
+                DeviceConfigInfo dci = DeviceConfigManager.GetInstance().DeviceConfigMap[resultData.DeviceConfig.Guid];
+                if (dci != null && (dci.InputDeviceConfig is AtomSpectraDeviceConfig))
+                {
+                    AtomSpectraDeviceConfig dc = (AtomSpectraDeviceConfig)dci.InputDeviceConfig;
+                    AtomSpectraVCPIn.getInstance(deviceGuid).setPort(dc.ComPortName);
+                }
+                else
+                {
+                    AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).setPort(deviceConfig.ComPortName);
+                }
+
+                if (previous_guid != null)
+                {
+                    if (!previous_guid.Equals(resultData.DeviceConfig.Guid))
+                    {
+                        already_subscribed = false;
+                        try
+                        {
+                            AtomSpectraVCPIn.getInstance(previous_guid).DataReady -= DataIn_DataReady;
+                        }
+                        catch (Exception)
+                        {
+                        }
+                    }
+                }
+
+                if (!already_subscribed)
+                {
+                    AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).DataReady += DataIn_DataReady;
+                    already_subscribed = true;
+                }
+
+                previous_guid = resultData.DeviceConfig.Guid;
+                //AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).PortFailure += AtomSpectraDeviceController_PortFailure;
+                bool commands_accepted = true;
+                AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).sendCommand("-sta");
+                commands_accepted &= AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("-ok", 1000);
+                if (new_document_created)
+                {
+                    resultData.StartTime = DateTime.Now;
+                    if (commands_accepted) new_document_created = false;
+                }
+                else
+                {
+                    //resultData.StartTime.Add = stopTimestamp;
+                }
+                resultDataStatus.Recording = commands_accepted;
+                if (commands_accepted) return true;
+            }
+            return false;
+        }
+
         void AtomSpectraDeviceController_PortFailure(object sender, EventArgs e)
         {
             if (MainForm.originalContext != null)
@@ -176,6 +239,16 @@ namespace BecquerelMonitor
                 AtomSpectraVCPIn.getInstance(deviceGuid).sendCommand("-sto");
                 resultData.EndTime = DateTime.Now;
                 resultDataStatus.Recording = !AtomSpectraVCPIn.getInstance(deviceGuid).waitForAnswer("-ok", 1000);
+            }
+        }
+
+        public override void DetachFromDevice(ResultData resultData)
+        {
+            ResultDataStatus resultDataStatus = resultData.ResultDataStatus;
+            if (deviceGuid != null)
+            {
+                resultData.EndTime = DateTime.Now;
+                resultDataStatus.Recording = false;
             }
         }
 

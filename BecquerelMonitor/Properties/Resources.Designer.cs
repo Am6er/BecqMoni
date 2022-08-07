@@ -88,6 +88,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Attach.
+        /// </summary>
+        internal static string Attach_BTN {
+            get {
+                return ResourceManager.GetString("Attach.BTN", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Choose background spectrum file.
         /// </summary>
         internal static string BackgroundSelectionDialogTitle {
@@ -401,6 +410,15 @@ namespace BecquerelMonitor.Properties {
         internal static string DeleteUnnamedSpectrumMessage {
             get {
                 return ResourceManager.GetString("DeleteUnnamedSpectrumMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Detach.
+        /// </summary>
+        internal static string Detach_BTN {
+            get {
+                return ResourceManager.GetString("Detach.BTN", resourceCulture);
             }
         }
         
