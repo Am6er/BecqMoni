@@ -11,5 +11,9 @@
 
         // Token: 0x060000E6 RID: 230
         public abstract void ClearMeasurementResult(ResultData resultData);
+
+        public abstract bool AttachToDevice(ResultData resultData);
+
+        public abstract void DetachFromDevice(ResultData resultData);
     }
 }

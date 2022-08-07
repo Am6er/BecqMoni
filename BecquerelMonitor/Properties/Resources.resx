@@ -4339,4 +4339,10 @@ see peak in spectrum now).</value>
   <data name="EmptyDeviceList" xml:space="preserve">
     <value>Empty device list! You should add new device first!</value>
   </data>
+  <data name="Attach.BTN" xml:space="preserve">
+    <value>Attach</value>
+  </data>
+  <data name="Detach.BTN" xml:space="preserve">
+    <value>Detach</value>
+  </data>
 </root>

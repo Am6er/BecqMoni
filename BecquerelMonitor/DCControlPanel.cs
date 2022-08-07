@@ -36,6 +36,8 @@ namespace BecquerelMonitor
             this.button1.Enabled = true;
             this.button2.Enabled = false;
             this.button5.Enabled = true;
+            this.button11.Text = Resources.Attach_BTN;
+            this.button11.Visible = false;
             this.UpdateDeviceConfigList();
             this.UpdateROIConfigList();
             this.deviceConfigManager.DeviceConfigListChanged += this.manager_DeviceConfigChanged;
@@ -95,6 +97,20 @@ namespace BecquerelMonitor
             this.StartMeasurement();
         }
 
+        void button11_Click(object sender, EventArgs e)
+        {
+            if (this.button11.Text == Resources.Attach_BTN)
+            {
+                this.AttachToDevice();
+                this.button11.Text = Resources.Detach_BTN;
+            } else
+            {
+                this.DetachFromDevice();
+                this.button11.Text = Resources.Attach_BTN;
+            }
+            
+        }
+
         // Token: 0x06000290 RID: 656 RVA: 0x0000B5C4 File Offset: 0x000097C4
         public void StartMeasurement()
         {
@@ -130,6 +146,40 @@ namespace BecquerelMonitor
             this.ShowDocumentStatus();
         }
 
+        public void AttachToDevice()
+        {
+            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+            if (activeDocument == null)
+            {
+                return;
+            }
+            ResultData activeResultData = activeDocument.ActiveResultData;
+            ResultDataStatus resultDataStatus = activeResultData.ResultDataStatus;
+            if (this.PresetTime < 0)
+            {
+                MessageBox.Show(Resources.ERRInvalidPresetTime);
+                return;
+            }
+            resultDataStatus.PresetTime = this.PresetTime;
+            if ((int)resultDataStatus.ElapsedTime.TotalSeconds >= this.PresetTime)
+            {
+                return;
+            }
+            activeDocument.Dirty = true;
+            activeDocument.UpdateSpectrum = true;
+            activeResultData.Dirty = true;
+            DCPulseView dcpulseView = this.mainForm.DCPulseView;
+            activeResultData.MeasurementController.AttachToDevice();
+            if (activeDocument.PulseDetector != null)
+            {
+                activeDocument.PulseDetector.PulseView = dcpulseView.PulseView;
+                activeDocument.PulseDetector.NGPulseView = dcpulseView.NGPulseView;
+                activeDocument.PulseDetector.DoUpdatePulseView = this.mainForm.DoUpdatePulseView;
+            }
+            this.mainForm.UpdateSampleInfo();
+            this.ShowDocumentStatus();
+        }
+
         // Token: 0x06000291 RID: 657 RVA: 0x0000B6BC File Offset: 0x000098BC
         void button2_Click(object sender, EventArgs e)
         {
@@ -151,6 +201,27 @@ namespace BecquerelMonitor
             }
             activeDocument.UpdateSpectrum = false;
             activeResultData.MeasurementController.StopRecording();
+            if (activeDocument.PulseDetector != null)
+            {
+                activeDocument.PulseDetector.DoUpdatePulseView = false;
+            }
+            this.ShowDocumentStatus();
+        }
+
+        public void DetachFromDevice()
+        {
+            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+            if (activeDocument == null)
+            {
+                return;
+            }
+            ResultData activeResultData = activeDocument.ActiveResultData;
+            if (!activeResultData.ResultDataStatus.Recording)
+            {
+                return;
+            }
+            activeDocument.UpdateSpectrum = false;
+            activeResultData.MeasurementController.DetachFromDevice();
             if (activeDocument.PulseDetector != null)
             {
                 activeDocument.PulseDetector.DoUpdatePulseView = false;
@@ -248,6 +319,13 @@ namespace BecquerelMonitor
                 this.button5.Enabled = true;
             }
             this.ShowRecordingStatus();
+            if (this.mainForm.ActiveDocument.ActiveResultData.DeviceConfig.DeviceType == "AtomSpectraVCP")
+            {
+                this.button11.Visible = true;
+            } else
+            {
+                this.button11.Visible = false;
+            }
             this.formUpdating = false;
         }
 

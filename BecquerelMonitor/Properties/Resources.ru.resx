@@ -126,6 +126,9 @@
   <data name="AtomSpectraFileFilter" xml:space="preserve">
     <value>Файлы Atom Spectra (*.txt)|*.txt|Все файлы (*.*)|*.*</value>
   </data>
+  <data name="Attach.BTN" xml:space="preserve">
+    <value>Подкл.</value>
+  </data>
   <data name="BackgroundSelectionDialogTitle" xml:space="preserve">
     <value>Выберите файл фонового спектра</value>
   </data>
@@ -191,6 +194,9 @@
   </data>
   <data name="DeleteUnnamedSpectrumMessage" xml:space="preserve">
     <value>Удалить безымянный спектр?</value>
+  </data>
+  <data name="Detach.BTN" xml:space="preserve">
+    <value>Откл.</value>
   </data>
   <data name="DeviceTypeAtomSpectraVCP" xml:space="preserve">
     <value>AtomSpectraVCP</value>
