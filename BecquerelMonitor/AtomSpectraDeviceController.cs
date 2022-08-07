@@ -74,15 +74,18 @@ namespace BecquerelMonitor
                     AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).setPort(deviceConfig.ComPortName);
                 }
 
-                if (previous_guid == null || !previous_guid.Equals(resultData.DeviceConfig.Guid))
+                if (previous_guid != null)
                 {
-                    already_subscribed = false;
-                    try
+                    if (!previous_guid.Equals(resultData.DeviceConfig.Guid))
                     {
-                        AtomSpectraVCPIn.getInstance(previous_guid).DataReady -= DataIn_DataReady;
-                    }
-                    catch (Exception)
-                    {
+                        already_subscribed = false;
+                        try
+                        {
+                            AtomSpectraVCPIn.getInstance(previous_guid).DataReady -= DataIn_DataReady;
+                        }
+                        catch (Exception)
+                        {
+                        }
                     }
                 }
 
