@@ -143,7 +143,7 @@ namespace BecquerelMonitor
                     double num4 = Math.Pow(num2, 2.0) - 4.0 * num * num3;
                     if (num4 < 0.0)
                     {
-                        throw new OutofChannelException();
+                        throw new Exception(Resources.CalibrationFunctionError);
                     }
                     return (-num2 + Math.Sqrt(num4)) / (2.0 * num);
                 }
