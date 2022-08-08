@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BecquerelMonitor.Properties;
+using System;
 using System.IO;
 using System.Windows.Forms;
 using System.Xml;
@@ -205,13 +206,15 @@ namespace BecquerelMonitor.N42
                 doc.ActiveResultData.ResultDataStatus.ElapsedTime = TimeSpan.FromSeconds(ElapsedTime);
                 doc.ActiveResultData.ResultDataStatus.PresetTime = ElapsedTime;
 
-                string[] n42SpectrimCounts = radMeasurement.Spectrum[0].ChannelData.Value.Replace("\n", string.Empty).Split(new string[] { " " }, StringSplitOptions.None);
-                n42SpectrimCounts = Array.FindAll(n42SpectrimCounts, isNotN42SpectrumValid);
-                int NumberOfChanels = n42SpectrimCounts.Length;
+                string[] n42SpectrumCounts = radMeasurement.Spectrum[0].ChannelData.Value.Replace("\n", string.Empty).Split(new string[] { " " }, StringSplitOptions.None);
+                n42SpectrumCounts = Array.FindAll(n42SpectrumCounts, isNotN42SpectrumValid);
+                int NumberOfChanels = n42SpectrumCounts.Length;
                 resultData.EnergySpectrum.Spectrum = new int[NumberOfChanels];
+                resultData.EnergySpectrum.NumberOfChannels = NumberOfChanels;
+                resultData.EnergySpectrum.ChannelPitch = 1;
                 for (int k = 0; k < NumberOfChanels; k++)
                 {
-                    resultData.EnergySpectrum.Spectrum[k] = int.Parse(n42SpectrimCounts[k]);
+                    resultData.EnergySpectrum.Spectrum[k] = int.Parse(n42SpectrumCounts[k]);
                 }
 
                 try
@@ -220,7 +223,7 @@ namespace BecquerelMonitor.N42
                     n42CalibrationCoeff = Array.FindAll(n42CalibrationCoeff, isNotN42SpectrumValid);
                     int PolynomialOrder = n42CalibrationCoeff.Length - 1;
 
-                    if (PolynomialOrder > 4)
+                    if (PolynomialOrder > 5)
                     {
                         throw new Exception("Unsupported calibration points number. Got polynom order = " + PolynomialOrder);
                     }
@@ -234,22 +237,24 @@ namespace BecquerelMonitor.N42
                     resultData.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
                     PolynomialEnergyCalibration energyCalibration = (PolynomialEnergyCalibration)resultData.EnergySpectrum.EnergyCalibration;
                     energyCalibration.PolynomialOrder = PolynomialOrder;
-                    for (int k = 0; k < coefficients.Length; k++)
-                    {
-                        energyCalibration.Coefficients[k] = coefficients[k];
-                    }
+                    energyCalibration.Coefficients = coefficients;
 
                     if (!energyCalibration.CheckCalibration())
                     {
-                        MessageBox.Show("The calibration function should be monotonically increasing at channel > 0. Re-check Calibration points!");
+                        MessageBox.Show(Resources.CalibrationFunctionError);
                     }
                 }
                 catch
                 {
                     MessageBox.Show("N42 EnergyBoundaryValues not supported. Using current calibration.");
                 }
-
-                doc.ResultDataFile.ResultDataList.Add(resultData);
+                if (i == 0)
+                {
+                    doc.ResultDataFile.ResultDataList[0] = resultData;
+                } else
+                {
+                    doc.ResultDataFile.ResultDataList.Add(resultData);
+                }
             }
             doc.ResultDataFile.ResultDataList[0].Visible = true;
             return doc;
