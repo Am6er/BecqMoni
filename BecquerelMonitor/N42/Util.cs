@@ -219,8 +219,14 @@ namespace BecquerelMonitor.N42
 
                 try
                 {
+                    resultData.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
                     string[] n42CalibrationCoeff = radCalibration.CoefficientValues.Replace("\n", string.Empty).Split(new string[] { " " }, StringSplitOptions.None);
                     n42CalibrationCoeff = Array.FindAll(n42CalibrationCoeff, isNotN42SpectrumValid);
+                    if (n42CalibrationCoeff.Length == 0)
+                    {
+                        //Empty coefficients
+                        throw new Exception();
+                    }
                     int PolynomialOrder = n42CalibrationCoeff.Length - 1;
 
                     if (PolynomialOrder > 5)
@@ -234,7 +240,7 @@ namespace BecquerelMonitor.N42
                     {
                         coefficients[k] = double.Parse(n42CalibrationCoeff[k]);
                     }
-                    resultData.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
+                    
                     PolynomialEnergyCalibration energyCalibration = (PolynomialEnergyCalibration)resultData.EnergySpectrum.EnergyCalibration;
                     energyCalibration.PolynomialOrder = PolynomialOrder;
                     energyCalibration.Coefficients = coefficients;
@@ -246,7 +252,7 @@ namespace BecquerelMonitor.N42
                 }
                 catch
                 {
-                    MessageBox.Show("N42 EnergyBoundaryValues not supported. Using current calibration.");
+                    MessageBox.Show("N42 EnergyBoundaryValues not supported. Only calibration coefficients supported. Using default calibration y=x.");
                 }
                 if (i == 0)
                 {
