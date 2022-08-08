@@ -494,8 +494,17 @@ namespace BecquerelMonitor
             {
                 Cursor.Current = Cursors.WaitCursor;
                 XmlSerializer ser = new XmlSerializer(typeof(RadInstrumentData));
+
+                //Add DHS namespace for Interspec compatibility
+                XmlDocument xmldoc = new XmlDocument();
+                XmlReaderSettings settings = new XmlReaderSettings { NameTable = new NameTable() };
+                XmlNamespaceManager xmlns = new XmlNamespaceManager(settings.NameTable);
+                xmlns.AddNamespace("DHS", "http://www.w3.org/2001/XMLSchema-instance");
+                XmlParserContext context = new XmlParserContext(null, xmlns, "", XmlSpace.Default);
+                //Add DHS namespace for Interspec compatibility
+
                 RadInstrumentData radInstrumentData = new RadInstrumentData();
-                using (XmlReader reader = XmlReader.Create(filename))
+                using (XmlReader reader = XmlReader.Create(filename, settings, context))
                 {
                     radInstrumentData = (RadInstrumentData)ser.Deserialize(reader);
                 }
@@ -508,18 +517,6 @@ namespace BecquerelMonitor
             {
                 MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message, ex.StackTrace));
                 return;
-            }
-        }
-
-        private bool isNotN42SpectrumValid(string str)
-        {
-            if (str == "" || str == "\n")
-            {
-                return false;
-            }
-            else
-            {
-                return true;
             }
         }
 
