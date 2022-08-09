@@ -1,5 +1,5 @@
 ﻿using BecquerelMonitor.Properties;
-using ColorComboTestApp;
+using ColorComboBox;
 using System;
 using System.Drawing;
 using System.IO;

@@ -1,4 +1,4 @@
-﻿namespace ColorComboTestApp
+﻿namespace ColorComboBox
 {
     // Token: 0x020000D2 RID: 210
     // (Invoke) Token: 0x06000AC1 RID: 2753

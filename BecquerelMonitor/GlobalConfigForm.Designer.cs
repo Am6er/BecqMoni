@@ -80,20 +80,20 @@
 			this.label61 = new global::System.Windows.Forms.Label();
 			this.label62 = new global::System.Windows.Forms.Label();
 			this.label63 = new global::System.Windows.Forms.Label();
-			this.colorComboBox30 = new global::ColorComboTestApp.ColorComboBox();
-			this.colorComboBox31 = new global::ColorComboTestApp.ColorComboBox();
-			this.colorComboBox32 = new global::ColorComboTestApp.ColorComboBox();
-			this.colorComboBox33 = new global::ColorComboTestApp.ColorComboBox();
-			this.colorComboBox34 = new global::ColorComboTestApp.ColorComboBox();
-			this.colorComboBox35 = new global::ColorComboTestApp.ColorComboBox();
+			this.colorComboBox30 = new global::ColorComboBox.ColorComboBox();
+			this.colorComboBox31 = new global::ColorComboBox.ColorComboBox();
+			this.colorComboBox32 = new global::ColorComboBox.ColorComboBox();
+			this.colorComboBox33 = new global::ColorComboBox.ColorComboBox();
+			this.colorComboBox34 = new global::ColorComboBox.ColorComboBox();
+			this.colorComboBox35 = new global::ColorComboBox.ColorComboBox();
 			this.label57 = new global::System.Windows.Forms.Label();
-			this.colorComboBox29 = new global::ColorComboTestApp.ColorComboBox();
+			this.colorComboBox29 = new global::ColorComboBox.ColorComboBox();
 			this.label56 = new global::System.Windows.Forms.Label();
-			this.colorComboBox28 = new global::ColorComboTestApp.ColorComboBox();
+			this.colorComboBox28 = new global::ColorComboBox.ColorComboBox();
 			this.label6 = new global::System.Windows.Forms.Label();
-			this.colorComboBox1 = new global::ColorComboTestApp.ColorComboBox();
+			this.colorComboBox1 = new global::ColorComboBox.ColorComboBox();
 			this.label36 = new global::System.Windows.Forms.Label();
-			this.colorComboBox2 = new global::ColorComboTestApp.ColorComboBox();
+			this.colorComboBox2 = new global::ColorComboBox.ColorComboBox();
 			this.label35 = new global::System.Windows.Forms.Label();
 			this.label7 = new global::System.Windows.Forms.Label();
 			this.label34 = new global::System.Windows.Forms.Label();
@@ -101,40 +101,40 @@
 			this.label33 = new global::System.Windows.Forms.Label();
 			this.label30 = new global::System.Windows.Forms.Label();
 			this.label32 = new global::System.Windows.Forms.Label();
-			this.colorComboBox17 = new global::ColorComboTestApp.ColorComboBox();
+			this.colorComboBox17 = new global::ColorComboBox.ColorComboBox();
 			this.label31 = new global::System.Windows.Forms.Label();
-			this.colorComboBox18 = new global::ColorComboTestApp.ColorComboBox();
-			this.colorComboBox24 = new global::ColorComboTestApp.ColorComboBox();
-			this.colorComboBox19 = new global::ColorComboTestApp.ColorComboBox();
-			this.colorComboBox23 = new global::ColorComboTestApp.ColorComboBox();
-			this.colorComboBox20 = new global::ColorComboTestApp.ColorComboBox();
-			this.colorComboBox22 = new global::ColorComboTestApp.ColorComboBox();
-			this.colorComboBox21 = new global::ColorComboTestApp.ColorComboBox();
+			this.colorComboBox18 = new global::ColorComboBox.ColorComboBox();
+			this.colorComboBox24 = new global::ColorComboBox.ColorComboBox();
+			this.colorComboBox19 = new global::ColorComboBox.ColorComboBox();
+			this.colorComboBox23 = new global::ColorComboBox.ColorComboBox();
+			this.colorComboBox20 = new global::ColorComboBox.ColorComboBox();
+			this.colorComboBox22 = new global::ColorComboBox.ColorComboBox();
+			this.colorComboBox21 = new global::ColorComboBox.ColorComboBox();
 			this.groupBox3 = new global::System.Windows.Forms.GroupBox();
 			this.label42 = new global::System.Windows.Forms.Label();
 			this.label41 = new global::System.Windows.Forms.Label();
 			this.label40 = new global::System.Windows.Forms.Label();
-			this.colorComboBox27 = new global::ColorComboTestApp.ColorComboBox();
-			this.colorComboBox26 = new global::ColorComboTestApp.ColorComboBox();
-			this.colorComboBox25 = new global::ColorComboTestApp.ColorComboBox();
+			this.colorComboBox27 = new global::ColorComboBox.ColorComboBox();
+			this.colorComboBox26 = new global::ColorComboBox.ColorComboBox();
+			this.colorComboBox25 = new global::ColorComboBox.ColorComboBox();
 			this.label8 = new global::System.Windows.Forms.Label();
-			this.colorComboBox3 = new global::ColorComboTestApp.ColorComboBox();
-			this.colorComboBox4 = new global::ColorComboTestApp.ColorComboBox();
-			this.colorComboBox5 = new global::ColorComboTestApp.ColorComboBox();
-			this.colorComboBox6 = new global::ColorComboTestApp.ColorComboBox();
-			this.colorComboBox7 = new global::ColorComboTestApp.ColorComboBox();
-			this.colorComboBox8 = new global::ColorComboTestApp.ColorComboBox();
-			this.colorComboBox9 = new global::ColorComboTestApp.ColorComboBox();
-			this.colorComboBox10 = new global::ColorComboTestApp.ColorComboBox();
-			this.colorComboBox11 = new global::ColorComboTestApp.ColorComboBox();
-			this.colorComboBox12 = new global::ColorComboTestApp.ColorComboBox();
-			this.colorComboBox13 = new global::ColorComboTestApp.ColorComboBox();
-			this.colorComboBox14 = new global::ColorComboTestApp.ColorComboBox();
-			this.colorComboBox15 = new global::ColorComboTestApp.ColorComboBox();
+			this.colorComboBox3 = new global::ColorComboBox.ColorComboBox();
+			this.colorComboBox4 = new global::ColorComboBox.ColorComboBox();
+			this.colorComboBox5 = new global::ColorComboBox.ColorComboBox();
+			this.colorComboBox6 = new global::ColorComboBox.ColorComboBox();
+			this.colorComboBox7 = new global::ColorComboBox.ColorComboBox();
+			this.colorComboBox8 = new global::ColorComboBox.ColorComboBox();
+			this.colorComboBox9 = new global::ColorComboBox.ColorComboBox();
+			this.colorComboBox10 = new global::ColorComboBox.ColorComboBox();
+			this.colorComboBox11 = new global::ColorComboBox.ColorComboBox();
+			this.colorComboBox12 = new global::ColorComboBox.ColorComboBox();
+			this.colorComboBox13 = new global::ColorComboBox.ColorComboBox();
+			this.colorComboBox14 = new global::ColorComboBox.ColorComboBox();
+			this.colorComboBox15 = new global::ColorComboBox.ColorComboBox();
 			this.label9 = new global::System.Windows.Forms.Label();
 			this.label10 = new global::System.Windows.Forms.Label();
 			this.label11 = new global::System.Windows.Forms.Label();
-			this.colorComboBox16 = new global::ColorComboTestApp.ColorComboBox();
+			this.colorComboBox16 = new global::ColorComboBox.ColorComboBox();
 			this.label12 = new global::System.Windows.Forms.Label();
 			this.label25 = new global::System.Windows.Forms.Label();
 			this.label13 = new global::System.Windows.Forms.Label();
@@ -1208,37 +1208,37 @@
 		global::System.Windows.Forms.ComboBox comboBox1;
 
 		// Token: 0x0400060B RID: 1547
-		global::ColorComboTestApp.ColorComboBox colorComboBox3;
+		global::ColorComboBox.ColorComboBox colorComboBox3;
 
 		// Token: 0x0400060C RID: 1548
-		global::ColorComboTestApp.ColorComboBox colorComboBox2;
+		global::ColorComboBox.ColorComboBox colorComboBox2;
 
 		// Token: 0x0400060D RID: 1549
-		global::ColorComboTestApp.ColorComboBox colorComboBox1;
+		global::ColorComboBox.ColorComboBox colorComboBox1;
 
 		// Token: 0x0400060E RID: 1550
-		global::ColorComboTestApp.ColorComboBox colorComboBox12;
+		global::ColorComboBox.ColorComboBox colorComboBox12;
 
 		// Token: 0x0400060F RID: 1551
-		global::ColorComboTestApp.ColorComboBox colorComboBox11;
+		global::ColorComboBox.ColorComboBox colorComboBox11;
 
 		// Token: 0x04000610 RID: 1552
-		global::ColorComboTestApp.ColorComboBox colorComboBox10;
+		global::ColorComboBox.ColorComboBox colorComboBox10;
 
 		// Token: 0x04000611 RID: 1553
-		global::ColorComboTestApp.ColorComboBox colorComboBox9;
+		global::ColorComboBox.ColorComboBox colorComboBox9;
 
 		// Token: 0x04000612 RID: 1554
-		global::ColorComboTestApp.ColorComboBox colorComboBox8;
+		global::ColorComboBox.ColorComboBox colorComboBox8;
 
 		// Token: 0x04000613 RID: 1555
-		global::ColorComboTestApp.ColorComboBox colorComboBox7;
+		global::ColorComboBox.ColorComboBox colorComboBox7;
 
 		// Token: 0x04000614 RID: 1556
-		global::ColorComboTestApp.ColorComboBox colorComboBox6;
+		global::ColorComboBox.ColorComboBox colorComboBox6;
 
 		// Token: 0x04000615 RID: 1557
-		global::ColorComboTestApp.ColorComboBox colorComboBox5;
+		global::ColorComboBox.ColorComboBox colorComboBox5;
 
 		// Token: 0x04000616 RID: 1558
 		global::System.Windows.Forms.Label label17;
@@ -1265,7 +1265,7 @@
 		global::System.Windows.Forms.Label label10;
 
 		// Token: 0x0400061E RID: 1566
-		global::ColorComboTestApp.ColorComboBox colorComboBox4;
+		global::ColorComboBox.ColorComboBox colorComboBox4;
 
 		// Token: 0x0400061F RID: 1567
 		global::System.Windows.Forms.Label label9;
@@ -1277,19 +1277,19 @@
 		global::System.Windows.Forms.Label label18;
 
 		// Token: 0x04000622 RID: 1570
-		global::ColorComboTestApp.ColorComboBox colorComboBox13;
+		global::ColorComboBox.ColorComboBox colorComboBox13;
 
 		// Token: 0x04000623 RID: 1571
 		global::System.Windows.Forms.Button button3;
 
 		// Token: 0x04000624 RID: 1572
-		global::ColorComboTestApp.ColorComboBox colorComboBox14;
+		global::ColorComboBox.ColorComboBox colorComboBox14;
 
 		// Token: 0x04000625 RID: 1573
 		global::System.Windows.Forms.Label label19;
 
 		// Token: 0x04000626 RID: 1574
-		global::ColorComboTestApp.ColorComboBox colorComboBox15;
+		global::ColorComboBox.ColorComboBox colorComboBox15;
 
 		// Token: 0x04000627 RID: 1575
 		global::System.Windows.Forms.Label label20;
@@ -1325,7 +1325,7 @@
 		global::System.Windows.Forms.NumericUpDown numericUpDown1;
 
 		// Token: 0x04000632 RID: 1586
-		global::ColorComboTestApp.ColorComboBox colorComboBox16;
+		global::ColorComboBox.ColorComboBox colorComboBox16;
 
 		// Token: 0x04000633 RID: 1587
 		global::System.Windows.Forms.Label label25;
@@ -1370,31 +1370,31 @@
 		global::System.Windows.Forms.Label label32;
 
 		// Token: 0x04000641 RID: 1601
-		global::ColorComboTestApp.ColorComboBox colorComboBox17;
+		global::ColorComboBox.ColorComboBox colorComboBox17;
 
 		// Token: 0x04000642 RID: 1602
 		global::System.Windows.Forms.Label label31;
 
 		// Token: 0x04000643 RID: 1603
-		global::ColorComboTestApp.ColorComboBox colorComboBox18;
+		global::ColorComboBox.ColorComboBox colorComboBox18;
 
 		// Token: 0x04000644 RID: 1604
-		global::ColorComboTestApp.ColorComboBox colorComboBox24;
+		global::ColorComboBox.ColorComboBox colorComboBox24;
 
 		// Token: 0x04000645 RID: 1605
-		global::ColorComboTestApp.ColorComboBox colorComboBox19;
+		global::ColorComboBox.ColorComboBox colorComboBox19;
 
 		// Token: 0x04000646 RID: 1606
-		global::ColorComboTestApp.ColorComboBox colorComboBox23;
+		global::ColorComboBox.ColorComboBox colorComboBox23;
 
 		// Token: 0x04000647 RID: 1607
-		global::ColorComboTestApp.ColorComboBox colorComboBox20;
+		global::ColorComboBox.ColorComboBox colorComboBox20;
 
 		// Token: 0x04000648 RID: 1608
-		global::ColorComboTestApp.ColorComboBox colorComboBox22;
+		global::ColorComboBox.ColorComboBox colorComboBox22;
 
 		// Token: 0x04000649 RID: 1609
-		global::ColorComboTestApp.ColorComboBox colorComboBox21;
+		global::ColorComboBox.ColorComboBox colorComboBox21;
 
 		// Token: 0x0400064A RID: 1610
 		global::System.Windows.Forms.GroupBox groupBox3;
@@ -1427,13 +1427,13 @@
 		global::System.Windows.Forms.Label label40;
 
 		// Token: 0x04000654 RID: 1620
-		global::ColorComboTestApp.ColorComboBox colorComboBox27;
+		global::ColorComboBox.ColorComboBox colorComboBox27;
 
 		// Token: 0x04000655 RID: 1621
-		global::ColorComboTestApp.ColorComboBox colorComboBox26;
+		global::ColorComboBox.ColorComboBox colorComboBox26;
 
 		// Token: 0x04000656 RID: 1622
-		global::ColorComboTestApp.ColorComboBox colorComboBox25;
+		global::ColorComboBox.ColorComboBox colorComboBox25;
 
 		// Token: 0x04000657 RID: 1623
 		global::System.Windows.Forms.ComboBox comboBox10;
@@ -1496,7 +1496,7 @@
 		global::System.Windows.Forms.Label label56;
 
 		// Token: 0x0400066B RID: 1643
-		global::ColorComboTestApp.ColorComboBox colorComboBox28;
+		global::ColorComboBox.ColorComboBox colorComboBox28;
 
 		// Token: 0x0400066C RID: 1644
 		global::System.Windows.Forms.Label label58;
@@ -1517,28 +1517,28 @@
 		global::System.Windows.Forms.Label label63;
 
 		// Token: 0x04000672 RID: 1650
-		global::ColorComboTestApp.ColorComboBox colorComboBox30;
+		global::ColorComboBox.ColorComboBox colorComboBox30;
 
 		// Token: 0x04000673 RID: 1651
-		global::ColorComboTestApp.ColorComboBox colorComboBox31;
+		global::ColorComboBox.ColorComboBox colorComboBox31;
 
 		// Token: 0x04000674 RID: 1652
-		global::ColorComboTestApp.ColorComboBox colorComboBox32;
+		global::ColorComboBox.ColorComboBox colorComboBox32;
 
 		// Token: 0x04000675 RID: 1653
-		global::ColorComboTestApp.ColorComboBox colorComboBox33;
+		global::ColorComboBox.ColorComboBox colorComboBox33;
 
 		// Token: 0x04000676 RID: 1654
-		global::ColorComboTestApp.ColorComboBox colorComboBox34;
+		global::ColorComboBox.ColorComboBox colorComboBox34;
 
 		// Token: 0x04000677 RID: 1655
-		global::ColorComboTestApp.ColorComboBox colorComboBox35;
+		global::ColorComboBox.ColorComboBox colorComboBox35;
 
 		// Token: 0x04000678 RID: 1656
 		global::System.Windows.Forms.Label label57;
 
 		// Token: 0x04000679 RID: 1657
-		global::ColorComboTestApp.ColorComboBox colorComboBox29;
+		global::ColorComboBox.ColorComboBox colorComboBox29;
 
 		// Token: 0x0400067A RID: 1658
 		global::System.Windows.Forms.NumericUpDown numericUpDown7;

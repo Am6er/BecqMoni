@@ -136,9 +136,9 @@
     <Compile Include="ChannelPickupedEventArgs.cs" />
     <Compile Include="ChartType.cs" />
     <Compile Include="ChartViewConfig.cs" />
-    <Compile Include="ColorComboTestApp\ColorChangeArgs.cs" />
-    <Compile Include="ColorComboTestApp\ColorChangedHandler.cs" />
-    <Compile Include="ColorComboTestApp\ColorComboBox.Designer.cs">
+    <Compile Include="ColorComboBox\ColorChangeArgs.cs" />
+    <Compile Include="ColorComboBox\ColorChangedHandler.cs" />
+    <Compile Include="ColorComboBox\ColorComboBox.Designer.cs">
       <DependentUpon>ColorComboBox.resx</DependentUpon>
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -822,7 +822,7 @@
     <EmbeddedResource Include="AudioInputDeviceForm.ru.resx">
       <DependentUpon>AudioInputDeviceForm.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="ColorComboTestApp\ColorComboBox.resx">
+    <EmbeddedResource Include="ColorComboBox\ColorComboBox.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>ColorComboBox.Designer.cs</LastGenOutput>
     </EmbeddedResource>
