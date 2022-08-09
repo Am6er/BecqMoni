@@ -310,6 +310,7 @@ namespace BecquerelMonitor
                 this.button2.Enabled = true;
                 this.comboBox1.Enabled = false;
                 this.button5.Enabled = false;
+                this.button11.Text = Resources.Detach_BTN;
             }
             else
             {
@@ -317,6 +318,7 @@ namespace BecquerelMonitor
                 this.button2.Enabled = false;
                 this.comboBox1.Enabled = true;
                 this.button5.Enabled = true;
+                this.button11.Text = Resources.Attach_BTN;
             }
             this.ShowRecordingStatus();
             if (this.mainForm.ActiveDocument.ActiveResultData.DeviceConfig.DeviceType == "AtomSpectraVCP")

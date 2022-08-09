@@ -35,8 +35,8 @@
     <MinimumRequiredVersion>2022.07.08.7</MinimumRequiredVersion>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
-    <ApplicationRevision>1</ApplicationRevision>
-    <ApplicationVersion>2022.08.9.1</ApplicationVersion>
+    <ApplicationRevision>4</ApplicationRevision>
+    <ApplicationVersion>2022.08.9.4</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -838,6 +838,7 @@
     </EmbeddedResource>
     <EmbeddedResource Include="DCControlPanel.resx">
       <DependentUpon>DCControlPanel.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="DCControlPanel.ru.resx">
       <DependentUpon>DCControlPanel.cs</DependentUpon>
@@ -1015,6 +1016,8 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <None Include="Resources\attach.png" />
+    <None Include="Resources\attach.ico" />
     <None Include="app.config" />
     <None Include="app.manifest" />
     <None Include="BecquerelMonitor_TemporaryKey.pfx" />
@@ -1046,7 +1049,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="config\sound\" />
-    <Folder Include="Resources\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="BecquerelMonitor.ico" />
