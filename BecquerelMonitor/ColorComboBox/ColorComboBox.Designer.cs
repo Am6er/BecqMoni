@@ -4,7 +4,7 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
 
-namespace ColorComboTestApp
+namespace ColorComboBox
 {
 	// Token: 0x020000A7 RID: 167
 	public class ColorComboBox : UserControl

@@ -86,7 +86,7 @@
 			this.textColumn2 = new global::XPTable.Models.TextColumn();
 			this.textColumn3 = new global::XPTable.Models.TextColumn();
 			this.tableModel1 = new global::XPTable.Models.TableModel();
-			this.colorComboBox1 = new global::ColorComboTestApp.ColorComboBox();
+			this.colorComboBox1 = new global::ColorComboBox.ColorComboBox();
 			this.doubleTextBox5 = new global::BecquerelMonitor.DoubleTextBox();
 			this.doubleTextBox2 = new global::BecquerelMonitor.DoubleTextBox();
 			this.doubleTextBox1 = new global::BecquerelMonitor.DoubleTextBox();
@@ -384,7 +384,7 @@
 			this.colorComboBox1.Extended = true;
 			this.colorComboBox1.Name = "colorComboBox1";
 			this.colorComboBox1.SelectedColor = global::System.Drawing.Color.Black;
-			this.colorComboBox1.ColorChanged += new global::ColorComboTestApp.ColorChangedHandler(this.colorComboBox1_ColorChanged);
+			this.colorComboBox1.ColorChanged += new global::ColorComboBox.ColorChangedHandler(this.colorComboBox1_ColorChanged);
 			componentResourceManager.ApplyResources(this.doubleTextBox5, "doubleTextBox5");
 			this.doubleTextBox5.Name = "doubleTextBox5";
 			this.doubleTextBox5.TextChanged += new global::System.EventHandler(this.doubleTextBox5_TextChanged);
@@ -706,7 +706,7 @@
 		global::System.Windows.Forms.Button button10;
 
 		// Token: 0x04000505 RID: 1285
-		global::ColorComboTestApp.ColorComboBox colorComboBox1;
+		global::ColorComboBox.ColorComboBox colorComboBox1;
 
 		// Token: 0x04000506 RID: 1286
 		global::System.Windows.Forms.Label label25;
