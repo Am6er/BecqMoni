@@ -1,4 +1,6 @@
-﻿namespace BecquerelMonitor
+﻿using BecquerelMonitor.Properties;
+
+namespace BecquerelMonitor
 {
 	// Token: 0x02000030 RID: 48
 	public partial class DCControlPanel : global::BecquerelMonitor.ToolWindow
@@ -65,6 +67,9 @@
 			this.imageList1.Images.SetKeyName(3, "reload.ico");
 			componentResourceManager.ApplyResources(this.button11, "button11");
 			this.button11.Name = "button11";
+			this.button11.Image = Resources.attach;
+			this.button11.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
+			this.button11.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
 			this.toolTip1.SetToolTip(this.button11, componentResourceManager.GetString("button11.ToolTip"));
 			this.button11.UseVisualStyleBackColor = true;
 			this.button11.Click += new global::System.EventHandler(this.button11_Click);
