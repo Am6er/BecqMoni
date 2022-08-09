@@ -35,8 +35,8 @@
     <MinimumRequiredVersion>2022.07.08.7</MinimumRequiredVersion>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
-    <ApplicationRevision>0</ApplicationRevision>
-    <ApplicationVersion>2022.08.9.0</ApplicationVersion>
+    <ApplicationRevision>1</ApplicationRevision>
+    <ApplicationVersion>2022.08.9.1</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -931,7 +931,9 @@
     <EmbeddedResource Include="MainForm.ru.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="NucBase\NucBase.ru.resx" />
+    <EmbeddedResource Include="NucBase\NucBase.ru.resx">
+      <DependentUpon>NucBase.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="NucBase\NucBase.resx">
       <DependentUpon>NucBase.cs</DependentUpon>
     </EmbeddedResource>

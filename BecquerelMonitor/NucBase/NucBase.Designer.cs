@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(NucBase));
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.HalfLifeUOMComboBox = new System.Windows.Forms.ComboBox();
             this.HalfLifeTextBox = new System.Windows.Forms.TextBox();
@@ -46,8 +47,14 @@
             this.panel1 = new System.Windows.Forms.Panel();
             this.label7 = new System.Windows.Forms.Label();
             this.DaughtersDataGridView = new System.Windows.Forms.DataGridView();
+            this.NameColumn1 = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.TypeColumn1 = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.PercentColumn1 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.label6 = new System.Windows.Forms.Label();
             this.ParentsDataGridView = new System.Windows.Forms.DataGridView();
+            this.NameColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.TypeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.PercentColum = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.IsotopeHLLabel = new System.Windows.Forms.Label();
             this.label5 = new System.Windows.Forms.Label();
@@ -64,12 +71,6 @@
             this.IntensityColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.XRayTypeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.DecaModeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.NameColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.TypeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.PercentColum = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.NameColumn1 = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.TypeColumn1 = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.PercentColumn1 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.groupBox1.SuspendLayout();
             this.panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.DaughtersDataGridView)).BeginInit();
@@ -94,177 +95,115 @@
             this.groupBox1.Controls.Add(this.label1);
             this.groupBox1.Controls.Add(this.IsotopeTextBox);
             this.groupBox1.Controls.Add(this.SearchButton);
-            this.groupBox1.Location = new System.Drawing.Point(0, 0);
+            resources.ApplyResources(this.groupBox1, "groupBox1");
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(974, 54);
-            this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
-            this.groupBox1.Text = "Search Isotope";
             // 
             // HalfLifeUOMComboBox
             // 
             this.HalfLifeUOMComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.HalfLifeUOMComboBox.FormattingEnabled = true;
             this.HalfLifeUOMComboBox.Items.AddRange(new object[] {
-            "ns",
-            "us",
-            "ms",
-            "s",
-            "m",
-            "h",
-            "d",
-            "Y"});
-            this.HalfLifeUOMComboBox.Location = new System.Drawing.Point(509, 19);
+            resources.GetString("HalfLifeUOMComboBox.Items"),
+            resources.GetString("HalfLifeUOMComboBox.Items1"),
+            resources.GetString("HalfLifeUOMComboBox.Items2"),
+            resources.GetString("HalfLifeUOMComboBox.Items3"),
+            resources.GetString("HalfLifeUOMComboBox.Items4"),
+            resources.GetString("HalfLifeUOMComboBox.Items5"),
+            resources.GetString("HalfLifeUOMComboBox.Items6"),
+            resources.GetString("HalfLifeUOMComboBox.Items7")});
+            resources.ApplyResources(this.HalfLifeUOMComboBox, "HalfLifeUOMComboBox");
             this.HalfLifeUOMComboBox.Name = "HalfLifeUOMComboBox";
-            this.HalfLifeUOMComboBox.Size = new System.Drawing.Size(68, 21);
-            this.HalfLifeUOMComboBox.TabIndex = 13;
             // 
             // HalfLifeTextBox
             // 
-            this.HalfLifeTextBox.Location = new System.Drawing.Point(464, 20);
+            resources.ApplyResources(this.HalfLifeTextBox, "HalfLifeTextBox");
             this.HalfLifeTextBox.Name = "HalfLifeTextBox";
-            this.HalfLifeTextBox.Size = new System.Drawing.Size(41, 20);
-            this.HalfLifeTextBox.TabIndex = 12;
             this.HalfLifeTextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.HalfLifeTextBox_KeyDown);
             // 
             // label12
             // 
-            this.label12.AutoSize = true;
-            this.label12.Location = new System.Drawing.Point(412, 23);
+            resources.ApplyResources(this.label12, "label12");
             this.label12.Name = "label12";
-            this.label12.Size = new System.Drawing.Size(51, 13);
-            this.label12.TabIndex = 11;
-            this.label12.Text = "Half-life >";
             // 
             // label11
             // 
-            this.label11.AutoSize = true;
-            this.label11.Location = new System.Drawing.Point(841, 23);
+            resources.ApplyResources(this.label11, "label11");
             this.label11.Name = "label11";
-            this.label11.Size = new System.Drawing.Size(26, 13);
-            this.label11.TabIndex = 10;
-            this.label11.Text = "keV";
             // 
             // HighEnrgTextBox
             // 
-            this.HighEnrgTextBox.Location = new System.Drawing.Point(790, 20);
+            resources.ApplyResources(this.HighEnrgTextBox, "HighEnrgTextBox");
             this.HighEnrgTextBox.Name = "HighEnrgTextBox";
-            this.HighEnrgTextBox.Size = new System.Drawing.Size(45, 20);
-            this.HighEnrgTextBox.TabIndex = 9;
-            this.HighEnrgTextBox.Text = "3000";
-            this.HighEnrgTextBox.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             this.HighEnrgTextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.HighEnrgTextBox_KeyDown);
             // 
             // label10
             // 
-            this.label10.AutoSize = true;
-            this.label10.Location = new System.Drawing.Point(738, 23);
+            resources.ApplyResources(this.label10, "label10");
             this.label10.Name = "label10";
-            this.label10.Size = new System.Drawing.Size(47, 13);
-            this.label10.TabIndex = 8;
-            this.label10.Text = "keV and";
             // 
             // LowEnrgTextBox
             // 
-            this.LowEnrgTextBox.Location = new System.Drawing.Point(687, 20);
+            resources.ApplyResources(this.LowEnrgTextBox, "LowEnrgTextBox");
             this.LowEnrgTextBox.Name = "LowEnrgTextBox";
-            this.LowEnrgTextBox.Size = new System.Drawing.Size(45, 20);
-            this.LowEnrgTextBox.TabIndex = 7;
-            this.LowEnrgTextBox.Text = "0";
-            this.LowEnrgTextBox.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             this.LowEnrgTextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.LowEnrgTextBox_KeyDown);
             // 
             // label9
             // 
-            this.label9.AutoSize = true;
-            this.label9.Location = new System.Drawing.Point(596, 23);
+            resources.ApplyResources(this.label9, "label9");
             this.label9.Name = "label9";
-            this.label9.Size = new System.Drawing.Size(87, 13);
-            this.label9.TabIndex = 6;
-            this.label9.Text = "Energy between:";
             // 
             // IntencityTextBox
             // 
-            this.IntencityTextBox.Location = new System.Drawing.Point(354, 20);
+            resources.ApplyResources(this.IntencityTextBox, "IntencityTextBox");
             this.IntencityTextBox.Name = "IntencityTextBox";
-            this.IntencityTextBox.Size = new System.Drawing.Size(35, 20);
-            this.IntencityTextBox.TabIndex = 5;
-            this.IntencityTextBox.Text = "6";
-            this.IntencityTextBox.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             this.IntencityTextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.IntencityTextBox_KeyDown);
             // 
             // IncludeDecayChainCheckBox
             // 
-            this.IncludeDecayChainCheckBox.AutoSize = true;
-            this.IncludeDecayChainCheckBox.Location = new System.Drawing.Point(158, 23);
+            resources.ApplyResources(this.IncludeDecayChainCheckBox, "IncludeDecayChainCheckBox");
             this.IncludeDecayChainCheckBox.Name = "IncludeDecayChainCheckBox";
-            this.IncludeDecayChainCheckBox.Size = new System.Drawing.Size(122, 17);
-            this.IncludeDecayChainCheckBox.TabIndex = 4;
-            this.IncludeDecayChainCheckBox.Text = "Include decay chain";
             this.IncludeDecayChainCheckBox.UseVisualStyleBackColor = true;
             // 
             // label8
             // 
-            this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(285, 23);
+            resources.ApplyResources(this.label8, "label8");
             this.label8.Name = "label8";
-            this.label8.Size = new System.Drawing.Size(67, 13);
-            this.label8.TabIndex = 3;
-            this.label8.Text = "% Intencity >";
             // 
             // label1
             // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(12, 23);
+            resources.ApplyResources(this.label1, "label1");
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(73, 13);
-            this.label1.TabIndex = 2;
-            this.label1.Text = "Isotope Name";
             // 
             // IsotopeTextBox
             // 
-            this.IsotopeTextBox.Location = new System.Drawing.Point(91, 20);
+            resources.ApplyResources(this.IsotopeTextBox, "IsotopeTextBox");
             this.IsotopeTextBox.Name = "IsotopeTextBox";
-            this.IsotopeTextBox.Size = new System.Drawing.Size(61, 20);
-            this.IsotopeTextBox.TabIndex = 1;
-            this.IsotopeTextBox.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             this.IsotopeTextBox.TextChanged += new System.EventHandler(this.IsotopeTextBox_TextChanged);
             this.IsotopeTextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.IsotopeTextBox_KeyDown);
             // 
             // SearchButton
             // 
-            this.SearchButton.Location = new System.Drawing.Point(879, 18);
+            resources.ApplyResources(this.SearchButton, "SearchButton");
             this.SearchButton.Name = "SearchButton";
-            this.SearchButton.Size = new System.Drawing.Size(89, 23);
-            this.SearchButton.TabIndex = 0;
-            this.SearchButton.Text = "Search";
             this.SearchButton.UseVisualStyleBackColor = true;
             this.SearchButton.Click += new System.EventHandler(this.SearchButton_Click);
             // 
             // panel1
             // 
-            this.panel1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
+            resources.ApplyResources(this.panel1, "panel1");
             this.panel1.Controls.Add(this.label7);
             this.panel1.Controls.Add(this.DaughtersDataGridView);
             this.panel1.Controls.Add(this.label6);
             this.panel1.Controls.Add(this.ParentsDataGridView);
             this.panel1.Controls.Add(this.groupBox2);
             this.panel1.Controls.Add(this.ResultDataGridView);
-            this.panel1.Location = new System.Drawing.Point(0, 60);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(976, 387);
-            this.panel1.TabIndex = 1;
             // 
             // label7
             // 
-            this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(724, 91);
+            resources.ApplyResources(this.label7, "label7");
             this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(93, 13);
-            this.label7.TabIndex = 5;
-            this.label7.Text = "Decay Daughters:";
             // 
             // DaughtersDataGridView
             // 
@@ -277,23 +216,36 @@
             this.NameColumn1,
             this.TypeColumn1,
             this.PercentColumn1});
-            this.DaughtersDataGridView.Location = new System.Drawing.Point(724, 111);
+            resources.ApplyResources(this.DaughtersDataGridView, "DaughtersDataGridView");
             this.DaughtersDataGridView.Name = "DaughtersDataGridView";
             this.DaughtersDataGridView.ReadOnly = true;
             this.DaughtersDataGridView.RowHeadersVisible = false;
-            this.DaughtersDataGridView.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.DaughtersDataGridView.ShowEditingIcon = false;
-            this.DaughtersDataGridView.Size = new System.Drawing.Size(240, 267);
-            this.DaughtersDataGridView.TabIndex = 4;
+            // 
+            // NameColumn1
+            // 
+            resources.ApplyResources(this.NameColumn1, "NameColumn1");
+            this.NameColumn1.Name = "NameColumn1";
+            this.NameColumn1.ReadOnly = true;
+            // 
+            // TypeColumn1
+            // 
+            this.TypeColumn1.FillWeight = 60F;
+            resources.ApplyResources(this.TypeColumn1, "TypeColumn1");
+            this.TypeColumn1.Name = "TypeColumn1";
+            this.TypeColumn1.ReadOnly = true;
+            // 
+            // PercentColumn1
+            // 
+            this.PercentColumn1.FillWeight = 140F;
+            resources.ApplyResources(this.PercentColumn1, "PercentColumn1");
+            this.PercentColumn1.Name = "PercentColumn1";
+            this.PercentColumn1.ReadOnly = true;
             // 
             // label6
             // 
-            this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(449, 92);
+            resources.ApplyResources(this.label6, "label6");
             this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(80, 13);
-            this.label6.TabIndex = 3;
-            this.label6.Text = "Decay Parents:";
             // 
             // ParentsDataGridView
             // 
@@ -306,14 +258,31 @@
             this.NameColumn,
             this.TypeColumn,
             this.PercentColum});
-            this.ParentsDataGridView.Location = new System.Drawing.Point(448, 111);
+            resources.ApplyResources(this.ParentsDataGridView, "ParentsDataGridView");
             this.ParentsDataGridView.Name = "ParentsDataGridView";
             this.ParentsDataGridView.ReadOnly = true;
             this.ParentsDataGridView.RowHeadersVisible = false;
-            this.ParentsDataGridView.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.ParentsDataGridView.ShowEditingIcon = false;
-            this.ParentsDataGridView.Size = new System.Drawing.Size(240, 267);
-            this.ParentsDataGridView.TabIndex = 2;
+            // 
+            // NameColumn
+            // 
+            resources.ApplyResources(this.NameColumn, "NameColumn");
+            this.NameColumn.Name = "NameColumn";
+            this.NameColumn.ReadOnly = true;
+            // 
+            // TypeColumn
+            // 
+            this.TypeColumn.FillWeight = 60F;
+            resources.ApplyResources(this.TypeColumn, "TypeColumn");
+            this.TypeColumn.Name = "TypeColumn";
+            this.TypeColumn.ReadOnly = true;
+            // 
+            // PercentColum
+            // 
+            this.PercentColum.FillWeight = 140F;
+            resources.ApplyResources(this.PercentColum, "PercentColum");
+            this.PercentColum.Name = "PercentColum";
+            this.PercentColum.ReadOnly = true;
             // 
             // groupBox2
             // 
@@ -325,80 +294,49 @@
             this.groupBox2.Controls.Add(this.label3);
             this.groupBox2.Controls.Add(this.IsotopeNameLabel);
             this.groupBox2.Controls.Add(this.label2);
-            this.groupBox2.Location = new System.Drawing.Point(448, 3);
+            resources.ApplyResources(this.groupBox2, "groupBox2");
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(516, 76);
-            this.groupBox2.TabIndex = 1;
             this.groupBox2.TabStop = false;
-            this.groupBox2.Text = "Isotope Info";
             // 
             // IsotopeHLLabel
             // 
-            this.IsotopeHLLabel.AutoSize = true;
-            this.IsotopeHLLabel.Location = new System.Drawing.Point(66, 46);
+            resources.ApplyResources(this.IsotopeHLLabel, "IsotopeHLLabel");
             this.IsotopeHLLabel.Name = "IsotopeHLLabel";
-            this.IsotopeHLLabel.Size = new System.Drawing.Size(0, 13);
-            this.IsotopeHLLabel.TabIndex = 7;
             // 
             // label5
             // 
-            this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(10, 46);
+            resources.ApplyResources(this.label5, "label5");
             this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(49, 13);
-            this.label5.TabIndex = 6;
-            this.label5.Text = "Half-Life:";
             // 
             // IsotopeNLabel
             // 
-            this.IsotopeNLabel.AutoSize = true;
-            this.IsotopeNLabel.Location = new System.Drawing.Point(260, 20);
+            resources.ApplyResources(this.IsotopeNLabel, "IsotopeNLabel");
             this.IsotopeNLabel.Name = "IsotopeNLabel";
-            this.IsotopeNLabel.Size = new System.Drawing.Size(0, 13);
-            this.IsotopeNLabel.TabIndex = 5;
             // 
             // label4
             // 
-            this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(235, 20);
+            resources.ApplyResources(this.label4, "label4");
             this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(18, 13);
-            this.label4.TabIndex = 4;
-            this.label4.Text = "N:";
             // 
             // IsotopeZLabel
             // 
-            this.IsotopeZLabel.AutoSize = true;
-            this.IsotopeZLabel.Location = new System.Drawing.Point(160, 20);
+            resources.ApplyResources(this.IsotopeZLabel, "IsotopeZLabel");
             this.IsotopeZLabel.Name = "IsotopeZLabel";
-            this.IsotopeZLabel.Size = new System.Drawing.Size(0, 13);
-            this.IsotopeZLabel.TabIndex = 3;
             // 
             // label3
             // 
-            this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(136, 20);
+            resources.ApplyResources(this.label3, "label3");
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(17, 13);
-            this.label3.TabIndex = 2;
-            this.label3.Text = "Z:";
             // 
             // IsotopeNameLabel
             // 
-            this.IsotopeNameLabel.AutoSize = true;
-            this.IsotopeNameLabel.Location = new System.Drawing.Point(52, 19);
+            resources.ApplyResources(this.IsotopeNameLabel, "IsotopeNameLabel");
             this.IsotopeNameLabel.Name = "IsotopeNameLabel";
-            this.IsotopeNameLabel.Size = new System.Drawing.Size(0, 13);
-            this.IsotopeNameLabel.TabIndex = 1;
             // 
             // label2
             // 
-            this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(7, 20);
+            resources.ApplyResources(this.label2, "label2");
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(38, 13);
-            this.label2.TabIndex = 0;
-            this.label2.Text = "Name:";
             // 
             // ResultDataGridView
             // 
@@ -414,120 +352,63 @@
             this.IntensityColumn,
             this.XRayTypeColumn,
             this.DecaModeColumn});
-            this.ResultDataGridView.Location = new System.Drawing.Point(8, 0);
+            resources.ApplyResources(this.ResultDataGridView, "ResultDataGridView");
             this.ResultDataGridView.Name = "ResultDataGridView";
             this.ResultDataGridView.ReadOnly = true;
             this.ResultDataGridView.RowHeadersVisible = false;
-            this.ResultDataGridView.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.ResultDataGridView.ShowEditingIcon = false;
-            this.ResultDataGridView.Size = new System.Drawing.Size(434, 378);
-            this.ResultDataGridView.TabIndex = 0;
             this.ResultDataGridView.CellClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.ResultDataGridView_CellClick);
             this.ResultDataGridView.CellEnter += new System.Windows.Forms.DataGridViewCellEventHandler(this.ResultDataGridView_CellEnter);
             // 
             // NameColumn2
             // 
-            this.NameColumn2.HeaderText = "Name";
+            resources.ApplyResources(this.NameColumn2, "NameColumn2");
             this.NameColumn2.Name = "NameColumn2";
             this.NameColumn2.ReadOnly = true;
             // 
             // EnTypeColumn
             // 
             this.EnTypeColumn.FillWeight = 50F;
-            this.EnTypeColumn.HeaderText = "Type";
+            resources.ApplyResources(this.EnTypeColumn, "EnTypeColumn");
             this.EnTypeColumn.Name = "EnTypeColumn";
             this.EnTypeColumn.ReadOnly = true;
-            this.EnTypeColumn.Width = 50;
             // 
             // EnergyColumn
             // 
-            this.EnergyColumn.HeaderText = "Energy, keV";
+            resources.ApplyResources(this.EnergyColumn, "EnergyColumn");
             this.EnergyColumn.Name = "EnergyColumn";
             this.EnergyColumn.ReadOnly = true;
             // 
             // IntensityColumn
             // 
             this.IntensityColumn.FillWeight = 70F;
-            this.IntensityColumn.HeaderText = "Intensity, %";
+            resources.ApplyResources(this.IntensityColumn, "IntensityColumn");
             this.IntensityColumn.Name = "IntensityColumn";
             this.IntensityColumn.ReadOnly = true;
-            this.IntensityColumn.Width = 70;
             // 
             // XRayTypeColumn
             // 
             this.XRayTypeColumn.FillWeight = 50F;
-            this.XRayTypeColumn.HeaderText = "X-Ray";
+            resources.ApplyResources(this.XRayTypeColumn, "XRayTypeColumn");
             this.XRayTypeColumn.Name = "XRayTypeColumn";
             this.XRayTypeColumn.ReadOnly = true;
-            this.XRayTypeColumn.Width = 50;
             // 
             // DecaModeColumn
             // 
             this.DecaModeColumn.FillWeight = 50F;
-            this.DecaModeColumn.HeaderText = "Decay";
+            resources.ApplyResources(this.DecaModeColumn, "DecaModeColumn");
             this.DecaModeColumn.Name = "DecaModeColumn";
             this.DecaModeColumn.ReadOnly = true;
-            this.DecaModeColumn.Width = 50;
-            // 
-            // NameColumn
-            // 
-            this.NameColumn.HeaderText = "Name";
-            this.NameColumn.Name = "NameColumn";
-            this.NameColumn.ReadOnly = true;
-            // 
-            // TypeColumn
-            // 
-            this.TypeColumn.FillWeight = 60F;
-            this.TypeColumn.HeaderText = "Type";
-            this.TypeColumn.Name = "TypeColumn";
-            this.TypeColumn.ReadOnly = true;
-            this.TypeColumn.Width = 60;
-            // 
-            // PercentColum
-            // 
-            this.PercentColum.FillWeight = 140F;
-            this.PercentColum.HeaderText = "%";
-            this.PercentColum.Name = "PercentColum";
-            this.PercentColum.ReadOnly = true;
-            this.PercentColum.Width = 140;
-            // 
-            // NameColumn1
-            // 
-            this.NameColumn1.HeaderText = "Name";
-            this.NameColumn1.Name = "NameColumn1";
-            this.NameColumn1.ReadOnly = true;
-            // 
-            // TypeColumn1
-            // 
-            this.TypeColumn1.FillWeight = 60F;
-            this.TypeColumn1.HeaderText = "Type";
-            this.TypeColumn1.Name = "TypeColumn1";
-            this.TypeColumn1.ReadOnly = true;
-            this.TypeColumn1.Width = 60;
-            // 
-            // PercentColumn1
-            // 
-            this.PercentColumn1.FillWeight = 140F;
-            this.PercentColumn1.HeaderText = "%";
-            this.PercentColumn1.Name = "PercentColumn1";
-            this.PercentColumn1.ReadOnly = true;
-            this.PercentColumn1.Width = 140;
             // 
             // NucBase
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            resources.ApplyResources(this, "$this");
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.AutoSize = true;
-            this.ClientSize = new System.Drawing.Size(988, 450);
             this.Controls.Add(this.panel1);
             this.Controls.Add(this.groupBox1);
             this.MaximizeBox = false;
-            this.MaximumSize = new System.Drawing.Size(1004, 489);
             this.MinimizeBox = false;
-            this.MinimumSize = new System.Drawing.Size(1004, 489);
             this.Name = "NucBase";
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Isotope Database";
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             this.panel1.ResumeLayout(false);
