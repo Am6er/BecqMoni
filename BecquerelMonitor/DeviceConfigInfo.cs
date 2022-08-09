@@ -337,7 +337,7 @@ namespace BecquerelMonitor
         public DeviceConfigInfo()
         {
             this.inputDeviceConfig = new AudioInputDeviceConfig();
-            this.energyCalibration = new PolynomialEnergyCalibration();
+            this.energyCalibration = new PolynomialEnergyCalibration(0);
             this.doseRateConfig = new DoseRateConfig();
             this.stabilizerConfig = new StabilizerConfig();
             this.peakDetectionMethodConfig = new FWHMPeakDetectionMethodConfig();
@@ -409,7 +409,7 @@ namespace BecquerelMonitor
             audioInputDeviceConfig.NegativePolarity = old.NegativePolarity;
             audioInputDeviceConfig.PulseDetectionMethodConfig = old.PulseDetectionMethodConfig;
             this.thermometerConfig = null;
-            PolynomialEnergyCalibration polynomialEnergyCalibration = new PolynomialEnergyCalibration();
+            PolynomialEnergyCalibration polynomialEnergyCalibration = new PolynomialEnergyCalibration(this.numberOfChannels);
             polynomialEnergyCalibration.PolynomialOrder = 2;
             PolynomialEnergyCalibration polynomialEnergyCalibration2 = polynomialEnergyCalibration;
             double[] array = new double[3];
