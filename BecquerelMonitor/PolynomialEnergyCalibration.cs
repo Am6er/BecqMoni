@@ -39,13 +39,22 @@ namespace BecquerelMonitor
             }
         }
 
-        // Token: 0x06000730 RID: 1840 RVA: 0x00029D18 File Offset: 0x00027F18
         public PolynomialEnergyCalibration()
         {
             this.polynomialOrder = 2;
             double[] array = new double[3];
             array[1] = 1.0;
             this.coefficients = array;
+        }
+
+        // Token: 0x06000730 RID: 1840 RVA: 0x00029D18 File Offset: 0x00027F18
+        public PolynomialEnergyCalibration(int maxChannel)
+        {
+            this.polynomialOrder = 2;
+            double[] array = new double[3];
+            array[1] = 1.0;
+            this.coefficients = array;
+            this.maxChannel = maxChannel;
         }
 
         // Token: 0x06000731 RID: 1841 RVA: 0x00029D50 File Offset: 0x00027F50
@@ -75,8 +84,26 @@ namespace BecquerelMonitor
 
         public bool CheckCalibration()
         {
-            double MaximumChannel = 10000;
-            for (int i = 1; i <= MaximumChannel; i++)
+            if (this.polynomialOrder == 1)
+            {
+                if (this.Coefficients[1] == 0)
+                {
+                    return false;
+                }
+            }
+            if (this.polynomialOrder == 2)
+            {
+                double c = this.Coefficients[0];
+                double b = this.Coefficients[1];
+                double a = this.Coefficients[2];
+                double discriminant = Math.Pow(b, 2.0) - 4.0 * a * c;
+
+                if (discriminant < 0)
+                {
+                    return false;
+                }
+            }
+            for (int i = 1; i <= this.maxChannel; i++)
             {
                 if (this.ChannelToEnergy(i - 1) > this.ChannelToEnergy(i))
                 {
@@ -122,30 +149,25 @@ namespace BecquerelMonitor
 
             if (this.polynomialOrder == 2)
             {
-                enrg += 1E-07;
-                double num = this.coefficients[2];
-                double num2 = this.coefficients[1];
-                double num3 = this.coefficients[0] - enrg;
-                if (Math.Abs(num) < 1E-07)
+                double a = this.coefficients[2];
+                double b = this.coefficients[1];
+                double c = this.coefficients[0] - enrg;
+                if (a == 0.0)
                 {
-                    num = 0.0;
-                }
-                if (num == 0.0)
-                {
-                    if (num2 == 0.0)
-                    {
-                        throw new Exception();
-                    }
-                    return -num3 / num2;
-                }
-                else
-                {
-                    double num4 = Math.Pow(num2, 2.0) - 4.0 * num * num3;
-                    if (num4 < 0.0)
+                    if (b == 0.0)
                     {
                         throw new Exception(Resources.CalibrationFunctionError);
                     }
-                    return (-num2 + Math.Sqrt(num4)) / (2.0 * num);
+                    return -c / b;
+                }
+                else
+                {
+                    double discriminant = Math.Pow(b, 2.0) - 4.0 * a * c;
+                    if (discriminant < 0.0)
+                    {
+                        throw new Exception(Resources.CalibrationFunctionError);
+                    }
+                    return (-b + Math.Sqrt(discriminant)) / (2.0 * a);
                 }
             }
             if (this.polynomialOrder == 4)
@@ -192,13 +214,9 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000736 RID: 1846 RVA: 0x00029F00 File Offset: 0x00028100
-        public override double MaximumChannel()
+        public override int MaximumChannel()
         {
-            if (this.coefficients[2] >= 0.0)
-            {
-                return double.PositiveInfinity;
-            }
-            return -this.coefficients[1] / (2.0 * this.coefficients[2]);
+            return this.maxChannel;
         }
 
         // Token: 0x040003A4 RID: 932
@@ -206,5 +224,7 @@ namespace BecquerelMonitor
 
         // Token: 0x040003A5 RID: 933
         double[] coefficients;
+
+        int maxChannel;
     }
 }

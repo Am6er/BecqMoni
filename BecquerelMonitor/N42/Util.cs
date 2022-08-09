@@ -219,7 +219,7 @@ namespace BecquerelMonitor.N42
 
                 try
                 {
-                    resultData.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
+                    resultData.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration(NumberOfChanels);
                     string[] n42CalibrationCoeff = radCalibration.CoefficientValues.Replace("\n", string.Empty).Split(new string[] { " " }, StringSplitOptions.None);
                     n42CalibrationCoeff = Array.FindAll(n42CalibrationCoeff, isNotN42SpectrumValid);
                     if (n42CalibrationCoeff.Length == 0)

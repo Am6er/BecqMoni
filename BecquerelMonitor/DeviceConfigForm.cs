@@ -1155,7 +1155,7 @@ namespace BecquerelMonitor
         // Token: 0x0600053D RID: 1341 RVA: 0x00021E48 File Offset: 0x00020048
         void button1_Click(object sender, EventArgs e)
         {
-            PolynomialEnergyCalibration energyCalibration = new PolynomialEnergyCalibration();
+            PolynomialEnergyCalibration energyCalibration = new PolynomialEnergyCalibration(this.activeDeviceConfig.NumberOfChannels);
             for (int i = 0; i < energyCalibration.Coefficients.Length; i++)
             {
                 energyCalibration.Coefficients[i] = 0.0;

@@ -311,7 +311,7 @@ namespace BecquerelMonitor
             else
             {
                 resultData.EnergySpectrum = new EnergySpectrum(0.04, 2500);
-                resultData.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
+                resultData.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration(2500);
             }
             if (this.roiConfigManager.ROIConfigList.Count > 0)
             {

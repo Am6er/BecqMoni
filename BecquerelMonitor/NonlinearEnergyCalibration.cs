@@ -11,7 +11,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000726 RID: 1830 RVA: 0x00029CC0 File Offset: 0x00027EC0
-        public override double MaximumChannel()
+        public override int MaximumChannel()
         {
             throw new NotImplementedException();
         }
