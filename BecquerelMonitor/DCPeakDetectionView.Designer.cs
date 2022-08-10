@@ -40,6 +40,7 @@ namespace BecquerelMonitor
 			this.label3 = new global::System.Windows.Forms.Label();
 			this.contextMenuStrip1 = new global::System.Windows.Forms.ContextMenuStrip();
 			this.toolStripMenuItem1 = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.toolStripMenuItem2 = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.numericUpDown3 = new global::System.Windows.Forms.NumericUpDown();
 			this.button1 = new global::System.Windows.Forms.Button();
 			this.label4 = new global::System.Windows.Forms.Label();
@@ -116,7 +117,8 @@ namespace BecquerelMonitor
 			componentResourceManager.ApplyResources(this.contextMenuStrip1, "contextMenuStrip1");
 			this.contextMenuStrip1.Items.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
-				this.toolStripMenuItem1
+				this.toolStripMenuItem1,
+				this.toolStripMenuItem2
 			});
 			this.contextMenuStrip1.Name = "contextMenuStrip1";
 			this.table1.ContextMenuStrip = this.contextMenuStrip1;
@@ -124,6 +126,9 @@ namespace BecquerelMonitor
 			componentResourceManager.ApplyResources(this.toolStripMenuItem1, "toolStripMenuItem1");
 			this.toolStripMenuItem1.Name = "toolStripMenuItem1";
 			this.toolStripMenuItem1.Click += new global::System.EventHandler(this.ToolStripMenuItem1_Click);
+			componentResourceManager.ApplyResources(this.toolStripMenuItem2, "toolStripMenuItem2");
+			this.toolStripMenuItem2.Name = "toolStripMenuItem2";
+			this.toolStripMenuItem2.Click += new global::System.EventHandler(this.ToolStripMenuItem2_Click);
 			this.ContextMenuStrip = this.contextMenuStrip1;
 
 			componentResourceManager.ApplyResources(this.numericUpDown1, "numericUpDown1");
@@ -234,6 +239,8 @@ namespace BecquerelMonitor
 		global::System.Windows.Forms.Label label4;
 
 		global::System.Windows.Forms.ToolStripMenuItem toolStripMenuItem1;
+
+		global::System.Windows.Forms.ToolStripMenuItem toolStripMenuItem2;
 
 		global::System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
 	}

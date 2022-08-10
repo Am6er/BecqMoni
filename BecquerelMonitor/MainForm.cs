@@ -1019,8 +1019,26 @@ namespace BecquerelMonitor
 
         void NucDB_Click(object sender, EventArgs e)
         {
-            this.nucBaseView = new NucBase.NucBase(this);
-            this.nucBaseView.Show();
+            ShowNucBaseView();
+        }
+
+        void ShowNucBaseView()
+        {
+            if (this.nucBaseView == null || this.nucBaseView.IsDisposed)
+            {
+                this.nucBaseView = new NucBase.NucBase(this);
+                this.nucBaseView.Show();
+            }
+            else
+            {
+                this.nucBaseView.BringToFront();
+            }
+        }
+
+        public void CallNucBaseSearch(decimal Energy)
+        {
+            ShowNucBaseView();
+            this.nucBaseView.CallSearch(Energy);
         }
 
         // Token: 0x06000A72 RID: 2674 RVA: 0x0003E23C File Offset: 0x0003C43C
