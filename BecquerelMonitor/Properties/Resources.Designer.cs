@@ -1634,6 +1634,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to β+.
+        /// </summary>
+        internal static string NucBase_BettaPlus_Label {
+            get {
+                return ResourceManager.GetString("NucBase.BettaPlus.Label", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Not all daughters fetched for isotope {0}. Message: {1}.
         /// </summary>
         internal static string NucBase_DaughtersFetchError {

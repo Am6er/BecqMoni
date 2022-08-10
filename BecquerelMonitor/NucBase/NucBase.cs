@@ -150,6 +150,22 @@ namespace BecquerelMonitor.NucBase
             }
         }
 
+        public void CallSearch(decimal energy)
+        {
+            double delta = 10;
+            double lowenergy = (double)energy - delta;
+            double highenergy = (double)energy + delta;
+            if (lowenergy < 0)
+            {
+                lowenergy = 0;
+            }
+
+            this.LowEnrgTextBox.Text = lowenergy.ToString();
+            this.HighEnrgTextBox.Text = highenergy.ToString();
+
+            DoSearch();
+        }
+
         private void ResultDataGridView_CellClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex == -1)

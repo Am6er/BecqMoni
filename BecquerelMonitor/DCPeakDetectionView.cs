@@ -171,14 +171,22 @@ namespace BecquerelMonitor
             }
         }
 
+        void ToolStripMenuItem2_Click(object sender, EventArgs e)
+        {
+            decimal energy = Convert.ToDecimal(this.table1.SelectedItems[0].Cells[1].Text);
+            this.mainForm.CallNucBaseSearch(energy);
+        }
+
         void ToolStripMenuItem1_Opening(object sender, EventArgs e)
         {
             if (this.table1.SelectedItems.Length == 0)
             {
                 this.toolStripMenuItem1.Enabled = false;
+                this.toolStripMenuItem2.Enabled = false;
             } else
             {
                 this.toolStripMenuItem1.Enabled = true;
+                this.toolStripMenuItem2.Enabled = true;
             }
         }
 

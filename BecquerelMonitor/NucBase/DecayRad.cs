@@ -77,8 +77,16 @@ namespace BecquerelMonitor.NucBase
                 {
                     case 0:
                         return Resources.NucBase_Alpha_Label;
+                    case 1:
+                        return Resources.NucBase_EC + " " + Resources.NucBase_BettaPlus_Label;
                     case 2:
                         return Resources.NucBase_BettaMinus_Label;
+                    case 3:
+                        return Resources.NucBase_IT;
+                    case 6:
+                        return Resources.NucBase_BettaMinus_Label;
+                    case 7:
+                        return Resources.NucBase_IT;
                     default:
                         return this.dectype.ToString();
                 }
