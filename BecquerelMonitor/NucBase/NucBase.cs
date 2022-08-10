@@ -28,10 +28,17 @@ namespace BecquerelMonitor.NucBase
         private void DoSearch()
         {
             GC.Collect();
-            string isotope = this.IsotopeTextBox.Text.Trim().Replace("-", "").ToUpper();
+            string isotopeTextBox = this.IsotopeTextBox.Text.Trim().Replace("-", "");
+            Match isomerRegex = Regex.Match(isotopeTextBox, @"[m]\d{0,1}$");
+            string isomer = "";
+            if (isomerRegex.Index + isomerRegex.Length == isotopeTextBox.Length) 
+            {
+                isomer = isomerRegex.Value;
+            }
+            string isotope = isotopeTextBox.ToUpper();
             string isotope_number = Regex.Match(isotope, @"\d+").Value;
             string isotope_name = Regex.Match(isotope, @"[a-zA-Z]+").Value;
-            isotope = isotope_number + isotope_name;
+            isotope = isotope_number + isotope_name + isomer;
             bool incDecayChain = this.IncludeDecayChainCheckBox.Checked;
             double lowEnergy = 0.0;
             if (this.LowEnrgTextBox.Text.Length != 0)
