@@ -1196,8 +1196,8 @@ namespace BecquerelMonitor
             if (this.activeDocument != null)
             {
                 this.dcSampleInfoView.SaveFormContents();
-                this.StopRecordingOrTesting(this.activeDocument);
-                this.DestroyVCPThreads(this.activeDocument);
+                //this.StopRecordingOrTesting(this.activeDocument);
+                //this.DestroyVCPThreads(this.activeDocument);
                 if (!this.activeDocument.IsNamed)
                 {
                     this.documentManager.SaveDocumentWithName(this.activeDocument);
@@ -1213,8 +1213,8 @@ namespace BecquerelMonitor
         {
             if (doc != null)
             {
-                this.StopRecordingOrTesting(doc);
-                this.DestroyVCPThreads(doc);
+                //this.StopRecordingOrTesting(doc);
+                //this.DestroyVCPThreads(doc);
                 if (!this.activeDocument.IsNamed)
                 {
                     this.documentManager.SaveDocumentWithName(doc);
