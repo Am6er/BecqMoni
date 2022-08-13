@@ -382,7 +382,14 @@ namespace BecquerelMonitor
                 this.numericUpDown8.Text = "0";
 
             }
-            this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString();
+            if (polynomialEnergyCalibration.PolynomialOrder >= 2)
+            {
+                this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString();
+            }
+            else
+            {
+                this.numericUpDown1.Text = "0";
+            }
             this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString();
             this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString();
             this.ShowCalibrationPoints();
