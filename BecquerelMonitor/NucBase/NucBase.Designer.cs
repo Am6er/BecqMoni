@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(NucBase));
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.HalfLifeUOMComboBox = new System.Windows.Forms.ComboBox();
@@ -71,6 +72,7 @@
             this.IntensityColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.XRayTypeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.DecaModeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.groupBox1.SuspendLayout();
             this.panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.DaughtersDataGridView)).BeginInit();
@@ -180,6 +182,7 @@
             resources.ApplyResources(this.IsotopeTextBox, "IsotopeTextBox");
             this.IsotopeTextBox.Name = "IsotopeTextBox";
             this.IsotopeTextBox.TextChanged += new System.EventHandler(this.IsotopeTextBox_TextChanged);
+            this.IsotopeTextBox.Enter += new System.EventHandler(this.IsotopeTextBox_Enter);
             this.IsotopeTextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.IsotopeTextBox_KeyDown);
             // 
             // SearchButton
@@ -466,5 +469,6 @@
         private System.Windows.Forms.DataGridViewTextBoxColumn NameColumn;
         private System.Windows.Forms.DataGridViewTextBoxColumn TypeColumn;
         private System.Windows.Forms.DataGridViewTextBoxColumn PercentColum;
+        private System.Windows.Forms.ToolTip toolTip1;
     }
 }

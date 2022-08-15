@@ -294,5 +294,11 @@ namespace BecquerelMonitor.NucBase
                 }
             }
         }
+
+        private void IsotopeTextBox_Enter(object sender, EventArgs e)
+        {
+            int DisplayTime = 10000;
+            this.toolTip1.Show(Resources.NucBase_IsotopeTextBoxTooltip1, this.IsotopeTextBox, 0, -23, DisplayTime);
+        }
     }
 }

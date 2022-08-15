@@ -1202,10 +1202,12 @@ namespace BecquerelMonitor
                 {
                     this.documentManager.SaveDocumentWithName(this.activeDocument);
                     this.dcControlPanel.ShowDocumentStatus();
+                    this.UpdateApplicationTitle();
                     return;
                 }
                 this.documentManager.SaveDocument(this.activeDocument);
             }
+            this.UpdateApplicationTitle();
         }
 
         // Token: 0x06000A7B RID: 2683 RVA: 0x0003E624 File Offset: 0x0003C824
@@ -1237,8 +1239,8 @@ namespace BecquerelMonitor
             {
                 this.documentManager.SaveDocumentWithName(this.activeDocument);
                 this.dcControlPanel.ShowDocumentStatus();
-                this.UpdateApplicationTitle();
             }
+            this.UpdateApplicationTitle();
         }
 
         // Token: 0x06000A7E RID: 2686 RVA: 0x0003E698 File Offset: 0x0003C898
