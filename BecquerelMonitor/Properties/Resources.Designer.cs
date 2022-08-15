@@ -1697,6 +1697,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Example: AM-241, AM241, 241AM. Isomer: PA234m1, 234PAm1, PA-234m1.
+        /// </summary>
+        internal static string NucBase_IsotopeTextBoxTooltip1 {
+            get {
+                return ResourceManager.GetString("NucBase.IsotopeTextBoxTooltip1", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to IT.
         /// </summary>
         internal static string NucBase_IT {
