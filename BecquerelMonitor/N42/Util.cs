@@ -202,9 +202,9 @@ namespace BecquerelMonitor.N42
 
                 int ElapsedTime = (int)XmlConvert.ToTimeSpan(radMeasurement.Spectrum[0].LiveTimeDuration).TotalSeconds;
                 resultData.EnergySpectrum.MeasurementTime = ElapsedTime;
-                doc.ActiveResultData.ResultDataStatus.TotalTime = TimeSpan.FromSeconds(ElapsedTime);
-                doc.ActiveResultData.ResultDataStatus.ElapsedTime = TimeSpan.FromSeconds(ElapsedTime);
-                doc.ActiveResultData.ResultDataStatus.PresetTime = ElapsedTime;
+                resultData.ResultDataStatus.TotalTime = TimeSpan.FromSeconds(ElapsedTime);
+                resultData.ResultDataStatus.ElapsedTime = TimeSpan.FromSeconds(ElapsedTime);
+                resultData.ResultDataStatus.PresetTime = ElapsedTime;
 
                 string[] n42SpectrumCounts = radMeasurement.Spectrum[0].ChannelData.Value.Replace("\n", string.Empty).Split(new string[] { " " }, StringSplitOptions.None);
                 n42SpectrumCounts = Array.FindAll(n42SpectrumCounts, isNotN42SpectrumValid);

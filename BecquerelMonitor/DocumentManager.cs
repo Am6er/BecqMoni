@@ -416,6 +416,7 @@ namespace BecquerelMonitor
                         TimeSpan time = TimeSpan.FromMilliseconds(double.Parse(Time1));
                         DateTime dateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
                         info.Time = dateTime.Add(time).ToLocalTime();
+                        
 
                         info.Note = SpectrumSummaryText;
                         info.Name = SpectrumName;
