@@ -553,7 +553,8 @@ namespace BecquerelMonitor
                     title += ", Time: " + energySpectrum.MeasurementTime + " s";
                     writer.WriteLine(title);
                     //1643973675060 Measurement time
-                    writer.WriteLine(info.Time.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds);
+                    double miliseconds = info.Time.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
+                    writer.WriteLine(Math.Round(miliseconds));
                     //1643973647530 GPS taken time
                     writer.WriteLine("0");
                     //55.682275
