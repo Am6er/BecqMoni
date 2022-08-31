@@ -106,7 +106,16 @@ namespace BecquerelMonitor
                     commands_accepted &= AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("-ok", 1000); 
                 }
                 AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).sendCommand("-sta");
-                commands_accepted &= AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("-ok", 1000);
+                // Slow baudrates support
+                // Expected: "Warning: silent mode forced due to low interface speed-ok"
+                AtomSpectraDeviceConfig devconfig = (AtomSpectraDeviceConfig)resultData.DeviceConfig.InputDeviceConfig;
+                if (devconfig.BaudRate == 38400 || devconfig.BaudRate == 115200)
+                {
+                    commands_accepted &= AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("Warning: silent mode forced due to low interface speed-ok", 2000);
+                } else
+                {
+                    commands_accepted &= AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("-ok", 1000);
+                }
                 if (new_document_created)
                 {
                     resultData.StartTime = DateTime.Now;
@@ -169,7 +178,17 @@ namespace BecquerelMonitor
                 //AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).PortFailure += AtomSpectraDeviceController_PortFailure;
                 bool commands_accepted = true;
                 AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).sendCommand("-sta");
-                commands_accepted &= AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("-ok", 1000);
+                // Slow baudrates support
+                // Expected: "Warning: silent mode forced due to low interface speed-ok"
+                AtomSpectraDeviceConfig devconfig = (AtomSpectraDeviceConfig)resultData.DeviceConfig.InputDeviceConfig;
+                if (devconfig.BaudRate == 38400 || devconfig.BaudRate == 115200)
+                {
+                    commands_accepted &= AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("Warning: silent mode forced due to low interface speed-ok", 2000);
+                }
+                else
+                {
+                    commands_accepted &= AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("-ok", 1000);
+                }
                 if (new_document_created)
                 {
                     resultData.StartTime = DateTime.Now;
