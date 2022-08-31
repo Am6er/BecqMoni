@@ -337,7 +337,7 @@ namespace BecquerelMonitor
                     else
                     {
                         device = new AtomSpectraVCPIn("Test");
-                        device.setPort(comPortsBox.SelectedItem.ToString(), (int)baudratesBox.SelectedItem);
+                        device.setPort(comPortsBox.SelectedItem.ToString(), int.Parse(baudratesBox.SelectedItem.ToString()));
                     }
                     device.sendCommand(this.CommandLineIn.Text);
                     this.CommandLineOut.Text = ">> " + this.CommandLineIn.Text + Environment.NewLine
