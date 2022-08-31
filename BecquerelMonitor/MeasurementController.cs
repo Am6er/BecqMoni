@@ -184,6 +184,12 @@ namespace BecquerelMonitor
                 if (this.resultData.MeasurementController.DeviceController is AtomSpectraDeviceController)
                 {
                     //resultDataStatus.ElapsedTime = resultDataStatus.TotalTime;
+                    AtomSpectraDeviceConfig devconfig = (AtomSpectraDeviceConfig)resultData.DeviceConfig.InputDeviceConfig;
+                    if (devconfig.BaudRate == 38400 || devconfig.BaudRate == 115200)
+                    {
+                        AtomSpectraVCPIn.getInstance(this.resultData.DeviceConfig.Guid).sendCommand("-sho");
+                        AtomSpectraVCPIn.getInstance(this.resultData.DeviceConfig.Guid).waitForAnswer("-ok collecting", 1000);
+                    }
                 }
                 else
                 {
