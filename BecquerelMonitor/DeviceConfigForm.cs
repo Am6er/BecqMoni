@@ -748,7 +748,7 @@ namespace BecquerelMonitor
                 else
                 {
                     device = new AtomSpectraVCPIn(this.activeDeviceConfig.Guid);
-                    device.setPort(deviceconfig.ComPortName);
+                    device.setPort(deviceconfig.ComPortName, deviceconfig.BaudRate);
                 }
 
                 try
@@ -898,7 +898,7 @@ namespace BecquerelMonitor
                     else
                     {
                         device = new AtomSpectraVCPIn(this.activeDeviceConfig.Guid);
-                        device.setPort(deviceconfig.ComPortName);
+                        device.setPort(deviceconfig.ComPortName, deviceconfig.BaudRate);
                         System.Threading.Thread.Sleep(2000);
                     }
                     string status_msg = "";

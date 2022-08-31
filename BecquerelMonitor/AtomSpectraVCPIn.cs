@@ -24,6 +24,7 @@ namespace BecquerelMonitor
         private enum State { Connecting, Connected };
         private int cps;
         private String name;
+        private int baudrate = 600000;
         private int invalid_pulses;
         private string guid;
         private volatile bool port_name_changed;
@@ -93,7 +94,7 @@ namespace BecquerelMonitor
             this.guid = guid;
             Trace.WriteLine("AtomSpectraVCPIn instance created " + guid);
             port = new SerialPort();
-            port.BaudRate = 600000;
+            port.BaudRate = baudrate;
             port.DataBits = 8;
             port.Parity = Parity.None;
             port.StopBits = StopBits.One;
@@ -123,9 +124,10 @@ namespace BecquerelMonitor
             get { return this.guid; }
         }
 
-        public void setPort(string com)
+        public void setPort(string com, int baud_rate)
         {
             this.name = com;
+            this.baudrate = baud_rate;
             this.port_name_changed = true;
             try
             {
@@ -276,6 +278,7 @@ namespace BecquerelMonitor
                         if (name != null)
                         {
                             port.PortName = this.name;
+                            port.BaudRate = this.baudrate;
                             port.Open();
                             state = State.Connected;
                         }
