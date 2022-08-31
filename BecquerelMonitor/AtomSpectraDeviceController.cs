@@ -67,11 +67,11 @@ namespace BecquerelMonitor
                 if (dci != null && (dci.InputDeviceConfig is AtomSpectraDeviceConfig))
                 {
                     AtomSpectraDeviceConfig dc = (AtomSpectraDeviceConfig)dci.InputDeviceConfig;
-                    AtomSpectraVCPIn.getInstance(deviceGuid).setPort(dc.ComPortName);
+                    AtomSpectraVCPIn.getInstance(deviceGuid).setPort(dc.ComPortName, dc.BaudRate);
                 }
                 else
                 {
-                    AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).setPort(deviceConfig.ComPortName);
+                    AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).setPort(deviceConfig.ComPortName, deviceConfig.BaudRate);
                 }
 
                 if (previous_guid != null)
@@ -137,11 +137,11 @@ namespace BecquerelMonitor
                 if (dci != null && (dci.InputDeviceConfig is AtomSpectraDeviceConfig))
                 {
                     AtomSpectraDeviceConfig dc = (AtomSpectraDeviceConfig)dci.InputDeviceConfig;
-                    AtomSpectraVCPIn.getInstance(deviceGuid).setPort(dc.ComPortName);
+                    AtomSpectraVCPIn.getInstance(deviceGuid).setPort(dc.ComPortName, dc.BaudRate);
                 }
                 else
                 {
-                    AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).setPort(deviceConfig.ComPortName);
+                    AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).setPort(deviceConfig.ComPortName, deviceConfig.BaudRate);
                 }
 
                 if (previous_guid != null)

@@ -12,14 +12,17 @@ namespace BecquerelMonitor
     {
         TextBox doubleTextBox2;
         private ComboBox comPortsBox;
+        private ComboBox baudratesBox;
         private Label label1;
         TextBox doubleTextBox1;
         private string ComPort = "-------";
+        private int BaudRate = 600000;
         AutoCompleteStringCollection autoComplete = new AutoCompleteStringCollection();
 
         void InitializeComponent()
         {
             this.comPortsBox = new System.Windows.Forms.ComboBox();
+            this.baudratesBox = new System.Windows.Forms.ComboBox();
             this.label1 = new System.Windows.Forms.Label();
             this.CommandLineIn = new System.Windows.Forms.TextBox();
             this.CommandLineOut = new System.Windows.Forms.TextBox();
@@ -35,6 +38,16 @@ namespace BecquerelMonitor
             this.comPortsBox.Name = "comPortsBox";
             this.comPortsBox.Size = new System.Drawing.Size(60, 21);
             this.comPortsBox.TabIndex = 98;
+            //
+            // baudratesBox
+            //
+            this.baudratesBox.FormattingEnabled = false;
+            this.baudratesBox.Location = new System.Drawing.Point(200, 73);
+            this.baudratesBox.Name = "baudratesBox";
+            this.baudratesBox.Size = new System.Drawing.Size(60, 21);
+            this.baudratesBox.TabIndex = 105;
+            this.baudratesBox.Items.AddRange(new string[] { "38400", "115200", "460800", "600000", "921600" });
+            this.baudratesBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             // 
             // label1
             // 
@@ -48,7 +61,7 @@ namespace BecquerelMonitor
             // button 1
             //
             this.button1.AutoSize = true;
-            this.button1.Location = new System.Drawing.Point(200, 72);
+            this.button1.Location = new System.Drawing.Point(270, 72);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(56, 13);
             this.button1.TabIndex = 103;
@@ -57,7 +70,7 @@ namespace BecquerelMonitor
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(270, 76);
+            this.label3.Location = new System.Drawing.Point(340, 76);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(56, 13);
             this.label3.TabIndex = 104;
@@ -104,9 +117,12 @@ namespace BecquerelMonitor
             this.Controls.Add(this.button1);
             button1.Click += Button1_Click;
             this.Controls.Add(this.comPortsBox);
+            this.Controls.Add(this.baudratesBox);
             this.Name = "AtomSpectraVCPDeviceForm";
             comPortsBox.SelectedIndexChanged += ComPortsBox_SelectedIndexChanged;
+            baudratesBox.SelectedIndexChanged += BaudratesBox_SelectedIndexChanged;
             this.Controls.SetChildIndex(this.comPortsBox, 0);
+            this.Controls.SetChildIndex(this.baudratesBox, 0);
             this.Controls.SetChildIndex(this.label1, 0);
             this.Controls.SetChildIndex(this.CommandLineIn, 0);
             this.Controls.SetChildIndex(this.CommandLineOut, 0);
@@ -134,6 +150,7 @@ namespace BecquerelMonitor
                 if (comPortsBox.Items.Contains(this.ComPort))
                 {
                     comPortsBox.SelectedIndex = comPortsBox.Items.IndexOf(this.ComPort);
+                    baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString());  
                     label3.ForeColor = Color.Green;
                     this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusConnected);
                 }
@@ -145,11 +162,18 @@ namespace BecquerelMonitor
                     this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusUnknown);
                 }
             }
+
+
         }
 
         private void ComPortsBox_SelectedIndexChanged(object sender, EventArgs e)
         {
             //fillPorts();
+            SetActiveDeviceConfigDirty();
+        }
+
+        private void BaudratesBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
             SetActiveDeviceConfigDirty();
         }
 
@@ -194,6 +218,7 @@ namespace BecquerelMonitor
         {
             AtomSpectraDeviceConfig atomSpectraVCPInputDevice = (AtomSpectraDeviceConfig)inputConfig;
             this.ComPort = atomSpectraVCPInputDevice.ComPortName;
+            this.BaudRate = atomSpectraVCPInputDevice.BaudRate;
             fillPorts();
         }
 
@@ -206,6 +231,7 @@ namespace BecquerelMonitor
                 if (comPortsBox.Items.Count > 0)
                 {
                     atomSpectraVCPInputDevice.ComPortName = comPortsBox.SelectedItem.ToString();
+                    atomSpectraVCPInputDevice.BaudRate = int.Parse(baudratesBox.SelectedItem.ToString());
                 }
                 else
                 {
@@ -311,7 +337,7 @@ namespace BecquerelMonitor
                     else
                     {
                         device = new AtomSpectraVCPIn("Test");
-                        device.setPort(comPortsBox.SelectedItem.ToString());
+                        device.setPort(comPortsBox.SelectedItem.ToString(), (int)baudratesBox.SelectedItem);
                     }
                     device.sendCommand(this.CommandLineIn.Text);
                     this.CommandLineOut.Text = ">> " + this.CommandLineIn.Text + Environment.NewLine
