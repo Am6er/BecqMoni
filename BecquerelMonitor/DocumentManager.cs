@@ -372,7 +372,7 @@ namespace BecquerelMonitor
                             NumOfChannels), Resources.Warning, MessageBoxButtons.OK, MessageBoxIcon.Warning);
 
                         doc.ActiveResultData.EnergySpectrum = new EnergySpectrum(1.0, Convert.ToInt32(NumOfChannels));
-                        doc.ActiveResultData.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration(Convert.ToInt32(NumOfChannels));
+                        doc.ActiveResultData.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
                         doc.ActiveResultData.DeviceConfig = new DeviceConfigInfo();
                     }
                 }
