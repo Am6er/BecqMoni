@@ -4355,4 +4355,7 @@ see peak in spectrum now).</value>
   <data name="NucBase.IsotopeTextBoxTooltip1" xml:space="preserve">
     <value>Example: AM-241, AM241, 241AM. Isomer: PA234m1, 234PAm1, PA-234m1</value>
   </data>
+  <data name="CombineEmptySpectrum" xml:space="preserve">
+    <value>Open spectrum first, then select Combine menu to another spectrum file.</value>
+  </data>
 </root>

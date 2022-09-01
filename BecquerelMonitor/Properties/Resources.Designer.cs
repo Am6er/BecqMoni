@@ -331,6 +331,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Open spectrum first, then select Combine menu to another spectrum file..
+        /// </summary>
+        internal static string CombineEmptySpectrum {
+            get {
+                return ResourceManager.GetString("CombineEmptySpectrum", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Confirmation.
         /// </summary>
         internal static string ConfirmationDialogTitle {

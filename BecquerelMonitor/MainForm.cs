@@ -1,4 +1,5 @@
 ﻿using BecquerelMonitor.Properties;
+using BecquerelMonitor.Utils;
 using System;
 using System.Collections.Generic;
 using System.Deployment.Application;
@@ -1106,6 +1107,31 @@ namespace BecquerelMonitor
             }
         }
 
+        void CombineSpectrasToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (this.activeDocument == null)
+            {
+                MessageBox.Show(Resources.CombineEmptySpectrum);
+                return;
+            }
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.Title = Resources.OpenFileDialogTitle;
+            openFileDialog.Filter = Resources.SpectrumFileFilter;
+            openFileDialog.FilterIndex = 1;
+            openFileDialog.RestoreDirectory = true;
+            if (openFileDialog.ShowDialog() != DialogResult.OK)
+            {
+                return;
+            }
+            DocumentManager combinedDocManager = new DocumentManager();
+            DocEnergySpectrum combinedSpectrum = combinedDocManager.OpenDocument(openFileDialog.FileName);
+            SpectrumAriphmetics sa = new SpectrumAriphmetics(this.activeDocument);
+            this.activeDocument = sa.CombineWith(combinedSpectrum);
+            GC.Collect();
+            this.activeDocument.Dirty = true;
+            this.UpdateAllView();
+        }
+
         // Token: 0x06000A75 RID: 2677 RVA: 0x0003E3E8 File Offset: 0x0003C5E8
         void CloseActiveDocument()
         {
@@ -1801,6 +1827,7 @@ namespace BecquerelMonitor
             }
 
             this.documentManager.ImportDocumentAtomSpectra(this.activeDocument, openFileDialog.FileName);
+            this.activeDocument.Dirty = true;
             this.UpdateAllView();
         }
 
@@ -1822,6 +1849,7 @@ namespace BecquerelMonitor
             }
 
             this.documentManager.ImportDocumentN42(this.activeDocument, openFileDialog.FileName);
+            this.activeDocument.Dirty = true;
             this.UpdateAllView();
         }
 
