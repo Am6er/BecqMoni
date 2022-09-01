@@ -47,16 +47,6 @@ namespace BecquerelMonitor
             this.coefficients = array;
         }
 
-        // Token: 0x06000730 RID: 1840 RVA: 0x00029D18 File Offset: 0x00027F18
-        public PolynomialEnergyCalibration(int maxChannel)
-        {
-            this.polynomialOrder = 2;
-            double[] array = new double[3];
-            array[1] = 1.0;
-            this.coefficients = array;
-            this.maxChannel = maxChannel;
-        }
-
         // Token: 0x06000731 RID: 1841 RVA: 0x00029D50 File Offset: 0x00027F50
         public PolynomialEnergyCalibration(PolynomialEnergyCalibration calib)
         {
@@ -103,7 +93,7 @@ namespace BecquerelMonitor
                     return false;
                 }
             }
-            for (int i = 1; i <= this.maxChannel; i++)
+            for (int i = 1; i <= 8192; i++)
             {
                 if (this.ChannelToEnergy(i - 1) > this.ChannelToEnergy(i))
                 {
@@ -213,18 +203,10 @@ namespace BecquerelMonitor
             return new PolynomialEnergyCalibration(this);
         }
 
-        // Token: 0x06000736 RID: 1846 RVA: 0x00029F00 File Offset: 0x00028100
-        public override int MaximumChannel()
-        {
-            return this.maxChannel;
-        }
-
         // Token: 0x040003A4 RID: 932
         int polynomialOrder;
 
         // Token: 0x040003A5 RID: 933
         double[] coefficients;
-
-        int maxChannel;
     }
 }

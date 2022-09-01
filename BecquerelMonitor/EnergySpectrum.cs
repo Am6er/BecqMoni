@@ -161,7 +161,7 @@ namespace BecquerelMonitor
         {
             this.numberOfChannels = old.NumberOfChannels;
             this.channelPitch = old.ChannelPitch;
-            PolynomialEnergyCalibration polynomialEnergyCalibration = new PolynomialEnergyCalibration(this.numberOfChannels);
+            PolynomialEnergyCalibration polynomialEnergyCalibration = new PolynomialEnergyCalibration();
             PolynomialEnergyCalibration polynomialEnergyCalibration2 = polynomialEnergyCalibration;
             double[] array = new double[3];
             array[0] = old.EnergyOffset;
