@@ -489,6 +489,18 @@
   <data name="&gt;&gt;CloseAllToolStripMenuItem.Name" xml:space="preserve">
     <value>CloseAllToolStripMenuItem</value>
   </data>
+  <data name="CombineSpectrasToolStripMenuItem.Text" xml:space="preserve">
+    <value>О&amp;бъединение спектров</value>
+  </data>
+  <data name="CombineSpectrasToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+    <value>171, 22</value>
+  </data>
+  <data name="&gt;&gt;CombineSpectrasToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;CombineSpectrasToolStripMenuItem.Name" xml:space="preserve">
+    <value>CombineSpectrasToolStripMenuItem</value>
+  </data>
   <data name="&gt;&gt;ベクモニ旧形式v093bToolStripMenuItem.Name" xml:space="preserve">
     <value>ベクモニ旧形式v093bToolStripMenuItem</value>
   </data>
