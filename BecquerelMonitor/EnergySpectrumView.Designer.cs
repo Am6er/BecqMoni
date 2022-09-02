@@ -715,6 +715,25 @@ namespace BecquerelMonitor
             {
                 this.totalMinValue = 0.0;
             }
+            if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+            {
+                for (int j = 0; j < substractedEnergySpectrum.NumberOfChannels - 1; j++)
+                {
+                    double num3 = (double)substractedEnergySpectrum.Spectrum[j];
+                    if (this.verticalUnit == VerticalUnit.CountsPerSecond && substractedEnergySpectrum.MeasurementTime != 0.0)
+                    {
+                        num3 /= substractedEnergySpectrum.MeasurementTime;
+                    }
+                    if (num3 > this.totalMaxValue)
+                    {
+                        this.totalMaxValue = num3;
+                    }
+                    if (num3 < this.totalMinValue)
+                    {
+                        this.totalMinValue = num3;
+                    }
+                }
+            }
             this.maxValue = 0.0;
             this.minValue = double.PositiveInfinity;
             bool flag = false;
@@ -747,10 +766,23 @@ namespace BecquerelMonitor
                 }
                 else
                 {
-                    num5 = (double)this.energySpectrum.Spectrum[k];
+                    if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                    {
+                        num5 = (double)this.substractedEnergySpectrum.Spectrum[k];
+                    } else
+                    {
+                        num5 = (double)this.energySpectrum.Spectrum[k];
+                    }
+                        
                     if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.MeasurementTime != 0.0)
                     {
-                        num5 /= this.energySpectrum.MeasurementTime;
+                        if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                        {
+                            num5 /= this.substractedEnergySpectrum.MeasurementTime;
+                        } else
+                        {
+                            num5 /= this.energySpectrum.MeasurementTime;
+                        }
                         goto IL_53A;
                     }
                     goto IL_53A;
