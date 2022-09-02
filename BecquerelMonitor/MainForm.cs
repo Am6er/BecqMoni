@@ -1130,6 +1130,7 @@ namespace BecquerelMonitor
             GC.Collect();
             this.activeDocument.Dirty = true;
             this.UpdateAllView();
+            this.UpdateDetectedPeakView();
         }
 
         // Token: 0x06000A75 RID: 2677 RVA: 0x0003E3E8 File Offset: 0x0003C5E8

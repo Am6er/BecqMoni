@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using BecquerelMonitor.Properties;
+using BecquerelMonitor.Utils;
 
 namespace BecquerelMonitor
 {
@@ -663,6 +664,22 @@ namespace BecquerelMonitor
                     goto IL_28F;
                 }
             }
+            if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+            {
+                this.substractedEnergySpectrum = this.energySpectrum.Clone();
+                double norm_coeff = this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime;
+                this.substractedEnergySpectrum.TotalPulseCount = 0;
+                for (int i = 0; i < this.substractedEnergySpectrum.NumberOfChannels; i++)
+                {
+                    this.substractedEnergySpectrum.Spectrum[i] = Convert.ToInt32(this.energySpectrum.Spectrum[i] - norm_coeff * this.backgroundEnergySpectrum.Spectrum[i]);
+                    if (this.substractedEnergySpectrum.Spectrum[i] < 0)
+                    {
+                        this.substractedEnergySpectrum.Spectrum[i] = 0;
+                    }
+                    this.substractedEnergySpectrum.TotalPulseCount += this.substractedEnergySpectrum.Spectrum[i];
+                    this.substractedEnergySpectrum.ValidPulseCount = this.substractedEnergySpectrum.TotalPulseCount;
+                }
+            }
             foreach (ResultData resultData in this.resultDataList)
             {
                 EnergySpectrum energySpectrum = resultData.EnergySpectrum;
@@ -917,14 +934,21 @@ namespace BecquerelMonitor
             }
             if (this.smoothingMethod == SmoothingMethod.None)
             {
-                if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.Spectrum != null)
+                if (this.backgroundMode == BackgroundMode.Visible && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.Spectrum != null)
                 {
                     for (int l = 0; l < this.backgroundNumberOfChannels; l++)
                     {
                         this.backgroundEnergySpectrum.DrawingSpectrum[l] = (double)this.backgroundEnergySpectrum.Spectrum[l];
                     }
                 }
-                using (List<ResultData>.Enumerator enumerator4 = this.resultDataList.GetEnumerator())
+                if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                {
+                    for (int l = 0; l < this.substractedEnergySpectrum.NumberOfChannels; l++)
+                    {
+                        this.substractedEnergySpectrum.DrawingSpectrum[l] = (double)this.substractedEnergySpectrum.Spectrum[l];
+                    }
+                }
+                    using (List<ResultData>.Enumerator enumerator4 = this.resultDataList.GetEnumerator())
                 {
                     while (enumerator4.MoveNext())
                     {
@@ -962,7 +986,28 @@ namespace BecquerelMonitor
                         energySpectrum2.DrawingSpectrum[n] = num7 / (double)numberOfSMADataPoints;
                     }
                 }
-                if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.Spectrum != null)
+                if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                {
+                    for (int num10 = 0; num10 < this.substractedEnergySpectrum.NumberOfChannels; num10++)
+                    {
+                        double num11 = 0.0;
+                        for (int num12 = num10 - numberOfSMADataPoints / 2; num12 < num10 - numberOfSMADataPoints / 2 + numberOfSMADataPoints; num12++)
+                        {
+                            int num13 = num12;
+                            if (num13 < 0)
+                            {
+                                num13 = 0;
+                            }
+                            else if (num12 >= this.substractedEnergySpectrum.NumberOfChannels)
+                            {
+                                num13 = this.substractedEnergySpectrum.NumberOfChannels - 1;
+                            }
+                            num11 += (double)this.substractedEnergySpectrum.Spectrum[num13];
+                        }
+                        this.substractedEnergySpectrum.DrawingSpectrum[num10] = num11 / (double)numberOfSMADataPoints;
+                    }
+                }
+                if (this.backgroundMode == BackgroundMode.Visible && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.Spectrum != null)
                 {
                     for (int num10 = 0; num10 < this.backgroundNumberOfChannels; num10++)
                     {
@@ -982,7 +1027,6 @@ namespace BecquerelMonitor
                         }
                         this.backgroundEnergySpectrum.DrawingSpectrum[num10] = num11 / (double)numberOfSMADataPoints;
                     }
-                    return;
                 }
             }
             else if (this.smoothingMethod == SmoothingMethod.WeightedMovingAverage)
@@ -1013,7 +1057,7 @@ namespace BecquerelMonitor
                         energySpectrum3.DrawingSpectrum[num14] = num15 / num16;
                     }
                 }
-                if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.Spectrum != null)
+                if (this.backgroundMode == BackgroundMode.Visible && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.Spectrum != null)
                 {
                     for (int num20 = 0; num20 < this.backgroundNumberOfChannels; num20++)
                     {
@@ -1035,6 +1079,30 @@ namespace BecquerelMonitor
                             num22 += num25;
                         }
                         this.backgroundEnergySpectrum.DrawingSpectrum[num20] = num21 / num22;
+                    }
+                }
+                if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                {
+                    for (int num20 = 0; num20 < this.substractedEnergySpectrum.NumberOfChannels; num20++)
+                    {
+                        double num21 = 0.0;
+                        double num22 = 0.0;
+                        for (int num23 = num20 - numberOfWMADataPoints / 2; num23 < num20 - numberOfWMADataPoints / 2 + numberOfWMADataPoints; num23++)
+                        {
+                            int num24 = num23;
+                            if (num24 < 0)
+                            {
+                                num24 = 0;
+                            }
+                            else if (num23 >= this.substractedEnergySpectrum.NumberOfChannels)
+                            {
+                                num24 = this.substractedEnergySpectrum.NumberOfChannels - 1;
+                            }
+                            double num25 = (double)(numberOfWMADataPoints / 2 + 1 - Math.Abs(num20 - num23));
+                            num21 += (double)this.substractedEnergySpectrum.Spectrum[num24] * num25;
+                            num22 += num25;
+                        }
+                        this.substractedEnergySpectrum.DrawingSpectrum[num20] = num21 / num22;
                     }
                 }
             }
@@ -1107,7 +1175,13 @@ namespace BecquerelMonitor
                         {
                             using (new Pen(Color.FromArgb(alpha2, colorConfig.ActiveSpectrumColor.Color)))
                             {
-                                this.DrawBarChart(g, brush2, this.energySpectrum, this.energyCalibration, false);
+                                if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                                {
+                                    this.DrawBarChart(g, brush2, this.substractedEnergySpectrum, this.substractedEnergySpectrum.EnergyCalibration, false);
+                                } else
+                                {
+                                    this.DrawBarChart(g, brush2, this.energySpectrum, this.energyCalibration, false);
+                                }
                             }
                             goto IL_438;
                         }
@@ -1119,7 +1193,13 @@ namespace BecquerelMonitor
                         {
                             using (new Pen(Color.FromArgb(alpha3, colorConfig.ActiveSpectrumColor.Color)))
                             {
-                                this.DrawBarChart(g, brush3, this.energySpectrum, this.energyCalibration, false);
+                                if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                                {
+                                    this.DrawBarChart(g, brush3, this.substractedEnergySpectrum, this.substractedEnergySpectrum.EnergyCalibration, false);
+                                } else
+                                {
+                                    this.DrawBarChart(g, brush3, this.energySpectrum, this.energyCalibration, false);
+                                }
                             }
                         }
                     }
@@ -1156,7 +1236,13 @@ namespace BecquerelMonitor
                     {
                         using (Pen pen6 = new Pen(colorConfig.ActiveSpectrumColor.Color))
                         {
-                            this.DrawLineChart(g, pen6, this.energySpectrum, this.energyCalibration, false);
+                            if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                            {
+                                this.DrawLineChart(g, pen6, this.substractedEnergySpectrum, this.substractedEnergySpectrum.EnergyCalibration, false);
+                            } else
+                            {
+                                this.DrawLineChart(g, pen6, this.energySpectrum, this.energyCalibration, false);
+                            }
                         }
                     }
                     if (this.drawingMode == DrawingMode.HighDefinition)
@@ -3149,6 +3235,8 @@ namespace BecquerelMonitor
 
         // Token: 0x040001FA RID: 506
         EnergySpectrum backgroundEnergySpectrum;
+
+        EnergySpectrum substractedEnergySpectrum;
 
         // Token: 0x040001FB RID: 507
         ROIConfigData roiConfig;

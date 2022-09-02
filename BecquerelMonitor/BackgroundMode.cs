@@ -10,6 +10,9 @@ namespace BecquerelMonitor
         Visible,
         // Token: 0x040008F8 RID: 2296
         [XmlEnum(Name = "Invisible")]
-        Invisible
+        Invisible,
+
+        [XmlEnum(Name = "Substract")]
+        Substract
     }
 }

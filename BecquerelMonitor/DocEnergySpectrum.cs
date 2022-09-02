@@ -445,6 +445,9 @@ namespace BecquerelMonitor
                 case BackgroundMode.Invisible:
                     image = BecquerelMonitor.Properties.Resources.NOBG;
                     break;
+                case BackgroundMode.Substract:
+                    image = BecquerelMonitor.Properties.Resources.SUB;
+                    break;
             }
             this.toolStripSplitButton7.Image = image;
             image = BecquerelMonitor.Properties.Resources.HD1;
@@ -555,6 +558,10 @@ namespace BecquerelMonitor
                     image = BecquerelMonitor.Properties.Resources.NOBG;
                     break;
                 case BackgroundMode.Invisible:
+                    backgroundMode = BackgroundMode.Substract;
+                    image = BecquerelMonitor.Properties.Resources.SUB;
+                    break;
+                case BackgroundMode.Substract:
                     backgroundMode = BackgroundMode.Visible;
                     image = BecquerelMonitor.Properties.Resources.BG;
                     break;
@@ -569,6 +576,7 @@ namespace BecquerelMonitor
         {
             this.バックグラウンド表示ありToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.Visible);
             this.バックグラウンド表示なしToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.Invisible);
+            this.SubstractBgToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.Substract);
         }
 
         // Token: 0x06000333 RID: 819 RVA: 0x0001015C File Offset: 0x0000E35C
@@ -584,6 +592,13 @@ namespace BecquerelMonitor
         {
             this.view.BackgroundMode = BackgroundMode.Invisible;
             this.toolStripSplitButton7.Image = BecquerelMonitor.Properties.Resources.NOBG;
+            this.RefreshView();
+        }
+
+        void SubstractBgToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            this.view.BackgroundMode = BackgroundMode.Substract;
+            this.toolStripSplitButton7.Image = BecquerelMonitor.Properties.Resources.SUB;
             this.RefreshView();
         }
 

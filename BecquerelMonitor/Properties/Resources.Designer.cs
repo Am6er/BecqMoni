@@ -340,6 +340,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Different number of channels in combined spectrums! Select proper spectrum file..
+        /// </summary>
+        internal static string CombineIncorrectChannels {
+            get {
+                return ResourceManager.GetString("CombineIncorrectChannels", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Confirmation.
         /// </summary>
         internal static string ConfirmationDialogTitle {
@@ -1886,6 +1895,16 @@ namespace BecquerelMonitor.Properties {
         internal static System.Drawing.Bitmap stop {
             get {
                 object obj = ResourceManager.GetObject("stop", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap SUB {
+            get {
+                object obj = ResourceManager.GetObject("SUB", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

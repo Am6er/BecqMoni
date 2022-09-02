@@ -177,6 +177,9 @@
   <data name="CombineEmptySpectrum" xml:space="preserve">
     <value>Откройте сначала файл спектра, а потом выберите опцию Объединение для другого файла спектра.</value>
   </data>
+  <data name="CombineIncorrectChannels" xml:space="preserve">
+    <value>Разное число каналов в объединяемых спектрах! Выберите корректный файл спектра для объединения.</value>
+  </data>
   <data name="ConfirmationDialogTitle" xml:space="preserve">
     <value>Подтверждение</value>
   </data>
