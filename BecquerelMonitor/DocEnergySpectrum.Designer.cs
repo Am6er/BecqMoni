@@ -23,7 +23,8 @@
 			this.toolStripLabel2 = new global::System.Windows.Forms.ToolStripLabel();
 			this.toolStripSplitButton7 = new global::System.Windows.Forms.ToolStripSplitButton();
 			this.バックグラウンド表示ありToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.バックグラウンド表示なしToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+            this.SubstractBgToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+            this.バックグラウンド表示なしToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSplitButton8 = new global::System.Windows.Forms.ToolStripSplitButton();
 			this.高精細表示ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.通常表示ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
@@ -121,7 +122,8 @@
 			this.toolStripSplitButton7.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
 				this.バックグラウンド表示ありToolStripMenuItem,
-				this.バックグラウンド表示なしToolStripMenuItem
+				this.バックグラウンド表示なしToolStripMenuItem,
+				this.SubstractBgToolStripMenuItem
 			});
 			this.toolStripSplitButton7.Image = global::BecquerelMonitor.Properties.Resources.BG;
 			this.toolStripSplitButton7.Name = "toolStripSplitButton7";
@@ -130,7 +132,10 @@
 			componentResourceManager.ApplyResources(this.バックグラウンド表示ありToolStripMenuItem, "バックグラウンド表示ありToolStripMenuItem");
 			this.バックグラウンド表示ありToolStripMenuItem.Name = "バックグラウンド表示ありToolStripMenuItem";
 			this.バックグラウンド表示ありToolStripMenuItem.Click += new global::System.EventHandler(this.バックグラウンド表示ありToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.バックグラウンド表示なしToolStripMenuItem, "バックグラウンド表示なしToolStripMenuItem");
+            componentResourceManager.ApplyResources(this.SubstractBgToolStripMenuItem, "SubstractBgToolStripMenuItem");
+            this.SubstractBgToolStripMenuItem.Name = "SubstractBgToolStripMenuItem";
+            this.SubstractBgToolStripMenuItem.Click += new global::System.EventHandler(this.SubstractBgToolStripMenuItem_Click);
+            componentResourceManager.ApplyResources(this.バックグラウンド表示なしToolStripMenuItem, "バックグラウンド表示なしToolStripMenuItem");
 			this.バックグラウンド表示なしToolStripMenuItem.Name = "バックグラウンド表示なしToolStripMenuItem";
 			this.バックグラウンド表示なしToolStripMenuItem.Click += new global::System.EventHandler(this.バックグラウンド表示なしToolStripMenuItem_Click);
 			componentResourceManager.ApplyResources(this.toolStripSplitButton8, "toolStripSplitButton8");
@@ -568,8 +573,10 @@
 		// Token: 0x0400013D RID: 317
 		global::System.Windows.Forms.ToolStripMenuItem バックグラウンド表示ありToolStripMenuItem;
 
-		// Token: 0x0400013E RID: 318
-		global::System.Windows.Forms.ToolStripMenuItem バックグラウンド表示なしToolStripMenuItem;
+        global::System.Windows.Forms.ToolStripMenuItem SubstractBgToolStripMenuItem;
+
+        // Token: 0x0400013E RID: 318
+        global::System.Windows.Forms.ToolStripMenuItem バックグラウンド表示なしToolStripMenuItem;
 
 		// Token: 0x0400013F RID: 319
 		global::System.Windows.Forms.ToolStripMenuItem 高精細表示ToolStripMenuItem;

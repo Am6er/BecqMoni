@@ -1,4 +1,5 @@
-﻿using System.Xml.Serialization;
+﻿using System;
+using System.Xml.Serialization;
 
 namespace BecquerelMonitor
 {
@@ -204,6 +205,22 @@ namespace BecquerelMonitor
             this.validPulseCount = 0;
             this.measurementTime = 0.0;
             this.numberOfSamples = 0L;
+        }
+
+        public EnergySpectrum Clone()
+        {
+            EnergySpectrum returnValue = new EnergySpectrum(this.channelPitch, this.numberOfChannels);
+            returnValue.spectrum = (int[]) this.spectrum.Clone();
+            returnValue.drawingSpectrum = (double[])this.drawingSpectrum.Clone();
+            returnValue.channelPitch = this.channelPitch;
+            returnValue.numberOfChannels = this.numberOfChannels;
+            returnValue.measurementTime = this.measurementTime;
+            returnValue.energyCalibration = this.energyCalibration.Clone();
+            returnValue.numberOfSamples = this.numberOfSamples;
+            returnValue.totalPulseCount = this.totalPulseCount;
+            returnValue.validPulseCount = this.validPulseCount;
+
+            return returnValue;
         }
 
         // Token: 0x0400001D RID: 29

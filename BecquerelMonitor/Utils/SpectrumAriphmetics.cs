@@ -1,4 +1,6 @@
-﻿using System;
+﻿using BecquerelMonitor.Properties;
+using System;
+using System.Security.Principal;
 
 namespace BecquerelMonitor.Utils
 {
@@ -22,10 +24,10 @@ namespace BecquerelMonitor.Utils
                 }
                 else
                 {
+                    PolynomialEnergyCalibration MainSpectrumEnergyCalibration = (PolynomialEnergyCalibration)this.MainSpectrum.ActiveResultData.EnergySpectrum.EnergyCalibration;
+                    PolynomialEnergyCalibration CombinedSpectrumEnergyCalibration = (PolynomialEnergyCalibration)energySpectrum.ActiveResultData.EnergySpectrum.EnergyCalibration;
                     for (int i = 0; i < this.MainSpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels; i++)
                     {
-                        PolynomialEnergyCalibration MainSpectrumEnergyCalibration = (PolynomialEnergyCalibration)this.MainSpectrum.ActiveResultData.EnergySpectrum.EnergyCalibration;
-                        PolynomialEnergyCalibration CombinedSpectrumEnergyCalibration = (PolynomialEnergyCalibration)energySpectrum.ActiveResultData.EnergySpectrum.EnergyCalibration;
                         double getChannel = Math.Round(CombinedSpectrumEnergyCalibration.EnergyToChannel(MainSpectrumEnergyCalibration.ChannelToEnergy(i)));
                         if (getChannel >= 0 && getChannel < this.MainSpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels)
                         {
@@ -42,11 +44,14 @@ namespace BecquerelMonitor.Utils
                 this.MainSpectrum.ActiveResultData.ResultDataStatus.PresetTime += energySpectrum.ActiveResultData.ResultDataStatus.PresetTime;
                 this.MainSpectrum.ActiveResultData.ResultDataStatus.ElapsedTime += energySpectrum.ActiveResultData.ResultDataStatus.ElapsedTime;
                 this.MainSpectrum.ActiveResultData.ResultDataStatus.TotalTime += energySpectrum.ActiveResultData.ResultDataStatus.TotalTime;
+            } else
+            {
+                System.Windows.Forms.MessageBox.Show(Resources.CombineIncorrectChannels);
             }
 
             return this.MainSpectrum;
         }
 
-        private DocEnergySpectrum MainSpectrum;
+        DocEnergySpectrum MainSpectrum;
     }
 }
