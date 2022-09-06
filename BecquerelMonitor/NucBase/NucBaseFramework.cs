@@ -21,12 +21,12 @@ namespace BecquerelMonitor.NucBase
             Nuclide nuc = new Nuclide();
             try
             {
-                SqliteDataReader reader = db.ReadData("select z, n, ifnull(half_life, '?'), ifnull(half_life_unit, '') from nuclides where nucid = '" + nucname + "' and half_life not null");
+                SqliteDataReader reader = db.ReadData("select z, n, ifnull(half_life, '?'), ifnull(half_life_unit, ''), ifnull(half_life_sec, 0) from nuclides where nucid = '" + nucname + "' and half_life not null");
                 reader.Read();
                 nuc.Z = reader.GetInt32(0);
                 nuc.N = reader.GetInt32(1);
                 nuc.HalfLife = reader.GetString(2);
-                nuc.HalfLifeUOM = reader.GetString(3);
+                nuc.HalfLife_Sec = reader.GetDouble(4);
 
                 reader = db.ReadData("select daughter_nucid, ifnull(perc, '?'), dec_type from decay_chain where nucid = '" + nucname + "'");
                 while (reader.Read())

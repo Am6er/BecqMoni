@@ -73,6 +73,8 @@
             this.XRayTypeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.DecaModeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
+            this.label13 = new System.Windows.Forms.Label();
+            this.IsotopeSpecActivity = new System.Windows.Forms.Label();
             this.groupBox1.SuspendLayout();
             this.panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.DaughtersDataGridView)).BeginInit();
@@ -289,6 +291,8 @@
             // 
             // groupBox2
             // 
+            this.groupBox2.Controls.Add(this.IsotopeSpecActivity);
+            this.groupBox2.Controls.Add(this.label13);
             this.groupBox2.Controls.Add(this.IsotopeHLLabel);
             this.groupBox2.Controls.Add(this.label5);
             this.groupBox2.Controls.Add(this.IsotopeNLabel);
@@ -403,6 +407,16 @@
             this.DecaModeColumn.Name = "DecaModeColumn";
             this.DecaModeColumn.ReadOnly = true;
             // 
+            // label13
+            // 
+            resources.ApplyResources(this.label13, "label13");
+            this.label13.Name = "label13";
+            // 
+            // IsotopeSpecActivity
+            // 
+            resources.ApplyResources(this.IsotopeSpecActivity, "IsotopeSpecActivity");
+            this.IsotopeSpecActivity.Name = "IsotopeSpecActivity";
+            // 
             // NucBase
             // 
             resources.ApplyResources(this, "$this");
@@ -470,5 +484,7 @@
         private System.Windows.Forms.DataGridViewTextBoxColumn TypeColumn;
         private System.Windows.Forms.DataGridViewTextBoxColumn PercentColum;
         private System.Windows.Forms.ToolTip toolTip1;
+        private System.Windows.Forms.Label IsotopeSpecActivity;
+        private System.Windows.Forms.Label label13;
     }
 }
