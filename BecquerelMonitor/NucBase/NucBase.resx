@@ -712,13 +712,13 @@
     <value>136, 46</value>
   </data>
   <data name="label13.Size" type="System.Drawing.Size, System.Drawing">
-    <value>82, 13</value>
+    <value>85, 13</value>
   </data>
   <data name="label13.TabIndex" type="System.Int32, mscorlib">
     <value>8</value>
   </data>
   <data name="label13.Text" xml:space="preserve">
-    <value>Special Activity:</value>
+    <value>Specific Activity:</value>
   </data>
   <data name="&gt;&gt;label13.Name" xml:space="preserve">
     <value>label13</value>
