@@ -175,6 +175,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Bq/g.
+        /// </summary>
+        internal static string Bkg {
+            get {
+                return ResourceManager.GetString("Bkg", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Refresh.
         /// </summary>
         internal static string ButtonRefresh {

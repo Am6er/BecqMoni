@@ -142,6 +142,7 @@ namespace BecquerelMonitor.NucBase
                 this.IsotopeZLabel.Text = nuc.Z.ToString();
                 this.IsotopeNLabel.Text = nuc.N.ToString();
                 this.IsotopeHLLabel.Text = nuc.HalfLife.ToString() + " " + nuc.HalfLifeUOM;
+                this.IsotopeSpecActivity.Text = nuc.SpecialActivity.ToString("e2") + " " + Resources.Bkg;
 
                 this.ParentsDataGridView.Rows.Clear();
                 foreach (Decay parent in nuc.Parents)

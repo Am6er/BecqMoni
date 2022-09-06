@@ -4370,4 +4370,7 @@ see peak in spectrum now).</value>
   <data name="Sigma" xml:space="preserve">
     <value>σ</value>
   </data>
+  <data name="Bkg" xml:space="preserve">
+    <value>Bq/g</value>
+  </data>
 </root>

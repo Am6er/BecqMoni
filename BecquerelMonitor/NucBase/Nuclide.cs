@@ -80,10 +80,38 @@ namespace BecquerelMonitor.NucBase
             }
         }
 
+        public double SpecialActivity
+        {
+            get
+            {
+                double retvalue = 0.0;
+                if (this.z + this.n != 0 && this.half_life_sec != 0)
+                {
+                    double activity = 0.693 / ((this.z + this.n) * this.half_life_sec);
+                    retvalue = ((activity * 6.02214076E+23) / 9.9999999965E-4) / 1000.0;
+                }
+                return retvalue;
+            }
+        }
+
+        public double HalfLife_Sec
+        {
+            get
+            {
+                return this.half_life_sec;
+            }
+            set
+            {
+                this.half_life_sec = value;
+            }
+        }
+
         int z;
         int n;
         string half_life;
         string half_life_unit;
+        double activity;
+        double half_life_sec = 0.0;
         List<Decay> parents = new List<Decay>();
         List<Decay> daughters = new List<Decay>();
     }
