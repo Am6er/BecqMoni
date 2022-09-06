@@ -26,6 +26,7 @@ namespace BecquerelMonitor.NucBase
                 nuc.Z = reader.GetInt32(0);
                 nuc.N = reader.GetInt32(1);
                 nuc.HalfLife = reader.GetString(2);
+                nuc.HalfLifeUOM = reader.GetString(3);
                 nuc.HalfLife_Sec = reader.GetDouble(4);
 
                 reader = db.ReadData("select daughter_nucid, ifnull(perc, '?'), dec_type from decay_chain where nucid = '" + nucname + "'");
