@@ -94,7 +94,9 @@ namespace BecquerelMonitor
             double num10 = energyCalibration.ChannelToEnergy(num8);
             double num11 = energyCalibration.ChannelToEnergy((double)num);
             double resolution = (num10 - num9) / num11;
+            double resolutioninkev = num10 - num9;
             EnergyResolutionCalculator.result.Resolution = resolution;
+            EnergyResolutionCalculator.result.ResolutionInkeV = resolutioninkev;
             return EnergyResolutionCalculator.result;
         }
 

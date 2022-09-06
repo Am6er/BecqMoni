@@ -18,6 +18,18 @@
             }
         }
 
+        public double ResolutionInkeV
+        {
+            get
+            {
+                return this.resolutioninkev;
+            }
+            set
+            {
+                this.resolutioninkev = value;
+            }
+        }
+
         // Token: 0x17000208 RID: 520
         // (get) Token: 0x060006CA RID: 1738 RVA: 0x00028520 File Offset: 0x00026720
         // (set) Token: 0x060006CB RID: 1739 RVA: 0x00028528 File Offset: 0x00026728
@@ -170,6 +182,8 @@
 
         // Token: 0x04000389 RID: 905
         double resolution;
+
+        double resolutioninkev;
 
         // Token: 0x0400038A RID: 906
         double startChannel;

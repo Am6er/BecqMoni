@@ -17,6 +17,7 @@ namespace BecquerelMonitor.Utils
             {
                 if (energySpectrum.ActiveResultData.EnergySpectrum.EnergyCalibration.Equals(this.MainSpectrum.ActiveResultData.EnergySpectrum.EnergyCalibration))
                 {
+                    energySpectrum.ActiveResultData.EnergySpectrum.Spectrum[energySpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels - 1] = 0;
                     for (int i = 0; i < this.MainSpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels; i++)
                     {
                         this.MainSpectrum.ActiveResultData.EnergySpectrum.Spectrum[i] += energySpectrum.ActiveResultData.EnergySpectrum.Spectrum[i];

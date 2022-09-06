@@ -1356,13 +1356,22 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            EnergyResolutionResult energyResolutionResult = EnergyResolutionCalculator.CalculateFWHM(this.energySpectrum, num, num2);
+
+            EnergyResolutionResult energyResolutionResult;
+            if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+            {
+                energyResolutionResult = EnergyResolutionCalculator.CalculateFWHM(this.substractedEnergySpectrum, num, num2);
+            } else
+            {
+                energyResolutionResult = EnergyResolutionCalculator.CalculateFWHM(this.energySpectrum, num, num2);
+            }
             if (energyResolutionResult == null)
             {
                 return;
             }
             this.selectionFWHM = energyResolutionResult.Resolution;
             this.selectionFullWidth = (int)(energyResolutionResult.RightChannel - energyResolutionResult.LeftChannel);
+            this.selectionFWHMinkev = energyResolutionResult.ResolutionInkeV;
             int num3 = -1;
             int y = -1;
             int num8;
@@ -2032,36 +2041,48 @@ namespace BecquerelMonitor
                     IL_1F4:
                     if ((int)num8 >= 0 && (int)num8 < this.energySpectrum.Spectrum.Length)
                     {
-                        double num9 = this.energySpectrum.DrawingSpectrum[(int)num8];
-                        if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.MeasurementTime != 0.0)
+                        double num9 = 0.0;
+                        double num10 = 0.0;
+                        if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
                         {
-                            num9 /= this.energySpectrum.MeasurementTime;
-                        }
-                        double num10;
-                        if (this.backgroundEnergySpectrum == null || this.backgroundEnergySpectrum.MeasurementTime == 0.0)
-                        {
-                            num10 = 0.0;
-                        }
-                        else
-                        {
-                            int num11 = (int)num8;
-                            if (!this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
+                            num9 = this.substractedEnergySpectrum.DrawingSpectrum[(int)num8];
+                            if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.substractedEnergySpectrum.MeasurementTime != 0.0)
                             {
-                                num11 = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy(num8));
+                                num9 /= this.substractedEnergySpectrum.MeasurementTime;
                             }
-                            if (num11 < 0 || num11 >= this.backgroundEnergySpectrum.Spectrum.Length)
+                        } else
+                        {
+                            num9 = this.energySpectrum.DrawingSpectrum[(int)num8];
+                            if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.MeasurementTime != 0.0)
                             {
-                                goto IL_4E9;
+                                num9 /= this.energySpectrum.MeasurementTime;
                             }
-                            if (this.verticalUnit == VerticalUnit.CountsPerSecond)
+                            if (this.backgroundEnergySpectrum == null || this.backgroundEnergySpectrum.MeasurementTime == 0.0)
                             {
-                                num10 = this.backgroundEnergySpectrum.DrawingSpectrum[num11] / this.backgroundEnergySpectrum.MeasurementTime;
+                                num10 = 0.0;
                             }
                             else
                             {
-                                num10 = this.backgroundEnergySpectrum.DrawingSpectrum[num11] * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime;
+                                int num11 = (int)num8;
+                                if (!this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
+                                {
+                                    num11 = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy(num8));
+                                }
+                                if (num11 < 0 || num11 >= this.backgroundEnergySpectrum.Spectrum.Length)
+                                {
+                                    goto IL_4E9;
+                                }
+                                if (this.verticalUnit == VerticalUnit.CountsPerSecond)
+                                {
+                                    num10 = this.backgroundEnergySpectrum.DrawingSpectrum[num11] / this.backgroundEnergySpectrum.MeasurementTime;
+                                }
+                                else
+                                {
+                                    num10 = this.backgroundEnergySpectrum.DrawingSpectrum[num11] * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime;
+                                }
                             }
                         }
+
                         int num12;
                         int num13;
                         if (this.verticalScaleType == VerticalScaleType.LinearScale)
@@ -2365,7 +2386,14 @@ namespace BecquerelMonitor
                     double num5 = this.energyCalibration.ChannelToEnergy((double)channel2);
                     num4 = (int)(((num5 - this.energyViewOffset) * this.pixelPerEnergy + 0.5) * this.horizontalScale + (double)this.scrollX + (double)this.left);
                 }
-                double num6 = spectrum.DrawingSpectrum[channel2];
+                double num6 = 0.0;
+                if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                {
+                    num6 = substractedEnergySpectrum.DrawingSpectrum[channel2];
+                } else
+                {
+                    num6 = spectrum.DrawingSpectrum[channel2];
+                }
                 if (this.verticalUnit == VerticalUnit.CountsPerSecond && spectrum.MeasurementTime != 0.0)
                 {
                     num6 /= spectrum.MeasurementTime;
@@ -2644,7 +2672,7 @@ namespace BecquerelMonitor
             }
             if (this.selectionStart != -1)
             {
-                int num12 = 180;
+                int num12 = 194;
                 g.FillRectangle(Brushes.DarkGray, num2, num3, num, num12);
                 g.FillRectangle(Brushes.White, num2 - 3, num3 - 3, num, num12);
                 g.DrawRectangle(Pens.Black, num2 - 3, num3 - 3, num, num12);
@@ -2740,7 +2768,11 @@ namespace BecquerelMonitor
                 {
                     g.DrawString(Resources.ChartHeaderFWHM, this.Font, Brushes.Black, r2);
                     g.DrawString((this.selectionFWHM * 100.0).ToString("f2") + Resources.PercentCharacter +
-                        "  " + (this.selectionFullWidth).ToString() + " " + Resources.ChartChannelShort,
+                        " (" + (this.selectionFWHMinkev).ToString("f2") + " " + Resources.kev + ")",
+                        this.Font, Brushes.Black, r2, this.farFormat);
+                    r2.Y += 16;
+                    g.DrawString(Resources.Sigma, this.Font, Brushes.Black, r2);
+                    g.DrawString((this.selectionFullWidth).ToString() + " " + Resources.ChartChannelShort,
                         this.Font, Brushes.Black, r2, this.farFormat);
                 }
             }
@@ -3340,6 +3372,8 @@ namespace BecquerelMonitor
         double selectionFWHM;
 
         int selectionFullWidth;
+
+        double selectionFWHMinkev;
 
         // Token: 0x04000212 RID: 530
         int cursorX = -1;
