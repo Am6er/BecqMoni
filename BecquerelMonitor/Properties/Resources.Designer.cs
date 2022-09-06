@@ -1162,6 +1162,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to keV.
+        /// </summary>
+        internal static string kev {
+            get {
+                return ResourceManager.GetString("kev", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Status: {0}.
         /// </summary>
         internal static string LabelVCPSpectraInfo {
@@ -1857,6 +1866,15 @@ namespace BecquerelMonitor.Properties {
         internal static string SaveFileDialogTitle {
             get {
                 return ResourceManager.GetString("SaveFileDialogTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to σ.
+        /// </summary>
+        internal static string Sigma {
+            get {
+                return ResourceManager.GetString("Sigma", resourceCulture);
             }
         }
         
