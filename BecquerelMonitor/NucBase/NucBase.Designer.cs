@@ -57,6 +57,8 @@
             this.TypeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.PercentColum = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.IsotopeSpecActivity = new System.Windows.Forms.Label();
+            this.label13 = new System.Windows.Forms.Label();
             this.IsotopeHLLabel = new System.Windows.Forms.Label();
             this.label5 = new System.Windows.Forms.Label();
             this.IsotopeNLabel = new System.Windows.Forms.Label();
@@ -73,8 +75,6 @@
             this.XRayTypeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.DecaModeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
-            this.label13 = new System.Windows.Forms.Label();
-            this.IsotopeSpecActivity = new System.Windows.Forms.Label();
             this.groupBox1.SuspendLayout();
             this.panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.DaughtersDataGridView)).BeginInit();
@@ -305,6 +305,16 @@
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.TabStop = false;
             // 
+            // IsotopeSpecActivity
+            // 
+            resources.ApplyResources(this.IsotopeSpecActivity, "IsotopeSpecActivity");
+            this.IsotopeSpecActivity.Name = "IsotopeSpecActivity";
+            // 
+            // label13
+            // 
+            resources.ApplyResources(this.label13, "label13");
+            this.label13.Name = "label13";
+            // 
             // IsotopeHLLabel
             // 
             resources.ApplyResources(this.IsotopeHLLabel, "IsotopeHLLabel");
@@ -406,16 +416,6 @@
             resources.ApplyResources(this.DecaModeColumn, "DecaModeColumn");
             this.DecaModeColumn.Name = "DecaModeColumn";
             this.DecaModeColumn.ReadOnly = true;
-            // 
-            // label13
-            // 
-            resources.ApplyResources(this.label13, "label13");
-            this.label13.Name = "label13";
-            // 
-            // IsotopeSpecActivity
-            // 
-            resources.ApplyResources(this.IsotopeSpecActivity, "IsotopeSpecActivity");
-            this.IsotopeSpecActivity.Name = "IsotopeSpecActivity";
             // 
             // NucBase
             // 
