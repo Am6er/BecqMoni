@@ -1809,6 +1809,60 @@
   <data name="label8.Location" type="System.Drawing.Point, System.Drawing">
     <value>19, 26</value>
   </data>
+  <data name="colorComboBox36.TabIndex" type="System.Int32, mscorlib">
+    <value>15</value>
+  </data>
+  <data name="colorComboBox36.Size" type="System.Drawing.Size, System.Drawing">
+    <value>89, 22</value>
+  </data>
+  <data name="colorComboBox36.Location" type="System.Drawing.Point, System.Drawing">
+    <value>153, 102</value>
+  </data>
+  <data name="&gt;&gt;colorComboBox36.ZOrder" xml:space="preserve">
+    <value>25</value>
+  </data>
+  <data name="&gt;&gt;colorComboBox36.Parent" xml:space="preserve">
+    <value>groupBox4</value>
+  </data>
+  <data name="&gt;&gt;colorComboBox36.Type" xml:space="preserve">
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;colorComboBox36.Name" xml:space="preserve">
+    <value>colorComboBox36</value>
+  </data>
+  <data name="colorComboBox36.Margin" type="System.Windows.Forms.Padding, System.Windows.Forms">
+    <value>2, 2, 2, 2</value>
+  </data>
+  <data name="label88.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="label88.Location" type="System.Drawing.Point, System.Drawing">
+    <value>9, 108</value>
+  </data>
+  <data name="label88.Size" type="System.Drawing.Size, System.Drawing">
+    <value>118, 12</value>
+  </data>
+  <data name="label88.Text" xml:space="preserve">
+    <value>Active Spectrum (Diff)</value>
+  </data>
+  <data name="&gt;&gt;label88.ZOrder" xml:space="preserve">
+    <value>27</value>
+  </data>
+  <data name="&gt;&gt;label88.Parent" xml:space="preserve">
+    <value>groupBox4</value>
+  </data>
+  <data name="label88.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="&gt;&gt;label88.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label88.Name" xml:space="preserve">
+    <value>label88</value>
+  </data>
+  <data name="label88.TabIndex" type="System.Int32, mscorlib">
+    <value>3</value>
+  </data>
   <data name="label51.TabIndex" type="System.Int32, mscorlib">
     <value>50</value>
   </data>

@@ -353,6 +353,18 @@ namespace BecquerelMonitor
             }
         }
 
+        public SerializableColor BgDiffColor
+        {
+            get
+            {
+                return this.bgdiffColor;
+            }
+            set
+            {
+                this.bgdiffColor = value;
+            }
+        }
+
         // Token: 0x06000FA2 RID: 4002 RVA: 0x000572CC File Offset: 0x000554CC
         public void InitializeSpectrumColor()
         {
@@ -385,6 +397,8 @@ namespace BecquerelMonitor
 
         // Token: 0x040008DF RID: 2271
         SerializableColor backgroundSpectrumColor = Color.Blue;
+
+        SerializableColor bgdiffColor = Color.DarkViolet;
 
         // Token: 0x040008E0 RID: 2272
         List<SerializableColor> spectrumColorList = new List<SerializableColor>();

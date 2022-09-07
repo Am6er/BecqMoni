@@ -86,7 +86,8 @@
 			this.colorComboBox33 = new global::ColorComboBox.ColorComboBox();
 			this.colorComboBox34 = new global::ColorComboBox.ColorComboBox();
 			this.colorComboBox35 = new global::ColorComboBox.ColorComboBox();
-			this.label57 = new global::System.Windows.Forms.Label();
+            this.colorComboBox36 = new global::ColorComboBox.ColorComboBox();
+            this.label57 = new global::System.Windows.Forms.Label();
 			this.colorComboBox29 = new global::ColorComboBox.ColorComboBox();
 			this.label56 = new global::System.Windows.Forms.Label();
 			this.colorComboBox28 = new global::ColorComboBox.ColorComboBox();
@@ -207,7 +208,8 @@
 			this.label47 = new global::System.Windows.Forms.Label();
 			this.label49 = new global::System.Windows.Forms.Label();
 			this.label48 = new global::System.Windows.Forms.Label();
-			this.numericUpDown5 = new global::System.Windows.Forms.NumericUpDown();
+            this.label88 = new global::System.Windows.Forms.Label();
+            this.numericUpDown5 = new global::System.Windows.Forms.NumericUpDown();
 			this.numericUpDown4 = new global::System.Windows.Forms.NumericUpDown();
 			this.comboBox13 = new global::System.Windows.Forms.ComboBox();
 			this.comboBox12 = new global::System.Windows.Forms.ComboBox();
@@ -549,7 +551,9 @@
 			this.groupBox4.Controls.Add(this.colorComboBox1);
 			this.groupBox4.Controls.Add(this.label36);
 			this.groupBox4.Controls.Add(this.colorComboBox2);
-			this.groupBox4.Controls.Add(this.label35);
+            this.groupBox4.Controls.Add(this.colorComboBox36);
+            this.groupBox4.Controls.Add(this.label88);
+            this.groupBox4.Controls.Add(this.label35);
 			this.groupBox4.Controls.Add(this.label7);
 			this.groupBox4.Controls.Add(this.label34);
 			this.groupBox4.Controls.Add(this.label29);
@@ -646,11 +650,17 @@
 			this.colorComboBox2.Extended = true;
 			this.colorComboBox2.Name = "colorComboBox2";
 			this.colorComboBox2.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.label35, "label35");
+            componentResourceManager.ApplyResources(this.colorComboBox36, "colorComboBox36");
+            this.colorComboBox36.Extended = true;
+            this.colorComboBox36.Name = "colorComboBox36";
+            this.colorComboBox36.SelectedColor = global::System.Drawing.Color.DarkViolet;
+            componentResourceManager.ApplyResources(this.label35, "label35");
 			this.label35.Name = "label35";
 			componentResourceManager.ApplyResources(this.label7, "label7");
 			this.label7.Name = "label7";
-			componentResourceManager.ApplyResources(this.label34, "label34");
+            componentResourceManager.ApplyResources(this.label88, "label88");
+            this.label8.Name = "label88";
+            componentResourceManager.ApplyResources(this.label34, "label34");
 			this.label34.Name = "label34";
 			componentResourceManager.ApplyResources(this.label29, "label29");
 			this.label29.Name = "label29";
@@ -1534,11 +1544,15 @@
 		// Token: 0x04000677 RID: 1655
 		global::ColorComboBox.ColorComboBox colorComboBox35;
 
-		// Token: 0x04000678 RID: 1656
-		global::System.Windows.Forms.Label label57;
+        global::ColorComboBox.ColorComboBox colorComboBox36;
 
-		// Token: 0x04000679 RID: 1657
-		global::ColorComboBox.ColorComboBox colorComboBox29;
+        // Token: 0x04000678 RID: 1656
+        global::System.Windows.Forms.Label label57;
+
+        global::System.Windows.Forms.Label label88;
+
+        // Token: 0x04000679 RID: 1657
+        global::ColorComboBox.ColorComboBox colorComboBox29;
 
 		// Token: 0x0400067A RID: 1658
 		global::System.Windows.Forms.NumericUpDown numericUpDown7;

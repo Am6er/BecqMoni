@@ -1203,32 +1203,47 @@ namespace BecquerelMonitor
                             goto IL_438;
                         }
                         int alpha2 = (int)(colorConfig.ActiveSpectrumColorTransparency * 255m / 100m);
-                        using (Brush brush2 = new SolidBrush(Color.FromArgb(alpha2, colorConfig.ActiveSpectrumColor.Color)))
+                        if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
                         {
-                            using (new Pen(Color.FromArgb(alpha2, colorConfig.ActiveSpectrumColor.Color)))
+                            using (Brush brush2 = new SolidBrush(Color.FromArgb(alpha2, colorConfig.BgDiffColor.Color)))
                             {
-                                if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                                using (new Pen(Color.FromArgb(255, colorConfig.BgDiffColor.Color)))
                                 {
                                     this.DrawBarChart(g, brush2, this.substractedEnergySpectrum, this.substractedEnergySpectrum.EnergyCalibration, false);
-                                } else
+                                }
+                                goto IL_438;
+                            }
+                        } else
+                        {
+                            using (Brush brush2 = new SolidBrush(Color.FromArgb(alpha2, colorConfig.ActiveSpectrumColor.Color)))
+                            {
+                                using (new Pen(Color.FromArgb(alpha2, colorConfig.ActiveSpectrumColor.Color)))
                                 {
                                     this.DrawBarChart(g, brush2, this.energySpectrum, this.energyCalibration, false);
                                 }
+                                goto IL_438;
                             }
-                            goto IL_438;
                         }
+                        
                     }
                     if (this.energySpectrum.MeasurementTime != 0.0)
                     {
                         int alpha3 = (int)(colorConfig.ActiveSpectrumColorTransparency * 255m / 100m);
-                        using (Brush brush3 = new SolidBrush(Color.FromArgb(alpha3, colorConfig.ActiveSpectrumColor.Color)))
+                        if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
                         {
-                            using (new Pen(Color.FromArgb(alpha3, colorConfig.ActiveSpectrumColor.Color)))
+                            using (Brush brush3 = new SolidBrush(Color.FromArgb(alpha3, colorConfig.BgDiffColor.Color)))
                             {
-                                if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                                using (new Pen(Color.FromArgb(255, colorConfig.BgDiffColor.Color)))
                                 {
                                     this.DrawBarChart(g, brush3, this.substractedEnergySpectrum, this.substractedEnergySpectrum.EnergyCalibration, false);
-                                } else
+                                }
+                            }
+                        }
+                        else
+                        {
+                            using (Brush brush3 = new SolidBrush(Color.FromArgb(alpha3, colorConfig.ActiveSpectrumColor.Color)))
+                            {
+                                using (new Pen(Color.FromArgb(alpha3, colorConfig.ActiveSpectrumColor.Color)))
                                 {
                                     this.DrawBarChart(g, brush3, this.energySpectrum, this.energyCalibration, false);
                                 }
@@ -1266,12 +1281,16 @@ namespace BecquerelMonitor
                     }
                     if (this.energySpectrum.MeasurementTime != 0.0)
                     {
-                        using (Pen pen6 = new Pen(colorConfig.ActiveSpectrumColor.Color))
+                        if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
                         {
-                            if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                            using (Pen pen6 = new Pen(colorConfig.BgDiffColor.Color))
                             {
                                 this.DrawLineChart(g, pen6, this.substractedEnergySpectrum, this.substractedEnergySpectrum.EnergyCalibration, false);
-                            } else
+                            }
+                        }
+                        else
+                        {
+                            using (Pen pen6 = new Pen(colorConfig.ActiveSpectrumColor.Color))
                             {
                                 this.DrawLineChart(g, pen6, this.energySpectrum, this.energyCalibration, false);
                             }
