@@ -24,6 +24,7 @@ namespace BecquerelMonitor
         {
             this.colorComboBox1.SelectedColor = globalConfig.ColorConfig.ActiveSpectrumColor.Color;
             this.colorComboBox2.SelectedColor = globalConfig.ColorConfig.BackgroundSpectrumColor.Color;
+            this.colorComboBox36.SelectedColor = globalConfig.ColorConfig.BgDiffColor.Color;
             this.numericUpDown6.Value = globalConfig.ColorConfig.ActiveSpectrumColorTransparency;
             this.numericUpDown7.Value = globalConfig.ColorConfig.BackgroundSpectrumColorTransparency;
             this.comboBox15.SelectedIndex = globalConfig.ColorConfig.SpectrumDrawingOrder;
@@ -142,6 +143,7 @@ namespace BecquerelMonitor
         {
             globalConfig.ColorConfig.ActiveSpectrumColor.Color = this.colorComboBox1.SelectedColor;
             globalConfig.ColorConfig.BackgroundSpectrumColor.Color = this.colorComboBox2.SelectedColor;
+            globalConfig.ColorConfig.BgDiffColor.Color = this.colorComboBox36.SelectedColor;
             globalConfig.ColorConfig.ActiveSpectrumColorTransparency = this.numericUpDown6.Value;
             globalConfig.ColorConfig.BackgroundSpectrumColorTransparency = this.numericUpDown7.Value;
             globalConfig.ColorConfig.SpectrumDrawingOrder = this.comboBox15.SelectedIndex;

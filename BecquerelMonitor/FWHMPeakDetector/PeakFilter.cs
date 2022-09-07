@@ -92,8 +92,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
         /// <param name="edges"></param>
         public double[] kernel(double x, double[] edges)
         {
-            double fwhm = this.fwhm(x);
-            double sigma = fwhm / 2.355;
+            double sigma = this.fwhm(x) / 2.35482;
 
             // TODO: Maybe optimize cycle?
             double[] g1_x0 = gaussian1(edges.Take(edges.Length - 1).ToArray(), x, sigma); //-0.00000,-0.99309,-1.94530,-2.81854,-3.58004
