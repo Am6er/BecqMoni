@@ -1,5 +1,6 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
+using System.Globalization;
 using System.IO;
 using System.Windows.Forms;
 using System.Xml;
@@ -20,6 +21,8 @@ namespace BecquerelMonitor.N42
             //RadInstrumentInformation
             rad.RadInstrumentInformation = new RadInstrumentInformation[1];
             rad.RadInstrumentInformation[0] = new RadInstrumentInformation();
+            rad.RadInstrumentInformation[0].RadInstrumentManufacturerName = "KB Radar";
+            rad.RadInstrumentInformation[0].RadInstrumentModelName = "ATOM Spectra";
             rad.RadInstrumentInformation[0].RadInstrumentVersion = new RadInstrumentVersion[3];
             rad.RadInstrumentInformation[0].RadInstrumentVersion[0] = new RadInstrumentVersion();
             rad.RadInstrumentInformation[0].RadInstrumentVersion[0].RadInstrumentComponentName = "Hardware";
@@ -32,73 +35,42 @@ namespace BecquerelMonitor.N42
             rad.RadInstrumentInformation[0].RadInstrumentVersion[2].RadInstrumentComponentVersion = GlobalConfigManager.GetInstance().VersionString;
 
             int SpectrumCount = doc.ResultDataFile.ResultDataList.Count;
-            bool bgexist = false;
 
-            if (doc.ActiveResultData.BackgroundEnergySpectrum != null)
-            {
-                bgexist = true;
-                rad.EnergyCalibration = new EnergyCalibration[SpectrumCount + 1];
-                rad.RadMeasurement = new RadMeasurement[SpectrumCount + 1];
-            }
-            else
-            {
-                rad.EnergyCalibration = new EnergyCalibration[SpectrumCount];
-                rad.RadMeasurement = new RadMeasurement[SpectrumCount];
-            }
-
-
+            int bgcount = 0;
             for (int i = 0; i < SpectrumCount; i++)
             {
-                string calibrationId = "SpectrumCalibration" + i;
-                string idMeasurement = "SpectrumMeasurement" + i;
-                string measurementClassCode = "Foreground" + i;
-                string idSpectrum = "SpectrumData";
-                string idGrossCounts = "GrossForeground" + i;
-                rad.EnergyCalibration[i] = AddCalibration(doc.ResultDataFile.ResultDataList[i], calibrationId);
-                rad.RadMeasurement[i] = AddMeasurement(doc.ResultDataFile.ResultDataList[i], idMeasurement, measurementClassCode, idSpectrum, calibrationId, idGrossCounts);
+                if (doc.ResultDataFile.ResultDataList[i].BackgroundEnergySpectrum != null)
+                {
+                    bgcount++;
+                }
             }
 
-            // if we have background
-            if (bgexist)
+            rad.EnergyCalibration = new EnergyCalibration[SpectrumCount + bgcount];
+            rad.RadMeasurement = new RadMeasurement[SpectrumCount + bgcount];
+
+            int j = 0;
+            for (int i = 0; i < SpectrumCount; i++)
             {
-                //EnergyCalibration
-                PolynomialEnergyCalibration energyCalibration = (PolynomialEnergyCalibration)doc.ActiveResultData.BackgroundEnergySpectrum.EnergyCalibration;
-                rad.EnergyCalibration[SpectrumCount] = new EnergyCalibration
+                string calibrationId = "SpectrumCalibration-" + i;
+                string idMeasurement = "SpectrumMeasurement-" + i;
+                string measurementClassCode = "Foreground";
+                string idSpectrum = "SpectrumData";
+                string idGrossCounts = "GrossForeground";
+                rad.EnergyCalibration[j] = AddCalibration(doc.ResultDataFile.ResultDataList[i].EnergySpectrum, calibrationId);
+                rad.RadMeasurement[j] = AddMeasurement(doc.ResultDataFile.ResultDataList[i], idMeasurement, measurementClassCode, idSpectrum, calibrationId, idGrossCounts);
+                j++;
+
+                if (doc.ResultDataFile.ResultDataList[i].BackgroundEnergySpectrum != null)
                 {
-                    id = "BackgroundCalibration"
-                };
-                for (int i = 0; i < energyCalibration.Coefficients.Length; i++)
-                {
-                    rad.EnergyCalibration[SpectrumCount].CoefficientValues = rad.EnergyCalibration[SpectrumCount].CoefficientValues + energyCalibration.Coefficients[i].ToString() + " ";
+                    calibrationId = "BackgroundCalibration-" + i;
+                    idMeasurement = "BackgroundMeasurement-" + i;
+                    measurementClassCode = "Background";
+                    idSpectrum = "BackgroundData";
+                    idGrossCounts = "GrossBackground";
+                    rad.EnergyCalibration[j] = AddCalibration(doc.ResultDataFile.ResultDataList[i].BackgroundEnergySpectrum, calibrationId);
+                    rad.RadMeasurement[j] = AddMeasurement(doc.ResultDataFile.ResultDataList[i], idMeasurement, measurementClassCode, idSpectrum, calibrationId, idGrossCounts);
+                    j++;
                 }
-                rad.EnergyCalibration[SpectrumCount].CoefficientValues = rad.EnergyCalibration[SpectrumCount].CoefficientValues.Replace(',', '.');
-
-                //RadMeasurement
-                rad.RadMeasurement[SpectrumCount] = new RadMeasurement
-                {
-                    id = "BackgroundMeasurement",
-                    MeasurementClassCode = "Background",
-                    StartDateTime = doc.ActiveResultData.StartTime.ToString(),
-                    RealTimeDuration = "PT" + doc.ActiveResultData.BackgroundEnergySpectrum.MeasurementTime + "S"
-                };
-
-                //RadMeasurement -> Spectrum
-                rad.RadMeasurement[SpectrumCount].Spectrum = new Spectrum[1];
-                rad.RadMeasurement[SpectrumCount].Spectrum[0] = new Spectrum
-                {
-                    id = "BackgroundData",
-                    energyCalibrationReference = rad.EnergyCalibration[SpectrumCount].id,
-                    LiveTimeDuration = "PT" + doc.ActiveResultData.BackgroundEnergySpectrum.MeasurementTime + "S"
-                };
-                rad.RadMeasurement[SpectrumCount].Spectrum[0].ChannelData.SpectrumFromArray(doc.ActiveResultData.BackgroundEnergySpectrum.Spectrum);
-
-                //RadMeasurement -> GrossCounts
-                rad.RadMeasurement[SpectrumCount].GrossCounts = new GrossCounts[1];
-                rad.RadMeasurement[SpectrumCount].GrossCounts[0] = new GrossCounts
-                {
-                    id = "GrossBackground",
-                    TotalCounts = doc.ActiveResultData.BackgroundEnergySpectrum.TotalPulseCount.ToString()
-                };
             }
 
             return rad;
@@ -106,36 +78,66 @@ namespace BecquerelMonitor.N42
 
         private RadMeasurement AddMeasurement(ResultData data, string idMeasurement, string measurementClassCode, string idSpectrum, string idEnergyCalibration, string idGrossCounts)
         {
-            RadMeasurement rad = new RadMeasurement
+            RadMeasurement rad;
+            if (measurementClassCode == "Foreground")
             {
-                id = idMeasurement, //"SpectrumMeasurement",
-                MeasurementClassCode = measurementClassCode, // "Foreground",
-                StartDateTime = data.StartTime.ToString(),
-                RealTimeDuration = "PT" + data.EnergySpectrum.MeasurementTime + "S",
-                //RadMeasurement -> Spectrum
-                Spectrum = new Spectrum[1]
-            };
-            rad.Spectrum[0] = new Spectrum
-            {
-                id = idSpectrum, //"SpectrumData",
-                energyCalibrationReference = idEnergyCalibration, //rad.EnergyCalibration[0].id,
-                LiveTimeDuration = "PT" + data.EnergySpectrum.MeasurementTime + "S"
-            };
-            rad.Spectrum[0].ChannelData.SpectrumFromArray(data.EnergySpectrum.Spectrum);
+                rad = new RadMeasurement
+                {
+                    id = idMeasurement, //"SpectrumMeasurement",
+                    MeasurementClassCode = measurementClassCode, // "Foreground",
+                    StartDateTime = data.StartTime.ToString(),
+                    RealTimeDuration = "PT" + data.EnergySpectrum.MeasurementTime + "S",
+                    //RadMeasurement -> Spectrum
+                    Spectrum = new Spectrum[1]
+                };
+                rad.Spectrum[0] = new Spectrum
+                {
+                    id = idSpectrum, //"SpectrumData",
+                    energyCalibrationReference = idEnergyCalibration, //rad.EnergyCalibration[0].id,
+                    LiveTimeDuration = "PT" + data.EnergySpectrum.MeasurementTime + "S"
+                };
+                rad.Spectrum[0].ChannelData.SpectrumFromArray(data.EnergySpectrum.Spectrum);
 
-            //RadMeasurement -> GrossCounts
-            rad.GrossCounts = new GrossCounts[1];
-            rad.GrossCounts[0] = new GrossCounts
+                //RadMeasurement -> GrossCounts
+                rad.GrossCounts = new GrossCounts[1];
+                rad.GrossCounts[0] = new GrossCounts
+                {
+                    id = idGrossCounts, //"GrossForeground",
+                    TotalCounts = data.EnergySpectrum.TotalPulseCount.ToString()
+                };
+            } else
             {
-                id = idGrossCounts, //"GrossForeground",
-                TotalCounts = data.EnergySpectrum.TotalPulseCount.ToString()
-            };
+                rad = new RadMeasurement
+                {
+                    id = idMeasurement, //"SpectrumMeasurement",
+                    MeasurementClassCode = measurementClassCode, // "Background",
+                    StartDateTime = data.StartTime.ToString(),
+                    RealTimeDuration = "PT" + data.BackgroundEnergySpectrum.MeasurementTime + "S",
+                    //RadMeasurement -> Spectrum
+                    Spectrum = new Spectrum[1]
+                };
+                rad.Spectrum[0] = new Spectrum
+                {
+                    id = idSpectrum, //"SpectrumData",
+                    energyCalibrationReference = idEnergyCalibration, //rad.EnergyCalibration[0].id,
+                    LiveTimeDuration = "PT" + data.BackgroundEnergySpectrum.MeasurementTime + "S"
+                };
+                rad.Spectrum[0].ChannelData.SpectrumFromArray(data.BackgroundEnergySpectrum.Spectrum);
+
+                //RadMeasurement -> GrossCounts
+                rad.GrossCounts = new GrossCounts[1];
+                rad.GrossCounts[0] = new GrossCounts
+                {
+                    id = idGrossCounts, //"GrossBackground",
+                    TotalCounts = data.BackgroundEnergySpectrum.TotalPulseCount.ToString()
+                };
+            }
             return rad;
         }
 
-        private EnergyCalibration AddCalibration(ResultData input, string id)
+        private EnergyCalibration AddCalibration(EnergySpectrum input, string id)
         {
-            PolynomialEnergyCalibration energyCalibration = (PolynomialEnergyCalibration)input.EnergySpectrum.EnergyCalibration;
+            PolynomialEnergyCalibration energyCalibration = (PolynomialEnergyCalibration)input.EnergyCalibration;
             EnergyCalibration output = new EnergyCalibration();
             output.id = id;
             for (int i = 0; i < energyCalibration.Coefficients.Length; i++)
