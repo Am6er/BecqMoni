@@ -666,19 +666,10 @@ namespace BecquerelMonitor
             }
             if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
             {
-                this.substractedEnergySpectrum = this.energySpectrum.Clone();
-                double norm_coeff = this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime;
-                this.substractedEnergySpectrum.TotalPulseCount = 0;
-                for (int i = 0; i < this.substractedEnergySpectrum.NumberOfChannels; i++)
-                {
-                    this.substractedEnergySpectrum.Spectrum[i] = Convert.ToInt32(this.energySpectrum.Spectrum[i] - norm_coeff * this.backgroundEnergySpectrum.Spectrum[i]);
-                    if (this.substractedEnergySpectrum.Spectrum[i] < 0)
-                    {
-                        this.substractedEnergySpectrum.Spectrum[i] = 0;
-                    }
-                    this.substractedEnergySpectrum.TotalPulseCount += this.substractedEnergySpectrum.Spectrum[i];
-                    this.substractedEnergySpectrum.ValidPulseCount = this.substractedEnergySpectrum.TotalPulseCount;
-                }
+                SpectrumAriphmetics sa = new SpectrumAriphmetics(this.energySpectrum);
+                this.substractedEnergySpectrum = sa.Substract(this.backgroundEnergySpectrum);
+                //this.substractedEnergySpectrum = sa.NormalizeFWHM();
+                sa.Dispose();
             }
             foreach (ResultData resultData in this.resultDataList)
             {

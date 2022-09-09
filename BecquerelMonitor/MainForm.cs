@@ -1127,7 +1127,7 @@ namespace BecquerelMonitor
             DocEnergySpectrum combinedSpectrum = combinedDocManager.OpenDocument(openFileDialog.FileName);
             SpectrumAriphmetics sa = new SpectrumAriphmetics(this.activeDocument);
             this.activeDocument = sa.CombineWith(combinedSpectrum);
-            GC.Collect();
+            sa.Dispose();
             this.activeDocument.Dirty = true;
             this.UpdateAllView();
             this.UpdateDetectedPeakView();
