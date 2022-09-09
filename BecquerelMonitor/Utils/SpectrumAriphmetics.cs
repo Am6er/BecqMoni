@@ -88,9 +88,6 @@ namespace BecquerelMonitor.Utils
                         {
                             substractedEnergySpectrum.Spectrum[i] = 0;
                         }
-                    } else
-                    {
-                        substractedEnergySpectrum.Spectrum[i] = 0;
                     }
                     substractedEnergySpectrum.TotalPulseCount += substractedEnergySpectrum.Spectrum[i];
                 }
@@ -137,8 +134,8 @@ namespace BecquerelMonitor.Utils
 
         double FWHM(double x)
         {
-            if (x == 0) return 0;
-            return (1.29 * Math.Log(x) - 7.78);
+            if (x < 0) return 0;
+            return 0.03 *Math.Sqrt(x);
         }
 
         DocEnergySpectrum MainSpectrum;

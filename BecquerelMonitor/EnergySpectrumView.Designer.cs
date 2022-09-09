@@ -2645,10 +2645,18 @@ namespace BecquerelMonitor
                 g.DrawString(num7.ToString("f2"), this.Font, Brushes.Black, r, this.farFormat);
                 r.Y += 22;
                 g.DrawLine(Pens.LightGray, r.Left, r.Top - 6, r.Right, r.Top - 6);
-                int num8 = this.energySpectrum.Spectrum[this.cursorChannel];
+                int num8 = 0;
+                if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                {
+                    num8 = this.substractedEnergySpectrum.Spectrum[this.cursorChannel];
+                } else
+                {
+                    num8 = this.energySpectrum.Spectrum[this.cursorChannel];
+                }
+                    
                 g.DrawString(Resources.ChartHeaderGrossCounts, this.Font, Brushes.Black, r);
                 g.DrawString(num8.ToString("f2"), this.Font, Brushes.Black, r, this.farFormat);
-                if (this.backgroundEnergySpectrum != null)
+                if (this.backgroundEnergySpectrum != null && this.backgroundMode != BackgroundMode.Substract)
                 {
                     double num9 = 0.0;
                     if (this.backgroundEnergySpectrum.MeasurementTime != 0.0)
@@ -2706,8 +2714,17 @@ namespace BecquerelMonitor
                 double peakcounts = 0.0;
                 for (int i = num13; i <= num14; i++)
                 {
-                    int num20 = this.energySpectrum.Spectrum[i];
-                    double continuum = getY(i, num13, num14, this.energySpectrum.Spectrum[num13], this.energySpectrum.Spectrum[num14]);
+                    int num20 = 0;
+                    double continuum = 0.0;
+                    if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                    {
+                        num20 = this.substractedEnergySpectrum.Spectrum[i];
+                        continuum = getY(i, num13, num14, this.substractedEnergySpectrum.Spectrum[num13], this.substractedEnergySpectrum.Spectrum[num14]);
+                    } else
+                    {
+                        num20 = this.energySpectrum.Spectrum[i];
+                        continuum = getY(i, num13, num14, this.energySpectrum.Spectrum[num13], this.energySpectrum.Spectrum[num14]);
+                    }
                     if (continuum > num20)
                     {
                         continuum = num20;
@@ -2716,7 +2733,7 @@ namespace BecquerelMonitor
                     num18 += (double)(num20);
                     peakcounts += (double)num20;
                     double num21 = 0.0;
-                    if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                    if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0 && this.backgroundMode != BackgroundMode.Substract)
                     {
                         int num22 = i;
                         if (!this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
