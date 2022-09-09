@@ -84,13 +84,13 @@ namespace BecquerelMonitor
             {
                 Row row = new Row();
                 string text = Resources.UnknownNuclide;
-                string text2 = "－";
+                string text2 = "";
                 if (peak.Nuclide != null)
                 {
                     text = peak.Nuclide.Name;
                     double num = peak.Nuclide.Energy - peak.Energy;
                     double num2 = (peak.Nuclide.Energy - peak.Energy) / peak.Nuclide.Energy * 100.0;
-                    text2 = num.ToString("f2") + " (" + num2.ToString("f2") + "％)";
+                    text2 = num.ToString("f2") + " (" + num2.ToString("f2") + "%)";
                 }
                 row.Cells.Add(new Cell(text));
                 row.Cells.Add(new Cell(peak.Energy.ToString("f2")));
