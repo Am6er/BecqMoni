@@ -1,6 +1,7 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
 using System.Security.Principal;
+using System.Threading.Tasks;
 
 namespace BecquerelMonitor.Utils
 {
@@ -65,7 +66,7 @@ namespace BecquerelMonitor.Utils
             substractedEnergySpectrum.TotalPulseCount = 0;
             if (this.EnergySpectrum.EnergyCalibration.Equals(bgenergySpectrum.EnergyCalibration))
             {
-                for (int i = 0; i < substractedEnergySpectrum.NumberOfChannels; i++)
+                Parallel.For(0, substractedEnergySpectrum.NumberOfChannels, i =>
                 {
                     substractedEnergySpectrum.Spectrum[i] = Convert.ToInt32(this.EnergySpectrum.Spectrum[i] - norm_coeff * bgenergySpectrum.Spectrum[i]);
                     if (substractedEnergySpectrum.Spectrum[i] < 0)
@@ -73,11 +74,11 @@ namespace BecquerelMonitor.Utils
                         substractedEnergySpectrum.Spectrum[i] = 0;
                     }
                     substractedEnergySpectrum.TotalPulseCount += substractedEnergySpectrum.Spectrum[i];
-                }
+                });
                 substractedEnergySpectrum.ValidPulseCount = substractedEnergySpectrum.TotalPulseCount;
             } else
             {
-                for (int i = 0; i < substractedEnergySpectrum.NumberOfChannels; i++)
+                Parallel.For(0, substractedEnergySpectrum.NumberOfChannels, i =>
                 {
                     double enrg = this.EnergySpectrum.EnergyCalibration.ChannelToEnergy(i);
                     int bgchan = Convert.ToInt32(bgenergySpectrum.EnergyCalibration.EnergyToChannel(enrg));
@@ -90,7 +91,7 @@ namespace BecquerelMonitor.Utils
                         }
                     }
                     substractedEnergySpectrum.TotalPulseCount += substractedEnergySpectrum.Spectrum[i];
-                }
+                });
                 substractedEnergySpectrum.ValidPulseCount = substractedEnergySpectrum.TotalPulseCount;
             }
             return substractedEnergySpectrum;
