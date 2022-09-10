@@ -1334,6 +1334,16 @@ namespace BecquerelMonitor
                     {
                         updateCheck.Update();
                         MessageBox.Show(Resources.MSGRestartNeeded);
+                        if (WineCheck.isWine())
+                        {
+                            Process cleanCache = new Process();
+                            ProcessStartInfo cleanCacheInfo = new ProcessStartInfo();
+                            cleanCacheInfo.WindowStyle = ProcessWindowStyle.Hidden;
+                            cleanCacheInfo.FileName = "Rundll32.exe";
+                            cleanCacheInfo.Arguments = "dfshim CleanOnlineAppCache";
+                            cleanCache.StartInfo = cleanCacheInfo;
+                            cleanCache.Start();
+                        }
                         Application.Restart();
                     }
                 }
