@@ -211,7 +211,14 @@ namespace BecquerelMonitor
         {
             EnergySpectrum returnValue = new EnergySpectrum(this.channelPitch, this.numberOfChannels);
             returnValue.spectrum = (int[]) this.spectrum.Clone();
-            returnValue.drawingSpectrum = (double[])this.drawingSpectrum.Clone();
+            if (this.drawingSpectrum != null)
+            {
+                returnValue.drawingSpectrum = (double[])this.drawingSpectrum.Clone();
+            } else
+            {
+                returnValue.drawingSpectrum = new double[this.numberOfChannels];
+            }
+            
             returnValue.channelPitch = this.channelPitch;
             returnValue.numberOfChannels = this.numberOfChannels;
             returnValue.measurementTime = this.measurementTime;

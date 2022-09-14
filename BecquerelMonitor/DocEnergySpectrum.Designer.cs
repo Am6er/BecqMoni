@@ -24,6 +24,7 @@
 			this.toolStripSplitButton7 = new global::System.Windows.Forms.ToolStripSplitButton();
 			this.バックグラウンド表示ありToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
             this.SubstractBgToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+            this.ShowConToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
             this.バックグラウンド表示なしToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSplitButton8 = new global::System.Windows.Forms.ToolStripSplitButton();
 			this.高精細表示ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
@@ -123,7 +124,8 @@
 			{
 				this.バックグラウンド表示ありToolStripMenuItem,
 				this.バックグラウンド表示なしToolStripMenuItem,
-				this.SubstractBgToolStripMenuItem
+				this.SubstractBgToolStripMenuItem,
+				this.ShowConToolStripMenuItem
 			});
 			this.toolStripSplitButton7.Image = global::BecquerelMonitor.Properties.Resources.BG;
 			this.toolStripSplitButton7.Name = "toolStripSplitButton7";
@@ -135,6 +137,10 @@
             componentResourceManager.ApplyResources(this.SubstractBgToolStripMenuItem, "SubstractBgToolStripMenuItem");
             this.SubstractBgToolStripMenuItem.Name = "SubstractBgToolStripMenuItem";
             this.SubstractBgToolStripMenuItem.Click += new global::System.EventHandler(this.SubstractBgToolStripMenuItem_Click);
+
+            componentResourceManager.ApplyResources(this.ShowConToolStripMenuItem, "ShowConToolStripMenuItem");
+            this.ShowConToolStripMenuItem.Name = "ShowConToolStripMenuItem";
+            this.ShowConToolStripMenuItem.Click += new global::System.EventHandler(this.ShowConToolStripMenuItem_Click);
             componentResourceManager.ApplyResources(this.バックグラウンド表示なしToolStripMenuItem, "バックグラウンド表示なしToolStripMenuItem");
 			this.バックグラウンド表示なしToolStripMenuItem.Name = "バックグラウンド表示なしToolStripMenuItem";
 			this.バックグラウンド表示なしToolStripMenuItem.Click += new global::System.EventHandler(this.バックグラウンド表示なしToolStripMenuItem_Click);
@@ -574,6 +580,8 @@
 		global::System.Windows.Forms.ToolStripMenuItem バックグラウンド表示ありToolStripMenuItem;
 
         global::System.Windows.Forms.ToolStripMenuItem SubstractBgToolStripMenuItem;
+
+        global::System.Windows.Forms.ToolStripMenuItem ShowConToolStripMenuItem;
 
         // Token: 0x0400013E RID: 318
         global::System.Windows.Forms.ToolStripMenuItem バックグラウンド表示なしToolStripMenuItem;

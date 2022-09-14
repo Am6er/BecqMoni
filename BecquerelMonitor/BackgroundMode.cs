@@ -13,6 +13,9 @@ namespace BecquerelMonitor
         Invisible,
 
         [XmlEnum(Name = "Substract")]
-        Substract
+        Substract,
+
+        [XmlEnum(Name = "ShowContinuum")]
+        ShowContinuum
     }
 }

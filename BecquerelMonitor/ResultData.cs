@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BecquerelMonitor.Utils;
+using System;
 using System.Collections.Generic;
 using System.Xml.Serialization;
 
@@ -238,6 +239,17 @@ namespace BecquerelMonitor
             }
         }
 
+        public EnergySpectrum ContinuumEnergySpectrum
+        {
+            get
+            {
+                SpectrumAriphmetics sa = new SpectrumAriphmetics(this.energySpectrum);
+                this.continuumEnergySpectrum = sa.Continuum();
+                sa.Dispose();
+                return this.continuumEnergySpectrum;
+            }
+        }
+
         // Token: 0x170001F3 RID: 499
         // (get) Token: 0x0600068F RID: 1679 RVA: 0x00027AC0 File Offset: 0x00025CC0
         // (set) Token: 0x06000690 RID: 1680 RVA: 0x00027AC8 File Offset: 0x00025CC8
@@ -439,6 +451,8 @@ namespace BecquerelMonitor
 
         // Token: 0x0400036F RID: 879
         EnergySpectrum backgroundEnergySpectrum;
+
+        EnergySpectrum continuumEnergySpectrum;
 
         // Token: 0x04000370 RID: 880
         PulseCollection pulseCollection = new PulseCollection();

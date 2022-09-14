@@ -443,10 +443,13 @@ namespace BecquerelMonitor
                     image = BecquerelMonitor.Properties.Resources.BG;
                     break;
                 case BackgroundMode.Invisible:
-                    image = BecquerelMonitor.Properties.Resources.NOBG;
+                    image = BecquerelMonitor.Properties.Resources.CONT;
                     break;
                 case BackgroundMode.Substract:
                     image = BecquerelMonitor.Properties.Resources.SUB;
+                    break;
+                case BackgroundMode.ShowContinuum:
+                    image = BecquerelMonitor.Properties.Resources.CONT;
                     break;
             }
             this.toolStripSplitButton7.Image = image;
@@ -565,6 +568,10 @@ namespace BecquerelMonitor
                     backgroundMode = BackgroundMode.Visible;
                     image = BecquerelMonitor.Properties.Resources.BG;
                     break;
+                case BackgroundMode.ShowContinuum:
+                    backgroundMode = BackgroundMode.ShowContinuum;
+                    image = BecquerelMonitor.Properties.Resources.CONT;
+                    break;
             }
             this.view.BackgroundMode = backgroundMode;
             this.toolStripSplitButton7.Image = image;
@@ -577,6 +584,7 @@ namespace BecquerelMonitor
             this.バックグラウンド表示ありToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.Visible);
             this.バックグラウンド表示なしToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.Invisible);
             this.SubstractBgToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.Substract);
+            this.ShowConToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.ShowContinuum);
         }
 
         // Token: 0x06000333 RID: 819 RVA: 0x0001015C File Offset: 0x0000E35C
@@ -599,6 +607,13 @@ namespace BecquerelMonitor
         {
             this.view.BackgroundMode = BackgroundMode.Substract;
             this.toolStripSplitButton7.Image = BecquerelMonitor.Properties.Resources.SUB;
+            this.RefreshView();
+        }
+
+        void ShowConToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            this.view.BackgroundMode = BackgroundMode.ShowContinuum;
+            this.toolStripSplitButton7.Image = BecquerelMonitor.Properties.Resources.CONT;
             this.RefreshView();
         }
 

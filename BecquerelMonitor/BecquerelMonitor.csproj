@@ -1018,6 +1018,7 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <None Include="Resources\CONT.bmp" />
     <None Include="Resources\SUB.bmp" />
     <None Include="Resources\attach.png" />
     <None Include="app.config" />

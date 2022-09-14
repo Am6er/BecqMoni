@@ -1,7 +1,15 @@
 ﻿using BecquerelMonitor.Properties;
+using MathNet.Numerics;
+using MathNet.Numerics.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Complex;
 using System;
+using System.Linq;
+using System.Net.Mime;
+using System.Runtime.ExceptionServices;
+using System.Security.Permissions;
 using System.Security.Principal;
 using System.Threading.Tasks;
+using System.Windows.Forms.VisualStyles;
 
 namespace BecquerelMonitor.Utils
 {
@@ -14,7 +22,7 @@ namespace BecquerelMonitor.Utils
 
         public SpectrumAriphmetics(EnergySpectrum energySpectrum)
         {
-            this.EnergySpectrum = energySpectrum;
+            this.EnergySpectrum = energySpectrum.Clone();
         }
 
         public DocEnergySpectrum CombineWith(DocEnergySpectrum docenergySpectrum)
@@ -97,33 +105,250 @@ namespace BecquerelMonitor.Utils
             return substractedEnergySpectrum;
         }
 
-        public EnergySpectrum NormalizeFWHM()
+        public EnergySpectrum Continuum()
         {
-            EnergySpectrum normaziledEnergySpectrum = this.EnergySpectrum.Clone();
-            normaziledEnergySpectrum.Spectrum = new int[normaziledEnergySpectrum.NumberOfChannels];
-
-            int ch_pos = 0;
-            for (int i = 0; i < normaziledEnergySpectrum.NumberOfChannels; i++)
+            EnergySpectrum continuum = this.EnergySpectrum.Clone();
+            continuum.Spectrum = SNIP(WMA(this.EnergySpectrum.Spectrum, 10), useLLS: true, decreasing: true, correction: 1, n: 150);
+            return continuum;
+        }
+        public EnergySpectrum SubtractPeak(Peak peak)
+        {
+            EnergySpectrum result = this.EnergySpectrum.Clone();
+            int amplitude = result.Spectrum[peak.Channel];
+            int median = peak.Channel;
+            int fwhm = (int)(peak.FWHM);
+            for (int i = median - fwhm; i < median + fwhm; i++)
             {
-                int ch_to_combine = Convert.ToInt32(Math.Ceiling(FWHM(i)));
-                if (ch_to_combine > 1)
-                {
-                    for (int j = i; j < i + ch_to_combine; j++)
-                    {
-                        if (j < this.EnergySpectrum.NumberOfChannels)
-                        {
-                            normaziledEnergySpectrum.Spectrum[ch_pos] += this.EnergySpectrum.Spectrum[j];
-                        }
-                        normaziledEnergySpectrum.Spectrum[ch_pos] = Convert.ToInt32(normaziledEnergySpectrum.Spectrum[ch_pos] / ch_to_combine);
-                    }
-                    i += ch_to_combine;
-                } else
-                {
-                    normaziledEnergySpectrum.Spectrum[ch_pos] = this.EnergySpectrum.Spectrum[i];
-                }
-                ch_pos++;
+                result.Spectrum[i] -= gauss(i, amplitude, 2*fwhm, median);
             }
-            return normaziledEnergySpectrum;
+            return result;
+        }
+
+        int gauss(int x, int amplitude, int fwhm, int median)
+        {
+
+            return (int)(amplitude * Math.Exp(-Math.Pow(x - median,2)/(2*Math.Pow(fwhm/2, 2))));
+        }
+
+        //https://github.com/crp2a/gamma/blob/master/R/baseline_snip.R
+        int[] SNIP(int[] x, bool useLLS = false, bool decreasing = false, int n = 100, int correction = 0, string smooth = "None", int smoothpoints = 50)
+        {
+            double[] baseline = new double[x.Length];
+
+            if (useLLS)
+            {
+                baseline = x.Select(i => LLS(i)).ToArray();
+            } else
+            {
+                baseline = x.Select(i => Convert.ToDouble(i)).ToArray();
+            }
+
+            int[] seq = new int[n];
+            if (decreasing)
+            {
+                seq = seq.Select((i, iter) => n - iter).ToArray();
+            } else
+            {
+                seq = seq.Select((i, iter) => iter).ToArray();
+            }
+
+            double[] tmp = baseline;
+
+            foreach (int p in seq)
+            {
+                for (int i = p; i < x.Length - p; i++)
+                {
+                    double a = baseline[i];
+                    double b = 0;
+                    switch (correction)
+                    {
+                        case 0:
+                            b = (baseline[i - p] + baseline[i + p]) / 2;
+                            break;
+                        case 1:
+                            b = (-(baseline[i - p] + baseline[i + p]) 
+                                + 4 * (baseline[i - p / 2] + baseline[i + p / 2])) / 6;
+                            break;
+                        case 2:
+                            b = (baseline[i - p] + baseline[i + p] 
+                                - 6 * (baseline[i - 2*p/3] + baseline[i + 2*p/3]) 
+                                + 15 * (baseline[i - p/3] + baseline[i + p/3])) / 20;
+                            break;
+                        case 3:
+                            b = (-(baseline[i - p] + baseline[i + p]) 
+                                + 8 * (baseline[i - 3 * p / 4] + baseline[i + 3 * p / 4]) 
+                                - 28 * (baseline[i - p / 2] + baseline[i + p / 2]) 
+                                + 56 * (baseline[i - p / 4] + baseline[i + p / 4])) / 70;
+                            break;
+                    }
+                    tmp[i] = Math.Min(a, b);
+                }
+                baseline = tmp;
+            }
+
+            if (useLLS)
+            {
+                baseline = baseline.Select(i => iLLS(i)).ToArray();
+            }
+
+            switch (smooth)
+            {
+                case "None":
+                    break;
+                case "SMA":
+                    baseline = SMA(baseline, smoothpoints);
+                    break;
+                case "WMA":
+                    baseline = WMA(baseline, smoothpoints);
+                    break;
+            }
+
+            return baseline.Select(i => (int)i).ToArray();
+        }
+
+        double LLS(double x)
+        {
+            return Math.Log(Math.Log(Math.Sqrt(x + 1) + 1) + 1);
+        }
+
+        double iLLS(double x)
+        {
+            return Math.Pow(Math.Exp(Math.Exp(x) - 1) - 1, 2) - 1;
+        }
+
+        int[] ConcatSpectrum(int[] spectrum, int newChanNumber)
+        {
+            int[] result = new int[newChanNumber];
+            int multiplier = spectrum.Length / newChanNumber;
+            for (int i = 0; i < result.Length; i++)
+            {
+                for (int j = 0; j < multiplier; j++)
+                {
+                    result[i] += spectrum[multiplier * i + j];
+                }
+            }
+            return result;
+        }
+
+        int[] RestoreSpectrum(int[] spectrum, int newChanNumber)
+        {
+            int[] result = new int[newChanNumber];
+            int multiplier = newChanNumber / spectrum.Length;
+            for (int i = 0; i < spectrum.Length - 1; i++)
+            {
+                double[] x_v = { i * multiplier, (i + 1) * multiplier };
+                double[] y_v = { spectrum[i] / multiplier, spectrum[i + 1] / multiplier };
+
+                double[] poly = Fit.Polynomial(x_v, y_v, 1);
+
+                for (int j = 0; j < multiplier; j++)
+                {
+                    result[multiplier * i + j] = Convert.ToInt32(poly[0] + poly[1] * (i * multiplier + j));
+                }
+            }
+            return result;
+        }
+
+        public double[] WMA(double[] spectrum, int numberOfWMADataPoints)
+        {
+            double[] result = new double[spectrum.Length];
+            for (int num14 = 0; num14 < spectrum.Length; num14++)
+            {
+                double num15 = 0.0;
+                double num16 = 0.0;
+                for (int num17 = num14 - numberOfWMADataPoints / 2; num17 < num14 - numberOfWMADataPoints / 2 + numberOfWMADataPoints; num17++)
+                {
+                    int num18 = num17;
+                    if (num18 < 0)
+                    {
+                        num18 = 0;
+                    }
+                    else if (num17 >= spectrum.Length)
+                    {
+                        num18 = spectrum.Length - 1;
+                    }
+                    double num19 = (double)(numberOfWMADataPoints / 2 + 1 - Math.Abs(num14 - num17));
+                    num15 += (double)spectrum[num18] * num19;
+                    num16 += num19;
+                }
+                result[num14] = num15 / num16;
+            }
+            return result;
+        }
+
+        public int[] WMA(int[] spectrum, int numberOfWMADataPoints)
+        {
+            int[] result = new int[spectrum.Length];
+            for (int num14 = 0; num14 < spectrum.Length; num14++)
+            {
+                double num15 = 0.0;
+                double num16 = 0.0;
+                for (int num17 = num14 - numberOfWMADataPoints / 2; num17 < num14 - numberOfWMADataPoints / 2 + numberOfWMADataPoints; num17++)
+                {
+                    int num18 = num17;
+                    if (num18 < 0)
+                    {
+                        num18 = 0;
+                    }
+                    else if (num17 >= spectrum.Length)
+                    {
+                        num18 = spectrum.Length - 1;
+                    }
+                    double num19 = (double)(numberOfWMADataPoints / 2 + 1 - Math.Abs(num14 - num17));
+                    num15 += (double)spectrum[num18] * num19;
+                    num16 += num19;
+                }
+                result[num14] = (int)(num15 / num16);
+            }
+            return result;
+        }
+
+        public double[] SMA(double[] spectrum, int numberOfSMADataPoints)
+        {
+            double[] result = new double[spectrum.Length];
+            for (int num10 = 0; num10 < spectrum.Length; num10++)
+            {
+                double num11 = 0.0;
+                for (int num12 = num10 - numberOfSMADataPoints / 2; num12 < num10 - numberOfSMADataPoints / 2 + numberOfSMADataPoints; num12++)
+                {
+                    int num13 = num12;
+                    if (num13 < 0)
+                    {
+                        num13 = 0;
+                    }
+                    else if (num12 >= spectrum.Length)
+                    {
+                        num13 = spectrum.Length - 1;
+                    }
+                    num11 += (double)spectrum[num13];
+                }
+                result[num10] = num11 / (double)numberOfSMADataPoints;
+            }
+            return result;
+        }
+
+        public int[] SMA(int[] spectrum, int numberOfSMADataPoints)
+        {
+            int[] result = new int[spectrum.Length];
+            for (int num10 = 0; num10 < spectrum.Length; num10++)
+            {
+                double num11 = 0.0;
+                for (int num12 = num10 - numberOfSMADataPoints / 2; num12 < num10 - numberOfSMADataPoints / 2 + numberOfSMADataPoints; num12++)
+                {
+                    int num13 = num12;
+                    if (num13 < 0)
+                    {
+                        num13 = 0;
+                    }
+                    else if (num12 >= spectrum.Length)
+                    {
+                        num13 = spectrum.Length - 1;
+                    }
+                    num11 += (double)spectrum[num13];
+                }
+                result[num10] = (int)(num11 / (double)numberOfSMADataPoints);
+            }
+            return result;
         }
 
         public void Dispose()
@@ -131,12 +356,6 @@ namespace BecquerelMonitor.Utils
             this.MainSpectrum = null;
             this.EnergySpectrum = null;
             GC.Collect();
-        }
-
-        double FWHM(double x)
-        {
-            if (x < 0) return 0;
-            return 0.03 *Math.Sqrt(x);
         }
 
         DocEnergySpectrum MainSpectrum;
