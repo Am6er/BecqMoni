@@ -221,6 +221,8 @@ namespace BecquerelMonitor
             set
             {
                 this.energySpectrum = value;
+                this.continuum_refresh = true;
+                this.subtract_refresh = true;
             }
         }
 
@@ -236,6 +238,7 @@ namespace BecquerelMonitor
             set
             {
                 this.backgroundEnergySpectrum = value;
+                this.subtract_refresh = true;
             }
         }
 
@@ -243,10 +246,29 @@ namespace BecquerelMonitor
         {
             get
             {
-                SpectrumAriphmetics sa = new SpectrumAriphmetics(this.energySpectrum);
-                this.continuumEnergySpectrum = sa.Continuum();
-                sa.Dispose();
+                if (this.continuum_refresh)
+                {
+                    SpectrumAriphmetics sa = new SpectrumAriphmetics((FWHMPeakDetectionMethodConfig)this.PeakDetectionMethodConfig, this.energySpectrum);
+                    this.continuumEnergySpectrum = sa.Continuum();
+                    sa.Dispose();
+                    this.continuum_refresh = false;
+                }
                 return this.continuumEnergySpectrum;
+            }
+        }
+
+        public EnergySpectrum SubtractEnergySpectrum
+        {
+            get
+            {
+                if (this.subtract_refresh && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0)
+                {
+                    SpectrumAriphmetics sa = new SpectrumAriphmetics(this.energySpectrum);
+                    this.subtractEnergySpectrum = sa.Substract(this.backgroundEnergySpectrum);
+                    sa.Dispose();
+                    this.subtract_refresh = false;
+                }
+                return this.subtractEnergySpectrum;
             }
         }
 
@@ -363,6 +385,8 @@ namespace BecquerelMonitor
         // Token: 0x0600069D RID: 1693 RVA: 0x00027B4C File Offset: 0x00025D4C
         public ResultData()
         {
+            this.continuumEnergySpectrum = this.energySpectrum;
+            this.subtractEnergySpectrum = this.energySpectrum;
         }
 
         // Token: 0x0600069E RID: 1694 RVA: 0x00027C10 File Offset: 0x00025E10
@@ -454,6 +478,8 @@ namespace BecquerelMonitor
 
         EnergySpectrum continuumEnergySpectrum;
 
+        EnergySpectrum subtractEnergySpectrum;
+
         // Token: 0x04000370 RID: 880
         PulseCollection pulseCollection = new PulseCollection();
 
@@ -465,6 +491,10 @@ namespace BecquerelMonitor
 
         // Token: 0x04000373 RID: 883
         bool selected;
+
+        bool continuum_refresh = false;
+
+        bool subtract_refresh = false;
 
         // Token: 0x04000374 RID: 884
         List<Peak> detectedPeaks = new List<Peak>();
