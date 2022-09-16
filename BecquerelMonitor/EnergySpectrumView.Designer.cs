@@ -1615,7 +1615,7 @@ namespace BecquerelMonitor
                 if (num3 >= 0 && num3 < spectrum.DrawingSpectrum.Length)
                 {
                     double num4 = spectrum.DrawingSpectrum[num3];
-                    if (isBackground)
+                    if (this.backgroundEnergySpectrum != null && isBackground)
                     {
                         if (this.verticalUnit == VerticalUnit.Counts)
                         {
