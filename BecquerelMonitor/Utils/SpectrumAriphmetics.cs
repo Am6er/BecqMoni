@@ -116,9 +116,10 @@ namespace BecquerelMonitor.Utils
         public EnergySpectrum Continuum()
         {
             EnergySpectrum continuum = this.EnergySpectrum.Clone();
-            continuum.Spectrum = SASNIP(this.EnergySpectrum.Spectrum, 1);
+            continuum.Spectrum = SASNIP(SMA(this.EnergySpectrum.Spectrum, 60), 3);
             return continuum;
         }
+
         public EnergySpectrum SubtractPeak(Peak peak)
         {
             EnergySpectrum result = this.EnergySpectrum.Clone();
@@ -139,7 +140,7 @@ namespace BecquerelMonitor.Utils
         }
 
         // https://doi.org/10.1016/j.nima.2017.12.064
-        int[] SASNIP(int[] x, double coeff = 1.3, bool useLLS = true, bool decreasing = true, int correction = 0)
+        int[] SASNIP(int[] x, double coeff = 1.3, bool useLLS = false, bool decreasing = true, int correction = 0)
         {
             double[] baseline = new double[x.Length];
 
@@ -289,6 +290,7 @@ namespace BecquerelMonitor.Utils
         double LLS(double x)
         {
             return Math.Log(Math.Log(Math.Sqrt(x + 1) + 1) + 1);
+
         }
 
         double iLLS(double x)
