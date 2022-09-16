@@ -116,7 +116,7 @@ namespace BecquerelMonitor.Utils
         public EnergySpectrum Continuum()
         {
             EnergySpectrum continuum = this.EnergySpectrum.Clone();
-            continuum.Spectrum = SASNIP(SMA(this.EnergySpectrum.Spectrum, 60), 3);
+            continuum.Spectrum = SASNIP(SMA(this.EnergySpectrum.Spectrum, 20), 2);
             return continuum;
         }
 
