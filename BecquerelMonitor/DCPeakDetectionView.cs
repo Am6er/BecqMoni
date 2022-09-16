@@ -88,8 +88,8 @@ namespace BecquerelMonitor
                 if (peak.Nuclide != null)
                 {
                     text = peak.Nuclide.Name;
-                    double num = peak.Nuclide.Energy - peak.Energy;
-                    double num2 = (peak.Nuclide.Energy - peak.Energy) / peak.Nuclide.Energy * 100.0;
+                    double num = peak.Energy - peak.Nuclide.Energy;
+                    double num2 = (peak.Energy - peak.Nuclide.Energy) / peak.Nuclide.Energy * 100.0;
                     text2 = num.ToString("f2") + " (" + num2.ToString("f2") + "%)";
                 }
                 row.Cells.Add(new Cell(text));
