@@ -565,12 +565,12 @@ namespace BecquerelMonitor
                     image = BecquerelMonitor.Properties.Resources.SUB;
                     break;
                 case BackgroundMode.Substract:
-                    backgroundMode = BackgroundMode.Visible;
-                    image = BecquerelMonitor.Properties.Resources.BG;
-                    break;
-                case BackgroundMode.ShowContinuum:
                     backgroundMode = BackgroundMode.ShowContinuum;
                     image = BecquerelMonitor.Properties.Resources.CONT;
+                    break;
+                case BackgroundMode.ShowContinuum:
+                    backgroundMode = BackgroundMode.Visible;
+                    image = BecquerelMonitor.Properties.Resources.BG;
                     break;
             }
             this.view.BackgroundMode = backgroundMode;
