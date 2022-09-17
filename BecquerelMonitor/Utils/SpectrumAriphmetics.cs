@@ -134,7 +134,7 @@ namespace BecquerelMonitor.Utils
             int fwhm = (int)(peak.FWHM);
             for (int i = median - fwhm; i < median + fwhm; i++)
             {
-                result.Spectrum[i] -= gauss(i, amplitude, 2*fwhm, median);
+                result.Spectrum[i] -= gauss(i, amplitude, fwhm, median);
             }
             return result;
         }

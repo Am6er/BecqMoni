@@ -2244,6 +2244,10 @@ namespace BecquerelMonitor
         // Token: 0x060004BE RID: 1214 RVA: 0x00019FEC File Offset: 0x000181EC
         void ShowVerticalAxis(Graphics g)
         {
+            if (this.totalMinValue == double.PositiveInfinity)
+            {
+                this.totalMinValue = 0.0;
+            }
             int num = this.CalcMaximumXValue() + this.scrollX + this.left;
             ColorConfig colorConfig = this.globalConfigManager.GlobalConfig.ColorConfig;
             using (Brush brush = new SolidBrush(colorConfig.AxisBackgroundColor.Color))
