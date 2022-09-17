@@ -141,11 +141,11 @@ namespace BecquerelMonitor.Utils
 
         int gauss(int x, int amplitude, int fwhm, int median)
         {
-
-            return (int)(amplitude * Math.Exp(-Math.Pow(x - median,2)/(2*Math.Pow(fwhm/2, 2))));
+            double sigma = fwhm / 2.35482;
+            return (int)(amplitude * Math.Exp(-Math.Pow(x - median,2)/(2*Math.Pow(sigma, 2))));
         }
 
-        public double fwhm(double x, FWHMPeakDetectionMethodConfig cfg)
+        public double FWHM(double x, FWHMPeakDetectionMethodConfig cfg)
         {
             double f0 = cfg.FWHM_AT_0;
             double f1 = cfg.Width_Fwhm;
@@ -170,7 +170,7 @@ namespace BecquerelMonitor.Utils
 
             //FWHM from config
             double[] r = new double[x.Length];
-            r = r.Select((i, iter) => coeff * (fwhm(iter, this.FWHMPeakDetectionMethodConfig))).ToArray();
+            r = r.Select((i, iter) => coeff * (FWHM(iter, this.FWHMPeakDetectionMethodConfig))).ToArray();
 
             int n = (int)r.Max();
 

@@ -479,7 +479,7 @@
     <value>textColumn5</value>
   </data>
   <data name="textColumn6.Text" xml:space="preserve">
-    <value>σ</value>
+    <value>2σ</value>
   </data>
   <data name="&gt;&gt;textColumn6.Type" xml:space="preserve">
     <value>XPTable.Models.TextColumn, BecquerelMonitorPlus, Version=1.0.16.0, Culture=neutral, PublicKeyToken=null</value>
