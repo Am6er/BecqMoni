@@ -593,8 +593,6 @@ namespace BecquerelMonitor
             }
             this.energySpectrum = this.activeResultData.EnergySpectrum;
             this.backgroundEnergySpectrum = this.activeResultData.BackgroundEnergySpectrum;
-            this.continuumEnergySpectrum = this.activeResultData.ContinuumEnergySpectrum;
-            this.substractedEnergySpectrum = this.activeResultData.SubtractEnergySpectrum;
             this.roiConfig = this.activeResultData.ROIConfig;
             this.numberOfChannels = this.energySpectrum.NumberOfChannels;
             this.energyCalibration = this.energySpectrum.EnergyCalibration;
@@ -665,6 +663,18 @@ namespace BecquerelMonitor
                     }
                     goto IL_28F;
                 }
+            }
+            if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+            {
+                SpectrumAriphmetics sa = new SpectrumAriphmetics(this.energySpectrum);
+                this.substractedEnergySpectrum = sa.Substract(this.backgroundEnergySpectrum);
+                sa.Dispose();
+            }
+            if (this.backgroundMode == BackgroundMode.ShowContinuum)
+            {
+                SpectrumAriphmetics sa = new SpectrumAriphmetics((FWHMPeakDetectionMethodConfig)this.activeResultData.PeakDetectionMethodConfig, this.energySpectrum);
+                this.continuumEnergySpectrum = sa.Continuum();
+                sa.Dispose();
             }
             foreach (ResultData resultData in this.resultDataList)
             {

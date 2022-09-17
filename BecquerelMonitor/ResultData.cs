@@ -242,36 +242,6 @@ namespace BecquerelMonitor
             }
         }
 
-        public EnergySpectrum ContinuumEnergySpectrum
-        {
-            get
-            {
-                if (this.continuum_refresh)
-                {
-                    SpectrumAriphmetics sa = new SpectrumAriphmetics((FWHMPeakDetectionMethodConfig)this.PeakDetectionMethodConfig, this.energySpectrum);
-                    this.continuumEnergySpectrum = sa.Continuum();
-                    sa.Dispose();
-                    this.continuum_refresh = false;
-                }
-                return this.continuumEnergySpectrum;
-            }
-        }
-
-        public EnergySpectrum SubtractEnergySpectrum
-        {
-            get
-            {
-                if (this.subtract_refresh && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0)
-                {
-                    SpectrumAriphmetics sa = new SpectrumAriphmetics(this.energySpectrum);
-                    this.subtractEnergySpectrum = sa.Substract(this.backgroundEnergySpectrum);
-                    sa.Dispose();
-                    this.subtract_refresh = false;
-                }
-                return this.subtractEnergySpectrum;
-            }
-        }
-
         // Token: 0x170001F3 RID: 499
         // (get) Token: 0x0600068F RID: 1679 RVA: 0x00027AC0 File Offset: 0x00025CC0
         // (set) Token: 0x06000690 RID: 1680 RVA: 0x00027AC8 File Offset: 0x00025CC8
@@ -385,8 +355,6 @@ namespace BecquerelMonitor
         // Token: 0x0600069D RID: 1693 RVA: 0x00027B4C File Offset: 0x00025D4C
         public ResultData()
         {
-            this.continuumEnergySpectrum = this.energySpectrum;
-            this.subtractEnergySpectrum = this.energySpectrum;
         }
 
         // Token: 0x0600069E RID: 1694 RVA: 0x00027C10 File Offset: 0x00025E10
@@ -475,10 +443,6 @@ namespace BecquerelMonitor
 
         // Token: 0x0400036F RID: 879
         EnergySpectrum backgroundEnergySpectrum;
-
-        EnergySpectrum continuumEnergySpectrum;
-
-        EnergySpectrum subtractEnergySpectrum;
 
         // Token: 0x04000370 RID: 880
         PulseCollection pulseCollection = new PulseCollection();
