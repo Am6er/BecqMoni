@@ -61,6 +61,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to 2σ.
+        /// </summary>
+        internal static string _2Sigma {
+            get {
+                return ResourceManager.GetString("2Sigma", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to BecqMoni ATOM Edition.
         /// </summary>
         internal static string ApplicationTitle {
