@@ -145,8 +145,17 @@ namespace BecquerelMonitor.Utils
             return (int)(amplitude * Math.Exp(-Math.Pow(x - median,2)/(2*Math.Pow(fwhm/2, 2))));
         }
 
+        public double fwhm(double x, FWHMPeakDetectionMethodConfig cfg)
+        {
+            double f0 = cfg.FWHM_AT_0;
+            double f1 = cfg.Width_Fwhm;
+            double x1 = cfg.Ch_Fwhm;
+            double fwhm_sqr = Math.Pow(f0, 2) + (Math.Pow(f1, 2) - Math.Pow(f0, 2)) * (x / x1);
+            return Math.Sqrt(fwhm_sqr);
+        }
+
         // https://doi.org/10.1016/j.nima.2017.12.064
-        int[] SASNIP(int[] x, double coeff = 1.3, bool useLLS = false, bool decreasing = true, int correction = 0)
+        int[] SASNIP(int[] x, double coeff = 1.3, bool useLLS = false, bool decreasing = true)
         {
             double[] baseline = new double[x.Length];
 
@@ -160,11 +169,8 @@ namespace BecquerelMonitor.Utils
             }
 
             //FWHM from config
-            double[] fwhm_x = { 0, this.FWHMPeakDetectionMethodConfig.Ch_Fwhm};
-            double[] fwhm_y = { this.FWHMPeakDetectionMethodConfig.FWHM_AT_0, this.FWHMPeakDetectionMethodConfig.Width_Fwhm};
-            double[] fit = Fit.Polynomial(fwhm_x, fwhm_y, 1);
             double[] r = new double[x.Length];
-            r = r.Select((i, iter) => coeff * (fit[0] + fit[1] * (double)iter)).ToArray();
+            r = r.Select((i, iter) => coeff * (fwhm(iter, this.FWHMPeakDetectionMethodConfig))).ToArray();
 
             int n = (int)r.Max();
 
@@ -188,28 +194,7 @@ namespace BecquerelMonitor.Utils
                     double b = 0;
                     if (p <= r[i])
                     {
-                        //b = (baseline[i - p] + baseline[i + p]) / 2;
-                        switch (correction)
-                        {
-                            case 0:
-                                b = (baseline[i - p] + baseline[i + p]) / 2;
-                                break;
-                            case 1:
-                                b = (-(baseline[i - p] + baseline[i + p])
-                                    + 4 * (baseline[i - p / 2] + baseline[i + p / 2])) / 6;
-                                break;
-                            case 2:
-                                b = (baseline[i - p] + baseline[i + p]
-                                    - 6 * (baseline[i - 2 * p / 3] + baseline[i + 2 * p / 3])
-                                    + 15 * (baseline[i - p / 3] + baseline[i + p / 3])) / 20;
-                                break;
-                            case 3:
-                                b = (-(baseline[i - p] + baseline[i + p])
-                                    + 8 * (baseline[i - 3 * p / 4] + baseline[i + 3 * p / 4])
-                                    - 28 * (baseline[i - p / 2] + baseline[i + p / 2])
-                                    + 56 * (baseline[i - p / 4] + baseline[i + p / 4])) / 70;
-                                break;
-                        }
+                        b = (baseline[i - p] + baseline[i + p]) / 2;
                     }
                     else
                     {
