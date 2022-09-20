@@ -59,18 +59,22 @@ namespace BecquerelMonitor
                     double fwhm = finder.fwhms[i];
 
                     //Fit optimization
+                    if ((int)fwhm == 0)
+                    {
+                        fwhm = 1.0;
+                    }
                     int low_boundary = centroid - (int)fwhm;
                     int high_boundary = centroid + (int)fwhm;
                     int poly_order = 8;
-                    if (high_boundary - low_boundary < 9)
+                    if (high_boundary - low_boundary + 1 < 9)
                     {
-                        poly_order = 2*(int)fwhm - 1;
+                        poly_order = 2*(int)fwhm;
                     }
                     if (low_boundary < 0) low_boundary = 0;
                     if (high_boundary > energySpectrum.NumberOfChannels) high_boundary = energySpectrum.NumberOfChannels - 1;
-                    double[] x = new double[high_boundary - low_boundary];
-                    double[] y = new double[high_boundary - low_boundary];
-                    for (int j = 0; j < high_boundary - low_boundary; j++)
+                    double[] x = new double[high_boundary - low_boundary + 1];
+                    double[] y = new double[high_boundary - low_boundary + 1];
+                    for (int j = 0; j < high_boundary - low_boundary + 1; j++)
                     {
                         x[j] = low_boundary + j;
                         y[j] = energySpectrum.Spectrum[low_boundary + j];
@@ -87,11 +91,8 @@ namespace BecquerelMonitor
                             max = new_max;
                         }
                     }
-                    if (new_centroid > low_boundary && new_centroid < high_boundary)
-                    {
-                        Trace.WriteLine("New centroid: " + centroid + " -> " + new_centroid);
-                        centroid = (int)new_centroid;
-                    }
+                    centroid = (int)new_centroid;
+                    Trace.WriteLine("New centroid: " + centroid + " -> " + new_centroid);
 
                     NuclideDefinition bestNuclide = null;
                     double minDelta = -1;
