@@ -35,7 +35,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
         /// <param name="kernel"></param>
         /// <param name="min_sep"></param>
         /// <param name="fwhm_tol"></param>
-        public PeakFinder(Spectrum spectrum, PeakFilter kernel, int min_sep = 1, double fwhm_tol_min = 0.5, double fwhm_tol_max = 1.5)
+        public PeakFinder(Spectrum spectrum, PeakFilter kernel, int min_sep = 5, double fwhm_tol_min = 0.5, double fwhm_tol_max = 1.5)
         {
             if (min_sep <= 0)
             {
