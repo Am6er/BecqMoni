@@ -189,7 +189,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
             {
                 for (int j = 0; j < n_channels; j++)
                 {
-                    if (kernel_mat[j][i] >= 0)
+                    if (kernel_mat[j][i] >= 0.0)
                     {
                         _kern_mat_pos[j][i] = kernel_mat[j][i];
                         _kern_mat_neg[j][i] = 0.0;
@@ -197,7 +197,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
                     else
                     {
                         _kern_mat_pos[j][i] = 0.0;
-                        _kern_mat_neg[j][i] = -1 * kernel_mat[j][i];
+                        _kern_mat_neg[j][i] = -1.0 * kernel_mat[j][i];
                     }
                 }
             });

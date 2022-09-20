@@ -17,6 +17,11 @@ namespace BecquerelMonitor.Utils
 {
     public class SpectrumAriphmetics
     {
+        public SpectrumAriphmetics()
+        {
+
+        }
+
         public SpectrumAriphmetics(DocEnergySpectrum docenergySpectrum)
         {
             this.MainSpectrum = docenergySpectrum;
@@ -25,12 +30,16 @@ namespace BecquerelMonitor.Utils
         public SpectrumAriphmetics(EnergySpectrum energySpectrum)
         {
             this.EnergySpectrum = energySpectrum.Clone();
+            this.sMASpectrum = SMA(this.EnergySpectrum.Spectrum, 3);
+            //this.wMASpectrum = WMA(this.EnergySpectrum.Spectrum, 3);
         }
 
         public SpectrumAriphmetics(FWHMPeakDetectionMethodConfig fWHMPeakDetectionMethodConfig, EnergySpectrum energySpectrum)
         {
             this.FWHMPeakDetectionMethodConfig = fWHMPeakDetectionMethodConfig;
             this.EnergySpectrum = energySpectrum;
+            this.sMASpectrum = SMA(this.EnergySpectrum.Spectrum, 3);
+            //this.wMASpectrum = WMA(this.EnergySpectrum.Spectrum, 3);
         }
 
         public DocEnergySpectrum CombineWith(DocEnergySpectrum docenergySpectrum)
@@ -144,6 +153,54 @@ namespace BecquerelMonitor.Utils
             double sigma = fwhm / 2.35482;
             return (int)(amplitude * Math.Exp(-Math.Pow(x - median,2)/(2*Math.Pow(sigma, 2))));
         }
+
+        public (int[], int, int) GetPeak(Peak peak, EnergySpectrum continuum, bool smooth)
+        {
+            int amplitude;
+            if (smooth && this.sMASpectrum[peak.Channel] < this.EnergySpectrum.Spectrum[peak.Channel])
+            {
+                amplitude = this.sMASpectrum[peak.Channel] - continuum.Spectrum[peak.Channel];
+            } else
+            {
+                amplitude = this.EnergySpectrum.Spectrum[peak.Channel] - continuum.Spectrum[peak.Channel];
+            }
+            int fwhm = (int)peak.FWHM;
+            int median = peak.Channel;
+            int interval = 3 * fwhm;
+            int min_ch = median - interval;
+            int max_ch = median + interval;
+            if (min_ch < 0 )
+            {
+                min_ch = 0;
+            }
+            if (max_ch > this.EnergySpectrum.NumberOfChannels - 1)
+            {
+                max_ch = this.EnergySpectrum.NumberOfChannels - 1;
+            }
+            int[] retvalue = new int[this.EnergySpectrum.NumberOfChannels];
+            int min_value = min_ch;
+            int max_value = max_ch;
+            bool left_side = true;
+            for (int i = min_ch; i <= max_ch; i++)
+            {
+                retvalue[i] = gauss(i, amplitude, fwhm, median);
+                if (retvalue[i] == 0.0)
+                {
+                    if (left_side)
+                    {
+                        min_value = i;
+                    } else
+                    {
+                        max_value = i;
+                        break;
+                    }
+                } else
+                {
+                    left_side = false;
+                }
+            }
+            return (retvalue, min_value, max_value);
+        } 
 
         public double FWHM(double x, FWHMPeakDetectionMethodConfig cfg)
         {
@@ -431,10 +488,22 @@ namespace BecquerelMonitor.Utils
             GC.Collect();
         }
 
+        public int[] SMASpectrum
+        {
+            get
+            {
+                return this.sMASpectrum;
+            }
+        }
+
         DocEnergySpectrum MainSpectrum;
 
         EnergySpectrum EnergySpectrum;
 
         FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig;
+
+        int[] sMASpectrum;
+
+        //int[] wMASpectrum;
     }
 }

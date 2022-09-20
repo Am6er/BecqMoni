@@ -4,9 +4,11 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Globalization;
 using System.Windows.Forms;
 using BecquerelMonitor.Properties;
 using BecquerelMonitor.Utils;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TrayNotify;
 
 namespace BecquerelMonitor
 {
@@ -674,6 +676,20 @@ namespace BecquerelMonitor
             {
                 SpectrumAriphmetics sa = new SpectrumAriphmetics((FWHMPeakDetectionMethodConfig)this.activeResultData.PeakDetectionMethodConfig, this.energySpectrum);
                 this.continuumEnergySpectrum = sa.Continuum();
+                this.peakEnergySpectrum.Clear();
+                if (this.activeResultData.DetectedPeaks.Count > 0)
+                {
+                    for (int i = 0; i < this.activeResultData.DetectedPeaks.Count; i++)
+                    {
+                        (int[] peakSpectrum, int min_ch, int max_ch) = sa.GetPeak(this.activeResultData.DetectedPeaks[i], this.continuumEnergySpectrum, true);
+                        for (int j = min_ch; j <= max_ch; j++)
+                        {
+                            this.continuumEnergySpectrum.Spectrum[j] += peakSpectrum[j];
+                        }
+                        //this.peakEnergySpectrum.Add((int[] peakSpectrum, int min_ch, int max_ch));
+                    }
+                }
+                
                 sa.Dispose();
             }
             foreach (ResultData resultData in this.resultDataList)
@@ -1256,6 +1272,15 @@ namespace BecquerelMonitor
                                     this.DrawBarChart(g, brush, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, true);
                                 }
                             }
+                            using (Brush brush = new SolidBrush(Color.FromArgb(alpha, colorConfig.BgDiffColor.Color)))
+                            {
+                                using (new Pen(Color.FromArgb(alpha, colorConfig.BgDiffColor.Color)))
+                                {
+                                    (int[] peakSpectrum, int min_ch, int max_ch) = this.peakEnergySpectrum[0];
+                                    this.DrawPeakBarChart(g, brush, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, peakSpectrum, min_ch, max_ch);
+                                }
+                            }
+
                         }
                         if (this.energySpectrum.MeasurementTime == 0.0)
                         {
@@ -1328,6 +1353,8 @@ namespace BecquerelMonitor
                             using (new Pen(Color.FromArgb(alpha4, colorConfig.BackgroundSpectrumColor.Color)))
                             {
                                 this.DrawBarChart(g, brush4, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, true);
+                                //(int[] peakSpectrum, int min_ch, int max_ch) = this.peakEnergySpectrum[0];
+                                //this.DrawPeakBarChart(g, brush4, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, peakSpectrum, min_ch, max_ch);
                             }
                         }
                     }
@@ -1667,6 +1694,59 @@ namespace BecquerelMonitor
                     num3 = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy((double)num3));
                     goto IL_B8;
                 }
+                goto IL_B8;
+            }
+        }
+
+        void DrawPeakBarChart(Graphics g, Brush brush, EnergySpectrum spectrum, EnergyCalibration calibration, int[] peakSpectrum, int min_ch, int max_ch)
+        {
+            int num = this.CalcMaximumXValue() + this.scrollX + this.left;
+            int i = this.left;
+            while (i < num)
+            {
+                int num3;
+                if (this.horizontalUnit == HorizontalUnit.Energy)
+                {
+                    try
+                    {
+                        double num2 = (double)(i - this.scrollX - this.left) / this.horizontalScale;
+                        num3 = (int)calibration.EnergyToChannel(num2 / this.pixelPerEnergy + this.energyViewOffset);
+                        goto IL_B8;
+                    }
+                    catch (OutofChannelException)
+                    {
+                        break;
+                    }
+                    goto IL_68;
+                }
+                goto IL_68;
+            IL_B8:
+                if (num3 >= min_ch && num3 <= max_ch)
+                {
+                    double num4 = spectrum.DrawingSpectrum[num3] + peakSpectrum[num3];
+                    num4 /= spectrum.MeasurementTime;
+                    if (num4 > 0.0)
+                    {
+                        int num5;
+                        if (this.verticalScaleType == VerticalScaleType.LinearScale)
+                        {
+                            num5 = this.height - (int)((num4 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                        }
+                        else
+                        {
+                            double num6 = Math.Log10(num4);
+                            num5 = this.height - (int)((num6 - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                        }
+                        if (i > this.left)
+                        {
+                            g.FillRectangle(brush, i, num5, 1, this.height - num5);
+                        }
+                    }
+                }
+                i++;
+                continue;
+            IL_68:
+                num3 = (int)((double)(i - this.scrollX - this.left) / this.horizontalScale);
                 goto IL_B8;
             }
         }
@@ -3420,6 +3500,8 @@ namespace BecquerelMonitor
         EnergySpectrum substractedEnergySpectrum;
 
         EnergySpectrum continuumEnergySpectrum;
+
+        List<(int[], int, int)> peakEnergySpectrum = new List<(int[], int, int)>();
 
         // Token: 0x040001FB RID: 507
         ROIConfigData roiConfig;
