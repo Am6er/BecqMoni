@@ -59,6 +59,10 @@ namespace BecquerelMonitor
                     double fwhm = finder.fwhms[i];
 
                     //Fit optimization
+                    if (mul == 0)
+                    {
+                        mul = 3;
+                    }
                     int low_boundary = centroid - (int)mul;
                     int high_boundary = centroid + (int)mul;
                     if (low_boundary < 0) low_boundary = 0;
