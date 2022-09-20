@@ -100,6 +100,7 @@ namespace BecquerelMonitor
                 row.Cells.Add(new Cell(peak.FWHM.ToString()));
                 this.tableModel1.Rows.Add(row);
             }
+            activeDocument.RefreshView();
             //this.table1.AutoResizeColumnWidths();
         }
 

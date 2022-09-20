@@ -426,7 +426,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x0600032F RID: 815 RVA: 0x0000FDF8 File Offset: 0x0000DFF8
-        void RefreshView()
+        public void RefreshView()
         {
             this.view.PrepareViewData();
             this.view.RecalcScrollBar();
