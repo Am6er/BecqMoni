@@ -415,6 +415,11 @@ namespace BecquerelMonitor
                 {
                     this.dcPeakDetectionView.ShowPeakDetectionResult();
                 }
+                if (this.activeDocument != null && this.activeDocument.UpdateDetectedPeaks)
+                {
+                    this.dcPeakDetectionView.ShowPeakDetectionResult();
+                    this.activeDocument.UpdateDetectedPeaks = false;
+                }
             }
             this.count1000 += 100;
             if (this.count1000 >= 1000)
@@ -1633,6 +1638,10 @@ namespace BecquerelMonitor
             this.dcSpectrumListView.ShowSpectrumList(docEnergySpectrum);
             this.UpdateApplicationTitle();
             this.UpdateEnergyCalibrationView();
+            if (docEnergySpectrum.EnergySpectrumView.PeakMode == PeakMode.Visible)
+            {
+                UpdateDetectedPeakView();
+            }
         }
 
         // Token: 0x06000A90 RID: 2704 RVA: 0x0003EFA0 File Offset: 0x0003D1A0

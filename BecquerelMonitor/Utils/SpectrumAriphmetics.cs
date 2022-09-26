@@ -17,10 +17,6 @@ namespace BecquerelMonitor.Utils
 {
     public class SpectrumAriphmetics
     {
-        public SpectrumAriphmetics()
-        {
-
-        }
 
         public SpectrumAriphmetics(DocEnergySpectrum docenergySpectrum)
         {
@@ -135,15 +131,23 @@ namespace BecquerelMonitor.Utils
             return continuum;
         }
 
-        public EnergySpectrum SubtractPeak(Peak peak)
+        public EnergySpectrum SubtractPeak(Peak peak, EnergySpectrum energySpectrum)
+        {
+            EnergySpectrum result = energySpectrum.Clone();
+            (int[] peakspectrum, int min_val, int max_val) = GetPeak(peak, result, true);
+            for (int i = min_val; i <= max_val; i++)
+            {
+                result.Spectrum[i] -= peakspectrum[i];
+            }
+            return result;
+        }
+
+        public EnergySpectrum SubtractPeaks(List<Peak> peaks, EnergySpectrum energySpectrum)
         {
             EnergySpectrum result = this.EnergySpectrum.Clone();
-            int amplitude = result.Spectrum[peak.Channel];
-            int median = peak.Channel;
-            int fwhm = (int)(peak.FWHM);
-            for (int i = median - fwhm; i < median + fwhm; i++)
+            foreach(Peak peak in peaks)
             {
-                result.Spectrum[i] -= gauss(i, amplitude, fwhm, median);
+                result = SubtractPeak(peak, energySpectrum);
             }
             return result;
         }
