@@ -143,32 +143,38 @@ namespace BecquerelMonitor
         {
             comPortsBox.Items.Clear();
             comPortsBox.Items.Add("-------");
-            comPortsBox.Items.AddRange(SerialPort.GetPortNames());
+            string[] Ports = new string[0];
+            try
+            {
+                SerialPort.GetPortNames();
+            } catch (Exception ex)
+            {
+
+            }
+            comPortsBox.Items.AddRange(Ports);
 
             if (comPortsBox.Items.Count > 1)
             {
                 if (comPortsBox.Items.Contains(this.ComPort))
                 {
                     comPortsBox.SelectedIndex = comPortsBox.Items.IndexOf(this.ComPort);
-                    baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString());  
+                    baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString());
                     label3.ForeColor = Color.Green;
                     this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusConnected);
                 }
                 else
                 {
-                    comPortsBox.Items.Add(this.ComPort);
-                    comPortsBox.SelectedIndex = comPortsBox.Items.Count - 1;
-                    label3.ForeColor = Color.Red;
-                    this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusUnknown);
+                    //comPortsBox.Items.Add(this.ComPort);
+                    //comPortsBox.SelectedIndex = comPortsBox.Items.Count - 1;
+                    //label3.ForeColor = Color.Red;
+                    //this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusUnknown);
                 }
             }
-
-
         }
 
         private void ComPortsBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            //fillPorts();
+            fillPorts();
             SetActiveDeviceConfigDirty();
         }
 

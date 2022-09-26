@@ -1,4 +1,5 @@
-﻿using BecquerelMonitor.Utils;
+﻿using BecquerelMonitor.FWHMPeakDetector;
+using BecquerelMonitor.Utils;
 using MathNet.Numerics;
 using System;
 using System.Collections.Generic;
@@ -13,94 +14,37 @@ namespace BecquerelMonitor
     {
         public List<Peak> DetectPeak(ResultData resultData)
         {
-            EnergySpectrum energySpectrum = resultData.EnergySpectrum;
             FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)resultData.PeakDetectionMethodConfig;
+            SpectrumAriphmetics sa = new SpectrumAriphmetics(FWHMPeakDetectionMethodConfig, resultData.EnergySpectrum);
+            EnergySpectrum energySpectrum = sa.Substract(sa.Continuum());
+            
+            
             List<Peak> peaks = new List<Peak>();
             if (energySpectrum.Spectrum.Sum() == 0)
             {
                 return peaks;
             }
 
-            int min_range_ch = (int)energySpectrum.EnergyCalibration.EnergyToChannel(FWHMPeakDetectionMethodConfig.Min_Range);
-            int max_range_ch = (int)energySpectrum.EnergyCalibration.EnergyToChannel(FWHMPeakDetectionMethodConfig.Max_Range);
-
-            double fwhm_tol_min = ((double)FWHMPeakDetectionMethodConfig.Min_FWHM_Tol) / 100;
-            double fwhm_tol_max = ((double)FWHMPeakDetectionMethodConfig.Max_FWHM_Tol) / 100;
-
-            FWHMPeakDetector.Spectrum spec = new FWHMPeakDetector.Spectrum(energySpectrum);
-            int mul = energySpectrum.NumberOfChannels / 512;
-            if (mul > 1)
-            {
-                spec.combine_bins(mul);
-            }
-            FWHMPeakDetector.PeakFilter kernel = new FWHMPeakDetector.PeakFilter(
-                FWHMPeakDetectionMethodConfig.Ch_Fwhm, 
-                FWHMPeakDetectionMethodConfig.Width_Fwhm,
-                FWHMPeakDetectionMethodConfig.FWHM_AT_0);
-            FWHMPeakDetector.PeakFinder finder = new FWHMPeakDetector.PeakFinder(
-                spec, 
-                kernel,
-                fwhm_tol_min: fwhm_tol_min,
-                fwhm_tol_max: fwhm_tol_max);
-            finder.find_peaks(min_range_ch,
-                max_range_ch, 
-                FWHMPeakDetectionMethodConfig.Min_SNR, 
-                FWHMPeakDetectionMethodConfig.Max_Items);
+            FWHMPeakDetector.PeakFinder finder = PeakFinder(energySpectrum, FWHMPeakDetectionMethodConfig);
 
             resultData.DetectedPeaks.Clear();
             
             if (finder.centroids != null)
             {
-                SpectrumAriphmetics sa = new SpectrumAriphmetics(energySpectrum);
                 for (int i = 0; i < finder.centroids.Length; i++)
                 {
                     int centroid = (int)Math.Round(finder.centroids[i]);
-                    double snr = finder.snrs[i];
-                    double fwhm = finder.fwhms[i];
-
-                    //Fit optimization
-                    if ((int)fwhm == 0)
-                    {
-                        fwhm = 1.0;
-                    }
-                    int low_boundary = centroid - (int)fwhm;
-                    int high_boundary = centroid + (int)fwhm;
-                    int poly_order = 8;
-                    if (high_boundary - low_boundary + 1 < 9)
-                    {
-                        poly_order = 2*(int)fwhm;
-                    }
-                    if (low_boundary < 0) low_boundary = 0;
-                    if (high_boundary > energySpectrum.NumberOfChannels) high_boundary = energySpectrum.NumberOfChannels - 1;
-                    double[] x = new double[high_boundary - low_boundary + 1];
-                    double[] y = new double[high_boundary - low_boundary + 1];
-                    for (int j = 0; j < high_boundary - low_boundary + 1; j++)
-                    {
-                        x[j] = low_boundary + j;
-                        y[j] = energySpectrum.Spectrum[low_boundary + j];
-                    }
-                    Func<double, double> func = Fit.PolynomialFunc(x, y, poly_order);
-                    double new_centroid = centroid;
-                    double max = func.Invoke(new_centroid);
-                    for (int j = low_boundary; j < high_boundary; j++)
-                    {
-                        double new_max = func.Invoke(j);
-                        if (new_max > max)
-                        {
-                            new_centroid = j;
-                            max = new_max;
-                        }
-                    }
-                    centroid = (int)new_centroid;
-                    Trace.WriteLine("New centroid: " + centroid + " -> " + new_centroid);
+                    int snr = (int)finder.snrs[i];
+                    int fwhm = (int)Math.Round(finder.fwhms[i]);
+                    centroid = doCorrection(energySpectrum, centroid, fwhm);
 
                     NuclideDefinition bestNuclide = null;
                     double minDelta = -1;
                     Peak peak = new Peak();
                     peak.Channel = centroid;
                     peak.Energy = energySpectrum.EnergyCalibration.ChannelToEnergy(peak.Channel);
-                    peak.SNR = (int)snr;
-                    peak.FWHM = (int)fwhm;
+                    peak.SNR = snr;
+                    peak.FWHM = fwhm;
                     foreach (NuclideDefinition nuclideDefinition in this.nuclideManager.NuclideDefinitions)
                     {
                         double delta = Math.Abs((peak.Energy - nuclideDefinition.Energy) / nuclideDefinition.Energy);
@@ -126,23 +70,83 @@ namespace BecquerelMonitor
                     peaks.Add(peak);
                     resultData.DetectedPeaks.Add(peak);
                 }
-                sa.Dispose();
+                
             }
-            finder = null;
-            kernel = null;
-            spec = null;
+
+            //energySpectrum = sa.SubtractPeaks(peaks, energySpectrum);
+            //finder = PeakFinder(energySpectrum, FWHMPeakDetectionMethodConfig);
+
+
+            sa.Dispose();
             GC.Collect();
             return peaks;
         }
 
-        FWHMPeakDetector.PeakFinder doCorrection(FWHMPeakDetector.PeakFinder Finder)
+        FWHMPeakDetector.PeakFinder PeakFinder(EnergySpectrum energySpectrum, FWHMPeakDetectionMethodConfig fWHMPeakDetectionMethodConfig)
         {
-            FWHMPeakDetector.PeakFinder peakFinder = Finder;
-            if (peakFinder != null)
-            {
+            int min_range_ch = (int)energySpectrum.EnergyCalibration.EnergyToChannel(fWHMPeakDetectionMethodConfig.Min_Range);
+            int max_range_ch = (int)energySpectrum.EnergyCalibration.EnergyToChannel(fWHMPeakDetectionMethodConfig.Max_Range);
 
+            double fwhm_tol_min = ((double)fWHMPeakDetectionMethodConfig.Min_FWHM_Tol) / 100;
+            double fwhm_tol_max = ((double)fWHMPeakDetectionMethodConfig.Max_FWHM_Tol) / 100;
+
+            FWHMPeakDetector.Spectrum spec = new FWHMPeakDetector.Spectrum(energySpectrum);
+            int mul = energySpectrum.NumberOfChannels / 1024;
+            if (mul > 1)
+            {
+                spec.combine_bins(mul);
             }
-            return peakFinder;
+            FWHMPeakDetector.PeakFilter kernel = new FWHMPeakDetector.PeakFilter(
+                fWHMPeakDetectionMethodConfig.Ch_Fwhm,
+                fWHMPeakDetectionMethodConfig.Width_Fwhm,
+                fWHMPeakDetectionMethodConfig.FWHM_AT_0);
+            FWHMPeakDetector.PeakFinder finder = new FWHMPeakDetector.PeakFinder(
+                spec,
+                kernel,
+                fwhm_tol_min: fwhm_tol_min,
+                fwhm_tol_max: fwhm_tol_max);
+            finder.find_peaks(min_range_ch,
+                max_range_ch,
+                fWHMPeakDetectionMethodConfig.Min_SNR,
+                fWHMPeakDetectionMethodConfig.Max_Items);
+            return finder;
+        }
+
+        int doCorrection(EnergySpectrum energySpectrum, int centroid, int fwhm)
+        {
+            if (fwhm == 0)
+            {
+                fwhm = 1;
+            }
+            int low_boundary = centroid - fwhm;
+            int high_boundary = centroid + fwhm;
+            int poly_order = 8;
+            if (high_boundary - low_boundary + 1 < 9)
+            {
+                poly_order = 2 * fwhm;
+            }
+            if (low_boundary < 0) low_boundary = 0;
+            if (high_boundary > energySpectrum.NumberOfChannels) high_boundary = energySpectrum.NumberOfChannels - 1;
+            double[] x = new double[high_boundary - low_boundary + 1];
+            double[] y = new double[high_boundary - low_boundary + 1];
+            for (int j = 0; j < high_boundary - low_boundary + 1; j++)
+            {
+                x[j] = low_boundary + j;
+                y[j] = energySpectrum.Spectrum[low_boundary + j];
+            }
+            Func<double, double> func = Fit.PolynomialFunc(x, y, poly_order);
+            double new_centroid = centroid;
+            double max = func.Invoke(new_centroid);
+            for (int j = low_boundary; j < high_boundary; j++)
+            {
+                double new_max = func.Invoke(j);
+                if (new_max > max)
+                {
+                    new_centroid = j;
+                    max = new_max;
+                }
+            }
+            return (int)Math.Round(new_centroid);
         }
 
         // Token: 0x0400025C RID: 604

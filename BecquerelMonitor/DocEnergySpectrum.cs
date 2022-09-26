@@ -5,6 +5,7 @@ using System.IO;
 using System.Windows.Forms;
 using WeifenLuo.WinFormsUI.Docking;
 using System.Diagnostics;
+using System.Threading;
 
 namespace BecquerelMonitor
 {
@@ -118,6 +119,18 @@ namespace BecquerelMonitor
             set
             {
                 this.updateSpectrum = value;
+            }
+        }
+
+        public bool UpdateDetectedPeaks
+        {
+            get
+            {
+                return this.updateDetectedPeaks;
+            }
+            set
+            {
+                this.updateDetectedPeaks = value;
             }
         }
 
@@ -965,6 +978,7 @@ namespace BecquerelMonitor
                     FWHMPeakDetectionMethodConfig devcfg = (FWHMPeakDetectionMethodConfig)this.ActiveResultData.DeviceConfig.PeakDetectionMethodConfig;
                     cfg.Enabled = false;
                     devcfg.Enabled = false;
+                    this.UpdateDetectedPeaks = false;
                     break;
                 case PeakMode.Invisible:
                     peakMode = PeakMode.Visible;
@@ -973,6 +987,7 @@ namespace BecquerelMonitor
                     FWHMPeakDetectionMethodConfig devConfig = (FWHMPeakDetectionMethodConfig)this.ActiveResultData.DeviceConfig.PeakDetectionMethodConfig;
                     peakConfig.Enabled = true;
                     devConfig.Enabled = true;
+                    this.UpdateDetectedPeaks = true;
                     break;
             }
             this.view.PeakMode = peakMode;
@@ -1211,6 +1226,8 @@ namespace BecquerelMonitor
 
         // Token: 0x04000152 RID: 338
         bool updateSpectrum;
+
+        bool updateDetectedPeaks = false;
 
         // Token: 0x04000153 RID: 339
         bool activeEnergyCalibration;
