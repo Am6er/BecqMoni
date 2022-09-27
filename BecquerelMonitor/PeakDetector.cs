@@ -4,6 +4,7 @@ using MathNet.Numerics;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 
@@ -24,11 +25,54 @@ namespace BecquerelMonitor
             {
                 return peaks;
             }
+            resultData.DetectedPeaks.Clear();
 
             FWHMPeakDetector.PeakFinder finder = PeakFinder(energySpectrum, FWHMPeakDetectionMethodConfig);
 
-            resultData.DetectedPeaks.Clear();
+            peaks = CollectPeaks(finder, energySpectrum, FWHMPeakDetectionMethodConfig.Tolerance, resultData.DetectedPeaks, sa);
+
+            /*
+            energySpectrum = sa.SubtractPeaks(peaks, energySpectrum);
+            finder = PeakFinder(energySpectrum, FWHMPeakDetectionMethodConfig);
+            List<Peak> peaks2 = CollectPeaks(finder, energySpectrum, FWHMPeakDetectionMethodConfig.Tolerance, peaks, sa);
+            peaks.AddRange(peaks2);
+
+            energySpectrum = sa.SubtractPeaks(peaks2, energySpectrum);
+            finder = PeakFinder(energySpectrum, FWHMPeakDetectionMethodConfig);
+            List<Peak> peaks3 = CollectPeaks(finder, energySpectrum, FWHMPeakDetectionMethodConfig.Tolerance, peaks, sa);
+            peaks.AddRange(peaks3);
+            */
             
+            resultData.DetectedPeaks = peaks;
+
+            sa.Dispose();
+            GC.Collect();
+            return peaks;
+        }
+
+        bool isNewPeak(List<Peak> peaks, Peak newpeak)
+        {
+            foreach (Peak peak in peaks)
+            {
+                if (newpeak.Channel == peak.Channel || newpeak.Energy == peak.Energy || Math.Abs(newpeak.Channel - peak.Channel) <= 6)
+                {
+                    return false;
+                }
+                if (newpeak.Nuclide != null && peak.Nuclide != null)
+                {
+                    if (newpeak.Nuclide.Energy == peak.Nuclide.Energy)
+                    {
+                        return false;
+                    }
+                }
+            }
+            Trace.WriteLine("New peak added, ch=" + newpeak.Channel + " En=" + newpeak.Energy);
+            return true;
+        }
+
+        List<Peak> CollectPeaks(FWHMPeakDetector.PeakFinder finder, EnergySpectrum energySpectrum, double tol, List<Peak> existPeaks, SpectrumAriphmetics sa)
+        {
+            List<Peak> peaks = new List<Peak>();
             if (finder.centroids != null)
             {
                 for (int i = 0; i < finder.centroids.Length; i++)
@@ -48,14 +92,15 @@ namespace BecquerelMonitor
                     foreach (NuclideDefinition nuclideDefinition in this.nuclideManager.NuclideDefinitions)
                     {
                         double delta = Math.Abs((peak.Energy - nuclideDefinition.Energy) / nuclideDefinition.Energy);
-                        double tol = FWHMPeakDetectionMethodConfig.Tolerance;
+                        //double tol = FWHMPeakDetectionMethodConfig.Tolerance;
                         if (delta < tol / 100.0 && delta < tol)
                         {
                             if (minDelta == -1)
                             {
                                 bestNuclide = nuclideDefinition;
                                 minDelta = delta;
-                            } else
+                            }
+                            else
                             {
                                 if (delta < minDelta)
                                 {
@@ -66,19 +111,13 @@ namespace BecquerelMonitor
                         }
                         peak.Nuclide = bestNuclide;
                     }
-
-                    peaks.Add(peak);
-                    resultData.DetectedPeaks.Add(peak);
+                    if (isNewPeak(existPeaks, peak))
+                    {
+                        peaks.Add(peak);
+                    }
+                    energySpectrum = sa.SubtractPeak(peak, energySpectrum);
                 }
-                
             }
-
-            //energySpectrum = sa.SubtractPeaks(peaks, energySpectrum);
-            //finder = PeakFinder(energySpectrum, FWHMPeakDetectionMethodConfig);
-
-
-            sa.Dispose();
-            GC.Collect();
             return peaks;
         }
 

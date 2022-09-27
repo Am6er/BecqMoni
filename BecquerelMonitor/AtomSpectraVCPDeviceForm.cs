@@ -143,15 +143,15 @@ namespace BecquerelMonitor
         {
             comPortsBox.Items.Clear();
             comPortsBox.Items.Add("-------");
-            string[] Ports = new string[0];
             try
             {
-                SerialPort.GetPortNames();
+                string[] Ports = SerialPort.GetPortNames();
+                comPortsBox.Items.AddRange(Ports);
             } catch (Exception ex)
             {
 
             }
-            comPortsBox.Items.AddRange(Ports);
+            
 
             if (comPortsBox.Items.Count > 1)
             {
@@ -174,7 +174,7 @@ namespace BecquerelMonitor
 
         private void ComPortsBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            fillPorts();
+            //fillPorts();
             SetActiveDeviceConfigDirty();
         }
 

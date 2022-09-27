@@ -83,6 +83,10 @@ namespace BecquerelMonitor.Utils
         public EnergySpectrum Substract(EnergySpectrum bgenergySpectrum)
         {
             EnergySpectrum substractedEnergySpectrum = this.EnergySpectrum.Clone();
+            if (this.EnergySpectrum.MeasurementTime == 0 || bgenergySpectrum.MeasurementTime == 0)
+            {
+                return substractedEnergySpectrum;
+            }
             double norm_coeff = this.EnergySpectrum.MeasurementTime / bgenergySpectrum.MeasurementTime;
             substractedEnergySpectrum.TotalPulseCount = 0;
             if (this.EnergySpectrum.EnergyCalibration.Equals(bgenergySpectrum.EnergyCalibration))
@@ -138,16 +142,20 @@ namespace BecquerelMonitor.Utils
             for (int i = min_val; i <= max_val; i++)
             {
                 result.Spectrum[i] -= peakspectrum[i];
+                if (result.Spectrum[i] < 0)
+                {
+                    result.Spectrum[i] = 0;
+                }
             }
             return result;
         }
 
         public EnergySpectrum SubtractPeaks(List<Peak> peaks, EnergySpectrum energySpectrum)
         {
-            EnergySpectrum result = this.EnergySpectrum.Clone();
+            EnergySpectrum result = energySpectrum.Clone();
             foreach(Peak peak in peaks)
             {
-                result = SubtractPeak(peak, energySpectrum);
+                result = SubtractPeak(peak, result);
             }
             return result;
         }
