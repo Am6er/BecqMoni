@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata minClientVersion="3.6">
+    <id>Microsoft.Data.Sqlite.Core</id>
+    <version>6.0.9</version>
+    <authors>Microsoft</authors>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <license type="expression">MIT</license>
+    <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+    <icon>Icon.png</icon>
+    <projectUrl>https://docs.microsoft.com/dotnet/standard/data/sqlite/</projectUrl>
+    <description>Microsoft.Data.Sqlite is a lightweight ADO.NET provider for SQLite. This package does not include a copy of the native SQLite library.
+
+Commonly Used Types:
+Microsoft.Data.Sqlite.SqliteCommand
+Microsoft.Data.Sqlite.SqliteConnection
+Microsoft.Data.Sqlite.SqliteConnectionStringBuilder
+Microsoft.Data.Sqlite.SqliteDataReader
+Microsoft.Data.Sqlite.SqliteException
+Microsoft.Data.Sqlite.SqliteFactory
+Microsoft.Data.Sqlite.SqliteParameter
+Microsoft.Data.Sqlite.SqliteTransaction</description>
+    <copyright>© Microsoft Corporation. All rights reserved.</copyright>
+    <tags>SQLite Data ADO.NET</tags>
+    <serviceable>true</serviceable>
+    <repository type="git" url="https://github.com/dotnet/efcore" commit="33e3c950af2eb996c0b3c48e30eb4471138da675" />
+    <dependencies>
+      <group targetFramework="net6.0">
+        <dependency id="SQLitePCLRaw.core" version="2.0.6" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework=".NETStandard2.0">
+        <dependency id="SQLitePCLRaw.core" version="2.0.6" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+  </metadata>
+</package>
