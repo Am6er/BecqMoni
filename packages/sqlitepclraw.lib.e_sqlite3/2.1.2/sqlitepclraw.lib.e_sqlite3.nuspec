@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/01/nuspec.xsd">
+  <metadata minClientVersion="2.12">
+    <id>SQLitePCLRaw.lib.e_sqlite3</id>
+    <version>2.1.2</version>
+    <title>SQLitePCLRaw.lib.e_sqlite3</title>
+    <authors>Eric Sink</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <license type="expression">Apache-2.0</license>
+    <licenseUrl>https://licenses.nuget.org/Apache-2.0</licenseUrl>
+    <description>This package contains platform-specific native code builds of SQLite for use with SQLitePCLRaw.  To use this, you need SQLitePCLRaw.core as well as one of the SQLitePCLRaw.provider.* packages.  Convenience packages are named SQLitePCLRaw.bundle_*.</description>
+    <summary>SQLitePCLRaw is a Portable Class Library (PCL) for low-level (raw) access to SQLite</summary>
+    <copyright>Copyright 2014-2022 SourceGear, LLC</copyright>
+    <tags>sqlite;xamarin</tags>
+    <repository type="git" url="https://github.com/ericsink/SQLitePCL.raw" />
+  </metadata>
+</package>

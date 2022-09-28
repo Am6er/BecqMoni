@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>DockPanelSuite</id>
+    <version>3.1.0</version>
+    <authors>Weifen Luo and other contributors</authors>
+    <license type="expression">MIT</license>
+    <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+    <projectUrl>http://dockpanelsuite.com/</projectUrl>
+    <description>The docking library for .Net Windows Forms development which mimics Visual Studio .Net.</description>
+    <releaseNotes>Release notes can be found at GitHub,
+      https://github.com/dockpanelsuite/dockpanelsuite/releases
+
+      Visual Studio 2003 Theme: https://www.nuget.org/packages/DockPanelSuite.ThemeVS2003/
+      Visual Studio 2005 Theme: https://www.nuget.org/packages/DockPanelSuite.ThemeVS2005/
+      Visual Studio 2012 Themes: https://www.nuget.org/packages/DockPanelSuite.ThemeVS2012/
+      Visual Studio 2013 Themes: https://www.nuget.org/packages/DockPanelSuite.ThemeVS2013/
+      Visual Studio 2015 Themes: https://www.nuget.org/packages/DockPanelSuite.ThemeVS2015/</releaseNotes>
+    <copyright>(C) 2007-2020 Weifen Luo and other contributors</copyright>
+    <dependencies>
+      <group targetFramework=".NETFramework3.5" />
+      <group targetFramework=".NETFramework4.0" />
+      <group targetFramework=".NETCoreApp3.1" />
+    </dependencies>
+    <frameworkReferences>
+      <group targetFramework=".NETCoreApp3.1">
+        <frameworkReference name="Microsoft.WindowsDesktop.App.WindowsForms" />
+      </group>
+      <group targetFramework=".NETFramework3.5" />
+      <group targetFramework=".NETFramework4.0" />
+    </frameworkReferences>
+    <frameworkAssemblies>
+      <frameworkAssembly assemblyName="System.Configuration" targetFramework=".NETFramework3.5, .NETFramework4.0" />
+    </frameworkAssemblies>
+  </metadata>
+</package>
