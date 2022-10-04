@@ -1058,4 +1058,16 @@
   <data name="&gt;&gt;dockPanel1.ZOrder" xml:space="preserve">
     <value>1</value>
   </data>
+  <data name="ConcatSpectrumsStripMenuItem.Text" xml:space="preserve">
+    <value>Change channel number</value>
+  </data>
+    <data name="ConcatSpectrumsStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+    <value>326, 22</value>
+  </data>
+    <data name="&gt;&gt;ConcatSpectrumsStripMenuItem.Name" xml:space="preserve">
+    <value>ConcatSpectrumsStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;ConcatSpectrumsStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
 </root>

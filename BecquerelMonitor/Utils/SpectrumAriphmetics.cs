@@ -359,7 +359,7 @@ namespace BecquerelMonitor.Utils
             return Math.Pow(Math.Exp(Math.Exp(x) - 1) - 1, 2) - 1;
         }
 
-        int[] ConcatSpectrum(int[] spectrum, int newChanNumber)
+        static int[] ConcatArray(int[] spectrum, int newChanNumber)
         {
             int[] result = new int[newChanNumber];
             int multiplier = spectrum.Length / newChanNumber;
@@ -371,6 +371,25 @@ namespace BecquerelMonitor.Utils
                 }
             }
             return result;
+        }
+
+        public static EnergySpectrum ConcatSpectrum(EnergySpectrum energySpectrum, int newChan)
+        {
+            EnergySpectrum newSpectrum = new EnergySpectrum(energySpectrum.ChannelPitch, newChan);
+            PolynomialEnergyCalibration calibration = new PolynomialEnergyCalibration((PolynomialEnergyCalibration)energySpectrum.EnergyCalibration);
+            double mul = energySpectrum.NumberOfChannels / newChan;
+            for (int i = 0; i < calibration.Coefficients.Length; i++)
+            {
+                calibration.Coefficients[i] = Math.Pow(mul, i) * calibration.Coefficients[i];
+            }
+            newSpectrum.EnergyCalibration = calibration;
+            newSpectrum.NumberOfChannels = newChan;
+            newSpectrum.Spectrum = ConcatArray(energySpectrum.Spectrum, newChan);
+            newSpectrum.MeasurementTime = energySpectrum.MeasurementTime;
+            newSpectrum.TotalPulseCount = energySpectrum.TotalPulseCount;
+            newSpectrum.ValidPulseCount = energySpectrum.ValidPulseCount;
+            newSpectrum.NumberOfSamples = energySpectrum.NumberOfSamples;
+            return newSpectrum;
         }
 
         int[] RestoreSpectrum(int[] spectrum, int newChanNumber)

@@ -1119,6 +1119,7 @@ namespace BecquerelMonitor
                 MessageBox.Show(Resources.CombineEmptySpectrum);
                 return;
             }
+
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.Title = Resources.OpenFileDialogTitle;
             openFileDialog.Filter = Resources.SpectrumFileFilter;
@@ -1136,6 +1137,29 @@ namespace BecquerelMonitor
             this.activeDocument.Dirty = true;
             this.UpdateAllView();
             this.UpdateDetectedPeakView();
+        }
+
+        void ConcatSpectrums(DocEnergySpectrum docEnergySpectrum, int newChan)
+        {
+
+            CreateDocument();
+            this.activeDocument.ActiveResultData.EnergySpectrum = SpectrumAriphmetics.ConcatSpectrum(docEnergySpectrum.ActiveResultData.EnergySpectrum, newChan);
+            this.activeDocument.ActiveResultData.DeviceConfigReference = null;
+            this.activeDocument.ActiveResultData.DeviceConfig = new DeviceConfigInfo();
+            if (docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum != null)
+            {
+                this.activeDocument.ActiveResultData.BackgroundEnergySpectrum = SpectrumAriphmetics.ConcatSpectrum(docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum, newChan);
+            }
+            this.activeDocument.ActiveResultData.ResultDataStatus = docEnergySpectrum.ActiveResultData.ResultDataStatus;
+            this.activeDocument.ActiveResultData.PresetTime = docEnergySpectrum.ActiveResultData.PresetTime;
+            this.activeDocument.ActiveResultData.EndTime = docEnergySpectrum.ActiveResultData.EndTime;
+            this.activeDocument.ActiveResultData.PulseCollection = docEnergySpectrum.ActiveResultData.PulseCollection;
+            this.activeDocument.ActiveResultData.SampleInfo = docEnergySpectrum.ActiveResultData.SampleInfo;
+            this.activeDocument.ActiveResultData.StartTime = docEnergySpectrum.ActiveResultData.StartTime;
+
+            this.activeDocument.Dirty = true;
+            this.UpdateAllView();
+            return;
         }
 
         // Token: 0x06000A75 RID: 2677 RVA: 0x0003E3E8 File Offset: 0x0003C5E8
@@ -1296,11 +1320,15 @@ namespace BecquerelMonitor
                 this.測定開始SToolStripMenuItem.Enabled = false;
                 this.測定停止TToolStripMenuItem.Enabled = false;
                 this.デ\u30FCタ消去CToolStripMenuItem.Enabled = false;
+                this.ConcatSpectrumsStripMenuItem.Enabled = false;
+                this.toolStripMenuItem1.Enabled = false;
                 return;
             }
             bool enabled = this.activeDocument.ResultDataFile.ResultDataList.Count < this.globalConfigManager.MaximumSpectrumPerFile;
             this.新規スペクトルNToolStripMenuItem1.Enabled = enabled;
             this.既存ファイルから追加FToolStripMenuItem.Enabled = enabled;
+            this.ConcatSpectrumsStripMenuItem.Enabled = enabled;
+            this.toolStripMenuItem1.Enabled = enabled;
             this.測定開始SToolStripMenuItem.Enabled = !this.activeDocument.ActiveResultData.ResultDataStatus.Recording;
             this.測定停止TToolStripMenuItem.Enabled = this.activeDocument.ActiveResultData.ResultDataStatus.Recording;
         }
@@ -1990,6 +2018,23 @@ namespace BecquerelMonitor
             this.SaveSpectrumToFile(this.activeDocument);
         }
 
+        void ConcatSpectrumsStripMenuItem_Click(object sender, EventArgs e)
+        {
+            new ChanNumberChangeDialog(this)
+            {
+                Owner = this
+            }.ShowDialog();
+            if (newChan > 0 && newChan < this.activeDocument.ActiveResultData.EnergySpectrum.NumberOfChannels)
+            {
+                ConcatSpectrums(this.activeDocument, newChan);
+                newChan = 0;
+            } else
+            {
+                MessageBox.Show(Resources.ERRChanNumber);
+            }
+            
+        }
+
         // Token: 0x06000AA1 RID: 2721 RVA: 0x0003F7A4 File Offset: 0x0003D9A4
         void 測定開始SToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -2328,6 +2373,8 @@ namespace BecquerelMonitor
 
         // Token: 0x040005EA RID: 1514
         int countChart;
+
+        public int newChan = 0;
 
         string userDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni";
         string userDirectoryConfig = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\config";
