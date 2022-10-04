@@ -4379,4 +4379,7 @@ see peak in spectrum now).</value>
   <data name="2Sigma" xml:space="preserve">
     <value>2σ</value>
   </data>
+  <data name="ERRChanNumber" xml:space="preserve">
+    <value>Incorrect number of channels.</value>
+  </data>
 </root>

@@ -637,6 +637,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Incorrect number of channels..
+        /// </summary>
+        internal static string ERRChanNumber {
+            get {
+                return ResourceManager.GetString("ERRChanNumber", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Error detected while communicating with device.
         ///.
         /// </summary>

@@ -35,8 +35,8 @@
     <MinimumRequiredVersion>2022.07.08.7</MinimumRequiredVersion>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
-    <ApplicationRevision>2</ApplicationRevision>
-    <ApplicationVersion>2022.09.27.2</ApplicationVersion>
+    <ApplicationRevision>3</ApplicationRevision>
+    <ApplicationVersion>2022.10.4.3</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -134,6 +134,12 @@
     <Compile Include="CalibrationPoint.cs" />
     <Compile Include="CDATA.cs" />
     <Compile Include="ChannelPickupedEventArgs.cs" />
+    <Compile Include="ChanNumberChangeDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ChanNumberChangeDialog.Designer.cs">
+      <DependentUpon>ChanNumberChangeDialog.cs</DependentUpon>
+    </Compile>
     <Compile Include="ChartType.cs" />
     <Compile Include="ChartViewConfig.cs" />
     <Compile Include="ColorComboBox\ColorChangeArgs.cs" />
@@ -823,6 +829,12 @@
     </EmbeddedResource>
     <EmbeddedResource Include="AudioInputDeviceForm.ru.resx">
       <DependentUpon>AudioInputDeviceForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ChanNumberChangeDialog.resx">
+      <DependentUpon>ChanNumberChangeDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ChanNumberChangeDialog.ru.resx">
+      <DependentUpon>ChanNumberChangeDialog.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="ColorComboBox\ColorComboBox.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>

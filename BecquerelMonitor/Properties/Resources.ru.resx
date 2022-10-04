@@ -243,6 +243,9 @@
   <data name="ERRCannotRetreiveDeviceData" xml:space="preserve">
     <value>Не могу получить данные с устройства.</value>
   </data>
+  <data name="ERRChanNumber" xml:space="preserve">
+    <value>Некорректное число каналов.</value>
+  </data>
   <data name="ERRDetectedErrorWhileCommunication" xml:space="preserve">
     <value>Обнаружена ошибка в процессе работы с устройством.</value>
   </data>
