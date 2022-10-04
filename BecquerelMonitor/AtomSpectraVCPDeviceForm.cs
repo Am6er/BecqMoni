@@ -155,7 +155,7 @@ namespace BecquerelMonitor
 
             if (comPortsBox.Items.Count > 1)
             {
-                if (comPortsBox.Items.Contains(this.ComPort))
+                if (this.ComPort != null && comPortsBox.Items.Contains(this.ComPort))
                 {
                     comPortsBox.SelectedIndex = comPortsBox.Items.IndexOf(this.ComPort);
                     baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString());
