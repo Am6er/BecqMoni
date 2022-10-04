@@ -490,6 +490,10 @@ namespace BecquerelMonitor
                 this.inputDeviceForm.SaveFormContents(config.InputDeviceConfig);
                 this.thermometerForm.SaveFormContents(config.ThermometerConfig);
                 PolynomialEnergyCalibration polynomialEnergyCalibration = (PolynomialEnergyCalibration)config.EnergyCalibration;
+                if (polynomialEnergyCalibration.PolynomialOrder >= 2)
+                {
+                    polynomialEnergyCalibration.Coefficients[2] = double.Parse(this.numericUpDown1.Text);
+                }
                 if (polynomialEnergyCalibration.PolynomialOrder >= 3)
                 {
                     polynomialEnergyCalibration.Coefficients[3] = double.Parse(this.numericUpDown9.Text);
@@ -498,8 +502,6 @@ namespace BecquerelMonitor
                 {
                     polynomialEnergyCalibration.Coefficients[4] = double.Parse(this.numericUpDown8.Text);
                 }
-
-                polynomialEnergyCalibration.Coefficients[2] = double.Parse(this.numericUpDown1.Text);
                 polynomialEnergyCalibration.Coefficients[1] = double.Parse(this.numericUpDown2.Text);
                 polynomialEnergyCalibration.Coefficients[0] = double.Parse(this.numericUpDown7.Text);
                 if (config.StabilizerConfig == null)

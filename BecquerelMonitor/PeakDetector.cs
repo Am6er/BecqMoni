@@ -16,10 +16,12 @@ namespace BecquerelMonitor
         public List<Peak> DetectPeak(ResultData resultData)
         {
             FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)resultData.PeakDetectionMethodConfig;
-            SpectrumAriphmetics sa = new SpectrumAriphmetics(FWHMPeakDetectionMethodConfig, resultData.EnergySpectrum);
-            EnergySpectrum energySpectrum = sa.Substract(sa.Continuum());
-            
-            
+            SpectrumAriphmetics sa = null; //new SpectrumAriphmetics(FWHMPeakDetectionMethodConfig, resultData.EnergySpectrum);
+            //EnergySpectrum energySpectrum = sa.Substract(sa.Continuum());
+            EnergySpectrum energySpectrum = resultData.EnergySpectrum;
+
+
+
             List<Peak> peaks = new List<Peak>();
             if (energySpectrum.Spectrum.Sum() == 0)
             {
@@ -45,7 +47,7 @@ namespace BecquerelMonitor
             
             resultData.DetectedPeaks = peaks;
 
-            sa.Dispose();
+            //sa.Dispose();
             GC.Collect();
             return peaks;
         }
@@ -115,7 +117,7 @@ namespace BecquerelMonitor
                     {
                         peaks.Add(peak);
                     }
-                    energySpectrum = sa.SubtractPeak(peak, energySpectrum);
+                    //energySpectrum = sa.SubtractPeak(peak, energySpectrum);
                 }
             }
             return peaks;

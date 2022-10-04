@@ -163,7 +163,7 @@ namespace BecquerelMonitor
                     {
                         diff = 0;
                     }
-                    energy = Convert.ToDecimal(row.Cells[1].Text) + diff;
+                    energy = Convert.ToDecimal(row.Cells[1].Text) - diff;
                     this.mainForm.addCalibration(channel, energy);
                 } catch (Exception ex)
                 {
