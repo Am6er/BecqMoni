@@ -5481,4 +5481,58 @@
   <data name="label46.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
   </data>
+  <data name="label89.Size" type="System.Drawing.Size, System.Drawing">
+    <value>39, 12</value>
+  </data>
+  <data name="label89.Text" xml:space="preserve">
+    <value>Unknown peak</value>
+  </data>
+  <data name="label89.Location" type="System.Drawing.Point, System.Drawing">
+    <value>324, 208</value>
+  </data>
+  <data name="&gt;&gt;label89.ZOrder" xml:space="preserve">
+    <value>28</value>
+  </data>
+  <data name="label89.TabIndex" type="System.Int32, mscorlib">
+    <value>40</value>
+  </data>
+  <data name="&gt;&gt;label89.Parent" xml:space="preserve">
+    <value>groupBox3</value>
+  </data>
+  <data name="&gt;&gt;label89.Name" xml:space="preserve">
+    <value>label89</value>
+  </data>
+  <data name="&gt;&gt;label89.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="label89.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="label89.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="colorComboBox37.Margin" type="System.Windows.Forms.Padding, System.Windows.Forms">
+    <value>2, 2, 2, 2</value>
+  </data>
+  <data name="&gt;&gt;colorComboBox37.Name" xml:space="preserve">
+    <value>colorComboBox37</value>
+  </data>
+  <data name="&gt;&gt;colorComboBox37.Type" xml:space="preserve">
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;colorComboBox37.ZOrder" xml:space="preserve">
+    <value>16</value>
+  </data>
+  <data name="&gt;&gt;colorComboBox37.Parent" xml:space="preserve">
+    <value>groupBox3</value>
+  </data>
+  <data name="colorComboBox37.Location" type="System.Drawing.Point, System.Drawing">
+    <value>406, 202</value>
+  </data>
+  <data name="colorComboBox37.Size" type="System.Drawing.Size, System.Drawing">
+    <value>103, 22</value>
+  </data>
+  <data name="colorComboBox37.TabIndex" type="System.Int32, mscorlib">
+    <value>67</value>
+  </data>
 </root>

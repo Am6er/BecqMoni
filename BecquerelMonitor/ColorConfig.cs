@@ -353,6 +353,18 @@ namespace BecquerelMonitor
             }
         }
 
+        public SerializableColor UnknownPeakColor
+        {
+            get
+            {
+                return this.unknownPeakColor;
+            }
+            set
+            {
+                this.unknownPeakColor = value;
+            }
+        }
+
         public SerializableColor BgDiffColor
         {
             get
@@ -453,6 +465,8 @@ namespace BecquerelMonitor
 
         // Token: 0x040008F1 RID: 2289
         SerializableColor blankAreaColor = Color.LightGray;
+
+        SerializableColor unknownPeakColor = Color.Gray;
 
         // Token: 0x040008F2 RID: 2290
         decimal activeSpectrumColorTransparency = 50m;

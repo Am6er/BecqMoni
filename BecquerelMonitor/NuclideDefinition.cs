@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Xml.Serialization;
+using System.Drawing;
 
 namespace BecquerelMonitor
 {
@@ -48,6 +49,18 @@ namespace BecquerelMonitor
             set
             {
                 this.halfLife = value;
+            }
+        }
+
+        public SerializableColor NuclideColor
+        {
+            get
+            {
+                return this.nuclideColor;
+            }
+            set
+            {
+                this.nuclideColor = value;
             }
         }
 
@@ -109,5 +122,7 @@ namespace BecquerelMonitor
 
         // Token: 0x040009B5 RID: 2485
         bool dirty;
+
+        SerializableColor nuclideColor = Color.Gray;
     }
 }

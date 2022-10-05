@@ -38,6 +38,7 @@
 			this.label85 = new global::System.Windows.Forms.Label();
 			this.label86 = new global::System.Windows.Forms.Label();
 			this.label87 = new global::System.Windows.Forms.Label();
+			this.label89 = new global::System.Windows.Forms.Label();
 			this.numericUpDown3 = new global::System.Windows.Forms.NumericUpDown();
 			this.numericUpDown2 = new global::System.Windows.Forms.NumericUpDown();
 			this.label26 = new global::System.Windows.Forms.Label();
@@ -87,6 +88,7 @@
 			this.colorComboBox34 = new global::ColorComboBox.ColorComboBox();
 			this.colorComboBox35 = new global::ColorComboBox.ColorComboBox();
             this.colorComboBox36 = new global::ColorComboBox.ColorComboBox();
+            this.colorComboBox37 = new global::ColorComboBox.ColorComboBox();
             this.label57 = new global::System.Windows.Forms.Label();
 			this.colorComboBox29 = new global::ColorComboBox.ColorComboBox();
 			this.label56 = new global::System.Windows.Forms.Label();
@@ -739,6 +741,8 @@
 			this.groupBox3.Controls.Add(this.label16);
 			this.groupBox3.Controls.Add(this.label18);
 			this.groupBox3.Controls.Add(this.label17);
+			this.groupBox3.Controls.Add(this.label89);
+			this.groupBox3.Controls.Add(this.colorComboBox37);
 			this.groupBox3.Name = "groupBox3";
 			this.groupBox3.TabStop = false;
 			componentResourceManager.ApplyResources(this.label42, "label42");
@@ -747,6 +751,12 @@
 			this.label41.Name = "label41";
 			componentResourceManager.ApplyResources(this.label40, "label40");
 			this.label40.Name = "label40";
+			componentResourceManager.ApplyResources(this.label89, "label89");
+			this.label89.Name = "label89";
+			componentResourceManager.ApplyResources(this.colorComboBox37, "colorComboBox37");
+			this.colorComboBox37.Extended = true;
+			this.colorComboBox37.Name = "colorComboBox37";
+			this.colorComboBox37.SelectedColor = global::System.Drawing.Color.Black;
 			componentResourceManager.ApplyResources(this.colorComboBox27, "colorComboBox27");
 			this.colorComboBox27.Extended = true;
 			this.colorComboBox27.Name = "colorComboBox27";
@@ -1546,6 +1556,8 @@
 
         global::ColorComboBox.ColorComboBox colorComboBox36;
 
+        global::ColorComboBox.ColorComboBox colorComboBox37;
+
         // Token: 0x04000678 RID: 1656
         global::System.Windows.Forms.Label label57;
 
@@ -1728,6 +1740,8 @@
 
 		// Token: 0x040006B0 RID: 1712
 		global::System.Windows.Forms.Label label84;
+
+		global::System.Windows.Forms.Label label89;
 
 		// Token: 0x040006B1 RID: 1713
 		global::System.Windows.Forms.Button button6;

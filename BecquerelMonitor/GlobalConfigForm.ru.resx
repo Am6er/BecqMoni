@@ -2931,4 +2931,7 @@
   <data name="textBox1.Text" xml:space="preserve">
     <value>Внимание: Если эта опция включена, размер файла сохраненных спектров будет чрезвычайно большим. Эта опция обязательна для управления параметрами канала после измерения спектра.</value>
   </data>
+    <data name="label89.Text" xml:space="preserve">
+    <value>Неизвест. пик</value>
+  </data>
 </root>

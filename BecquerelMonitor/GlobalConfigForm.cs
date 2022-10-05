@@ -44,6 +44,7 @@ namespace BecquerelMonitor
             this.colorComboBox33.SelectedColor = globalConfig.ColorConfig.SpectrumColorList[13].Color;
             this.colorComboBox34.SelectedColor = globalConfig.ColorConfig.SpectrumColorList[14].Color;
             this.colorComboBox35.SelectedColor = globalConfig.ColorConfig.SpectrumColorList[15].Color;
+            this.colorComboBox37.SelectedColor = globalConfig.ColorConfig.UnknownPeakColor.Color;
             this.colorComboBox3.SelectedColor = globalConfig.ColorConfig.BackgroundColor.Color;
             this.colorComboBox4.SelectedColor = globalConfig.ColorConfig.GridColor1.Color;
             this.colorComboBox5.SelectedColor = globalConfig.ColorConfig.GridColor2.Color;
@@ -163,6 +164,7 @@ namespace BecquerelMonitor
             globalConfig.ColorConfig.SpectrumColorList[13].Color = this.colorComboBox33.SelectedColor;
             globalConfig.ColorConfig.SpectrumColorList[14].Color = this.colorComboBox34.SelectedColor;
             globalConfig.ColorConfig.SpectrumColorList[15].Color = this.colorComboBox35.SelectedColor;
+            globalConfig.ColorConfig.UnknownPeakColor.Color = this.colorComboBox37.SelectedColor;
             globalConfig.ColorConfig.BackgroundColor.Color = this.colorComboBox3.SelectedColor;
             globalConfig.ColorConfig.GridColor1.Color = this.colorComboBox4.SelectedColor;
             globalConfig.ColorConfig.GridColor2.Color = this.colorComboBox5.SelectedColor;
