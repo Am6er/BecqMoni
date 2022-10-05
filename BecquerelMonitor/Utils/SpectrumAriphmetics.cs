@@ -5,6 +5,7 @@ using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.LinearAlgebra.Complex;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Net.Mime;
 using System.Runtime.ExceptionServices;
@@ -139,7 +140,7 @@ namespace BecquerelMonitor.Utils
         public EnergySpectrum SubtractPeak(Peak peak, EnergySpectrum energySpectrum)
         {
             EnergySpectrum result = energySpectrum.Clone();
-            (int[] peakspectrum, int min_val, int max_val) = GetPeak(peak, result, true);
+            (int[] peakspectrum, int min_val, int max_val, Color peakColor) = GetPeak(peak, result, true);
             for (int i = min_val; i <= max_val; i++)
             {
                 result.Spectrum[i] -= peakspectrum[i];
@@ -167,7 +168,7 @@ namespace BecquerelMonitor.Utils
             return (int)(amplitude * Math.Exp(-Math.Pow(x - median,2)/(2*Math.Pow(sigma, 2))));
         }
 
-        public (int[], int, int) GetPeak(Peak peak, EnergySpectrum continuum, bool smooth)
+        public (int[], int, int, Color) GetPeak(Peak peak, EnergySpectrum continuum, bool smooth)
         {
             int amplitude;
             if (smooth && this.sMASpectrum[peak.Channel] < this.EnergySpectrum.Spectrum[peak.Channel])
@@ -212,7 +213,12 @@ namespace BecquerelMonitor.Utils
                     left_side = false;
                 }
             }
-            return (retvalue, min_value, max_value);
+            if (peak.Nuclide != null)
+            {
+                return (retvalue, min_value, max_value, peak.Nuclide.NuclideColor.Color);
+            }
+            Color color = GlobalConfigManager.GetInstance().GlobalConfig.ColorConfig.UnknownPeakColor.Color;
+            return (retvalue, min_value, max_value, color);
         } 
 
         public double FWHM(double x, FWHMPeakDetectionMethodConfig cfg)

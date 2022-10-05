@@ -132,7 +132,7 @@ namespace BecquerelMonitor
             double fwhm_tol_max = ((double)fWHMPeakDetectionMethodConfig.Max_FWHM_Tol) / 100;
 
             FWHMPeakDetector.Spectrum spec = new FWHMPeakDetector.Spectrum(energySpectrum);
-            int mul = energySpectrum.NumberOfChannels / 1024;
+            int mul = energySpectrum.NumberOfChannels / 512;
             if (mul > 1)
             {
                 spec.combine_bins(mul);
