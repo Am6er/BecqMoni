@@ -55,6 +55,8 @@ namespace BecquerelMonitor
             this.doubleTextBox1.Text = nuclide.Energy.ToString();
             this.doubleTextBox2.Text = nuclide.HalfLife.ToString();
             this.textBox2.Text = nuclide.Note;
+            this.colorComboBox1.SelectedColor = nuclide.NuclideColor.Color;
+            this.colorComboBox1.Refresh();
             this.contentsLoading = false;
         }
 
@@ -67,6 +69,7 @@ namespace BecquerelMonitor
                 nuclide.Energy = this.doubleTextBox1.GetValue();
                 nuclide.HalfLife = this.doubleTextBox2.GetValue();
                 nuclide.Note = this.textBox2.Text;
+                nuclide.NuclideColor.Color = this.colorComboBox1.SelectedColor;
             }
             catch (Exception)
             {
@@ -242,6 +245,11 @@ namespace BecquerelMonitor
             }
             this.activeNuclide.Dirty = false;
             this.button6.Enabled = false;
+        }
+
+        void colorComboBox1_ColorChanged(object sender, EventArgs e)
+        {
+            this.SetActiveNuclideDirty();
         }
 
         // Token: 0x060000D3 RID: 211 RVA: 0x00004380 File Offset: 0x00002580

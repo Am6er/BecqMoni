@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Globalization;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using BecquerelMonitor.Properties;
 using BecquerelMonitor.Utils;
@@ -676,17 +677,14 @@ namespace BecquerelMonitor
             {
                 SpectrumAriphmetics sa = new SpectrumAriphmetics((FWHMPeakDetectionMethodConfig)this.activeResultData.PeakDetectionMethodConfig, this.energySpectrum);
                 this.continuumEnergySpectrum = sa.Continuum();
+
                 this.peakEnergySpectrum.Clear();
                 if (this.activeResultData.DetectedPeaks.Count > 0)
                 {
                     for (int i = 0; i < this.activeResultData.DetectedPeaks.Count; i++)
                     {
                         (int[] peakSpectrum, int min_ch, int max_ch) = sa.GetPeak(this.activeResultData.DetectedPeaks[i], this.continuumEnergySpectrum, true);
-                        for (int j = min_ch; j <= max_ch; j++)
-                        {
-                            this.continuumEnergySpectrum.Spectrum[j] += peakSpectrum[j];
-                        }
-                        //this.peakEnergySpectrum.Add((int[] peakSpectrum, int min_ch, int max_ch));
+                        this.peakEnergySpectrum.Add((peakSpectrum, min_ch, max_ch));
                     }
                 }
                 
@@ -1272,15 +1270,28 @@ namespace BecquerelMonitor
                                     this.DrawBarChart(g, brush, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, true);
                                 }
                             }
-                            using (Brush brush = new SolidBrush(Color.FromArgb(alpha, colorConfig.BgDiffColor.Color)))
+
+                            for (int i = 0; i < this.peakEnergySpectrum.Count; i++)
                             {
-                                using (new Pen(Color.FromArgb(alpha, colorConfig.BgDiffColor.Color)))
+                                Color peakColor;
+                                if (this.activeResultData.DetectedPeaks[i].Nuclide != null)
                                 {
-                                    (int[] peakSpectrum, int min_ch, int max_ch) = this.peakEnergySpectrum[0];
-                                    this.DrawPeakBarChart(g, brush, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, peakSpectrum, min_ch, max_ch);
+                                    peakColor = this.activeResultData.DetectedPeaks[i].Nuclide.NuclideColor.Color;
+                                }
+                                else
+                                {
+                                    peakColor = colorConfig.UnknownPeakColor.Color;
+                                }
+
+                                using (Brush brush = new SolidBrush(Color.FromArgb(alpha, peakColor)))
+                                {
+                                    using (new Pen(Color.FromArgb(alpha, peakColor)))
+                                    {
+                                        (int[] peakSpectrum, int min_ch, int max_ch) = this.peakEnergySpectrum[i];
+                                        this.DrawPeakBarChart(g, brush, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, peakSpectrum, min_ch, max_ch);
+                                    }
                                 }
                             }
-
                         }
                         if (this.energySpectrum.MeasurementTime == 0.0)
                         {
@@ -1353,8 +1364,25 @@ namespace BecquerelMonitor
                             using (new Pen(Color.FromArgb(alpha4, colorConfig.BackgroundSpectrumColor.Color)))
                             {
                                 this.DrawBarChart(g, brush4, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, true);
-                                //(int[] peakSpectrum, int min_ch, int max_ch) = this.peakEnergySpectrum[0];
-                                //this.DrawPeakBarChart(g, brush4, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, peakSpectrum, min_ch, max_ch);
+                            }
+                        }
+                        for (int i = 0; i < this.peakEnergySpectrum.Count; i++)
+                        {
+                            Color peakColor;
+                            if (this.activeResultData.DetectedPeaks[i].Nuclide != null)
+                            {
+                                peakColor = this.activeResultData.DetectedPeaks[i].Nuclide.NuclideColor.Color;
+                            } else
+                            {
+                                peakColor = colorConfig.UnknownPeakColor.Color;
+                            }
+                            using (Brush brush = new SolidBrush(Color.FromArgb(alpha4, peakColor)))
+                            {
+                                using (new Pen(Color.FromArgb(alpha4, peakColor)))
+                                {
+                                    (int[] peakSpectrum, int min_ch, int max_ch) = this.peakEnergySpectrum[i];
+                                    this.DrawPeakBarChart(g, brush, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, peakSpectrum, min_ch, max_ch);
+                                }
                             }
                         }
                     }
@@ -1381,6 +1409,23 @@ namespace BecquerelMonitor
                         using (Pen pen5 = new Pen(colorConfig.BackgroundSpectrumColor.Color))
                         {
                             this.DrawLineChart(g, pen5, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, true);
+                        }
+                        for (int i = 0; i < this.peakEnergySpectrum.Count; i++)
+                        {
+                            Color peakColor;
+                            if (this.activeResultData.DetectedPeaks[i].Nuclide != null)
+                            {
+                                peakColor = this.activeResultData.DetectedPeaks[i].Nuclide.NuclideColor.Color;
+                            }
+                            else
+                            {
+                                peakColor = colorConfig.UnknownPeakColor.Color;
+                            }
+                            using (Pen pen5 = new Pen(peakColor))
+                            {
+                                (int[] peakSpectrum, int min_ch, int max_ch) = this.peakEnergySpectrum[i];
+                                this.DrawPeakLineChart(g, pen5, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, peakSpectrum, min_ch, max_ch);
+                            }
                         }
                     }
                     if (this.energySpectrum.MeasurementTime != 0.0)
@@ -1645,7 +1690,6 @@ namespace BecquerelMonitor
                     {
                         break;
                     }
-                    goto IL_68;
                 }
                 goto IL_68;
                 IL_B8:
@@ -1689,7 +1733,7 @@ namespace BecquerelMonitor
                 continue;
                 IL_68:
                 num3 = (int)((double)(i - this.scrollX - this.left) / this.horizontalScale);
-                if (isBackground && !this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
+                if (this.backgroundEnergyCalibration != null && isBackground && !this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
                 {
                     num3 = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy((double)num3));
                     goto IL_B8;
@@ -1717,29 +1761,37 @@ namespace BecquerelMonitor
                     {
                         break;
                     }
-                    goto IL_68;
                 }
                 goto IL_68;
             IL_B8:
-                if (num3 >= min_ch && num3 <= max_ch)
+                if (num3 >= min_ch && num3 < max_ch)
                 {
-                    double num4 = spectrum.DrawingSpectrum[num3] + peakSpectrum[num3];
-                    num4 /= spectrum.MeasurementTime;
-                    if (num4 > 0.0)
+                    double peakv = spectrum.DrawingSpectrum[num3] + peakSpectrum[num3];
+                    double num4 = spectrum.DrawingSpectrum[num3];
+                    if (this.verticalUnit == VerticalUnit.CountsPerSecond && spectrum.MeasurementTime != 0.0)
+                    {
+                        num4 /= spectrum.MeasurementTime;
+                        peakv /= spectrum.MeasurementTime;
+                    }
+                    if (num4 > 0.0 && peakv > 0.0)
                     {
                         int num5;
+                        int peak;
                         if (this.verticalScaleType == VerticalScaleType.LinearScale)
                         {
                             num5 = this.height - (int)((num4 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                            peak = this.height - (int)((peakv - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                         }
                         else
                         {
                             double num6 = Math.Log10(num4);
                             num5 = this.height - (int)((num6 - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                            double peaklog = Math.Log10(peakv);
+                            peak = this.height - (int)((peaklog - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                         }
                         if (i > this.left)
                         {
-                            g.FillRectangle(brush, i, num5, 1, this.height - num5);
+                            g.FillRectangle(brush, i, peak, 1, num5 - peak);
                         }
                     }
                 }
@@ -1783,7 +1835,7 @@ namespace BecquerelMonitor
                     double num2 = calibration.ChannelToEnergy((double)i + 0.5);
                     num3 = (int)((num2 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
                 }
-                else if (isBackground)
+                else if (this.backgroundEnergyCalibration != null && isBackground)
                 {
                     double num4 = this.baseEnergyCalibration.EnergyToChannel(this.backgroundEnergyCalibration.ChannelToEnergy((double)i));
                     num3 = (int)((num4 + 0.5) * this.horizontalScale) + this.scrollX + this.left;
@@ -1831,6 +1883,79 @@ namespace BecquerelMonitor
             }
         }
 
+        void DrawPeakLineChart(Graphics g, Pen pen, EnergySpectrum spectrum, EnergyCalibration calibration, int[] peakSpectrum, int min_ch, int max_ch)
+        {
+            int y = this.height;
+            int x = 0;
+            for (int i = min_ch; i < max_ch; i++)
+            {
+                double peakv = spectrum.DrawingSpectrum[i] + peakSpectrum[i];
+                double num = spectrum.DrawingSpectrum[i];
+                if (this.verticalUnit == VerticalUnit.CountsPerSecond && spectrum.MeasurementTime != 0.0)
+                {
+                    num /= spectrum.MeasurementTime;
+                    peakv /= spectrum.MeasurementTime;
+                }
+                int num3;
+                if (this.horizontalUnit == HorizontalUnit.Energy)
+                {
+                    double num2 = calibration.ChannelToEnergy((double)i + 0.5);
+                    num3 = (int)((num2 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
+                }
+                else
+                {
+                    num3 = (int)(((double)i + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                }
+                int num5;
+                int peak;
+                if (this.verticalScaleType == VerticalScaleType.LinearScale)
+                {
+                    if (num <= 0.0 || peakv <= 0.0)
+                    {
+                        num5 = this.height;
+                        peak = this.height;
+                    }
+                    else
+                    {
+                        num5 = this.height - (int)((num - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                        peak = this.height - (int)((peakv - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                    }
+                }
+                else
+                {
+                    double num6 = Math.Log10(num);
+                    double peaklog = Math.Log10(peakv);
+                    if (num == 0.0 || peakv == 0.0)
+                    {
+                        num5 = this.height + 100;
+                        peak = this.height + 100;
+                    }
+                    else
+                    {
+                        num5 = this.height - (int)((num6 - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                        peak = this.height - (int)((peaklog - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                    }
+                }
+                if (num3 > this.left)
+                {
+                    try
+                    {
+                        if (i == min_ch)
+                        {
+                            x = num3;
+                            y = peak;
+                        }
+                        g.DrawLine(pen, x, y, num3, peak);
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }
+                x = num3;
+                y = peak;
+            }
+        }
+
         // Token: 0x060004B9 RID: 1209 RVA: 0x00018F58 File Offset: 0x00017158
         void ShowROIBackground(Graphics g)
         {
@@ -1869,7 +1994,6 @@ namespace BecquerelMonitor
                                 num2 = (float)((double)(this.numberOfChannels - 1) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
                                 goto IL_14D;
                             }
-                            goto IL_F9;
                         }
                         goto IL_F9;
                         IL_14D:
@@ -1922,7 +2046,6 @@ namespace BecquerelMonitor
                                 num2 = (float)((double)(this.numberOfChannels - 1) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
                                 goto IL_14D;
                             }
-                            goto IL_F9;
                         }
                         goto IL_F9;
                         IL_14D:
@@ -1982,7 +2105,6 @@ namespace BecquerelMonitor
                             num2 = (float)((double)(this.numberOfChannels - 1) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
                             goto IL_14D;
                         }
-                        goto IL_F9;
                     }
                     goto IL_F9;
                     IL_14D:
@@ -2002,7 +2124,6 @@ namespace BecquerelMonitor
                             {
                                 break;
                             }
-                            goto IL_1A5;
                         }
                         goto IL_1A5;
                         IL_1C1:
@@ -2211,7 +2332,6 @@ namespace BecquerelMonitor
                         {
                             break;
                         }
-                        goto IL_1D8;
                     }
                     goto IL_1D8;
                     IL_1F4:

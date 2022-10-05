@@ -42,6 +42,8 @@
 			this.label3 = new global::System.Windows.Forms.Label();
 			this.label2 = new global::System.Windows.Forms.Label();
 			this.label1 = new global::System.Windows.Forms.Label();
+			this.label8 = new global::System.Windows.Forms.Label();
+			this.colorComboBox1 = new global::ColorComboBox.ColorComboBox();
 			((global::System.ComponentModel.ISupportInitialize)this.table1).BeginInit();
 			this.tabControl1.SuspendLayout();
 			this.tabPage1.SuspendLayout();
@@ -104,6 +106,8 @@
 			this.tabPage1.BackColor = global::System.Drawing.SystemColors.Control;
 			this.tabPage1.Controls.Add(this.textBox2);
 			this.tabPage1.Controls.Add(this.label7);
+			this.tabPage1.Controls.Add(this.label8);
+			this.tabPage1.Controls.Add(this.colorComboBox1);
 			this.tabPage1.Controls.Add(this.doubleTextBox2);
 			this.tabPage1.Controls.Add(this.doubleTextBox1);
 			this.tabPage1.Controls.Add(this.label6);
@@ -118,7 +122,14 @@
 			this.textBox2.TextChanged += new global::System.EventHandler(this.textBox2_TextChanged);
 			componentResourceManager.ApplyResources(this.label7, "label7");
 			this.label7.Name = "label7";
-			componentResourceManager.ApplyResources(this.doubleTextBox2, "doubleTextBox2");
+			componentResourceManager.ApplyResources(this.label8, "label8");
+			this.label7.Name = "label8";
+			componentResourceManager.ApplyResources(this.colorComboBox1, "colorComboBox1");
+			this.colorComboBox1.Extended = true;
+			this.colorComboBox1.Name = "colorComboBox1";
+			this.colorComboBox1.SelectedColor = global::System.Drawing.Color.Black;
+			this.colorComboBox1.ColorChanged += new global::ColorComboBox.ColorChangedHandler(this.colorComboBox1_ColorChanged);
+            componentResourceManager.ApplyResources(this.doubleTextBox2, "doubleTextBox2");
 			this.doubleTextBox2.Name = "doubleTextBox2";
 			this.doubleTextBox2.TextChanged += new global::System.EventHandler(this.doubleTextBox2_TextChanged);
 			componentResourceManager.ApplyResources(this.doubleTextBox1, "doubleTextBox1");
@@ -224,5 +235,9 @@
 
 		// Token: 0x04000053 RID: 83
 		global::System.Windows.Forms.Label label7;
+
+		global::System.Windows.Forms.Label label8;
+
+		global::ColorComboBox.ColorComboBox colorComboBox1;
 	}
 }

@@ -423,4 +423,7 @@
   <data name="textColumn3.Text" xml:space="preserve">
     <value>Полураспад</value>
   </data>
+  <data name="label8.Text" xml:space="preserve">
+    <value>Цвет пика</value>
+  </data>
 </root>

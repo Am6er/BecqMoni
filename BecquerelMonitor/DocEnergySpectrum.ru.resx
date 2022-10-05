@@ -763,7 +763,7 @@
     <value>241, 22</value>
   </data>
   <data name="ShowConToolStripMenuItem.Text" xml:space="preserve">
-    <value>Показать континуум</value>
+    <value>Показать континуум с пиками</value>
   </data>
     <data name="&gt;&gt;ShowConToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
