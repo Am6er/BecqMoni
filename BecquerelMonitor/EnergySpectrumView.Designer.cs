@@ -683,8 +683,8 @@ namespace BecquerelMonitor
                 {
                     for (int i = 0; i < this.activeResultData.DetectedPeaks.Count; i++)
                     {
-                        (int[] peakSpectrum, int min_ch, int max_ch) = sa.GetPeak(this.activeResultData.DetectedPeaks[i], this.continuumEnergySpectrum, true);
-                        this.peakEnergySpectrum.Add((peakSpectrum, min_ch, max_ch));
+                        (int[] peakSpectrum, int min_ch, int max_ch, Color peakColor) = sa.GetPeak(this.activeResultData.DetectedPeaks[i], this.continuumEnergySpectrum, true);
+                        this.peakEnergySpectrum.Add((peakSpectrum, min_ch, max_ch, peakColor));
                     }
                 }
                 
@@ -1273,21 +1273,11 @@ namespace BecquerelMonitor
 
                             for (int i = 0; i < this.peakEnergySpectrum.Count; i++)
                             {
-                                Color peakColor;
-                                if (this.activeResultData.DetectedPeaks[i].Nuclide != null)
-                                {
-                                    peakColor = this.activeResultData.DetectedPeaks[i].Nuclide.NuclideColor.Color;
-                                }
-                                else
-                                {
-                                    peakColor = colorConfig.UnknownPeakColor.Color;
-                                }
-
+                                (int[] peakSpectrum, int min_ch, int max_ch, Color peakColor) = this.peakEnergySpectrum[i];
                                 using (Brush brush = new SolidBrush(Color.FromArgb(alpha, peakColor)))
                                 {
                                     using (new Pen(Color.FromArgb(alpha, peakColor)))
                                     {
-                                        (int[] peakSpectrum, int min_ch, int max_ch) = this.peakEnergySpectrum[i];
                                         this.DrawPeakBarChart(g, brush, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, peakSpectrum, min_ch, max_ch);
                                     }
                                 }
@@ -1368,19 +1358,11 @@ namespace BecquerelMonitor
                         }
                         for (int i = 0; i < this.peakEnergySpectrum.Count; i++)
                         {
-                            Color peakColor;
-                            if (this.activeResultData.DetectedPeaks[i].Nuclide != null)
-                            {
-                                peakColor = this.activeResultData.DetectedPeaks[i].Nuclide.NuclideColor.Color;
-                            } else
-                            {
-                                peakColor = colorConfig.UnknownPeakColor.Color;
-                            }
+                            (int[] peakSpectrum, int min_ch, int max_ch, Color peakColor) = this.peakEnergySpectrum[i];
                             using (Brush brush = new SolidBrush(Color.FromArgb(alpha4, peakColor)))
                             {
                                 using (new Pen(Color.FromArgb(alpha4, peakColor)))
                                 {
-                                    (int[] peakSpectrum, int min_ch, int max_ch) = this.peakEnergySpectrum[i];
                                     this.DrawPeakBarChart(g, brush, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, peakSpectrum, min_ch, max_ch);
                                 }
                             }
@@ -1412,18 +1394,9 @@ namespace BecquerelMonitor
                         }
                         for (int i = 0; i < this.peakEnergySpectrum.Count; i++)
                         {
-                            Color peakColor;
-                            if (this.activeResultData.DetectedPeaks[i].Nuclide != null)
-                            {
-                                peakColor = this.activeResultData.DetectedPeaks[i].Nuclide.NuclideColor.Color;
-                            }
-                            else
-                            {
-                                peakColor = colorConfig.UnknownPeakColor.Color;
-                            }
+                            (int[] peakSpectrum, int min_ch, int max_ch, Color peakColor) = this.peakEnergySpectrum[i];
                             using (Pen pen5 = new Pen(peakColor))
                             {
-                                (int[] peakSpectrum, int min_ch, int max_ch) = this.peakEnergySpectrum[i];
                                 this.DrawPeakLineChart(g, pen5, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, peakSpectrum, min_ch, max_ch);
                             }
                         }
@@ -3621,7 +3594,8 @@ namespace BecquerelMonitor
 
         EnergySpectrum continuumEnergySpectrum;
 
-        List<(int[], int, int)> peakEnergySpectrum = new List<(int[], int, int)>();
+        List<(int[], int, int, Color)> peakEnergySpectrum = new List<(int[], int, int, Color)>();
+
 
         // Token: 0x040001FB RID: 507
         ROIConfigData roiConfig;
