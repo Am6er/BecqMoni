@@ -1,5 +1,6 @@
 ﻿using BecquerelMonitor.N42;
 using BecquerelMonitor.Properties;
+using BecquerelMonitor.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -811,6 +812,107 @@ namespace BecquerelMonitor
             {
                 MessageBox.Show(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message));
             }
+        }
+
+        public void ExportDocumentToECSV(DocEnergySpectrum doc, bool isSubstract = false, bool isSmooth = false, SmoothingMethod smmethod = SmoothingMethod.SimpleMovingAverage)
+        {
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.Title = Resources.CsvExportDialogTitle;
+            saveFileDialog.Filter = Resources.CsvFileFilter;
+            saveFileDialog.FilterIndex = 1;
+            saveFileDialog.RestoreDirectory = true;
+            saveFileDialog.FileName = doc.Text + ".csv";
+            if (saveFileDialog.ShowDialog() != DialogResult.OK)
+            {
+                return;
+            }
+            string fileName = saveFileDialog.FileName;
+            EnergySpectrum energySpectrum = doc.ActiveResultData.EnergySpectrum;
+            PolynomialEnergyCalibration cal = (PolynomialEnergyCalibration)energySpectrum.EnergyCalibration;
+            if (isSubstract && doc.ActiveResultData.BackgroundEnergySpectrum != null)
+            {
+                SpectrumAriphmetics sa = new SpectrumAriphmetics(energySpectrum);
+                EnergySpectrum substract = sa.Substract(doc.ActiveResultData.BackgroundEnergySpectrum);
+                try
+                {
+                    using (StreamWriter streamWriter = new StreamWriter(fileName, false, Encoding.GetEncoding(932)))
+                    {
+                        if (isSmooth)
+                        {
+                            EnergySpectrum smoothed = substract.Clone();
+
+                            if (smmethod == SmoothingMethod.SimpleMovingAverage)
+                            {
+                                int points = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.NumberOfSMADataPoints;
+                                smoothed.Spectrum = sa.SMA(substract.Spectrum, points);
+                            }
+                            else
+                            {
+                                int points = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.NumberOfWMADataPoints;
+                                smoothed.Spectrum = sa.WMA(substract.Spectrum, points);
+                            }
+
+                            for (int i = 0; i < energySpectrum.NumberOfChannels; i++)
+                            {
+                                streamWriter.WriteLine(i + "," + cal.ChannelToEnergy(i) + "," + smoothed.Spectrum[i]);
+                            }
+                        } else
+                        {
+                            for (int i = 0; i < substract.NumberOfChannels; i++)
+                            {
+                                streamWriter.WriteLine(i + "," + cal.ChannelToEnergy(i) + "," + substract.Spectrum[i]);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message));
+                }
+                sa.Dispose();
+            } else
+            {
+                try
+                {
+                    using (StreamWriter streamWriter = new StreamWriter(fileName, false, Encoding.GetEncoding(932)))
+                    {
+                        if (isSmooth)
+                        {
+                            EnergySpectrum smoothed = energySpectrum.Clone();
+                            SpectrumAriphmetics sa = new SpectrumAriphmetics(energySpectrum);
+
+                            if (smmethod == SmoothingMethod.SimpleMovingAverage)
+                            {
+                                int points = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.NumberOfSMADataPoints;
+                                smoothed.Spectrum = sa.SMA(energySpectrum.Spectrum, points);
+                            } else
+                            {
+                                int points = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.NumberOfWMADataPoints;
+                                smoothed.Spectrum = sa.WMA(energySpectrum.Spectrum, points);
+                            }
+
+                            for (int i = 0; i < energySpectrum.NumberOfChannels; i++)
+                            {
+                                streamWriter.WriteLine(i + "," + cal.ChannelToEnergy(i) + "," + smoothed.Spectrum[i]);
+                            }
+
+                            sa.Dispose();
+                        } else
+                        {
+                            for (int i = 0; i < energySpectrum.NumberOfChannels; i++)
+                            {
+                                streamWriter.WriteLine(i + "," + cal.ChannelToEnergy(i) + "," + energySpectrum.Spectrum[i]);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message));
+                }
+            }
+            
+
         }
 
         // Token: 0x06000279 RID: 633 RVA: 0x0000A5F0 File Offset: 0x000087F0

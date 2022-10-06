@@ -60,6 +60,7 @@ namespace BecquerelMonitor
 			this.cSVFileToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.エクスポ\u30FCトEToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.cSVCToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.ECSVToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.fWHM用ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSeparator1 = new global::System.Windows.Forms.ToolStripSeparator();
 			this.終了XToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
@@ -204,6 +205,7 @@ namespace BecquerelMonitor
 				this.N42ExpStripMenuItem,
 				this.AtomSpectraExpStripMenuItem,
 				this.cSVCToolStripMenuItem,
+				this.ECSVToolStripMenuItem,
 				this.fWHM用ToolStripMenuItem
 			});
 			this.エクスポ\u30FCトEToolStripMenuItem.Name = "エクスポートEToolStripMenuItem";
@@ -216,6 +218,9 @@ namespace BecquerelMonitor
 			componentResourceManager.ApplyResources(this.cSVCToolStripMenuItem, "cSVCToolStripMenuItem");
 			this.cSVCToolStripMenuItem.Name = "cSVCToolStripMenuItem";
 			this.cSVCToolStripMenuItem.Click += new global::System.EventHandler(this.cSVCToolStripMenuItem_Click);
+			componentResourceManager.ApplyResources(this.ECSVToolStripMenuItem, "ECSVToolStripMenuItem");
+			this.ECSVToolStripMenuItem.Name = "ECSVToolStripMenuItem";
+			this.ECSVToolStripMenuItem.Click += new global::System.EventHandler(this.ECSVToolStripMenuItem_Click);
 			componentResourceManager.ApplyResources(this.fWHM用ToolStripMenuItem, "fWHM用ToolStripMenuItem");
 			this.fWHM用ToolStripMenuItem.Name = "fWHM用ToolStripMenuItem";
 			this.fWHM用ToolStripMenuItem.Click += new global::System.EventHandler(this.fWHM用ToolStripMenuItem_Click);
@@ -589,6 +594,8 @@ namespace BecquerelMonitor
 
 		// Token: 0x040005A2 RID: 1442
 		global::System.Windows.Forms.ToolStripMenuItem cSVCToolStripMenuItem;
+
+		global::System.Windows.Forms.ToolStripMenuItem ECSVToolStripMenuItem;
 
 		// Token: 0x040005A3 RID: 1443
 		global::System.Windows.Forms.ToolStripSeparator toolStripSeparator5;
