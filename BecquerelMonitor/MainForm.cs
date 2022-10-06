@@ -1400,6 +1400,24 @@ namespace BecquerelMonitor
             }
         }
 
+        void ECSVToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (this.activeDocument != null)
+            {
+                bool issubstract = false;
+                bool issmooth = false;
+                if (this.activeDocument.EnergySpectrumView.BackgroundMode == BackgroundMode.Substract)
+                {
+                    issubstract = true;
+                }
+                if (this.activeDocument.EnergySpectrumView.SmoothingMethod != SmoothingMethod.None)
+                {
+                    issmooth = true;
+                }
+                this.documentManager.ExportDocumentToECSV(this.activeDocument, isSubstract: issubstract, isSmooth: issmooth, smmethod: this.activeDocument.EnergySpectrumView.SmoothingMethod);
+            }
+        }
+
         // Token: 0x06000A82 RID: 2690 RVA: 0x0003E82C File Offset: 0x0003CA2C
         void SubscribeDocumentEvent(DocEnergySpectrum doc)
         {

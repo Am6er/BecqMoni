@@ -123,6 +123,9 @@ namespace BecquerelMonitor
             this.DoubleBuffered = true;
             base.Name = "EnergySpectrumView";
             this.toolTip1.SetToolTip(this, componentResourceManager.GetString("$this.ToolTip"));
+            SetStyle(ControlStyles.AllPaintingInWmPaint, true);
+            SetStyle(ControlStyles.UserPaint, true);
+            SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
             base.SizeChanged += this.EnergySpectrumView_SizeChanged;
             base.MouseDown += this.EnergySpectrumView_MouseDown;
             base.MouseLeave += this.EnergySpectrumView_MouseLeave;

@@ -1070,4 +1070,16 @@
   <data name="&gt;&gt;ConcatSpectrumsStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
+  <data name="ECSVToolStripMenuItem.Text" xml:space="preserve">
+    <value>&amp;Extended CSV File</value>
+  </data>
+  <data name="ECSVToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+    <value>134, 22</value>
+  </data>
+  <data name="&gt;&gt;ECSVToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;ECSVToolStripMenuItem.Name" xml:space="preserve">
+    <value>ECSVToolStripMenuItem</value>
+  </data>
 </root>
