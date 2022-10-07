@@ -27,16 +27,12 @@ namespace BecquerelMonitor.Utils
         public SpectrumAriphmetics(EnergySpectrum energySpectrum)
         {
             this.EnergySpectrum = energySpectrum.Clone();
-            this.sMASpectrum = SMA(this.EnergySpectrum.Spectrum, 3);
-            //this.wMASpectrum = WMA(this.EnergySpectrum.Spectrum, 3);
         }
 
         public SpectrumAriphmetics(FWHMPeakDetectionMethodConfig fWHMPeakDetectionMethodConfig, EnergySpectrum energySpectrum)
         {
             this.FWHMPeakDetectionMethodConfig = fWHMPeakDetectionMethodConfig;
-            this.EnergySpectrum = energySpectrum;
-            this.sMASpectrum = SMA(this.EnergySpectrum.Spectrum, 3);
-            //this.wMASpectrum = WMA(this.EnergySpectrum.Spectrum, 3);
+            this.EnergySpectrum = energySpectrum.Clone();
         }
 
         public DocEnergySpectrum CombineWith(DocEnergySpectrum docenergySpectrum)
@@ -171,9 +167,10 @@ namespace BecquerelMonitor.Utils
         public (int[], int, int, Color) GetPeak(Peak peak, EnergySpectrum continuum, bool smooth)
         {
             int amplitude;
-            if (smooth && this.sMASpectrum[peak.Channel] < this.EnergySpectrum.Spectrum[peak.Channel])
+            int[] SMASpectrum = SMA(this.EnergySpectrum.Spectrum, 3);
+            if (smooth && SMASpectrum[peak.Channel] < this.EnergySpectrum.Spectrum[peak.Channel])
             {
-                amplitude = this.sMASpectrum[peak.Channel] - continuum.Spectrum[peak.Channel];
+                amplitude = SMASpectrum[peak.Channel] - continuum.Spectrum[peak.Channel];
             } else
             {
                 amplitude = this.EnergySpectrum.Spectrum[peak.Channel] - continuum.Spectrum[peak.Channel];
@@ -398,20 +395,43 @@ namespace BecquerelMonitor.Utils
             return newSpectrum;
         }
 
-        int[] RestoreSpectrum(int[] spectrum, int newChanNumber)
+        public static EnergySpectrum RestoreSpectrum(EnergySpectrum energySpectrum, int newChan)
+        {
+            EnergySpectrum newSpectrum = new EnergySpectrum(energySpectrum.ChannelPitch, newChan);
+            PolynomialEnergyCalibration calibration = new PolynomialEnergyCalibration((PolynomialEnergyCalibration)energySpectrum.EnergyCalibration);
+            double mul = (double)energySpectrum.NumberOfChannels / (double)newChan;
+            for (int i = 0; i < calibration.Coefficients.Length; i++)
+            {
+                calibration.Coefficients[i] = Math.Pow(mul, i) * calibration.Coefficients[i];
+            }
+            newSpectrum.EnergyCalibration = calibration;
+            newSpectrum.NumberOfChannels = newChan;
+            newSpectrum.Spectrum = RestoreArray(energySpectrum.Spectrum, newChan);
+            newSpectrum.MeasurementTime = energySpectrum.MeasurementTime;
+            newSpectrum.TotalPulseCount = newSpectrum.Spectrum.Sum();
+            newSpectrum.ValidPulseCount = newSpectrum.TotalPulseCount;
+            newSpectrum.NumberOfSamples = energySpectrum.NumberOfSamples;
+            return newSpectrum;
+        }
+
+        static int[] RestoreArray(int[] spectrum, int newChanNumber)
         {
             int[] result = new int[newChanNumber];
             int multiplier = newChanNumber / spectrum.Length;
-            for (int i = 0; i < spectrum.Length - 1; i++)
+            for (int i = 0; i < spectrum.Length - 4; i++)
             {
-                double[] x_v = { i * multiplier, (i + 1) * multiplier };
-                double[] y_v = { spectrum[i] / multiplier, spectrum[i + 1] / multiplier };
+                double[] x_v = { i * multiplier, (i + 1) * multiplier, (i + 2) * multiplier, (i + 3) * multiplier, (i + 4) * multiplier };
+                double[] y_v = { spectrum[i] / multiplier, spectrum[i + 1] / multiplier, spectrum[i + 2] / multiplier, spectrum[i + 3] / multiplier, spectrum[i + 4] / multiplier };
 
-                double[] poly = Fit.Polynomial(x_v, y_v, 1);
+                double[] poly = Fit.Polynomial(x_v, y_v, 3);
 
-                for (int j = 0; j < multiplier; j++)
+                for (int j = 0; j < 4*multiplier; j++)
                 {
-                    result[multiplier * i + j] = Convert.ToInt32(poly[0] + poly[1] * (i * multiplier + j));
+                    result[multiplier * i + j] = Convert.ToInt32(poly[0] + poly[1] * (i * multiplier + j) + poly[2] * Math.Pow(i * multiplier + j, 2) + poly[3] * Math.Pow(i * multiplier + j, 3));
+                    if (result[multiplier * i + j] < 0)
+                    {
+                        result[multiplier * i + j] = 0;
+                    }
                 }
             }
             return result;
@@ -526,22 +546,10 @@ namespace BecquerelMonitor.Utils
             GC.Collect();
         }
 
-        public int[] SMASpectrum
-        {
-            get
-            {
-                return this.sMASpectrum;
-            }
-        }
-
         DocEnergySpectrum MainSpectrum;
 
         EnergySpectrum EnergySpectrum;
 
         FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig;
-
-        int[] sMASpectrum;
-
-        //int[] wMASpectrum;
     }
 }

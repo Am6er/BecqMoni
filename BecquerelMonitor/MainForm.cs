@@ -1141,9 +1141,15 @@ namespace BecquerelMonitor
 
         void ConcatSpectrums(DocEnergySpectrum docEnergySpectrum, int newChan)
         {
-
             CreateDocument();
-            this.activeDocument.ActiveResultData.EnergySpectrum = SpectrumAriphmetics.ConcatSpectrum(docEnergySpectrum.ActiveResultData.EnergySpectrum, newChan);
+            if (newChan < docEnergySpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels)
+            {
+                this.activeDocument.ActiveResultData.EnergySpectrum = SpectrumAriphmetics.ConcatSpectrum(docEnergySpectrum.ActiveResultData.EnergySpectrum, newChan);
+            } else
+            {
+                this.activeDocument.ActiveResultData.EnergySpectrum = SpectrumAriphmetics.RestoreSpectrum(docEnergySpectrum.ActiveResultData.EnergySpectrum, newChan);
+            }
+            
             this.activeDocument.ActiveResultData.DeviceConfigReference = null;
             this.activeDocument.ActiveResultData.DeviceConfig = new DeviceConfigInfo();
             if (docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum != null)
@@ -2038,11 +2044,15 @@ namespace BecquerelMonitor
 
         void ConcatSpectrumsStripMenuItem_Click(object sender, EventArgs e)
         {
+            if (this.activeDocument == null)
+            {
+                return;
+            }
             new ChanNumberChangeDialog(this)
             {
                 Owner = this
             }.ShowDialog();
-            if (newChan > 0 && newChan < this.activeDocument.ActiveResultData.EnergySpectrum.NumberOfChannels)
+            if (newChan > 64 && newChan != this.activeDocument.ActiveResultData.EnergySpectrum.NumberOfChannels)
             {
                 ConcatSpectrums(this.activeDocument, newChan);
                 newChan = 0;
