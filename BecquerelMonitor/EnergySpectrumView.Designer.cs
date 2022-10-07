@@ -1291,7 +1291,7 @@ namespace BecquerelMonitor
                             goto IL_438;
                         }
                         int alpha2 = (int)(colorConfig.ActiveSpectrumColorTransparency * 255m / 100m);
-                        if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                        if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0 && this.substractedEnergySpectrum != null)
                         {
                             using (Brush brush2 = new SolidBrush(Color.FromArgb(alpha2, colorConfig.BgDiffColor.Color)))
                             {
@@ -1317,7 +1317,7 @@ namespace BecquerelMonitor
                     if (this.energySpectrum.MeasurementTime != 0.0)
                     {
                         int alpha3 = (int)(colorConfig.ActiveSpectrumColorTransparency * 255m / 100m);
-                        if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                        if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0 && this.substractedEnergySpectrum != null)
                         {
                             using (Brush brush3 = new SolidBrush(Color.FromArgb(alpha3, colorConfig.BgDiffColor.Color)))
                             {
@@ -1406,7 +1406,7 @@ namespace BecquerelMonitor
                     }
                     if (this.energySpectrum.MeasurementTime != 0.0)
                     {
-                        if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                        if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0 && this.substractedEnergySpectrum != null)
                         {
                             using (Pen pen6 = new Pen(colorConfig.BgDiffColor.Color))
                             {

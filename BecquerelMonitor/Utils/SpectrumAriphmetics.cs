@@ -380,7 +380,7 @@ namespace BecquerelMonitor.Utils
         {
             EnergySpectrum newSpectrum = new EnergySpectrum(energySpectrum.ChannelPitch, newChan);
             PolynomialEnergyCalibration calibration = new PolynomialEnergyCalibration((PolynomialEnergyCalibration)energySpectrum.EnergyCalibration);
-            double mul = energySpectrum.NumberOfChannels / newChan;
+            double mul = (double)energySpectrum.NumberOfChannels / (double)newChan;
             for (int i = 0; i < calibration.Coefficients.Length; i++)
             {
                 calibration.Coefficients[i] = Math.Pow(mul, i) * calibration.Coefficients[i];
@@ -389,8 +389,8 @@ namespace BecquerelMonitor.Utils
             newSpectrum.NumberOfChannels = newChan;
             newSpectrum.Spectrum = ConcatArray(energySpectrum.Spectrum, newChan);
             newSpectrum.MeasurementTime = energySpectrum.MeasurementTime;
-            newSpectrum.TotalPulseCount = energySpectrum.TotalPulseCount;
-            newSpectrum.ValidPulseCount = energySpectrum.ValidPulseCount;
+            newSpectrum.TotalPulseCount = newSpectrum.Spectrum.Sum();
+            newSpectrum.ValidPulseCount = newSpectrum.TotalPulseCount;
             newSpectrum.NumberOfSamples = energySpectrum.NumberOfSamples;
             return newSpectrum;
         }
