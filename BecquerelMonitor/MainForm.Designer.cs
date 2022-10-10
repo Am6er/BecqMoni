@@ -112,7 +112,8 @@ namespace BecquerelMonitor
 			this.statusStrip1 = new global::System.Windows.Forms.StatusStrip();
 			this.toolStripStatusLabel1 = new global::System.Windows.Forms.ToolStripStatusLabel();
 			this.toolStripStatusLabel2 = new global::System.Windows.Forms.ToolStripStatusLabel();
-			this.dockPanel1 = new global::WeifenLuo.WinFormsUI.Docking.DockPanel();
+            this.toolStripStatusLabel3 = new global::System.Windows.Forms.ToolStripStatusLabel();
+            this.dockPanel1 = new global::WeifenLuo.WinFormsUI.Docking.DockPanel();
 			this.imageList1 = new global::System.Windows.Forms.ImageList(this.components);
 			this.menuStrip1.SuspendLayout();
 			this.statusStrip1.SuspendLayout();
@@ -417,14 +418,20 @@ namespace BecquerelMonitor
 			this.statusStrip1.Items.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
 				this.toolStripStatusLabel1,
-				this.toolStripStatusLabel2
-			});
+				this.toolStripStatusLabel2,
+                this.toolStripStatusLabel3,
+            });
 			this.statusStrip1.Name = "statusStrip1";
 			componentResourceManager.ApplyResources(this.toolStripStatusLabel1, "toolStripStatusLabel1");
 			this.toolStripStatusLabel1.Name = "toolStripStatusLabel1";
+			this.toolStripStatusLabel1.AutoSize = true;
 			componentResourceManager.ApplyResources(this.toolStripStatusLabel2, "toolStripStatusLabel2");
 			this.toolStripStatusLabel2.Name = "toolStripStatusLabel2";
-			componentResourceManager.ApplyResources(this.dockPanel1, "dockPanel1");
+			this.toolStripStatusLabel2.Spring = true;
+            componentResourceManager.ApplyResources(this.toolStripStatusLabel3, "toolStripStatusLabel3");
+            this.toolStripStatusLabel3.Name = "toolStripStatusLabel3";
+            this.toolStripStatusLabel3.AutoSize = true;
+            componentResourceManager.ApplyResources(this.dockPanel1, "dockPanel1");
 			this.dockPanel1.BackColor = global::System.Drawing.SystemColors.Control;
 			this.dockPanel1.DefaultFloatWindowSize = new global::System.Drawing.Size(400, 300);
 			this.dockPanel1.DockBackColor = global::System.Drawing.SystemColors.ControlDark;
@@ -527,8 +534,10 @@ namespace BecquerelMonitor
 		// Token: 0x0400058C RID: 1420
 		global::System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel2;
 
-		// Token: 0x0400058D RID: 1421
-		global::System.Windows.Forms.ToolStripMenuItem 表示TToolStripMenuItem;
+        global::System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel3;
+
+        // Token: 0x0400058D RID: 1421
+        global::System.Windows.Forms.ToolStripMenuItem 表示TToolStripMenuItem;
 
 		// Token: 0x0400058E RID: 1422
 		global::System.Windows.Forms.ToolStripMenuItem コントロ\u30FCルパネルCToolStripMenuItem;
