@@ -1598,6 +1598,10 @@ namespace BecquerelMonitor
                     y3 = this.height;
                 }
             }
+            if (num8 > int.MaxValue || y2 > int.MaxValue || y3 > int.MaxValue || num8 < int.MinValue || y2 < int.MinValue || y3 < int.MinValue)
+            {
+                return;
+            }
             g.DrawLine(Pens.Yellow, num8, y2, num8, y3);
             if (energyResolutionResult.LeftChannel < energyResolutionResult.MaxChannel && energyResolutionResult.RightChannel > energyResolutionResult.MaxChannel)
             {

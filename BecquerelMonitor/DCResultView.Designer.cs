@@ -28,9 +28,9 @@
 			this.table1 = new global::XPTable.Models.Table();
 			this.columnModel1 = new global::XPTable.Models.ColumnModel();
 			this.textColumn1 = new global::XPTable.Models.TextColumn();
-			this.textColumn2 = new global::XPTable.Models.TextColumn();
-			this.textColumn3 = new global::XPTable.Models.TextColumn();
-			this.textColumn4 = new global::XPTable.Models.TextColumn();
+			this.textColumn2 = new global::XPTable.Models.NumberColumn();
+			this.textColumn3 = new global::XPTable.Models.NumberColumn();
+			this.textColumn4 = new global::XPTable.Models.NumberColumn();
 			this.tableModel1 = new global::XPTable.Models.TableModel();
 			((global::System.ComponentModel.ISupportInitialize)this.table1).BeginInit();
 			base.SuspendLayout();
@@ -121,13 +121,13 @@
 		global::XPTable.Models.TextColumn textColumn1;
 
 		// Token: 0x040001AC RID: 428
-		global::XPTable.Models.TextColumn textColumn2;
+		global::XPTable.Models.NumberColumn textColumn2;
 
 		// Token: 0x040001AD RID: 429
 		global::XPTable.Models.TableModel tableModel1;
 
 		// Token: 0x040001AE RID: 430
-		global::XPTable.Models.TextColumn textColumn3;
+		global::XPTable.Models.NumberColumn textColumn3;
 
 		// Token: 0x040001AF RID: 431
 		global::System.Windows.Forms.Button button1;
@@ -139,6 +139,6 @@
 		global::System.Windows.Forms.ComboBox comboBox1;
 
 		// Token: 0x040001B2 RID: 434
-		global::XPTable.Models.TextColumn textColumn4;
+		global::XPTable.Models.NumberColumn textColumn4;
 	}
 }
