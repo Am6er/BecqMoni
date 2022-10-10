@@ -118,8 +118,6 @@ namespace BecquerelMonitor
             }
             if (this.globalConfig.Language != "OS")
             {
-                //Thread.CurrentThread.CurrentCulture = new CultureInfo(this.globalConfig.Language);
-                //Thread.CurrentThread.CurrentUICulture = new CultureInfo(this.globalConfig.Language);
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(this.globalConfig.Language);
                 System.Globalization.CultureInfo customCulture = (System.Globalization.CultureInfo)System.Threading.Thread.CurrentThread.CurrentCulture.Clone();
                 customCulture.NumberFormat.NumberDecimalSeparator = ".";
@@ -671,7 +669,7 @@ namespace BecquerelMonitor
         // Token: 0x06000A5D RID: 2653 RVA: 0x0003D724 File Offset: 0x0003B924
         void toolStripMenuItem3_Click(object sender, EventArgs e)
         {
-            if (this.dcStatusMessageView.IsDisposed)
+            if (this.dcStatusMessageView == null || this.dcStatusMessageView.IsDisposed)
             {
                 this.dcStatusMessageView = new DCStatusMessageView(this);
             }
@@ -721,7 +719,7 @@ namespace BecquerelMonitor
         // Token: 0x06000A61 RID: 2657 RVA: 0x0003D898 File Offset: 0x0003BA98
         void toolStripMenuItem5_Click(object sender, EventArgs e)
         {
-            if (this.dcDoseRateView.IsDisposed)
+            if (this.dcDoseRateView == null || this.dcDoseRateView.IsDisposed)
             {
                 this.dcDoseRateView = new DCDoseRateView(this);
             }
@@ -1641,6 +1639,26 @@ namespace BecquerelMonitor
                 this.ShowMeasurementResult(true);
                 this.dcSpectrumListView.ShowSpectrumList(doc);
             }
+        }
+
+        public void SetStatusTextLeft(string Text)
+        {
+            this.toolStripStatusLabel1.Text = Text;
+        }
+
+        public void SetStatusTextRight(string Text)
+        {
+            this.toolStripStatusLabel3.Text = Text;
+        }
+
+        public void ClearStatusTextLeft()
+        {
+            this.toolStripStatusLabel1.Text = "";
+        }
+
+        public void ClearStatusTextRight()
+        {
+            this.toolStripStatusLabel3.Text = "";
         }
 
         // Token: 0x06000A8E RID: 2702 RVA: 0x0003EE7C File Offset: 0x0003D07C
