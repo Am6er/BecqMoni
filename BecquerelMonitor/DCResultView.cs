@@ -111,9 +111,11 @@ namespace BecquerelMonitor
             }
             this.table1.BeginUpdate();
             string format = "f2";
+            int format_int = 2;
             if (this.resultTranslation == ResultTranslation.CountsPerSecond)
             {
                 format = "f5";
+                format_int = 5;
             }
             if (refresh)
             {
@@ -125,14 +127,14 @@ namespace BecquerelMonitor
                     row.Cells.Add(new Cell(measurementResult.ROIDefinition.Name));
                     if (measurementResult.IsValid)
                     {
-                        Cell cell = new Cell(measurementResult.ResultValue.ToString(format));
+                        Cell cell = new Cell(measurementResult.ResultValue.ToString(format), Math.Round(measurementResult.ResultValue, format_int));
                         bool flag = this.CheckDetected(measurementResult);
                         cell.Tag = flag;
                         double num = measurementResult.ResultError * (double)errorLevel;
                         if (showValuesForNDResult || flag)
                         {
                             row.Cells.Add(cell);
-                            row.Cells.Add(new Cell("±" + num.ToString(format)));
+                            row.Cells.Add(new Cell("±" + num.ToString(format), Math.Round(num, format_int)));
                         }
                         else
                         {
@@ -140,8 +142,13 @@ namespace BecquerelMonitor
                             row.Cells.Add(cell);
                             row.Cells.Add(new Cell("―"));
                         }
-                        string text = (measurementResult.MDA > 0.0) ? measurementResult.MDA.ToString(format) : "―";
-                        row.Cells.Add(new Cell(text));
+                        if (measurementResult.MDA > 0.0)
+                        {
+                            row.Cells.Add(new Cell(measurementResult.MDA.ToString(format), Math.Round(measurementResult.MDA, format_int)));
+                        } else
+                        {
+                            row.Cells.Add(new Cell("―"));
+                        }
                     }
                     else
                     {

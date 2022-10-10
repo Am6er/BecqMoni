@@ -93,11 +93,11 @@ namespace BecquerelMonitor
                     text2 = num.ToString("f2") + " (" + num2.ToString("f2") + "%)";
                 }
                 row.Cells.Add(new Cell(text));
-                row.Cells.Add(new Cell(peak.Energy.ToString("f2")));
+                row.Cells.Add(new Cell(peak.Energy.ToString("f2"), Math.Round(peak.Energy, 2)));
                 row.Cells.Add(new Cell(text2));
-                row.Cells.Add(new Cell(peak.Channel.ToString()));
-                row.Cells.Add(new Cell(peak.SNR.ToString()));
-                row.Cells.Add(new Cell(peak.FWHM.ToString()));
+                row.Cells.Add(new Cell(peak.Channel.ToString(), peak.Channel));
+                row.Cells.Add(new Cell(peak.SNR.ToString(), peak.SNR));
+                row.Cells.Add(new Cell(peak.FWHM.ToString(), peak.FWHM));
                 this.tableModel1.Rows.Add(row);
             }
             activeDocument.RefreshView();

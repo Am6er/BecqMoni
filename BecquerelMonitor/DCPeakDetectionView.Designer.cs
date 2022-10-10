@@ -27,12 +27,12 @@ namespace BecquerelMonitor
             this.table1 = new global::XPTable.Models.Table();
 			this.columnModel1 = new global::XPTable.Models.ColumnModel();
 			this.textColumn3 = new global::XPTable.Models.TextColumn();
-			this.textColumn1 = new global::XPTable.Models.TextColumn();
-			this.textColumn4 = new global::XPTable.Models.TextColumn();
-			this.textColumn5 = new global::XPTable.Models.TextColumn();
-			this.textColumn6 = new global::XPTable.Models.TextColumn();
-			this.textColumn2 = new global::XPTable.Models.TextColumn();
-			this.tableModel1 = new global::XPTable.Models.TableModel();
+			this.textColumn1 = new global::XPTable.Models.NumberColumn();
+            this.textColumn4 = new global::XPTable.Models.TextColumn();
+			this.textColumn5 = new global::XPTable.Models.NumberColumn();
+            this.textColumn6 = new global::XPTable.Models.NumberColumn();
+			this.textColumn2 = new global::XPTable.Models.NumberColumn();
+            this.tableModel1 = new global::XPTable.Models.TableModel();
 			this.numericUpDown1 = new global::System.Windows.Forms.NumericUpDown();
 			this.numericUpDown2 = new global::System.Windows.Forms.NumericUpDown();
 			this.label1 = new global::System.Windows.Forms.Label();
@@ -199,17 +199,17 @@ namespace BecquerelMonitor
 		global::XPTable.Models.TableModel tableModel1;
 
 		// Token: 0x040001BA RID: 442
-		global::XPTable.Models.TextColumn textColumn1;
+		global::XPTable.Models.NumberColumn textColumn1;
 
 		// Token: 0x040001BB RID: 443
 		global::XPTable.Models.TextColumn textColumn3;
 
 		// Token: 0x040001BC RID: 444
-		global::XPTable.Models.TextColumn textColumn2;
+		global::XPTable.Models.NumberColumn textColumn2;
 
-		global::XPTable.Models.TextColumn textColumn5;
+		global::XPTable.Models.NumberColumn textColumn5;
 
-		global::XPTable.Models.TextColumn textColumn6;
+		global::XPTable.Models.NumberColumn textColumn6;
 
 		// Token: 0x040001BD RID: 445
 		global::System.Windows.Forms.NumericUpDown numericUpDown1;
