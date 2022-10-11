@@ -4273,6 +4273,11 @@ FW peak width ch - The width of the peak in channels. Select peak from
  the "FWHM peak in ch" parameter with the mouse and enter the
  value "FWHM ch" here.
 
+Concat channels ch - how many channels in spectrum will be used during
+ peak detection. Value should be between 256 and maxumum channels
+  for this particular device. WARNING! Incresing channel number
+   DRAMATICALLY slows your performance! Recommended values 512 or 1024.
+
 Please note, that FWHM peaks indicated in "Detected Peaks" tabel, are FWHM 
 peaks "cleared" of noise. And they are not suitable for using them in peak
  search settings. Moreover, in peak search settings, you should specify

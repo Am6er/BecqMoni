@@ -1650,6 +1650,9 @@
   <data name="textColumn4.Text" xml:space="preserve">
     <value>Нуклид</value>
   </data>
+  <data name="label52.Text" xml:space="preserve">
+    <value>Сжатие ch</value>
+  </data>
   <data name="textColumn4.ToolTipText" xml:space="preserve">
     <value />
   </data>

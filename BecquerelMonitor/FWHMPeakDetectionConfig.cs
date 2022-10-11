@@ -135,6 +135,18 @@
             }
         }
 
+        public int Ch_Concat
+        {
+            get
+            {
+                return this.ch_concat;
+            }
+            set
+            {
+                this.ch_concat = value;
+            }
+        }
+
         public FWHMPeakDetectionMethodConfig()
         {
         }
@@ -151,6 +163,7 @@
             this.max_range_en = config.max_range_en;
             this.min_fwhm_tol = config.min_fwhm_tol;
             this.max_fwhm_tol = config.max_fwhm_tol;
+            this.ch_concat = config.ch_concat;
         }
 
         public override PeakDetectionMethodConfig Clone()
@@ -177,6 +190,8 @@
         decimal min_fwhm_tol = 50;
 
         decimal max_fwhm_tol = 150;
+
+        int ch_concat = 512;
 
         bool enabled = true;
     }

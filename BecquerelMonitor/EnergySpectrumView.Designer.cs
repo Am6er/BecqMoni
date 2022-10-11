@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using BecquerelMonitor.Properties;
 using BecquerelMonitor.Utils;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TrayNotify;
 
 namespace BecquerelMonitor
 {
@@ -1015,193 +1014,48 @@ namespace BecquerelMonitor
             }
             if (this.smoothingMethod == SmoothingMethod.SimpleMovingAverage)
             {
+                SpectrumAriphmetics sa = new SpectrumAriphmetics();
                 int numberOfSMADataPoints = this.globalConfigManager.GlobalConfig.ChartViewConfig.NumberOfSMADataPoints;
                 foreach (ResultData resultData5 in this.resultDataList)
                 {
-                    EnergySpectrum energySpectrum2 = resultData5.EnergySpectrum;
-                    for (int n = 0; n < energySpectrum2.NumberOfChannels; n++)
-                    {
-                        double num7 = 0.0;
-                        for (int num8 = n - numberOfSMADataPoints / 2; num8 < n - numberOfSMADataPoints / 2 + numberOfSMADataPoints; num8++)
-                        {
-                            int num9 = num8;
-                            if (num9 < 0)
-                            {
-                                num9 = 0;
-                            }
-                            else if (num8 >= energySpectrum2.NumberOfChannels)
-                            {
-                                num9 = energySpectrum2.NumberOfChannels - 1;
-                            }
-                            num7 += (double)energySpectrum2.Spectrum[num9];
-                        }
-                        energySpectrum2.DrawingSpectrum[n] = num7 / (double)numberOfSMADataPoints;
-                    }
+                    resultData5.EnergySpectrum.DrawingSpectrum = sa.SMA2(resultData5.EnergySpectrum.Spectrum, numberOfSMADataPoints);
+
                 }
                 if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
                 {
-                    for (int num10 = 0; num10 < this.substractedEnergySpectrum.NumberOfChannels; num10++)
-                    {
-                        double num11 = 0.0;
-                        for (int num12 = num10 - numberOfSMADataPoints / 2; num12 < num10 - numberOfSMADataPoints / 2 + numberOfSMADataPoints; num12++)
-                        {
-                            int num13 = num12;
-                            if (num13 < 0)
-                            {
-                                num13 = 0;
-                            }
-                            else if (num12 >= this.substractedEnergySpectrum.NumberOfChannels)
-                            {
-                                num13 = this.substractedEnergySpectrum.NumberOfChannels - 1;
-                            }
-                            num11 += (double)this.substractedEnergySpectrum.Spectrum[num13];
-                        }
-                        this.substractedEnergySpectrum.DrawingSpectrum[num10] = num11 / (double)numberOfSMADataPoints;
-                    }
+                    this.substractedEnergySpectrum.DrawingSpectrum = sa.SMA2(this.substractedEnergySpectrum.Spectrum, numberOfSMADataPoints);
                 }
                 if (this.backgroundMode == BackgroundMode.Visible && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.Spectrum != null)
                 {
-                    for (int num10 = 0; num10 < this.backgroundNumberOfChannels; num10++)
-                    {
-                        double num11 = 0.0;
-                        for (int num12 = num10 - numberOfSMADataPoints / 2; num12 < num10 - numberOfSMADataPoints / 2 + numberOfSMADataPoints; num12++)
-                        {
-                            int num13 = num12;
-                            if (num13 < 0)
-                            {
-                                num13 = 0;
-                            }
-                            else if (num12 >= this.backgroundNumberOfChannels)
-                            {
-                                num13 = this.backgroundNumberOfChannels - 1;
-                            }
-                            num11 += (double)this.backgroundEnergySpectrum.Spectrum[num13];
-                        }
-                        this.backgroundEnergySpectrum.DrawingSpectrum[num10] = num11 / (double)numberOfSMADataPoints;
-                    }
+                    this.backgroundEnergySpectrum.DrawingSpectrum = sa.SMA2(this.backgroundEnergySpectrum.Spectrum, numberOfSMADataPoints);
                 }
                 if (this.backgroundMode == BackgroundMode.ShowContinuum)
                 {
-                    for (int num10 = 0; num10 < this.continuumEnergySpectrum.NumberOfChannels; num10++)
-                    {
-                        double num11 = 0.0;
-                        for (int num12 = num10 - numberOfSMADataPoints / 2; num12 < num10 - numberOfSMADataPoints / 2 + numberOfSMADataPoints; num12++)
-                        {
-                            int num13 = num12;
-                            if (num13 < 0)
-                            {
-                                num13 = 0;
-                            }
-                            else if (num12 >= this.continuumEnergySpectrum.NumberOfChannels)
-                            {
-                                num13 = this.continuumEnergySpectrum.NumberOfChannels - 1;
-                            }
-                            num11 += (double)this.continuumEnergySpectrum.Spectrum[num13];
-                        }
-                        this.continuumEnergySpectrum.DrawingSpectrum[num10] = num11 / (double)numberOfSMADataPoints;
-                    }
+                    this.continuumEnergySpectrum.DrawingSpectrum = sa.SMA2(this.continuumEnergySpectrum.Spectrum, numberOfSMADataPoints);
                 }
+                sa.Dispose();
             }
             else if (this.smoothingMethod == SmoothingMethod.WeightedMovingAverage)
             {
+                SpectrumAriphmetics sa = new SpectrumAriphmetics();
                 int numberOfWMADataPoints = this.globalConfigManager.GlobalConfig.ChartViewConfig.NumberOfWMADataPoints;
                 foreach (ResultData resultData6 in this.resultDataList)
                 {
-                    EnergySpectrum energySpectrum3 = resultData6.EnergySpectrum;
-                    for (int num14 = 0; num14 < energySpectrum3.NumberOfChannels; num14++)
-                    {
-                        double num15 = 0.0;
-                        double num16 = 0.0;
-                        for (int num17 = num14 - numberOfWMADataPoints / 2; num17 < num14 - numberOfWMADataPoints / 2 + numberOfWMADataPoints; num17++)
-                        {
-                            int num18 = num17;
-                            if (num18 < 0)
-                            {
-                                num18 = 0;
-                            }
-                            else if (num17 >= energySpectrum3.NumberOfChannels)
-                            {
-                                num18 = energySpectrum3.NumberOfChannels - 1;
-                            }
-                            double num19 = (double)(numberOfWMADataPoints / 2 + 1 - Math.Abs(num14 - num17));
-                            num15 += (double)energySpectrum3.Spectrum[num18] * num19;
-                            num16 += num19;
-                        }
-                        energySpectrum3.DrawingSpectrum[num14] = num15 / num16;
-                    }
+                    resultData6.EnergySpectrum.DrawingSpectrum = sa.WMA2(resultData6.EnergySpectrum.Spectrum, numberOfWMADataPoints);
                 }
                 if (this.backgroundMode == BackgroundMode.Visible && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.Spectrum != null)
                 {
-                    for (int num20 = 0; num20 < this.backgroundNumberOfChannels; num20++)
-                    {
-                        double num21 = 0.0;
-                        double num22 = 0.0;
-                        for (int num23 = num20 - numberOfWMADataPoints / 2; num23 < num20 - numberOfWMADataPoints / 2 + numberOfWMADataPoints; num23++)
-                        {
-                            int num24 = num23;
-                            if (num24 < 0)
-                            {
-                                num24 = 0;
-                            }
-                            else if (num23 >= this.backgroundNumberOfChannels)
-                            {
-                                num24 = this.backgroundNumberOfChannels - 1;
-                            }
-                            double num25 = (double)(numberOfWMADataPoints / 2 + 1 - Math.Abs(num20 - num23));
-                            num21 += (double)this.backgroundEnergySpectrum.Spectrum[num24] * num25;
-                            num22 += num25;
-                        }
-                        this.backgroundEnergySpectrum.DrawingSpectrum[num20] = num21 / num22;
-                    }
+                    this.backgroundEnergySpectrum.DrawingSpectrum = sa.WMA2(this.backgroundEnergySpectrum.Spectrum, numberOfWMADataPoints);
                 }
                 if (this.backgroundMode == BackgroundMode.ShowContinuum)
                 {
-                    for (int num20 = 0; num20 < this.continuumEnergySpectrum.NumberOfChannels; num20++)
-                    {
-                        double num21 = 0.0;
-                        double num22 = 0.0;
-                        for (int num23 = num20 - numberOfWMADataPoints / 2; num23 < num20 - numberOfWMADataPoints / 2 + numberOfWMADataPoints; num23++)
-                        {
-                            int num24 = num23;
-                            if (num24 < 0)
-                            {
-                                num24 = 0;
-                            }
-                            else if (num23 >= this.continuumEnergySpectrum.NumberOfChannels)
-                            {
-                                num24 = this.continuumEnergySpectrum.NumberOfChannels - 1;
-                            }
-                            double num25 = (double)(numberOfWMADataPoints / 2 + 1 - Math.Abs(num20 - num23));
-                            num21 += (double)this.continuumEnergySpectrum.Spectrum[num24] * num25;
-                            num22 += num25;
-                        }
-                        this.continuumEnergySpectrum.DrawingSpectrum[num20] = num21 / num22;
-                    }
+                    this.continuumEnergySpectrum.DrawingSpectrum = sa.WMA2(this.continuumEnergySpectrum.Spectrum, numberOfWMADataPoints);
                 }
                 if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
                 {
-                    for (int num20 = 0; num20 < this.substractedEnergySpectrum.NumberOfChannels; num20++)
-                    {
-                        double num21 = 0.0;
-                        double num22 = 0.0;
-                        for (int num23 = num20 - numberOfWMADataPoints / 2; num23 < num20 - numberOfWMADataPoints / 2 + numberOfWMADataPoints; num23++)
-                        {
-                            int num24 = num23;
-                            if (num24 < 0)
-                            {
-                                num24 = 0;
-                            }
-                            else if (num23 >= this.substractedEnergySpectrum.NumberOfChannels)
-                            {
-                                num24 = this.substractedEnergySpectrum.NumberOfChannels - 1;
-                            }
-                            double num25 = (double)(numberOfWMADataPoints / 2 + 1 - Math.Abs(num20 - num23));
-                            num21 += (double)this.substractedEnergySpectrum.Spectrum[num24] * num25;
-                            num22 += num25;
-                        }
-                        this.substractedEnergySpectrum.DrawingSpectrum[num20] = num21 / num22;
-                    }
+                    this.substractedEnergySpectrum.DrawingSpectrum = sa.WMA2(this.substractedEnergySpectrum.Spectrum, numberOfWMADataPoints);
                 }
+                sa.Dispose();
             }
         }
 
