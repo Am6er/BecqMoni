@@ -234,7 +234,7 @@ namespace BecquerelMonitor
             try
             {
                 AtomSpectraDeviceConfig atomSpectraVCPInputDevice = (AtomSpectraDeviceConfig)inputConfig;
-                if (comPortsBox.Items.Count > 0)
+                if (comPortsBox.Items.Count > 0 && comPortsBox.SelectedItem != null)
                 {
                     atomSpectraVCPInputDevice.ComPortName = comPortsBox.SelectedItem.ToString();
                     atomSpectraVCPInputDevice.BaudRate = int.Parse(baudratesBox.SelectedItem.ToString());
