@@ -464,6 +464,11 @@ namespace BecquerelMonitor
             this.numericUpDown15.Increment = 1;
             this.numericUpDown15.Value = (decimal)FWHMPeakDetectionMethodConfig.Max_FWHM_Tol;
 
+            this.numericUpDown16.Minimum = 256;
+            this.numericUpDown16.Maximum = config.NumberOfChannels;
+            this.numericUpDown16.Increment = 1;
+            this.numericUpDown16.Value = (decimal)FWHMPeakDetectionMethodConfig.Ch_Concat;
+
             this.textBox17.Text = config.BackgroundSpectrumPathname;
             this.contentsLoading = false;
         }
@@ -533,6 +538,7 @@ namespace BecquerelMonitor
                 FWHMPeakDetectionMethodConfig.Max_Range = (double)this.numericUpDown13.Value;
                 FWHMPeakDetectionMethodConfig.Min_FWHM_Tol = this.numericUpDown14.Value;
                 FWHMPeakDetectionMethodConfig.Max_FWHM_Tol = this.numericUpDown15.Value;
+                FWHMPeakDetectionMethodConfig.Ch_Concat = (int)this.numericUpDown16.Value;
                 config.BackgroundSpectrumPathname = this.textBox17.Text;
             }
             catch (Exception)
@@ -1374,6 +1380,11 @@ namespace BecquerelMonitor
         }
 
         void numericUpDown15_ValueChanged(object sender, EventArgs e)
+        {
+            this.SetActiveDeviceConfigDirty();
+        }
+
+        void numericUpDown16_ValueChanged(object sender, EventArgs e)
         {
             this.SetActiveDeviceConfigDirty();
         }

@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Net;
 using System.Net.Mime;
 using System.Runtime.ExceptionServices;
 using System.Security.Permissions;
@@ -18,6 +19,10 @@ namespace BecquerelMonitor.Utils
 {
     public class SpectrumAriphmetics
     {
+        public SpectrumAriphmetics()
+        {
+
+        }
 
         public SpectrumAriphmetics(DocEnergySpectrum docenergySpectrum)
         {
@@ -437,105 +442,148 @@ namespace BecquerelMonitor.Utils
             return result;
         }
 
-        public double[] WMA(double[] spectrum, int numberOfWMADataPoints)
+        public double[] WMA2(int[] spectrum, int numberOfWMADataPoints)
         {
             double[] result = new double[spectrum.Length];
-            for (int num14 = 0; num14 < spectrum.Length; num14++)
+            //for (int i = 0; i < spectrum.Length; i++)
+            Parallel.For(0, spectrum.Length, i =>
             {
-                double num15 = 0.0;
-                double num16 = 0.0;
-                for (int num17 = num14 - numberOfWMADataPoints / 2; num17 < num14 - numberOfWMADataPoints / 2 + numberOfWMADataPoints; num17++)
+                double part = 0.0;
+                double total = 0.0;
+                for (int j = i - numberOfWMADataPoints / 2; j < i - numberOfWMADataPoints / 2 + numberOfWMADataPoints; j++)
                 {
-                    int num18 = num17;
-                    if (num18 < 0)
+                    int ch = j;
+                    if (ch < 0)
                     {
-                        num18 = 0;
+                        ch = 0;
                     }
-                    else if (num17 >= spectrum.Length)
+                    else if (ch >= spectrum.Length)
                     {
-                        num18 = spectrum.Length - 1;
+                        ch = spectrum.Length - 1;
                     }
-                    double num19 = (double)(numberOfWMADataPoints / 2 + 1 - Math.Abs(num14 - num17));
-                    num15 += (double)spectrum[num18] * num19;
-                    num16 += num19;
+                    double weight = (double)(numberOfWMADataPoints / 2 + 1 - Math.Abs(i - ch));
+                    part += (double)spectrum[ch] * weight;
+                    total += weight;
                 }
-                result[num14] = num15 / num16;
-            }
+                result[i] = part / total;
+            });
             return result;
         }
 
         public int[] WMA(int[] spectrum, int numberOfWMADataPoints)
         {
             int[] result = new int[spectrum.Length];
-            for (int num14 = 0; num14 < spectrum.Length; num14++)
+            //for (int num14 = 0; num14 < spectrum.Length; num14++)
+            Parallel.For(0, spectrum.Length, i =>
             {
-                double num15 = 0.0;
-                double num16 = 0.0;
-                for (int num17 = num14 - numberOfWMADataPoints / 2; num17 < num14 - numberOfWMADataPoints / 2 + numberOfWMADataPoints; num17++)
+                double part = 0.0;
+                double total = 0.0;
+                for (int j = i - numberOfWMADataPoints / 2; j < i - numberOfWMADataPoints / 2 + numberOfWMADataPoints; j++)
                 {
-                    int num18 = num17;
-                    if (num18 < 0)
+                    int ch = j;
+                    if (ch < 0)
                     {
-                        num18 = 0;
+                        ch = 0;
                     }
-                    else if (num17 >= spectrum.Length)
+                    else if (ch >= spectrum.Length)
                     {
-                        num18 = spectrum.Length - 1;
+                        ch = spectrum.Length - 1;
                     }
-                    double num19 = (double)(numberOfWMADataPoints / 2 + 1 - Math.Abs(num14 - num17));
-                    num15 += (double)spectrum[num18] * num19;
-                    num16 += num19;
+                    double weight = (double)(numberOfWMADataPoints / 2 + 1 - Math.Abs(i - ch));
+                    part += (double)spectrum[ch] * weight;
+                    total += weight;
                 }
-                result[num14] = (int)(num15 / num16);
-            }
+                result[i] = (int)(part / total);
+            });
             return result;
         }
 
-        public double[] SMA(double[] spectrum, int numberOfSMADataPoints)
+        public double[] SMA2(int[] spectrum, int numberOfSMADataPoints)
         {
             double[] result = new double[spectrum.Length];
-            for (int num10 = 0; num10 < spectrum.Length; num10++)
+            //for (int i = 0; i < spectrum.Length; i++)
+            Parallel.For(0, spectrum.Length, i =>
             {
-                double num11 = 0.0;
-                for (int num12 = num10 - numberOfSMADataPoints / 2; num12 < num10 - numberOfSMADataPoints / 2 + numberOfSMADataPoints; num12++)
+                double new_count = 0.0;
+                for (int j = i - numberOfSMADataPoints / 2; j < i - numberOfSMADataPoints / 2 + numberOfSMADataPoints; j++)
                 {
-                    int num13 = num12;
-                    if (num13 < 0)
+                    int ch = j;
+                    if (ch < 0)
                     {
-                        num13 = 0;
+                        ch = 0;
                     }
-                    else if (num12 >= spectrum.Length)
+                    else if (ch >= spectrum.Length)
                     {
-                        num13 = spectrum.Length - 1;
+                        ch = spectrum.Length - 1;
                     }
-                    num11 += (double)spectrum[num13];
+                    new_count += (double)spectrum[ch];
                 }
-                result[num10] = num11 / (double)numberOfSMADataPoints;
-            }
+                result[i] = new_count / (double)numberOfSMADataPoints;
+            });
+            return result;
+        }
+
+        public double[] SMA3(int[] spectrum, int numberOfSMADataPoints, double boundrate = 2.0)
+        {
+            double max = (double)spectrum.Max();
+            double bound = max * boundrate / 100.0;
+
+            double[] result = new double[spectrum.Length];
+            //for (int i = 0; i < spectrum.Length; i++)
+            Parallel.For(0, spectrum.Length, i =>
+            {
+                double new_count = 0.0;
+                int window_size = 1;
+                if (bound > 0.0 && spectrum[i] <= bound)
+                {
+                    window_size = (int)((double)spectrum[i] * (1 - (double)numberOfSMADataPoints) / bound + (double)numberOfSMADataPoints);
+                }
+                if (window_size == 1)
+                {
+                    result[i] = spectrum[i];
+                } else
+                {
+                    for (int j = i - window_size / 2; j < i - window_size / 2 + window_size; j++)
+                    {
+                        int ch = j;
+                        if (ch < 0)
+                        {
+                            ch = 0;
+                        }
+                        else if (ch >= spectrum.Length)
+                        {
+                            ch = spectrum.Length - 1;
+                        }
+                        new_count += (double)spectrum[ch];
+                    }
+                    result[i] = new_count / (double)window_size;
+                }
+            });
             return result;
         }
 
         public int[] SMA(int[] spectrum, int numberOfSMADataPoints)
         {
             int[] result = new int[spectrum.Length];
-            for (int num10 = 0; num10 < spectrum.Length; num10++)
+            //for (int num10 = 0; num10 < spectrum.Length; num10++)
+            Parallel.For(0, spectrum.Length, i =>
             {
-                double num11 = 0.0;
-                for (int num12 = num10 - numberOfSMADataPoints / 2; num12 < num10 - numberOfSMADataPoints / 2 + numberOfSMADataPoints; num12++)
+                double new_count = 0.0;
+                for (int j = i - numberOfSMADataPoints / 2; j < i - numberOfSMADataPoints / 2 + numberOfSMADataPoints; j++)
                 {
-                    int num13 = num12;
-                    if (num13 < 0)
+                    int ch = j;
+                    if (ch < 0)
                     {
-                        num13 = 0;
+                        ch = 0;
                     }
-                    else if (num12 >= spectrum.Length)
+                    else if (ch >= spectrum.Length)
                     {
-                        num13 = spectrum.Length - 1;
+                        ch = spectrum.Length - 1;
                     }
-                    num11 += (double)spectrum[num13];
+                    new_count += (double)spectrum[ch];
                 }
-                result[num10] = (int)(num11 / (double)numberOfSMADataPoints);
-            }
+                result[i] = (int)(new_count / (double)numberOfSMADataPoints);
+            });
             return result;
         }
 
