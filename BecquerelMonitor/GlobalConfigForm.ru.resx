@@ -2934,4 +2934,7 @@
     <data name="label89.Text" xml:space="preserve">
     <value>Неизвест. пик</value>
   </data>
+    <data name="label90.Text" xml:space="preserve">
+    <value>Лимит счёта</value>
+  </data>
 </root>

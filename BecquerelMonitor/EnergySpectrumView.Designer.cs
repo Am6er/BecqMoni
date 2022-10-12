@@ -1016,22 +1016,23 @@ namespace BecquerelMonitor
             {
                 SpectrumAriphmetics sa = new SpectrumAriphmetics();
                 int numberOfSMADataPoints = this.globalConfigManager.GlobalConfig.ChartViewConfig.NumberOfSMADataPoints;
+                int countlimit = this.globalConfigManager.GlobalConfig.ChartViewConfig.CountLimit;
                 foreach (ResultData resultData5 in this.resultDataList)
                 {
-                    resultData5.EnergySpectrum.DrawingSpectrum = sa.SMA2(resultData5.EnergySpectrum.Spectrum, numberOfSMADataPoints);
+                    resultData5.EnergySpectrum.DrawingSpectrum = sa.SMA2(resultData5.EnergySpectrum.Spectrum, numberOfSMADataPoints, countlimit: countlimit);
 
                 }
                 if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
                 {
-                    this.substractedEnergySpectrum.DrawingSpectrum = sa.SMA2(this.substractedEnergySpectrum.Spectrum, numberOfSMADataPoints);
+                    this.substractedEnergySpectrum.DrawingSpectrum = sa.SMA2(this.substractedEnergySpectrum.Spectrum, numberOfSMADataPoints, countlimit: countlimit);
                 }
                 if (this.backgroundMode == BackgroundMode.Visible && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.Spectrum != null)
                 {
-                    this.backgroundEnergySpectrum.DrawingSpectrum = sa.SMA2(this.backgroundEnergySpectrum.Spectrum, numberOfSMADataPoints);
+                    this.backgroundEnergySpectrum.DrawingSpectrum = sa.SMA2(this.backgroundEnergySpectrum.Spectrum, numberOfSMADataPoints, countlimit: countlimit);
                 }
                 if (this.backgroundMode == BackgroundMode.ShowContinuum)
                 {
-                    this.continuumEnergySpectrum.DrawingSpectrum = sa.SMA2(this.continuumEnergySpectrum.Spectrum, numberOfSMADataPoints);
+                    this.continuumEnergySpectrum.DrawingSpectrum = sa.SMA2(this.continuumEnergySpectrum.Spectrum, numberOfSMADataPoints, countlimit: countlimit);
                 }
                 sa.Dispose();
             }
@@ -1039,21 +1040,22 @@ namespace BecquerelMonitor
             {
                 SpectrumAriphmetics sa = new SpectrumAriphmetics();
                 int numberOfWMADataPoints = this.globalConfigManager.GlobalConfig.ChartViewConfig.NumberOfWMADataPoints;
+                int countlimit = this.globalConfigManager.GlobalConfig.ChartViewConfig.CountLimit;
                 foreach (ResultData resultData6 in this.resultDataList)
                 {
-                    resultData6.EnergySpectrum.DrawingSpectrum = sa.WMA2(resultData6.EnergySpectrum.Spectrum, numberOfWMADataPoints);
+                    resultData6.EnergySpectrum.DrawingSpectrum = sa.WMA2(resultData6.EnergySpectrum.Spectrum, numberOfWMADataPoints, countlimit: countlimit);
                 }
                 if (this.backgroundMode == BackgroundMode.Visible && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.Spectrum != null)
                 {
-                    this.backgroundEnergySpectrum.DrawingSpectrum = sa.WMA2(this.backgroundEnergySpectrum.Spectrum, numberOfWMADataPoints);
+                    this.backgroundEnergySpectrum.DrawingSpectrum = sa.WMA2(this.backgroundEnergySpectrum.Spectrum, numberOfWMADataPoints, countlimit: countlimit);
                 }
                 if (this.backgroundMode == BackgroundMode.ShowContinuum)
                 {
-                    this.continuumEnergySpectrum.DrawingSpectrum = sa.WMA2(this.continuumEnergySpectrum.Spectrum, numberOfWMADataPoints);
+                    this.continuumEnergySpectrum.DrawingSpectrum = sa.WMA2(this.continuumEnergySpectrum.Spectrum, numberOfWMADataPoints, countlimit: countlimit);
                 }
                 if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
                 {
-                    this.substractedEnergySpectrum.DrawingSpectrum = sa.WMA2(this.substractedEnergySpectrum.Spectrum, numberOfWMADataPoints);
+                    this.substractedEnergySpectrum.DrawingSpectrum = sa.WMA2(this.substractedEnergySpectrum.Spectrum, numberOfWMADataPoints, countlimit: countlimit);
                 }
                 sa.Dispose();
             }
