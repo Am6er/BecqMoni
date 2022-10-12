@@ -282,6 +282,18 @@
             }
         }
 
+        public int CountLimit
+        {
+            get
+            {
+                return this.countlimit;
+            }
+            set
+            {
+                this.countlimit = value;
+            }
+        }
+
         // Token: 0x040008CC RID: 2252
         VerticalUnit defaultVerticalUnit;
 
@@ -326,6 +338,8 @@
 
         // Token: 0x040008DA RID: 2266
         int numberOfWMADataPoints = 11;
+
+        int countlimit = 100;
 
         // Token: 0x040008DB RID: 2267
         int chartRefreshCycle = 500;

@@ -840,16 +840,17 @@ namespace BecquerelMonitor
                         if (isSmooth)
                         {
                             EnergySpectrum smoothed = substract.Clone();
+                            int countlimit = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.CountLimit;
 
                             if (smmethod == SmoothingMethod.SimpleMovingAverage)
                             {
                                 int points = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.NumberOfSMADataPoints;
-                                smoothed.Spectrum = sa.SMA(substract.Spectrum, points);
+                                smoothed.Spectrum = sa.SMA(substract.Spectrum, points, countlimit: countlimit);
                             }
                             else
                             {
                                 int points = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.NumberOfWMADataPoints;
-                                smoothed.Spectrum = sa.WMA(substract.Spectrum, points);
+                                smoothed.Spectrum = sa.WMA(substract.Spectrum, points, countlimit: countlimit);
                             }
 
                             for (int i = 0; i < energySpectrum.NumberOfChannels; i++)
@@ -880,15 +881,16 @@ namespace BecquerelMonitor
                         {
                             EnergySpectrum smoothed = energySpectrum.Clone();
                             SpectrumAriphmetics sa = new SpectrumAriphmetics(energySpectrum);
+                            int countlimit = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.CountLimit;
 
                             if (smmethod == SmoothingMethod.SimpleMovingAverage)
                             {
                                 int points = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.NumberOfSMADataPoints;
-                                smoothed.Spectrum = sa.SMA(energySpectrum.Spectrum, points);
+                                smoothed.Spectrum = sa.SMA(energySpectrum.Spectrum, points, countlimit: countlimit);
                             } else
                             {
                                 int points = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.NumberOfWMADataPoints;
-                                smoothed.Spectrum = sa.WMA(energySpectrum.Spectrum, points);
+                                smoothed.Spectrum = sa.WMA(energySpectrum.Spectrum, points, countlimit: countlimit);
                             }
 
                             for (int i = 0; i < energySpectrum.NumberOfChannels; i++)

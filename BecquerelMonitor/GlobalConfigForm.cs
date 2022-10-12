@@ -79,6 +79,7 @@ namespace BecquerelMonitor
             this.numericUpDown9.Value = globalConfig.ChartViewConfig.EnergyPercent;
             this.numericUpDown1.Value = globalConfig.ChartViewConfig.NumberOfSMADataPoints;
             this.numericUpDown2.Value = globalConfig.ChartViewConfig.NumberOfWMADataPoints;
+            this.numericUpDown13.Value = (int)globalConfig.ChartViewConfig.CountLimit;
             this.numericUpDown3.Value = globalConfig.ChartViewConfig.ChartRefreshCycle;
             this.comboBox11.SelectedIndex = (int)globalConfig.ChartViewConfig.MagnificationReference;
             EasyControlConfig easyControlConfig = globalConfig.EasyControlConfig;
@@ -199,6 +200,7 @@ namespace BecquerelMonitor
             globalConfig.ChartViewConfig.EnergyOffsetStep = this.doubleTextBox2.GetValue();
             globalConfig.ChartViewConfig.NumberOfSMADataPoints = (int)this.numericUpDown1.Value;
             globalConfig.ChartViewConfig.NumberOfWMADataPoints = (int)this.numericUpDown2.Value;
+            globalConfig.ChartViewConfig.CountLimit = (int)this.numericUpDown13.Value;
             globalConfig.ChartViewConfig.ChartRefreshCycle = (int)this.numericUpDown3.Value;
             globalConfig.ChartViewConfig.MagnificationReference = (MagnificationReference)this.comboBox11.SelectedIndex;
             EasyControlConfig easyControlConfig = globalConfig.EasyControlConfig;
