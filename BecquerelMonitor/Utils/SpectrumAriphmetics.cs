@@ -268,83 +268,17 @@ namespace BecquerelMonitor.Utils
             {
                 Parallel.For(p, x.Length - p, i =>
                 {
-                    double a = baseline[i];
                     double b = 0;
                     if (p <= r[i])
                     {
                         b = (baseline[i - p] + baseline[i + p]) / 2;
+                        tmp[i] = Math.Min(baseline[i], b);
                     }
                     else
                     {
-                        b = baseline[i];
+                        tmp[i] = baseline[i];
                     }
-
-                    tmp[i] = Math.Min(a, b);
                 });
-                baseline = tmp;
-            }
-
-            if (useLLS)
-            {
-                baseline = baseline.Select(i => iLLS(i)).ToArray();
-            }
-
-            return baseline.Select(i => (int)i).ToArray();
-        }
-
-        //https://github.com/crp2a/gamma/blob/master/R/baseline_snip.R
-        int[] SNIP(int[] x, bool useLLS = false, bool decreasing = true, int n = 100, int correction = 0)
-        {
-            double[] baseline = new double[x.Length];
-
-            if (useLLS)
-            {
-                baseline = x.Select(i => LLS(i)).ToArray();
-            } else
-            {
-                baseline = x.Select(i => Convert.ToDouble(i)).ToArray();
-            }
-
-            int[] seq = new int[n];
-            if (decreasing)
-            {
-                seq = seq.Select((i, iter) => n - iter).ToArray();
-            } else
-            {
-                seq = seq.Select((i, iter) => iter).ToArray();
-            }
-
-            double[] tmp = baseline;
-
-            foreach (int p in seq)
-            {
-                for (int i = p; i < x.Length - p; i++)
-                {
-                    double a = baseline[i];
-                    double b = 0;
-                    switch (correction)
-                    {
-                        case 0:
-                            b = (baseline[i - p] + baseline[i + p]) / 2;
-                            break;
-                        case 1:
-                            b = (-(baseline[i - p] + baseline[i + p]) 
-                                + 4 * (baseline[i - p / 2] + baseline[i + p / 2])) / 6;
-                            break;
-                        case 2:
-                            b = (baseline[i - p] + baseline[i + p] 
-                                - 6 * (baseline[i - 2*p/3] + baseline[i + 2*p/3]) 
-                                + 15 * (baseline[i - p/3] + baseline[i + p/3])) / 20;
-                            break;
-                        case 3:
-                            b = (-(baseline[i - p] + baseline[i + p]) 
-                                + 8 * (baseline[i - 3 * p / 4] + baseline[i + 3 * p / 4]) 
-                                - 28 * (baseline[i - p / 2] + baseline[i + p / 2]) 
-                                + 56 * (baseline[i - p / 4] + baseline[i + p / 4])) / 70;
-                            break;
-                    }
-                    tmp[i] = Math.Min(a, b);
-                }
                 baseline = tmp;
             }
 

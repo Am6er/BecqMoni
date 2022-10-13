@@ -1,7 +1,9 @@
 ﻿using BecquerelMonitor.Properties;
 using MathNet.Numerics;
 using System;
+using System.Collections.Generic;
 using System.Xml.Serialization;
+using WinMM;
 
 namespace BecquerelMonitor
 {
@@ -20,6 +22,7 @@ namespace BecquerelMonitor
             set
             {
                 this.polynomialOrder = value;
+                this.dirty = true;
             }
         }
 
@@ -36,6 +39,7 @@ namespace BecquerelMonitor
             set
             {
                 this.coefficients = value;
+                this.dirty = true;
             }
         }
 
@@ -124,6 +128,30 @@ namespace BecquerelMonitor
         // Token: 0x06000734 RID: 1844 RVA: 0x00029E1C File Offset: 0x0002801C
         public override double EnergyToChannel(double enrg)
         {
+            
+            if (this.dirty || this.energytochanel == null)
+            {
+                this.energytochanel = new Dictionary<double, double>();
+                this.dirty = false;
+                double value = EnrgToChannel(enrg);
+                this.energytochanel.Add(enrg, value);
+                return value;
+            } else
+            {
+                if (this.energytochanel.TryGetValue(enrg, out double value))
+                {
+                    return value;
+                } else
+                {
+                    value = EnrgToChannel(enrg);
+                    this.energytochanel.Add(enrg, value);
+                    return value;
+                }
+            }
+        }
+
+        double EnrgToChannel(double enrg)
+        {
             if (enrg < 0 || enrg < this.coefficients[0])
             {
                 return 0;
@@ -165,7 +193,7 @@ namespace BecquerelMonitor
                 Func<double, double> f1 = x => this.coefficients[4] * x * x * x * x + this.coefficients[3] * x * x * x + this.coefficients[2] * x * x + this.coefficients[1] * x + this.coefficients[0] - enrg;
                 try
                 {
-                    double roots = FindRoots.OfFunction(f1, 0, 100000);
+                    double roots = FindRoots.OfFunction(f1, 0, 10000);
                     //System.Windows.Forms.MessageBox.Show("Calibration coefficients are incorrect channels for Energy: " + enrg + " roots = " + roots);
                     return Math.Round(roots, 2);
                 }
@@ -208,5 +236,9 @@ namespace BecquerelMonitor
 
         // Token: 0x040003A5 RID: 933
         double[] coefficients;
+
+        bool dirty = false;
+
+        Dictionary<double, double> energytochanel = null;
     }
 }
