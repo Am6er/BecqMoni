@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using BecquerelMonitor.Properties;
@@ -2277,6 +2278,38 @@ namespace BecquerelMonitor
             }
         }
 
+        String FormatAs10Power(decimal val)
+        {
+            if (val < 9999) return val.ToString();
+            string SuperscriptDigits = "\u2070\u00b9\u00b2\u00b3\u2074\u2075\u2076\u2077\u2078\u2079";
+            string expstr = String.Format("{0:0.#E0}", val);
+
+            string[] numparts = expstr.Split('E');
+            char[] powerchars = numparts[1].ToArray();
+            for (int i = 0; i < powerchars.Length; i++)
+            {
+                powerchars[i] = (powerchars[i] == '-') ? '\u207b' : SuperscriptDigits[powerchars[i] - '0'];
+            }
+            numparts[1] = new String(powerchars);
+            return "10" + numparts[1];
+        }
+
+        String FormatAs10Power(double val)
+        {
+            if (val > 0.01 && val < 9999) return val.ToString();
+            string SuperscriptDigits = "\u2070\u00b9\u00b2\u00b3\u2074\u2075\u2076\u2077\u2078\u2079";
+            string expstr = String.Format("{0:0.#E0}", val);
+
+            string[] numparts = expstr.Split('E');
+            char[] powerchars = numparts[1].ToArray();
+            for (int i = 0; i < powerchars.Length; i++)
+            {
+                powerchars[i] = (powerchars[i] == '-') ? '\u207b' : SuperscriptDigits[powerchars[i] - '0'];
+            }
+            numparts[1] = new String(powerchars);
+            return "10" + numparts[1];
+        }
+
         // Token: 0x060004BE RID: 1214 RVA: 0x00019FEC File Offset: 0x000181EC
         void ShowVerticalAxis(Graphics g)
         {
@@ -2331,7 +2364,7 @@ namespace BecquerelMonitor
                                             g.DrawLine(pen2, this.left + 1, num4, num - 1, num4);
                                             g.SetClip(clip);
                                             g.DrawLine(pen, 0, num4, this.left, num4);
-                                            g.DrawString(num2.ToString(), this.Font, brush3, r, this.farFormat);
+                                            g.DrawString(FormatAs10Power(num2), this.Font, brush3, r, this.farFormat);
                                             g.ResetClip();
                                         }
                                     }
@@ -2370,7 +2403,7 @@ namespace BecquerelMonitor
                                         g.DrawLine(pen2, this.left + 1, num8, num - 1, num8);
                                         g.SetClip(clip);
                                         g.DrawLine(pen, 0, num8, this.left, num8);
-                                        g.DrawString(num6.ToString(), this.Font, brush3, r2, this.farFormat);
+                                        g.DrawString(FormatAs10Power(num6), this.Font, brush3, r2, this.farFormat);
                                         g.ResetClip();
                                     }
                                     num6 += d2;

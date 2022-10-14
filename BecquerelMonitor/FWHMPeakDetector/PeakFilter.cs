@@ -248,7 +248,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
         public double gaussian0 (double x, double mean, double sigma)
         {
             double z = (x - mean) / sigma;
-            return Math.Exp( -Math.Pow(z, 2) / 2.0 );
+            return Math.Exp( - z * z / 2.0 );
         }
 
         /// <summary>
@@ -294,10 +294,11 @@ namespace BecquerelMonitor.FWHMPeakDetector
         {
             double[] result = new double[x.Length];
 
-            for (int i = 0; i < x.Length; i++)
+            //for (int i = 0; i < x.Length; i++)
+            Parallel.For(0, x.Length, i =>
             {
                 result[i] = gaussian1(x[i], mean, sigma);
-            }
+            });
 
             return result;
         }
