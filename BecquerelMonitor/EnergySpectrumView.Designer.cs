@@ -2280,7 +2280,7 @@ namespace BecquerelMonitor
 
         String FormatAs10Power(decimal val)
         {
-            if (val < 9999) return val.ToString();
+            if (val < 999) return val.ToString();
             string SuperscriptDigits = "\u2070\u00b9\u00b2\u00b3\u2074\u2075\u2076\u2077\u2078\u2079";
             string expstr = String.Format("{0:0.#E0}", val);
 
@@ -2291,12 +2291,12 @@ namespace BecquerelMonitor
                 powerchars[i] = (powerchars[i] == '-') ? '\u207b' : SuperscriptDigits[powerchars[i] - '0'];
             }
             numparts[1] = new String(powerchars);
-            return "10" + numparts[1];
+            return String.Join("\u00b710", numparts);
         }
 
         String FormatAs10Power(double val)
         {
-            if (val > 0.01 && val < 9999) return val.ToString();
+            if (val > 0.01 && val < 999) return val.ToString();
             string SuperscriptDigits = "\u2070\u00b9\u00b2\u00b3\u2074\u2075\u2076\u2077\u2078\u2079";
             string expstr = String.Format("{0:0.#E0}", val);
 
@@ -2307,7 +2307,7 @@ namespace BecquerelMonitor
                 powerchars[i] = (powerchars[i] == '-') ? '\u207b' : SuperscriptDigits[powerchars[i] - '0'];
             }
             numparts[1] = new String(powerchars);
-            return "10" + numparts[1];
+            return String.Join("\u00b710", numparts);
         }
 
         // Token: 0x060004BE RID: 1214 RVA: 0x00019FEC File Offset: 0x000181EC
