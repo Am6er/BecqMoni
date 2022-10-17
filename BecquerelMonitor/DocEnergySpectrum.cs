@@ -588,6 +588,7 @@ namespace BecquerelMonitor
             }
             this.view.BackgroundMode = backgroundMode;
             this.toolStripSplitButton7.Image = image;
+            this.UpdateDetectedPeaks = true;
             this.RefreshView();
         }
 
@@ -605,6 +606,7 @@ namespace BecquerelMonitor
         {
             this.view.BackgroundMode = BackgroundMode.Visible;
             this.toolStripSplitButton7.Image = BecquerelMonitor.Properties.Resources.BG;
+            this.UpdateDetectedPeaks = true;
             this.RefreshView();
         }
 
@@ -613,6 +615,7 @@ namespace BecquerelMonitor
         {
             this.view.BackgroundMode = BackgroundMode.Invisible;
             this.toolStripSplitButton7.Image = BecquerelMonitor.Properties.Resources.NOBG;
+            this.UpdateDetectedPeaks = true;
             this.RefreshView();
         }
 
@@ -620,6 +623,7 @@ namespace BecquerelMonitor
         {
             this.view.BackgroundMode = BackgroundMode.Substract;
             this.toolStripSplitButton7.Image = BecquerelMonitor.Properties.Resources.SUB;
+            this.UpdateDetectedPeaks = true;
             this.RefreshView();
         }
 
@@ -627,6 +631,7 @@ namespace BecquerelMonitor
         {
             this.view.BackgroundMode = BackgroundMode.ShowContinuum;
             this.toolStripSplitButton7.Image = BecquerelMonitor.Properties.Resources.CONT;
+            this.UpdateDetectedPeaks = true;
             this.RefreshView();
         }
 

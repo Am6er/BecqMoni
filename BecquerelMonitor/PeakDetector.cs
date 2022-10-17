@@ -13,12 +13,23 @@ namespace BecquerelMonitor
     // Token: 0x02000065 RID: 101
     public class PeakDetector
     {
-        public List<Peak> DetectPeak(ResultData resultData)
+        public List<Peak> DetectPeak(ResultData resultData, bool useBackground = false)
         {
             FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)resultData.PeakDetectionMethodConfig;
-            SpectrumAriphmetics sa = null; //new SpectrumAriphmetics(FWHMPeakDetectionMethodConfig, resultData.EnergySpectrum);
-            //EnergySpectrum energySpectrum = sa.Substract(sa.Continuum());
-            EnergySpectrum energySpectrum = resultData.EnergySpectrum;
+            EnergySpectrum energySpectrum;
+            SpectrumAriphmetics sa = null;
+            if (useBackground && resultData.BackgroundEnergySpectrum != null)
+            {
+                sa = new SpectrumAriphmetics(FWHMPeakDetectionMethodConfig, resultData.EnergySpectrum);
+                energySpectrum = sa.Substract(resultData.BackgroundEnergySpectrum);
+                energySpectrum.Spectrum = sa.SMA(energySpectrum.Spectrum, 3);
+            } else
+            {
+                //sa = new SpectrumAriphmetics(FWHMPeakDetectionMethodConfig, resultData.EnergySpectrum);
+                //energySpectrum = sa.Substract(sa.Continuum());
+                energySpectrum = resultData.EnergySpectrum;
+            }
+            
 
 
 
