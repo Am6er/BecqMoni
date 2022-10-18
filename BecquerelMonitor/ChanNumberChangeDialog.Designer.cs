@@ -71,6 +71,7 @@
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "ChanNumberChangeDialog";
+            this.ShowInTaskbar = false;
             this.ResumeLayout(false);
             this.PerformLayout();
 

@@ -4385,6 +4385,6 @@ see peak in spectrum now).</value>
     <value>2σ</value>
   </data>
   <data name="ERRChanNumber" xml:space="preserve">
-    <value>Incorrect number of channels.</value>
+    <value>Incorrect number of channels or energy.</value>
   </data>
 </root>

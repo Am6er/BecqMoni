@@ -2066,19 +2066,87 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            new ChanNumberChangeDialog(this)
+
+            using (ChanNumberChangeDialog dialog = new ChanNumberChangeDialog(this))
             {
-                Owner = this
-            }.ShowDialog();
-            if (newChan > 64 && newChan != this.activeDocument.ActiveResultData.EnergySpectrum.NumberOfChannels)
+                dialog.ShowDialog();
+                int newChan = dialog.SendData();
+                if (newChan > 64 && newChan != this.activeDocument.ActiveResultData.EnergySpectrum.NumberOfChannels)
+                {
+                    ConcatSpectrums(this.activeDocument, newChan);
+                }
+                else
+                {
+                    MessageBox.Show(Resources.ERRChanNumber);
+                }
+            }            
+        }
+
+        void CutoffStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (this.activeDocument == null)
             {
-                ConcatSpectrums(this.activeDocument, newChan);
-                newChan = 0;
-            } else
-            {
-                MessageBox.Show(Resources.ERRChanNumber);
+                return;
             }
-            
+
+            using (SpectrumCutOffDialog dialog = new SpectrumCutOffDialog(this))
+            {
+                dialog.ShowDialog();
+                (bool resultstatus, bool isEnergy, double energyVal, int channel) = dialog.SendData();
+                if (!resultstatus)
+                {
+                    return;
+                }
+                if (energyVal == 0.0 && channel == 0)
+                {
+                    MessageBox.Show(Resources.ERRChanNumber);
+                    return;
+                }
+                if (!isEnergy && channel >= this.activeDocument.ActiveResultData.EnergySpectrum.NumberOfChannels)
+                {
+                    MessageBox.Show(Resources.ERRChanNumber);
+                    return;
+                }
+                if (isEnergy)
+                {
+                    PolynomialEnergyCalibration calibration = (PolynomialEnergyCalibration)this.activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration;
+                    int chan = (int)calibration.EnergyToChannel(energyVal);
+                    if (chan >= this.activeDocument.ActiveResultData.EnergySpectrum.NumberOfChannels)
+                    {
+                        MessageBox.Show(Resources.ERRChanNumber);
+                        return;
+                    }
+                }
+                Cutoff(this.activeDocument, isEnergy, energyVal: energyVal, channel: channel);
+            }
+        }
+
+        void Cutoff(DocEnergySpectrum docEnergySpectrum, bool isEnergy, double energyVal = 0.0, int channel = 0)
+        {
+            CreateDocument();
+            this.activeDocument.ActiveResultData.EnergySpectrum = SpectrumAriphmetics.Cutoff(docEnergySpectrum.ActiveResultData.EnergySpectrum, isEnergy: isEnergy, energyVal: energyVal, channel: channel);
+            this.activeDocument.ActiveResultData.DeviceConfigReference = null;
+            this.activeDocument.ActiveResultData.DeviceConfig = new DeviceConfigInfo();
+            if (docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum != null)
+            {
+                if (isEnergy)
+                {
+                    this.activeDocument.ActiveResultData.BackgroundEnergySpectrum = SpectrumAriphmetics.CutoffSpectrumChannels(docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum, this.activeDocument.ActiveResultData.EnergySpectrum.NumberOfChannels);
+                } else
+                {
+                    this.activeDocument.ActiveResultData.BackgroundEnergySpectrum = SpectrumAriphmetics.Cutoff(docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum, isEnergy: isEnergy, energyVal: energyVal, channel: channel);
+                }
+            }
+            this.activeDocument.ActiveResultData.ResultDataStatus = docEnergySpectrum.ActiveResultData.ResultDataStatus;
+            this.activeDocument.ActiveResultData.PresetTime = docEnergySpectrum.ActiveResultData.PresetTime;
+            this.activeDocument.ActiveResultData.EndTime = docEnergySpectrum.ActiveResultData.EndTime;
+            this.activeDocument.ActiveResultData.PulseCollection = docEnergySpectrum.ActiveResultData.PulseCollection;
+            this.activeDocument.ActiveResultData.SampleInfo = docEnergySpectrum.ActiveResultData.SampleInfo;
+            this.activeDocument.ActiveResultData.StartTime = docEnergySpectrum.ActiveResultData.StartTime;
+
+            this.activeDocument.Dirty = true;
+            this.UpdateAllView();
+            return;
         }
 
         // Token: 0x06000AA1 RID: 2721 RVA: 0x0003F7A4 File Offset: 0x0003D9A4
@@ -2419,8 +2487,6 @@ namespace BecquerelMonitor
 
         // Token: 0x040005EA RID: 1514
         int countChart;
-
-        public int newChan = 0;
 
         string userDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni";
         string userDirectoryConfig = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\config";

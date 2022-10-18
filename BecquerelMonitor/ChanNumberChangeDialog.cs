@@ -7,6 +7,7 @@ namespace BecquerelMonitor
     public partial class ChanNumberChangeDialog : Form
     {
         MainForm mainForm;
+        bool resultStatus = false;
 
         public ChanNumberChangeDialog()
         {
@@ -22,31 +23,34 @@ namespace BecquerelMonitor
 
         private void button2_Click(object sender, EventArgs e)
         {
+            this.resultStatus = false;
             Close();
         }
 
         private void button1_Click(object sender, EventArgs e)
         {
-            SendData();
+            this.resultStatus = true;
+            Close();
         }
 
-        void SendData()
+        public int SendData()
         {
             if (int.TryParse(textBox1.Text, out int newChan))
             {
-                this.mainForm.newChan = newChan;
-            } else
-            {
-                this.mainForm.newChan = 0;
+                if (resultStatus)
+                {
+                    return newChan;
+                }
             }
-            Close();
+            return 0;
         }
 
         private void textBox1_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
             {
-                SendData();
+                this.resultStatus = true;
+                Close();
             }
         }
     }

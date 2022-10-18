@@ -637,7 +637,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Incorrect number of channels..
+        ///   Looks up a localized string similar to Incorrect number of channels or energy..
         /// </summary>
         internal static string ERRChanNumber {
             get {

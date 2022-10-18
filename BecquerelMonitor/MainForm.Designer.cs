@@ -54,6 +54,7 @@ namespace BecquerelMonitor
 			this.ベクモニ旧形式v093bToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.AtomSpectraStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.ConcatSpectrumsStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.CutoffStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.N42StripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.N42ExpStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.AtomSpectraExpStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
@@ -238,6 +239,7 @@ namespace BecquerelMonitor
 				this.既存ファイルから追加FToolStripMenuItem,
 				this.toolStripMenuItem1,
 				this.ConcatSpectrumsStripMenuItem,
+				this.CutoffStripMenuItem,
 				this.toolStripSeparator7,
 				this.測定開始SToolStripMenuItem,
 				this.測定停止TToolStripMenuItem,
@@ -260,6 +262,9 @@ namespace BecquerelMonitor
 			componentResourceManager.ApplyResources(this.ConcatSpectrumsStripMenuItem, "ConcatSpectrumsStripMenuItem");
 			this.ConcatSpectrumsStripMenuItem.Name = "ConcatSpectrumsStripMenuItem";
 			this.ConcatSpectrumsStripMenuItem.Click += new global::System.EventHandler(this.ConcatSpectrumsStripMenuItem_Click);
+			componentResourceManager.ApplyResources(this.CutoffStripMenuItem, "CutoffStripMenuItem");
+			this.CutoffStripMenuItem.Name = "CutoffStripMenuItem";
+			this.CutoffStripMenuItem.Click += new global::System.EventHandler(this.CutoffStripMenuItem_Click);
 			componentResourceManager.ApplyResources(this.toolStripSeparator7, "toolStripSeparator7");
 			this.toolStripSeparator7.Name = "toolStripSeparator7";
 			componentResourceManager.ApplyResources(this.測定開始SToolStripMenuItem, "測定開始SToolStripMenuItem");
@@ -630,6 +635,8 @@ namespace BecquerelMonitor
 		global::System.Windows.Forms.ToolStripMenuItem AtomSpectraExpStripMenuItem;
 
 		global::System.Windows.Forms.ToolStripMenuItem ConcatSpectrumsStripMenuItem;
+
+		global::System.Windows.Forms.ToolStripMenuItem CutoffStripMenuItem;
 
 		// Token: 0x040005A8 RID: 1448
 		global::System.Windows.Forms.ToolStripMenuItem スペクトル一覧LToolStripMenuItem;
