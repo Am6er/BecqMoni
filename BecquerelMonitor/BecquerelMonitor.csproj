@@ -36,7 +36,7 @@
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
     <ApplicationRevision>1</ApplicationRevision>
-    <ApplicationVersion>2022.10.17.1</ApplicationVersion>
+    <ApplicationVersion>2022.10.18.1</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -514,6 +514,12 @@
     <Compile Include="ShowEnergyCalibrationViewEventHandler.cs" />
     <Compile Include="SmoothingMethod.cs" />
     <Compile Include="SoundConfig.cs" />
+    <Compile Include="SpectrumCutOffDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SpectrumCutOffDialog.Designer.cs">
+      <DependentUpon>SpectrumCutOffDialog.cs</DependentUpon>
+    </Compile>
     <Compile Include="StabilizerConfig.cs" />
     <Compile Include="StandardPulseRecorder.cs" />
     <Compile Include="StandardPulseView.Designer.cs">
@@ -945,6 +951,7 @@
     </EmbeddedResource>
     <EmbeddedResource Include="MainForm.ru.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="NucBase\NucBase.ru.resx">
       <DependentUpon>NucBase.cs</DependentUpon>
@@ -999,6 +1006,12 @@
       <LastGenOutput>ROISimpleDifferenceControl.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="ROISimpleDifferenceControl.ru.resx" />
+    <EmbeddedResource Include="SpectrumCutOffDialog.resx">
+      <DependentUpon>SpectrumCutOffDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SpectrumCutOffDialog.ru.resx">
+      <DependentUpon>SpectrumCutOffDialog.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="StandardPulseView.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>StandardPulseView.Designer.cs</LastGenOutput>

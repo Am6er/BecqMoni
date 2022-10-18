@@ -315,6 +315,40 @@ namespace BecquerelMonitor.Utils
             return result;
         }
 
+        public static EnergySpectrum CutoffSpectrumChannels(EnergySpectrum energySpectrum, int newChan)
+        {
+            EnergySpectrum newSpectrum = new EnergySpectrum(energySpectrum.ChannelPitch, newChan);
+            PolynomialEnergyCalibration calibration = new PolynomialEnergyCalibration((PolynomialEnergyCalibration)energySpectrum.EnergyCalibration);
+            newSpectrum.EnergyCalibration = calibration;
+            newSpectrum.NumberOfChannels = newChan;
+            Array.Copy(energySpectrum.Spectrum, newSpectrum.Spectrum, newChan);
+            newSpectrum.MeasurementTime = energySpectrum.MeasurementTime;
+            newSpectrum.TotalPulseCount = newSpectrum.Spectrum.Sum();
+            newSpectrum.ValidPulseCount = newSpectrum.TotalPulseCount;
+            newSpectrum.NumberOfSamples = energySpectrum.NumberOfSamples;
+            return newSpectrum;
+        }
+
+        public static EnergySpectrum CutoffSpectrumEnergy(EnergySpectrum energySpectrum, double energyVal)
+        {
+            PolynomialEnergyCalibration calibration = (PolynomialEnergyCalibration)energySpectrum.EnergyCalibration;
+            int newChan = (int)calibration.EnergyToChannel(energyVal);
+            return CutoffSpectrumChannels(energySpectrum, newChan);
+        }
+
+        public static EnergySpectrum Cutoff(EnergySpectrum energySpectrum, bool isEnergy, double energyVal = 0.0, int channel = 0)
+        {
+            if (isEnergy && energyVal > 0.0)
+            {
+                return CutoffSpectrumEnergy(energySpectrum, energyVal);
+            }
+            if (!isEnergy && channel > 0)
+            {
+                return CutoffSpectrumChannels(energySpectrum, channel);
+            }
+            return null;
+        }
+
         public static EnergySpectrum ConcatSpectrum(EnergySpectrum energySpectrum, int newChan)
         {
             EnergySpectrum newSpectrum = new EnergySpectrum(energySpectrum.ChannelPitch, newChan);

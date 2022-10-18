@@ -1014,6 +1014,7 @@ namespace BecquerelMonitor
             this.toolStripSplitButton9.Image = BecquerelMonitor.Properties.Resources.peak;
             FWHMPeakDetectionMethodConfig cfg = (FWHMPeakDetectionMethodConfig)this.ActiveResultData.PeakDetectionMethodConfig;
             cfg.Enabled = true;
+            this.UpdateDetectedPeaks = true;
             this.RefreshView();
         }
 
@@ -1024,6 +1025,7 @@ namespace BecquerelMonitor
             this.toolStripSplitButton9.Image = BecquerelMonitor.Properties.Resources.nopeak;
             FWHMPeakDetectionMethodConfig cfg = (FWHMPeakDetectionMethodConfig)this.ActiveResultData.PeakDetectionMethodConfig;
             cfg.Enabled = false;
+            this.UpdateDetectedPeaks = false;
             this.RefreshView();
         }
 
