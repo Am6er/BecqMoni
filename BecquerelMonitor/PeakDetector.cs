@@ -20,7 +20,7 @@ namespace BecquerelMonitor
                 energySpectrum = sa.Substract(resultData.BackgroundEnergySpectrum);
             } else
             {
-                energySpectrum = resultData.EnergySpectrum;
+                energySpectrum = resultData.EnergySpectrum.Clone();
             }
             int countlimit = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.CountLimit;
             switch (smoothMethod)

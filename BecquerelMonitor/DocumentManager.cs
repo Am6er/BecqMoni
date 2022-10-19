@@ -838,7 +838,7 @@ namespace BecquerelMonitor
             }
             else
             {
-                energySpectrum = doc.ActiveResultData.EnergySpectrum;
+                energySpectrum = doc.ActiveResultData.EnergySpectrum.Clone();
             }
             int countlimit = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.CountLimit;
             switch (smoothMethod)
