@@ -79,14 +79,8 @@ namespace BecquerelMonitor
             ResultData activeResultData = activeDocument.ActiveResultData;
             PeakDetector peakDetector = new PeakDetector();
             List<Peak> list = null;
-            if (activeDocument.EnergySpectrumView.BackgroundMode == BackgroundMode.Substract)
-            {
-                list = peakDetector.DetectPeak(activeResultData, useBackground: true);
-            } else
-            {
-                list = peakDetector.DetectPeak(activeResultData);
-            }
-            
+            list = peakDetector.DetectPeak(activeResultData, activeDocument.EnergySpectrumView.BackgroundMode, activeDocument.EnergySpectrumView.SmoothingMethod);
+
             this.tableModel1.Rows.Clear();
             foreach (Peak peak in list)
             {

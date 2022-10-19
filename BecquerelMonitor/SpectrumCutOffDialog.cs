@@ -43,6 +43,7 @@ namespace BecquerelMonitor
             {
                 channelradioButton.Checked = false;
                 channeltextBox.Enabled = false;
+                channeltextBox.Text = "";
                 energytextBox.Enabled = true;
             }
             else
@@ -50,6 +51,7 @@ namespace BecquerelMonitor
                 channelradioButton.Checked = true;
                 channeltextBox.Enabled = true;
                 energytextBox.Enabled = false;
+                energytextBox.Text = "";
             }
         }
 
@@ -82,6 +84,36 @@ namespace BecquerelMonitor
         {
             this.resultStatus = true;
             Close();
+        }
+
+        private void energytextBox_MouseDown(object sender, MouseEventArgs e)
+        {
+            energyradioButton.Checked = true;
+            RadioButtonCheck();
+        }
+
+        private void channeltextBox_MouseDown(object sender, MouseEventArgs e)
+        {
+            channelradioButton.Checked = true;
+            RadioButtonCheck();
+        }
+
+        private void energytextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                this.resultStatus = true;
+                Close();
+            }
+        }
+
+        private void channeltextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                this.resultStatus = true;
+                Close();
+            }
         }
     }
 }
