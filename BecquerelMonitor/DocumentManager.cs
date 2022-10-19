@@ -800,7 +800,7 @@ namespace BecquerelMonitor
             EnergySpectrum energySpectrum = doc.ActiveResultData.EnergySpectrum;
             try
             {
-                using (StreamWriter streamWriter = new StreamWriter(fileName, false, Encoding.GetEncoding(932)))
+                using (StreamWriter streamWriter = new StreamWriter(fileName, false, Encoding.GetEncoding(65001)))
                 {
                     for (int i = 0; i < energySpectrum.NumberOfChannels; i++)
                     {
@@ -814,7 +814,7 @@ namespace BecquerelMonitor
             }
         }
 
-        public void ExportDocumentToECSV(DocEnergySpectrum doc, bool isSubstract = false, bool isSmooth = false, SmoothingMethod smmethod = SmoothingMethod.SimpleMovingAverage)
+        public void ExportDocumentToECSV(DocEnergySpectrum doc, BackgroundMode bgMode, SmoothingMethod smoothMethod)
         {
             SaveFileDialog saveFileDialog = new SaveFileDialog();
             saveFileDialog.Title = Resources.CsvExportDialogTitle;
@@ -827,94 +827,47 @@ namespace BecquerelMonitor
                 return;
             }
             string fileName = saveFileDialog.FileName;
-            EnergySpectrum energySpectrum = doc.ActiveResultData.EnergySpectrum;
-            PolynomialEnergyCalibration cal = (PolynomialEnergyCalibration)energySpectrum.EnergyCalibration;
-            if (isSubstract && doc.ActiveResultData.BackgroundEnergySpectrum != null)
+            PolynomialEnergyCalibration cal = (PolynomialEnergyCalibration)doc.ActiveResultData.EnergySpectrum.EnergyCalibration;
+
+            EnergySpectrum energySpectrum;
+            SpectrumAriphmetics sa = new SpectrumAriphmetics();
+            if (bgMode == BackgroundMode.Substract && doc.ActiveResultData.BackgroundEnergySpectrum != null)
             {
-                SpectrumAriphmetics sa = new SpectrumAriphmetics(energySpectrum);
-                EnergySpectrum substract = sa.Substract(doc.ActiveResultData.BackgroundEnergySpectrum);
-                try
-                {
-                    using (StreamWriter streamWriter = new StreamWriter(fileName, false, Encoding.GetEncoding(932)))
-                    {
-                        if (isSmooth)
-                        {
-                            EnergySpectrum smoothed = substract.Clone();
-                            int countlimit = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.CountLimit;
-
-                            if (smmethod == SmoothingMethod.SimpleMovingAverage)
-                            {
-                                int points = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.NumberOfSMADataPoints;
-                                smoothed.Spectrum = sa.SMA(substract.Spectrum, points, countlimit: countlimit);
-                            }
-                            else
-                            {
-                                int points = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.NumberOfWMADataPoints;
-                                smoothed.Spectrum = sa.WMA(substract.Spectrum, points, countlimit: countlimit);
-                            }
-
-                            for (int i = 0; i < energySpectrum.NumberOfChannels; i++)
-                            {
-                                streamWriter.WriteLine(i + "," + cal.ChannelToEnergy(i) + "," + smoothed.Spectrum[i]);
-                            }
-                        } else
-                        {
-                            for (int i = 0; i < substract.NumberOfChannels; i++)
-                            {
-                                streamWriter.WriteLine(i + "," + cal.ChannelToEnergy(i) + "," + substract.Spectrum[i]);
-                            }
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message));
-                }
-                sa.Dispose();
-            } else
+                sa = new SpectrumAriphmetics(doc.ActiveResultData.EnergySpectrum);
+                energySpectrum = sa.Substract(doc.ActiveResultData.BackgroundEnergySpectrum);
+            }
+            else
             {
-                try
+                energySpectrum = doc.ActiveResultData.EnergySpectrum;
+            }
+            int countlimit = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.CountLimit;
+            switch (smoothMethod)
+            {
+                case SmoothingMethod.SimpleMovingAverage:
+                    int points = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.NumberOfSMADataPoints;
+                    energySpectrum.Spectrum = sa.SMA(energySpectrum.Spectrum, points, countlimit: countlimit);
+                    break;
+                case SmoothingMethod.WeightedMovingAverage:
+                    points = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.NumberOfWMADataPoints;
+                    energySpectrum.Spectrum = sa.WMA(energySpectrum.Spectrum, points, countlimit: countlimit);
+                    break;
+            }
+
+            try
+            {
+                using (StreamWriter streamWriter = new StreamWriter(fileName, false, Encoding.GetEncoding(65001)))
                 {
-                    using (StreamWriter streamWriter = new StreamWriter(fileName, false, Encoding.GetEncoding(932)))
+                    for (int i = 0; i < energySpectrum.NumberOfChannels; i++)
                     {
-                        if (isSmooth)
-                        {
-                            EnergySpectrum smoothed = energySpectrum.Clone();
-                            SpectrumAriphmetics sa = new SpectrumAriphmetics(energySpectrum);
-                            int countlimit = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.CountLimit;
-
-                            if (smmethod == SmoothingMethod.SimpleMovingAverage)
-                            {
-                                int points = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.NumberOfSMADataPoints;
-                                smoothed.Spectrum = sa.SMA(energySpectrum.Spectrum, points, countlimit: countlimit);
-                            } else
-                            {
-                                int points = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.NumberOfWMADataPoints;
-                                smoothed.Spectrum = sa.WMA(energySpectrum.Spectrum, points, countlimit: countlimit);
-                            }
-
-                            for (int i = 0; i < energySpectrum.NumberOfChannels; i++)
-                            {
-                                streamWriter.WriteLine(i + "," + cal.ChannelToEnergy(i) + "," + smoothed.Spectrum[i]);
-                            }
-
-                            sa.Dispose();
-                        } else
-                        {
-                            for (int i = 0; i < energySpectrum.NumberOfChannels; i++)
-                            {
-                                streamWriter.WriteLine(i + "," + cal.ChannelToEnergy(i) + "," + energySpectrum.Spectrum[i]);
-                            }
-                        }
+                        streamWriter.WriteLine(i + "," + cal.ChannelToEnergy(i) + "," + energySpectrum.Spectrum[i]);
                     }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message));
                 }
             }
-            
-
+            catch (Exception ex)
+            {
+                MessageBox.Show(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message));
+            }
+            sa.Dispose();
         }
 
         // Token: 0x06000279 RID: 633 RVA: 0x0000A5F0 File Offset: 0x000087F0
@@ -924,7 +877,7 @@ namespace BecquerelMonitor
             int num = 0;
             try
             {
-                using (StreamReader streamReader = new StreamReader(fileName, Encoding.GetEncoding(932)))
+                using (StreamReader streamReader = new StreamReader(fileName, Encoding.GetEncoding(65001)))
                 {
                     while (streamReader.Peek() != -1)
                     {

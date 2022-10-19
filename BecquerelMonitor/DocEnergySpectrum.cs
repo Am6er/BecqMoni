@@ -890,6 +890,7 @@ namespace BecquerelMonitor
             }
             this.view.SmoothingMethod = smoothingMethod;
             this.toolStripSplitButton6.Image = image;
+            this.UpdateDetectedPeaks = true;
             this.RefreshView();
         }
 
@@ -898,6 +899,7 @@ namespace BecquerelMonitor
         {
             this.view.SmoothingMethod = SmoothingMethod.None;
             this.toolStripSplitButton6.Image = BecquerelMonitor.Properties.Resources.NoSmooth;
+            this.UpdateDetectedPeaks = true;
             this.RefreshView();
         }
 
@@ -906,6 +908,7 @@ namespace BecquerelMonitor
         {
             this.view.SmoothingMethod = SmoothingMethod.SimpleMovingAverage;
             this.toolStripSplitButton6.Image = BecquerelMonitor.Properties.Resources.SMA;
+            this.UpdateDetectedPeaks = true;
             this.RefreshView();
         }
 
@@ -914,6 +917,7 @@ namespace BecquerelMonitor
         {
             this.view.SmoothingMethod = SmoothingMethod.WeightedMovingAverage;
             this.toolStripSplitButton6.Image = BecquerelMonitor.Properties.Resources.WMA;
+            this.UpdateDetectedPeaks = true;
             this.RefreshView();
         }
 

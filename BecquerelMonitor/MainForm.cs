@@ -1408,17 +1408,9 @@ namespace BecquerelMonitor
         {
             if (this.activeDocument != null)
             {
-                bool issubstract = false;
-                bool issmooth = false;
-                if (this.activeDocument.EnergySpectrumView.BackgroundMode == BackgroundMode.Substract)
-                {
-                    issubstract = true;
-                }
-                if (this.activeDocument.EnergySpectrumView.SmoothingMethod != SmoothingMethod.None)
-                {
-                    issmooth = true;
-                }
-                this.documentManager.ExportDocumentToECSV(this.activeDocument, isSubstract: issubstract, isSmooth: issmooth, smmethod: this.activeDocument.EnergySpectrumView.SmoothingMethod);
+                this.documentManager.ExportDocumentToECSV(this.activeDocument,
+                    this.activeDocument.EnergySpectrumView.BackgroundMode,
+                    this.activeDocument.EnergySpectrumView.SmoothingMethod);
             }
         }
 

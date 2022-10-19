@@ -52,6 +52,7 @@
             // 
             resources.ApplyResources(this.energytextBox, "energytextBox");
             this.energytextBox.Name = "energytextBox";
+            this.energytextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.energytextBox_KeyDown);
             // 
             // label1
             // 
@@ -69,6 +70,7 @@
             // 
             resources.ApplyResources(this.channeltextBox, "channeltextBox");
             this.channeltextBox.Name = "channeltextBox";
+            this.channeltextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.channeltextBox_KeyDown);
             // 
             // label2
             // 

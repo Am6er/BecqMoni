@@ -1,36 +1,39 @@
-﻿using BecquerelMonitor.FWHMPeakDetector;
-using BecquerelMonitor.Utils;
+﻿using BecquerelMonitor.Utils;
 using MathNet.Numerics;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
 using System.Linq;
-using System.Windows.Forms;
 
 namespace BecquerelMonitor
 {
-    // Token: 0x02000065 RID: 101
     public class PeakDetector
     {
-        public List<Peak> DetectPeak(ResultData resultData, bool useBackground = false)
+        public List<Peak> DetectPeak(ResultData resultData, BackgroundMode bgMode, SmoothingMethod smoothMethod)
         {
             FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)resultData.PeakDetectionMethodConfig;
             EnergySpectrum energySpectrum;
-            SpectrumAriphmetics sa = null;
-            if (useBackground && resultData.BackgroundEnergySpectrum != null)
+            SpectrumAriphmetics sa = new SpectrumAriphmetics();
+            if (bgMode == BackgroundMode.Substract && resultData.BackgroundEnergySpectrum != null)
             {
                 sa = new SpectrumAriphmetics(FWHMPeakDetectionMethodConfig, resultData.EnergySpectrum);
                 energySpectrum = sa.Substract(resultData.BackgroundEnergySpectrum);
-                energySpectrum.Spectrum = sa.SMA(energySpectrum.Spectrum, 3);
             } else
             {
-                //sa = new SpectrumAriphmetics(FWHMPeakDetectionMethodConfig, resultData.EnergySpectrum);
-                //energySpectrum = sa.Substract(sa.Continuum());
                 energySpectrum = resultData.EnergySpectrum;
             }
-            
-
+            int countlimit = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.CountLimit;
+            switch (smoothMethod)
+            {
+                case SmoothingMethod.SimpleMovingAverage:
+                    int points = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.NumberOfSMADataPoints;
+                    energySpectrum.Spectrum = sa.SMA(energySpectrum.Spectrum, points, countlimit: countlimit);
+                    break;
+                case SmoothingMethod.WeightedMovingAverage:
+                    points = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.NumberOfWMADataPoints;
+                    energySpectrum.Spectrum = sa.WMA(energySpectrum.Spectrum, points, countlimit: countlimit);
+                    break;
+            }
 
 
             List<Peak> peaks = new List<Peak>();
