@@ -35,8 +35,8 @@
     <MinimumRequiredVersion>2022.07.08.7</MinimumRequiredVersion>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
-    <ApplicationRevision>3</ApplicationRevision>
-    <ApplicationVersion>2022.10.19.3</ApplicationVersion>
+    <ApplicationRevision>1</ApplicationRevision>
+    <ApplicationVersion>2022.10.25.1</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -308,6 +308,7 @@
     </Compile>
     <Compile Include="DocumentManager.cs" />
     <Compile Include="DoseRate.cs" />
+    <Compile Include="DoseRateCalibrationPoint.cs" />
     <Compile Include="DoseRateConfig.cs" />
     <Compile Include="DoseRateManager.cs" />
     <Compile Include="DoubleTextBox.cs">
@@ -921,6 +922,7 @@
     </EmbeddedResource>
     <EmbeddedResource Include="DeviceConfigForm.resx">
       <DependentUpon>DeviceConfigForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="DeviceConfigForm.ru.resx">
       <DependentUpon>DeviceConfigForm.cs</DependentUpon>

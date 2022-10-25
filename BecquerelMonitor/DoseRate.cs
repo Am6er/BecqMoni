@@ -33,10 +33,56 @@
             }
         }
 
+        public string ToString()
+        {
+            string uom = "μSv/h";
+            double num = this.Rate;
+            double num2 = this.Error;
+            if (num > 1000000.0)
+            {
+                uom = "Sv/h";
+                num /= 1000000.0;
+                num2 /= 1000000.0;
+            }
+            else if (num > 1000.0)
+            {
+                uom = "mSv/h";
+                num /= 1000.0;
+                num2 /= 1000.0;
+            }
+            string str;
+            if (num < 10.0)
+            {
+                str = num.ToString("f3");
+            }
+            else if (num < 100.0)
+            {
+                str = num.ToString("f2");
+            }
+            else
+            {
+                str = num.ToString("f1");
+            }
+            string str2;
+            if (num2 < 10.0)
+            {
+                str2 = num2.ToString("f3");
+            }
+            else if (num2 < 100.0)
+            {
+                str2 = num2.ToString("f2");
+            }
+            else
+            {
+                str2 = num2.ToString("f1");
+            }
+            return str + " ±" + str2 + " " + uom;
+        }
+
         // Token: 0x040000F4 RID: 244
-        double rate;
+        double rate = 0.0;
 
         // Token: 0x040000F5 RID: 245
-        double error;
+        double error = 0.0;
     }
 }

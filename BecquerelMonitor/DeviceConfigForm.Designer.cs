@@ -34,7 +34,9 @@ namespace BecquerelMonitor
 			this.button6 = new global::System.Windows.Forms.Button();
 			this.button13 = new global::System.Windows.Forms.Button();
 			this.button14 = new global::System.Windows.Forms.Button();
-			this.label18 = new global::System.Windows.Forms.Label();
+            this.button15 = new global::System.Windows.Forms.Button();
+            this.button16 = new global::System.Windows.Forms.Button();
+            this.label18 = new global::System.Windows.Forms.Label();
 			this.tabControl1 = new global::System.Windows.Forms.TabControl();
 			this.tabPage1 = new global::System.Windows.Forms.TabPage();
 			this.label2 = new global::System.Windows.Forms.Label();
@@ -61,17 +63,25 @@ namespace BecquerelMonitor
 			this.label24 = new global::System.Windows.Forms.Label();
 			this.tabPage3 = new global::System.Windows.Forms.TabPage();
 			this.tabPage6 = new global::System.Windows.Forms.TabPage();
-			this.tabPage2 = new global::System.Windows.Forms.TabPage();
+            this.tabPage7 = new global::System.Windows.Forms.TabPage();
+            this.tabPage2 = new global::System.Windows.Forms.TabPage();
 			this.panel2 = new global::System.Windows.Forms.Panel();
 			this.button10 = new global::System.Windows.Forms.Button();
 			this.button2 = new global::System.Windows.Forms.Button();
 			this.table3 = new global::XPTable.Models.Table();
-			this.columnModel3 = new global::XPTable.Models.ColumnModel();
-			this.textColumn4 = new global::XPTable.Models.TextColumn();
+            this.table4 = new global::XPTable.Models.Table();
+            this.columnModel3 = new global::XPTable.Models.ColumnModel();
+            this.columnModel4 = new global::XPTable.Models.ColumnModel();
+            this.textColumn4 = new global::XPTable.Models.TextColumn();
 			this.numberColumn3 = new global::XPTable.Models.NumberColumn();
 			this.numberColumn4 = new global::XPTable.Models.NumberColumn();
-			this.tableModel3 = new global::XPTable.Models.TableModel();
-			this.label19 = new global::System.Windows.Forms.Label();
+            this.numberColumn5 = new global::XPTable.Models.NumberColumn();
+            this.numberColumn6 = new global::XPTable.Models.NumberColumn();
+            this.numberColumn7 = new global::XPTable.Models.NumberColumn();
+            this.numberColumn8 = new global::XPTable.Models.NumberColumn();
+            this.tableModel3 = new global::XPTable.Models.TableModel();
+            this.tableModel4 = new global::XPTable.Models.TableModel();
+            this.label19 = new global::System.Windows.Forms.Label();
 			this.label9 = new global::System.Windows.Forms.Label();
 			this.panel1 = new global::System.Windows.Forms.Panel();
 			this.table2 = new global::XPTable.Models.Table();
@@ -100,15 +110,6 @@ namespace BecquerelMonitor
 			this.textBox15 = new global::System.Windows.Forms.TextBox();
 			this.tabPage5 = new global::System.Windows.Forms.TabPage();
 			this.groupBox3 = new global::System.Windows.Forms.GroupBox();
-			this.label15 = new global::System.Windows.Forms.Label();
-			this.label14 = new global::System.Windows.Forms.Label();
-			this.label13 = new global::System.Windows.Forms.Label();
-			this.doubleTextBox3 = new global::BecquerelMonitor.DoubleTextBox();
-			this.doubleTextBox2 = new global::BecquerelMonitor.DoubleTextBox();
-			this.label12 = new global::System.Windows.Forms.Label();
-			this.label11 = new global::System.Windows.Forms.Label();
-			this.doubleTextBox1 = new global::BecquerelMonitor.DoubleTextBox();
-			this.label10 = new global::System.Windows.Forms.Label();
 			this.groupBox2 = new global::System.Windows.Forms.GroupBox();
 			this.label40 = new global::System.Windows.Forms.Label();
 			this.label42 = new global::System.Windows.Forms.Label();
@@ -144,7 +145,8 @@ namespace BecquerelMonitor
 			this.tabPage2.SuspendLayout();
 			this.panel2.SuspendLayout();
 			((global::System.ComponentModel.ISupportInitialize)this.table3).BeginInit();
-			this.panel1.SuspendLayout();
+            ((global::System.ComponentModel.ISupportInitialize)this.table4).BeginInit();
+            this.panel1.SuspendLayout();
 			((global::System.ComponentModel.ISupportInitialize)this.table2).BeginInit();
 			this.groupBox1.SuspendLayout();
 			this.tabPage5.SuspendLayout();
@@ -189,7 +191,8 @@ namespace BecquerelMonitor
 			this.tabControl1.Controls.Add(this.tabPage2);
 			this.tabControl1.Controls.Add(this.tabPage5);
 			this.tabControl1.Controls.Add(this.tabPage4);
-			this.tabControl1.Name = "tabControl1";
+            this.tabControl1.Controls.Add(this.tabPage7);
+            this.tabControl1.Name = "tabControl1";
 			this.tabControl1.SelectedIndex = 0;
 			componentResourceManager.ApplyResources(this.tabPage1, "tabPage1");
 			this.tabPage1.BackColor = global::System.Drawing.SystemColors.Control;
@@ -260,7 +263,10 @@ namespace BecquerelMonitor
 			componentResourceManager.ApplyResources(this.tabPage6, "tabPage6");
 			this.tabPage6.BackColor = global::System.Drawing.SystemColors.Control;
 			this.tabPage6.Name = "tabPage6";
-			componentResourceManager.ApplyResources(this.tabPage2, "tabPage2");
+            componentResourceManager.ApplyResources(this.tabPage7, "tabPage7");
+            this.tabPage7.BackColor = global::System.Drawing.SystemColors.Control;
+            this.tabPage7.Name = "tabPage7";
+            componentResourceManager.ApplyResources(this.tabPage2, "tabPage2");
 			this.tabPage2.BackColor = global::System.Drawing.SystemColors.Control;
 			this.tabPage2.Controls.Add(this.panel2);
 			this.tabPage2.Controls.Add(this.label19);
@@ -460,46 +466,78 @@ namespace BecquerelMonitor
 			this.textBox15.TabStop = false;
 			componentResourceManager.ApplyResources(this.tabPage5, "tabPage5");
 			this.tabPage5.BackColor = global::System.Drawing.SystemColors.Control;
-			this.tabPage5.Controls.Add(this.groupBox3);
+			this.tabPage7.Controls.Add(this.groupBox3);
 			this.tabPage5.Controls.Add(this.groupBox2);
 			this.tabPage5.Controls.Add(this.label49);
 			this.tabPage5.Name = "tabPage5";
 			componentResourceManager.ApplyResources(this.groupBox3, "groupBox3");
-			this.groupBox3.Controls.Add(this.label15);
-			this.groupBox3.Controls.Add(this.label14);
-			this.groupBox3.Controls.Add(this.label13);
-			this.groupBox3.Controls.Add(this.doubleTextBox3);
-			this.groupBox3.Controls.Add(this.doubleTextBox2);
-			this.groupBox3.Controls.Add(this.label12);
-			this.groupBox3.Controls.Add(this.label11);
-			this.groupBox3.Controls.Add(this.doubleTextBox1);
-			this.groupBox3.Controls.Add(this.label10);
-			this.groupBox3.Name = "groupBox3";
+            this.groupBox3.Controls.Add(this.table4);
+			this.groupBox3.Controls.Add(this.button15);
+            this.groupBox3.Controls.Add(this.button16);
+            this.groupBox3.Name = "groupBox3";
 			this.groupBox3.TabStop = false;
-			componentResourceManager.ApplyResources(this.label49, "label49");
+            componentResourceManager.ApplyResources(this.table4, "table4");
+            this.table4.BorderColor = global::System.Drawing.Color.Black;
+            this.table4.ColumnModel = this.columnModel4;
+            this.table4.DataMember = null;
+            this.table4.DataSourceColumnBinder = dataSourceColumnBinder;
+            dragDropRenderer.ForeColor = global::System.Drawing.Color.Red;
+            this.table4.DragDropRenderer = dragDropRenderer;
+            this.table4.FullRowSelect = true;
+            this.table4.GridLines = global::XPTable.Models.GridLines.Both;
+            this.table4.GridLinesContrainedToData = false;
+            this.table4.Name = "table4";
+            this.table4.TableModel = this.tableModel4;
+            this.table4.UnfocusedBorderColor = global::System.Drawing.Color.Black;
+            this.table4.EditingStopped += new global::XPTable.Events.CellEditEventHandler(this.table4_EditingStopped);
+            this.columnModel4.Columns.AddRange(new global::XPTable.Models.Column[]
+            {
+                this.numberColumn5,
+                this.numberColumn6,
+                this.numberColumn7,
+                this.numberColumn8
+            });
+            componentResourceManager.ApplyResources(this.numberColumn5, "numberColumn5");
+            this.numberColumn5.IsTextTrimmed = false;
+            this.numberColumn5.Minimum = 0;
+            this.numberColumn5.Maximum = 2999;
+            this.numberColumn5.Sortable = false;
+            this.numberColumn5.Width = 100;
+            this.numberColumn5.Alignment = global::XPTable.Models.ColumnAlignment.Center;
+            componentResourceManager.ApplyResources(this.numberColumn6, "numberColumn6");
+            this.numberColumn6.IsTextTrimmed = false;
+            this.numberColumn6.Minimum = 1;
+            this.numberColumn6.Maximum = 3000;
+            this.numberColumn6.Sortable = false;
+            this.numberColumn6.Width = 100;
+            this.numberColumn6.Alignment = global::XPTable.Models.ColumnAlignment.Center;
+            componentResourceManager.ApplyResources(this.numberColumn7, "numberColumn7");
+            this.numberColumn7.IsTextTrimmed = false;
+            this.numberColumn7.Minimum = 0;
+            this.numberColumn7.Maximum = 100000;
+            this.numberColumn7.Sortable = false;
+            this.numberColumn7.Alignment = global::XPTable.Models.ColumnAlignment.Center;
+            componentResourceManager.ApplyResources(this.numberColumn8, "numberColumn8");
+            this.numberColumn8.IsTextTrimmed = false;
+            this.numberColumn8.Minimum = 0;
+            this.numberColumn8.Maximum = 100000;
+            this.numberColumn8.Sortable = false;
+			this.numberColumn8.Width = 140;
+            this.numberColumn8.Alignment = global::XPTable.Models.ColumnAlignment.Center;
+
+            componentResourceManager.ApplyResources(this.button15, "button15");
+            this.button15.Name = "button15";
+            this.button15.UseVisualStyleBackColor = true;
+            this.button15.Click += new global::System.EventHandler(this.button15_Click);
+
+            componentResourceManager.ApplyResources(this.button16, "button16");
+            this.button16.Name = "button16";
+            this.button16.UseVisualStyleBackColor = true;
+            this.button16.Click += new global::System.EventHandler(this.button16_Click);
+
+            componentResourceManager.ApplyResources(this.label49, "label49");
 			this.label49.Name = "label49";
 			this.label49.Text = Resources.FWHMPeakConfigDescription;
-			componentResourceManager.ApplyResources(this.label15, "label15");
-			this.label15.Name = "label15";
-			componentResourceManager.ApplyResources(this.label14, "label14");
-			this.label14.Name = "label14";
-			componentResourceManager.ApplyResources(this.label13, "label13");
-			this.label13.Name = "label13";
-			componentResourceManager.ApplyResources(this.doubleTextBox3, "doubleTextBox3");
-			this.doubleTextBox3.Name = "doubleTextBox3";
-			this.doubleTextBox3.TextChanged += new global::System.EventHandler(this.doubleTextBox3_TextChanged);
-			componentResourceManager.ApplyResources(this.doubleTextBox2, "doubleTextBox2");
-			this.doubleTextBox2.Name = "doubleTextBox2";
-			this.doubleTextBox2.TextChanged += new global::System.EventHandler(this.doubleTextBox2_TextChanged);
-			componentResourceManager.ApplyResources(this.label12, "label12");
-			this.label12.Name = "label12";
-			componentResourceManager.ApplyResources(this.label11, "label11");
-			this.label11.Name = "label11";
-			componentResourceManager.ApplyResources(this.doubleTextBox1, "doubleTextBox1");
-			this.doubleTextBox1.Name = "doubleTextBox1";
-			this.doubleTextBox1.TextChanged += new global::System.EventHandler(this.doubleTextBox1_TextChanged);
-			componentResourceManager.ApplyResources(this.label10, "label10");
-			this.label10.Name = "label10";
 			componentResourceManager.ApplyResources(this.groupBox2, "groupBox2");
 			this.groupBox2.Controls.Add(this.label40);
 			this.groupBox2.Controls.Add(this.label42);
@@ -688,7 +726,8 @@ namespace BecquerelMonitor
 			this.tabPage2.PerformLayout();
 			this.panel2.ResumeLayout(false);
 			((global::System.ComponentModel.ISupportInitialize)this.table3).EndInit();
-			this.panel1.ResumeLayout(false);
+            ((global::System.ComponentModel.ISupportInitialize)this.table4).EndInit();
+            this.panel1.ResumeLayout(false);
 			this.panel1.PerformLayout();
 			((global::System.ComponentModel.ISupportInitialize)this.table2).EndInit();
 			this.groupBox1.ResumeLayout(false);
@@ -749,8 +788,12 @@ namespace BecquerelMonitor
 
 		global::System.Windows.Forms.Button button14;
 
-		// Token: 0x04000269 RID: 617
-		global::XPTable.Models.TextColumn textColumn2;
+        global::System.Windows.Forms.Button button15;
+
+        global::System.Windows.Forms.Button button16;
+
+        // Token: 0x04000269 RID: 617
+        global::XPTable.Models.TextColumn textColumn2;
 
 		// Token: 0x0400026A RID: 618
 		global::System.Windows.Forms.Label label18;
@@ -877,8 +920,10 @@ namespace BecquerelMonitor
 		// Token: 0x0400028E RID: 654
 		global::System.Windows.Forms.TabPage tabPage6;
 
-		// Token: 0x0400028F RID: 655
-		global::System.Windows.Forms.Label label2;
+        global::System.Windows.Forms.TabPage tabPage7;
+
+        // Token: 0x0400028F RID: 655
+        global::System.Windows.Forms.Label label2;
 
 		// Token: 0x04000290 RID: 656
 		global::System.Windows.Forms.Panel panel1;
@@ -955,7 +1000,7 @@ namespace BecquerelMonitor
 		global::System.Windows.Forms.GroupBox groupBox3;
 
 		// Token: 0x040002A6 RID: 678
-		global::System.Windows.Forms.Label label15;
+		//global::System.Windows.Forms.Label label15;
 
 		global::System.Windows.Forms.Label label49;
 
@@ -963,29 +1008,14 @@ namespace BecquerelMonitor
 
 		global::System.Windows.Forms.Label label51;
 
-		// Token: 0x040002A7 RID: 679
-		global::System.Windows.Forms.Label label14;
-
-		// Token: 0x040002A8 RID: 680
-		global::System.Windows.Forms.Label label13;
-
-		// Token: 0x040002A9 RID: 681
-		global::BecquerelMonitor.DoubleTextBox doubleTextBox3;
-
-		// Token: 0x040002AA RID: 682
-		global::BecquerelMonitor.DoubleTextBox doubleTextBox2;
-
-		// Token: 0x040002AB RID: 683
-		global::System.Windows.Forms.Label label12;
-
-		// Token: 0x040002AC RID: 684
-		global::System.Windows.Forms.Label label11;
-
-		// Token: 0x040002AD RID: 685
-		global::BecquerelMonitor.DoubleTextBox doubleTextBox1;
-
-		// Token: 0x040002AE RID: 686
-		global::System.Windows.Forms.Label label10;
+		//global::System.Windows.Forms.Label label14;
+		//global::System.Windows.Forms.Label label13;
+		//global::BecquerelMonitor.DoubleTextBox doubleTextBox3;
+		//global::BecquerelMonitor.DoubleTextBox doubleTextBox2;
+		//global::System.Windows.Forms.Label label12;
+		//global::System.Windows.Forms.Label label11;
+		//global::BecquerelMonitor.DoubleTextBox doubleTextBox1;
+		//global::System.Windows.Forms.Label label10;
 
 		// Token: 0x040002AF RID: 687
 		global::System.Windows.Forms.GroupBox groupBox2;
@@ -995,18 +1025,23 @@ namespace BecquerelMonitor
 
 		// Token: 0x040002B1 RID: 689
 		global::XPTable.Models.Table table3;
+        global::XPTable.Models.Table table4;
 
-		// Token: 0x040002B2 RID: 690
-		global::XPTable.Models.ColumnModel columnModel3;
+        // Token: 0x040002B2 RID: 690
+        global::XPTable.Models.ColumnModel columnModel3;
 
-		// Token: 0x040002B3 RID: 691
-		global::XPTable.Models.TextColumn textColumn4;
+        global::XPTable.Models.ColumnModel columnModel4;
+
+        // Token: 0x040002B3 RID: 691
+        global::XPTable.Models.TextColumn textColumn4;
 
 		// Token: 0x040002B4 RID: 692
 		global::XPTable.Models.TableModel tableModel3;
 
-		// Token: 0x040002B5 RID: 693
-		global::System.Windows.Forms.Label label19;
+        global::XPTable.Models.TableModel tableModel4;
+
+        // Token: 0x040002B5 RID: 693
+        global::System.Windows.Forms.Label label19;
 
 		global::System.Windows.Forms.Label label45;
 
@@ -1032,5 +1067,10 @@ namespace BecquerelMonitor
 
 		// Token: 0x040002BA RID: 698
 		global::XPTable.Models.NumberColumn numberColumn4;
-	}
+
+        global::XPTable.Models.NumberColumn numberColumn5;
+        global::XPTable.Models.NumberColumn numberColumn6;
+        global::XPTable.Models.NumberColumn numberColumn7;
+        global::XPTable.Models.NumberColumn numberColumn8;
+    }
 }
