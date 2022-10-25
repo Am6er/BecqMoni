@@ -330,42 +330,6 @@
   <data name="&gt;&gt;comboBox4.ZOrder" xml:space="preserve">
     <value>11</value>
   </data>
-  <data name="&gt;&gt;doubleTextBox1.Name" xml:space="preserve">
-    <value>doubleTextBox1</value>
-  </data>
-  <data name="&gt;&gt;doubleTextBox1.Parent" xml:space="preserve">
-    <value>groupBox3</value>
-  </data>
-  <data name="&gt;&gt;doubleTextBox1.Type" xml:space="preserve">
-    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitorPlus, Version=1.0.22.0, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;doubleTextBox1.ZOrder" xml:space="preserve">
-    <value>7</value>
-  </data>
-  <data name="&gt;&gt;doubleTextBox2.Name" xml:space="preserve">
-    <value>doubleTextBox2</value>
-  </data>
-  <data name="&gt;&gt;doubleTextBox2.Parent" xml:space="preserve">
-    <value>groupBox3</value>
-  </data>
-  <data name="&gt;&gt;doubleTextBox2.Type" xml:space="preserve">
-    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitorPlus, Version=1.0.22.0, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;doubleTextBox2.ZOrder" xml:space="preserve">
-    <value>4</value>
-  </data>
-  <data name="&gt;&gt;doubleTextBox3.Name" xml:space="preserve">
-    <value>doubleTextBox3</value>
-  </data>
-  <data name="&gt;&gt;doubleTextBox3.Parent" xml:space="preserve">
-    <value>groupBox3</value>
-  </data>
-  <data name="&gt;&gt;doubleTextBox3.Type" xml:space="preserve">
-    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitorPlus, Version=1.0.22.0, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;doubleTextBox3.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
   <data name="&gt;&gt;doubleTextBox5.Name" xml:space="preserve">
     <value>doubleTextBox5</value>
   </data>
@@ -449,78 +413,6 @@
   </data>
   <data name="&gt;&gt;label1.ZOrder" xml:space="preserve">
     <value>1</value>
-  </data>
-  <data name="&gt;&gt;label10.Name" xml:space="preserve">
-    <value>label10</value>
-  </data>
-  <data name="&gt;&gt;label10.Parent" xml:space="preserve">
-    <value>groupBox3</value>
-  </data>
-  <data name="&gt;&gt;label10.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;label10.ZOrder" xml:space="preserve">
-    <value>8</value>
-  </data>
-  <data name="&gt;&gt;label11.Name" xml:space="preserve">
-    <value>label11</value>
-  </data>
-  <data name="&gt;&gt;label11.Parent" xml:space="preserve">
-    <value>groupBox3</value>
-  </data>
-  <data name="&gt;&gt;label11.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;label11.ZOrder" xml:space="preserve">
-    <value>6</value>
-  </data>
-  <data name="&gt;&gt;label12.Name" xml:space="preserve">
-    <value>label12</value>
-  </data>
-  <data name="&gt;&gt;label12.Parent" xml:space="preserve">
-    <value>groupBox3</value>
-  </data>
-  <data name="&gt;&gt;label12.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;label12.ZOrder" xml:space="preserve">
-    <value>5</value>
-  </data>
-  <data name="&gt;&gt;label13.Name" xml:space="preserve">
-    <value>label13</value>
-  </data>
-  <data name="&gt;&gt;label13.Parent" xml:space="preserve">
-    <value>groupBox3</value>
-  </data>
-  <data name="&gt;&gt;label13.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;label13.ZOrder" xml:space="preserve">
-    <value>2</value>
-  </data>
-  <data name="&gt;&gt;label14.Name" xml:space="preserve">
-    <value>label14</value>
-  </data>
-  <data name="&gt;&gt;label14.Parent" xml:space="preserve">
-    <value>groupBox3</value>
-  </data>
-  <data name="&gt;&gt;label14.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;label14.ZOrder" xml:space="preserve">
-    <value>1</value>
-  </data>
-  <data name="&gt;&gt;label15.Name" xml:space="preserve">
-    <value>label15</value>
-  </data>
-  <data name="&gt;&gt;label15.Parent" xml:space="preserve">
-    <value>groupBox3</value>
-  </data>
-  <data name="&gt;&gt;label15.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;label15.ZOrder" xml:space="preserve">
-    <value>0</value>
   </data>
   <data name="&gt;&gt;label16.Name" xml:space="preserve">
     <value>label16</value>
@@ -1455,24 +1347,6 @@
   <data name="label1.Text" xml:space="preserve">
     <value>Тип термометра</value>
   </data>
-  <data name="label10.Text" xml:space="preserve">
-    <value>Чувствит...</value>
-  </data>
-  <data name="label11.Text" xml:space="preserve">
-    <value>cpm/μSv/h</value>
-  </data>
-  <data name="label12.Text" xml:space="preserve">
-    <value>Нижн. граница</value>
-  </data>
-  <data name="label13.Text" xml:space="preserve">
-    <value>Верхняя граница</value>
-  </data>
-  <data name="label14.Text" xml:space="preserve">
-    <value>keV</value>
-  </data>
-  <data name="label15.Text" xml:space="preserve">
-    <value>keV</value>
-  </data>
   <data name="label16.Text" xml:space="preserve">
     <value>Выбрать спектр фона по умолчанию</value>
   </data>
@@ -1652,6 +1526,9 @@
   </data>
   <data name="label52.Text" xml:space="preserve">
     <value>Сжатие ch</value>
+  </data>
+  <data name="tabPage7.Text" xml:space="preserve">
+    <value>МЭД</value>
   </data>
   <data name="textColumn4.ToolTipText" xml:space="preserve">
     <value />

@@ -1,4 +1,6 @@
-﻿namespace BecquerelMonitor
+﻿using System;
+
+namespace BecquerelMonitor
 {
     // Token: 0x020000A6 RID: 166
     public partial class DCDoseRateView : ToolWindow

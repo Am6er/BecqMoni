@@ -134,7 +134,7 @@ namespace BecquerelMonitor
             base.Icon = BecquerelMonitor.Properties.Resources.becqmoni;
             this.toolStripMenuItem6.Visible = false;
             this.toolStripMenuItem3.Visible = false;
-            this.toolStripMenuItem5.Visible = false;
+            this.toolStripMenuItem5.Visible = true;
             this.toolStripMenuItem7.Visible = false;
             this.toolStripSeparator9.Visible = false;
             this.toolStripMenuItem2.Visible = false;
@@ -446,6 +446,11 @@ namespace BecquerelMonitor
                 {
                     this.ShowDoseRate();
                 }
+                if (this.activeDocument != null && this.activeDocument.UpdateDoseRate)
+                {
+                    this.ShowDoseRate();
+                    this.activeDocument.UpdateDoseRate = false;
+                }
             }
             this.countChart += 100;
             if (this.countChart >= this.globalConfigManager.GlobalConfig.ChartViewConfig.ChartRefreshCycle)
@@ -506,6 +511,26 @@ namespace BecquerelMonitor
         // Token: 0x06000A4E RID: 2638 RVA: 0x0003D3C0 File Offset: 0x0003B5C0
         public void ShowDoseRate()
         {
+            if (this.dcDoseRateView != null && this.activeDocument != null && this.activeDocument.ActiveResultData.DeviceConfig.DoseRateConfig != null)
+            {
+                DoseRate doseRate = this.doseRateManager.Calculate(this.activeDocument.ActiveResultData,
+                    this.activeDocument.ActiveResultData.DeviceConfig.DoseRateConfig,
+                    this.activeDocument.EnergySpectrumView.BackgroundMode);
+                this.dcDoseRateView.ShowDoseRate(doseRate);
+                SetStatusTextRight(doseRate.ToString());
+                return;
+            } else
+            {
+                if (this.activeDocument.ActiveResultData.DeviceConfig.DoseRateConfig != null)
+                {
+                    DoseRate doseRate = this.doseRateManager.Calculate(this.activeDocument.ActiveResultData,
+                        this.activeDocument.ActiveResultData.DeviceConfig.DoseRateConfig,
+                        this.activeDocument.EnergySpectrumView.BackgroundMode);
+                    SetStatusTextRight(doseRate.ToString());
+                    return;
+                }
+            }
+            ClearStatusTextRight();
         }
 
         // Token: 0x06000A4F RID: 2639 RVA: 0x0003D3C4 File Offset: 0x0003B5C4

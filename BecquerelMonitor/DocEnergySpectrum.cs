@@ -134,6 +134,18 @@ namespace BecquerelMonitor
             }
         }
 
+        public bool UpdateDoseRate
+        {
+            get
+            {
+                return this.updateDoseRate;
+            }
+            set
+            {
+                this.updateDoseRate = value;
+            }
+        }
+
         // Token: 0x17000144 RID: 324
         // (get) Token: 0x06000312 RID: 786 RVA: 0x0000F788 File Offset: 0x0000D988
         // (set) Token: 0x06000313 RID: 787 RVA: 0x0000F790 File Offset: 0x0000D990
@@ -589,6 +601,7 @@ namespace BecquerelMonitor
             this.view.BackgroundMode = backgroundMode;
             this.toolStripSplitButton7.Image = image;
             this.UpdateDetectedPeaks = true;
+            this.UpdateDoseRate = true;
             this.RefreshView();
         }
 
@@ -607,6 +620,7 @@ namespace BecquerelMonitor
             this.view.BackgroundMode = BackgroundMode.Visible;
             this.toolStripSplitButton7.Image = BecquerelMonitor.Properties.Resources.BG;
             this.UpdateDetectedPeaks = true;
+            this.UpdateDoseRate = true;
             this.RefreshView();
         }
 
@@ -616,6 +630,7 @@ namespace BecquerelMonitor
             this.view.BackgroundMode = BackgroundMode.Invisible;
             this.toolStripSplitButton7.Image = BecquerelMonitor.Properties.Resources.NOBG;
             this.UpdateDetectedPeaks = true;
+            this.UpdateDoseRate = true;
             this.RefreshView();
         }
 
@@ -624,6 +639,7 @@ namespace BecquerelMonitor
             this.view.BackgroundMode = BackgroundMode.Substract;
             this.toolStripSplitButton7.Image = BecquerelMonitor.Properties.Resources.SUB;
             this.UpdateDetectedPeaks = true;
+            this.UpdateDoseRate = true;
             this.RefreshView();
         }
 
@@ -632,6 +648,7 @@ namespace BecquerelMonitor
             this.view.BackgroundMode = BackgroundMode.ShowContinuum;
             this.toolStripSplitButton7.Image = BecquerelMonitor.Properties.Resources.CONT;
             this.UpdateDetectedPeaks = true;
+            this.UpdateDoseRate = true;
             this.RefreshView();
         }
 
@@ -1239,6 +1256,8 @@ namespace BecquerelMonitor
         bool updateSpectrum;
 
         bool updateDetectedPeaks = false;
+
+        bool updateDoseRate = false;
 
         // Token: 0x04000153 RID: 339
         bool activeEnergyCalibration;

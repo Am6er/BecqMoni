@@ -58,7 +58,6 @@ namespace BecquerelMonitor
             {
                 this.columnModel1.Columns[i].Width = ((deviceConfigListColumnSizes[i] > 32) ? deviceConfigListColumnSizes[i] : 32);
             }
-            this.groupBox3.Visible = false;
             this.groupBox2.Top = 24;
         }
 
@@ -407,11 +406,18 @@ namespace BecquerelMonitor
                 }
             }
             DoseRateConfig doseRateConfig = config.DoseRateConfig;
-            if (doseRateConfig != null)
+            this.tableModel4.Rows.Clear();
+            if (doseRateConfig != null && doseRateConfig.DoseRateCalibrationPoints != null)
             {
-                this.doubleTextBox1.Text = doseRateConfig.Sensitivity.ToString();
-                this.doubleTextBox2.Text = doseRateConfig.LowerBound.ToString();
-                this.doubleTextBox3.Text = doseRateConfig.UpperBound.ToString();
+                foreach(DoseRateCalibrationPoint point in doseRateConfig.DoseRateCalibrationPoints)
+                {
+                    Row row = new Row();
+                    row.Cells.Add(new Cell(point.LowerBound));
+                    row.Cells.Add(new Cell(point.UpperBound));
+                    row.Cells.Add(new Cell(point.CPS));
+                    row.Cells.Add(new Cell(point.EtalonDoseRateValue));
+                    this.tableModel4.Rows.Add(row);
+                }
             }
             FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)config.PeakDetectionMethodConfig;
             this.numberColumn4.Minimum = 1;
@@ -514,9 +520,8 @@ namespace BecquerelMonitor
                     config.StabilizerConfig = new StabilizerConfig();
                 }
                 config.StabilizerConfig.TargetPeaks = new List<TargetPeak>();
-                foreach (object obj in this.tableModel3.Rows)
+                foreach (Row row in this.tableModel3.Rows)
                 {
-                    Row row = (Row)obj;
                     TargetPeak targetPeak = new TargetPeak();
                     targetPeak.Nuclide = row.Cells[0].Text;
                     targetPeak.Energy = (decimal)row.Cells[1].Data;
@@ -524,9 +529,16 @@ namespace BecquerelMonitor
                     config.StabilizerConfig.TargetPeaks.Add(targetPeak);
                 }
                 DoseRateConfig doseRateConfig = config.DoseRateConfig;
-                doseRateConfig.Sensitivity = this.doubleTextBox1.GetValue();
-                doseRateConfig.LowerBound = this.doubleTextBox2.GetValue();
-                doseRateConfig.UpperBound = this.doubleTextBox3.GetValue();
+                config.DoseRateConfig.DoseRateCalibrationPoints = new List<DoseRateCalibrationPoint>();
+                foreach(Row row in this.tableModel4.Rows)
+                {
+                    DoseRateCalibrationPoint point = new DoseRateCalibrationPoint();
+                    point.LowerBound = getDouble(row.Cells[0].Data);
+                    point.UpperBound = getDouble(row.Cells[1].Data);
+                    point.CPS = getDouble(row.Cells[2].Data);
+                    point.EtalonDoseRateValue = getDouble(row.Cells[3].Data);
+                    config.DoseRateConfig.DoseRateCalibrationPoints.Add(point);
+                }
                 FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)config.PeakDetectionMethodConfig;
                 FWHMPeakDetectionMethodConfig.Min_SNR = (double)this.numericUpDown4.Value;
                 FWHMPeakDetectionMethodConfig.Max_Items = (int)this.numericUpDown3.Value;
@@ -546,6 +558,23 @@ namespace BecquerelMonitor
                 return false;
             }
             return true;
+        }
+
+        double getDouble(object Data)
+        {
+            if (Data.GetType() == typeof(int))
+            {
+                return (double)(int)Data;
+            }
+            if (Data.GetType() == typeof(double))
+            {
+                return (double)Data;
+            }
+            if(Data.GetType() == typeof(decimal))
+            {
+                return (double)(decimal)Data;
+            }
+            return (double)Data;
         }
 
         // Token: 0x06000524 RID: 1316 RVA: 0x00021668 File Offset: 0x0001F868
@@ -1446,24 +1475,6 @@ namespace BecquerelMonitor
             this.SetActiveDeviceConfigDirty();
         }
 
-        // Token: 0x06000547 RID: 1351 RVA: 0x000227D8 File Offset: 0x000209D8
-        void doubleTextBox1_TextChanged(object sender, EventArgs e)
-        {
-            this.SetActiveDeviceConfigDirty();
-        }
-
-        // Token: 0x06000548 RID: 1352 RVA: 0x000227E0 File Offset: 0x000209E0
-        void doubleTextBox2_TextChanged(object sender, EventArgs e)
-        {
-            this.SetActiveDeviceConfigDirty();
-        }
-
-        // Token: 0x06000549 RID: 1353 RVA: 0x000227E8 File Offset: 0x000209E8
-        void doubleTextBox3_TextChanged(object sender, EventArgs e)
-        {
-            this.SetActiveDeviceConfigDirty();
-        }
-
         double fromStringtoDouble(string str)
         {
             double result;
@@ -1530,6 +1541,52 @@ namespace BecquerelMonitor
             {
                 e.Cancel = true;
             }
+        }
+
+        void table4_EditingStopped(object sender, CellEditEventArgs e)
+        {
+            Cell cell = e.Cell;
+            Row row = cell.Row;
+            try
+            {
+                string text = ((NumberCellEditor)e.Editor).TextBox.Text;
+                this.SetActiveDeviceConfigDirty();
+            }
+            catch (Exception)
+            {
+                e.Cancel = true;
+            }
+        }
+
+        void button15_Click(object sender, EventArgs e)
+        {
+            Row row1 = new Row();
+            if (this.table4.SelectedItems.Length <= 0)
+            {
+                row1.Cells.Add(new Cell(0));
+                row1.Cells.Add(new Cell(3000));
+                row1.Cells.Add(new Cell(1));
+                row1.Cells.Add(new Cell(0.001));
+            } else
+            {
+                row1.Cells.Add(this.tableModel4[this.tableModel4.Rows.Count - 1,1]);
+                row1.Cells.Add(new Cell(3000));
+                row1.Cells.Add(new Cell(1));
+                row1.Cells.Add(new Cell(0.001));
+            }
+            this.tableModel4.Rows.Add(row1);
+            this.SetActiveDeviceConfigDirty();
+        }
+
+        void button16_Click(object sender, EventArgs e)
+        {
+            if (this.table4.SelectedItems.Length <= 0)
+            {
+                return;
+            }
+            Row row = this.table4.SelectedItems[0];
+            this.tableModel4.Rows.RemoveAt(row.Index);
+            this.SetActiveDeviceConfigDirty();
         }
 
         // Token: 0x040002BB RID: 699
