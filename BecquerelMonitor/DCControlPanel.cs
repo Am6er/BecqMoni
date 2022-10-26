@@ -615,6 +615,7 @@ namespace BecquerelMonitor
             this.mainForm.UpdateDetectedPeakView();
             activeDocument.UpdateEnergySpectrum();
             activeDocument.Dirty = true;
+            activeDocument.UpdateDoseRate = true;
             return true;
         }
 

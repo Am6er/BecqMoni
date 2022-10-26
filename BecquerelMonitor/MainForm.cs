@@ -134,7 +134,7 @@ namespace BecquerelMonitor
             base.Icon = BecquerelMonitor.Properties.Resources.becqmoni;
             this.toolStripMenuItem6.Visible = false;
             this.toolStripMenuItem3.Visible = false;
-            this.toolStripMenuItem5.Visible = true;
+            this.toolStripMenuItem5.Visible = false;
             this.toolStripMenuItem7.Visible = false;
             this.toolStripSeparator9.Visible = false;
             this.toolStripMenuItem2.Visible = false;
