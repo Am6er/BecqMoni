@@ -37,52 +37,6 @@ namespace BecquerelMonitor
             }
         }
 
-        public DoseRateCalibrationPoint GetPointbyLowerBound(double lowerbound)
-        {
-            foreach(DoseRateCalibrationPoint point in this.doseRateCalibrationPoints)
-            {
-                if (point.LowerBound == lowerbound) return point;
-            }
-            return null;
-        }
-
-        public DoseRateCalibrationPoint GetPointbyUpperBound(double upperbound)
-        {
-            foreach(DoseRateCalibrationPoint point in this.doseRateCalibrationPoints)
-            {
-                if (point.UpperBound == upperbound) return point;
-            }
-            return null;
-        }
-
-        public bool ValidateCalibration()
-        {
-            DoseRateCalibrationPoint lower = GetPointbyLowerBound(0.0);
-            DoseRateCalibrationPoint upper = GetPointbyUpperBound(3000.0);
-            if (lower == null || upper == null)
-            {
-                return false;
-            }
-            if (this.doseRateCalibrationPoints.Count == 1 && lower.LowerBound == 0.0 && lower.UpperBound == 3000.0)
-            {
-                return true;
-            }
-            for(int i = 1; i <= this.doseRateCalibrationPoints.Count - 1; i++)
-            {
-                lower = GetPointbyLowerBound(lower.UpperBound);
-                if (lower == null)
-                {
-                    return false;
-                }
-                if (i == this.doseRateCalibrationPoints.Count - 1 && lower.UpperBound == 3000.0)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         List<DoseRateCalibrationPoint> doseRateCalibrationPoints = new List<DoseRateCalibrationPoint>();
     }
 }

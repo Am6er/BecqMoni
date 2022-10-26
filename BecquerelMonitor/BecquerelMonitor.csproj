@@ -36,7 +36,7 @@
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
     <ApplicationRevision>1</ApplicationRevision>
-    <ApplicationVersion>2022.10.25.1</ApplicationVersion>
+    <ApplicationVersion>2022.10.26.1</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -926,6 +926,7 @@
     </EmbeddedResource>
     <EmbeddedResource Include="DeviceConfigForm.ru.resx">
       <DependentUpon>DeviceConfigForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="DocEnergySpectrum.resx">
       <DependentUpon>DocEnergySpectrum.cs</DependentUpon>

@@ -1533,4 +1533,25 @@
   <data name="textColumn4.ToolTipText" xml:space="preserve">
     <value />
   </data>
+  <data name="table4.NoItemsText" xml:space="preserve">
+    <value>Нет точек калибровки</value>
+  </data>
+  <data name="numberColumn5.Text" xml:space="preserve">
+    <value>Начало, keV</value>
+  </data>
+  <data name="numberColumn6.Text" xml:space="preserve">
+    <value>Конец, keV</value>
+ </data>
+  <data name="numberColumn7.Text" xml:space="preserve">
+    <value>CPS</value>
+  </data>
+  <data name="numberColumn8.Text" xml:space="preserve">
+    <value>Эталон МЭД, μSv/h</value>
+  </data>
+  <data name="button15.Text" xml:space="preserve">
+    <value>Добавить</value>
+  </data>
+  <data name="button16.Text" xml:space="preserve">
+    <value>Удалить</value>
+  </data>
 </root>
