@@ -1177,7 +1177,14 @@ namespace BecquerelMonitor
             this.activeDocument.ActiveResultData.DeviceConfig = new DeviceConfigInfo();
             if (docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum != null)
             {
-                this.activeDocument.ActiveResultData.BackgroundEnergySpectrum = SpectrumAriphmetics.ConcatSpectrum(docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum, newChan);
+                if (newChan < docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum.NumberOfChannels)
+                {
+                    this.activeDocument.ActiveResultData.BackgroundEnergySpectrum = SpectrumAriphmetics.ConcatSpectrum(docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum, newChan);
+                } else
+                {
+                    this.activeDocument.ActiveResultData.BackgroundEnergySpectrum = SpectrumAriphmetics.RestoreSpectrum(docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum, newChan);
+                }
+                this.activeDocument.ActiveResultData.BackgroundSpectrumFile = docEnergySpectrum.ActiveResultData.BackgroundSpectrumFile;
             }
             this.activeDocument.ActiveResultData.ResultDataStatus = docEnergySpectrum.ActiveResultData.ResultDataStatus;
             this.activeDocument.ActiveResultData.PresetTime = docEnergySpectrum.ActiveResultData.PresetTime;
@@ -1336,6 +1343,7 @@ namespace BecquerelMonitor
             this.デ\u30FCタを名前を付けて保存RToolStripMenuItem.Enabled = (this.activeDocument != null);
             this.デ\u30FCタを閉じるCToolStripMenuItem.Enabled = (this.activeDocument != null);
             this.CloseAllToolStripMenuItem.Enabled = (this.activeDocument != null);
+            this.CombineSpectrasToolStripMenuItem.Enabled = (this.activeDocument != null);
         }
 
         // Token: 0x06000A7F RID: 2687 RVA: 0x0003E700 File Offset: 0x0003C900
@@ -1350,13 +1358,15 @@ namespace BecquerelMonitor
                 this.測定停止TToolStripMenuItem.Enabled = false;
                 this.デ\u30FCタ消去CToolStripMenuItem.Enabled = false;
                 this.ConcatSpectrumsStripMenuItem.Enabled = false;
+                this.CutoffStripMenuItem.Enabled = false;
                 this.toolStripMenuItem1.Enabled = false;
                 return;
             }
             bool enabled = this.activeDocument.ResultDataFile.ResultDataList.Count < this.globalConfigManager.MaximumSpectrumPerFile;
             this.新規スペクトルNToolStripMenuItem1.Enabled = enabled;
             this.既存ファイルから追加FToolStripMenuItem.Enabled = enabled;
-            this.ConcatSpectrumsStripMenuItem.Enabled = enabled;
+            this.CombineSpectrasToolStripMenuItem.Enabled = enabled;
+            this.CutoffStripMenuItem.Enabled = enabled;
             this.toolStripMenuItem1.Enabled = enabled;
             this.測定開始SToolStripMenuItem.Enabled = !this.activeDocument.ActiveResultData.ResultDataStatus.Recording;
             this.測定停止TToolStripMenuItem.Enabled = this.activeDocument.ActiveResultData.ResultDataStatus.Recording;
