@@ -4387,4 +4387,7 @@ see peak in spectrum now).</value>
   <data name="ERRChanNumber" xml:space="preserve">
     <value>Incorrect number of channels or energy.</value>
   </data>
+  <data name="DoseRate" xml:space="preserve">
+    <value>Dose rate:</value>
+  </data>
 </root>

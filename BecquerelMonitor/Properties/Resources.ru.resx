@@ -213,6 +213,9 @@
   <data name="DeviceTypeLEMCA" xml:space="preserve">
     <value>LEMCA USB Adaptor</value>
   </data>
+  <data name="DoseRate" xml:space="preserve">
+    <value>Мощность дозы:</value>
+  </data>
   <data name="EmptyDeviceList" xml:space="preserve">
     <value>Пустой список устройств! Сначала добавьте новое устройство!</value>
   </data>
