@@ -511,26 +511,24 @@ namespace BecquerelMonitor
         // Token: 0x06000A4E RID: 2638 RVA: 0x0003D3C0 File Offset: 0x0003B5C0
         public void ShowDoseRate()
         {
-            if (this.dcDoseRateView != null && this.activeDocument != null && this.activeDocument.ActiveResultData.DeviceConfig.DoseRateConfig != null)
+            if (this.activeDocument != null && this.activeDocument.ActiveResultData.DeviceConfig.DoseRateConfig != null && 
+                this.activeDocument.ActiveResultData.DeviceConfig.DoseRateConfig.DoseRateCalibrationPoints.Count > 0)
             {
                 DoseRate doseRate = this.doseRateManager.Calculate(this.activeDocument.ActiveResultData,
                     this.activeDocument.ActiveResultData.DeviceConfig.DoseRateConfig,
                     this.activeDocument.EnergySpectrumView.BackgroundMode);
-                this.dcDoseRateView.ShowDoseRate(doseRate);
-                SetStatusTextRight(doseRate.ToString());
-                return;
+                if (this.dcDoseRateView != null)
+                {
+                    SetStatusTextRight(Resources.DoseRate + " " + doseRate.ToString());
+                    this.dcDoseRateView.ShowDoseRate(doseRate);
+                } else
+                {
+                    SetStatusTextRight(Resources.DoseRate + " " + doseRate.ToString());
+                }
             } else
             {
-                if (this.activeDocument.ActiveResultData.DeviceConfig.DoseRateConfig != null)
-                {
-                    DoseRate doseRate = this.doseRateManager.Calculate(this.activeDocument.ActiveResultData,
-                        this.activeDocument.ActiveResultData.DeviceConfig.DoseRateConfig,
-                        this.activeDocument.EnergySpectrumView.BackgroundMode);
-                    SetStatusTextRight(doseRate.ToString());
-                    return;
-                }
+                ClearStatusTextRight();
             }
-            ClearStatusTextRight();
         }
 
         // Token: 0x06000A4F RID: 2639 RVA: 0x0003D3C4 File Offset: 0x0003B5C4
@@ -749,6 +747,7 @@ namespace BecquerelMonitor
                 this.dcDoseRateView = new DCDoseRateView(this);
             }
             this.dcDoseRateView.Show(this.dockPanel1);
+            ShowDoseRate();
         }
 
         // Token: 0x06000A62 RID: 2658 RVA: 0x0003D8C8 File Offset: 0x0003BAC8

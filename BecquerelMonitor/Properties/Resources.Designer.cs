@@ -506,6 +506,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Dose rate:.
+        /// </summary>
+        internal static string DoseRate {
+            get {
+                return ResourceManager.GetString("DoseRate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
         internal static System.Drawing.Bitmap Down {
