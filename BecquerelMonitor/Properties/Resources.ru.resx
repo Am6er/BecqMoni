@@ -632,4 +632,7 @@ http://xptable.sourceforge.net/</value>
   <data name="Warning" xml:space="preserve">
     <value>Предупреждение</value>
   </data>
+  <data name="WriteCalibrationToAtomProProgress" xml:space="preserve">
+    <value>Запись коэффициентов калибровки в устройство. Статус: {0}% выполнено.</value>
+  </data>
 </root>
