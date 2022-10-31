@@ -4390,4 +4390,7 @@ see peak in spectrum now).</value>
   <data name="DoseRate" xml:space="preserve">
     <value>Dose rate:</value>
   </data>
+  <data name="WriteCalibrationToAtomProProgress" xml:space="preserve">
+    <value>Write calibration coefficients to device. Progress: {0}%</value>
+  </data>
 </root>

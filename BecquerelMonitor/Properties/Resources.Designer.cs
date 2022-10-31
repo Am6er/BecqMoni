@@ -2057,6 +2057,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Write calibration coefficients to device. Progress: {0}%.
+        /// </summary>
+        internal static string WriteCalibrationToAtomProProgress {
+            get {
+                return ResourceManager.GetString("WriteCalibrationToAtomProProgress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
         internal static System.Drawing.Bitmap Zoomin {

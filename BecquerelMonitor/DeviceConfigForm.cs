@@ -2,9 +2,11 @@
 using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Windows.Forms;
 using XPTable.Editors;
 using XPTable.Events;
@@ -875,97 +877,137 @@ namespace BecquerelMonitor
 
         void button14_Click(object sender, EventArgs e)
         {
-            if (this.activeDeviceConfig.DeviceType == "AtomSpectraVCP")
+            this.button14.Enabled = false;
+
+            BackgroundWorker worker = new BackgroundWorker();
+            worker.WorkerReportsProgress = true;
+            worker.DoWork += new DoWorkEventHandler(delegate (object o, DoWorkEventArgs args)
             {
-                if (this.button6.Enabled)
+                BackgroundWorker b = o as BackgroundWorker;
+
+
+                if (this.activeDeviceConfig.DeviceType == "AtomSpectraVCP")
                 {
-                    MessageBox.Show(Resources.MSGSaveBeforeWritingData);
-                    return;
-                }
-                try
-                {
-                    Cursor.Current = Cursors.WaitCursor;
-                    PolynomialEnergyCalibration polynomialEnergyCalibration = (PolynomialEnergyCalibration)this.activeDeviceConfig.EnergyCalibration;
-                    List<string> result_list = new List<string>();
-                    for (int i = 0; i < polynomialEnergyCalibration.Coefficients.Length; i++)
+                    if (this.button6.Enabled)
                     {
-                        string result_str = BitConverter.DoubleToInt64Bits(polynomialEnergyCalibration.Coefficients[i]).ToString("X");
-                        if (result_str == "0")
+                        MessageBox.Show(Resources.MSGSaveBeforeWritingData);
+                        return;
+                    }
+                    try
+                    {
+                        Cursor.Current = Cursors.WaitCursor;
+                        b.ReportProgress(0);
+                        PolynomialEnergyCalibration polynomialEnergyCalibration = (PolynomialEnergyCalibration)this.activeDeviceConfig.EnergyCalibration;
+                        List<string> result_list = new List<string>();
+                        for (int i = 0; i < polynomialEnergyCalibration.Coefficients.Length; i++)
                         {
-                            result_list.Add("00000000");
-                            result_list.Add("00000000");
+                            string result_str = BitConverter.DoubleToInt64Bits(polynomialEnergyCalibration.Coefficients[i]).ToString("X");
+                            if (result_str == "0")
+                            {
+                                result_list.Add("00000000");
+                                result_list.Add("00000000");
+                            }
+                            else
+                            {
+                                result_list.Add(result_str.Substring(0, result_str.Length / 2));
+                                result_list.Add(result_str.Substring(result_str.Length / 2));
+                            }
+                        }
+
+                        if (result_list.Count < 9)
+                        {
+                            for (int i = result_list.Count; i <= 9; i++)
+                            {
+                                result_list.Add("00000000");
+                            }
+                        }
+
+                        string result_string = "";
+                        for (int i = 0; i < 10; i++)
+                        {
+                            result_string = result_string + result_list[i];
+                        }
+
+                        byte[] bytes = Encoding.ASCII.GetBytes(result_string);
+                        uint crc32 = Crc32.Compute(bytes);
+
+                        result_list.Add(crc32.ToString("X"));
+
+                        bool commands_accepted = true;
+                        System.Diagnostics.Trace.WriteLine("commands_accepted = " + commands_accepted);
+                        AtomSpectraDeviceConfig deviceconfig = (AtomSpectraDeviceConfig)this.activeDeviceConfig.InputDeviceConfig;
+                        AtomSpectraVCPIn device = null;
+                        List<AtomSpectraVCPIn> instances = AtomSpectraVCPIn.getAllInstances();
+                        bool runexist = false;
+                        if (instances.Count > 0)
+                        {
+                            foreach (AtomSpectraVCPIn instance in instances)
+                            {
+                                if (instance.GUID == this.activeDeviceConfig.Guid)
+                                {
+                                    device = instance;
+                                    runexist = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!runexist)
+                        {
+                            device = new AtomSpectraVCPIn(this.activeDeviceConfig.Guid);
+                            device.setPort(deviceconfig.ComPortName, deviceconfig.BaudRate);
+                            System.Threading.Thread.Sleep(2000);
+                        }
+                        string status_msg = "";
+                        for (int i = 0; i < result_list.Count; i++)
+                        {
+                            int percent = (int)(100*i)/(result_list.Count - 1);
+                            b.ReportProgress(percent);
+                            device.sendCommand("-cal " + i + " " + result_list[i]);
+                            bool result = device.waitForAnswer("ok", 2000);
+                            commands_accepted &= result;
+                            System.Diagnostics.Trace.WriteLine("result = " + result);
+                            status_msg = status_msg + "-cal " + i + " " + result_list[i] + " -- result: " + result + Environment.NewLine;
+                        }
+                        if (!runexist)
+                        {
+                            device.Dispose();
+                        }
+                        Cursor.Current = Cursors.Default;
+                        if (commands_accepted)
+                        {
+                            MessageBox.Show(Resources.MSGCoefficientsUploadedSuccesfull);
                         }
                         else
                         {
-                            result_list.Add(result_str.Substring(0, result_str.Length / 2));
-                            result_list.Add(result_str.Substring(result_str.Length / 2));
+                            MessageBox.Show(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + status_msg); ;
                         }
                     }
-
-                    if (result_list.Count < 9)
+                    catch (Exception ex)
                     {
-                        for (int i = result_list.Count; i <= 9; i++)
-                        {
-                            result_list.Add("00000000");
-                        }
-                    }
-
-                    string result_string = "";
-                    for (int i = 0; i < 10; i++)
-                    {
-                        result_string = result_string + result_list[i];
-                    }
-
-                    byte[] bytes = Encoding.ASCII.GetBytes(result_string);
-                    uint crc32 = Crc32.Compute(bytes);
-
-                    result_list.Add(crc32.ToString("X"));
-
-                    bool commands_accepted = true;
-                    System.Diagnostics.Trace.WriteLine("commands_accepted = " + commands_accepted);
-                    AtomSpectraDeviceConfig deviceconfig = (AtomSpectraDeviceConfig)this.activeDeviceConfig.InputDeviceConfig;
-                    AtomSpectraVCPIn device;
-                    List<AtomSpectraVCPIn> instances = AtomSpectraVCPIn.getAllInstances();
-                    bool runexist = false;
-                    if (instances.Count > 0)
-                    {
-                        device = instances[0];
-                        runexist = true;
-                    }
-                    else
-                    {
-                        device = new AtomSpectraVCPIn(this.activeDeviceConfig.Guid);
-                        device.setPort(deviceconfig.ComPortName, deviceconfig.BaudRate);
-                        System.Threading.Thread.Sleep(2000);
-                    }
-                    string status_msg = "";
-                    for (int i = 0; i < result_list.Count; i++)
-                    {
-                        device.sendCommand("-cal " + i + " " + result_list[i]);
-                        bool result = device.waitForAnswer("ok", 2000);
-                        commands_accepted &= result;
-                        System.Diagnostics.Trace.WriteLine("result = " + result);
-                        status_msg = status_msg + "-cal " + i + " " + result_list[i] + " -- result: " + result + Environment.NewLine;
-                    }
-                    if (!runexist)
-                    {
-                        device.Dispose();
-                    }
-                    Cursor.Current = Cursors.Default;
-                    if (commands_accepted)
-                    {
-                        MessageBox.Show(Resources.MSGCoefficientsUploadedSuccesfull);
-                    }
-                    else
-                    {
-                        MessageBox.Show(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + status_msg); ;
+                        MessageBox.Show(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + ex.Message);
                     }
                 }
-                catch (Exception ex)
+
+
+            });
+
+            MainForm mainForm = (MainForm)base.Owner;
+
+            worker.ProgressChanged += new ProgressChangedEventHandler(delegate (object o, ProgressChangedEventArgs args)
+            {
+                if (mainForm != null)
                 {
-                    MessageBox.Show(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + ex.Message);
+                    mainForm.SetStatusTextLeft(string.Format(Resources.WriteCalibrationToAtomProProgress, args.ProgressPercentage));
                 }
-            }
+            });
+
+            worker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(delegate (object o, RunWorkerCompletedEventArgs args)
+            {
+                mainForm.ClearStatusTextLeft();
+                this.button14.Enabled = true;
+            });
+
+            worker.RunWorkerAsync();
         }
 
         void numericUpDown7_KeyDown(object sender, KeyEventArgs e)
@@ -1561,7 +1603,7 @@ namespace BecquerelMonitor
         void button15_Click(object sender, EventArgs e)
         {
             Row row1 = new Row();
-            if (this.table4.SelectedItems.Length <= 0)
+            if (this.table4.RowCount == 0)
             {
                 row1.Cells.Add(new Cell(0));
                 row1.Cells.Add(new Cell(3000));
