@@ -21,6 +21,7 @@ namespace BecquerelMonitor
         TextBox doubleTextBox1;
         private string ComPort = "-------";
         private int BaudRate = 600000;
+        bool NewData = false;
         AutoCompleteStringCollection autoComplete = new AutoCompleteStringCollection();
 
         void InitializeComponent()
@@ -164,7 +165,7 @@ namespace BecquerelMonitor
 
             }
 
-            if (savedComPort != null)
+            if (savedComPort != null && !this.NewData)
             {
                 comPortsBox.SelectedIndex = comPortsBox.Items.IndexOf(savedComPort);
                 baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(savedBaudRate);
@@ -172,6 +173,7 @@ namespace BecquerelMonitor
             {
                 comPortsBox.SelectedIndex = comPortsBox.Items.IndexOf(this.ComPort);
                 baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString());
+                this.NewData = false;
             }
 
             if(comPortsBox.SelectedIndex != -1)
@@ -225,6 +227,7 @@ namespace BecquerelMonitor
         // Token: 0x0600103F RID: 4159 RVA: 0x00059BA4 File Offset: 0x00057DA4
         public AtomSpectraVCPDeviceForm(DeviceConfigForm deviceConfigForm)
         {
+            this.NewData = true;
             this.InitializeComponent();
             this.deviceConfigForm = deviceConfigForm;
             base.DeviceTypeString = Resources.DeviceTypeAtomSpectraVCP;
@@ -239,6 +242,7 @@ namespace BecquerelMonitor
         // Token: 0x06001043 RID: 4163 RVA: 0x00059D54 File Offset: 0x00057F54
         public override void LoadFormContents(InputDeviceConfig inputConfig)
         {
+            this.NewData = true;
             AtomSpectraDeviceConfig atomSpectraVCPInputDevice = (AtomSpectraDeviceConfig)inputConfig;
             this.ComPort = atomSpectraVCPInputDevice.ComPortName;
             this.BaudRate = atomSpectraVCPInputDevice.BaudRate;
@@ -359,7 +363,7 @@ namespace BecquerelMonitor
                     {
                         foreach (AtomSpectraVCPIn instance in instances)
                         {
-                            if (instance.GUID == device.GUID)
+                            if (instance.GUID == this.deviceConfigForm.ActiveDeviceConfig.Guid)
                             {
                                 device = instance;
                                 runexist = true;
@@ -401,7 +405,7 @@ namespace BecquerelMonitor
                 {
                     foreach (AtomSpectraVCPIn instance in instances)
                     {
-                        if (instance.GUID == device.GUID)
+                        if (instance.GUID == this.deviceConfigForm.ActiveDeviceConfig.Guid)
                         {
                             device = instance;
                             runexist = true;
