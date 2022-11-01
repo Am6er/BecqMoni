@@ -623,6 +623,9 @@ http://xptable.sourceforge.net/</value>
   <data name="VCPDeviceStatusConnected" xml:space="preserve">
     <value>Подключён</value>
   </data>
+  <data name="VCPDeviceStatusTesting" xml:space="preserve">
+    <value>Проверка..</value>
+  </data>
   <data name="VCPDeviceStatusUnknown" xml:space="preserve">
     <value>Неизвестно</value>
   </data>
