@@ -228,8 +228,6 @@ namespace BecquerelMonitor
             this.InitializeComponent();
             this.deviceConfigForm = deviceConfigForm;
             base.DeviceTypeString = Resources.DeviceTypeAtomSpectraVCP;
-            //fillPorts();
-            //TestConnection();
         }
 
         // Token: 0x06001041 RID: 4161 RVA: 0x00059CB4 File Offset: 0x00057EB4
@@ -369,9 +367,9 @@ namespace BecquerelMonitor
                             }
                         }
                     }
-                    else
+                    if (!runexist)
                     {
-                        device = new AtomSpectraVCPIn("Test");
+                        device = new AtomSpectraVCPIn(this.deviceConfigForm.ActiveDeviceConfig.Guid);
                         device.setPort(comPort, baudRate);
                     }
                     device.sendCommand(this.CommandLineIn.Text);
@@ -411,9 +409,9 @@ namespace BecquerelMonitor
                         }
                     }
                 }
-                else
+                if (!runexist)
                 {
-                    device = new AtomSpectraVCPIn("Test");
+                    device = new AtomSpectraVCPIn(this.deviceConfigForm.ActiveDeviceConfig.Guid);
                     device.setPort(comPort, baudRate);
                 }
                 device.sendCommand("-cal");

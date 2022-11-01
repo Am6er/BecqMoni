@@ -791,7 +791,7 @@ namespace BecquerelMonitor
                         }
                     }
                 }
-                else
+                if(!runexist)
                 {
                     device = new AtomSpectraVCPIn(this.activeDeviceConfig.Guid);
                     device.setPort(deviceconfig.ComPortName, deviceconfig.BaudRate);
