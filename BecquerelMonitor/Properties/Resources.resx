@@ -4393,4 +4393,7 @@ see peak in spectrum now).</value>
   <data name="WriteCalibrationToAtomProProgress" xml:space="preserve">
     <value>Write calibration coefficients to device. Progress: {0}%</value>
   </data>
+  <data name="VCPDeviceStatusTesting" xml:space="preserve">
+    <value>Testing...</value>
+  </data>
 </root>

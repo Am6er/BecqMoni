@@ -2020,6 +2020,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Testing....
+        /// </summary>
+        internal static string VCPDeviceStatusTesting {
+            get {
+                return ResourceManager.GetString("VCPDeviceStatusTesting", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Unknown.
         /// </summary>
         internal static string VCPDeviceStatusUnknown {

@@ -164,7 +164,7 @@ namespace BecquerelMonitor
 
             }
 
-            if (savedComPort != null && savedComPort != this.ComPort)
+            if (savedComPort != null)
             {
                 comPortsBox.SelectedIndex = comPortsBox.Items.IndexOf(savedComPort);
                 baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(savedBaudRate);
@@ -174,16 +174,12 @@ namespace BecquerelMonitor
                 baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString());
             }
 
-            if(comPortsBox.SelectedIndex == -1)
-            {
-                comPortsBox.Items.Add(this.ComPort);
-                baudratesBox.Items.Add(this.BaudRate.ToString());
-            }
-            else
+            if(comPortsBox.SelectedIndex != -1)
             {
                 return;
             }
 
+            comPortsBox.Items.Add(this.ComPort);
             comPortsBox.SelectedIndex = comPortsBox.Items.IndexOf(this.ComPort);
             baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString());
         }
@@ -425,10 +421,7 @@ namespace BecquerelMonitor
                 string[] separator = new string[] { "\r\n" };
                 string[] result_arr = result.Split(separator, StringSplitOptions.None);
                 Trace.WriteLine("result -cal array, size: " + result_arr.Length);
-                if (result_arr.Length == 1)
-                {
-                    Trace.WriteLine("Emtpy, array");
-                } else
+                if (result_arr.Length > 2)
                 {
                     returnvalue = result_arr[result_arr.Length - 2];
                     Trace.WriteLine("Serial number: " + returnvalue);
@@ -451,6 +444,9 @@ namespace BecquerelMonitor
             this.button1.Enabled = false;
             this.comPortsBox.Enabled = false;
             this.baudratesBox.Enabled = false;
+
+            this.label3.ForeColor = Color.Gray;
+            this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusTesting);
 
             string serialNumber = null;
 
