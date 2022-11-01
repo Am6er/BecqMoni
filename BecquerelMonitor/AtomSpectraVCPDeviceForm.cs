@@ -247,7 +247,7 @@ namespace BecquerelMonitor
             this.ComPort = atomSpectraVCPInputDevice.ComPortName;
             this.BaudRate = atomSpectraVCPInputDevice.BaudRate;
             fillPorts();
-            TestConnection(this.ComPort, this.BaudRate);
+            //TestConnection(this.ComPort, this.BaudRate);
         }
 
         // Token: 0x06001044 RID: 4164 RVA: 0x00059FDC File Offset: 0x000581DC
@@ -363,7 +363,7 @@ namespace BecquerelMonitor
                     {
                         foreach (AtomSpectraVCPIn instance in instances)
                         {
-                            if (instance.GUID == this.deviceConfigForm.ActiveDeviceConfig.Guid)
+                            if (instance.COMPort == comPort)
                             {
                                 device = instance;
                                 runexist = true;
@@ -405,7 +405,7 @@ namespace BecquerelMonitor
                 {
                     foreach (AtomSpectraVCPIn instance in instances)
                     {
-                        if (instance.GUID == this.deviceConfigForm.ActiveDeviceConfig.Guid)
+                        if (instance.COMPort == comPort)
                         {
                             device = instance;
                             runexist = true;

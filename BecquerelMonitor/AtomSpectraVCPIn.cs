@@ -46,6 +46,22 @@ namespace BecquerelMonitor
 
         private static List<AtomSpectraVCPIn> instances = new List<AtomSpectraVCPIn>();
 
+        public string COMPort
+        {
+            get
+            {
+                return this.name;
+            }
+        }
+
+        public int BaudRate
+        {
+            get
+            {
+                return this.baudrate;
+            }
+        }
+
         public static void cleanUp(string guid)
         {
             foreach (AtomSpectraVCPIn s in instances)
