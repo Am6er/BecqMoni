@@ -2011,6 +2011,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Busy.
+        /// </summary>
+        internal static string VCPDeviceStatusBusy {
+            get {
+                return ResourceManager.GetString("VCPDeviceStatusBusy", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Connected.
         /// </summary>
         internal static string VCPDeviceStatusConnected {

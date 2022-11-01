@@ -11,7 +11,6 @@ using System.Windows.Forms;
 
 namespace BecquerelMonitor
 {
-    // Token: 0x02000142 RID: 322
     public partial class AtomSpectraVCPDeviceForm : InputDeviceForm
     {
         TextBox doubleTextBox2;
@@ -150,7 +149,7 @@ namespace BecquerelMonitor
         {
             string savedComPort = null;
             string savedBaudRate = null;
-            if (comPortsBox.SelectedIndex != -1)
+            if (comPortsBox.SelectedIndex != -1 && !NewData)
             {
                 savedComPort = (string)comPortsBox.Items[comPortsBox.SelectedIndex];
                 savedBaudRate = (string)baudratesBox.Items[baudratesBox.SelectedIndex];
@@ -273,71 +272,6 @@ namespace BecquerelMonitor
             return true;
         }
 
-        // Token: 0x06001045 RID: 4165 RVA: 0x0005A200 File Offset: 0x00058400
-        void StartPulseRecording()
-        {
-            this.tempConfig = new AtomSpectraDeviceConfig();
-            if (!this.SaveFormContents(this.tempConfig))
-            {
-                MessageBox.Show(Resources.ERRInvalidInputForm);
-                return;
-            }
-            if (this.tempConfig.ComPortName == null)
-            {
-                MessageBox.Show(Resources.ERRInputDeviceNotSet);
-                return;
-            }
-        }
-
-        // Token: 0x06001046 RID: 4166 RVA: 0x0005A37C File Offset: 0x0005857C
-        void StopPulseRecording()
-        {
-
-            this.SetActiveDeviceConfigDirty();
-        }
-
-        // Token: 0x06001047 RID: 4167 RVA: 0x0005A418 File Offset: 0x00058618
-        void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            this.SetActiveDeviceConfigDirty();
-        }
-
-        // Token: 0x06001048 RID: 4168 RVA: 0x0005A420 File Offset: 0x00058620
-        void comboBox2_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            this.SetActiveDeviceConfigDirty();
-        }
-
-        // Token: 0x06001049 RID: 4169 RVA: 0x0005A428 File Offset: 0x00058628
-        void comboBox3_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            this.SetActiveDeviceConfigDirty();
-        }
-
-        // Token: 0x0600104C RID: 4172 RVA: 0x0005A4A0 File Offset: 0x000586A0
-        void checkBox2_CheckedChanged(object sender, EventArgs e)
-        {
-            this.SetActiveDeviceConfigDirty();
-        }
-
-        // Token: 0x0600104D RID: 4173 RVA: 0x0005A4A8 File Offset: 0x000586A8
-        void checkBox1_CheckedChanged(object sender, EventArgs e)
-        {
-            this.SetActiveDeviceConfigDirty();
-        }
-
-        // Token: 0x0600104E RID: 4174 RVA: 0x0005A4B0 File Offset: 0x000586B0
-        void doubleTextBox1_TextChanged(object sender, EventArgs e)
-        {
-            this.SetActiveDeviceConfigDirty();
-        }
-
-        // Token: 0x0600104F RID: 4175 RVA: 0x0005A4B8 File Offset: 0x000586B8
-        void doubleTextBox2_TextChanged(object sender, EventArgs e)
-        {
-            this.SetActiveDeviceConfigDirty();
-        }
-
         // Token: 0x06001058 RID: 4184 RVA: 0x0005A640 File Offset: 0x00058840
         void SetActiveDeviceConfigDirty()
         {
@@ -388,14 +322,14 @@ namespace BecquerelMonitor
                 {
 
                 }
-                //this.CommandLineIn.Text = "";
                 e.SuppressKeyPress = true;
             }
         }
 
-        string TestSerialNumber(string comPort, int baudRate)
+        (int, string) TestSerialNumber(string comPort, int baudRate)
         {
             string returnvalue = null;
+            int returnstatus = -1;
             List<AtomSpectraVCPIn> instances = AtomSpectraVCPIn.getAllInstances();
             AtomSpectraVCPIn device = null;
             try
@@ -407,9 +341,17 @@ namespace BecquerelMonitor
                     {
                         if (instance.COMPort == comPort)
                         {
-                            device = instance;
-                            runexist = true;
-                            break;
+                            if (instance.BaudRate != baudRate)
+                            {
+                                returnstatus = 1;
+                                returnvalue = instance.BaudRate.ToString();
+                                return (returnstatus, returnvalue);
+                            } else
+                            {
+                                device = instance;
+                                runexist = true;
+                                break;
+                            }
                         }
                     }
                 }
@@ -426,6 +368,7 @@ namespace BecquerelMonitor
                 if (result_arr.Length > 2)
                 {
                     returnvalue = result_arr[result_arr.Length - 2];
+                    returnstatus = 0;
                     Trace.WriteLine("Serial number: " + returnvalue);
                 }
                 if (!runexist)
@@ -438,7 +381,7 @@ namespace BecquerelMonitor
                 Trace.WriteLine(ex.Message + " " + ex.StackTrace);
             }
             Trace.WriteLine("Return value: " + returnvalue);
-            return returnvalue;
+            return (returnstatus, returnvalue);
         }
 
         void TestConnection(string comPort, int baudRate)
@@ -451,26 +394,33 @@ namespace BecquerelMonitor
             this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusTesting);
 
             string serialNumber = null;
+            int status = -2;
 
             BackgroundWorker worker = new BackgroundWorker();
             worker.DoWork += new DoWorkEventHandler(delegate (object o, DoWorkEventArgs args)
             {
-                serialNumber = TestSerialNumber(comPort, baudRate);
+                (status, serialNumber) = TestSerialNumber(comPort, baudRate);
             });
 
             worker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(delegate (object o, RunWorkerCompletedEventArgs args)
             {
-                Trace.WriteLine("Got serial number: " + serialNumber);
-                if (serialNumber == null || serialNumber.Length == 0)
+                Trace.WriteLine("Got status: " + status.ToString());
+                switch (status)
                 {
-                    this.label3.ForeColor = Color.Red;
-                    this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusUnknown);
-                }
-                else
-                {
-                    this.label3.ForeColor = Color.Green;
-                    this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusConnected) + Environment.NewLine +
-                    "SN: " + serialNumber;
+                    case 0:
+                        this.label3.ForeColor = Color.Green;
+                        this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusConnected) + Environment.NewLine +
+                        "SN: " + serialNumber;
+                        break;
+                    case -1:
+                        this.label3.ForeColor = Color.Red;
+                        this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusUnknown);
+                        break;
+                    case 1:
+                        this.label3.ForeColor = Color.Purple;
+                        this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusBusy) + Environment.NewLine +
+                        "baudrate: " + serialNumber;
+                        break;
                 }
 
                 this.button1.Enabled = true;
