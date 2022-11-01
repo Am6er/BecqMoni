@@ -620,6 +620,9 @@ http://xptable.sourceforge.net/</value>
   <data name="UnnamedSpectrumName" xml:space="preserve">
     <value>(безымянный)</value>
   </data>
+  <data name="VCPDeviceStatusBusy" xml:space="preserve">
+    <value>Занято</value>
+  </data>
   <data name="VCPDeviceStatusConnected" xml:space="preserve">
     <value>Подключён</value>
   </data>
