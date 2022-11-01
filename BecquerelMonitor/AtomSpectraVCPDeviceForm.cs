@@ -1,8 +1,12 @@
-﻿using BecquerelMonitor.Properties;
+﻿using BecquerelMonitor.Hash;
+using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO.Ports;
+using System.Text;
 using System.Windows.Forms;
 
 namespace BecquerelMonitor
@@ -33,11 +37,12 @@ namespace BecquerelMonitor
             // 
             // comPortsBox
             // 
-            this.comPortsBox.FormattingEnabled = true;
+            this.comPortsBox.FormattingEnabled = false;
             this.comPortsBox.Location = new System.Drawing.Point(135, 73);
             this.comPortsBox.Name = "comPortsBox";
             this.comPortsBox.Size = new System.Drawing.Size(60, 21);
             this.comPortsBox.TabIndex = 98;
+            this.comPortsBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             //
             // baudratesBox
             //
@@ -137,50 +142,68 @@ namespace BecquerelMonitor
         private void Button1_Click(object sender, EventArgs e)
         {
             fillPorts();
+            TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedItem));
         }
 
         private void fillPorts()
         {
+            string savedComPort = null;
+            string savedBaudRate = null;
+            if (comPortsBox.SelectedIndex != -1)
+            {
+                savedComPort = (string)comPortsBox.Items[comPortsBox.SelectedIndex];
+                savedBaudRate = (string)baudratesBox.Items[baudratesBox.SelectedIndex];
+            }
             comPortsBox.Items.Clear();
-            comPortsBox.Items.Add("-------");
             try
             {
                 string[] Ports = SerialPort.GetPortNames();
                 comPortsBox.Items.AddRange(Ports);
-            } catch (Exception ex)
+            } catch
             {
 
             }
-            
 
-            if (comPortsBox.Items.Count > 1)
+            if (savedComPort != null && savedComPort != this.ComPort)
             {
-                if (this.ComPort != null && comPortsBox.Items.Contains(this.ComPort))
-                {
-                    comPortsBox.SelectedIndex = comPortsBox.Items.IndexOf(this.ComPort);
-                    baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString());
-                    label3.ForeColor = Color.Green;
-                    this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusConnected);
-                }
-                else
-                {
-                    //comPortsBox.Items.Add(this.ComPort);
-                    //comPortsBox.SelectedIndex = comPortsBox.Items.Count - 1;
-                    //label3.ForeColor = Color.Red;
-                    //this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusUnknown);
-                }
+                comPortsBox.SelectedIndex = comPortsBox.Items.IndexOf(savedComPort);
+                baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(savedBaudRate);
+            } else
+            {
+                comPortsBox.SelectedIndex = comPortsBox.Items.IndexOf(this.ComPort);
+                baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString());
             }
+
+            if(comPortsBox.SelectedIndex == -1)
+            {
+                comPortsBox.Items.Add(this.ComPort);
+                baudratesBox.Items.Add(this.BaudRate.ToString());
+            }
+            else
+            {
+                return;
+            }
+
+            comPortsBox.SelectedIndex = comPortsBox.Items.IndexOf(this.ComPort);
+            baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString());
         }
 
         private void ComPortsBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            //fillPorts();
-            SetActiveDeviceConfigDirty();
+            if (comPortsBox.SelectedItem != null && baudratesBox.SelectedItem != null)
+            {
+                TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedItem));
+                SetActiveDeviceConfigDirty();
+            }
         }
 
         private void BaudratesBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            SetActiveDeviceConfigDirty();
+            if (comPortsBox.SelectedItem != null && baudratesBox.SelectedItem != null)
+            {
+                TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedItem));
+                SetActiveDeviceConfigDirty();
+            }
         }
 
         // Token: 0x17000451 RID: 1105
@@ -209,8 +232,8 @@ namespace BecquerelMonitor
             this.InitializeComponent();
             this.deviceConfigForm = deviceConfigForm;
             base.DeviceTypeString = Resources.DeviceTypeAtomSpectraVCP;
-
-            fillPorts();
+            //fillPorts();
+            //TestConnection();
         }
 
         // Token: 0x06001041 RID: 4161 RVA: 0x00059CB4 File Offset: 0x00057EB4
@@ -226,6 +249,7 @@ namespace BecquerelMonitor
             this.ComPort = atomSpectraVCPInputDevice.ComPortName;
             this.BaudRate = atomSpectraVCPInputDevice.BaudRate;
             fillPorts();
+            TestConnection(this.ComPort, this.BaudRate);
         }
 
         // Token: 0x06001044 RID: 4164 RVA: 0x00059FDC File Offset: 0x000581DC
@@ -333,17 +357,26 @@ namespace BecquerelMonitor
                 {
                     autoComplete.Add(this.CommandLineIn.Text);
                     List<AtomSpectraVCPIn> instances = AtomSpectraVCPIn.getAllInstances();
-                    AtomSpectraVCPIn device;
+                    AtomSpectraVCPIn device = null;
                     bool runexist = false;
+                    string comPort = comPortsBox.SelectedItem.ToString();
+                    int baudRate = int.Parse(baudratesBox.SelectedItem.ToString());
                     if (instances.Count > 0)
                     {
-                        device = instances[0];
-                        runexist = true;
+                        foreach (AtomSpectraVCPIn instance in instances)
+                        {
+                            if (instance.GUID == device.GUID)
+                            {
+                                device = instance;
+                                runexist = true;
+                                break;
+                            }
+                        }
                     }
                     else
                     {
                         device = new AtomSpectraVCPIn("Test");
-                        device.setPort(comPortsBox.SelectedItem.ToString(), int.Parse(baudratesBox.SelectedItem.ToString()));
+                        device.setPort(comPort, baudRate);
                     }
                     device.sendCommand(this.CommandLineIn.Text);
                     this.CommandLineOut.Text = ">> " + this.CommandLineIn.Text + Environment.NewLine
@@ -361,5 +394,94 @@ namespace BecquerelMonitor
                 e.SuppressKeyPress = true;
             }
         }
+
+        string TestSerialNumber(string comPort, int baudRate)
+        {
+            string returnvalue = null;
+            List<AtomSpectraVCPIn> instances = AtomSpectraVCPIn.getAllInstances();
+            AtomSpectraVCPIn device = null;
+            try
+            {
+                bool runexist = false;
+                if (instances.Count > 0)
+                {
+                    foreach (AtomSpectraVCPIn instance in instances)
+                    {
+                        if (instance.GUID == device.GUID)
+                        {
+                            device = instance;
+                            runexist = true;
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    device = new AtomSpectraVCPIn("Test");
+                    device.setPort(comPort, baudRate);
+                }
+                device.sendCommand("-cal");
+                String result = device.getCommandOutput(2000);
+                string[] separator = new string[] { "\r\n" };
+                string[] result_arr = result.Split(separator, StringSplitOptions.None);
+                Trace.WriteLine("result -cal array, size: " + result_arr.Length);
+                if (result_arr.Length == 1)
+                {
+                    Trace.WriteLine("Emtpy, array");
+                } else
+                {
+                    returnvalue = result_arr[result_arr.Length - 2];
+                    Trace.WriteLine("Serial number: " + returnvalue);
+                }
+                if (!runexist)
+                {
+                    device.Dispose();
+                }
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine(ex.Message + " " + ex.StackTrace);
+            }
+            Trace.WriteLine("Return value: " + returnvalue);
+            return returnvalue;
+        }
+
+        void TestConnection(string comPort, int baudRate)
+        {
+            this.button1.Enabled = false;
+            this.comPortsBox.Enabled = false;
+            this.baudratesBox.Enabled = false;
+
+            string serialNumber = null;
+
+            BackgroundWorker worker = new BackgroundWorker();
+            worker.DoWork += new DoWorkEventHandler(delegate (object o, DoWorkEventArgs args)
+            {
+                serialNumber = TestSerialNumber(comPort, baudRate);
+            });
+
+            worker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(delegate (object o, RunWorkerCompletedEventArgs args)
+            {
+                Trace.WriteLine("Got serial number: " + serialNumber);
+                if (serialNumber == null || serialNumber.Length == 0)
+                {
+                    this.label3.ForeColor = Color.Red;
+                    this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusUnknown);
+                }
+                else
+                {
+                    this.label3.ForeColor = Color.Green;
+                    this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusConnected) + Environment.NewLine +
+                    "SN: " + serialNumber;
+                }
+
+                this.button1.Enabled = true;
+                this.comPortsBox.Enabled = true;
+                this.baudratesBox.Enabled = true;
+            });
+
+            worker.RunWorkerAsync();
+        }
+
     }
 }
