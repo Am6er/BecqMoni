@@ -776,13 +776,20 @@ namespace BecquerelMonitor
             if (this.activeDeviceConfig.DeviceType == "AtomSpectraVCP")
             {
                 AtomSpectraDeviceConfig deviceconfig = (AtomSpectraDeviceConfig)this.activeDeviceConfig.InputDeviceConfig;
-                AtomSpectraVCPIn device;
+                AtomSpectraVCPIn device = null;
                 List<AtomSpectraVCPIn> instances = AtomSpectraVCPIn.getAllInstances();
                 bool runexist = false;
                 if (instances.Count > 0)
                 {
-                    device = instances[0];
-                    runexist = true;
+                    foreach (AtomSpectraVCPIn instance in instances)
+                    {
+                        if (instance.GUID == this.activeDeviceConfig.Guid)
+                        {
+                            device = instance;
+                            runexist = true;
+                            break;
+                        }
+                    }
                 }
                 else
                 {
@@ -955,7 +962,6 @@ namespace BecquerelMonitor
                         {
                             device = new AtomSpectraVCPIn(this.activeDeviceConfig.Guid);
                             device.setPort(deviceconfig.ComPortName, deviceconfig.BaudRate);
-                            System.Threading.Thread.Sleep(2000);
                         }
                         string status_msg = "";
                         for (int i = 0; i < result_list.Count; i++)
