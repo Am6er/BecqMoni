@@ -116,7 +116,11 @@ namespace BecquerelMonitor
                 outcomming.Enqueue(0xff);
                 onDataReceivedEvent.Set();
             }
-            timer.Change(1000, Timeout.Infinite);
+            try
+            {
+                timer.Change(1000, Timeout.Infinite);
+            } catch { }
+            
         }
 
         public string GUID
