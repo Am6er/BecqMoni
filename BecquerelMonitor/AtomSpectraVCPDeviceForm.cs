@@ -20,7 +20,7 @@ namespace BecquerelMonitor
         TextBox doubleTextBox1;
         private string ComPort = "-------";
         private int BaudRate = 600000;
-        bool NewData = false;
+        bool formLoading = false;
         AutoCompleteStringCollection autoComplete = new AutoCompleteStringCollection();
 
         void InitializeComponent()
@@ -149,7 +149,7 @@ namespace BecquerelMonitor
         {
             string savedComPort = null;
             string savedBaudRate = null;
-            if (comPortsBox.SelectedIndex != -1 && !NewData)
+            if (comPortsBox.SelectedIndex != -1)
             {
                 savedComPort = (string)comPortsBox.Items[comPortsBox.SelectedIndex];
                 savedBaudRate = (string)baudratesBox.Items[baudratesBox.SelectedIndex];
@@ -164,7 +164,7 @@ namespace BecquerelMonitor
 
             }
 
-            if (savedComPort != null && !this.NewData)
+            if (savedComPort != null && !this.formLoading)
             {
                 comPortsBox.SelectedIndex = comPortsBox.Items.IndexOf(savedComPort);
                 baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(savedBaudRate);
@@ -172,7 +172,6 @@ namespace BecquerelMonitor
             {
                 comPortsBox.SelectedIndex = comPortsBox.Items.IndexOf(this.ComPort);
                 baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString());
-                this.NewData = false;
             }
 
             if(comPortsBox.SelectedIndex != -1)
@@ -187,7 +186,7 @@ namespace BecquerelMonitor
 
         private void ComPortsBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (comPortsBox.SelectedItem != null && baudratesBox.SelectedItem != null)
+            if (comPortsBox.SelectedItem != null && baudratesBox.SelectedItem != null && !this.formLoading)
             {
                 TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedItem));
                 SetActiveDeviceConfigDirty();
@@ -196,7 +195,7 @@ namespace BecquerelMonitor
 
         private void BaudratesBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (comPortsBox.SelectedItem != null && baudratesBox.SelectedItem != null)
+            if (comPortsBox.SelectedItem != null && baudratesBox.SelectedItem != null && !this.formLoading)
             {
                 TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedItem));
                 SetActiveDeviceConfigDirty();
@@ -226,10 +225,11 @@ namespace BecquerelMonitor
         // Token: 0x0600103F RID: 4159 RVA: 0x00059BA4 File Offset: 0x00057DA4
         public AtomSpectraVCPDeviceForm(DeviceConfigForm deviceConfigForm)
         {
-            this.NewData = true;
+            this.formLoading = true;
             this.InitializeComponent();
             this.deviceConfigForm = deviceConfigForm;
             base.DeviceTypeString = Resources.DeviceTypeAtomSpectraVCP;
+            this.formLoading = false;
         }
 
         // Token: 0x06001041 RID: 4161 RVA: 0x00059CB4 File Offset: 0x00057EB4
@@ -241,12 +241,13 @@ namespace BecquerelMonitor
         // Token: 0x06001043 RID: 4163 RVA: 0x00059D54 File Offset: 0x00057F54
         public override void LoadFormContents(InputDeviceConfig inputConfig)
         {
-            this.NewData = true;
+            this.formLoading = true;
             AtomSpectraDeviceConfig atomSpectraVCPInputDevice = (AtomSpectraDeviceConfig)inputConfig;
             this.ComPort = atomSpectraVCPInputDevice.ComPortName;
             this.BaudRate = atomSpectraVCPInputDevice.BaudRate;
             fillPorts();
-            //TestConnection(this.ComPort, this.BaudRate);
+            this.formLoading = false;
+            TestConnection(this.ComPort, this.BaudRate);
         }
 
         // Token: 0x06001044 RID: 4164 RVA: 0x00059FDC File Offset: 0x000581DC
