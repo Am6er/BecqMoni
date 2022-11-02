@@ -45,7 +45,7 @@ namespace BecquerelMonitor
                 return doseRate;
             }
 
-            doseRate.Error = Math.Sqrt(doseRate.Rate) / energySpectrum.MeasurementTime;
+            doseRate.Error = Math.Sqrt(doseRate.Rate / energySpectrum.MeasurementTime);
             doseRate.Rate /= energySpectrum.MeasurementTime;
             return doseRate;
         }
