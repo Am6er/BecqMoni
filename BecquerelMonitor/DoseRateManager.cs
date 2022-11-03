@@ -36,16 +36,13 @@ namespace BecquerelMonitor
                 doseRate.Rate += rate;
             }
 
-            if (doseRate.Rate >= double.MaxValue)
+            if (doseRate.Rate >= double.MaxValue || energySpectrum.MeasurementTime == 0.0)
             {
                 doseRate.Rate = 0.0;
-            }
-            if (doseRate.Rate == 0.0 || energySpectrum.MeasurementTime == 0.0)
-            {
                 return doseRate;
             }
 
-            doseRate.Error = Math.Sqrt(doseRate.Rate / energySpectrum.MeasurementTime);
+            doseRate.Error = Math.Sqrt(doseRate.Rate) / energySpectrum.MeasurementTime;
             doseRate.Rate /= energySpectrum.MeasurementTime;
             return doseRate;
         }
