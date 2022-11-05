@@ -27,6 +27,8 @@ namespace BecquerelMonitor
             {
                 int startch = (int)calibration.EnergyToChannel(point.LowerBound);
                 int endch = (int)calibration.EnergyToChannel(point.UpperBound);
+                if (startch < 0) startch = 0;
+                if (endch > energySpectrum.NumberOfChannels) endch = energySpectrum.NumberOfChannels - 1;
                 double rate = 0.0;
                 for (int i = startch; i <= endch; i++)
                 {
