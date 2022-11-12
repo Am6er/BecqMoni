@@ -475,7 +475,14 @@ namespace BecquerelMonitor
             this.numericUpDown16.Minimum = 256;
             this.numericUpDown16.Maximum = config.NumberOfChannels;
             this.numericUpDown16.Increment = 1;
-            this.numericUpDown16.Value = (decimal)FWHMPeakDetectionMethodConfig.Ch_Concat;
+            if (FWHMPeakDetectionMethodConfig.Ch_Concat < config.NumberOfChannels)
+            {
+                this.numericUpDown16.Value = (decimal)FWHMPeakDetectionMethodConfig.Ch_Concat;
+            } else
+            {
+                this.numericUpDown16.Value = (decimal)config.NumberOfChannels;
+            }
+            
 
             this.textBox17.Text = config.BackgroundSpectrumPathname;
             this.contentsLoading = false;
