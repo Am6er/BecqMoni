@@ -242,7 +242,7 @@
     <value>MDA</value>
   </data>
   <data name="textColumn3.Text" xml:space="preserve">
-    <value>Uncertainty</value>
+    <value>± Uncertainty</value>
   </data>
   <data name="textColumn2.Text" xml:space="preserve">
     <value>Result</value>

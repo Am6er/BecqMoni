@@ -98,17 +98,6 @@ namespace BecquerelMonitor
             {
                 resultCollection = measurementResultManager.Correct(resultCollection);
             }
-            if (Thread.CurrentThread.CurrentUICulture.ToString() == "ja-JP")
-            {
-                if (errorLevel == 1m)
-                {
-                    this.columnModel1.Columns[2].Text = "不確かさσ";
-                }
-                else
-                {
-                    this.columnModel1.Columns[2].Text = "不確かさ" + errorLevel.ToString() + "σ";
-                }
-            }
             this.table1.BeginUpdate();
             string format = "f2";
             int format_int = 2;
@@ -201,8 +190,8 @@ namespace BecquerelMonitor
                     {
                         row2.Cells[1].Text = Resources.ErrorString;
                         row2.Cells[1].Tag = false;
-                        row2.Cells[2].Text = "";
-                        row2.Cells[3].Text = "";
+                        row2.Cells[2].Data = 0.0;
+                        row2.Cells[3].Data = 0.0;
                     }
                 }
             }
