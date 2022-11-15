@@ -134,20 +134,19 @@ namespace BecquerelMonitor
                         if (showValuesForNDResult || flag)
                         {
                             row.Cells.Add(cell);
-                            row.Cells.Add(new Cell("±" + num.ToString(format), Math.Round(num, format_int)));
+                            row.Cells.Add(new Cell(num.ToString(format), Math.Round(num, format_int)));
                         }
                         else
                         {
-                            cell.Text = "―";
-                            row.Cells.Add(cell);
-                            row.Cells.Add(new Cell("―"));
+                            row.Cells.Add(new Cell("0", 0.0));
+                            row.Cells.Add(new Cell("0", 0.0));
                         }
                         if (measurementResult.MDA > 0.0)
                         {
                             row.Cells.Add(new Cell(measurementResult.MDA.ToString(format), Math.Round(measurementResult.MDA, format_int)));
                         } else
                         {
-                            row.Cells.Add(new Cell("―"));
+                            row.Cells.Add(new Cell("0", 0.0));
                         }
                     }
                     else
@@ -177,15 +176,26 @@ namespace BecquerelMonitor
                         if (showValuesForNDResult || flag2)
                         {
                             row2.Cells[1].Text = measurementResult2.ResultValue.ToString(format);
-                            row2.Cells[2].Text = "±" + num2.ToString(format);
+                            row2.Cells[1].Data = Math.Round(measurementResult2.ResultValue, format_int);
+                            row2.Cells[2].Text = num2.ToString(format);
+                            row2.Cells[2].Data = Math.Round(num2, format_int);
                         }
                         else
                         {
-                            row2.Cells[1].Text = "―";
-                            row2.Cells[2].Text = "―";
+                            row2.Cells[1].Data = 0.0;
+                            row2.Cells[1].Text = "0";
+                            row2.Cells[2].Data = 0.0;
+                            row2.Cells[2].Text = "0";
                         }
-                        string text2 = (measurementResult2.MDA > 0.0) ? measurementResult2.MDA.ToString(format) : "―";
-                        row2.Cells[3].Text = text2;
+                        if (measurementResult2.MDA > 0.0)
+                        {
+                            row2.Cells[3].Text = measurementResult2.MDA.ToString(format);
+                            row2.Cells[3].Data = Math.Round(measurementResult2.MDA, format_int);
+                        } else
+                        {
+                            row2.Cells[3].Text = "0";
+                            row2.Cells[3].Data = 0.0;
+                        }
                     }
                     else
                     {
