@@ -28,7 +28,7 @@
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>true</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <InstallUrl>https://amba.cloud/becqmoni/</InstallUrl>
+    <InstallUrl>http://amba.cloud/becqmoni/</InstallUrl>
     <SupportUrl>https://t.me/software_kbradar</SupportUrl>
     <ProductName>BecqMoni</ProductName>
     <PublisherName>Amber</PublisherName>
@@ -36,7 +36,7 @@
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
     <ApplicationRevision>1</ApplicationRevision>
-    <ApplicationVersion>2022.11.12.1</ApplicationVersion>
+    <ApplicationVersion>2022.11.15.1</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>

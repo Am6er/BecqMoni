@@ -2,7 +2,7 @@
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <PublishUrlHistory>Z:\becqmoni\|C:\Users\Amber\Documents\BecqMoni\|C:\Users\Amber\Documents\|publish\</PublishUrlHistory>
-    <InstallUrlHistory>https://amba.cloud/becqmoni/</InstallUrlHistory>
+    <InstallUrlHistory>http://amba.cloud/becqmoni/|https://amba.cloud/becqmoni/</InstallUrlHistory>
     <SupportUrlHistory>https://t.me/software_kbradar|https://amba.cloud/becqmoni/|https://amba.cloud/becqmoni</SupportUrlHistory>
     <UpdateUrlHistory />
     <BootstrapperUrlHistory />
