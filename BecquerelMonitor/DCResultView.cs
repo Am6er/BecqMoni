@@ -98,6 +98,13 @@ namespace BecquerelMonitor
             {
                 resultCollection = measurementResultManager.Correct(resultCollection);
             }
+            if (errorLevel == 1m)
+            {
+                this.columnModel1.Columns[2].Text = Resources.Uncertain + " ±" + Resources.Sigma;
+            } else
+            {
+                this.columnModel1.Columns[2].Text = Resources.Uncertain + " ±" + errorLevel.ToString() + Resources.Sigma;
+            }
             this.table1.BeginUpdate();
             string format = "f2";
             int format_int = 2;
@@ -166,8 +173,8 @@ namespace BecquerelMonitor
                         {
                             row2.Cells[1].Text = measurementResult2.ResultValue.ToString(format);
                             row2.Cells[1].Data = Math.Round(measurementResult2.ResultValue, format_int);
-                            row2.Cells[2].Text = num2.ToString(format);
                             row2.Cells[2].Data = Math.Round(num2, format_int);
+                            row2.Cells[2].Text = num2.ToString(format);
                         }
                         else
                         {

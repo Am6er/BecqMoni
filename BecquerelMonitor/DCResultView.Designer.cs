@@ -94,6 +94,7 @@
 			componentResourceManager.ApplyResources(this.textColumn3, "textColumn3");
 			this.textColumn3.Editable = false;
 			this.textColumn3.IsTextTrimmed = false;
+			this.textColumn3.Width= 90;
 			this.textColumn4.Alignment = global::XPTable.Models.ColumnAlignment.Right;
 			componentResourceManager.ApplyResources(this.textColumn4, "textColumn4");
 			this.textColumn4.Editable = false;
