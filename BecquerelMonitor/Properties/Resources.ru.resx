@@ -614,6 +614,9 @@ http://xptable.sourceforge.net/</value>
   <data name="ThermometerTypeNone" xml:space="preserve">
     <value>Нет</value>
   </data>
+  <data name="Uncertain" xml:space="preserve">
+    <value>Неопред.</value>
+  </data>
   <data name="UnknownNuclide" xml:space="preserve">
     <value>(неизвестный)</value>
   </data>

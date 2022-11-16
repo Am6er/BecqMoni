@@ -4399,4 +4399,7 @@ see peak in spectrum now).</value>
   <data name="VCPDeviceStatusBusy" xml:space="preserve">
     <value>Busy</value>
   </data>
+  <data name="Uncertain" xml:space="preserve">
+    <value>Uncertain</value>
+  </data>
 </root>

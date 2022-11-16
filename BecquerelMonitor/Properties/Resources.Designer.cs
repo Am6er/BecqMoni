@@ -1983,6 +1983,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Uncertain.
+        /// </summary>
+        internal static string Uncertain {
+            get {
+                return ResourceManager.GetString("Uncertain", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to (unknown).
         /// </summary>
         internal static string UnknownNuclide {
