@@ -75,7 +75,8 @@ namespace BecquerelMonitor
 			this.測定停止TToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.デ\u30FCタ消去CToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.CloseAllToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.CombineSpectrasToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.AutoSaveStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+            this.CombineSpectrasToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
             this.表示TToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripMenuItem6 = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.コントロ\u30FCルパネルCToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
@@ -146,7 +147,7 @@ namespace BecquerelMonitor
 				this.toolStripSeparator4,
 				this.インポ\u30FCトIToolStripMenuItem,
 				this.エクスポ\u30FCトEToolStripMenuItem,
-				this.toolStripSeparator1,
+                this.toolStripSeparator1,
 				this.終了XToolStripMenuItem
 			});
 			this.ファイルFToolStripMenuItem.Name = "ファイルFToolStripMenuItem";
@@ -159,8 +160,8 @@ namespace BecquerelMonitor
 			this.デ\u30FCタを開くToolStripMenuItem.Click += new global::System.EventHandler(this.デ\u30FCタを開くToolStripMenuItem_Click);
 			componentResourceManager.ApplyResources(this.デ\u30FCタを保存SToolStripMenuItem, "データを保存SToolStripMenuItem");
 			this.デ\u30FCタを保存SToolStripMenuItem.Name = "データを保存SToolStripMenuItem";
-			this.デ\u30FCタを保存SToolStripMenuItem.Click += new global::System.EventHandler(this.デ\u30FCタを保存SToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.デ\u30FCタを名前を付けて保存RToolStripMenuItem, "データを名前を付けて保存RToolStripMenuItem");
+            this.デ\u30FCタを保存SToolStripMenuItem.Click += new global::System.EventHandler(this.デ\u30FCタを保存SToolStripMenuItem_Click);
+            componentResourceManager.ApplyResources(this.デ\u30FCタを名前を付けて保存RToolStripMenuItem, "データを名前を付けて保存RToolStripMenuItem");
 			this.デ\u30FCタを名前を付けて保存RToolStripMenuItem.Name = "データを名前を付けて保存RToolStripMenuItem";
 			this.デ\u30FCタを名前を付けて保存RToolStripMenuItem.Click += new global::System.EventHandler(this.デ\u30FCタを名前を付けて保存RToolStripMenuItem_Click);
 			componentResourceManager.ApplyResources(this.デ\u30FCタを閉じるCToolStripMenuItem, "データを閉じるCToolStripMenuItem");
@@ -240,7 +241,8 @@ namespace BecquerelMonitor
 				this.toolStripMenuItem1,
 				this.ConcatSpectrumsStripMenuItem,
 				this.CutoffStripMenuItem,
-				this.toolStripSeparator7,
+                this.AutoSaveStripMenuItem,
+                this.toolStripSeparator7,
 				this.測定開始SToolStripMenuItem,
 				this.測定停止TToolStripMenuItem,
 				this.デ\u30FCタ消去CToolStripMenuItem
@@ -265,7 +267,11 @@ namespace BecquerelMonitor
 			componentResourceManager.ApplyResources(this.CutoffStripMenuItem, "CutoffStripMenuItem");
 			this.CutoffStripMenuItem.Name = "CutoffStripMenuItem";
 			this.CutoffStripMenuItem.Click += new global::System.EventHandler(this.CutoffStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.toolStripSeparator7, "toolStripSeparator7");
+            componentResourceManager.ApplyResources(this.AutoSaveStripMenuItem, "AutoSaveStripMenuItem");
+            this.AutoSaveStripMenuItem.Name = "AutoSaveStripMenuItem";
+            this.AutoSaveStripMenuItem.Click += new global::System.EventHandler(this.AutoSaveStripMenuItem_Click);
+            this.AutoSaveStripMenuItem.CheckOnClick = true;
+            componentResourceManager.ApplyResources(this.toolStripSeparator7, "toolStripSeparator7");
 			this.toolStripSeparator7.Name = "toolStripSeparator7";
 			componentResourceManager.ApplyResources(this.測定開始SToolStripMenuItem, "測定開始SToolStripMenuItem");
 			this.測定開始SToolStripMenuItem.Image = global::BecquerelMonitor.Properties.Resources.start;
@@ -674,8 +680,10 @@ namespace BecquerelMonitor
 		// Token: 0x040005B3 RID: 1459
 		global::System.Windows.Forms.ToolStripMenuItem ピ\u30FCク検出DToolStripMenuItem;
 
-		// Token: 0x040005B4 RID: 1460
-		global::System.Windows.Forms.ToolStripMenuItem 核種定義の編集NToolStripMenuItem;
+        global::System.Windows.Forms.ToolStripMenuItem AutoSaveStripMenuItem;
+
+        // Token: 0x040005B4 RID: 1460
+        global::System.Windows.Forms.ToolStripMenuItem 核種定義の編集NToolStripMenuItem;
 
 		global::System.Windows.Forms.ToolStripMenuItem OpenConfigNToolStripMenuItem;
 

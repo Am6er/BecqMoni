@@ -473,6 +473,20 @@ namespace BecquerelMonitor
                 }
                 this.countChart = 0;
             }
+            this.countAutoSave += 100;
+            if (this.countAutoSave >= this.globalConfigManager.GlobalConfig.AutosavePeriod * 60 * 1000)
+            {
+                this.countAutoSave = 0;
+                foreach (DocEnergySpectrum docEnergySpectrum in this.documentManager.DocumentList)
+                {
+                    if (docEnergySpectrum.Dirty && docEnergySpectrum.AutoSave)
+                    {
+                        SaveDocument(docEnergySpectrum);
+                        DateTime dt = DateTime.Now;
+                        SetStatusTextLeft(String.Format(Resources.AutosaveText, dt.ToString()));
+                    }
+                }
+            }
             if (this.activeDocument != null)
             {
                 ResultData activeResultData3 = this.activeDocument.ActiveResultData;
@@ -1281,6 +1295,21 @@ namespace BecquerelMonitor
             this.SaveActiveDocument();
         }
 
+        void AutoSaveStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (this.activeDocument != null)
+            {
+                if (this.activeDocument.AutoSave)
+                {
+                    this.activeDocument.AutoSave = false;
+                } else
+                {
+                    this.activeDocument.AutoSave = this.SaveActiveDocumentBool();
+                }
+            }
+            this.スペクトルSToolStripMenuItem.ShowDropDown();
+        }
+
         // Token: 0x06000A7A RID: 2682 RVA: 0x0003E5B0 File Offset: 0x0003C7B0
         public void SaveActiveDocument()
         {
@@ -1299,6 +1328,26 @@ namespace BecquerelMonitor
                 this.documentManager.SaveDocument(this.activeDocument);
             }
             this.UpdateApplicationTitle();
+        }
+
+        public bool SaveActiveDocumentBool()
+        {
+            if (this.activeDocument != null)
+            {
+                this.dcSampleInfoView.SaveFormContents();
+                if (!this.activeDocument.IsNamed)
+                {
+                    if (!this.documentManager.SaveDocumentWithName(this.activeDocument))
+                    {
+                        return false;
+                    }
+                    this.dcControlPanel.ShowDocumentStatus();
+                    this.UpdateApplicationTitle();
+                }
+                this.documentManager.SaveDocument(this.activeDocument);
+            }
+            this.UpdateApplicationTitle();
+            return true;
         }
 
         // Token: 0x06000A7B RID: 2683 RVA: 0x0003E624 File Offset: 0x0003C824
@@ -1358,6 +1407,7 @@ namespace BecquerelMonitor
                 this.デ\u30FCタ消去CToolStripMenuItem.Enabled = false;
                 this.ConcatSpectrumsStripMenuItem.Enabled = false;
                 this.CutoffStripMenuItem.Enabled = false;
+                this.AutoSaveStripMenuItem.Enabled = false;
                 this.toolStripMenuItem1.Enabled = false;
                 return;
             }
@@ -1366,6 +1416,8 @@ namespace BecquerelMonitor
             this.既存ファイルから追加FToolStripMenuItem.Enabled = enabled;
             this.CombineSpectrasToolStripMenuItem.Enabled = enabled;
             this.CutoffStripMenuItem.Enabled = enabled;
+            this.AutoSaveStripMenuItem.Enabled = enabled;
+            this.AutoSaveStripMenuItem.Checked = this.activeDocument.AutoSave;
             this.toolStripMenuItem1.Enabled = enabled;
             this.測定開始SToolStripMenuItem.Enabled = !this.activeDocument.ActiveResultData.ResultDataStatus.Recording;
             this.測定停止TToolStripMenuItem.Enabled = this.activeDocument.ActiveResultData.ResultDataStatus.Recording;
@@ -2513,6 +2565,8 @@ namespace BecquerelMonitor
 
         // Token: 0x040005EA RID: 1514
         int countChart;
+
+        int countAutoSave;
 
         string userDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni";
         string userDirectoryConfig = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\config";

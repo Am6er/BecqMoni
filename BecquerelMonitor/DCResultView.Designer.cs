@@ -29,7 +29,7 @@
 			this.columnModel1 = new global::XPTable.Models.ColumnModel();
 			this.textColumn1 = new global::XPTable.Models.TextColumn();
 			this.textColumn2 = new global::XPTable.Models.NumberColumn();
-			this.textColumn3 = new global::XPTable.Models.NumberColumn();
+			this.textColumn3 = new global::XPTable.Models.TextColumn();
 			this.textColumn4 = new global::XPTable.Models.NumberColumn();
 			this.tableModel1 = new global::XPTable.Models.TableModel();
 			((global::System.ComponentModel.ISupportInitialize)this.table1).BeginInit();
@@ -94,7 +94,7 @@
 			componentResourceManager.ApplyResources(this.textColumn3, "textColumn3");
 			this.textColumn3.Editable = false;
 			this.textColumn3.IsTextTrimmed = false;
-			this.textColumn3.Width= 90;
+			this.textColumn3.Width= 115;
 			this.textColumn4.Alignment = global::XPTable.Models.ColumnAlignment.Right;
 			componentResourceManager.ApplyResources(this.textColumn4, "textColumn4");
 			this.textColumn4.Editable = false;
@@ -128,7 +128,7 @@
 		global::XPTable.Models.TableModel tableModel1;
 
 		// Token: 0x040001AE RID: 430
-		global::XPTable.Models.NumberColumn textColumn3;
+		global::XPTable.Models.TextColumn textColumn3;
 
 		// Token: 0x040001AF RID: 431
 		global::System.Windows.Forms.Button button1;

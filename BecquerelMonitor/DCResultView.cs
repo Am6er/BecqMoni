@@ -100,10 +100,10 @@ namespace BecquerelMonitor
             }
             if (errorLevel == 1m)
             {
-                this.columnModel1.Columns[2].Text = Resources.Uncertain + " ±" + Resources.Sigma;
+                this.columnModel1.Columns[2].Text = Resources.Uncertain + " " + Resources.Sigma;
             } else
             {
-                this.columnModel1.Columns[2].Text = Resources.Uncertain + " ±" + errorLevel.ToString() + Resources.Sigma;
+                this.columnModel1.Columns[2].Text = Resources.Uncertain + " " + errorLevel.ToString() + Resources.Sigma;
             }
             this.table1.BeginUpdate();
             string format = "f2";
@@ -127,15 +127,23 @@ namespace BecquerelMonitor
                         bool flag = this.CheckDetected(measurementResult);
                         cell.Tag = flag;
                         double num = measurementResult.ResultError * (double)errorLevel;
+                        double epsilon;
+                        if (measurementResult.ResultValue != 0)
+                        {
+                            epsilon = 100.0 * num / Math.Abs(measurementResult.ResultValue);
+                        } else
+                        {
+                            epsilon = 0;
+                        }
                         if (showValuesForNDResult || flag)
                         {
                             row.Cells.Add(cell);
-                            row.Cells.Add(new Cell(num.ToString(format), Math.Round(num, format_int)));
+                            row.Cells.Add(new Cell(Resources.PlusMinus + num.ToString(format) + " (" + epsilon.ToString(format) + Resources.PercentCharacter + ")"));
                         }
                         else
                         {
                             row.Cells.Add(new Cell("0", 0.0));
-                            row.Cells.Add(new Cell("0", 0.0));
+                            row.Cells.Add(new Cell("-"));
                         }
                         if (measurementResult.MDA > 0.0)
                         {
@@ -169,19 +177,26 @@ namespace BecquerelMonitor
                         bool flag2 = this.CheckDetected(measurementResult2);
                         row2.Cells[1].Tag = flag2;
                         double num2 = measurementResult2.ResultError * (double)errorLevel;
+                        double epsilon;
+                        if (measurementResult2.ResultValue != 0)
+                        {
+                            epsilon = 100.0 * num2 / Math.Abs(measurementResult2.ResultValue);
+                        }
+                        else
+                        {
+                            epsilon = 0;
+                        }
                         if (showValuesForNDResult || flag2)
                         {
                             row2.Cells[1].Text = measurementResult2.ResultValue.ToString(format);
                             row2.Cells[1].Data = Math.Round(measurementResult2.ResultValue, format_int);
-                            row2.Cells[2].Data = Math.Round(num2, format_int);
-                            row2.Cells[2].Text = num2.ToString(format);
+                            row2.Cells[2].Text = Resources.PlusMinus + num2.ToString(format) + " (" + epsilon.ToString(format) + Resources.PercentCharacter + ")";
                         }
                         else
                         {
                             row2.Cells[1].Data = 0.0;
                             row2.Cells[1].Text = "0";
-                            row2.Cells[2].Data = 0.0;
-                            row2.Cells[2].Text = "0";
+                            row2.Cells[2].Text = "-";
                         }
                         if (measurementResult2.MDA > 0.0)
                         {

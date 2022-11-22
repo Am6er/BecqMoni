@@ -1094,4 +1094,16 @@
   <data name="&gt;&gt;CutoffStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
+  <data name="AutoSaveStripMenuItem.Text" xml:space="preserve">
+    <value>Autosave spectrum</value>
+  </data>
+    <data name="AutoSaveStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+    <value>326, 22</value>
+  </data>
+    <data name="&gt;&gt;AutoSaveStripMenuItem.Name" xml:space="preserve">
+    <value>AutoSaveStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;AutoSaveStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
 </root>

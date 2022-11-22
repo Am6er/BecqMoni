@@ -2611,7 +2611,7 @@
     <value>Конфигурация измерения</value>
   </data>
   <data name="groupBox6.Text" xml:space="preserve">
-    <value>Сохранить настройки</value>
+    <value>Настройки сохранения</value>
   </data>
   <data name="groupBox7.Text" xml:space="preserve">
     <value>Ед.. инкремента калиб. энергии</value>
@@ -2934,7 +2934,13 @@
     <data name="label89.Text" xml:space="preserve">
     <value>Неизвест. пик</value>
   </data>
-    <data name="label90.Text" xml:space="preserve">
+  <data name="label90.Text" xml:space="preserve">
     <value>Лимит счёта</value>
+  </data>
+  <data name="label91.Text" xml:space="preserve">
+    <value>Сохранять документы каждые</value>
+  </data>
+  <data name="label92.Text" xml:space="preserve">
+    <value>минут</value>
   </data>
 </root>

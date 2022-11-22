@@ -116,6 +116,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to {0} Autosaving documents.
+        /// </summary>
+        internal static string AutosaveText {
+            get {
+                return ResourceManager.GetString("AutosaveText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Choose background spectrum file.
         /// </summary>
         internal static string BackgroundSelectionDialogTitle {
@@ -1840,6 +1849,15 @@ namespace BecquerelMonitor.Properties {
             get {
                 object obj = ResourceManager.GetObject("Plus", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ±.
+        /// </summary>
+        internal static string PlusMinus {
+            get {
+                return ResourceManager.GetString("PlusMinus", resourceCulture);
             }
         }
         
