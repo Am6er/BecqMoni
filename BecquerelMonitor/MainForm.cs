@@ -1304,54 +1304,27 @@ namespace BecquerelMonitor
                     this.activeDocument.AutoSave = false;
                 } else
                 {
-                    this.activeDocument.AutoSave = this.SaveActiveDocumentBool();
+                    this.activeDocument.AutoSave = this.SaveActiveDocument();
                 }
             }
             this.スペクトルSToolStripMenuItem.ShowDropDown();
         }
 
-        // Token: 0x06000A7A RID: 2682 RVA: 0x0003E5B0 File Offset: 0x0003C7B0
-        public void SaveActiveDocument()
+        public bool SaveActiveDocument()
         {
-            if (this.activeDocument != null)
+            if (SaveDocument(this.activeDocument))
             {
                 this.dcSampleInfoView.SaveFormContents();
-                //this.StopRecordingOrTesting(this.activeDocument);
-                //this.DestroyVCPThreads(this.activeDocument);
-                if (!this.activeDocument.IsNamed)
-                {
-                    this.documentManager.SaveDocumentWithName(this.activeDocument);
-                    this.dcControlPanel.ShowDocumentStatus();
-                    this.UpdateApplicationTitle();
-                    return;
-                }
-                this.documentManager.SaveDocument(this.activeDocument);
+                this.dcControlPanel.ShowDocumentStatus();
+                this.UpdateApplicationTitle();
+                return true;
             }
             this.UpdateApplicationTitle();
-        }
-
-        public bool SaveActiveDocumentBool()
-        {
-            if (this.activeDocument != null)
-            {
-                this.dcSampleInfoView.SaveFormContents();
-                if (!this.activeDocument.IsNamed)
-                {
-                    if (!this.documentManager.SaveDocumentWithName(this.activeDocument))
-                    {
-                        return false;
-                    }
-                    this.dcControlPanel.ShowDocumentStatus();
-                    this.UpdateApplicationTitle();
-                }
-                this.documentManager.SaveDocument(this.activeDocument);
-            }
-            this.UpdateApplicationTitle();
-            return true;
+            return false;
         }
 
         // Token: 0x06000A7B RID: 2683 RVA: 0x0003E624 File Offset: 0x0003C824
-        public void SaveDocument(DocEnergySpectrum doc)
+        public bool SaveDocument(DocEnergySpectrum doc)
         {
             if (doc != null)
             {
@@ -1359,11 +1332,11 @@ namespace BecquerelMonitor
                 //this.DestroyVCPThreads(doc);
                 if (!doc.IsNamed)
                 {
-                    this.documentManager.SaveDocumentWithName(doc);
-                    return;
+                    return this.documentManager.SaveDocumentWithName(doc);
                 }
-                this.documentManager.SaveDocument(doc);
+                return this.documentManager.SaveDocument(doc);
             }
+            return false;
         }
 
         // Token: 0x06000A7C RID: 2684 RVA: 0x0003E660 File Offset: 0x0003C860
