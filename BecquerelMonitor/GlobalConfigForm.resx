@@ -1573,10 +1573,10 @@
     <value>groupBox4</value>
   </data>
   <data name="groupBox6.Size" type="System.Drawing.Size, System.Drawing">
-    <value>664, 113</value>
+    <value>664, 153</value>
   </data>
   <data name="groupBox6.Text" xml:space="preserve">
-    <value>Save Setting</value>
+    <value>Save Settings</value>
   </data>
   <data name="label6.Size" type="System.Drawing.Size, System.Drawing">
     <value>139, 12</value>
@@ -5585,5 +5585,86 @@
   </data>
   <data name="label90.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
+  </data>
+  <data name="label91.Size" type="System.Drawing.Size, System.Drawing">
+    <value>39, 12</value>
+  </data>
+  <data name="label91.Text" xml:space="preserve">
+    <value>AutoSave documents every</value>
+  </data>
+  <data name="label91.Location" type="System.Drawing.Point, System.Drawing">
+    <value>20, 115</value>
+  </data>
+  <data name="&gt;&gt;label91.ZOrder" xml:space="preserve">
+    <value>28</value>
+  </data>
+  <data name="label91.TabIndex" type="System.Int32, mscorlib">
+    <value>40</value>
+  </data>
+  <data name="&gt;&gt;label91.Parent" xml:space="preserve">
+    <value>groupBox6</value>
+  </data>
+  <data name="&gt;&gt;label91.Name" xml:space="preserve">
+    <value>label91</value>
+  </data>
+  <data name="&gt;&gt;label91.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="label91.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="label91.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="label92.Size" type="System.Drawing.Size, System.Drawing">
+    <value>39, 12</value>
+  </data>
+  <data name="label92.Text" xml:space="preserve">
+    <value>minutes</value>
+  </data>
+  <data name="label92.Location" type="System.Drawing.Point, System.Drawing">
+    <value>230, 115</value>
+  </data>
+  <data name="&gt;&gt;label92.ZOrder" xml:space="preserve">
+    <value>28</value>
+  </data>
+  <data name="label92.TabIndex" type="System.Int32, mscorlib">
+    <value>40</value>
+  </data>
+  <data name="&gt;&gt;label92.Parent" xml:space="preserve">
+    <value>groupBox6</value>
+  </data>
+  <data name="&gt;&gt;label92.Name" xml:space="preserve">
+    <value>label92</value>
+  </data>
+  <data name="&gt;&gt;label92.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="label92.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="label92.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="numericUpDown10.Size" type="System.Drawing.Size, System.Drawing">
+    <value>40, 19</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown10.Name" xml:space="preserve">
+    <value>numericUpDown10</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown10.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="numericUpDown10.TabIndex" type="System.Int32, mscorlib">
+    <value>12</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown10.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <data name="numericUpDown10.Location" type="System.Drawing.Point, System.Drawing">
+    <value>185, 113</value>
+  </data>
+  <data name="&gt;&gt;numericUpDown10.Parent" xml:space="preserve">
+    <value>groupBox6</value>
   </data>
 </root>

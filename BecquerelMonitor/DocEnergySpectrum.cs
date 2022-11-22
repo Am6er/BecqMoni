@@ -77,6 +77,18 @@ namespace BecquerelMonitor
             }
         }
 
+        public bool AutoSave
+        {
+            get
+            {
+                return this.autosave;
+            }
+            set
+            {
+                this.autosave = value;
+            }
+        }
+
         // Token: 0x17000141 RID: 321
         // (get) Token: 0x0600030C RID: 780 RVA: 0x0000F72C File Offset: 0x0000D92C
         // (set) Token: 0x0600030D RID: 781 RVA: 0x0000F744 File Offset: 0x0000D944
@@ -1264,5 +1276,7 @@ namespace BecquerelMonitor
 
         // Token: 0x04000154 RID: 340
         bool isActivating;
+
+        bool autosave = false;
     }
 }

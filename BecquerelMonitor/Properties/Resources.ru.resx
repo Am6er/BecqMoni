@@ -129,6 +129,9 @@
   <data name="Attach.BTN" xml:space="preserve">
     <value>Подкл.</value>
   </data>
+  <data name="AutosaveText" xml:space="preserve">
+    <value>{0} Автосохранение документов</value>
+  </data>
   <data name="BackgroundSelectionDialogTitle" xml:space="preserve">
     <value>Выберите файл фонового спектра</value>
   </data>
@@ -583,6 +586,9 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="PercentCharacter" xml:space="preserve">
     <value>%</value>
+  </data>
+  <data name="PlusMinus" xml:space="preserve">
+    <value>±</value>
   </data>
   <data name="ProgressString" xml:space="preserve">
     <value> ({0}%)</value>

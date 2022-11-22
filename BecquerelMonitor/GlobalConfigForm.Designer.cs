@@ -213,6 +213,9 @@
 			this.label49 = new global::System.Windows.Forms.Label();
 			this.label48 = new global::System.Windows.Forms.Label();
             this.label88 = new global::System.Windows.Forms.Label();
+            this.label91 = new global::System.Windows.Forms.Label();
+            this.label92 = new global::System.Windows.Forms.Label();
+            this.numericUpDown10 = new global::System.Windows.Forms.NumericUpDown();
             this.numericUpDown5 = new global::System.Windows.Forms.NumericUpDown();
 			this.numericUpDown4 = new global::System.Windows.Forms.NumericUpDown();
 			this.comboBox13 = new global::System.Windows.Forms.ComboBox();
@@ -1034,7 +1037,10 @@
 			componentResourceManager.ApplyResources(this.groupBox6, "groupBox6");
 			this.groupBox6.Controls.Add(this.checkBox1);
 			this.groupBox6.Controls.Add(this.textBox1);
-			this.groupBox6.Name = "groupBox6";
+			this.groupBox6.Controls.Add(this.label91);
+			this.groupBox6.Controls.Add(this.label92);
+            this.groupBox6.Controls.Add(this.numericUpDown10);
+            this.groupBox6.Name = "groupBox6";
 			this.groupBox6.TabStop = false;
 			componentResourceManager.ApplyResources(this.groupBox5, "groupBox5");
 			this.groupBox5.Controls.Add(this.checkBox2);
@@ -1081,17 +1087,23 @@
 			this.label49.Name = "label49";
 			componentResourceManager.ApplyResources(this.label48, "label48");
 			this.label48.Name = "label48";
-			componentResourceManager.ApplyResources(this.numericUpDown5, "numericUpDown5");
+            componentResourceManager.ApplyResources(this.label91, "label91");
+            this.label91.Name = "label91";
+            componentResourceManager.ApplyResources(this.label92, "label92");
+            this.label92.Name = "label92";
+            componentResourceManager.ApplyResources(this.numericUpDown5, "numericUpDown5");
 			this.numericUpDown5.DecimalPlaces = 2;
 			global::System.Windows.Forms.NumericUpDown numericUpDown9 = this.numericUpDown5;
 			int[] array9 = new int[4];
 			array9[0] = 1;
 			numericUpDown9.Minimum = new decimal(array9);
 			this.numericUpDown5.Name = "numericUpDown5";
-			global::System.Windows.Forms.NumericUpDown numericUpDown10 = this.numericUpDown5;
-			int[] array10 = new int[4];
-			array10[0] = 3;
-			numericUpDown10.Value = new decimal(array10);
+            componentResourceManager.ApplyResources(this.numericUpDown10, "numericUpDown10");
+            global::System.Windows.Forms.NumericUpDown numericUpDown10 = this.numericUpDown10;
+			numericUpDown10.Value = 0;
+			numericUpDown10.Minimum = 1;
+			numericUpDown10.Maximum = decimal.MaxValue;
+			numericUpDown10.Increment = 1;
 			componentResourceManager.ApplyResources(this.numericUpDown4, "numericUpDown4");
 			this.numericUpDown4.DecimalPlaces = 2;
 			global::System.Windows.Forms.NumericUpDown numericUpDown11 = this.numericUpDown4;
@@ -1500,8 +1512,10 @@
 		// Token: 0x04000661 RID: 1633
 		global::System.Windows.Forms.NumericUpDown numericUpDown5;
 
-		// Token: 0x04000662 RID: 1634
-		global::System.Windows.Forms.ComboBox comboBox13;
+        global::System.Windows.Forms.NumericUpDown numericUpDown10;
+
+        // Token: 0x04000662 RID: 1634
+        global::System.Windows.Forms.ComboBox comboBox13;
 
 		// Token: 0x04000663 RID: 1635
 		global::System.Windows.Forms.ComboBox comboBox12;
@@ -1759,8 +1773,11 @@
 
 		global::System.Windows.Forms.Label label89;
 
-		// Token: 0x040006B1 RID: 1713
-		global::System.Windows.Forms.Button button6;
+        global::System.Windows.Forms.Label label91;
+        global::System.Windows.Forms.Label label92;
+
+        // Token: 0x040006B1 RID: 1713
+        global::System.Windows.Forms.Button button6;
 
 		// Token: 0x040006B2 RID: 1714
 		global::System.Windows.Forms.TextBox textBox6;

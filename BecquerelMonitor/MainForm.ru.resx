@@ -771,4 +771,7 @@
   <data name="CutoffStripMenuItem.Text" xml:space="preserve">
     <value>Ограничить энергию или канал</value>
   </data>
+  <data name="AutoSaveStripMenuItem.Text" xml:space="preserve">
+    <value>Автосохранение спектра</value>
+  </data>
 </root>

@@ -352,6 +352,18 @@ namespace BecquerelMonitor
             }
         }
 
+        public int AutosavePeriod
+        {
+            get
+            {
+                return this.autosaveperiod;
+            }
+            set
+            {
+                this.autosaveperiod = value;
+            }
+        }
+
         // Token: 0x040008AF RID: 2223
         int mainFormTop = 100;
 
@@ -401,6 +413,9 @@ namespace BecquerelMonitor
 
         // Token: 0x040008BC RID: 2236
         bool doSaveRawPulseData = true;
+
+        //in minutes
+        int autosaveperiod = 15;
 
         // Token: 0x040008BD RID: 2237
         ResultTranslation resultTranslation = ResultTranslation.Becquerels;
