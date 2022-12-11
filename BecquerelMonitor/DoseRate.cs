@@ -39,6 +39,7 @@ namespace BecquerelMonitor
         {
             get
             {
+                if (this.rate == 0.0) return 0.0;
                 return 100.0 * this.error / this.rate;
             }
         }
