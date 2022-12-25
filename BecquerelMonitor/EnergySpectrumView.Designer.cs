@@ -1206,7 +1206,7 @@ namespace BecquerelMonitor
                             }
                         }
                     }
-                    if (this.backgroundMode == BackgroundMode.ShowContinuum)
+                    if (this.backgroundMode == BackgroundMode.ShowContinuum && this.continuumEnergySpectrum != null)
                     {
                         int alpha4 = (int)(colorConfig.BackgroundSpectrumColorTransparency * 255m / 100m);
                         using (Brush brush4 = new SolidBrush(Color.FromArgb(alpha4, colorConfig.BackgroundSpectrumColor.Color)))
