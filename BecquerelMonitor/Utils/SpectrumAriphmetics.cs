@@ -5,6 +5,7 @@ using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.LinearAlgebra.Complex;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Net;
@@ -127,7 +128,7 @@ namespace BecquerelMonitor.Utils
         public EnergySpectrum Continuum()
         {
             EnergySpectrum continuum = this.EnergySpectrum.Clone();
-            continuum.Spectrum = SASNIP(this.EnergySpectrum.Spectrum);
+            continuum.Spectrum = SASNIP(this.EnergySpectrum.Spectrum, coeff: 1.5);
             for (int i = 0; i<continuum.NumberOfChannels; i++)
             {
                 if (continuum.Spectrum[i] > this.EnergySpectrum.Spectrum[i])
@@ -287,7 +288,25 @@ namespace BecquerelMonitor.Utils
                 baseline = baseline.Select(i => iLLS(i)).ToArray();
             }
 
-            return baseline.Select(i => (int)i).ToArray();
+            int[] baseline_arr = baseline.Select(i => (int)i).ToArray();
+
+            int baseline_max = 0;
+            int baseline_max_i = 0;
+            for(int i = 1; i < baseline_arr.Length/2; i++)
+            {
+                if (baseline_arr[i] > baseline_max)
+                {
+                    baseline_max = baseline_arr[i];
+                    baseline_max_i = i;
+                }
+            }
+
+            for (int i = 0; i < baseline_max_i; i++)
+            {
+                baseline_arr[i] = baseline_max;
+            }
+
+            return baseline_arr;
         }
 
         double LLS(double x)
