@@ -422,14 +422,14 @@ namespace BecquerelMonitor
                 }
             }
             FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)config.PeakDetectionMethodConfig;
-            this.numberColumn4.Minimum = 1;
-            this.numberColumn4.Maximum = 10000;
-            this.numberColumn4.Increment = 1;
+            this.numericUpDown4.Minimum = 1;
+            this.numericUpDown4.Maximum = 10000;
+            this.numericUpDown4.Increment = 1;
             this.numericUpDown4.Value = (decimal)FWHMPeakDetectionMethodConfig.Min_SNR;
 
-            this.numberColumn3.Minimum = 1;
-            this.numberColumn3.Maximum = 1000;
-            this.numberColumn3.Increment = 1;
+            this.numericUpDown3.Minimum = 1;
+            this.numericUpDown3.Maximum = 1000;
+            this.numericUpDown3.Increment = 1;
             this.numericUpDown3.Value = FWHMPeakDetectionMethodConfig.Max_Items;
 
             this.numericUpDown5.Minimum = 1;
