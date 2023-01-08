@@ -1,6 +1,7 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
+using System.Deployment.Application;
 using System.IO;
 using System.Windows.Forms;
 using System.Xml.Serialization;
@@ -66,7 +67,7 @@ namespace BecquerelMonitor
             XmlSerializer xmlSerializer2 = new XmlSerializer(typeof(DeviceConfigInfo));
             try
             {
-                string[] files = Directory.GetFiles(userDirectory + "config\\device\\", "*.xml");
+                string[] files = Directory.GetFiles(userDirectoryConfigDevice, "*.xml");
                 foreach (string path in files)
                 {
                     DeviceConfigInfo deviceConfigInfo;
@@ -97,7 +98,7 @@ namespace BecquerelMonitor
             }
             catch (Exception)
             {
-                Directory.CreateDirectory(userDirectory + "config\\device");
+                Directory.CreateDirectory(userDirectoryConfigDeviceDir);
                 MessageBox.Show(Resources.ERRLoadingDeviceConfigFailed, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
             }
             this.deviceConfigList.Sort();
@@ -113,7 +114,7 @@ namespace BecquerelMonitor
             deviceConfigInfo.OriginalFilename = filename;
             deviceConfigInfo.Filename = filename;
             deviceConfigInfo.Name = Path.GetFileNameWithoutExtension(filename);
-            string path = userDirectory + "config\\device\\" + deviceConfigInfo.Filename;
+            string path = userDirectoryConfigDevice + deviceConfigInfo.Filename;
             AudioInputDeviceConfig audioInputDeviceConfig = (AudioInputDeviceConfig)deviceConfigInfo.InputDeviceConfig;
             WaveInDeviceCaps audioInputDevice = null;
             if (WaveIn.Devices.Count > 0)
@@ -155,7 +156,7 @@ namespace BecquerelMonitor
             deviceConfigInfo.Name = config.Name + Resources.CopyPostfix;
             try
             {
-                string path = userDirectory + "config\\device\\" + deviceConfigInfo.Filename;
+                string path = userDirectoryConfigDevice + deviceConfigInfo.Filename;
                 using (FileStream fileStream = new FileStream(path, FileMode.Create))
                 {
                     XmlSerializer xmlSerializer = new XmlSerializer(typeof(DeviceConfigInfo));
@@ -187,7 +188,7 @@ namespace BecquerelMonitor
             {
                 try
                 {
-                    File.Delete(userDirectory + "config\\device\\" + devConfig.OriginalFilename);
+                    File.Delete(userDirectoryConfigDevice + devConfig.OriginalFilename);
                 }
                 catch (Exception)
                 {
@@ -200,7 +201,7 @@ namespace BecquerelMonitor
             deviceConfigInfo = devConfig.Clone();
             try
             {
-                string path = userDirectory + "config\\device\\" + deviceConfigInfo.Filename;
+                string path = userDirectoryConfigDevice + deviceConfigInfo.Filename;
                 using (FileStream fileStream = new FileStream(path, FileMode.Create))
                 {
                     XmlSerializer xmlSerializer = new XmlSerializer(typeof(DeviceConfigInfo));
@@ -228,7 +229,7 @@ namespace BecquerelMonitor
             DeviceConfigInfo deviceConfigInfo = this.deviceConfigMap[devConfig.Guid];
             try
             {
-                File.Delete(userDirectory + "config\\device\\" + deviceConfigInfo.OriginalFilename);
+                File.Delete(userDirectoryConfigDevice + deviceConfigInfo.OriginalFilename);
             }
             catch (Exception)
             {
@@ -241,10 +242,11 @@ namespace BecquerelMonitor
             }
         }
 
-        string userDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\";
+        string userDirectory = BecquerelMonitor.Package.GetInstance().UserDirectory;
 
-        // Token: 0x04000327 RID: 807
-        string configPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\config\\device\\";
+        string userDirectoryConfigDevice = BecquerelMonitor.Package.GetInstance().Device;
+
+        string userDirectoryConfigDeviceDir = BecquerelMonitor.Package.GetInstance().DeviceDir;
 
         // Token: 0x04000328 RID: 808
         List<DeviceConfigInfo> deviceConfigList = new List<DeviceConfigInfo>();

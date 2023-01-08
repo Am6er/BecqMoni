@@ -42,7 +42,7 @@ namespace BecquerelMonitor
             XmlSerializer xmlSerializer = new XmlSerializer(typeof(GlobalConfigInfo));
             try
             {
-                using (FileStream fileStream = new FileStream(userDirectory + "config\\BecquerelMonitor.xml", FileMode.Open))
+                using (FileStream fileStream = new FileStream(becqMoniMainConfig, FileMode.Open))
                 {
                     this.globalConfig = (GlobalConfigInfo)xmlSerializer.Deserialize(fileStream);
                 }
@@ -58,17 +58,7 @@ namespace BecquerelMonitor
                 this.globalConfig.ColorConfig.InitializeSpectrumColor();
             }
 
-            try
-            {
-                ApplicationDeployment currentDeployment = ApplicationDeployment.CurrentDeployment;
-                this.VersionString = currentDeployment.CurrentVersion.ToString();
-            }
-            catch
-            {
-                System.Reflection.Assembly assembly = System.Reflection.Assembly.GetExecutingAssembly();
-                System.Diagnostics.FileVersionInfo fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
-                this.VersionString = fvi.FileVersion;
-            }
+            this.VersionString = BecquerelMonitor.Package.GetInstance().PackageVersion;
 
             this.isLoaded = true;
         }
@@ -86,7 +76,7 @@ namespace BecquerelMonitor
             XmlSerializer xmlSerializer = new XmlSerializer(typeof(GlobalConfigInfo));
             try
             {
-                using (FileStream fileStream = new FileStream(userDirectory + "config\\BecquerelMonitor.xml", FileMode.Create))
+                using (FileStream fileStream = new FileStream(becqMoniMainConfig, FileMode.Create))
                 {
                     xmlSerializer.Serialize(fileStream, this.globalConfig);
                 }
@@ -97,10 +87,7 @@ namespace BecquerelMonitor
             }
         }
 
-        string userDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\";
-
-        // Token: 0x0400032F RID: 815
-        string globalConfigFile = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\config\\BecquerelMonitor.xml";
+        string becqMoniMainConfig = BecquerelMonitor.Package.GetInstance().MainConfig;
 
         // Token: 0x04000330 RID: 816
         public string VersionString = "1.0";

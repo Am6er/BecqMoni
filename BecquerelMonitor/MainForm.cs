@@ -10,6 +10,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
+using System.Windows.Forms.VisualStyles;
 using System.Xml.Serialization;
 using WeifenLuo.WinFormsUI.Docking;
 
@@ -84,13 +85,14 @@ namespace BecquerelMonitor
         // Token: 0x06000A47 RID: 2631 RVA: 0x0003C5C8 File Offset: 0x0003A7C8
         public MainForm(string[] args)
         {
+            BecquerelMonitor.Package package = new BecquerelMonitor.Package();
             originalContext = SynchronizationContext.Current;
-            string directoryName = Path.GetDirectoryName(Application.ExecutablePath);
-            Environment.CurrentDirectory = directoryName;
-            if (!Directory.Exists(userDirectory) || !Directory.Exists(userDirectoryConfig))
+            if (!package.IsStandAlone && !Directory.Exists(userDirectory) || !Directory.Exists(userDirectoryConfig))
             {
                 try
                 {
+                    string directoryName = Path.GetDirectoryName(Application.ExecutablePath);
+                    Environment.CurrentDirectory = directoryName;
                     Directory.CreateDirectory(userDirectory);
                     Directory.CreateDirectory(userDirectory + "\\config");
                     foreach (string dirPath in Directory.GetDirectories(directoryName + "\\config", "*", SearchOption.AllDirectories))
@@ -2405,7 +2407,7 @@ namespace BecquerelMonitor
         string LayoutConfigFile(LayoutMode mode)
         {
             string str = "ExpertMode.xml";
-            return userDirectory + "\\config\\layout\\" + str;
+            return userDirectoryLayout + str;
         }
 
         // Token: 0x06000AB1 RID: 2737 RVA: 0x0003FD20 File Offset: 0x0003DF20
@@ -2541,8 +2543,12 @@ namespace BecquerelMonitor
 
         int countAutoSave;
 
-        string userDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni";
-        string userDirectoryConfig = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\config";
+        string userDirectory = Package.GetInstance().UserDirectory;
+
+        string userDirectoryConfig = Package.GetInstance().Config;
+
+        string userDirectoryLayout = Package.GetInstance().Layout;
+
         string OpenFileName;
     }
 }
