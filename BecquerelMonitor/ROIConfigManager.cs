@@ -64,7 +64,7 @@ namespace BecquerelMonitor
             XmlSerializer xmlSerializer = new XmlSerializer(typeof(ROIConfigData));
             try
             {
-                string[] files = Directory.GetFiles(userDirectory + "config\\ROI\\", "*.xml");
+                string[] files = Directory.GetFiles(configROI, "*.xml");
                 foreach (string path in files)
                 {
                     ROIConfigData roiconfigData;
@@ -99,7 +99,7 @@ namespace BecquerelMonitor
             }
             catch (Exception)
             {
-                Directory.CreateDirectory(userDirectory + "config\\ROI");
+                Directory.CreateDirectory(configROIDir);
                 MessageBox.Show(Resources.ERRLoadingROIConfigFailed, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
             }
             this.roiConfigList.Sort();
@@ -115,7 +115,7 @@ namespace BecquerelMonitor
             roiconfigData.OriginalFilename = filename;
             roiconfigData.Filename = filename;
             roiconfigData.Name = Path.GetFileNameWithoutExtension(filename);
-            string path = userDirectory + "config\\ROI\\" + roiconfigData.Filename;
+            string path = configROI + roiconfigData.Filename;
             try
             {
                 using (FileStream fileStream = new FileStream(path, FileMode.Create))
@@ -149,7 +149,7 @@ namespace BecquerelMonitor
             roiconfigData.Name = config.Name + Resources.CopyPostfix;
             try
             {
-                string path = userDirectory + "config\\ROI\\" + roiconfigData.Filename;
+                string path = configROI + roiconfigData.Filename;
                 using (FileStream fileStream = new FileStream(path, FileMode.Create))
                 {
                     XmlSerializer xmlSerializer = new XmlSerializer(typeof(ROIConfigData));
@@ -179,7 +179,7 @@ namespace BecquerelMonitor
             this.roiConfigList.Remove(roiconfigData);
             try
             {
-                string path = userDirectory + "config\\ROI\\" + roiconfigData.OriginalFilename;
+                string path = configROI + roiconfigData.OriginalFilename;
                 XmlSerializer xmlSerializer = new XmlSerializer(typeof(ROIConfigData));
                 using (FileStream fileStream = new FileStream(path, FileMode.Open))
                 {
@@ -221,7 +221,7 @@ namespace BecquerelMonitor
             {
                 try
                 {
-                    File.Delete(userDirectory + "config\\ROI\\" + roiConfig.OriginalFilename);
+                    File.Delete(configROI + roiConfig.OriginalFilename);
                 }
                 catch (Exception)
                 {
@@ -234,7 +234,7 @@ namespace BecquerelMonitor
             roiconfigData = roiConfig.Clone();
             try
             {
-                string path = userDirectory + "config\\ROI\\" + roiconfigData.Filename;
+                string path = configROI + roiconfigData.Filename;
                 using (FileStream fileStream = new FileStream(path, FileMode.Create))
                 {
                     XmlSerializer xmlSerializer = new XmlSerializer(typeof(ROIConfigData));
@@ -262,7 +262,7 @@ namespace BecquerelMonitor
             ROIConfigData roiconfigData = this.roiConfigMap[roiConfig.Guid];
             try
             {
-                File.Delete(userDirectory + "config\\ROI\\" + roiconfigData.OriginalFilename);
+                File.Delete(configROI + roiconfigData.OriginalFilename);
             }
             catch (Exception)
             {
@@ -275,10 +275,8 @@ namespace BecquerelMonitor
             }
         }
 
-        string userDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\";
-
-        // Token: 0x04000963 RID: 2403
-        string configPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\config\\ROI\\";
+        string configROI = Package.GetInstance().ROI;
+        string configROIDir = Package.GetInstance().ROIDir;
 
         // Token: 0x04000964 RID: 2404
         List<ROIConfigData> roiConfigList = new List<ROIConfigData>();

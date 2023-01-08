@@ -36,12 +36,15 @@
     <DefaultHorizontalMagnification>Equal</DefaultHorizontalMagnification>
     <DefaultDrawingMode>Normal</DefaultDrawingMode>
     <Energy2ndCoefficientStep>1E-05</Energy2ndCoefficientStep>
+    <EnergyPitch>5</EnergyPitch>
+    <EnergyPercent>1</EnergyPercent>
     <EnergyCoefficientStep>0.01</EnergyCoefficientStep>
     <EnergyOffsetStep>1</EnergyOffsetStep>
     <NumberOfSMADataPoints>20</NumberOfSMADataPoints>
     <NumberOfWMADataPoints>20</NumberOfWMADataPoints>
     <ChartRefreshCycle>500</ChartRefreshCycle>
     <MagnificationReference>Left</MagnificationReference>
+    <CountLimit>100</CountLimit>
   </ChartViewConfig>
   <ColorConfig>
     <ActiveSpectrumColor>Black</ActiveSpectrumColor>
@@ -84,6 +87,8 @@
     <PeakLineColor>Red</PeakLineColor>
     <CursorColor>Red</CursorColor>
     <BlankAreaColor>LightGrey</BlankAreaColor>
+    <UnknownPeakColor>Gray</UnknownPeakColor>
+    <BgDiffColor>DarkViolet</BgDiffColor>
   </ColorConfig>
   <MeasurementConfig>
     <VolumeUnit>Milliliter</VolumeUnit>
@@ -115,4 +120,5 @@
   <SoundConfig>
     <MeasurementCompletion />
   </SoundConfig>
+  <AutosavePeriod>15</AutosavePeriod>
 </GlobalConfigInfo>
