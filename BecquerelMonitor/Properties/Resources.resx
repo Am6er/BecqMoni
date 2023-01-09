@@ -3827,7 +3827,7 @@ http://xptable.sourceforge.net/</value>
   <data name="icon256" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAABMYAAAPaCAIAAADz3MP1AAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
-        wgAADsIBFShKgAAA/7JJREFUeF7M/YeXbEeV7Y3y3ruNjvdVdbz33sp774UskkAOhISQQHhoGt/duKYB
+        wQAADsEBuJFr7QAA/7JJREFUeF7M/YeXbEeV7Y3y3ruNjvdVdbz33sp774UskkAOhISQQHhoGt/duKYB
         AY3rS7vX9xvfuH/l99v7lzlrVeydec5R0/e9MebYY8WMGSti76yMWPNkVp2PrNu0a4j1m3eDIbNhy56A
         5tqNO9ds2LF6/faqERkYIA6isakApjaFzCwwOyCoQ+qoxCqdN6hDRpEkirly4xu37rU3eeydg1mLXL1p
         55rNu4ZYu2W3AYJoIOvDN2AxoK6kgiFi3dY9YP22vcLmtcMFDNHIgg0L+7wF4k1LBzZvPyizbmEvWL+4
@@ -36869,5 +36869,8 @@ see peak in spectrum now).</value>
   </data>
   <data name="AutosaveText" xml:space="preserve">
     <value>{0} Autosaving documents</value>
+  </data>
+  <data name="ProgressDateFmt" xml:space="preserve">
+    <value>d\d\ hh\:mm\:ss</value>
   </data>
 </root>

@@ -1,5 +1,6 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Windows.Forms;
 
@@ -389,6 +390,11 @@ namespace BecquerelMonitor
             this.percentageProgressBar1.DoubleValue = num;
             this.percentageProgressBar1.PriorText = ((int)totalSeconds).ToString();
             this.percentageProgressBar1.Invalidate();
+        }
+
+        void percentageProgressBar1_Click(object sender, EventArgs e)
+        {
+            this.percentageProgressBar1.DisplayFormatCycle(e);
         }
 
         // Token: 0x06000298 RID: 664 RVA: 0x0000BB90 File Offset: 0x00009D90

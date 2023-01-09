@@ -590,6 +590,9 @@ http://xptable.sourceforge.net/</value>
   <data name="PlusMinus" xml:space="preserve">
     <value>±</value>
   </data>
+  <data name="ProgressDateFmt" xml:space="preserve">
+    <value>d\д\ hh\:mm\:ss</value>
+  </data>
   <data name="ProgressString" xml:space="preserve">
     <value> ({0}%)</value>
   </data>

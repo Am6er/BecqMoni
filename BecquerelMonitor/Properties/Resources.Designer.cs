@@ -1862,6 +1862,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to d\d\ hh\:mm\:ss.
+        /// </summary>
+        internal static string ProgressDateFmt {
+            get {
+                return ResourceManager.GetString("ProgressDateFmt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to  ({0}%).
         /// </summary>
         internal static string ProgressString {
