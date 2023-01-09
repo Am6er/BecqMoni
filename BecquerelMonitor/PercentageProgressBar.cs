@@ -119,7 +119,29 @@ namespace BecquerelMonitor
         {
             get
             {
-                return this.priorText + string.Format(Resources.ProgressString, this.doubleValue.ToString("f1"));
+                if (this.dateFmt)
+                {
+                    return ToDateFmt(this.priorText) + string.Format(Resources.ProgressString, this.doubleValue.ToString("f1"));
+                } else
+                {
+                    return this.priorText + string.Format(Resources.ProgressString, this.doubleValue.ToString("f1"));
+                }
+            }
+        }
+
+        private string ToDateFmt(string seconds)
+        {
+            if (double.TryParse(seconds, out double sec))
+            {
+                TimeSpan fmt = TimeSpan.FromSeconds(sec);
+                if (fmt.Days > 0)
+                {
+                    return fmt.ToString(Resources.ProgressDateFmt);
+                }
+                return fmt.ToString(@"hh\:mm\:ss");
+            } else
+            {
+                return seconds;
             }
         }
 
@@ -130,6 +152,15 @@ namespace BecquerelMonitor
             if (percentageVisibleChanged != null)
             {
                 percentageVisibleChanged(this, e);
+            }
+        }
+
+        public void DisplayFormatCycle(EventArgs e)
+        {
+            this.dateFmt = !this.dateFmt;
+            if (this.percentageVisible)
+            {
+                base.Invalidate();
             }
         }
 
@@ -211,5 +242,7 @@ namespace BecquerelMonitor
 
         // Token: 0x04000789 RID: 1929
         string priorText = "";
+
+        bool dateFmt = false;
     }
 }
