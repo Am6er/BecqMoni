@@ -2176,7 +2176,8 @@ namespace BecquerelMonitor
                     {
                         double num9 = 0.0;
                         double num10 = 0.0;
-                        if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                        if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null 
+                            && this.backgroundEnergySpectrum.MeasurementTime != 0.0 && this.substractedEnergySpectrum != null)
                         {
                             num9 = this.substractedEnergySpectrum.DrawingSpectrum[(int)num8];
                             if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.substractedEnergySpectrum.MeasurementTime != 0.0)
