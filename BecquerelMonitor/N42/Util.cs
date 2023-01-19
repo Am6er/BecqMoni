@@ -2,6 +2,7 @@
 using System;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
 using System.Xml;
 
@@ -160,22 +161,24 @@ namespace BecquerelMonitor.N42
             for (int i = 0; i < SpectrumCount; i++)
             {
                 RadMeasurement radMeasurement = rad.RadMeasurement[i];
-                EnergyCalibration radCalibration = rad.EnergyCalibration[i];
+                EnergyCalibration radCalibration;
+                if (rad.EnergyCalibration.Length <= i)
+                {
+                    radCalibration = rad.EnergyCalibration[0];
+                } else
+                {
+                    radCalibration = rad.EnergyCalibration[i];
+                }
                 ResultData resultData = new ResultData();
                 resultData.MeasurementController = doc.ActiveResultData.MeasurementController;
-                resultData.EnergySpectrum.TotalPulseCount = 0;
-                try
-                {
-                    resultData.EnergySpectrum.TotalPulseCount = int.Parse(radMeasurement.GrossCounts[0].TotalCounts);
-                }
-                catch { }
-
-                resultData.EnergySpectrum.ValidPulseCount = resultData.EnergySpectrum.TotalPulseCount;
                 resultData.SampleInfo.Time = DateTime.Now;
 
                 try
                 {
-                    resultData.SampleInfo.Time = XmlConvert.ToDateTime(radMeasurement.StartDateTime); //"10/13/2021 07:14:57"
+                    if (radMeasurement.StartDateTime != null && radMeasurement.StartDateTime != "")
+                    {
+                        resultData.SampleInfo.Time = XmlConvert.ToDateTime(radMeasurement.StartDateTime); //"10/13/2021 07:14:57"
+                    }
                 }
                 catch { }
 
@@ -194,15 +197,28 @@ namespace BecquerelMonitor.N42
 
                     }
 
-                    foreach (RadDetectorInformation radDetIterator in rad.RadDetectorInformation)
+                    if (rad.RadDetectorInformation != null)
                     {
-                        resultData.SampleInfo.Note = resultData.SampleInfo.Note + radDetIterator.RadDetectorCategoryCode + " - " + radDetIterator.RadDetectorKindCode + Environment.NewLine;
+                        foreach (RadDetectorInformation radDetIterator in rad.RadDetectorInformation)
+                        {
+                            resultData.SampleInfo.Note = resultData.SampleInfo.Note + radDetIterator.RadDetectorCategoryCode + " - " + radDetIterator.RadDetectorKindCode + Environment.NewLine;
+                        }
                     }
                 }
                 catch
                 { }
-
-                int ElapsedTime = (int)XmlConvert.ToTimeSpan(radMeasurement.Spectrum[0].LiveTimeDuration).TotalSeconds;
+                int ElapsedTime = 0;
+                if (radMeasurement.Spectrum[0].LiveTimeDuration != null && radMeasurement.Spectrum[0].LiveTimeDuration != "")
+                {
+                    ElapsedTime = (int)XmlConvert.ToTimeSpan(radMeasurement.Spectrum[0].LiveTimeDuration).TotalSeconds;
+                }
+                if (ElapsedTime == 0)
+                {
+                    if (radMeasurement.RealTimeDuration != null && radMeasurement.RealTimeDuration != "")
+                    {
+                        ElapsedTime = (int)XmlConvert.ToTimeSpan(radMeasurement.RealTimeDuration).TotalSeconds;
+                    }
+                }
                 resultData.EnergySpectrum.MeasurementTime = ElapsedTime;
                 resultData.ResultDataStatus.TotalTime = TimeSpan.FromSeconds(ElapsedTime);
                 resultData.ResultDataStatus.ElapsedTime = TimeSpan.FromSeconds(ElapsedTime);
@@ -218,6 +234,15 @@ namespace BecquerelMonitor.N42
                 {
                     resultData.EnergySpectrum.Spectrum[k] = int.Parse(n42SpectrumCounts[k]);
                 }
+                resultData.EnergySpectrum.TotalPulseCount = 0;
+                if (radMeasurement.GrossCounts != null)
+                {
+                    resultData.EnergySpectrum.TotalPulseCount = int.Parse(radMeasurement.GrossCounts[0].TotalCounts);
+                } else
+                {
+                    resultData.EnergySpectrum.TotalPulseCount = resultData.EnergySpectrum.Spectrum.Sum();
+                }
+                resultData.EnergySpectrum.ValidPulseCount = resultData.EnergySpectrum.TotalPulseCount;
 
                 try
                 {
