@@ -1865,7 +1865,7 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            if (this.activeDocument != null)
+            if (this.activeDocument == null)
             {
                 CreateDocument();
             }
