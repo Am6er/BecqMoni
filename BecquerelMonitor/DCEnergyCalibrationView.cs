@@ -27,6 +27,20 @@ namespace BecquerelMonitor
         void DCEnergyCalibrationView_Load(object sender, EventArgs e)
         {
             this.HideMultipointForm();
+            this.LoadCalibrationPoints();
+        }
+
+        public void LoadCalibrationPoints()
+        {
+            if (this.mainForm.ActiveDocument != null &&
+                this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints.Count > 0)
+            {
+                List<CalibrationPoint> points = this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints;
+                foreach (CalibrationPoint point in points)
+                {
+                    AddCalibration(point.Channel, point.Energy, point.Count);
+                }
+            }
         }
 
         // Token: 0x06000815 RID: 2069 RVA: 0x0002DD18 File Offset: 0x0002BF18
@@ -65,7 +79,7 @@ namespace BecquerelMonitor
                 this.numericUpDown4.Text = this.energyCalibration.Coefficients[4].ToString();
             }
             this.formLoading = false;
-            this.calibrationPoints.Clear();
+            //this.calibrationPoints.Clear();
             this.ShowCalibrationPoints();
             this.UpdateMultipointButtonState();
         }
@@ -374,9 +388,16 @@ namespace BecquerelMonitor
         // Token: 0x06000829 RID: 2089 RVA: 0x0002E478 File Offset: 0x0002C678
         void UpdateMultipointButtonState()
         {
-            this.button7.Enabled = (this.calibrationPoints.Count > 0 && !this.channelPickupProcessing && this.multipointModified);
+            if (this.mainForm.ActiveDocument != null)
+            {
+                this.button7.Enabled = (this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints.Count > 0 && !this.channelPickupProcessing && this.multipointModified);
+                this.button9.Enabled = (this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints.Count > 0 && !this.channelPickupProcessing);
+            } else
+            {
+                this.button7.Enabled = false;
+                this.button9.Enabled = false;
+            }
             this.button8.Enabled = (!this.channelPickupProcessing);
-            this.button9.Enabled = (this.calibrationPoints.Count > 0 && !this.channelPickupProcessing);
             this.button11.Enabled = this.channelPickupProcessing;
             if (this.calibrationDone)
             {
@@ -400,7 +421,7 @@ namespace BecquerelMonitor
             }
             decimal energy = Math.Round((decimal)this.energyCalibration.ChannelToEnergy((double)e.Channel), 2);
             CalibrationPoint item = new CalibrationPoint(e.Channel, energy, e.Count);
-            this.calibrationPoints.Add(item);
+            this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints.Add(item);
             this.multipointModified = true;
             this.calibrationDone = false;
             this.ShowCalibrationPoints();
@@ -410,7 +431,7 @@ namespace BecquerelMonitor
         public void AddCalibration(int channel, decimal energy, int count)
         {
             CalibrationPoint item = new CalibrationPoint(channel, energy, count);
-            this.calibrationPoints.Add(item);
+            this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints.Add(item);
             this.multipointModified = true;
             this.calibrationDone = false;
             this.ShowCalibrationPoints();
@@ -447,13 +468,13 @@ namespace BecquerelMonitor
             {
                 num = 0;
             }
-            if (num < 0 && num >= this.calibrationPoints.Count)
+            if (num < 0 && num >= this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints.Count)
             {
                 return;
             }
             try
             {
-                this.calibrationPoints.RemoveAt(num);
+                this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints.RemoveAt(num);
             } catch
             {
 
@@ -471,8 +492,8 @@ namespace BecquerelMonitor
             int num = 1;
             this.table1.SuspendLayout();
             this.tableModel1.Rows.Clear();
-            this.calibrationPoints.Sort();
-            foreach (CalibrationPoint calibrationPoint in this.calibrationPoints)
+            this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints.Sort();
+            foreach (CalibrationPoint calibrationPoint in this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints)
             {
                 Row row = new Row();
                 row.Cells.Add(new Cell(num.ToString()));
@@ -508,10 +529,10 @@ namespace BecquerelMonitor
                 if (e.Column == 1)
                 {
                     string text = ((NumberCellEditor)e.Editor).TextBox.Text;
-                    this.calibrationPoints[row.Index].Channel = (int)decimal.Parse(text);
-                    if (this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.Spectrum.Length > this.calibrationPoints[row.Index].Channel)
+                    this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints[row.Index].Channel = (int)decimal.Parse(text);
+                    if (this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.Spectrum.Length > this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints[row.Index].Channel)
                     {
-                        this.calibrationPoints[row.Index].Count = this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.Spectrum[this.calibrationPoints[row.Index].Channel];
+                        this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints[row.Index].Count = this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.Spectrum[this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints[row.Index].Channel];
                     }
                     else
                     {
@@ -525,7 +546,7 @@ namespace BecquerelMonitor
                 else if (e.Column == 2)
                 {
                     string text2 = ((NumberCellEditor)e.Editor).TextBox.Text;
-                    this.calibrationPoints[row.Index].Energy = decimal.Parse(text2);
+                    this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints[row.Index].Energy = decimal.Parse(text2);
                     this.multipointModified = true;
                     this.calibrationDone = false;
                     this.UpdateMultipointButtonState();
@@ -538,9 +559,35 @@ namespace BecquerelMonitor
             }
         }
 
+        void button14_Click(object sender, EventArgs e)
+        {
+            List<CalibrationPoint> points = new List<CalibrationPoint>();
+
+            if (this.mainForm.DocumentList != null)
+            {
+                foreach (DocEnergySpectrum doc in this.mainForm.DocumentList)
+                {
+                    foreach(ResultData data in doc.ResultDataFile.ResultDataList)
+                    {
+                        if (data.CalibrationPoints.Count > 0)
+                        {
+                            points.AddRange(data.CalibrationPoints);
+                        }
+                    }
+                }
+                foreach (CalibrationPoint point in points)
+                {
+                    AddCalibration(point.Channel, point.Energy, point.Count);
+                }
+            }
+        }
+
         void checkBox2_Click(object sender, EventArgs e)
         {
-            this.button7.Enabled = true;
+            if (this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints.Count > 0)
+            {
+                this.button7.Enabled = true;
+            }
         }
 
         // Token: 0x06000831 RID: 2097 RVA: 0x0002E8C0 File Offset: 0x0002CAC0
@@ -553,7 +600,7 @@ namespace BecquerelMonitor
 
             int PolynomOrder = (int)this.numericUpDown6.Value;
             double[] matrix;
-            List<CalibrationPoint> points = this.calibrationPoints;
+            List<CalibrationPoint> points = this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints;
             if (points.Count == 1)
             {
                 CalibrationPoint zero = new CalibrationPoint(0, 0, 0);
@@ -674,8 +721,5 @@ namespace BecquerelMonitor
 
         // Token: 0x0400041D RID: 1053
         bool multipointModified;
-
-        // Token: 0x0400041E RID: 1054
-        List<CalibrationPoint> calibrationPoints = new List<CalibrationPoint>();
     }
 }

@@ -336,6 +336,19 @@ namespace BecquerelMonitor
             }
         }
 
+        [XmlIgnore]
+        public List<CalibrationPoint> CalibrationPoints
+        {
+            get
+            {
+                return this.calibrationPoints;
+            }
+            set
+            {
+                this.calibrationPoints = value;
+            }
+        }
+
         // Token: 0x170001F9 RID: 505
         // (get) Token: 0x0600069B RID: 1691 RVA: 0x00027B38 File Offset: 0x00025D38
         // (set) Token: 0x0600069C RID: 1692 RVA: 0x00027B40 File Offset: 0x00025D40
@@ -468,5 +481,7 @@ namespace BecquerelMonitor
 
         // Token: 0x04000376 RID: 886
         List<Peak> calibrationPeaks = new List<Peak>();
+
+        List<CalibrationPoint> calibrationPoints = new List<CalibrationPoint>();
     }
 }
