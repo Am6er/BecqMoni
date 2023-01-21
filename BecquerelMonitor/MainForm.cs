@@ -2033,6 +2033,7 @@ namespace BecquerelMonitor
             if (this.dcEnergyCalibrationView != null)
             {
                 this.dcEnergyCalibrationView.UpdateEnergyCalibrationConfig();
+                this.dcEnergyCalibrationView.LoadCalibrationPoints();
             }
             foreach (DocEnergySpectrum docEnergySpectrum in this.documentManager.DocumentList)
             {
@@ -2428,6 +2429,14 @@ namespace BecquerelMonitor
                     IDockContent dockContent = this.dockPanel1.Contents[j];
                     dockContent.DockHandler.Close();
                 }
+            }
+        }
+
+        public List<DocEnergySpectrum> DocumentList
+        {
+            get
+            {
+                return this.documentManager.DocumentList;
             }
         }
 
