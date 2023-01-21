@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using MathNet.Numerics.LinearAlgebra;
 using System.Windows.Forms;
 using BecquerelMonitor.Properties;
+using MathNet.Numerics.LinearRegression;
 
 namespace BecquerelMonitor.Utils
 {
@@ -48,6 +49,58 @@ namespace BecquerelMonitor.Utils
                         (double)this.calibrationPoints[4].Energy
                     });
             */
+        }
+
+        public static double[] SolveWeighted (List<CalibrationPoint> points, int PolynomialOrder)
+        {
+            Matrix<double> matrix;
+            Vector<double> vector;
+            Matrix<double> weight;
+            double[,] dense_matrix = new double[points.Count, PolynomialOrder + 1];
+            double[] dense_vector = new double[points.Count];
+            double[,] dense_weight = new double[points.Count, points.Count];
+
+            int max_count = 1;
+            for (int i = 0; i < points.Count; i++)
+            {
+                if (points[i].Count > max_count)
+                {
+                    max_count = points[i].Count;
+                }
+            }
+
+            for (int i = 0; i < points.Count; i++)
+            {
+                for (int j = 0; j < points.Count; j ++)
+                {
+                    if (i == j)
+                    {
+                        dense_weight[i, j] = (double)points[i].Count / (double)max_count;
+                    }
+                    else
+                    {
+                        dense_weight[i, j] = 0;
+                    }
+                }
+            }
+
+            for (int i = 0; i < points.Count; i++)
+            {
+                for (int j = PolynomialOrder; j >= 0; j--)
+                {
+                    double val = (double)Math.Pow(points[i].Channel, j);
+                    dense_matrix[i, j] = val;
+                }
+                dense_vector[i] = (double)points[i].Energy;
+            }
+
+            matrix = Matrix<double>.Build.DenseOfArray(dense_matrix);
+            vector = Vector<double>.Build.Dense(dense_vector);
+            weight = Matrix<double>.Build.DenseOfArray(dense_weight);
+
+            double[] retvalue = WeightedRegression.Weighted(matrix, vector, weight).ToArray();
+
+            return retvalue;
         }
     }
 }

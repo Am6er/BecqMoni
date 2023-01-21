@@ -45,11 +45,12 @@
 			this.textBox15 = new global::System.Windows.Forms.TextBox();
 			this.button6 = new global::System.Windows.Forms.Button();
 			this.checkBox1 = new global::System.Windows.Forms.CheckBox();
-			this.printDialog1 = new global::System.Windows.Forms.PrintDialog();
+            this.checkBox2 = new global::System.Windows.Forms.CheckBox();
+            this.printDialog1 = new global::System.Windows.Forms.PrintDialog();
 			this.label5 = new global::System.Windows.Forms.Label();
 			this.groupBox1 = new global::System.Windows.Forms.GroupBox();
 			this.toolTip1 = new global::System.Windows.Forms.ToolTip(this.components);
-			this.button7 = new global::System.Windows.Forms.Button();
+            this.button7 = new global::System.Windows.Forms.Button();
 			this.button11 = new global::System.Windows.Forms.Button();
 			this.label36 = new global::System.Windows.Forms.Label();
 			this.panel1 = new global::System.Windows.Forms.Panel();
@@ -195,8 +196,15 @@
 			this.panel1.Controls.Add(this.label36);
 			this.panel1.Controls.Add(this.numericUpDown6);
 			this.panel1.Controls.Add(this.label37);
-			this.panel1.Name = "panel1";
-			componentResourceManager.ApplyResources(this.numericUpDown6, "numericUpDown6");
+            this.panel1.Controls.Add(this.checkBox2);
+            this.panel1.Name = "panel1";
+            componentResourceManager.ApplyResources(this.checkBox2, "checkBox2");
+            this.checkBox2.Name = "checkBox2";
+            this.toolTip1.SetToolTip(this.checkBox2, componentResourceManager.GetString("checkBox2.ToolTip"));
+            this.checkBox2.UseVisualStyleBackColor = true;
+            this.checkBox2.Checked = false;
+            this.checkBox2.Click += new global::System.EventHandler(this.checkBox2_Click);
+            componentResourceManager.ApplyResources(this.numericUpDown6, "numericUpDown6");
 			this.numericUpDown6.Name = "numericUpDown6";
 			this.numericUpDown6.Increment = 1;
 			this.numericUpDown6.Minimum = 0;
@@ -339,8 +347,10 @@
 		// Token: 0x0400042D RID: 1069
 		global::System.Windows.Forms.CheckBox checkBox1;
 
-		// Token: 0x0400042E RID: 1070
-		global::System.Windows.Forms.PrintDialog printDialog1;
+        global::System.Windows.Forms.CheckBox checkBox2;
+
+        // Token: 0x0400042E RID: 1070
+        global::System.Windows.Forms.PrintDialog printDialog1;
 
 		// Token: 0x0400042F RID: 1071
 		global::System.Windows.Forms.Label label5;

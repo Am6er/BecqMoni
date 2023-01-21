@@ -234,6 +234,9 @@
   <data name="ERRBackgroundLoadFailure" xml:space="preserve">
     <value>Не удалось загрузить спектр фона "{0}".</value>
   </data>
+  <data name="ERRCalibrationChannelExceed" xml:space="preserve">
+    <value>Выбранный канал превышает размер спектра</value>
+  </data>
   <data name="ERRCannotConnectDevice" xml:space="preserve">
     <value>Не удалось подключиться к устройству. Проверьте кабель и питание устройства.</value>
   </data>
