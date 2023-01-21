@@ -3,6 +3,7 @@ using MathNet.Numerics.LinearAlgebra;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Runtime.Remoting.Channels;
 using System.Windows.Forms;
 using XPTable.Editors;
 using XPTable.Events;
@@ -398,7 +399,7 @@ namespace BecquerelMonitor
                 return;
             }
             decimal energy = Math.Round((decimal)this.energyCalibration.ChannelToEnergy((double)e.Channel), 2);
-            CalibrationPoint item = new CalibrationPoint(e.Channel, energy);
+            CalibrationPoint item = new CalibrationPoint(e.Channel, energy, e.Count);
             this.calibrationPoints.Add(item);
             this.multipointModified = true;
             this.calibrationDone = false;
@@ -406,9 +407,9 @@ namespace BecquerelMonitor
             this.ClearChannelPickupState();
         }
 
-        public void AddCalibration(int channel, decimal energy)
+        public void AddCalibration(int channel, decimal energy, int count)
         {
-            CalibrationPoint item = new CalibrationPoint(channel, energy);
+            CalibrationPoint item = new CalibrationPoint(channel, energy, count);
             this.calibrationPoints.Add(item);
             this.multipointModified = true;
             this.calibrationDone = false;
@@ -508,6 +509,15 @@ namespace BecquerelMonitor
                 {
                     string text = ((NumberCellEditor)e.Editor).TextBox.Text;
                     this.calibrationPoints[row.Index].Channel = (int)decimal.Parse(text);
+                    if (this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.Spectrum.Length > this.calibrationPoints[row.Index].Channel)
+                    {
+                        this.calibrationPoints[row.Index].Count = this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.Spectrum[this.calibrationPoints[row.Index].Channel];
+                    }
+                    else
+                    {
+                        throw new Exception(Resources.ERRCalibrationChannelExceed);
+                    }
+                    
                     this.multipointModified = true;
                     this.calibrationDone = false;
                     this.UpdateMultipointButtonState();
@@ -520,19 +530,17 @@ namespace BecquerelMonitor
                     this.calibrationDone = false;
                     this.UpdateMultipointButtonState();
                 }
-                else if (e.Column == 4)
-                {
-                    string text2 = ((NumberCellEditor)e.Editor).TextBox.Text;
-                    this.calibrationPoints[row.Index].Energy = decimal.Parse(text2);
-                    this.multipointModified = true;
-                    this.calibrationDone = false;
-                    this.UpdateMultipointButtonState();
-                }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                MessageBox.Show(String.Format(Resources.ERRAddCalibrationPoints, ((NumberCellEditor)e.Editor).TextBox.Text, ex.Message), Resources.ErrorExclamation, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 e.Cancel = true;
             }
+        }
+
+        void checkBox2_Click(object sender, EventArgs e)
+        {
+            this.button7.Enabled = true;
         }
 
         // Token: 0x06000831 RID: 2097 RVA: 0x0002E8C0 File Offset: 0x0002CAC0
@@ -548,13 +556,19 @@ namespace BecquerelMonitor
             List<CalibrationPoint> points = this.calibrationPoints;
             if (points.Count == 1)
             {
-                CalibrationPoint zero = new CalibrationPoint(0, 0);
+                CalibrationPoint zero = new CalibrationPoint(0, 0, 0);
                 points.Add(zero);
                 PolynomOrder += 1;
             }
             try
             {
-                matrix = Utils.CalibrationSolver.Solve(points, PolynomOrder);
+                if (this.checkBox2.Checked)
+                {
+                    matrix = Utils.CalibrationSolver.SolveWeighted(points, PolynomOrder);
+                } else
+                {
+                    matrix = Utils.CalibrationSolver.Solve(points, PolynomOrder);
+                }
                 if (matrix == null) throw new Exception("Error");
             }
             catch (Exception)

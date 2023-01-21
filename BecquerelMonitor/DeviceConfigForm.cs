@@ -1138,7 +1138,7 @@ namespace BecquerelMonitor
                 return;
             }
             decimal energy = Math.Round((decimal)this.activeDeviceConfig.EnergyCalibration.ChannelToEnergy((double)e.Channel), 2);
-            CalibrationPoint item = new CalibrationPoint(e.Channel, energy);
+            CalibrationPoint item = new CalibrationPoint(e.Channel, energy, e.Count);
             this.calibrationPoints.Add(item);
             this.multipointModified = true;
             this.calibrationDone = false;
@@ -1263,7 +1263,7 @@ namespace BecquerelMonitor
             List<CalibrationPoint> points = this.calibrationPoints;
             if (points.Count == 1)
             {
-                CalibrationPoint zero = new CalibrationPoint(0, 0);
+                CalibrationPoint zero = new CalibrationPoint(0, 0, 0);
                 points.Add(zero);
             }
             try

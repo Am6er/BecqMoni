@@ -3114,7 +3114,7 @@ namespace BecquerelMonitor
                 }
                 if (this.ChannelPickuped != null)
                 {
-                    this.ChannelPickuped(this, new ChannelPickupedEventArgs(num2));
+                    this.ChannelPickuped(this, new ChannelPickupedEventArgs(num2, this.energySpectrum.Spectrum[num2]));
                     return;
                 }
             }

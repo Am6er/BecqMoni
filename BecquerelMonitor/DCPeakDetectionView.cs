@@ -166,7 +166,14 @@ namespace BecquerelMonitor
                         diff = 0;
                     }
                     energy = Convert.ToDecimal(row.Cells[1].Text) - diff;
-                    this.mainForm.addCalibration(channel, energy);
+                    if (this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.Spectrum.Length > channel)
+                    {
+                        this.mainForm.addCalibration(channel, energy, this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.Spectrum[channel]);
+                    } else
+                    {
+                        throw new Exception(Resources.ERRCalibrationChannelExceed);
+                    }
+                    
                 } catch (Exception ex)
                 {
                     MessageBox.Show(String.Format(Resources.ERRAddCalibrationPoints, channel.ToString(), ex.Message), Resources.ErrorExclamation, MessageBoxButtons.OK, MessageBoxIcon.Error);

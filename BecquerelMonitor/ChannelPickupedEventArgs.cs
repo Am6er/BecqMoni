@@ -20,13 +20,28 @@ namespace BecquerelMonitor
             }
         }
 
+        public int Count
+        {
+            get
+            {
+                return this.count;
+            }
+            set
+            {
+                this.count = value;
+            }
+        }
+
         // Token: 0x0600096D RID: 2413 RVA: 0x000373C8 File Offset: 0x000355C8
-        public ChannelPickupedEventArgs(int channel)
+        public ChannelPickupedEventArgs(int channel, int count)
         {
             this.channel = channel;
+            this.count = count;
         }
 
         // Token: 0x04000542 RID: 1346
         int channel;
+
+        int count;
     }
 }

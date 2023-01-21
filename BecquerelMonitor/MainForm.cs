@@ -1003,9 +1003,9 @@ namespace BecquerelMonitor
             return this.deviceConfigForm;
         }
 
-        public void addCalibration(int channel, decimal energy)
+        public void addCalibration(int channel, decimal energy, int count)
         {
-            this.dcEnergyCalibrationView.AddCalibration(channel, energy);
+            this.dcEnergyCalibrationView.AddCalibration(channel, energy, count);
         }
 
         // Token: 0x06000A6E RID: 2670 RVA: 0x0003E0BC File Offset: 0x0003C2BC

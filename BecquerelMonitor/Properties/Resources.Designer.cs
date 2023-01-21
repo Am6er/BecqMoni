@@ -609,6 +609,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The selected channel exceeds the size of the spectrum.
+        /// </summary>
+        internal static string ERRCalibrationChannelExceed {
+            get {
+                return ResourceManager.GetString("ERRCalibrationChannelExceed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Unable to connect device. Check cable connection and power of the device..
         /// </summary>
         internal static string ERRCannotConnectDevice {
