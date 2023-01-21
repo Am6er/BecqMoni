@@ -60,7 +60,7 @@ namespace BecquerelMonitor.Utils
             double[] dense_vector = new double[points.Count];
             double[,] dense_weight = new double[points.Count, points.Count];
 
-            int max_count = 1;
+            double max_count = 1.0;
             for (int i = 0; i < points.Count; i++)
             {
                 if (points[i].Count > max_count)
@@ -68,6 +68,7 @@ namespace BecquerelMonitor.Utils
                     max_count = points[i].Count;
                 }
             }
+            max_count = Math.Sqrt(max_count);
 
             for (int i = 0; i < points.Count; i++)
             {
@@ -75,7 +76,7 @@ namespace BecquerelMonitor.Utils
                 {
                     if (i == j)
                     {
-                        dense_weight[i, j] = (double)points[i].Count / (double)max_count;
+                        dense_weight[i, j] = Math.Sqrt((double)points[i].Count) / (double)max_count;
                     }
                     else
                     {
