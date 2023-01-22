@@ -157,6 +157,7 @@ namespace BecquerelMonitor.Utils
                 foreach (CalibrationPoint point in points)
                 {
                     retvalue += weight[j] * Math.Pow(pol.ChannelToEnergy(point.Channel) - (double)point.Energy, 2);
+                    j++;
                 }
                 retvalue /= (points.Count * weight.Sum());
                 return retvalue;
