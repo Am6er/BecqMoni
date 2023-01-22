@@ -1448,6 +1448,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Mean Squared Error.
+        /// </summary>
+        internal static string MSGMSE {
+            get {
+                return ResourceManager.GetString("MSGMSE", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to New nuclide definition file has been created..
         /// </summary>
         internal static string MSGNewNuclideDefinitionFileCreated {

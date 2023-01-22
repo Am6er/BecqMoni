@@ -61,7 +61,6 @@ namespace BecquerelMonitor.Utils
             double[,] dense_weight = new double[points.Count, points.Count];
 
             double max_count = 1.0;
-            double max_count_sqrt = 1.0;
             for (int i = 0; i < points.Count; i++)
             {
                 if (points[i].Count > max_count)
@@ -69,7 +68,7 @@ namespace BecquerelMonitor.Utils
                     max_count = points[i].Count;
                 }
             }
-            max_count_sqrt = Math.Sqrt(max_count);
+            double max_count_sqrt = Math.Sqrt(max_count);
 
             for (int i = 0; i < points.Count; i++)
             {
@@ -102,6 +101,22 @@ namespace BecquerelMonitor.Utils
 
             double[] retvalue = WeightedRegression.Weighted(matrix, vector, weight).ToArray();
 
+            return retvalue;
+        }
+
+        public static double MSE(double[] coefficients, List<CalibrationPoint> points)
+        {
+            PolynomialEnergyCalibration pol = new PolynomialEnergyCalibration
+            {
+                Coefficients = coefficients,
+                PolynomialOrder = coefficients.Length - 1
+            };
+            double retvalue = 0.0;
+            foreach (CalibrationPoint point in points)
+            {
+                retvalue += Math.Pow( pol.ChannelToEnergy(point.Channel) - (double)point.Energy, 2);
+            }
+            retvalue /= points.Count;
             return retvalue;
         }
     }

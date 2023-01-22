@@ -515,6 +515,9 @@ http://xptable.sourceforge.net/</value>
   <data name="MSGInitializingSpectrum" xml:space="preserve">
     <value>Спектр будет УДАЛЁН ввиду несовместимых параметров спектра с параметрами выбранного устройства: количество каналов, шаг канала.</value>
   </data>
+  <data name="MSGMSE" xml:space="preserve">
+    <value>Среднеквадратичная ошибка</value>
+  </data>
   <data name="MSGNewNuclideDefinitionFileCreated" xml:space="preserve">
     <value>Новый файл библиотеки изотопов успешно создан.</value>
   </data>
