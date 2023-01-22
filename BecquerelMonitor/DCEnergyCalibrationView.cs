@@ -677,6 +677,8 @@ namespace BecquerelMonitor
                 MessageBox.Show(Resources.CalibrationFunctionError);
                 return;
             }
+            double mse = Utils.CalibrationSolver.MSE(matrix, points);
+            this.mainForm.SetStatusTextLeft(String.Format("{0} {1}: {2:0.00000}", Resources.MSGCalibrationDone, Resources.MSGMSE, mse));
             this.multipointModified = false;
             this.calibrationDone = true;
             this.UpdateMultipointButtonState();
