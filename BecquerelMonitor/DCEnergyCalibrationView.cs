@@ -385,6 +385,24 @@ namespace BecquerelMonitor
             this.UpdateMultipointButtonState();
         }
 
+        bool isCalibrationPointsExist()
+        {
+            if (this.mainForm.DocumentList != null)
+            {
+                foreach (DocEnergySpectrum doc in this.mainForm.DocumentList)
+                {
+                    foreach (ResultData data in doc.ResultDataFile.ResultDataList)
+                    {
+                        if (data.CalibrationPoints.Count > 0)
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
         // Token: 0x06000829 RID: 2089 RVA: 0x0002E478 File Offset: 0x0002C678
         void UpdateMultipointButtonState()
         {
@@ -392,10 +410,12 @@ namespace BecquerelMonitor
             {
                 this.button7.Enabled = (this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints.Count > 0 && !this.channelPickupProcessing && this.multipointModified);
                 this.button9.Enabled = (this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints.Count > 0 && !this.channelPickupProcessing);
+                this.button14.Enabled = isCalibrationPointsExist();
             } else
             {
                 this.button7.Enabled = false;
                 this.button9.Enabled = false;
+                this.button14.Enabled = false;
             }
             this.button8.Enabled = (!this.channelPickupProcessing);
             this.button11.Enabled = this.channelPickupProcessing;
