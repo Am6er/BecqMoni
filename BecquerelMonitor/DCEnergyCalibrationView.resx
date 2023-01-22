@@ -205,7 +205,7 @@
     <value>3</value>
   </data>
   <data name="numericUpDown6.Size" type="System.Drawing.Size, System.Drawing">
-    <value>40, 19</value>
+    <value>30, 19</value>
   </data>
   <data name="&gt;&gt;numericUpDown6.Name" xml:space="preserve">
     <value>numericUpDown6</value>
@@ -226,7 +226,7 @@
     <value>7</value>
   </data>
   <data name="numericUpDown6.Location" type="System.Drawing.Point, System.Drawing">
-    <value>325, 5</value>
+    <value>335, 5</value>
   </data>
   <data name="&gt;&gt;label36.Parent" xml:space="preserve">
     <value>panel1</value>
@@ -349,7 +349,7 @@
     <value>206, 12</value>
   </data>
   <data name="label37.Text" xml:space="preserve">
-    <value>Polynom order:</value>
+    <value>Polynom:</value>
   </data>
   <data name="label37.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
@@ -358,7 +358,7 @@
     <value>True</value>
   </data>
   <data name="label37.Location" type="System.Drawing.Point, System.Drawing">
-    <value>250, 8</value>
+    <value>275, 8</value>
   </data>
   <data name="&gt;&gt;label37.Name" xml:space="preserve">
     <value>label37</value>
@@ -1156,7 +1156,7 @@
     <value>Get all calibration points from all documents in this table</value>
   </data>
   <data name="button14.Size" type="System.Drawing.Size, System.Drawing">
-    <value>66, 23</value>
+    <value>80, 23</value>
   </data>
   <data name="&gt;&gt;button14.Parent" xml:space="preserve">
     <value>panel1</value>
