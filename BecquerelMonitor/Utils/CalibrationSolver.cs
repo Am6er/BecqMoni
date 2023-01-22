@@ -4,6 +4,7 @@ using MathNet.Numerics.LinearAlgebra;
 using System.Windows.Forms;
 using BecquerelMonitor.Properties;
 using MathNet.Numerics.LinearRegression;
+using System.Linq;
 
 namespace BecquerelMonitor.Utils
 {
@@ -106,18 +107,63 @@ namespace BecquerelMonitor.Utils
 
         public static double MSE(double[] coefficients, List<CalibrationPoint> points)
         {
-            PolynomialEnergyCalibration pol = new PolynomialEnergyCalibration
+            try
             {
-                Coefficients = coefficients,
-                PolynomialOrder = coefficients.Length - 1
-            };
-            double retvalue = 0.0;
-            foreach (CalibrationPoint point in points)
-            {
-                retvalue += Math.Pow( pol.ChannelToEnergy(point.Channel) - (double)point.Energy, 2);
+                PolynomialEnergyCalibration pol = new PolynomialEnergyCalibration
+                {
+                    Coefficients = coefficients,
+                    PolynomialOrder = coefficients.Length - 1
+                };
+                double retvalue = 0.0;
+                foreach (CalibrationPoint point in points)
+                {
+                    retvalue += Math.Pow(pol.ChannelToEnergy(point.Channel) - (double)point.Energy, 2);
+                }
+                retvalue /= points.Count;
+                return retvalue;
             }
-            retvalue /= points.Count;
-            return retvalue;
+            catch
+            {
+                return -1;
+            }
+        }
+
+        public static double WMSE(double[] coefficients, List<CalibrationPoint> points)
+        {
+            try
+            {
+                double[] weight = new double[points.Count];
+                double max_count = 1.0;
+                for (int i = 0; i < points.Count; i++)
+                {
+                    if (points[i].Count > max_count)
+                    {
+                        max_count = points[i].Count;
+                    }
+                }
+                double max_count_sqrt = Math.Sqrt(max_count);
+                for (int i = 0; i < weight.Length; i++)
+                {
+                    weight[i] = Math.Sqrt((double)points[i].Count) / max_count_sqrt;
+                }
+
+                PolynomialEnergyCalibration pol = new PolynomialEnergyCalibration
+                {
+                    Coefficients = coefficients,
+                    PolynomialOrder = coefficients.Length - 1
+                };
+                double retvalue = 0.0;
+                int j = 0;
+                foreach (CalibrationPoint point in points)
+                {
+                    retvalue += weight[j] * Math.Pow(pol.ChannelToEnergy(point.Channel) - (double)point.Energy, 2);
+                }
+                retvalue /= (points.Count * weight.Sum());
+                return retvalue;
+            } catch
+            {
+                return -1;
+            }
         }
     }
 }

@@ -677,7 +677,14 @@ namespace BecquerelMonitor
                 MessageBox.Show(Resources.CalibrationFunctionError);
                 return;
             }
-            double mse = Utils.CalibrationSolver.MSE(matrix, points);
+            double mse = 0.0;
+            if (this.checkBox2.Checked)
+            {
+               mse  = Utils.CalibrationSolver.WMSE(matrix, points);
+            } else
+            {
+                mse = Utils.CalibrationSolver.MSE(matrix, points);
+            }
             this.mainForm.SetStatusTextLeft(String.Format("{0} {1}: {2:0.00000}", Resources.MSGCalibrationDone, Resources.MSGMSE, mse));
             this.multipointModified = false;
             this.calibrationDone = true;
