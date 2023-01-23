@@ -8,6 +8,7 @@ using System.Windows.Forms;
 using XPTable.Editors;
 using XPTable.Events;
 using XPTable.Models;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace BecquerelMonitor
 {
@@ -21,6 +22,7 @@ namespace BecquerelMonitor
             this.InitializeComponent();
             GlobalConfigInfo globalConfig = this.globalConfigManager.GlobalConfig;
             this.UpdateMultipointButtonState();
+            this.UpdateTableColumns();
         }
 
         // Token: 0x06000814 RID: 2068 RVA: 0x0002DD10 File Offset: 0x0002BF10
@@ -28,6 +30,19 @@ namespace BecquerelMonitor
         {
             this.HideMultipointForm();
             this.LoadCalibrationPoints();
+        }
+
+        void UpdateTableColumns()
+        {
+            base.SuspendLayout();
+            if (this.checkBox2.Checked)
+            {
+                this.numberColumn3.Visible = true;
+            } else
+            {
+                this.numberColumn3.Visible = false;
+            }
+            base.ResumeLayout();
         }
 
         public void LoadCalibrationPoints()
@@ -519,6 +534,7 @@ namespace BecquerelMonitor
                 row.Cells.Add(new Cell(num.ToString()));
                 row.Cells.Add(new Cell(calibrationPoint.Channel));
                 row.Cells.Add(new Cell(calibrationPoint.Energy));
+                row.Cells.Add(new Cell(calibrationPoint.Count));
                 this.tableModel1.Rows.Add(row);
                 num++;
             }
@@ -571,6 +587,14 @@ namespace BecquerelMonitor
                     this.calibrationDone = false;
                     this.UpdateMultipointButtonState();
                 }
+                else if (e.Column == 3)
+                {
+                    string text3 = ((NumberCellEditor)e.Editor).TextBox.Text;
+                    this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints[row.Index].Count = int.Parse(text3);
+                    this.multipointModified = true;
+                    this.calibrationDone = false;
+                    this.UpdateMultipointButtonState();
+                }
             }
             catch (Exception ex)
             {
@@ -608,6 +632,7 @@ namespace BecquerelMonitor
             {
                 this.button7.Enabled = true;
             }
+            this.UpdateTableColumns();
         }
 
         // Token: 0x06000831 RID: 2097 RVA: 0x0002E8C0 File Offset: 0x0002CAC0

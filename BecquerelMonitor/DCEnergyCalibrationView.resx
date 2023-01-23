@@ -1161,4 +1161,13 @@
   <data name="&gt;&gt;button14.Parent" xml:space="preserve">
     <value>panel1</value>
   </data>
+  <data name="numberColumn3.Text" xml:space="preserve">
+    <value>Weight</value>
+  </data>
+  <data name="&gt;&gt;numberColumn3.Name" xml:space="preserve">
+    <value>numberColumn2</value>
+  </data>
+  <data name="&gt;&gt;numberColumn3.Type" xml:space="preserve">
+    <value>XPTable.Models.NumberColumn, BecquerelMonitorPlus, Version=1.0.23.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
 </root>

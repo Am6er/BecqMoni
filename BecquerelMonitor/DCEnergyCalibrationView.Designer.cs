@@ -61,7 +61,8 @@
 			this.columnModel1 = new global::XPTable.Models.ColumnModel();
 			this.textColumn1 = new global::XPTable.Models.TextColumn();
 			this.numberColumn2 = new global::XPTable.Models.NumberColumn();
-			this.numberColumn1 = new global::XPTable.Models.NumberColumn();
+            this.numberColumn3 = new global::XPTable.Models.NumberColumn();
+            this.numberColumn1 = new global::XPTable.Models.NumberColumn();
 			this.tableModel1 = new global::XPTable.Models.TableModel();
 			this.groupBox1.SuspendLayout();
 			this.panel1.SuspendLayout();
@@ -247,7 +248,9 @@
 			{
 				this.textColumn1,
 				this.numberColumn2,
-				this.numberColumn1
+				this.numberColumn1,
+				this.numberColumn3
+
 			});
 			this.textColumn1.Editable = false;
 			this.textColumn1.IsTextTrimmed = false;
@@ -276,7 +279,13 @@
 			});
 			this.numberColumn1.Sortable = false;
 			componentResourceManager.ApplyResources(this.numberColumn1, "numberColumn1");
-			componentResourceManager.ApplyResources(this, "$this");
+            componentResourceManager.ApplyResources(this.numberColumn3, "numberColumn3");
+            this.numberColumn3.Alignment = global::XPTable.Models.ColumnAlignment.Right;
+            this.numberColumn3.IsTextTrimmed = false;
+            this.numberColumn3.Maximum = 10000000;
+			this.numberColumn3.Minimum = 0;
+            this.numberColumn3.Sortable = false;
+            componentResourceManager.ApplyResources(this, "$this");
 			base.Controls.Add(this.panel1);
 			base.Controls.Add(this.button6);
 			base.Controls.Add(this.groupBox1);
@@ -411,5 +420,7 @@
 
 		// Token: 0x0400043D RID: 1085
 		global::XPTable.Models.NumberColumn numberColumn2;
-	}
+
+        global::XPTable.Models.NumberColumn numberColumn3;
+    }
 }
