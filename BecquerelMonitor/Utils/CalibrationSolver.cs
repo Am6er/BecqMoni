@@ -61,15 +61,7 @@ namespace BecquerelMonitor.Utils
             double[] dense_vector = new double[points.Count];
             double[,] dense_weight = new double[points.Count, points.Count];
 
-            double max_count = 1.0;
-            for (int i = 0; i < points.Count; i++)
-            {
-                if (points[i].Count > max_count)
-                {
-                    max_count = points[i].Count;
-                }
-            }
-            double max_count_sqrt = Math.Sqrt(max_count);
+            double max_count = points.Max(point => point.Count);
 
             for (int i = 0; i < points.Count; i++)
             {
@@ -77,7 +69,7 @@ namespace BecquerelMonitor.Utils
                 {
                     if (i == j)
                     {
-                        dense_weight[i, j] = Math.Sqrt((double)points[i].Count) / max_count_sqrt;
+                        dense_weight[i, j] = Math.Sqrt((double)points[i].Count / max_count);
                     }
                     else
                     {
@@ -132,34 +124,21 @@ namespace BecquerelMonitor.Utils
         {
             try
             {
-                double[] weight = new double[points.Count];
-                double max_count = 1.0;
-                for (int i = 0; i < points.Count; i++)
-                {
-                    if (points[i].Count > max_count)
-                    {
-                        max_count = points[i].Count;
-                    }
-                }
-                double max_count_sqrt = Math.Sqrt(max_count);
-                for (int i = 0; i < weight.Length; i++)
-                {
-                    weight[i] = Math.Sqrt((double)points[i].Count) / max_count_sqrt;
-                }
-
+                double retvalue = 0.0;
+                double max_count = points.Max(point => point.Count);
+                double weight_sum = 0.0;
                 PolynomialEnergyCalibration pol = new PolynomialEnergyCalibration
                 {
                     Coefficients = coefficients,
                     PolynomialOrder = coefficients.Length - 1
                 };
-                double retvalue = 0.0;
-                int j = 0;
-                foreach (CalibrationPoint point in points)
+                for (int i = 0; i < points.Count; i++)
                 {
-                    retvalue += weight[j] * Math.Pow(pol.ChannelToEnergy(point.Channel) - (double)point.Energy, 2);
-                    j++;
+                    double weight = Math.Sqrt((double)points[i].Count / max_count);
+                    weight_sum += weight;
+                    retvalue += weight * Math.Pow(pol.ChannelToEnergy(points[i].Channel) - (double)points[i].Energy, 2);
                 }
-                retvalue /= (points.Count * weight.Sum());
+                retvalue /= (points.Count * weight_sum);
                 return retvalue;
             } catch
             {
