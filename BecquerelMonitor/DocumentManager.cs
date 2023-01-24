@@ -80,6 +80,11 @@ namespace BecquerelMonitor
         {
             this.serial++;
             DocEnergySpectrum docEnergySpectrum = new DocEnergySpectrum(filename);
+            if (!this.CheckDocument(docEnergySpectrum.ResultDataFile))
+            {
+                MessageBox.Show(String.Format(Resources.ERRFileOpenFailure, filename, Resources.ERRSpectrumCheck));
+                return null;
+            }
             docEnergySpectrum.ActiveResultDataIndex = 0;
             docEnergySpectrum.IsNamed = true;
             this.documentList.Add(docEnergySpectrum);
@@ -89,6 +94,38 @@ namespace BecquerelMonitor
             this.LoadBackgroundSpectrum(activeResultData);
             docEnergySpectrum.UpdateEnergySpectrum();
             return docEnergySpectrum;
+        }
+
+        bool CheckDocument(ResultDataFile resultDataFile)
+        {
+            try
+            {
+                foreach (ResultData data in resultDataFile.ResultDataList)
+                {
+                    //Check Calibration
+                    if (data.EnergySpectrum.EnergyCalibration == null) return false;
+                    PolynomialEnergyCalibration pol = (PolynomialEnergyCalibration)data.EnergySpectrum.EnergyCalibration;
+                    if (!pol.CheckCalibration()) return false;
+
+                    //Check Spectrum
+                    if (data.EnergySpectrum.Spectrum.Length != data.EnergySpectrum.NumberOfChannels) return false;
+
+                    //Same checks for Background
+                    if (data.BackgroundEnergySpectrum != null)
+                    {
+                        if (data.BackgroundEnergySpectrum.EnergyCalibration == null) return false;
+                        pol = (PolynomialEnergyCalibration)data.BackgroundEnergySpectrum.EnergyCalibration;
+                        if (!pol.CheckCalibration()) return false;
+                        if (data.EnergySpectrum.Spectrum.Length != data.EnergySpectrum.NumberOfChannels) return false;
+                    }
+
+                }
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+            return true;
         }
 
         /*
@@ -130,41 +167,17 @@ namespace BecquerelMonitor
                     XmlSerializer xmlSerializer = new XmlSerializer(typeof(ResultDataFile));
                     docEnergySpectrum2.ResultDataFile = (ResultDataFile)xmlSerializer.Deserialize(fileStream);
                 }
-                bool flag = false;
-                foreach (ResultData resultData in docEnergySpectrum2.ResultDataFile.ResultDataList)
+
+                if (!this.CheckDocument(docEnergySpectrum2.ResultDataFile))
                 {
-                    if (resultData.EnergySpectrum.EnergyCalibration == null)
-                    {
-                        flag = true;
-                        break;
-                    }
-                }
-                if (flag)
-                {
-                    using (FileStream fileStream2 = new FileStream(docEnergySpectrum2.Filename, FileMode.Open))
-                    {
-                        XmlSerializer xmlSerializer2 = new XmlSerializer(typeof(ResultDataFile_097b));
-                        docEnergySpectrum2.ResultDataFile = new ResultDataFile((ResultDataFile_097b)xmlSerializer2.Deserialize(fileStream2));
-                    }
+                    throw new Exception(Resources.ERRSpectrumCheck);
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                try
-                {
-                    using (FileStream fileStream3 = new FileStream(docEnergySpectrum2.Filename, FileMode.Open))
-                    {
-                        XmlSerializer xmlSerializer3 = new XmlSerializer(typeof(ResultData_097b));
-                        ResultData_097b old = (ResultData_097b)xmlSerializer3.Deserialize(fileStream3);
-                        docEnergySpectrum2.ResultDataFile.ResultDataList[0] = new ResultData(old);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message));
-                    Cursor.Current = Cursors.Default;
-                    return null;
-                }
+                MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message));
+                Cursor.Current = Cursors.Default;
+                return null;
             }
             Cursor.Current = Cursors.Default;
             docEnergySpectrum2.IsNamed = true;
@@ -213,42 +226,17 @@ namespace BecquerelMonitor
                     XmlSerializer xmlSerializer = new XmlSerializer(typeof(ResultDataFile));
                     resultDataFile = (ResultDataFile)xmlSerializer.Deserialize(fileStream);
                 }
-                bool flag = false;
-                foreach (ResultData resultData in resultDataFile.ResultDataList)
+
+                if (!this.CheckDocument(resultDataFile))
                 {
-                    if (resultData.EnergySpectrum.EnergyCalibration == null)
-                    {
-                        flag = true;
-                        break;
-                    }
-                }
-                if (flag)
-                {
-                    using (FileStream fileStream2 = new FileStream(doc.Filename, FileMode.Open))
-                    {
-                        XmlSerializer xmlSerializer2 = new XmlSerializer(typeof(ResultDataFile_097b));
-                        resultDataFile = new ResultDataFile((ResultDataFile_097b)xmlSerializer2.Deserialize(fileStream2));
-                    }
+                    throw new Exception(Resources.ERRSpectrumCheck);
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                try
-                {
-                    using (FileStream fileStream3 = new FileStream(pathname, FileMode.Open))
-                    {
-                        XmlSerializer xmlSerializer3 = new XmlSerializer(typeof(ResultData));
-                        ResultData item = (ResultData)xmlSerializer3.Deserialize(fileStream3);
-                        resultDataFile = new ResultDataFile();
-                        resultDataFile.ResultDataList.Add(item);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, pathname, ex.Message));
-                    Cursor.Current = Cursors.Default;
-                    return null;
-                }
+                MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, pathname, ex.Message));
+                Cursor.Current = Cursors.Default;
+                return null;
             }
             Cursor.Current = Cursors.Default;
             this.PrepareDeviceConfig(resultDataFile);
@@ -376,6 +364,10 @@ namespace BecquerelMonitor
                         doc.ActiveResultData.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
                         doc.ActiveResultData.DeviceConfig = new DeviceConfigInfo();
                     }
+                }
+                if (!this.CheckDocument(doc.ResultDataFile))
+                {
+                    throw new Exception(Resources.ERRSpectrumCheck);
                 }
             } catch (Exception ex)
             {
@@ -512,6 +504,11 @@ namespace BecquerelMonitor
                 }
                 Util util = new Util();
                 util.ImportFromN42(radInstrumentData, doc, filename);
+
+                if (!this.CheckDocument(doc.ResultDataFile))
+                {
+                    throw new Exception(Resources.ERRSpectrumCheck);
+                }
 
                 Cursor.Current = Cursors.Default;
             }
@@ -743,41 +740,16 @@ namespace BecquerelMonitor
                         XmlSerializer xmlSerializer = new XmlSerializer(typeof(ResultDataFile));
                         resultDataFile = (ResultDataFile)xmlSerializer.Deserialize(fileStream);
                     }
-                    bool flag = false;
-                    foreach (ResultData resultData2 in resultDataFile.ResultDataList)
+
+                    if (!this.CheckDocument(resultDataFile))
                     {
-                        if (resultData2.EnergySpectrum.EnergyCalibration == null)
-                        {
-                            flag = true;
-                            break;
-                        }
-                    }
-                    if (flag)
-                    {
-                        using (FileStream fileStream2 = new FileStream(backgroundSpectrumPathname, FileMode.Open))
-                        {
-                            XmlSerializer xmlSerializer2 = new XmlSerializer(typeof(ResultDataFile_097b));
-                            resultDataFile = new ResultDataFile((ResultDataFile_097b)xmlSerializer2.Deserialize(fileStream2));
-                        }
+                        throw new Exception(Resources.ERRSpectrumCheck);
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    try
-                    {
-                        using (FileStream fileStream3 = new FileStream(backgroundSpectrumPathname, FileMode.Open))
-                        {
-                            XmlSerializer xmlSerializer3 = new XmlSerializer(typeof(ResultData));
-                            ResultData item = (ResultData)xmlSerializer3.Deserialize(fileStream3);
-                            resultDataFile = new ResultDataFile();
-                            resultDataFile.ResultDataList.Add(item);
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        MessageBox.Show(string.Format(Resources.ERRBackgroundLoadFailure, Path.GetFileName(backgroundSpectrumPathname)));
-                        return;
-                    }
+                    MessageBox.Show(string.Format(Resources.ERRBackgroundLoadFailure, Path.GetFileName(backgroundSpectrumPathname), ex.Message));
+                    return;
                 }
                 resultData.BackgroundEnergySpectrum = resultDataFile.ResultDataList[0].EnergySpectrum;
             }

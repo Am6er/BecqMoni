@@ -3221,7 +3221,7 @@ http://xptable.sourceforge.net/</value>
     <value>FWHM:</value>
   </data>
   <data name="ERRBackgroundLoadFailure" xml:space="preserve">
-    <value>Failed to load background spectrum "{0}".</value>
+    <value>Failed to load background spectrum "{0}" Messsage: {1}.</value>
   </data>
   <data name="MessageRemoveDeviceConfig" xml:space="preserve">
     <value>Remove device configuration "{0}"?</value>
@@ -3827,7 +3827,7 @@ http://xptable.sourceforge.net/</value>
   <data name="icon256" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAABMYAAAPaCAIAAADz3MP1AAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
-        vwAADr8BOAVTJAAA/7JJREFUeF7M/YeXbEeV7Y3y3ruNjvdVdbz33sp774UskkAOhISQQHhoGt/duKYB
+        vgAADr4B6kKxwAAA/7JJREFUeF7M/YeXbEeV7Y3y3ruNjvdVdbz33sp774UskkAOhISQQHhoGt/duKYB
         AY3rS7vX9xvfuH/l99v7lzlrVeydec5R0/e9MebYY8WMGSti76yMWPNkVp2PrNu0a4j1m3eDIbNhy56A
         5tqNO9ds2LF6/faqERkYIA6isakApjaFzCwwOyCoQ+qoxCqdN6hDRpEkirly4xu37rU3eeydg1mLXL1p
         55rNu4ZYu2W3AYJoIOvDN2AxoK6kgiFi3dY9YP22vcLmtcMFDNHIgg0L+7wF4k1LBzZvPyizbmEvWL+4
@@ -36878,5 +36878,8 @@ see peak in spectrum now).</value>
   </data>
   <data name="MSGMSE" xml:space="preserve">
     <value>Mean Squared Error</value>
+  </data>
+  <data name="ERRSpectrumCheck" xml:space="preserve">
+    <value>Error while check document content: calibration, spectrum, channels</value>
   </data>
 </root>
