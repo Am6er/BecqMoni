@@ -232,7 +232,7 @@
     <value>Выбранное аудио устройство не найдено.</value>
   </data>
   <data name="ERRBackgroundLoadFailure" xml:space="preserve">
-    <value>Не удалось загрузить спектр фона "{0}".</value>
+    <value>Не удалось загрузить спектр фона "{0}". Сообщение {1).</value>
   </data>
   <data name="ERRCalibrationChannelExceed" xml:space="preserve">
     <value>Выбранный канал превышает размер спектра</value>
@@ -377,6 +377,9 @@
   </data>
   <data name="ERRSavingROIConfigFailed" xml:space="preserve">
     <value>Не удалось сохранить конфигурационный файл ROI.</value>
+  </data>
+  <data name="ERRSpectrumCheck" xml:space="preserve">
+    <value>Ошибка при проверке контента файла спетра: калибровки, гистограммы, количества каналов</value>
   </data>
   <data name="ERRUnsuportedEnergyBoundaryN42" xml:space="preserve">
     <value>Объект спецификации N42 - EnergyBoundaryValues не поддерживается в приложении. Используйте калибровки полиномом.</value>

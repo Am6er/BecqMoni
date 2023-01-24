@@ -600,7 +600,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Failed to load background spectrum &quot;{0}&quot;..
+        ///   Looks up a localized string similar to Failed to load background spectrum &quot;{0}&quot; Messsage: {1}..
         /// </summary>
         internal static string ERRBackgroundLoadFailure {
             get {
@@ -1033,6 +1033,15 @@ namespace BecquerelMonitor.Properties {
         internal static string ERRSavingROIConfigFailed {
             get {
                 return ResourceManager.GetString("ERRSavingROIConfigFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error while check document content: calibration, spectrum, channels.
+        /// </summary>
+        internal static string ERRSpectrumCheck {
+            get {
+                return ResourceManager.GetString("ERRSpectrumCheck", resourceCulture);
             }
         }
         
