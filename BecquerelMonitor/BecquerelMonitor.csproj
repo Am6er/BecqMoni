@@ -36,7 +36,7 @@
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
     <ApplicationRevision>1</ApplicationRevision>
-    <ApplicationVersion>2023.01.24.1</ApplicationVersion>
+    <ApplicationVersion>2023.01.25.1</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -576,6 +576,12 @@
     </Compile>
     <Compile Include="USBThermometerConfig.cs" />
     <Compile Include="Hash\Crc32.cs" />
+    <Compile Include="Utils\CalibrationGraph.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Utils\CalibrationGraph.Designer.cs">
+      <DependentUpon>CalibrationGraph.cs</DependentUpon>
+    </Compile>
     <Compile Include="Utils\CalibrationSolver.cs" />
     <Compile Include="Utils\SpectrumAriphmetics.cs" />
     <Compile Include="Utils\WineCheck.cs" />
@@ -1037,6 +1043,12 @@
     </EmbeddedResource>
     <EmbeddedResource Include="ToolWindow.resx">
       <DependentUpon>ToolWindow.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Utils\CalibrationGraph.resx">
+      <DependentUpon>CalibrationGraph.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Utils\CalibrationGraph.ru.resx">
+      <DependentUpon>CalibrationGraph.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="WinMM\Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

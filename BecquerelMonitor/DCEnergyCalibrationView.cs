@@ -3,6 +3,7 @@ using MathNet.Numerics.LinearAlgebra;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Runtime.Remoting.Channels;
 using System.Windows.Forms;
 using XPTable.Editors;
@@ -51,7 +52,7 @@ namespace BecquerelMonitor
                 this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints.Count > 0)
             {
                 List<CalibrationPoint> points = this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints;
-                foreach (CalibrationPoint point in points)
+                foreach (CalibrationPoint point in points.ToList())
                 {
                     AddCalibration(point.Channel, point.Energy, point.Count);
                 }
@@ -400,22 +401,20 @@ namespace BecquerelMonitor
             this.UpdateMultipointButtonState();
         }
 
-        bool isCalibrationPointsExist()
+        int isCalibrationPointsExist()
         {
+            int count = 0;
             if (this.mainForm.DocumentList != null)
             {
                 foreach (DocEnergySpectrum doc in this.mainForm.DocumentList)
                 {
                     foreach (ResultData data in doc.ResultDataFile.ResultDataList)
                     {
-                        if (data.CalibrationPoints.Count > 0)
-                        {
-                            return true;
-                        }
+                        count += data.CalibrationPoints.Count;
                     }
                 }
             }
-            return false;
+            return count;
         }
 
         // Token: 0x06000829 RID: 2089 RVA: 0x0002E478 File Offset: 0x0002C678
@@ -425,12 +424,17 @@ namespace BecquerelMonitor
             {
                 this.button7.Enabled = (this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints.Count > 0 && !this.channelPickupProcessing && this.multipointModified);
                 this.button9.Enabled = (this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints.Count > 0 && !this.channelPickupProcessing);
-                this.button14.Enabled = isCalibrationPointsExist();
+                if (isCalibrationPointsExist() > 1)
+                {
+                    this.button14.Enabled = true;
+                    this.button15.Enabled = true;
+                }
             } else
             {
                 this.button7.Enabled = false;
                 this.button9.Enabled = false;
                 this.button14.Enabled = false;
+                this.button15.Enabled = false;
             }
             this.button8.Enabled = (!this.channelPickupProcessing);
             this.button11.Enabled = this.channelPickupProcessing;
@@ -601,6 +605,18 @@ namespace BecquerelMonitor
                 MessageBox.Show(String.Format(Resources.ERRAddCalibrationPoints, ((NumberCellEditor)e.Editor).TextBox.Text, ex.Message), Resources.ErrorExclamation, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 e.Cancel = true;
             }
+        }
+
+        void button15_Click(object sender, EventArgs e)
+        {
+            Utils.CalibrationGraph graph = new Utils.CalibrationGraph(this.mainForm);
+            graph.SetCalibration(this.energyCalibration, this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels, (int)this.numericUpDown6.Value, this.checkBox2.Checked);
+            graph.SetCalibrationPoints(this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints);
+            graph.ShowDialog();
+            ShowCalibrationPoints();
+            this.multipointModified = true;
+            this.calibrationDone = false;
+            this.UpdateMultipointButtonState();
         }
 
         void button14_Click(object sender, EventArgs e)

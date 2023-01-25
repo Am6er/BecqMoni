@@ -184,7 +184,7 @@
     <value>Energy Calibration</value>
   </data>
   <data name="button7.Location" type="System.Drawing.Point, System.Drawing">
-    <value>235, 60</value>
+    <value>235, 50</value>
   </data>
   <data name="button4.Location" type="System.Drawing.Point, System.Drawing">
     <value>207, 351</value>
@@ -883,7 +883,7 @@
     <value>groupBox1</value>
   </data>
   <data name="button11.Location" type="System.Drawing.Point, System.Drawing">
-    <value>235, 114</value>
+    <value>235, 90</value>
   </data>
   <data name="&gt;&gt;label2.ZOrder" xml:space="preserve">
     <value>1</value>
@@ -1169,5 +1169,38 @@
   </data>
   <data name="&gt;&gt;numberColumn3.Type" xml:space="preserve">
     <value>XPTable.Models.NumberColumn, BecquerelMonitorPlus, Version=1.0.23.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;button15.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="button15.TabIndex" type="System.Int32, mscorlib">
+    <value>9</value>
+  </data>
+  <data name="button15.Location" type="System.Drawing.Point, System.Drawing">
+    <value>235, 120</value>
+  </data>
+  <data name="&gt;&gt;button15.Name" xml:space="preserve">
+    <value>button15</value>
+  </data>
+  <data name="&gt;&gt;button15.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="button15.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="button15.Text" xml:space="preserve">
+    <value>Graph</value>
+  </data>
+  <data name="button15.ToolTip" xml:space="preserve">
+    <value>Show calibration results in graphic mode</value>
+  </data>
+  <data name="button15.Size" type="System.Drawing.Size, System.Drawing">
+    <value>76, 23</value>
+  </data>
+  <data name="&gt;&gt;button15.Parent" xml:space="preserve">
+    <value>panel1</value>
+  </data>
+    <data name="button15.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Top, Right</value>
   </data>
 </root>

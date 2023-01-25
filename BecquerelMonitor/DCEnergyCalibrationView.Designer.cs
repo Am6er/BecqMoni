@@ -53,6 +53,7 @@
             this.button7 = new global::System.Windows.Forms.Button();
 			this.button11 = new global::System.Windows.Forms.Button();
             this.button14 = new global::System.Windows.Forms.Button();
+            this.button15 = new global::System.Windows.Forms.Button();
             this.label36 = new global::System.Windows.Forms.Label();
 			this.panel1 = new global::System.Windows.Forms.Panel();
 			this.button9 = new global::System.Windows.Forms.Button();
@@ -200,6 +201,7 @@
 			this.panel1.Controls.Add(this.label37);
             this.panel1.Controls.Add(this.checkBox2);
             this.panel1.Controls.Add(this.button14);
+            this.panel1.Controls.Add(this.button15);
             this.panel1.Name = "panel1";
             componentResourceManager.ApplyResources(this.checkBox2, "checkBox2");
             this.checkBox2.Name = "checkBox2";
@@ -212,6 +214,11 @@
             this.toolTip1.SetToolTip(this.button14, componentResourceManager.GetString("button14.ToolTip"));
             this.button14.UseVisualStyleBackColor = true;
             this.button14.Click += new global::System.EventHandler(this.button14_Click);
+            componentResourceManager.ApplyResources(this.button15, "button15");
+            this.button15.Name = "button15";
+            this.toolTip1.SetToolTip(this.button15, componentResourceManager.GetString("button15.ToolTip"));
+            this.button15.UseVisualStyleBackColor = true;
+            this.button15.Click += new global::System.EventHandler(this.button15_Click);
             componentResourceManager.ApplyResources(this.numericUpDown6, "numericUpDown6");
 			this.numericUpDown6.Name = "numericUpDown6";
 			this.numericUpDown6.Increment = 1;
@@ -384,6 +391,8 @@
 		global::System.Windows.Forms.Button button11;
 
         global::System.Windows.Forms.Button button14;
+
+        global::System.Windows.Forms.Button button15;
 
         // Token: 0x04000434 RID: 1076
         global::System.Windows.Forms.Label label36;
