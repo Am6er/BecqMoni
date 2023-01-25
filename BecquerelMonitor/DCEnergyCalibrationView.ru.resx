@@ -693,6 +693,12 @@
   <data name="button14.ToolTip" xml:space="preserve">
     <value>Собрать все точки калибровки по всем открытым документам в этой таблице</value>
   </data>
+  <data name="button15.Text" xml:space="preserve">
+    <value>График</value>
+  </data>
+  <data name="button15.ToolTip" xml:space="preserve">
+    <value>Показать результат калибровки в графическом режиме</value>
+  </data>
   <data name="numberColumn3.Text" xml:space="preserve">
     <value>Вес</value>
   </data>

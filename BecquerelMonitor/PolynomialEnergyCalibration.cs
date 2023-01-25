@@ -231,6 +231,58 @@ namespace BecquerelMonitor
             return new PolynomialEnergyCalibration(this);
         }
 
+        public override string ToString()
+        {
+            string result = "";
+            string xpow = "";
+            string sign = "";
+            for(int i = 0; i < this.coefficients.Length; i++)
+            {
+                if (this.coefficients[i] != 0)
+                {
+                    if (i == 0)
+                    {
+                        xpow = "";
+                        if (this.coefficients[i] > 0)
+                        {
+                            sign = "+";
+                        }
+                        else
+                        {
+                            sign = "";
+                        }
+                    }
+                    if (i == 1)
+                    {
+                        xpow = "*x";
+                        if (this.coefficients[i] > 0 && i != this.coefficients.Length - 1)
+                        {
+                            sign = "+";
+                        }
+                        else
+                        {
+                            sign = "";
+                        }
+                    }
+                    if (i > 1)
+                    {
+                        xpow = "*x^" + i.ToString();
+                        if (this.coefficients[i] > 0 && i != this.coefficients.Length - 1)
+                        {
+                            sign = "+";
+                        }
+                        else
+                        {
+                            sign = "";
+                        }
+                    }
+
+                    result = sign + this.coefficients[i].ToString() + xpow + result;
+                }
+            }
+            return "y = " + result;
+        }
+
         // Token: 0x040003A4 RID: 932
         int polynomialOrder;
 
