@@ -272,7 +272,7 @@ namespace BecquerelMonitor.N42
                     energyCalibration.PolynomialOrder = PolynomialOrder;
                     energyCalibration.Coefficients = coefficients;
 
-                    if (!energyCalibration.CheckCalibration())
+                    if (!energyCalibration.CheckCalibration(channels: resultData.EnergySpectrum.NumberOfChannels))
                     {
                         MessageBox.Show(Resources.CalibrationFunctionError);
                     }

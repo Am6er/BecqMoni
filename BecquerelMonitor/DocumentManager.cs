@@ -105,7 +105,7 @@ namespace BecquerelMonitor
                     //Check Calibration
                     if (data.EnergySpectrum.EnergyCalibration == null) return false;
                     PolynomialEnergyCalibration pol = (PolynomialEnergyCalibration)data.EnergySpectrum.EnergyCalibration;
-                    if (!pol.CheckCalibration()) return false;
+                    if (!pol.CheckCalibration(channels: data.EnergySpectrum.NumberOfChannels)) return false;
 
                     //Check Spectrum
                     if (data.EnergySpectrum.Spectrum.Length != data.EnergySpectrum.NumberOfChannels) return false;
@@ -115,7 +115,7 @@ namespace BecquerelMonitor
                     {
                         if (data.BackgroundEnergySpectrum.EnergyCalibration == null) return false;
                         pol = (PolynomialEnergyCalibration)data.BackgroundEnergySpectrum.EnergyCalibration;
-                        if (!pol.CheckCalibration()) return false;
+                        if (!pol.CheckCalibration(data.BackgroundEnergySpectrum.NumberOfChannels)) return false;
                         if (data.EnergySpectrum.Spectrum.Length != data.EnergySpectrum.NumberOfChannels) return false;
                     }
 
@@ -459,7 +459,7 @@ namespace BecquerelMonitor
                             energyCalibration.Coefficients[i] = coefficients[i];
                         }
 
-                        if (!energyCalibration.CheckCalibration())
+                        if (!energyCalibration.CheckCalibration(channels: energySpectrum.NumberOfChannels))
                         {
                             MessageBox.Show(Resources.CalibrationFunctionError);
                         }
