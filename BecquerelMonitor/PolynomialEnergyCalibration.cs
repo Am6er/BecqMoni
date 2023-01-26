@@ -76,7 +76,7 @@ namespace BecquerelMonitor
             return true;
         }
 
-        public bool CheckCalibration()
+        public bool CheckCalibration(int channels = 8192)
         {
             if (this.polynomialOrder == 1)
             {
@@ -97,7 +97,7 @@ namespace BecquerelMonitor
                     return false;
                 }
             }
-            for (int i = 1; i <= 8192; i++)
+            for (int i = 1; i <= channels; i++)
             {
                 if (this.ChannelToEnergy(i - 1) > this.ChannelToEnergy(i))
                 {

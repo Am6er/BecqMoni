@@ -271,7 +271,7 @@ namespace BecquerelMonitor
                     double result = fromStringtoDouble(this.numericUpDown1.Text);
                     this.numericUpDown1.ForeColor = Color.Black;
                     this.energyCalibration.Coefficients[2] = result;
-                    if (!energyCalibration.CheckCalibration())
+                    if (!energyCalibration.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
                     {
                         MessageBox.Show(Resources.CalibrationFunctionError);
                         throw new Exception();
@@ -297,7 +297,7 @@ namespace BecquerelMonitor
                     double result = fromStringtoDouble(this.numericUpDown2.Text);
                     this.numericUpDown2.ForeColor = Color.Black;
                     this.energyCalibration.Coefficients[1] = result;
-                    if (!energyCalibration.CheckCalibration())
+                    if (!energyCalibration.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
                     {
                         MessageBox.Show(Resources.CalibrationFunctionError);
                         throw new Exception();
@@ -323,7 +323,7 @@ namespace BecquerelMonitor
                     double result = fromStringtoDouble(this.numericUpDown3.Text);
                     this.numericUpDown3.ForeColor = Color.Black;
                     this.energyCalibration.Coefficients[0] = result;
-                    if (!energyCalibration.CheckCalibration())
+                    if (!energyCalibration.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
                     {
                         MessageBox.Show(Resources.CalibrationFunctionError);
                         throw new Exception();
@@ -348,7 +348,7 @@ namespace BecquerelMonitor
                     double result = fromStringtoDouble(this.numericUpDown4.Text);
                     this.numericUpDown4.ForeColor = Color.Black;
                     this.energyCalibration.Coefficients[4] = result;
-                    if (!energyCalibration.CheckCalibration())
+                    if (!energyCalibration.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
                     {
                         MessageBox.Show(Resources.CalibrationFunctionError);
                         throw new Exception();
@@ -373,7 +373,7 @@ namespace BecquerelMonitor
                     double result = fromStringtoDouble(this.numericUpDown5.Text);
                     this.numericUpDown5.ForeColor = Color.Black;
                     this.energyCalibration.Coefficients[3] = result;
-                    if (!energyCalibration.CheckCalibration())
+                    if (!energyCalibration.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
                     {
                         MessageBox.Show(Resources.CalibrationFunctionError);
                         throw new Exception();
@@ -689,7 +689,7 @@ namespace BecquerelMonitor
             this.energyCalibration.PolynomialOrder = matrix.Length - 1;
             this.energyCalibration.Coefficients = matrix;
 
-            if (!this.energyCalibration.CheckCalibration())
+            if (!this.energyCalibration.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
             {
                 MessageBox.Show(Resources.CalibrationFunctionError);
                 return;
@@ -713,7 +713,7 @@ namespace BecquerelMonitor
             {
                 this.numericUpDown4.Text = this.energyCalibration.Coefficients[4].ToString();
             }
-            if (!this.energyCalibration.CheckCalibration())
+            if (!this.energyCalibration.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
             {
                 MessageBox.Show(Resources.CalibrationFunctionError);
                 return;

@@ -33,6 +33,7 @@ namespace BecquerelMonitor.Utils
         int mouseX = 0;
         int mouseY = 0;
         bool recalcPoly = true;
+        bool polycorrect = false;
         bool formloading = true;
         double maxEnergy;
         List<CalibrationPoint> points, originalpoints;
@@ -117,44 +118,53 @@ namespace BecquerelMonitor.Utils
 
         void PaintChart(Graphics g)
         {
-            using (Pen pen = new Pen(this.globalConfigManager.GlobalConfig.ColorConfig.ActiveSpectrumColor.Color))
+            if (this.recalcPoly)
             {
-                if (this.recalcPoly)
+                double[] matrix;
+                if (this.weights)
                 {
-                    double[] matrix;
-                    if (this.weights)
+                    matrix = Utils.CalibrationSolver.SolveWeighted(points, this.polyorder);
+                }
+                else
+                {
+                    matrix = Utils.CalibrationSolver.Solve(points, this.polyorder);
+                }
+                if (matrix != null)
+                {
+                    this.calibration.Coefficients = new double[matrix.Length];
+                    this.calibration.PolynomialOrder = matrix.Length - 1;
+                    this.calibration.Coefficients = matrix;
+                    if (this.calibration.CheckCalibration(channels: this.maxChannels))
                     {
-                        matrix = Utils.CalibrationSolver.SolveWeighted(points, this.polyorder);
+                        this.polycorrect = true;
                     }
                     else
                     {
-                        matrix = Utils.CalibrationSolver.Solve(points, this.polyorder);
+                        this.polycorrect = false;
                     }
-                    if (matrix != null)
-                    {
-                        this.calibration.Coefficients = new double[matrix.Length];
-                        this.calibration.PolynomialOrder = matrix.Length - 1;
-                        this.calibration.Coefficients = matrix;
-                    }
-                    this.recalcPoly = false;
                 }
-                if (this.formloading)
+                this.recalcPoly = false;
+            }
+            if (this.formloading)
+            {
+                this.originalcalibration = (PolynomialEnergyCalibration)this.calibration.Clone();
+                this.formloading = false;
+            }
+            Pen pen = new Pen(this.globalConfigManager.GlobalConfig.ColorConfig.ActiveSpectrumColor.Color);
+            if (!this.polycorrect)
+            {
+                pen = new Pen(this.globalConfigManager.GlobalConfig.ColorConfig.BgDiffColor.Color);
+            }
+            for (int i = 0; i < this.maxChannels - 1; i++)
+            {
+                if (this.height - EnergyToPx(i + 1) <= this.startheight)
                 {
-                    this.originalcalibration = (PolynomialEnergyCalibration)this.calibration.Clone();
-                    this.formloading = false;
+                    break;
                 }
-                for (int i = 0; i < this.maxChannels - 1; i++)
+                if (EnergyToPx(i) > 0)
                 {
-                    if (this.height - EnergyToPx(i + 1) <= this.startheight)
-                    {
-                        break;
-                    }
-                    if (EnergyToPx(i) > 0)
-                    {
-                        g.DrawLine(pen, ChanToPx(i), this.height - EnergyToPx(i), ChanToPx(i + 1), this.height - EnergyToPx(i + 1));
-                    }
+                    g.DrawLine(pen, ChanToPx(i), this.height - EnergyToPx(i), ChanToPx(i + 1), this.height - EnergyToPx(i + 1));
                 }
-                
             }
         }
 
@@ -182,7 +192,12 @@ namespace BecquerelMonitor.Utils
         {
             Brush brush = new SolidBrush(this.globalConfigManager.GlobalConfig.ColorConfig.AxisFigureColor.Color);
             Rectangle label = new Rectangle(100, this.startheight, 1000, 32);
-            g.DrawString(this.calibration.ToString(), this.Font, brush, label);
+            string functiontext = this.calibration.ToString();
+            if (!this.polycorrect)
+            {
+                functiontext += "\n" + Resources.CalibrationFunctionError;
+            }
+            g.DrawString(functiontext, this.Font, brush, label);
         }
 
         private void CalibrationGraph_MouseMove(object sender, MouseEventArgs e)
