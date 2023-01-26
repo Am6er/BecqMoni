@@ -43,7 +43,6 @@ namespace BecquerelMonitor.Utils
         public void SetCalibration(PolynomialEnergyCalibration calibration, int maxchannel, int order, bool useweight)
         {
             this.calibration = (PolynomialEnergyCalibration)calibration.Clone();
-            //this.originalcalibration = calibration;
             this.maxChannels = maxchannel;
             this.maxEnergy = 3500.0;
             this.polyorder = order;
