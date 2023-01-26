@@ -79,33 +79,34 @@ namespace BecquerelMonitor.Utils
 
         void PaintAxis(Graphics g)
         {
-
-            int x_points = this.maxChannels / 1000;
-            int y_points = (int)(this.maxEnergy / 500);
-            int chan_pitch = this.ChanToPx(1000);
-            int energy_pitch = this.EnergyToPx(500.0);
+            int ch_step = 500;
+            double en_step = 500.0;
+            int x_points = this.maxChannels / ch_step;
+            int y_points = (int)(this.maxEnergy / en_step);
+            //int chan_pitch = this.ChanToPx(ch_step);
+            //int energy_pitch = this.EnergyToPx(en_step);
             Brush brush = new SolidBrush(this.globalConfigManager.GlobalConfig.ColorConfig.AxisFigureColor.Color);
             Pen pen = new Pen(this.globalConfigManager.GlobalConfig.ColorConfig.GridColor1.Color);
             for (int i = 1; i < x_points; i++)
             {
-                int x_high = i * chan_pitch;
+                int x_high = this.ChanToPx(i * ch_step);
                 int y_high = this.startheight;
                 int x_low = x_high;
                 int y_low = this.height;
                 g.DrawLine(pen, x_high, y_high, x_low, y_low);
                 Rectangle r = new Rectangle(x_low, y_low - 16, 32, 32);
-                g.DrawString((i * 1000).ToString(), this.Font, brush, r);
+                g.DrawString((i * ch_step).ToString(), this.Font, brush, r);
             }
 
             for (int i = 1; i < y_points; i++)
             {
                 int x_left = this.startwidth;
-                int y_left = this.height - i * energy_pitch;
+                int y_left = this.height - this.EnergyToPx(i * en_step);
                 int x_right = this.width;
                 int y_right = y_left;
                 g.DrawLine(pen, x_left, y_left, x_right, y_right);
                 Rectangle r = new Rectangle(x_left, y_left - 16, 32, 32);
-                g.DrawString((i * 500).ToString(), this.Font, brush, r);
+                g.DrawString((i * (int)en_step).ToString(), this.Font, brush, r);
             }
 
             Rectangle rlabel = new Rectangle(this.startwidth, this.startheight, 120, 32);
@@ -187,8 +188,8 @@ namespace BecquerelMonitor.Utils
             int r = 10;
             if (this.glowPoint != null && e.Button == MouseButtons.Left)
             {
-                if (Y <= this.startheight || Y >= this.height) return;
-                this.glowPoint.Energy = decimal.Parse(PxToEnergy(this.height - Y).ToString("0.00"));
+                if (X <= this.startwidth || X >= this.width) return;
+                this.glowPoint.Channel = PxToChannel(X);
                 this.mouseX = X;
                 this.mouseY = Y;
                 this.recalcPoly = true;
@@ -237,6 +238,11 @@ namespace BecquerelMonitor.Utils
         double PxToEnergy(int px)
         {
             return (double)this.maxEnergy * (double)px / (double)(this.height - this.startheight);
+        }
+
+        int PxToChannel(int px)
+        {
+            return (int)((double)(this.maxChannels * (px - this.startwidth)) / (double)(this.width - this.startwidth));
         }
 
         private void updateCalibrationPointsToolStripMenuItem_Click(object sender, EventArgs e)
