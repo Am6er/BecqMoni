@@ -211,6 +211,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Do you want to reset spectrum to default calibration y = x? Otherwise spectrum will not be loaded..
+        /// </summary>
+        internal static string CalcResetQuestion {
+            get {
+                return ResourceManager.GetString("CalcResetQuestion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The calibration function should be monotonically increasing at channel &gt; 0. Re-check Calibration points!.
         /// </summary>
         internal static string CalibrationFunctionError {
@@ -1903,6 +1912,15 @@ namespace BecquerelMonitor.Properties {
         internal static string ProgressString {
             get {
                 return ResourceManager.GetString("ProgressString", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Reset calibration question.
+        /// </summary>
+        internal static string ResetCalibrationQuestion {
+            get {
+                return ResourceManager.GetString("ResetCalibrationQuestion", resourceCulture);
             }
         }
         

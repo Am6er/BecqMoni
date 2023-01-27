@@ -138,6 +138,9 @@
   <data name="ButtonRefresh" xml:space="preserve">
     <value>Обновить</value>
   </data>
+  <data name="CalcResetQuestion" xml:space="preserve">
+    <value>Сбросить калибровку спектра в y = x? Иначе спектр не будет загружен.</value>
+  </data>
   <data name="CalibrationFunctionError" xml:space="preserve">
     <value>Функция калибровки должна монотонно возрастать при увеличиении канала. Проверьте калибровку!</value>
   </data>
@@ -604,6 +607,9 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="ProgressString" xml:space="preserve">
     <value> ({0}%)</value>
+  </data>
+  <data name="ResetCalibrationQuestion" xml:space="preserve">
+    <value>Вопрос по сбросу калибровки</value>
   </data>
   <data name="RestartRequiredMessage" xml:space="preserve">
     <value>Перезагрузите приложение для применения настроек.</value>
