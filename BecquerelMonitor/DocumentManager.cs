@@ -82,8 +82,11 @@ namespace BecquerelMonitor
             DocEnergySpectrum docEnergySpectrum = new DocEnergySpectrum(filename);
             if (!this.CheckDocument(docEnergySpectrum.ResultDataFile))
             {
-                MessageBox.Show(String.Format(Resources.ERRFileOpenFailure, filename, Resources.ERRSpectrumCheck));
-                return null;
+                string text = String.Format(Resources.ERRFileOpenFailure, filename, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
+                DialogResult res = MessageBox.Show(text, Resources.ResetCalibrationQuestion, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (res == DialogResult.No) return null;
+                this.CheckDocument(docEnergySpectrum.ResultDataFile, doCorrections: true);
+                docEnergySpectrum.Dirty = true;
             }
             docEnergySpectrum.ActiveResultDataIndex = 0;
             docEnergySpectrum.IsNamed = true;
@@ -96,27 +99,75 @@ namespace BecquerelMonitor
             return docEnergySpectrum;
         }
 
-        bool CheckDocument(ResultDataFile resultDataFile)
+        bool CheckDocument(ResultDataFile resultDataFile, bool doCorrections = false)
         {
             try
             {
                 foreach (ResultData data in resultDataFile.ResultDataList)
                 {
-                    //Check Calibration
-                    if (data.EnergySpectrum.EnergyCalibration == null) return false;
-                    PolynomialEnergyCalibration pol = (PolynomialEnergyCalibration)data.EnergySpectrum.EnergyCalibration;
-                    if (!pol.CheckCalibration(channels: data.EnergySpectrum.NumberOfChannels)) return false;
-
                     //Check Spectrum
-                    if (data.EnergySpectrum.Spectrum.Length != data.EnergySpectrum.NumberOfChannels) return false;
+                    if (data.EnergySpectrum.Spectrum.Length != data.EnergySpectrum.NumberOfChannels)
+                    {
+                        data.EnergySpectrum.NumberOfChannels = data.EnergySpectrum.Spectrum.Length;
+                    }
+
+                    //Check Calibration
+                    if (data.EnergySpectrum.EnergyCalibration == null)
+                    {
+                        if (doCorrections)
+                        {
+                            data.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
+                        }
+                        else
+                        {
+                            return false;
+                        }
+                    }
+                    PolynomialEnergyCalibration pol = (PolynomialEnergyCalibration)data.EnergySpectrum.EnergyCalibration;
+                    if (!pol.CheckCalibration(channels: data.EnergySpectrum.NumberOfChannels))
+                    {
+                        if (doCorrections)
+                        {
+                            data.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
+                        } else
+                        {
+                            return false;
+                        }
+                    }
 
                     //Same checks for Background
                     if (data.BackgroundEnergySpectrum != null)
                     {
-                        if (data.BackgroundEnergySpectrum.EnergyCalibration == null) return false;
+                        //Check Spectrum
+                        if (data.BackgroundEnergySpectrum.Spectrum.Length != data.BackgroundEnergySpectrum.NumberOfChannels)
+                        {
+                            data.BackgroundEnergySpectrum.NumberOfChannels = data.BackgroundEnergySpectrum.Spectrum.Length;
+                        }
+
+                        //Check Calibration
+                        if (data.BackgroundEnergySpectrum.EnergyCalibration == null)
+                        {
+                            if (doCorrections)
+                            {
+                                data.BackgroundEnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
+                            }
+                            else
+                            {
+                                return false;
+                            }
+                        }
                         pol = (PolynomialEnergyCalibration)data.BackgroundEnergySpectrum.EnergyCalibration;
-                        if (!pol.CheckCalibration(data.BackgroundEnergySpectrum.NumberOfChannels)) return false;
-                        if (data.EnergySpectrum.Spectrum.Length != data.EnergySpectrum.NumberOfChannels) return false;
+                        if (!pol.CheckCalibration(channels: data.BackgroundEnergySpectrum.NumberOfChannels))
+                        {
+                            if (doCorrections)
+                            {
+                                data.BackgroundEnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
+                            }
+                            else
+                            {
+                                return false;
+                            }
+                        }
                     }
 
                 }
@@ -170,7 +221,11 @@ namespace BecquerelMonitor
 
                 if (!this.CheckDocument(docEnergySpectrum2.ResultDataFile))
                 {
-                    throw new Exception(Resources.ERRSpectrumCheck);
+                    string text = String.Format(Resources.ERRFileOpenFailure, filename, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
+                    DialogResult res = MessageBox.Show(text, Resources.ResetCalibrationQuestion, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                    if (res == DialogResult.No) return null;
+                    this.CheckDocument(docEnergySpectrum2.ResultDataFile, doCorrections: true);
+                    docEnergySpectrum2.Dirty = true;
                 }
             }
             catch (Exception ex)
@@ -229,7 +284,11 @@ namespace BecquerelMonitor
 
                 if (!this.CheckDocument(resultDataFile))
                 {
-                    throw new Exception(Resources.ERRSpectrumCheck);
+                    string text = String.Format(Resources.ERRFileOpenFailure, pathname, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
+                    DialogResult res = MessageBox.Show(text, Resources.ResetCalibrationQuestion, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                    if (res == DialogResult.No) return null;
+                    this.CheckDocument(resultDataFile, doCorrections: true);
+                    doc.Dirty = true;
                 }
             }
             catch (Exception ex)
@@ -367,7 +426,11 @@ namespace BecquerelMonitor
                 }
                 if (!this.CheckDocument(doc.ResultDataFile))
                 {
-                    throw new Exception(Resources.ERRSpectrumCheck);
+                    string text = String.Format(Resources.ERRFileOpenFailure, filename, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
+                    DialogResult res = MessageBox.Show(text, Resources.ResetCalibrationQuestion, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                    if (res == DialogResult.No) return;
+                    this.CheckDocument(doc.ResultDataFile, doCorrections: true);
+                    doc.Dirty = true;
                 }
             } catch (Exception ex)
             {
@@ -507,7 +570,11 @@ namespace BecquerelMonitor
 
                 if (!this.CheckDocument(doc.ResultDataFile))
                 {
-                    throw new Exception(Resources.ERRSpectrumCheck);
+                    string text = String.Format(Resources.ERRFileOpenFailure, filename, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
+                    DialogResult res = MessageBox.Show(text, Resources.ResetCalibrationQuestion, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                    if (res == DialogResult.No) return;
+                    this.CheckDocument(doc.ResultDataFile, doCorrections: true);
+                    doc.Dirty = true;
                 }
 
                 Cursor.Current = Cursors.Default;
@@ -743,7 +810,11 @@ namespace BecquerelMonitor
 
                     if (!this.CheckDocument(resultDataFile))
                     {
-                        throw new Exception(Resources.ERRSpectrumCheck);
+                        string text = String.Format(Resources.ERRFileOpenFailure, Path.GetFileName(backgroundSpectrumPathname),
+                            Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
+                        DialogResult res = MessageBox.Show(text, Resources.ResetCalibrationQuestion, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                        if (res == DialogResult.No) return;
+                        this.CheckDocument(resultDataFile, doCorrections: true);
                     }
                 }
                 catch (Exception ex)
