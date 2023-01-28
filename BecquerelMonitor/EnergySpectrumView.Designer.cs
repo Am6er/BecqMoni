@@ -730,12 +730,12 @@ namespace BecquerelMonitor
             }
             if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
             {
-                for (int j = 0; j < substractedEnergySpectrum.NumberOfChannels - 1; j++)
+                for (int j = 0; j < this.substractedEnergySpectrum.NumberOfChannels - 1; j++)
                 {
-                    double num3 = (double)substractedEnergySpectrum.Spectrum[j];
-                    if (this.verticalUnit == VerticalUnit.CountsPerSecond && substractedEnergySpectrum.MeasurementTime != 0.0)
+                    double num3 = (double)this.substractedEnergySpectrum.Spectrum[j];
+                    if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.substractedEnergySpectrum.MeasurementTime != 0.0)
                     {
-                        num3 /= substractedEnergySpectrum.MeasurementTime;
+                        num3 /= this.substractedEnergySpectrum.MeasurementTime;
                     }
                     if (num3 > this.totalMaxValue)
                     {
@@ -993,7 +993,7 @@ namespace BecquerelMonitor
                         this.substractedEnergySpectrum.DrawingSpectrum[l] = (double)this.substractedEnergySpectrum.Spectrum[l];
                     }
                 }
-                if (this.backgroundMode == BackgroundMode.ShowContinuum)
+                if (this.backgroundMode == BackgroundMode.ShowContinuum && this.continuumEnergySpectrum != null)
                 {
                     for (int l = 0; l < this.continuumEnergySpectrum.NumberOfChannels; l++)
                     {
@@ -1031,7 +1031,7 @@ namespace BecquerelMonitor
                 {
                     this.backgroundEnergySpectrum.DrawingSpectrum = sa.SMA2(this.backgroundEnergySpectrum.Spectrum, numberOfSMADataPoints, countlimit: countlimit);
                 }
-                if (this.backgroundMode == BackgroundMode.ShowContinuum)
+                if (this.backgroundMode == BackgroundMode.ShowContinuum && this.continuumEnergySpectrum != null)
                 {
                     this.continuumEnergySpectrum.DrawingSpectrum = sa.SMA2(this.continuumEnergySpectrum.Spectrum, numberOfSMADataPoints, countlimit: countlimit);
                 }
@@ -1050,7 +1050,7 @@ namespace BecquerelMonitor
                 {
                     this.backgroundEnergySpectrum.DrawingSpectrum = sa.WMA2(this.backgroundEnergySpectrum.Spectrum, numberOfWMADataPoints, countlimit: countlimit);
                 }
-                if (this.backgroundMode == BackgroundMode.ShowContinuum)
+                if (this.backgroundMode == BackgroundMode.ShowContinuum && this.continuumEnergySpectrum != null)
                 {
                     this.continuumEnergySpectrum.DrawingSpectrum = sa.WMA2(this.continuumEnergySpectrum.Spectrum, numberOfWMADataPoints, countlimit: countlimit);
                 }
@@ -1120,7 +1120,7 @@ namespace BecquerelMonitor
                                 }
                             }
                         }
-                        if (this.backgroundMode == BackgroundMode.ShowContinuum)
+                        if (this.backgroundMode == BackgroundMode.ShowContinuum && this.continuumEnergySpectrum != null)
                         {
                             int alpha = (int)(colorConfig.BackgroundSpectrumColorTransparency * 255m / 100m);
                             using (Brush brush = new SolidBrush(Color.FromArgb(alpha, colorConfig.BackgroundSpectrumColor.Color)))
@@ -1148,7 +1148,8 @@ namespace BecquerelMonitor
                             goto IL_438;
                         }
                         int alpha2 = (int)(colorConfig.ActiveSpectrumColorTransparency * 255m / 100m);
-                        if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0 && this.substractedEnergySpectrum != null)
+                        if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0 
+                            && this.substractedEnergySpectrum != null)
                         {
                             using (Brush brush2 = new SolidBrush(Color.FromArgb(alpha2, colorConfig.BgDiffColor.Color)))
                             {
@@ -1174,7 +1175,8 @@ namespace BecquerelMonitor
                     if (this.energySpectrum.MeasurementTime != 0.0)
                     {
                         int alpha3 = (int)(colorConfig.ActiveSpectrumColorTransparency * 255m / 100m);
-                        if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0 && this.substractedEnergySpectrum != null)
+                        if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0 
+                            && this.substractedEnergySpectrum != null)
                         {
                             using (Brush brush3 = new SolidBrush(Color.FromArgb(alpha3, colorConfig.BgDiffColor.Color)))
                             {
@@ -1246,7 +1248,7 @@ namespace BecquerelMonitor
                             this.DrawLineChart(g, pen5, this.backgroundEnergySpectrum, this.backgroundEnergyCalibration, true);
                         }
                     }
-                    if (this.backgroundMode == BackgroundMode.ShowContinuum)
+                    if (this.backgroundMode == BackgroundMode.ShowContinuum && this.continuumEnergySpectrum != null)
                     {
                         using (Pen pen5 = new Pen(colorConfig.BackgroundSpectrumColor.Color))
                         {
@@ -1263,7 +1265,8 @@ namespace BecquerelMonitor
                     }
                     if (this.energySpectrum.MeasurementTime != 0.0)
                     {
-                        if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0 && this.substractedEnergySpectrum != null)
+                        if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0 
+                            && this.substractedEnergySpectrum != null)
                         {
                             using (Pen pen6 = new Pen(colorConfig.BgDiffColor.Color))
                             {
@@ -2557,9 +2560,10 @@ namespace BecquerelMonitor
                     num4 = (int)(((num5 - this.energyViewOffset) * this.pixelPerEnergy + 0.5) * this.horizontalScale + (double)this.scrollX + (double)this.left);
                 }
                 double num6 = 0.0;
-                if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0
+                    && this.substractedEnergySpectrum != null)
                 {
-                    num6 = substractedEnergySpectrum.DrawingSpectrum[channel2];
+                    num6 = this.substractedEnergySpectrum.DrawingSpectrum[channel2];
                 } else
                 {
                     num6 = spectrum.DrawingSpectrum[channel2];
