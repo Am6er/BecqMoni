@@ -2880,7 +2880,8 @@ namespace BecquerelMonitor
                 {
                     int num20 = 0;
                     double continuum = 0.0;
-                    if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                    if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0
+                        && this.substractedEnergySpectrum != null)
                     {
                         num20 = this.substractedEnergySpectrum.Spectrum[i];
                         continuum = getY(i, num13, num14, this.substractedEnergySpectrum.Spectrum[num13], this.substractedEnergySpectrum.Spectrum[num14]);
