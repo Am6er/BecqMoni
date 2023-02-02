@@ -25,8 +25,8 @@
 			this.table1 = new global::XPTable.Models.Table();
 			this.columnModel1 = new global::XPTable.Models.ColumnModel();
 			this.textColumn1 = new global::XPTable.Models.TextColumn();
-			this.textColumn2 = new global::XPTable.Models.TextColumn();
-			this.textColumn3 = new global::XPTable.Models.TextColumn();
+			this.textColumn2 = new global::XPTable.Models.NumberColumn();
+			this.textColumn3 = new global::XPTable.Models.NumberColumn();
 			this.tableModel1 = new global::XPTable.Models.TableModel();
 			this.textBox1 = new global::System.Windows.Forms.TextBox();
 			this.button6 = new global::System.Windows.Forms.Button();
@@ -186,10 +186,10 @@
 		global::XPTable.Models.TextColumn textColumn1;
 
 		// Token: 0x04000043 RID: 67
-		global::XPTable.Models.TextColumn textColumn2;
+		global::XPTable.Models.NumberColumn textColumn2;
 
 		// Token: 0x04000044 RID: 68
-		global::XPTable.Models.TextColumn textColumn3;
+		global::XPTable.Models.NumberColumn textColumn3;
 
 		// Token: 0x04000045 RID: 69
 		global::XPTable.Models.TableModel tableModel1;

@@ -34,8 +34,8 @@ namespace BecquerelMonitor
             {
                 Row row = new Row();
                 row.Cells.Add(new Cell(nuclideDefinition.Name));
-                row.Cells.Add(new Cell(nuclideDefinition.Energy.ToString()));
-                row.Cells.Add(new Cell(nuclideDefinition.HalfLife.ToString()));
+                row.Cells.Add(new Cell(nuclideDefinition.Energy.ToString(), nuclideDefinition.Energy));
+                row.Cells.Add(new Cell(nuclideDefinition.HalfLife.ToString(), nuclideDefinition.HalfLife));
                 row.Tag = nuclideDefinition;
                 this.tableModel1.Rows.Add(row);
                 if (this.activeNuclide != null && nuclideDefinition.Name == this.activeNuclide.Name)
