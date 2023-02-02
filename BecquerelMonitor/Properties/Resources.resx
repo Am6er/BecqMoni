@@ -3827,7 +3827,7 @@ http://xptable.sourceforge.net/</value>
   <data name="icon256" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAABMYAAAPaCAIAAADz3MP1AAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
-        vQAADr0BR/uQrQAA/7JJREFUeF7M/YeXbEeV7Y3y3ruNjvdVdbz33sp774UskkAOhISQQHhoGt/duKYB
+        vAAADrwBlbxySQAA/7JJREFUeF7M/YeXbEeV7Y3y3ruNjvdVdbz33sp774UskkAOhISQQHhoGt/duKYB
         AY3rS7vX9xvfuH/l99v7lzlrVeydec5R0/e9MebYY8WMGSti76yMWPNkVp2PrNu0a4j1m3eDIbNhy56A
         5tqNO9ds2LF6/faqERkYIA6isakApjaFzCwwOyCoQ+qoxCqdN6hDRpEkirly4xu37rU3eeydg1mLXL1p
         55rNu4ZYu2W3AYJoIOvDN2AxoK6kgiFi3dY9YP22vcLmtcMFDNHIgg0L+7wF4k1LBzZvPyizbmEvWL+4
@@ -36887,5 +36887,17 @@ see peak in spectrum now).</value>
   </data>
   <data name="ResetCalibrationQuestion" xml:space="preserve">
     <value>Reset calibration question</value>
+  </data>
+  <data name="ChartHeaderWeight" xml:space="preserve">
+    <value>Weight:</value>
+  </data>
+  <data name="Current" xml:space="preserve">
+    <value>Current</value>
+  </data>
+  <data name="Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="Delta" xml:space="preserve">
+    <value>Δ</value>
   </data>
 </root>

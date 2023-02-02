@@ -177,6 +177,9 @@
   <data name="ChartHeaderSelection" xml:space="preserve">
     <value>Выбранная область</value>
   </data>
+  <data name="ChartHeaderWeight" xml:space="preserve">
+    <value>Вес:</value>
+  </data>
   <data name="ColorBTN" xml:space="preserve">
     <value>Другие цвета...</value>
   </data>
@@ -200,6 +203,12 @@
   </data>
   <data name="CsvImportDialogTitle" xml:space="preserve">
     <value>Импорт из CSV файла</value>
+  </data>
+  <data name="Current" xml:space="preserve">
+    <value>Текущее</value>
+  </data>
+  <data name="Default" xml:space="preserve">
+    <value>Изначальное</value>
   </data>
   <data name="DeleteSpectrumMessage" xml:space="preserve">
     <value>Удалить спектр "{0}"?</value>

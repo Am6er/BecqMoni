@@ -338,6 +338,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Weight:.
+        /// </summary>
+        internal static string ChartHeaderWeight {
+            get {
+                return ResourceManager.GetString("ChartHeaderWeight", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
         internal static System.Drawing.Bitmap clear {
@@ -470,6 +479,24 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Current.
+        /// </summary>
+        internal static string Current {
+            get {
+                return ResourceManager.GetString("Current", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Default.
+        /// </summary>
+        internal static string Default {
+            get {
+                return ResourceManager.GetString("Default", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Delete spectrum &quot;{0}&quot;?.
         /// </summary>
         internal static string DeleteSpectrumMessage {
@@ -484,6 +511,15 @@ namespace BecquerelMonitor.Properties {
         internal static string DeleteUnnamedSpectrumMessage {
             get {
                 return ResourceManager.GetString("DeleteUnnamedSpectrumMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Δ.
+        /// </summary>
+        internal static string Delta {
+            get {
+                return ResourceManager.GetString("Delta", resourceCulture);
             }
         }
         

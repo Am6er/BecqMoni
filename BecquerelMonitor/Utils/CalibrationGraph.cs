@@ -179,8 +179,53 @@ namespace BecquerelMonitor.Utils
                 if (this.glowPoint != null && this.glowPoint.Channel == point.Channel && this.glowPoint.Energy == point.Energy)
                 {
                     g.FillEllipse(glowbrush, ChanToPx(point.Channel) - r / 2, this.height - EnergyToPx((double)point.Energy) - r / 2, r, r);
-                    Rectangle label = new Rectangle(this.mouseX - 120, this.mouseY - 32, 120, 36);
-                    string labeltext = string.Concat(Resources.ChartHeaderChannel, " ", point.Channel, "\n", Resources.ChartHeaderEnergy, " ", point.Energy);
+                    Rectangle label;
+                    if (this.mouseX - 110 < this.startwidth)
+                    {
+                        label = new Rectangle(this.mouseX + 15, this.mouseY - 48, 120, 48);
+                    } else
+                    {
+                        label = new Rectangle(this.mouseX - 120, this.mouseY - 48, 120, 48);
+                    }
+                        
+                    string labeltext;
+                    if (!this.weights)
+                    {
+                        labeltext = string.Concat(
+                            Resources.ChartHeaderChannel, 
+                            " ", 
+                            point.Channel, 
+                            "\n", 
+                            Resources.ChartHeaderEnergy, 
+                            " ", 
+                            point.Energy,
+                            "\n",
+                            Resources.Delta,
+                            Resources.ChartHeaderChannel,
+                            " ",
+                            (int)(point.Channel - this.calibration.EnergyToChannel((double)point.Energy))
+                         );
+                    } else
+                    {
+                        labeltext = string.Concat(
+                            Resources.ChartHeaderChannel,
+                            " ",
+                            point.Channel,
+                            "\n",
+                            Resources.ChartHeaderEnergy,
+                            " ",
+                            point.Energy,
+                            "\n",
+                            Resources.ChartHeaderWeight,
+                            " ",
+                            point.Count,
+                            "\n",
+                            Resources.Delta,
+                            Resources.ChartHeaderChannel,
+                            " ",
+                            (int)(point.Channel - this.calibration.EnergyToChannel((double)point.Energy))
+                         );
+                    }
                     g.DrawString(labeltext, this.Font, textbrush, label);
                     continue;
                 }
@@ -191,8 +236,20 @@ namespace BecquerelMonitor.Utils
         void WriteCalibration(Graphics g)
         {
             Brush brush = new SolidBrush(this.globalConfigManager.GlobalConfig.ColorConfig.AxisFigureColor.Color);
-            Rectangle label = new Rectangle(100, this.startheight, 1000, 32);
+            Rectangle label = new Rectangle(100, this.startheight, 1000, 62);
             string functiontext = this.calibration.ToString();
+            if (!this.weights)
+            {
+                functiontext += "\n" + Resources.MSGMSE + ":" + "\n"
+                    + "\t" + Resources.Default + ": " + Utils.CalibrationSolver.WMSE(this.originalcalibration.Coefficients, this.originalpoints).ToString("f4") + "\n"
+                    + "\t" + Resources.Current + ": " + Utils.CalibrationSolver.WMSE(this.calibration.Coefficients, this.points).ToString("f4");
+
+            } else
+            {
+                functiontext += "\n" + Resources.MSGMSE + ":" + "\n"
+                    + "\t" + Resources.Default + ": " + Utils.CalibrationSolver.MSE(this.originalcalibration.Coefficients, this.originalpoints).ToString("f4") + "\n"
+                    + "\t" + Resources.Current + ": " + Utils.CalibrationSolver.MSE(this.calibration.Coefficients, this.points).ToString("f4");
+            }
             if (!this.polycorrect)
             {
                 functiontext += "\n" + Resources.CalibrationFunctionError;
