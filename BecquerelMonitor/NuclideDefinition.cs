@@ -108,6 +108,18 @@ namespace BecquerelMonitor
             return this.name;
         }
 
+        public bool Visible
+        {
+            get
+            {
+                return this.visible;
+            }
+            set
+            {
+                this.visible = value;
+            }
+        }
+
         // Token: 0x040009B1 RID: 2481
         string name = "";
 
@@ -122,6 +134,8 @@ namespace BecquerelMonitor
 
         // Token: 0x040009B5 RID: 2485
         bool dirty;
+
+        bool visible = true;
 
         SerializableColor nuclideColor = Color.Gray;
     }

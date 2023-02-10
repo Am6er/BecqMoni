@@ -43,6 +43,7 @@
 			this.label2 = new global::System.Windows.Forms.Label();
 			this.label1 = new global::System.Windows.Forms.Label();
 			this.label8 = new global::System.Windows.Forms.Label();
+			this.checkBox1 = new global::System.Windows.Forms.CheckBox();
 			this.colorComboBox1 = new global::ColorComboBox.ColorComboBox();
 			((global::System.ComponentModel.ISupportInitialize)this.table1).BeginInit();
 			this.tabControl1.SuspendLayout();
@@ -116,7 +117,8 @@
 			this.tabPage1.Controls.Add(this.label2);
 			this.tabPage1.Controls.Add(this.label1);
 			this.tabPage1.Controls.Add(this.textBox1);
-			this.tabPage1.Name = "tabPage1";
+            this.tabPage1.Controls.Add(this.checkBox1);
+            this.tabPage1.Name = "tabPage1";
 			componentResourceManager.ApplyResources(this.textBox2, "textBox2");
 			this.textBox2.Name = "textBox2";
 			this.textBox2.TextChanged += new global::System.EventHandler(this.textBox2_TextChanged);
@@ -135,7 +137,11 @@
 			componentResourceManager.ApplyResources(this.doubleTextBox1, "doubleTextBox1");
 			this.doubleTextBox1.Name = "doubleTextBox1";
 			this.doubleTextBox1.TextChanged += new global::System.EventHandler(this.doubleTextBox1_TextChanged);
-			componentResourceManager.ApplyResources(this.label6, "label6");
+            componentResourceManager.ApplyResources(this.checkBox1, "checkBox1");
+            this.checkBox1.Name = "checkBox1";
+			this.checkBox1.Checked = true;
+			this.checkBox1.CheckStateChanged += new global::System.EventHandler(this.checkBox1_CheckStateChanged);
+            componentResourceManager.ApplyResources(this.label6, "label6");
 			this.label6.Name = "label6";
 			componentResourceManager.ApplyResources(this.label4, "label4");
 			this.label4.Name = "label4";
@@ -220,6 +226,8 @@
 
 		// Token: 0x0400004E RID: 78
 		global::System.Windows.Forms.Label label4;
+
+		global::System.Windows.Forms.CheckBox checkBox1;
 
 		// Token: 0x0400004F RID: 79
 		global::System.Windows.Forms.Label label3;

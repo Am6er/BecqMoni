@@ -926,6 +926,7 @@ namespace BecquerelMonitor
             NuclideDefinitionManager instance = NuclideDefinitionManager.GetInstance();
             foreach (NuclideDefinition item in instance.NuclideDefinitions)
             {
+                if (!item.Visible) continue;
                 this.comboBox2.Items.Add(item);
             }
             this.button9.Enabled = (this.comboBox2.SelectedItem != null);

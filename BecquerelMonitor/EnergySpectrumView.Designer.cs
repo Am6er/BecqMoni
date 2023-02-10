@@ -2768,6 +2768,7 @@ namespace BecquerelMonitor
                     NuclideDefinition best_Nuclide = new NuclideDefinition();
                     foreach (NuclideDefinition nuclideDefinition in this.nuclideManager.NuclideDefinitions)
                     {
+                        if (!nuclideDefinition.Visible) continue;
                         if (this.cursorEnergy >= nuclideDefinition.Energy-(pitch + (int)Math.Round(nuclideDefinition.Energy * percent/100, 0)) &&
                             this.cursorEnergy <= nuclideDefinition.Energy + (pitch + (int)Math.Round(nuclideDefinition.Energy * percent / 100, 0)))
                         {

@@ -107,6 +107,7 @@ namespace BecquerelMonitor
                     peak.FWHM = fwhm;
                     foreach (NuclideDefinition nuclideDefinition in this.nuclideManager.NuclideDefinitions)
                     {
+                        if (!nuclideDefinition.Visible) continue;
                         double delta = Math.Abs((peak.Energy - nuclideDefinition.Energy) / nuclideDefinition.Energy);
                         //double tol = FWHMPeakDetectionMethodConfig.Tolerance;
                         if (delta < tol / 100.0 && delta < tol)

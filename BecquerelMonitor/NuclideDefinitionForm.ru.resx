@@ -426,4 +426,7 @@
   <data name="label8.Text" xml:space="preserve">
     <value>Цвет пика</value>
   </data>
+  <data name="checkBox1.Text" xml:space="preserve">
+    <value>Отображать</value>
+  </data>
 </root>

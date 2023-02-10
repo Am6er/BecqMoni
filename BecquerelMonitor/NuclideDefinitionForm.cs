@@ -33,9 +33,18 @@ namespace BecquerelMonitor
             foreach (NuclideDefinition nuclideDefinition in this.manager.NuclideDefinitions)
             {
                 Row row = new Row();
-                row.Cells.Add(new Cell(nuclideDefinition.Name));
-                row.Cells.Add(new Cell(nuclideDefinition.Energy.ToString(), nuclideDefinition.Energy));
-                row.Cells.Add(new Cell(nuclideDefinition.HalfLife.ToString(), nuclideDefinition.HalfLife));
+                CellStyle visibilitycellStyle= new CellStyle();
+                visibilitycellStyle.BackColor = System.Drawing.Color.LightGray;
+                if (nuclideDefinition.Visible) {
+                    row.Cells.Add(new Cell(nuclideDefinition.Name));
+                    row.Cells.Add(new Cell(nuclideDefinition.Energy.ToString(), nuclideDefinition.Energy));
+                    row.Cells.Add(new Cell(nuclideDefinition.HalfLife.ToString(), nuclideDefinition.HalfLife));
+                } else
+                {
+                    row.Cells.Add(new Cell(nuclideDefinition.Name, visibilitycellStyle));
+                    row.Cells.Add(new Cell(nuclideDefinition.Energy.ToString(), nuclideDefinition.Energy, visibilitycellStyle));
+                    row.Cells.Add(new Cell(nuclideDefinition.HalfLife.ToString(), nuclideDefinition.HalfLife, visibilitycellStyle));
+                }
                 row.Tag = nuclideDefinition;
                 this.tableModel1.Rows.Add(row);
                 if (this.activeNuclide != null && nuclideDefinition.Name == this.activeNuclide.Name)
@@ -56,6 +65,7 @@ namespace BecquerelMonitor
             this.doubleTextBox2.Text = nuclide.HalfLife.ToString();
             this.textBox2.Text = nuclide.Note;
             this.colorComboBox1.SelectedColor = nuclide.NuclideColor.Color;
+            this.checkBox1.Checked = nuclide.Visible;
             this.colorComboBox1.Refresh();
             this.contentsLoading = false;
         }
@@ -70,6 +80,7 @@ namespace BecquerelMonitor
                 nuclide.HalfLife = this.doubleTextBox2.GetValue();
                 nuclide.Note = this.textBox2.Text;
                 nuclide.NuclideColor.Color = this.colorComboBox1.SelectedColor;
+                nuclide.Visible = this.checkBox1.Checked;
             }
             catch (Exception)
             {
@@ -87,6 +98,11 @@ namespace BecquerelMonitor
             this.activeNuclide = item;
             this.ListupNuclideDefinitions();
             this.UpdatePeakDetectionResult();
+        }
+
+        void checkBox1_CheckStateChanged(object sender, EventArgs e)
+        {
+            this.SetActiveNuclideDirty();
         }
 
         // Token: 0x060000C8 RID: 200 RVA: 0x0000406C File Offset: 0x0000226C
