@@ -47,7 +47,6 @@ namespace BecquerelMonitor
             catch (ArgumentOutOfRangeException)
             {
                 MessageBox.Show(Resources.ERRAudioDeviceNotFound);
-                waveIn.Dispose();
                 return false;
             }
             resultDataStatus.WaveIn = waveIn;
