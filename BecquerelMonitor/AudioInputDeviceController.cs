@@ -39,7 +39,17 @@ namespace BecquerelMonitor
 
             WaveFormat waveFormat = this.ConstructWaveFormat(audioInputDeviceConfig);
             int deviceId = audioInputDeviceConfig.AudioInputDevice.DeviceId;
-            WaveIn waveIn = new WaveIn(deviceId);
+            WaveIn waveIn = null;
+            try
+            {
+                waveIn = new WaveIn(deviceId);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                MessageBox.Show(Resources.ERRAudioDeviceNotFound);
+                waveIn.Dispose();
+                return false;
+            }
             resultDataStatus.WaveIn = waveIn;
             waveIn.BufferSize = waveFormat.SamplesPerSecond / 50 * 2;
             waveIn.BufferQueueSize = 50;
