@@ -102,6 +102,7 @@ namespace BecquerelMonitor
 
         void checkBox1_CheckStateChanged(object sender, EventArgs e)
         {
+            this.activeNuclide.Visible = this.checkBox1.Checked;
             this.SetActiveNuclideDirty();
         }
 
