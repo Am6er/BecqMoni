@@ -442,7 +442,11 @@ namespace BecquerelMonitor
         // Token: 0x060004AD RID: 1197 RVA: 0x00016630 File Offset: 0x00014830
         int CalcMaximumXValue()
         {
-            RecalcChartParameters();
+            if (this.dirty)
+            {
+                RecalcChartParameters();
+                this.dirty = false;
+            }
             return (int)((this.energyCalibration.ChannelToEnergy((double)this.numberOfChannels) - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale);
         }
 
@@ -601,6 +605,10 @@ namespace BecquerelMonitor
             this.energySpectrum = this.activeResultData.EnergySpectrum;
             this.backgroundEnergySpectrum = this.activeResultData.BackgroundEnergySpectrum;
             this.roiConfig = this.activeResultData.ROIConfig;
+            if (this.numberOfChannels > 0 && this.numberOfChannels != this.energySpectrum.NumberOfChannels)
+            {
+                this.dirty = true;
+            }
             this.numberOfChannels = this.energySpectrum.NumberOfChannels;
             this.energyCalibration = this.energySpectrum.EnergyCalibration;
             this.baseEnergyCalibration = this.energySpectrum.EnergyCalibration;
@@ -3597,6 +3605,8 @@ namespace BecquerelMonitor
 
         // Token: 0x0400021A RID: 538
         int numberOfChannels;
+
+        public bool dirty = false;
 
         // Token: 0x0400021B RID: 539
         int backgroundNumberOfChannels;
