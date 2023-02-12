@@ -463,6 +463,7 @@ namespace BecquerelMonitor
                     {
                         ResultData activeResultData = docEnergySpectrum2.ActiveResultData;
                         activeResultData.EndTime = DateTime.Now;
+                        docEnergySpectrum2.EnergySpectrumView.RecalcChartParameters();
                         docEnergySpectrum2.EnergySpectrumView.PrepareViewData();
                         docEnergySpectrum2.EnergySpectrumView.RecalcScrollBar();
                         docEnergySpectrum2.EnergySpectrumView.Invalidate();
@@ -2037,7 +2038,9 @@ namespace BecquerelMonitor
             }
             foreach (DocEnergySpectrum docEnergySpectrum in this.documentManager.DocumentList)
             {
+                docEnergySpectrum.EnergySpectrumView.RecalcChartParameters();
                 docEnergySpectrum.EnergySpectrumView.PrepareViewData();
+                docEnergySpectrum.EnergySpectrumView.RecalcScrollBar();
                 docEnergySpectrum.EnergySpectrumView.Invalidate();
             }
         }
