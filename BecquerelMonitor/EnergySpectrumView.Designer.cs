@@ -442,6 +442,7 @@ namespace BecquerelMonitor
         // Token: 0x060004AD RID: 1197 RVA: 0x00016630 File Offset: 0x00014830
         int CalcMaximumXValue()
         {
+            RecalcChartParameters();
             return (int)((this.energyCalibration.ChannelToEnergy((double)this.numberOfChannels) - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale);
         }
 
