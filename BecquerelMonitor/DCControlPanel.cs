@@ -2,6 +2,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace BecquerelMonitor
@@ -582,13 +583,16 @@ namespace BecquerelMonitor
             double channelPitch = activeResultData.EnergySpectrum.ChannelPitch;
             if (numberOfChannels != activeResultData.DeviceConfig.NumberOfChannels || channelPitch != activeResultData.DeviceConfig.ChannelPitch)
             {
-                DialogResult dialogResult = MessageBox.Show(Resources.MSGInitializingSpectrum,
+                if (activeResultData.EnergySpectrum.MeasurementTime > 0)
+                {
+                    DialogResult dialogResult = MessageBox.Show(Resources.MSGInitializingSpectrum,
                     Resources.ConfirmationDialogTitle,
                     MessageBoxButtons.OKCancel,
                     MessageBoxIcon.Exclamation);
-                if (dialogResult == DialogResult.Cancel)
-                {
-                    return false;
+                    if (dialogResult == DialogResult.Cancel)
+                    {
+                        return false;
+                    }
                 }
                 if (activeResultData.EnergySpectrum.ValidPulseCount > 0 && activeResultData.PulseCollection.Pulses.Count == 0)
                 {
