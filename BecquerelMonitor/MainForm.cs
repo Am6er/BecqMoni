@@ -1391,6 +1391,7 @@ namespace BecquerelMonitor
             this.新規スペクトルNToolStripMenuItem1.Enabled = enabled;
             this.既存ファイルから追加FToolStripMenuItem.Enabled = enabled;
             this.CombineSpectrasToolStripMenuItem.Enabled = enabled;
+            this.ConcatSpectrumsStripMenuItem.Enabled = enabled;
             this.CutoffStripMenuItem.Enabled = enabled;
             this.AutoSaveStripMenuItem.Enabled = enabled;
             this.AutoSaveStripMenuItem.Checked = this.activeDocument.AutoSave;

@@ -392,6 +392,18 @@ namespace BecquerelMonitor
             }
         }
 
+        public HorizontalMagnification HorizontalMagnification
+        {
+            get
+            {
+                return this.horizontalMagnification;
+            }
+            set
+            {
+                this.horizontalMagnification = value;
+            }
+        }
+
         // Token: 0x1700018F RID: 399
         // (get) Token: 0x060004A9 RID: 1193 RVA: 0x00016480 File Offset: 0x00014680
         // (set) Token: 0x060004AA RID: 1194 RVA: 0x00016488 File Offset: 0x00014688
@@ -3553,6 +3565,8 @@ namespace BecquerelMonitor
 
         // Token: 0x04000209 RID: 521
         VerticalFittingMode fittingMode = VerticalFittingMode.MinMax;
+
+        HorizontalMagnification horizontalMagnification = HorizontalMagnification.Equal;
 
         // Token: 0x0400020A RID: 522
         SmoothingMethod smoothingMethod;
