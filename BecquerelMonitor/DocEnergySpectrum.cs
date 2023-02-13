@@ -300,6 +300,7 @@ namespace BecquerelMonitor
             this.view.BackgroundMode = globalConfig.ChartViewConfig.DefaultBackgroundMode;
             this.view.DrawingMode = globalConfig.ChartViewConfig.DefaultDrawingMode;
             this.view.PeakMode = globalConfig.ChartViewConfig.DefaultPeakMode;
+            this.view.HorizontalMagnification = globalConfig.ChartViewConfig.DefaultHorizontalMagnification;
             this.SetToolStripIcons();
             toolStripContainer1.BottomToolStripPanel.SuspendLayout();
             toolStrip1.Dock = DockStyle.None;
@@ -376,7 +377,6 @@ namespace BecquerelMonitor
         {
             this.view.ResultDataList = this.resultDataFile.ResultDataList;
             this.view.ActiveResultDataIndex = this.activeResultDataIndex;
-            ResultData activeResultData = this.ActiveResultData;
             this.RefreshView();
         }
 
@@ -467,6 +467,10 @@ namespace BecquerelMonitor
         {
             this.view.PrepareViewData();
             this.view.RecalcScrollBar();
+            if (this.view.HorizontalMagnification == HorizontalMagnification.Fit)
+            {
+                this.view.FitHorizontalScale();
+            }
             this.view.Invalidate();
         }
 
