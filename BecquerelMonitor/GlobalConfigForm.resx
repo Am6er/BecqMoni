@@ -715,7 +715,7 @@
     <value>tabPage4</value>
   </data>
   <data name="$this.Text" xml:space="preserve">
-    <value>Application Preference</value>
+    <value>Application Preferences</value>
   </data>
   <data name="numericUpDown2.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
     <value>Right</value>

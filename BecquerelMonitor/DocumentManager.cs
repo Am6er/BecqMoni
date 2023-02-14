@@ -4,6 +4,7 @@ using BecquerelMonitor.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using System.Xml;
@@ -260,6 +261,11 @@ namespace BecquerelMonitor
                 {
                     resultDataStatus.PresetTime = resultData2.PresetTime;
                 }
+                if (resultData2.EnergySpectrum.TotalPulseCount == 0)
+                {
+                    resultData2.EnergySpectrum.TotalPulseCount = resultData2.EnergySpectrum.Spectrum.Sum();
+                    resultData2.EnergySpectrum.ValidPulseCount = resultData2.EnergySpectrum.TotalPulseCount;
+                }
                 resultDataStatus.TimeInSamples = resultData2.EnergySpectrum.NumberOfSamples;
                 resultData2.ResultDataStatus = resultDataStatus;
                 resultData2.MeasurementController = new MeasurementController(docEnergySpectrum2, resultData2);
@@ -320,6 +326,11 @@ namespace BecquerelMonitor
                 else
                 {
                     resultDataStatus.PresetTime = resultData2.PresetTime;
+                }
+                if (resultData2.EnergySpectrum.TotalPulseCount == 0)
+                {
+                    resultData2.EnergySpectrum.TotalPulseCount = resultData2.EnergySpectrum.Spectrum.Sum();
+                    resultData2.EnergySpectrum.ValidPulseCount = resultData2.EnergySpectrum.TotalPulseCount;
                 }
                 resultDataStatus.TimeInSamples = resultData2.EnergySpectrum.NumberOfSamples;
                 resultData2.ResultDataStatus = resultDataStatus;
@@ -821,6 +832,11 @@ namespace BecquerelMonitor
                 {
                     MessageBox.Show(string.Format(Resources.ERRBackgroundLoadFailure, Path.GetFileName(backgroundSpectrumPathname), ex.Message));
                     return;
+                }
+                if (resultDataFile.ResultDataList[0].EnergySpectrum.TotalPulseCount == 0)
+                {
+                    resultDataFile.ResultDataList[0].EnergySpectrum.TotalPulseCount = resultDataFile.ResultDataList[0].EnergySpectrum.Spectrum.Sum();
+                    resultDataFile.ResultDataList[0].EnergySpectrum.ValidPulseCount = resultDataFile.ResultDataList[0].EnergySpectrum.TotalPulseCount;
                 }
                 resultData.BackgroundEnergySpectrum = resultDataFile.ResultDataList[0].EnergySpectrum;
             }
