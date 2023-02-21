@@ -466,10 +466,13 @@ namespace BecquerelMonitor
         public void RefreshView()
         {
             this.view.PrepareViewData();
-            this.view.RecalcScrollBar();
             if (this.view.HorizontalMagnification == HorizontalMagnification.Fit)
             {
                 this.view.FitHorizontalScale();
+            }
+            else
+            {
+                this.view.RecalcScrollBar();
             }
             this.view.Invalidate();
         }
