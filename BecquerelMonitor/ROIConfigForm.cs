@@ -137,7 +137,7 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            string filename = Path.GetFileNameWithoutExtension(this.activeROIConfig.Filename) + " (コピー).xml";
+            string filename = Path.GetFileNameWithoutExtension(this.activeROIConfig.Filename) + " (Copy).xml";
             ROIConfigData roiconfigData = this.manager.DuplicateConfig(this.activeROIConfig, filename);
             if (roiconfigData == null)
             {
@@ -358,7 +358,7 @@ namespace BecquerelMonitor
             string text = "";
             for (int i = 0; i < 9999; i++)
             {
-                text = "新規ROI(" + this.newROIIndex + ")";
+                text = "New ROI(" + this.newROIIndex + ")";
                 this.newROIIndex++;
                 bool flag = false;
                 foreach (ROIDefinitionData roidefinitionData in this.activeROIConfig.ROIDefinitions)
