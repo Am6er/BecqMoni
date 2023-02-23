@@ -123,7 +123,7 @@ namespace BecquerelMonitor
             {
                 if (!IsStandAlone)
                 {
-                    return Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\config\\ROI";
+                    return Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\config\\ROI\\";
                 }
                 return "config\\ROI\\";
             }
