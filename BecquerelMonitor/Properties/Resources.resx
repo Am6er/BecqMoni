@@ -36900,4 +36900,7 @@ see peak in spectrum now).</value>
   <data name="Delta" xml:space="preserve">
     <value>Δ</value>
   </data>
+  <data name="ERRCombineBadCalibratedSpectra" xml:space="preserve">
+    <value>Combined spectra {0} has incorrect calibration, so channel by channel combine method will be used.</value>
+  </data>
 </root>

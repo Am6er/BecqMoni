@@ -267,6 +267,9 @@
   <data name="ERRChanNumber" xml:space="preserve">
     <value>Некорректное число каналов или значение энергии.</value>
   </data>
+  <data name="ERRCombineBadCalibratedSpectra" xml:space="preserve">
+    <value>Объединяемый спектр {0} имеет некорректную калибровку, поэтому будет использован алгоритм поканального объединения спектров.</value>
+  </data>
   <data name="ERRDetectedErrorWhileCommunication" xml:space="preserve">
     <value>Обнаружена ошибка в процессе работы с устройством.</value>
   </data>
