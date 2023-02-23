@@ -718,6 +718,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Combined spectra {0} has incorrect calibration, so channel by channel combine method will be used..
+        /// </summary>
+        internal static string ERRCombineBadCalibratedSpectra {
+            get {
+                return ResourceManager.GetString("ERRCombineBadCalibratedSpectra", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Error detected while communicating with device.
         ///.
         /// </summary>
