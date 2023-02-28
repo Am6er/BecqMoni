@@ -173,8 +173,14 @@ namespace BecquerelMonitor
                 }
                 else
                 {
-                    comPortsBox.SelectedIndex = comPortsBox.Items.IndexOf(this.ComPort);
-                    baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString());
+                    if (this.ComPort != null)
+                    {
+                        comPortsBox.SelectedIndex = comPortsBox.Items.IndexOf(this.ComPort);
+                        baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString());
+                    } else
+                    {
+                        this.ComPort = "-------";
+                    }
                 }
             } else
             {
