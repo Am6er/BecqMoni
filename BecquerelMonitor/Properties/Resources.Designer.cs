@@ -1155,6 +1155,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Error while look ANY COM port in OS. OS returns emtpy list. Now program sets port from device config file, but you shuld check what&apos;s happend with your USB system hub..
+        /// </summary>
+        internal static string ERRVCPComPortsNumeration {
+            get {
+                return ResourceManager.GetString("ERRVCPComPortsNumeration", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Export Selected Spectra To File.
         /// </summary>
         internal static string ExportSpectraToFileDialogTitle {

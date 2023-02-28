@@ -36903,4 +36903,7 @@ see peak in spectrum now).</value>
   <data name="ERRCombineBadCalibratedSpectra" xml:space="preserve">
     <value>Combined spectra {0} has incorrect calibration, so channel by channel combine method will be used.</value>
   </data>
+  <data name="ERRVCPComPortsNumeration" xml:space="preserve">
+    <value>Error while look ANY COM port in OS. OS returns emtpy list. Now program sets port from device config file, but you shuld check what's happend with your USB system hub.</value>
+  </data>
 </root>

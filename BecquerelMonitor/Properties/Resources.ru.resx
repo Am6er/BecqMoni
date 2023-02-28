@@ -415,6 +415,9 @@
   <data name="ERRUploadCoefficeintsToDevice" xml:space="preserve">
     <value>Некоторые коэффициенты были загружены с ошибкой! Проверьте подключение к устройству, кабель и попробуйте загрузить заново.</value>
   </data>
+  <data name="ERRVCPComPortsNumeration" xml:space="preserve">
+    <value>Ошибка при получении списка COM портов из ОС. Операционна система вернула пустой список. Выставляется значение порта из конфигурации устройства, но следует разобраться с системным USB хабом в ОС.</value>
+  </data>
   <data name="ExportSpectraToFileDialogTitle" xml:space="preserve">
     <value>Экспорт выбранного спектра в файл</value>
   </data>

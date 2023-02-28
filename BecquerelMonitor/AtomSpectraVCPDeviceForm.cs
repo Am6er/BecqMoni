@@ -164,14 +164,21 @@ namespace BecquerelMonitor
 
             }
 
-            if (savedComPort != null && !this.formLoading)
+            if (comPortsBox.Items.Count > 0)
             {
-                comPortsBox.SelectedIndex = comPortsBox.Items.IndexOf(savedComPort);
-                baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(savedBaudRate);
+                if (savedComPort != null && !this.formLoading)
+                {
+                    comPortsBox.SelectedIndex = comPortsBox.Items.IndexOf(savedComPort);
+                    baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(savedBaudRate);
+                }
+                else
+                {
+                    comPortsBox.SelectedIndex = comPortsBox.Items.IndexOf(this.ComPort);
+                    baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString());
+                }
             } else
             {
-                comPortsBox.SelectedIndex = comPortsBox.Items.IndexOf(this.ComPort);
-                baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString());
+                MessageBox.Show(Resources.ERRVCPComPortsNumeration);
             }
 
             if(comPortsBox.SelectedIndex != -1)
