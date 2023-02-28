@@ -622,6 +622,7 @@ namespace BecquerelMonitor
         void button14_Click(object sender, EventArgs e)
         {
             List<CalibrationPoint> points = new List<CalibrationPoint>();
+            Dictionary<int, decimal> pointsDict = new Dictionary<int, decimal>();
 
             if (this.mainForm.DocumentList != null)
             {
@@ -635,9 +636,20 @@ namespace BecquerelMonitor
                         }
                     }
                 }
+                if (points.Count > 0)
+                {
+                    this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints.Clear();
+                }
                 foreach (CalibrationPoint point in points)
                 {
-                    AddCalibration(point.Channel, point.Energy, point.Count);
+                    if (pointsDict.ContainsKey(point.Channel))
+                    {
+                        continue;
+                    } else
+                    {
+                        pointsDict.Add(point.Channel, point.Energy);
+                        AddCalibration(point.Channel, point.Energy, point.Count);
+                    }
                 }
             }
         }
