@@ -17,7 +17,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000728 RID: 1832 RVA: 0x00029CD0 File Offset: 0x00027ED0
-        public override double EnergyToChannel(double e)
+        public override double EnergyToChannel(double e, int maxChannels = 10000)
         {
             throw new NotImplementedException();
         }

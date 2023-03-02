@@ -221,8 +221,8 @@ namespace BecquerelMonitor
                     int num8;
                     try
                     {
-                        num7 = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(lowerLimit));
-                        num8 = (int)Math.Floor(this.energyCalibration.EnergyToChannel(upperLimit));
+                        num7 = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(lowerLimit, maxChannels: this.energySpectrum.NumberOfChannels));
+                        num8 = (int)Math.Floor(this.energyCalibration.EnergyToChannel(upperLimit, maxChannels: this.energySpectrum.NumberOfChannels));
                     }
                     catch (OutofChannelException)
                     {
@@ -240,7 +240,7 @@ namespace BecquerelMonitor
                                 int num11 = i;
                                 if (!this.energyCalibration.Equals(this.backgroundEnergyCalibration))
                                 {
-                                    num11 = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.energyCalibration.ChannelToEnergy((double)i));
+                                    num11 = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.energyCalibration.ChannelToEnergy((double)i), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
                                 }
                                 if (num11 >= 0 && num11 < this.backgroundNumberOfChannels)
                                 {
@@ -278,8 +278,8 @@ namespace BecquerelMonitor
                     int num16;
                     try
                     {
-                        num15 = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(lowerLimit2));
-                        num16 = (int)Math.Floor(this.energyCalibration.EnergyToChannel(upperLimit2));
+                        num15 = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(lowerLimit2, maxChannels: this.energySpectrum.NumberOfChannels));
+                        num16 = (int)Math.Floor(this.energyCalibration.EnergyToChannel(upperLimit2, maxChannels: this.energySpectrum.NumberOfChannels));
                     }
                     catch (OutofChannelException)
                     {
@@ -295,10 +295,10 @@ namespace BecquerelMonitor
                     int num20;
                     try
                     {
-                        num17 = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(leftRegionCenter - leftRegionWidth / 2.0));
-                        num18 = (int)Math.Floor(this.energyCalibration.EnergyToChannel(leftRegionCenter + leftRegionWidth / 2.0));
-                        num19 = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(rightRegionCenter - rightRegionWidth / 2.0));
-                        num20 = (int)Math.Floor(this.energyCalibration.EnergyToChannel(rightRegionCenter + rightRegionWidth / 2.0));
+                        num17 = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(leftRegionCenter - leftRegionWidth / 2.0, maxChannels: this.energySpectrum.NumberOfChannels));
+                        num18 = (int)Math.Floor(this.energyCalibration.EnergyToChannel(leftRegionCenter + leftRegionWidth / 2.0, maxChannels: this.energySpectrum.NumberOfChannels));
+                        num19 = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(rightRegionCenter - rightRegionWidth / 2.0, maxChannels: this.energySpectrum.NumberOfChannels));
+                        num20 = (int)Math.Floor(this.energyCalibration.EnergyToChannel(rightRegionCenter + rightRegionWidth / 2.0, maxChannels: this.energySpectrum.NumberOfChannels));
                     }
                     catch (OutofChannelException)
                     {

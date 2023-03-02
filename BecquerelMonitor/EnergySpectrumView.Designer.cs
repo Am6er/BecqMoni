@@ -655,7 +655,7 @@ namespace BecquerelMonitor
                     int num;
                     try
                     {
-                        num = (int)this.backgroundEnergyCalibration.EnergyToChannel(e);
+                        num = (int)this.backgroundEnergyCalibration.EnergyToChannel(e, maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
                     }
                     catch (OutofChannelException)
                     {
@@ -781,7 +781,7 @@ namespace BecquerelMonitor
                     int num4;
                     try
                     {
-                        num4 = (int)this.backgroundEnergyCalibration.EnergyToChannel(e2);
+                        num4 = (int)this.backgroundEnergyCalibration.EnergyToChannel(e2, maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
                     }
                     catch (OutofChannelException)
                     {
@@ -1526,6 +1526,7 @@ namespace BecquerelMonitor
                     }
                     catch (Exception)
                     {
+                        MessageBox.Show("Found");
                     }
                 }
             }
@@ -1544,7 +1545,7 @@ namespace BecquerelMonitor
                     try
                     {
                         double num2 = (double)(i - this.scrollX - this.left) / this.horizontalScale;
-                        num3 = (int)calibration.EnergyToChannel(num2 / this.pixelPerEnergy + this.energyViewOffset);
+                        num3 = (int)calibration.EnergyToChannel(num2 / this.pixelPerEnergy + this.energyViewOffset, maxChannels: spectrum.NumberOfChannels);
                         goto IL_B8;
                     }
                     catch (OutofChannelException)
@@ -1596,7 +1597,7 @@ namespace BecquerelMonitor
                 num3 = (int)((double)(i - this.scrollX - this.left) / this.horizontalScale);
                 if (this.backgroundEnergyCalibration != null && isBackground && !this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
                 {
-                    num3 = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy((double)num3));
+                    num3 = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy((double)num3), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
                     goto IL_B8;
                 }
                 goto IL_B8;
@@ -1615,7 +1616,7 @@ namespace BecquerelMonitor
                     try
                     {
                         double num2 = (double)(i - this.scrollX - this.left) / this.horizontalScale;
-                        num3 = (int)calibration.EnergyToChannel(num2 / this.pixelPerEnergy + this.energyViewOffset);
+                        num3 = (int)calibration.EnergyToChannel(num2 / this.pixelPerEnergy + this.energyViewOffset, maxChannels: spectrum.NumberOfChannels);
                         goto IL_B8;
                     }
                     catch (OutofChannelException)
@@ -1698,7 +1699,7 @@ namespace BecquerelMonitor
                 }
                 else if (this.backgroundEnergyCalibration != null && isBackground)
                 {
-                    double num4 = this.baseEnergyCalibration.EnergyToChannel(this.backgroundEnergyCalibration.ChannelToEnergy((double)i));
+                    double num4 = this.baseEnergyCalibration.EnergyToChannel(this.backgroundEnergyCalibration.ChannelToEnergy((double)i), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
                     num3 = (int)((num4 + 0.5) * this.horizontalScale) + this.scrollX + this.left;
                 }
                 else
@@ -1737,6 +1738,7 @@ namespace BecquerelMonitor
                     }
                     catch (Exception)
                     {
+                        MessageBox.Show("123");
                     }
                 }
                 x = num3;
@@ -1810,6 +1812,7 @@ namespace BecquerelMonitor
                     }
                     catch (Exception)
                     {
+                        MessageBox.Show("123");
                     }
                 }
                 x = num3;
@@ -1839,7 +1842,7 @@ namespace BecquerelMonitor
                         {
                             try
                             {
-                                num = (float)(this.energyCalibration.EnergyToChannel(lowerLimit) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                                num = (float)(this.energyCalibration.EnergyToChannel(lowerLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
                             }
                             catch (OutofChannelException)
                             {
@@ -1847,7 +1850,7 @@ namespace BecquerelMonitor
                             }
                             try
                             {
-                                num2 = (float)(this.energyCalibration.EnergyToChannel(upperLimit) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                                num2 = (float)(this.energyCalibration.EnergyToChannel(upperLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
                                 goto IL_14D;
                             }
                             catch (OutofChannelException)
@@ -1891,7 +1894,7 @@ namespace BecquerelMonitor
                         {
                             try
                             {
-                                num = (float)(this.energyCalibration.EnergyToChannel(lowerLimit) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                                num = (float)(this.energyCalibration.EnergyToChannel(lowerLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
                             }
                             catch (OutofChannelException)
                             {
@@ -1899,7 +1902,7 @@ namespace BecquerelMonitor
                             }
                             try
                             {
-                                num2 = (float)(this.energyCalibration.EnergyToChannel(upperLimit) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                                num2 = (float)(this.energyCalibration.EnergyToChannel(upperLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
                                 goto IL_14D;
                             }
                             catch (OutofChannelException)
@@ -1950,7 +1953,7 @@ namespace BecquerelMonitor
                     {
                         try
                         {
-                            num = (float)(this.energyCalibration.EnergyToChannel(lowerLimit) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                            num = (float)(this.energyCalibration.EnergyToChannel(lowerLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
                         }
                         catch (OutofChannelException)
                         {
@@ -1958,7 +1961,7 @@ namespace BecquerelMonitor
                         }
                         try
                         {
-                            num2 = (float)(this.energyCalibration.EnergyToChannel(upperLimit) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                            num2 = (float)(this.energyCalibration.EnergyToChannel(upperLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
                             goto IL_14D;
                         }
                         catch (OutofChannelException)
@@ -1978,7 +1981,7 @@ namespace BecquerelMonitor
                             double num3 = (double)(i - this.scrollX - this.left) / this.horizontalScale;
                             try
                             {
-                                num4 = this.energyCalibration.EnergyToChannel(num3 / this.pixelPerEnergy + this.energyViewOffset);
+                                num4 = this.energyCalibration.EnergyToChannel(num3 / this.pixelPerEnergy + this.energyViewOffset, maxChannels: this.energySpectrum.NumberOfChannels);
                                 goto IL_1C1;
                             }
                             catch (OutofChannelException)
@@ -2005,7 +2008,7 @@ namespace BecquerelMonitor
                                 int num7 = (int)num4;
                                 if (!this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
                                 {
-                                    num7 = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy(num4));
+                                    num7 = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy(num4), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
                                 }
                                 if (num7 < 0 || num7 >= this.backgroundEnergySpectrum.Spectrum.Length)
                                 {
@@ -2186,7 +2189,7 @@ namespace BecquerelMonitor
                         double num7 = (double)(i - this.scrollX - this.left) / this.horizontalScale;
                         try
                         {
-                            num8 = this.energyCalibration.EnergyToChannel(num7 / this.pixelPerEnergy + this.energyViewOffset);
+                            num8 = this.energyCalibration.EnergyToChannel(num7 / this.pixelPerEnergy + this.energyViewOffset, maxChannels: this.energySpectrum.NumberOfChannels);
                             goto IL_1F4;
                         }
                         catch (OutofChannelException)
@@ -2224,7 +2227,7 @@ namespace BecquerelMonitor
                                 int num11 = (int)num8;
                                 if (!this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
                                 {
-                                    num11 = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy(num8));
+                                    num11 = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy(num8), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
                                 }
                                 if (num11 < 0 || num11 >= this.backgroundEnergySpectrum.Spectrum.Length)
                                 {
@@ -2854,7 +2857,7 @@ namespace BecquerelMonitor
                         }
                         else
                         {
-                            num10 = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy((double)this.cursorChannel));
+                            num10 = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy((double)this.cursorChannel), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
                         }
                         if (num10 >= 0 && num10 < this.backgroundNumberOfChannels)
                         {
@@ -2925,7 +2928,7 @@ namespace BecquerelMonitor
                         int num22 = i;
                         if (!this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
                         {
-                            num22 = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy((double)i));
+                            num22 = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy((double)i), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
                         }
                         if (num22 >= 0 && num22 < this.backgroundNumberOfChannels)
                         {
@@ -3064,7 +3067,7 @@ namespace BecquerelMonitor
                     this.cursorEnergy = num2 / this.pixelPerEnergy + this.energyViewOffset;
                     try
                     {
-                        this.cursorChannel = (int)this.energyCalibration.EnergyToChannel(this.cursorEnergy);
+                        this.cursorChannel = (int)this.energyCalibration.EnergyToChannel(this.cursorEnergy, maxChannels: this.energySpectrum.NumberOfChannels);
                         goto IL_CB;
                     }
                     catch (OutofChannelException)

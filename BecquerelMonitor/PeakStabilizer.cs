@@ -38,8 +38,8 @@ namespace BecquerelMonitor
                 double num4 = (double)targetPeak.Energy;
                 double e = num4 * (1.0 - (double)targetPeak.Error / 100.0);
                 double e2 = num4 * (1.0 + (double)targetPeak.Error / 100.0);
-                int num5 = (int)Math.Floor(deviceConfig.EnergyCalibration.EnergyToChannel(e));
-                int num6 = (int)Math.Ceiling(deviceConfig.EnergyCalibration.EnergyToChannel(e2));
+                int num5 = (int)Math.Floor(deviceConfig.EnergyCalibration.EnergyToChannel(e, maxChannels: energySpectrum.NumberOfChannels));
+                int num6 = (int)Math.Ceiling(deviceConfig.EnergyCalibration.EnergyToChannel(e2, maxChannels: energySpectrum.NumberOfChannels));
                 double num7 = 0.0;
                 int num8 = -1;
                 for (int k = num5; k <= num6; k++)

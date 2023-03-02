@@ -126,14 +126,14 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000734 RID: 1844 RVA: 0x00029E1C File Offset: 0x0002801C
-        public override double EnergyToChannel(double enrg)
+        public override double EnergyToChannel(double enrg, int maxChannels = 10000)
         {
             
             if (this.dirty || this.energytochanel == null)
             {
                 this.energytochanel = new Dictionary<double, double>();
                 this.dirty = false;
-                double value = EnrgToChannel(enrg);
+                double value = EnrgToChannel(enrg, maxCh: maxChannels);
                 this.energytochanel.Add(enrg, value);
                 return value;
             } else
@@ -143,14 +143,14 @@ namespace BecquerelMonitor
                     return value;
                 } else
                 {
-                    value = EnrgToChannel(enrg);
+                    value = EnrgToChannel(enrg, maxCh: maxChannels);
                     this.energytochanel.Add(enrg, value);
                     return value;
                 }
             }
         }
 
-        double EnrgToChannel(double enrg)
+        double EnrgToChannel(double enrg, int maxCh = 10000)
         {
             if (enrg < 0 || enrg < this.coefficients[0])
             {
@@ -193,7 +193,7 @@ namespace BecquerelMonitor
                 Func<double, double> f1 = x => this.coefficients[4] * x * x * x * x + this.coefficients[3] * x * x * x + this.coefficients[2] * x * x + this.coefficients[1] * x + this.coefficients[0] - enrg;
                 try
                 {
-                    double roots = FindRoots.OfFunction(f1, 0, 10000);
+                    double roots = FindRoots.OfFunction(f1, 0, maxCh);
                     //System.Windows.Forms.MessageBox.Show("Calibration coefficients are incorrect channels for Energy: " + enrg + " roots = " + roots);
                     return Math.Round(roots, 2);
                 }
@@ -211,7 +211,7 @@ namespace BecquerelMonitor
                 Func<double, double> f1 = x => this.coefficients[3] * x * x * x + this.coefficients[2] * x * x + this.coefficients[1] * x + this.coefficients[0] - enrg;
                 try
                 {
-                    double roots = FindRoots.OfFunction(f1, 0, 10000);
+                    double roots = FindRoots.OfFunction(f1, 0, maxCh);
                     return Math.Round(roots, 2);
                 }
                 catch

@@ -2168,7 +2168,7 @@ namespace BecquerelMonitor
                 if (isEnergy)
                 {
                     PolynomialEnergyCalibration calibration = (PolynomialEnergyCalibration)this.activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration;
-                    int chan = (int)calibration.EnergyToChannel(energyVal);
+                    int chan = (int)calibration.EnergyToChannel(energyVal, maxChannels: this.activeDocument.ActiveResultData.EnergySpectrum.NumberOfChannels);
                     if (chan >= this.activeDocument.ActiveResultData.EnergySpectrum.NumberOfChannels)
                     {
                         MessageBox.Show(Resources.ERRChanNumber);
@@ -2233,8 +2233,8 @@ namespace BecquerelMonitor
             string text = "fwhm.txt";
             try
             {
-                int num = (int)energySpectrum.EnergyCalibration.EnergyToChannel(530.0);
-                int num2 = (int)energySpectrum.EnergyCalibration.EnergyToChannel(780.0);
+                int num = (int)energySpectrum.EnergyCalibration.EnergyToChannel(530.0, maxChannels: activeResultData.EnergySpectrum.NumberOfChannels);
+                int num2 = (int)energySpectrum.EnergyCalibration.EnergyToChannel(780.0, maxChannels: activeResultData.EnergySpectrum.NumberOfChannels);
                 double num3 = (double)energySpectrum.Spectrum[num] / energySpectrum.MeasurementTime;
                 double num4 = (double)energySpectrum.Spectrum[num2] / energySpectrum.MeasurementTime;
                 using (StreamWriter streamWriter = new StreamWriter(text, false, Encoding.GetEncoding(932)))
