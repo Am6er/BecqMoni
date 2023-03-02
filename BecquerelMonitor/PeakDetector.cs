@@ -82,7 +82,7 @@ namespace BecquerelMonitor
                     }
                 }
             }
-            Trace.WriteLine("New peak added, ch=" + newpeak.Channel + " En=" + newpeak.Energy);
+            //Trace.WriteLine("New peak added, ch=" + newpeak.Channel + " En=" + newpeak.Energy);
             return true;
         }
 
