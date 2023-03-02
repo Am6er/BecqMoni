@@ -65,7 +65,7 @@ namespace BecquerelMonitor.Utils
                 {
                     for (int i = 0; i < this.MainSpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels; i++)
                     {
-                        double getChannel = Math.Round(CombinedSpectrumEnergyCalibration.EnergyToChannel(MainSpectrumEnergyCalibration.ChannelToEnergy(i), maxChannels: this.MainSpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels));
+                        double getChannel = Math.Round(CombinedSpectrumEnergyCalibration.EnergyToChannel(MainSpectrumEnergyCalibration.ChannelToEnergy(i), maxChannels: docenergySpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels));
                         if (getChannel >= 0 && getChannel < this.MainSpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels)
                         {
                             this.MainSpectrum.ActiveResultData.EnergySpectrum.Spectrum[i] += docenergySpectrum.ActiveResultData.EnergySpectrum.Spectrum[Convert.ToInt32(getChannel)];
@@ -115,7 +115,7 @@ namespace BecquerelMonitor.Utils
                 Parallel.For(0, substractedEnergySpectrum.NumberOfChannels, i =>
                 {
                     double enrg = this.EnergySpectrum.EnergyCalibration.ChannelToEnergy(i);
-                    int bgchan = Convert.ToInt32(bgenergySpectrum.EnergyCalibration.EnergyToChannel(enrg, maxChannels: this.EnergySpectrum.NumberOfChannels));
+                    int bgchan = Convert.ToInt32(bgenergySpectrum.EnergyCalibration.EnergyToChannel(enrg, maxChannels: substractedEnergySpectrum.NumberOfChannels));
                     if (bgchan > 0 && bgchan < bgenergySpectrum.NumberOfChannels)
                     {
                         substractedEnergySpectrum.Spectrum[i] = Convert.ToInt32(this.EnergySpectrum.Spectrum[i] - norm_coeff * bgenergySpectrum.Spectrum[bgchan]);
@@ -240,7 +240,7 @@ namespace BecquerelMonitor.Utils
         }
 
         // https://doi.org/10.1016/j.nima.2017.12.064
-        int[] SASNIP(int[] x, double coeff = 1.0, bool useLLS = false, bool decreasing = true)
+        int[] SASNIP(int[] x, double coeff = 1.0, bool useLLS = false, bool decreasing = false)
         {
             double[] baseline = new double[x.Length];
 
@@ -438,7 +438,6 @@ namespace BecquerelMonitor.Utils
         public double[] WMA2(int[] spectrum, int numberOfWMADataPoints, int countlimit = 100)
         {
             double[] result = new double[spectrum.Length];
-            //for (int i = 0; i < spectrum.Length; i++)
             Parallel.For(0, spectrum.Length, i =>
             {
                 int window_size = 1;
@@ -478,7 +477,6 @@ namespace BecquerelMonitor.Utils
         public int[] WMA(int[] spectrum, int numberOfWMADataPoints, int countlimit = 100)
         {
             int[] result = new int[spectrum.Length];
-            //for (int num14 = 0; num14 < spectrum.Length; num14++)
             Parallel.For(0, spectrum.Length, i =>
             {
                 int window_size = 1;
@@ -518,7 +516,6 @@ namespace BecquerelMonitor.Utils
         public double[] SMA2(int[] spectrum, int numberOfSMADataPoints, int countlimit = 100)
         {
             double[] result = new double[spectrum.Length];
-            //for (int i = 0; i < spectrum.Length; i++)
             Parallel.For(0, spectrum.Length, i =>
             {
                 double new_count = 0.0;
@@ -555,7 +552,6 @@ namespace BecquerelMonitor.Utils
         public int[] SMA(int[] spectrum, int numberOfSMADataPoints, int countlimit = 100)
         {
             int[] result = new int[spectrum.Length];
-            //for (int num10 = 0; num10 < spectrum.Length; num10++)
             Parallel.For(0, spectrum.Length, i =>
             {
                 double new_count = 0.0;
