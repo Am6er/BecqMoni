@@ -9,8 +9,8 @@ namespace BecquerelMonitor
         public static EnergyResolutionResult CalculateFWHM(EnergySpectrum spectrum, double startEnergy, double endEnergy)
         {
             EnergyCalibration energyCalibration = spectrum.EnergyCalibration;
-            int startChannel = (int)Math.Ceiling(energyCalibration.EnergyToChannel(startEnergy));
-            int endChannel = (int)Math.Floor(energyCalibration.EnergyToChannel(endEnergy));
+            int startChannel = (int)Math.Ceiling(energyCalibration.EnergyToChannel(startEnergy, maxChannels: spectrum.NumberOfChannels));
+            int endChannel = (int)Math.Floor(energyCalibration.EnergyToChannel(endEnergy, maxChannels: spectrum.NumberOfChannels));
             return EnergyResolutionCalculator.CalculateFWHM(spectrum, startChannel, endChannel);
         }
 

@@ -7,7 +7,7 @@
         public abstract double ChannelToEnergy(double n);
 
         // Token: 0x06000720 RID: 1824
-        public abstract double EnergyToChannel(double e);
+        public abstract double EnergyToChannel(double e, int maxChannels = 10000);
 
         // Token: 0x06000721 RID: 1825
         public abstract EnergyCalibration Clone();

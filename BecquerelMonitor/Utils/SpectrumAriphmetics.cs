@@ -65,7 +65,7 @@ namespace BecquerelMonitor.Utils
                 {
                     for (int i = 0; i < this.MainSpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels; i++)
                     {
-                        double getChannel = Math.Round(CombinedSpectrumEnergyCalibration.EnergyToChannel(MainSpectrumEnergyCalibration.ChannelToEnergy(i)));
+                        double getChannel = Math.Round(CombinedSpectrumEnergyCalibration.EnergyToChannel(MainSpectrumEnergyCalibration.ChannelToEnergy(i), maxChannels: this.MainSpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels));
                         if (getChannel >= 0 && getChannel < this.MainSpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels)
                         {
                             this.MainSpectrum.ActiveResultData.EnergySpectrum.Spectrum[i] += docenergySpectrum.ActiveResultData.EnergySpectrum.Spectrum[Convert.ToInt32(getChannel)];
@@ -115,7 +115,7 @@ namespace BecquerelMonitor.Utils
                 Parallel.For(0, substractedEnergySpectrum.NumberOfChannels, i =>
                 {
                     double enrg = this.EnergySpectrum.EnergyCalibration.ChannelToEnergy(i);
-                    int bgchan = Convert.ToInt32(bgenergySpectrum.EnergyCalibration.EnergyToChannel(enrg));
+                    int bgchan = Convert.ToInt32(bgenergySpectrum.EnergyCalibration.EnergyToChannel(enrg, maxChannels: this.EnergySpectrum.NumberOfChannels));
                     if (bgchan > 0 && bgchan < bgenergySpectrum.NumberOfChannels)
                     {
                         substractedEnergySpectrum.Spectrum[i] = Convert.ToInt32(this.EnergySpectrum.Spectrum[i] - norm_coeff * bgenergySpectrum.Spectrum[bgchan]);
@@ -357,7 +357,7 @@ namespace BecquerelMonitor.Utils
         public static EnergySpectrum CutoffSpectrumEnergy(EnergySpectrum energySpectrum, double energyVal)
         {
             PolynomialEnergyCalibration calibration = (PolynomialEnergyCalibration)energySpectrum.EnergyCalibration;
-            int newChan = (int)calibration.EnergyToChannel(energyVal);
+            int newChan = (int)calibration.EnergyToChannel(energyVal, maxChannels: energySpectrum.NumberOfChannels);
             return CutoffSpectrumChannels(energySpectrum, newChan);
         }
 
