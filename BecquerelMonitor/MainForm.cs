@@ -2132,6 +2132,10 @@ namespace BecquerelMonitor
                 if (newChan > 64 && newChan != this.activeDocument.ActiveResultData.EnergySpectrum.NumberOfChannels)
                 {
                     ConcatSpectrums(this.activeDocument, newChan);
+                    if (this.activeDocument.EnergySpectrumView.HorizontalMagnification == HorizontalMagnification.Fit)
+                    {
+                        this.activeDocument.EnergySpectrumView.FitHorizontalScale();
+                    }
                 }
                 else
                 {
@@ -2204,6 +2208,10 @@ namespace BecquerelMonitor
 
             this.activeDocument.Dirty = true;
             this.UpdateAllView();
+            if (this.activeDocument.EnergySpectrumView.HorizontalMagnification == HorizontalMagnification.Fit)
+            {
+                this.activeDocument.EnergySpectrumView.FitHorizontalScale();
+            }
             return;
         }
 
