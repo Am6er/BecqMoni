@@ -134,7 +134,7 @@ namespace BecquerelMonitor.Utils
         public EnergySpectrum Continuum()
         {
             EnergySpectrum continuum = this.EnergySpectrum.Clone();
-            continuum.Spectrum = SASNIP(SMA(this.EnergySpectrum.Spectrum, 8, countlimit: 1000000));
+            continuum.Spectrum = SASNIP(SMA(this.EnergySpectrum.Spectrum, 8, countlimit: 1000000), coeff: 0.8, useLLS: true, decreasing: false);
             Parallel.For(0, continuum.NumberOfChannels, i =>
             {
                 if (continuum.Spectrum[i] > this.EnergySpectrum.Spectrum[i])
