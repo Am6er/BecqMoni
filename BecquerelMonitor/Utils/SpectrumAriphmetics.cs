@@ -134,14 +134,15 @@ namespace BecquerelMonitor.Utils
         public EnergySpectrum Continuum()
         {
             EnergySpectrum continuum = this.EnergySpectrum.Clone();
-            continuum.Spectrum = SASNIP(this.EnergySpectrum.Spectrum, coeff: 1.5);
-            for (int i = 0; i<continuum.NumberOfChannels; i++)
+            continuum.Spectrum = SASNIP(SMA(this.EnergySpectrum.Spectrum, 8, countlimit: 1000000));
+            Parallel.For(0, continuum.NumberOfChannels, i =>
             {
                 if (continuum.Spectrum[i] > this.EnergySpectrum.Spectrum[i])
                 {
                     continuum.Spectrum[i] = this.EnergySpectrum.Spectrum[i];
                 }
-            }
+            });
+            
             return continuum;
         }
 
@@ -255,7 +256,7 @@ namespace BecquerelMonitor.Utils
 
             //FWHM from config
             double[] r = new double[x.Length];
-            r = r.Select((i, iter) => coeff * (FWHM(iter, this.FWHMPeakDetectionMethodConfig))).ToArray();
+            r = r.Select((i, iter) => (baseline[iter] == 0) ? 0 : coeff * (FWHM(iter, this.FWHMPeakDetectionMethodConfig))).ToArray();
 
             int n = (int)r.Max();
 
