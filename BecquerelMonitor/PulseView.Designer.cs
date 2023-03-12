@@ -87,6 +87,10 @@ namespace BecquerelMonitor
 			}
 			set
 			{
+				if (this.maxpulseHeight < value) 
+				{
+					this.maxpulseHeight = value;
+				}
 				this.pulseHeight = value;
 			}
 		}
@@ -184,10 +188,14 @@ namespace BecquerelMonitor
 					graphics.SmoothingMode = SmoothingMode.Default;
 					graphics.PixelOffsetMode = PixelOffsetMode.Default;
 				}
-				graphics.DrawString("波高値: ", this.Font, Brushes.White, (float)(base.Width - 90), 2f);
+				graphics.DrawString("Wave height: ", this.Font, Brushes.White, (float)(base.Width - 130), 2f);
 				Rectangle r2 = new Rectangle(0, 2, base.Width - 4, 22);
 				graphics.DrawString(this.pulseHeight.ToString("f2"), this.Font, Brushes.White, r2, stringFormat);
-			}
+
+                graphics.DrawString("Max Wave height: ", this.Font, Brushes.White, (float)(base.Width - 130), 20f);
+                Rectangle r3 = new Rectangle(0, 20, base.Width - 4, 22);
+                graphics.DrawString(this.maxpulseHeight.ToString("f2"), this.Font, Brushes.White, r3, stringFormat);
+            }
 			pen.Dispose();
 			pen2.Dispose();
 			base.OnPaint(pe);
@@ -210,6 +218,8 @@ namespace BecquerelMonitor
 
 		// Token: 0x04000239 RID: 569
 		double pulseHeight;
+
+		double maxpulseHeight;
 
 		// Token: 0x0400023A RID: 570
 		bool antiAliasing;

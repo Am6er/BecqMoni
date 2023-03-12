@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using MathNet.Numerics.LinearAlgebra;
-using System.Windows.Forms;
-using BecquerelMonitor.Properties;
 using MathNet.Numerics.LinearRegression;
 using System.Linq;
 
