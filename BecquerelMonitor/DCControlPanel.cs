@@ -626,6 +626,10 @@ namespace BecquerelMonitor
             activeDocument.UpdateEnergySpectrum();
             activeDocument.Dirty = true;
             activeDocument.UpdateDoseRate = true;
+            if (activeDocument.EnergySpectrumView.HorizontalMagnification == HorizontalMagnification.Fit)
+            {
+                activeDocument.EnergySpectrumView.FitHorizontalScale();
+            }
             return true;
         }
 
