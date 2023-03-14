@@ -185,7 +185,7 @@ namespace BecquerelMonitor
             }
             if (poly_order < 3)
             {
-                return (int) Math.Max(low_boundary, high_boundary);
+                return (int) Math.Max(energySpectrum.Spectrum[low_boundary], energySpectrum.Spectrum[high_boundary]);
             }
             double[] x = new double[high_boundary - low_boundary + 1];
             double[] y = new double[high_boundary - low_boundary + 1];
