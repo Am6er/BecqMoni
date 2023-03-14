@@ -176,13 +176,17 @@ namespace BecquerelMonitor
             }
             int low_boundary = centroid - fwhm;
             int high_boundary = centroid + fwhm;
-            int poly_order = 8;
-            if (high_boundary - low_boundary + 1 < 9)
-            {
-                poly_order = 2 * fwhm;
-            }
             if (low_boundary < 0) low_boundary = 0;
             if (high_boundary > energySpectrum.NumberOfChannels) high_boundary = energySpectrum.NumberOfChannels - 1;
+            int poly_order = 8;
+            if (high_boundary - low_boundary < 8)
+            {
+                poly_order = high_boundary - low_boundary;
+            }
+            if (poly_order < 3)
+            {
+                return (int) Math.Max(low_boundary, high_boundary);
+            }
             double[] x = new double[high_boundary - low_boundary + 1];
             double[] y = new double[high_boundary - low_boundary + 1];
             for (int j = 0; j < high_boundary - low_boundary + 1; j++)
