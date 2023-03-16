@@ -83,7 +83,7 @@ namespace BecquerelMonitor.Utils
                 this.MainSpectrum.ActiveResultData.ResultDataStatus.TotalTime += docenergySpectrum.ActiveResultData.ResultDataStatus.TotalTime;
             } else
             {
-                System.Windows.Forms.MessageBox.Show(Resources.CombineIncorrectChannels);
+               MessageBox.Show(Resources.CombineIncorrectChannels);
             }
 
             return this.MainSpectrum;
@@ -388,8 +388,8 @@ namespace BecquerelMonitor.Utils
             newSpectrum.NumberOfChannels = newChan;
             newSpectrum.Spectrum = ConcatArray(energySpectrum.Spectrum, newChan);
             newSpectrum.MeasurementTime = energySpectrum.MeasurementTime;
-            newSpectrum.TotalPulseCount = newSpectrum.Spectrum.Sum();
-            newSpectrum.ValidPulseCount = newSpectrum.TotalPulseCount;
+            newSpectrum.TotalPulseCount = energySpectrum.TotalPulseCount;
+            newSpectrum.ValidPulseCount = energySpectrum.ValidPulseCount;
             newSpectrum.NumberOfSamples = energySpectrum.NumberOfSamples;
             return newSpectrum;
         }
@@ -407,8 +407,8 @@ namespace BecquerelMonitor.Utils
             newSpectrum.NumberOfChannels = newChan;
             newSpectrum.Spectrum = RestoreArray(energySpectrum.Spectrum, newChan);
             newSpectrum.MeasurementTime = energySpectrum.MeasurementTime;
-            newSpectrum.TotalPulseCount = newSpectrum.Spectrum.Sum();
-            newSpectrum.ValidPulseCount = newSpectrum.TotalPulseCount;
+            newSpectrum.TotalPulseCount = energySpectrum.TotalPulseCount;
+            newSpectrum.ValidPulseCount = energySpectrum.ValidPulseCount;
             newSpectrum.NumberOfSamples = energySpectrum.NumberOfSamples;
             return newSpectrum;
         }

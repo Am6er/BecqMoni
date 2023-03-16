@@ -171,6 +171,18 @@ namespace BecquerelMonitor
             }
         }
 
+        public ResultDataStatus Clone()
+        {
+            ResultDataStatus newStatus = new ResultDataStatus();
+            newStatus.PresetTime = this.PresetTime;
+            newStatus.TotalTime = this.TotalTime;
+            newStatus.ElapsedTime = this.ElapsedTime;
+            newStatus.AudioVolumeChanged = this.AudioVolumeChanged;
+            newStatus.PreviousVolume = this.PreviousVolume;
+            newStatus.TimeInSamples = this.TimeInSamples;
+            return newStatus;
+        }
+
         // Token: 0x04000759 RID: 1881
         int presetTime = 3600;
 
