@@ -58,6 +58,14 @@
             this.pulses.Clear();
         }
 
+        public PulseCollection Clone()
+        {
+            PulseCollection pulseCollection = new PulseCollection();
+            pulseCollection.Format = this.Format;
+            pulseCollection.Pulses = this.Pulses;
+            return pulseCollection;
+        }
+
         // Token: 0x040000A5 RID: 165
         PulseData pulses = new PulseData();
 

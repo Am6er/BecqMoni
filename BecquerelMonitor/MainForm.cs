@@ -1202,16 +1202,15 @@ namespace BecquerelMonitor
                 }
                 this.activeDocument.ActiveResultData.BackgroundSpectrumFile = docEnergySpectrum.ActiveResultData.BackgroundSpectrumFile;
             }
-            this.activeDocument.ActiveResultData.ResultDataStatus = docEnergySpectrum.ActiveResultData.ResultDataStatus;
+            this.activeDocument.ActiveResultData.ResultDataStatus = docEnergySpectrum.ActiveResultData.ResultDataStatus.Clone();
             this.activeDocument.ActiveResultData.PresetTime = docEnergySpectrum.ActiveResultData.PresetTime;
             this.activeDocument.ActiveResultData.EndTime = docEnergySpectrum.ActiveResultData.EndTime;
-            this.activeDocument.ActiveResultData.PulseCollection = docEnergySpectrum.ActiveResultData.PulseCollection;
+            this.activeDocument.ActiveResultData.PulseCollection = docEnergySpectrum.ActiveResultData.PulseCollection.Clone();
             this.activeDocument.ActiveResultData.SampleInfo = docEnergySpectrum.ActiveResultData.SampleInfo;
             this.activeDocument.ActiveResultData.StartTime = docEnergySpectrum.ActiveResultData.StartTime;
 
             this.activeDocument.Dirty = true;
             this.UpdateAllView();
-            return;
         }
 
         // Token: 0x06000A75 RID: 2677 RVA: 0x0003E3E8 File Offset: 0x0003C5E8
@@ -2199,10 +2198,10 @@ namespace BecquerelMonitor
                     this.activeDocument.ActiveResultData.BackgroundEnergySpectrum = SpectrumAriphmetics.Cutoff(docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum, isEnergy: isEnergy, energyVal: energyVal, channel: channel);
                 }
             }
-            this.activeDocument.ActiveResultData.ResultDataStatus = docEnergySpectrum.ActiveResultData.ResultDataStatus;
+            this.activeDocument.ActiveResultData.ResultDataStatus = docEnergySpectrum.ActiveResultData.ResultDataStatus.Clone();
             this.activeDocument.ActiveResultData.PresetTime = docEnergySpectrum.ActiveResultData.PresetTime;
             this.activeDocument.ActiveResultData.EndTime = docEnergySpectrum.ActiveResultData.EndTime;
-            this.activeDocument.ActiveResultData.PulseCollection = docEnergySpectrum.ActiveResultData.PulseCollection;
+            this.activeDocument.ActiveResultData.PulseCollection = docEnergySpectrum.ActiveResultData.PulseCollection.Clone();
             this.activeDocument.ActiveResultData.SampleInfo = docEnergySpectrum.ActiveResultData.SampleInfo;
             this.activeDocument.ActiveResultData.StartTime = docEnergySpectrum.ActiveResultData.StartTime;
 
@@ -2212,7 +2211,6 @@ namespace BecquerelMonitor
             {
                 this.activeDocument.EnergySpectrumView.FitHorizontalScale();
             }
-            return;
         }
 
         // Token: 0x06000AA1 RID: 2721 RVA: 0x0003F7A4 File Offset: 0x0003D9A4
