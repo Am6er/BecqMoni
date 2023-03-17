@@ -388,8 +388,9 @@ namespace BecquerelMonitor.Utils
             newSpectrum.NumberOfChannels = newChan;
             newSpectrum.Spectrum = ConcatArray(energySpectrum.Spectrum, newChan);
             newSpectrum.MeasurementTime = energySpectrum.MeasurementTime;
-            newSpectrum.TotalPulseCount = energySpectrum.TotalPulseCount;
-            newSpectrum.ValidPulseCount = energySpectrum.ValidPulseCount;
+            newSpectrum.TotalPulseCount = newSpectrum.Spectrum.Sum();
+            double newValidPulseCount = (double)newSpectrum.TotalPulseCount * (double)energySpectrum.ValidPulseCount / (double)energySpectrum.TotalPulseCount;
+            newSpectrum.ValidPulseCount = (int)newValidPulseCount;
             newSpectrum.NumberOfSamples = energySpectrum.NumberOfSamples;
             return newSpectrum;
         }
@@ -407,8 +408,9 @@ namespace BecquerelMonitor.Utils
             newSpectrum.NumberOfChannels = newChan;
             newSpectrum.Spectrum = RestoreArray(energySpectrum.Spectrum, newChan);
             newSpectrum.MeasurementTime = energySpectrum.MeasurementTime;
-            newSpectrum.TotalPulseCount = energySpectrum.TotalPulseCount;
-            newSpectrum.ValidPulseCount = energySpectrum.ValidPulseCount;
+            newSpectrum.TotalPulseCount = newSpectrum.Spectrum.Sum();
+            double newValidPulseCount = (double)newSpectrum.TotalPulseCount * (double)energySpectrum.ValidPulseCount / (double)energySpectrum.TotalPulseCount;
+            newSpectrum.ValidPulseCount = (int)newValidPulseCount;
             newSpectrum.NumberOfSamples = energySpectrum.NumberOfSamples;
             return newSpectrum;
         }
