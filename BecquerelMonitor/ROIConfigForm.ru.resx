@@ -1120,16 +1120,16 @@
     <value>№ прим.</value>
   </data>
   <data name="textColumn4.Text" xml:space="preserve">
-    <value>メソッド</value>
+    <value>Метод</value>
   </data>
   <data name="textColumn5.Text" xml:space="preserve">
-    <value>演算</value>
+    <value>Арифм. операции</value>
   </data>
   <data name="textColumn6.Text" xml:space="preserve">
-    <value>領域</value>
+    <value>Площадь</value>
   </data>
   <data name="textColumn7.Text" xml:space="preserve">
-    <value>備考</value>
+    <value>Заметки</value>
   </data>
   <data name="textColumn8.Text" xml:space="preserve">
     <value>Тип</value>

@@ -244,10 +244,10 @@
     <value>7</value>
   </data>
   <data name="comboBox1.Items" xml:space="preserve">
-    <value>加算</value>
+    <value>Добавление</value>
   </data>
   <data name="comboBox1.Items1" xml:space="preserve">
-    <value>減算</value>
+    <value>Вычитание</value>
   </data>
   <data name="label1.Text" xml:space="preserve">
     <value>Операция</value>
