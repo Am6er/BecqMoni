@@ -337,7 +337,7 @@
     <value>14, 15</value>
   </data>
   <data name="comboBox1.Items" xml:space="preserve">
-    <value>加算</value>
+    <value>Addition</value>
   </data>
   <data name="doubleTextBox3.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
     <value>Right</value>
@@ -346,7 +346,7 @@
     <value>10</value>
   </data>
   <data name="comboBox1.Items1" xml:space="preserve">
-    <value>減算</value>
+    <value>Substraction</value>
   </data>
   <data name="doubleTextBox2.Location" type="System.Drawing.Point, System.Drawing">
     <value>387, 37</value>
