@@ -3446,7 +3446,7 @@ namespace BecquerelMonitor
             int num = base.Width - this.left - this.vScrollBar1.Width;
             if (this.globalConfigManager.GlobalConfig.ChartViewConfig.DefaultHorizontalMagnification == HorizontalMagnification.Equal)
             {
-                this.horizontalScale = 1.0;
+                this.horizontalScale = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.HorizontalScale;
             }
             else
             {
