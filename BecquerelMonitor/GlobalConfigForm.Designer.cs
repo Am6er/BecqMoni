@@ -76,6 +76,7 @@
 			this.numericUpDown8 = new global::System.Windows.Forms.NumericUpDown();
 			this.numericUpDown9 = new global::System.Windows.Forms.NumericUpDown();
             this.numericUpDown13 = new global::System.Windows.Forms.NumericUpDown();
+            this.numericUpDown14 = new global::System.Windows.Forms.NumericUpDown();
             this.label58 = new global::System.Windows.Forms.Label();
 			this.label59 = new global::System.Windows.Forms.Label();
 			this.label60 = new global::System.Windows.Forms.Label();
@@ -421,9 +422,16 @@
 			this.groupBox1.Controls.Add(this.label3);
 			this.groupBox1.Controls.Add(this.label2);
 			this.groupBox1.Controls.Add(this.label1);
-			this.groupBox1.Name = "groupBox1";
+            this.groupBox1.Controls.Add(this.numericUpDown14);
+            this.groupBox1.Name = "groupBox1";
 			this.groupBox1.TabStop = false;
-			componentResourceManager.ApplyResources(this.comboBox10, "comboBox10");
+            componentResourceManager.ApplyResources(this.numericUpDown14, "numericUpDown14");
+            this.numericUpDown14.Name = "numericUpDown14";
+			this.numericUpDown14.Minimum = 0.000001m;
+            this.numericUpDown14.Maximum = 10000000;
+            this.numericUpDown14.Increment = 0.1m;
+			this.numericUpDown14.DecimalPlaces = 4;
+            componentResourceManager.ApplyResources(this.comboBox10, "comboBox10");
 			this.comboBox10.DropDownStyle = global::System.Windows.Forms.ComboBoxStyle.DropDownList;
 			this.comboBox10.FormattingEnabled = true;
 			this.comboBox10.Items.AddRange(new object[]
@@ -432,6 +440,7 @@
 				componentResourceManager.GetString("comboBox10.Items1")
 			});
 			this.comboBox10.Name = "comboBox10";
+            this.comboBox10.SelectedIndexChanged += ComboBox10_SelectedIndexChanged;
 			componentResourceManager.ApplyResources(this.label43, "label43");
 			this.label43.Name = "label43";
 			componentResourceManager.ApplyResources(this.label39, "label39");
@@ -1185,8 +1194,8 @@
 			base.ResumeLayout(false);
 		}
 
-		// Token: 0x040005F5 RID: 1525
-		global::System.ComponentModel.IContainer components;
+        // Token: 0x040005F5 RID: 1525
+        global::System.ComponentModel.IContainer components;
 
 		// Token: 0x040005F6 RID: 1526
 		global::System.Windows.Forms.CheckBox checkBox1;
@@ -1784,5 +1793,7 @@
 
 		// Token: 0x040006B3 RID: 1715
 		global::System.Windows.Forms.Button button7;
+
+		global::System.Windows.Forms.NumericUpDown numericUpDown14;
 	}
 }

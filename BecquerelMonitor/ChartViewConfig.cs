@@ -294,6 +294,18 @@
             }
         }
 
+        public double HorizontalScale
+        {
+            get
+            {
+                return this.horizontalScale;
+            }
+            set
+            {
+                this.horizontalScale = value;
+            }
+        }
+
         // Token: 0x040008CC RID: 2252
         VerticalUnit defaultVerticalUnit;
 
@@ -348,7 +360,7 @@
 
         decimal energyPercent = 1;
 
-
+        double horizontalScale = 1.0;
 
         // Token: 0x040008DC RID: 2268
         MagnificationReference magnificationReference;

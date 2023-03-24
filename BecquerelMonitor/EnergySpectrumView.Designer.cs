@@ -3537,7 +3537,7 @@ namespace BecquerelMonitor
         EnergyCalibration baseEnergyCalibration;
 
         // Token: 0x040001FF RID: 511
-        double horizontalScale = 1.0;
+        double horizontalScale = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.HorizontalScale;
 
         // Token: 0x04000200 RID: 512
         double verticalScale = 1.0;
