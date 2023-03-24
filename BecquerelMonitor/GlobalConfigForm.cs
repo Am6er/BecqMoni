@@ -82,6 +82,7 @@ namespace BecquerelMonitor
             this.numericUpDown13.Value = (int)globalConfig.ChartViewConfig.CountLimit;
             this.numericUpDown3.Value = globalConfig.ChartViewConfig.ChartRefreshCycle;
             this.numericUpDown10.Value = (int)globalConfig.AutosavePeriod;
+            this.numericUpDown14.Value = (decimal)globalConfig.ChartViewConfig.HorizontalScale;
             this.comboBox11.SelectedIndex = (int)globalConfig.ChartViewConfig.MagnificationReference;
             EasyControlConfig easyControlConfig = globalConfig.EasyControlConfig;
             bool flag = false;
@@ -241,6 +242,7 @@ namespace BecquerelMonitor
             globalConfig.MeasurementConfig.ShowValuesForNDResult = this.checkBox2.Checked;
             globalConfig.DoSaveRawPulseData = this.checkBox1.Checked;
             globalConfig.AutosavePeriod = (int)this.numericUpDown10.Value;
+            globalConfig.ChartViewConfig.HorizontalScale = (double)this.numericUpDown14.Value;
         }
 
         // Token: 0x06000AC7 RID: 2759 RVA: 0x00041060 File Offset: 0x0003F260
@@ -272,6 +274,17 @@ namespace BecquerelMonitor
             this.SaveFormContents(globalConfig);
             this.mainForm.RefreshAllView();
             base.Close();
+        }
+
+        void ComboBox10_SelectedIndexChanged(object sender, System.EventArgs e)
+        {
+            if ((HorizontalMagnification)comboBox10.SelectedIndex == HorizontalMagnification.Equal)
+            {
+                numericUpDown14.Enabled = true;
+            } else
+            {
+                numericUpDown14.Enabled = false;
+            }
         }
 
         // Token: 0x06000ACA RID: 2762 RVA: 0x00041164 File Offset: 0x0003F364
