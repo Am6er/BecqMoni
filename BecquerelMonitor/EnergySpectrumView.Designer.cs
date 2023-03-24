@@ -448,7 +448,6 @@ namespace BecquerelMonitor
             ((Bitmap)this.button4.Image).MakeTransparent();
             this.hScrollBar1.Visible = true;
             this.vScrollBar1.Visible = true;
-            this.textBox1.Text = this.horizontalScale.ToString();
         }
 
         // Token: 0x060004AD RID: 1197 RVA: 0x00016630 File Offset: 0x00014830
@@ -3444,6 +3443,7 @@ namespace BecquerelMonitor
         public void SetDefaultHorizontalScale()
         {
             int num = base.Width - this.left - this.vScrollBar1.Width;
+
             if (this.globalConfigManager.GlobalConfig.ChartViewConfig.DefaultHorizontalMagnification == HorizontalMagnification.Equal)
             {
                 this.horizontalScale = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.HorizontalScale;
@@ -3456,6 +3456,7 @@ namespace BecquerelMonitor
                 this.hScrollBar1.Maximum = maximum;
                 this.hScrollBar1.Value = 0;
             }
+            this.textBox1.Text = this.horizontalScale.ToString();
             this.PrepareViewData();
             this.RecalcScrollBar();
             base.Invalidate();
@@ -3537,7 +3538,7 @@ namespace BecquerelMonitor
         EnergyCalibration baseEnergyCalibration;
 
         // Token: 0x040001FF RID: 511
-        double horizontalScale = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.HorizontalScale;
+        double horizontalScale = 1.0;
 
         // Token: 0x04000200 RID: 512
         double verticalScale = 1.0;
