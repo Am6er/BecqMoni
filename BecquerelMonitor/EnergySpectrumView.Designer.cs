@@ -2412,7 +2412,13 @@ namespace BecquerelMonitor
                                 }
                                 decimal d2 = (decimal)Math.Pow(10.0, num5 - 1.0);
                                 decimal num6 = (decimal)((-this.scrollBaseY - (double)this.scrollY) / this.verticalScale / (double)this.height * this.valueRange + this.totalMinValue);
-                                num6 = Math.Floor(num6 / d2) * d2;
+                                if (d2 == 0)
+                                {
+                                    num6 = 0;
+                                } else
+                                {
+                                    num6 = Math.Floor(num6 / d2) * d2;
+                                }
                                 double num7 = ((double)this.height - this.scrollBaseY - (double)this.scrollY) / this.verticalScale / (double)this.height * this.valueRange + this.totalMinValue;
                                 while ((double)num6 <= num7)
                                 {
