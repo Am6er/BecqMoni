@@ -30,7 +30,7 @@ namespace BecquerelMonitor
             {
                 this.font = new Font(base.Font.FontFamily, 8f);
             }
-            if (cell != null && !(bool)cell.Tag)
+            if (cell.Tag != null && !(bool)cell.Tag)
             {
                 Rectangle clientRectangle = this.ClientRectangle;
                 clientRectangle.X += 2;
