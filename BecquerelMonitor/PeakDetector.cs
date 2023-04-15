@@ -37,7 +37,7 @@ namespace BecquerelMonitor
 
 
             List<Peak> peaks = new List<Peak>();
-            if (energySpectrum.Spectrum.Sum() == 0)
+            if (energySpectrum.TotalPulseCount == 0)
             {
                 return peaks;
             }
