@@ -515,7 +515,7 @@ namespace BecquerelMonitor
 
                         for (int i = 0; i < coefficients.Length; i++)
                         {
-                            coefficients[i] = XmlConvert.ToDouble(streamReader.ReadLine());
+                            coefficients[i] = XmlConvert.ToDouble(streamReader.ReadLine().Replace(',', '.'));
                         }
 
                         for (int i = 0; i < energySpectrum.Spectrum.Length; i++)
