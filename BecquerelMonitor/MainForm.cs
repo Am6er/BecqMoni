@@ -118,13 +118,12 @@ namespace BecquerelMonitor
                 base.Close();
                 return;
             }
-            if (this.globalConfig.Language != "OS")
-            {
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(this.globalConfig.Language);
-                System.Globalization.CultureInfo customCulture = (System.Globalization.CultureInfo)System.Threading.Thread.CurrentThread.CurrentCulture.Clone();
-                customCulture.NumberFormat.NumberDecimalSeparator = ".";
-                System.Threading.Thread.CurrentThread.CurrentCulture = customCulture;
-            }
+            //CustomCulture
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(this.globalConfig.Language);
+            System.Globalization.CultureInfo customCulture = (System.Globalization.CultureInfo)System.Threading.Thread.CurrentThread.CurrentCulture.Clone();
+            customCulture.NumberFormat.NumberDecimalSeparator = ".";
+            System.Threading.Thread.CurrentThread.CurrentCulture = customCulture;
+
             DeviceType.InitializeDeviceTypes();
             ThermometerType.InitializeThermometerTypes();
             ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
