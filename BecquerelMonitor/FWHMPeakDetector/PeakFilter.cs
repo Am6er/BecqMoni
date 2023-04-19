@@ -240,24 +240,6 @@ namespace BecquerelMonitor.FWHMPeakDetector
         }
 
         /// <summary>
-        /// Low CPU cost "nasty hack" replacement of Math.Exp function.
-        /// </summary>
-        double exp(double x)
-        {
-            if (x < -15.0) return 0.0;
-
-            double result = 1.0;
-            double term = 1.0;
-
-            for (int i = 1; i <= 50; i++)
-            {
-                term *= x / i;
-                result += term;
-            }
-            return result;
-        }
-
-        /// <summary>
         /// Gaussian function.
         /// </summary>
         /// <param name="x"></param>
@@ -267,7 +249,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
         public double gaussian0 (double x, double mean, double sigma)
         {
             double z = (x - mean) / sigma;
-            return exp(-z * z / 2.0);
+            return Math.Exp(-z * z / 2.0);
         }
 
         /// <summary>
