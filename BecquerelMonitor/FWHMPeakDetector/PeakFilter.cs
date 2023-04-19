@@ -244,12 +244,12 @@ namespace BecquerelMonitor.FWHMPeakDetector
         /// </summary>
         double exp(double x)
         {
-            if (x < -15.0) return 0;
+            if (x < -15.0) return 0.0;
 
             double result = 1.0;
             double term = 1.0;
 
-            for (int i = 1; i <= 40; i++)
+            for (int i = 1; i <= 50; i++)
             {
                 term *= x / i;
                 result += term;
