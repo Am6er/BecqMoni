@@ -66,7 +66,7 @@ namespace BecquerelMonitor
             {
                 return false;
             }
-            for (int i = 0; i < this.polynomialOrder; i++)
+            for (int i = 0; i <= this.polynomialOrder; i++)
             {
                 if (this.coefficients[i] != polynomialEnergyCalibration.coefficients[i])
                 {
