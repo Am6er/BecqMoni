@@ -581,6 +581,7 @@ namespace BecquerelMonitor
             this.doubleTextBox4.Text = roi.BecquerelCoefficientError.ToString();
             this.doubleTextBox5.Text = roi.PeakEnergy.ToString();
             this.doubleTextBox6.Text = roi.HalfLife.ToString();
+            this.doubleTextBox7.Text = roi.Intencity.ToString();
             this.doubleTextBox1.Text = roi.LowerLimit.ToString();
             this.doubleTextBox2.Text = roi.UpperLimit.ToString();
             this.colorComboBox1.SelectedColor = roi.Color.Color;
@@ -721,6 +722,7 @@ namespace BecquerelMonitor
                 roi.BecquerelCoefficientError = double.Parse(this.doubleTextBox4.Text);
                 roi.PeakEnergy = double.Parse(this.doubleTextBox5.Text);
                 roi.HalfLife = double.Parse(this.doubleTextBox6.Text);
+                roi.Intencity = double.Parse(this.doubleTextBox7.Text);
                 roi.LowerLimit = double.Parse(this.doubleTextBox1.Text);
                 roi.UpperLimit = double.Parse(this.doubleTextBox2.Text);
                 roi.Color.Color = this.colorComboBox1.SelectedColor;
@@ -896,6 +898,16 @@ namespace BecquerelMonitor
                 return;
             }
             this.activeROIDefinition.HalfLife = this.doubleTextBox6.GetValue();
+            this.SetActiveROIConfigDirty();
+        }
+
+        void doubleTextBox7_TextChanged(object sender, EventArgs e)
+        {
+            if (this.contentsLoading)
+            {
+                return;
+            }
+            this.activeROIDefinition.Intencity = this.doubleTextBox7.GetValue();
             this.SetActiveROIConfigDirty();
         }
 

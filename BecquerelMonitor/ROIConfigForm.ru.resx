@@ -1134,4 +1134,7 @@
   <data name="textColumn8.Text" xml:space="preserve">
     <value>Тип</value>
   </data>
+  <data name="label26.Text" xml:space="preserve">
+    <value>Интенсивность %</value>
+  </data>
 </root>

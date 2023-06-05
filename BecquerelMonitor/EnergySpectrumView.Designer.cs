@@ -1307,6 +1307,7 @@ namespace BecquerelMonitor
                         g.PixelOffsetMode = PixelOffsetMode.Default;
                     }
                 }
+                this.ShowROIReferencePeak(g);
             }
             this.ShowStopwatch(g);
             if (this.drawingMode == DrawingMode.HighDefinition)
@@ -1868,6 +1869,72 @@ namespace BecquerelMonitor
                         goto IL_14D;
                     }
                 }
+            }
+        }
+
+        void ShowROIReferencePeak(Graphics g)
+        {
+            if (this.roiConfig == null)
+            {
+                return;
+            }
+
+            List<double> intencityScale = new List<double>();
+
+            foreach (ROIDefinitionData roidefinitionData in this.roiConfig.ROIDefinitions)
+            {
+                if (roidefinitionData.Enabled && (roidefinitionData.Intencity < 100.0 || roidefinitionData.Intencity > 0.0))
+                {
+                    intencityScale.Add(roidefinitionData.Intencity);
+                }
+            }
+
+            if (intencityScale.Count == 0)
+            {
+                return;
+            }
+
+            intencityScale.Sort();
+            double intencityMax = intencityScale[intencityScale.Count - 1];
+
+
+            foreach (ROIDefinitionData roidefinitionData in this.roiConfig.ROIDefinitions)
+            {
+                if (roidefinitionData.Enabled)
+                {
+                    if (roidefinitionData.Intencity == 0.0)
+                    {
+                        continue;
+                    }
+                    double referencepeak = roidefinitionData.PeakEnergy;
+                    double intencityscale;
+                    if (this.verticalScaleType == VerticalScaleType.LinearScale)
+                    {
+                        intencityscale = 0.8 * roidefinitionData.Intencity / intencityMax;
+                    } else
+                    {
+                        intencityscale = 0.8 * Math.Log10(roidefinitionData.Intencity) / Math.Log10(intencityMax);
+                    }
+                    
+                    float num;
+                    if (this.horizontalUnit == HorizontalUnit.Channel)
+                    {
+                        try
+                        {
+                            num = (float)(this.energyCalibration.EnergyToChannel(referencepeak, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                        }
+                        catch (OutofChannelException)
+                        {
+                            break;
+                        }
+                    }
+                    num = (float)((referencepeak - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                    if (num > (float)this.left)
+                    {
+                        Pen pen = new Pen(roidefinitionData.Color.Color, 2);
+                        g.DrawLine(pen, num, (float)((1.0 - intencityscale) * (this.height - 1)), num, (float)(this.height - 1));
+                    }
+            }
             }
         }
 

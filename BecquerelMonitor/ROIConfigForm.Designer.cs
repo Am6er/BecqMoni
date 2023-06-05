@@ -45,7 +45,8 @@
 			this.label14 = new global::System.Windows.Forms.Label();
 			this.label20 = new global::System.Windows.Forms.Label();
 			this.label19 = new global::System.Windows.Forms.Label();
-			this.checkBox1 = new global::System.Windows.Forms.CheckBox();
+            this.label26 = new global::System.Windows.Forms.Label();
+            this.checkBox1 = new global::System.Windows.Forms.CheckBox();
 			this.label12 = new global::System.Windows.Forms.Label();
 			this.label10 = new global::System.Windows.Forms.Label();
 			this.label9 = new global::System.Windows.Forms.Label();
@@ -91,7 +92,8 @@
 			this.doubleTextBox2 = new global::BecquerelMonitor.DoubleTextBox();
 			this.doubleTextBox1 = new global::BecquerelMonitor.DoubleTextBox();
 			this.doubleTextBox6 = new global::BecquerelMonitor.DoubleTextBox();
-			this.doubleTextBox4 = new global::BecquerelMonitor.DoubleTextBox();
+            this.doubleTextBox7 = new global::BecquerelMonitor.DoubleTextBox();
+            this.doubleTextBox4 = new global::BecquerelMonitor.DoubleTextBox();
 			this.doubleTextBox3 = new global::BecquerelMonitor.DoubleTextBox();
 			this.textColumn4 = new global::XPTable.Models.TextColumn();
 			this.textColumn5 = new global::XPTable.Models.TextColumn();
@@ -165,8 +167,10 @@
 			this.groupBox1.Controls.Add(this.groupBox3);
 			this.groupBox1.Controls.Add(this.label20);
 			this.groupBox1.Controls.Add(this.label19);
-			this.groupBox1.Controls.Add(this.doubleTextBox6);
-			this.groupBox1.Controls.Add(this.doubleTextBox4);
+            this.groupBox1.Controls.Add(this.label26);
+            this.groupBox1.Controls.Add(this.doubleTextBox6);
+            this.groupBox1.Controls.Add(this.doubleTextBox7);
+            this.groupBox1.Controls.Add(this.doubleTextBox4);
 			this.groupBox1.Controls.Add(this.doubleTextBox3);
 			this.groupBox1.Controls.Add(this.checkBox1);
 			this.groupBox1.Controls.Add(this.label12);
@@ -202,7 +206,9 @@
 			this.label20.Name = "label20";
 			componentResourceManager.ApplyResources(this.label19, "label19");
 			this.label19.Name = "label19";
-			componentResourceManager.ApplyResources(this.checkBox1, "checkBox1");
+            componentResourceManager.ApplyResources(this.label26, "label26");
+            this.label26.Name = "label26";
+            componentResourceManager.ApplyResources(this.checkBox1, "checkBox1");
 			this.checkBox1.Name = "checkBox1";
 			this.checkBox1.UseVisualStyleBackColor = true;
 			this.checkBox1.CheckedChanged += new global::System.EventHandler(this.checkBox1_CheckedChanged);
@@ -397,7 +403,10 @@
 			componentResourceManager.ApplyResources(this.doubleTextBox6, "doubleTextBox6");
 			this.doubleTextBox6.Name = "doubleTextBox6";
 			this.doubleTextBox6.TextChanged += new global::System.EventHandler(this.doubleTextBox6_TextChanged);
-			componentResourceManager.ApplyResources(this.doubleTextBox4, "doubleTextBox4");
+            componentResourceManager.ApplyResources(this.doubleTextBox7, "doubleTextBox7");
+            this.doubleTextBox7.Name = "doubleTextBox7";
+            this.doubleTextBox7.TextChanged += new global::System.EventHandler(this.doubleTextBox7_TextChanged);
+            componentResourceManager.ApplyResources(this.doubleTextBox4, "doubleTextBox4");
 			this.doubleTextBox4.Name = "doubleTextBox4";
 			this.doubleTextBox4.TextChanged += new global::System.EventHandler(this.doubleTextBox4_TextChanged);
 			componentResourceManager.ApplyResources(this.doubleTextBox3, "doubleTextBox3");
@@ -669,11 +678,15 @@
 		// Token: 0x040004F8 RID: 1272
 		global::System.Windows.Forms.Label label19;
 
-		// Token: 0x040004F9 RID: 1273
-		global::BecquerelMonitor.DoubleTextBox doubleTextBox6;
+        global::System.Windows.Forms.Label label26;
 
-		// Token: 0x040004FA RID: 1274
-		global::System.Windows.Forms.GroupBox groupBox3;
+        // Token: 0x040004F9 RID: 1273
+        global::BecquerelMonitor.DoubleTextBox doubleTextBox6;
+
+        global::BecquerelMonitor.DoubleTextBox doubleTextBox7;
+
+        // Token: 0x040004FA RID: 1274
+        global::System.Windows.Forms.GroupBox groupBox3;
 
 		// Token: 0x040004FB RID: 1275
 		global::XPTable.Models.ImageColumn imageColumn1;
