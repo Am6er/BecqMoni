@@ -1911,4 +1911,55 @@
   <data name="&gt;&gt;doubleTextBox5.Parent" xml:space="preserve">
     <value>groupBox3</value>
   </data>
+  <data name="label26.Text" xml:space="preserve">
+    <value>Intencity %</value>
+  </data>
+  <data name="label26.Size" type="System.Drawing.Size, System.Drawing">
+    <value>78, 12</value>
+  </data>
+  <data name="label26.TabIndex" type="System.Int32, mscorlib">
+    <value>37</value>
+  </data>
+  <data name="label26.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="&gt;&gt;label26.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;label26.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="&gt;&gt;label26.Name" xml:space="preserve">
+    <value>label26</value>
+  </data>
+  <data name="&gt;&gt;label26.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="label26.Location" type="System.Drawing.Point, System.Drawing">
+    <value>11, 123</value>
+  </data>
+  <data name="doubleTextBox7.Size" type="System.Drawing.Size, System.Drawing">
+    <value>70, 19</value>
+  </data>
+  <data name="doubleTextBox7.Location" type="System.Drawing.Point, System.Drawing">
+    <value>99, 120</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox7.Name" xml:space="preserve">
+    <value>doubleTextBox7</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox7.Type" xml:space="preserve">
+    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitorPlus, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="doubleTextBox7.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
+    <value>Right</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox7.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;doubleTextBox7.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <data name="doubleTextBox7.TabIndex" type="System.Int32, mscorlib">
+    <value>36</value>
+  </data>
 </root>

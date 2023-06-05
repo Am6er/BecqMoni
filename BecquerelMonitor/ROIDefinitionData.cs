@@ -141,6 +141,18 @@ namespace BecquerelMonitor
             }
         }
 
+        public double Intencity
+        {
+            get
+            {
+                return this.intencity;
+            }
+            set
+            {
+                this.intencity = value;
+            }
+        }
+
         // Token: 0x17000138 RID: 312
         // (get) Token: 0x060002E7 RID: 743 RVA: 0x0000D7D0 File Offset: 0x0000B9D0
         // (set) Token: 0x060002E8 RID: 744 RVA: 0x0000D7D8 File Offset: 0x0000B9D8
@@ -269,6 +281,7 @@ namespace BecquerelMonitor
             this.upperLimit = roi.upperLimit;
             this.color = roi.color;
             this.halfLife = roi.halfLife;
+            this.intencity = roi.intencity;
             this.becquerelCoefficient = roi.becquerelCoefficient;
             this.becquerelCoefficientError = roi.becquerelCoefficientError;
             this.note = new CDATA(roi.note);
@@ -309,6 +322,8 @@ namespace BecquerelMonitor
 
         // Token: 0x04000107 RID: 263
         double halfLife;
+
+        double intencity;
 
         // Token: 0x04000108 RID: 264
         double becquerelCoefficient;
