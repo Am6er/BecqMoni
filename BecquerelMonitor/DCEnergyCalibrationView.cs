@@ -470,6 +470,10 @@ namespace BecquerelMonitor
         public void AddCalibration(int channel, decimal energy, int count)
         {
             CalibrationPoint item = new CalibrationPoint(channel, energy, count);
+            foreach (CalibrationPoint point in this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints)
+            {
+                if (point.Equals(item)) return;
+            }
             this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints.Add(item);
             this.multipointModified = true;
             this.calibrationDone = false;
