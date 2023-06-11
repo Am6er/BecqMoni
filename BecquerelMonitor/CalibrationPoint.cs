@@ -52,6 +52,12 @@ namespace BecquerelMonitor
             return this.channel.CompareTo(((CalibrationPoint)obj).Channel);
         }
 
+        public bool Equals(CalibrationPoint other)
+        {
+            if (other.energy == this.energy &&  other.channel == this.channel) return true;
+            return false;
+        }
+
         int channel;
 
         decimal energy;
