@@ -728,7 +728,7 @@ namespace BecquerelMonitor
                 MessageBox.Show(string.Format(Resources.ERRFileSaveFailure, doc.Filename, ex.Message));
                 return false;
             }
-            doc.Dirty = false;
+            doc.Dirty = doc.ActiveResultData.ResultDataStatus.Recording;
             return true;
         }
 
