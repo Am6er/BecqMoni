@@ -102,14 +102,18 @@ namespace BecquerelMonitor
 
         void button12_Click(object sender, EventArgs e)
         {
-            if (this.defaultEnergyCalibration.PolynomialOrder == 4)
+            if (this.defaultEnergyCalibration.PolynomialOrder == 4 && this.energyCalibration.PolynomialOrder == 4)
             {
                 this.energyCalibration.Coefficients[4] = this.defaultEnergyCalibration.Coefficients[4];
                 this.numericUpDown4.Text = this.energyCalibration.Coefficients[4].ToString();
             } else
             {
-                this.energyCalibration.Coefficients[4] = 0;
-                this.numericUpDown4.Text = this.energyCalibration.Coefficients[4].ToString();
+                if (this.energyCalibration.PolynomialOrder == 4)
+                {
+                    this.energyCalibration.Coefficients[4] = 0;
+                }
+                
+                this.numericUpDown4.Text = "0";
             }
             
             this.UpdateEnergyCalibration();
@@ -117,14 +121,17 @@ namespace BecquerelMonitor
 
         void button13_Click(object sender, EventArgs e)
         {
-            if (this.defaultEnergyCalibration.PolynomialOrder >= 3)
+            if (this.defaultEnergyCalibration.PolynomialOrder >= 3 && this.energyCalibration.PolynomialOrder >= 3)
             {
                 this.energyCalibration.Coefficients[3] = this.defaultEnergyCalibration.Coefficients[3];
                 this.numericUpDown5.Text = this.energyCalibration.Coefficients[3].ToString();
             } else
             {
-                this.energyCalibration.Coefficients[3] = 0;
-                this.numericUpDown5.Text = this.energyCalibration.Coefficients[3].ToString();
+                if (this.energyCalibration.PolynomialOrder >= 3)
+                {
+                    this.energyCalibration.Coefficients[3] = 0;
+                }
+                this.numericUpDown5.Text = "0";
             }
             
             this.UpdateEnergyCalibration();
@@ -133,14 +140,17 @@ namespace BecquerelMonitor
         // Token: 0x0600081A RID: 2074 RVA: 0x0002E008 File Offset: 0x0002C208
         void button1_Click(object sender, EventArgs e)
         {
-            if (this.defaultEnergyCalibration.PolynomialOrder >= 2)
+            if (this.defaultEnergyCalibration.PolynomialOrder >= 2 && this.energyCalibration.PolynomialOrder >= 2)
             {
                 this.energyCalibration.Coefficients[2] = this.defaultEnergyCalibration.Coefficients[2];
                 this.numericUpDown1.Text = this.energyCalibration.Coefficients[2].ToString();
             } else
             {
-                this.energyCalibration.Coefficients[2] = 0;
-                this.numericUpDown1.Text = this.energyCalibration.Coefficients[2].ToString();
+                if (this.energyCalibration.PolynomialOrder >= 2)
+                {
+                    this.energyCalibration.Coefficients[2] = 0;
+                }
+                this.numericUpDown1.Text = "0";
             }
             
             this.UpdateEnergyCalibration();
