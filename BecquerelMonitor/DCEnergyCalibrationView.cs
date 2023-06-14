@@ -266,6 +266,7 @@ namespace BecquerelMonitor
         {
             if (e.KeyCode == Keys.Return)
             {
+                double coeffbackup = this.energyCalibration.Coefficients[2];
                 try
                 {
                     double result = fromStringtoDouble(this.numericUpDown1.Text);
@@ -280,7 +281,7 @@ namespace BecquerelMonitor
                 }
                 catch
                 {
-                    this.numericUpDown1.Text = this.energyCalibration.Coefficients[2].ToString();
+                    this.numericUpDown1.Text = coeffbackup.ToString();
                     this.numericUpDown1.ForeColor = Color.Red;
                 }
                 e.SuppressKeyPress = true;
@@ -292,6 +293,7 @@ namespace BecquerelMonitor
         {
             if (e.KeyCode == Keys.Return)
             {
+                double coeffbackup = this.energyCalibration.Coefficients[1];
                 try
                 {
                     double result = fromStringtoDouble(this.numericUpDown2.Text);
@@ -306,7 +308,7 @@ namespace BecquerelMonitor
                 }
                 catch
                 {
-                    this.numericUpDown2.Text = this.energyCalibration.Coefficients[1].ToString();
+                    this.numericUpDown2.Text = coeffbackup.ToString();
                     this.numericUpDown2.ForeColor = Color.Red;
                 }
                 e.SuppressKeyPress = true;
@@ -318,6 +320,7 @@ namespace BecquerelMonitor
         {
             if (e.KeyCode == Keys.Return)
             {
+                double coeffbackup = this.energyCalibration.Coefficients[0];
                 try
                 {
                     double result = fromStringtoDouble(this.numericUpDown3.Text);
@@ -332,7 +335,7 @@ namespace BecquerelMonitor
                 }
                 catch
                 {
-                    this.numericUpDown3.Text = this.energyCalibration.Coefficients[0].ToString();
+                    this.numericUpDown3.Text = coeffbackup.ToString();
                     this.numericUpDown3.ForeColor = Color.Red;
                 }
                 e.SuppressKeyPress = true;
@@ -343,6 +346,7 @@ namespace BecquerelMonitor
         {
             if (e.KeyCode == Keys.Return)
             {
+                double coeffbackup = this.energyCalibration.Coefficients[4];
                 try
                 {
                     double result = fromStringtoDouble(this.numericUpDown4.Text);
@@ -357,7 +361,7 @@ namespace BecquerelMonitor
                 }
                 catch
                 {
-                    this.numericUpDown4.Text = this.energyCalibration.Coefficients[4].ToString();
+                    this.numericUpDown4.Text = coeffbackup.ToString();
                     this.numericUpDown4.ForeColor = Color.Red;
                 }
                 e.SuppressKeyPress = true;
@@ -368,6 +372,7 @@ namespace BecquerelMonitor
         {
             if (e.KeyCode == Keys.Return)
             {
+                double coeffbackup = this.energyCalibration.Coefficients[3];
                 try
                 {
                     double result = fromStringtoDouble(this.numericUpDown5.Text);
@@ -382,7 +387,7 @@ namespace BecquerelMonitor
                 }
                 catch
                 {
-                    this.numericUpDown5.Text = this.energyCalibration.Coefficients[3].ToString();
+                    this.numericUpDown5.Text = coeffbackup.ToString();
                     this.numericUpDown5.ForeColor = Color.Red;
                 }
                 e.SuppressKeyPress = true;
