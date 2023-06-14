@@ -220,7 +220,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The calibration function should be monotonically increasing at channel &gt; 0. Re-check Calibration points!.
+        ///   Looks up a localized string similar to The calibration function should be monotonically increasing at channel &gt; 0. Energies should be in [-100; 10000] keV interval. Re-check Calibration points!.
         /// </summary>
         internal static string CalibrationFunctionError {
             get {
