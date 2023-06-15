@@ -36629,7 +36629,7 @@ http://xptable.sourceforge.net/</value>
     <value>Export N42 file</value>
   </data>
   <data name="CalibrationFunctionError" xml:space="preserve">
-    <value>The calibration function should be monotonically increasing at channel &gt; 0. Energies should be in [-100; 10000] keV interval. Re-check Calibration points!</value>
+    <value>The calibration function should be monotonically increasing at channel &gt; 0. Energies should be in [-100; 12000] keV interval. Re-check Calibration points!</value>
   </data>
   <data name="ERRDeviceMismatchConfiguration" xml:space="preserve">
     <value>Missmatched device configuration: to solve this create new file and use Audio Input device.</value>

@@ -100,7 +100,7 @@ namespace BecquerelMonitor
             for (int i = 1; i <= channels; i++)
             {
                 double prevEnrg = this.ChannelToEnergy(i - 1);
-                if (prevEnrg < -100.0 || prevEnrg > 10000.0) return false;
+                if (prevEnrg <= -100.0 || prevEnrg >= 12000.0) return false;
                 if (prevEnrg > this.ChannelToEnergy(i))
                 {
                     return false;
