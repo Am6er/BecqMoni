@@ -146,7 +146,9 @@ namespace BecquerelMonitor
                 } else
                 {
                     value = EnrgToChannel(enrg, maxCh: maxChannels);
-                    this.energytochanel.Add(enrg, value);
+                    try {
+                        this.energytochanel.Add(enrg, value);
+                    } catch (Exception e) { }
                     return value;
                 }
             }
