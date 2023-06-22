@@ -1,6 +1,7 @@
 ﻿using BecquerelMonitor.Properties;
 using MathNet.Numerics;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Xml.Serialization;
 using WinMM;
@@ -133,10 +134,10 @@ namespace BecquerelMonitor
             
             if (this.dirty || this.energytochanel == null)
             {
-                this.energytochanel = new Dictionary<double, double>();
+                this.energytochanel = new ConcurrentDictionary<double, double>();
                 this.dirty = false;
                 double value = EnrgToChannel(enrg, maxCh: maxChannels);
-                this.energytochanel.Add(enrg, value);
+                this.energytochanel.TryAdd(enrg, value);
                 return value;
             } else
             {
@@ -146,9 +147,7 @@ namespace BecquerelMonitor
                 } else
                 {
                     value = EnrgToChannel(enrg, maxCh: maxChannels);
-                    try {
-                        this.energytochanel.Add(enrg, value);
-                    } catch (Exception e) { }
+                    this.energytochanel.TryAdd(enrg, value);
                     return value;
                 }
             }
@@ -295,6 +294,6 @@ namespace BecquerelMonitor
 
         bool dirty = false;
 
-        Dictionary<double, double> energytochanel = null;
+        ConcurrentDictionary<double, double> energytochanel = null;
     }
 }
