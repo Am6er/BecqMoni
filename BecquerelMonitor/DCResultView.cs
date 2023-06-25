@@ -171,6 +171,7 @@ namespace BecquerelMonitor
                 {
                     Row row2 = (Row)obj;
                     int index = (int)row2.Tag;
+                    if (index >= resultCollection.ResultList.Count) { continue; }
                     MeasurementResult measurementResult2 = resultCollection.ResultList[index];
                     if (measurementResult2.IsValid)
                     {
