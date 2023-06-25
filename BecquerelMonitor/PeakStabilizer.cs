@@ -71,6 +71,13 @@ namespace BecquerelMonitor
             {
                 return;
             }
+            if (polynomialEnergyCalibration.Coefficients.Length < 2)
+            {
+                polynomialEnergyCalibration.PolynomialOrder++;
+                double[] tmp = new double[3];
+                Array.Copy(polynomialEnergyCalibration.Coefficients, tmp, 2);
+                polynomialEnergyCalibration.Coefficients = tmp;
+            }
             if (calibrationPeaks.Count == 1)
             {
                 int channel = calibrationPeaks[0].Channel;
