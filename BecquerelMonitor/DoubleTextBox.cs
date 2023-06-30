@@ -18,7 +18,7 @@ namespace BecquerelMonitor
         // Token: 0x06000BE9 RID: 3049 RVA: 0x00047FBC File Offset: 0x000461BC
         void DoubleTextBox_Validating(object sender, CancelEventArgs e)
         {
-            if (this.Text == "")
+            if (this != null && this.Text == "")
             {
                 this.Text = "0";
             }
