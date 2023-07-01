@@ -76,6 +76,7 @@ namespace BecquerelMonitor
 				double num4 = 100.0;
 				for (int i = 0; i < this.pulseShapeSize; i++)
 				{
+					if (i >= this.pulseShape.Length) break;
 					if (this.pulseShape[i] < num4)
 					{
 						num4 = this.pulseShape[i];
