@@ -25,6 +25,7 @@ namespace BecquerelMonitor
             EnergyResolutionCalculator.result.StartChannel = (double)startChannel;
             EnergyResolutionCalculator.result.EndChannel = (double)endChannel;
             int num = startChannel;
+            if (spectrum.Spectrum.Length <= startChannel) return null;
             double num2 = (double)spectrum.Spectrum[startChannel];
             for (int i = startChannel; i <= endChannel; i++)
             {
