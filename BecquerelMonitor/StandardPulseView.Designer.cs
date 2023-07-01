@@ -99,7 +99,8 @@ namespace BecquerelMonitor
 				float y = (float)(-(float)this.pulseShape[0] * num5 + (double)height / 2.0);
 				for (int j = 1; j < this.pulseShapeSize; j++)
 				{
-					num3 = (float)num + (float)j * (float)width / (float)this.pulseShapeSize;
+                    if (j >= this.pulseShape.Length) break;
+                    num3 = (float)num + (float)j * (float)width / (float)this.pulseShapeSize;
 					num2 = (float)(-(float)this.pulseShape[j] * num5 + (double)height / 2.0);
 					graphics.DrawLine(Pens.Yellow, x, y, num3, num2);
 					x = num3;
