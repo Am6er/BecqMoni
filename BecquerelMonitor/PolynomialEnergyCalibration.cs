@@ -81,19 +81,37 @@ namespace BecquerelMonitor
         {
             if (this.polynomialOrder == 1)
             {
-                if (this.Coefficients[1] == 0)
+                if (this.Coefficients.Length != 2 || this.Coefficients[1] == 0)
                 {
                     return false;
                 }
             }
             if (this.polynomialOrder == 2)
             {
+                if (this.Coefficients.Length != 3 || this.Coefficients[2] == 0)
+                {
+                    return false;
+                }
                 double c = this.Coefficients[0];
                 double b = this.Coefficients[1];
                 double a = this.Coefficients[2];
                 double discriminant = Math.Pow(b, 2.0) - 4.0 * a * c;
 
                 if (discriminant < 0)
+                {
+                    return false;
+                }
+            }
+            if (this.polynomialOrder == 3)
+            {
+                if (this.Coefficients.Length != 4 || this.Coefficients[3] == 0)
+                {
+                    return false;
+                }
+            }
+            if (this.polynomialOrder == 4)
+            {
+                if (this.Coefficients.Length != 5 || this.Coefficients[4] == 0)
                 {
                     return false;
                 }
