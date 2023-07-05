@@ -626,6 +626,9 @@ http://xptable.sourceforge.net/</value>
   <data name="ResetCalibrationQuestion" xml:space="preserve">
     <value>Вопрос по сбросу калибровки</value>
   </data>
+  <data name="ResetCalibrationToDeviceSettingsConflict" xml:space="preserve">
+    <value>Калибровка прибора полином {0} порядка. Калибровка спектра полином {1} порядка. Вы хотите сбросить всю калибровку спектра в калибровку устройства?</value>
+  </data>
   <data name="RestartRequiredMessage" xml:space="preserve">
     <value>Перезагрузите приложение для применения настроек.</value>
   </data>
