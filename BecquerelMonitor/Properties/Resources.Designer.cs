@@ -1979,6 +1979,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Device calibration is polynom order {0}. Spectrum calibration is polynom order {1}. Do you want to reset whole calibration points to device calibration?.
+        /// </summary>
+        internal static string ResetCalibrationToDeviceSettingsConflict {
+            get {
+                return ResourceManager.GetString("ResetCalibrationToDeviceSettingsConflict", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Restart application to apply settings..
         /// </summary>
         internal static string RestartRequiredMessage {

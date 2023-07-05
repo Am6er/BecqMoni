@@ -36906,4 +36906,7 @@ see peak in spectrum now).</value>
   <data name="ERRVCPComPortsNumeration" xml:space="preserve">
     <value>Error while look ANY COM port in OS. OS returns emtpy list. Now program sets port from device config file, but you shuld check what's happend with your USB system hub.</value>
   </data>
+  <data name="ResetCalibrationToDeviceSettingsConflict" xml:space="preserve">
+    <value>Device calibration is polynom order {0}. Spectrum calibration is polynom order {1}. Do you want to reset whole calibration points to device calibration?</value>
+  </data>
 </root>
