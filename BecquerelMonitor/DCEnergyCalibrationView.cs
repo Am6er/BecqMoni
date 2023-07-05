@@ -119,6 +119,7 @@ namespace BecquerelMonitor
                 if (this.ResetCalibrationDialog())
                 {
                     this.energyCalibration = (PolynomialEnergyCalibration)this.defaultEnergyCalibration.Clone();
+                    SetEnergyCalibration(energyCalibration, defaultEnergyCalibration);
                 } else
                 {
                     return;
@@ -139,6 +140,7 @@ namespace BecquerelMonitor
                 if (this.ResetCalibrationDialog())
                 {
                     this.energyCalibration = (PolynomialEnergyCalibration)this.defaultEnergyCalibration.Clone();
+                    SetEnergyCalibration(energyCalibration, defaultEnergyCalibration);
                 }
                 else
                 {
@@ -161,6 +163,7 @@ namespace BecquerelMonitor
                 if (this.ResetCalibrationDialog())
                 {
                     this.energyCalibration = (PolynomialEnergyCalibration)this.defaultEnergyCalibration.Clone();
+                    SetEnergyCalibration(energyCalibration, defaultEnergyCalibration);
                 }
                 else
                 {
