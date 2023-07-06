@@ -46,8 +46,8 @@ namespace BecquerelMonitor
 
         public PolynomialEnergyCalibration()
         {
-            this.polynomialOrder = 2;
-            double[] array = new double[3];
+            this.polynomialOrder = 1;
+            double[] array = new double[2];
             array[1] = 1.0;
             this.coefficients = array;
         }
