@@ -35,8 +35,8 @@
     <MinimumRequiredVersion>2022.07.08.7</MinimumRequiredVersion>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
-    <ApplicationRevision>1</ApplicationRevision>
-    <ApplicationVersion>2023.07.07.1</ApplicationVersion>
+    <ApplicationRevision>3</ApplicationRevision>
+    <ApplicationVersion>2023.07.07.3</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -63,10 +63,10 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestCertificateThumbprint>AAB7C25FEA82F8D1E789FA0557C86B3AC24B0594</ManifestCertificateThumbprint>
+    <ManifestCertificateThumbprint>90015D81427BDBE22BB0BAB26C0EB18DABF81EC1</ManifestCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestKeyFile>BecquerelMonitor_TemporaryKey.pfx</ManifestKeyFile>
+    <ManifestKeyFile>BecquerelMonitor_1_TemporaryKey.pfx</ManifestKeyFile>
   </PropertyGroup>
   <PropertyGroup>
     <GenerateManifests>true</GenerateManifests>
@@ -1062,6 +1062,7 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <None Include="BecquerelMonitor_1_TemporaryKey.pfx" />
     <None Include="Resources\CONT.bmp" />
     <None Include="Resources\SUB.bmp" />
     <None Include="Resources\attach.png" />
