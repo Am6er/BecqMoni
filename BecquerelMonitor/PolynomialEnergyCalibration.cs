@@ -96,8 +96,9 @@ namespace BecquerelMonitor
                 double b = this.Coefficients[1];
                 double a = this.Coefficients[2];
                 double discriminant = Math.Pow(b, 2.0) - 4.0 * a * c;
+                double discriminant2 = Math.Pow(b, 2.0) - 4.0 * a * (c - 12000.0);
 
-                if (discriminant < 0)
+                if (discriminant < 0 || discriminant2 < 0)
                 {
                     return false;
                 }
@@ -195,7 +196,8 @@ namespace BecquerelMonitor
                 {
                     if (b == 0.0)
                     {
-                        throw new Exception(Resources.CalibrationFunctionError);
+                        System.Windows.Forms.MessageBox.Show(Resources.CalibrationFunctionError);
+                        return 0;
                     }
                     return -c / b;
                 }
@@ -204,7 +206,8 @@ namespace BecquerelMonitor
                     double discriminant = Math.Pow(b, 2.0) - 4.0 * a * c;
                     if (discriminant < 0.0)
                     {
-                        throw new Exception(Resources.CalibrationFunctionError);
+                        System.Windows.Forms.MessageBox.Show(Resources.CalibrationFunctionError);
+                        return 0;
                     }
                     return (-b + Math.Sqrt(discriminant)) / (2.0 * a);
                 }
