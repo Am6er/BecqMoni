@@ -107,6 +107,7 @@ namespace BecquerelMonitor
                 foreach (ResultData data in resultDataFile.ResultDataList)
                 {
                     //Check Spectrum
+                    if (data.EnergySpectrum.Spectrum == null) return false;
                     if (data.EnergySpectrum.Spectrum.Length != data.EnergySpectrum.NumberOfChannels)
                     {
                         data.EnergySpectrum.NumberOfChannels = data.EnergySpectrum.Spectrum.Length;
@@ -140,6 +141,17 @@ namespace BecquerelMonitor
                     if (data.BackgroundEnergySpectrum != null)
                     {
                         //Check Spectrum
+                        if (data.BackgroundEnergySpectrum.Spectrum == null)
+                        {
+                            if (doCorrections)
+                            {
+                                data.BackgroundEnergySpectrum = null;
+                                continue;
+                            } else
+                            {
+                                return false;
+                            }
+                        }
                         if (data.BackgroundEnergySpectrum.Spectrum.Length != data.BackgroundEnergySpectrum.NumberOfChannels)
                         {
                             data.BackgroundEnergySpectrum.NumberOfChannels = data.BackgroundEnergySpectrum.Spectrum.Length;
