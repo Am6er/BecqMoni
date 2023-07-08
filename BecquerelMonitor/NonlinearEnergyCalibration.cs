@@ -38,5 +38,10 @@ namespace BecquerelMonitor
         {
             return new NonlinearEnergyCalibration(this);
         }
+
+        public override EnergyCalibration Downgrade(int p)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

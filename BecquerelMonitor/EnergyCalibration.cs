@@ -12,6 +12,8 @@
         // Token: 0x06000721 RID: 1825
         public abstract EnergyCalibration Clone();
 
+        public abstract EnergyCalibration Downgrade(int p);
+
         // Token: 0x06000722 RID: 1826
         public abstract bool Equals(EnergyCalibration calib);
     }

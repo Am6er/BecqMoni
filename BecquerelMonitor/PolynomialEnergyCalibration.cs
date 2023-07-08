@@ -129,6 +129,19 @@ namespace BecquerelMonitor
             return true;
         }
 
+        public override EnergyCalibration Downgrade(int polynomialOrder)
+        {
+            PolynomialEnergyCalibration p = (PolynomialEnergyCalibration)this.Clone();
+            p.PolynomialOrder = polynomialOrder;
+            double[] c = new double[polynomialOrder + 1];
+            for (int i = 0; i < c.Length; i++)
+            {
+                c[i] = this.Coefficients[i];
+            }
+            p.Coefficients = c;
+            return p;
+        }
+
         // Token: 0x06000733 RID: 1843 RVA: 0x00029DD4 File Offset: 0x00027FD4
         public override double ChannelToEnergy(double n)
         {
