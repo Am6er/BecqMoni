@@ -130,7 +130,27 @@ namespace BecquerelMonitor
                     {
                         if (doCorrections)
                         {
-                            data.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
+                            int zerosCount = 0;
+                            for (int i = pol.Coefficients.Length - 1; i >= 0; i--)
+                            {
+                                if(pol.Coefficients[i] == 0.0)
+                                {
+                                    zerosCount++;
+                                } else
+                                {
+                                    break;
+                                }
+                            }
+                            if (zerosCount > pol.Coefficients.Length - 2)
+                            {
+                                data.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
+                            } else if (zerosCount == 1)
+                            {
+                                data.EnergySpectrum.EnergyCalibration = pol.Downgrade(1);
+                            } else
+                            {
+                                data.EnergySpectrum.EnergyCalibration = pol.Downgrade(zerosCount);
+                            }
                         } else
                         {
                             return false;
@@ -174,7 +194,30 @@ namespace BecquerelMonitor
                         {
                             if (doCorrections)
                             {
-                                data.BackgroundEnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
+                                int zerosCount = 0;
+                                for (int i = pol.Coefficients.Length - 1; i >= 0; i--)
+                                {
+                                    if (pol.Coefficients[i] == 0.0)
+                                    {
+                                        zerosCount++;
+                                    }
+                                    else
+                                    {
+                                        break;
+                                    }
+                                }
+                                if (zerosCount > pol.Coefficients.Length - 2)
+                                {
+                                    data.BackgroundEnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
+                                }
+                                else if (zerosCount == 1)
+                                {
+                                    data.BackgroundEnergySpectrum.EnergyCalibration = pol.Downgrade(1);
+                                }
+                                else
+                                {
+                                    data.BackgroundEnergySpectrum.EnergyCalibration = pol.Downgrade(zerosCount);
+                                }
                             }
                             else
                             {
