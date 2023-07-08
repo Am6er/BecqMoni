@@ -144,9 +144,6 @@ namespace BecquerelMonitor
                             if (zerosCount > pol.Coefficients.Length - 2)
                             {
                                 data.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
-                            } else if (zerosCount == 1)
-                            {
-                                data.EnergySpectrum.EnergyCalibration = pol.Downgrade(1);
                             } else
                             {
                                 data.EnergySpectrum.EnergyCalibration = pol.Downgrade(zerosCount);
