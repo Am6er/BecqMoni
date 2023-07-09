@@ -139,7 +139,7 @@
     <value>Обновить</value>
   </data>
   <data name="CalcResetQuestion" xml:space="preserve">
-    <value>Сбросить калибровку спектра в y = x? Иначе спектр не будет загружен.</value>
+    <value>Сбросить калибровку спектра в y = x? Иначе спектр не будет открыт в приложении.</value>
   </data>
   <data name="CalibrationFunctionError" xml:space="preserve">
     <value>Функция калибровки должна монотонно возрастать при увеличиении канала. Энергии функции должны находиться в интервале [-100; 12000] keV. Проверьте калибровку!</value>
@@ -394,7 +394,7 @@
     <value>Не удалось сохранить конфигурационный файл ROI.</value>
   </data>
   <data name="ERRSpectrumCheck" xml:space="preserve">
-    <value>Ошибка при проверке контента файла спетра: калибровки, гистограммы, количества каналов</value>
+    <value>Ошибка при проверке контента файла спектра: калибровки, гистограммы, количества каналов</value>
   </data>
   <data name="ERRUnsuportedEnergyBoundaryN42" xml:space="preserve">
     <value>Объект спецификации N42 - EnergyBoundaryValues не поддерживается в приложении. Используйте калибровки полиномом.</value>
