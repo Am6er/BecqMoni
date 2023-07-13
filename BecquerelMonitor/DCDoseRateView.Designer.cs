@@ -16,7 +16,7 @@
 		// Token: 0x0600083D RID: 2109 RVA: 0x0002FC10 File Offset: 0x0002DE10
 		void InitializeComponent()
 		{
-			global::System.ComponentModel.ComponentResourceManager componentResourceManager = new global::System.ComponentModel.ComponentResourceManager(typeof(global::BecquerelMonitor.DCDoseRateView));
+			global::System.ComponentModel.ComponentResourceManager resources = new global::System.ComponentModel.ComponentResourceManager(typeof(global::BecquerelMonitor.DCDoseRateView));
 
             this.Font = new global::System.Drawing.Font("Microsoft Sans Serif", 8);
 
@@ -30,36 +30,36 @@
 			this.panel1 = new global::System.Windows.Forms.Panel();
 			this.panel1.SuspendLayout();
 			base.SuspendLayout();
-			componentResourceManager.ApplyResources(this.button1, "button1");
+			resources.ApplyResources(this.button1, "button1");
 			this.button1.Name = "button1";
 			this.button1.UseVisualStyleBackColor = true;
-			componentResourceManager.ApplyResources(this.comboBox1, "comboBox1");
+			resources.ApplyResources(this.comboBox1, "comboBox1");
 			this.comboBox1.FormattingEnabled = true;
 			this.comboBox1.Items.AddRange(new object[]
 			{
-				componentResourceManager.GetString("comboBox1.Items"),
-				componentResourceManager.GetString("comboBox1.Items1"),
-				componentResourceManager.GetString("comboBox1.Items2"),
-				componentResourceManager.GetString("comboBox1.Items3"),
-				componentResourceManager.GetString("comboBox1.Items4"),
-				componentResourceManager.GetString("comboBox1.Items5")
+				resources.GetString("comboBox1.Items"),
+				resources.GetString("comboBox1.Items1"),
+				resources.GetString("comboBox1.Items2"),
+				resources.GetString("comboBox1.Items3"),
+				resources.GetString("comboBox1.Items4"),
+				resources.GetString("comboBox1.Items5")
 			});
 			this.comboBox1.Name = "comboBox1";
-			componentResourceManager.ApplyResources(this.label1, "label1");
+			resources.ApplyResources(this.label1, "label1");
 			this.label1.Name = "label1";
-			componentResourceManager.ApplyResources(this.label2, "label2");
+			resources.ApplyResources(this.label2, "label2");
 			this.label2.Name = "label2";
-			componentResourceManager.ApplyResources(this.label3, "label3");
+			resources.ApplyResources(this.label3, "label3");
 			this.label3.Name = "label3";
-			componentResourceManager.ApplyResources(this.label4, "label4");
+			resources.ApplyResources(this.label4, "label4");
 			this.label4.Name = "label4";
-			componentResourceManager.ApplyResources(this.label6, "label6");
+			resources.ApplyResources(this.label6, "label6");
 			this.label6.Name = "label6";
-			componentResourceManager.ApplyResources(this.panel1, "panel1");
+			resources.ApplyResources(this.panel1, "panel1");
 			this.panel1.BackColor = global::System.Drawing.SystemColors.ControlLight;
 			this.panel1.Controls.Add(this.label3);
 			this.panel1.Name = "panel1";
-			componentResourceManager.ApplyResources(this, "$this");
+			resources.ApplyResources(this, "$this");
 			base.Controls.Add(this.panel1);
 			base.Controls.Add(this.label6);
 			base.Controls.Add(this.label4);

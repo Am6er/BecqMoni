@@ -17,7 +17,7 @@
 		void InitializeComponent()
 		{
 			this.components = new global::System.ComponentModel.Container();
-			global::System.ComponentModel.ComponentResourceManager componentResourceManager = new global::System.ComponentModel.ComponentResourceManager(typeof(global::BecquerelMonitor.DocEnergySpectrum));
+			global::System.ComponentModel.ComponentResourceManager resources = new global::System.ComponentModel.ComponentResourceManager(typeof(global::BecquerelMonitor.DocEnergySpectrum));
 			this.toolStripContainer1 = new global::System.Windows.Forms.ToolStripContainer();
 			this.toolStrip2 = new global::BecquerelMonitor.ToolStripEx();
 			this.toolStripLabel2 = new global::System.Windows.Forms.ToolStripLabel();
@@ -82,27 +82,27 @@
 			this.toolStrip1.SuspendLayout();
 			this.contextMenuStrip1.SuspendLayout();
 			base.SuspendLayout();
-			componentResourceManager.ApplyResources(this.toolStripContainer1, "toolStripContainer1");
-			componentResourceManager.ApplyResources(this.toolStripContainer1.BottomToolStripPanel, "toolStripContainer1.BottomToolStripPanel");
+			resources.ApplyResources(this.toolStripContainer1, "toolStripContainer1");
+			resources.ApplyResources(this.toolStripContainer1.BottomToolStripPanel, "toolStripContainer1.BottomToolStripPanel");
 			this.toolStripContainer1.BottomToolStripPanel.Controls.Add(this.toolStrip2);
 			this.toolStripContainer1.BottomToolStripPanel.Controls.Add(this.toolStrip1);
-			this.toolTip1.SetToolTip(this.toolStripContainer1.BottomToolStripPanel, componentResourceManager.GetString("toolStripContainer1.BottomToolStripPanel.ToolTip"));
+			this.toolTip1.SetToolTip(this.toolStripContainer1.BottomToolStripPanel, resources.GetString("toolStripContainer1.BottomToolStripPanel.ToolTip"));
 			this.toolStripContainer1.BottomToolStripPanel.Click += new global::System.EventHandler(this.toolStripContainer1_BottomToolStripPanel_Click);
-			componentResourceManager.ApplyResources(this.toolStripContainer1.ContentPanel, "toolStripContainer1.ContentPanel");
+			resources.ApplyResources(this.toolStripContainer1.ContentPanel, "toolStripContainer1.ContentPanel");
 			this.toolStripContainer1.ContentPanel.Controls.Add(this.energySpectrumView1);
-			this.toolTip1.SetToolTip(this.toolStripContainer1.ContentPanel, componentResourceManager.GetString("toolStripContainer1.ContentPanel.ToolTip"));
-			componentResourceManager.ApplyResources(this.toolStripContainer1.LeftToolStripPanel, "toolStripContainer1.LeftToolStripPanel");
-			this.toolTip1.SetToolTip(this.toolStripContainer1.LeftToolStripPanel, componentResourceManager.GetString("toolStripContainer1.LeftToolStripPanel.ToolTip"));
+			this.toolTip1.SetToolTip(this.toolStripContainer1.ContentPanel, resources.GetString("toolStripContainer1.ContentPanel.ToolTip"));
+			resources.ApplyResources(this.toolStripContainer1.LeftToolStripPanel, "toolStripContainer1.LeftToolStripPanel");
+			this.toolTip1.SetToolTip(this.toolStripContainer1.LeftToolStripPanel, resources.GetString("toolStripContainer1.LeftToolStripPanel.ToolTip"));
 			this.toolStripContainer1.LeftToolStripPanel.Click += new global::System.EventHandler(this.toolStripContainer1_LeftToolStripPanel_Click);
 			this.toolStripContainer1.Name = "toolStripContainer1";
-			componentResourceManager.ApplyResources(this.toolStripContainer1.RightToolStripPanel, "toolStripContainer1.RightToolStripPanel");
-			this.toolTip1.SetToolTip(this.toolStripContainer1.RightToolStripPanel, componentResourceManager.GetString("toolStripContainer1.RightToolStripPanel.ToolTip"));
+			resources.ApplyResources(this.toolStripContainer1.RightToolStripPanel, "toolStripContainer1.RightToolStripPanel");
+			this.toolTip1.SetToolTip(this.toolStripContainer1.RightToolStripPanel, resources.GetString("toolStripContainer1.RightToolStripPanel.ToolTip"));
 			this.toolStripContainer1.RightToolStripPanel.Click += new global::System.EventHandler(this.toolStripContainer1_RightToolStripPanel_Click);
-			this.toolTip1.SetToolTip(this.toolStripContainer1, componentResourceManager.GetString("toolStripContainer1.ToolTip"));
-			componentResourceManager.ApplyResources(this.toolStripContainer1.TopToolStripPanel, "toolStripContainer1.TopToolStripPanel");
-			this.toolTip1.SetToolTip(this.toolStripContainer1.TopToolStripPanel, componentResourceManager.GetString("toolStripContainer1.TopToolStripPanel.ToolTip"));
+			this.toolTip1.SetToolTip(this.toolStripContainer1, resources.GetString("toolStripContainer1.ToolTip"));
+			resources.ApplyResources(this.toolStripContainer1.TopToolStripPanel, "toolStripContainer1.TopToolStripPanel");
+			this.toolTip1.SetToolTip(this.toolStripContainer1.TopToolStripPanel, resources.GetString("toolStripContainer1.TopToolStripPanel.ToolTip"));
 			this.toolStripContainer1.TopToolStripPanel.Click += new global::System.EventHandler(this.toolStripContainer1_TopToolStripPanel_Click);
-			componentResourceManager.ApplyResources(this.toolStrip2, "toolStrip2");
+			resources.ApplyResources(this.toolStrip2, "toolStrip2");
 			this.toolStrip2.ClickThrough = true;
 			this.toolStrip2.Items.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
@@ -115,10 +115,10 @@
 			});
 			this.toolStrip2.Name = "toolStrip2";
 			this.toolStrip2.SuppressHighlighting = false;
-			this.toolTip1.SetToolTip(this.toolStrip2, componentResourceManager.GetString("toolStrip2.ToolTip"));
-			componentResourceManager.ApplyResources(this.toolStripLabel2, "toolStripLabel2");
+			this.toolTip1.SetToolTip(this.toolStrip2, resources.GetString("toolStrip2.ToolTip"));
+			resources.ApplyResources(this.toolStripLabel2, "toolStripLabel2");
 			this.toolStripLabel2.Name = "toolStripLabel2";
-			componentResourceManager.ApplyResources(this.toolStripSplitButton7, "toolStripSplitButton7");
+			resources.ApplyResources(this.toolStripSplitButton7, "toolStripSplitButton7");
 			this.toolStripSplitButton7.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
 			this.toolStripSplitButton7.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
@@ -131,20 +131,20 @@
 			this.toolStripSplitButton7.Name = "toolStripSplitButton7";
 			this.toolStripSplitButton7.ButtonClick += new global::System.EventHandler(this.toolStripSplitButton7_ButtonClick);
 			this.toolStripSplitButton7.DropDownOpening += new global::System.EventHandler(this.toolStripSplitButton7_DropDownOpening);
-			componentResourceManager.ApplyResources(this.バックグラウンド表示ありToolStripMenuItem, "バックグラウンド表示ありToolStripMenuItem");
+			resources.ApplyResources(this.バックグラウンド表示ありToolStripMenuItem, "バックグラウンド表示ありToolStripMenuItem");
 			this.バックグラウンド表示ありToolStripMenuItem.Name = "バックグラウンド表示ありToolStripMenuItem";
 			this.バックグラウンド表示ありToolStripMenuItem.Click += new global::System.EventHandler(this.バックグラウンド表示ありToolStripMenuItem_Click);
-            componentResourceManager.ApplyResources(this.SubstractBgToolStripMenuItem, "SubstractBgToolStripMenuItem");
+            resources.ApplyResources(this.SubstractBgToolStripMenuItem, "SubstractBgToolStripMenuItem");
             this.SubstractBgToolStripMenuItem.Name = "SubstractBgToolStripMenuItem";
             this.SubstractBgToolStripMenuItem.Click += new global::System.EventHandler(this.SubstractBgToolStripMenuItem_Click);
 
-            componentResourceManager.ApplyResources(this.ShowConToolStripMenuItem, "ShowConToolStripMenuItem");
+            resources.ApplyResources(this.ShowConToolStripMenuItem, "ShowConToolStripMenuItem");
             this.ShowConToolStripMenuItem.Name = "ShowConToolStripMenuItem";
             this.ShowConToolStripMenuItem.Click += new global::System.EventHandler(this.ShowConToolStripMenuItem_Click);
-            componentResourceManager.ApplyResources(this.バックグラウンド表示なしToolStripMenuItem, "バックグラウンド表示なしToolStripMenuItem");
+            resources.ApplyResources(this.バックグラウンド表示なしToolStripMenuItem, "バックグラウンド表示なしToolStripMenuItem");
 			this.バックグラウンド表示なしToolStripMenuItem.Name = "バックグラウンド表示なしToolStripMenuItem";
 			this.バックグラウンド表示なしToolStripMenuItem.Click += new global::System.EventHandler(this.バックグラウンド表示なしToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.toolStripSplitButton8, "toolStripSplitButton8");
+			resources.ApplyResources(this.toolStripSplitButton8, "toolStripSplitButton8");
 			this.toolStripSplitButton8.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
 			this.toolStripSplitButton8.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
@@ -155,13 +155,13 @@
 			this.toolStripSplitButton8.Name = "toolStripSplitButton8";
 			this.toolStripSplitButton8.ButtonClick += new global::System.EventHandler(this.toolStripSplitButton8_ButtonClick);
 			this.toolStripSplitButton8.DropDownOpening += new global::System.EventHandler(this.toolStripSplitButton8_DropDownOpening);
-			componentResourceManager.ApplyResources(this.高精細表示ToolStripMenuItem, "高精細表示ToolStripMenuItem");
+			resources.ApplyResources(this.高精細表示ToolStripMenuItem, "高精細表示ToolStripMenuItem");
 			this.高精細表示ToolStripMenuItem.Name = "高精細表示ToolStripMenuItem";
 			this.高精細表示ToolStripMenuItem.Click += new global::System.EventHandler(this.高精細表示ToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.通常表示ToolStripMenuItem, "通常表示ToolStripMenuItem");
+			resources.ApplyResources(this.通常表示ToolStripMenuItem, "通常表示ToolStripMenuItem");
 			this.通常表示ToolStripMenuItem.Name = "通常表示ToolStripMenuItem";
 			this.通常表示ToolStripMenuItem.Click += new global::System.EventHandler(this.通常表示ToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.toolStripSplitButton3, "toolStripSplitButton3");
+			resources.ApplyResources(this.toolStripSplitButton3, "toolStripSplitButton3");
 			this.toolStripSplitButton3.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
 			this.toolStripSplitButton3.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
@@ -172,13 +172,13 @@
 			this.toolStripSplitButton3.Name = "toolStripSplitButton3";
 			this.toolStripSplitButton3.ButtonClick += new global::System.EventHandler(this.toolStripSplitButton3_ButtonClick);
 			this.toolStripSplitButton3.DropDownOpening += new global::System.EventHandler(this.toolStripSplitButton3_DropDownOpening);
-			componentResourceManager.ApplyResources(this.バ\u30FCグラフToolStripMenuItem, "バーグラフToolStripMenuItem");
+			resources.ApplyResources(this.バ\u30FCグラフToolStripMenuItem, "バーグラフToolStripMenuItem");
 			this.バ\u30FCグラフToolStripMenuItem.Name = "バーグラフToolStripMenuItem";
 			this.バ\u30FCグラフToolStripMenuItem.Click += new global::System.EventHandler(this.バ\u30FCグラフToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.折れ線グラフToolStripMenuItem, "折れ線グラフToolStripMenuItem");
+			resources.ApplyResources(this.折れ線グラフToolStripMenuItem, "折れ線グラフToolStripMenuItem");
 			this.折れ線グラフToolStripMenuItem.Name = "折れ線グラフToolStripMenuItem";
 			this.折れ線グラフToolStripMenuItem.Click += new global::System.EventHandler(this.折れ線グラフToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.toolStripSplitButton6, "toolStripSplitButton6");
+			resources.ApplyResources(this.toolStripSplitButton6, "toolStripSplitButton6");
 			this.toolStripSplitButton6.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
 			this.toolStripSplitButton6.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
@@ -190,16 +190,16 @@
 			this.toolStripSplitButton6.Name = "toolStripSplitButton6";
 			this.toolStripSplitButton6.ButtonClick += new global::System.EventHandler(this.toolStripSplitButton6_ButtonClick);
 			this.toolStripSplitButton6.DropDownOpening += new global::System.EventHandler(this.toolStripSplitButton6_DropDownOpening);
-			componentResourceManager.ApplyResources(this.スム\u30FCジングなしToolStripMenuItem, "スムージングなしToolStripMenuItem");
+			resources.ApplyResources(this.スム\u30FCジングなしToolStripMenuItem, "スムージングなしToolStripMenuItem");
 			this.スム\u30FCジングなしToolStripMenuItem.Name = "スムージングなしToolStripMenuItem";
 			this.スム\u30FCジングなしToolStripMenuItem.Click += new global::System.EventHandler(this.スム\u30FCジングなしToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.単純移動平均ToolStripMenuItem, "単純移動平均ToolStripMenuItem");
+			resources.ApplyResources(this.単純移動平均ToolStripMenuItem, "単純移動平均ToolStripMenuItem");
 			this.単純移動平均ToolStripMenuItem.Name = "単純移動平均ToolStripMenuItem";
 			this.単純移動平均ToolStripMenuItem.Click += new global::System.EventHandler(this.単純移動平均ToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.加重移動平均ToolStripMenuItem, "加重移動平均ToolStripMenuItem");
+			resources.ApplyResources(this.加重移動平均ToolStripMenuItem, "加重移動平均ToolStripMenuItem");
 			this.加重移動平均ToolStripMenuItem.Name = "加重移動平均ToolStripMenuItem";
 			this.加重移動平均ToolStripMenuItem.Click += new global::System.EventHandler(this.加重移動平均ToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.toolStripSplitButton9, "toolStripSplitButton9");
+			resources.ApplyResources(this.toolStripSplitButton9, "toolStripSplitButton9");
 			this.toolStripSplitButton9.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
 			this.toolStripSplitButton9.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
@@ -210,13 +210,13 @@
 			this.toolStripSplitButton9.Name = "toolStripSplitButton9";
 			this.toolStripSplitButton9.ButtonClick += new global::System.EventHandler(this.toolStripSplitButton9_ButtonClick);
 			this.toolStripSplitButton9.DropDownOpening += new global::System.EventHandler(this.toolStripSplitButton9_DropDownOpening);
-			componentResourceManager.ApplyResources(this.ピ\u30FCク表示ありToolStripMenuItem, "ピーク表示ありToolStripMenuItem");
+			resources.ApplyResources(this.ピ\u30FCク表示ありToolStripMenuItem, "ピーク表示ありToolStripMenuItem");
 			this.ピ\u30FCク表示ありToolStripMenuItem.Name = "ピーク表示ありToolStripMenuItem";
 			this.ピ\u30FCク表示ありToolStripMenuItem.Click += new global::System.EventHandler(this.ピ\u30FCク表示ありToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.ピ\u30FCク表示なしToolStripMenuItem, "ピーク表示なしToolStripMenuItem");
+			resources.ApplyResources(this.ピ\u30FCク表示なしToolStripMenuItem, "ピーク表示なしToolStripMenuItem");
 			this.ピ\u30FCク表示なしToolStripMenuItem.Name = "ピーク表示なしToolStripMenuItem";
 			this.ピ\u30FCク表示なしToolStripMenuItem.Click += new global::System.EventHandler(this.ピ\u30FCク表示なしToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.toolStrip1, "toolStrip1");
+			resources.ApplyResources(this.toolStrip1, "toolStrip1");
 			this.toolStrip1.ClickThrough = true;
 			this.toolStrip1.ImageScalingSize = new global::System.Drawing.Size(18, 18);
 			this.toolStrip1.Items.AddRange(new global::System.Windows.Forms.ToolStripItem[]
@@ -234,10 +234,10 @@
 			});
 			this.toolStrip1.Name = "toolStrip1";
 			this.toolStrip1.SuppressHighlighting = false;
-			this.toolTip1.SetToolTip(this.toolStrip1, componentResourceManager.GetString("toolStrip1.ToolTip"));
-			componentResourceManager.ApplyResources(this.toolStripLabel1, "toolStripLabel1");
+			this.toolTip1.SetToolTip(this.toolStrip1, resources.GetString("toolStrip1.ToolTip"));
+			resources.ApplyResources(this.toolStripLabel1, "toolStripLabel1");
 			this.toolStripLabel1.Name = "toolStripLabel1";
-			componentResourceManager.ApplyResources(this.toolStripSplitButton1, "toolStripSplitButton1");
+			resources.ApplyResources(this.toolStripSplitButton1, "toolStripSplitButton1");
 			this.toolStripSplitButton1.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
 			this.toolStripSplitButton1.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
@@ -248,13 +248,13 @@
 			this.toolStripSplitButton1.Name = "toolStripSplitButton1";
 			this.toolStripSplitButton1.ButtonClick += new global::System.EventHandler(this.toolStripSplitButton1_ButtonClick);
 			this.toolStripSplitButton1.DropDownOpening += new global::System.EventHandler(this.toolStripSplitButton1_DropDownOpening);
-			componentResourceManager.ApplyResources(this.カウント表示ToolStripMenuItem, "カウント表示ToolStripMenuItem");
+			resources.ApplyResources(this.カウント表示ToolStripMenuItem, "カウント表示ToolStripMenuItem");
 			this.カウント表示ToolStripMenuItem.Name = "カウント表示ToolStripMenuItem";
 			this.カウント表示ToolStripMenuItem.Click += new global::System.EventHandler(this.カウント表示ToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.cps表示ToolStripMenuItem, "cps表示ToolStripMenuItem");
+			resources.ApplyResources(this.cps表示ToolStripMenuItem, "cps表示ToolStripMenuItem");
 			this.cps表示ToolStripMenuItem.Name = "cps表示ToolStripMenuItem";
 			this.cps表示ToolStripMenuItem.Click += new global::System.EventHandler(this.cps表示ToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.toolStripSplitButton2, "toolStripSplitButton2");
+			resources.ApplyResources(this.toolStripSplitButton2, "toolStripSplitButton2");
 			this.toolStripSplitButton2.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
 			this.toolStripSplitButton2.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
@@ -265,13 +265,13 @@
 			this.toolStripSplitButton2.Name = "toolStripSplitButton2";
 			this.toolStripSplitButton2.ButtonClick += new global::System.EventHandler(this.toolStripSplitButton2_ButtonClick);
 			this.toolStripSplitButton2.DropDownOpening += new global::System.EventHandler(this.toolStripSplitButton2_DropDownOpening);
-			componentResourceManager.ApplyResources(this.リニア表示ToolStripMenuItem, "リニア表示ToolStripMenuItem");
+			resources.ApplyResources(this.リニア表示ToolStripMenuItem, "リニア表示ToolStripMenuItem");
 			this.リニア表示ToolStripMenuItem.Name = "リニア表示ToolStripMenuItem";
 			this.リニア表示ToolStripMenuItem.Click += new global::System.EventHandler(this.リニア表示ToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.対数表示ToolStripMenuItem, "対数表示ToolStripMenuItem");
+			resources.ApplyResources(this.対数表示ToolStripMenuItem, "対数表示ToolStripMenuItem");
 			this.対数表示ToolStripMenuItem.Name = "対数表示ToolStripMenuItem";
 			this.対数表示ToolStripMenuItem.Click += new global::System.EventHandler(this.対数表示ToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.toolStripSplitButton5, "toolStripSplitButton5");
+			resources.ApplyResources(this.toolStripSplitButton5, "toolStripSplitButton5");
 			this.toolStripSplitButton5.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
 			this.toolStripSplitButton5.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
@@ -283,20 +283,20 @@
 			this.toolStripSplitButton5.Name = "toolStripSplitButton5";
 			this.toolStripSplitButton5.ButtonClick += new global::System.EventHandler(this.toolStripSplitButton5_ButtonClick);
 			this.toolStripSplitButton5.DropDownOpening += new global::System.EventHandler(this.toolStripSplitButton5_DropDownOpening);
-			componentResourceManager.ApplyResources(this.なしToolStripMenuItem, "なしToolStripMenuItem");
+			resources.ApplyResources(this.なしToolStripMenuItem, "なしToolStripMenuItem");
 			this.なしToolStripMenuItem.Name = "なしToolStripMenuItem";
 			this.なしToolStripMenuItem.Click += new global::System.EventHandler(this.なしToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.自動フィットToolStripMenuItem, "自動フィットToolStripMenuItem");
+			resources.ApplyResources(this.自動フィットToolStripMenuItem, "自動フィットToolStripMenuItem");
 			this.自動フィットToolStripMenuItem.Name = "自動フィットToolStripMenuItem";
 			this.自動フィットToolStripMenuItem.Click += new global::System.EventHandler(this.自動フィットToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.自動フィットBGToolStripMenuItem, "自動フィットBGToolStripMenuItem");
+			resources.ApplyResources(this.自動フィットBGToolStripMenuItem, "自動フィットBGToolStripMenuItem");
 			this.自動フィットBGToolStripMenuItem.Name = "自動フィットBGToolStripMenuItem";
 			this.自動フィットBGToolStripMenuItem.Click += new global::System.EventHandler(this.自動フィットBGToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.toolStripSeparator3, "toolStripSeparator3");
+			resources.ApplyResources(this.toolStripSeparator3, "toolStripSeparator3");
 			this.toolStripSeparator3.Name = "toolStripSeparator3";
-			componentResourceManager.ApplyResources(this.toolStripLabel3, "toolStripLabel3");
+			resources.ApplyResources(this.toolStripLabel3, "toolStripLabel3");
 			this.toolStripLabel3.Name = "toolStripLabel3";
-			componentResourceManager.ApplyResources(this.toolStripSplitButton4, "toolStripSplitButton4");
+			resources.ApplyResources(this.toolStripSplitButton4, "toolStripSplitButton4");
 			this.toolStripSplitButton4.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
 			this.toolStripSplitButton4.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
@@ -307,23 +307,23 @@
 			this.toolStripSplitButton4.Name = "toolStripSplitButton4";
 			this.toolStripSplitButton4.ButtonClick += new global::System.EventHandler(this.toolStripSplitButton4_ButtonClick);
 			this.toolStripSplitButton4.DropDownOpening += new global::System.EventHandler(this.toolStripSplitButton4_DropDownOpening);
-			componentResourceManager.ApplyResources(this.チャネル表示ToolStripMenuItem, "チャネル表示ToolStripMenuItem");
+			resources.ApplyResources(this.チャネル表示ToolStripMenuItem, "チャネル表示ToolStripMenuItem");
 			this.チャネル表示ToolStripMenuItem.Name = "チャネル表示ToolStripMenuItem";
 			this.チャネル表示ToolStripMenuItem.Click += new global::System.EventHandler(this.チャネル表示ToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.エネルギ\u30FC表示ToolStripMenuItem, "エネルギー表示ToolStripMenuItem");
+			resources.ApplyResources(this.エネルギ\u30FC表示ToolStripMenuItem, "エネルギー表示ToolStripMenuItem");
 			this.エネルギ\u30FC表示ToolStripMenuItem.Name = "エネルギー表示ToolStripMenuItem";
 			this.エネルギ\u30FC表示ToolStripMenuItem.Click += new global::System.EventHandler(this.エネルギ\u30FC表示ToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.toolStripButton2, "toolStripButton2");
+			resources.ApplyResources(this.toolStripButton2, "toolStripButton2");
 			this.toolStripButton2.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
 			this.toolStripButton2.Image = global::BecquerelMonitor.Properties.Resources.ZoominSelection;
 			this.toolStripButton2.Name = "toolStripButton2";
 			this.toolStripButton2.Click += new global::System.EventHandler(this.toolStripButton2_Click);
-			componentResourceManager.ApplyResources(this.toolStripButton1, "toolStripButton1");
+			resources.ApplyResources(this.toolStripButton1, "toolStripButton1");
 			this.toolStripButton1.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
 			this.toolStripButton1.Image = global::BecquerelMonitor.Properties.Resources.fit2;
 			this.toolStripButton1.Name = "toolStripButton1";
 			this.toolStripButton1.Click += new global::System.EventHandler(this.toolStripButton1_Click);
-			componentResourceManager.ApplyResources(this.toolStripSplitButton10, "toolStripSplitButton10");
+			resources.ApplyResources(this.toolStripSplitButton10, "toolStripSplitButton10");
 			this.toolStripSplitButton10.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
 			this.toolStripSplitButton10.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
@@ -334,13 +334,13 @@
 			this.toolStripSplitButton10.Name = "toolStripSplitButton10";
 			this.toolStripSplitButton10.ButtonClick += new global::System.EventHandler(this.toolStripSplitButton10_ButtonClick);
 			this.toolStripSplitButton10.DropDownOpening += new global::System.EventHandler(this.toolStripSplitButton10_DropDownOpening);
-			componentResourceManager.ApplyResources(this.showEnergyCalibrationToolToolStripMenuItem, "showEnergyCalibrationToolToolStripMenuItem");
+			resources.ApplyResources(this.showEnergyCalibrationToolToolStripMenuItem, "showEnergyCalibrationToolToolStripMenuItem");
 			this.showEnergyCalibrationToolToolStripMenuItem.Name = "showEnergyCalibrationToolToolStripMenuItem";
 			this.showEnergyCalibrationToolToolStripMenuItem.Click += new global::System.EventHandler(this.showEnergyCalibrationToolToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.hideEnergyCalibrationToolToolStripMenuItem, "hideEnergyCalibrationToolToolStripMenuItem");
+			resources.ApplyResources(this.hideEnergyCalibrationToolToolStripMenuItem, "hideEnergyCalibrationToolToolStripMenuItem");
 			this.hideEnergyCalibrationToolToolStripMenuItem.Name = "hideEnergyCalibrationToolToolStripMenuItem";
 			this.hideEnergyCalibrationToolToolStripMenuItem.Click += new global::System.EventHandler(this.hideEnergyCalibrationToolToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.energySpectrumView1, "energySpectrumView1");
+			resources.ApplyResources(this.energySpectrumView1, "energySpectrumView1");
 			this.energySpectrumView1.ActiveResultDataIndex = 0;
 			this.energySpectrumView1.BackColor = global::System.Drawing.Color.White;
 			this.energySpectrumView1.BackgroundMode = global::BecquerelMonitor.BackgroundMode.Visible;
@@ -356,12 +356,12 @@
 			this.energySpectrumView1.SelectionEnd = -1;
 			this.energySpectrumView1.SelectionStart = -1;
 			this.energySpectrumView1.SmoothingMethod = global::BecquerelMonitor.SmoothingMethod.None;
-			this.toolTip1.SetToolTip(this.energySpectrumView1, componentResourceManager.GetString("energySpectrumView1.ToolTip"));
+			this.toolTip1.SetToolTip(this.energySpectrumView1, resources.GetString("energySpectrumView1.ToolTip"));
 			this.energySpectrumView1.VerticalFittingMode = global::BecquerelMonitor.VerticalFittingMode.MinMax;
 			this.energySpectrumView1.VerticalScale = 1.0;
 			this.energySpectrumView1.VerticalScaleType = global::BecquerelMonitor.VerticalScaleType.LogarithmicScale;
 			this.energySpectrumView1.VerticalUnit = global::BecquerelMonitor.VerticalUnit.Counts;
-			componentResourceManager.ApplyResources(this.contextMenuStrip1, "contextMenuStrip1");
+			resources.ApplyResources(this.contextMenuStrip1, "contextMenuStrip1");
 			this.contextMenuStrip1.Items.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
 				this.toolStripMenuItem1,
@@ -374,55 +374,55 @@
 				this.閉じるCToolStripMenuItem
 			});
 			this.contextMenuStrip1.Name = "contextMenuStrip1";
-			this.toolTip1.SetToolTip(this.contextMenuStrip1, componentResourceManager.GetString("contextMenuStrip1.ToolTip"));
+			this.toolTip1.SetToolTip(this.contextMenuStrip1, resources.GetString("contextMenuStrip1.ToolTip"));
 			this.contextMenuStrip1.Closed += new global::System.Windows.Forms.ToolStripDropDownClosedEventHandler(this.contextMenuStrip1_Closed);
 			this.contextMenuStrip1.Opening += new global::System.ComponentModel.CancelEventHandler(this.contextMenuStrip1_Opening);
-			componentResourceManager.ApplyResources(this.toolStripMenuItem1, "toolStripMenuItem1");
+			resources.ApplyResources(this.toolStripMenuItem1, "toolStripMenuItem1");
 			this.toolStripMenuItem1.Name = "toolStripMenuItem1";
 			this.toolStripMenuItem1.Click += new global::System.EventHandler(this.toolStripMenuItem1_Click);
-			componentResourceManager.ApplyResources(this.全チャネルを表示AToolStripMenuItem, "全チャネルを表示AToolStripMenuItem");
+			resources.ApplyResources(this.全チャネルを表示AToolStripMenuItem, "全チャネルを表示AToolStripMenuItem");
 			this.全チャネルを表示AToolStripMenuItem.Name = "全チャネルを表示AToolStripMenuItem";
 			this.全チャネルを表示AToolStripMenuItem.Click += new global::System.EventHandler(this.全チャネルを表示AToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.toolStripSeparator2, "toolStripSeparator2");
+			resources.ApplyResources(this.toolStripSeparator2, "toolStripSeparator2");
 			this.toolStripSeparator2.Name = "toolStripSeparator2";
-			componentResourceManager.ApplyResources(this.toolStripMenuItem2, "toolStripMenuItem2");
+			resources.ApplyResources(this.toolStripMenuItem2, "toolStripMenuItem2");
 			this.toolStripMenuItem2.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
 				this.下限閾値に設定LToolStripMenuItem,
 				this.上限閾値に設定HToolStripMenuItem
 			});
 			this.toolStripMenuItem2.Name = "toolStripMenuItem2";
-			componentResourceManager.ApplyResources(this.下限閾値に設定LToolStripMenuItem, "下限閾値に設定LToolStripMenuItem");
+			resources.ApplyResources(this.下限閾値に設定LToolStripMenuItem, "下限閾値に設定LToolStripMenuItem");
 			this.下限閾値に設定LToolStripMenuItem.Name = "下限閾値に設定LToolStripMenuItem";
 			this.下限閾値に設定LToolStripMenuItem.Click += new global::System.EventHandler(this.下限閾値に設定LToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.上限閾値に設定HToolStripMenuItem, "上限閾値に設定HToolStripMenuItem");
+			resources.ApplyResources(this.上限閾値に設定HToolStripMenuItem, "上限閾値に設定HToolStripMenuItem");
 			this.上限閾値に設定HToolStripMenuItem.Name = "上限閾値に設定HToolStripMenuItem";
 			this.上限閾値に設定HToolStripMenuItem.Click += new global::System.EventHandler(this.上限閾値に設定HToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.toolStripMenuItem3, "toolStripMenuItem3");
+			resources.ApplyResources(this.toolStripMenuItem3, "toolStripMenuItem3");
 			this.toolStripMenuItem3.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
 				this.選択領域からROI定義作成SToolStripMenuItem
 			});
 			this.toolStripMenuItem3.Name = "toolStripMenuItem3";
-			componentResourceManager.ApplyResources(this.選択領域からROI定義作成SToolStripMenuItem, "選択領域からROI定義作成SToolStripMenuItem");
+			resources.ApplyResources(this.選択領域からROI定義作成SToolStripMenuItem, "選択領域からROI定義作成SToolStripMenuItem");
 			this.選択領域からROI定義作成SToolStripMenuItem.Name = "選択領域からROI定義作成SToolStripMenuItem";
 			this.選択領域からROI定義作成SToolStripMenuItem.Click += new global::System.EventHandler(this.選択領域からROI定義作成SToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.toolStripSeparator1, "toolStripSeparator1");
+			resources.ApplyResources(this.toolStripSeparator1, "toolStripSeparator1");
 			this.toolStripSeparator1.Name = "toolStripSeparator1";
-			componentResourceManager.ApplyResources(this.保存SToolStripMenuItem, "保存SToolStripMenuItem");
+			resources.ApplyResources(this.保存SToolStripMenuItem, "保存SToolStripMenuItem");
 			this.保存SToolStripMenuItem.Name = "保存SToolStripMenuItem";
 			this.保存SToolStripMenuItem.Click += new global::System.EventHandler(this.保存SToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this.閉じるCToolStripMenuItem, "閉じるCToolStripMenuItem");
+			resources.ApplyResources(this.閉じるCToolStripMenuItem, "閉じるCToolStripMenuItem");
 			this.閉じるCToolStripMenuItem.Name = "閉じるCToolStripMenuItem";
 			this.閉じるCToolStripMenuItem.Click += new global::System.EventHandler(this.閉じるCToolStripMenuItem_Click);
-			componentResourceManager.ApplyResources(this, "$this");
+			resources.ApplyResources(this, "$this");
 			this.AllowDrop = true;
 			base.CloseButtonVisible = true;
 			this.ContextMenuStrip = this.contextMenuStrip1;
 			base.Controls.Add(this.toolStripContainer1);
 			base.DockAreas = (global::WeifenLuo.WinFormsUI.Docking.DockAreas.Float | global::WeifenLuo.WinFormsUI.Docking.DockAreas.Document);
 			base.Name = "DocEnergySpectrum";
-			this.toolTip1.SetToolTip(this, componentResourceManager.GetString("$this.ToolTip"));
+			this.toolTip1.SetToolTip(this, resources.GetString("$this.ToolTip"));
 			base.Activated += new global::System.EventHandler(this.DocEnergySpectrum_Activated);
 			base.Load += new global::System.EventHandler(this.DocEnergySpectrum_Load);
 			base.SizeChanged += new global::System.EventHandler(this.DocEnergySpectrum_SizeChanged);

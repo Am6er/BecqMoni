@@ -16,13 +16,13 @@
 		// Token: 0x060000E0 RID: 224 RVA: 0x00004E28 File Offset: 0x00003028
 		void InitializeComponent()
 		{
-			global::System.ComponentModel.ComponentResourceManager componentResourceManager = new global::System.ComponentModel.ComponentResourceManager(typeof(global::BecquerelMonitor.DCSpectrumView));
+			global::System.ComponentModel.ComponentResourceManager resources = new global::System.ComponentModel.ComponentResourceManager(typeof(global::BecquerelMonitor.DCSpectrumView));
 
             this.Font = new global::System.Drawing.Font("Microsoft Sans Serif", 8);
             
             this.energySpectrumView1 = new global::BecquerelMonitor.EnergySpectrumView();
 			base.SuspendLayout();
-			componentResourceManager.ApplyResources(this.energySpectrumView1, "energySpectrumView1");
+			resources.ApplyResources(this.energySpectrumView1, "energySpectrumView1");
 			this.energySpectrumView1.ActiveResultDataIndex = 0;
 			this.energySpectrumView1.BackColor = global::System.Drawing.Color.White;
 			this.energySpectrumView1.BackgroundMode = global::BecquerelMonitor.BackgroundMode.Visible;
@@ -42,7 +42,7 @@
 			this.energySpectrumView1.VerticalScale = 1.0;
 			this.energySpectrumView1.VerticalScaleType = global::BecquerelMonitor.VerticalScaleType.LogarithmicScale;
 			this.energySpectrumView1.VerticalUnit = global::BecquerelMonitor.VerticalUnit.Counts;
-			componentResourceManager.ApplyResources(this, "$this");
+			resources.ApplyResources(this, "$this");
 			base.Controls.Add(this.energySpectrumView1);
 			base.Name = "DCSpectrumView";
 			base.ResumeLayout(false);

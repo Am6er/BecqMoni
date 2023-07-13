@@ -16,7 +16,7 @@
 		// Token: 0x06000964 RID: 2404 RVA: 0x00036B6C File Offset: 0x00034D6C
 		void InitializeComponent()
 		{
-			global::System.ComponentModel.ComponentResourceManager componentResourceManager = new global::System.ComponentModel.ComponentResourceManager(typeof(global::BecquerelMonitor.DCPulseView));
+			global::System.ComponentModel.ComponentResourceManager resources = new global::System.ComponentModel.ComponentResourceManager(typeof(global::BecquerelMonitor.DCPulseView));
 
             this.Font = new global::System.Drawing.Font("Microsoft Sans Serif", 8);
 
@@ -27,13 +27,13 @@
 			this.label2 = new global::System.Windows.Forms.Label();
 			this.checkBox2 = new global::System.Windows.Forms.CheckBox();
 			base.SuspendLayout();
-			componentResourceManager.ApplyResources(this.checkBox1, "checkBox1");
+			resources.ApplyResources(this.checkBox1, "checkBox1");
 			this.checkBox1.Checked = true;
 			this.checkBox1.CheckState = global::System.Windows.Forms.CheckState.Checked;
 			this.checkBox1.Name = "checkBox1";
 			this.checkBox1.UseVisualStyleBackColor = true;
 			this.checkBox1.CheckedChanged += new global::System.EventHandler(this.checkBox1_CheckedChanged);
-			componentResourceManager.ApplyResources(this.pulseView2, "pulseView2");
+			resources.ApplyResources(this.pulseView2, "pulseView2");
 			this.pulseView2.AntiAliasing = false;
 			this.pulseView2.BackColor = global::System.Drawing.Color.Black;
 			this.pulseView2.IsValidPulse = true;
@@ -42,7 +42,7 @@
 			this.pulseView2.PulseHeight = 0.0;
 			this.pulseView2.PulseShape = null;
 			this.pulseView2.PulseShapeSize = 0;
-			componentResourceManager.ApplyResources(this.pulseView1, "pulseView1");
+			resources.ApplyResources(this.pulseView1, "pulseView1");
 			this.pulseView1.AntiAliasing = false;
 			this.pulseView1.BackColor = global::System.Drawing.Color.Black;
 			this.pulseView1.IsValidPulse = true;
@@ -51,17 +51,17 @@
 			this.pulseView1.PulseHeight = 0.0;
 			this.pulseView1.PulseShape = null;
 			this.pulseView1.PulseShapeSize = 0;
-			componentResourceManager.ApplyResources(this.label1, "label1");
+			resources.ApplyResources(this.label1, "label1");
 			this.label1.Name = "label1";
-			componentResourceManager.ApplyResources(this.label2, "label2");
+			resources.ApplyResources(this.label2, "label2");
 			this.label2.Name = "label2";
-			componentResourceManager.ApplyResources(this.checkBox2, "checkBox2");
+			resources.ApplyResources(this.checkBox2, "checkBox2");
 			this.checkBox2.Checked = true;
 			this.checkBox2.CheckState = global::System.Windows.Forms.CheckState.Checked;
 			this.checkBox2.Name = "checkBox2";
 			this.checkBox2.UseVisualStyleBackColor = true;
 			this.checkBox2.CheckedChanged += new global::System.EventHandler(this.checkBox2_CheckedChanged);
-			componentResourceManager.ApplyResources(this, "$this");
+			resources.ApplyResources(this, "$this");
 			base.Controls.Add(this.checkBox2);
 			base.Controls.Add(this.label2);
 			base.Controls.Add(this.label1);
