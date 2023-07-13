@@ -16,7 +16,7 @@
 		// Token: 0x0600044F RID: 1103 RVA: 0x00014E24 File Offset: 0x00013024
 		void InitializeComponent()
 		{
-			global::System.ComponentModel.ComponentResourceManager componentResourceManager = new global::System.ComponentModel.ComponentResourceManager(typeof(global::BecquerelMonitor.ContextMenuForm));
+			global::System.ComponentModel.ComponentResourceManager resources = new global::System.ComponentModel.ComponentResourceManager(typeof(global::BecquerelMonitor.ContextMenuForm));
 			this.panelMain = new global::System.Windows.Forms.Panel();
 			base.SuspendLayout();
 			this.panelMain.BackColor = global::System.Drawing.Color.White;
@@ -32,7 +32,7 @@
 			base.ControlBox = false;
 			base.Controls.Add(this.panelMain);
 			base.FormBorderStyle = global::System.Windows.Forms.FormBorderStyle.None;
-			base.Icon = (global::System.Drawing.Icon)componentResourceManager.GetObject("$this.Icon");
+			base.Icon = (global::System.Drawing.Icon)resources.GetObject("$this.Icon");
 			base.Name = "ContextMenuForm";
 			base.ShowIcon = false;
 			base.ShowInTaskbar = false;

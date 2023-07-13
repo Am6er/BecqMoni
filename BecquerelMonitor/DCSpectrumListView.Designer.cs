@@ -16,7 +16,7 @@
 		// Token: 0x0600027C RID: 636 RVA: 0x0000A7E0 File Offset: 0x000089E0
 		void InitializeComponent()
 		{
-			global::System.ComponentModel.ComponentResourceManager componentResourceManager = new global::System.ComponentModel.ComponentResourceManager(typeof(global::BecquerelMonitor.DCSpectrumListView));
+			global::System.ComponentModel.ComponentResourceManager resources = new global::System.ComponentModel.ComponentResourceManager(typeof(global::BecquerelMonitor.DCSpectrumListView));
 			global::XPTable.Models.DataSourceColumnBinder dataSourceColumnBinder = new global::XPTable.Models.DataSourceColumnBinder();
 			global::XPTable.Renderers.DragDropRenderer dragDropRenderer = new global::XPTable.Renderers.DragDropRenderer();
 
@@ -35,7 +35,7 @@
 			this.button6 = new global::System.Windows.Forms.Button();
 			((global::System.ComponentModel.ISupportInitialize)this.table1).BeginInit();
 			base.SuspendLayout();
-			componentResourceManager.ApplyResources(this.table1, "table1");
+			resources.ApplyResources(this.table1, "table1");
 			this.table1.BorderColor = global::System.Drawing.Color.Black;
 			this.table1.ColumnModel = this.columnModel1;
 			this.table1.DataMember = null;
@@ -60,42 +60,42 @@
 				this.checkBoxColumn1,
 				this.textColumn2
 			});
-			componentResourceManager.ApplyResources(this.checkBoxColumn1, "checkBoxColumn1");
+			resources.ApplyResources(this.checkBoxColumn1, "checkBoxColumn1");
 			this.checkBoxColumn1.DrawText = false;
 			this.checkBoxColumn1.IsTextTrimmed = false;
 			this.checkBoxColumn1.Sortable = false;
-			componentResourceManager.ApplyResources(this.textColumn2, "textColumn2");
+			resources.ApplyResources(this.textColumn2, "textColumn2");
 			this.textColumn2.IsTextTrimmed = false;
 			this.textColumn2.Sortable = false;
-			componentResourceManager.ApplyResources(this.button2, "button2");
+			resources.ApplyResources(this.button2, "button2");
 			this.button2.Name = "button2";
 			this.button2.UseVisualStyleBackColor = true;
 			this.button2.Click += new global::System.EventHandler(this.button2_Click);
-			componentResourceManager.ApplyResources(this.button1, "button1");
+			resources.ApplyResources(this.button1, "button1");
 			this.button1.Name = "button1";
 			this.button1.UseVisualStyleBackColor = true;
 			this.button1.Click += new global::System.EventHandler(this.button1_Click);
-			componentResourceManager.ApplyResources(this.button3, "button3");
+			resources.ApplyResources(this.button3, "button3");
 			this.button3.Name = "button3";
 			this.button3.UseVisualStyleBackColor = true;
 			this.button3.Click += new global::System.EventHandler(this.button3_Click);
-			componentResourceManager.ApplyResources(this.button4, "button4");
+			resources.ApplyResources(this.button4, "button4");
 			this.button4.Name = "button4";
 			this.button4.UseVisualStyleBackColor = true;
 			this.button4.Click += new global::System.EventHandler(this.button4_Click);
-			componentResourceManager.ApplyResources(this.button5, "button5");
+			resources.ApplyResources(this.button5, "button5");
 			this.button5.Image = global::BecquerelMonitor.Properties.Resources.Up;
 			this.button5.Name = "button5";
 			this.button5.TabStop = false;
 			this.button5.UseVisualStyleBackColor = true;
 			this.button5.Click += new global::System.EventHandler(this.button5_Click);
-			componentResourceManager.ApplyResources(this.button6, "button6");
+			resources.ApplyResources(this.button6, "button6");
 			this.button6.Image = global::BecquerelMonitor.Properties.Resources.Down;
 			this.button6.Name = "button6";
 			this.button6.TabStop = false;
 			this.button6.UseVisualStyleBackColor = true;
 			this.button6.Click += new global::System.EventHandler(this.button6_Click);
-			componentResourceManager.ApplyResources(this, "$this");
+			resources.ApplyResources(this, "$this");
 			base.Controls.Add(this.button6);
 			base.Controls.Add(this.button5);
 			base.Controls.Add(this.button4);

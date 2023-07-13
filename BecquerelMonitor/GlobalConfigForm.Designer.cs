@@ -16,7 +16,7 @@
 		// Token: 0x06000AD1 RID: 2769 RVA: 0x00041334 File Offset: 0x0003F534
 		void InitializeComponent()
 		{
-			global::System.ComponentModel.ComponentResourceManager componentResourceManager = new global::System.ComponentModel.ComponentResourceManager(typeof(global::BecquerelMonitor.GlobalConfigForm));
+			global::System.ComponentModel.ComponentResourceManager resources = new global::System.ComponentModel.ComponentResourceManager(typeof(global::BecquerelMonitor.GlobalConfigForm));
 			this.checkBox1 = new global::System.Windows.Forms.CheckBox();
 			this.button1 = new global::System.Windows.Forms.Button();
 			this.button2 = new global::System.Windows.Forms.Button();
@@ -246,24 +246,24 @@
 			((global::System.ComponentModel.ISupportInitialize)this.numericUpDown5).BeginInit();
 			((global::System.ComponentModel.ISupportInitialize)this.numericUpDown4).BeginInit();
 			base.SuspendLayout();
-			componentResourceManager.ApplyResources(this.checkBox1, "checkBox1");
+			resources.ApplyResources(this.checkBox1, "checkBox1");
 			this.checkBox1.Name = "checkBox1";
 			this.checkBox1.UseVisualStyleBackColor = true;
-			componentResourceManager.ApplyResources(this.button1, "button1");
+			resources.ApplyResources(this.button1, "button1");
 			this.button1.DialogResult = global::System.Windows.Forms.DialogResult.OK;
 			this.button1.Name = "button1";
 			this.button1.UseVisualStyleBackColor = true;
 			this.button1.Click += new global::System.EventHandler(this.button1_Click);
-			componentResourceManager.ApplyResources(this.button2, "button2");
+			resources.ApplyResources(this.button2, "button2");
 			this.button2.DialogResult = global::System.Windows.Forms.DialogResult.Cancel;
 			this.button2.Name = "button2";
 			this.button2.UseVisualStyleBackColor = true;
 			this.button2.Click += new global::System.EventHandler(this.button2_Click);
-			componentResourceManager.ApplyResources(this.textBox1, "textBox1");
+			resources.ApplyResources(this.textBox1, "textBox1");
 			this.textBox1.BorderStyle = global::System.Windows.Forms.BorderStyle.None;
 			this.textBox1.Name = "textBox1";
 			this.textBox1.ReadOnly = true;
-			componentResourceManager.ApplyResources(this.tabControl1, "tabControl1");
+			resources.ApplyResources(this.tabControl1, "tabControl1");
 			this.tabControl1.Controls.Add(this.tabPage1);
 			this.tabControl1.Controls.Add(this.tabPage3);
 			this.tabControl1.Controls.Add(this.tabPage4);
@@ -271,12 +271,12 @@
 			this.tabControl1.Controls.Add(this.tabPage2);
 			this.tabControl1.Name = "tabControl1";
 			this.tabControl1.SelectedIndex = 0;
-			componentResourceManager.ApplyResources(this.tabPage1, "tabPage1");
+			resources.ApplyResources(this.tabPage1, "tabPage1");
 			this.tabPage1.BackColor = global::System.Drawing.SystemColors.Control;
 			this.tabPage1.Controls.Add(this.groupBox2);
 			this.tabPage1.Controls.Add(this.groupBox1);
 			this.tabPage1.Name = "tabPage1";
-			componentResourceManager.ApplyResources(this.groupBox2, "groupBox2");
+			resources.ApplyResources(this.groupBox2, "groupBox2");
 			this.groupBox2.Controls.Add(this.groupBox7);
 			this.groupBox2.Controls.Add(this.comboBox11);
 			this.groupBox2.Controls.Add(this.label44);
@@ -296,7 +296,7 @@
 			this.groupBox2.Controls.Add(this.label24);
 			this.groupBox2.Name = "groupBox2";
 			this.groupBox2.TabStop = false;
-			componentResourceManager.ApplyResources(this.groupBox7, "groupBox7");
+			resources.ApplyResources(this.groupBox7, "groupBox7");
 			this.groupBox7.Controls.Add(this.label52);
 			this.groupBox7.Controls.Add(this.doubleTextBox3);
 			this.groupBox7.Controls.Add(this.label21);
@@ -305,103 +305,95 @@
 			this.groupBox7.Controls.Add(this.doubleTextBox2);
 			this.groupBox7.Name = "groupBox7";
 			this.groupBox7.TabStop = false;
-			componentResourceManager.ApplyResources(this.label52, "label52");
+			resources.ApplyResources(this.label52, "label52");
 			this.label52.Name = "label52";
-			componentResourceManager.ApplyResources(this.doubleTextBox3, "doubleTextBox3");
+			resources.ApplyResources(this.doubleTextBox3, "doubleTextBox3");
 			this.doubleTextBox3.Name = "doubleTextBox3";
-			componentResourceManager.ApplyResources(this.label21, "label21");
+			resources.ApplyResources(this.label21, "label21");
 			this.label21.Name = "label21";
-			componentResourceManager.ApplyResources(this.label22, "label22");
+			resources.ApplyResources(this.label22, "label22");
 			this.label22.Name = "label22";
-			componentResourceManager.ApplyResources(this.doubleTextBox1, "doubleTextBox1");
+			resources.ApplyResources(this.doubleTextBox1, "doubleTextBox1");
 			this.doubleTextBox1.Name = "doubleTextBox1";
-			componentResourceManager.ApplyResources(this.doubleTextBox2, "doubleTextBox2");
+			resources.ApplyResources(this.doubleTextBox2, "doubleTextBox2");
 			this.doubleTextBox2.Name = "doubleTextBox2";
-			componentResourceManager.ApplyResources(this.comboBox11, "comboBox11");
+			resources.ApplyResources(this.comboBox11, "comboBox11");
 			this.comboBox11.DropDownStyle = global::System.Windows.Forms.ComboBoxStyle.DropDownList;
 			this.comboBox11.FormattingEnabled = true;
 			this.comboBox11.Items.AddRange(new object[]
 			{
-				componentResourceManager.GetString("comboBox11.Items"),
-				componentResourceManager.GetString("comboBox11.Items1"),
-				componentResourceManager.GetString("comboBox11.Items2")
+				resources.GetString("comboBox11.Items"),
+				resources.GetString("comboBox11.Items1"),
+				resources.GetString("comboBox11.Items2")
 			});
 			this.comboBox11.Name = "comboBox11";
-			componentResourceManager.ApplyResources(this.label44, "label44");
+			resources.ApplyResources(this.label44, "label44");
 			this.label44.Name = "label44";
-			componentResourceManager.ApplyResources(this.label85, "label85");
+			resources.ApplyResources(this.label85, "label85");
 			this.label85.Name = "label85";
-			componentResourceManager.ApplyResources(this.label86, "label86");
+			resources.ApplyResources(this.label86, "label86");
 			this.label86.Name = "label86";
-			componentResourceManager.ApplyResources(this.label87, "label87");
+			resources.ApplyResources(this.label87, "label87");
 			this.label87.Name = "label87";
-			componentResourceManager.ApplyResources(this.numericUpDown8, "numericUpDown8");
+			resources.ApplyResources(this.numericUpDown8, "numericUpDown8");
 			this.numericUpDown8.Name = "numericUpDown8";
 			this.numericUpDown8.Minimum = 1;
 			this.numericUpDown8.Maximum = 100;
 			this.numericUpDown8.Increment = 1;
 			this.numericUpDown8.Value = 5;
-			componentResourceManager.ApplyResources(this.numericUpDown9, "numericUpDown9");
+			resources.ApplyResources(this.numericUpDown9, "numericUpDown9");
 			this.numericUpDown9.Name = "numericUpDown9";
 			this.numericUpDown9.Minimum = 0;
 			this.numericUpDown9.Maximum = 50;
 			this.numericUpDown9.Increment = 1;
 			this.numericUpDown9.Value = 1;
-            componentResourceManager.ApplyResources(this.numericUpDown13, "numericUpDown13");
+            resources.ApplyResources(this.numericUpDown13, "numericUpDown13");
             this.numericUpDown13.Name = "numericUpDown13";
             this.numericUpDown13.Minimum = 0;
             this.numericUpDown13.Maximum = decimal.MaxValue;
             this.numericUpDown13.Increment = 10;
             this.numericUpDown13.Value = 100;
-            componentResourceManager.ApplyResources(this.label90, "label90");
+            resources.ApplyResources(this.label90, "label90");
             this.label90.Name = "label90";
-            componentResourceManager.ApplyResources(this.label28, "label28");
+            resources.ApplyResources(this.label28, "label28");
 			this.label28.Name = "label28";
-			componentResourceManager.ApplyResources(this.label27, "label27");
+			resources.ApplyResources(this.label27, "label27");
 			this.label27.Name = "label27";
-			componentResourceManager.ApplyResources(this.numericUpDown3, "numericUpDown3");
-			global::System.Windows.Forms.NumericUpDown numericUpDown = this.numericUpDown3;
+			resources.ApplyResources(this.numericUpDown3, "numericUpDown3");
 			int[] array = new int[4];
 			array[0] = 100;
-			numericUpDown.Increment = new decimal(array);
-			global::System.Windows.Forms.NumericUpDown numericUpDown2 = this.numericUpDown3;
+            this.numericUpDown3.Increment = new decimal(array);
 			int[] array2 = new int[4];
 			array2[0] = 5000;
-			numericUpDown2.Maximum = new decimal(array2);
-			global::System.Windows.Forms.NumericUpDown numericUpDown3 = this.numericUpDown3;
+            this.numericUpDown3.Maximum = new decimal(array2);
 			int[] array3 = new int[4];
 			array3[0] = 100;
-			numericUpDown3.Minimum = new decimal(array3);
+            this.numericUpDown3.Minimum = new decimal(array3);
 			this.numericUpDown3.Name = "numericUpDown3";
-			global::System.Windows.Forms.NumericUpDown numericUpDown4 = this.numericUpDown3;
 			int[] array4 = new int[4];
 			array4[0] = 100;
-			numericUpDown4.Value = new decimal(array4);
-			componentResourceManager.ApplyResources(this.numericUpDown2, "numericUpDown2");
-			global::System.Windows.Forms.NumericUpDown numericUpDown5 = this.numericUpDown2;
+            this.numericUpDown3.Value = new decimal(array4);
+			resources.ApplyResources(this.numericUpDown2, "numericUpDown2");
 			int[] array5 = new int[4];
 			array5[0] = 1;
-			numericUpDown5.Minimum = new decimal(array5);
+            this.numericUpDown2.Minimum = new decimal(array5);
 			this.numericUpDown2.Name = "numericUpDown2";
-			global::System.Windows.Forms.NumericUpDown numericUpDown6 = this.numericUpDown2;
 			int[] array6 = new int[4];
 			array6[0] = 1;
-			numericUpDown6.Value = new decimal(array6);
-			componentResourceManager.ApplyResources(this.label26, "label26");
+            this.numericUpDown2.Value = new decimal(array6);
+			resources.ApplyResources(this.label26, "label26");
 			this.label26.Name = "label26";
-			componentResourceManager.ApplyResources(this.numericUpDown1, "numericUpDown1");
-			global::System.Windows.Forms.NumericUpDown numericUpDown7 = this.numericUpDown1;
+			resources.ApplyResources(this.numericUpDown1, "numericUpDown1");
 			int[] array7 = new int[4];
 			array7[0] = 1;
-			numericUpDown7.Minimum = new decimal(array7);
+            this.numericUpDown1.Minimum = new decimal(array7);
 			this.numericUpDown1.Name = "numericUpDown1";
-			global::System.Windows.Forms.NumericUpDown numericUpDown8 = this.numericUpDown1;
 			int[] array8 = new int[4];
 			array8[0] = 1;
-			numericUpDown8.Value = new decimal(array8);
-			componentResourceManager.ApplyResources(this.label24, "label24");
+            this.numericUpDown1.Value = new decimal(array8);
+			resources.ApplyResources(this.label24, "label24");
 			this.label24.Name = "label24";
-			componentResourceManager.ApplyResources(this.groupBox1, "groupBox1");
+			resources.ApplyResources(this.groupBox1, "groupBox1");
 			this.groupBox1.Controls.Add(this.comboBox10);
 			this.groupBox1.Controls.Add(this.label43);
 			this.groupBox1.Controls.Add(this.label39);
@@ -425,132 +417,132 @@
             this.groupBox1.Controls.Add(this.numericUpDown14);
             this.groupBox1.Name = "groupBox1";
 			this.groupBox1.TabStop = false;
-            componentResourceManager.ApplyResources(this.numericUpDown14, "numericUpDown14");
+            resources.ApplyResources(this.numericUpDown14, "numericUpDown14");
             this.numericUpDown14.Name = "numericUpDown14";
 			this.numericUpDown14.Minimum = 0.000001m;
             this.numericUpDown14.Maximum = 10000000;
             this.numericUpDown14.Increment = 0.1m;
 			this.numericUpDown14.DecimalPlaces = 4;
-            componentResourceManager.ApplyResources(this.comboBox10, "comboBox10");
+            resources.ApplyResources(this.comboBox10, "comboBox10");
 			this.comboBox10.DropDownStyle = global::System.Windows.Forms.ComboBoxStyle.DropDownList;
 			this.comboBox10.FormattingEnabled = true;
 			this.comboBox10.Items.AddRange(new object[]
 			{
-				componentResourceManager.GetString("comboBox10.Items"),
-				componentResourceManager.GetString("comboBox10.Items1")
+				resources.GetString("comboBox10.Items"),
+				resources.GetString("comboBox10.Items1")
 			});
 			this.comboBox10.Name = "comboBox10";
             this.comboBox10.SelectedIndexChanged += ComboBox10_SelectedIndexChanged;
-			componentResourceManager.ApplyResources(this.label43, "label43");
+			resources.ApplyResources(this.label43, "label43");
 			this.label43.Name = "label43";
-			componentResourceManager.ApplyResources(this.label39, "label39");
+			resources.ApplyResources(this.label39, "label39");
 			this.label39.Name = "label39";
-			componentResourceManager.ApplyResources(this.comboBox9, "comboBox9");
+			resources.ApplyResources(this.comboBox9, "comboBox9");
 			this.comboBox9.DropDownStyle = global::System.Windows.Forms.ComboBoxStyle.DropDownList;
 			this.comboBox9.FormattingEnabled = true;
 			this.comboBox9.Items.AddRange(new object[]
 			{
-				componentResourceManager.GetString("comboBox9.Items"),
-				componentResourceManager.GetString("comboBox9.Items1")
+				resources.GetString("comboBox9.Items"),
+				resources.GetString("comboBox9.Items1")
 			});
 			this.comboBox9.Name = "comboBox9";
-			componentResourceManager.ApplyResources(this.comboBox8, "comboBox8");
+			resources.ApplyResources(this.comboBox8, "comboBox8");
 			this.comboBox8.DropDownStyle = global::System.Windows.Forms.ComboBoxStyle.DropDownList;
 			this.comboBox8.FormattingEnabled = true;
 			this.comboBox8.Items.AddRange(new object[]
 			{
-				componentResourceManager.GetString("comboBox8.Items"),
-				componentResourceManager.GetString("comboBox8.Items1")
+				resources.GetString("comboBox8.Items"),
+				resources.GetString("comboBox8.Items1")
 			});
 			this.comboBox8.Name = "comboBox8";
-			componentResourceManager.ApplyResources(this.comboBox7, "comboBox7");
+			resources.ApplyResources(this.comboBox7, "comboBox7");
 			this.comboBox7.DropDownStyle = global::System.Windows.Forms.ComboBoxStyle.DropDownList;
 			this.comboBox7.FormattingEnabled = true;
 			this.comboBox7.Items.AddRange(new object[]
 			{
-				componentResourceManager.GetString("comboBox7.Items"),
-				componentResourceManager.GetString("comboBox7.Items1")
+				resources.GetString("comboBox7.Items"),
+				resources.GetString("comboBox7.Items1")
 			});
 			this.comboBox7.Name = "comboBox7";
-			componentResourceManager.ApplyResources(this.label38, "label38");
+			resources.ApplyResources(this.label38, "label38");
 			this.label38.Name = "label38";
-			componentResourceManager.ApplyResources(this.label37, "label37");
+			resources.ApplyResources(this.label37, "label37");
 			this.label37.Name = "label37";
-			componentResourceManager.ApplyResources(this.comboBox6, "comboBox6");
+			resources.ApplyResources(this.comboBox6, "comboBox6");
 			this.comboBox6.DropDownStyle = global::System.Windows.Forms.ComboBoxStyle.DropDownList;
 			this.comboBox6.FormattingEnabled = true;
 			this.comboBox6.Items.AddRange(new object[]
 			{
-				componentResourceManager.GetString("comboBox6.Items"),
-				componentResourceManager.GetString("comboBox6.Items1"),
-				componentResourceManager.GetString("comboBox6.Items2")
+				resources.GetString("comboBox6.Items"),
+				resources.GetString("comboBox6.Items1"),
+				resources.GetString("comboBox6.Items2")
 			});
 			this.comboBox6.Name = "comboBox6";
-			componentResourceManager.ApplyResources(this.label23, "label23");
+			resources.ApplyResources(this.label23, "label23");
 			this.label23.Name = "label23";
-			componentResourceManager.ApplyResources(this.comboBox5, "comboBox5");
+			resources.ApplyResources(this.comboBox5, "comboBox5");
 			this.comboBox5.DropDownStyle = global::System.Windows.Forms.ComboBoxStyle.DropDownList;
 			this.comboBox5.FormattingEnabled = true;
 			this.comboBox5.Items.AddRange(new object[]
 			{
-				componentResourceManager.GetString("comboBox5.Items"),
-				componentResourceManager.GetString("comboBox5.Items1")
+				resources.GetString("comboBox5.Items"),
+				resources.GetString("comboBox5.Items1")
 			});
 			this.comboBox5.Name = "comboBox5";
-			componentResourceManager.ApplyResources(this.comboBox4, "comboBox4");
+			resources.ApplyResources(this.comboBox4, "comboBox4");
 			this.comboBox4.DropDownStyle = global::System.Windows.Forms.ComboBoxStyle.DropDownList;
 			this.comboBox4.FormattingEnabled = true;
 			this.comboBox4.Items.AddRange(new object[]
 			{
-				componentResourceManager.GetString("comboBox4.Items"),
-				componentResourceManager.GetString("comboBox4.Items1"),
-				componentResourceManager.GetString("comboBox4.Items2")
+				resources.GetString("comboBox4.Items"),
+				resources.GetString("comboBox4.Items1"),
+				resources.GetString("comboBox4.Items2")
 			});
 			this.comboBox4.Name = "comboBox4";
-			componentResourceManager.ApplyResources(this.comboBox3, "comboBox3");
+			resources.ApplyResources(this.comboBox3, "comboBox3");
 			this.comboBox3.DropDownStyle = global::System.Windows.Forms.ComboBoxStyle.DropDownList;
 			this.comboBox3.FormattingEnabled = true;
 			this.comboBox3.Items.AddRange(new object[]
 			{
-				componentResourceManager.GetString("comboBox3.Items"),
-				componentResourceManager.GetString("comboBox3.Items1")
+				resources.GetString("comboBox3.Items"),
+				resources.GetString("comboBox3.Items1")
 			});
 			this.comboBox3.Name = "comboBox3";
-			componentResourceManager.ApplyResources(this.comboBox2, "comboBox2");
+			resources.ApplyResources(this.comboBox2, "comboBox2");
 			this.comboBox2.DropDownStyle = global::System.Windows.Forms.ComboBoxStyle.DropDownList;
 			this.comboBox2.FormattingEnabled = true;
 			this.comboBox2.Items.AddRange(new object[]
 			{
-				componentResourceManager.GetString("comboBox2.Items"),
-				componentResourceManager.GetString("comboBox2.Items1")
+				resources.GetString("comboBox2.Items"),
+				resources.GetString("comboBox2.Items1")
 			});
 			this.comboBox2.Name = "comboBox2";
-			componentResourceManager.ApplyResources(this.comboBox1, "comboBox1");
+			resources.ApplyResources(this.comboBox1, "comboBox1");
 			this.comboBox1.DropDownStyle = global::System.Windows.Forms.ComboBoxStyle.DropDownList;
 			this.comboBox1.FormattingEnabled = true;
 			this.comboBox1.Items.AddRange(new object[]
 			{
-				componentResourceManager.GetString("comboBox1.Items"),
-				componentResourceManager.GetString("comboBox1.Items1")
+				resources.GetString("comboBox1.Items"),
+				resources.GetString("comboBox1.Items1")
 			});
 			this.comboBox1.Name = "comboBox1";
-			componentResourceManager.ApplyResources(this.label5, "label5");
+			resources.ApplyResources(this.label5, "label5");
 			this.label5.Name = "label5";
-			componentResourceManager.ApplyResources(this.label4, "label4");
+			resources.ApplyResources(this.label4, "label4");
 			this.label4.Name = "label4";
-			componentResourceManager.ApplyResources(this.label3, "label3");
+			resources.ApplyResources(this.label3, "label3");
 			this.label3.Name = "label3";
-			componentResourceManager.ApplyResources(this.label2, "label2");
+			resources.ApplyResources(this.label2, "label2");
 			this.label2.Name = "label2";
-			componentResourceManager.ApplyResources(this.label1, "label1");
+			resources.ApplyResources(this.label1, "label1");
 			this.label1.Name = "label1";
-			componentResourceManager.ApplyResources(this.tabPage3, "tabPage3");
+			resources.ApplyResources(this.tabPage3, "tabPage3");
 			this.tabPage3.BackColor = global::System.Drawing.SystemColors.Control;
 			this.tabPage3.Controls.Add(this.groupBox4);
 			this.tabPage3.Controls.Add(this.groupBox3);
 			this.tabPage3.Controls.Add(this.button4);
 			this.tabPage3.Name = "tabPage3";
-			componentResourceManager.ApplyResources(this.groupBox4, "groupBox4");
+			resources.ApplyResources(this.groupBox4, "groupBox4");
 			this.groupBox4.Controls.Add(this.label64);
 			this.groupBox4.Controls.Add(this.comboBox15);
 			this.groupBox4.Controls.Add(this.label55);
@@ -597,140 +589,140 @@
 			this.groupBox4.Controls.Add(this.colorComboBox21);
 			this.groupBox4.Name = "groupBox4";
 			this.groupBox4.TabStop = false;
-			componentResourceManager.ApplyResources(this.label64, "label64");
+			resources.ApplyResources(this.label64, "label64");
 			this.label64.Name = "label64";
-			componentResourceManager.ApplyResources(this.comboBox15, "comboBox15");
+			resources.ApplyResources(this.comboBox15, "comboBox15");
 			this.comboBox15.DropDownStyle = global::System.Windows.Forms.ComboBoxStyle.DropDownList;
 			this.comboBox15.FormattingEnabled = true;
 			this.comboBox15.Items.AddRange(new object[]
 			{
-				componentResourceManager.GetString("comboBox15.Items"),
-				componentResourceManager.GetString("comboBox15.Items1")
+				resources.GetString("comboBox15.Items"),
+				resources.GetString("comboBox15.Items1")
 			});
 			this.comboBox15.Name = "comboBox15";
-			componentResourceManager.ApplyResources(this.label55, "label55");
+			resources.ApplyResources(this.label55, "label55");
 			this.label55.Name = "label55";
-			componentResourceManager.ApplyResources(this.label51, "label51");
+			resources.ApplyResources(this.label51, "label51");
 			this.label51.Name = "label51";
-			componentResourceManager.ApplyResources(this.numericUpDown7, "numericUpDown7");
+			resources.ApplyResources(this.numericUpDown7, "numericUpDown7");
 			this.numericUpDown7.Name = "numericUpDown7";
-			componentResourceManager.ApplyResources(this.numericUpDown6, "numericUpDown6");
+			resources.ApplyResources(this.numericUpDown6, "numericUpDown6");
 			this.numericUpDown6.Name = "numericUpDown6";
-			componentResourceManager.ApplyResources(this.label58, "label58");
+			resources.ApplyResources(this.label58, "label58");
 			this.label58.Name = "label58";
-			componentResourceManager.ApplyResources(this.label59, "label59");
+			resources.ApplyResources(this.label59, "label59");
 			this.label59.Name = "label59";
-			componentResourceManager.ApplyResources(this.label60, "label60");
+			resources.ApplyResources(this.label60, "label60");
 			this.label60.Name = "label60";
-			componentResourceManager.ApplyResources(this.label61, "label61");
+			resources.ApplyResources(this.label61, "label61");
 			this.label61.Name = "label61";
-			componentResourceManager.ApplyResources(this.label62, "label62");
+			resources.ApplyResources(this.label62, "label62");
 			this.label62.Name = "label62";
-			componentResourceManager.ApplyResources(this.label63, "label63");
+			resources.ApplyResources(this.label63, "label63");
 			this.label63.Name = "label63";
-			componentResourceManager.ApplyResources(this.colorComboBox30, "colorComboBox30");
+			resources.ApplyResources(this.colorComboBox30, "colorComboBox30");
 			this.colorComboBox30.Extended = true;
 			this.colorComboBox30.Name = "colorComboBox30";
 			this.colorComboBox30.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.colorComboBox31, "colorComboBox31");
+			resources.ApplyResources(this.colorComboBox31, "colorComboBox31");
 			this.colorComboBox31.Extended = true;
 			this.colorComboBox31.Name = "colorComboBox31";
 			this.colorComboBox31.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.colorComboBox32, "colorComboBox32");
+			resources.ApplyResources(this.colorComboBox32, "colorComboBox32");
 			this.colorComboBox32.Extended = true;
 			this.colorComboBox32.Name = "colorComboBox32";
 			this.colorComboBox32.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.colorComboBox33, "colorComboBox33");
+			resources.ApplyResources(this.colorComboBox33, "colorComboBox33");
 			this.colorComboBox33.Extended = true;
 			this.colorComboBox33.Name = "colorComboBox33";
 			this.colorComboBox33.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.colorComboBox34, "colorComboBox34");
+			resources.ApplyResources(this.colorComboBox34, "colorComboBox34");
 			this.colorComboBox34.Extended = true;
 			this.colorComboBox34.Name = "colorComboBox34";
 			this.colorComboBox34.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.colorComboBox35, "colorComboBox35");
+			resources.ApplyResources(this.colorComboBox35, "colorComboBox35");
 			this.colorComboBox35.Extended = true;
 			this.colorComboBox35.Name = "colorComboBox35";
 			this.colorComboBox35.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.label57, "label57");
+			resources.ApplyResources(this.label57, "label57");
 			this.label57.Name = "label57";
-			componentResourceManager.ApplyResources(this.colorComboBox29, "colorComboBox29");
+			resources.ApplyResources(this.colorComboBox29, "colorComboBox29");
 			this.colorComboBox29.Extended = true;
 			this.colorComboBox29.Name = "colorComboBox29";
 			this.colorComboBox29.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.label56, "label56");
+			resources.ApplyResources(this.label56, "label56");
 			this.label56.Name = "label56";
-			componentResourceManager.ApplyResources(this.colorComboBox28, "colorComboBox28");
+			resources.ApplyResources(this.colorComboBox28, "colorComboBox28");
 			this.colorComboBox28.Extended = true;
 			this.colorComboBox28.Name = "colorComboBox28";
 			this.colorComboBox28.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.label6, "label6");
+			resources.ApplyResources(this.label6, "label6");
 			this.label6.Name = "label6";
-			componentResourceManager.ApplyResources(this.colorComboBox1, "colorComboBox1");
+			resources.ApplyResources(this.colorComboBox1, "colorComboBox1");
 			this.colorComboBox1.Extended = true;
 			this.colorComboBox1.Name = "colorComboBox1";
 			this.colorComboBox1.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.label36, "label36");
+			resources.ApplyResources(this.label36, "label36");
 			this.label36.Name = "label36";
-			componentResourceManager.ApplyResources(this.colorComboBox2, "colorComboBox2");
+			resources.ApplyResources(this.colorComboBox2, "colorComboBox2");
 			this.colorComboBox2.Extended = true;
 			this.colorComboBox2.Name = "colorComboBox2";
 			this.colorComboBox2.SelectedColor = global::System.Drawing.Color.Black;
-            componentResourceManager.ApplyResources(this.colorComboBox36, "colorComboBox36");
+            resources.ApplyResources(this.colorComboBox36, "colorComboBox36");
             this.colorComboBox36.Extended = true;
             this.colorComboBox36.Name = "colorComboBox36";
             this.colorComboBox36.SelectedColor = global::System.Drawing.Color.DarkViolet;
-            componentResourceManager.ApplyResources(this.label35, "label35");
+            resources.ApplyResources(this.label35, "label35");
 			this.label35.Name = "label35";
-			componentResourceManager.ApplyResources(this.label7, "label7");
+			resources.ApplyResources(this.label7, "label7");
 			this.label7.Name = "label7";
-            componentResourceManager.ApplyResources(this.label88, "label88");
+            resources.ApplyResources(this.label88, "label88");
             this.label8.Name = "label88";
-            componentResourceManager.ApplyResources(this.label34, "label34");
+            resources.ApplyResources(this.label34, "label34");
 			this.label34.Name = "label34";
-			componentResourceManager.ApplyResources(this.label29, "label29");
+			resources.ApplyResources(this.label29, "label29");
 			this.label29.Name = "label29";
-			componentResourceManager.ApplyResources(this.label33, "label33");
+			resources.ApplyResources(this.label33, "label33");
 			this.label33.Name = "label33";
-			componentResourceManager.ApplyResources(this.label30, "label30");
+			resources.ApplyResources(this.label30, "label30");
 			this.label30.Name = "label30";
-			componentResourceManager.ApplyResources(this.label32, "label32");
+			resources.ApplyResources(this.label32, "label32");
 			this.label32.Name = "label32";
-			componentResourceManager.ApplyResources(this.colorComboBox17, "colorComboBox17");
+			resources.ApplyResources(this.colorComboBox17, "colorComboBox17");
 			this.colorComboBox17.Extended = true;
 			this.colorComboBox17.Name = "colorComboBox17";
 			this.colorComboBox17.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.label31, "label31");
+			resources.ApplyResources(this.label31, "label31");
 			this.label31.Name = "label31";
-			componentResourceManager.ApplyResources(this.colorComboBox18, "colorComboBox18");
+			resources.ApplyResources(this.colorComboBox18, "colorComboBox18");
 			this.colorComboBox18.Extended = true;
 			this.colorComboBox18.Name = "colorComboBox18";
 			this.colorComboBox18.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.colorComboBox24, "colorComboBox24");
+			resources.ApplyResources(this.colorComboBox24, "colorComboBox24");
 			this.colorComboBox24.Extended = true;
 			this.colorComboBox24.Name = "colorComboBox24";
 			this.colorComboBox24.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.colorComboBox19, "colorComboBox19");
+			resources.ApplyResources(this.colorComboBox19, "colorComboBox19");
 			this.colorComboBox19.Extended = true;
 			this.colorComboBox19.Name = "colorComboBox19";
 			this.colorComboBox19.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.colorComboBox23, "colorComboBox23");
+			resources.ApplyResources(this.colorComboBox23, "colorComboBox23");
 			this.colorComboBox23.Extended = true;
 			this.colorComboBox23.Name = "colorComboBox23";
 			this.colorComboBox23.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.colorComboBox20, "colorComboBox20");
+			resources.ApplyResources(this.colorComboBox20, "colorComboBox20");
 			this.colorComboBox20.Extended = true;
 			this.colorComboBox20.Name = "colorComboBox20";
 			this.colorComboBox20.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.colorComboBox22, "colorComboBox22");
+			resources.ApplyResources(this.colorComboBox22, "colorComboBox22");
 			this.colorComboBox22.Extended = true;
 			this.colorComboBox22.Name = "colorComboBox22";
 			this.colorComboBox22.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.colorComboBox21, "colorComboBox21");
+			resources.ApplyResources(this.colorComboBox21, "colorComboBox21");
 			this.colorComboBox21.Extended = true;
 			this.colorComboBox21.Name = "colorComboBox21";
 			this.colorComboBox21.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.groupBox3, "groupBox3");
+			resources.ApplyResources(this.groupBox3, "groupBox3");
 			this.groupBox3.Controls.Add(this.label42);
 			this.groupBox3.Controls.Add(this.label41);
 			this.groupBox3.Controls.Add(this.label40);
@@ -769,119 +761,119 @@
 			this.groupBox3.Controls.Add(this.colorComboBox37);
 			this.groupBox3.Name = "groupBox3";
 			this.groupBox3.TabStop = false;
-			componentResourceManager.ApplyResources(this.label42, "label42");
+			resources.ApplyResources(this.label42, "label42");
 			this.label42.Name = "label42";
-			componentResourceManager.ApplyResources(this.label41, "label41");
+			resources.ApplyResources(this.label41, "label41");
 			this.label41.Name = "label41";
-			componentResourceManager.ApplyResources(this.label40, "label40");
+			resources.ApplyResources(this.label40, "label40");
 			this.label40.Name = "label40";
-			componentResourceManager.ApplyResources(this.label89, "label89");
+			resources.ApplyResources(this.label89, "label89");
 			this.label89.Name = "label89";
-			componentResourceManager.ApplyResources(this.colorComboBox37, "colorComboBox37");
+			resources.ApplyResources(this.colorComboBox37, "colorComboBox37");
 			this.colorComboBox37.Extended = true;
 			this.colorComboBox37.Name = "colorComboBox37";
 			this.colorComboBox37.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.colorComboBox27, "colorComboBox27");
+			resources.ApplyResources(this.colorComboBox27, "colorComboBox27");
 			this.colorComboBox27.Extended = true;
 			this.colorComboBox27.Name = "colorComboBox27";
 			this.colorComboBox27.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.colorComboBox26, "colorComboBox26");
+			resources.ApplyResources(this.colorComboBox26, "colorComboBox26");
 			this.colorComboBox26.Extended = true;
 			this.colorComboBox26.Name = "colorComboBox26";
 			this.colorComboBox26.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.colorComboBox25, "colorComboBox25");
+			resources.ApplyResources(this.colorComboBox25, "colorComboBox25");
 			this.colorComboBox25.Extended = true;
 			this.colorComboBox25.Name = "colorComboBox25";
 			this.colorComboBox25.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.label8, "label8");
+			resources.ApplyResources(this.label8, "label8");
 			this.label8.Name = "label8";
-			componentResourceManager.ApplyResources(this.colorComboBox3, "colorComboBox3");
+			resources.ApplyResources(this.colorComboBox3, "colorComboBox3");
 			this.colorComboBox3.Extended = true;
 			this.colorComboBox3.Name = "colorComboBox3";
 			this.colorComboBox3.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.colorComboBox4, "colorComboBox4");
+			resources.ApplyResources(this.colorComboBox4, "colorComboBox4");
 			this.colorComboBox4.Extended = true;
 			this.colorComboBox4.Name = "colorComboBox4";
 			this.colorComboBox4.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.colorComboBox5, "colorComboBox5");
+			resources.ApplyResources(this.colorComboBox5, "colorComboBox5");
 			this.colorComboBox5.Extended = true;
 			this.colorComboBox5.Name = "colorComboBox5";
 			this.colorComboBox5.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.colorComboBox6, "colorComboBox6");
+			resources.ApplyResources(this.colorComboBox6, "colorComboBox6");
 			this.colorComboBox6.Extended = true;
 			this.colorComboBox6.Name = "colorComboBox6";
 			this.colorComboBox6.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.colorComboBox7, "colorComboBox7");
+			resources.ApplyResources(this.colorComboBox7, "colorComboBox7");
 			this.colorComboBox7.Extended = true;
 			this.colorComboBox7.Name = "colorComboBox7";
 			this.colorComboBox7.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.colorComboBox8, "colorComboBox8");
+			resources.ApplyResources(this.colorComboBox8, "colorComboBox8");
 			this.colorComboBox8.Extended = true;
 			this.colorComboBox8.Name = "colorComboBox8";
 			this.colorComboBox8.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.colorComboBox9, "colorComboBox9");
+			resources.ApplyResources(this.colorComboBox9, "colorComboBox9");
 			this.colorComboBox9.Extended = true;
 			this.colorComboBox9.Name = "colorComboBox9";
 			this.colorComboBox9.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.colorComboBox10, "colorComboBox10");
+			resources.ApplyResources(this.colorComboBox10, "colorComboBox10");
 			this.colorComboBox10.Extended = true;
 			this.colorComboBox10.Name = "colorComboBox10";
 			this.colorComboBox10.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.colorComboBox11, "colorComboBox11");
+			resources.ApplyResources(this.colorComboBox11, "colorComboBox11");
 			this.colorComboBox11.Extended = true;
 			this.colorComboBox11.Name = "colorComboBox11";
 			this.colorComboBox11.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.colorComboBox12, "colorComboBox12");
+			resources.ApplyResources(this.colorComboBox12, "colorComboBox12");
 			this.colorComboBox12.Extended = true;
 			this.colorComboBox12.Name = "colorComboBox12";
 			this.colorComboBox12.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.colorComboBox13, "colorComboBox13");
+			resources.ApplyResources(this.colorComboBox13, "colorComboBox13");
 			this.colorComboBox13.Extended = true;
 			this.colorComboBox13.Name = "colorComboBox13";
 			this.colorComboBox13.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.colorComboBox14, "colorComboBox14");
+			resources.ApplyResources(this.colorComboBox14, "colorComboBox14");
 			this.colorComboBox14.Extended = true;
 			this.colorComboBox14.Name = "colorComboBox14";
 			this.colorComboBox14.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.colorComboBox15, "colorComboBox15");
+			resources.ApplyResources(this.colorComboBox15, "colorComboBox15");
 			this.colorComboBox15.Extended = true;
 			this.colorComboBox15.Name = "colorComboBox15";
 			this.colorComboBox15.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.label9, "label9");
+			resources.ApplyResources(this.label9, "label9");
 			this.label9.Name = "label9";
-			componentResourceManager.ApplyResources(this.label10, "label10");
+			resources.ApplyResources(this.label10, "label10");
 			this.label10.Name = "label10";
-			componentResourceManager.ApplyResources(this.label11, "label11");
+			resources.ApplyResources(this.label11, "label11");
 			this.label11.Name = "label11";
-			componentResourceManager.ApplyResources(this.colorComboBox16, "colorComboBox16");
+			resources.ApplyResources(this.colorComboBox16, "colorComboBox16");
 			this.colorComboBox16.Extended = true;
 			this.colorComboBox16.Name = "colorComboBox16";
 			this.colorComboBox16.SelectedColor = global::System.Drawing.Color.Black;
-			componentResourceManager.ApplyResources(this.label12, "label12");
+			resources.ApplyResources(this.label12, "label12");
 			this.label12.Name = "label12";
-			componentResourceManager.ApplyResources(this.label25, "label25");
+			resources.ApplyResources(this.label25, "label25");
 			this.label25.Name = "label25";
-			componentResourceManager.ApplyResources(this.label13, "label13");
+			resources.ApplyResources(this.label13, "label13");
 			this.label13.Name = "label13";
-			componentResourceManager.ApplyResources(this.label14, "label14");
+			resources.ApplyResources(this.label14, "label14");
 			this.label14.Name = "label14";
-			componentResourceManager.ApplyResources(this.label20, "label20");
+			resources.ApplyResources(this.label20, "label20");
 			this.label20.Name = "label20";
-			componentResourceManager.ApplyResources(this.label15, "label15");
+			resources.ApplyResources(this.label15, "label15");
 			this.label15.Name = "label15";
-			componentResourceManager.ApplyResources(this.label19, "label19");
+			resources.ApplyResources(this.label19, "label19");
 			this.label19.Name = "label19";
-			componentResourceManager.ApplyResources(this.label16, "label16");
+			resources.ApplyResources(this.label16, "label16");
 			this.label16.Name = "label16";
-			componentResourceManager.ApplyResources(this.label18, "label18");
+			resources.ApplyResources(this.label18, "label18");
 			this.label18.Name = "label18";
-			componentResourceManager.ApplyResources(this.label17, "label17");
+			resources.ApplyResources(this.label17, "label17");
 			this.label17.Name = "label17";
-			componentResourceManager.ApplyResources(this.button4, "button4");
+			resources.ApplyResources(this.button4, "button4");
 			this.button4.Name = "button4";
 			this.button4.UseVisualStyleBackColor = true;
 			this.button4.Click += new global::System.EventHandler(this.button4_Click);
-			componentResourceManager.ApplyResources(this.tabPage4, "tabPage4");
+			resources.ApplyResources(this.tabPage4, "tabPage4");
 			this.tabPage4.BackColor = global::System.Drawing.SystemColors.Control;
 			this.tabPage4.Controls.Add(this.groupBox10);
 			this.tabPage4.Controls.Add(this.integerTextBox13);
@@ -897,7 +889,7 @@
 			this.tabPage4.Controls.Add(this.comboBox16);
 			this.tabPage4.Controls.Add(this.label65);
 			this.tabPage4.Name = "tabPage4";
-			componentResourceManager.ApplyResources(this.groupBox10, "groupBox10");
+			resources.ApplyResources(this.groupBox10, "groupBox10");
 			this.groupBox10.Controls.Add(this.label83);
 			this.groupBox10.Controls.Add(this.textBox5);
 			this.groupBox10.Controls.Add(this.textBox4);
@@ -909,45 +901,45 @@
 			this.groupBox10.Controls.Add(this.button5);
 			this.groupBox10.Name = "groupBox10";
 			this.groupBox10.TabStop = false;
-			componentResourceManager.ApplyResources(this.label83, "label83");
+			resources.ApplyResources(this.label83, "label83");
 			this.label83.Name = "label83";
-			componentResourceManager.ApplyResources(this.textBox5, "textBox5");
+			resources.ApplyResources(this.textBox5, "textBox5");
 			this.textBox5.Name = "textBox5";
-			componentResourceManager.ApplyResources(this.textBox4, "textBox4");
+			resources.ApplyResources(this.textBox4, "textBox4");
 			this.textBox4.Name = "textBox4";
-			componentResourceManager.ApplyResources(this.label82, "label82");
+			resources.ApplyResources(this.label82, "label82");
 			this.label82.Name = "label82";
-			componentResourceManager.ApplyResources(this.textBox3, "textBox3");
+			resources.ApplyResources(this.textBox3, "textBox3");
 			this.textBox3.Name = "textBox3";
-			componentResourceManager.ApplyResources(this.label81, "label81");
+			resources.ApplyResources(this.label81, "label81");
 			this.label81.Name = "label81";
-			componentResourceManager.ApplyResources(this.label66, "label66");
+			resources.ApplyResources(this.label66, "label66");
 			this.label66.Name = "label66";
-			componentResourceManager.ApplyResources(this.textBox2, "textBox2");
+			resources.ApplyResources(this.textBox2, "textBox2");
 			this.textBox2.Name = "textBox2";
-			componentResourceManager.ApplyResources(this.button5, "button5");
+			resources.ApplyResources(this.button5, "button5");
 			this.button5.Name = "button5";
 			this.button5.UseVisualStyleBackColor = true;
 			this.button5.Click += new global::System.EventHandler(this.button5_Click);
-			componentResourceManager.ApplyResources(this.integerTextBox13, "integerTextBox13");
+			resources.ApplyResources(this.integerTextBox13, "integerTextBox13");
 			this.integerTextBox13.Name = "integerTextBox13";
-			componentResourceManager.ApplyResources(this.label80, "label80");
+			resources.ApplyResources(this.label80, "label80");
 			this.label80.Name = "label80";
-			componentResourceManager.ApplyResources(this.integerTextBox12, "integerTextBox12");
+			resources.ApplyResources(this.integerTextBox12, "integerTextBox12");
 			this.integerTextBox12.Name = "integerTextBox12";
-			componentResourceManager.ApplyResources(this.label79, "label79");
+			resources.ApplyResources(this.label79, "label79");
 			this.label79.Name = "label79";
-			componentResourceManager.ApplyResources(this.integerTextBox11, "integerTextBox11");
+			resources.ApplyResources(this.integerTextBox11, "integerTextBox11");
 			this.integerTextBox11.Name = "integerTextBox11";
-			componentResourceManager.ApplyResources(this.label78, "label78");
+			resources.ApplyResources(this.label78, "label78");
 			this.label78.Name = "label78";
-			componentResourceManager.ApplyResources(this.comboBox17, "comboBox17");
+			resources.ApplyResources(this.comboBox17, "comboBox17");
 			this.comboBox17.DropDownStyle = global::System.Windows.Forms.ComboBoxStyle.DropDownList;
 			this.comboBox17.FormattingEnabled = true;
 			this.comboBox17.Name = "comboBox17";
-			componentResourceManager.ApplyResources(this.label77, "label77");
+			resources.ApplyResources(this.label77, "label77");
 			this.label77.Name = "label77";
-			componentResourceManager.ApplyResources(this.groupBox9, "groupBox9");
+			resources.ApplyResources(this.groupBox9, "groupBox9");
 			this.groupBox9.Controls.Add(this.integerTextBox7);
 			this.groupBox9.Controls.Add(this.integerTextBox6);
 			this.groupBox9.Controls.Add(this.integerTextBox8);
@@ -960,27 +952,27 @@
 			this.groupBox9.Controls.Add(this.label73);
 			this.groupBox9.Name = "groupBox9";
 			this.groupBox9.TabStop = false;
-			componentResourceManager.ApplyResources(this.integerTextBox7, "integerTextBox7");
+			resources.ApplyResources(this.integerTextBox7, "integerTextBox7");
 			this.integerTextBox7.Name = "integerTextBox7";
-			componentResourceManager.ApplyResources(this.integerTextBox6, "integerTextBox6");
+			resources.ApplyResources(this.integerTextBox6, "integerTextBox6");
 			this.integerTextBox6.Name = "integerTextBox6";
-			componentResourceManager.ApplyResources(this.integerTextBox8, "integerTextBox8");
+			resources.ApplyResources(this.integerTextBox8, "integerTextBox8");
 			this.integerTextBox8.Name = "integerTextBox8";
-			componentResourceManager.ApplyResources(this.integerTextBox9, "integerTextBox9");
+			resources.ApplyResources(this.integerTextBox9, "integerTextBox9");
 			this.integerTextBox9.Name = "integerTextBox9";
-			componentResourceManager.ApplyResources(this.label76, "label76");
+			resources.ApplyResources(this.label76, "label76");
 			this.label76.Name = "label76";
-			componentResourceManager.ApplyResources(this.integerTextBox10, "integerTextBox10");
+			resources.ApplyResources(this.integerTextBox10, "integerTextBox10");
 			this.integerTextBox10.Name = "integerTextBox10";
-			componentResourceManager.ApplyResources(this.label75, "label75");
+			resources.ApplyResources(this.label75, "label75");
 			this.label75.Name = "label75";
-			componentResourceManager.ApplyResources(this.label72, "label72");
+			resources.ApplyResources(this.label72, "label72");
 			this.label72.Name = "label72";
-			componentResourceManager.ApplyResources(this.label74, "label74");
+			resources.ApplyResources(this.label74, "label74");
 			this.label74.Name = "label74";
-			componentResourceManager.ApplyResources(this.label73, "label73");
+			resources.ApplyResources(this.label73, "label73");
 			this.label73.Name = "label73";
-			componentResourceManager.ApplyResources(this.groupBox8, "groupBox8");
+			resources.ApplyResources(this.groupBox8, "groupBox8");
 			this.groupBox8.Controls.Add(this.integerTextBox5);
 			this.groupBox8.Controls.Add(this.integerTextBox4);
 			this.groupBox8.Controls.Add(this.integerTextBox3);
@@ -993,57 +985,57 @@
 			this.groupBox8.Controls.Add(this.integerTextBox1);
 			this.groupBox8.Name = "groupBox8";
 			this.groupBox8.TabStop = false;
-			componentResourceManager.ApplyResources(this.integerTextBox5, "integerTextBox5");
+			resources.ApplyResources(this.integerTextBox5, "integerTextBox5");
 			this.integerTextBox5.Name = "integerTextBox5";
-			componentResourceManager.ApplyResources(this.integerTextBox4, "integerTextBox4");
+			resources.ApplyResources(this.integerTextBox4, "integerTextBox4");
 			this.integerTextBox4.Name = "integerTextBox4";
-			componentResourceManager.ApplyResources(this.integerTextBox3, "integerTextBox3");
+			resources.ApplyResources(this.integerTextBox3, "integerTextBox3");
 			this.integerTextBox3.Name = "integerTextBox3";
-			componentResourceManager.ApplyResources(this.integerTextBox2, "integerTextBox2");
+			resources.ApplyResources(this.integerTextBox2, "integerTextBox2");
 			this.integerTextBox2.Name = "integerTextBox2";
-			componentResourceManager.ApplyResources(this.label71, "label71");
+			resources.ApplyResources(this.label71, "label71");
 			this.label71.Name = "label71";
-			componentResourceManager.ApplyResources(this.label70, "label70");
+			resources.ApplyResources(this.label70, "label70");
 			this.label70.Name = "label70";
-			componentResourceManager.ApplyResources(this.label69, "label69");
+			resources.ApplyResources(this.label69, "label69");
 			this.label69.Name = "label69";
-			componentResourceManager.ApplyResources(this.label68, "label68");
+			resources.ApplyResources(this.label68, "label68");
 			this.label68.Name = "label68";
-			componentResourceManager.ApplyResources(this.label67, "label67");
+			resources.ApplyResources(this.label67, "label67");
 			this.label67.Name = "label67";
-			componentResourceManager.ApplyResources(this.integerTextBox1, "integerTextBox1");
+			resources.ApplyResources(this.integerTextBox1, "integerTextBox1");
 			this.integerTextBox1.Name = "integerTextBox1";
-			componentResourceManager.ApplyResources(this.comboBox16, "comboBox16");
+			resources.ApplyResources(this.comboBox16, "comboBox16");
 			this.comboBox16.DropDownStyle = global::System.Windows.Forms.ComboBoxStyle.DropDownList;
 			this.comboBox16.FormattingEnabled = true;
 			this.comboBox16.Name = "comboBox16";
-			componentResourceManager.ApplyResources(this.label65, "label65");
+			resources.ApplyResources(this.label65, "label65");
 			this.label65.Name = "label65";
-			componentResourceManager.ApplyResources(this.tabPage5, "tabPage5");
+			resources.ApplyResources(this.tabPage5, "tabPage5");
 			this.tabPage5.BackColor = global::System.Drawing.SystemColors.Control;
 			this.tabPage5.Controls.Add(this.button7);
 			this.tabPage5.Controls.Add(this.button6);
 			this.tabPage5.Controls.Add(this.textBox6);
 			this.tabPage5.Controls.Add(this.label84);
 			this.tabPage5.Name = "tabPage5";
-			componentResourceManager.ApplyResources(this.button7, "button7");
+			resources.ApplyResources(this.button7, "button7");
 			this.button7.Name = "button7";
 			this.button7.UseVisualStyleBackColor = true;
 			this.button7.Click += new global::System.EventHandler(this.button7_Click);
-			componentResourceManager.ApplyResources(this.button6, "button6");
+			resources.ApplyResources(this.button6, "button6");
 			this.button6.Name = "button6";
 			this.button6.UseVisualStyleBackColor = true;
 			this.button6.Click += new global::System.EventHandler(this.button6_Click);
-			componentResourceManager.ApplyResources(this.textBox6, "textBox6");
+			resources.ApplyResources(this.textBox6, "textBox6");
 			this.textBox6.Name = "textBox6";
-			componentResourceManager.ApplyResources(this.label84, "label84");
+			resources.ApplyResources(this.label84, "label84");
 			this.label84.Name = "label84";
-			componentResourceManager.ApplyResources(this.tabPage2, "tabPage2");
+			resources.ApplyResources(this.tabPage2, "tabPage2");
 			this.tabPage2.BackColor = global::System.Drawing.SystemColors.Control;
 			this.tabPage2.Controls.Add(this.groupBox6);
 			this.tabPage2.Controls.Add(this.groupBox5);
 			this.tabPage2.Name = "tabPage2";
-			componentResourceManager.ApplyResources(this.groupBox6, "groupBox6");
+			resources.ApplyResources(this.groupBox6, "groupBox6");
 			this.groupBox6.Controls.Add(this.checkBox1);
 			this.groupBox6.Controls.Add(this.textBox1);
 			this.groupBox6.Controls.Add(this.label91);
@@ -1051,7 +1043,7 @@
             this.groupBox6.Controls.Add(this.numericUpDown10);
             this.groupBox6.Name = "groupBox6";
 			this.groupBox6.TabStop = false;
-			componentResourceManager.ApplyResources(this.groupBox5, "groupBox5");
+			resources.ApplyResources(this.groupBox5, "groupBox5");
 			this.groupBox5.Controls.Add(this.checkBox2);
 			this.groupBox5.Controls.Add(this.comboBox14);
 			this.groupBox5.Controls.Add(this.label54);
@@ -1068,85 +1060,81 @@
 			this.groupBox5.Controls.Add(this.comboBox12);
 			this.groupBox5.Name = "groupBox5";
 			this.groupBox5.TabStop = false;
-			componentResourceManager.ApplyResources(this.checkBox2, "checkBox2");
+			resources.ApplyResources(this.checkBox2, "checkBox2");
 			this.checkBox2.Name = "checkBox2";
 			this.checkBox2.UseVisualStyleBackColor = true;
-			componentResourceManager.ApplyResources(this.comboBox14, "comboBox14");
+			resources.ApplyResources(this.comboBox14, "comboBox14");
 			this.comboBox14.DropDownStyle = global::System.Windows.Forms.ComboBoxStyle.DropDownList;
 			this.comboBox14.FormattingEnabled = true;
 			this.comboBox14.Items.AddRange(new object[]
 			{
-				componentResourceManager.GetString("comboBox14.Items"),
-				componentResourceManager.GetString("comboBox14.Items1")
+				resources.GetString("comboBox14.Items"),
+				resources.GetString("comboBox14.Items1")
 			});
 			this.comboBox14.Name = "comboBox14";
-			componentResourceManager.ApplyResources(this.label54, "label54");
+			resources.ApplyResources(this.label54, "label54");
 			this.label54.Name = "label54";
-			componentResourceManager.ApplyResources(this.label53, "label53");
+			resources.ApplyResources(this.label53, "label53");
 			this.label53.Name = "label53";
-			componentResourceManager.ApplyResources(this.label45, "label45");
+			resources.ApplyResources(this.label45, "label45");
 			this.label45.Name = "label45";
-			componentResourceManager.ApplyResources(this.label46, "label46");
+			resources.ApplyResources(this.label46, "label46");
 			this.label46.Name = "label46";
-			componentResourceManager.ApplyResources(this.label50, "label50");
+			resources.ApplyResources(this.label50, "label50");
 			this.label50.Name = "label50";
-			componentResourceManager.ApplyResources(this.label47, "label47");
+			resources.ApplyResources(this.label47, "label47");
 			this.label47.Name = "label47";
-			componentResourceManager.ApplyResources(this.label49, "label49");
+			resources.ApplyResources(this.label49, "label49");
 			this.label49.Name = "label49";
-			componentResourceManager.ApplyResources(this.label48, "label48");
+			resources.ApplyResources(this.label48, "label48");
 			this.label48.Name = "label48";
-            componentResourceManager.ApplyResources(this.label91, "label91");
+            resources.ApplyResources(this.label91, "label91");
             this.label91.Name = "label91";
-            componentResourceManager.ApplyResources(this.label92, "label92");
+            resources.ApplyResources(this.label92, "label92");
             this.label92.Name = "label92";
-            componentResourceManager.ApplyResources(this.numericUpDown5, "numericUpDown5");
+            resources.ApplyResources(this.numericUpDown5, "numericUpDown5");
 			this.numericUpDown5.DecimalPlaces = 2;
-			global::System.Windows.Forms.NumericUpDown numericUpDown9 = this.numericUpDown5;
 			int[] array9 = new int[4];
 			array9[0] = 1;
-			numericUpDown9.Minimum = new decimal(array9);
+            this.numericUpDown5.Minimum = new decimal(array9);
 			this.numericUpDown5.Name = "numericUpDown5";
-            componentResourceManager.ApplyResources(this.numericUpDown10, "numericUpDown10");
-            global::System.Windows.Forms.NumericUpDown numericUpDown10 = this.numericUpDown10;
-			numericUpDown10.Value = 0;
-			numericUpDown10.Minimum = 1;
-			numericUpDown10.Maximum = decimal.MaxValue;
-			numericUpDown10.Increment = 1;
-			componentResourceManager.ApplyResources(this.numericUpDown4, "numericUpDown4");
+            resources.ApplyResources(this.numericUpDown10, "numericUpDown10");
+            this.numericUpDown10.Value = 0;
+            this.numericUpDown10.Minimum = 1;
+            this.numericUpDown10.Maximum = decimal.MaxValue;
+            this.numericUpDown10.Increment = 1;
+			resources.ApplyResources(this.numericUpDown4, "numericUpDown4");
 			this.numericUpDown4.DecimalPlaces = 2;
-			global::System.Windows.Forms.NumericUpDown numericUpDown11 = this.numericUpDown4;
 			int[] array11 = new int[4];
 			array11[0] = 1;
-			numericUpDown11.Minimum = new decimal(array11);
+            this.numericUpDown4.Minimum = new decimal(array11);
 			this.numericUpDown4.Name = "numericUpDown4";
-			global::System.Windows.Forms.NumericUpDown numericUpDown12 = this.numericUpDown4;
 			int[] array12 = new int[4];
 			array12[0] = 1;
-			numericUpDown12.Value = new decimal(array12);
-			componentResourceManager.ApplyResources(this.comboBox13, "comboBox13");
+            this.numericUpDown4.Value = new decimal(array12);
+			resources.ApplyResources(this.comboBox13, "comboBox13");
 			this.comboBox13.DropDownStyle = global::System.Windows.Forms.ComboBoxStyle.DropDownList;
 			this.comboBox13.FormattingEnabled = true;
 			this.comboBox13.Items.AddRange(new object[]
 			{
-				componentResourceManager.GetString("comboBox13.Items"),
-				componentResourceManager.GetString("comboBox13.Items1")
+				resources.GetString("comboBox13.Items"),
+				resources.GetString("comboBox13.Items1")
 			});
 			this.comboBox13.Name = "comboBox13";
-			componentResourceManager.ApplyResources(this.comboBox12, "comboBox12");
+			resources.ApplyResources(this.comboBox12, "comboBox12");
 			this.comboBox12.DropDownStyle = global::System.Windows.Forms.ComboBoxStyle.DropDownList;
 			this.comboBox12.FormattingEnabled = true;
 			this.comboBox12.Items.AddRange(new object[]
 			{
-				componentResourceManager.GetString("comboBox12.Items"),
-				componentResourceManager.GetString("comboBox12.Items1")
+				resources.GetString("comboBox12.Items"),
+				resources.GetString("comboBox12.Items1")
 			});
 			this.comboBox12.Name = "comboBox12";
-			componentResourceManager.ApplyResources(this.button3, "button3");
+			resources.ApplyResources(this.button3, "button3");
 			this.button3.Name = "button3";
 			this.button3.UseVisualStyleBackColor = true;
 			this.button3.Click += new global::System.EventHandler(this.button3_Click);
-			componentResourceManager.ApplyResources(this, "$this");
+			resources.ApplyResources(this, "$this");
 			base.AutoScaleMode = global::System.Windows.Forms.AutoScaleMode.Font;
 			base.Controls.Add(this.button3);
 			base.Controls.Add(this.tabControl1);

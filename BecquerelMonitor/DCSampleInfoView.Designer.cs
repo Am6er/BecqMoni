@@ -16,7 +16,7 @@
 		// Token: 0x06000940 RID: 2368 RVA: 0x00035B24 File Offset: 0x00033D24
 		void InitializeComponent()
 		{
-			global::System.ComponentModel.ComponentResourceManager componentResourceManager = new global::System.ComponentModel.ComponentResourceManager(typeof(global::BecquerelMonitor.DCSampleInfoView));
+			global::System.ComponentModel.ComponentResourceManager resources = new global::System.ComponentModel.ComponentResourceManager(typeof(global::BecquerelMonitor.DCSampleInfoView));
 
             this.Font = new global::System.Drawing.Font("Microsoft Sans Serif", 8);
             
@@ -39,9 +39,9 @@
 			((global::System.ComponentModel.ISupportInitialize)this.numericUpDown2).BeginInit();
 			((global::System.ComponentModel.ISupportInitialize)this.numericUpDown1).BeginInit();
 			base.SuspendLayout();
-			componentResourceManager.ApplyResources(this.label9, "label9");
+			resources.ApplyResources(this.label9, "label9");
 			this.label9.Name = "label9";
-			componentResourceManager.ApplyResources(this.dateTimePicker2, "dateTimePicker2");
+			resources.ApplyResources(this.dateTimePicker2, "dateTimePicker2");
 			this.dateTimePicker2.Format = global::System.Windows.Forms.DateTimePickerFormat.Custom;
 			this.dateTimePicker2.Name = "dateTimePicker2";
 			this.dateTimePicker2.ValueChanged += new global::System.EventHandler(this.dateTimePicker2_ValueChanged);
@@ -53,7 +53,7 @@
 				0,
 				65536
 			});
-			componentResourceManager.ApplyResources(this.numericUpDown2, "numericUpDown2");
+			resources.ApplyResources(this.numericUpDown2, "numericUpDown2");
 			this.numericUpDown2.Name = "numericUpDown2";
 			this.numericUpDown2.ValueChanged += new global::System.EventHandler(this.numericUpDown2_ValueChanged);
 			this.numericUpDown2.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.numericUpDown2_KeyDown);
@@ -65,46 +65,46 @@
 				0,
 				65536
 			});
-			componentResourceManager.ApplyResources(this.numericUpDown1, "numericUpDown1");
+			resources.ApplyResources(this.numericUpDown1, "numericUpDown1");
 			this.numericUpDown1.Name = "numericUpDown1";
 			this.numericUpDown1.ValueChanged += new global::System.EventHandler(this.numericUpDown1_ValueChanged);
 			this.numericUpDown1.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.numericUpDown1_KeyDown);
-			componentResourceManager.ApplyResources(this.label8, "label8");
+			resources.ApplyResources(this.label8, "label8");
 			this.label8.Name = "label8";
-			componentResourceManager.ApplyResources(this.label7, "label7");
+			resources.ApplyResources(this.label7, "label7");
 			this.label7.Name = "label7";
-			componentResourceManager.ApplyResources(this.textBox3, "textBox3");
+			resources.ApplyResources(this.textBox3, "textBox3");
 			this.textBox3.Name = "textBox3";
 			this.textBox3.TextChanged += new global::System.EventHandler(this.textBox3_TextChanged);
 			this.textBox3.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.textBox3_KeyDown);
 			this.textBox3.Validated += new global::System.EventHandler(this.textBox3_Validated);
-			componentResourceManager.ApplyResources(this.textBox2, "textBox2");
+			resources.ApplyResources(this.textBox2, "textBox2");
 			this.textBox2.Name = "textBox2";
 			this.textBox2.TextChanged += new global::System.EventHandler(this.textBox2_TextChanged);
 			this.textBox2.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.textBox2_KeyDown);
 			this.textBox2.Validated += new global::System.EventHandler(this.textBox2_Validated);
-			componentResourceManager.ApplyResources(this.label6, "label6");
+			resources.ApplyResources(this.label6, "label6");
 			this.label6.Name = "label6";
-			componentResourceManager.ApplyResources(this.label5, "label5");
+			resources.ApplyResources(this.label5, "label5");
 			this.label5.Name = "label5";
-			componentResourceManager.ApplyResources(this.label4, "label4");
+			resources.ApplyResources(this.label4, "label4");
 			this.label4.Name = "label4";
-			componentResourceManager.ApplyResources(this.label3, "label3");
+			resources.ApplyResources(this.label3, "label3");
 			this.label3.Name = "label3";
-			componentResourceManager.ApplyResources(this.label2, "label2");
+			resources.ApplyResources(this.label2, "label2");
 			this.label2.Name = "label2";
-			componentResourceManager.ApplyResources(this.label1, "label1");
+			resources.ApplyResources(this.label1, "label1");
 			this.label1.Name = "label1";
-			componentResourceManager.ApplyResources(this.textBox1, "textBox1");
+			resources.ApplyResources(this.textBox1, "textBox1");
 			this.textBox1.Name = "textBox1";
 			this.textBox1.TextChanged += new global::System.EventHandler(this.textBox1_TextChanged);
 			this.textBox1.Validated += new global::System.EventHandler(this.textBox1_Validated);
-			componentResourceManager.ApplyResources(this.dateTimePicker1, "dateTimePicker1");
+			resources.ApplyResources(this.dateTimePicker1, "dateTimePicker1");
 			this.dateTimePicker1.Format = global::System.Windows.Forms.DateTimePickerFormat.Custom;
 			this.dateTimePicker1.Name = "dateTimePicker1";
 			this.dateTimePicker1.ValueChanged += new global::System.EventHandler(this.dateTimePicker1_ValueChanged);
 			this.dateTimePicker1.Validated += new global::System.EventHandler(this.dateTimePicker1_Validated);
-			componentResourceManager.ApplyResources(this, "$this");
+			resources.ApplyResources(this, "$this");
 			base.Controls.Add(this.label9);
 			base.Controls.Add(this.dateTimePicker2);
 			base.Controls.Add(this.numericUpDown2);

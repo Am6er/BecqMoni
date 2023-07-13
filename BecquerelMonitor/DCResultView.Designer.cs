@@ -16,7 +16,7 @@
 		// Token: 0x0600043C RID: 1084 RVA: 0x00013D78 File Offset: 0x00011F78
 		void InitializeComponent()
 		{
-			global::System.ComponentModel.ComponentResourceManager componentResourceManager = new global::System.ComponentModel.ComponentResourceManager(typeof(global::BecquerelMonitor.DCResultView));
+			global::System.ComponentModel.ComponentResourceManager resources = new global::System.ComponentModel.ComponentResourceManager(typeof(global::BecquerelMonitor.DCResultView));
 			global::XPTable.Models.DataSourceColumnBinder dataSourceColumnBinder = new global::XPTable.Models.DataSourceColumnBinder();
 			global::XPTable.Renderers.DragDropRenderer dragDropRenderer = new global::XPTable.Renderers.DragDropRenderer();
 
@@ -34,34 +34,34 @@
 			this.tableModel1 = new global::XPTable.Models.TableModel();
 			((global::System.ComponentModel.ISupportInitialize)this.table1).BeginInit();
 			base.SuspendLayout();
-			componentResourceManager.ApplyResources(this.comboBox2, "comboBox2");
+			resources.ApplyResources(this.comboBox2, "comboBox2");
 			this.comboBox2.DropDownStyle = global::System.Windows.Forms.ComboBoxStyle.DropDownList;
 			this.comboBox2.FormattingEnabled = true;
 			this.comboBox2.Items.AddRange(new object[]
 			{
-				componentResourceManager.GetString("comboBox2.Items"),
-				componentResourceManager.GetString("comboBox2.Items1")
+				resources.GetString("comboBox2.Items"),
+				resources.GetString("comboBox2.Items1")
 			});
 			this.comboBox2.Name = "comboBox2";
 			this.comboBox2.SelectedIndexChanged += new global::System.EventHandler(this.comboBox2_SelectedIndexChanged);
-			componentResourceManager.ApplyResources(this.button1, "button1");
+			resources.ApplyResources(this.button1, "button1");
 			this.button1.Name = "button1";
 			this.button1.UseVisualStyleBackColor = true;
 			this.button1.Click += new global::System.EventHandler(this.button1_Click);
-			componentResourceManager.ApplyResources(this.comboBox1, "comboBox1");
+			resources.ApplyResources(this.comboBox1, "comboBox1");
 			this.comboBox1.DropDownStyle = global::System.Windows.Forms.ComboBoxStyle.DropDownList;
 			this.comboBox1.FormattingEnabled = true;
 			this.comboBox1.Items.AddRange(new object[]
 			{
-				componentResourceManager.GetString("comboBox1.Items"),
-				componentResourceManager.GetString("comboBox1.Items1"),
-				componentResourceManager.GetString("comboBox1.Items2"),
-				componentResourceManager.GetString("comboBox1.Items3"),
-				componentResourceManager.GetString("comboBox1.Items4")
+				resources.GetString("comboBox1.Items"),
+				resources.GetString("comboBox1.Items1"),
+				resources.GetString("comboBox1.Items2"),
+				resources.GetString("comboBox1.Items3"),
+				resources.GetString("comboBox1.Items4")
 			});
 			this.comboBox1.Name = "comboBox1";
 			this.comboBox1.SelectedIndexChanged += new global::System.EventHandler(this.comboBox1_SelectedIndexChanged);
-			componentResourceManager.ApplyResources(this.table1, "table1");
+			resources.ApplyResources(this.table1, "table1");
 			this.table1.BorderColor = global::System.Drawing.Color.Black;
 			this.table1.ColumnModel = this.columnModel1;
 			this.table1.DataMember = null;
@@ -83,23 +83,23 @@
 				this.textColumn3,
 				this.textColumn4
 			});
-			componentResourceManager.ApplyResources(this.textColumn1, "textColumn1");
+			resources.ApplyResources(this.textColumn1, "textColumn1");
 			this.textColumn1.Editable = false;
 			this.textColumn1.IsTextTrimmed = false;
 			this.textColumn2.Alignment = global::XPTable.Models.ColumnAlignment.Right;
-			componentResourceManager.ApplyResources(this.textColumn2, "textColumn2");
+			resources.ApplyResources(this.textColumn2, "textColumn2");
 			this.textColumn2.Editable = false;
 			this.textColumn2.IsTextTrimmed = false;
 			this.textColumn3.Alignment = global::XPTable.Models.ColumnAlignment.Right;
-			componentResourceManager.ApplyResources(this.textColumn3, "textColumn3");
+			resources.ApplyResources(this.textColumn3, "textColumn3");
 			this.textColumn3.Editable = false;
 			this.textColumn3.IsTextTrimmed = false;
 			this.textColumn3.Width= 115;
 			this.textColumn4.Alignment = global::XPTable.Models.ColumnAlignment.Right;
-			componentResourceManager.ApplyResources(this.textColumn4, "textColumn4");
+			resources.ApplyResources(this.textColumn4, "textColumn4");
 			this.textColumn4.Editable = false;
 			this.textColumn4.IsTextTrimmed = false;
-			componentResourceManager.ApplyResources(this, "$this");
+			resources.ApplyResources(this, "$this");
 			base.Controls.Add(this.comboBox2);
 			base.Controls.Add(this.comboBox1);
 			base.Controls.Add(this.button1);
