@@ -882,7 +882,15 @@ namespace BecquerelMonitor
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(string.Format(Resources.ERRBackgroundLoadFailure, backgroundSpectrumPathname, ex.Message));
+                    try
+                    {
+                        MessageBox.Show(string.Format(Resources.ERRBackgroundLoadFailure, backgroundSpectrumPathname, ex.Message));
+                    }
+                    catch
+                    {
+                        MessageBox.Show(Resources.ERRBackgroundLoadFailure);
+                    }
+                    
                     return;
                 }
                 if (resultDataFile.ResultDataList[0].EnergySpectrum.TotalPulseCount == 0)
