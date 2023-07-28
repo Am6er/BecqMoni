@@ -38,13 +38,14 @@ namespace BecquerelMonitor
             AudioInputDeviceConfig audioInputDeviceConfig = (AudioInputDeviceConfig)deviceConfig.InputDeviceConfig;
 
             WaveFormat waveFormat = this.ConstructWaveFormat(audioInputDeviceConfig);
-            int deviceId = audioInputDeviceConfig.AudioInputDevice.DeviceId;
+            int deviceId = -1;
             WaveIn waveIn = null;
             try
             {
+                deviceId = audioInputDeviceConfig.AudioInputDevice.DeviceId;
                 waveIn = new WaveIn(deviceId);
             }
-            catch (ArgumentOutOfRangeException)
+            catch (Exception)
             {
                 MessageBox.Show(Resources.ERRAudioDeviceNotFound);
                 return false;
