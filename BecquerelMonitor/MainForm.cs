@@ -752,7 +752,15 @@ namespace BecquerelMonitor
         // Token: 0x06000A60 RID: 2656 RVA: 0x0003D850 File Offset: 0x0003BA50
         public void UpdateEnergyCalibrationView()
         {
-            this.dcEnergyCalibrationView.SetEnergyCalibration(this.activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration, this.activeDocument.ActiveResultData.DeviceConfig.EnergyCalibration);
+            if (this.activeDocument.ActiveResultData.DeviceConfig.Guid != null &&
+                DeviceConfigManager.GetInstance().DeviceConfigMap.ContainsKey(this.activeDocument.ActiveResultData.DeviceConfig.Guid))
+            {
+                this.dcEnergyCalibrationView.SetEnergyCalibration(this.activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration, this.activeDocument.ActiveResultData.DeviceConfig.EnergyCalibration);
+            }
+            else
+            {
+                this.dcEnergyCalibrationView.SetEnergyCalibration(this.activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration, this.activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration);
+            }
         }
 
         // Token: 0x06000A61 RID: 2657 RVA: 0x0003D898 File Offset: 0x0003BA98
@@ -890,7 +898,9 @@ namespace BecquerelMonitor
                 this.dcSpectrumListView.Enabled = true;
                 this.dcSpectrumListView.ShowSpectrumList(this.activeDocument);
                 this.dcPeakDetectionView.Enabled = true;
-                this.dcEnergyCalibrationView.SetEnergyCalibration(this.activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration, this.activeDocument.ActiveResultData.DeviceConfig.EnergyCalibration);
+                UpdateEnergyCalibrationView();
+
+
                 this.dcEnergyCalibrationView.SetStabilizerState(this.activeDocument.ActiveResultData);
                 this.dcEnergyCalibrationView.Enabled = true;
                 this.activeDocument.ActiveEnergyCalibration = this.dcEnergyCalibrationView.Visible;
@@ -938,7 +948,7 @@ namespace BecquerelMonitor
             this.ShowMeasurementResult(true);
             this.ShowDoseRate();
             this.dcPeakDetectionView.ShowPeakDetectionResult();
-            this.dcEnergyCalibrationView.SetEnergyCalibration(this.activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration, this.activeDocument.ActiveResultData.DeviceConfig.EnergyCalibration);
+            UpdateEnergyCalibrationView();
             this.dcEnergyCalibrationView.SetStabilizerState(this.activeDocument.ActiveResultData);
             this.activeDocument.ActiveEnergyCalibration = this.dcEnergyCalibrationView.Visible;
             this.dcControlPanel.Enabled = true;
@@ -1685,7 +1695,7 @@ namespace BecquerelMonitor
             {
                 this.dcSampleInfoView.LoadFormContents();
                 this.dcControlPanel.ShowDocumentStatus();
-                this.dcEnergyCalibrationView.SetEnergyCalibration(this.activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration, this.activeDocument.ActiveResultData.DeviceConfig.EnergyCalibration);
+                UpdateEnergyCalibrationView();
                 this.dcEnergyCalibrationView.SetStabilizerState(this.activeDocument.ActiveResultData);
                 this.dcEnergyCalibrationView.Enabled = true;
                 doc.UpdateEnergySpectrum();

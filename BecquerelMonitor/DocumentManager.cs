@@ -141,7 +141,7 @@ namespace BecquerelMonitor
                                     break;
                                 }
                             }
-                            if (zerosCount > pol.Coefficients.Length - 2)
+                            if (zerosCount > pol.Coefficients.Length - 2 || zerosCount == 0 || (pol.Coefficients.Length == 2 && zerosCount > 0))
                             {
                                 data.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
                             } else

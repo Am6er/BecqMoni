@@ -27,11 +27,7 @@
 			this.label6 = new global::System.Windows.Forms.Label();
 			this.label7 = new global::System.Windows.Forms.Label();
 			this.label37 = new global::System.Windows.Forms.Label();
-			this.button3 = new global::System.Windows.Forms.Button();
-			this.button2 = new global::System.Windows.Forms.Button();
 			this.button1 = new global::System.Windows.Forms.Button();
-			this.button12 = new global::System.Windows.Forms.Button();
-			this.button13 = new global::System.Windows.Forms.Button();
 			this.label2 = new global::System.Windows.Forms.Label();
 			this.label1 = new global::System.Windows.Forms.Label();
 			this.numericUpDown2 = new global::System.Windows.Forms.TextBox();
@@ -75,34 +71,12 @@
 			this.label6.Name = "label6";
 			resources.ApplyResources(this.label7, "label7");
 			this.label7.Name = "label7";
-			resources.ApplyResources(this.button3, "button3");
-			this.button3.Name = "button3";
-			this.toolTip1.SetToolTip(this.button3, resources.GetString("button3.ToolTip"));
-			this.button3.UseVisualStyleBackColor = true;
-			this.button3.Click += new global::System.EventHandler(this.button3_Click);
 
-			resources.ApplyResources(this.button2, "button2");
-			this.button2.Name = "button2";
-			this.toolTip1.SetToolTip(this.button2, resources.GetString("button2.ToolTip"));
-			this.button2.UseVisualStyleBackColor = true;
-			this.button2.Click += new global::System.EventHandler(this.button2_Click);
 			resources.ApplyResources(this.button1, "button1");
 			this.button1.Name = "button1";
 			this.toolTip1.SetToolTip(this.button1, resources.GetString("button1.ToolTip"));
 			this.button1.UseVisualStyleBackColor = true;
 			this.button1.Click += new global::System.EventHandler(this.button1_Click);
-
-			resources.ApplyResources(this.button12, "button12");
-			this.button12.Name = "button12";
-			this.toolTip1.SetToolTip(this.button12, resources.GetString("button12.ToolTip"));
-			this.button12.UseVisualStyleBackColor = true;
-			this.button12.Click += new global::System.EventHandler(this.button12_Click);
-
-			resources.ApplyResources(this.button13, "button13");
-			this.button13.Name = "button13";
-			this.toolTip1.SetToolTip(this.button13, resources.GetString("button13.ToolTip"));
-			this.button13.UseVisualStyleBackColor = true;
-			this.button13.Click += new global::System.EventHandler(this.button13_Click);
 
 			resources.ApplyResources(this.label2, "label2");
 			this.label2.Name = "label2";
@@ -167,16 +141,12 @@
 			this.groupBox1.Controls.Add(this.label4);
 			this.groupBox1.Controls.Add(this.label2);
 			this.groupBox1.Controls.Add(this.label1);
-			this.groupBox1.Controls.Add(this.button12);
-			this.groupBox1.Controls.Add(this.button13);
 			this.groupBox1.Controls.Add(this.button1);
-			this.groupBox1.Controls.Add(this.button3);
 			this.groupBox1.Controls.Add(this.numericUpDown1);
 			this.groupBox1.Controls.Add(this.numericUpDown2);
 			this.groupBox1.Controls.Add(this.numericUpDown3);
 			this.groupBox1.Controls.Add(this.numericUpDown4);
 			this.groupBox1.Controls.Add(this.numericUpDown5);
-			this.groupBox1.Controls.Add(this.button2);
 			this.groupBox1.Name = "groupBox1";
 			this.groupBox1.TabStop = false;
 			resources.ApplyResources(this.button7, "button7");
@@ -319,21 +289,11 @@
 		// Token: 0x04000420 RID: 1056
 		global::System.Windows.Forms.Label label4;
 
-		// Token: 0x04000421 RID: 1057
-		global::System.Windows.Forms.Button button3;
-
 		// Token: 0x04000422 RID: 1058
 		global::System.Windows.Forms.TextBox numericUpDown3;
 
-		// Token: 0x04000423 RID: 1059
-		global::System.Windows.Forms.Button button2;
-
 		// Token: 0x04000424 RID: 1060
 		global::System.Windows.Forms.Button button1;
-
-		global::System.Windows.Forms.Button button12;
-
-		global::System.Windows.Forms.Button button13;
 
 		// Token: 0x04000425 RID: 1061
 		global::System.Windows.Forms.Label label2;
