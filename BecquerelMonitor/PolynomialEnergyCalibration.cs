@@ -79,6 +79,8 @@ namespace BecquerelMonitor
 
         public bool CheckCalibration(int channels = 8192)
         {
+            this.maxChannels = channels;
+            if (this.maxEnergy == -1 || this.dirty) { this.maxEnergy = this.ChannelToEnergy(this.maxChannels); }
             if (this.polynomialOrder == 1)
             {
                 if (this.Coefficients.Length != 2 || this.Coefficients[1] == 0)
@@ -96,7 +98,7 @@ namespace BecquerelMonitor
                 double b = this.Coefficients[1];
                 double a = this.Coefficients[2];
                 double discriminant = Math.Pow(b, 2.0) - 4.0 * a * c;
-                double discriminant2 = Math.Pow(b, 2.0) - 4.0 * a * (c - 12000.0);
+                double discriminant2 = Math.Pow(b, 2.0) - 4.0 * a * (c - (double)channels);
 
                 if (discriminant < 0 || discriminant2 < 0)
                 {
@@ -117,10 +119,11 @@ namespace BecquerelMonitor
                     return false;
                 }
             }
+            if (this.polynomialOrder > 4 && this.polynomialOrder < 1) { return false; }
             for (int i = 1; i <= channels; i++)
             {
                 double prevEnrg = this.ChannelToEnergy(i - 1);
-                if (prevEnrg <= -100.0 || prevEnrg >= 12000.0) return false;
+                if (prevEnrg <= -1000.0 || prevEnrg >= 10000.0) return false;
                 if (prevEnrg > this.ChannelToEnergy(i))
                 {
                     return false;
@@ -145,6 +148,8 @@ namespace BecquerelMonitor
         // Token: 0x06000733 RID: 1843 RVA: 0x00029DD4 File Offset: 0x00027FD4
         public override double ChannelToEnergy(double n)
         {
+            if (n < 0) n = 0;
+            if (n > this.maxChannels) n = this.maxChannels;
             if (this.polynomialOrder == 4)
             {
                 return this.coefficients[4] * Math.Pow(n, 4) + this.coefficients[3] * Math.Pow(n, 3) + this.coefficients[2] * Math.Pow(n, 2) + this.coefficients[1] * n + this.coefficients[0];
@@ -161,9 +166,9 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000734 RID: 1844 RVA: 0x00029E1C File Offset: 0x0002801C
-        public override double EnergyToChannel(double enrg, int maxChannels = 10000)
+        public override double EnergyToChannel(double enrg, int maxChannels = 8192)
         {
-            
+            if (enrg > this.maxEnergy && this.maxEnergy != -1) return this.maxEnergy;
             if (this.dirty || this.energytochanel == null)
             {
                 this.energytochanel = new ConcurrentDictionary<double, double>();
@@ -185,7 +190,7 @@ namespace BecquerelMonitor
             }
         }
 
-        double EnrgToChannel(double enrg, int maxCh = 10000)
+        double EnrgToChannel(double enrg, int maxCh = 8192)
         {
             if (enrg < 0 || enrg < this.coefficients[0])
             {
@@ -327,6 +332,9 @@ namespace BecquerelMonitor
         double[] coefficients;
 
         bool dirty = false;
+
+        int maxChannels = 8192;
+        double maxEnergy = -1;
 
         ConcurrentDictionary<double, double> energytochanel = null;
     }

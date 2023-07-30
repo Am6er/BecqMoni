@@ -181,6 +181,12 @@ namespace BecquerelMonitor
         // Token: 0x060005FE RID: 1534 RVA: 0x00025C10 File Offset: 0x00023E10
         public bool SaveConfig(DeviceConfigInfo devConfig)
         {
+            PolynomialEnergyCalibration pe = (PolynomialEnergyCalibration)devConfig.EnergyCalibration;
+            if (!pe.CheckCalibration(channels: devConfig.NumberOfChannels))
+            {
+                MessageBox.Show(Resources.CalibrationFunctionError);
+                return true;
+            }
             DeviceConfigInfo deviceConfigInfo = this.deviceConfigMap[devConfig.Guid];
             this.deviceConfigMap.Remove(deviceConfigInfo.Guid);
             this.deviceConfigList.Remove(deviceConfigInfo);
@@ -197,7 +203,6 @@ namespace BecquerelMonitor
             }
             devConfig.OriginalFilename = devConfig.Filename;
             devConfig.LastUpdated = DateTime.Now;
-            devConfig.Dirty = false;
             deviceConfigInfo = devConfig.Clone();
             try
             {
@@ -220,6 +225,7 @@ namespace BecquerelMonitor
             {
                 this.DeviceConfigListChanged(this, new DeviceConfigChangedEventArgs(deviceConfigInfo.Guid));
             }
+            devConfig.Dirty = false;
             return true;
         }
 

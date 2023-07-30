@@ -156,12 +156,6 @@
   <data name="button11.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Right</value>
   </data>
-  <data name="button3.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="button2.TabIndex" type="System.Int32, mscorlib">
-    <value>4</value>
-  </data>
   <data name="&gt;&gt;toolTip1.Name" xml:space="preserve">
     <value>toolTip1</value>
   </data>
@@ -248,9 +242,6 @@
   </data>
   <data name="$this.TabText" xml:space="preserve">
     <value>Energy Calibration</value>
-  </data>
-  <data name="button2.ToolTip" xml:space="preserve">
-    <value>Reset 1st Coefficient (d)</value>
   </data>
   <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
     <value>343, 386</value>
@@ -372,9 +363,6 @@
   <data name="&gt;&gt;numericUpDown1.Type" xml:space="preserve">
     <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="button3.ToolTip" xml:space="preserve">
-    <value>Reset Offset (e)</value>
-  </data>
   <data name="numericUpDown1.TabIndex" type="System.Int32, mscorlib">
     <value>1</value>
   </data>
@@ -472,7 +460,7 @@
     <value>XPTable.Models.NumberColumn, BecquerelMonitorPlus, Version=1.0.23.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="button1.ToolTip" xml:space="preserve">
-    <value>Reset 2nd Coefficient (c)</value>
+    <value>Reset calibration</value>
   </data>
   <data name="label6.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -576,66 +564,6 @@
   <data name="numericUpDown5.Size" type="System.Drawing.Size, System.Drawing">
     <value>140, 19</value>
   </data>
-  <data name="button12.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="&gt;&gt;button12.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
-  <data name="button12.ToolTip" xml:space="preserve">
-    <value>Reset 4th Coefficient (a)</value>
-  </data>
-  <data name="&gt;&gt;button12.Parent" xml:space="preserve">
-    <value>groupBox1</value>
-  </data>
-  <data name="button12.TabIndex" type="System.Int32, mscorlib">
-    <value>2</value>
-  </data>
-  <data name="&gt;&gt;button12.Name" xml:space="preserve">
-    <value>button12</value>
-  </data>
-  <data name="&gt;&gt;button12.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="button12.Location" type="System.Drawing.Point, System.Drawing">
-    <value>235, 10</value>
-  </data>
-  <data name="button12.Text" xml:space="preserve">
-    <value>Reset</value>
-  </data>
-  <data name="button12.Size" type="System.Drawing.Size, System.Drawing">
-    <value>45, 23</value>
-  </data>
-  <data name="button13.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="&gt;&gt;button13.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
-  <data name="button13.ToolTip" xml:space="preserve">
-    <value>Reset 3rd Coefficient (b)</value>
-  </data>
-  <data name="&gt;&gt;button13.Parent" xml:space="preserve">
-    <value>groupBox1</value>
-  </data>
-  <data name="button13.TabIndex" type="System.Int32, mscorlib">
-    <value>2</value>
-  </data>
-  <data name="&gt;&gt;button13.Name" xml:space="preserve">
-    <value>button13</value>
-  </data>
-  <data name="&gt;&gt;button13.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="button13.Location" type="System.Drawing.Point, System.Drawing">
-    <value>235, 39</value>
-  </data>
-  <data name="button13.Text" xml:space="preserve">
-    <value>Reset</value>
-  </data>
-  <data name="button13.Size" type="System.Drawing.Size, System.Drawing">
-    <value>45, 23</value>
-  </data>
   <data name="&gt;&gt;button1.Parent" xml:space="preserve">
     <value>groupBox1</value>
   </data>
@@ -654,12 +582,6 @@
   <data name="textBox15.TabIndex" type="System.Int32, mscorlib">
     <value>30</value>
   </data>
-  <data name="&gt;&gt;button3.Name" xml:space="preserve">
-    <value>button3</value>
-  </data>
-  <data name="&gt;&gt;button3.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
   <data name="&gt;&gt;textBox15.ZOrder" xml:space="preserve">
     <value>5</value>
   </data>
@@ -676,12 +598,6 @@
     <value>button1</value>
   </data>
   <data name="&gt;&gt;button1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;button2.Name" xml:space="preserve">
-    <value>button2</value>
-  </data>
-  <data name="&gt;&gt;button2.Type" xml:space="preserve">
     <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;button11.ZOrder" xml:space="preserve">
@@ -771,9 +687,6 @@
   <data name="button1.Location" type="System.Drawing.Point, System.Drawing">
     <value>235, 68</value>
   </data>
-  <data name="button2.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
   <data name="button11.Text" xml:space="preserve">
     <value>Cancel</value>
   </data>
@@ -816,9 +729,6 @@
   <data name="&gt;&gt;numericUpDown1.ZOrder" xml:space="preserve">
     <value>5</value>
   </data>
-  <data name="button3.TabIndex" type="System.Int32, mscorlib">
-    <value>6</value>
-  </data>
   <data name="textColumn1.Text" xml:space="preserve">
     <value>#</value>
   </data>
@@ -843,9 +753,6 @@
   <data name="checkBox1.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
-  <data name="&gt;&gt;button3.ZOrder" xml:space="preserve">
-    <value>4</value>
-  </data>
   <data name="button9.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
   </data>
@@ -864,9 +771,6 @@
   <data name="&gt;&gt;button5.Parent" xml:space="preserve">
     <value>$this</value>
   </data>
-  <data name="button3.Location" type="System.Drawing.Point, System.Drawing">
-    <value>235, 126</value>
-  </data>
   <data name="label1.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
@@ -878,9 +782,6 @@
   </data>
   <data name="button8.TabIndex" type="System.Int32, mscorlib">
     <value>8</value>
-  </data>
-  <data name="&gt;&gt;button3.Parent" xml:space="preserve">
-    <value>groupBox1</value>
   </data>
   <data name="button11.Location" type="System.Drawing.Point, System.Drawing">
     <value>235, 90</value>
@@ -936,12 +837,6 @@
   <data name="&gt;&gt;label1.Name" xml:space="preserve">
     <value>label1</value>
   </data>
-  <data name="button3.Size" type="System.Drawing.Size, System.Drawing">
-    <value>45, 23</value>
-  </data>
-  <data name="button3.Text" xml:space="preserve">
-    <value>Reset</value>
-  </data>
   <data name="&gt;&gt;label2.Parent" xml:space="preserve">
     <value>groupBox1</value>
   </data>
@@ -969,15 +864,6 @@
   <data name="numericUpDown3.Location" type="System.Drawing.Point, System.Drawing">
     <value>89, 129</value>
   </data>
-  <data name="&gt;&gt;button2.ZOrder" xml:space="preserve">
-    <value>8</value>
-  </data>
-  <data name="button2.Size" type="System.Drawing.Size, System.Drawing">
-    <value>45, 23</value>
-  </data>
-  <data name="button2.Text" xml:space="preserve">
-    <value>Reset</value>
-  </data>
   <data name="&gt;&gt;label5.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
@@ -996,9 +882,6 @@
   <data name="label1.TabIndex" type="System.Int32, mscorlib">
     <value>14</value>
   </data>
-  <data name="button2.Location" type="System.Drawing.Point, System.Drawing">
-    <value>235, 97</value>
-  </data>
   <data name="button5.Text" xml:space="preserve">
     <value>Configure...</value>
   </data>
@@ -1013,9 +896,6 @@
   </data>
   <data name="button6.Text" xml:space="preserve">
     <value>Multipoint Calibration &gt;&gt;</value>
-  </data>
-  <data name="&gt;&gt;button2.Parent" xml:space="preserve">
-    <value>groupBox1</value>
   </data>
   <data name="button6.TabIndex" type="System.Int32, mscorlib">
     <value>7</value>

@@ -108,85 +108,40 @@ namespace BecquerelMonitor
             return true;
         }
 
-        void button12_Click(object sender, EventArgs e)
-        {
-            if (this.defaultEnergyCalibration.PolynomialOrder == this.energyCalibration.PolynomialOrder && this.defaultEnergyCalibration.PolynomialOrder == 4)
-            {
-                this.energyCalibration.Coefficients[4] = this.defaultEnergyCalibration.Coefficients[4];
-                this.numericUpDown4.Text = this.energyCalibration.Coefficients[4].ToString();
-            } else
-            {
-                if (this.ResetCalibrationDialog())
-                {
-                    this.energyCalibration = (PolynomialEnergyCalibration)this.defaultEnergyCalibration.Clone();
-                    SetEnergyCalibration(energyCalibration, defaultEnergyCalibration);
-                } else
-                {
-                    return;
-                }
-            }
-            
-            this.UpdateEnergyCalibration();
-        }
-
-        void button13_Click(object sender, EventArgs e)
-        {
-            if (this.defaultEnergyCalibration.PolynomialOrder == this.energyCalibration.PolynomialOrder && this.energyCalibration.PolynomialOrder >= 3)
-            {
-                this.energyCalibration.Coefficients[3] = this.defaultEnergyCalibration.Coefficients[3];
-                this.numericUpDown5.Text = this.energyCalibration.Coefficients[3].ToString();
-            } else
-            {
-                if (this.ResetCalibrationDialog())
-                {
-                    this.energyCalibration = (PolynomialEnergyCalibration)this.defaultEnergyCalibration.Clone();
-                    SetEnergyCalibration(energyCalibration, defaultEnergyCalibration);
-                }
-                else
-                {
-                    return;
-                }
-            }
-            
-            this.UpdateEnergyCalibration();
-        }
-
         // Token: 0x0600081A RID: 2074 RVA: 0x0002E008 File Offset: 0x0002C208
         void button1_Click(object sender, EventArgs e)
         {
-            if (this.defaultEnergyCalibration.PolynomialOrder == this.energyCalibration.PolynomialOrder && this.energyCalibration.PolynomialOrder >= 2)
-            {
-                this.energyCalibration.Coefficients[2] = this.defaultEnergyCalibration.Coefficients[2];
-                this.numericUpDown1.Text = this.energyCalibration.Coefficients[2].ToString();
-            } else
-            {
-                if (this.ResetCalibrationDialog())
-                {
-                    this.energyCalibration = (PolynomialEnergyCalibration)this.defaultEnergyCalibration.Clone();
-                    SetEnergyCalibration(energyCalibration, defaultEnergyCalibration);
-                }
-                else
-                {
-                    return;
-                }
-            }
-            
-            this.UpdateEnergyCalibration();
-        }
+            this.energyCalibration = (PolynomialEnergyCalibration) this.defaultEnergyCalibration.Clone();
 
-        // Token: 0x0600081B RID: 2075 RVA: 0x0002E058 File Offset: 0x0002C258
-        void button2_Click(object sender, EventArgs e)
-        {
-            this.energyCalibration.Coefficients[1] = this.defaultEnergyCalibration.Coefficients[1];
-            this.numericUpDown2.Text = this.energyCalibration.Coefficients[1].ToString();
-            this.UpdateEnergyCalibration();
-        }
+            this.numericUpDown1.Text = "0";
+            this.numericUpDown2.Text = "0";
+            this.numericUpDown3.Text = "0";
+            this.numericUpDown4.Text = "0";
+            this.numericUpDown5.Text = "0";
 
-        // Token: 0x0600081C RID: 2076 RVA: 0x0002E0A8 File Offset: 0x0002C2A8
-        void button3_Click(object sender, EventArgs e)
-        {
-            this.energyCalibration.Coefficients[0] = this.defaultEnergyCalibration.Coefficients[0];
+            this.numericUpDown1.ForeColor = Color.Black;
+            this.numericUpDown2.ForeColor = Color.Black;
+            this.numericUpDown3.ForeColor = Color.Black;
+            this.numericUpDown4.ForeColor = Color.Black;
+            this.numericUpDown5.ForeColor = Color.Black;
+
             this.numericUpDown3.Text = this.energyCalibration.Coefficients[0].ToString();
+            this.numericUpDown2.Text = this.energyCalibration.Coefficients[1].ToString();
+
+
+            if (this.energyCalibration.PolynomialOrder >= 2)
+            {
+                this.numericUpDown1.Text = this.energyCalibration.Coefficients[2].ToString();
+            }
+            if (this.energyCalibration.PolynomialOrder >= 3)
+            {
+                this.numericUpDown5.Text = this.energyCalibration.Coefficients[3].ToString();
+            }
+            if (this.energyCalibration.PolynomialOrder == 4)
+            {
+                this.numericUpDown4.Text = this.energyCalibration.Coefficients[4].ToString();
+            }
+
             this.UpdateEnergyCalibration();
         }
 
@@ -283,10 +238,81 @@ namespace BecquerelMonitor
                 MessageBox.Show(Resources.ERRDeviceConfigNotSelected, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
                 return;
             }
+            if (!this.energyCalibration.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
+            {
+                MessageBox.Show(Resources.CalibrationFunctionError);
+                return;
+            }
             deviceConfig.EnergyCalibration = this.energyCalibration;
             DeviceConfigManager.GetInstance().SaveConfig(activeDocument.ActiveResultData.DeviceConfig);
             activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration = this.energyCalibration;
             this.mainForm.UpdateDeviceConfigForm();
+        }
+
+        void setNewCalibration(TextBox t, int order)
+        {
+            PolynomialEnergyCalibration pe = (PolynomialEnergyCalibration)this.energyCalibration;
+            try
+            {
+                double result = fromStringtoDouble(t.Text);
+                
+                if (pe.Coefficients.Length <= order)
+                {
+                    PolynomialEnergyCalibration newPe = (PolynomialEnergyCalibration)pe.Clone();
+                    newPe.PolynomialOrder = order;
+                    double[] coeff = new double[pe.Coefficients.Length + 1];
+                    Array.Copy(pe.Coefficients, coeff, pe.Coefficients.Length);
+                    newPe.Coefficients = coeff;
+                    newPe.Coefficients[order] = result;
+                    if (newPe.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
+                    {
+                        this.energyCalibration = (PolynomialEnergyCalibration)newPe;
+                    }
+                    else
+                    {
+                        throw new Exception();
+                    }
+                }
+                else if (t.Text == "0" && order == pe.Coefficients.Length - 1)
+                {
+                    if (pe.PolynomialOrder > 1)
+                    {
+                        PolynomialEnergyCalibration newPe = (PolynomialEnergyCalibration)pe.Clone().Downgrade(order - 1);
+                        if (newPe.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
+                        {
+                            this.energyCalibration = (PolynomialEnergyCalibration)newPe;
+                        }
+                        else
+                        {
+                            throw new Exception();
+                        }
+                    }
+                    else
+                    {
+                        throw new Exception();
+                    }
+                }
+                else
+                {
+                    pe.Coefficients[order] = result;
+                    if (pe.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
+                    {
+                        this.energyCalibration = (PolynomialEnergyCalibration)pe;
+                    }
+                    else
+                    {
+                        throw new Exception();
+                    }
+                }
+                
+                t.ForeColor = Color.Black;
+                this.UpdateEnergyCalibration();
+            }
+            catch
+            {
+                MessageBox.Show(Resources.CalibrationFunctionError);
+                t.ForeColor = Color.Red;
+            }
         }
 
         // Token: 0x06000825 RID: 2085 RVA: 0x0002E3E8 File Offset: 0x0002C5E8
@@ -294,25 +320,12 @@ namespace BecquerelMonitor
         {
             if (e.KeyCode == Keys.Return)
             {
-                double coeffbackup = this.energyCalibration.Coefficients[2];
-                try
-                {
-                    double result = fromStringtoDouble(this.numericUpDown1.Text);
-                    this.numericUpDown1.ForeColor = Color.Black;
-                    this.energyCalibration.Coefficients[2] = result;
-                    if (!energyCalibration.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
-                    {
-                        MessageBox.Show(Resources.CalibrationFunctionError);
-                        throw new Exception();
-                    }
-                    this.UpdateEnergyCalibration();
-                }
-                catch
-                {
-                    this.numericUpDown1.Text = coeffbackup.ToString();
-                    this.numericUpDown1.ForeColor = Color.Red;
-                }
+                setNewCalibration(this.numericUpDown1, 2);
                 e.SuppressKeyPress = true;
+            }
+            else
+            {
+                this.numericUpDown1.ForeColor = Color.Blue;
             }
         }
 
@@ -321,25 +334,12 @@ namespace BecquerelMonitor
         {
             if (e.KeyCode == Keys.Return)
             {
-                double coeffbackup = this.energyCalibration.Coefficients[1];
-                try
-                {
-                    double result = fromStringtoDouble(this.numericUpDown2.Text);
-                    this.numericUpDown2.ForeColor = Color.Black;
-                    this.energyCalibration.Coefficients[1] = result;
-                    if (!energyCalibration.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
-                    {
-                        MessageBox.Show(Resources.CalibrationFunctionError);
-                        throw new Exception();
-                    }
-                    this.UpdateEnergyCalibration();
-                }
-                catch
-                {
-                    this.numericUpDown2.Text = coeffbackup.ToString();
-                    this.numericUpDown2.ForeColor = Color.Red;
-                }
+                setNewCalibration(this.numericUpDown2, 1);
                 e.SuppressKeyPress = true;
+            }
+            else
+            {
+                this.numericUpDown2.ForeColor = Color.Blue;
             }
         }
 
@@ -348,25 +348,12 @@ namespace BecquerelMonitor
         {
             if (e.KeyCode == Keys.Return)
             {
-                double coeffbackup = this.energyCalibration.Coefficients[0];
-                try
-                {
-                    double result = fromStringtoDouble(this.numericUpDown3.Text);
-                    this.numericUpDown3.ForeColor = Color.Black;
-                    this.energyCalibration.Coefficients[0] = result;
-                    if (!energyCalibration.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
-                    {
-                        MessageBox.Show(Resources.CalibrationFunctionError);
-                        throw new Exception();
-                    }
-                    this.UpdateEnergyCalibration();
-                }
-                catch
-                {
-                    this.numericUpDown3.Text = coeffbackup.ToString();
-                    this.numericUpDown3.ForeColor = Color.Red;
-                }
+                setNewCalibration(this.numericUpDown3, 0);
                 e.SuppressKeyPress = true;
+            }
+            else
+            {
+                this.numericUpDown3.ForeColor = Color.Blue;
             }
         }
 
@@ -374,25 +361,12 @@ namespace BecquerelMonitor
         {
             if (e.KeyCode == Keys.Return)
             {
-                double coeffbackup = this.energyCalibration.Coefficients[4];
-                try
-                {
-                    double result = fromStringtoDouble(this.numericUpDown4.Text);
-                    this.numericUpDown4.ForeColor = Color.Black;
-                    this.energyCalibration.Coefficients[4] = result;
-                    if (!energyCalibration.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
-                    {
-                        MessageBox.Show(Resources.CalibrationFunctionError);
-                        throw new Exception();
-                    }
-                    this.UpdateEnergyCalibration();
-                }
-                catch
-                {
-                    this.numericUpDown4.Text = coeffbackup.ToString();
-                    this.numericUpDown4.ForeColor = Color.Red;
-                }
+                setNewCalibration(this.numericUpDown4, 4);
                 e.SuppressKeyPress = true;
+            }
+            else
+            {
+                this.numericUpDown4.ForeColor = Color.Blue;
             }
         }
 
@@ -400,25 +374,12 @@ namespace BecquerelMonitor
         {
             if (e.KeyCode == Keys.Return)
             {
-                double coeffbackup = this.energyCalibration.Coefficients[3];
-                try
-                {
-                    double result = fromStringtoDouble(this.numericUpDown5.Text);
-                    this.numericUpDown5.ForeColor = Color.Black;
-                    this.energyCalibration.Coefficients[3] = result;
-                    if (!energyCalibration.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
-                    {
-                        MessageBox.Show(Resources.CalibrationFunctionError);
-                        throw new Exception();
-                    }
-                    this.UpdateEnergyCalibration();
-                }
-                catch
-                {
-                    this.numericUpDown5.Text = coeffbackup.ToString();
-                    this.numericUpDown5.ForeColor = Color.Red;
-                }
+                setNewCalibration(this.numericUpDown5, 3);
                 e.SuppressKeyPress = true;
+            }
+            else
+            {
+                this.numericUpDown5.ForeColor = Color.Blue;
             }
         }
 

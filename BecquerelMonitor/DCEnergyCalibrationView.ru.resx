@@ -153,54 +153,6 @@
   <data name="&gt;&gt;button11.ZOrder" xml:space="preserve">
     <value>4</value>
   </data>
-  <data name="&gt;&gt;button12.Name" xml:space="preserve">
-    <value>button12</value>
-  </data>
-  <data name="&gt;&gt;button12.Parent" xml:space="preserve">
-    <value>groupBox1</value>
-  </data>
-  <data name="&gt;&gt;button12.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;button12.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
-  <data name="&gt;&gt;button13.Name" xml:space="preserve">
-    <value>button13</value>
-  </data>
-  <data name="&gt;&gt;button13.Parent" xml:space="preserve">
-    <value>groupBox1</value>
-  </data>
-  <data name="&gt;&gt;button13.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;button13.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
-  <data name="&gt;&gt;button2.Name" xml:space="preserve">
-    <value>button2</value>
-  </data>
-  <data name="&gt;&gt;button2.Parent" xml:space="preserve">
-    <value>groupBox1</value>
-  </data>
-  <data name="&gt;&gt;button2.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;button2.ZOrder" xml:space="preserve">
-    <value>8</value>
-  </data>
-  <data name="&gt;&gt;button3.Name" xml:space="preserve">
-    <value>button3</value>
-  </data>
-  <data name="&gt;&gt;button3.Parent" xml:space="preserve">
-    <value>groupBox1</value>
-  </data>
-  <data name="&gt;&gt;button3.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;button3.ZOrder" xml:space="preserve">
-    <value>4</value>
-  </data>
   <data name="&gt;&gt;button4.Name" xml:space="preserve">
     <value>button4</value>
   </data>
@@ -580,34 +532,10 @@
     <value>Сбр.</value>
   </data>
   <data name="button1.ToolTip" xml:space="preserve">
-    <value>Сброс 2 коэфф. (c)</value>
+    <value>Сброс калибровки</value>
   </data>
   <data name="button11.Text" xml:space="preserve">
     <value>Отмена</value>
-  </data>
-  <data name="button12.Text" xml:space="preserve">
-    <value>Сбр.</value>
-  </data>
-  <data name="button12.ToolTip" xml:space="preserve">
-    <value>Сброс 4 коэфф. (a)</value>
-  </data>
-  <data name="button13.Text" xml:space="preserve">
-    <value>Сбр.</value>
-  </data>
-  <data name="button13.ToolTip" xml:space="preserve">
-    <value>Сброс 3 коэфф. (b)</value>
-  </data>
-  <data name="button2.Text" xml:space="preserve">
-    <value>Сбр.</value>
-  </data>
-  <data name="button2.ToolTip" xml:space="preserve">
-    <value>Сброс 1 коэфф. (d)</value>
-  </data>
-  <data name="button3.Text" xml:space="preserve">
-    <value>Сбр.</value>
-  </data>
-  <data name="button3.ToolTip" xml:space="preserve">
-    <value>Сброс смещения (e)</value>
   </data>
   <data name="button4.Text" xml:space="preserve">
     <value>Сохр. в конф. устр.</value>

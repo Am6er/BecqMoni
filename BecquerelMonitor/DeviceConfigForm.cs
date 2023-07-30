@@ -1,4 +1,5 @@
 ﻿using BecquerelMonitor.Hash;
+using BecquerelMonitor.N42;
 using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
@@ -650,6 +651,12 @@ namespace BecquerelMonitor
                 DialogResult dialogResult = MessageBox.Show(Resources.MSGConfirmSaveConfig, Resources.ConfirmationDialogTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation);
                 if (dialogResult == DialogResult.Yes)
                 {
+                    PolynomialEnergyCalibration pe = (PolynomialEnergyCalibration)this.activeDeviceConfig.EnergyCalibration;
+                    if (!pe.CheckCalibration(channels: this.activeDeviceConfig.NumberOfChannels))
+                    {
+                        MessageBox.Show(Resources.CalibrationFunctionError);
+                        return false;
+                    }
                     this.SaveFormContents(this.activeDeviceConfig);
                     if (!this.manager.SaveConfig(this.activeDeviceConfig))
                     {
@@ -698,23 +705,56 @@ namespace BecquerelMonitor
             this.SetActiveDeviceConfigDirty();
         }
 
+        void setNewCalibration(TextBox t, int order)
+        {
+            PolynomialEnergyCalibration pe = (PolynomialEnergyCalibration)this.activeDeviceConfig.EnergyCalibration;
+            try
+            {
+                double result = fromStringtoDouble(t.Text);
+                if (pe.Coefficients.Length <= order)
+                {
+                    PolynomialEnergyCalibration newPe = (PolynomialEnergyCalibration)pe.Clone();
+                    newPe.PolynomialOrder = order;
+                    double[] coeff = new double[pe.Coefficients.Length + 1];
+                    Array.Copy(pe.Coefficients, coeff, pe.Coefficients.Length);
+                    newPe.Coefficients = coeff;
+                    newPe.Coefficients[order] = result;
+                    this.activeDeviceConfig.EnergyCalibration = (PolynomialEnergyCalibration)newPe;
+                } else if (t.Text == "0" && order == pe.Coefficients.Length - 1)
+                {
+                    if (pe.PolynomialOrder > 1)
+                    {
+                        PolynomialEnergyCalibration newPe = (PolynomialEnergyCalibration)pe.Clone().Downgrade(order - 1);
+                        this.activeDeviceConfig.EnergyCalibration = (PolynomialEnergyCalibration)newPe;
+                    }
+                    else
+                    {
+                        throw new Exception();
+                    }
+                } else
+                {
+                    pe.Coefficients[order] = result;
+                    this.activeDeviceConfig.EnergyCalibration = (PolynomialEnergyCalibration)pe;
+                }
+                t.ForeColor = Color.Black;
+                this.SetActiveDeviceConfigDirty();
+            }
+            catch
+            {
+                t.ForeColor = Color.Red;
+            }
+        }
+
         void numericUpDown8_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Return)
             {
-                try
-                {
-                    double result = fromStringtoDouble(this.numericUpDown8.Text);
-                    this.numericUpDown8.ForeColor = Color.Black;
-                    this.SetActiveDeviceConfigDirty();
-                }
-                catch
-                {
-                    PolynomialEnergyCalibration pe = (PolynomialEnergyCalibration)this.activeDeviceConfig.EnergyCalibration;
-                    this.numericUpDown8.Text = pe.Coefficients[4].ToString();
-                    this.numericUpDown8.ForeColor = Color.Red;
-                }
+                setNewCalibration(this.numericUpDown8, 4);
                 e.SuppressKeyPress = true;
+            }
+            else
+            {
+                this.numericUpDown8.ForeColor = Color.Blue;
             }
         }
 
@@ -722,19 +762,12 @@ namespace BecquerelMonitor
         {
             if (e.KeyCode == Keys.Return)
             {
-                try
-                {
-                    double result = fromStringtoDouble(this.numericUpDown9.Text);
-                    this.numericUpDown9.ForeColor = Color.Black;
-                    this.SetActiveDeviceConfigDirty();
-                }
-                catch
-                {
-                    PolynomialEnergyCalibration pe = (PolynomialEnergyCalibration)this.activeDeviceConfig.EnergyCalibration;
-                    this.numericUpDown9.Text = pe.Coefficients[3].ToString();
-                    this.numericUpDown9.ForeColor = Color.Red;
-                }
+                setNewCalibration(this.numericUpDown9, 3);
                 e.SuppressKeyPress = true;
+            }
+            else
+            {
+                this.numericUpDown9.ForeColor = Color.Blue;
             }
         }
 
@@ -742,19 +775,12 @@ namespace BecquerelMonitor
         {
             if (e.KeyCode == Keys.Return)
             {
-                try
-                {
-                    double result = fromStringtoDouble(this.numericUpDown1.Text);
-                    this.numericUpDown1.ForeColor = Color.Black;
-                    this.SetActiveDeviceConfigDirty();
-                }
-                catch
-                {
-                    PolynomialEnergyCalibration pe = (PolynomialEnergyCalibration)this.activeDeviceConfig.EnergyCalibration;
-                    this.numericUpDown1.Text = pe.Coefficients[2].ToString();
-                    this.numericUpDown1.ForeColor = Color.Red;
-                }
+                setNewCalibration(this.numericUpDown1, 2);
                 e.SuppressKeyPress = true;
+            }
+            else
+            {
+                this.numericUpDown1.ForeColor = Color.Blue;
             }
         }
 
@@ -762,21 +788,28 @@ namespace BecquerelMonitor
         {
             if (e.KeyCode == Keys.Return)
             {
-                try
-                {
-                    double result = fromStringtoDouble(this.numericUpDown2.Text);
-                    this.numericUpDown2.ForeColor = Color.Black;
-                    this.SetActiveDeviceConfigDirty();
-                }
-                catch
-                {
-                    PolynomialEnergyCalibration pe = (PolynomialEnergyCalibration)this.activeDeviceConfig.EnergyCalibration;
-                    this.numericUpDown2.Text = pe.Coefficients[1].ToString();
-                    this.numericUpDown2.ForeColor = Color.Red;
-                }
+                setNewCalibration(this.numericUpDown2, 1);
                 e.SuppressKeyPress = true;
             }
+            else
+            {
+                this.numericUpDown2.ForeColor = Color.Blue;
+            }
         }
+
+        void numericUpDown7_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Return)
+            {
+                setNewCalibration(this.numericUpDown1, 0);
+                e.SuppressKeyPress = true;
+            }
+            else
+            {
+                this.numericUpDown1.ForeColor = Color.Blue;
+            }
+        }
+
 
         void button13_Click(object sender, EventArgs e)
         {
@@ -1021,26 +1054,6 @@ namespace BecquerelMonitor
             });
 
             worker.RunWorkerAsync();
-        }
-
-        void numericUpDown7_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Return)
-            {
-                try
-                {
-                    double result = fromStringtoDouble(this.numericUpDown7.Text);
-                    this.numericUpDown7.ForeColor = Color.Black;
-                    this.SetActiveDeviceConfigDirty();
-                }
-                catch
-                {
-                    PolynomialEnergyCalibration pe = (PolynomialEnergyCalibration)this.activeDeviceConfig.EnergyCalibration;
-                    this.numericUpDown1.Text = pe.Coefficients[0].ToString();
-                    this.numericUpDown1.ForeColor = Color.Red;
-                }
-                e.SuppressKeyPress = true;
-            }
         }
 
         // Token: 0x06000530 RID: 1328 RVA: 0x000218B4 File Offset: 0x0001FAB4
