@@ -473,7 +473,7 @@ namespace BecquerelMonitor
                 RecalcChartParameters();
                 this.dirty = false;
             }
-            return (int)(this.energyCalibration.EnergyToChannel(scrollBarPos / this.pixelPerEnergy / this.horizontalScale) + this.energyViewOffset);
+            return (int)(this.energyCalibration.EnergyToChannel((double)(scrollBarPos) / this.pixelPerEnergy / this.horizontalScale) + this.energyViewOffset);
         }
 
         // Token: 0x060004AE RID: 1198 RVA: 0x0001666C File Offset: 0x0001486C
@@ -653,7 +653,7 @@ namespace BecquerelMonitor
             if (this.fittingMode != VerticalFittingMode.None)
             {
                 this.minChannel = (int)chan - 5;
-                this.maxChannel = (int)(chan + this.width / this.horizontalScale);
+                this.maxChannel = (int)(minChannel + (double)(this.width) / this.horizontalScale);
                 if (this.maxChannel >= this.numberOfChannels)
                 {
                     this.maxChannel = this.numberOfChannels - 1;
