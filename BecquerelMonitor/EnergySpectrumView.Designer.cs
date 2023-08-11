@@ -466,6 +466,16 @@ namespace BecquerelMonitor
             return (int)((this.energyCalibration.ChannelToEnergy((double)channel) - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale);
         }
 
+        int CalcChanValue(int scrollBarPos)
+        {
+            if (this.dirty)
+            {
+                RecalcChartParameters();
+                this.dirty = false;
+            }
+            return (int)(this.energyCalibration.EnergyToChannel(scrollBarPos / this.pixelPerEnergy / this.horizontalScale) + this.energyViewOffset);
+        }
+
         // Token: 0x060004AE RID: 1198 RVA: 0x0001666C File Offset: 0x0001486C
         public void RecalcScrollBar()
         {
@@ -639,10 +649,11 @@ namespace BecquerelMonitor
             this.scrollY = -this.vScrollBar1.Value;
             this.minChannel = 0;
             this.maxChannel = this.numberOfChannels - 1;
+            int chan = CalcChanValue(-this.scrollX);
             if (this.fittingMode != VerticalFittingMode.None)
             {
-                this.minChannel = (int)((double)(-(double)this.scrollX) / this.horizontalScale);
-                this.maxChannel = (int)((double)(-(double)this.scrollX + this.width) / this.horizontalScale);
+                this.minChannel = (int)chan - 5;
+                this.maxChannel = (int)(chan + this.width / this.horizontalScale);
                 if (this.maxChannel >= this.numberOfChannels)
                 {
                     this.maxChannel = this.numberOfChannels - 1;
