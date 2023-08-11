@@ -453,12 +453,17 @@ namespace BecquerelMonitor
         // Token: 0x060004AD RID: 1197 RVA: 0x00016630 File Offset: 0x00014830
         int CalcMaximumXValue()
         {
+            return CalcXValue(this.numberOfChannels);
+        }
+
+        int CalcXValue(int channel)
+        {
             if (this.dirty)
             {
                 RecalcChartParameters();
                 this.dirty = false;
             }
-            return (int)((this.energyCalibration.ChannelToEnergy((double)this.numberOfChannels) - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale);
+            return (int)((this.energyCalibration.ChannelToEnergy((double)channel) - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale);
         }
 
         // Token: 0x060004AE RID: 1198 RVA: 0x0001666C File Offset: 0x0001486C
@@ -3463,36 +3468,36 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            int num;
-            int num2;
+            int startRegion;
+            int endRegion;
             if (this.selectionStart < this.selectionEnd)
             {
-                num = this.selectionStart;
-                num2 = this.selectionEnd;
+                startRegion = this.selectionStart;
+                endRegion = this.selectionEnd;
             }
             else
             {
-                num = this.selectionEnd;
-                num2 = this.selectionStart;
+                startRegion = this.selectionEnd;
+                endRegion = this.selectionStart;
             }
-            this.horizontalScale = (double)this.width / ((double)(num2 - num) * 1.2);
+            this.horizontalScale = (double)this.width / ((double)(endRegion - startRegion) * 1.2);
             if (this.horizontalScale > 10.0)
             {
                 this.horizontalScale = 10.0;
             }
             this.textBox1.Text = this.horizontalScale.ToString();
-            int num3 = this.CalcMaximumXValue() + 5;
-            this.hScrollBar1.Maximum = num3;
-            int num4 = (int)((double)(num2 + num) / 2.0 * this.horizontalScale - (double)this.width / 2.0);
-            if (num4 < 0)
+            int maxPos = this.CalcMaximumXValue() + 5;
+            this.hScrollBar1.Maximum = maxPos;
+            int currPos = (int)(CalcXValue((int)((endRegion + startRegion) / 2.0)) - this.width / 2.0); //5651
+            if (currPos < 0)
             {
-                num4 = 0;
+                currPos = 0;
             }
-            if (num4 > num3)
+            if (currPos > maxPos)
             {
-                num4 = num3;
+                currPos = maxPos;
             }
-            this.hScrollBar1.Value = num4;
+            this.hScrollBar1.Value = currPos;
             this.PrepareViewData();
             this.RecalcScrollBar();
             base.Invalidate();
