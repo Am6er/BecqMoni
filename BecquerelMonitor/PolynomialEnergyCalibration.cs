@@ -168,7 +168,7 @@ namespace BecquerelMonitor
         // Token: 0x06000734 RID: 1844 RVA: 0x00029E1C File Offset: 0x0002801C
         public override double EnergyToChannel(double enrg, int maxChannels = 8192)
         {
-            if (enrg > this.maxEnergy && this.maxEnergy != -1) return this.maxEnergy;
+            if (enrg > this.maxEnergy && this.maxEnergy != -1) return this.maxChannels;
             if (this.dirty || this.energytochanel == null)
             {
                 this.energytochanel = new ConcurrentDictionary<double, double>();
