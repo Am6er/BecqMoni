@@ -652,12 +652,8 @@ namespace BecquerelMonitor
             int chan = CalcChanValue(-this.scrollX);
             if (this.fittingMode != VerticalFittingMode.None)
             {
-                this.minChannel = (int)chan - 5;
-                this.maxChannel = (int)(minChannel + (double)(this.width) / this.horizontalScale);
-                if (this.maxChannel >= this.numberOfChannels)
-                {
-                    this.maxChannel = this.numberOfChannels - 1;
-                }
+                this.minChannel = Math.Max((int)chan - 5, 0);
+                this.maxChannel = Math.Min((int)(minChannel + (double)(this.width) / this.horizontalScale), this.numberOfChannels - 1);
             }
             this.totalMaxValue = 0.0;
             this.totalMinValue = double.PositiveInfinity;
