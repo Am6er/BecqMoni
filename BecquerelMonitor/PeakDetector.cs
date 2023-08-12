@@ -177,7 +177,7 @@ namespace BecquerelMonitor
             int low_boundary = centroid - fwhm;
             int high_boundary = centroid + fwhm;
             if (low_boundary < 0) low_boundary = 0;
-            if (high_boundary > energySpectrum.NumberOfChannels) high_boundary = energySpectrum.NumberOfChannels - 1;
+            if (high_boundary >= energySpectrum.NumberOfChannels) high_boundary = energySpectrum.NumberOfChannels - 1;
             int poly_order = 8;
             if (high_boundary - low_boundary < 8)
             {
