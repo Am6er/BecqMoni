@@ -168,12 +168,12 @@ namespace BecquerelMonitor
         // Token: 0x06000734 RID: 1844 RVA: 0x00029E1C File Offset: 0x0002801C
         public override double EnergyToChannel(double enrg, int maxChannels = 8192)
         {
-            if (enrg > this.maxEnergy && this.maxEnergy != -1) return maxChannels;
+            if (enrg > this.maxEnergy && this.maxEnergy != -1) return this.maxChannels;
             if (this.dirty || this.energytochanel == null)
             {
                 this.energytochanel = new ConcurrentDictionary<double, double>();
                 this.dirty = false;
-                double value = EnrgToChannel(enrg, maxCh: maxChannels);
+                double value = EnrgToChannel(enrg, maxCh: this.maxChannels);
                 this.energytochanel.TryAdd(enrg, value);
                 return value;
             } else
@@ -183,7 +183,7 @@ namespace BecquerelMonitor
                     return value;
                 } else
                 {
-                    value = EnrgToChannel(enrg, maxCh: maxChannels);
+                    value = EnrgToChannel(enrg, maxCh: this.maxChannels);
                     this.energytochanel.TryAdd(enrg, value);
                     return value;
                 }
