@@ -596,6 +596,21 @@ namespace BecquerelMonitor
             base.Invalidate();
         }
 
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.A)
+            {
+                FitHorizontalScale();
+                return;
+            }
+            if (e.KeyCode == Keys.M)
+            {
+                ZoominSelectedRegion();
+                return;
+            }
+            base.OnKeyDown(e);
+        }
+
         // Token: 0x060004B1 RID: 1201 RVA: 0x000169E4 File Offset: 0x00014BE4
         protected override void OnPaintBackground(PaintEventArgs e)
         {
