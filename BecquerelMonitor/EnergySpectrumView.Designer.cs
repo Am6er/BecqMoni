@@ -593,13 +593,11 @@ namespace BecquerelMonitor
                     newHorizontalScale = Math.Min(10, 1.1 * newHorizontalScale);
                 }
                 int screenXOffset = base.Width - this.left - this.vScrollBar1.Width - 5;
-                int minCh = CalcChanValue(this.hScrollBar1.Value);
-                int maxCh = CalcChanValue(this.hScrollBar1.Value + screenXOffset);
+                int medCh = CalcChanValue(this.hScrollBar1.Value + screenXOffset / 2);
                 this.horizontalScale = newHorizontalScale;
                 this.textBox1.Text = this.horizontalScale.ToString();
-                this.horizontalScale = newHorizontalScale;
                 this.hScrollBar1.Maximum = this.CalcMaximumXValue() + 5;
-                int newValue = CalcXValue((minCh + maxCh) / 2) - screenXOffset / 2;
+                int newValue = CalcXValue(medCh) - screenXOffset / 2;
                 if (newValue < 0) { newValue = 0; }
                 if (newValue > this.hScrollBar1.Maximum) {  newValue = this.hScrollBar1.Maximum; }
                 this.hScrollBar1.Value = newValue;
