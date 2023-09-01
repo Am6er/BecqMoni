@@ -580,20 +580,51 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            int num = e.Delta * SystemInformation.MouseWheelScrollLines / 120;
-            int num2 = this.hScrollBar1.Value;
-            num2 -= num * 15;
-            if (num2 < this.hScrollBar1.Minimum)
+            if (this.CtrlKeyPressed)
             {
-                num2 = this.hScrollBar1.Minimum;
-            }
-            int maximum = this.hScrollBar1.Maximum;
-            if (num2 > maximum)
+                // Change Horizontal Scale
+                double maxScale = (double)(base.Width - this.left - this.vScrollBar1.Width) / (this.energyCalibration.ChannelToEnergy((double)this.numberOfChannels) * this.pixelPerEnergy + 8.0);
+                double newHorizontalScale = this.horizontalScale;
+                if (e.Delta < 0)
+                {
+                    newHorizontalScale = Math.Max(maxScale, 0.9 * newHorizontalScale);
+                } else
+                {
+                    newHorizontalScale = Math.Min(10, 1.1 * newHorizontalScale);
+                }
+                int screenXOffset = base.Width - this.left - this.vScrollBar1.Width - 5;
+                int minCh = CalcChanValue(this.hScrollBar1.Value);
+                int maxCh = CalcChanValue(this.hScrollBar1.Value + screenXOffset);
+                this.horizontalScale = newHorizontalScale;
+                this.textBox1.Text = this.horizontalScale.ToString();
+                this.horizontalScale = newHorizontalScale;
+                this.hScrollBar1.Maximum = this.CalcMaximumXValue() + 5;
+                int newValue = CalcXValue((minCh + maxCh) / 2) - screenXOffset / 2;
+                if (newValue < 0) { newValue = 0; }
+                if (newValue > this.hScrollBar1.Maximum) {  newValue = this.hScrollBar1.Maximum; }
+                this.hScrollBar1.Value = newValue;
+
+                this.PrepareViewData();
+                this.RecalcScrollBar();
+                base.Invalidate();
+            } else
             {
-                num2 = maximum;
+                // Horizontal scroll
+                int num = e.Delta * SystemInformation.MouseWheelScrollLines / 120;
+                int num2 = this.hScrollBar1.Value;
+                num2 -= num * 15;
+                if (num2 < this.hScrollBar1.Minimum)
+                {
+                    num2 = this.hScrollBar1.Minimum;
+                }
+                int maximum = this.hScrollBar1.Maximum;
+                if (num2 > maximum)
+                {
+                    num2 = maximum;
+                }
+                this.hScrollBar1.Value = num2;
+                base.Invalidate();
             }
-            this.hScrollBar1.Value = num2;
-            base.Invalidate();
         }
 
         protected override void OnKeyDown(KeyEventArgs e)
@@ -608,7 +639,22 @@ namespace BecquerelMonitor
                 ZoominSelectedRegion();
                 return;
             }
+            if (e.KeyCode == Keys.ControlKey)
+            {
+                this.CtrlKeyPressed = true;
+                return;
+            }
             base.OnKeyDown(e);
+        }
+
+        protected override void OnKeyUp(KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.ControlKey)
+            {
+                this.CtrlKeyPressed = false;
+                return;
+            }
+            base.OnKeyUp(e);
         }
 
         // Token: 0x060004B1 RID: 1201 RVA: 0x000169E4 File Offset: 0x00014BE4
@@ -3647,6 +3693,8 @@ namespace BecquerelMonitor
 
         // Token: 0x04000202 RID: 514
         int bottom = 16;
+
+        bool CtrlKeyPressed = false;
 
         // Token: 0x04000203 RID: 515
         BackgroundMode backgroundMode;
