@@ -35,8 +35,8 @@
     <MinimumRequiredVersion>2022.07.08.7</MinimumRequiredVersion>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
-    <ApplicationRevision>11</ApplicationRevision>
-    <ApplicationVersion>2023.09.08.11</ApplicationVersion>
+    <ApplicationRevision>12</ApplicationRevision>
+    <ApplicationVersion>2023.09.08.12</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -583,6 +583,7 @@
     </Compile>
     <Compile Include="Utils\CalibrationSolver.cs" />
     <Compile Include="Utils\SpectrumAriphmetics.cs" />
+    <Compile Include="Utils\WineCheck.cs" />
     <Compile Include="VerticalFittingMode.cs" />
     <Compile Include="VerticalScaleType.cs" />
     <Compile Include="VerticalUnit.cs" />
