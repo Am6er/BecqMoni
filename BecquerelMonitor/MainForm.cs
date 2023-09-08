@@ -1462,63 +1462,71 @@ namespace BecquerelMonitor
 
         public static void CleanOldVersions()
         {
-
-            string path = AppDomain.CurrentDomain.BaseDirectory;
-            int lastSlash = path.LastIndexOf(@"\");
-            path = path.Substring(0, lastSlash);
-            lastSlash = path.LastIndexOf(@"\");
-            path = path.Substring(0, lastSlash);
-
-            var dirInfo = new DirectoryInfo(path);
-
-            var directories = dirInfo.EnumerateDirectories()
-                                        .OrderByDescending(d => d.CreationTime)
-                                        .ToList();
-
-            List<string> DeletedAppIDs = new List<string>();
-
-            foreach (DirectoryInfo subDirInfo in directories)
+            try
             {
+                ApplicationDeployment appdep = ApplicationDeployment.CurrentDeployment;
+                String ver = appdep.CurrentVersion.ToString();
 
-                int first_ = subDirInfo.Name.IndexOf("_");
-                if (first_ < 0) continue;
-                string appID = subDirInfo.Name.Substring(first_ + 1, 21);
+                string path = AppDomain.CurrentDomain.BaseDirectory;
+                int lastSlash = path.LastIndexOf(@"\");
+                path = path.Substring(0, lastSlash);
+                lastSlash = path.LastIndexOf(@"\");
+                path = path.Substring(0, lastSlash);
 
-                if (DeletedAppIDs.Contains(appID)) continue;
+                var dirInfo = new DirectoryInfo(path);
 
-                var subdirectories = subDirInfo.Parent.EnumerateDirectories()
-                                            .Where(d => d.Name.Contains(appID))
+                var directories = dirInfo.EnumerateDirectories()
                                             .OrderByDescending(d => d.CreationTime)
                                             .ToList();
 
-                bool isNewest = true;
-                foreach (DirectoryInfo subDirName in subdirectories)
+                List<string> DeletedAppIDs = new List<string>();
+
+                foreach (DirectoryInfo subDirInfo in directories)
                 {
-                    if (isNewest)
-                    {
-                        isNewest = false;
-                    }
-                    else
-                    {
-                        try
-                        {
-                            SetAttributesToNormal(subDirName); //Set attributes to normal to prevent failures
-                            subDirName.Delete(true);
 
-                            if (!DeletedAppIDs.Contains(appID))
+                    int first_ = subDirInfo.Name.IndexOf("_");
+                    if (first_ < 0) continue;
+                    string appID = subDirInfo.Name.Substring(first_ + 1, 21);
+
+                    if (DeletedAppIDs.Contains(appID)) continue;
+
+                    var subdirectories = subDirInfo.Parent.EnumerateDirectories()
+                                                .Where(d => d.Name.Contains(appID))
+                                                .OrderByDescending(d => d.CreationTime)
+                                                .ToList();
+
+                    bool isNewest = true;
+                    foreach (DirectoryInfo subDirName in subdirectories)
+                    {
+                        if (isNewest)
+                        {
+                            isNewest = false;
+                        }
+                        else
+                        {
+                            try
                             {
-                                DeletedAppIDs.Add(appID);
+                                SetAttributesToNormal(subDirName); //Set attributes to normal to prevent failures
+                                subDirName.Delete(true);
+
+                                if (!DeletedAppIDs.Contains(appID))
+                                {
+                                    DeletedAppIDs.Add(appID);
+                                }
                             }
-                        }
-                        catch (UnauthorizedAccessException e)
-                        {
-                            //Catch unauthorized access to prevent exit if a previous version has any open dll
+                            catch (UnauthorizedAccessException e)
+                            {
+                                //Catch unauthorized access to prevent exit if a previous version has any open dll
+                            }
+
                         }
 
                     }
-
                 }
-
+            }
+            catch
+            {
+                return;
             }
 
         }
