@@ -1464,8 +1464,11 @@ namespace BecquerelMonitor
         {
             try
             {
+                if (WineCheck.isWine()) return;
+
                 ApplicationDeployment appdep = ApplicationDeployment.CurrentDeployment;
                 String ver = appdep.CurrentVersion.ToString();
+
 
                 string path = AppDomain.CurrentDomain.BaseDirectory;
                 int lastSlash = path.LastIndexOf(@"\");
