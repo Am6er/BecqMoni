@@ -1071,34 +1071,35 @@ namespace BecquerelMonitor
             {
                 if (this.backgroundMode == BackgroundMode.Visible && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.Spectrum != null)
                 {
-                    for (int l = 0; l < this.backgroundNumberOfChannels; l++)
+                    Parallel.For(0, this.backgroundNumberOfChannels, l =>
                     {
                         this.backgroundEnergySpectrum.DrawingSpectrum[l] = (double)this.backgroundEnergySpectrum.Spectrum[l];
-                    }
+                    });
                 }
                 if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
                 {
-                    for (int l = 0; l < this.substractedEnergySpectrum.NumberOfChannels; l++)
+                    Parallel.For(0, this.substractedEnergySpectrum.NumberOfChannels, l =>
                     {
                         this.substractedEnergySpectrum.DrawingSpectrum[l] = (double)this.substractedEnergySpectrum.Spectrum[l];
-                    }
+                    });
                 }
                 if (this.backgroundMode == BackgroundMode.ShowContinuum && this.continuumEnergySpectrum != null)
                 {
-                    for (int l = 0; l < this.continuumEnergySpectrum.NumberOfChannels; l++)
-                    {
-                        this.continuumEnergySpectrum.DrawingSpectrum[l] = (double)this.continuumEnergySpectrum.Spectrum[l];
-                    }
+                    Parallel.For(0, this.continuumEnergySpectrum.NumberOfChannels, l => 
+                    { 
+                        this.continuumEnergySpectrum.DrawingSpectrum[l] = (double)this.continuumEnergySpectrum.Spectrum[l]; 
+                    });
                 }
-                    using (List<ResultData>.Enumerator enumerator4 = this.resultDataList.GetEnumerator())
+                    
+                using (List<ResultData>.Enumerator enumerator4 = this.resultDataList.GetEnumerator())
                 {
                     while (enumerator4.MoveNext())
                     {
                         ResultData resultData4 = enumerator4.Current;
-                        for (int m = 0; m < resultData4.EnergySpectrum.NumberOfChannels; m++)
+                        Parallel.For(0, resultData4.EnergySpectrum.NumberOfChannels, m =>
                         {
                             resultData4.EnergySpectrum.DrawingSpectrum[m] = (double)resultData4.EnergySpectrum.Spectrum[m];
-                        }
+                        });
                     }
                     return;
                 }
