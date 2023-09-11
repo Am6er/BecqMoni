@@ -1464,68 +1464,16 @@ namespace BecquerelMonitor
         {
             try
             {
-                if (WineCheck.isWine()) return;
-
                 ApplicationDeployment appdep = ApplicationDeployment.CurrentDeployment;
                 String ver = appdep.CurrentVersion.ToString();
 
-
-                string path = AppDomain.CurrentDomain.BaseDirectory;
-                int lastSlash = path.LastIndexOf(@"\");
-                path = path.Substring(0, lastSlash);
-                lastSlash = path.LastIndexOf(@"\");
-                path = path.Substring(0, lastSlash);
-
-                var dirInfo = new DirectoryInfo(path);
-
-                var directories = dirInfo.EnumerateDirectories()
-                                            .OrderByDescending(d => d.CreationTime)
-                                            .ToList();
-
-                List<string> DeletedAppIDs = new List<string>();
-
-                foreach (DirectoryInfo subDirInfo in directories)
-                {
-
-                    int first_ = subDirInfo.Name.IndexOf("_");
-                    if (first_ < 0) continue;
-                    string appID = subDirInfo.Name.Substring(first_ + 1, 21);
-
-                    if (DeletedAppIDs.Contains(appID)) continue;
-
-                    var subdirectories = subDirInfo.Parent.EnumerateDirectories()
-                                                .Where(d => d.Name.Contains(appID))
-                                                .OrderByDescending(d => d.CreationTime)
-                                                .ToList();
-
-                    bool isNewest = true;
-                    foreach (DirectoryInfo subDirName in subdirectories)
-                    {
-                        if (isNewest)
-                        {
-                            isNewest = false;
-                        }
-                        else
-                        {
-                            try
-                            {
-                                SetAttributesToNormal(subDirName); //Set attributes to normal to prevent failures
-                                subDirName.Delete(true);
-
-                                if (!DeletedAppIDs.Contains(appID))
-                                {
-                                    DeletedAppIDs.Add(appID);
-                                }
-                            }
-                            catch (UnauthorizedAccessException e)
-                            {
-                                //Catch unauthorized access to prevent exit if a previous version has any open dll
-                            }
-
-                        }
-
-                    }
-                }
+                Process cleanCache = new Process();
+                ProcessStartInfo cleanCacheInfo = new ProcessStartInfo();
+                cleanCacheInfo.WindowStyle = ProcessWindowStyle.Hidden;
+                cleanCacheInfo.FileName = "Rundll32.exe";
+                cleanCacheInfo.Arguments = "dfshim CleanOnlineAppCache";
+                cleanCache.StartInfo = cleanCacheInfo;
+                cleanCache.Start();
             }
             catch
             {
