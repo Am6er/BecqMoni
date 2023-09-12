@@ -613,7 +613,7 @@
     <value>Отрицательная</value>
   </data>
   <data name="checkBox2.Text" xml:space="preserve">
-    <value>Авто настройка</value>
+    <value>Изменить в Windows</value>
   </data>
   <data name="comboBox2.Items" xml:space="preserve">
     <value>44100</value>

@@ -104,6 +104,8 @@ namespace BecquerelMonitor
             this.trackBar1.Value = audioInputDeviceConfig.Volume;
             this.maskedTextBox1.Text = audioInputDeviceConfig.Volume.ToString();
             this.checkBox2.Checked = audioInputDeviceConfig.AutoVolumeSetting;
+            this.trackBar1.Enabled = audioInputDeviceConfig.AutoVolumeSetting;
+            this.maskedTextBox1.Enabled = audioInputDeviceConfig.AutoVolumeSetting;
             this.checkBox1.Checked = audioInputDeviceConfig.NegativePolarity;
             PRAHomageMethodConfig prahomageMethodConfig = (PRAHomageMethodConfig)audioInputDeviceConfig.PulseDetectionMethodConfig;
             this.doubleTextBox1.Text = prahomageMethodConfig.LowerThreshold.ToString();
@@ -265,6 +267,8 @@ namespace BecquerelMonitor
         // Token: 0x0600104C RID: 4172 RVA: 0x0005A4A0 File Offset: 0x000586A0
         void checkBox2_CheckedChanged(object sender, EventArgs e)
         {
+            this.trackBar1.Enabled = this.checkBox2.Checked;
+            this.maskedTextBox1.Enabled = this.checkBox2.Checked;
             this.SetActiveDeviceConfigDirty();
         }
 

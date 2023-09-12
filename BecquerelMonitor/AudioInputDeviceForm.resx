@@ -640,7 +640,7 @@
     <value>88, 16</value>
   </data>
   <data name="checkBox2.Text" xml:space="preserve">
-    <value>Auto Setting</value>
+    <value>Override Windows Volume</value>
   </data>
   <data name="checkBox1.Size" type="System.Drawing.Size, System.Drawing">
     <value>69, 16</value>
