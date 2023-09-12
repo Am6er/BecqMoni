@@ -1317,7 +1317,7 @@ namespace BecquerelMonitor.Properties {
         
         /// <summary>
         ///   Looks up a localized string similar to based on pulse shape discrimination algorithm of PRA for audio input devices
-        ///http://www.physics.usyd.edu.au/~marek/pra/index.html
+        ///https://gammaspectacular.com/marek/pra/index.html
         ///
         ///using DockPanel Suite library
         ///http://sourceforge.net/projects/dockpanelsuite/
