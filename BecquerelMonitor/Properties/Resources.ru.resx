@@ -476,7 +476,7 @@ FW пика в каналах - Ширина пика в каналах. Выб�
   </data>
   <data name="LibraryLicensesMessage" xml:space="preserve">
     <value>based on pulse shape discrimination algorithm of PRA for audio input devices
-http://www.physics.usyd.edu.au/~marek/pra/index.html
+https://gammaspectacular.com/marek/pra/index.html
 
 using DockPanel Suite library
 http://sourceforge.net/projects/dockpanelsuite/
