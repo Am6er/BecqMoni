@@ -26,7 +26,7 @@
     <UpdateInterval>99</UpdateInterval>
     <UpdateIntervalUnits>Weeks</UpdateIntervalUnits>
     <UpdatePeriodically>true</UpdatePeriodically>
-    <UpdateRequired>true</UpdateRequired>
+    <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
     <InstallUrl>http://amba.cloud/becqmoni/</InstallUrl>
     <SupportUrl>https://t.me/software_kbradar</SupportUrl>
@@ -35,8 +35,8 @@
     <MinimumRequiredVersion>2022.07.08.7</MinimumRequiredVersion>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
-    <ApplicationRevision>5</ApplicationRevision>
-    <ApplicationVersion>2023.09.11.5</ApplicationVersion>
+    <ApplicationRevision>1</ApplicationRevision>
+    <ApplicationVersion>2023.09.12.1</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -1268,7 +1268,7 @@
       <Version>2.1.2</Version>
     </PackageReference>
     <PackageReference Include="System.IO.Ports">
-      <Version>6.0.0</Version>
+      <Version>7.0.0</Version>
     </PackageReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

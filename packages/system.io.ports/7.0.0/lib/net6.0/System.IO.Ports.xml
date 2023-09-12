@@ -1,0 +1,211 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>System.IO.Ports</name>
+    </assembly>
+    <members>
+        <member name="P:System.SR.IO_EOF_ReadBeyondEOF">
+            <summary>Unable to read beyond the end of the stream.</summary>
+        </member>
+        <member name="P:System.SR.BaseStream_Invalid_Not_Open">
+            <summary>The BaseStream is only available when the port is open.</summary>
+        </member>
+        <member name="P:System.SR.PortNameEmpty_String">
+            <summary>The PortName cannot be empty.</summary>
+        </member>
+        <member name="P:System.SR.Port_not_open">
+            <summary>The port is closed.</summary>
+        </member>
+        <member name="P:System.SR.Port_already_open">
+            <summary>The port is already open.</summary>
+        </member>
+        <member name="P:System.SR.Cant_be_set_when_open">
+            <summary>'{0}' cannot be set while the port is open.</summary>
+        </member>
+        <member name="P:System.SR.Max_Baud">
+            <summary>The maximum baud rate for the device is {0}.</summary>
+        </member>
+        <member name="P:System.SR.In_Break_State">
+            <summary>The port is in the break state and cannot be written to.</summary>
+        </member>
+        <member name="P:System.SR.Write_timed_out">
+            <summary>The write timed out.</summary>
+        </member>
+        <member name="P:System.SR.CantSetRtsWithHandshaking">
+            <summary>RtsEnable cannot be accessed if Handshake is set to RequestToSend or RequestToSendXOnXOff.</summary>
+        </member>
+        <member name="P:System.SR.NotSupportedEncoding">
+            <summary>SerialPort does not support encoding '{0}'.  The supported encodings include ASCIIEncoding, UTF8Encoding, UnicodeEncoding, UTF32Encoding, and most single or double byte code pages.  For a complete list please see the documentation.</summary>
+        </member>
+        <member name="P:System.SR.Arg_InvalidSerialPort">
+            <summary>The given port name ({0}) does not resolve to a valid serial port.</summary>
+        </member>
+        <member name="P:System.SR.Arg_InvalidSerialPortExtended">
+            <summary>The given port name is invalid.  It may be a valid port, but not a serial port.</summary>
+        </member>
+        <member name="P:System.SR.Argument_InvalidOffLen">
+            <summary>Offset and length were out of bounds for the array or count is greater than the number of elements from index to the end of the source collection.</summary>
+        </member>
+        <member name="P:System.SR.ArgumentOutOfRange_Bounds_Lower_Upper">
+            <summary>Argument must be between {0} and {1}.</summary>
+        </member>
+        <member name="P:System.SR.ArgumentOutOfRange_Enum">
+            <summary>Enum value was out of legal range.</summary>
+        </member>
+        <member name="P:System.SR.ArgumentOutOfRange_NeedNonNegNumRequired">
+            <summary>Non-negative number required.</summary>
+        </member>
+        <member name="P:System.SR.ArgumentOutOfRange_NeedPosNum">
+            <summary>Positive number required.</summary>
+        </member>
+        <member name="P:System.SR.ArgumentOutOfRange_Timeout">
+            <summary>The timeout must be greater than or equal to -1.</summary>
+        </member>
+        <member name="P:System.SR.ArgumentOutOfRange_WriteTimeout">
+            <summary>The timeout must be either a positive number or -1.</summary>
+        </member>
+        <member name="P:System.SR.IndexOutOfRange_IORaceCondition">
+            <summary>Probable I/O race condition detected while copying memory. The I/O package is not thread safe by default. In multithreaded applications, a stream must be accessed in a thread-safe way, such as a thread-safe wrapper returned by TextReader's or TextWriter's  ...</summary>
+        </member>
+        <member name="P:System.SR.IO_OperationAborted">
+            <summary>The I/O operation has been aborted because of either a thread exit or an application request.</summary>
+        </member>
+        <member name="P:System.SR.NotSupported_UnseekableStream">
+            <summary>Stream does not support seeking.</summary>
+        </member>
+        <member name="P:System.SR.ObjectDisposed_StreamClosed">
+            <summary>Cannot access a closed stream.</summary>
+        </member>
+        <member name="P:System.SR.InvalidNullEmptyArgument">
+            <summary>Argument {0} cannot be null or zero-length.</summary>
+        </member>
+        <member name="P:System.SR.Arg_WrongAsyncResult">
+            <summary>IAsyncResult object did not come from the corresponding async method on this type.</summary>
+        </member>
+        <member name="P:System.SR.InvalidOperation_EndReadCalledMultiple">
+            <summary>EndRead can only be called once for each asynchronous operation.</summary>
+        </member>
+        <member name="P:System.SR.InvalidOperation_EndWriteCalledMultiple">
+            <summary>EndWrite can only be called once for each asynchronous operation.</summary>
+        </member>
+        <member name="P:System.SR.UnauthorizedAccess_IODenied_Port">
+            <summary>Access to the port '{0}' is denied.</summary>
+        </member>
+        <member name="P:System.SR.PlatformNotSupported_IOPorts">
+            <summary>System.IO.Ports is currently only supported on Windows.</summary>
+        </member>
+        <member name="P:System.SR.PlatformNotSupported_SerialPort_GetPortNames">
+            <summary>Enumeration of serial port names is not supported on the current platform.</summary>
+        </member>
+        <member name="P:System.SR.IO_PathTooLong">
+            <summary>The specified file name or path is too long, or a component of the specified path is too long.</summary>
+        </member>
+        <member name="P:System.SR.IO_PathNotFound_NoPathName">
+            <summary>Could not find a part of the path.</summary>
+        </member>
+        <member name="P:System.SR.IO_PathNotFound_Path">
+            <summary>Could not find a part of the path '{0}'.</summary>
+        </member>
+        <member name="P:System.SR.IO_FileNotFound">
+            <summary>Unable to find the specified file.</summary>
+        </member>
+        <member name="P:System.SR.IO_FileNotFound_FileName">
+            <summary>Could not find file '{0}'.</summary>
+        </member>
+        <member name="P:System.SR.UnauthorizedAccess_IODenied_NoPathName">
+            <summary>Access to the path is denied.</summary>
+        </member>
+        <member name="P:System.SR.UnauthorizedAccess_IODenied_Path">
+            <summary>Access to the path '{0}' is denied.</summary>
+        </member>
+        <member name="P:System.SR.IO_PathTooLong_Path">
+            <summary>The path '{0}' is too long, or a component of the specified path is too long.</summary>
+        </member>
+        <member name="P:System.SR.IO_SharingViolation_File">
+            <summary>The process cannot access the file '{0}' because it is being used by another process.</summary>
+        </member>
+        <member name="P:System.SR.IO_SharingViolation_NoFileName">
+            <summary>The process cannot access the file because it is being used by another process.</summary>
+        </member>
+        <member name="P:System.SR.ArgumentOutOfRange_FileLengthTooBig">
+            <summary>Specified file length was too large for the file system.</summary>
+        </member>
+        <member name="P:System.SR.IO_FileExists_Name">
+            <summary>The file '{0}' already exists.</summary>
+        </member>
+        <member name="P:System.SR.IO_AlreadyExists_Name">
+            <summary>Cannot create '{0}' because a file or directory with the same name already exists.</summary>
+        </member>
+        <member name="T:System.Runtime.InteropServices.LibraryImportAttribute">
+            <summary>
+            Attribute used to indicate a source generator should create a function for marshalling
+            arguments instead of relying on the runtime to generate an equivalent marshalling function at run-time.
+            </summary>
+            <remarks>
+            This attribute is meaningless if the source generator associated with it is not enabled.
+            The current built-in source generator only supports C# and only supplies an implementation when
+            applied to static, partial, non-generic methods.
+            </remarks>
+        </member>
+        <member name="M:System.Runtime.InteropServices.LibraryImportAttribute.#ctor(System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:System.Runtime.InteropServices.LibraryImportAttribute"/>.
+            </summary>
+            <param name="libraryName">Name of the library containing the import.</param>
+        </member>
+        <member name="P:System.Runtime.InteropServices.LibraryImportAttribute.LibraryName">
+            <summary>
+            Gets the name of the library containing the import.
+            </summary>
+        </member>
+        <member name="P:System.Runtime.InteropServices.LibraryImportAttribute.EntryPoint">
+            <summary>
+            Gets or sets the name of the entry point to be called.
+            </summary>
+        </member>
+        <member name="P:System.Runtime.InteropServices.LibraryImportAttribute.StringMarshalling">
+            <summary>
+            Gets or sets how to marshal string arguments to the method.
+            </summary>
+            <remarks>
+            If this field is set to a value other than <see cref="F:System.Runtime.InteropServices.StringMarshalling.Custom" />,
+            <see cref="P:System.Runtime.InteropServices.LibraryImportAttribute.StringMarshallingCustomType" /> must not be specified.
+            </remarks>
+        </member>
+        <member name="P:System.Runtime.InteropServices.LibraryImportAttribute.StringMarshallingCustomType">
+            <summary>
+            Gets or sets the <see cref="T:System.Type"/> used to control how string arguments to the method are marshalled.
+            </summary>
+            <remarks>
+            If this field is specified, <see cref="P:System.Runtime.InteropServices.LibraryImportAttribute.StringMarshalling" /> must not be specified
+            or must be set to <see cref="F:System.Runtime.InteropServices.StringMarshalling.Custom" />.
+            </remarks>
+        </member>
+        <member name="P:System.Runtime.InteropServices.LibraryImportAttribute.SetLastError">
+            <summary>
+            Gets or sets whether the callee sets an error (SetLastError on Windows or errno
+            on other platforms) before returning from the attributed method.
+            </summary>
+        </member>
+        <member name="T:System.Runtime.InteropServices.StringMarshalling">
+            <summary>
+            Specifies how strings should be marshalled for generated p/invokes
+            </summary>
+        </member>
+        <member name="F:System.Runtime.InteropServices.StringMarshalling.Custom">
+            <summary>
+            Indicates the user is suppling a specific marshaller in <see cref="P:System.Runtime.InteropServices.LibraryImportAttribute.StringMarshallingCustomType"/>.
+            </summary>
+        </member>
+        <member name="F:System.Runtime.InteropServices.StringMarshalling.Utf8">
+            <summary>
+            Use the platform-provided UTF-8 marshaller.
+            </summary>
+        </member>
+        <member name="F:System.Runtime.InteropServices.StringMarshalling.Utf16">
+            <summary>
+            Use the platform-provided UTF-16 marshaller.
+            </summary>
+        </member>
+    </members>
+</doc>

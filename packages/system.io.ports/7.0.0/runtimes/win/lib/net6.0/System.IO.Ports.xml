@@ -1,0 +1,397 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>System.IO.Ports</name>
+    </assembly>
+    <members>
+        <member name="T:System.IO.PathInternal">
+            <summary>Contains internal path helpers that are shared between many projects.</summary>
+        </member>
+        <member name="M:System.IO.PathInternal.IsValidDriveChar(System.Char)">
+            <summary>
+            Returns true if the given character is a valid drive letter
+            </summary>
+        </member>
+        <member name="M:System.IO.PathInternal.EnsureExtendedPrefixIfNeeded(System.String)">
+            <summary>
+            Adds the extended path prefix (\\?\) if not already a device path, IF the path is not relative,
+            AND the path is more than 259 characters. (> MAX_PATH + null). This will also insert the extended
+            prefix if the path ends with a period or a space. Trailing periods and spaces are normally eaten
+            away from paths during normalization, but if we see such a path at this point it should be
+            normalized and has retained the final characters. (Typically from one of the *Info classes)
+            </summary>
+        </member>
+        <member name="M:System.IO.PathInternal.EnsureExtendedPrefix(System.String)">
+            <summary>
+            Adds the extended path prefix (\\?\) if not relative or already a device path.
+            </summary>
+        </member>
+        <member name="M:System.IO.PathInternal.IsDevice(System.ReadOnlySpan{System.Char})">
+            <summary>
+            Returns true if the path uses any of the DOS device path syntaxes. ("\\.\", "\\?\", or "\??\")
+            </summary>
+        </member>
+        <member name="M:System.IO.PathInternal.IsDeviceUNC(System.ReadOnlySpan{System.Char})">
+            <summary>
+            Returns true if the path is a device UNC (\\?\UNC\, \\.\UNC\)
+            </summary>
+        </member>
+        <member name="M:System.IO.PathInternal.IsExtended(System.ReadOnlySpan{System.Char})">
+            <summary>
+            Returns true if the path uses the canonical form of extended syntax ("\\?\" or "\??\"). If the
+            path matches exactly (cannot use alternate directory separators) Windows will skip normalization
+            and path length checks.
+            </summary>
+        </member>
+        <member name="M:System.IO.PathInternal.GetRootLength(System.ReadOnlySpan{System.Char})">
+            <summary>
+            Gets the length of the root of the path (drive, share, etc.).
+            </summary>
+        </member>
+        <member name="M:System.IO.PathInternal.IsPartiallyQualified(System.ReadOnlySpan{System.Char})">
+            <summary>
+            Returns true if the path specified is relative to the current drive or working directory.
+            Returns false if the path is fixed to a specific drive or UNC path.  This method does no
+            validation of the path (URIs will be returned as relative as a result).
+            </summary>
+            <remarks>
+            Handles paths that use the alternate directory separator.  It is a frequent mistake to
+            assume that rooted paths (Path.IsPathRooted) are not relative.  This isn't the case.
+            "C:a" is drive relative- meaning that it will be resolved against the current directory
+            for C: (rooted, but relative). "C:\a" is rooted and not relative (the current directory
+            will not be used to modify the path).
+            </remarks>
+        </member>
+        <member name="M:System.IO.PathInternal.IsDirectorySeparator(System.Char)">
+            <summary>
+            True if the given character is a directory separator.
+            </summary>
+        </member>
+        <member name="M:System.IO.PathInternal.NormalizeDirectorySeparators(System.String)">
+             <summary>
+             Normalize separators in the given path. Converts forward slashes into back slashes and compresses slash runs, keeping initial 2 if present.
+             Also trims initial whitespace in front of "rooted" paths (see PathStartSkip).
+            
+             This effectively replicates the behavior of the legacy NormalizePath when it was called with fullCheck=false and expandShortpaths=false.
+             The current NormalizePath gets directory separator normalization from Win32's GetFullPathName(), which will resolve relative paths and as
+             such can't be used here (and is overkill for our uses).
+            
+             Like the current NormalizePath this will not try and analyze periods/spaces within directory segments.
+             </summary>
+             <remarks>
+             The only callers that used to use Path.Normalize(fullCheck=false) were Path.GetDirectoryName() and Path.GetPathRoot(). Both usages do
+             not need trimming of trailing whitespace here.
+            
+             GetPathRoot() could technically skip normalizing separators after the second segment- consider as a future optimization.
+            
+             For legacy .NET Framework behavior with ExpandShortPaths:
+              - It has no impact on GetPathRoot() so doesn't need consideration.
+              - It could impact GetDirectoryName(), but only if the path isn't relative (C:\ or \\Server\Share).
+            
+             In the case of GetDirectoryName() the ExpandShortPaths behavior was undocumented and provided inconsistent results if the path was
+             fixed/relative. For example: "C:\PROGRA~1\A.TXT" would return "C:\Program Files" while ".\PROGRA~1\A.TXT" would return ".\PROGRA~1". If you
+             ultimately call GetFullPath() this doesn't matter, but if you don't or have any intermediate string handling could easily be tripped up by
+             this undocumented behavior.
+            
+             We won't match this old behavior because:
+            
+               1. It was undocumented
+               2. It was costly (extremely so if it actually contained '~')
+               3. Doesn't play nice with string logic
+               4. Isn't a cross-plat friendly concept/behavior
+             </remarks>
+        </member>
+        <member name="M:System.IO.PathInternal.IsEffectivelyEmpty(System.ReadOnlySpan{System.Char})">
+            <summary>
+            Returns true if the path is effectively empty for the current OS.
+            For unix, this is empty or null. For Windows, this is empty, null, or
+            just spaces ((char)32).
+            </summary>
+        </member>
+        <member name="T:System.IO.Win32Marshal">
+            <summary>
+            Provides static methods for converting from Win32 errors codes to exceptions, HRESULTS and error messages.
+            </summary>
+        </member>
+        <member name="M:System.IO.Win32Marshal.GetExceptionForLastWin32Error(System.String)">
+            <summary>
+            Converts, resetting it, the last Win32 error into a corresponding <see cref="T:System.Exception"/> object, optionally
+            including the specified path in the error message.
+            </summary>
+        </member>
+        <member name="M:System.IO.Win32Marshal.GetExceptionForWin32Error(System.Int32,System.String)">
+            <summary>
+            Converts the specified Win32 error into a corresponding <see cref="T:System.Exception"/> object, optionally
+            including the specified path in the error message.
+            </summary>
+        </member>
+        <member name="M:System.IO.Win32Marshal.MakeHRFromErrorCode(System.Int32)">
+            <summary>
+            If not already an HRESULT, returns an HRESULT for the specified Win32 error code.
+            </summary>
+        </member>
+        <member name="M:System.IO.Win32Marshal.TryMakeWin32ErrorCodeFromHR(System.Int32)">
+            <summary>
+            Returns a Win32 error code for the specified HRESULT if it came from FACILITY_WIN32
+            If not, returns the HRESULT unchanged
+            </summary>
+        </member>
+        <member name="M:System.Text.ValueStringBuilder.GetPinnableReference">
+            <summary>
+            Get a pinnable reference to the builder.
+            Does not ensure there is a null char after <see cref="P:System.Text.ValueStringBuilder.Length"/>
+            This overload is pattern matched in the C# 7.3+ compiler so you can omit
+            the explicit method call, and write eg "fixed (char* c = builder)"
+            </summary>
+        </member>
+        <member name="M:System.Text.ValueStringBuilder.GetPinnableReference(System.Boolean)">
+            <summary>
+            Get a pinnable reference to the builder.
+            </summary>
+            <param name="terminate">Ensures that the builder has a null char after <see cref="P:System.Text.ValueStringBuilder.Length"/></param>
+        </member>
+        <member name="P:System.Text.ValueStringBuilder.RawChars">
+            <summary>Returns the underlying storage of the builder.</summary>
+        </member>
+        <member name="M:System.Text.ValueStringBuilder.AsSpan(System.Boolean)">
+            <summary>
+            Returns a span around the contents of the builder.
+            </summary>
+            <param name="terminate">Ensures that the builder has a null char after <see cref="P:System.Text.ValueStringBuilder.Length"/></param>
+        </member>
+        <member name="M:System.Text.ValueStringBuilder.Grow(System.Int32)">
+            <summary>
+            Resize the internal buffer either by doubling current buffer size or
+            by adding <paramref name="additionalCapacityBeyondPos"/> to
+            <see cref="F:System.Text.ValueStringBuilder._pos"/> whichever is greater.
+            </summary>
+            <param name="additionalCapacityBeyondPos">
+            Number of chars requested beyond current position.
+            </param>
+        </member>
+        <member name="P:System.SR.IO_EOF_ReadBeyondEOF">
+            <summary>Unable to read beyond the end of the stream.</summary>
+        </member>
+        <member name="P:System.SR.BaseStream_Invalid_Not_Open">
+            <summary>The BaseStream is only available when the port is open.</summary>
+        </member>
+        <member name="P:System.SR.PortNameEmpty_String">
+            <summary>The PortName cannot be empty.</summary>
+        </member>
+        <member name="P:System.SR.Port_not_open">
+            <summary>The port is closed.</summary>
+        </member>
+        <member name="P:System.SR.Port_already_open">
+            <summary>The port is already open.</summary>
+        </member>
+        <member name="P:System.SR.Cant_be_set_when_open">
+            <summary>'{0}' cannot be set while the port is open.</summary>
+        </member>
+        <member name="P:System.SR.Max_Baud">
+            <summary>The maximum baud rate for the device is {0}.</summary>
+        </member>
+        <member name="P:System.SR.In_Break_State">
+            <summary>The port is in the break state and cannot be written to.</summary>
+        </member>
+        <member name="P:System.SR.Write_timed_out">
+            <summary>The write timed out.</summary>
+        </member>
+        <member name="P:System.SR.CantSetRtsWithHandshaking">
+            <summary>RtsEnable cannot be accessed if Handshake is set to RequestToSend or RequestToSendXOnXOff.</summary>
+        </member>
+        <member name="P:System.SR.NotSupportedEncoding">
+            <summary>SerialPort does not support encoding '{0}'.  The supported encodings include ASCIIEncoding, UTF8Encoding, UnicodeEncoding, UTF32Encoding, and most single or double byte code pages.  For a complete list please see the documentation.</summary>
+        </member>
+        <member name="P:System.SR.Arg_InvalidSerialPort">
+            <summary>The given port name ({0}) does not resolve to a valid serial port.</summary>
+        </member>
+        <member name="P:System.SR.Arg_InvalidSerialPortExtended">
+            <summary>The given port name is invalid.  It may be a valid port, but not a serial port.</summary>
+        </member>
+        <member name="P:System.SR.Argument_InvalidOffLen">
+            <summary>Offset and length were out of bounds for the array or count is greater than the number of elements from index to the end of the source collection.</summary>
+        </member>
+        <member name="P:System.SR.ArgumentOutOfRange_Bounds_Lower_Upper">
+            <summary>Argument must be between {0} and {1}.</summary>
+        </member>
+        <member name="P:System.SR.ArgumentOutOfRange_Enum">
+            <summary>Enum value was out of legal range.</summary>
+        </member>
+        <member name="P:System.SR.ArgumentOutOfRange_NeedNonNegNumRequired">
+            <summary>Non-negative number required.</summary>
+        </member>
+        <member name="P:System.SR.ArgumentOutOfRange_NeedPosNum">
+            <summary>Positive number required.</summary>
+        </member>
+        <member name="P:System.SR.ArgumentOutOfRange_Timeout">
+            <summary>The timeout must be greater than or equal to -1.</summary>
+        </member>
+        <member name="P:System.SR.ArgumentOutOfRange_WriteTimeout">
+            <summary>The timeout must be either a positive number or -1.</summary>
+        </member>
+        <member name="P:System.SR.IndexOutOfRange_IORaceCondition">
+            <summary>Probable I/O race condition detected while copying memory. The I/O package is not thread safe by default. In multithreaded applications, a stream must be accessed in a thread-safe way, such as a thread-safe wrapper returned by TextReader's or TextWriter's  ...</summary>
+        </member>
+        <member name="P:System.SR.IO_OperationAborted">
+            <summary>The I/O operation has been aborted because of either a thread exit or an application request.</summary>
+        </member>
+        <member name="P:System.SR.NotSupported_UnseekableStream">
+            <summary>Stream does not support seeking.</summary>
+        </member>
+        <member name="P:System.SR.ObjectDisposed_StreamClosed">
+            <summary>Cannot access a closed stream.</summary>
+        </member>
+        <member name="P:System.SR.InvalidNullEmptyArgument">
+            <summary>Argument {0} cannot be null or zero-length.</summary>
+        </member>
+        <member name="P:System.SR.Arg_WrongAsyncResult">
+            <summary>IAsyncResult object did not come from the corresponding async method on this type.</summary>
+        </member>
+        <member name="P:System.SR.InvalidOperation_EndReadCalledMultiple">
+            <summary>EndRead can only be called once for each asynchronous operation.</summary>
+        </member>
+        <member name="P:System.SR.InvalidOperation_EndWriteCalledMultiple">
+            <summary>EndWrite can only be called once for each asynchronous operation.</summary>
+        </member>
+        <member name="P:System.SR.UnauthorizedAccess_IODenied_Port">
+            <summary>Access to the port '{0}' is denied.</summary>
+        </member>
+        <member name="P:System.SR.PlatformNotSupported_IOPorts">
+            <summary>System.IO.Ports is currently only supported on Windows.</summary>
+        </member>
+        <member name="P:System.SR.PlatformNotSupported_SerialPort_GetPortNames">
+            <summary>Enumeration of serial port names is not supported on the current platform.</summary>
+        </member>
+        <member name="P:System.SR.IO_PathTooLong">
+            <summary>The specified file name or path is too long, or a component of the specified path is too long.</summary>
+        </member>
+        <member name="P:System.SR.IO_PathNotFound_NoPathName">
+            <summary>Could not find a part of the path.</summary>
+        </member>
+        <member name="P:System.SR.IO_PathNotFound_Path">
+            <summary>Could not find a part of the path '{0}'.</summary>
+        </member>
+        <member name="P:System.SR.IO_FileNotFound">
+            <summary>Unable to find the specified file.</summary>
+        </member>
+        <member name="P:System.SR.IO_FileNotFound_FileName">
+            <summary>Could not find file '{0}'.</summary>
+        </member>
+        <member name="P:System.SR.UnauthorizedAccess_IODenied_NoPathName">
+            <summary>Access to the path is denied.</summary>
+        </member>
+        <member name="P:System.SR.UnauthorizedAccess_IODenied_Path">
+            <summary>Access to the path '{0}' is denied.</summary>
+        </member>
+        <member name="P:System.SR.IO_PathTooLong_Path">
+            <summary>The path '{0}' is too long, or a component of the specified path is too long.</summary>
+        </member>
+        <member name="P:System.SR.IO_SharingViolation_File">
+            <summary>The process cannot access the file '{0}' because it is being used by another process.</summary>
+        </member>
+        <member name="P:System.SR.IO_SharingViolation_NoFileName">
+            <summary>The process cannot access the file because it is being used by another process.</summary>
+        </member>
+        <member name="P:System.SR.ArgumentOutOfRange_FileLengthTooBig">
+            <summary>Specified file length was too large for the file system.</summary>
+        </member>
+        <member name="P:System.SR.IO_FileExists_Name">
+            <summary>The file '{0}' already exists.</summary>
+        </member>
+        <member name="P:System.SR.IO_AlreadyExists_Name">
+            <summary>Cannot create '{0}' because a file or directory with the same name already exists.</summary>
+        </member>
+        <member name="T:System.Runtime.InteropServices.LibraryImportAttribute">
+            <summary>
+            Attribute used to indicate a source generator should create a function for marshalling
+            arguments instead of relying on the runtime to generate an equivalent marshalling function at run-time.
+            </summary>
+            <remarks>
+            This attribute is meaningless if the source generator associated with it is not enabled.
+            The current built-in source generator only supports C# and only supplies an implementation when
+            applied to static, partial, non-generic methods.
+            </remarks>
+        </member>
+        <member name="M:System.Runtime.InteropServices.LibraryImportAttribute.#ctor(System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:System.Runtime.InteropServices.LibraryImportAttribute"/>.
+            </summary>
+            <param name="libraryName">Name of the library containing the import.</param>
+        </member>
+        <member name="P:System.Runtime.InteropServices.LibraryImportAttribute.LibraryName">
+            <summary>
+            Gets the name of the library containing the import.
+            </summary>
+        </member>
+        <member name="P:System.Runtime.InteropServices.LibraryImportAttribute.EntryPoint">
+            <summary>
+            Gets or sets the name of the entry point to be called.
+            </summary>
+        </member>
+        <member name="P:System.Runtime.InteropServices.LibraryImportAttribute.StringMarshalling">
+            <summary>
+            Gets or sets how to marshal string arguments to the method.
+            </summary>
+            <remarks>
+            If this field is set to a value other than <see cref="F:System.Runtime.InteropServices.StringMarshalling.Custom" />,
+            <see cref="P:System.Runtime.InteropServices.LibraryImportAttribute.StringMarshallingCustomType" /> must not be specified.
+            </remarks>
+        </member>
+        <member name="P:System.Runtime.InteropServices.LibraryImportAttribute.StringMarshallingCustomType">
+            <summary>
+            Gets or sets the <see cref="T:System.Type"/> used to control how string arguments to the method are marshalled.
+            </summary>
+            <remarks>
+            If this field is specified, <see cref="P:System.Runtime.InteropServices.LibraryImportAttribute.StringMarshalling" /> must not be specified
+            or must be set to <see cref="F:System.Runtime.InteropServices.StringMarshalling.Custom" />.
+            </remarks>
+        </member>
+        <member name="P:System.Runtime.InteropServices.LibraryImportAttribute.SetLastError">
+            <summary>
+            Gets or sets whether the callee sets an error (SetLastError on Windows or errno
+            on other platforms) before returning from the attributed method.
+            </summary>
+        </member>
+        <member name="T:System.Runtime.InteropServices.StringMarshalling">
+            <summary>
+            Specifies how strings should be marshalled for generated p/invokes
+            </summary>
+        </member>
+        <member name="F:System.Runtime.InteropServices.StringMarshalling.Custom">
+            <summary>
+            Indicates the user is suppling a specific marshaller in <see cref="P:System.Runtime.InteropServices.LibraryImportAttribute.StringMarshallingCustomType"/>.
+            </summary>
+        </member>
+        <member name="F:System.Runtime.InteropServices.StringMarshalling.Utf8">
+            <summary>
+            Use the platform-provided UTF-8 marshaller.
+            </summary>
+        </member>
+        <member name="F:System.Runtime.InteropServices.StringMarshalling.Utf16">
+            <summary>
+            Use the platform-provided UTF-16 marshaller.
+            </summary>
+        </member>
+        <member name="M:Interop.Kernel32.GetMessage(System.Int32)">
+            <summary>
+                Returns a string message for the specified Win32 error code.
+            </summary>
+        </member>
+        <member name="M:Interop.Kernel32.CreateFilePrivate(System.String,System.Int32,System.IO.FileShare,Interop.Kernel32.SECURITY_ATTRIBUTES*,System.IO.FileMode,System.Int32,System.IntPtr)">
+            <summary>
+            WARNING: This method does not implicitly handle long paths. Use CreateFile.
+            </summary>
+        </member>
+        <member name="T:Interop.BOOL">
+            <summary>
+            Blittable version of Windows BOOL type. It is convenient in situations where
+            manual marshalling is required, or to avoid overhead of regular bool marshalling.
+            </summary>
+            <remarks>
+            Some Windows APIs return arbitrary integer values although the return type is defined
+            as BOOL. It is best to never compare BOOL to TRUE. Always use bResult != BOOL.FALSE
+            or bResult == BOOL.FALSE .
+            </remarks>
+        </member>
+    </members>
+</doc>
