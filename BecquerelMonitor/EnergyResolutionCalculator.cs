@@ -1,4 +1,8 @@
-﻿using System;
+﻿using MathNet.Numerics;
+using MathNet.Numerics.Distributions;
+using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace BecquerelMonitor
 {
@@ -13,6 +17,43 @@ namespace BecquerelMonitor
             int endChannel = (int)Math.Floor(energyCalibration.EnergyToChannel(endEnergy, maxChannels: spectrum.NumberOfChannels));
             return EnergyResolutionCalculator.CalculateFWHM(spectrum, startChannel, endChannel);
         }
+
+        public static int doCorrection(EnergySpectrum energySpectrum, int centroid, int low_boundary, int high_boundary)
+        {
+            if (low_boundary < 0) low_boundary = 0;
+            if (high_boundary >= energySpectrum.NumberOfChannels) high_boundary = energySpectrum.NumberOfChannels - 1;
+            int poly_order = 8;
+            if (high_boundary - low_boundary < 8)
+            {
+                poly_order = high_boundary - low_boundary;
+            }
+            if (poly_order < 3)
+            {
+                return (int)Math.Max(energySpectrum.Spectrum[low_boundary], energySpectrum.Spectrum[high_boundary]);
+            }
+            double[] x = new double[high_boundary - low_boundary + 1];
+            double[] y = new double[high_boundary - low_boundary + 1];
+            for (int j = 0; j < high_boundary - low_boundary + 1; j++)
+            {
+                x[j] = low_boundary + j;
+                y[j] = energySpectrum.Spectrum[low_boundary + j];
+            }
+            Func<double, double> func = Fit.PolynomialFunc(x, y, poly_order);
+            double new_centroid = centroid;
+            double max = func.Invoke(new_centroid);
+            for (int j = low_boundary; j < high_boundary; j++)
+            {
+                double new_max = func.Invoke(j);
+                if (new_max > max)
+                {
+                    new_centroid = j;
+                    max = new_max;
+                }
+            }
+            return (int)Math.Round(new_centroid);
+        }
+
+
 
         // Token: 0x060006E0 RID: 1760 RVA: 0x0002862C File Offset: 0x0002682C
         public static EnergyResolutionResult CalculateFWHM(EnergySpectrum spectrum, int startChannel, int endChannel)
@@ -35,8 +76,27 @@ namespace BecquerelMonitor
                     num = i;
                 }
             }
-            EnergyResolutionCalculator.result.MaxChannel = (double)num;
-            EnergyResolutionCalculator.result.MaxValue = num2;
+
+            int cent = num;
+            if (endChannel - startChannel > 8)
+            {
+                try
+                {
+                    cent = doCorrection(spectrum, num, startChannel, endChannel);
+                } catch
+                {
+                    cent = num;
+                }
+                
+                if (cent > endChannel || cent < startChannel) cent = num;
+            }
+
+
+            EnergyResolutionCalculator.result.MaxChannel = (double)cent;
+            EnergyResolutionCalculator.result.MaxValue = (double)spectrum.Spectrum[(int)EnergyResolutionCalculator.result.MaxChannel];
+
+            Trace.WriteLine(EnergyResolutionCalculator.result.MaxChannel + " cent: " + cent);
+
             double num3 = (double)spectrum.Spectrum[startChannel];
             double num4 = (double)spectrum.Spectrum[endChannel];
             double num5 = num3 + (num4 - num3) * (double)(num - startChannel) / (double)(endChannel - startChannel);
