@@ -96,7 +96,7 @@ namespace BecquerelMonitor
                     int centroid = (int)Math.Round(finder.centroids[i]);
                     int snr = (int)finder.snrs[i];
                     int fwhm = (int)Math.Round(finder.fwhms[i]);
-                    centroid = doCorrection(energySpectrum, centroid, fwhm);
+                    centroid = sa.FindCentroid(energySpectrum, centroid, centroid - fwhm, centroid + fwhm);
 
                     NuclideDefinition bestNuclide = null;
                     double minDelta = -1;
@@ -166,47 +166,6 @@ namespace BecquerelMonitor
                 fWHMPeakDetectionMethodConfig.Min_SNR,
                 fWHMPeakDetectionMethodConfig.Max_Items);
             return finder;
-        }
-
-        int doCorrection(EnergySpectrum energySpectrum, int centroid, int fwhm)
-        {
-            if (fwhm == 0)
-            {
-                fwhm = 1;
-            }
-            int low_boundary = centroid - fwhm;
-            int high_boundary = centroid + fwhm;
-            if (low_boundary < 0) low_boundary = 0;
-            if (high_boundary >= energySpectrum.NumberOfChannels) high_boundary = energySpectrum.NumberOfChannels - 1;
-            int poly_order = 8;
-            if (high_boundary - low_boundary < 8)
-            {
-                poly_order = high_boundary - low_boundary;
-            }
-            if (poly_order < 3)
-            {
-                return (int) Math.Max(energySpectrum.Spectrum[low_boundary], energySpectrum.Spectrum[high_boundary]);
-            }
-            double[] x = new double[high_boundary - low_boundary + 1];
-            double[] y = new double[high_boundary - low_boundary + 1];
-            for (int j = 0; j < high_boundary - low_boundary + 1; j++)
-            {
-                x[j] = low_boundary + j;
-                y[j] = energySpectrum.Spectrum[low_boundary + j];
-            }
-            Func<double, double> func = Fit.PolynomialFunc(x, y, poly_order);
-            double new_centroid = centroid;
-            double max = func.Invoke(new_centroid);
-            for (int j = low_boundary; j < high_boundary; j++)
-            {
-                double new_max = func.Invoke(j);
-                if (new_max > max)
-                {
-                    new_centroid = j;
-                    max = new_max;
-                }
-            }
-            return (int)Math.Round(new_centroid);
         }
 
         // Token: 0x0400025C RID: 604

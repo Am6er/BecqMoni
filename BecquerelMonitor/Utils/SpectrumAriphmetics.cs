@@ -1,21 +1,12 @@
 ﻿using BecquerelMonitor.Properties;
 using MathNet.Numerics;
-using MathNet.Numerics.Interpolation;
-using MathNet.Numerics.LinearAlgebra;
-using MathNet.Numerics.LinearAlgebra.Complex;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
-using System.Net;
-using System.Net.Mime;
-using System.Runtime.ExceptionServices;
-using System.Security.Permissions;
-using System.Security.Principal;
+using System.Runtime.Serialization.Formatters;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Windows.Forms.VisualStyles;
 
 namespace BecquerelMonitor.Utils
 {
@@ -40,6 +31,62 @@ namespace BecquerelMonitor.Utils
         {
             this.FWHMPeakDetectionMethodConfig = fWHMPeakDetectionMethodConfig;
             this.EnergySpectrum = energySpectrum.Clone();
+        }
+
+        public int FindCentroid(EnergySpectrum energySpectrum, int centroid, int low_boundary, int high_boundary)
+        {
+            if (low_boundary < 0) low_boundary = 0;
+            if (high_boundary >= energySpectrum.NumberOfChannels) high_boundary = energySpectrum.NumberOfChannels - 1;
+            if (high_boundary - low_boundary < 3)
+            {
+                if (energySpectrum.Spectrum[low_boundary] > energySpectrum.Spectrum[high_boundary])
+                {
+                    return low_boundary;
+                } else
+                {
+                    return high_boundary;
+                }
+            }
+
+            try
+            {
+                int poly_order = 8;
+                if (high_boundary - low_boundary < 8)
+                {
+                    poly_order = high_boundary - low_boundary;
+                }
+                double[] x = new double[high_boundary - low_boundary + 1];
+                double[] y = new double[high_boundary - low_boundary + 1];
+                for (int j = 0; j < high_boundary - low_boundary + 1; j++)
+                {
+                    x[j] = low_boundary + j;
+                    y[j] = Ln(energySpectrum.Spectrum[low_boundary + j]);
+                }
+                Func<double, double> func = Fit.PolynomialFunc(x, y, poly_order);
+                double new_centroid = centroid;
+                double max = func.Invoke(new_centroid);
+                for (int j = low_boundary; j < high_boundary; j++)
+                {
+                    double new_max = func.Invoke(j);
+                    if (new_max > max)
+                    {
+                        new_centroid = j;
+                        max = new_max;
+                    }
+                }
+                if (new_centroid > high_boundary || new_centroid < low_boundary) new_centroid = centroid;
+                return (int)Math.Round(new_centroid);
+            }
+            catch
+            {
+                return centroid;
+            }
+        }
+
+        double Ln(double x)
+        {
+            if (x < 1) return 0.0;
+            return Math.Log(x);
         }
 
         public DocEnergySpectrum CombineWith(DocEnergySpectrum docenergySpectrum)
