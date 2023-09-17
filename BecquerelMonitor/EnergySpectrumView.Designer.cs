@@ -1454,7 +1454,7 @@ namespace BecquerelMonitor
             }
 
             EnergyResolutionResult energyResolutionResult;
-            if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+            if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.substractedEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
             {
                 energyResolutionResult = EnergyResolutionCalculator.CalculateFWHM(this.substractedEnergySpectrum, num, num2);
             } else
