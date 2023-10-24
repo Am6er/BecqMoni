@@ -2130,6 +2130,7 @@ namespace BecquerelMonitor
             {
                 dialog.ShowDialog();
                 int newChan = dialog.SendData();
+                if (newChan == 0) return;
                 if (newChan > 64 && newChan != this.activeDocument.ActiveResultData.EnergySpectrum.NumberOfChannels)
                 {
                     ConcatSpectrums(this.activeDocument, newChan);

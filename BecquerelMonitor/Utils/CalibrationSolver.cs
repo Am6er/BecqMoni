@@ -90,7 +90,11 @@ namespace BecquerelMonitor.Utils
             vector = Vector<double>.Build.Dense(dense_vector);
             weight = Matrix<double>.Build.DenseOfArray(dense_weight);
 
-            double[] retvalue = WeightedRegression.Weighted(matrix, vector, weight).ToArray();
+            double[] retvalue = null;
+            try
+            {
+                retvalue = WeightedRegression.Weighted(matrix, vector, weight).ToArray();
+            } catch (Exception) { }
 
             return retvalue;
         }
