@@ -1917,11 +1917,14 @@ namespace BecquerelMonitor
             {
                 foreach (ResultData resultData in docEnergySpectrum.ResultDataFile.ResultDataList)
                 {
-                    string guid = resultData.ROIConfigReference.Guid;
-                    if (guid != null && this.roiConfigManager.ROIConfigMap.ContainsKey(guid))
+                    if (resultData.ROIConfigReference != null)
                     {
-                        resultData.ROIConfig = this.roiConfigManager.ROIConfigMap[guid];
-                        resultData.ROIConfigReference = resultData.ROIConfig.CreateReference();
+                        string guid = resultData.ROIConfigReference.Guid;
+                        if (guid != null && this.roiConfigManager.ROIConfigMap.ContainsKey(guid))
+                        {
+                            resultData.ROIConfig = this.roiConfigManager.ROIConfigMap[guid];
+                            resultData.ROIConfigReference = resultData.ROIConfig.CreateReference();
+                        }
                     }
                     docEnergySpectrum.UpdateEnergySpectrum();
                 }
