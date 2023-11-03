@@ -36,7 +36,7 @@
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
     <ApplicationRevision>1</ApplicationRevision>
-    <ApplicationVersion>2023.10.24.1</ApplicationVersion>
+    <ApplicationVersion>2023.11.03.1</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -1062,6 +1062,7 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <None Include="Resources\scale.bmp" />
     <None Include="Resources\CONT.bmp" />
     <None Include="Resources\SUB.bmp" />
     <None Include="Resources\attach.png" />

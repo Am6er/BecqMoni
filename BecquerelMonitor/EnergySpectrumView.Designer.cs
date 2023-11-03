@@ -3583,6 +3583,19 @@ namespace BecquerelMonitor
             base.Invalidate();
         }
 
+        public void SetScale11()
+        {
+            int num = base.Width - this.left - this.vScrollBar1.Width;
+            this.horizontalScale = 1.0;
+            this.textBox1.Text = this.horizontalScale.ToString();
+            int maximum = this.CalcMaximumXValue() + 5;
+            this.hScrollBar1.Maximum = maximum;
+            this.hScrollBar1.Value = 0;
+            this.PrepareViewData();
+            this.RecalcScrollBar();
+            base.Invalidate();
+        }
+
         // Token: 0x060004D5 RID: 1237 RVA: 0x0001C828 File Offset: 0x0001AA28
         public void SetDefaultHorizontalScale()
         {

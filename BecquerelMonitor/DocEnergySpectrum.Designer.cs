@@ -58,7 +58,8 @@
 			this.エネルギ\u30FC表示ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripButton2 = new global::System.Windows.Forms.ToolStripButton();
 			this.toolStripButton1 = new global::System.Windows.Forms.ToolStripButton();
-			this.toolStripSplitButton10 = new global::System.Windows.Forms.ToolStripSplitButton();
+            this.toolStripButton3 = new global::System.Windows.Forms.ToolStripButton();
+            this.toolStripSplitButton10 = new global::System.Windows.Forms.ToolStripSplitButton();
 			this.showEnergyCalibrationToolToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.hideEnergyCalibrationToolToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.energySpectrumView1 = new global::BecquerelMonitor.EnergySpectrumView();
@@ -230,6 +231,7 @@
 				this.toolStripSplitButton4,
 				this.toolStripButton2,
 				this.toolStripButton1,
+				this.toolStripButton3,
 				this.toolStripSplitButton10
 			});
 			this.toolStrip1.Name = "toolStrip1";
@@ -323,7 +325,12 @@
 			this.toolStripButton1.Image = global::BecquerelMonitor.Properties.Resources.fit2;
 			this.toolStripButton1.Name = "toolStripButton1";
 			this.toolStripButton1.Click += new global::System.EventHandler(this.toolStripButton1_Click);
-			resources.ApplyResources(this.toolStripSplitButton10, "toolStripSplitButton10");
+            resources.ApplyResources(this.toolStripButton3, "toolStripButton3");
+            this.toolStripButton3.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripButton3.Image = global::BecquerelMonitor.Properties.Resources.scale;
+            this.toolStripButton3.Name = "toolStripButton1";
+            this.toolStripButton3.Click += new global::System.EventHandler(this.toolStripButton3_Click);
+            resources.ApplyResources(this.toolStripSplitButton10, "toolStripSplitButton10");
 			this.toolStripSplitButton10.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
 			this.toolStripSplitButton10.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
@@ -525,8 +532,10 @@
 		// Token: 0x0400012B RID: 299
 		global::System.Windows.Forms.ToolStripButton toolStripButton1;
 
-		// Token: 0x0400012C RID: 300
-		global::System.Windows.Forms.ToolStripButton toolStripButton2;
+        global::System.Windows.Forms.ToolStripButton toolStripButton3;
+
+        // Token: 0x0400012C RID: 300
+        global::System.Windows.Forms.ToolStripButton toolStripButton2;
 
 		// Token: 0x0400012D RID: 301
 		global::System.Windows.Forms.ToolStripMenuItem 全チャネルを表示AToolStripMenuItem;

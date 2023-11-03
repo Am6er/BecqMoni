@@ -36909,4 +36909,7 @@ see peak in spectrum now).</value>
   <data name="ResetCalibrationToDeviceSettingsConflict" xml:space="preserve">
     <value>Device calibration is polynom order {0}. Spectrum calibration is polynom order {1}. Do you want to reset whole calibration points to device calibration?</value>
   </data>
+  <data name="scale" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\scale.bmp;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
 </root>

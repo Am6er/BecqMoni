@@ -771,4 +771,7 @@
   <data name="&gt;&gt;ShowConToolStripMenuItem.Name" xml:space="preserve">
     <value>ShowConToolStripMenuItem</value>
   </data>
+  <data name="toolStripButton3.ToolTipText" xml:space="preserve">
+    <value>Масштаб 1:1</value>
+  </data>
 </root>
