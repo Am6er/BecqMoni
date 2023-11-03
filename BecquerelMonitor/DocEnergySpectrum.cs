@@ -1142,6 +1142,11 @@ namespace BecquerelMonitor
             this.energySpectrumView1.FitHorizontalScale();
         }
 
+        void toolStripButton3_Click(object sender, EventArgs e)
+        {
+            this.energySpectrumView1.SetScale11();
+        }
+
         // Token: 0x06000365 RID: 869 RVA: 0x00010C1C File Offset: 0x0000EE1C
         void 全チャネルを表示AToolStripMenuItem_Click(object sender, EventArgs e)
         {
