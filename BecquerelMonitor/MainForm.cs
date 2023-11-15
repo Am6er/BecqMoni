@@ -502,8 +502,11 @@ namespace BecquerelMonitor
                     if (docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController is AtomSpectraDeviceController && docEnergySpectrum.ActiveResultData.ResultDataStatus.Recording)
                     {
                         AtomSpectraDeviceController dc = (AtomSpectraDeviceController)docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController;
-                        SetStatusTextCenter(String.Format(Resources.TemperatureStr, dc.getTemp()));
-                        break;
+                        docEnergySpectrum.ActiveResultData.DetectorTemperature = dc.getTemp();
+                        if (this.activeDocument.Equals(docEnergySpectrum))
+                        {
+                            SetStatusTextCenter(String.Format(Resources.TemperatureStr, docEnergySpectrum.ActiveResultData.DetectorTemperature));
+                        }
                     }
                 }
             }
@@ -562,6 +565,18 @@ namespace BecquerelMonitor
             } else
             {
                 ClearStatusTextRight();
+            }
+        }
+
+        public void ShowDetectorTemperature()
+        {
+            if (this.activeDocument != null && this.activeDocument.ActiveResultData.DetectorTemperature != null)
+            {
+                SetStatusTextCenter(String.Format(Resources.TemperatureStr, this.activeDocument.ActiveResultData.DetectorTemperature));
+            }
+            else
+            {
+                 ClearStatusTextCenter();
             }
         }
 
@@ -790,6 +805,7 @@ namespace BecquerelMonitor
             }
             this.dcDoseRateView.Show(this.dockPanel1);
             ShowDoseRate();
+            ShowDetectorTemperature();
         }
 
         // Token: 0x06000A62 RID: 2658 RVA: 0x0003D8C8 File Offset: 0x0003BAC8
@@ -906,6 +922,7 @@ namespace BecquerelMonitor
                 this.dcSampleInfoView.LoadFormContents();
                 this.ShowMeasurementResult(true);
                 this.ShowDoseRate();
+                this.ShowDetectorTemperature();
                 this.dcPeakDetectionView.ShowPeakDetectionResult();
                 this.dcControlPanel.Enabled = true;
                 this.dcSampleInfoView.Enabled = true;
@@ -965,6 +982,7 @@ namespace BecquerelMonitor
             this.dcSampleInfoView.LoadFormContents();
             this.ShowMeasurementResult(true);
             this.ShowDoseRate();
+            this.ShowDetectorTemperature();
             this.dcPeakDetectionView.ShowPeakDetectionResult();
             UpdateEnergyCalibrationView();
             this.dcEnergyCalibrationView.SetStabilizerState(this.activeDocument.ActiveResultData);
@@ -1730,6 +1748,11 @@ namespace BecquerelMonitor
         public void ClearStatusTextLeft()
         {
             this.toolStripStatusLabel1.Text = "";
+        }
+
+        public void ClearStatusTextCenter()
+        {
+            this.toolStripStatusLabel2.Text = "";
         }
 
         public void ClearStatusTextRight()
