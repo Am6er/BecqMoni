@@ -164,6 +164,19 @@ namespace BecquerelMonitor
             }
         }
 
+        [XmlIgnore]
+        public string DetectorTemperature
+        {
+            get
+            {
+                return this.detectorTemperature;
+            }
+            set
+            {
+                this.detectorTemperature = value;
+            }
+        }
+
         // Token: 0x170001EE RID: 494
         // (get) Token: 0x06000685 RID: 1669 RVA: 0x00027A5C File Offset: 0x00025C5C
         // (set) Token: 0x06000686 RID: 1670 RVA: 0x00027A64 File Offset: 0x00025C64
@@ -472,6 +485,8 @@ namespace BecquerelMonitor
         bool continuum_refresh = false;
 
         bool subtract_refresh = false;
+
+        string detectorTemperature;
 
         // Token: 0x04000374 RID: 884
         List<Peak> detectedPeaks = new List<Peak>();
