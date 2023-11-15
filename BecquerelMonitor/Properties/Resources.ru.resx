@@ -653,6 +653,9 @@ http://xptable.sourceforge.net/</value>
   <data name="SpectrumFileFilter" xml:space="preserve">
     <value>Файлы спектра (*.xml)|*.xml|Все файлы (*.*)|*.*</value>
   </data>
+  <data name="TemperatureStr" xml:space="preserve">
+    <value>Температура детектора: {0}°C</value>
+  </data>
   <data name="ThermometerTypeNone" xml:space="preserve">
     <value>Нет</value>
   </data>

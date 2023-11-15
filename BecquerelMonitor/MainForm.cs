@@ -492,6 +492,21 @@ namespace BecquerelMonitor
                     }
                 }
             }
+
+            this.countTemp += 100;
+            if (this.countTemp >= 60 * 1000)
+            {
+                this.countTemp = 0;
+                foreach (DocEnergySpectrum docEnergySpectrum in this.documentManager.DocumentList)
+                {
+                    if (docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController is AtomSpectraDeviceController && docEnergySpectrum.ActiveResultData.ResultDataStatus.Recording)
+                    {
+                        AtomSpectraDeviceController dc = (AtomSpectraDeviceController)docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController;
+                        SetStatusTextCenter(String.Format(Resources.TemperatureStr, dc.getTemp()));
+                        break;
+                    }
+                }
+            }
             if (this.activeDocument != null)
             {
                 ResultData activeResultData3 = this.activeDocument.ActiveResultData;
@@ -1702,6 +1717,11 @@ namespace BecquerelMonitor
             this.toolStripStatusLabel1.Text = Text;
         }
 
+        public void SetStatusTextCenter(string Text)
+        {
+            this.toolStripStatusLabel2.Text = Text;
+        }
+
         public void SetStatusTextRight(string Text)
         {
             this.toolStripStatusLabel3.Text = Text;
@@ -2567,6 +2587,8 @@ namespace BecquerelMonitor
         int countChart;
 
         int countAutoSave;
+
+        int countTemp;
 
         string userDirectory = Package.GetInstance().UserDirectory;
 
