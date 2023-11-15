@@ -2119,6 +2119,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Detector temperature: {0}°C.
+        /// </summary>
+        internal static string TemperatureStr {
+            get {
+                return ResourceManager.GetString("TemperatureStr", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to None.
         /// </summary>
         internal static string ThermometerTypeNone {

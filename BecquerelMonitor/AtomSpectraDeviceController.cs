@@ -42,6 +42,24 @@ namespace BecquerelMonitor
             return 0;
         }
 
+        public string getTemp()
+        {
+            if (deviceGuid != null)
+            {
+                try
+                {
+                    AtomSpectraVCPIn.getInstance(deviceGuid).sendCommand("-inf");
+                    String resultStr = AtomSpectraVCPIn.getInstance(deviceGuid).getCommandOutput(4000);
+                    String result = resultStr.Split(new string[] { "T1 " }, StringSplitOptions.None)[1].Split(' ')[0];
+                    return result;
+                } catch (Exception)
+                {
+                    return "0";
+                }
+            }
+            return "0";
+        }
+
         public override void ClearMeasurementResult(ResultData resultData)
         {
             if (deviceGuid != null)
