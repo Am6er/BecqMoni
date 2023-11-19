@@ -54,10 +54,10 @@ namespace BecquerelMonitor
                     return result;
                 } catch (Exception)
                 {
-                    return "0";
+                    return "--";
                 }
             }
-            return "0";
+            return "--";
         }
 
         public override void ClearMeasurementResult(ResultData resultData)
