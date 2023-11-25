@@ -88,25 +88,30 @@
 			array[0] = 10000;
 			this.numericUpDown3.Name = "numericUpDown3";
 			this.numericUpDown3.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.numericUpDown3_KeyDown);
-			resources.ApplyResources(this.numericUpDown2, "numericUpDown2");
+            this.numericUpDown3.Leave += new global::System.EventHandler(this.numericUpDown3_Leave);
+            resources.ApplyResources(this.numericUpDown2, "numericUpDown2");
 			global::System.Windows.Forms.TextBox numericUpDown2 = this.numericUpDown2;
 			this.numericUpDown2.Name = "numericUpDown2";
 			this.numericUpDown2.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.numericUpDown2_KeyDown);
-			resources.ApplyResources(this.numericUpDown1, "numericUpDown1");
+            this.numericUpDown2.Leave += new global::System.EventHandler(this.numericUpDown2_Leave);
+            resources.ApplyResources(this.numericUpDown1, "numericUpDown1");
 			global::System.Windows.Forms.TextBox numericUpDown1 = this.numericUpDown1;
 			this.numericUpDown1.Name = "numericUpDown1";
 			this.numericUpDown1.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.numericUpDown1_KeyDown);
+			this.numericUpDown1.Leave += new global::System.EventHandler(this.numericUpDown1_Leave);
 			resources.ApplyResources(this.numericUpDown4, "numericUpDown4");
 			global::System.Windows.Forms.TextBox numericUpDown4 = this.numericUpDown4;
 			this.numericUpDown4.Name = "numericUpDown4";
 			this.numericUpDown4.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.numericUpDown4_KeyDown);
-			resources.ApplyResources(this.numericUpDown5, "numericUpDown5");
+            this.numericUpDown4.Leave += new global::System.EventHandler(this.numericUpDown4_Leave);
+            resources.ApplyResources(this.numericUpDown5, "numericUpDown5");
 			global::System.Windows.Forms.TextBox numericUpDown5 = this.numericUpDown5;
 			this.numericUpDown5.Name = "numericUpDown5";
 			this.numericUpDown5.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.numericUpDown5_KeyDown);
+            this.numericUpDown5.Leave += new global::System.EventHandler(this.numericUpDown5_Leave);
 
 
-			resources.ApplyResources(this.button4, "button4");
+            resources.ApplyResources(this.button4, "button4");
 			this.button4.Name = "button4";
 			this.toolTip1.SetToolTip(this.button4, resources.GetString("button4.ToolTip"));
 			this.button4.UseVisualStyleBackColor = true;
