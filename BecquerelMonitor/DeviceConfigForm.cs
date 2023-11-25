@@ -733,6 +733,7 @@ namespace BecquerelMonitor
                     }
                 } else
                 {
+                    if (pe.Coefficients[order] == result) return;
                     pe.Coefficients[order] = result;
                     this.activeDeviceConfig.EnergyCalibration = (PolynomialEnergyCalibration)pe;
                 }
@@ -758,6 +759,11 @@ namespace BecquerelMonitor
             }
         }
 
+        void numericUpDown8_Leave(object sender, EventArgs e)
+        {
+            setNewCalibration(this.numericUpDown8, 4);
+        }
+
         void numericUpDown9_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Return)
@@ -769,6 +775,11 @@ namespace BecquerelMonitor
             {
                 this.numericUpDown9.ForeColor = Color.Blue;
             }
+        }
+
+        void numericUpDown9_Leave(object sender, EventArgs e)
+        {
+            setNewCalibration(this.numericUpDown9, 3);
         }
 
         void numericUpDown1_KeyDown(object sender, KeyEventArgs e)
@@ -784,6 +795,11 @@ namespace BecquerelMonitor
             }
         }
 
+        void numericUpDown1_Leave(object sender, EventArgs e)
+        {
+            setNewCalibration(this.numericUpDown1, 2);
+        }
+
         void numericUpDown2_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Return)
@@ -797,6 +813,11 @@ namespace BecquerelMonitor
             }
         }
 
+        void numericUpDown2_Leave(object sender, EventArgs e)
+        {
+            setNewCalibration(this.numericUpDown2, 1);
+        }
+
         void numericUpDown7_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Return)
@@ -808,6 +829,11 @@ namespace BecquerelMonitor
             {
                 this.numericUpDown1.ForeColor = Color.Blue;
             }
+        }
+
+        void numericUpDown7_Leave(object sender, EventArgs e)
+        {
+            setNewCalibration(this.numericUpDown7, 0);
         }
 
 

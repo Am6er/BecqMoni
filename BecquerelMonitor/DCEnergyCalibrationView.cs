@@ -294,6 +294,7 @@ namespace BecquerelMonitor
                 }
                 else
                 {
+                    if (pe.Coefficients[order] == result) return;
                     pe.Coefficients[order] = result;
                     if (pe.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
                     {
@@ -329,6 +330,11 @@ namespace BecquerelMonitor
             }
         }
 
+        void numericUpDown1_Leave(object sender, EventArgs e)
+        {
+            setNewCalibration(this.numericUpDown1, 2);
+        }
+
         // Token: 0x06000826 RID: 2086 RVA: 0x0002E400 File Offset: 0x0002C600
         void numericUpDown2_KeyDown(object sender, KeyEventArgs e)
         {
@@ -341,6 +347,11 @@ namespace BecquerelMonitor
             {
                 this.numericUpDown2.ForeColor = Color.Blue;
             }
+        }
+
+        void numericUpDown2_Leave(object sender, EventArgs e)
+        {
+            setNewCalibration(this.numericUpDown2, 1);
         }
 
         // Token: 0x06000827 RID: 2087 RVA: 0x0002E418 File Offset: 0x0002C618
@@ -357,6 +368,11 @@ namespace BecquerelMonitor
             }
         }
 
+        void numericUpDown3_Leave(object sender, EventArgs e)
+        {
+            setNewCalibration(this.numericUpDown3, 0);
+        }
+
         void numericUpDown4_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Return)
@@ -370,6 +386,11 @@ namespace BecquerelMonitor
             }
         }
 
+        void numericUpDown4_Leave(object sender, EventArgs e)
+        {
+            setNewCalibration(this.numericUpDown4, 4);
+        }
+
         void numericUpDown5_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Return)
@@ -381,6 +402,11 @@ namespace BecquerelMonitor
             {
                 this.numericUpDown5.ForeColor = Color.Blue;
             }
+        }
+
+        void numericUpDown5_Leave(object sender, EventArgs e)
+        {
+            setNewCalibration(this.numericUpDown5, 3);
         }
 
         // Token: 0x06000828 RID: 2088 RVA: 0x0002E430 File Offset: 0x0002C630
