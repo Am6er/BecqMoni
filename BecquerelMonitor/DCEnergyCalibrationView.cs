@@ -421,7 +421,16 @@ namespace BecquerelMonitor
                 if (isCalibrationPointsExist() > 1)
                 {
                     this.button14.Enabled = true;
+                } else
+                {
+                    this.button14.Enabled = false;
+                }
+                if (this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints.Count > 1)
+                {
                     this.button15.Enabled = true;
+                } else
+                {
+                    this.button15.Enabled = false;
                 }
             } else
             {
