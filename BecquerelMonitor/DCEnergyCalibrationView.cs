@@ -255,6 +255,14 @@ namespace BecquerelMonitor
             try
             {
                 double result = fromStringtoDouble(t.Text);
+
+                // Nothing changes, leave
+                if ((result == 0 && order > pe.PolynomialOrder) ||
+                    (pe.PolynomialOrder == order && pe.Coefficients[order] == result))
+                {
+                    t.ForeColor = Color.Black;
+                    return;
+                }
                 
                 if (pe.Coefficients.Length <= order)
                 {
