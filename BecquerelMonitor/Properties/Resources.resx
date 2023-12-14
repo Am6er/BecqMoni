@@ -36915,4 +36915,7 @@ see peak in spectrum now).</value>
   <data name="TemperatureStr" xml:space="preserve">
     <value>Detector temperature: {0}°C</value>
   </data>
+  <data name="DeviceTypeRadiaCode" xml:space="preserve">
+    <value>RadiaCode</value>
+  </data>
 </root>

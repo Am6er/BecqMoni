@@ -51,7 +51,7 @@ namespace BecquerelMonitor
         {
             this.InitializeComponent();
             this.deviceConfigForm = deviceConfigForm;
-            this.DeviceTypeString = "不明なデバイス";
+            this.DeviceTypeString = "unknown device";
         }
 
         // Token: 0x06000AE5 RID: 2789 RVA: 0x000454EC File Offset: 0x000436EC
