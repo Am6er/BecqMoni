@@ -1,0 +1,288 @@
+﻿using System;
+
+namespace BecquerelMonitor
+{
+    class RadiaCodeDeviceController : DeviceController, IDisposable
+    {
+        private PulseDetector pulseDetector = new PulseDetector();
+        private ResultDataStatus resultDataStatus = null;
+        private bool new_document_created = false;
+        private string deviceGuid;
+        private ResultData resultData;
+        private bool already_subscribed = false;
+        private string previous_guid;
+
+        public RadiaCodeDeviceController()
+        {
+            new_document_created = true;
+            DeviceConfigManager.GetInstance().DeviceConfigListChanged += RadiaCodeDeviceController_DeviceConfigListChanged;
+        }
+
+        private void RadiaCodeDeviceController_DeviceConfigListChanged(object sender, DeviceConfigChangedEventArgs e)
+        {
+            already_subscribed = false;
+        }
+
+        public double getCPS()
+        {
+            if (deviceGuid != null)
+            {
+                return RadiaCodeIn.getInstance(deviceGuid).CPS;
+            }
+            return 0;
+        }
+
+        public string getTemp()
+        {
+            if (deviceGuid != null)
+            {
+                try
+                {
+                    RadiaCodeIn.getInstance(deviceGuid).sendCommand("-inf");
+                    String resultStr = RadiaCodeIn.getInstance(deviceGuid).getCommandOutput(4000);
+                    String result = resultStr.Split(new string[] { "T1 " }, StringSplitOptions.None)[1].Split(' ')[0];
+                    return result;
+                }
+                catch (Exception)
+                {
+                    return "--";
+                }
+            }
+            return "--";
+        }
+
+        public override void ClearMeasurementResult(ResultData resultData)
+        {
+            if (deviceGuid != null)
+            {
+                RadiaCodeIn.getInstance(deviceGuid).sendCommand("-rst");
+                RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("-ok", 1000);
+                resultData.StartTime = DateTime.Now;
+            }
+        }
+
+        public override bool StartMeasurement(ResultData resultData)
+        {
+            ResultDataStatus resultDataStatus = resultData.ResultDataStatus;
+            this.resultData = resultData;
+            deviceGuid = resultData.DeviceConfig.Guid;
+            this.resultDataStatus = resultDataStatus;
+            if (resultData.DeviceConfig.InputDeviceConfig.GetType() == typeof(RadiaCodeDeviceConfig))
+            {
+                this.pulseDetector.Pulses = resultData.PulseCollection;
+                this.pulseDetector.EnergySpectrum = resultData.EnergySpectrum;
+                RadiaCodeDeviceConfig deviceConfig = (RadiaCodeDeviceConfig)resultData.DeviceConfig.InputDeviceConfig;
+                DeviceConfigInfo dci = DeviceConfigManager.GetInstance().DeviceConfigMap[resultData.DeviceConfig.Guid];
+                if (dci != null && (dci.InputDeviceConfig is RadiaCodeDeviceConfig))
+                {
+                    RadiaCodeDeviceConfig dc = (RadiaCodeDeviceConfig)dci.InputDeviceConfig;
+                    RadiaCodeIn.getInstance(deviceGuid).setDeviceSerial(dc.DeviceSerial, dc.AddressBLE);
+                }
+                else
+                {
+                    RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).setDeviceSerial(deviceConfig.DeviceSerial, deviceConfig.AddressBLE);
+                }
+
+                if (previous_guid != null)
+                {
+                    if (!previous_guid.Equals(resultData.DeviceConfig.Guid))
+                    {
+                        already_subscribed = false;
+                        try
+                        {
+                            RadiaCodeIn.getInstance(previous_guid).DataReady -= DataIn_DataReady;
+                        }
+                        catch (Exception)
+                        {
+                        }
+                    }
+                }
+
+                if (!already_subscribed)
+                {
+                    RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).DataReady += DataIn_DataReady;
+                    already_subscribed = true;
+                }
+
+                previous_guid = resultData.DeviceConfig.Guid;
+                bool commands_accepted = true;
+                if (new_document_created)
+                {
+                    RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).sendCommand("-sto");
+                    commands_accepted &= RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("-ok", 1000);
+                    RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).sendCommand("-rst");
+                    commands_accepted &= RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("-ok", 1000);
+                }
+                RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).sendCommand("-sta");
+                // Slow baudrates support
+                // Expected: "Warning: silent mode forced due to low interface speed-ok"
+                RadiaCodeDeviceConfig devconfig = (RadiaCodeDeviceConfig)resultData.DeviceConfig.InputDeviceConfig;
+                commands_accepted &= RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("-ok", 1000);
+                if (new_document_created)
+                {
+                    resultData.StartTime = DateTime.Now;
+                    if (commands_accepted) new_document_created = false;
+                }
+                resultDataStatus.Recording = commands_accepted;
+                if (commands_accepted) return true;
+            }
+            return false;
+        }
+
+        public override bool AttachToDevice(ResultData resultData)
+        {
+            ResultDataStatus resultDataStatus = resultData.ResultDataStatus;
+            this.resultData = resultData;
+            deviceGuid = resultData.DeviceConfig.Guid;
+            this.resultDataStatus = resultDataStatus;
+            if (resultData.DeviceConfig.InputDeviceConfig.GetType() == typeof(RadiaCodeDeviceConfig))
+            {
+                this.pulseDetector.Pulses = resultData.PulseCollection;
+                this.pulseDetector.EnergySpectrum = resultData.EnergySpectrum;
+                RadiaCodeDeviceConfig deviceConfig = (RadiaCodeDeviceConfig)resultData.DeviceConfig.InputDeviceConfig;
+                DeviceConfigInfo dci = DeviceConfigManager.GetInstance().DeviceConfigMap[resultData.DeviceConfig.Guid];
+                if (dci != null && (dci.InputDeviceConfig is RadiaCodeDeviceConfig))
+                {
+                    RadiaCodeDeviceConfig dc = (RadiaCodeDeviceConfig)dci.InputDeviceConfig;
+                    RadiaCodeIn.getInstance(deviceGuid).setDeviceSerial(dc.DeviceSerial, dc.AddressBLE);
+                }
+                else
+                {
+                    RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).setDeviceSerial(deviceConfig.DeviceSerial, deviceConfig.AddressBLE);
+                }
+
+                if (previous_guid != null)
+                {
+                    if (!previous_guid.Equals(resultData.DeviceConfig.Guid))
+                    {
+                        already_subscribed = false;
+                        try
+                        {
+                            RadiaCodeIn.getInstance(previous_guid).DataReady -= DataIn_DataReady;
+                        }
+                        catch (Exception)
+                        {
+                        }
+                    }
+                }
+
+                if (!already_subscribed)
+                {
+                    RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).DataReady += DataIn_DataReady;
+                    already_subscribed = true;
+                }
+
+                previous_guid = resultData.DeviceConfig.Guid;
+                bool commands_accepted = true;
+                RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).sendCommand("-sta");
+                RadiaCodeDeviceConfig devconfig = (RadiaCodeDeviceConfig)resultData.DeviceConfig.InputDeviceConfig;
+                commands_accepted &= RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("-ok", 1000);
+                if (new_document_created)
+                {
+                    resultData.StartTime = DateTime.Now;
+                    if (commands_accepted) new_document_created = false;
+                }
+                else
+                {
+                    //resultData.StartTime.Add = stopTimestamp;
+                }
+                resultDataStatus.Recording = commands_accepted;
+                if (commands_accepted) return true;
+            }
+            return false;
+        }
+
+        void RadiaCodeDeviceController_PortFailure(object sender, EventArgs e)
+        {
+            if (MainForm.originalContext != null)
+            {
+                MainForm.originalContext.Post(d => port_failure_stop(), null);
+            }
+        }
+
+        private void port_failure_stop()
+        {
+            if (resultData != null)
+            {
+                resultData.MeasurementController.StopRecording();
+                resultData.ResultDataStatus.Recording = false;
+            }
+        }
+
+        private void DataIn_DataReady(object sender, RadiaCodeInDataReadyArgs e)
+        {
+            if (MainForm.originalContext != null)
+            {
+                MainForm.originalContext.Post(d => update_hystogram(e), null);
+            }
+        }
+
+        private void update_hystogram(RadiaCodeInDataReadyArgs e)
+        {
+            if (this.resultDataStatus.Recording)
+            {
+                e.Hystogram.CopyTo(this.pulseDetector.EnergySpectrum.Spectrum, 0);
+                int sum = 0;
+                foreach (int ch in e.Hystogram)
+                {
+                    sum += ch;
+                }
+                this.pulseDetector.EnergySpectrum.TotalPulseCount = sum + e.InvalidPulses;
+                this.pulseDetector.EnergySpectrum.ValidPulseCount = sum;
+                this.pulseDetector.EnergySpectrum.ChannelPitch = 1;
+                if (this.resultData != null)
+                {
+                    resultData.ResultDataStatus.TotalTime = TimeSpan.FromSeconds(e.ElapsedTime);
+                    resultData.ResultDataStatus.ElapsedTime = resultData.ResultDataStatus.TotalTime;
+                }
+            }
+        }
+
+        public override void StopMeasurement(ResultData resultData)
+        {
+            ResultDataStatus resultDataStatus = resultData.ResultDataStatus;
+            if (deviceGuid != null)
+            {
+                RadiaCodeIn.getInstance(deviceGuid).sendCommand("-sto");
+                resultData.EndTime = DateTime.Now;
+                resultDataStatus.Recording = !RadiaCodeIn.getInstance(deviceGuid).waitForAnswer("-ok", 1000);
+            }
+        }
+
+        public override void DetachFromDevice(ResultData resultData)
+        {
+            ResultDataStatus resultDataStatus = resultData.ResultDataStatus;
+            if (deviceGuid != null)
+            {
+                resultData.EndTime = DateTime.Now;
+                resultDataStatus.Recording = false;
+            }
+        }
+
+        public void applicationCLose()
+        {
+            RadiaCodeIn.finishAll();
+        }
+
+        public PulseDetector PulseDetector
+        {
+            get
+            {
+                return this.pulseDetector;
+            }
+            set
+            {
+                this.pulseDetector = value;
+            }
+        }
+
+        #region IDisposable Members
+
+        public void Dispose()
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion
+    }
+}

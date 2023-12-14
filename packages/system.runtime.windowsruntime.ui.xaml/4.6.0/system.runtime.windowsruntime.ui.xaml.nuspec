@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata minClientVersion="2.12">
+    <id>System.Runtime.WindowsRuntime.UI.Xaml</id>
+    <version>4.6.0</version>
+    <title>System.Runtime.WindowsRuntime.UI.Xaml</title>
+    <authors>Microsoft</authors>
+    <owners>microsoft,dotnetframework</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <licenseUrl>https://github.com/dotnet/corefx/blob/master/LICENSE.TXT</licenseUrl>
+    <projectUrl>https://github.com/dotnet/corefx</projectUrl>
+    <iconUrl>http://go.microsoft.com/fwlink/?LinkID=288859</iconUrl>
+    <description>Provides managed equivalents of Extensible Application Markup Language (XAML) UI types from Windows Runtime.
+
+Commonly Used Types:
+Windows.UI.Xaml.CornerRadius
+Windows.UI.Xaml.Duration
+Windows.UI.Xaml.DurationType
+Windows.UI.Xaml.GridLength
+Windows.UI.Xaml.GridUnitType
+Windows.UI.Xaml.Thickness
+Windows.UI.Xaml.Media.Matrix
+Windows.UI.Xaml.Media.Animation.KeyTime
+Windows.UI.Xaml.Media.Animation.RepeatBehavior
+Windows.UI.Xaml.Media.Animation.RepeatBehaviorType
+Windows.UI.Xaml.Media.Media3D.Matrix3D
+ 
+When using NuGet 3.x this package requires at least version 3.4.</description>
+    <releaseNotes>https://go.microsoft.com/fwlink/?LinkID=799421</releaseNotes>
+    <copyright>© Microsoft Corporation. All rights reserved.</copyright>
+    <serviceable>true</serviceable>
+    <dependencies>
+      <group targetFramework=".NETFramework4.5">
+        <dependency id="System.Runtime.WindowsRuntime" version="4.6.0" />
+      </group>
+      <group targetFramework=".NETCore5.0">
+        <dependency id="Microsoft.NETCore.Platforms" version="3.0.0" />
+        <dependency id="NETStandard.Library" version="1.6.1" />
+        <dependency id="System.Runtime.WindowsRuntime" version="4.6.0" />
+      </group>
+      <group targetFramework=".NETCoreApp3.0">
+        <dependency id="Microsoft.NETCore.Platforms" version="3.0.0" />
+        <dependency id="System.Runtime.WindowsRuntime" version="4.6.0" />
+      </group>
+      <group targetFramework=".NETStandard1.1">
+        <dependency id="NETStandard.Library" version="1.6.1" />
+        <dependency id="System.Runtime.WindowsRuntime" version="4.6.0" />
+      </group>
+      <group targetFramework=".NETStandard2.0">
+        <dependency id="System.Runtime.WindowsRuntime" version="4.6.0" />
+      </group>
+      <group targetFramework=".NETPortable0.0-win8+wpa81" />
+      <group targetFramework=".NETPortable4.5-Profile111">
+        <dependency id="System.Runtime.WindowsRuntime" version="4.6.0" />
+      </group>
+      <group targetFramework="UAP10.0.16299" />
+      <group targetFramework="Windows8.0" />
+      <group targetFramework="WindowsPhoneApp8.1" />
+    </dependencies>
+  </metadata>
+</package>
