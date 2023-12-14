@@ -831,12 +831,12 @@ namespace BecquerelMonitor
         {
             if (e.KeyCode == Keys.Return)
             {
-                setNewCalibration(this.numericUpDown1, 0);
+                setNewCalibration(this.numericUpDown7, 0);
                 e.SuppressKeyPress = true;
             }
             else
             {
-                this.numericUpDown1.ForeColor = Color.Blue;
+                this.numericUpDown7.ForeColor = Color.Blue;
             }
         }
 
@@ -912,7 +912,17 @@ namespace BecquerelMonitor
                                 coeff_list.Add(BitConverter.ToDouble(floatVals, 0));
                             }
                         }
-                        if (coeff_list.Count == 0)
+                        for (int i = 4; i >= 0; i--)
+                        {
+                            if (coeff_list[i] == 0)
+                            {
+                                coeff_list.RemoveAt(i);
+                            } else
+                            {
+                                break;
+                            }
+                        }
+                        if (coeff_list.Count < 2)
                         {
                             MessageBox.Show(Resources.ERREmptyCoefficients);
                             device.Dispose();
@@ -925,10 +935,13 @@ namespace BecquerelMonitor
                         this.numericUpDown9.Text = "0";
                         polynomialEnergyCalibration.PolynomialOrder = coeff_list.Count - 1;
                         polynomialEnergyCalibration.Coefficients = coeff_list.ToArray();
-                        if (polynomialEnergyCalibration.PolynomialOrder >= 2)
+                        if (polynomialEnergyCalibration.PolynomialOrder >= 1)
                         {
                             this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString();
                             this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString();
+                        }
+                        if (polynomialEnergyCalibration.PolynomialOrder >= 2)
+                        {
                             this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString();
                         }
                         if (polynomialEnergyCalibration.PolynomialOrder >= 3)
