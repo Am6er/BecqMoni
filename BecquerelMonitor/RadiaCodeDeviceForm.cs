@@ -4,6 +4,7 @@ using Windows.Devices.Bluetooth.Advertisement;
 using Windows.Devices.Bluetooth;
 using BecquerelMonitor.Properties;
 using System.Linq;
+using System.Threading;
 
 namespace BecquerelMonitor
 {
@@ -60,7 +61,7 @@ namespace BecquerelMonitor
             if (dev != null)
             {
                 if (dev.Name == null) return;
-                if (dev.Name.IndexOf("RadiaCode-101#") == -1) return;
+                if (dev.Name.IndexOf("RadiaCode-10") == -1) return;
                 if (!devices.ContainsKey(args.BluetoothAddress))
                 {
                     try
@@ -81,7 +82,11 @@ namespace BecquerelMonitor
 
         private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (watcher != null) watcher.Stop();
+            if (watcher != null)
+            {
+                watcher.Stop();
+                Thread.Sleep(200);
+            }
             currentBLEindex = comboBox1.SelectedIndex;
             SetActiveDeviceConfigDirty();
         }
