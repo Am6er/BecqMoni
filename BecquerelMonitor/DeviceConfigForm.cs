@@ -288,6 +288,13 @@ namespace BecquerelMonitor
                         this.button14.Enabled = true;
                         this.button14.Visible = true;
                     }
+                    else if (this.activeDeviceConfig.DeviceType == "RadiaCode")
+                    {
+                        this.button13.Enabled = true;
+                        this.button13.Visible = true;
+                        this.button14.Enabled = false;
+                        this.button14.Visible = false;
+                    }
                     else
                     {
                         this.button13.Enabled = false;
@@ -962,6 +969,68 @@ namespace BecquerelMonitor
                         device.Dispose();
                     }
                     SetActiveDeviceConfigDirty();
+                }
+                catch
+                {
+                    MessageBox.Show(Resources.ERRReadDataFromPort_Empty);
+                }
+            } else if (this.activeDeviceConfig.DeviceType == "RadiaCode")
+            {
+                RadiaCodeDeviceConfig deviceconfig = (RadiaCodeDeviceConfig)this.activeDeviceConfig.InputDeviceConfig;
+                RadiaCodeIn device = null;
+                List<RadiaCodeIn> instances = RadiaCodeIn.getAllInstances();
+                bool runexist = false;
+                if (instances.Count > 0)
+                {
+                    foreach (RadiaCodeIn instance in instances)
+                    {
+                        if (instance.GUID == this.activeDeviceConfig.Guid)
+                        {
+                            device = instance;
+                            runexist = true;
+                            break;
+                        }
+                    }
+                }
+                if (!runexist)
+                {
+                    device = new RadiaCodeIn(this.activeDeviceConfig.Guid);
+                    device.setDeviceSerial(deviceconfig.DeviceSerial, deviceconfig.AddressBLE);
+                    device.sendCommand("Start");
+                }
+
+                try
+                {
+                    for (int i = 0; i < 50; i++)
+                    {
+                        Thread.Sleep(200);
+                        if (device.GetCalibration() != null) break;
+                    }
+                    PolynomialEnergyCalibration polynomialEnergyCalibration = device.GetCalibration();
+                    if (polynomialEnergyCalibration != null)
+                    {
+                        this.activeDeviceConfig.EnergyCalibration = polynomialEnergyCalibration;
+
+                        this.numericUpDown1.Text = "0";
+                        this.numericUpDown2.Text = "0";
+                        this.numericUpDown7.Text = "0";
+                        this.numericUpDown8.Text = "0";
+                        this.numericUpDown9.Text = "0";
+
+                        this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString();
+                        this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString();
+                        this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString();
+                        SetActiveDeviceConfigDirty();
+                    }
+                    else
+                    {
+                        MessageBox.Show(String.Format(Resources.ERRReadDataFromPort, deviceconfig.DeviceSerial));
+                    }
+                    if (!runexist)
+                    {
+                        device.Dispose();
+                    }
+                    
                 }
                 catch
                 {

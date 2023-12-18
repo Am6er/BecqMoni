@@ -7,6 +7,7 @@ using System.Threading;
 using Windows.Devices.Bluetooth;
 using Windows.Devices.Bluetooth.GenericAttributeProfile;
 using Windows.Storage.Streams;
+using Windows.UI.Xaml.Documents;
 
 namespace BecquerelMonitor
 {
@@ -15,9 +16,8 @@ namespace BecquerelMonitor
         private Thread readerThread;
         private volatile bool thread_alive = true;
         private int[] hystogram_buffered = new int[1024];
-        private enum State { Connecting, Connected, Disconnected };
-        private enum LastCommand { Start, Stop };
-        private LastCommand lastCommand = LastCommand.Stop;
+        private enum State { Connecting, Connected, Disconnected, Resetting };
+        private State state = State.Disconnected;
         private int cps;
         private String deviceserial, addressble;
         private string guid;
@@ -26,6 +26,8 @@ namespace BecquerelMonitor
         private const string RC_BLE_Service = "e63215e5-7003-49d8-96b0-b024798fb901";
         private const string RC_BLE_Characteristic = "e63215e6-7003-49d8-96b0-b024798fb901";
         private const string RC_BLE_Notify = "e63215e7-7003-49d8-96b0-b024798fb901";
+        private const string RC_GET_SPECTRUM = "\x08\x00\x00\x00&\x08\x00\x81\x00\x02\x00\x00";
+        private const string RC_RESET_SPECTRUM = "\x0c\x00\x00\x00'\x08\x00\x82\x00\x02\x00\x00\x00\x00\x00\x00";
         BluetoothLEDevice dev = null;
         GattDeviceService service = null;
         GattCharacteristic characteristic, characteristicNotify = null;
@@ -118,25 +120,62 @@ namespace BecquerelMonitor
 
         private void Characteristic_ValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
         {
-            DataReader reader = DataReader.FromBuffer(args.CharacteristicValue);
-            byte[] buffer = new byte[reader.UnconsumedBufferLength];
-            reader.ReadBytes(buffer);
-            if (packet.NEWPACKET)
+            try
             {
-                packet.SIZE = BitConverter.ToInt32(buffer, 0) + 4;
-                packet.buffer = new byte[packet.SIZE];
-                packet.NEWPACKET = false;
-            }
-            Array.Copy(buffer, 0, packet.buffer, packet.counter, buffer.Length);
-            packet.counter += buffer.Length;
-            if (packet.counter == packet.SIZE)
-            {
-                packet.DecodePacket();
-                packet.COMPLETE = true;
-            } else if (packet.counter > packet.SIZE)
+                DataReader reader = DataReader.FromBuffer(args.CharacteristicValue);
+                byte[] buffer = new byte[reader.UnconsumedBufferLength];
+                reader.ReadBytes(buffer);
+                if (packet.NEWPACKET)
+                {
+                    packet.SIZE = BitConverter.ToInt32(buffer, 0) + 4;
+                    if (packet.SIZE < 20)
+                    {
+                        Trace.WriteLine("Drop packet because it is not spectrum packet");
+                        packet = new RCSpectrum();
+                        return;
+                    }
+                    packet.buffer = new byte[packet.SIZE];
+                    packet.NEWPACKET = false;
+                }
+                if (buffer.Length > packet.buffer.Length - packet.counter)
+                {
+                    Trace.WriteLine("Drop packet because size > expected size.");
+                    packet = new RCSpectrum();
+                    return;
+                }
+                Array.Copy(buffer, 0, packet.buffer, packet.counter, buffer.Length);
+                packet.counter += buffer.Length;
+                if (packet.counter == packet.SIZE)
+                {
+                    if (packet.SIZE == 12)
+                    {
+                        Trace.WriteLine("Drop packet because it is not spectrum packet");
+                        packet = new RCSpectrum();
+                        return;
+                    }
+                    packet.DecodePacket();
+                    if (packet.SPECTRUM.Length == 1024)
+                    {
+                        packet.COMPLETE = true;
+                    }
+                    else
+                    {
+                        Trace.WriteLine($"Drop packet because spectrum channels: {packet.SPECTRUM.Length}. Expected: 1024 channels.");
+                        packet = new RCSpectrum();
+                        return;
+                    }
+                }
+                else if (packet.counter > packet.SIZE)
+                {
+                    Trace.WriteLine($"Drop packet because size: {packet.counter} > expected size: {packet.SIZE}");
+                    packet = new RCSpectrum();
+                    return;
+                }
+            } catch (Exception ex)
             {
                 packet = new RCSpectrum();
-                Trace.WriteLine($"Drop packet because size: {packet.counter} > expected size: {packet.SIZE}");
+                Trace.WriteLine($"Drop packet because EXCEPTION: {ex.Message} at {ex.StackTrace}");
+                return;
             }
         }
 
@@ -167,10 +206,36 @@ namespace BecquerelMonitor
             Trace.WriteLine("Command sent: " + command);
             switch (command)
             {
-                case "Start": lastCommand = LastCommand.Start; break;
-                case "Stop": lastCommand = LastCommand.Stop; break;
-                default: lastCommand = LastCommand.Stop; break;
+                case "Start": state = State.Connecting; break;
+                case "Stop": state = State.Disconnected; break;
+                case "Reset": state = State.Resetting; break;
+                default: state = State.Disconnected; break;
             }
+        }
+
+        public bool isConnected()
+        {
+            for (int i = 0; i < 50; i++)
+            {
+                Thread.Sleep(200);
+                if (state == State.Connected) return true;
+            }
+            return false;
+        }
+
+        public PolynomialEnergyCalibration GetCalibration()
+        {
+            if (packet.A0 != 0 && packet.A1 != 0 && packet.A2 != 0)
+            {
+                PolynomialEnergyCalibration calibration = new PolynomialEnergyCalibration();
+                calibration.PolynomialOrder = 2;
+                calibration.Coefficients = new double[3];
+                calibration.Coefficients[0] = packet.A0;
+                calibration.Coefficients[1] = packet.A1;
+                calibration.Coefficients[2] = packet.A2;
+                return calibration;
+            }
+            return null;
         }
 
         private async void WritePacket(string packet)
@@ -184,10 +249,14 @@ namespace BecquerelMonitor
 
         public void run()
         {
-            State state = State.Connecting;
             while (thread_alive)
             {
-                Trace.WriteLine($"Current command is {lastCommand}, state is {state}");
+                Trace.WriteLine($"Current state is {state}");
+                if (state == State.Disconnected)
+                {
+                    Thread.Sleep(1000);
+                    continue;
+                }
 
                 if (device_serial_changed)
                 {
@@ -195,29 +264,21 @@ namespace BecquerelMonitor
                     state = State.Connecting;
                 }
 
-                if (lastCommand == LastCommand.Stop)
-                {
-                    Thread.Sleep(1000);
-                    continue;
-                }
-
                 if (state == State.Connecting)
                 {
                     try
                     {
-                        Thread.Sleep(200);
                         if (addressble != null)
                         {
-                            if (lastCommand == LastCommand.Stop)
-                            {
-                                state = State.Disconnected;
-                                DisconnectBLE();
-                            }
                             ConnectBLE(addressble);
-                            Thread.Sleep(3000);
-                            if (dev != null && service != null && characteristic != null && characteristicNotify != null)
+                            for (int i = 0; i <= 50; i++)
                             {
-                                state = State.Connected;
+                                Thread.Sleep(200);
+                                if (dev != null && service != null && characteristic != null && characteristicNotify != null)
+                                {
+                                    state = State.Connected;
+                                    break;
+                                }
                             }
                         }
                         else
@@ -232,27 +293,35 @@ namespace BecquerelMonitor
                             DisconnectBLE();
                         }
                         catch (Exception) { }
-                        Thread.Sleep(500);
+                        Thread.Sleep(1000);
                         continue;
+                    }
+                }
+                else if (state == State.Resetting)
+                {
+                    try
+                    {
+                        packet = new RCSpectrum();
+                        WritePacket(RC_RESET_SPECTRUM);
+                        Thread.Sleep(1000);
+                        state = State.Connecting;
+                    }
+                    catch (Exception)
+                    {
+                        state = State.Connecting;
+                        if (PortFailure != null) PortFailure(this, null);
                     }
                 }
                 else if (state == State.Connected)
                 {
                     try
                     {
-                        if (lastCommand == LastCommand.Start)
-                        {
-                            packet = new RCSpectrum();
-                            WritePacket("\x08\x00\x00\x00&\x08\x00\x81\x00\x02\x00\x00");
-                            while (!packet.COMPLETE) Thread.Sleep(200);
-                            packet.SPECTRUM.CopyTo(hystogram_buffered, 0);
-                            if (packet.TIME_S != 0) this.cps = (int)(hystogram_buffered.Sum() / packet.TIME_S);
-                            if (DataReady != null) DataReady(this, new RadiaCodeInDataReadyArgs(hystogram_buffered, (int)packet.TIME_S));
-                        } else if (lastCommand == LastCommand.Stop)
-                        {
-                            state = State.Disconnected;
-                            DisconnectBLE();
-                        }
+                        packet = new RCSpectrum();
+                        WritePacket(RC_GET_SPECTRUM);
+                        while (!packet.COMPLETE) Thread.Sleep(200);
+                        packet.SPECTRUM.CopyTo(hystogram_buffered, 0);
+                        if (packet.TIME_S != 0) this.cps = (int)(hystogram_buffered.Sum() / packet.TIME_S);
+                        if (DataReady != null) DataReady(this, new RadiaCodeInDataReadyArgs(hystogram_buffered, (int)packet.TIME_S));
                     }
                     catch (Exception)
                     {
@@ -288,7 +357,7 @@ namespace BecquerelMonitor
 
         private void DisconnectBLE()
         {
-            Trace.WriteLine($"Disconnect BLE service");
+            Trace.WriteLine("Disconnect BLE service");
             if (service != null) service.Dispose();
             if (dev != null) dev.Dispose();
         }
