@@ -26,7 +26,7 @@ namespace BecquerelMonitor
         private const string RC_BLE_Service = "e63215e5-7003-49d8-96b0-b024798fb901";
         private const string RC_BLE_Characteristic = "e63215e6-7003-49d8-96b0-b024798fb901";
         private const string RC_BLE_Notify = "e63215e7-7003-49d8-96b0-b024798fb901";
-        private const string RC_GET_SPECTRUM = "\x08\x00\x00\x00&\x08\x00\x81\x00\x02\x00\x00";
+        private const string RC_GET_SPECTRUM = "\x08\x00\x00\x00&\x08\x00\x80\x00\x02\x00\x00";
         private const string RC_RESET_SPECTRUM = "\x0c\x00\x00\x00'\x08\x00\x82\x00\x02\x00\x00\x00\x00\x00\x00";
         BluetoothLEDevice dev = null;
         GattDeviceService service = null;
@@ -130,8 +130,8 @@ namespace BecquerelMonitor
                     packet.SIZE = BitConverter.ToInt32(buffer, 0) + 4;
                     if (packet.SIZE < 20)
                     {
+                        packet.BROKEN = true;
                         Trace.WriteLine("Drop packet because it is not spectrum packet");
-                        packet = new RCSpectrum();
                         return;
                     }
                     packet.buffer = new byte[packet.SIZE];
@@ -139,8 +139,8 @@ namespace BecquerelMonitor
                 }
                 if (buffer.Length > packet.buffer.Length - packet.counter)
                 {
+                    packet.BROKEN = true;
                     Trace.WriteLine("Drop packet because size > expected size.");
-                    packet = new RCSpectrum();
                     return;
                 }
                 Array.Copy(buffer, 0, packet.buffer, packet.counter, buffer.Length);
@@ -149,8 +149,8 @@ namespace BecquerelMonitor
                 {
                     if (packet.SIZE == 12)
                     {
+                        packet.BROKEN = true;
                         Trace.WriteLine("Drop packet because it is not spectrum packet");
-                        packet = new RCSpectrum();
                         return;
                     }
                     packet.DecodePacket();
@@ -160,20 +160,20 @@ namespace BecquerelMonitor
                     }
                     else
                     {
+                        packet.BROKEN = true;
                         Trace.WriteLine($"Drop packet because spectrum channels: {packet.SPECTRUM.Length}. Expected: 1024 channels.");
-                        packet = new RCSpectrum();
                         return;
                     }
                 }
                 else if (packet.counter > packet.SIZE)
                 {
+                    packet.BROKEN = true;
                     Trace.WriteLine($"Drop packet because size: {packet.counter} > expected size: {packet.SIZE}");
-                    packet = new RCSpectrum();
                     return;
                 }
             } catch (Exception ex)
             {
-                packet = new RCSpectrum();
+                packet.BROKEN = true;
                 Trace.WriteLine($"Drop packet because EXCEPTION: {ex.Message} at {ex.StackTrace}");
                 return;
             }
@@ -251,7 +251,7 @@ namespace BecquerelMonitor
         {
             while (thread_alive)
             {
-                Trace.WriteLine($"Current state is {state}");
+                // Trace.WriteLine($"Current state is {state}");
                 if (state == State.Disconnected)
                 {
                     Thread.Sleep(1000);
@@ -318,7 +318,12 @@ namespace BecquerelMonitor
                     {
                         packet = new RCSpectrum();
                         WritePacket(RC_GET_SPECTRUM);
-                        while (!packet.COMPLETE) Thread.Sleep(200);
+                        while (!packet.COMPLETE)
+                        {
+                            if (packet.BROKEN) break;
+                            Thread.Sleep(400);
+                        }
+                        if (packet.BROKEN) continue;
                         packet.SPECTRUM.CopyTo(hystogram_buffered, 0);
                         if (packet.TIME_S != 0) this.cps = (int)(hystogram_buffered.Sum() / packet.TIME_S);
                         if (DataReady != null) DataReady(this, new RadiaCodeInDataReadyArgs(hystogram_buffered, (int)packet.TIME_S));
@@ -343,15 +348,15 @@ namespace BecquerelMonitor
             if (timer != null) timer.Dispose();
             if (readerThread != null)
             {
+                Trace.WriteLine("RadiaCodeIn thread termination request");
+                thread_alive = false;
+                readerThread.Join();
                 Trace.WriteLine("Try to disconnect..");
                 try
                 {
                     DisconnectBLE();
                 }
-                catch (Exception)  { }
-                Trace.WriteLine("RadiaCodeIn thread termination request");
-                thread_alive = false;
-                readerThread.Join();
+                catch (Exception) { }
             }
         }
 
@@ -359,7 +364,9 @@ namespace BecquerelMonitor
         {
             Trace.WriteLine("Disconnect BLE service");
             if (service != null) service.Dispose();
+            Thread.Sleep(500);
             if (dev != null) dev.Dispose();
+            Thread.Sleep(500);
         }
 
         public event EventHandler<RadiaCodeInDataReadyArgs> DataReady;
@@ -398,6 +405,13 @@ namespace BecquerelMonitor
         public int counter = 0;
         bool newPacket = true;
         bool complete = false;
+        bool broken = false;
+
+        public bool BROKEN
+        {
+            get { return this.broken; }
+            set { this.broken = value; }
+        }
 
         public bool COMPLETE
         {

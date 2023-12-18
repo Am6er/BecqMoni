@@ -281,19 +281,32 @@ namespace BecquerelMonitor
                     });
                     this.tabControl1.TabPages[1].Controls.Clear();
                     this.tabControl1.TabPages[1].Controls.Add(this.inputDeviceForm);
-                    if (this.activeDeviceConfig.DeviceType == "AtomSpectraVCP")
+                    if (type.Name == "AtomSpectraVCP")
                     {
                         this.button13.Enabled = true;
                         this.button13.Visible = true;
                         this.button14.Enabled = true;
                         this.button14.Visible = true;
+
+                        this.integerTextBox1.Enabled = true;
+                        this.doubleTextBox6.Enabled = false;
+                        this.doubleTextBox6.Text = "1";
+                        this.ActiveDeviceConfig.ChannelPitch = 1;
                     }
-                    else if (this.activeDeviceConfig.DeviceType == "RadiaCode")
+                    else if (type.Name == "RadiaCode")
                     {
                         this.button13.Enabled = true;
                         this.button13.Visible = true;
                         this.button14.Enabled = false;
                         this.button14.Visible = false;
+
+                        // set channels 1024, pitch = 1
+                        this.integerTextBox1.Enabled = false;
+                        this.doubleTextBox6.Enabled = false;
+                        this.integerTextBox1.Text = "1024";
+                        this.doubleTextBox6.Text = "1";
+                        this.ActiveDeviceConfig.NumberOfChannels = 1024;
+                        this.ActiveDeviceConfig.ChannelPitch = 1;
                     }
                     else
                     {
@@ -301,6 +314,9 @@ namespace BecquerelMonitor
                         this.button13.Visible = false;
                         this.button14.Enabled = false;
                         this.button14.Visible = false;
+
+                        this.integerTextBox1.Enabled = true;
+                        this.doubleTextBox6.Enabled = true;
                     }
 
                     this.inputDeviceForm.Initialize();
