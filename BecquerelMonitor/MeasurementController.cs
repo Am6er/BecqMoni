@@ -198,6 +198,10 @@ namespace BecquerelMonitor
                         AtomSpectraVCPIn.getInstance(this.resultData.DeviceConfig.Guid).waitForAnswer("-ok collecting", 1000);
                     }
                 }
+                else if (this.resultData.MeasurementController.DeviceController is RadiaCodeDeviceController)
+                {
+                    //resultDataStatus.ElapsedTime = resultDataStatus.TotalTime;
+                }
                 else
                 {
                     resultDataStatus.ElapsedTime = DateTime.Now - this.resultData.StartTime + resultDataStatus.TotalTime;

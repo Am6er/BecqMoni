@@ -15,7 +15,7 @@ namespace BecquerelMonitor
         private Thread readerThread;
         private volatile bool thread_alive = true;
         private int[] hystogram_buffered = new int[1024];
-        private enum State { Connecting, Connected };
+        private enum State { Connecting, Connected, Disconnected };
         private enum LastCommand { Start, Stop };
         private LastCommand lastCommand = LastCommand.Stop;
         private int cps;
@@ -82,6 +82,7 @@ namespace BecquerelMonitor
         {
             try
             {
+                Trace.WriteLine($"Try to connect BLE at addr: {addrBLE}");
                 dev = await BluetoothLEDevice.FromBluetoothAddressAsync(Convert.ToUInt64(addrBLE));
                 if (dev != null)
                 {
@@ -130,12 +131,12 @@ namespace BecquerelMonitor
             packet.counter += buffer.Length;
             if (packet.counter == packet.SIZE)
             {
-                Trace.WriteLine("Recieved packet.");
                 packet.DecodePacket();
                 packet.COMPLETE = true;
             } else if (packet.counter > packet.SIZE)
             {
                 packet = new RCSpectrum();
+                Trace.WriteLine($"Drop packet because size: {packet.counter} > expected size: {packet.SIZE}");
             }
         }
 
@@ -178,12 +179,6 @@ namespace BecquerelMonitor
             DataWriter writer = new DataWriter();
             writer.WriteBytes(input);
             GattCommunicationStatus result = await characteristic.WriteValueAsync(writer.DetachBuffer());
-            Trace.WriteLine(String.Format("Handshake command sent, result: {0}\r\n", result.ToString()));
-        }
-
-        private long timeNowMs()
-        {
-            return DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
         }
 
 
@@ -192,10 +187,18 @@ namespace BecquerelMonitor
             State state = State.Connecting;
             while (thread_alive)
             {
+                Trace.WriteLine($"Current command is {lastCommand}, state is {state}");
+
                 if (device_serial_changed)
                 {
                     device_serial_changed = false;
                     state = State.Connecting;
+                }
+
+                if (lastCommand == LastCommand.Stop)
+                {
+                    Thread.Sleep(1000);
+                    continue;
                 }
 
                 if (state == State.Connecting)
@@ -205,8 +208,13 @@ namespace BecquerelMonitor
                         Thread.Sleep(200);
                         if (addressble != null)
                         {
+                            if (lastCommand == LastCommand.Stop)
+                            {
+                                state = State.Disconnected;
+                                DisconnectBLE();
+                            }
                             ConnectBLE(addressble);
-                            Thread.Sleep(2000);
+                            Thread.Sleep(3000);
                             if (dev != null && service != null && characteristic != null && characteristicNotify != null)
                             {
                                 state = State.Connected;
@@ -236,13 +244,14 @@ namespace BecquerelMonitor
                         {
                             packet = new RCSpectrum();
                             WritePacket("\x08\x00\x00\x00&\x08\x00\x81\x00\x02\x00\x00");
-                            while (!packet.COMPLETE) Thread.Sleep(500);
-                            if (packet.TIME_S != 0) this.cps = (int)(packet.SPECTRUM.Sum() / packet.TIME_S);
+                            while (!packet.COMPLETE) Thread.Sleep(200);
                             packet.SPECTRUM.CopyTo(hystogram_buffered, 0);
+                            if (packet.TIME_S != 0) this.cps = (int)(hystogram_buffered.Sum() / packet.TIME_S);
                             if (DataReady != null) DataReady(this, new RadiaCodeInDataReadyArgs(hystogram_buffered, (int)packet.TIME_S));
-                        } else
+                        } else if (lastCommand == LastCommand.Stop)
                         {
-                            Thread.Sleep(500);
+                            state = State.Disconnected;
+                            DisconnectBLE();
                         }
                     }
                     catch (Exception)
@@ -279,6 +288,7 @@ namespace BecquerelMonitor
 
         private void DisconnectBLE()
         {
+            Trace.WriteLine($"Disconnect BLE service");
             if (service != null) service.Dispose();
             if (dev != null) dev.Dispose();
         }
@@ -377,38 +387,37 @@ namespace BecquerelMonitor
             a1 = BitConverter.ToSingle(buffer, 24);
             a2 = BitConverter.ToSingle(buffer, 28);
             // ZipData spectrum starts from index = 32
-            int last = 0;
-            int v;
+            int last_value = 0;
+            int result;
             List<int> sp = new List<int>();
             int i = 32;
             while (i < SIZE)
             {
-                ushort u16 = (ushort)(((buffer[i + 1] & 0xFF) << 8) | (buffer[i] & 0xFF));
+                ushort position = (ushort)(((buffer[i + 1] & 0xFF) << 8) | (buffer[i] & 0xFF));
                 i += 2;
-                int cnt = (u16 >> 4) & 0x0FFF;
-                int vlen = u16 & 0x0F;
-                Console.WriteLine(String.Format($"u16 {u16}, cnt {cnt}, vlen {vlen}, last {last}, br_size {i}"));
-                for (int j = 0; j < cnt; j++)
+                int count_occurences = (position >> 4) & 0x0FFF;
+                int var_length = position & 0x0F;
+                for (int j = 0; j < count_occurences; j++)
                 {
-                    switch (vlen)
+                    switch (var_length)
                     {
                         case 0:
-                            v = 0; break;
+                            result = 0; break;
                         case 1:
-                            v = (buffer[i] & 0xFF); i += 1; break;
+                            result = (buffer[i] & 0xFF); i += 1; break;
                         case 2:
-                            v = last + (sbyte)(buffer[i] & 0xFF); i += 1; break;
+                            result = last_value + (sbyte)(buffer[i] & 0xFF); i += 1; break;
                         case 3:
-                            v = last + (short)(((buffer[i + 1] & 0xFF) << 8) | (buffer[i] & 0xFF)); i += 2; break;
+                            result = last_value + (short)(((buffer[i + 1] & 0xFF) << 8) | (buffer[i] & 0xFF)); i += 2; break;
                         case 4:
-                            v = last + (((buffer[i + 2] & 0xFF) << 16) | ((buffer[i + 1] & 0xFF) << 8) | (buffer[i] & 0xFF)); i += 3; break;
+                            result = last_value + (((buffer[i + 2] & 0xFF) << 16) | ((buffer[i + 1] & 0xFF) << 8) | (buffer[i] & 0xFF)); i += 3; break;
                         case 5:
-                            v = last + (((buffer[i + 3] & 0xFF) << 24) | ((buffer[i + 2] & 0xFF) << 16) | ((buffer[i + 1] & 0xFF) << 8) | (buffer[i] & 0xFF)); i += 4; break;
+                            result = last_value + (((buffer[i + 3] & 0xFF) << 24) | ((buffer[i + 2] & 0xFF) << 16) | ((buffer[i + 1] & 0xFF) << 8) | (buffer[i] & 0xFF)); i += 4; break;
                         default:
                             throw new Exception("Wtf");
                     }
-                    last = v;
-                    sp.Add(v);
+                    last_value = result;
+                    sp.Add(result);
                 }
             }
             Spectrum = sp.ToArray();
