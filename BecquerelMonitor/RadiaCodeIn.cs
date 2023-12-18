@@ -1,52 +1,39 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO.Ports;
-using System.Security.Cryptography;
-using System.Text;
+using System.Linq;
 using System.Threading;
 using Windows.Devices.Bluetooth;
 using Windows.Devices.Bluetooth.GenericAttributeProfile;
+using Windows.Storage.Streams;
 
 namespace BecquerelMonitor
 {
     public class RadiaCodeIn : IDisposable
     {
-        private BluetoothLEDevice dev;
         private Thread readerThread;
         private volatile bool thread_alive = true;
-        private ManualResetEvent onDataReceivedEvent = new ManualResetEvent(false);
-        private byte[] input_buffer = new byte[1024];
-        private int[] hystogram = new int[1024];
         private int[] hystogram_buffered = new int[1024];
         private enum State { Connecting, Connected };
+        private enum LastCommand { Start, Stop };
+        private LastCommand lastCommand = LastCommand.Stop;
         private int cps;
         private String deviceserial, addressble;
-        private int invalid_pulses;
         private string guid;
         private volatile bool device_serial_changed;
         //protocol
-        private const int MAX_DATA_COUNT = 65535;
-        private int packet_cmd;
-        private int packet_length;
-        private List<byte> packet = new List<byte>();
-        private ConcurrentQueue<byte> outcomming = new ConcurrentQueue<byte>();
-        private ConcurrentQueue<string> received_lines = new ConcurrentQueue<string>();
+        private const string RC_BLE_Service = "e63215e5-7003-49d8-96b0-b024798fb901";
+        private const string RC_BLE_Characteristic = "e63215e6-7003-49d8-96b0-b024798fb901";
+        private const string RC_BLE_Notify = "e63215e7-7003-49d8-96b0-b024798fb901";
+        BluetoothLEDevice dev = null;
+        GattDeviceService service = null;
+        GattCharacteristic characteristic, characteristicNotify = null;
+        RCSpectrum packet = new RCSpectrum();
 
         private Timer timer;
-        private Object Lock = new Object();
 
         private static List<RadiaCodeIn> instances = new List<RadiaCodeIn>();
-
-        public string DeviceSerial
-        {
-            get
-            {
-                return this.deviceserial;
-            }
-        }
 
         public static void cleanUp(string guid)
         {
@@ -93,14 +80,62 @@ namespace BecquerelMonitor
 
         private async void ConnectBLE(string addrBLE)
         {
-            dev = await BluetoothLEDevice.FromBluetoothAddressAsync(Convert.ToUInt64(addrBLE));
-            if (dev != null)
+            try
             {
-                GattDeviceServicesResult servisesResult = await dev.GetGattServicesAsync();
-                if (servisesResult.Status == GattCommunicationStatus.Success)
+                dev = await BluetoothLEDevice.FromBluetoothAddressAsync(Convert.ToUInt64(addrBLE));
+                if (dev != null)
                 {
+                    GattDeviceServicesResult servisesResult = await dev.GetGattServicesForUuidAsync(Guid.Parse(RC_BLE_Service));
+                    if (servisesResult != null && servisesResult.Status == GattCommunicationStatus.Success)
+                    {
+                        service = servisesResult.Services[0];
+                        GattCharacteristicsResult characteristicsResult = await service.GetCharacteristicsForUuidAsync(Guid.Parse(RC_BLE_Characteristic));
+                        if (characteristicsResult != null && characteristicsResult.Status == GattCommunicationStatus.Success)
+                        {
+                            characteristic = characteristicsResult.Characteristics[0];
+                        }
+                        GattCharacteristicsResult charNotifyResult = await service.GetCharacteristicsForUuidAsync(Guid.Parse(RC_BLE_Notify));
+                        if (charNotifyResult != null && charNotifyResult.Status == GattCommunicationStatus.Success)
+                        {
 
+                            characteristicNotify = charNotifyResult.Characteristics[0];
+                            characteristicNotify.ValueChanged += Characteristic_ValueChanged;
+                            if (characteristicNotify.CharacteristicProperties.HasFlag(GattCharacteristicProperties.Notify))
+                            {
+                                GattCommunicationStatus status = await characteristicNotify.WriteClientCharacteristicConfigurationDescriptorAsync(
+                                    GattClientCharacteristicConfigurationDescriptorValue.Notify);
+                            }
+                        }
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine(ex.Message);
+            }
+        }
+
+        private void Characteristic_ValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
+        {
+            DataReader reader = DataReader.FromBuffer(args.CharacteristicValue);
+            byte[] buffer = new byte[reader.UnconsumedBufferLength];
+            reader.ReadBytes(buffer);
+            if (packet.NEWPACKET)
+            {
+                packet.SIZE = BitConverter.ToInt32(buffer, 0) + 4;
+                packet.buffer = new byte[packet.SIZE];
+                packet.NEWPACKET = false;
+            }
+            Array.Copy(buffer, 0, packet.buffer, packet.counter, buffer.Length);
+            packet.counter += buffer.Length;
+            if (packet.counter == packet.SIZE)
+            {
+                Trace.WriteLine("Recieved packet.");
+                packet.DecodePacket();
+                packet.COMPLETE = true;
+            } else if (packet.counter > packet.SIZE)
+            {
+                packet = new RCSpectrum();
             }
         }
 
@@ -109,38 +144,9 @@ namespace BecquerelMonitor
             this.guid = guid;
             Trace.WriteLine("RadiaCodeIn instance created " + guid);
             ConnectBLE(addressble);
-            
-
-
-
-            port = new SerialPort();
-            port.DataBits = 8;
-            port.Parity = Parity.None;
-            port.StopBits = StopBits.One;
-            port.DtrEnable = false;
-            port.RtsEnable = false;
-            if (deviceserial != null) port.PortName = deviceserial;
-            port.DataReceived += Port_DataReceived;
             readerThread = new Thread(this.run);
             readerThread.Name = "RadiaCodeIn";
             readerThread.Start();
-
-            timer = new Timer(timer_Elapsed, null, 0, Timeout.Infinite);
-        }
-
-        private void timer_Elapsed(object state)
-        {
-            lock (Lock)
-            {
-                outcomming.Enqueue(0xff);
-                onDataReceivedEvent.Set();
-            }
-            try
-            {
-                timer.Change(1000, Timeout.Infinite);
-            }
-            catch { }
-
         }
 
         public string GUID
@@ -153,52 +159,26 @@ namespace BecquerelMonitor
             this.deviceserial = deviceSerial;
             this.addressble = addressBle;
             this.device_serial_changed = true;
-            this.onDataReceivedEvent.Set();
-        }
-
-        public void updateConfig(InputDeviceConfig conf)
-        {
-            if (conf is RadiaCodeDeviceConfig)
-            {
-                RadiaCodeDeviceConfig config = (RadiaCodeDeviceConfig)conf;
-                Trace.WriteLine("Config changed: Device Serial = " + config.DeviceSerial + " BLE addr = " + config.AddressBLE);
-            }
         }
 
         public void sendCommand(string command)
         {
             Trace.WriteLine("Command sent: " + command);
-            byte[] ascii = Encoding.ASCII.GetBytes(command);
-            byte[] array = new byte[ascii.Length + 1];
-            array[0] = 0x03;
-            Array.Copy(ascii, 0, array, 1, ascii.Length);
-            string ignore;
-            while (received_lines.TryDequeue(out ignore)) ;
-            send_packet(array);
-        }
-
-        public bool waitForAnswer(string answer, int timeout_ms)
-        {
-            long ms = timeNowMs() + timeout_ms;
-            string str = null;
-            while (!received_lines.TryDequeue(out str) && (timeNowMs() < ms)) ;
-            if (str == null) return false;
-            int index = str.IndexOf('\r');
-            if (index != -1)
+            switch (command)
             {
-                str = str.Substring(0, index);
+                case "Start": lastCommand = LastCommand.Start; break;
+                case "Stop": lastCommand = LastCommand.Stop; break;
+                default: lastCommand = LastCommand.Stop; break;
             }
-            return answer.Equals(str);
         }
 
-        public String getCommandOutput(int timeout_ms)
+        private async void WritePacket(string packet)
         {
-            long ms = timeNowMs() + timeout_ms;
-            string str = null;
-            while (!received_lines.TryDequeue(out str) && (timeNowMs() < ms)) ;
-            if (str == null) return "";
-            int index = str.IndexOf('\r');
-            return str;
+            byte[] input = packet.ToCharArray().Select(b => (byte)b).ToArray<byte>();
+            DataWriter writer = new DataWriter();
+            writer.WriteBytes(input);
+            GattCommunicationStatus result = await characteristic.WriteValueAsync(writer.DetachBuffer());
+            Trace.WriteLine(String.Format("Handshake command sent, result: {0}\r\n", result.ToString()));
         }
 
         private long timeNowMs()
@@ -206,28 +186,9 @@ namespace BecquerelMonitor
             return DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
         }
 
-        private void Port_DataReceived(object sender, SerialDataReceivedEventArgs e)
-        {
-            onDataReceivedEvent.Set();
-        }
-
-        public ushort crc16(ushort crc, byte data)
-        {
-            crc = (ushort)(crc ^ data);
-            for (byte i = 0; i < 8; ++i)
-            {
-                if (((ushort)(crc & 0x0001)) != 0)
-                    crc = (ushort)((crc >> 1) ^ 0xA001); // polynomial used by MODBUS
-                else
-                    crc = (ushort)(crc >> 1); // right shift
-            }
-            return crc;
-        }
-
 
         public void run()
         {
-            byte[] tx_buffer = new byte[1024];
             State state = State.Connecting;
             while (thread_alive)
             {
@@ -241,12 +202,15 @@ namespace BecquerelMonitor
                 {
                     try
                     {
-                        if (port.IsOpen) port.Close();
-                        if (deviceserial != null)
+                        Thread.Sleep(200);
+                        if (addressble != null)
                         {
-                            port.PortName = this.deviceserial;
-                            port.Open();
-                            state = State.Connected;
+                            ConnectBLE(addressble);
+                            Thread.Sleep(2000);
+                            if (dev != null && service != null && characteristic != null && characteristicNotify != null)
+                            {
+                                state = State.Connected;
+                            }
                         }
                         else
                         {
@@ -257,13 +221,10 @@ namespace BecquerelMonitor
                     {
                         try
                         {
-                            port.Close();
+                            DisconnectBLE();
                         }
-                        catch (Exception)
-                        {
-
-                        }
-                        Thread.Sleep(100);
+                        catch (Exception) { }
+                        Thread.Sleep(500);
                         continue;
                     }
                 }
@@ -271,87 +232,17 @@ namespace BecquerelMonitor
                 {
                     try
                     {
-                        byte b;
-                        int size = 0;
-                        while (outcomming.TryDequeue(out b))
+                        if (lastCommand == LastCommand.Start)
                         {
-                            tx_buffer[size++] = b;
-                            if (size >= tx_buffer.Length)
-                            {
-                                port.Write(tx_buffer, 0, tx_buffer.Length);
-                                size = 0;
-                            }
-                        }
-                        port.Write(tx_buffer, 0, size);
-
-                        int incoming = port.BytesToRead;
-                        if (incoming == 0)
+                            packet = new RCSpectrum();
+                            WritePacket("\x08\x00\x00\x00&\x08\x00\x81\x00\x02\x00\x00");
+                            while (!packet.COMPLETE) Thread.Sleep(500);
+                            if (packet.TIME_S != 0) this.cps = (int)(packet.SPECTRUM.Sum() / packet.TIME_S);
+                            packet.SPECTRUM.CopyTo(hystogram_buffered, 0);
+                            if (DataReady != null) DataReady(this, new RadiaCodeInDataReadyArgs(hystogram_buffered, (int)packet.TIME_S));
+                        } else
                         {
-                            onDataReceivedEvent.Reset();
-                            onDataReceivedEvent.WaitOne();
-                        }
-                        if (incoming > input_buffer.Length) incoming = input_buffer.Length;
-                        port.Read(input_buffer, 0, incoming);
-                        for (int i = 0; i < incoming; i++)
-                        {
-                            if (packet_cmd == 0x01) //hystogram
-                            {
-                                int offset = packet[0] | (packet[1] << 8);
-                                int count = (packet_length - 2) / 4;
-                                for (int j = 0; j < count; j++)
-                                {
-                                    int index = offset + j;
-                                    if (index < hystogram.Length)
-                                    {
-                                        int value = packet[j * 4 + 2] | (packet[j * 4 + 3] << 8) | (packet[j * 4 + 4] << 16) | (packet[j * 4 + 5] << 24);
-                                        hystogram[index] = value & 0x7FFFFFF;
-                                    }
-                                }
-                            }
-                            else if (packet_cmd == 0x04) //elapsed time
-                            {
-                                int elapsed_time = (packet[0] | (packet[1] << 8) | (packet[2] << 16) | (packet[3] << 24));
-                                elapsed_time &= 0x7FFFFFF;
-                                cps = packet[6] | (packet[7] << 8) | (packet[8] << 16) | (packet[9] << 24);
-                                if (packet.Count > 10)
-                                {
-                                    invalid_pulses = (packet[10] | (packet[11] << 8) | (packet[12] << 16) | (packet[13] << 24));
-                                }
-                                hystogram.CopyTo(hystogram_buffered, 0);
-                                int channels = DeviceConfigManager.GetInstance().DeviceConfigMap[GUID].NumberOfChannels;
-                                if (hystogram_buffered.Length > channels)
-                                {
-                                    int[] hystogram_compress = new int[channels];
-                                    int mul = hystogram_buffered.Length / channels;
-                                    try
-                                    {
-                                        for (int ch = 0; ch < channels; ch++)
-                                        {
-                                            for (int cch = 0; cch < mul; cch++)
-                                            {
-                                                hystogram_compress[ch] += hystogram_buffered[ch * mul + cch];
-                                            }
-                                        }
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        Trace.WriteLine(ex);
-                                    }
-                                    if (DataReady != null) DataReady(this, new RadiaCodeInDataReadyArgs(hystogram_compress, elapsed_time, invalid_pulses));
-                                }
-                                else
-                                {
-                                    if (DataReady != null) DataReady(this, new RadiaCodeInDataReadyArgs(hystogram_buffered, elapsed_time, invalid_pulses));
-                                }
-                            }
-                            else if (packet_cmd == 0x03) //printf
-                            {
-                                byte[] arr = new byte[packet_length];
-                                packet.CopyTo(0, arr, 0, packet_length);
-                                string str = Encoding.ASCII.GetString(arr, 0, packet_length);
-                                received_lines.Enqueue(str);
-                                Trace.WriteLine("Line received: " + str);
-                            }
+                            Thread.Sleep(500);
                         }
                     }
                     catch (Exception)
@@ -364,26 +255,9 @@ namespace BecquerelMonitor
             Trace.WriteLine("RadiaCodeIn thread stopped " + guid);
         }
 
-        private void send_packet(byte[] data)
-        {
-            lock (Lock)
-            {
-                ushort packet_crc = 0xFFFF;
-                outcomming.Enqueue(0xFF);
-
-                onDataReceivedEvent.Set();
-            }
-        }
-
         public double CPS
         {
             get { return (double)this.cps; }
-        }
-
-
-        public int InvalidPulses
-        {
-            get { return invalid_pulses; }
         }
 
         public void Dispose()
@@ -391,25 +265,22 @@ namespace BecquerelMonitor
             if (timer != null) timer.Dispose();
             if (readerThread != null)
             {
-                Trace.WriteLine("Try to close port...");
+                Trace.WriteLine("Try to disconnect..");
                 try
                 {
-                    if (port.IsOpen)
-                    {
-                        port.DiscardInBuffer();
-                        port.DiscardOutBuffer();
-                        port.Close();
-                    }
+                    DisconnectBLE();
                 }
-                catch (Exception)
-                {
-
-                }
+                catch (Exception)  { }
                 Trace.WriteLine("RadiaCodeIn thread termination request");
                 thread_alive = false;
-                onDataReceivedEvent.Set();
                 readerThread.Join();
             }
+        }
+
+        private void DisconnectBLE()
+        {
+            if (service != null) service.Dispose();
+            if (dev != null) dev.Dispose();
         }
 
         public event EventHandler<RadiaCodeInDataReadyArgs> DataReady;
@@ -419,14 +290,7 @@ namespace BecquerelMonitor
     public class RadiaCodeInDataReadyArgs : EventArgs
     {
         private int[] hystogram;
-        private int cpu_load;
         private int elapsed_time;
-        private int invalid_pulses;
-
-        public int InvalidPulses
-        {
-            get { return this.invalid_pulses; }
-        }
 
         public int[] Hystogram
         {
@@ -438,16 +302,116 @@ namespace BecquerelMonitor
             get { return elapsed_time; }
         }
 
-        public int CPULoad
-        {
-            get { return cpu_load; }
-        }
-
-        public RadiaCodeInDataReadyArgs(int[] hyst, int elapsed_time, int invalid_pulses)
+        public RadiaCodeInDataReadyArgs(int[] hyst, int elapsed_time)
         {
             this.hystogram = hyst;
-            this.invalid_pulses = invalid_pulses;
             this.elapsed_time = elapsed_time;
+        }
+    }
+
+    public class RCSpectrum
+    {
+        uint Time_s;
+        float a0, a1, a2;
+        int[] Spectrum;
+        int size;
+        public byte[] buffer;
+        public int counter = 0;
+        bool newPacket = true;
+        bool complete = false;
+
+        public bool COMPLETE
+        {
+            get { return this.complete; }
+            set { this.complete = value; }
+        }
+
+        public uint TIME_S
+        {
+            get { return this.Time_s; }
+            set { this.Time_s = value; }
+        }
+
+        public float A0
+        {
+            get { return this.a0; }
+            set { this.a0 = value; }
+        }
+
+        public float A1
+        {
+            get { return this.a1; }
+            set { this.a1 = value; }
+        }
+
+        public float A2
+        {
+            get { return this.a2; }
+            set { this.a2 = value; }
+        }
+
+        public int[] SPECTRUM
+        {
+            get { return this.Spectrum; }
+            set { this.Spectrum = value; }
+        }
+
+        public bool NEWPACKET
+        {
+            get { return this.newPacket; }
+            set { this.newPacket = value; }
+        }
+
+        public int SIZE
+        {
+            get { return this.size; }
+            set { this.size = value; }
+        }
+
+        public RCSpectrum() { }
+
+        public void DecodePacket()
+        {
+            Time_s = BitConverter.ToUInt32(buffer, 16);
+            a0 = BitConverter.ToSingle(buffer, 20);
+            a1 = BitConverter.ToSingle(buffer, 24);
+            a2 = BitConverter.ToSingle(buffer, 28);
+            // ZipData spectrum starts from index = 32
+            int last = 0;
+            int v;
+            List<int> sp = new List<int>();
+            int i = 32;
+            while (i < SIZE)
+            {
+                ushort u16 = (ushort)(((buffer[i + 1] & 0xFF) << 8) | (buffer[i] & 0xFF));
+                i += 2;
+                int cnt = (u16 >> 4) & 0x0FFF;
+                int vlen = u16 & 0x0F;
+                Console.WriteLine(String.Format($"u16 {u16}, cnt {cnt}, vlen {vlen}, last {last}, br_size {i}"));
+                for (int j = 0; j < cnt; j++)
+                {
+                    switch (vlen)
+                    {
+                        case 0:
+                            v = 0; break;
+                        case 1:
+                            v = (buffer[i] & 0xFF); i += 1; break;
+                        case 2:
+                            v = last + (sbyte)(buffer[i] & 0xFF); i += 1; break;
+                        case 3:
+                            v = last + (short)(((buffer[i + 1] & 0xFF) << 8) | (buffer[i] & 0xFF)); i += 2; break;
+                        case 4:
+                            v = last + (((buffer[i + 2] & 0xFF) << 16) | ((buffer[i + 1] & 0xFF) << 8) | (buffer[i] & 0xFF)); i += 3; break;
+                        case 5:
+                            v = last + (((buffer[i + 3] & 0xFF) << 24) | ((buffer[i + 2] & 0xFF) << 16) | ((buffer[i + 1] & 0xFF) << 8) | (buffer[i] & 0xFF)); i += 4; break;
+                        default:
+                            throw new Exception("Wtf");
+                    }
+                    last = v;
+                    sp.Add(v);
+                }
+            }
+            Spectrum = sp.ToArray();
         }
     }
 }
