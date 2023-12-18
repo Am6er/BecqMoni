@@ -2167,7 +2167,7 @@
     <value>76, 35</value>
   </data>
   <data name="button13.Text" xml:space="preserve">
-    <value>Read from Atom Pro</value>
+    <value>Read from device</value>
   </data>
   <data name="button13.Location" type="System.Drawing.Point, System.Drawing">
     <value>20, 64</value>
