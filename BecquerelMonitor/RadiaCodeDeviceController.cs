@@ -34,20 +34,6 @@ namespace BecquerelMonitor
 
         public string getTemp()
         {
-            if (deviceGuid != null)
-            {
-                try
-                {
-                    RadiaCodeIn.getInstance(deviceGuid).sendCommand("-inf");
-                    String resultStr = RadiaCodeIn.getInstance(deviceGuid).getCommandOutput(4000);
-                    String result = resultStr.Split(new string[] { "T1 " }, StringSplitOptions.None)[1].Split(' ')[0];
-                    return result;
-                }
-                catch (Exception)
-                {
-                    return "--";
-                }
-            }
             return "--";
         }
 
@@ -56,7 +42,6 @@ namespace BecquerelMonitor
             if (deviceGuid != null)
             {
                 RadiaCodeIn.getInstance(deviceGuid).sendCommand("-rst");
-                RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("-ok", 1000);
                 resultData.StartTime = DateTime.Now;
             }
         }
@@ -108,16 +93,13 @@ namespace BecquerelMonitor
                 bool commands_accepted = true;
                 if (new_document_created)
                 {
-                    RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).sendCommand("-sto");
-                    commands_accepted &= RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("-ok", 1000);
-                    RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).sendCommand("-rst");
-                    commands_accepted &= RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("-ok", 1000);
+                    RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).sendCommand("Start");
                 }
-                RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).sendCommand("-sta");
+                RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).sendCommand("Start");
                 // Slow baudrates support
                 // Expected: "Warning: silent mode forced due to low interface speed-ok"
                 RadiaCodeDeviceConfig devconfig = (RadiaCodeDeviceConfig)resultData.DeviceConfig.InputDeviceConfig;
-                commands_accepted &= RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("-ok", 1000);
+                commands_accepted &= true;
                 if (new_document_created)
                 {
                     resultData.StartTime = DateTime.Now;
@@ -174,9 +156,9 @@ namespace BecquerelMonitor
 
                 previous_guid = resultData.DeviceConfig.Guid;
                 bool commands_accepted = true;
-                RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).sendCommand("-sta");
+                RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).sendCommand("Start");
                 RadiaCodeDeviceConfig devconfig = (RadiaCodeDeviceConfig)resultData.DeviceConfig.InputDeviceConfig;
-                commands_accepted &= RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("-ok", 1000);
+                commands_accepted &= true;
                 if (new_document_created)
                 {
                     resultData.StartTime = DateTime.Now;
@@ -227,7 +209,7 @@ namespace BecquerelMonitor
                 {
                     sum += ch;
                 }
-                this.pulseDetector.EnergySpectrum.TotalPulseCount = sum + e.InvalidPulses;
+                this.pulseDetector.EnergySpectrum.TotalPulseCount = sum;
                 this.pulseDetector.EnergySpectrum.ValidPulseCount = sum;
                 this.pulseDetector.EnergySpectrum.ChannelPitch = 1;
                 if (this.resultData != null)
@@ -243,9 +225,9 @@ namespace BecquerelMonitor
             ResultDataStatus resultDataStatus = resultData.ResultDataStatus;
             if (deviceGuid != null)
             {
-                RadiaCodeIn.getInstance(deviceGuid).sendCommand("-sto");
+                RadiaCodeIn.getInstance(deviceGuid).sendCommand("Stop");
                 resultData.EndTime = DateTime.Now;
-                resultDataStatus.Recording = !RadiaCodeIn.getInstance(deviceGuid).waitForAnswer("-ok", 1000);
+                resultDataStatus.Recording = false;
             }
         }
 
