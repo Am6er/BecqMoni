@@ -135,6 +135,13 @@ namespace BecquerelMonitor
                     this.deviceController = (DeviceController)Activator.CreateInstance(deviceType.DeviceControllerType);
                 }
             }
+            else if (deviceType.DeviceControllerType == typeof(RadiaCodeDeviceController))
+            {
+                if (this.deviceController == null)
+                {
+                    this.deviceController = (DeviceController)Activator.CreateInstance(deviceType.DeviceControllerType);
+                }
+            }
             return true;
         }
 

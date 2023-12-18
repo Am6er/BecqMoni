@@ -209,6 +209,7 @@ namespace BecquerelMonitor
         [XmlElement(typeof(SerialInputDeviceConfig))]
         [XmlElement(typeof(AudioInputDeviceConfig))]
         [XmlElement(typeof(AtomSpectraDeviceConfig))]
+        [XmlElement(typeof(RadiaCodeDeviceConfig))]
         public InputDeviceConfig InputDeviceConfig
         {
             get

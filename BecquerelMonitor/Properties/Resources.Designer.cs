@@ -560,6 +560,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to RadiaCode.
+        /// </summary>
+        internal static string DeviceTypeRadiaCode {
+            get {
+                return ResourceManager.GetString("DeviceTypeRadiaCode", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Dose rate:.
         /// </summary>
         internal static string DoseRate {
