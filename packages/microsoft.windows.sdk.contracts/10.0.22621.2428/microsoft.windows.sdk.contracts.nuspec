@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>Microsoft.Windows.SDK.Contracts</id>
+    <version>10.0.22621.2428</version>
+    <title>Windows WinRT API Pack</title>
+    <authors>Microsoft</authors>
+    <owners>Microsoft</owners>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <licenseUrl>https://aka.ms/WinSDKLicenseURL</licenseUrl>
+    <projectUrl>https://aka.ms/WinSDKProjectURL</projectUrl>
+    <iconUrl>https://aka.ms/WinSDKIconURL</iconUrl>
+    <description>The Windows WinRT API Pack enables you to add the latest Windows Runtime APIs support to your .NET Framework 4.6+ and .NET Core 3.0+ libraries and apps.
+       
+This package includes all the supported Windows Runtime APIs up to Windows version 22621. If you are targeting earlier platforms, consider only offering functionality available on the detected platform version. For further details, see:
+https://docs.microsoft.com/en-us/windows/uwp/debug-test-perf/version-adaptive-code
+
+    Supported platforms:
+    - .NET Framework 4.6+
+    - .NET Core 3.0+
+
+Requires default package management format set to PackageReference, and NuGet 4.0 or higher.</description>
+    <summary>The Windows WinRT API Pack enables you to add the latest Windows Runtime APIs support to your .NET Framework 4.6+ and .NET Core 3.0+ libraries and apps.</summary>
+    <copyright>© Microsoft Corporation. All rights reserved.</copyright>
+    <tags>managed WinRT WinForms WPF SDK WindowsSDK</tags>
+    <dependencies>
+      <dependency id="System.Runtime.WindowsRuntime" version="4.6.0" />
+      <dependency id="System.Runtime.InteropServices.WindowsRuntime" version="4.3.0" />
+      <dependency id="System.Runtime.WindowsRuntime.UI.Xaml" version="4.6.0" />
+    </dependencies>
+  </metadata>
+</package>
