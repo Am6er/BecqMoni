@@ -255,6 +255,10 @@ namespace BecquerelMonitor
                 {
                     ((AtomSpectraDeviceController)dc).applicationCLose();
                 }
+                if (dc is RadiaCodeDeviceController)
+                {
+                    ((RadiaCodeDeviceController)dc).applicationCLose();
+                }
 
                 if (!docEnergySpectrum.IsNamed && !docEnergySpectrum.Dirty)
                 {
@@ -1265,6 +1269,7 @@ namespace BecquerelMonitor
             {
                 this.StopRecordingOrTesting(this.activeDocument);
                 this.DestroyVCPThreads(this.activeDocument);
+                this.DestroyRCThreads(this.activeDocument);
                 if (this.ConfirmSaveDocument(this.activeDocument))
                 {
                     this.UnsubscribeDocumentEvent(this.activeDocument);
@@ -1284,6 +1289,7 @@ namespace BecquerelMonitor
                 {
                     this.StopRecordingOrTesting(docEnergySpectrum);
                     this.DestroyVCPThreads(docEnergySpectrum);
+                    this.DestroyRCThreads (docEnergySpectrum);
                     if (force || this.ConfirmSaveDocument(docEnergySpectrum))
                     {
                         this.UnsubscribeDocumentEvent(docEnergySpectrum);
@@ -1627,6 +1633,26 @@ namespace BecquerelMonitor
             }
         }
 
+        void DestroyRCThreads (DocEnergySpectrum docEnergySpectrum)
+        {
+            if (docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController is RadiaCodeDeviceController)
+            {
+                string guid = docEnergySpectrum.ActiveResultData.DeviceConfig.Guid;
+                int documents_with_same_device_config_guid = 0;
+                foreach (DocEnergySpectrum doc in this.documentManager.DocumentList)
+                {
+                    if (guid.Equals(doc.ActiveResultData.DeviceConfig.Guid) && doc.ActiveResultData.MeasurementController.DeviceController != null)
+                    {
+                        documents_with_same_device_config_guid++;
+                    }
+                }
+                if (documents_with_same_device_config_guid < 2)
+                {
+                    RadiaCodeIn.cleanUp(docEnergySpectrum.ActiveResultData.DeviceConfig.Guid);
+                }
+            }
+        }
+
         // Token: 0x06000A87 RID: 2695 RVA: 0x0003EBB8 File Offset: 0x0003CDB8
         void DocEnergySpectrum_FormClosing(object sender, FormClosingEventArgs e)
         {
@@ -1637,6 +1663,7 @@ namespace BecquerelMonitor
             DocEnergySpectrum docEnergySpectrum = (DocEnergySpectrum)sender;
             this.StopRecordingOrTesting(docEnergySpectrum);
             this.DestroyVCPThreads(docEnergySpectrum);
+            this.DestroyRCThreads(docEnergySpectrum);
             if (!this.ConfirmSaveDocument(docEnergySpectrum))
             {
                 e.Cancel = true;

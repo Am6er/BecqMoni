@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>InTheHand.BluetoothLE</id>
+    <version>4.0.35</version>
+    <authors>Peter Foot</authors>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <license type="expression">MIT</license>
+    <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+    <icon>32feet-package-icon.png</icon>
+    <readme>README.md</readme>
+    <projectUrl>https://github.com/inthehand/32feet</projectUrl>
+    <description>32feet.NET is an open-source project to make personal area networking technologies such as Bluetooth easily accessible from .NET code.</description>
+    <releaseNotes>New RequestMtuAsync for Android which waits for response.</releaseNotes>
+    <copyright>Copyright (c) 2004-2023 In The Hand Ltd</copyright>
+    <tags>bluetooth windows android ios tvos macos uwp linux</tags>
+    <repository type="git" url="https://github.com/inthehand/32feet" commit="c01eba55b7bbd34527634fcd457988f8ce8eb830" />
+    <dependencies>
+      <group targetFramework=".NETFramework4.6.1">
+        <dependency id="Microsoft.Windows.SDK.Contracts" version="10.0.22621.2428" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework="MonoAndroid10.0">
+        <dependency id="InTheHand.AndroidActivity" version="1.0.4" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework="Xamarin.iOS1.0" />
+      <group targetFramework="Xamarin.TVOS1.0" />
+      <group targetFramework="Xamarin.WatchOS1.0" />
+      <group targetFramework="net6.0">
+        <dependency id="Linux.Bluetooth" version="5.64.0" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework="net6.0-android31.0">
+        <dependency id="InTheHand.AndroidActivity" version="1.0.4" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework="net6.0-ios16.1">
+        <dependency id="System.Runtime.InteropServices.NFloat.Internal" version="6.0.1" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework="net6.0-maccatalyst16.1">
+        <dependency id="System.Runtime.InteropServices.NFloat.Internal" version="6.0.1" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework="net6.0-windows10.0.19041" />
+      <group targetFramework="net7.0">
+        <dependency id="Linux.Bluetooth" version="5.64.0" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework="net7.0-android33.0">
+        <dependency id="InTheHand.AndroidActivity" version="1.0.4" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework="net7.0-ios16.1" />
+      <group targetFramework="net7.0-maccatalyst16.1" />
+      <group targetFramework="net7.0-windows10.0.19041" />
+      <group targetFramework=".NETStandard2.0" />
+      <group targetFramework="UAP10.0.17763" />
+    </dependencies>
+    <frameworkAssemblies>
+      <frameworkAssembly assemblyName="Java.Interop" targetFramework="MonoAndroid10.0" />
+      <frameworkAssembly assemblyName="System.Drawing.Common.dll" targetFramework="Xamarin.iOS1.0, Xamarin.TVOS1.0, Xamarin.WatchOS1.0" />
+    </frameworkAssemblies>
+  </metadata>
+</package>

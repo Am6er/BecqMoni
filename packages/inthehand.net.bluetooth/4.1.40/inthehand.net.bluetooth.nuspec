@@ -1,0 +1,56 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>InTheHand.Net.Bluetooth</id>
+    <version>4.1.40</version>
+    <authors>Peter Foot</authors>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <license type="expression">MIT</license>
+    <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+    <icon>32feet-package-icon.png</icon>
+    <readme>README.md</readme>
+    <projectUrl>https://github.com/inthehand/32feet</projectUrl>
+    <description>32feet.NET is an open-source project to make personal area networking technologies such as Bluetooth easily accessible from .NET code.</description>
+    <releaseNotes>Refactored to allow for multiple providers per dll. Generic net6.0/net7.0 now supports both Windows and Linux.</releaseNotes>
+    <copyright>Copyright (c) 2004-2023 In The Hand Ltd</copyright>
+    <tags>bluetooth windows win32 android iOS linux</tags>
+    <repository type="git" url="https://github.com/inthehand/32feet" commit="e60d269298121063ee029dcacec51b05f587d67f" />
+    <dependencies>
+      <group targetFramework=".NETFramework4.6.1" />
+      <group targetFramework="MonoAndroid10.0">
+        <dependency id="InTheHand.AndroidActivity" version="1.0.4" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework="Xamarin.iOS1.0" />
+      <group targetFramework="net6.0">
+        <dependency id="Linux.Bluetooth" version="5.64.0" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework="net6.0-android31.0">
+        <dependency id="InTheHand.AndroidActivity" version="1.0.4" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework="net6.0-ios16.1">
+        <dependency id="System.Runtime.InteropServices.NFloat.Internal" version="6.0.1" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework="net6.0-windows7.0" />
+      <group targetFramework="net6.0-windows10.0.22000" />
+      <group targetFramework="net7.0">
+        <dependency id="Linux.Bluetooth" version="5.64.0" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework="net7.0-android33.0">
+        <dependency id="InTheHand.AndroidActivity" version="1.0.4" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework="net7.0-ios16.1" />
+      <group targetFramework="net7.0-windows7.0" />
+      <group targetFramework="net7.0-windows10.0.22000" />
+      <group targetFramework=".NETStandard2.0" />
+      <group targetFramework=".NETStandard2.1" />
+      <group targetFramework="UAP10.0.16299">
+        <dependency id="Microsoft.Bcl.AsyncInterfaces" version="7.0.0" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+    <frameworkAssemblies>
+      <frameworkAssembly assemblyName="Java.Interop" targetFramework="MonoAndroid10.0" />
+      <frameworkAssembly assemblyName="System.Xml.Linq" targetFramework="MonoAndroid10.0, Xamarin.iOS1.0" />
+      <frameworkAssembly assemblyName="System.Drawing.Common.dll" targetFramework="Xamarin.iOS1.0" />
+    </frameworkAssemblies>
+  </metadata>
+</package>
