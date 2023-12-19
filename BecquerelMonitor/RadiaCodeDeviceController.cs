@@ -130,9 +130,9 @@ namespace BecquerelMonitor
         {
             if (resultData != null)
             {
-                MessageBox.Show(Properties.Resources.ERRDetectedErrorWhileCommunication, Properties.Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 resultData.MeasurementController.StopRecording();
                 resultData.ResultDataStatus.Recording = false;
+                MessageBox.Show(Properties.Resources.ERRDetectedErrorWhileCommunication, Properties.Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             }
         }
 
