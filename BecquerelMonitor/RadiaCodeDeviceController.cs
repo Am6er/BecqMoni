@@ -128,7 +128,7 @@ namespace BecquerelMonitor
 
         private void port_failure_stop()
         {
-            if (resultData != null)
+            if (resultData != null && resultData.ResultDataStatus.Recording)
             {
                 resultData.MeasurementController.StopRecording();
                 resultData.ResultDataStatus.Recording = false;
