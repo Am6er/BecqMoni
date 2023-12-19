@@ -32,7 +32,6 @@ namespace BecquerelMonitor
         BluetoothLEDevice dev = null;
         GattDeviceService service = null;
         GattCharacteristic characteristic, characteristicNotify = null;
-        private bool exch_stage = false;
         RCSpectrum packet = new RCSpectrum();
 
         private Timer timer;
@@ -143,7 +142,8 @@ namespace BecquerelMonitor
                 DataReader reader = DataReader.FromBuffer(args.CharacteristicValue);
                 byte[] buffer = new byte[reader.UnconsumedBufferLength];
                 reader.ReadBytes(buffer);
-                if (exch_stage) { exch_stage = false; return; }
+                //skip exhange packet
+                if (string.Join(",", buffer).StartsWith("16,0,0,0,7,0,0,128,51,255,3,255")) return;
                 if (packet.NEWPACKET)
                 {
                     packet.SIZE = BitConverter.ToInt32(buffer, 0) + 4;
@@ -290,8 +290,8 @@ namespace BecquerelMonitor
                 try
                 {
                     packet = new RCSpectrum();
-                    exch_stage = true;
                     WritePacket(RC_SET_EXCHANGE);
+                    Trace.WriteLine("RC_SET_EXCHANGE");
                     Thread.Sleep(200);
                 } catch (Exception) { }
             }
@@ -384,8 +384,8 @@ namespace BecquerelMonitor
                             if (packet.BROKEN || !thread_alive || state != State.Connected) break;
                             Thread.Sleep(400);
                             counter++;
-                            if (counter >= 20) { break; }
-                            // Trace.WriteLine($"Current state is {state}");
+                            if (counter >= 20) { packet.BROKEN = true; state = State.Connecting; }
+                            Trace.WriteLine($"Current state is {state}, packet: {packet.SIZE}");
                         }
                         if (!thread_alive) break;
                         if (packet.BROKEN || state != State.Connected) continue;
