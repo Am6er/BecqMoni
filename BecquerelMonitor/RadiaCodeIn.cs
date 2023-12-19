@@ -32,6 +32,7 @@ namespace BecquerelMonitor
         BluetoothLEDevice dev = null;
         GattDeviceService service = null;
         GattCharacteristic characteristic, characteristicNotify = null;
+        private bool exch_stage = false;
         RCSpectrum packet = new RCSpectrum();
 
         private Timer timer;
@@ -124,11 +125,13 @@ namespace BecquerelMonitor
         {
             if (dev == null && state != State.Connecting)
             {
+                state = State.Disconnected;
                 if (PortFailure != null) PortFailure(this, null);
             }
             if (dev != null && dev.ConnectionStatus == BluetoothConnectionStatus.Disconnected)
             {
                 Trace.WriteLine("Disconnect device event");
+                state = State.Disconnected;
                 if (PortFailure != null) PortFailure(this, null);
             }
         }
@@ -140,6 +143,7 @@ namespace BecquerelMonitor
                 DataReader reader = DataReader.FromBuffer(args.CharacteristicValue);
                 byte[] buffer = new byte[reader.UnconsumedBufferLength];
                 reader.ReadBytes(buffer);
+                if (exch_stage) { exch_stage = false; return; }
                 if (packet.NEWPACKET)
                 {
                     packet.SIZE = BitConverter.ToInt32(buffer, 0) + 4;
@@ -285,6 +289,8 @@ namespace BecquerelMonitor
             {
                 try
                 {
+                    packet = new RCSpectrum();
+                    exch_stage = true;
                     WritePacket(RC_SET_EXCHANGE);
                 } catch (Exception) { }
             }
@@ -294,7 +300,7 @@ namespace BecquerelMonitor
         {
             while (thread_alive)
             {
-                // Trace.WriteLine($"Current state is {state}");
+                //Trace.WriteLine($"Current state is {state}");
 
                 if (state == State.Disconnected)
                 {
@@ -375,6 +381,7 @@ namespace BecquerelMonitor
                         {
                             if (packet.BROKEN || !thread_alive || state != State.Connected) break;
                             Thread.Sleep(400);
+                            // Trace.WriteLine($"Current state is {state}");
                         }
                         if (!thread_alive) break;
                         if (packet.BROKEN || state != State.Connected) continue;
