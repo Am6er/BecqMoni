@@ -126,14 +126,12 @@ namespace BecquerelMonitor
             {
                 state = State.Disconnected;
                 if (PortFailure != null) PortFailure(this, null);
-                cleanUp(guid);
             }
             if (dev != null && dev.ConnectionStatus == BluetoothConnectionStatus.Disconnected)
             {
                 Trace.WriteLine("Disconnect device event");
                 state = State.Disconnected;
                 if (PortFailure != null) PortFailure(this, null);
-                cleanUp(guid);
             }
         }
 
@@ -366,7 +364,6 @@ namespace BecquerelMonitor
                     {
                         state = State.Connecting;
                         if (PortFailure != null) PortFailure(this, null);
-                        cleanUp(guid);
                     }
                 }
                 else if (state == State.Connected)
@@ -403,7 +400,6 @@ namespace BecquerelMonitor
                     {
                         state = State.Connecting;
                         if (PortFailure != null) PortFailure(this, null);
-                        cleanUp(guid);
                     }
                 }
             }
