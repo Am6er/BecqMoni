@@ -124,14 +124,14 @@ namespace BecquerelMonitor
         {
             if (dev == null && state != State.Connecting)
             {
-                state = State.Disconnected;
-                if (PortFailure != null) PortFailure(this, null);
+                state = State.Connecting;
+                //if (PortFailure != null) PortFailure(this, null);
             }
             if (dev != null && dev.ConnectionStatus == BluetoothConnectionStatus.Disconnected)
             {
                 Trace.WriteLine("Disconnect device event");
-                state = State.Disconnected;
-                if (PortFailure != null) PortFailure(this, null);
+                state = State.Connecting;
+                //if (PortFailure != null) PortFailure(this, null);
             }
         }
 
@@ -325,6 +325,8 @@ namespace BecquerelMonitor
                     {
                         if (addressble != null)
                         {
+                            DisconnectBLE();
+                            Thread.Sleep(500);
                             ConnectBLE(addressble);
                             for (int i = 0; i <= 50; i++)
                             {
