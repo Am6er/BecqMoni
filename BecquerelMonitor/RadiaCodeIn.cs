@@ -144,6 +144,10 @@ namespace BecquerelMonitor
                 reader.ReadBytes(buffer);
                 //skip exhange packet
                 if (string.Join(",", buffer).StartsWith("16,0,0,0,7,0,0,128,51,255,3,255")) return;
+                if (buffer.Length > 14 && BitConverter.ToUInt32(buffer, 4) == 2147485734 && BitConverter.ToUInt32(buffer, 4) == 1)
+                {
+                    packet = new RCSpectrum();
+                }
                 if (packet.NEWPACKET)
                 {
                     packet.SIZE = BitConverter.ToInt32(buffer, 0) + 4;
