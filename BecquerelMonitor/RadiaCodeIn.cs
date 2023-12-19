@@ -86,6 +86,7 @@ namespace BecquerelMonitor
             {
                 Trace.WriteLine($"Try to connect BLE at addr: {addrBLE}");
                 dev = await BluetoothLEDevice.FromBluetoothAddressAsync(Convert.ToUInt64(addrBLE));
+                dev.ConnectionStatusChanged += Dev_ConnectionStatusChanged;
                 if (dev != null)
                 {
                     GattDeviceServicesResult servisesResult = await dev.GetGattServicesForUuidAsync(Guid.Parse(RC_BLE_Service));
@@ -115,6 +116,19 @@ namespace BecquerelMonitor
             catch (Exception ex)
             {
                 Trace.WriteLine(ex.Message);
+            }
+        }
+
+        private void Dev_ConnectionStatusChanged(BluetoothLEDevice sender, object args)
+        {
+            if (dev == null && state != State.Connecting)
+            {
+                if (PortFailure != null) PortFailure(this, null);
+            }
+            if (dev != null && dev.ConnectionStatus == BluetoothConnectionStatus.Disconnected)
+            {
+                Trace.WriteLine("Disconnect device event");
+                if (PortFailure != null) PortFailure(this, null);
             }
         }
 
@@ -243,7 +257,15 @@ namespace BecquerelMonitor
             byte[] input = packet.ToCharArray().Select(b => (byte)b).ToArray<byte>();
             DataWriter writer = new DataWriter();
             writer.WriteBytes(input);
-            GattCommunicationStatus result = await characteristic.WriteValueAsync(writer.DetachBuffer());
+            if (characteristic != null)
+            {
+                try
+                {
+                    GattCommunicationStatus result = await characteristic.WriteValueAsync(writer.DetachBuffer());
+                } catch (Exception) {
+                    state = State.Connecting;
+                }
+            }
         }
 
 
@@ -252,6 +274,7 @@ namespace BecquerelMonitor
             while (thread_alive)
             {
                 // Trace.WriteLine($"Current state is {state}");
+
                 if (state == State.Disconnected)
                 {
                     Thread.Sleep(1000);
@@ -288,11 +311,7 @@ namespace BecquerelMonitor
                     }
                     catch (Exception)
                     {
-                        try
-                        {
-                            DisconnectBLE();
-                        }
-                        catch (Exception) { }
+                        DisconnectBLE();
                         Thread.Sleep(1000);
                         continue;
                     }
@@ -301,6 +320,12 @@ namespace BecquerelMonitor
                 {
                     try
                     {
+                        if (!thread_alive) break;
+                        if (dev == null || service == null || characteristic == null || characteristicNotify == null)
+                        {
+                            state = State.Connecting;
+                            continue;
+                        }
                         packet = new RCSpectrum();
                         WritePacket(RC_RESET_SPECTRUM);
                         Thread.Sleep(1000);
@@ -316,6 +341,12 @@ namespace BecquerelMonitor
                 {
                     try
                     {
+                        if (!thread_alive) break;
+                        if (dev == null || service == null || characteristic == null || characteristicNotify == null)
+                        {
+                            state = State.Connecting;
+                            continue;
+                        }
                         packet = new RCSpectrum();
                         WritePacket(RC_GET_SPECTRUM);
                         while (!packet.COMPLETE)
@@ -350,13 +381,9 @@ namespace BecquerelMonitor
             {
                 Trace.WriteLine("RadiaCodeIn thread termination request");
                 thread_alive = false;
-                readerThread.Join();
                 Trace.WriteLine("Try to disconnect..");
-                try
-                {
-                    DisconnectBLE();
-                }
-                catch (Exception) { }
+                DisconnectBLE();
+                readerThread.Join();
             }
         }
 

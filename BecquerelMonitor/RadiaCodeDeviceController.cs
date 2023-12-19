@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Windows.Forms;
 
 namespace BecquerelMonitor
 {
@@ -76,6 +77,7 @@ namespace BecquerelMonitor
                         try
                         {
                             RadiaCodeIn.getInstance(previous_guid).DataReady -= DataIn_DataReady;
+                            RadiaCodeIn.getInstance(previous_guid).PortFailure -= RadiaCodeDeviceController_PortFailure;
                         }
                         catch (Exception)
                         {
@@ -86,6 +88,7 @@ namespace BecquerelMonitor
                 if (!already_subscribed)
                 {
                     RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).DataReady += DataIn_DataReady;
+                    RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).PortFailure += RadiaCodeDeviceController_PortFailure;
                     already_subscribed = true;
                 }
 
@@ -127,6 +130,7 @@ namespace BecquerelMonitor
         {
             if (resultData != null)
             {
+                MessageBox.Show(Properties.Resources.ERRDetectedErrorWhileCommunication, Properties.Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 resultData.MeasurementController.StopRecording();
                 resultData.ResultDataStatus.Recording = false;
             }
