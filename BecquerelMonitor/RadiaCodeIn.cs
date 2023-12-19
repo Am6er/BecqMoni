@@ -351,10 +351,11 @@ namespace BecquerelMonitor
                         WritePacket(RC_GET_SPECTRUM);
                         while (!packet.COMPLETE)
                         {
-                            if (packet.BROKEN) break;
-                            Thread.Sleep(400);
+                            if (packet.BROKEN || !thread_alive || state != State.Connected) break;
+                            Thread.Sleep(200);
                         }
-                        if (packet.BROKEN) continue;
+                        if (!thread_alive) break;
+                        if (packet.BROKEN || state != State.Connected) continue;
                         packet.SPECTRUM.CopyTo(hystogram_buffered, 0);
                         if (packet.TIME_S != 0) this.cps = (int)(hystogram_buffered.Sum() / packet.TIME_S);
                         if (DataReady != null) DataReady(this, new RadiaCodeInDataReadyArgs(hystogram_buffered, (int)packet.TIME_S));
