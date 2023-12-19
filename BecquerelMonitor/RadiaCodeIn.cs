@@ -26,6 +26,7 @@ namespace BecquerelMonitor
         private const string RC_BLE_Service = "e63215e5-7003-49d8-96b0-b024798fb901";
         private const string RC_BLE_Characteristic = "e63215e6-7003-49d8-96b0-b024798fb901";
         private const string RC_BLE_Notify = "e63215e7-7003-49d8-96b0-b024798fb901";
+        private const string RC_SET_EXCHANGE = "\x08\x00\x00\x00\x07\x00\x00\x80\x01\xff\x12\xff";
         private const string RC_GET_SPECTRUM = "\x08\x00\x00\x00&\x08\x00\x80\x00\x02\x00\x00";
         private const string RC_RESET_SPECTRUM = "\x0c\x00\x00\x00'\x08\x00\x82\x00\x02\x00\x00\x00\x00\x00\x00";
         BluetoothLEDevice dev = null;
@@ -161,13 +162,23 @@ namespace BecquerelMonitor
                 packet.counter += buffer.Length;
                 if (packet.counter == packet.SIZE)
                 {
+                    // Trace.WriteLine($"Packet size: {packet.SIZE}");
                     if (packet.SIZE == 12)
                     {
                         packet.BROKEN = true;
                         Trace.WriteLine("Drop packet because it is not spectrum packet");
                         return;
                     }
-                    packet.DecodePacket();
+                    try
+                    {
+                        packet.DecodePacket();
+                    } catch (Exception)
+                    {
+                        packet.BROKEN = true;
+                        Trace.WriteLine("Drop packet because it is not spectrum packet");
+                        return;
+                    }
+                    
                     if (packet.SPECTRUM.Length == 1024)
                     {
                         packet.COMPLETE = true;
@@ -268,6 +279,16 @@ namespace BecquerelMonitor
             }
         }
 
+        public void SetExchange()
+        {
+            if (dev != null && service != null && characteristic != null && characteristicNotify != null && state == State.Connected)
+            {
+                try
+                {
+                    WritePacket(RC_SET_EXCHANGE);
+                } catch (Exception) { }
+            }
+        }
 
         public void run()
         {
@@ -300,6 +321,7 @@ namespace BecquerelMonitor
                                 if (dev != null && service != null && characteristic != null && characteristicNotify != null)
                                 {
                                     state = State.Connected;
+                                    SetExchange();
                                     break;
                                 }
                             }
