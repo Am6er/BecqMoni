@@ -126,12 +126,14 @@ namespace BecquerelMonitor
             {
                 state = State.Disconnected;
                 if (PortFailure != null) PortFailure(this, null);
+                cleanUp(guid);
             }
             if (dev != null && dev.ConnectionStatus == BluetoothConnectionStatus.Disconnected)
             {
                 Trace.WriteLine("Disconnect device event");
                 state = State.Disconnected;
                 if (PortFailure != null) PortFailure(this, null);
+                cleanUp(guid);
             }
         }
 
@@ -364,6 +366,7 @@ namespace BecquerelMonitor
                     {
                         state = State.Connecting;
                         if (PortFailure != null) PortFailure(this, null);
+                        cleanUp(guid);
                     }
                 }
                 else if (state == State.Connected)
@@ -384,11 +387,14 @@ namespace BecquerelMonitor
                             if (packet.BROKEN || !thread_alive || state != State.Connected) break;
                             Thread.Sleep(400);
                             counter++;
-                            if (counter >= 20) { packet.BROKEN = true; state = State.Connecting; }
-                            Trace.WriteLine($"Current state is {state}, packet: {packet.SIZE}");
+                            if (counter >= 25) {
+                                packet.BROKEN = true;
+                                state = State.Connecting;
+                            }
+                            // Trace.WriteLine($"Current state is {state}, packet: {packet.SIZE}");
                         }
                         if (!thread_alive) break;
-                        if (packet.BROKEN || state != State.Connected) continue;
+                        if (packet.BROKEN || state != State.Connected || packet.SPECTRUM == null) continue;
                         packet.SPECTRUM.CopyTo(hystogram_buffered, 0);
                         if (packet.TIME_S != 0) this.cps = (int)(hystogram_buffered.Sum() / packet.TIME_S);
                         if (DataReady != null) DataReady(this, new RadiaCodeInDataReadyArgs(hystogram_buffered, (int)packet.TIME_S));
@@ -397,6 +403,7 @@ namespace BecquerelMonitor
                     {
                         state = State.Connecting;
                         if (PortFailure != null) PortFailure(this, null);
+                        cleanUp(guid);
                     }
                 }
             }
