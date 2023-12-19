@@ -292,6 +292,7 @@ namespace BecquerelMonitor
                     packet = new RCSpectrum();
                     exch_stage = true;
                     WritePacket(RC_SET_EXCHANGE);
+                    Thread.Sleep(200);
                 } catch (Exception) { }
             }
         }
@@ -377,10 +378,13 @@ namespace BecquerelMonitor
                         }
                         packet = new RCSpectrum();
                         WritePacket(RC_GET_SPECTRUM);
+                        int counter = 0;
                         while (!packet.COMPLETE)
                         {
                             if (packet.BROKEN || !thread_alive || state != State.Connected) break;
                             Thread.Sleep(400);
+                            counter++;
+                            if (counter >= 20) { break; }
                             // Trace.WriteLine($"Current state is {state}");
                         }
                         if (!thread_alive) break;
