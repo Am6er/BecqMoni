@@ -352,7 +352,7 @@ namespace BecquerelMonitor
                         while (!packet.COMPLETE)
                         {
                             if (packet.BROKEN || !thread_alive || state != State.Connected) break;
-                            Thread.Sleep(200);
+                            Thread.Sleep(400);
                         }
                         if (!thread_alive) break;
                         if (packet.BROKEN || state != State.Connected) continue;
