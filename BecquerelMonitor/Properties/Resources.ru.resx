@@ -246,6 +246,12 @@
   <data name="ERRBackgroundLoadFailure" xml:space="preserve">
     <value>Не удалось загрузить спектр фона "{0}". Сообщение {1).</value>
   </data>
+  <data name="ERRBLENotFound" xml:space="preserve">
+    <value>Устройство Bluetooth не обнаружено. BecqMoni подключается к RadiaCode по Bluetooth Low Energy.</value>
+  </data>
+  <data name="ERRBTNotSupportedByOS" xml:space="preserve">
+    <value>Bluetooth не поддерживается данной OS. Не могу найти Windows Runtime type Windows.Devices.Bluetooth.BluetoothLEDevice.</value>
+  </data>
   <data name="ERRCalibrationChannelExceed" xml:space="preserve">
     <value>Выбранный канал превышает размер спектра</value>
   </data>

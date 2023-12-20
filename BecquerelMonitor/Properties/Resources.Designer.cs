@@ -663,6 +663,24 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Bluetooth device not found. BecqMoni should connect to RadiaCode via Bluetooth Low Energy..
+        /// </summary>
+        internal static string ERRBLENotFound {
+            get {
+                return ResourceManager.GetString("ERRBLENotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Bluetooth doesn&apos;t supported by this OS. Could not find Windows Runtime type Windows.Devices.Bluetooth.BluetoothLEDevice..
+        /// </summary>
+        internal static string ERRBTNotSupportedByOS {
+            get {
+                return ResourceManager.GetString("ERRBTNotSupportedByOS", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The selected channel exceeds the size of the spectrum.
         /// </summary>
         internal static string ERRCalibrationChannelExceed {
