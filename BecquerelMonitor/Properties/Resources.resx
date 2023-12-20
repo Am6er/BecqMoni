@@ -36918,4 +36918,10 @@ see peak in spectrum now).</value>
   <data name="DeviceTypeRadiaCode" xml:space="preserve">
     <value>RadiaCode</value>
   </data>
+  <data name="ERRBLENotFound" xml:space="preserve">
+    <value>Bluetooth device not found. BecqMoni should connect to RadiaCode via Bluetooth Low Energy.</value>
+  </data>
+  <data name="ERRBTNotSupportedByOS" xml:space="preserve">
+    <value>Bluetooth doesn't supported by this OS. Could not find Windows Runtime type Windows.Devices.Bluetooth.BluetoothLEDevice.</value>
+  </data>
 </root>

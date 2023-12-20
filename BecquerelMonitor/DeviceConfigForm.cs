@@ -275,23 +275,10 @@ namespace BecquerelMonitor
                     {
                         this.inputDeviceForm.FormClosing();
                     }
-                    try
+                    this.inputDeviceForm = (InputDeviceForm)Activator.CreateInstance(type.DeviceConfigFormType, new object[]
                     {
-                        this.inputDeviceForm = (InputDeviceForm)Activator.CreateInstance(type.DeviceConfigFormType, new object[]
-                        {
-                            this
-                        });
-                    } catch (Exception ex)
-                    {
-                        if (ex.Message.IndexOf("Windows.Devices.Bluetooth.BluetoothLEDevice") > 0)
-                        {
-                            MessageBox.Show("Error while loading Radiacode section. It seems, that you don't have BLE support on your OS.");
-                        } else
-                        {
-                            MessageBox.Show("Device specific section. It seems, that you don't have BLE support on your OS.");
-                        }
-                        return;
-                    }
+                        this
+                    });
                     this.tabControl1.TabPages[1].Controls.Clear();
                     this.tabControl1.TabPages[1].Controls.Add(this.inputDeviceForm);
                     if (type.Name == "AtomSpectraVCP")
@@ -665,7 +652,18 @@ namespace BecquerelMonitor
                 this.activeDeviceConfig = deviceConfigInfo;
                 this.tableModel1.Selections.Clear();
                 this.tableModel1.Selections.AddCell(row.Index, 0);
-                this.LoadFormContents(this.activeDeviceConfig);
+                try
+                {
+                    this.LoadFormContents(this.activeDeviceConfig);
+                } catch (Exception ex)
+                {
+                    MessageBox.Show($"{Resources.ERRBTNotSupportedByOS} Message: {ex.Message}");
+                    this.button4.Enabled = false;
+                    this.button12.Enabled = false;
+                    this.DisableForm();
+                    this.reenter = false;
+                    return;
+                }
                 this.button4.Enabled = true;
                 this.button12.Enabled = true;
                 this.EnableForm();

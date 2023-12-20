@@ -6,6 +6,7 @@ using BecquerelMonitor.Properties;
 using System.Linq;
 using System.Threading;
 using System.Diagnostics;
+using System.Windows.Forms;
 
 namespace BecquerelMonitor
 {
@@ -43,9 +44,16 @@ namespace BecquerelMonitor
 
         private void ScanBLEDevices()
         {
-            adressBLE.Clear();
-            devices.Clear();
-            if (watcher == null) watcher = new BluetoothLEAdvertisementWatcher();
+            try
+            {
+                if (watcher == null) watcher = new BluetoothLEAdvertisementWatcher();
+                adressBLE.Clear();
+                devices.Clear();
+            } catch (Exception)
+            {
+                MessageBox.Show(Resources.ERRBLENotFound);
+                return;
+            }
             Thread.Sleep(200);
             watcher.Stop();
             //watcher.SignalStrengthFilter.InRangeThresholdInDBm = -110;
