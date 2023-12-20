@@ -1030,36 +1030,37 @@ namespace BecquerelMonitor
 
                 try
                 {
+                    PolynomialEnergyCalibration polynomialEnergyCalibration;
                     for (int i = 0; i < 50; i++)
                     {
                         Thread.Sleep(200);
-                        if (device.GetCalibration() != null) break;
-                    }
-                    PolynomialEnergyCalibration polynomialEnergyCalibration = device.GetCalibration();
-                    if (polynomialEnergyCalibration != null)
-                    {
-                        this.activeDeviceConfig.EnergyCalibration = polynomialEnergyCalibration;
+                        polynomialEnergyCalibration = device.GetCalibration();
+                        if (polynomialEnergyCalibration != null)
+                        {
+                            this.activeDeviceConfig.EnergyCalibration = polynomialEnergyCalibration;
 
-                        this.numericUpDown1.Text = "0";
-                        this.numericUpDown2.Text = "0";
-                        this.numericUpDown7.Text = "0";
-                        this.numericUpDown8.Text = "0";
-                        this.numericUpDown9.Text = "0";
+                            this.numericUpDown1.Text = "0";
+                            this.numericUpDown2.Text = "0";
+                            this.numericUpDown7.Text = "0";
+                            this.numericUpDown8.Text = "0";
+                            this.numericUpDown9.Text = "0";
 
-                        this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString();
-                        this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString();
-                        this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString();
-                        SetActiveDeviceConfigDirty();
+                            this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString();
+                            this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString();
+                            this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString();
+                            SetActiveDeviceConfigDirty();
+                            if (!runexist)
+                            {
+                                device.Dispose();
+                            }
+                            return;
+                        }
                     }
-                    else
-                    {
-                        MessageBox.Show(String.Format(Resources.ERRReadDataFromPort, deviceconfig.DeviceSerial));
-                    }
+                    MessageBox.Show(String.Format(Resources.ERRReadDataFromPort, deviceconfig.DeviceSerial));
                     if (!runexist)
                     {
                         device.Dispose();
                     }
-                    
                 }
                 catch
                 {

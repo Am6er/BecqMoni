@@ -38,6 +38,8 @@ namespace BecquerelMonitor
 
         private static List<RadiaCodeIn> instances = new List<RadiaCodeIn>();
 
+        float A0, A1, A2;
+
         public static void cleanUp(string guid)
         {
             foreach (RadiaCodeIn s in instances)
@@ -180,6 +182,10 @@ namespace BecquerelMonitor
                     try
                     {
                         packet.DecodePacket();
+                        List<float> calibration = packet.GetCalibration();
+                        this.A0 = calibration[0];
+                        this.A1 = calibration[1];
+                        this.A2 = calibration[2];
                     } catch (Exception)
                     {
                         packet.BROKEN = true;
@@ -258,14 +264,14 @@ namespace BecquerelMonitor
 
         public PolynomialEnergyCalibration GetCalibration()
         {
-            if (packet.A0 != 0 && packet.A1 != 0 && packet.A2 != 0)
+            if (this.A0 != 0 && this.A1 != 0 && this.A2 != 0)
             {
                 PolynomialEnergyCalibration calibration = new PolynomialEnergyCalibration();
                 calibration.PolynomialOrder = 2;
                 calibration.Coefficients = new double[3];
-                calibration.Coefficients[0] = packet.A0;
-                calibration.Coefficients[1] = packet.A1;
-                calibration.Coefficients[2] = packet.A2;
+                calibration.Coefficients[0] = this.A0;
+                calibration.Coefficients[1] = this.A1;
+                calibration.Coefficients[2] = this.A2;
                 return calibration;
             }
             return null;
@@ -532,6 +538,11 @@ namespace BecquerelMonitor
         }
 
         public RCSpectrum() { }
+
+        public List<float> GetCalibration()
+        {
+            return new List<float> { this.A0, this.A1,  this.A2 };
+        }
 
         public void DecodePacket()
         {
