@@ -275,10 +275,23 @@ namespace BecquerelMonitor
                     {
                         this.inputDeviceForm.FormClosing();
                     }
-                    this.inputDeviceForm = (InputDeviceForm)Activator.CreateInstance(type.DeviceConfigFormType, new object[]
+                    try
                     {
-                        this
-                    });
+                        this.inputDeviceForm = (InputDeviceForm)Activator.CreateInstance(type.DeviceConfigFormType, new object[]
+                        {
+                            this
+                        });
+                    } catch (Exception ex)
+                    {
+                        if (ex.Message.IndexOf("Windows.Devices.Bluetooth.BluetoothLEDevice") > 0)
+                        {
+                            MessageBox.Show("Error while loading Radiacode section. It seems, that you don't have BLE support on your OS.");
+                        } else
+                        {
+                            MessageBox.Show("Device specific section. It seems, that you don't have BLE support on your OS.");
+                        }
+                        return;
+                    }
                     this.tabControl1.TabPages[1].Controls.Clear();
                     this.tabControl1.TabPages[1].Controls.Add(this.inputDeviceForm);
                     if (type.Name == "AtomSpectraVCP")

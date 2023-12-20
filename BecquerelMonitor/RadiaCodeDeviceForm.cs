@@ -5,6 +5,7 @@ using Windows.Devices.Bluetooth;
 using BecquerelMonitor.Properties;
 using System.Linq;
 using System.Threading;
+using System.Diagnostics;
 
 namespace BecquerelMonitor
 {
@@ -45,9 +46,10 @@ namespace BecquerelMonitor
             adressBLE.Clear();
             devices.Clear();
             if (watcher == null) watcher = new BluetoothLEAdvertisementWatcher();
+            Thread.Sleep(200);
             watcher.Stop();
-            watcher.SignalStrengthFilter.InRangeThresholdInDBm = -110;
-            watcher.SignalStrengthFilter.OutOfRangeThresholdInDBm = -110;
+            //watcher.SignalStrengthFilter.InRangeThresholdInDBm = -110;
+            //watcher.SignalStrengthFilter.OutOfRangeThresholdInDBm = -110;
             watcher.ScanningMode = BluetoothLEScanningMode.Active;
             watcher.Received += Watcher_Recived;
             watcher.Start();
@@ -58,14 +60,18 @@ namespace BecquerelMonitor
             dev = await BluetoothLEDevice.FromBluetoothAddressAsync(args.BluetoothAddress);
             Tuple<ulong, BluetoothLEDevice> tup = new Tuple<ulong, BluetoothLEDevice>(args.BluetoothAddress, dev);
 
-            if (dev != null)
+            if (dev != null && args != null)
             {
-                if (dev.Name == null) return;
-                if (dev.Name.IndexOf("RadiaCode-10") == -1) return;
+                try
+                {
+                    if (dev.Name == null) return;
+                    if (dev.Name.IndexOf("RadiaCode-10") == -1) return;
+                } catch (Exception) { }
                 if (!devices.ContainsKey(args.BluetoothAddress))
                 {
                     try
                     {
+                        Trace.WriteLine($"Found {dev.Name} with addr {args.BluetoothAddress}");
                         devices.Add(args.BluetoothAddress, dev);
                         String name = dev.Name.Split('#')[1];
                         comboBox1.Invoke(new Action(() =>
