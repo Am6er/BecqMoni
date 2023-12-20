@@ -245,9 +245,9 @@ namespace BecquerelMonitor
             Trace.WriteLine("Command sent: " + command);
             switch (command)
             {
-                case "Start": state = State.Connecting; break;
-                case "Stop": state = State.Disconnected; break;
-                case "Reset": state = State.Resetting; break;
+                case "Start": state = State.Connecting; Thread.Sleep(100); break;
+                case "Stop": state = State.Disconnected; DisconnectBLE(); break;
+                case "Reset": state = State.Resetting; Thread.Sleep(100); break;
                 default: state = State.Disconnected; break;
             }
         }
