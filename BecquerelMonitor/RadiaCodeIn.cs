@@ -4,10 +4,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using System.Windows.Forms;
 using Windows.Devices.Bluetooth;
 using Windows.Devices.Bluetooth.GenericAttributeProfile;
 using Windows.Storage.Streams;
-using Windows.UI.Xaml.Documents;
+using System.Threading.Tasks;
 
 namespace BecquerelMonitor
 {
@@ -18,7 +19,7 @@ namespace BecquerelMonitor
         private int[] hystogram_buffered = new int[1024];
         private enum State { Connecting, Connected, Disconnected, Resetting };
         private State state = State.Disconnected;
-        private int cps;
+        private double cps;
         private String deviceserial, addressble;
         private string guid;
         private volatile bool device_serial_changed;
@@ -34,7 +35,6 @@ namespace BecquerelMonitor
         GattCharacteristic characteristic, characteristicNotify = null;
         RCSpectrum packet = new RCSpectrum();
 
-        private Timer timer;
 
         private static List<RadiaCodeIn> instances = new List<RadiaCodeIn>();
 
@@ -373,7 +373,7 @@ namespace BecquerelMonitor
                         Thread.Sleep(1000);
                         state = State.Connecting;
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
                         state = State.Connecting;
                         if (PortFailure != null) PortFailure(this, null);
@@ -406,11 +406,17 @@ namespace BecquerelMonitor
                         if (!thread_alive) break;
                         if (packet.BROKEN || state != State.Connected || packet.SPECTRUM == null) continue;
                         packet.SPECTRUM.CopyTo(hystogram_buffered, 0);
-                        if (packet.TIME_S != 0) this.cps = (int)(hystogram_buffered.Sum() / packet.TIME_S);
+                        ulong sum = 0;
+                        Parallel.For(0, hystogram_buffered.Length, i =>
+                        {
+                            sum += (ulong)hystogram_buffered[i];
+                        });
+                        if (packet.TIME_S != 0) this.cps = (double)(sum / packet.TIME_S);
                         if (DataReady != null) DataReady(this, new RadiaCodeInDataReadyArgs(hystogram_buffered, (int)packet.TIME_S));
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
+                        MessageBox.Show($"{ex.Message} {ex.StackTrace}");
                         state = State.Connecting;
                         if (PortFailure != null) PortFailure(this, null);
                     }
@@ -426,7 +432,6 @@ namespace BecquerelMonitor
 
         public void Dispose()
         {
-            if (timer != null) timer.Dispose();
             if (readerThread != null)
             {
                 Trace.WriteLine("RadiaCodeIn thread termination request");
