@@ -337,6 +337,7 @@ namespace BecquerelMonitor
                             for (int i = 0; i <= 50; i++)
                             {
                                 Thread.Sleep(200);
+                                if (!thread_alive) break;
                                 if (dev != null && service != null && characteristic != null && characteristicNotify != null)
                                 {
                                     state = State.Connected;
