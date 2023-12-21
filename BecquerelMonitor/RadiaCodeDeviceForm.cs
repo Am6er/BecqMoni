@@ -49,18 +49,18 @@ namespace BecquerelMonitor
                 if (watcher == null) watcher = new BluetoothLEAdvertisementWatcher();
                 adressBLE.Clear();
                 devices.Clear();
-            } catch (Exception)
+                Thread.Sleep(200);
+                watcher.Stop();
+                //watcher.SignalStrengthFilter.InRangeThresholdInDBm = -110;
+                //watcher.SignalStrengthFilter.OutOfRangeThresholdInDBm = -110;
+                watcher.ScanningMode = BluetoothLEScanningMode.Active;
+                watcher.Received += Watcher_Recived;
+                watcher.Start();
+            } catch (Exception ex)
             {
-                MessageBox.Show(Resources.ERRBLENotFound);
+                MessageBox.Show($"{Resources.ERRBLENotFound} Message: {ex.Message}");
                 return;
             }
-            Thread.Sleep(200);
-            watcher.Stop();
-            //watcher.SignalStrengthFilter.InRangeThresholdInDBm = -110;
-            //watcher.SignalStrengthFilter.OutOfRangeThresholdInDBm = -110;
-            watcher.ScanningMode = BluetoothLEScanningMode.Active;
-            watcher.Received += Watcher_Recived;
-            watcher.Start();
         }
 
         private async void Watcher_Recived(BluetoothLEAdvertisementWatcher sender, BluetoothLEAdvertisementReceivedEventArgs args)
