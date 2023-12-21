@@ -48,6 +48,7 @@ namespace BecquerelMonitor
             deviceType.DeviceControllerType = typeof(AtomSpectraDeviceController);
             deviceType.DeviceConfigType = typeof(AtomSpectraDeviceConfig);
             DeviceType.deviceTypeList.Add(deviceType);
+            DeviceType.deviceTypeMap.Add(deviceType.Id, deviceType);
 
             deviceType = new DeviceType();
             deviceType.Id = "RadiaCode";
@@ -56,7 +57,6 @@ namespace BecquerelMonitor
             deviceType.DeviceControllerType = typeof(RadiaCodeDeviceController);
             deviceType.DeviceConfigType = typeof(RadiaCodeDeviceConfig);
             DeviceType.deviceTypeList.Add(deviceType);
-
             DeviceType.deviceTypeMap.Add(deviceType.Id, deviceType);
         }
 

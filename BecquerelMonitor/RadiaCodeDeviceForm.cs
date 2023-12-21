@@ -96,6 +96,7 @@ namespace BecquerelMonitor
 
         private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
+            if (this.formLoading) return;
             if (watcher != null)
             {
                 watcher.Stop();
@@ -122,6 +123,7 @@ namespace BecquerelMonitor
             this.DeviceSerial = radiaCodeInputDevice.DeviceSerial;
             if (this.DeviceSerial != null)
             {
+                comboBox1.Items.Clear();
                 comboBox1.Items.Add(this.DeviceSerial);
                 comboBox1.SelectedIndex = 0;
             }
