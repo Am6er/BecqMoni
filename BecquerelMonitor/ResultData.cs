@@ -165,15 +165,15 @@ namespace BecquerelMonitor
         }
 
         [XmlIgnore]
-        public string DetectorTemperature
+        public string DetectorFeature
         {
             get
             {
-                return this.detectorTemperature;
+                return this.detectorFeature;
             }
             set
             {
-                this.detectorTemperature = value;
+                this.detectorFeature = value;
             }
         }
 
@@ -486,7 +486,7 @@ namespace BecquerelMonitor
 
         bool subtract_refresh = false;
 
-        string detectorTemperature;
+        string detectorFeature;
 
         // Token: 0x04000374 RID: 884
         List<Peak> detectedPeaks = new List<Peak>();

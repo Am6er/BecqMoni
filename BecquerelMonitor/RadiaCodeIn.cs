@@ -54,6 +54,18 @@ namespace BecquerelMonitor
             }
         }
 
+        public string getState()
+        {
+            switch ((int)state)
+            {
+                case 0: return "Connecting";
+                case 1: return "Connected";
+                case 2: return "Disconnected";
+                case 3: return "Resetting";
+                default: return "Unknown";
+            }
+        }
+
         public static List<RadiaCodeIn> getAllInstances()
         {
             return instances;
@@ -129,7 +141,7 @@ namespace BecquerelMonitor
                 state = State.Connecting;
                 //if (PortFailure != null) PortFailure(this, null);
             }
-            if (dev != null && dev.ConnectionStatus == BluetoothConnectionStatus.Disconnected)
+            if (dev != null && dev.ConnectionStatus == BluetoothConnectionStatus.Disconnected && state != State.Disconnected)
             {
                 Trace.WriteLine("Disconnect device event");
                 state = State.Connecting;
@@ -222,7 +234,6 @@ namespace BecquerelMonitor
         {
             this.guid = guid;
             Trace.WriteLine("RadiaCodeIn instance created " + guid);
-            ConnectBLE(addressble);
             readerThread = new Thread(this.run);
             readerThread.Name = "RadiaCodeIn";
             readerThread.Start();
@@ -315,7 +326,7 @@ namespace BecquerelMonitor
 
                 if (state == State.Disconnected)
                 {
-                    Thread.Sleep(1000);
+                    Thread.Sleep(500);
                     continue;
                 }
 

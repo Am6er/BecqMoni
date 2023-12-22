@@ -160,6 +160,14 @@ namespace BecquerelMonitor
             }
         }
 
+        public string getStatus()
+        {
+            if (deviceGuid != null)
+            {
+                return RadiaCodeIn.getInstance(deviceGuid).getState();
+            } else { return "Unknown"; }
+        }
+
         public override void StopMeasurement(ResultData resultData)
         {
             ResultDataStatus resultDataStatus = resultData.ResultDataStatus;
