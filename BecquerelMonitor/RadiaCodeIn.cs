@@ -412,7 +412,7 @@ namespace BecquerelMonitor
                             sum += (ulong)hystogram_buffered[i];
                         });
                         if (packet.TIME_S != 0) this.cps = (double)(sum / packet.TIME_S);
-                        if (DataReady != null) DataReady(this, new RadiaCodeInDataReadyArgs(hystogram_buffered, (int)packet.TIME_S));
+                        if (DataReady != null) DataReady(this, new RadiaCodeInDataReadyArgs(hystogram_buffered, (int)packet.TIME_S, (int)sum));
                     }
                     catch (Exception ex)
                     {
@@ -459,10 +459,16 @@ namespace BecquerelMonitor
     {
         private int[] hystogram;
         private int elapsed_time;
+        private int sum;
 
         public int[] Hystogram
         {
             get { return hystogram; }
+        }
+
+        public int SUM
+        {
+            get { return sum; }
         }
 
         public int ElapsedTime
@@ -470,10 +476,11 @@ namespace BecquerelMonitor
             get { return elapsed_time; }
         }
 
-        public RadiaCodeInDataReadyArgs(int[] hyst, int elapsed_time)
+        public RadiaCodeInDataReadyArgs(int[] hyst, int elapsed_time, int sum)
         {
             this.hystogram = hyst;
             this.elapsed_time = elapsed_time;
+            this.sum = sum;
         }
     }
 
@@ -567,6 +574,7 @@ namespace BecquerelMonitor
                 i += 2;
                 int count_occurences = (position >> 4) & 0x0FFF;
                 int var_length = position & 0x0F;
+                //Trace.WriteLine($"position {position}, count_occurences {count_occurences}, var_length {var_length},  last_value {last_value}, size {SIZE - i}");
                 for (int j = 0; j < count_occurences; j++)
                 {
                     switch (var_length)
@@ -580,9 +588,9 @@ namespace BecquerelMonitor
                         case 3:
                             result = last_value + (short)(((buffer[i + 1] & 0xFF) << 8) | (buffer[i] & 0xFF)); i += 2; break;
                         case 4:
-                            result = last_value + (((buffer[i + 2] & 0xFF) << 16) | ((buffer[i + 1] & 0xFF) << 8) | (buffer[i] & 0xFF)); i += 3; break;
+                            result = last_value + (((buffer[i + 2] & 0xFF) << 16) | ((buffer[i + 1] & 0xFF) << 8) | (buffer[i] & 0xFF)) & 0xFFFFFF; i += 3; break;
                         case 5:
-                            result = last_value + (((buffer[i + 3] & 0xFF) << 24) | ((buffer[i + 2] & 0xFF) << 16) | ((buffer[i + 1] & 0xFF) << 8) | (buffer[i] & 0xFF)); i += 4; break;
+                            result = last_value + (((buffer[i + 3] & 0xFF) << 24) | ((buffer[i + 2] & 0xFF) << 16) | ((buffer[i + 1] & 0xFF) << 8) | (buffer[i] & 0xFF)) & 0xFFFFFF; i += 4; break;
                         default:
                             throw new Exception("Wtf");
                     }
