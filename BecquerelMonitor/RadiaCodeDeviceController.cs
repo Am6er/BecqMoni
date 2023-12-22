@@ -149,13 +149,8 @@ namespace BecquerelMonitor
             if (this.resultDataStatus.Recording)
             {
                 e.Hystogram.CopyTo(this.pulseDetector.EnergySpectrum.Spectrum, 0);
-                int sum = 0;
-                foreach (int ch in e.Hystogram)
-                {
-                    sum += ch;
-                }
-                this.pulseDetector.EnergySpectrum.TotalPulseCount = sum;
-                this.pulseDetector.EnergySpectrum.ValidPulseCount = sum;
+                this.pulseDetector.EnergySpectrum.TotalPulseCount = e.SUM;
+                this.pulseDetector.EnergySpectrum.ValidPulseCount = e.SUM;
                 this.pulseDetector.EnergySpectrum.ChannelPitch = 1;
                 if (this.resultData != null)
                 {
