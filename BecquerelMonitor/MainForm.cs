@@ -459,6 +459,19 @@ namespace BecquerelMonitor
                     this.ShowDoseRate();
                     this.activeDocument.UpdateDoseRate = false;
                 }
+                foreach (DocEnergySpectrum docEnergySpectrum in this.documentManager.DocumentList)
+                {
+                    if (docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController is RadiaCodeDeviceController)
+                    {
+                        RadiaCodeDeviceController dc = (RadiaCodeDeviceController)docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController;
+                        docEnergySpectrum.ActiveResultData.DetectorFeature = dc.getStatus();
+                        if (this.activeDocument.Equals(docEnergySpectrum))
+                        {
+                            SetStatusTextCenter($"Radiacode BLE status: {docEnergySpectrum.ActiveResultData.DetectorFeature}");
+                        }
+                    }
+                }
+                    
             }
             this.countChart += 100;
             if (this.countChart >= this.globalConfigManager.GlobalConfig.ChartViewConfig.ChartRefreshCycle)
@@ -506,10 +519,10 @@ namespace BecquerelMonitor
                     if (docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController is AtomSpectraDeviceController && docEnergySpectrum.ActiveResultData.ResultDataStatus.Recording)
                     {
                         AtomSpectraDeviceController dc = (AtomSpectraDeviceController)docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController;
-                        docEnergySpectrum.ActiveResultData.DetectorTemperature = dc.getTemp();
+                        docEnergySpectrum.ActiveResultData.DetectorFeature = dc.getTemp();
                         if (this.activeDocument.Equals(docEnergySpectrum))
                         {
-                            SetStatusTextCenter(String.Format(Resources.TemperatureStr, docEnergySpectrum.ActiveResultData.DetectorTemperature));
+                            SetStatusTextCenter(String.Format(Resources.TemperatureStr, docEnergySpectrum.ActiveResultData.DetectorFeature));
                         }
                     }
                 }
@@ -572,11 +585,11 @@ namespace BecquerelMonitor
             }
         }
 
-        public void ShowDetectorTemperature()
+        public void ShowDetectorFeature()
         {
-            if (this.activeDocument != null && this.activeDocument.ActiveResultData.DetectorTemperature != null)
+            if (this.activeDocument != null && this.activeDocument.ActiveResultData.DetectorFeature != null)
             {
-                SetStatusTextCenter(String.Format(Resources.TemperatureStr, this.activeDocument.ActiveResultData.DetectorTemperature));
+                SetStatusTextCenter(String.Format(Resources.TemperatureStr, this.activeDocument.ActiveResultData.DetectorFeature));
             }
             else
             {
@@ -809,7 +822,7 @@ namespace BecquerelMonitor
             }
             this.dcDoseRateView.Show(this.dockPanel1);
             ShowDoseRate();
-            ShowDetectorTemperature();
+            ShowDetectorFeature();
         }
 
         // Token: 0x06000A62 RID: 2658 RVA: 0x0003D8C8 File Offset: 0x0003BAC8
@@ -926,7 +939,7 @@ namespace BecquerelMonitor
                 this.dcSampleInfoView.LoadFormContents();
                 this.ShowMeasurementResult(true);
                 this.ShowDoseRate();
-                this.ShowDetectorTemperature();
+                this.ShowDetectorFeature();
                 this.dcPeakDetectionView.ShowPeakDetectionResult();
                 this.dcControlPanel.Enabled = true;
                 this.dcSampleInfoView.Enabled = true;
@@ -986,7 +999,7 @@ namespace BecquerelMonitor
             this.dcSampleInfoView.LoadFormContents();
             this.ShowMeasurementResult(true);
             this.ShowDoseRate();
-            this.ShowDetectorTemperature();
+            this.ShowDetectorFeature();
             this.dcPeakDetectionView.ShowPeakDetectionResult();
             UpdateEnergyCalibrationView();
             this.dcEnergyCalibrationView.SetStabilizerState(this.activeDocument.ActiveResultData);
