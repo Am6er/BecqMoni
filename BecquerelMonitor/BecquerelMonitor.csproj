@@ -12,7 +12,7 @@
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationIcon>logo_atom.ico</ApplicationIcon>
+    <ApplicationIcon>logo_becqmoni.ico</ApplicationIcon>
     <StartupObject>BecquerelMonitor.Program</StartupObject>
     <IsWebBootstrapper>true</IsWebBootstrapper>
     <TargetFrameworkProfile />
@@ -1091,6 +1091,7 @@
     <None Include="NucBaseDataSet.xss">
       <DependentUpon>NucBaseDataSet.xsd</DependentUpon>
     </None>
+    <Content Include="logo_becqmoni.ico" />
     <Content Include="nucdb.sqlite">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -1140,7 +1141,6 @@
     <Content Include="config\ROI\Th-232.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="logo_atom.ico" />
   </ItemGroup>
   <ItemGroup>
     <PublishFile Include="BecquerelMonitor.pdb">

@@ -202,7 +202,7 @@ namespace BecquerelMonitor
                 {
                     //resultDataStatus.ElapsedTime = resultDataStatus.TotalTime;
                 }
-                else
+                else if (this.resultData.MeasurementController.DeviceController is AudioInputDeviceController)
                 {
                     resultDataStatus.ElapsedTime = DateTime.Now - this.resultData.StartTime + resultDataStatus.TotalTime;
                 }

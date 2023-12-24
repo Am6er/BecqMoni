@@ -263,16 +263,6 @@ namespace BecquerelMonitor
             }
         }
 
-        public bool isConnected()
-        {
-            for (int i = 0; i < 50; i++)
-            {
-                Thread.Sleep(200);
-                if (state == State.Connected) return true;
-            }
-            return false;
-        }
-
         public PolynomialEnergyCalibration GetCalibration()
         {
             if (this.A0 != 0 && this.A1 != 0 && this.A2 != 0)
@@ -323,114 +313,122 @@ namespace BecquerelMonitor
             while (thread_alive)
             {
                 //Trace.WriteLine($"Current state is {state}");
-
-                if (state == State.Disconnected)
-                {
-                    Thread.Sleep(500);
-                    continue;
-                }
-
                 if (device_serial_changed)
                 {
                     device_serial_changed = false;
                     state = State.Connecting;
                 }
 
-                if (state == State.Connecting)
+                switch (state)
                 {
-                    try
-                    {
-                        if (addressble != null)
+                    case State.Disconnected:
                         {
-                            DisconnectBLE();
                             Thread.Sleep(500);
-                            ConnectBLE(addressble);
-                            for (int i = 0; i <= 50; i++)
+                            break;
+                        }
+
+                    case State.Connecting:
+                        {
+                            try
                             {
-                                Thread.Sleep(200);
-                                if (!thread_alive) break;
-                                if (dev != null && service != null && characteristic != null && characteristicNotify != null)
+                                if (addressble != null)
                                 {
-                                    state = State.Connected;
-                                    SetExchange();
-                                    break;
+                                    DisconnectBLE();
+                                    Thread.Sleep(500);
+                                    ConnectBLE(addressble);
+                                    for (int i = 0; i <= 50; i++)
+                                    {
+                                        Thread.Sleep(200);
+                                        if (!thread_alive) break;
+                                        if (dev != null && service != null && characteristic != null && characteristicNotify != null)
+                                        {
+                                            state = State.Connected;
+                                            SetExchange();
+                                            break;
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    throw new Exception(Resources.ERREmptyPortName);
                                 }
                             }
+                            catch (Exception)
+                            {
+                                DisconnectBLE();
+                                Thread.Sleep(500);
+                            }
+                            break;
                         }
-                        else
+
+                    case State.Resetting:
                         {
-                            throw new Exception(Resources.ERREmptyPortName);
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        DisconnectBLE();
-                        Thread.Sleep(1000);
-                        continue;
-                    }
-                }
-                else if (state == State.Resetting)
-                {
-                    try
-                    {
-                        if (!thread_alive) break;
-                        if (dev == null || service == null || characteristic == null || characteristicNotify == null)
-                        {
-                            state = State.Connecting;
-                            continue;
-                        }
-                        packet = new RCSpectrum();
-                        WritePacket(RC_RESET_SPECTRUM);
-                        Thread.Sleep(1000);
-                        state = State.Connecting;
-                    }
-                    catch (Exception ex)
-                    {
-                        state = State.Connecting;
-                        if (PortFailure != null) PortFailure(this, null);
-                    }
-                }
-                else if (state == State.Connected)
-                {
-                    try
-                    {
-                        if (!thread_alive) break;
-                        if (dev == null || service == null || characteristic == null || characteristicNotify == null)
-                        {
-                            state = State.Connecting;
-                            continue;
-                        }
-                        packet = new RCSpectrum();
-                        WritePacket(RC_GET_SPECTRUM);
-                        int counter = 0;
-                        while (!packet.COMPLETE)
-                        {
-                            if (packet.BROKEN || !thread_alive || state != State.Connected) break;
-                            Thread.Sleep(400);
-                            counter++;
-                            if (counter >= 25) {
-                                packet.BROKEN = true;
+                            try
+                            {
+                                if (!thread_alive) break;
+                                if (dev == null || service == null || characteristic == null || characteristicNotify == null)
+                                {
+                                    state = State.Connecting;
+                                    break;
+                                }
+                                packet = new RCSpectrum();
+                                WritePacket(RC_RESET_SPECTRUM);
+                                Thread.Sleep(1000);
                                 state = State.Connecting;
                             }
-                            // Trace.WriteLine($"Current state is {state}, packet: {packet.SIZE}");
+                            catch (Exception ex)
+                            {
+                                state = State.Connecting;
+                                if (PortFailure != null) PortFailure(this, null);
+                            }
+                            break;
                         }
-                        if (!thread_alive) break;
-                        if (packet.BROKEN || state != State.Connected || packet.SPECTRUM == null) continue;
-                        packet.SPECTRUM.CopyTo(hystogram_buffered, 0);
-                        ulong sum = 0;
-                        Parallel.For(0, hystogram_buffered.Length, i =>
+
+                    case State.Connected:
                         {
-                            sum += (ulong)hystogram_buffered[i];
-                        });
-                        if (packet.TIME_S != 0) this.cps = (double)(sum / packet.TIME_S);
-                        if (DataReady != null) DataReady(this, new RadiaCodeInDataReadyArgs(hystogram_buffered, (int)packet.TIME_S, (int)sum));
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"{ex.Message} {ex.StackTrace}");
-                        state = State.Connecting;
-                        if (PortFailure != null) PortFailure(this, null);
-                    }
+                            try
+                            {
+                                if (!thread_alive) break;
+                                if (dev == null || service == null || characteristic == null || characteristicNotify == null)
+                                {
+                                    state = State.Connecting;
+                                    break;
+                                }
+                                packet = new RCSpectrum();
+                                WritePacket(RC_GET_SPECTRUM);
+                                int counter = 0;
+                                while (!packet.COMPLETE)
+                                {
+                                    if (packet.BROKEN || !thread_alive || state != State.Connected) break;
+                                    Thread.Sleep(400);
+                                    counter++;
+                                    if (counter >= 25)
+                                    {
+                                        packet.BROKEN = true;
+                                        state = State.Connecting;
+                                    }
+                                    // Trace.WriteLine($"Current state is {state}, packet: {packet.SIZE}");
+                                }
+                                if (!thread_alive) break;
+                                if (packet.BROKEN || state != State.Connected || packet.SPECTRUM == null) break;
+                                packet.SPECTRUM.CopyTo(hystogram_buffered, 0);
+                                ulong sum = 0;
+                                Parallel.For(0, hystogram_buffered.Length, i =>
+                                {
+                                    sum += (ulong)hystogram_buffered[i];
+                                });
+                                if (packet.TIME_S != 0) this.cps = sum / packet.TIME_S;
+                                if (DataReady != null) DataReady(this, new RadiaCodeInDataReadyArgs(hystogram_buffered, (int)packet.TIME_S, (int)sum));
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show($"{ex.Message} {ex.StackTrace}");
+                                state = State.Connecting;
+                                if (PortFailure != null) PortFailure(this, null);
+                            }
+
+                            break;
+                        }
                 }
             }
             Trace.WriteLine("RadiaCodeIn thread stopped " + guid);
@@ -585,7 +583,7 @@ namespace BecquerelMonitor
                 i += 2;
                 int count_occurences = (position >> 4) & 0x0FFF;
                 int var_length = position & 0x0F;
-                //Trace.WriteLine($"position {position}, count_occurences {count_occurences}, var_length {var_length},  last_value {last_value}, size {SIZE - i}");
+                Trace.WriteLine($"position {position}, count_occurences {count_occurences}, var_length {var_length},  last_value {last_value}, size {SIZE - i}");
                 for (int j = 0; j < count_occurences; j++)
                 {
                     switch (var_length)
