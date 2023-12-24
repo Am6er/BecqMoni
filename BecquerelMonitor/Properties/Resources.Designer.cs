@@ -1343,7 +1343,10 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to based on pulse shape discrimination algorithm of PRA for audio input devices
+        ///   Looks up a localized string similar to BecqMoni icons from Maks Vasilev
+        ///https://github.com/MaksVasilev/BecqMoniResources
+        ///
+        ///based on pulse shape discrimination algorithm of PRA for audio input devices
         ///https://gammaspectacular.com/marek/pra/index.html
         ///
         ///using DockPanel Suite library

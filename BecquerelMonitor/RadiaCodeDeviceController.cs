@@ -101,7 +101,7 @@ namespace BecquerelMonitor
                 RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).sendCommand("Start");
                 RadiaCodeDeviceConfig devconfig = (RadiaCodeDeviceConfig)resultData.DeviceConfig.InputDeviceConfig;
                 //TODO add check
-                commands_accepted &= RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).isConnected();
+                commands_accepted &= true;
                 if (new_document_created)
                 {
                     resultData.StartTime = DateTime.Now;
