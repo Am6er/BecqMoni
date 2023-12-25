@@ -9,6 +9,8 @@ using Windows.Devices.Bluetooth;
 using Windows.Devices.Bluetooth.GenericAttributeProfile;
 using Windows.Storage.Streams;
 using System.Threading.Tasks;
+using Windows.Devices.Radios;
+using Windows.Devices.Bluetooth.Advertisement;
 
 namespace BecquerelMonitor
 {
@@ -34,8 +36,10 @@ namespace BecquerelMonitor
         GattDeviceService service = null;
         GattCharacteristic characteristic, characteristicNotify = null;
         RCSpectrum packet = new RCSpectrum();
+        private BluetoothLEAdvertisementWatcher watcher;
 
-
+        public event EventHandler<RadiaCodeInDataReadyArgs> DataReady;
+        public event EventHandler<EventArgs> PortFailure;
         private static List<RadiaCodeIn> instances = new List<RadiaCodeIn>();
 
         float A0, A1, A2;
@@ -95,10 +99,60 @@ namespace BecquerelMonitor
             instances.Clear();
         }
 
+        private async Task TestBT()
+        {
+            try
+            {
+                Trace.WriteLine("Check BT status");
+                RadioAccessStatus access = await Radio.RequestAccessAsync();
+                if (access != RadioAccessStatus.Allowed)
+                {
+                    return;
+                }
+                BluetoothAdapter adapter = await BluetoothAdapter.GetDefaultAsync();
+                if (null != adapter)
+                {
+                    Radio btRadio = await adapter.GetRadioAsync();
+                    if (btRadio.State != RadioState.On)
+                    {
+                        Trace.WriteLine("BT was disabled, enabling it");
+                        await btRadio.SetStateAsync(RadioState.On);
+                    }
+                    else
+                    {
+                        Trace.WriteLine($"BT status: {btRadio.State}");
+                    }
+                    
+                }
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine($"Exception while enabling BT: {ex.Message} {ex.StackTrace}");
+            }
+        }
+
+        private void doDiscovery()
+        {
+            Trace.WriteLine("Can not connect BLE, seems it after Windows reboot. Run discovery, to awaiken device");
+            if (watcher == null) watcher = new BluetoothLEAdvertisementWatcher();
+            watcher.ScanningMode = BluetoothLEScanningMode.Active;
+            watcher.Received += Watcher_Recived;
+            watcher.Start();
+            Thread.Sleep(5000);
+            watcher.Stop();
+        }
+
+        private void Watcher_Recived(BluetoothLEAdvertisementWatcher sender, BluetoothLEAdvertisementReceivedEventArgs args)
+        {
+            // Trace.WriteLine(args.BluetoothAddress.ToString());
+            return;
+        }
+
         private async void ConnectBLE(string addrBLE)
         {
             try
             {
+                await TestBT();
                 Trace.WriteLine($"Try to connect BLE at addr: {addrBLE}");
                 dev = await BluetoothLEDevice.FromBluetoothAddressAsync(Convert.ToUInt64(addrBLE));
                 if (dev != null)
@@ -342,6 +396,10 @@ namespace BecquerelMonitor
                                             break;
                                         }
                                     }
+                                    if (state != State.Connected)
+                                    {
+                                        doDiscovery();
+                                    }
                                 }
                                 else
                                 {
@@ -454,9 +512,6 @@ namespace BecquerelMonitor
             Thread.Sleep(1000);
             GC.Collect();
         }
-
-        public event EventHandler<RadiaCodeInDataReadyArgs> DataReady;
-        public event EventHandler<EventArgs> PortFailure;
     }
 
     public class RadiaCodeInDataReadyArgs : EventArgs
