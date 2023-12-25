@@ -190,8 +190,9 @@ namespace BecquerelMonitor
 
         private void Dev_ConnectionStatusChanged(BluetoothLEDevice sender, object args)
         {
-            if (dev == null && state != State.Connecting)
+            if (dev == null && state != State.Connecting && state != State.Disconnected)
             {
+                Trace.WriteLine("Disconnect device event");
                 state = State.Connecting;
                 //if (PortFailure != null) PortFailure(this, null);
             }
