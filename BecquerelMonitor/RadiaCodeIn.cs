@@ -101,9 +101,9 @@ namespace BecquerelMonitor
             {
                 Trace.WriteLine($"Try to connect BLE at addr: {addrBLE}");
                 dev = await BluetoothLEDevice.FromBluetoothAddressAsync(Convert.ToUInt64(addrBLE));
-                dev.ConnectionStatusChanged += Dev_ConnectionStatusChanged;
                 if (dev != null)
                 {
+                    dev.ConnectionStatusChanged += Dev_ConnectionStatusChanged;
                     GattDeviceServicesResult servisesResult = await dev.GetGattServicesForUuidAsync(Guid.Parse(RC_BLE_Service));
                     if (servisesResult != null && servisesResult.Status == GattCommunicationStatus.Success)
                     {
@@ -334,11 +334,10 @@ namespace BecquerelMonitor
                                 if (addressble != null)
                                 {
                                     DisconnectBLE();
-                                    Thread.Sleep(500);
                                     ConnectBLE(addressble);
-                                    for (int i = 0; i <= 50; i++)
+                                    for (int i = 0; i <= 100; i++)
                                     {
-                                        Thread.Sleep(200);
+                                        Thread.Sleep(100);
                                         if (!thread_alive) break;
                                         if (dev != null && service != null && characteristic != null && characteristicNotify != null)
                                         {
@@ -400,7 +399,7 @@ namespace BecquerelMonitor
                                 while (!packet.COMPLETE)
                                 {
                                     if (packet.BROKEN || !thread_alive || state != State.Connected) break;
-                                    Thread.Sleep(400);
+                                    Thread.Sleep(300);
                                     counter++;
                                     if (counter >= 25)
                                     {
