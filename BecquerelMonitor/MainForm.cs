@@ -463,10 +463,10 @@ namespace BecquerelMonitor
                 {
                     if (docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController is RadiaCodeDeviceController)
                     {
-                        RadiaCodeDeviceController dc = (RadiaCodeDeviceController)docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController;
-                        docEnergySpectrum.ActiveResultData.DetectorFeature = dc.getStatus();
-                        if (this.activeDocument != null && this.activeDocument.Equals(docEnergySpectrum))
+                        if (this.activeDocument != null && this.activeDocument.Equals(docEnergySpectrum) && docEnergySpectrum.ActiveResultData.ResultDataStatus.Recording)
                         {
+                            RadiaCodeDeviceController dc = (RadiaCodeDeviceController)docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController;
+                            docEnergySpectrum.ActiveResultData.DetectorFeature = dc.getStatus();
                             SetStatusTextCenter($"Radiacode BLE status: {docEnergySpectrum.ActiveResultData.DetectorFeature}");
                         }
                     }
