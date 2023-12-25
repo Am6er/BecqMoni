@@ -16,7 +16,7 @@ namespace BecquerelMonitor
 {
     public class RadiaCodeIn : IDisposable
     {
-        private Thread readerThread;
+        private Thread readerThread, discoveryThread;
         private volatile bool thread_alive = true;
         private int[] hystogram_buffered = new int[1024];
         private enum State { Connecting, Connected, Disconnected, Resetting };
@@ -133,7 +133,7 @@ namespace BecquerelMonitor
 
         private void doDiscovery()
         {
-            Trace.WriteLine("Can not connect BLE, seems it after Windows reboot. Run discovery, to awaiken device");
+            Trace.WriteLine("Run discovery, to awaiken device");
             if (watcher == null) watcher = new BluetoothLEAdvertisementWatcher();
             watcher.ScanningMode = BluetoothLEScanningMode.Active;
             watcher.Received += Watcher_Recived;
@@ -298,6 +298,10 @@ namespace BecquerelMonitor
             readerThread = new Thread(this.run);
             readerThread.Name = "RadiaCodeIn";
             readerThread.Start();
+
+            discoveryThread = new Thread(doDiscovery);
+            discoveryThread.Name = "Discovery";
+            discoveryThread.Start();
         }
 
         public string GUID
@@ -501,6 +505,7 @@ namespace BecquerelMonitor
                 Trace.WriteLine("Try to disconnect..");
                 DisconnectBLE();
                 readerThread.Join();
+                discoveryThread.Join();
             }
         }
 
