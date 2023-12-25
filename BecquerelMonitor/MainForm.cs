@@ -465,7 +465,7 @@ namespace BecquerelMonitor
                     {
                         RadiaCodeDeviceController dc = (RadiaCodeDeviceController)docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController;
                         docEnergySpectrum.ActiveResultData.DetectorFeature = dc.getStatus();
-                        if (this.activeDocument.Equals(docEnergySpectrum))
+                        if (this.activeDocument != null && this.activeDocument.Equals(docEnergySpectrum))
                         {
                             SetStatusTextCenter($"Radiacode BLE status: {docEnergySpectrum.ActiveResultData.DetectorFeature}");
                         }
