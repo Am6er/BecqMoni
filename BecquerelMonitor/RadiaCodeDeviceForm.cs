@@ -7,6 +7,8 @@ using System.Linq;
 using System.Threading;
 using System.Diagnostics;
 using System.Windows.Forms;
+using System.Threading.Tasks;
+using Windows.Devices.Radios;
 
 namespace BecquerelMonitor
 {
@@ -42,10 +44,43 @@ namespace BecquerelMonitor
             ScanBLEDevices();
         }
 
-        private void ScanBLEDevices()
+        private async Task TestBT()
         {
             try
             {
+                Trace.WriteLine("Check BT status");
+                RadioAccessStatus access = await Radio.RequestAccessAsync();
+                if (access != RadioAccessStatus.Allowed)
+                {
+                    return;
+                }
+                BluetoothAdapter adapter = await BluetoothAdapter.GetDefaultAsync();
+                if (null != adapter)
+                {
+                    Radio btRadio = await adapter.GetRadioAsync();
+                    if (btRadio.State != RadioState.On)
+                    {
+                        Trace.WriteLine("BT was disabled, enabling it");
+                        await btRadio.SetStateAsync(RadioState.On);
+                    }
+                    else
+                    {
+                        Trace.WriteLine($"BT status: {btRadio.State}");
+                    }
+
+                }
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine($"Exception while enabling BT: {ex.Message} {ex.StackTrace}");
+            }
+        }
+
+        private async void ScanBLEDevices()
+        {
+            try
+            {
+                await TestBT();
                 if (watcher == null) watcher = new BluetoothLEAdvertisementWatcher();
                 adressBLE.Clear();
                 devices.Clear();
