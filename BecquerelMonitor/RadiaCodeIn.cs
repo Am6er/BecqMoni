@@ -157,7 +157,14 @@ namespace BecquerelMonitor
                 byte[] buffer = new byte[reader.UnconsumedBufferLength];
                 reader.ReadBytes(buffer);
                 //skip exhange packet
-                if (string.Join(",", buffer).StartsWith("16,0,0,0,7,0,0,128,51,255,3,255")) return;
+                if (string.Join(",", buffer).StartsWith("16,0,0,0,7,0,0,128,51,255,3,255"))
+                {
+                    if (buffer[16] == 1)
+                    {
+                        Trace.WriteLine("Exchange response: BLE_IF ready");
+                    }
+                    return;
+                }
                 if (buffer.Length > 14 && BitConverter.ToUInt32(buffer, 4) == 2147485734 && BitConverter.ToUInt32(buffer, 4) == 1)
                 {
                     packet = new RCSpectrum();
@@ -294,20 +301,6 @@ namespace BecquerelMonitor
             }
         }
 
-        public void SetExchange()
-        {
-            if (dev != null && service != null && characteristic != null && characteristicNotify != null && state == State.Connected)
-            {
-                try
-                {
-                    packet = new RCSpectrum();
-                    WritePacket(RC_SET_EXCHANGE);
-                    Trace.WriteLine("RC_SET_EXCHANGE");
-                    Thread.Sleep(200);
-                } catch (Exception) { }
-            }
-        }
-
         public void run()
         {
             while (thread_alive)
@@ -342,7 +335,10 @@ namespace BecquerelMonitor
                                         if (dev != null && service != null && characteristic != null && characteristicNotify != null)
                                         {
                                             state = State.Connected;
-                                            SetExchange();
+                                            packet = new RCSpectrum();
+                                            WritePacket(RC_SET_EXCHANGE);
+                                            Trace.WriteLine("RC_SET_EXCHANGE");
+                                            Thread.Sleep(100);
                                             break;
                                         }
                                     }
@@ -453,10 +449,10 @@ namespace BecquerelMonitor
         private void DisconnectBLE()
         {
             Trace.WriteLine("Disconnect BLE service");
-            if (service != null) service.Dispose();
-            Thread.Sleep(500);
-            if (dev != null) dev.Dispose();
-            Thread.Sleep(500);
+            if (service != null) service.Dispose(); service = null;
+            if (dev != null) dev.Dispose(); dev = null;
+            Thread.Sleep(1000);
+            GC.Collect();
         }
 
         public event EventHandler<RadiaCodeInDataReadyArgs> DataReady;
@@ -582,7 +578,7 @@ namespace BecquerelMonitor
                 i += 2;
                 int count_occurences = (position >> 4) & 0x0FFF;
                 int var_length = position & 0x0F;
-                Trace.WriteLine($"position {position}, count_occurences {count_occurences}, var_length {var_length},  last_value {last_value}, size {SIZE - i}");
+                // Trace.WriteLine($"position {position}, count_occurences {count_occurences}, var_length {var_length},  last_value {last_value}, size {SIZE - i}");
                 for (int j = 0; j < count_occurences; j++)
                 {
                     switch (var_length)
