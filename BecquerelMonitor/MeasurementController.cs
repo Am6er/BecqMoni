@@ -88,7 +88,15 @@ namespace BecquerelMonitor
             {
                 return false;
             }
-            this.deviceController.StartMeasurement(this.resultData);
+            try
+            {
+                this.deviceController.StartMeasurement(this.resultData);
+            } catch (Exception)
+            {
+                MessageBox.Show(Resources.ERRBTNotSupportedByOS);
+                return false;
+            }
+            
             return true;
         }
 
@@ -179,7 +187,13 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            this.deviceController.ClearMeasurementResult(this.resultData);
+            try
+            {
+                this.deviceController.ClearMeasurementResult(this.resultData);
+            } catch (Exception)
+            {
+                MessageBox.Show(Resources.ERRBTNotSupportedByOS);
+            }
         }
 
         // Token: 0x060006AF RID: 1711 RVA: 0x0002816C File Offset: 0x0002636C

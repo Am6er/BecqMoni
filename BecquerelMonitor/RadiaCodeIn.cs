@@ -152,7 +152,6 @@ namespace BecquerelMonitor
         {
             try
             {
-                await TestBT();
                 Trace.WriteLine($"Try to connect BLE at addr: {addrBLE}");
                 dev = await BluetoothLEDevice.FromBluetoothAddressAsync(Convert.ToUInt64(addrBLE));
                 if (dev != null)
@@ -190,7 +189,7 @@ namespace BecquerelMonitor
 
         private void Dev_ConnectionStatusChanged(BluetoothLEDevice sender, object args)
         {
-            if (dev == null && state != State.Connecting && state != State.Disconnected)
+            if (dev == null && state == State.Connected)
             {
                 Trace.WriteLine("Disconnect device event");
                 state = State.Connecting;
@@ -296,6 +295,7 @@ namespace BecquerelMonitor
         {
             this.guid = guid;
             Trace.WriteLine("RadiaCodeIn instance created " + guid);
+
             readerThread = new Thread(this.run);
             readerThread.Name = "RadiaCodeIn";
             readerThread.Start();
@@ -310,11 +310,12 @@ namespace BecquerelMonitor
             get { return this.guid; }
         }
 
-        public void setDeviceSerial(string deviceSerial, string addressBle)
+        public async void setDeviceSerial(string deviceSerial, string addressBle)
         {
             this.deviceserial = deviceSerial;
             this.addressble = addressBle;
             this.device_serial_changed = true;
+            await TestBT();
         }
 
         public void sendCommand(string command)
@@ -434,7 +435,7 @@ namespace BecquerelMonitor
                                 Thread.Sleep(1000);
                                 state = State.Connecting;
                             }
-                            catch (Exception ex)
+                            catch (Exception)
                             {
                                 state = State.Connecting;
                                 if (PortFailure != null) PortFailure(this, null);
