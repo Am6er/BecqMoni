@@ -384,9 +384,17 @@ namespace BecquerelMonitor
             this.doubleTextBox6.Text = config.ChannelPitch.ToString();
             this.textBox19.Text = config.Note;
             this.deviceFormLoading = true;
-            DeviceType type = null;
+            DeviceType type;
             DeviceType.DeviceTypeMap.TryGetValue(config.DeviceType, out type);
-            this.PrepareDeviceForm(type);
+            try
+            {
+                this.PrepareDeviceForm(type);
+            } catch (Exception)
+            {
+                MessageBox.Show(Resources.ERRBTNotSupportedByOS);
+                this.DisableForm();
+            }
+            
             this.inputDeviceForm.LoadFormContents(config.InputDeviceConfig);
             this.deviceFormLoading = false;
             this.deviceFormLoading = true;
@@ -1654,7 +1662,15 @@ namespace BecquerelMonitor
             this.selectedDeviceIndex = this.comboBox4.SelectedIndex;
             DeviceType deviceType = (DeviceType)this.comboBox4.SelectedItem;
             this.deviceFormLoading = true;
-            this.PrepareDeviceForm(deviceType);
+            try
+            {
+                this.PrepareDeviceForm(deviceType);
+            } catch (Exception)
+            {
+                MessageBox.Show(Resources.ERRBTNotSupportedByOS);
+                this.DisableForm();
+            }
+            
             InputDeviceConfig inputDeviceConfig = (InputDeviceConfig)Activator.CreateInstance(deviceType.DeviceConfigType);
             this.activeDeviceConfig.InputDeviceConfig = inputDeviceConfig;
             this.inputDeviceForm.LoadFormContents(inputDeviceConfig);
