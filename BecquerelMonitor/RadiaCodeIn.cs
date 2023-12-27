@@ -40,6 +40,7 @@ namespace BecquerelMonitor
 
         public event EventHandler<RadiaCodeInDataReadyArgs> DataReady;
         public event EventHandler<EventArgs> PortFailure;
+        public event EventHandler<RadiaCodeStatusArgs> Status;
         private static List<RadiaCodeIn> instances = new List<RadiaCodeIn>();
 
         float A0, A1, A2;
@@ -58,7 +59,13 @@ namespace BecquerelMonitor
             }
         }
 
-        public string getState()
+        private void setStatus(State state)
+        {
+            this.state = state;
+            if (Status != null) Status(this, new RadiaCodeStatusArgs(getStateString()));
+        }
+
+        public string getStateString()
         {
             switch ((int)state)
             {
@@ -192,13 +199,13 @@ namespace BecquerelMonitor
             if (dev == null && state == State.Connected)
             {
                 Trace.WriteLine("Disconnect device event");
-                state = State.Connecting;
+                setStatus(State.Connecting);
                 //if (PortFailure != null) PortFailure(this, null);
             }
             if (dev != null && dev.ConnectionStatus == BluetoothConnectionStatus.Disconnected && state != State.Disconnected)
             {
                 Trace.WriteLine("Disconnect device event");
-                state = State.Connecting;
+                setStatus(State.Connecting);
                 //if (PortFailure != null) PortFailure(this, null);
             }
         }
@@ -323,10 +330,10 @@ namespace BecquerelMonitor
             Trace.WriteLine("Command sent: " + command);
             switch (command)
             {
-                case "Start": state = State.Connecting; Thread.Sleep(100); break;
-                case "Stop": state = State.Disconnected; DisconnectBLE(); break;
-                case "Reset": state = State.Resetting; Thread.Sleep(100); break;
-                default: state = State.Disconnected; break;
+                case "Start": setStatus(State.Connecting); Thread.Sleep(100); break;
+                case "Stop": setStatus(State.Disconnected); DisconnectBLE(); break;
+                case "Reset": setStatus(State.Resetting); Thread.Sleep(100); break;
+                default: setStatus(State.Disconnected); break;
             }
         }
 
@@ -356,7 +363,7 @@ namespace BecquerelMonitor
                 {
                     GattCommunicationStatus result = await characteristic.WriteValueAsync(writer.DetachBuffer());
                 } catch (Exception) {
-                    state = State.Connecting;
+                    setStatus(State.Connecting);
                 }
             }
         }
@@ -369,7 +376,7 @@ namespace BecquerelMonitor
                 if (device_serial_changed)
                 {
                     device_serial_changed = false;
-                    state = State.Connecting;
+                    setStatus(State.Connecting);
                 }
 
                 switch (state)
@@ -394,7 +401,7 @@ namespace BecquerelMonitor
                                         if (!thread_alive) break;
                                         if (dev != null && service != null && characteristic != null && characteristicNotify != null)
                                         {
-                                            state = State.Connected;
+                                            setStatus(State.Connected);
                                             packet = new RCSpectrum();
                                             WritePacket(RC_SET_EXCHANGE);
                                             Trace.WriteLine("RC_SET_EXCHANGE");
@@ -427,17 +434,17 @@ namespace BecquerelMonitor
                                 if (!thread_alive) break;
                                 if (dev == null || service == null || characteristic == null || characteristicNotify == null)
                                 {
-                                    state = State.Connecting;
+                                    setStatus(State.Connecting);
                                     break;
                                 }
                                 packet = new RCSpectrum();
                                 WritePacket(RC_RESET_SPECTRUM);
                                 Thread.Sleep(1000);
-                                state = State.Connecting;
+                                setStatus(State.Connecting);
                             }
                             catch (Exception)
                             {
-                                state = State.Connecting;
+                                setStatus(State.Connecting);
                                 if (PortFailure != null) PortFailure(this, null);
                             }
                             break;
@@ -450,7 +457,7 @@ namespace BecquerelMonitor
                                 if (!thread_alive) break;
                                 if (dev == null || service == null || characteristic == null || characteristicNotify == null)
                                 {
-                                    state = State.Connecting;
+                                    setStatus(State.Connecting);
                                     break;
                                 }
                                 packet = new RCSpectrum();
@@ -464,7 +471,7 @@ namespace BecquerelMonitor
                                     if (counter >= 25)
                                     {
                                         packet.BROKEN = true;
-                                        state = State.Connecting;
+                                        setStatus(State.Connecting);
                                     }
                                     // Trace.WriteLine($"Current state is {state}, packet: {packet.SIZE}");
                                 }
@@ -482,7 +489,7 @@ namespace BecquerelMonitor
                             catch (Exception ex)
                             {
                                 MessageBox.Show($"{ex.Message} {ex.StackTrace}");
-                                state = State.Connecting;
+                                setStatus(State.Connecting);
                                 if (PortFailure != null) PortFailure(this, null);
                             }
 
@@ -547,6 +554,21 @@ namespace BecquerelMonitor
             this.hystogram = hyst;
             this.elapsed_time = elapsed_time;
             this.sum = sum;
+        }
+    }
+
+    public class RadiaCodeStatusArgs : EventArgs
+    {
+        private string status = "Unknown";
+
+        public string Status
+        {
+            get { return status; }
+        }
+
+        public RadiaCodeStatusArgs(string status)
+        {
+            this.status = status;
         }
     }
 
