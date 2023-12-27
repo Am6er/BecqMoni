@@ -12,6 +12,7 @@ namespace BecquerelMonitor
         private ResultData resultData;
         private bool already_subscribed = false;
         private string previous_guid;
+        private string status = "Unknown";
 
         public RadiaCodeDeviceController()
         {
@@ -42,8 +43,14 @@ namespace BecquerelMonitor
         {
             if (deviceGuid != null)
             {
-                RadiaCodeIn.getInstance(deviceGuid).sendCommand("Reset");
-                resultData.StartTime = DateTime.Now;
+                if (status == "Connected")
+                {
+                    RadiaCodeIn.getInstance(deviceGuid).sendCommand("Reset");
+                    resultData.StartTime = DateTime.Now;
+                } else
+                {
+                    MessageBox.Show($"Device is {this.status}, connect device first!");
+                }
             }
         }
 
@@ -78,6 +85,7 @@ namespace BecquerelMonitor
                         {
                             RadiaCodeIn.getInstance(previous_guid).DataReady -= DataIn_DataReady;
                             RadiaCodeIn.getInstance(previous_guid).PortFailure -= RadiaCodeDeviceController_PortFailure;
+                            RadiaCodeIn.getInstance(previous_guid).Status -= RadiaCodeDeviceController_Status;
                         }
                         catch (Exception)
                         {
@@ -89,6 +97,7 @@ namespace BecquerelMonitor
                 {
                     RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).DataReady += DataIn_DataReady;
                     RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).PortFailure += RadiaCodeDeviceController_PortFailure;
+                    RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).Status += RadiaCodeDeviceController_Status;
                     already_subscribed = true;
                 }
 
@@ -111,6 +120,23 @@ namespace BecquerelMonitor
                 if (commands_accepted) return true;
             }
             return false;
+        }
+
+        private void RadiaCodeDeviceController_Status(object sender, RadiaCodeStatusArgs e)
+        {
+            this.status = e.Status;
+            if (MainForm.originalContext != null)
+            {
+                MainForm.originalContext.Post(d => setStatus(e.Status), null);
+            }
+        }
+
+        private void setStatus(string status)
+        {
+            if (resultData != null && resultData.ResultDataStatus != null)
+            {
+                resultData.DetectorFeature = status;
+            }
         }
 
         public override bool AttachToDevice(ResultData resultData)
@@ -158,14 +184,6 @@ namespace BecquerelMonitor
                     resultData.ResultDataStatus.ElapsedTime = resultData.ResultDataStatus.TotalTime;
                 }
             }
-        }
-
-        public string getStatus()
-        {
-            if (deviceGuid != null)
-            {
-                return RadiaCodeIn.getInstance(deviceGuid).getState();
-            } else { return "Unknown"; }
         }
 
         public override void StopMeasurement(ResultData resultData)
