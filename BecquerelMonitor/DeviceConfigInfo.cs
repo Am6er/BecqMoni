@@ -470,7 +470,7 @@ namespace BecquerelMonitor
         DateTime lastUpdated = DateTime.Now;
 
         // Token: 0x04000795 RID: 1941
-        int defaultMeasurementTime = 3600;
+        int defaultMeasurementTime = 360000000;
 
         // Token: 0x04000796 RID: 1942
         double channelPitch = 0.04;
