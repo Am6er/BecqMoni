@@ -32,6 +32,8 @@
             this.label1 = new System.Windows.Forms.Label();
             this.comboBox1 = new System.Windows.Forms.ComboBox();
             this.button1 = new System.Windows.Forms.Button();
+            this.troubleShootbtn = new System.Windows.Forms.Button();
+            this.TroubleshootText = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
             // 
             // label1
@@ -53,9 +55,24 @@
             this.button1.UseVisualStyleBackColor = true;
             this.button1.Click += new System.EventHandler(this.button1_Click);
             // 
+            // troubleShootbtn
+            // 
+            resources.ApplyResources(this.troubleShootbtn, "troubleShootbtn");
+            this.troubleShootbtn.Name = "troubleShootbtn";
+            this.troubleShootbtn.UseVisualStyleBackColor = true;
+            this.troubleShootbtn.Click += new System.EventHandler(this.troubleShootbtn_Click);
+            // 
+            // TroubleshootText
+            // 
+            resources.ApplyResources(this.TroubleshootText, "TroubleshootText");
+            this.TroubleshootText.Name = "TroubleshootText";
+            this.TroubleshootText.ReadOnly = true;
+            // 
             // RadiaCodeDeviceForm
             // 
             resources.ApplyResources(this, "$this");
+            this.Controls.Add(this.TroubleshootText);
+            this.Controls.Add(this.troubleShootbtn);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.comboBox1);
             this.Controls.Add(this.label1);
@@ -63,6 +80,8 @@
             this.Controls.SetChildIndex(this.label1, 0);
             this.Controls.SetChildIndex(this.comboBox1, 0);
             this.Controls.SetChildIndex(this.button1, 0);
+            this.Controls.SetChildIndex(this.troubleShootbtn, 0);
+            this.Controls.SetChildIndex(this.TroubleshootText, 0);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -73,5 +92,7 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.ComboBox comboBox1;
         private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.Button troubleShootbtn;
+        private System.Windows.Forms.TextBox TroubleshootText;
     }
 }

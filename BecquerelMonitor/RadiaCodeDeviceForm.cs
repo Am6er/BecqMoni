@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Windows.Forms;
 using System.Threading.Tasks;
 using Windows.Devices.Radios;
+using System.Management.Instrumentation;
 
 namespace BecquerelMonitor
 {
@@ -22,6 +23,8 @@ namespace BecquerelMonitor
         private int currentBLEindex = -1;
         bool formLoading = false;
         DeviceConfigForm deviceConfigForm;
+        private RadiaCodeDeviceConfig config;
+        private string tshootText = "";
 
         public RadiaCodeDeviceForm()
         {
@@ -155,6 +158,7 @@ namespace BecquerelMonitor
         {
             this.formLoading = true;
             RadiaCodeDeviceConfig radiaCodeInputDevice = (RadiaCodeDeviceConfig)inputConfig;
+            this.config = radiaCodeInputDevice;
             this.DeviceSerial = radiaCodeInputDevice.DeviceSerial;
             if (this.DeviceSerial != null)
             {
@@ -186,6 +190,56 @@ namespace BecquerelMonitor
                 return false;
             }
             return true;
+        }
+
+        bool isRunning = false;
+        bool isProcessing = false;
+
+        private void troubleShootbtn_Click(object sender, EventArgs e)
+        {
+            if (!troubleShootbtn.Enabled) return;
+            troubleShootbtn.Enabled = false;
+            isProcessing = true;
+            TroubleshootText.Clear();
+            tshootText = "";
+            List<RadiaCodeIn> instances = RadiaCodeIn.getAllInstances();
+            foreach (RadiaCodeIn instance in instances)
+            {
+                if (instance.GUID == deviceConfigForm.ActiveDeviceConfig.Guid) {
+                    tshootText += $"{System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss")} Radiacode instance with {deviceConfigForm.ActiveDeviceConfig.Guid} allready running. Shutdown it first." + Environment.NewLine;
+                    RadiaCodeIn.cleanUp(deviceConfigForm.ActiveDeviceConfig.Guid);
+                    break;
+                }
+            }
+            tshootText += $"{System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss")} Starting new RadiaCodeIn instance for GUID {deviceConfigForm.ActiveDeviceConfig.Guid}" + Environment.NewLine;
+            RadiaCodeIn radiaCodeIn = RadiaCodeIn.getInstance(deviceConfigForm.ActiveDeviceConfig.Guid, troubleshoot: true);
+            radiaCodeIn.setDeviceSerial(config.DeviceSerial, config.AddressBLE);
+            radiaCodeIn.TroubleShoot += RadiaCodeIn_TroubleShoot;
+            radiaCodeIn.sendCommand("Start");
+            isRunning = true;
+            while(isRunning)
+            {
+                TroubleshootText.Text = tshootText;
+                TroubleshootText.Refresh();
+                Thread.Sleep(200);
+            }
+            radiaCodeIn.TroubleShoot -= RadiaCodeIn_TroubleShoot;
+            RadiaCodeIn.cleanUp(deviceConfigForm.ActiveDeviceConfig.Guid);
+            tshootText += "Finish" + Environment.NewLine;
+            TroubleshootText.Text = tshootText;
+            TroubleshootText.Refresh();
+            troubleShootbtn.Enabled = true;
+        }
+
+        private void RadiaCodeIn_TroubleShoot(object sender, RadiaCodeTroubleShootArgs e)
+        {
+            Trace.WriteLine("-->> Got event: " + e.Text);
+            if (e.Text.Equals("QUIT"))
+            {
+                isRunning = false;
+                return;
+            }
+            tshootText += System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss") + " " + e.Text + Environment.NewLine;
         }
     }
 }
