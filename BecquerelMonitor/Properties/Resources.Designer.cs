@@ -70,7 +70,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to BecqMoni ATOM Edition.
+        ///   Looks up a localized string similar to BecqMoni Nuclear Edition.
         /// </summary>
         internal static string ApplicationTitle {
             get {

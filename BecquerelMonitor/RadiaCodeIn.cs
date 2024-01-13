@@ -11,6 +11,7 @@ using Windows.Storage.Streams;
 using System.Threading.Tasks;
 using Windows.Devices.Radios;
 using Windows.Devices.Bluetooth.Advertisement;
+using System.Runtime.CompilerServices;
 
 namespace BecquerelMonitor
 {
@@ -41,7 +42,9 @@ namespace BecquerelMonitor
         public event EventHandler<RadiaCodeInDataReadyArgs> DataReady;
         public event EventHandler<EventArgs> PortFailure;
         public event EventHandler<RadiaCodeStatusArgs> Status;
+        public event EventHandler<RadiaCodeTroubleShootArgs> TroubleShoot;
         private static List<RadiaCodeIn> instances = new List<RadiaCodeIn>();
+        private bool trshoot = false;
 
         float A0, A1, A2;
 
@@ -56,6 +59,15 @@ namespace BecquerelMonitor
                     Trace.WriteLine("Instance " + guid + " removed!");
                     return;
                 }
+            }
+        }
+
+        private void sendTroubleShoot(string text)
+        {
+            if (TroubleShoot != null && this.trshoot)
+            {
+
+                TroubleShoot(this, new RadiaCodeTroubleShootArgs(text));
             }
         }
 
@@ -82,7 +94,7 @@ namespace BecquerelMonitor
             return instances;
         }
 
-        public static RadiaCodeIn getInstance(string guid)
+        public static RadiaCodeIn getInstance(string guid, bool troubleshoot = false)
         {
             foreach (RadiaCodeIn s in instances)
             {
@@ -92,7 +104,7 @@ namespace BecquerelMonitor
                     return s;
                 }
             }
-            RadiaCodeIn instance = new RadiaCodeIn(guid);
+            RadiaCodeIn instance = new RadiaCodeIn(guid, troubleshoot);
             instances.Add(instance);
             return instance;
         }
@@ -111,9 +123,11 @@ namespace BecquerelMonitor
             try
             {
                 Trace.WriteLine("Check BT status");
+                sendTroubleShoot("Check BT status...");
                 RadioAccessStatus access = await Radio.RequestAccessAsync();
                 if (access != RadioAccessStatus.Allowed)
                 {
+                    sendTroubleShoot("Error! current user isn't allowed to use radio module.");
                     return;
                 }
                 BluetoothAdapter adapter = await BluetoothAdapter.GetDefaultAsync();
@@ -123,11 +137,13 @@ namespace BecquerelMonitor
                     if (btRadio.State != RadioState.On)
                     {
                         Trace.WriteLine("BT was disabled, enabling it");
+                        sendTroubleShoot("BT was disabled, enabling it.");
                         await btRadio.SetStateAsync(RadioState.On);
                     }
                     else
                     {
                         Trace.WriteLine($"BT status: {btRadio.State}");
+                        sendTroubleShoot($"BT status: {btRadio.State}");
                     }
                     
                 }
@@ -135,6 +151,7 @@ namespace BecquerelMonitor
             catch (Exception ex)
             {
                 Trace.WriteLine($"Exception while enabling BT: {ex.Message} {ex.StackTrace}");
+                sendTroubleShoot($"Exception while enabling BT: {ex.Message} {ex.StackTrace}");
             }
         }
 
@@ -160,6 +177,7 @@ namespace BecquerelMonitor
             try
             {
                 Trace.WriteLine($"Try to connect BLE at addr: {addrBLE}");
+                sendTroubleShoot($"Try to connect BLE at addr: {addrBLE}");
                 dev = await BluetoothLEDevice.FromBluetoothAddressAsync(Convert.ToUInt64(addrBLE));
                 if (dev != null)
                 {
@@ -196,9 +214,11 @@ namespace BecquerelMonitor
 
         private void Dev_ConnectionStatusChanged(BluetoothLEDevice sender, object args)
         {
+            if (dev != null) sendTroubleShoot($"Device connection status changed: {dev.ConnectionStatus}");
             if (dev == null && state == State.Connected)
             {
                 Trace.WriteLine("Disconnect device event");
+                sendTroubleShoot($"Device connection status changed: dev disconnected");
                 setStatus(State.Connecting);
                 //if (PortFailure != null) PortFailure(this, null);
             }
@@ -222,6 +242,7 @@ namespace BecquerelMonitor
                 {
                     if (buffer[16] == 1)
                     {
+                        sendTroubleShoot("Exchange response: BLE_IF ready");
                         Trace.WriteLine("Exchange response: BLE_IF ready");
                     }
                     return;
@@ -280,6 +301,7 @@ namespace BecquerelMonitor
                     else
                     {
                         packet.BROKEN = true;
+                        sendTroubleShoot($"Drop packet because spectrum channels: {packet.SPECTRUM.Length}. Expected: 1024 channels.");
                         Trace.WriteLine($"Drop packet because spectrum channels: {packet.SPECTRUM.Length}. Expected: 1024 channels.");
                         return;
                     }
@@ -293,14 +315,16 @@ namespace BecquerelMonitor
             } catch (Exception ex)
             {
                 packet.BROKEN = true;
+                sendTroubleShoot($"Drop packet because EXCEPTION: {ex.Message} at {ex.StackTrace}");
                 Trace.WriteLine($"Drop packet because EXCEPTION: {ex.Message} at {ex.StackTrace}");
                 return;
             }
         }
 
-        public RadiaCodeIn(string guid)
+        public RadiaCodeIn(string guid, bool troubleshoot = false)
         {
             this.guid = guid;
+            this.trshoot = troubleshoot;
             Trace.WriteLine("RadiaCodeIn instance created " + guid);
 
             readerThread = new Thread(this.run);
@@ -368,6 +392,8 @@ namespace BecquerelMonitor
             }
         }
 
+        int trshootCount = 0;
+
         public void run()
         {
             while (thread_alive)
@@ -395,16 +421,30 @@ namespace BecquerelMonitor
                                 {
                                     DisconnectBLE();
                                     ConnectBLE(addressble);
+                                    if (trshoot)
+                                    {
+                                        trshootCount++;
+                                        if (trshootCount == 3)
+                                        {
+                                            sendTroubleShoot("Error! 3 attempts was maded to connect device, no success connection.");
+                                            sendTroubleShoot("QUIT");
+                                            Thread.Sleep(500);
+                                            thread_alive = false;
+                                            break;
+                                        }
+                                    }
                                     for (int i = 0; i <= 100; i++)
                                     {
                                         Thread.Sleep(100);
                                         if (!thread_alive) break;
                                         if (dev != null && service != null && characteristic != null && characteristicNotify != null)
                                         {
+                                            if (trshoot) trshootCount = 0;
                                             setStatus(State.Connected);
                                             packet = new RCSpectrum();
-                                            WritePacket(RC_SET_EXCHANGE);
                                             Trace.WriteLine("RC_SET_EXCHANGE");
+                                            sendTroubleShoot("Send RC_SET_EXCHANGE handshake");
+                                            WritePacket(RC_SET_EXCHANGE);
                                             Thread.Sleep(100);
                                             break;
                                         }
@@ -461,6 +501,7 @@ namespace BecquerelMonitor
                                     break;
                                 }
                                 packet = new RCSpectrum();
+                                sendTroubleShoot("Send get Spectrum command");
                                 WritePacket(RC_GET_SPECTRUM);
                                 int counter = 0;
                                 while (!packet.COMPLETE)
@@ -477,6 +518,9 @@ namespace BecquerelMonitor
                                 }
                                 if (!thread_alive) break;
                                 if (packet.BROKEN || state != State.Connected || packet.SPECTRUM == null) break;
+                                sendTroubleShoot("Packet recieved");
+                                sendTroubleShoot($"Spectrum real time: {packet.TIME_S}");
+                                sendTroubleShoot($"Spectrum calibration: A0={packet.A0} A1={packet.A1} A2={packet.A2}");
                                 packet.SPECTRUM.CopyTo(hystogram_buffered, 0);
                                 ulong sum = 0;
                                 Parallel.For(0, hystogram_buffered.Length, i =>
@@ -484,6 +528,15 @@ namespace BecquerelMonitor
                                     sum += (ulong)hystogram_buffered[i];
                                 });
                                 if (packet.TIME_S != 0) this.cps = sum / packet.TIME_S;
+                                sendTroubleShoot($"Spectrum cps: {this.cps}");
+                                sendTroubleShoot($"Spectrum total counts: {sum}");
+                                if (this.trshoot)
+                                {
+                                    sendTroubleShoot("QUIT");
+                                    Thread.Sleep(500);
+                                    thread_alive = false;
+                                    break;
+                                }
                                 if (DataReady != null) DataReady(this, new RadiaCodeInDataReadyArgs(hystogram_buffered, (int)packet.TIME_S, (int)sum));
                             }
                             catch (Exception ex)
@@ -554,6 +607,21 @@ namespace BecquerelMonitor
             this.hystogram = hyst;
             this.elapsed_time = elapsed_time;
             this.sum = sum;
+        }
+    }
+
+    public class RadiaCodeTroubleShootArgs : EventArgs
+    {
+        private string text = "";
+
+        public string Text
+        {
+            get { return text; }
+        }
+
+        public RadiaCodeTroubleShootArgs(string text)
+        {
+            this.text = text;
         }
     }
 

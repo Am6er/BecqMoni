@@ -144,7 +144,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;label1.ZOrder" xml:space="preserve">
-    <value>2</value>
+    <value>4</value>
   </data>
   <data name="comboBox1.Location" type="System.Drawing.Point, System.Drawing">
     <value>135, 73</value>
@@ -165,7 +165,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;comboBox1.ZOrder" xml:space="preserve">
-    <value>1</value>
+    <value>3</value>
   </data>
   <data name="button1.Location" type="System.Drawing.Point, System.Drawing">
     <value>270, 72</value>
@@ -189,6 +189,58 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;button1.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="troubleShootbtn.Location" type="System.Drawing.Point, System.Drawing">
+    <value>184, 120</value>
+  </data>
+  <data name="troubleShootbtn.Size" type="System.Drawing.Size, System.Drawing">
+    <value>100, 23</value>
+  </data>
+  <data name="troubleShootbtn.TabIndex" type="System.Int32, mscorlib">
+    <value>101</value>
+  </data>
+  <data name="troubleShootbtn.Text" xml:space="preserve">
+    <value>Troubleshoot</value>
+  </data>
+  <data name="&gt;&gt;troubleShootbtn.Name" xml:space="preserve">
+    <value>troubleShootbtn</value>
+  </data>
+  <data name="&gt;&gt;troubleShootbtn.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;troubleShootbtn.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;troubleShootbtn.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="TroubleshootText.Location" type="System.Drawing.Point, System.Drawing">
+    <value>20, 158</value>
+  </data>
+  <data name="TroubleshootText.Multiline" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="TroubleshootText.ScrollBars" type="System.Windows.Forms.ScrollBars, System.Windows.Forms">
+    <value>Vertical</value>
+  </data>
+  <data name="TroubleshootText.Size" type="System.Drawing.Size, System.Drawing">
+    <value>424, 357</value>
+  </data>
+  <data name="TroubleshootText.TabIndex" type="System.Int32, mscorlib">
+    <value>102</value>
+  </data>
+  <data name="&gt;&gt;TroubleshootText.Name" xml:space="preserve">
+    <value>TroubleshootText</value>
+  </data>
+  <data name="&gt;&gt;TroubleshootText.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;TroubleshootText.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;TroubleshootText.ZOrder" xml:space="preserve">
     <value>0</value>
   </data>
   <metadata name="$this.Localizable" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
@@ -201,6 +253,6 @@
     <value>RadiaCodeDeviceForm</value>
   </data>
   <data name="&gt;&gt;$this.Type" xml:space="preserve">
-    <value>BecquerelMonitor.InputDeviceForm, BecquerelMonitor, Version=2023.12.11.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.InputDeviceForm, BecquerelMonitor, Version=2023.12.27.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
 </root>

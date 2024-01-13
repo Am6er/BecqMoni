@@ -138,7 +138,7 @@
     <value>$this</value>
   </data>
   <data name="$this.Text" xml:space="preserve">
-    <value>About BecqMoni ATOM Edition</value>
+    <value>About BecqMoni Nuclear Edition</value>
   </data>
   <data name="&gt;&gt;label6.Parent" xml:space="preserve">
     <value>$this</value>
@@ -178,7 +178,7 @@
     <value>312, 12</value>
   </data>
   <data name="label1.Text" xml:space="preserve">
-    <value>BecqMoni ATOM Edition</value>
+    <value>BecqMoni Nuclear Edition</value>
   </data>
   <data name="label1.Size" type="System.Drawing.Size, System.Drawing">
     <value>223, 12</value>
