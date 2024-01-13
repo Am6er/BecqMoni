@@ -166,6 +166,7 @@ namespace BecquerelMonitor
                 comboBox1.Items.Add(this.DeviceSerial);
                 comboBox1.SelectedIndex = 0;
             }
+            TroubleshootText.Clear();
             this.formLoading = false;
         }
 
@@ -193,13 +194,11 @@ namespace BecquerelMonitor
         }
 
         bool isRunning = false;
-        bool isProcessing = false;
 
         private void troubleShootbtn_Click(object sender, EventArgs e)
         {
             if (!troubleShootbtn.Enabled) return;
             troubleShootbtn.Enabled = false;
-            isProcessing = true;
             TroubleshootText.Clear();
             tshootText = "";
             List<RadiaCodeIn> instances = RadiaCodeIn.getAllInstances();
