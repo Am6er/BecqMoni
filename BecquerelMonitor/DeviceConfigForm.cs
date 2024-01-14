@@ -1673,7 +1673,16 @@ namespace BecquerelMonitor
             
             InputDeviceConfig inputDeviceConfig = (InputDeviceConfig)Activator.CreateInstance(deviceType.DeviceConfigType);
             this.activeDeviceConfig.InputDeviceConfig = inputDeviceConfig;
-            this.inputDeviceForm.LoadFormContents(inputDeviceConfig);
+            try
+            {
+                this.inputDeviceForm.LoadFormContents(inputDeviceConfig);
+            }
+            catch (Exception)
+            {
+                MessageBox.Show(Resources.ERRBTNotSupportedByOS);
+                this.DisableForm();
+            }
+
             this.deviceFormLoading = false;
             this.SetActiveDeviceConfigDirty();
         }
