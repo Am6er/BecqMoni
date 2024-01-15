@@ -526,6 +526,18 @@ namespace BecquerelMonitor
             this.contentsLoading = false;
         }
 
+        public void LoadPeakFinderPresetContents(DeviceConfigInfo config)
+        {
+            this.contentsLoading = true;
+            FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)config.PeakDetectionMethodConfig;
+            this.numericUpDown5.Value = (decimal)FWHMPeakDetectionMethodConfig.FWHM_AT_0;
+            this.numericUpDown10.Value = (decimal)FWHMPeakDetectionMethodConfig.Ch_Fwhm;
+            this.numericUpDown11.Value = (decimal)FWHMPeakDetectionMethodConfig.Width_Fwhm;
+            this.numericUpDown14.Value = (decimal)FWHMPeakDetectionMethodConfig.Min_FWHM_Tol;
+            this.numericUpDown15.Value = (decimal)FWHMPeakDetectionMethodConfig.Max_FWHM_Tol;
+            this.contentsLoading = false;
+        }
+
         // Token: 0x06000523 RID: 1315 RVA: 0x000212F0 File Offset: 0x0001F4F0
         bool SaveFormContents(DeviceConfigInfo config)
         {

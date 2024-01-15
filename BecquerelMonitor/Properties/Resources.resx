@@ -41891,4 +41891,10 @@ see peak in spectrum now).</value>
   <data name="ERRBTNotSupportedByOS" xml:space="preserve">
     <value>Bluetooth doesn't supported by this OS. Could not find Windows Runtime type Windows.Devices.Bluetooth.BluetoothLEDevice.</value>
   </data>
+  <data name="LoadDefaultPeakFinderSettingsQuestion" xml:space="preserve">
+    <value>Load default peak search settings optimised for device series {0}?</value>
+  </data>
+  <data name="LoadDefaultPeakFinderSettingsQuestionTitle" xml:space="preserve">
+    <value>Load peak search preset question</value>
+  </data>
 </root>

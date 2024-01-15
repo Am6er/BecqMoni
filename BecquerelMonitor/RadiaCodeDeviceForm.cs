@@ -17,6 +17,7 @@ namespace BecquerelMonitor
     {
         private List<String> adressBLE = new List<String>();
         private Dictionary<ulong, BluetoothLEDevice> devices;
+        private Dictionary<string, string> devicePreset;
         private BluetoothLEAdvertisementWatcher watcher;
         private BluetoothLEDevice dev;
         private string DeviceSerial;
@@ -39,6 +40,7 @@ namespace BecquerelMonitor
             base.DeviceTypeString = Resources.DeviceTypeRadiaCode;
             this.formLoading = false;
             devices = new Dictionary<ulong, BluetoothLEDevice>();
+            devicePreset = new Dictionary<string, string>();
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -110,8 +112,7 @@ namespace BecquerelMonitor
             {
                 try
                 {
-                    if (dev.Name == null) return;
-                    if (dev.Name.IndexOf("RadiaCode-10") == -1) return;
+                    if (dev.Name == null && dev.Name.IndexOf("RadiaCode-10") == -1) return;
                 } catch (Exception) { }
                 if (!devices.ContainsKey(args.BluetoothAddress))
                 {
@@ -119,6 +120,8 @@ namespace BecquerelMonitor
                     {
                         Trace.WriteLine($"Found {dev.Name} with addr {args.BluetoothAddress}");
                         devices.Add(args.BluetoothAddress, dev);
+                        String model = dev.Name.Split('#')[0];
+                        devicePreset.Add(args.BluetoothAddress.ToString(), model);
                         String name = dev.Name.Split('#')[1];
                         comboBox1.Invoke(new Action(() =>
                         {
@@ -141,6 +144,22 @@ namespace BecquerelMonitor
                 Thread.Sleep(200);
             }
             currentBLEindex = comboBox1.SelectedIndex;
+
+            //Dialog to load RC presets for peak searching
+            devicePreset.TryGetValue(adressBLE.ElementAt(currentBLEindex), out string model);
+            DialogResult dialogResult = MessageBox.Show(string.Format(Resources.LoadDefaultPeakFinderSettingsQuestion, model), Resources.LoadDefaultPeakFinderSettingsQuestionTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (dialogResult == DialogResult.Yes)
+            {
+                switch (model)
+                {
+                    case "RadiaCode-101": deviceConfigForm.ActiveDeviceConfig.PeakDetectionMethodConfig = RadiacodePresets.RC101_FWHM_Preset(); break;
+                    case "RadiaCode-102": deviceConfigForm.ActiveDeviceConfig.PeakDetectionMethodConfig = RadiacodePresets.RC102_FWHM_Preset(); break;
+                    case "RadiaCode-103": deviceConfigForm.ActiveDeviceConfig.PeakDetectionMethodConfig = RadiacodePresets.RC103_FWHM_Preset(); break;
+                }
+                
+                deviceConfigForm.LoadPeakFinderPresetContents(deviceConfigForm.ActiveDeviceConfig);
+            }
+
             SetActiveDeviceConfigDirty();
         }
 
@@ -239,6 +258,51 @@ namespace BecquerelMonitor
                 return;
             }
             tshootText += System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss") + " " + e.Text + Environment.NewLine;
+        }
+    }
+
+    public class RadiacodePresets
+    {
+        public static FWHMPeakDetectionMethodConfig RC101_FWHM_Preset()
+        {
+            FWHMPeakDetectionMethodConfig config = new FWHMPeakDetectionMethodConfig();
+            config.Ch_Concat = 1024;
+            config.FWHM_AT_0 = 8;
+            config.Min_FWHM_Tol = 10;
+            config.Max_FWHM_Tol = 190;
+            config.Ch_Fwhm = 234;
+            config.Width_Fwhm = 31;
+            config.Min_Range = 15;
+
+            return config;
+        }
+
+        public static FWHMPeakDetectionMethodConfig RC102_FWHM_Preset()
+        {
+            FWHMPeakDetectionMethodConfig config = new FWHMPeakDetectionMethodConfig();
+            config.Ch_Concat = 1024;
+            config.FWHM_AT_0 = 8;
+            config.Min_FWHM_Tol = 10;
+            config.Max_FWHM_Tol = 190;
+            config.Ch_Fwhm = 241;
+            config.Width_Fwhm = 20;
+            config.Min_Range = 15;
+
+            return config;
+        }
+
+        public static FWHMPeakDetectionMethodConfig RC103_FWHM_Preset()
+        {
+            FWHMPeakDetectionMethodConfig config = new FWHMPeakDetectionMethodConfig();
+            config.Ch_Concat = 1024;
+            config.FWHM_AT_0 = 8;
+            config.Min_FWHM_Tol = 10;
+            config.Max_FWHM_Tol = 190;
+            config.Ch_Fwhm = 444;
+            config.Width_Fwhm = 26;
+            config.Min_Range = 15;
+
+            return config;
         }
     }
 }
