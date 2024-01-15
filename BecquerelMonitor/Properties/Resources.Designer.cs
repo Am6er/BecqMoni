@@ -1385,6 +1385,24 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Load default peak search settings optimised for device series {0}?.
+        /// </summary>
+        internal static string LoadDefaultPeakFinderSettingsQuestion {
+            get {
+                return ResourceManager.GetString("LoadDefaultPeakFinderSettingsQuestion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Load peak search preset question.
+        /// </summary>
+        internal static string LoadDefaultPeakFinderSettingsQuestionTitle {
+            get {
+                return ResourceManager.GetString("LoadDefaultPeakFinderSettingsQuestionTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Loading File ( {0} )....
         /// </summary>
         internal static string LoadingFileMessage {

@@ -496,6 +496,12 @@ http://winmm.codeplex.com/
 using XPTable library
 http://xptable.sourceforge.net/</value>
   </data>
+  <data name="LoadDefaultPeakFinderSettingsQuestion" xml:space="preserve">
+    <value>Загрузить настройки поиска пиков, оптимизированные для устройства серии {0}?</value>
+  </data>
+  <data name="LoadDefaultPeakFinderSettingsQuestionTitle" xml:space="preserve">
+    <value>Загрузка настроек поиска пиков</value>
+  </data>
   <data name="LoadingFileMessage" xml:space="preserve">
     <value>Загружается файл ( {0} )...</value>
   </data>
