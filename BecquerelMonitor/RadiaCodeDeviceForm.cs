@@ -91,6 +91,7 @@ namespace BecquerelMonitor
                 devices.Clear();
                 Thread.Sleep(200);
                 watcher.Stop();
+                TroubleshootText.Clear();
                 //watcher.SignalStrengthFilter.InRangeThresholdInDBm = -110;
                 //watcher.SignalStrengthFilter.OutOfRangeThresholdInDBm = -110;
                 watcher.ScanningMode = BluetoothLEScanningMode.Active;
@@ -128,6 +129,10 @@ namespace BecquerelMonitor
                             adressBLE.Add(dev.BluetoothAddress.ToString());
                             int item = comboBox1.Items.IndexOf(name);
                             if (item == -1) comboBox1.Items.Add(name);
+                        }));
+                        TroubleshootText.Invoke(new Action(() =>
+                        {
+                            TroubleshootText.AppendText($"Found device {name} with BLE addr {dev.BluetoothAddress}");
                         }));
                     } catch (Exception) { }
                 }
@@ -231,8 +236,8 @@ namespace BecquerelMonitor
             }
             tshootText += $"{System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss")} Starting new RadiaCodeIn instance for GUID {deviceConfigForm.ActiveDeviceConfig.Guid}" + Environment.NewLine;
             RadiaCodeIn radiaCodeIn = RadiaCodeIn.getInstance(deviceConfigForm.ActiveDeviceConfig.Guid, troubleshoot: true);
-            radiaCodeIn.setDeviceSerial(config.DeviceSerial, config.AddressBLE);
             radiaCodeIn.TroubleShoot += RadiaCodeIn_TroubleShoot;
+            radiaCodeIn.setDeviceSerial(config.DeviceSerial, config.AddressBLE);
             radiaCodeIn.sendCommand("Start");
             isRunning = true;
             while(isRunning)
