@@ -267,7 +267,7 @@ namespace BecquerelMonitor
         {
             FWHMPeakDetectionMethodConfig config = new FWHMPeakDetectionMethodConfig();
             config.Ch_Concat = 1024;
-            config.FWHM_AT_0 = 8;
+            config.FWHM_AT_0 = 6;
             config.Min_FWHM_Tol = 10;
             config.Max_FWHM_Tol = 190;
             config.Ch_Fwhm = 234;
@@ -281,7 +281,7 @@ namespace BecquerelMonitor
         {
             FWHMPeakDetectionMethodConfig config = new FWHMPeakDetectionMethodConfig();
             config.Ch_Concat = 1024;
-            config.FWHM_AT_0 = 8;
+            config.FWHM_AT_0 = 6;
             config.Min_FWHM_Tol = 10;
             config.Max_FWHM_Tol = 190;
             config.Ch_Fwhm = 241;
@@ -295,7 +295,7 @@ namespace BecquerelMonitor
         {
             FWHMPeakDetectionMethodConfig config = new FWHMPeakDetectionMethodConfig();
             config.Ch_Concat = 1024;
-            config.FWHM_AT_0 = 8;
+            config.FWHM_AT_0 = 6;
             config.Min_FWHM_Tol = 10;
             config.Max_FWHM_Tol = 190;
             config.Ch_Fwhm = 444;
