@@ -168,7 +168,6 @@ namespace BecquerelMonitor
 
         private void Watcher_Recived(BluetoothLEAdvertisementWatcher sender, BluetoothLEAdvertisementReceivedEventArgs args)
         {
-            // Trace.WriteLine(args.BluetoothAddress.ToString());
             return;
         }
 
@@ -344,12 +343,18 @@ namespace BecquerelMonitor
             get { return this.guid; }
         }
 
-        public async void setDeviceSerial(string deviceSerial, string addressBle)
+        public async void setDeviceSerial(string devSerial, string addrBle)
         {
-            this.deviceserial = deviceSerial;
-            this.addressble = addressBle;
-            this.device_serial_changed = true;
-            await TestBT();
+            if (addrBle != null)
+            {
+                this.deviceserial = devSerial;
+                this.addressble = addrBle;
+                this.device_serial_changed = true;
+                await TestBT();
+            } else
+            {
+                sendTroubleShoot("Address BLE is empty, nothing to test");
+            }
         }
 
         public void sendCommand(string command)
@@ -459,7 +464,14 @@ namespace BecquerelMonitor
                                 }
                                 else
                                 {
-                                    throw new Exception(Resources.ERREmptyPortName);
+                                    // addressble is empty.
+                                    if (this.trshoot)
+                                    {
+                                        sendTroubleShoot("QUIT");
+                                    }
+                                    Thread.Sleep(500);
+                                    thread_alive = false;
+                                    break;
                                 }
                             }
                             catch (Exception)
@@ -554,6 +566,7 @@ namespace BecquerelMonitor
                 }
             }
             Trace.WriteLine("RadiaCodeIn thread stopped " + guid);
+            sendTroubleShoot($"RadiaCodeIn thread stopped {guid}");
         }
 
         public double CPS
@@ -576,6 +589,7 @@ namespace BecquerelMonitor
 
         private void DisconnectBLE()
         {
+            sendTroubleShoot("Disconnect BLE service");
             Trace.WriteLine("Disconnect BLE service");
             if (service != null) service.Dispose(); service = null;
             if (dev != null) dev.Dispose(); dev = null;
