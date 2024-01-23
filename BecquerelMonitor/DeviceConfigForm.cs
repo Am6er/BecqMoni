@@ -533,9 +533,26 @@ namespace BecquerelMonitor
             this.numericUpDown5.Value = (decimal)FWHMPeakDetectionMethodConfig.FWHM_AT_0;
             this.numericUpDown10.Value = (decimal)FWHMPeakDetectionMethodConfig.Ch_Fwhm;
             this.numericUpDown11.Value = (decimal)FWHMPeakDetectionMethodConfig.Width_Fwhm;
-            this.numericUpDown14.Value = (decimal)FWHMPeakDetectionMethodConfig.Min_FWHM_Tol;
-            this.numericUpDown15.Value = (decimal)FWHMPeakDetectionMethodConfig.Max_FWHM_Tol;
+            this.numericUpDown14.Value = FWHMPeakDetectionMethodConfig.Min_FWHM_Tol;
+            this.numericUpDown15.Value = FWHMPeakDetectionMethodConfig.Max_FWHM_Tol;
+            this.numericUpDown16.Value = FWHMPeakDetectionMethodConfig.Ch_Concat;
+            this.numericUpDown12.Value = (decimal)FWHMPeakDetectionMethodConfig.Min_Range;
             this.contentsLoading = false;
+
+            /*
+            FWHMPeakDetectionMethodConfig.Min_SNR = (double)this.numericUpDown4.Value;
+            FWHMPeakDetectionMethodConfig.Max_Items = (int)this.numericUpDown3.Value;
+            FWHMPeakDetectionMethodConfig.FWHM_AT_0 = (double)this.numericUpDown5.Value;
+            FWHMPeakDetectionMethodConfig.Tolerance = (double)this.numericUpDown6.Value;
+            FWHMPeakDetectionMethodConfig.Ch_Fwhm = (double)this.numericUpDown10.Value;
+            FWHMPeakDetectionMethodConfig.Width_Fwhm = (double)this.numericUpDown11.Value;
+            FWHMPeakDetectionMethodConfig.Min_Range = (double)this.numericUpDown12.Value;
+            FWHMPeakDetectionMethodConfig.Max_Range = (double)this.numericUpDown13.Value;
+            FWHMPeakDetectionMethodConfig.Min_FWHM_Tol = this.numericUpDown14.Value;
+            FWHMPeakDetectionMethodConfig.Max_FWHM_Tol = this.numericUpDown15.Value;
+            FWHMPeakDetectionMethodConfig.Ch_Concat = (int)this.numericUpDown16.Value;
+            */
+
         }
 
         // Token: 0x06000523 RID: 1315 RVA: 0x000212F0 File Offset: 0x0001F4F0

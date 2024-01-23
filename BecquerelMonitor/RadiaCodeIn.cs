@@ -1,5 +1,4 @@
-﻿using BecquerelMonitor.Properties;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -11,7 +10,6 @@ using Windows.Storage.Streams;
 using System.Threading.Tasks;
 using Windows.Devices.Radios;
 using Windows.Devices.Bluetooth.Advertisement;
-using System.Runtime.CompilerServices;
 
 namespace BecquerelMonitor
 {
@@ -522,9 +520,9 @@ namespace BecquerelMonitor
                                 while (!packet.COMPLETE)
                                 {
                                     if (packet.BROKEN || !thread_alive || state != State.Connected) break;
-                                    Thread.Sleep(300);
+                                    Thread.Sleep(200);
                                     counter++;
-                                    if (counter >= 25)
+                                    if (counter >= 38)
                                     {
                                         packet.BROKEN = true;
                                         setStatus(State.Connecting);
