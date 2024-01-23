@@ -300,12 +300,12 @@ namespace BecquerelMonitor
         {
             FWHMPeakDetectionMethodConfig config = new FWHMPeakDetectionMethodConfig();
             config.Ch_Concat = 1024;
-            config.FWHM_AT_0 = 6;
+            config.FWHM_AT_0 = 4;
             config.Min_FWHM_Tol = 10;
             config.Max_FWHM_Tol = 190;
-            config.Ch_Fwhm = 444;
+            config.Ch_Fwhm = 266;
             config.Width_Fwhm = 26;
-            config.Min_Range = 15;
+            config.Min_Range = 10;
 
             return config;
         }
