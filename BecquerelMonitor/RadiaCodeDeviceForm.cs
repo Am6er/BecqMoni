@@ -203,11 +203,13 @@ namespace BecquerelMonitor
                 {
                     radiaCodeInputDevice.DeviceSerial = comboBox1.SelectedItem.ToString();
                     radiaCodeInputDevice.AddressBLE = adressBLE.ElementAt(currentBLEindex);
+                    radiaCodeInputDevice.RC_EnergyCalibration = radiaCodeInputDevice.RC_EnergyCalibration;
                 }
                 else
                 {
                     radiaCodeInputDevice.DeviceSerial = null;
                     radiaCodeInputDevice.AddressBLE = null;
+                    radiaCodeInputDevice.RC_EnergyCalibration = null;
                 }
             }
             catch (Exception)

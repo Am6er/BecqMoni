@@ -396,8 +396,6 @@ namespace BecquerelMonitor
             }
             
             this.inputDeviceForm.LoadFormContents(config.InputDeviceConfig);
-            this.deviceFormLoading = false;
-            this.deviceFormLoading = true;
             ThermometerType type2 = null;
             ThermometerType.ThermometerTypeMap.TryGetValue(config.ThermometerType, out type2);
             this.PrepareThermometerForm(type2);
@@ -434,6 +432,22 @@ namespace BecquerelMonitor
             this.ShowCalibrationPoints();
             this.UpdateMultipointButtonState();
             this.tableModel3.Rows.Clear();
+            if (type.Name == "RadiaCode")
+            {
+                RadiaCodeDeviceConfig rc_config = (RadiaCodeDeviceConfig)config.InputDeviceConfig;
+                if (rc_config.RC_EnergyCalibration != null)
+                {
+                    this.textBox16.Text = rc_config.RC_EnergyCalibration.ToString();
+                    this.button14.Enabled = true;
+                    this.button14.Visible = true;
+                } else
+                {
+                    this.button14.Enabled = false;
+                    this.button14.Visible = true;
+                    this.textBox16.Text = "";
+                }
+            }
+
             if (config.StabilizerConfig != null)
             {
                 foreach (TargetPeak targetPeak in config.StabilizerConfig.TargetPeaks)
@@ -574,6 +588,19 @@ namespace BecquerelMonitor
                 config.NumberOfChannels = int.Parse(this.integerTextBox1.Text);
                 config.ChannelPitch = double.Parse(this.doubleTextBox6.Text);
                 config.Note = this.textBox19.Text;
+                if (config.InputDeviceConfig is RadiaCodeDeviceConfig)
+                {
+                    PolynomialEnergyCalibration cal = (PolynomialEnergyCalibration)config.EnergyCalibration;
+                    if (cal.PolynomialOrder == 2)
+                    {
+                        RadiaCodeDeviceConfig rc_config = (RadiaCodeDeviceConfig)config.InputDeviceConfig;
+                        rc_config.RC_EnergyCalibration = cal;
+                    } else if (this.rc_EnergyCalibration != null)
+                    {
+                        RadiaCodeDeviceConfig rc_config = (RadiaCodeDeviceConfig)config.InputDeviceConfig;
+                        rc_config.RC_EnergyCalibration = this.rc_EnergyCalibration;
+                    }
+                }
                 this.inputDeviceForm.SaveFormContents(config.InputDeviceConfig);
                 this.thermometerForm.SaveFormContents(config.ThermometerConfig);
                 PolynomialEnergyCalibration polynomialEnergyCalibration = (PolynomialEnergyCalibration)config.EnergyCalibration;
@@ -1220,6 +1247,89 @@ namespace BecquerelMonitor
                     {
                         MessageBox.Show(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + ex.Message);
                     }
+                } else if (this.activeDeviceConfig.DeviceType == "RadiaCode")
+                {
+                    if (this.button6.Enabled)
+                    {
+                        MessageBox.Show(Resources.MSGSaveBeforeWritingData);
+                        return;
+                    }
+                    try
+                    {
+                        Cursor.Current = Cursors.WaitCursor;
+                        b.ReportProgress(0);
+                        RadiaCodeDeviceConfig rc_config = (RadiaCodeDeviceConfig)this.activeDeviceConfig.InputDeviceConfig;
+                        PolynomialEnergyCalibration polynomialEnergyCalibration = rc_config.RC_EnergyCalibration;
+                        if (polynomialEnergyCalibration == null)
+                        {
+                            MessageBox.Show(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + "Empty calibration");
+                            return;
+                        }
+
+                        bool commands_accepted = false;
+                        RadiaCodeIn device = null;
+                        List<RadiaCodeIn> instances = RadiaCodeIn.getAllInstances();
+                        bool runexist = false;
+                        if (instances.Count > 0)
+                        {
+                            foreach (RadiaCodeIn instance in instances)
+                            {
+                                if (instance.GUID == this.activeDeviceConfig.Guid)
+                                {
+                                    device = instance;
+                                    runexist = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!runexist)
+                        {
+                            device = new RadiaCodeIn(this.activeDeviceConfig.Guid);
+                            device.setDeviceSerial(rc_config.DeviceSerial, rc_config.AddressBLE);
+                        }
+                        string status_msg = "";
+
+                        device.setCalibration(polynomialEnergyCalibration);
+
+                        device.sendCommand("Calibration");
+
+                        for (int i = 0; i < 100; i++)
+                        {
+                            Thread.Sleep(100);
+                            if (device.getStateString() == "Calibration done")
+                            {
+                                commands_accepted = true;
+                                b.ReportProgress(100);
+                                break;
+                            } else if (device.getStateString() == "Calibration fail")
+                            {
+                                commands_accepted = false;
+                                b.ReportProgress(100);
+                                break;
+                            }
+                        }
+
+                        if (!runexist)
+                        {
+                            device.Dispose();
+                        } else
+                        {
+                            device.sendCommand("Continue");
+                        }
+                        Cursor.Current = Cursors.Default;
+                        if (commands_accepted)
+                        {
+                            MessageBox.Show(Resources.MSGCoefficientsUploadedSuccesfull);
+                        }
+                        else
+                        {
+                            MessageBox.Show(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + status_msg);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + ex.Message);
+                    }
                 }
 
 
@@ -1517,6 +1627,14 @@ namespace BecquerelMonitor
             {
                 MessageBox.Show(Resources.CalibrationFunctionError);
                 return;
+            }
+            if (activeDeviceConfig.InputDeviceConfig is RadiaCodeDeviceConfig && energyCalibration.PolynomialOrder >= 2)
+            {
+                matrix = Utils.CalibrationSolver.Solve(points, 2);
+                if (matrix == null) throw new Exception("Error");
+                rc_EnergyCalibration = new PolynomialEnergyCalibration();
+                rc_EnergyCalibration.Coefficients = matrix;
+                rc_EnergyCalibration.PolynomialOrder = 2;
             }
             this.multipointModified = false;
             this.calibrationDone = true;
@@ -1903,5 +2021,7 @@ namespace BecquerelMonitor
 
         // Token: 0x040002C8 RID: 712
         int selectedThermometerIndex = -1;
+
+        PolynomialEnergyCalibration rc_EnergyCalibration;
     }
 }

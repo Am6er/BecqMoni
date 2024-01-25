@@ -419,7 +419,7 @@
  {0}</value>
   </data>
   <data name="ERRUploadCoefficeintsToDevice" xml:space="preserve">
-    <value>Некоторые коэффициенты были загружены с ошибкой! Проверьте подключение к устройству, кабель и попробуйте загрузить заново.</value>
+    <value>Коэффициенты были загружены с ошибкой! Проверьте подключение к устройству, кабель и попробуйте загрузить заново.</value>
   </data>
   <data name="ERRVCPComPortsNumeration" xml:space="preserve">
     <value>Ошибка при получении списка COM портов из ОС. Операционна система вернула пустой список. Выставляется значение порта из конфигурации устройства, но следует разобраться с системным USB хабом в ОС.</value>
@@ -519,7 +519,7 @@ http://xptable.sourceforge.net/</value>
     <value>Очистить спектр?</value>
   </data>
   <data name="MSGCoefficientsUploadedSuccesfull" xml:space="preserve">
-    <value>Коэффициенты калибровки успешно загружены в Atom Spectra Pro.</value>
+    <value>Коэффициенты калибровки успешно загружены в устройство.</value>
   </data>
   <data name="MSGComPort" xml:space="preserve">
     <value>COM порт:</value>

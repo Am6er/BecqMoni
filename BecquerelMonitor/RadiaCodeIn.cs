@@ -18,7 +18,7 @@ namespace BecquerelMonitor
         private Thread readerThread, discoveryThread;
         private volatile bool thread_alive = true;
         private int[] hystogram_buffered = new int[1024];
-        private enum State { Connecting, Connected, Disconnected, Resetting };
+        private enum State { Connecting, Connected, Disconnected, Resetting, Calibration, CalibrationDone, CalibrationFail };
         private State state = State.Disconnected;
         private double cps;
         private String deviceserial, addressble;
@@ -31,6 +31,7 @@ namespace BecquerelMonitor
         private const string RC_SET_EXCHANGE = "\x08\x00\x00\x00\x07\x00\x00\x80\x01\xff\x12\xff";
         private const string RC_GET_SPECTRUM = "\x08\x00\x00\x00&\x08\x00\x80\x00\x02\x00\x00";
         private const string RC_RESET_SPECTRUM = "\x0c\x00\x00\x00'\x08\x00\x82\x00\x02\x00\x00\x00\x00\x00\x00";
+        private const string RC_VS_ENERGY_CALIB = "\x18\x00\x00\x00'\x08\x00\x83\x02\x02\x00\x00\x0c\x00\x00\x00";
         BluetoothLEDevice dev = null;
         GattDeviceService service = null;
         GattCharacteristic characteristic, characteristicNotify = null;
@@ -43,8 +44,16 @@ namespace BecquerelMonitor
         public event EventHandler<RadiaCodeTroubleShootArgs> TroubleShoot;
         private static List<RadiaCodeIn> instances = new List<RadiaCodeIn>();
         private bool trshoot = false;
+        private bool calibration = false;
+        private bool calibration_sent = false;
+        private PolynomialEnergyCalibration polynomialEnergyCalibration;
 
         float A0, A1, A2;
+
+        public void setCalibration(PolynomialEnergyCalibration cal)
+        {
+            this.polynomialEnergyCalibration = cal;
+        }
 
         public static void cleanUp(string guid)
         {
@@ -83,6 +92,9 @@ namespace BecquerelMonitor
                 case 1: return "Connected";
                 case 2: return "Disconnected";
                 case 3: return "Resetting";
+                case 4: return "Calibration";
+                case 5: return "Calibration done";
+                case 6: return "Calibration fail";
                 default: return "Unknown";
             }
         }
@@ -205,7 +217,7 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                Trace.WriteLine(ex.Message);
+                Trace.WriteLine($"Exception: {ex.Message} {ex.StackTrace}");
             }
         }
 
@@ -234,16 +246,35 @@ namespace BecquerelMonitor
                 DataReader reader = DataReader.FromBuffer(args.CharacteristicValue);
                 byte[] buffer = new byte[reader.UnconsumedBufferLength];
                 reader.ReadBytes(buffer);
+                Trace.WriteLine("Got buffer: " + string.Join(",", buffer));
                 //skip exhange packet
-                if (string.Join(",", buffer).StartsWith("16,0,0,0,7,0,0,128,51,255,3,255"))
+                if (string.Join(",", buffer).StartsWith("16,0,0,0,7,0,0,128"))
                 {
-                    if (buffer[16] == 1)
+                    if (buffer.Length > 17 && buffer[16] == 1)
                     {
                         sendTroubleShoot("Exchange response: BLE_IF ready");
                         Trace.WriteLine("Exchange response: BLE_IF ready");
                     } else
                     {
                         sendTroubleShoot("Error! Exchange response: BLE_IF busy");
+                        Trace.WriteLine("Exchange response: BLE_IF ready");
+                    }
+                    return;
+                }
+                //calibration response
+                if (calibration && calibration_sent)
+                {
+                    if (string.Join(",", buffer).StartsWith("8,0,0,0,39,8,0,131"))
+                    {
+                        if (buffer.Length > 9 && buffer[8] == 1)
+                        {
+                            Trace.WriteLine("Calibration response - calibration done.");
+                            setStatus(State.CalibrationDone); return;
+                        } else
+                        {
+                            Trace.WriteLine("Calibration response - calibration fail.");
+                            setStatus(State.CalibrationFail); return;
+                        }
                     }
                     return;
                 }
@@ -287,8 +318,9 @@ namespace BecquerelMonitor
                         this.A0 = calibration[0];
                         this.A1 = calibration[1];
                         this.A2 = calibration[2];
-                    } catch (Exception)
+                    } catch (Exception ex)
                     {
+                        Trace.WriteLine($"Exception: {ex.Message} {ex.StackTrace}");
                         packet.BROKEN = true;
                         Trace.WriteLine("Drop packet because it is not spectrum packet");
                         return;
@@ -363,6 +395,14 @@ namespace BecquerelMonitor
                 case "Start": setStatus(State.Connecting); Thread.Sleep(100); break;
                 case "Stop": setStatus(State.Disconnected); DisconnectBLE(); break;
                 case "Reset": setStatus(State.Resetting); Thread.Sleep(100); break;
+                case "Calibration":
+                    {
+                        calibration = true;
+                        if (this.state == State.Disconnected) setStatus(State.Connecting);
+                        Thread.Sleep(100);
+                        break;
+                    }
+                case "Continue": setStatus(State.Connected); Thread.Sleep(100); break;
                 default: setStatus(State.Disconnected); break;
             }
         }
@@ -392,7 +432,37 @@ namespace BecquerelMonitor
                 try
                 {
                     GattCommunicationStatus result = await characteristic.WriteValueAsync(writer.DetachBuffer());
-                } catch (Exception) {
+                } catch (Exception ex) {
+                    Trace.WriteLine($"Exception: {ex.Message} {ex.StackTrace}");
+                    setStatus(State.Connecting);
+                }
+            }
+        }
+
+        private async void WriteCalibration(PolynomialEnergyCalibration calibration)
+        {
+            byte[] a0 = BitConverter.GetBytes(Convert.ToSingle(calibration.Coefficients[0]));
+            byte[] a1 = BitConverter.GetBytes(Convert.ToSingle(calibration.Coefficients[1]));
+            byte[] a2 = BitConverter.GetBytes(Convert.ToSingle(calibration.Coefficients[2]));
+            byte[] rc_vs_array = RC_VS_ENERGY_CALIB.ToCharArray().Select(b => (byte)b).ToArray<byte>();
+
+            byte[] payload = rc_vs_array.Concat(a0).Concat(a1).Concat(a2).ToArray();
+            byte[] payload1 = payload.Take(18).ToArray();
+            byte[] payload2 = payload.Skip(18).ToArray();
+
+            DataWriter writer = new DataWriter();
+            if (characteristic != null)
+            {
+                try
+                {
+                    writer.WriteBytes(payload1);
+                    GattCommunicationStatus result = await characteristic.WriteValueAsync(writer.DetachBuffer());
+                    writer.WriteBytes(payload2);
+                    result = await characteristic.WriteValueAsync(writer.DetachBuffer());
+                }
+                catch (Exception ex)
+                {
+                    Trace.WriteLine($"Exception: {ex.Message} {ex.StackTrace}");
                     setStatus(State.Connecting);
                 }
             }
@@ -472,8 +542,9 @@ namespace BecquerelMonitor
                                     break;
                                 }
                             }
-                            catch (Exception)
+                            catch (Exception ex)
                             {
+                                Trace.WriteLine($"Exception: {ex.Message} {ex.StackTrace}");
                                 DisconnectBLE();
                                 Thread.Sleep(500);
                             }
@@ -495,11 +566,37 @@ namespace BecquerelMonitor
                                 Thread.Sleep(1000);
                                 setStatus(State.Connecting);
                             }
-                            catch (Exception)
+                            catch (Exception ex)
                             {
+                                Trace.WriteLine($"Exception: {ex.Message} {ex.StackTrace}");
                                 setStatus(State.Connecting);
                                 if (PortFailure != null) PortFailure(this, null);
                             }
+                            break;
+                        }
+
+                    case State.Calibration:
+                        {
+                            if (polynomialEnergyCalibration != null && !calibration_sent)
+                            {
+                                packet = new RCSpectrum();
+                                WriteCalibration(this.polynomialEnergyCalibration);
+                                calibration_sent = true;
+                                Trace.WriteLine("Calibration sent");
+                            }
+                            if (calibration_sent)
+                            {
+                                Thread.Sleep(200);
+                            }
+                            break;
+                        }
+
+                    case State.CalibrationDone:
+                    case State.CalibrationFail:
+                        {
+                            if (calibration) calibration = false;
+                            if (calibration_sent) calibration_sent = false;
+                            Thread.Sleep(200);
                             break;
                         }
 
@@ -511,6 +608,11 @@ namespace BecquerelMonitor
                                 if (dev == null || service == null || characteristic == null || characteristicNotify == null)
                                 {
                                     setStatus(State.Connecting);
+                                    break;
+                                }
+                                if (calibration)
+                                {
+                                    setStatus(State.Calibration);
                                     break;
                                 }
                                 packet = new RCSpectrum();
@@ -565,6 +667,16 @@ namespace BecquerelMonitor
             }
             Trace.WriteLine("RadiaCodeIn thread stopped " + guid);
             sendTroubleShoot($"RadiaCodeIn thread stopped {guid}");
+        }
+
+        private string ToCharStr(byte[] input)
+        {
+            string res = "";
+            for (int i = 0; i < input.Length; i++)
+            {
+                res += (char)input[i];
+            }
+            return res;
         }
 
         public double CPS

@@ -76,7 +76,7 @@ namespace BecquerelMonitor
                 }
                 if (newpeak.Nuclide != null && peak.Nuclide != null)
                 {
-                    if (newpeak.Nuclide.Energy == peak.Nuclide.Energy)
+                    if (newpeak.Nuclide.Energy == peak.Nuclide.Energy || newpeak.Nuclide.Name == peak.Nuclide.Name)
                     {
                         return false;
                     }
