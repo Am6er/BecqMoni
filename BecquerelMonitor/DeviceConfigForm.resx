@@ -2191,7 +2191,7 @@
     <value>76, 35</value>
   </data>
   <data name="button14.Text" xml:space="preserve">
-    <value>Write to Atom Pro</value>
+    <value>Write to device</value>
   </data>
   <data name="button14.Location" type="System.Drawing.Point, System.Drawing">
     <value>130, 64</value>
@@ -2912,5 +2912,38 @@
   </data>
   <data name="button16.Location" type="System.Drawing.Point, System.Drawing">
     <value>120, 100</value>
+  </data>
+    <data name="textBox16.Location" type="System.Drawing.Point, System.Drawing">
+    <value>8, 56</value>
+  </data>
+  <data name="textBox16.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Top, Left, Right</value>
+  </data>
+  <data name="textBox16.Size" type="System.Drawing.Size, System.Drawing">
+    <value>448, 16</value>
+  </data>
+  <data name="textBox16.Text" xml:space="preserve">
+    <value></value>
+  </data>
+  <data name="textBox16.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
+    <value>Center</value>
+  </data>
+  <data name="&gt;&gt;textBox16.Parent" xml:space="preserve">
+    <value>tabPage2</value>
+  </data>
+  <data name="textBox16.TabIndex" type="System.Int32, mscorlib">
+    <value>40</value>
+  </data>
+  <data name="&gt;&gt;textBox16.ZOrder" xml:space="preserve">
+    <value>6</value>
+  </data>
+  <data name="&gt;&gt;textBox16.Name" xml:space="preserve">
+    <value>textBox16</value>
+  </data>
+  <data name="&gt;&gt;textBox16.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="textBox16.Multiline" type="System.Boolean, mscorlib">
+    <value>True</value>
   </data>
 </root>

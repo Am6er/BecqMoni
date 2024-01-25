@@ -1312,7 +1312,7 @@
     <value>Читать с утройства</value>
   </data>
   <data name="button14.Text" xml:space="preserve">
-    <value>Писать в Atom Pro</value>
+    <value>Записать в устройство</value>
   </data>
   <data name="button2.Text" xml:space="preserve">
     <value>Удалить</value>

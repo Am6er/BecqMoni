@@ -244,6 +244,17 @@ namespace BecquerelMonitor
                 return;
             }
             deviceConfig.EnergyCalibration = this.energyCalibration;
+            if (deviceConfig.InputDeviceConfig is RadiaCodeDeviceConfig)
+            {
+                RadiaCodeDeviceConfig rc_deviceConfig = (RadiaCodeDeviceConfig)deviceConfig.InputDeviceConfig;
+                if (this.energyCalibration.PolynomialOrder == 2)
+                {
+                    rc_deviceConfig.RC_EnergyCalibration = this.energyCalibration;
+                } else if (this.energyCalibration.PolynomialOrder > 2 && this.rc_EnergyCalibration != null)
+                {
+                    rc_deviceConfig.RC_EnergyCalibration = this.rc_EnergyCalibration;
+                }
+            }
             DeviceConfigManager.GetInstance().SaveConfig(activeDocument.ActiveResultData.DeviceConfig);
             activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration = this.energyCalibration;
             this.mainForm.UpdateDeviceConfigForm();
@@ -747,6 +758,28 @@ namespace BecquerelMonitor
                 MessageBox.Show(Resources.CalibrationFunctionError);
                 return;
             }
+
+            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+            DeviceConfigInfo deviceConfig = activeDocument.ActiveResultData.DeviceConfig;
+            if (deviceConfig != null || deviceConfig.Guid != null || deviceConfig.Guid != "")
+            {
+                if (deviceConfig.InputDeviceConfig is RadiaCodeDeviceConfig && PolynomOrder >= 2)
+                {
+                    if (this.checkBox2.Checked)
+                    {
+                        matrix = Utils.CalibrationSolver.SolveWeighted(points, 2);
+                    }
+                    else
+                    {
+                        matrix = Utils.CalibrationSolver.Solve(points, 2);
+                    }
+                    if (matrix == null) throw new Exception("Error");
+                    rc_EnergyCalibration = new PolynomialEnergyCalibration();
+                    rc_EnergyCalibration.Coefficients = matrix;
+                    rc_EnergyCalibration.PolynomialOrder = 2;
+                }
+            }
+
             this.numericUpDown1.Text = "0";
             this.numericUpDown2.Text = "0";
             this.numericUpDown3.Text = "0";
@@ -829,6 +862,8 @@ namespace BecquerelMonitor
 
         // Token: 0x04000418 RID: 1048
         PolynomialEnergyCalibration defaultEnergyCalibration;
+
+        PolynomialEnergyCalibration rc_EnergyCalibration;
 
         // Token: 0x04000419 RID: 1049
         bool enableMultipointCalibration;

@@ -41638,10 +41638,10 @@ http://xptable.sourceforge.net/</value>
     <value>This application works in standalone mode. If you want to use update re-install it.</value>
   </data>
   <data name="ERRUploadCoefficeintsToDevice" xml:space="preserve">
-    <value>Error! Some coefficients uploaded with error! Check connection and reupload it again.</value>
+    <value>Error! Сoefficients uploaded with error! Check connection and reupload it again.</value>
   </data>
   <data name="MSGCoefficientsUploadedSuccesfull" xml:space="preserve">
-    <value>Coefficients uploaded to Atom Spectra Pro successfully.</value>
+    <value>Coefficients uploaded to device successfully.</value>
   </data>
   <data name="MSGNoNewVersion" xml:space="preserve">
     <value>No new version avalable. Current version: {0}</value>

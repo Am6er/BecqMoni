@@ -1173,7 +1173,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Error! Some coefficients uploaded with error! Check connection and reupload it again..
+        ///   Looks up a localized string similar to Error! Сoefficients uploaded with error! Check connection and reupload it again..
         /// </summary>
         internal static string ERRUploadCoefficeintsToDevice {
             get {
@@ -1469,7 +1469,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Coefficients uploaded to Atom Spectra Pro successfully..
+        ///   Looks up a localized string similar to Coefficients uploaded to device successfully..
         /// </summary>
         internal static string MSGCoefficientsUploadedSuccesfull {
             get {

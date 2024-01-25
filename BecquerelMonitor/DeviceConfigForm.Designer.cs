@@ -108,7 +108,8 @@ namespace BecquerelMonitor
 			this.numericUpDown9 = new global::System.Windows.Forms.TextBox();
 			this.label8 = new global::System.Windows.Forms.Label();
 			this.textBox15 = new global::System.Windows.Forms.TextBox();
-			this.tabPage5 = new global::System.Windows.Forms.TabPage();
+            this.textBox16 = new global::System.Windows.Forms.TextBox();
+            this.tabPage5 = new global::System.Windows.Forms.TabPage();
 			this.groupBox3 = new global::System.Windows.Forms.GroupBox();
 			this.groupBox2 = new global::System.Windows.Forms.GroupBox();
 			this.label40 = new global::System.Windows.Forms.Label();
@@ -275,7 +276,8 @@ namespace BecquerelMonitor
 			this.tabPage2.Controls.Add(this.groupBox1);
 			this.tabPage2.Controls.Add(this.label8);
 			this.tabPage2.Controls.Add(this.textBox15);
-			this.tabPage2.Name = "tabPage2";
+            this.tabPage2.Controls.Add(this.textBox16);
+            this.tabPage2.Name = "tabPage2";
 			resources.ApplyResources(this.panel2, "panel2");
 			this.panel2.BackColor = global::System.Drawing.SystemColors.ControlLight;
 			this.panel2.Controls.Add(this.button10);
@@ -468,7 +470,13 @@ namespace BecquerelMonitor
 			this.textBox15.Name = "textBox15";
 			this.textBox15.ReadOnly = true;
 			this.textBox15.TabStop = false;
-			resources.ApplyResources(this.tabPage5, "tabPage5");
+            resources.ApplyResources(this.textBox16, "textBox16");
+            this.textBox16.BackColor = global::System.Drawing.SystemColors.ControlLight;
+            this.textBox16.BorderStyle = global::System.Windows.Forms.BorderStyle.None;
+            this.textBox16.Name = "textBox16";
+            this.textBox16.ReadOnly = true;
+            this.textBox16.TabStop = false;
+            resources.ApplyResources(this.tabPage5, "tabPage5");
 			this.tabPage5.BackColor = global::System.Drawing.SystemColors.Control;
 			this.tabPage7.Controls.Add(this.groupBox3);
 			this.tabPage5.Controls.Add(this.groupBox2);
@@ -982,8 +990,10 @@ namespace BecquerelMonitor
 		// Token: 0x0400029E RID: 670
 		global::System.Windows.Forms.TextBox textBox15;
 
-		// Token: 0x0400029F RID: 671
-		global::XPTable.Models.Table table2;
+        global::System.Windows.Forms.TextBox textBox16;
+
+        // Token: 0x0400029F RID: 671
+        global::XPTable.Models.Table table2;
 
 		// Token: 0x040002A0 RID: 672
 		global::XPTable.Models.ColumnModel columnModel2;
