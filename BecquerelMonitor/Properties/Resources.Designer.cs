@@ -1649,7 +1649,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Save configuration before writing config to Atom Pro device..
+        ///   Looks up a localized string similar to Save configuration before writing config to device..
         /// </summary>
         internal static string MSGSaveBeforeWritingData {
             get {

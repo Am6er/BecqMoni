@@ -579,7 +579,7 @@ http://xptable.sourceforge.net/</value>
     <value>Обновление приложения завершено успешно. Сейчас приложение БУДЕТ ПЕРЕЗАГРУЖЕНО.</value>
   </data>
   <data name="MSGSaveBeforeWritingData" xml:space="preserve">
-    <value>Сохраните конфигурацию устройства перед тем, как записывать изменения в Atom Spectra Pro.</value>
+    <value>Сохраните конфигурацию устройства перед тем, как записывать изменения в устройство.</value>
   </data>
   <data name="MSGSaveEnergyCalibration" xml:space="preserve">
     <value>Сохранить параметры калибровки в текущей конфигурации устройства?</value>
