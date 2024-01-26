@@ -246,7 +246,7 @@ namespace BecquerelMonitor
                 DataReader reader = DataReader.FromBuffer(args.CharacteristicValue);
                 byte[] buffer = new byte[reader.UnconsumedBufferLength];
                 reader.ReadBytes(buffer);
-                Trace.WriteLine("Got buffer: " + string.Join(",", buffer));
+                //Trace.WriteLine("Got buffer: " + string.Join(",", buffer));
                 //skip exhange packet
                 if (string.Join(",", buffer).StartsWith("16,0,0,0,7,0,0,128"))
                 {
@@ -269,11 +269,17 @@ namespace BecquerelMonitor
                         if (buffer.Length > 9 && buffer[8] == 1)
                         {
                             Trace.WriteLine("Calibration response - calibration done.");
-                            setStatus(State.CalibrationDone); return;
+                            setStatus(State.CalibrationDone);
+                            calibration = false;
+                            calibration_sent = false;
+                            return;
                         } else
                         {
                             Trace.WriteLine("Calibration response - calibration fail.");
-                            setStatus(State.CalibrationFail); return;
+                            setStatus(State.CalibrationFail);
+                            calibration = false;
+                            calibration_sent = false;
+                            return;
                         }
                     }
                     return;
@@ -592,11 +598,16 @@ namespace BecquerelMonitor
                         }
 
                     case State.CalibrationDone:
+                        {
+                            Thread.Sleep(200);
+                            Trace.WriteLine($"State: CalibrationDone");
+                            break;
+                        }
+
                     case State.CalibrationFail:
                         {
-                            if (calibration) calibration = false;
-                            if (calibration_sent) calibration_sent = false;
                             Thread.Sleep(200);
+                            Trace.WriteLine($"State: CalibrationFail");
                             break;
                         }
 
@@ -652,6 +663,7 @@ namespace BecquerelMonitor
                                     thread_alive = false;
                                     break;
                                 }
+                                //Trace.WriteLine($"Data sent {sum}");
                                 if (DataReady != null) DataReady(this, new RadiaCodeInDataReadyArgs(hystogram_buffered, (int)packet.TIME_S, (int)sum));
                             }
                             catch (Exception ex)
@@ -667,16 +679,6 @@ namespace BecquerelMonitor
             }
             Trace.WriteLine("RadiaCodeIn thread stopped " + guid);
             sendTroubleShoot($"RadiaCodeIn thread stopped {guid}");
-        }
-
-        private string ToCharStr(byte[] input)
-        {
-            string res = "";
-            for (int i = 0; i < input.Length; i++)
-            {
-                res += (char)input[i];
-            }
-            return res;
         }
 
         public double CPS
