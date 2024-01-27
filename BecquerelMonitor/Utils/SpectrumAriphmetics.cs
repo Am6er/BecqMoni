@@ -111,7 +111,7 @@ namespace BecquerelMonitor.Utils
                 {
                     for (int i = 0; i < this.MainSpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels; i++)
                     {
-                        double getChannel = Math.Round(CombinedSpectrumEnergyCalibration.EnergyToChannel(MainSpectrumEnergyCalibration.ChannelToEnergy(i), maxChannels: docenergySpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels));
+                        double getChannel = Math.Round(CombinedSpectrumEnergyCalibration.EnergyToChannel(MainSpectrumEnergyCalibration.ChannelToEnergy(i), maxCh: docenergySpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels));
                         if (getChannel >= 0 && getChannel < this.MainSpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels)
                         {
                             this.MainSpectrum.ActiveResultData.EnergySpectrum.Spectrum[i] += docenergySpectrum.ActiveResultData.EnergySpectrum.Spectrum[Convert.ToInt32(getChannel)];
@@ -404,7 +404,7 @@ namespace BecquerelMonitor.Utils
         public static EnergySpectrum CutoffSpectrumEnergy(EnergySpectrum energySpectrum, double energyVal)
         {
             PolynomialEnergyCalibration calibration = (PolynomialEnergyCalibration)energySpectrum.EnergyCalibration;
-            int newChan = (int)calibration.EnergyToChannel(energyVal, maxChannels: energySpectrum.NumberOfChannels);
+            int newChan = (int)calibration.EnergyToChannel(energyVal, maxCh: energySpectrum.NumberOfChannels);
             return CutoffSpectrumChannels(energySpectrum, newChan);
         }
 

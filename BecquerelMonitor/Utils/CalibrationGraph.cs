@@ -203,7 +203,7 @@ namespace BecquerelMonitor.Utils
                             Resources.Delta,
                             Resources.ChartHeaderChannel,
                             " ",
-                            (int)(point.Channel - this.calibration.EnergyToChannel((double)point.Energy, maxChannels: this.maxChannels))
+                            (int)(point.Channel - this.calibration.EnergyToChannel((double)point.Energy, maxCh: this.maxChannels))
                          );
                     } else
                     {
@@ -223,7 +223,7 @@ namespace BecquerelMonitor.Utils
                             Resources.Delta,
                             Resources.ChartHeaderChannel,
                             " ",
-                            (int)(point.Channel - this.calibration.EnergyToChannel((double)point.Energy, maxChannels: this.maxChannels))
+                            (int)(point.Channel - this.calibration.EnergyToChannel((double)point.Energy, maxCh: this.maxChannels))
                          );
                     }
                     g.DrawString(labeltext, this.Font, textbrush, label);
