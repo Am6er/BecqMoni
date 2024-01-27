@@ -25,8 +25,8 @@ namespace BecquerelMonitor
 
             foreach (DoseRateCalibrationPoint point in config.DoseRateCalibrationPoints)
             {
-                int startch = (int)calibration.EnergyToChannel(point.LowerBound, maxChannels: energySpectrum.NumberOfChannels);
-                int endch = (int)calibration.EnergyToChannel(point.UpperBound, maxChannels: energySpectrum.NumberOfChannels);
+                int startch = (int)calibration.EnergyToChannel(point.LowerBound, maxCh: energySpectrum.NumberOfChannels);
+                int endch = (int)calibration.EnergyToChannel(point.UpperBound, maxCh: energySpectrum.NumberOfChannels);
                 if (startch < 0) startch = 0;
                 if (endch >= energySpectrum.Spectrum.Length) endch = energySpectrum.Spectrum.Length - 1;
                 double rate = 0.0;

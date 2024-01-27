@@ -2,9 +2,7 @@
 using MathNet.Numerics;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Xml.Serialization;
-using WinMM;
 
 namespace BecquerelMonitor
 {
@@ -57,6 +55,8 @@ namespace BecquerelMonitor
         {
             this.polynomialOrder = calib.polynomialOrder;
             this.coefficients = (double[])calib.coefficients.Clone();
+            this.maxEnergy = calib.maxEnergy;
+            this.maxChannels = calib.maxChannels;
         }
 
         // Token: 0x06000732 RID: 1842 RVA: 0x00029D7C File Offset: 0x00027F7C
@@ -166,8 +166,10 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000734 RID: 1844 RVA: 0x00029E1C File Offset: 0x0002801C
-        public override double EnergyToChannel(double enrg, int maxChannels = 8192)
+        public override double EnergyToChannel(double enrg, int maxCh = 8192)
         {
+            if (this.maxChannels != maxCh) this.maxChannels = maxCh;
+            if (this.maxEnergy == -1) this.maxEnergy = ChannelToEnergy(this.maxChannels);
             if (enrg > this.maxEnergy && this.maxEnergy != -1) return this.maxChannels;
             if (this.dirty || this.energytochanel == null)
             {

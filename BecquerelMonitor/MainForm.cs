@@ -2259,7 +2259,7 @@ namespace BecquerelMonitor
                 if (isEnergy)
                 {
                     PolynomialEnergyCalibration calibration = (PolynomialEnergyCalibration)this.activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration;
-                    int chan = (int)calibration.EnergyToChannel(energyVal, maxChannels: this.activeDocument.ActiveResultData.EnergySpectrum.NumberOfChannels);
+                    int chan = (int)calibration.EnergyToChannel(energyVal, maxCh: this.activeDocument.ActiveResultData.EnergySpectrum.NumberOfChannels);
                     if (chan >= this.activeDocument.ActiveResultData.EnergySpectrum.NumberOfChannels)
                     {
                         MessageBox.Show(Resources.ERRChanNumber);
