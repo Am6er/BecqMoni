@@ -131,6 +131,7 @@ namespace BecquerelMonitor
                     if (isNewPeak(existPeaks, peak))
                     {
                         peaks.Add(peak);
+                        existPeaks.Add(peak);
                     }
                     //energySpectrum = sa.SubtractPeak(peak, energySpectrum);
                 }
