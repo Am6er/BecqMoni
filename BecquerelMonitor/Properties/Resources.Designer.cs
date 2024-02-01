@@ -827,6 +827,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Empty RadiaCode address, nothing to test. Hit &quot;Scan BLE&quot; button, get your device in combobox and save config..
+        /// </summary>
+        internal static string ERREmptyRadiaCodeData {
+            get {
+                return ResourceManager.GetString("ERREmptyRadiaCodeData", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Excel may not be installed.
         /// </summary>
         internal static string ERRExcelNotInstalled {
