@@ -300,6 +300,9 @@
   <data name="ERREmptyPortName" xml:space="preserve">
     <value>Имя COM порта пустое</value>
   </data>
+  <data name="ERREmptyRadiaCodeData" xml:space="preserve">
+    <value>Отсутствуют данные об устройстве RadiaCode, нечего проверять. Нажмите кнопку "Scan BLE", выберите своё устройство и сохраните конфиг.</value>
+  </data>
   <data name="ERRExcelNotInstalled" xml:space="preserve">
     <value>MS Excell не установлен</value>
   </data>

@@ -223,6 +223,11 @@ namespace BecquerelMonitor
 
         private void troubleShootbtn_Click(object sender, EventArgs e)
         {
+            if (config.DeviceSerial == null || config.AddressBLE == null)
+            {
+                MessageBox.Show(Properties.Resources.ERREmptyRadiaCodeData);
+                return;
+            }
             if (!troubleShootbtn.Enabled) return;
             troubleShootbtn.Enabled = false;
             TroubleshootText.Clear();
@@ -242,15 +247,23 @@ namespace BecquerelMonitor
             radiaCodeIn.setDeviceSerial(config.DeviceSerial, config.AddressBLE);
             radiaCodeIn.sendCommand("Start");
             isRunning = true;
-            while(isRunning)
+            int counter = 0;
+            while(isRunning && counter <= 75)
             {
+                counter++;
                 TroubleshootText.Text = tshootText;
                 TroubleshootText.Refresh();
                 Thread.Sleep(200);
             }
             radiaCodeIn.TroubleShoot -= RadiaCodeIn_TroubleShoot;
             RadiaCodeIn.cleanUp(deviceConfigForm.ActiveDeviceConfig.Guid);
-            tshootText += "Finish" + Environment.NewLine;
+            if (counter >= 75)
+            {
+                tshootText += "Error. Timeout troubleshooting." + Environment.NewLine;
+            } else
+            {
+                tshootText += "Finish" + Environment.NewLine;
+            }
             TroubleshootText.Text = tshootText;
             TroubleshootText.Refresh();
             troubleShootbtn.Enabled = true;

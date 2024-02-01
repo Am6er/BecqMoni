@@ -41897,4 +41897,7 @@ see peak in spectrum now).</value>
   <data name="LoadDefaultPeakFinderSettingsQuestionTitle" xml:space="preserve">
     <value>Load peak search preset question</value>
   </data>
+  <data name="ERREmptyRadiaCodeData" xml:space="preserve">
+    <value>Empty RadiaCode address, nothing to test. Hit "Scan BLE" button, get your device in combobox and save config.</value>
+  </data>
 </root>
