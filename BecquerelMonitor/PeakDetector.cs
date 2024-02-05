@@ -70,13 +70,13 @@ namespace BecquerelMonitor
         {
             foreach (Peak peak in peaks)
             {
-                if (newpeak.Channel == peak.Channel || newpeak.Energy == peak.Energy || Math.Abs(newpeak.Channel - peak.Channel) <= 6)
+                if (newpeak.Channel == peak.Channel || newpeak.Energy == peak.Energy || Math.Abs(newpeak.Channel - peak.Channel) <= 4)
                 {
                     return false;
                 }
                 if (newpeak.Nuclide != null && peak.Nuclide != null)
                 {
-                    if (newpeak.Nuclide.Energy == peak.Nuclide.Energy || newpeak.Nuclide.Name == peak.Nuclide.Name)
+                    if (newpeak.Nuclide.Energy == peak.Nuclide.Energy)
                     {
                         return false;
                     }
@@ -131,7 +131,7 @@ namespace BecquerelMonitor
                     if (isNewPeak(existPeaks, peak))
                     {
                         peaks.Add(peak);
-                        //existPeaks.Add(peak);
+                        existPeaks.Add(peak);
                     }
                     //energySpectrum = sa.SubtractPeak(peak, energySpectrum);
                 }
