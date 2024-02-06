@@ -2562,7 +2562,7 @@ namespace BecquerelMonitor
                                 {
                                     int num8 = this.height - (int)(((double)num6 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                                     Rectangle r2 = new Rectangle(-20, num8 - 12, 20 + this.left - 3, 12);
-                                    if (num6 % d != 0m)
+                                    if (d != 0 && num6 % d != 0m)
                                     {
                                         g.DrawLine(pen3, this.left + 1, num8, num - 1, num8);
                                         g.SetClip(clip);
