@@ -70,7 +70,7 @@ namespace BecquerelMonitor
         {
             foreach (Peak peak in peaks)
             {
-                if (newpeak.Channel == peak.Channel || newpeak.Energy == peak.Energy || Math.Abs(newpeak.Channel - peak.Channel) <= 4)
+                if (Math.Abs(newpeak.Channel - peak.Channel) <= 4)
                 {
                     return false;
                 }
