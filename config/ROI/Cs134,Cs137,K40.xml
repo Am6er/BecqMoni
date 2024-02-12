@@ -47,7 +47,11 @@ In order to be accurate, calibration by measuring multiple concentrations is nec
           <Coefficient>0.3870788</Coefficient>
           <CoefficientError>0</CoefficientError>
           <Note><![CDATA[Excludes K40 scattering components
-It was determined by measurement of KCl.]]></Note>
+It was determined by measurement of KCl. Хлорид калия (KCl) является источником гамма-излучения с концентрацией 1,782 [γ/с/г], что приводит к распаду K40
+Гамма-излучение на единицу составляет 0,107, то есть 16,488 [Бк/г].Измерьте отношение g к w、
+Если скорость счета равна p[cps], то пиковая эффективность ε равна、
+ε = p / (1,782*0,99*вт), (для KCl чистоты 99%)
+Коэффициент пересчета Bq равен 1,782 * 0,99 * вт / 0,107 / p [Bq/cps].]]></Note>
           <Reference>K40</Reference>
         </ROIReferenceData>
       </ROIPrimitives>
