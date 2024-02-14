@@ -1741,6 +1741,7 @@ namespace BecquerelMonitor
         {
             int y = this.height;
             int x = 0;
+            if (spectrum.DrawingSpectrum == null) return;
             for (int i = 0; i < spectrum.DrawingSpectrum.Length; i++)
             {
                 double num = spectrum.DrawingSpectrum[i];
