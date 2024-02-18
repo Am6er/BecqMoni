@@ -88,6 +88,12 @@ namespace BecquerelMonitor.Utils
             return Math.Log(x);
         }
 
+        public static double Log10(double x)
+        {
+            if (x < 1) return 0.0;
+            return Math.Log10(x);
+        }
+
         public DocEnergySpectrum CombineWith(DocEnergySpectrum docenergySpectrum)
         {
             if (this.MainSpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels == docenergySpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels)
