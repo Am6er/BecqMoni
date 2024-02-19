@@ -10,6 +10,9 @@ namespace BecquerelMonitor
         LinearScale,
         // Token: 0x04000907 RID: 2311
         [XmlEnum(Name = "LogarithmicScale")]
-        LogarithmicScale
+        LogarithmicScale,
+
+        [XmlEnum(Name = "PowerScale")]
+        PowerScale
     }
 }

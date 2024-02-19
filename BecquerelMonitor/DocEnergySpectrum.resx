@@ -625,6 +625,15 @@
   <data name="toolStripSplitButton1.ToolTipText" xml:space="preserve">
     <value>Specify Vertical Unit</value>
   </data>
+  <data name="&gt;&gt;toolStripNumericUpdown.Type" xml:space="preserve">
+    <value>ToolStripNumericUpdown, BecquerelMonitor, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="toolStripNumericUpdown.ToolTipText" xml:space="preserve">
+    <value>POW root degree. Press e key for Euler constant</value>
+  </data>
+    <data name="toolStripNumericUpdown.Text" xml:space="preserve">
+    <value>toolStripNumericUpdown</value>
+  </data>
   <data name="&gt;&gt;toolStripMenuItem2.Name" xml:space="preserve">
     <value>toolStripMenuItem2</value>
   </data>
@@ -1068,5 +1077,17 @@
   </data>
   <data name="toolStripButton3.ToolTipText" xml:space="preserve">
     <value>Scale 1:1</value>
+  </data>
+    <data name="&gt;&gt;powToolStripMenuItem.Name" xml:space="preserve">
+    <value>powToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;powToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+   <data name="powToolStripMenuItem.Text" xml:space="preserve">
+    <value>Power Scale</value>
+  </data>
+  <data name="powToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+    <value>180, 22</value>
   </data>
 </root>

@@ -705,6 +705,9 @@
   <data name="リニア表示ToolStripMenuItem.Text" xml:space="preserve">
     <value>Линейный Y</value>
   </data>
+    <data name="powToolStripMenuItem.Text" xml:space="preserve">
+    <value>Степень Y</value>
+  </data>
   <data name="上限閾値に設定HToolStripMenuItem.Text" xml:space="preserve">
     <value>Установить нижний порог спектра по курсору (&amp;Н)</value>
   </data>
@@ -773,5 +776,8 @@
   </data>
   <data name="toolStripButton3.ToolTipText" xml:space="preserve">
     <value>Масштаб 1:1</value>
+  </data>
+  <data name="toolStripNumericUpdown.ToolTipText" xml:space="preserve">
+    <value>Степень корня POW. Нажмите кнопку е для вовода константы Эйлера.</value>
   </data>
 </root>

@@ -3606,6 +3606,9 @@
   <data name="comboBox2.Items1" xml:space="preserve">
     <value>Logarithmic</value>
   </data>
+  <data name="comboBox2.Items2" xml:space="preserve">
+    <value>Power</value>
+  </data>
   <data name="&gt;&gt;label23.Name" xml:space="preserve">
     <value>label23</value>
   </data>

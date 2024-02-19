@@ -45,7 +45,9 @@
 			this.カウント表示ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.cps表示ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSplitButton2 = new global::System.Windows.Forms.ToolStripSplitButton();
-			this.リニア表示ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.toolStripNumericUpdown = new ToolStripNumericUpdown();
+            this.リニア表示ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.powToolStripMenuItem = new global::System.Windows.Forms .ToolStripMenuItem();
 			this.対数表示ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSplitButton5 = new global::System.Windows.Forms.ToolStripSplitButton();
 			this.なしToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
@@ -225,7 +227,8 @@
 				this.toolStripLabel1,
 				this.toolStripSplitButton1,
 				this.toolStripSplitButton2,
-				this.toolStripSplitButton5,
+				this.toolStripNumericUpdown,
+                this.toolStripSplitButton5,
 				this.toolStripSeparator3,
 				this.toolStripLabel3,
 				this.toolStripSplitButton4,
@@ -261,16 +264,32 @@
 			this.toolStripSplitButton2.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
 				this.リニア表示ToolStripMenuItem,
-				this.対数表示ToolStripMenuItem
+				this.対数表示ToolStripMenuItem,
+				this.powToolStripMenuItem
 			});
 			this.toolStripSplitButton2.Image = global::BecquerelMonitor.Properties.Resources.log;
 			this.toolStripSplitButton2.Name = "toolStripSplitButton2";
 			this.toolStripSplitButton2.ButtonClick += new global::System.EventHandler(this.toolStripSplitButton2_ButtonClick);
 			this.toolStripSplitButton2.DropDownOpening += new global::System.EventHandler(this.toolStripSplitButton2_DropDownOpening);
-			resources.ApplyResources(this.リニア表示ToolStripMenuItem, "リニア表示ToolStripMenuItem");
+
+            resources.ApplyResources(this.toolStripNumericUpdown, "toolStripNumericUpdown");
+            this.toolStripNumericUpdown.Name = "toolStripNumericUpdown";
+			this.toolStripNumericUpdown.NumericUpDownControl.DecimalPlaces = 3;
+			this.toolStripNumericUpdown.NumericUpDownControl.Value = 4.0M;
+			this.toolStripNumericUpdown.NumericUpDownControl.Maximum = 10.0M;
+			this.toolStripNumericUpdown.NumericUpDownControl.Minimum = 2.0M;
+			this.toolStripNumericUpdown.NumericUpDownControl.Increment = 0.5M;
+            this.toolStripNumericUpdown.ValueChanged += new System.EventHandler(this.toolStripNumericUpdown_ValueChanged);
+            this.toolStripNumericUpdown.KeyDown += this.ToolStripNumericUpdown_KeyDown;
+            this.toolStripNumericUpdown.Enabled = false;
+
+            resources.ApplyResources(this.リニア表示ToolStripMenuItem, "リニア表示ToolStripMenuItem");
 			this.リニア表示ToolStripMenuItem.Name = "リニア表示ToolStripMenuItem";
 			this.リニア表示ToolStripMenuItem.Click += new global::System.EventHandler(this.リニア表示ToolStripMenuItem_Click);
-			resources.ApplyResources(this.対数表示ToolStripMenuItem, "対数表示ToolStripMenuItem");
+            resources.ApplyResources(this.powToolStripMenuItem, "powToolStripMenuItem");
+            this.powToolStripMenuItem.Name = "powToolStripMenuItem";
+            this.powToolStripMenuItem.Click += new global::System.EventHandler(this.powToolStripMenuItem_Click);
+            resources.ApplyResources(this.対数表示ToolStripMenuItem, "対数表示ToolStripMenuItem");
 			this.対数表示ToolStripMenuItem.Name = "対数表示ToolStripMenuItem";
 			this.対数表示ToolStripMenuItem.Click += new global::System.EventHandler(this.対数表示ToolStripMenuItem_Click);
 			resources.ApplyResources(this.toolStripSplitButton5, "toolStripSplitButton5");
@@ -451,8 +470,8 @@
 			base.ResumeLayout(false);
 		}
 
-		// Token: 0x04000111 RID: 273
-		global::System.ComponentModel.IContainer components;
+        // Token: 0x04000111 RID: 273
+        global::System.ComponentModel.IContainer components;
 
 		// Token: 0x04000112 RID: 274
 		global::BecquerelMonitor.EnergySpectrumView energySpectrumView1;
@@ -487,11 +506,15 @@
 		// Token: 0x0400011C RID: 284
 		global::System.Windows.Forms.ToolStripSplitButton toolStripSplitButton2;
 
+		ToolStripNumericUpdown toolStripNumericUpdown;
+
 		// Token: 0x0400011D RID: 285
 		global::System.Windows.Forms.ToolStripMenuItem 対数表示ToolStripMenuItem;
 
 		// Token: 0x0400011E RID: 286
 		global::System.Windows.Forms.ToolStripMenuItem リニア表示ToolStripMenuItem;
+
+		global::System.Windows.Forms.ToolStripMenuItem powToolStripMenuItem;
 
 		// Token: 0x0400011F RID: 287
 		global::System.Windows.Forms.ToolStripSplitButton toolStripSplitButton5;

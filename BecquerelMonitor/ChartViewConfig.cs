@@ -306,6 +306,18 @@
             }
         }
 
+        public double PowNum
+        {
+            get
+            {
+                return this.pownum;
+            }
+            set
+            {
+                this.pownum = value;
+            }
+        }
+
         // Token: 0x040008CC RID: 2252
         VerticalUnit defaultVerticalUnit;
 
@@ -361,6 +373,8 @@
         decimal energyPercent = 1;
 
         double horizontalScale = 1.0;
+
+        double pownum = 4.0;
 
         // Token: 0x040008DC RID: 2268
         MagnificationReference magnificationReference;
