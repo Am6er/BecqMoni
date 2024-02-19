@@ -945,6 +945,13 @@ namespace BecquerelMonitor
                 this.maxValue *= 2.0;
                 this.minValue *= 0.7;
             }
+            else if (this.verticalScaleType == VerticalScaleType.PowerScale)
+            {
+                this.totalMaxValue *= 1.05;
+                this.totalMinValue *= 0.98;
+                this.maxValue *= 1.05;
+                this.minValue *= 0.98;
+            }
             else
             {
                 this.totalMaxValue *= 1.05;
@@ -1006,10 +1013,70 @@ namespace BecquerelMonitor
                         this.minValue = 7E-05;
                     }
                 }
-                this.maxValueLog = SpectrumAriphmetics.Log10(this.maxValue);
-                this.minValueLog = SpectrumAriphmetics.Log10(this.minValue);
-                this.totalMaxValueLog = SpectrumAriphmetics.Log10(this.totalMaxValue);
-                this.totalMinValueLog = SpectrumAriphmetics.Log10(this.totalMinValue);
+                this.maxValueLog = Log10(this.maxValue);
+                this.minValueLog = Log10(this.minValue);
+                this.totalMaxValueLog = Log10(this.totalMaxValue);
+                this.totalMinValueLog = Log10(this.totalMinValue);
+                this.valueRangeLog = this.totalMaxValueLog - this.totalMinValueLog;
+            }
+            else if (this.verticalScaleType == VerticalScaleType.PowerScale)
+            {
+                if (this.totalMinValue == 0.0)
+                {
+                    if (this.verticalUnit == VerticalUnit.Counts)
+                    {
+                        this.totalMinValue = 0.7;
+                    }
+                    else if (this.fittingMode == VerticalFittingMode.BackgroundMinMax && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                    {
+                        this.totalMinValue = 1.0 / this.backgroundEnergySpectrum.MeasurementTime * 0.7;
+                    }
+                    else
+                    {
+                        if (this.energySpectrum.MeasurementTime != 0.0)
+                        {
+                            this.totalMinValue = 1.0 / this.energySpectrum.MeasurementTime * 0.7;
+                            using (List<ResultData>.Enumerator enumerator2 = this.resultDataList.GetEnumerator())
+                            {
+                                while (enumerator2.MoveNext())
+                                {
+                                    ResultData resultData2 = enumerator2.Current;
+                                    double num6 = 1.0 / resultData2.EnergySpectrum.MeasurementTime * 0.7;
+                                    if (num6 < this.totalMinValue)
+                                    {
+                                        this.totalMinValue = num6;
+                                    }
+                                }
+                                goto IL_8F8;
+                            }
+                        }
+                        this.totalMinValue = 7E-05;
+                    }
+                }
+            IL_8F8:
+                if (this.minValue == 0.0)
+                {
+                    if (this.verticalUnit == VerticalUnit.Counts)
+                    {
+                        this.minValue = 0.7;
+                    }
+                    else if (this.fittingMode == VerticalFittingMode.BackgroundMinMax && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                    {
+                        this.minValue = 1.0 / this.backgroundEnergySpectrum.MeasurementTime * 0.7;
+                    }
+                    else if (this.energySpectrum.MeasurementTime != 0.0)
+                    {
+                        this.minValue = 1.0 / this.energySpectrum.MeasurementTime * 0.7;
+                    }
+                    else
+                    {
+                        this.minValue = 7E-05;
+                    }
+                }
+                this.maxValueLog = Pow(this.maxValue);
+                this.minValueLog = Pow(this.minValue);
+                this.totalMaxValueLog = Pow(this.totalMaxValue);
+                this.totalMinValueLog = Pow(this.totalMinValue);
                 this.valueRangeLog = this.totalMaxValueLog - this.totalMinValueLog;
             }
             else
@@ -1020,6 +1087,22 @@ namespace BecquerelMonitor
             if (this.fittingMode != VerticalFittingMode.None)
             {
                 if (this.verticalScaleType == VerticalScaleType.LogarithmicScale)
+                {
+                    if (this.maxValueLog - this.minValueLog != 0.0)
+                    {
+                        this.verticalScale = this.valueRangeLog / (this.maxValueLog - this.minValueLog);
+                        if (this.verticalScale < 1.0)
+                        {
+                            this.verticalScale = 1.0;
+                        }
+                    }
+                    else
+                    {
+                        this.verticalScale = 1.0;
+                    }
+                    this.scrollY = (int)((double)this.height * (this.totalMaxValueLog - this.maxValueLog) / this.valueRangeLog * this.verticalScale);
+                }
+                else if (this.verticalScaleType == VerticalScaleType.PowerScale)
                 {
                     if (this.maxValueLog - this.minValueLog != 0.0)
                     {
@@ -1483,9 +1566,14 @@ namespace BecquerelMonitor
                 {
                     num5 = this.height - (int)((num4 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                 }
-                else if (num4 > 0.0)
+                else if (num4 > 0.0 && this.verticalScaleType == VerticalScaleType.LogarithmicScale)
                 {
-                    double num6 = SpectrumAriphmetics.Log10(num4);
+                    double num6 = Log10(num4);
+                    num5 = this.height - (int)((num6 - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                }
+                else if (num4 > 0.0 && this.verticalScaleType == VerticalScaleType.PowerScale)
+                {
+                    double num6 = Pow(num4);
                     num5 = this.height - (int)((num6 - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                 }
                 else
@@ -1530,12 +1618,11 @@ namespace BecquerelMonitor
             {
                 y2 = this.height - (int)((num10 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                 y3 = this.height - (int)((num11 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-            }
-            else
+            } else if (this.verticalScaleType == VerticalScaleType.PowerScale)
             {
                 if (num10 > 0.0)
                 {
-                    y2 = this.height - (int)((SpectrumAriphmetics.Log10(num10) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                    y2 = this.height - (int)((Pow(num10) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                 }
                 else
                 {
@@ -1543,7 +1630,26 @@ namespace BecquerelMonitor
                 }
                 if (num11 > 0.0)
                 {
-                    y3 = this.height - (int)((SpectrumAriphmetics.Log10(num11) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                    y3 = this.height - (int)((Pow(num11) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                }
+                else
+                {
+                    y3 = this.height;
+                }
+            }
+            else
+            {
+                if (num10 > 0.0)
+                {
+                    y2 = this.height - (int)((Log10(num10) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                }
+                else
+                {
+                    y2 = this.height;
+                }
+                if (num11 > 0.0)
+                {
+                    y3 = this.height - (int)((Log10(num11) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                 }
                 else
                 {
@@ -1581,9 +1687,13 @@ namespace BecquerelMonitor
                 {
                     num5 = this.height - (int)((num14 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                 }
-                else if (num14 > 0.0)
+                else if (num14 > 0.0 && this.verticalScaleType == VerticalScaleType.LogarithmicScale)
                 {
-                    num5 = this.height - (int)((SpectrumAriphmetics.Log10(num14) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                    num5 = this.height - (int)((Log10(num14) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                }
+                else if (num14 > 0.0 && this.verticalScaleType == VerticalScaleType.PowerScale)
+                {
+                    num5 = this.height - (int)((Pow(num14) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                 }
                 else
                 {
@@ -1651,9 +1761,14 @@ namespace BecquerelMonitor
                         {
                             num5 = this.height - (int)((num4 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                         }
+                        else if (this.verticalScaleType == VerticalScaleType.PowerScale)
+                        {
+                            double num6 = Pow(num4);
+                            num5 = this.height - (int)((num6 - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                        }
                         else
                         {
-                            double num6 = SpectrumAriphmetics.Log10(num4);
+                            double num6 = Log10(num4);
                             num5 = this.height - (int)((num6 - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                         }
                         if (i > this.left)
@@ -1715,11 +1830,18 @@ namespace BecquerelMonitor
                             num5 = this.height - (int)((num4 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                             peak = this.height - (int)((peakv - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                         }
+                        else if (this.verticalScaleType == VerticalScaleType.PowerScale)
+                        {
+                            double num6 = Pow(num4);
+                            num5 = this.height - (int)((num6 - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                            double peaklog = Pow(peakv);
+                            peak = this.height - (int)((peaklog - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                        }
                         else
                         {
-                            double num6 = SpectrumAriphmetics.Log10(num4);
+                            double num6 = Log10(num4);
                             num5 = this.height - (int)((num6 - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                            double peaklog = SpectrumAriphmetics.Log10(peakv);
+                            double peaklog = Log10(peakv);
                             peak = this.height - (int)((peaklog - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                         }
                         if (i > this.left)
@@ -1790,9 +1912,21 @@ namespace BecquerelMonitor
                         num5 = this.height - (int)((num - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                     }
                 }
+                else if (this.verticalScaleType == VerticalScaleType.PowerScale)
+                {
+                    double num6 = Pow(num);
+                    if (num == 0.0)
+                    {
+                        num5 = this.height + 100;
+                    }
+                    else
+                    {
+                        num5 = this.height - (int)((num6 - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                    }
+                }
                 else
                 {
-                    double num6 = SpectrumAriphmetics.Log10(num);
+                    double num6 = Log10(num);
                     if (num == 0.0)
                     {
                         num5 = this.height + 100;
@@ -1856,10 +1990,25 @@ namespace BecquerelMonitor
                         peak = this.height - (int)((peakv - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                     }
                 }
+                else if (this.verticalScaleType == VerticalScaleType.PowerScale)
+                {
+                    double num6 = Pow(num);
+                    double peaklog = Pow(peakv);
+                    if (num == 0.0 || peakv == 0.0)
+                    {
+                        num5 = this.height + 100;
+                        peak = this.height + 100;
+                    }
+                    else
+                    {
+                        num5 = this.height - (int)((num6 - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                        peak = this.height - (int)((peaklog - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                    }
+                }
                 else
                 {
-                    double num6 = SpectrumAriphmetics.Log10(num);
-                    double peaklog = SpectrumAriphmetics.Log10(peakv);
+                    double num6 = Log10(num);
+                    double peaklog = Log10(peakv);
                     if (num == 0.0 || peakv == 0.0)
                     {
                         num5 = this.height + 100;
@@ -1983,9 +2132,14 @@ namespace BecquerelMonitor
                     if (this.verticalScaleType == VerticalScaleType.LinearScale)
                     {
                         intencityscale = 0.8 * roidefinitionData.Intencity / intencityMax;
-                    } else
+                    }
+                    else if (this.verticalScaleType == VerticalScaleType.PowerScale)
                     {
-                        intencityscale = 0.8 * SpectrumAriphmetics.Log10(roidefinitionData.Intencity) / SpectrumAriphmetics.Log10(intencityMax);
+                        intencityscale = 0.8 * Pow(roidefinitionData.Intencity) / Pow(intencityMax);
+                    }
+                    else
+                    {
+                        intencityscale = 0.8 * Log10(roidefinitionData.Intencity) / Log10(intencityMax);
                     }
                     
                     float num;
@@ -2168,7 +2322,7 @@ namespace BecquerelMonitor
                                 num8 = this.height - (int)((num5 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                                 num9 = this.height - (int)((num6 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                             }
-                            else
+                            else if (this.verticalScaleType == VerticalScaleType.PowerScale)
                             {
                                 if (num5 == 0.0)
                                 {
@@ -2176,7 +2330,7 @@ namespace BecquerelMonitor
                                 }
                                 else
                                 {
-                                    num8 = this.height - (int)((SpectrumAriphmetics.Log10(num5) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                                    num8 = this.height - (int)((Pow(num5) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                                 }
                                 if (num8 > this.height)
                                 {
@@ -2188,7 +2342,34 @@ namespace BecquerelMonitor
                                 }
                                 else
                                 {
-                                    num9 = this.height - (int)((SpectrumAriphmetics.Log10(num6) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                                    num9 = this.height - (int)((Pow(num6) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                                }
+                                if (num9 > this.height)
+                                {
+                                    num9 = this.height;
+                                }
+                            }
+                            else
+                            {
+                                if (num5 == 0.0)
+                                {
+                                    num8 = this.height;
+                                }
+                                else
+                                {
+                                    num8 = this.height - (int)((Log10(num5) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                                }
+                                if (num8 > this.height)
+                                {
+                                    num8 = this.height;
+                                }
+                                if (num6 == 0.0)
+                                {
+                                    num9 = this.height;
+                                }
+                                else
+                                {
+                                    num9 = this.height - (int)((Log10(num6) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                                 }
                                 if (num9 > this.height)
                                 {
@@ -2389,7 +2570,7 @@ namespace BecquerelMonitor
                             num12 = this.height - (int)((num9 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                             num13 = this.height - (int)((num10 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                         }
-                        else
+                        else if (this.verticalScaleType == VerticalScaleType.PowerScale)
                         {
                             if (num9 == 0.0)
                             {
@@ -2397,7 +2578,7 @@ namespace BecquerelMonitor
                             }
                             else
                             {
-                                num12 = this.height - (int)((SpectrumAriphmetics.Log10(num9) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                                num12 = this.height - (int)((Pow(num9) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                             }
                             if (num12 > this.height)
                             {
@@ -2409,7 +2590,34 @@ namespace BecquerelMonitor
                             }
                             else
                             {
-                                num13 = this.height - (int)((SpectrumAriphmetics.Log10(num10) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                                num13 = this.height - (int)((Pow(num10) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                            }
+                            if (num13 > this.height)
+                            {
+                                num13 = this.height;
+                            }
+                        }
+                        else
+                        {
+                            if (num9 == 0.0)
+                            {
+                                num12 = this.height;
+                            }
+                            else
+                            {
+                                num12 = this.height - (int)((Log10(num9) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                            }
+                            if (num12 > this.height)
+                            {
+                                num12 = this.height;
+                            }
+                            if (num10 == 0.0)
+                            {
+                                num13 = this.height;
+                            }
+                            else
+                            {
+                                num13 = this.height - (int)((Log10(num10) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                             }
                             if (num13 > this.height)
                             {
@@ -2516,7 +2724,7 @@ namespace BecquerelMonitor
                                     for (int i = 2; i <= 10; i++)
                                     {
                                         num2 += num3;
-                                        num4 = this.height - (int)((SpectrumAriphmetics.Log10(num2) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                                        num4 = this.height - (int)((Log10(num2) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                                         Rectangle r = new Rectangle(-20, num4 - 12, 20 + this.left - 3, 12);
                                         if (i != 10)
                                         {
@@ -2537,9 +2745,47 @@ namespace BecquerelMonitor
                                     num3 *= 10.0;
                                 }
                             }
+                            else if (this.verticalScaleType == VerticalScaleType.PowerScale)
+                            {
+                                double iterator = 1;
+                                if (this.totalMinValueLog > 0)
+                                {
+                                    iterator = Math.Pow(Math.Floor(this.totalMinValueLog), pownum);
+                                }   
+                                double increment = iterator;
+                                int resultAxis = this.height;
+                                double maxValue = Math.Pow(this.totalMaxValueLog, pownum);
+                                while (iterator < maxValue)
+                                {
+                                    for (int i = 2; i <= 10; i++)
+                                    {
+                                        iterator += increment;
+                                        resultAxis = this.height - (int)((Pow(iterator) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                                        Rectangle r = new Rectangle(-20, resultAxis - 12, 20 + this.left - 3, 12);
+                                        if (i != 10)
+                                        {
+                                            //Младшие значения оси
+                                            g.DrawLine(pen3, this.left + 1, resultAxis, num - 1, resultAxis);
+                                            g.SetClip(clip);
+                                            g.DrawLine(pen, this.left - 5, resultAxis, this.left, resultAxis);
+                                            g.ResetClip();
+                                        }
+                                        else
+                                        {
+                                            //Старшие значения оси с цифрами
+                                            g.DrawLine(pen2, this.left + 1, resultAxis, num - 1, resultAxis);
+                                            g.SetClip(clip);
+                                            g.DrawLine(pen, 0, resultAxis, this.left, resultAxis);
+                                            g.DrawString(FormatAs10Power(iterator), this.Font, brush3, r, this.farFormat);
+                                            g.ResetClip();
+                                        }
+                                    }
+                                    increment *= 10.0;
+                                }
+                            }
                             else
                             {
-                                double num5 = Math.Floor(SpectrumAriphmetics.Log10(this.valueRange / this.verticalScale));
+                                double num5 = Math.Floor(Math.Log10(this.valueRange / this.verticalScale));
                                 decimal d;
                                 if (this.valueRange / Math.Pow(10.0, num5) > 5.0)
                                 {
@@ -2752,9 +2998,21 @@ namespace BecquerelMonitor
                         y = this.height - (int)((num6 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                     }
                 }
+                else if (this.verticalScaleType == VerticalScaleType.PowerScale)
+                {
+                    double num7 = Pow(num6);
+                    if (num6 == 0.0)
+                    {
+                        y = this.height + 100;
+                    }
+                    else
+                    {
+                        y = this.height - (int)((num7 - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                    }
+                }
                 else
                 {
-                    double num7 = SpectrumAriphmetics.Log10(num6);
+                    double num7 = Log10(num6);
                     if (num6 == 0.0)
                     {
                         y = this.height + 100;
@@ -2858,9 +3116,21 @@ namespace BecquerelMonitor
                         y = this.height - (int)((num3 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                     }
                 }
+                else if (this.verticalScaleType == VerticalScaleType.PowerScale)
+                {
+                    double num4 = Pow(num3);
+                    if (num3 == 0.0)
+                    {
+                        y = this.height + 100;
+                    }
+                    else
+                    {
+                        y = this.height - (int)((num4 - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                    }
+                }
                 else
                 {
-                    double num4 = SpectrumAriphmetics.Log10(num3);
+                    double num4 = Log10(num3);
                     if (num3 == 0.0)
                     {
                         y = this.height + 100;
@@ -3160,6 +3430,18 @@ namespace BecquerelMonitor
             {
                 return 0;
             }
+        }
+
+        double Log10(double x)
+        {
+            if (x < 1) return 0.0;
+            return Math.Log10(x);
+        }
+
+        double Pow(double x)
+        {
+            if (x < 1) return 0.0;
+            return Math.Pow(x, 1 / pownum);
         }
 
         // Token: 0x060004C4 RID: 1220 RVA: 0x0001BD50 File Offset: 0x00019F50
@@ -3584,6 +3866,12 @@ namespace BecquerelMonitor
             base.Invalidate();
         }
 
+        public double PowNum
+        {
+            get { return this.pownum; }
+            set { this.pownum = value; }
+        }
+
         public void SetScale11()
         {
             int num = base.Width - this.left - this.vScrollBar1.Width;
@@ -3860,6 +4148,8 @@ namespace BecquerelMonitor
 
         // Token: 0x04000233 RID: 563
         bool selectionDragging;
+
+        double pownum = 4;
 
         // Token: 0x0200021E RID: 542
         // (Invoke) Token: 0x06001927 RID: 6439

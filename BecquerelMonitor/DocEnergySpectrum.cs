@@ -302,6 +302,7 @@ namespace BecquerelMonitor
             this.view.PeakMode = globalConfig.ChartViewConfig.DefaultPeakMode;
             this.view.HorizontalMagnification = globalConfig.ChartViewConfig.DefaultHorizontalMagnification;
             this.SetToolStripIcons();
+            this.toolStripNumericUpdown.NumericUpDownControl.Value = (decimal)globalConfig.ChartViewConfig.PowNum;
             toolStripContainer1.BottomToolStripPanel.SuspendLayout();
             toolStrip1.Dock = DockStyle.None;
             toolStrip2.Dock = DockStyle.None;
@@ -517,9 +518,15 @@ namespace BecquerelMonitor
             {
                 case VerticalScaleType.LinearScale:
                     image = BecquerelMonitor.Properties.Resources.linear;
+                    this.toolStripNumericUpdown.Enabled = false;
                     break;
                 case VerticalScaleType.LogarithmicScale:
                     image = BecquerelMonitor.Properties.Resources.log;
+                    this.toolStripNumericUpdown.Enabled = false;
+                    break;
+                case VerticalScaleType.PowerScale:
+                    image = BecquerelMonitor.Properties.Resources.pow;
+                    this.toolStripNumericUpdown.Enabled = true;
                     break;
             }
             this.toolStripSplitButton2.Image = image;
@@ -752,6 +759,24 @@ namespace BecquerelMonitor
             this.カウント表示ToolStripMenuItem.Checked = (this.view.VerticalUnit == VerticalUnit.Counts);
         }
 
+        void toolStripNumericUpdown_ValueChanged(object sender, EventArgs e)
+        {
+            this.view.PowNum = (double)this.toolStripNumericUpdown.NumericUpDownControl.Value;
+            GlobalConfigInfo globalConfig = GlobalConfigManager.GetInstance().GlobalConfig;
+            globalConfig.ChartViewConfig.PowNum = this.view.PowNum;
+            GlobalConfigManager.GetInstance().SaveConfigFile();
+            this.RefreshView();
+        }
+
+        void ToolStripNumericUpdown_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.E)
+            {
+                this.toolStripNumericUpdown.NumericUpDownControl.Value = (decimal)Math.E;
+                e.SuppressKeyPress = true;
+            }
+        }
+
         // Token: 0x0600033D RID: 829 RVA: 0x00010394 File Offset: 0x0000E594
         void toolStripSplitButton2_ButtonClick(object sender, EventArgs e)
         {
@@ -762,10 +787,17 @@ namespace BecquerelMonitor
                 case VerticalScaleType.LinearScale:
                     verticalScaleType = VerticalScaleType.LogarithmicScale;
                     image = BecquerelMonitor.Properties.Resources.log;
+                    this.toolStripNumericUpdown.Enabled = false;
                     break;
                 case VerticalScaleType.LogarithmicScale:
+                    verticalScaleType = VerticalScaleType.PowerScale;
+                    image = BecquerelMonitor.Properties.Resources.pow;
+                    this.toolStripNumericUpdown.Enabled = true;
+                    break;
+                case VerticalScaleType.PowerScale:
                     verticalScaleType = VerticalScaleType.LinearScale;
                     image = BecquerelMonitor.Properties.Resources.linear;
+                    this.toolStripNumericUpdown.Enabled = false;
                     break;
             }
             this.view.VerticalScaleType = verticalScaleType;
@@ -778,6 +810,15 @@ namespace BecquerelMonitor
         {
             this.view.VerticalScaleType = VerticalScaleType.LogarithmicScale;
             this.toolStripSplitButton2.Image = BecquerelMonitor.Properties.Resources.log;
+            this.toolStripNumericUpdown.Enabled = false;
+            this.RefreshView();
+        }
+
+        void powToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            this.view.VerticalScaleType = VerticalScaleType.PowerScale;
+            this.toolStripSplitButton2.Image = BecquerelMonitor.Properties.Resources.pow;
+            this.toolStripNumericUpdown.Enabled = true;
             this.RefreshView();
         }
 
@@ -786,6 +827,7 @@ namespace BecquerelMonitor
         {
             this.view.VerticalScaleType = VerticalScaleType.LinearScale;
             this.toolStripSplitButton2.Image = BecquerelMonitor.Properties.Resources.linear;
+            this.toolStripNumericUpdown.Enabled = false;
             this.RefreshView();
         }
 
@@ -794,6 +836,7 @@ namespace BecquerelMonitor
         {
             this.対数表示ToolStripMenuItem.Checked = (this.view.VerticalScaleType == VerticalScaleType.LogarithmicScale);
             this.リニア表示ToolStripMenuItem.Checked = (this.view.VerticalScaleType == VerticalScaleType.LinearScale);
+            this.powToolStripMenuItem.Checked = (this.view.VerticalScaleType == VerticalScaleType.PowerScale);
         }
 
         // Token: 0x06000341 RID: 833 RVA: 0x0001048C File Offset: 0x0000E68C

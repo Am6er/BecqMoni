@@ -2009,6 +2009,16 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap pow {
+            get {
+                object obj = ResourceManager.GetObject("pow", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to d\d\ hh\:mm\:ss.
         /// </summary>
         internal static string ProgressDateFmt {
