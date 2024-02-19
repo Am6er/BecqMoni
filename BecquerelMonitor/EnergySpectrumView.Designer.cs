@@ -2763,8 +2763,8 @@ namespace BecquerelMonitor
                             }
                             else if (this.verticalScaleType == VerticalScaleType.PowerScale)
                             {
-                                double maxValue = Math.Pow(this.totalMaxValuePow, pownum);
-                                double iterator = Math.Pow(Math.Floor(this.totalMinValuePow), pownum);
+                                double maxValue = this.totalMaxValue;
+                                double iterator = Math.Pow(10.0, Math.Floor(Math.Log10(this.totalMinValue)));
                                 if (iterator == 0)
                                 {
                                     iterator = 1;
@@ -2782,6 +2782,7 @@ namespace BecquerelMonitor
                                     {
                                         iterator += increment;
                                         resultAxis = this.height - (int)((Pow(iterator) - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                                        if (resultAxis < 0.0) continue;
                                         Rectangle r = new Rectangle(-20, resultAxis - 12, 20 + this.left - 3, 12);
                                         if (i != 10)
                                         {
