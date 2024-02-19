@@ -2763,14 +2763,19 @@ namespace BecquerelMonitor
                             }
                             else if (this.verticalScaleType == VerticalScaleType.PowerScale)
                             {
+                                double maxValue = Math.Pow(this.totalMaxValuePow, pownum);
                                 double iterator = Math.Pow(Math.Floor(this.totalMinValuePow), pownum);
                                 if (iterator == 0)
                                 {
                                     iterator = 1;
-                                }   
+                                }
+                                if (maxValue / iterator < 5)
+                                {
+                                    iterator = Math.Pow(10.0, Math.Floor(Math.Log10(maxValue / 10.0)));
+                                }
                                 double increment = iterator;
                                 int resultAxis = this.height;
-                                double maxValue = Math.Pow(this.totalMaxValuePow, pownum);
+                                
                                 while (iterator < maxValue)
                                 {
                                     for (int i = 2; i <= 10; i++)
