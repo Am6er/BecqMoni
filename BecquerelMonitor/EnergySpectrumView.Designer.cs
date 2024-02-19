@@ -2769,7 +2769,7 @@ namespace BecquerelMonitor
                                 {
                                     iterator = 1;
                                 }
-                                if (maxValue / iterator < 5)
+                                if (maxValue / iterator < 10.0)
                                 {
                                     iterator = Math.Pow(10.0, Math.Floor(Math.Log10(maxValue / 10.0)));
                                 }
