@@ -277,7 +277,7 @@
 			this.toolStripNumericUpdown.NumericUpDownControl.DecimalPlaces = 3;
 			this.toolStripNumericUpdown.NumericUpDownControl.Value = 4.0M;
 			this.toolStripNumericUpdown.NumericUpDownControl.Maximum = 10.0M;
-			this.toolStripNumericUpdown.NumericUpDownControl.Minimum = 2.0M;
+			this.toolStripNumericUpdown.NumericUpDownControl.Minimum = 1.0M;
 			this.toolStripNumericUpdown.NumericUpDownControl.Increment = 0.5M;
             this.toolStripNumericUpdown.ValueChanged += new System.EventHandler(this.toolStripNumericUpdown_ValueChanged);
             this.toolStripNumericUpdown.KeyDown += this.ToolStripNumericUpdown_KeyDown;
