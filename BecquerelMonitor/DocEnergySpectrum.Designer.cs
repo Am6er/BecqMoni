@@ -264,8 +264,8 @@
 			this.toolStripSplitButton2.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
 				this.リニア表示ToolStripMenuItem,
-				this.対数表示ToolStripMenuItem,
-				this.powToolStripMenuItem
+                this.powToolStripMenuItem,
+                this.対数表示ToolStripMenuItem
 			});
 			this.toolStripSplitButton2.Image = global::BecquerelMonitor.Properties.Resources.log;
 			this.toolStripSplitButton2.Name = "toolStripSplitButton2";

@@ -2541,10 +2541,10 @@
   <data name="comboBox2.Items" xml:space="preserve">
     <value>Линейный</value>
   </data>
-  <data name="comboBox2.Items1" xml:space="preserve">
+  <data name="comboBox2.Items2" xml:space="preserve">
     <value>Логарифм.</value>
   </data>
-  <data name="comboBox2.Items2" xml:space="preserve">
+  <data name="comboBox2.Items1" xml:space="preserve">
     <value>Степень</value>
   </data>
   <data name="comboBox3.Items" xml:space="preserve">

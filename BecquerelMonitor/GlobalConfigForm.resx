@@ -3603,10 +3603,10 @@
   <data name="label70.Text" xml:space="preserve">
     <value>Selection3</value>
   </data>
-  <data name="comboBox2.Items1" xml:space="preserve">
+  <data name="comboBox2.Items2" xml:space="preserve">
     <value>Logarithmic</value>
   </data>
-  <data name="comboBox2.Items2" xml:space="preserve">
+  <data name="comboBox2.Items1" xml:space="preserve">
     <value>Power</value>
   </data>
   <data name="&gt;&gt;label23.Name" xml:space="preserve">

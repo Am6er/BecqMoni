@@ -514,8 +514,8 @@
 			this.comboBox2.Items.AddRange(new object[]
 			{
 				resources.GetString("comboBox2.Items"),
-				resources.GetString("comboBox2.Items1"),
-                resources.GetString("comboBox2.Items2"),
+                resources.GetString("comboBox2.Items1"),
+                resources.GetString("comboBox2.Items2")
             });
 			this.comboBox2.Name = "comboBox2";
 			resources.ApplyResources(this.comboBox1, "comboBox1");

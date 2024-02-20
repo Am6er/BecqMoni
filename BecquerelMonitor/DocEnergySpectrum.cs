@@ -785,16 +785,16 @@ namespace BecquerelMonitor
             switch (this.view.VerticalScaleType)
             {
                 case VerticalScaleType.LinearScale:
-                    verticalScaleType = VerticalScaleType.LogarithmicScale;
-                    image = BecquerelMonitor.Properties.Resources.log;
-                    this.toolStripNumericUpdown.Enabled = false;
-                    break;
-                case VerticalScaleType.LogarithmicScale:
                     verticalScaleType = VerticalScaleType.PowerScale;
                     image = BecquerelMonitor.Properties.Resources.pow;
                     this.toolStripNumericUpdown.Enabled = true;
                     break;
                 case VerticalScaleType.PowerScale:
+                    verticalScaleType = VerticalScaleType.LogarithmicScale;
+                    image = BecquerelMonitor.Properties.Resources.log;
+                    this.toolStripNumericUpdown.Enabled = false;
+                    break;
+                case VerticalScaleType.LogarithmicScale:
                     verticalScaleType = VerticalScaleType.LinearScale;
                     image = BecquerelMonitor.Properties.Resources.linear;
                     this.toolStripNumericUpdown.Enabled = false;
