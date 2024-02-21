@@ -1,0 +1,130 @@
+<?xml version="1.0"?>
+<ROIConfigData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <FormatVersion>120920</FormatVersion>
+  <Guid>d44abc80-0a37-4586-b923-c6247a4fce49</Guid>
+  <Name>RadiaCode Cs-137</Name>
+  <LastUpdated>2024-02-20T14:08:11.9416668+03:00</LastUpdated>
+  <ROIDefinitions>
+    <ROIDefinitionData>
+      <Name>Point source 5 cm</Name>
+      <Enabled>false</Enabled>
+      <PeakEnergy>662</PeakEnergy>
+      <LowerLimit>562</LowerLimit>
+      <UpperLimit>762</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>5539</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>30</HalfLife>
+      <Intencity>0</Intencity>
+      <Note><![CDATA[Point source]]></Note>
+      <ROIPrimitives>
+        <ROISimpleDifferenceData>
+          <PrimitiveType>BG difference</PrimitiveType>
+          <OperationType>Addition</OperationType>
+          <Coefficient>1</Coefficient>
+          <CoefficientError>0</CoefficientError>
+          <Note />
+          <LowerLimit>562</LowerLimit>
+          <UpperLimit>762</UpperLimit>
+        </ROISimpleDifferenceData>
+      </ROIPrimitives>
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Marinelli 0.5l</Name>
+      <Enabled>false</Enabled>
+      <PeakEnergy>662</PeakEnergy>
+      <LowerLimit>562</LowerLimit>
+      <UpperLimit>762</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>4640</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>30</HalfLife>
+      <Intencity>0</Intencity>
+      <Note><![CDATA[Marinelli 0.5l]]></Note>
+      <ROIPrimitives>
+        <ROISimpleDifferenceData>
+          <PrimitiveType>BG difference</PrimitiveType>
+          <OperationType>Addition</OperationType>
+          <Coefficient>1</Coefficient>
+          <CoefficientError>0</CoefficientError>
+          <Note />
+          <LowerLimit>562</LowerLimit>
+          <UpperLimit>662</UpperLimit>
+        </ROISimpleDifferenceData>
+      </ROIPrimitives>
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Container 100ml</Name>
+      <Enabled>false</Enabled>
+      <PeakEnergy>662</PeakEnergy>
+      <LowerLimit>562</LowerLimit>
+      <UpperLimit>762</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>3645</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>30</HalfLife>
+      <Intencity>0</Intencity>
+      <Note><![CDATA[Container 100ml]]></Note>
+      <ROIPrimitives>
+        <ROISimpleDifferenceData>
+          <PrimitiveType>BG difference</PrimitiveType>
+          <OperationType>Addition</OperationType>
+          <Coefficient>1</Coefficient>
+          <CoefficientError>0</CoefficientError>
+          <Note />
+          <LowerLimit>562</LowerLimit>
+          <UpperLimit>762</UpperLimit>
+        </ROISimpleDifferenceData>
+      </ROIPrimitives>
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Container 60ml</Name>
+      <Enabled>false</Enabled>
+      <PeakEnergy>662</PeakEnergy>
+      <LowerLimit>562</LowerLimit>
+      <UpperLimit>762</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>2350</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>30</HalfLife>
+      <Intencity>0</Intencity>
+      <Note><![CDATA[Container 60ml]]></Note>
+      <ROIPrimitives>
+        <ROISimpleDifferenceData>
+          <PrimitiveType>BG difference</PrimitiveType>
+          <OperationType>Addition</OperationType>
+          <Coefficient>1</Coefficient>
+          <CoefficientError>0</CoefficientError>
+          <Note />
+          <LowerLimit>562</LowerLimit>
+          <UpperLimit>762</UpperLimit>
+        </ROISimpleDifferenceData>
+      </ROIPrimitives>
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Custom Marinelli 0.5l</Name>
+      <Enabled>false</Enabled>
+      <PeakEnergy>662</PeakEnergy>
+      <LowerLimit>562</LowerLimit>
+      <UpperLimit>762</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>3190</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>30</HalfLife>
+      <Intencity>0</Intencity>
+      <Note />
+      <ROIPrimitives>
+        <ROISimpleDifferenceData>
+          <PrimitiveType>BG difference</PrimitiveType>
+          <OperationType>Addition</OperationType>
+          <Coefficient>1</Coefficient>
+          <CoefficientError>0</CoefficientError>
+          <Note />
+          <LowerLimit>562</LowerLimit>
+          <UpperLimit>762</UpperLimit>
+        </ROISimpleDifferenceData>
+      </ROIPrimitives>
+    </ROIDefinitionData>
+  </ROIDefinitions>
+  <Note />
+</ROIConfigData>
