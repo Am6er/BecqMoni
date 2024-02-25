@@ -311,6 +311,24 @@ namespace BecquerelMonitor
             toolStripContainer1.BottomToolStripPanel.ResumeLayout();
         }
 
+        public void RefreshDocEnergySpectrum()
+        {
+            GlobalConfigInfo globalConfig = GlobalConfigManager.GetInstance().GlobalConfig;
+            this.view = this.energySpectrumView1;
+            this.view.VerticalUnit = globalConfig.ChartViewConfig.DefaultVerticalUnit;
+            this.view.VerticalScaleType = globalConfig.ChartViewConfig.DefaultVerticalScaleType;
+            this.view.ChartType = globalConfig.ChartViewConfig.DefaultChartType;
+            this.view.VerticalFittingMode = globalConfig.ChartViewConfig.DefaultVerticalFittingMode;
+            this.view.SmoothingMethod = globalConfig.ChartViewConfig.DefaultSmoothingMothod;
+            this.view.HorizontalUnit = globalConfig.ChartViewConfig.DefaultHorizontalUnit;
+            this.view.BackgroundMode = globalConfig.ChartViewConfig.DefaultBackgroundMode;
+            this.view.DrawingMode = globalConfig.ChartViewConfig.DefaultDrawingMode;
+            this.view.PeakMode = globalConfig.ChartViewConfig.DefaultPeakMode;
+            this.view.HorizontalMagnification = globalConfig.ChartViewConfig.DefaultHorizontalMagnification;
+            this.SetToolStripIcons();
+            this.toolStripNumericUpdown.NumericUpDownControl.Value = (decimal)globalConfig.ChartViewConfig.PowNum;
+        }
+
         // Token: 0x06000320 RID: 800 RVA: 0x0000F9E4 File Offset: 0x0000DBE4
         public DocEnergySpectrum(string filename) : this()
         {
