@@ -160,6 +160,7 @@ namespace BecquerelMonitor
 			this.percentageProgressBar1.OverlayColor = global::System.Drawing.Color.Black;
 			this.percentageProgressBar1.PriorText = "28800";
 			this.percentageProgressBar1.Click += new global::System.EventHandler(this.percentageProgressBar1_Click);
+			this.toolTip1.SetToolTip(this.percentageProgressBar1, resources.GetString("percentageProgressBar1.ToolTip"));
             resources.ApplyResources(this.label7, "label7");
 			this.label7.Name = "label7";
 			resources.ApplyResources(this.label6, "label6");
