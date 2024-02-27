@@ -189,6 +189,9 @@
   <data name="button7.ToolTip" xml:space="preserve">
     <value>Clear Spectrum</value>
   </data>
+  <data name="percentageProgressBar1.ToolTip" xml:space="preserve">
+    <value>Click to change display time format</value>
+  </data>
   <data name="button3.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
   </data>

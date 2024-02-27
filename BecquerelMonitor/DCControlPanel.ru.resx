@@ -627,4 +627,7 @@
   <data name="percentageProgressBar1.Text" xml:space="preserve">
     <value>28800 (0.0%)</value>
   </data>
+  <data name="percentageProgressBar1.ToolTip" xml:space="preserve">
+    <value>Нажмите, чтобы изменить формат отображаемого времени</value>
+  </data>
 </root>
