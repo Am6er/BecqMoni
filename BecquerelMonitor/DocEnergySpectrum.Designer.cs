@@ -282,6 +282,7 @@
             this.toolStripNumericUpdown.ValueChanged += new System.EventHandler(this.toolStripNumericUpdown_ValueChanged);
             this.toolStripNumericUpdown.KeyDown += this.ToolStripNumericUpdown_KeyDown;
             this.toolStripNumericUpdown.Enabled = false;
+            this.toolTip1.SetToolTip(this.toolStripNumericUpdown.Control, resources.GetString("toolStripNumericUpdown.ToolTipText"));
 
             resources.ApplyResources(this.リニア表示ToolStripMenuItem, "リニア表示ToolStripMenuItem");
 			this.リニア表示ToolStripMenuItem.Name = "リニア表示ToolStripMenuItem";
