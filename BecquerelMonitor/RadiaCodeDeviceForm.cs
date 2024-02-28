@@ -89,6 +89,7 @@ namespace BecquerelMonitor
                 if (watcher == null) watcher = new BluetoothLEAdvertisementWatcher();
                 adressBLE.Clear();
                 devices.Clear();
+                devicePreset.Clear();
                 Thread.Sleep(200);
                 watcher.Stop();
                 TroubleshootText.Clear();
@@ -126,13 +127,14 @@ namespace BecquerelMonitor
                         String name = dev.Name.Split('#')[1];
                         comboBox1.Invoke(new Action(() =>
                         {
-                            adressBLE.Add(dev.BluetoothAddress.ToString());
+                            adressBLE.Add(args.BluetoothAddress.ToString());
                             int item = comboBox1.Items.IndexOf(name);
                             if (item == -1) comboBox1.Items.Add(name);
+                            if (!comboBox1.DroppedDown) comboBox1.DroppedDown = true;
                         }));
                         TroubleshootText.Invoke(new Action(() =>
                         {
-                            TroubleshootText.AppendText($"Found device {name} with BLE addr {dev.BluetoothAddress}");
+                            TroubleshootText.AppendText($"Found device {name} with BLE addr {args.BluetoothAddress}");
                         }));
                     } catch (Exception) { }
                 }
