@@ -180,6 +180,13 @@ namespace BecquerelMonitor
             this.textBox1.SelectAll();
             this.textBox1.Focus();
         }
+        private void tabControl1_Selecting(object sender, EventArgs e)
+        {
+            if (!this.ConfirmSaveDeviceConfig())
+            {
+                return;
+            }
+        }
 
         // Token: 0x0600051B RID: 1307 RVA: 0x00020A58 File Offset: 0x0001EC58
         void button4_Click(object sender, EventArgs e)

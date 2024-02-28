@@ -1,4 +1,5 @@
 ﻿using BecquerelMonitor.Properties;
+using System;
 
 namespace BecquerelMonitor
 {
@@ -195,6 +196,7 @@ namespace BecquerelMonitor
             this.tabControl1.Controls.Add(this.tabPage7);
             this.tabControl1.Name = "tabControl1";
 			this.tabControl1.SelectedIndex = 0;
+			this.tabControl1.Selecting += new System.Windows.Forms.TabControlCancelEventHandler(this.tabControl1_Selecting);
 			resources.ApplyResources(this.tabPage1, "tabPage1");
 			this.tabPage1.BackColor = global::System.Drawing.SystemColors.Control;
 			this.tabPage1.Controls.Add(this.label2);
@@ -760,8 +762,8 @@ namespace BecquerelMonitor
 			base.PerformLayout();
 		}
 
-		// Token: 0x0400025D RID: 605
-		global::System.ComponentModel.IContainer components;
+        // Token: 0x0400025D RID: 605
+        global::System.ComponentModel.IContainer components;
 
 		// Token: 0x0400025E RID: 606
 		global::System.Windows.Forms.Label label4;
