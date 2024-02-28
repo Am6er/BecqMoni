@@ -149,6 +149,7 @@ namespace BecquerelMonitor
                 Thread.Sleep(200);
             }
             currentBLEindex = comboBox1.SelectedIndex;
+            if (adressBLE.Count <= currentBLEindex) return;
 
             //Dialog to load RC presets for peak searching
             devicePreset.TryGetValue(adressBLE.ElementAt(currentBLEindex), out string model);
@@ -164,6 +165,7 @@ namespace BecquerelMonitor
                 
                 deviceConfigForm.LoadPeakFinderPresetContents(deviceConfigForm.ActiveDeviceConfig);
             }
+            this.troubleShootbtn.Enabled = true;
 
             SetActiveDeviceConfigDirty();
         }
@@ -181,6 +183,7 @@ namespace BecquerelMonitor
         public override void LoadFormContents(InputDeviceConfig inputConfig)
         {
             this.formLoading = true;
+            this.troubleShootbtn.Enabled = false;
             RadiaCodeDeviceConfig radiaCodeInputDevice = (RadiaCodeDeviceConfig)inputConfig;
             this.config = radiaCodeInputDevice;
             this.DeviceSerial = radiaCodeInputDevice.DeviceSerial;
@@ -189,6 +192,7 @@ namespace BecquerelMonitor
                 comboBox1.Items.Clear();
                 comboBox1.Items.Add(this.DeviceSerial);
                 comboBox1.SelectedIndex = 0;
+                this.troubleShootbtn.Enabled = true;
             }
             TroubleshootText.Clear();
             this.formLoading = false;
@@ -204,12 +208,14 @@ namespace BecquerelMonitor
                     radiaCodeInputDevice.DeviceSerial = comboBox1.SelectedItem.ToString();
                     radiaCodeInputDevice.AddressBLE = adressBLE.ElementAt(currentBLEindex);
                     radiaCodeInputDevice.RC_EnergyCalibration = radiaCodeInputDevice.RC_EnergyCalibration;
+                    this.troubleShootbtn.Enabled = true;
                 }
                 else
                 {
                     radiaCodeInputDevice.DeviceSerial = null;
                     radiaCodeInputDevice.AddressBLE = null;
                     radiaCodeInputDevice.RC_EnergyCalibration = null;
+                    this.troubleShootbtn.Enabled = false;
                 }
             }
             catch (Exception)
