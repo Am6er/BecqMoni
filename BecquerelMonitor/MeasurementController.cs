@@ -90,7 +90,8 @@ namespace BecquerelMonitor
             }
             try
             {
-                this.deviceController.StartMeasurement(this.resultData);
+                bool result = this.deviceController.StartMeasurement(this.resultData);
+                if (!result) return false;
             } catch (Exception)
             {
                 MessageBox.Show(Resources.ERRBTNotSupportedByOS);
@@ -107,8 +108,7 @@ namespace BecquerelMonitor
             {
                 return false;
             }
-            this.deviceController.AttachToDevice(this.resultData);
-            return true;
+            return this.deviceController.AttachToDevice(this.resultData);
         }
 
         // Token: 0x060006AC RID: 1708 RVA: 0x00028070 File Offset: 0x00026270

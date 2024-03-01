@@ -1,4 +1,6 @@
-﻿using System;
+﻿using BecquerelMonitor.Properties;
+using System;
+using System.Windows.Forms;
 
 namespace BecquerelMonitor
 {
@@ -146,6 +148,7 @@ namespace BecquerelMonitor
                 resultDataStatus.Recording = commands_accepted;
                 if (commands_accepted) return true;
             }
+            MessageBox.Show(Resources.ERRReadDataFromPort_Empty, Resources.ErrorString, MessageBoxButtons.OK, MessageBoxIcon.Error);
             return false;
         }
 
@@ -219,6 +222,7 @@ namespace BecquerelMonitor
                 resultDataStatus.Recording = commands_accepted;
                 if (commands_accepted) return true;
             }
+            MessageBox.Show(Resources.ERRReadDataFromPort_Empty, Resources.ErrorString, MessageBoxButtons.OK, MessageBoxIcon.Error);
             return false;
         }
 
