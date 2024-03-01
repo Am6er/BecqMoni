@@ -244,7 +244,7 @@ namespace BecquerelMonitor
         // Token: 0x06000A4A RID: 2634 RVA: 0x0003CB48 File Offset: 0x0003AD48
         void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (!this.initialized)
+            if (!this.initialized || e.Cancel)
             {
                 return;
             }
@@ -1279,14 +1279,14 @@ namespace BecquerelMonitor
         {
             if (this.activeDocument != null)
             {
-                this.StopRecordingOrTesting(this.activeDocument);
-                this.DestroyVCPThreads(this.activeDocument);
-                this.DestroyRCThreads(this.activeDocument);
                 if (this.ConfirmSaveDocument(this.activeDocument))
                 {
                     this.UnsubscribeDocumentEvent(this.activeDocument);
                     this.documentManager.CloseDocument(this.activeDocument);
                 }
+                this.StopRecordingOrTesting(this.activeDocument);
+                this.DestroyVCPThreads(this.activeDocument);
+                this.DestroyRCThreads(this.activeDocument);
             }
 
             GC.Collect();
@@ -1673,14 +1673,14 @@ namespace BecquerelMonitor
                 return;
             }
             DocEnergySpectrum docEnergySpectrum = (DocEnergySpectrum)sender;
-            this.StopRecordingOrTesting(docEnergySpectrum);
-            this.DestroyVCPThreads(docEnergySpectrum);
-            this.DestroyRCThreads(docEnergySpectrum);
             if (!this.ConfirmSaveDocument(docEnergySpectrum))
             {
                 e.Cancel = true;
                 return;
             }
+            this.StopRecordingOrTesting(docEnergySpectrum);
+            this.DestroyVCPThreads(docEnergySpectrum);
+            this.DestroyRCThreads(docEnergySpectrum);
             docEnergySpectrum.FormClosing -= this.DocEnergySpectrum_FormClosing;
         }
 
