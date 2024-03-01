@@ -103,7 +103,8 @@ namespace BecquerelMonitor
         {
             if (this.button11.Text == Resources.Attach_BTN)
             {
-                this.AttachToDevice();
+                bool result = this.AttachToDevice();
+                if (!result) return;
                 this.button11.Text = Resources.Detach_BTN;
             } else
             {
@@ -148,30 +149,30 @@ namespace BecquerelMonitor
             this.ShowDocumentStatus();
         }
 
-        public void AttachToDevice()
+        public bool AttachToDevice()
         {
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
             if (activeDocument == null)
             {
-                return;
+                return false;
             }
             ResultData activeResultData = activeDocument.ActiveResultData;
             ResultDataStatus resultDataStatus = activeResultData.ResultDataStatus;
             if (this.PresetTime < 0)
             {
                 MessageBox.Show(Resources.ERRInvalidPresetTime);
-                return;
+                return false;
             }
             resultDataStatus.PresetTime = this.PresetTime;
             if ((int)resultDataStatus.ElapsedTime.TotalSeconds >= this.PresetTime)
             {
-                return;
+                return false;
             }
             activeDocument.Dirty = true;
             activeDocument.UpdateSpectrum = true;
             activeResultData.Dirty = true;
             DCPulseView dcpulseView = this.mainForm.DCPulseView;
-            activeResultData.MeasurementController.AttachToDevice();
+            bool result = activeResultData.MeasurementController.AttachToDevice();
             if (activeDocument.PulseDetector != null)
             {
                 activeDocument.PulseDetector.PulseView = dcpulseView.PulseView;
@@ -180,6 +181,7 @@ namespace BecquerelMonitor
             }
             this.mainForm.UpdateSampleInfo();
             this.ShowDocumentStatus();
+            return result;
         }
 
         // Token: 0x06000291 RID: 657 RVA: 0x0000B6BC File Offset: 0x000098BC
