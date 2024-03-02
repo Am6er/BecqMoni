@@ -10,6 +10,7 @@ using System.Windows.Forms;
 using System.Threading.Tasks;
 using Windows.Devices.Radios;
 using System.Management.Instrumentation;
+using System.Xml;
 
 namespace BecquerelMonitor
 {
@@ -134,7 +135,7 @@ namespace BecquerelMonitor
                         }));
                         TroubleshootText.Invoke(new Action(() =>
                         {
-                            TroubleshootText.AppendText($"Found device {name} with BLE addr {args.BluetoothAddress}");
+                            TroubleshootText.AppendText($"Found device {name} with BLE addr {args.BluetoothAddress}" + System.Environment.NewLine);
                         }));
                     } catch (Exception) { }
                 }
