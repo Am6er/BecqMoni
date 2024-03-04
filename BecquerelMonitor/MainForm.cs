@@ -1281,12 +1281,12 @@ namespace BecquerelMonitor
             {
                 if (this.ConfirmSaveDocument(this.activeDocument))
                 {
+                    this.StopRecordingOrTesting(this.activeDocument);
+                    this.DestroyVCPThreads(this.activeDocument);
+                    this.DestroyRCThreads(this.activeDocument);
                     this.UnsubscribeDocumentEvent(this.activeDocument);
                     this.documentManager.CloseDocument(this.activeDocument);
                 }
-                this.StopRecordingOrTesting(this.activeDocument);
-                this.DestroyVCPThreads(this.activeDocument);
-                this.DestroyRCThreads(this.activeDocument);
             }
 
             GC.Collect();
