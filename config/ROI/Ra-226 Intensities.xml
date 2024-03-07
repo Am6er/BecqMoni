@@ -2,7 +2,7 @@
 <ROIConfigData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <FormatVersion>120920</FormatVersion>
   <Guid>05319b34-29a1-4630-9efd-10e6f9397cbc</Guid>
-  <Name>Ra-226 Intencities</Name>
+  <Name>Ra-226 Intensities</Name>
   <LastUpdated>2023-06-06T12:48:07.324071+03:00</LastUpdated>
   <ROIDefinitions>
     <ROIDefinitionData>
