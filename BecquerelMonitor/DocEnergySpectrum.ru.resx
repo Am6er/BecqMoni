@@ -780,4 +780,10 @@
   <data name="toolStripNumericUpdown.ToolTipText" xml:space="preserve">
     <value>Степень корня POW. Нажмите кнопку е для вовода константы Эйлера.</value>
   </data>
+    <data name="toolStripScreenShotButton.ToolTipText" xml:space="preserve">
+    <value>Снять скрин спектра в файл</value>
+  </data>
+  <data name="toolStripNumUpDownScale.ToolTipText" xml:space="preserve">
+    <value>Изменить масштаб по оси X</value>
+  </data>
 </root>

@@ -33,17 +33,10 @@ namespace BecquerelMonitor
             ComponentResourceManager componentResourceManager = new ComponentResourceManager(typeof(EnergySpectrumView));
             this.hScrollBar1 = new HScrollBar();
             this.vScrollBar1 = new VScrollBar();
-            this.panel1 = new Panel();
-            this.label1 = new Label();
-            this.textBox1 = new TextBox();
-            this.button4 = new RepeatButton();
-            this.button5 = new Button();
-            this.button3 = new RepeatButton();
             this.panel2 = new Panel();
             this.button1 = new RepeatButton();
             this.button2 = new RepeatButton();
             this.toolTip1 = new ToolTip(this.components);
-            this.panel1.SuspendLayout();
             this.panel2.SuspendLayout();
             base.SuspendLayout();
             componentResourceManager.ApplyResources(this.hScrollBar1, "hScrollBar1");
@@ -54,45 +47,6 @@ namespace BecquerelMonitor
             this.vScrollBar1.Name = "vScrollBar1";
             this.toolTip1.SetToolTip(this.vScrollBar1, componentResourceManager.GetString("vScrollBar1.ToolTip"));
             this.vScrollBar1.ValueChanged += this.vScrollBar1_ValueChanged;
-            componentResourceManager.ApplyResources(this.panel1, "panel1");
-            this.panel1.BackColor = SystemColors.Control;
-            this.panel1.Controls.Add(this.label1);
-            this.panel1.Controls.Add(this.textBox1);
-            this.panel1.Controls.Add(this.button5);
-            this.panel1.Controls.Add(this.button4);
-            this.panel1.Controls.Add(this.button3);
-            this.panel1.Name = "panel1";
-            this.toolTip1.SetToolTip(this.panel1, componentResourceManager.GetString("panel1.ToolTip"));
-            componentResourceManager.ApplyResources(this.label1, "label1");
-            this.label1.Name = "label1";
-            this.toolTip1.SetToolTip(this.label1, componentResourceManager.GetString("label1.ToolTip"));
-            componentResourceManager.ApplyResources(this.textBox1, "textBox1");
-            this.textBox1.Name = "textBox1";
-            this.textBox1.TabStop = false;
-            this.toolTip1.SetToolTip(this.textBox1, componentResourceManager.GetString("textBox1.ToolTip"));
-            this.textBox1.KeyDown += this.textBox1_KeyDown;
-            this.textBox1.Validated += this.textBox1_Validated;
-            componentResourceManager.ApplyResources(this.button5, "button5");
-            this.button5.Text = "S";
-            this.button5.Name = "button5";
-            this.button5.TabStop = false;
-            this.toolTip1.SetToolTip(this.button5, componentResourceManager.GetString("button5.ToolTip"));
-            this.button5.UseVisualStyleBackColor = true;
-            this.button5.Click += this.button5_Click;
-            componentResourceManager.ApplyResources(this.button4, "button4");
-            this.button4.Image = Resources.Zoomout;
-            this.button4.Name = "button4";
-            this.button4.TabStop = false;
-            this.toolTip1.SetToolTip(this.button4, componentResourceManager.GetString("button4.ToolTip"));
-            this.button4.UseVisualStyleBackColor = true;
-            this.button4.Click += this.button4_Click;
-            componentResourceManager.ApplyResources(this.button3, "button3");
-            this.button3.Image = Resources.Zoomin;
-            this.button3.Name = "button3";
-            this.button3.TabStop = false;
-            this.toolTip1.SetToolTip(this.button3, componentResourceManager.GetString("button3.ToolTip"));
-            this.button3.UseVisualStyleBackColor = true;
-            this.button3.Click += this.button3_Click;
             componentResourceManager.ApplyResources(this.panel2, "panel2");
             this.panel2.BackColor = SystemColors.Control;
             this.panel2.Controls.Add(this.button1);
@@ -117,7 +71,6 @@ namespace BecquerelMonitor
             base.AutoScaleMode = AutoScaleMode.Font;
             this.BackColor = Color.White;
             base.Controls.Add(this.panel2);
-            base.Controls.Add(this.panel1);
             base.Controls.Add(this.vScrollBar1);
             base.Controls.Add(this.hScrollBar1);
             this.DoubleBuffered = true;
@@ -131,8 +84,6 @@ namespace BecquerelMonitor
             base.MouseLeave += this.EnergySpectrumView_MouseLeave;
             base.MouseMove += this.EnergySpectrumView_MouseMove;
             base.MouseUp += this.EnergySpectrumView_MouseUp;
-            this.panel1.ResumeLayout(false);
-            this.panel1.PerformLayout();
             this.panel2.ResumeLayout(false);
             base.ResumeLayout(false);
         }
@@ -444,8 +395,6 @@ namespace BecquerelMonitor
             this.farFormat.Alignment = StringAlignment.Far;
             ((Bitmap)this.button1.Image).MakeTransparent();
             ((Bitmap)this.button2.Image).MakeTransparent();
-            ((Bitmap)this.button3.Image).MakeTransparent();
-            ((Bitmap)this.button4.Image).MakeTransparent();
             this.hScrollBar1.Visible = true;
             this.vScrollBar1.Visible = true;
         }
@@ -595,7 +544,7 @@ namespace BecquerelMonitor
                 int screenXOffset = base.Width - this.left - this.vScrollBar1.Width - 5;
                 int medCh = CalcChanValue(this.hScrollBar1.Value + screenXOffset / 2);
                 this.horizontalScale = newHorizontalScale;
-                this.textBox1.Text = this.horizontalScale.ToString();
+                if (ActionEvent != null) ActionEvent(this, new EnergySpectrumActionEventArgs(true, (decimal)this.horizontalScale));
                 this.hScrollBar1.Maximum = this.CalcMaximumXValue() + 5;
                 int newValue = CalcXValue(medCh) - screenXOffset / 2;
                 if (newValue < 0) { newValue = 0; }
@@ -3663,47 +3612,39 @@ namespace BecquerelMonitor
             base.Invalidate();
         }
 
-        // Token: 0x060004CF RID: 1231 RVA: 0x0001C258 File Offset: 0x0001A458
-        void button3_Click(object sender, EventArgs e)
+
+        public void zoom(decimal zoomvalue)
         {
             double num = this.horizontalScale;
             int value = this.hScrollBar1.Value;
-            decimal num2 = (decimal)this.horizontalScale;
-            num2 += 0.1m;
-            num2 = Math.Round(num2, 1);
-            if (num2 > 10.0m)
-            {
-                num2 = 10.0m;
-            }
-            this.horizontalScale = (double)num2;
-            this.textBox1.Text = this.horizontalScale.ToString();
+            this.horizontalScale = (double)zoomvalue;
             this.PrepareViewData();
             this.RecalcScrollBar();
             int num3 = value;
             int num4 = base.Width - this.left - this.vScrollBar1.Width;
             switch (this.globalConfigManager.GlobalConfig.ChartViewConfig.MagnificationReference)
             {
-            case MagnificationReference.Left:
-            {
-                double num5 = (double)value;
-                double num6 = num5 * this.horizontalScale / num;
-                num3 = (int)num6;
-                break;
-            }
-            case MagnificationReference.Center:
-            {
-                double num7 = (double)value + (double)num4 / 2.0;
-                double num8 = num7 * this.horizontalScale / num;
-                num3 = (int)(num8 - (double)num4 / 2.0);
-                break;
-            }
-            case MagnificationReference.Right:
-            {
-                double num9 = (double)value + (double)num4;
-                double num10 = num9 * this.horizontalScale / num;
-                num3 = (int)(num10 - (double)num4);
-                break;
-            }
+                case MagnificationReference.Left:
+                    {
+                        double num5 = (double)value;
+                        double num6 = num5 * this.horizontalScale / num;
+                        num3 = (int)num6;
+                        break;
+                    }
+                case MagnificationReference.Center:
+                    {
+                        double num7 = (double)value + (double)num4 / 2.0;
+                        double num8 = num7 * this.horizontalScale / num;
+                        num3 = (int)(num8 - (double)num4 / 2.0);
+                        break;
+                    }
+                case MagnificationReference.Right:
+                    {
+                        double num9 = (double)value + (double)num4;
+                        double num10 = num9 * this.horizontalScale / num;
+                        num3 = (int)(num10 - (double)num4);
+                        break;
+                    }
             }
             if (num3 < this.hScrollBar1.Minimum)
             {
@@ -3717,61 +3658,7 @@ namespace BecquerelMonitor
             base.Invalidate();
         }
 
-        // Token: 0x060004D0 RID: 1232 RVA: 0x0001C3F8 File Offset: 0x0001A5F8
-        void button4_Click(object sender, EventArgs e)
-        {
-            double num = this.horizontalScale;
-            int value = this.hScrollBar1.Value;
-            decimal num2 = (decimal)this.horizontalScale;
-            num2 -= 0.1m;
-            num2 = Math.Round(num2, 1);
-            if (num2 < 0.1m)
-            {
-                num2 = 0.1m;
-            }
-            this.horizontalScale = (double)num2;
-            this.textBox1.Text = this.horizontalScale.ToString();
-            this.PrepareViewData();
-            this.RecalcScrollBar();
-            int num3 = value;
-            int num4 = base.Width - this.left - this.vScrollBar1.Width;
-            switch (this.globalConfigManager.GlobalConfig.ChartViewConfig.MagnificationReference)
-            {
-            case MagnificationReference.Left:
-            {
-                double num5 = (double)value;
-                double num6 = num5 * this.horizontalScale / num;
-                num3 = (int)num6;
-                break;
-            }
-            case MagnificationReference.Center:
-            {
-                double num7 = (double)value + (double)num4 / 2.0;
-                double num8 = num7 * this.horizontalScale / num;
-                num3 = (int)(num8 - (double)num4 / 2.0);
-                break;
-            }
-            case MagnificationReference.Right:
-            {
-                double num9 = (double)value + (double)num4;
-                double num10 = num9 * this.horizontalScale / num;
-                num3 = (int)(num10 - (double)num4);
-                break;
-            }
-            }
-            if (num3 < this.hScrollBar1.Minimum)
-            {
-                num3 = this.hScrollBar1.Minimum;
-            }
-            if (num3 > this.hScrollBar1.Maximum)
-            {
-                num3 = this.hScrollBar1.Maximum;
-            }
-            this.hScrollBar1.Value = num3;
-            base.Invalidate();
-        }
-
-        void button5_Click(object sender, EventArgs e)
+        public void takeScreenshot()
         {
             using (SaveFileDialog dialog = new SaveFileDialog())
             {
@@ -3794,41 +3681,6 @@ namespace BecquerelMonitor
                         MessageBox.Show("Error while saving file");
                     }
                 }
-            }
-        }
-
-        // Token: 0x060004D1 RID: 1233 RVA: 0x0001C598 File Offset: 0x0001A798
-        void textBox1_KeyDown(object sender, KeyEventArgs e)
-        {
-            double num;
-            if (e.KeyCode == Keys.Return && double.TryParse(this.textBox1.Text, out num))
-            {
-                this.horizontalScale = num;
-                if (num > 10.0)
-                {
-                    this.horizontalScale = 10.0;
-                }
-                else if (num < 0.1)
-                {
-                    this.horizontalScale = 0.1;
-                }
-                this.PrepareViewData();
-                this.RecalcScrollBar();
-                base.Invalidate();
-                e.SuppressKeyPress = true;
-            }
-        }
-
-        // Token: 0x060004D2 RID: 1234 RVA: 0x0001C630 File Offset: 0x0001A830
-        void textBox1_Validated(object sender, EventArgs e)
-        {
-            double num;
-            if (double.TryParse(this.textBox1.Text, out num))
-            {
-                this.horizontalScale = num;
-                this.PrepareViewData();
-                this.RecalcScrollBar();
-                base.Invalidate();
             }
         }
 
@@ -3856,7 +3708,7 @@ namespace BecquerelMonitor
             {
                 this.horizontalScale = 10.0;
             }
-            this.textBox1.Text = this.horizontalScale.ToString();
+            if (ActionEvent != null) ActionEvent(this, new EnergySpectrumActionEventArgs(true, (decimal)this.horizontalScale));
             int maxPos = this.CalcMaximumXValue() + 5;
             this.hScrollBar1.Maximum = maxPos;
             int currPos = (int)(CalcXValue((int)((endRegion + startRegion) / 2.0)) - this.width / 2.0); //5651
@@ -3879,7 +3731,7 @@ namespace BecquerelMonitor
         {
             int num = base.Width - this.left - this.vScrollBar1.Width;
             this.horizontalScale = (double)num / (this.energyCalibration.ChannelToEnergy((double)this.numberOfChannels) * this.pixelPerEnergy + 8.0);
-            this.textBox1.Text = this.horizontalScale.ToString();
+            if (ActionEvent != null) ActionEvent(this, new EnergySpectrumActionEventArgs(true, (decimal)this.horizontalScale));
             int maximum = this.CalcMaximumXValue() + 5;
             this.hScrollBar1.Maximum = maximum;
             this.hScrollBar1.Value = 0;
@@ -3898,7 +3750,7 @@ namespace BecquerelMonitor
         {
             int num = base.Width - this.left - this.vScrollBar1.Width;
             this.horizontalScale = 1.0;
-            this.textBox1.Text = this.horizontalScale.ToString();
+            if (ActionEvent != null) ActionEvent(this, new EnergySpectrumActionEventArgs(true, (decimal)this.horizontalScale));
             int maximum = this.CalcMaximumXValue() + 5;
             this.hScrollBar1.Maximum = maximum;
             this.hScrollBar1.Value = 0;
@@ -3919,16 +3771,16 @@ namespace BecquerelMonitor
             else
             {
                 this.horizontalScale = (double)num / (this.energyCalibration.ChannelToEnergy((double)this.numberOfChannels) * this.pixelPerEnergy + 8.0);
-                this.textBox1.Text = this.horizontalScale.ToString();
                 int maximum = this.CalcMaximumXValue() + 5;
                 this.hScrollBar1.Maximum = maximum;
                 this.hScrollBar1.Value = 0;
             }
-            this.textBox1.Text = this.horizontalScale.ToString();
+            if (ActionEvent != null) ActionEvent(this, new EnergySpectrumActionEventArgs(true, (decimal)this.horizontalScale));
             this.PrepareViewData();
             this.RecalcScrollBar();
             base.Invalidate();
         }
+
 
         // Token: 0x040001E9 RID: 489
         IContainer components;
@@ -3938,15 +3790,6 @@ namespace BecquerelMonitor
 
         // Token: 0x040001EB RID: 491
         VScrollBar vScrollBar1;
-
-        // Token: 0x040001EC RID: 492
-        Panel panel1;
-
-        // Token: 0x040001ED RID: 493
-        Label label1;
-
-        // Token: 0x040001EE RID: 494
-        TextBox textBox1;
 
         // Token: 0x040001EF RID: 495
         Panel panel2;
@@ -3959,14 +3802,6 @@ namespace BecquerelMonitor
 
         // Token: 0x040001F2 RID: 498
         RepeatButton button2;
-
-        // Token: 0x040001F3 RID: 499
-        RepeatButton button3;
-
-        // Token: 0x040001F4 RID: 500
-        RepeatButton button4;
-
-        Button button5;
 
         // Token: 0x040001F5 RID: 501
         GlobalConfigManager globalConfigManager = GlobalConfigManager.GetInstance();
@@ -4186,5 +4021,29 @@ namespace BecquerelMonitor
         // Token: 0x0200021E RID: 542
         // (Invoke) Token: 0x06001927 RID: 6439
         public delegate void ChannelPickupedEventHandler(object sender, ChannelPickupedEventArgs e);
+
+        public event EventHandler<EnergySpectrumActionEventArgs> ActionEvent;
+    }
+
+    public class EnergySpectrumActionEventArgs : EventArgs
+    {
+        private bool needUpdateScale;
+        private decimal newScaleValue;
+
+        public bool NeedUpdateScale
+        {
+            get { return this.needUpdateScale; }
+        }
+
+        public decimal NewScaleValue
+        {
+            get { return this.newScaleValue; }
+        }
+
+        public EnergySpectrumActionEventArgs(bool needUpdate, decimal newScalevalue)
+        {
+            this.needUpdateScale = needUpdate;
+            this.newScaleValue = newScalevalue;
+        }
     }
 }

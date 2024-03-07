@@ -301,6 +301,7 @@ namespace BecquerelMonitor
             this.view.DrawingMode = globalConfig.ChartViewConfig.DefaultDrawingMode;
             this.view.PeakMode = globalConfig.ChartViewConfig.DefaultPeakMode;
             this.view.HorizontalMagnification = globalConfig.ChartViewConfig.DefaultHorizontalMagnification;
+            this.view.ActionEvent += View_ActionEvent;
             this.SetToolStripIcons();
             this.toolStripNumericUpdown.NumericUpDownControl.Value = (decimal)globalConfig.ChartViewConfig.PowNum;
             toolStripContainer1.BottomToolStripPanel.SuspendLayout();
@@ -309,6 +310,11 @@ namespace BecquerelMonitor
             toolStrip1.Location = new Point(0, 0);
             toolStrip2.Location = new Point(300, 0);
             toolStripContainer1.BottomToolStripPanel.ResumeLayout();
+        }
+
+        private void View_ActionEvent(object sender, EnergySpectrumActionEventArgs e)
+        {
+            if (e.NeedUpdateScale) this.toolStripNumUpDownScale.NumericUpDownControl.Value = e.NewScaleValue;
         }
 
         public void RefreshDocEnergySpectrum()
@@ -325,6 +331,7 @@ namespace BecquerelMonitor
             this.view.DrawingMode = globalConfig.ChartViewConfig.DefaultDrawingMode;
             this.view.PeakMode = globalConfig.ChartViewConfig.DefaultPeakMode;
             this.view.HorizontalMagnification = globalConfig.ChartViewConfig.DefaultHorizontalMagnification;
+            this.view.ActionEvent += View_ActionEvent;
             this.SetToolStripIcons();
             this.toolStripNumericUpdown.NumericUpDownControl.Value = (decimal)globalConfig.ChartViewConfig.PowNum;
         }
@@ -1241,6 +1248,25 @@ namespace BecquerelMonitor
             if (this.SetLowerThreshold != null)
             {
                 this.SetLowerThreshold(this, new EventArgs());
+            }
+        }
+
+        void toolStripScreenShotButton_Click(object sender, EventArgs e)
+        {
+            this.view.takeScreenshot();
+        }
+
+        void toolStripNumUpDownScale_ValueChanged(object sender, EventArgs e)
+        {
+            this.view.zoom(this.toolStripNumUpDownScale.NumericUpDownControl.Value);
+        }
+
+        void toolStripNumUpDownScale_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                this.view.zoom(this.toolStripNumUpDownScale.NumericUpDownControl.Value);
+                e.SuppressKeyPress = true;
             }
         }
 

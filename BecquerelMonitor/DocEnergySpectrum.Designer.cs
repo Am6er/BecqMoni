@@ -1,4 +1,6 @@
-﻿namespace BecquerelMonitor
+﻿using System.Windows.Forms;
+
+namespace BecquerelMonitor
 {
 	// Token: 0x0200003C RID: 60
 	public partial class DocEnergySpectrum : global::WeifenLuo.WinFormsUI.Docking.DockContent
@@ -46,6 +48,8 @@
 			this.cps表示ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSplitButton2 = new global::System.Windows.Forms.ToolStripSplitButton();
 			this.toolStripNumericUpdown = new ToolStripNumericUpdown();
+			this.toolStripScreenShotButton = new ToolStripButton();
+			this.toolStripNumUpDownScale = new ToolStripNumericUpdown();
             this.リニア表示ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.powToolStripMenuItem = new global::System.Windows.Forms .ToolStripMenuItem();
 			this.対数表示ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
@@ -114,7 +118,8 @@
 				this.toolStripSplitButton8,
 				this.toolStripSplitButton3,
 				this.toolStripSplitButton6,
-				this.toolStripSplitButton9
+				this.toolStripSplitButton9,
+				this.toolStripScreenShotButton
 			});
 			this.toolStrip2.Name = "toolStrip2";
 			this.toolStrip2.SuppressHighlighting = false;
@@ -211,9 +216,14 @@
 			});
 			this.toolStripSplitButton9.Image = global::BecquerelMonitor.Properties.Resources.peak;
 			this.toolStripSplitButton9.Name = "toolStripSplitButton9";
-			this.toolStripSplitButton9.ButtonClick += new global::System.EventHandler(this.toolStripSplitButton9_ButtonClick);
+            this.toolStripSplitButton9.ButtonClick += new global::System.EventHandler(this.toolStripSplitButton9_ButtonClick);
 			this.toolStripSplitButton9.DropDownOpening += new global::System.EventHandler(this.toolStripSplitButton9_DropDownOpening);
-			resources.ApplyResources(this.ピ\u30FCク表示ありToolStripMenuItem, "ピーク表示ありToolStripMenuItem");
+            resources.ApplyResources(this.toolStripScreenShotButton, "toolStripScreenShotButton");
+            this.toolStripScreenShotButton.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripScreenShotButton.Image = global::BecquerelMonitor.Properties.Resources.screenshot;
+            this.toolStripScreenShotButton.Name = "toolStripScreenShotButton";
+            this.toolStripScreenShotButton.Click += new global::System.EventHandler(this.toolStripScreenShotButton_Click);
+            resources.ApplyResources(this.ピ\u30FCク表示ありToolStripMenuItem, "ピーク表示ありToolStripMenuItem");
 			this.ピ\u30FCク表示ありToolStripMenuItem.Name = "ピーク表示ありToolStripMenuItem";
 			this.ピ\u30FCク表示ありToolStripMenuItem.Click += new global::System.EventHandler(this.ピ\u30FCク表示ありToolStripMenuItem_Click);
 			resources.ApplyResources(this.ピ\u30FCク表示なしToolStripMenuItem, "ピーク表示なしToolStripMenuItem");
@@ -235,6 +245,7 @@
 				this.toolStripButton2,
 				this.toolStripButton1,
 				this.toolStripButton3,
+				this.toolStripNumUpDownScale,
 				this.toolStripSplitButton10
 			});
 			this.toolStrip1.Name = "toolStrip1";
@@ -283,6 +294,17 @@
             this.toolStripNumericUpdown.KeyDown += this.ToolStripNumericUpdown_KeyDown;
             this.toolStripNumericUpdown.Enabled = false;
             this.toolTip1.SetToolTip(this.toolStripNumericUpdown.Control, resources.GetString("toolStripNumericUpdown.ToolTipText"));
+
+            resources.ApplyResources(this.toolStripNumUpDownScale, "toolStripNumUpDownScale");
+            this.toolStripNumUpDownScale.Name = "toolStripNumUpDownScale";
+            this.toolStripNumUpDownScale.NumericUpDownControl.DecimalPlaces = 3;
+            this.toolStripNumUpDownScale.NumericUpDownControl.Value = 4.0M;
+            this.toolStripNumUpDownScale.NumericUpDownControl.Maximum = 10.0M;
+            this.toolStripNumUpDownScale.NumericUpDownControl.Minimum = 0.1M;
+            this.toolStripNumUpDownScale.NumericUpDownControl.Increment = 0.1M;
+            this.toolStripNumUpDownScale.ValueChanged += new System.EventHandler(this.toolStripNumUpDownScale_ValueChanged);
+            this.toolStripNumUpDownScale.KeyDown += this.toolStripNumUpDownScale_KeyDown;
+            this.toolTip1.SetToolTip(this.toolStripNumUpDownScale.Control, resources.GetString("toolStripNumUpDownScale.ToolTipText"));
 
             resources.ApplyResources(this.リニア表示ToolStripMenuItem, "リニア表示ToolStripMenuItem");
 			this.リニア表示ToolStripMenuItem.Name = "リニア表示ToolStripMenuItem";
@@ -509,8 +531,12 @@
 
 		ToolStripNumericUpdown toolStripNumericUpdown;
 
-		// Token: 0x0400011D RID: 285
-		global::System.Windows.Forms.ToolStripMenuItem 対数表示ToolStripMenuItem;
+		ToolStripButton toolStripScreenShotButton;
+
+		ToolStripNumericUpdown toolStripNumUpDownScale;
+
+        // Token: 0x0400011D RID: 285
+        global::System.Windows.Forms.ToolStripMenuItem 対数表示ToolStripMenuItem;
 
 		// Token: 0x0400011E RID: 286
 		global::System.Windows.Forms.ToolStripMenuItem リニア表示ToolStripMenuItem;
