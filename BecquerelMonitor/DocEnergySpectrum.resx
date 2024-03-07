@@ -1090,4 +1090,10 @@
   <data name="powToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>180, 22</value>
   </data>
+  <data name="toolStripScreenShotButton.ToolTipText" xml:space="preserve">
+    <value>Take Screenshot to file</value>
+  </data>
+  <data name="toolStripNumUpDownScale.ToolTipText" xml:space="preserve">
+    <value>Change X scale</value>
+  </data>
 </root>
