@@ -36,7 +36,7 @@
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
     <ApplicationRevision>1</ApplicationRevision>
-    <ApplicationVersion>2024.03.7.1</ApplicationVersion>
+    <ApplicationVersion>2024.03.9.1</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -215,6 +215,8 @@
       <DependentUpon>CoreAudioTestForm.cs</DependentUpon>
     </Compile>
     <Compile Include="CorrelativePulseDetector.cs" />
+    <Compile Include="CountRate.cs" />
+    <Compile Include="CountsRateManager.cs" />
     <Compile Include="DCControlPanel.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -885,6 +887,7 @@
     </EmbeddedResource>
     <EmbeddedResource Include="DCDoseRateView.resx">
       <DependentUpon>DCDoseRateView.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="DCEnergyCalibrationView.resx">
       <DependentUpon>DCEnergyCalibrationView.cs</DependentUpon>

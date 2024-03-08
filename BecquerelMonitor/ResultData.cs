@@ -378,6 +378,19 @@ namespace BecquerelMonitor
             }
         }
 
+        [XmlIgnore]
+        public List<CountRate> CountRates
+        {
+            get
+            {
+                return this.countRates;
+            }
+            set
+            {
+                this.countRates = value;
+            }
+        }
+
         // Token: 0x0600069D RID: 1693 RVA: 0x00027B4C File Offset: 0x00025D4C
         public ResultData()
         {
@@ -498,5 +511,7 @@ namespace BecquerelMonitor
         List<Peak> calibrationPeaks = new List<Peak>();
 
         List<CalibrationPoint> calibrationPoints = new List<CalibrationPoint>();
+
+        List<CountRate> countRates = new List<CountRate>();
     }
 }

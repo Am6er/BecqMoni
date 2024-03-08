@@ -134,11 +134,11 @@ namespace BecquerelMonitor
             this.globalConfigManager.PrepareConfigFile();
             this.resultManager = new MeasurementResultManager();
             this.doseRateManager = new DoseRateManager();
+            this.countsRateManager = new CountsRateManager();
             this.InitializeComponent();
             base.Icon = BecquerelMonitor.Properties.Resources.becqmoni;
             this.toolStripMenuItem6.Visible = false;
             this.toolStripMenuItem3.Visible = false;
-            this.toolStripMenuItem5.Visible = false;
             this.toolStripMenuItem7.Visible = false;
             this.toolStripSeparator9.Visible = false;
             this.toolStripMenuItem2.Visible = false;
@@ -233,11 +233,13 @@ namespace BecquerelMonitor
             this.dcPeakDetectionView = new DCPeakDetectionView(this);
             this.dcSpectrumExplorerView = new DCSpectrumExplorerView(this);
             this.dcEnergyCalibrationView = new DCEnergyCalibrationView(this);
+            this.dcDoseRateView = new DCDoseRateView(this);
             this.dcControlPanel.Enabled = false;
             this.dcSampleInfoView.Enabled = false;
             this.dcSpectrumListView.Enabled = false;
             this.dcPeakDetectionView.Enabled = false;
             this.dcEnergyCalibrationView.Enabled = false;
+            this.dcDoseRateView.Enabled = false;
 
         }
 
@@ -325,6 +327,10 @@ namespace BecquerelMonitor
             if (a == typeof(DCPulseView).ToString())
             {
                 return this.dcPulseView;
+            }
+            if (a == typeof(DCDoseRateView).ToString())
+            {
+                return this.dcDoseRateView;
             }
             if (a == typeof(DCResultView).ToString())
             {
@@ -434,6 +440,8 @@ namespace BecquerelMonitor
                 if (this.activeDocument != null && (this.activeDocument.UpdateSpectrum || this.activeDocument.UpdateMeasurementResult))
                 {
                     this.UpdateCalibrationPeak();
+                    this.countsRateManager.AppendResultData(this.activeDocument.ActiveResultData);
+                    this.ShowCountsRate();
                 }
             }
             this.count500 += 100;
@@ -570,17 +578,20 @@ namespace BecquerelMonitor
                 DoseRate doseRate = this.doseRateManager.Calculate(this.activeDocument.ActiveResultData,
                     this.activeDocument.ActiveResultData.DeviceConfig.DoseRateConfig,
                     this.activeDocument.EnergySpectrumView.BackgroundMode);
-                if (this.dcDoseRateView != null)
-                {
-                    SetStatusTextRight(Resources.DoseRate + " " + doseRate.ToString());
-                    this.dcDoseRateView.ShowDoseRate(doseRate);
-                } else
-                {
-                    SetStatusTextRight(Resources.DoseRate + " " + doseRate.ToString());
-                }
+                SetStatusTextRight(Resources.DoseRate + " " + doseRate.ToString());
             } else
             {
                 ClearStatusTextRight();
+            }
+        }
+
+        public void ShowCountsRate()
+        {
+            if (this.activeDocument != null && this.dcDoseRateView != null)
+            {
+                decimal window = this.dcDoseRateView.getWindow();
+                decimal cps = this.countsRateManager.GetCPS(this.activeDocument.ActiveResultData, window);
+                this.dcDoseRateView.ShowCountsRate(cps);
             }
         }
 
@@ -812,7 +823,7 @@ namespace BecquerelMonitor
             }
         }
 
-        // Token: 0x06000A61 RID: 2657 RVA: 0x0003D898 File Offset: 0x0003BA98
+        
         void toolStripMenuItem5_Click(object sender, EventArgs e)
         {
             if (this.dcDoseRateView == null || this.dcDoseRateView.IsDisposed)
@@ -820,7 +831,7 @@ namespace BecquerelMonitor
                 this.dcDoseRateView = new DCDoseRateView(this);
             }
             this.dcDoseRateView.Show(this.dockPanel1);
-            ShowDoseRate();
+            ShowCountsRate();
             ShowDetectorFeature();
         }
 
@@ -938,10 +949,13 @@ namespace BecquerelMonitor
                 this.dcSampleInfoView.LoadFormContents();
                 this.ShowMeasurementResult(true);
                 this.ShowDoseRate();
+                this.countsRateManager.AppendResultData(this.activeDocument.ActiveResultData);
+                this.ShowCountsRate();
                 this.ShowDetectorFeature();
                 this.dcPeakDetectionView.ShowPeakDetectionResult();
                 this.dcControlPanel.Enabled = true;
                 this.dcSampleInfoView.Enabled = true;
+                this.dcDoseRateView.Enabled = true;
                 foreach (DCResultView dcresultView in this.dcResultViewList)
                 {
                     dcresultView.Enabled = true;
@@ -973,6 +987,7 @@ namespace BecquerelMonitor
             {
                 this.dcControlPanel.Enabled = false;
                 this.dcSampleInfoView.Enabled = false;
+                this.dcDoseRateView.Enabled = false;
                 foreach (DCResultView dcresultView2 in this.dcResultViewList)
                 {
                     dcresultView2.Enabled = false;
@@ -998,6 +1013,8 @@ namespace BecquerelMonitor
             this.dcSampleInfoView.LoadFormContents();
             this.ShowMeasurementResult(true);
             this.ShowDoseRate();
+            this.countsRateManager.AppendResultData(this.activeDocument.ActiveResultData);
+            this.ShowCountsRate();
             this.ShowDetectorFeature();
             this.dcPeakDetectionView.ShowPeakDetectionResult();
             UpdateEnergyCalibrationView();
@@ -1005,6 +1022,7 @@ namespace BecquerelMonitor
             this.activeDocument.ActiveEnergyCalibration = this.dcEnergyCalibrationView.Visible;
             this.dcControlPanel.Enabled = true;
             this.dcSampleInfoView.Enabled = true;
+            this.dcDoseRateView.Enabled = true;
             foreach (DCResultView dcresultView in this.dcResultViewList)
             {
                 dcresultView.Enabled = true;
@@ -1840,6 +1858,7 @@ namespace BecquerelMonitor
         {
             DocEnergySpectrum docEnergySpectrum = this.activeDocument;
             this.dcSampleInfoView.LoadFormContents();
+            ShowCountsRate();
             this.dcControlPanel.ShowDocumentStatus();
             docEnergySpectrum.UpdateEnergySpectrum();
             this.ShowMeasurementResult(true);
@@ -2117,6 +2136,7 @@ namespace BecquerelMonitor
         public void RefreshAllView()
         {
             this.dcSampleInfoView.LoadFormContents();
+            ShowCountsRate();
             this.ShowMeasurementResult(true);
             if (this.dcEnergyCalibrationView != null)
             {
@@ -2559,6 +2579,8 @@ namespace BecquerelMonitor
 
         // Token: 0x040005CD RID: 1485
         DoseRateManager doseRateManager;
+
+        CountsRateManager countsRateManager;
 
         // Token: 0x040005CE RID: 1486
         GlobalConfigManager globalConfigManager;
