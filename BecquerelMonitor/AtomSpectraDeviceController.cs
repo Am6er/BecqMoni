@@ -1,5 +1,6 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace BecquerelMonitor
@@ -255,12 +256,15 @@ namespace BecquerelMonitor
         {
             if (this.resultDataStatus.Recording)
             {
-                e.Hystogram.CopyTo(this.pulseDetector.EnergySpectrum.Spectrum, 0);
-                int sum = 0;
-                foreach (int ch in e.Hystogram)
+                if (e.Hystogram.Length != this.pulseDetector.EnergySpectrum.Spectrum.Length)
                 {
-                    sum += ch;
+                    MessageBox.Show(Resources.ERRIncompatibleChannelParameters);
+                    resultData.MeasurementController.StopRecording();
+                    resultData.ResultDataStatus.Recording = false;
+                    return;
                 }
+                e.Hystogram.CopyTo(this.pulseDetector.EnergySpectrum.Spectrum, 0);
+                int sum = e.Hystogram.Sum();
                 this.pulseDetector.EnergySpectrum.TotalPulseCount = sum + e.InvalidPulses;
                 this.pulseDetector.EnergySpectrum.ValidPulseCount = sum;
                 this.pulseDetector.EnergySpectrum.ChannelPitch = 1;
