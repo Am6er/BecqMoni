@@ -63,11 +63,7 @@
             // windowControl
             // 
             this.windowControl.DecimalPlaces = 2;
-            this.windowControl.Increment = new decimal(new int[] {
-            2,
-            0,
-            0,
-            0});
+            this.windowControl.InterceptArrowKeys = false;
             resources.ApplyResources(this.windowControl, "windowControl");
             this.windowControl.Maximum = new decimal(new int[] {
             120,
