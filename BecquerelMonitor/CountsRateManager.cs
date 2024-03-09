@@ -32,7 +32,7 @@ namespace BecquerelMonitor
 
         public decimal GetCPS(ResultData resultData, decimal window)
         {
-            if (resultData.CountRates.Count <= 1) return 0;
+            if (resultData.CountRates.Count <= 2) return 0;
             double win_ms = resultData.CountRates[resultData.CountRates.Count - 1].ElapsedTimeInMs - (double)(window * 1000);
             CountRate last_countRate = resultData.CountRates[resultData.CountRates.Count - 1];
             CountRate first_countRate = null;
