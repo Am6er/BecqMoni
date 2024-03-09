@@ -16,7 +16,12 @@ namespace BecquerelMonitor
             int new_counts = resultData.EnergySpectrum.ValidPulseCount;
             double new_time = resultData.ResultDataStatus.ElapsedTime.TotalMilliseconds;
 
-            if (new_time == 0) return; 
+            if (new_time == 0) return;
+            if (resultData.CountRates.Count > 0)
+            {
+                if (resultData.CountRates[resultData.CountRates.Count - 1].ElapsedTimeInMs == new_time ||
+                new_time - resultData.CountRates[resultData.CountRates.Count - 1].ElapsedTimeInMs < 1000.0) return;
+            }
             
             if (resultData.CountRates.Count >= UpperWindow)
             {
@@ -39,12 +44,19 @@ namespace BecquerelMonitor
                     first_countRate = resultData.CountRates[i];
                 } else
                 {
+                    if (first_countRate == null ||
+                        last_countRate.ElapsedTimeInMs <= first_countRate.ElapsedTimeInMs ||
+                        last_countRate.Counts <= first_countRate.Counts)
+                    {
+                        first_countRate = resultData.CountRates[i];
+                        continue;
+                    }
                     break;
                 }
             }
-            if (first_countRate == null ||
-                last_countRate.Counts < first_countRate.Counts ||
-                last_countRate.ElapsedTimeInMs <= first_countRate.ElapsedTimeInMs) { return 0; }
+            //if (first_countRate == null ||
+            //    last_countRate.Counts < first_countRate.Counts ||
+            //    last_countRate.ElapsedTimeInMs <= first_countRate.ElapsedTimeInMs) { return 0; }
             double result = ((double)(last_countRate.Counts - first_countRate.Counts) * 1000.0) / (last_countRate.ElapsedTimeInMs - first_countRate.ElapsedTimeInMs);
             return (decimal)result;
         }
