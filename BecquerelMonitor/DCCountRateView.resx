@@ -331,6 +331,6 @@
     <value>DCCountRateView</value>
   </data>
   <data name="&gt;&gt;$this.Type" xml:space="preserve">
-    <value>BecquerelMonitor.ToolWindow, BecquerelMonitor, Version=2024.3.9.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.ToolWindow, BecquerelMonitor, Version=2024.3.9.3, Culture=neutral, PublicKeyToken=null</value>
   </data>
 </root>

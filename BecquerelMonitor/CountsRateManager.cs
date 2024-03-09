@@ -37,16 +37,15 @@ namespace BecquerelMonitor
             CountRate last_countRate = resultData.CountRates[resultData.CountRates.Count - 1];
             CountRate first_countRate = null;
 
-            int min = Math.Min(UpperWindow, resultData.CountRates.Count - 1);
-            for (int i = min; i >= 0; i--)
+            for (int i = resultData.CountRates.Count - 2; i >= 0; i--)
             {
                 if (resultData.CountRates[i].ElapsedTimeInMs >= win_ms) {
                     first_countRate = resultData.CountRates[i];
-                } else
+                }
+                else
                 {
                     if (first_countRate == null ||
-                        last_countRate.ElapsedTimeInMs <= first_countRate.ElapsedTimeInMs ||
-                        last_countRate.Counts <= first_countRate.Counts)
+                        last_countRate.ElapsedTimeInMs <= first_countRate.ElapsedTimeInMs)
                     {
                         first_countRate = resultData.CountRates[i];
                         continue;
@@ -54,9 +53,7 @@ namespace BecquerelMonitor
                     break;
                 }
             }
-            //if (first_countRate == null ||
-            //    last_countRate.Counts < first_countRate.Counts ||
-            //    last_countRate.ElapsedTimeInMs <= first_countRate.ElapsedTimeInMs) { return 0; }
+            if (last_countRate.ElapsedTimeInMs == first_countRate.ElapsedTimeInMs) { return 0; }
             double result = ((double)(last_countRate.Counts - first_countRate.Counts) * 1000.0) / (last_countRate.ElapsedTimeInMs - first_countRate.ElapsedTimeInMs);
             return (decimal)result;
         }
