@@ -123,7 +123,7 @@
   </data>
   <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
   <data name="label1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>14, 61</value>
+    <value>10, 61</value>
   </data>
   <data name="label1.Size" type="System.Drawing.Size, System.Drawing">
     <value>75, 13</value>
@@ -150,7 +150,7 @@
     <value>True</value>
   </data>
   <data name="label2.Location" type="System.Drawing.Point, System.Drawing">
-    <value>14, 24</value>
+    <value>9, 24</value>
   </data>
   <data name="label2.Size" type="System.Drawing.Size, System.Drawing">
     <value>66, 13</value>
@@ -173,23 +173,23 @@
   <data name="&gt;&gt;label2.ZOrder" xml:space="preserve">
     <value>4</value>
   </data>
-  <data name="cpslabel.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
   <data name="cpslabel.Font" type="System.Drawing.Font, System.Drawing">
     <value>Microsoft Sans Serif, 14.25pt, style=Bold</value>
   </data>
   <data name="cpslabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>5, 4</value>
+    <value>7, 4</value>
   </data>
   <data name="cpslabel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>49, 24</value>
+    <value>116, 24</value>
   </data>
   <data name="cpslabel.TabIndex" type="System.Int32, mscorlib">
     <value>4</value>
   </data>
   <data name="cpslabel.Text" xml:space="preserve">
     <value>0.00</value>
+  </data>
+  <data name="cpslabel.TextAlign" type="System.Drawing.ContentAlignment, System.Drawing">
+    <value>MiddleRight</value>
   </data>
   <data name="&gt;&gt;cpslabel.Name" xml:space="preserve">
     <value>cpslabel</value>
@@ -207,7 +207,7 @@
     <value>True</value>
   </data>
   <data name="label4.Location" type="System.Drawing.Point, System.Drawing">
-    <value>213, 24</value>
+    <value>219, 24</value>
   </data>
   <data name="label4.Size" type="System.Drawing.Size, System.Drawing">
     <value>24, 13</value>
@@ -234,7 +234,7 @@
     <value>True</value>
   </data>
   <data name="label6.Location" type="System.Drawing.Point, System.Drawing">
-    <value>166, 61</value>
+    <value>168, 61</value>
   </data>
   <data name="label6.Size" type="System.Drawing.Size, System.Drawing">
     <value>24, 13</value>
@@ -258,7 +258,7 @@
     <value>2</value>
   </data>
   <data name="panel1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>89, 16</value>
+    <value>93, 16</value>
   </data>
   <data name="panel1.Size" type="System.Drawing.Size, System.Drawing">
     <value>118, 32</value>
@@ -279,7 +279,7 @@
     <value>1</value>
   </data>
   <data name="windowControl.Location" type="System.Drawing.Point, System.Drawing">
-    <value>106, 59</value>
+    <value>107, 58</value>
   </data>
   <data name="windowControl.Size" type="System.Drawing.Size, System.Drawing">
     <value>54, 20</value>
@@ -328,9 +328,9 @@
     <value>Counts Rate</value>
   </data>
   <data name="&gt;&gt;$this.Name" xml:space="preserve">
-    <value>DCDoseRateView</value>
+    <value>DCCountRateView</value>
   </data>
   <data name="&gt;&gt;$this.Type" xml:space="preserve">
-    <value>BecquerelMonitor.ToolWindow, BecquerelMonitor, Version=2024.3.7.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.ToolWindow, BecquerelMonitor, Version=2024.3.9.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
 </root>

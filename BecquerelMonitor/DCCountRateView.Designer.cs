@@ -1,7 +1,7 @@
 ﻿namespace BecquerelMonitor
 {
 	// Token: 0x020000A6 RID: 166
-	public partial class DCDoseRateView : global::BecquerelMonitor.ToolWindow
+	public partial class DCCountRateView : global::BecquerelMonitor.ToolWindow
 	{
 		// Token: 0x0600083C RID: 2108 RVA: 0x0002FBE8 File Offset: 0x0002DDE8
 		protected override void Dispose(bool disposing)
@@ -16,7 +16,7 @@
 		// Token: 0x0600083D RID: 2109 RVA: 0x0002FC10 File Offset: 0x0002DE10
 		void InitializeComponent()
 		{
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(DCDoseRateView));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(DCCountRateView));
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.cpslabel = new System.Windows.Forms.Label();
@@ -86,7 +86,7 @@
             0,
             0});
             // 
-            // DCDoseRateView
+            // DCCountRateView
             // 
             resources.ApplyResources(this, "$this");
             this.Controls.Add(this.windowControl);
@@ -96,9 +96,8 @@
             this.Controls.Add(this.label2);
             this.Controls.Add(this.label1);
             this.HideOnClose = true;
-            this.Name = "DCDoseRateView";
+            this.Name = "DCCountRateView";
             this.panel1.ResumeLayout(false);
-            this.panel1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.windowControl)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();

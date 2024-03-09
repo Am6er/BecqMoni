@@ -233,13 +233,13 @@ namespace BecquerelMonitor
             this.dcPeakDetectionView = new DCPeakDetectionView(this);
             this.dcSpectrumExplorerView = new DCSpectrumExplorerView(this);
             this.dcEnergyCalibrationView = new DCEnergyCalibrationView(this);
-            this.dcDoseRateView = new DCDoseRateView(this);
+            this.dcCountRateView = new DCCountRateView(this);
             this.dcControlPanel.Enabled = false;
             this.dcSampleInfoView.Enabled = false;
             this.dcSpectrumListView.Enabled = false;
             this.dcPeakDetectionView.Enabled = false;
             this.dcEnergyCalibrationView.Enabled = false;
-            this.dcDoseRateView.Enabled = false;
+            this.dcCountRateView.Enabled = false;
 
         }
 
@@ -328,9 +328,9 @@ namespace BecquerelMonitor
             {
                 return this.dcPulseView;
             }
-            if (a == typeof(DCDoseRateView).ToString())
+            if (a == typeof(DCCountRateView).ToString())
             {
-                return this.dcDoseRateView;
+                return this.dcCountRateView;
             }
             if (a == typeof(DCResultView).ToString())
             {
@@ -587,11 +587,11 @@ namespace BecquerelMonitor
 
         public void ShowCountsRate()
         {
-            if (this.activeDocument != null && this.dcDoseRateView != null)
+            if (this.activeDocument != null && this.dcCountRateView != null)
             {
-                decimal window = this.dcDoseRateView.getWindow();
+                decimal window = this.dcCountRateView.getWindow();
                 decimal cps = this.countsRateManager.GetCPS(this.activeDocument.ActiveResultData, window);
-                this.dcDoseRateView.ShowCountsRate(cps);
+                this.dcCountRateView.ShowCountsRate(cps);
             }
         }
 
@@ -826,11 +826,11 @@ namespace BecquerelMonitor
         
         void toolStripMenuItem5_Click(object sender, EventArgs e)
         {
-            if (this.dcDoseRateView == null || this.dcDoseRateView.IsDisposed)
+            if (this.dcCountRateView == null || this.dcCountRateView.IsDisposed)
             {
-                this.dcDoseRateView = new DCDoseRateView(this);
+                this.dcCountRateView = new DCCountRateView(this);
             }
-            this.dcDoseRateView.Show(this.dockPanel1);
+            this.dcCountRateView.Show(this.dockPanel1);
             ShowCountsRate();
             ShowDetectorFeature();
         }
@@ -955,7 +955,7 @@ namespace BecquerelMonitor
                 this.dcPeakDetectionView.ShowPeakDetectionResult();
                 this.dcControlPanel.Enabled = true;
                 this.dcSampleInfoView.Enabled = true;
-                this.dcDoseRateView.Enabled = true;
+                this.dcCountRateView.Enabled = true;
                 foreach (DCResultView dcresultView in this.dcResultViewList)
                 {
                     dcresultView.Enabled = true;
@@ -987,7 +987,7 @@ namespace BecquerelMonitor
             {
                 this.dcControlPanel.Enabled = false;
                 this.dcSampleInfoView.Enabled = false;
-                this.dcDoseRateView.Enabled = false;
+                this.dcCountRateView.Enabled = false;
                 foreach (DCResultView dcresultView2 in this.dcResultViewList)
                 {
                     dcresultView2.Enabled = false;
@@ -1022,7 +1022,7 @@ namespace BecquerelMonitor
             this.activeDocument.ActiveEnergyCalibration = this.dcEnergyCalibrationView.Visible;
             this.dcControlPanel.Enabled = true;
             this.dcSampleInfoView.Enabled = true;
-            this.dcDoseRateView.Enabled = true;
+            this.dcCountRateView.Enabled = true;
             foreach (DCResultView dcresultView in this.dcResultViewList)
             {
                 dcresultView.Enabled = true;
@@ -2628,7 +2628,7 @@ namespace BecquerelMonitor
         DCEnergyCalibrationView dcEnergyCalibrationView;
 
         // Token: 0x040005DD RID: 1501
-        DCDoseRateView dcDoseRateView;
+        DCCountRateView dcCountRateView;
 
         NucBase.NucBase nucBaseView;
 

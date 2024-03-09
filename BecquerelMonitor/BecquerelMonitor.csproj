@@ -229,11 +229,11 @@
     <Compile Include="DCDebugPanel.Designer.cs">
       <DependentUpon>DCDebugPanel.cs</DependentUpon>
     </Compile>
-    <Compile Include="DCDoseRateView.cs">
+    <Compile Include="DCCountRateView.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="DCDoseRateView.Designer.cs">
-      <DependentUpon>DCDoseRateView.cs</DependentUpon>
+    <Compile Include="DCCountRateView.Designer.cs">
+      <DependentUpon>DCCountRateView.cs</DependentUpon>
     </Compile>
     <Compile Include="DCEnergyCalibrationView.cs">
       <SubType>Form</SubType>
@@ -882,11 +882,14 @@
     <EmbeddedResource Include="DCControlPanel.ru.resx">
       <DependentUpon>DCControlPanel.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="DCCountRateView.ru.resx">
+      <DependentUpon>DCCountRateView.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="DCDebugPanel.resx">
       <DependentUpon>DCDebugPanel.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="DCDoseRateView.resx">
-      <DependentUpon>DCDoseRateView.cs</DependentUpon>
+    <EmbeddedResource Include="DCCountRateView.resx">
+      <DependentUpon>DCCountRateView.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="DCEnergyCalibrationView.resx">

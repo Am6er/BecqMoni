@@ -3,10 +3,10 @@
 namespace BecquerelMonitor
 {
     
-    public partial class DCDoseRateView : ToolWindow
+    public partial class DCCountRateView : ToolWindow
     {
         
-        public DCDoseRateView(MainForm mainForm)
+        public DCCountRateView(MainForm mainForm)
         {
             this.mainForm = mainForm;
             this.InitializeComponent();
