@@ -432,6 +432,7 @@ namespace BecquerelMonitor
             ResultDataStatus resultDataStatus = activeResultData.ResultDataStatus;
             activeResultData.EnergySpectrum.Initialize();
             activeResultData.PulseCollection.Pulses.Clear();
+            activeResultData.CountRates.Clear();
             this.RefreshView();
             resultDataStatus.TotalTime = TimeSpan.FromSeconds(0.0);
         }
