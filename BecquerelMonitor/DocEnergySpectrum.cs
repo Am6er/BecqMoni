@@ -314,7 +314,15 @@ namespace BecquerelMonitor
 
         private void View_ActionEvent(object sender, EnergySpectrumActionEventArgs e)
         {
-            if (e.NeedUpdateScale) this.toolStripNumUpDownScale.NumericUpDownControl.Value = e.NewScaleValue;
+            decimal value = e.NewScaleValue;
+            if (value > 10.0M) 
+            {
+                value = 10.0M;
+            } else if (value < 0.1M)
+            {
+                value = 0.1M;
+            }
+            if (e.NeedUpdateScale) this.toolStripNumUpDownScale.NumericUpDownControl.Value = value;
         }
 
         public void RefreshDocEnergySpectrum()
