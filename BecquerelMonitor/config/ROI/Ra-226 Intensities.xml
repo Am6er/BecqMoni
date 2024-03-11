@@ -1,0 +1,234 @@
+<?xml version="1.0"?>
+<ROIConfigData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <FormatVersion>120920</FormatVersion>
+  <Guid>05319b34-29a1-4630-9efd-10e6f9397cbc</Guid>
+  <Name>Ra-226 Intensities</Name>
+  <LastUpdated>2023-06-06T12:48:07.324071+03:00</LastUpdated>
+  <ROIDefinitions>
+    <ROIDefinitionData>
+      <Name>Ra-226</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>186.21</PeakEnergy>
+      <LowerLimit>-10</LowerLimit>
+      <UpperLimit>-10</UpperLimit>
+      <Color>Orange</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>1602</HalfLife>
+      <Intencity>3.64</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Pb-214 (Ra-226)</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>241.995</PeakEnergy>
+      <LowerLimit>-10</LowerLimit>
+      <UpperLimit>-10</UpperLimit>
+      <Color>Orange</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>5.1484018E-05</HalfLife>
+      <Intencity>7.26291</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Pb-214 (Ra-226)</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>295.224</PeakEnergy>
+      <LowerLimit>-10</LowerLimit>
+      <UpperLimit>-10</UpperLimit>
+      <Color>Orange</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>5.1484018E-05</HalfLife>
+      <Intencity>18.47088</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Pb-214 (Ra-226)</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>351.93</PeakEnergy>
+      <LowerLimit>-10</LowerLimit>
+      <UpperLimit>-10</UpperLimit>
+      <Color>Orange</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>5.1484018E-05</HalfLife>
+      <Intencity>35.7237</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Bi-214 (Ra-226)</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>609.31</PeakEnergy>
+      <LowerLimit>-10</LowerLimit>
+      <UpperLimit>-10</UpperLimit>
+      <Color>Orange</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>3.74809741248097E-05</HalfLife>
+      <Intencity>45.44</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Bi-214 (Ra-226)</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>1120.29</PeakEnergy>
+      <LowerLimit>-10</LowerLimit>
+      <UpperLimit>-10</UpperLimit>
+      <Color>Orange</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>3.74809741248097E-05</HalfLife>
+      <Intencity>16.8232</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Bi-214 (Ra-226)</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>1764.49</PeakEnergy>
+      <LowerLimit>-10</LowerLimit>
+      <UpperLimit>-10</UpperLimit>
+      <Color>Orange</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>3.74809741248097E-05</HalfLife>
+      <Intencity>15.29</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Bi-214 (Ra-226)</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>2204.21</PeakEnergy>
+      <LowerLimit>-10</LowerLimit>
+      <UpperLimit>-10</UpperLimit>
+      <Color>Orange</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>3.74809741248097E-05</HalfLife>
+      <Intencity>4.92</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Bi-214 (Ra-226)</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>768.36</PeakEnergy>
+      <LowerLimit>-10</LowerLimit>
+      <UpperLimit>-10</UpperLimit>
+      <Color>Orange</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>3.74809741248097E-05</HalfLife>
+      <Intencity>4.89</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Bi-214 (Ra-226)</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>2447.69</PeakEnergy>
+      <LowerLimit>-10</LowerLimit>
+      <UpperLimit>-10</UpperLimit>
+      <Color>Orange</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>3.74809741248097E-05</HalfLife>
+      <Intencity>1.545</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Bi-214 (Ra-226)</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>934.056</PeakEnergy>
+      <LowerLimit>-10</LowerLimit>
+      <UpperLimit>-10</UpperLimit>
+      <Color>Orange</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>3.74809741248097E-05</HalfLife>
+      <Intencity>3.094</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Pb-210 (Ra-226)</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>46.539</PeakEnergy>
+      <LowerLimit>-10</LowerLimit>
+      <UpperLimit>-10</UpperLimit>
+      <Color>Orange</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>22.2</HalfLife>
+      <Intencity>4.25</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Bi-214 (Ra-226)</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>1238.122</PeakEnergy>
+      <LowerLimit>-10</LowerLimit>
+      <UpperLimit>-10</UpperLimit>
+      <Color>Orange</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>3.74809741248097E-05</HalfLife>
+      <Intencity>5.83</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Bi-214 (Ra-226)</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>1377.669</PeakEnergy>
+      <LowerLimit>-10</LowerLimit>
+      <UpperLimit>-10</UpperLimit>
+      <Color>Orange</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>3.74809741248097E-05</HalfLife>
+      <Intencity>3.985</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Bi-214 (Ra-226)</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>1729.595</PeakEnergy>
+      <LowerLimit>-10</LowerLimit>
+      <UpperLimit>-10</UpperLimit>
+      <Color>Orange</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>3.74809741248097E-05</HalfLife>
+      <Intencity>2.87</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Bi-214 (Ra-226)</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>1407.988</PeakEnergy>
+      <LowerLimit>-10</LowerLimit>
+      <UpperLimit>-10</UpperLimit>
+      <Color>Orange</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>3.74809741248097E-05</HalfLife>
+      <Intencity>2.388</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+  </ROIDefinitions>
+  <Note />
+</ROIConfigData>
