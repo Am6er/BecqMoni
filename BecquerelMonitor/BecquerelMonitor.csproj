@@ -1099,7 +1099,9 @@
     <None Include="NucBaseDataSet.xss">
       <DependentUpon>NucBaseDataSet.xsd</DependentUpon>
     </None>
-    <Content Include="config\ROI\RadiaCode Cs-137.xml" />
+    <Content Include="config\ROI\RadiaCode Cs-137.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="logo_becqmoni.ico" />
     <Content Include="nucdb.sqlite">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

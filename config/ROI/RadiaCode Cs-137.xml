@@ -3,11 +3,11 @@
   <FormatVersion>120920</FormatVersion>
   <Guid>d44abc80-0a37-4586-b923-c6247a4fce49</Guid>
   <Name>RadiaCode Cs-137</Name>
-  <LastUpdated>2024-02-02T16:56:27.1627057+03:00</LastUpdated>
+  <LastUpdated>2024-03-11T13:04:00.1682642+03:00</LastUpdated>
   <ROIDefinitions>
     <ROIDefinitionData>
       <Name>Point source 5 cm</Name>
-      <Enabled>true</Enabled>
+      <Enabled>false</Enabled>
       <PeakEnergy>662</PeakEnergy>
       <LowerLimit>562</LowerLimit>
       <UpperLimit>762</UpperLimit>
@@ -49,13 +49,13 @@
           <CoefficientError>0</CoefficientError>
           <Note />
           <LowerLimit>562</LowerLimit>
-          <UpperLimit>662</UpperLimit>
+          <UpperLimit>762</UpperLimit>
         </ROISimpleDifferenceData>
       </ROIPrimitives>
     </ROIDefinitionData>
     <ROIDefinitionData>
       <Name>Container 100ml</Name>
-      <Enabled>true</Enabled>
+      <Enabled>false</Enabled>
       <PeakEnergy>662</PeakEnergy>
       <LowerLimit>562</LowerLimit>
       <UpperLimit>762</UpperLimit>
@@ -79,7 +79,7 @@
     </ROIDefinitionData>
     <ROIDefinitionData>
       <Name>Container 60ml</Name>
-      <Enabled>true</Enabled>
+      <Enabled>false</Enabled>
       <PeakEnergy>662</PeakEnergy>
       <LowerLimit>562</LowerLimit>
       <UpperLimit>762</UpperLimit>
@@ -103,7 +103,7 @@
     </ROIDefinitionData>
     <ROIDefinitionData>
       <Name>Custom Marinelli 0.5l</Name>
-      <Enabled>true</Enabled>
+      <Enabled>false</Enabled>
       <PeakEnergy>662</PeakEnergy>
       <LowerLimit>562</LowerLimit>
       <UpperLimit>762</UpperLimit>
