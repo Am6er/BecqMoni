@@ -2145,7 +2145,6 @@ namespace BecquerelMonitor
             }
             foreach (DocEnergySpectrum docEnergySpectrum in this.documentManager.DocumentList)
             {
-                docEnergySpectrum.RefreshDocEnergySpectrum();
                 docEnergySpectrum.EnergySpectrumView.RecalcChartParameters();
                 docEnergySpectrum.EnergySpectrumView.PrepareViewData();
                 docEnergySpectrum.EnergySpectrumView.RecalcScrollBar();
