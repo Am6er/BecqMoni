@@ -1236,10 +1236,6 @@ namespace BecquerelMonitor
                             System.Diagnostics.Trace.WriteLine("result = " + result);
                             status_msg = status_msg + "-cal " + i + " " + result_list[i] + " -- result: " + result + Environment.NewLine;
                         }
-                        if (!runexist)
-                        {
-                            device.Dispose();
-                        }
                         Cursor.Current = Cursors.Default;
                         if (commands_accepted)
                         {
@@ -1247,7 +1243,24 @@ namespace BecquerelMonitor
                         }
                         else
                         {
-                            MessageBox.Show(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + status_msg); ;
+                            //Workaround with some command -cal not responded
+                            device.sendCommand("-cal");
+                            String result = device.getCommandOutput(2000);
+                            string[] separator = new string[] { "\r\n" };
+                            string[] result_arr = result.Split(separator, StringSplitOptions.None);
+                            for (int i = 0; i < result_list.Count; i++)
+                            {
+                                if (result_list[i] == result_arr[i] + result_arr[i+1])
+                                {
+                                    MessageBox.Show(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + status_msg);
+                                    break;
+                                }
+                            }
+                            MessageBox.Show(Resources.MSGCoefficientsUploadedSuccesfull);
+                        }
+                        if (!runexist)
+                        {
+                            device.Dispose();
                         }
                     }
                     catch (Exception ex)
