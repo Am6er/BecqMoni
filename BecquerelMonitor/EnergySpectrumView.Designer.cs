@@ -3730,7 +3730,7 @@ namespace BecquerelMonitor
         public void FitHorizontalScale()
         {
             int num = base.Width - this.left - this.vScrollBar1.Width;
-            this.horizontalScale = (double)num / (this.energyCalibration.ChannelToEnergy((double)this.numberOfChannels) * this.pixelPerEnergy + 8.0);
+            this.horizontalScale = (double)num / (this.energyCalibration.ChannelToEnergy((double)this.numberOfChannels) * this.pixelPerEnergy + 42.0);
             if (ActionEvent != null) ActionEvent(this, new EnergySpectrumActionEventArgs(true, (decimal)this.horizontalScale));
             int maximum = this.CalcMaximumXValue() + 5;
             this.hScrollBar1.Maximum = maximum;
@@ -3770,7 +3770,7 @@ namespace BecquerelMonitor
             }
             else
             {
-                this.horizontalScale = (double)num / (this.energyCalibration.ChannelToEnergy((double)this.numberOfChannels) * this.pixelPerEnergy + 8.0);
+                this.horizontalScale = (double)num / (this.energyCalibration.ChannelToEnergy((double)this.numberOfChannels) * this.pixelPerEnergy + 42.0);
                 int maximum = this.CalcMaximumXValue() + 5;
                 this.hScrollBar1.Maximum = maximum;
                 this.hScrollBar1.Value = 0;
