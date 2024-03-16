@@ -1250,10 +1250,11 @@ namespace BecquerelMonitor
                             string[] result_arr = result.Split(separator, StringSplitOptions.None);
                             for (int i = 0; i < result_list.Count; i++)
                             {
-                                if (result_list[i] == result_arr[i] + result_arr[i+1])
+                                if (result_list[i] != result_arr[i])
                                 {
                                     MessageBox.Show(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + status_msg);
-                                    break;
+                                    if (!runexist) { device.Dispose(); }
+                                    return;
                                 }
                             }
                             MessageBox.Show(Resources.MSGCoefficientsUploadedSuccesfull);
