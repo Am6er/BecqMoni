@@ -1577,6 +1577,7 @@ namespace BecquerelMonitor
                 num10 /= this.energySpectrum.MeasurementTime;
                 num11 /= this.energySpectrum.MeasurementTime;
             }
+            if (num10 < this.totalMinValue || num11 < this.totalMinValue) return;
             int y2;
             int y3;
             if (this.verticalScaleType == VerticalScaleType.LinearScale)
@@ -1625,7 +1626,15 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            g.DrawLine(Pens.Yellow, num8, y2, num8, y3);
+            try
+            {
+                g.DrawLine(Pens.Yellow, num8, y2, num8, y3);
+            } catch (OverflowException ex)
+            {
+                throw new OverflowException($" num8 = {num8}, y2 = {y2}, y3 = {y3}, verticalScaleType = {this.verticalScaleType} {ex.StackTrace}");
+            }
+
+
             if (energyResolutionResult.LeftChannel < energyResolutionResult.MaxChannel && energyResolutionResult.RightChannel > energyResolutionResult.MaxChannel)
             {
                 int x;
