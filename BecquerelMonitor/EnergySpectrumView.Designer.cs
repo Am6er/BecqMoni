@@ -1577,6 +1577,7 @@ namespace BecquerelMonitor
                 num10 /= this.energySpectrum.MeasurementTime;
                 num11 /= this.energySpectrum.MeasurementTime;
             }
+            // Let's catch that bug.
             if (num10 < this.totalMinValue || num11 < this.totalMinValue) return;
             int y2;
             int y3;
@@ -1631,6 +1632,7 @@ namespace BecquerelMonitor
                 g.DrawLine(Pens.Yellow, num8, y2, num8, y3);
             } catch (OverflowException ex)
             {
+                // Let's catch that bug.
                 throw new OverflowException($" num8 = {num8}, y2 = {y2}, y3 = {y3}, verticalScaleType = {this.verticalScaleType} {ex.StackTrace}");
             }
 
