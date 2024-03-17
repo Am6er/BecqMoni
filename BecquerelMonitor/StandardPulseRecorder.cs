@@ -84,11 +84,11 @@ namespace BecquerelMonitor
         {
             this.waveFormat = waveFormat;
             this.negativePolarity = negativePolarity;
-            this.waveIn = new WaveIn(device.DeviceId);
-            this.waveIn.BufferSize = waveFormat.SamplesPerSecond / 50 * 2;
-            this.waveIn.BufferQueueSize = 50;
             try
             {
+                this.waveIn = new WaveIn(device.DeviceId);
+                this.waveIn.BufferSize = waveFormat.SamplesPerSecond / 50 * 2;
+                this.waveIn.BufferQueueSize = 50;
                 if (!this.waveIn.SupportsFormat(waveFormat))
                 {
                     MessageBox.Show(Resources.ERRNotSupportedWavFormat);

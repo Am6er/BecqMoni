@@ -709,7 +709,7 @@
     <value>Степень Y</value>
   </data>
   <data name="上限閾値に設定HToolStripMenuItem.Text" xml:space="preserve">
-    <value>Установить нижний порог спектра по курсору (&amp;Н)</value>
+    <value>Установить верхний порог спектра по курсору (&amp;Н)</value>
   </data>
   <data name="下限閾値に設定LToolStripMenuItem.Text" xml:space="preserve">
     <value>Установить нижний порог спектра по курсору (&amp;L)</value>
