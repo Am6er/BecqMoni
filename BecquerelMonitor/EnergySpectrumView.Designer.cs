@@ -1621,7 +1621,7 @@ namespace BecquerelMonitor
                     y3 = this.height;
                 }
             }
-            if (num8 > int.MaxValue || y2 > int.MaxValue || y3 > int.MaxValue || num8 < int.MinValue || y2 < int.MinValue || y3 < int.MinValue)
+            if (num8 >= int.MaxValue || y2 >= int.MaxValue || y3 >= int.MaxValue || num8 <= int.MinValue || y2 <= int.MinValue || y3 <= int.MinValue)
             {
                 return;
             }
