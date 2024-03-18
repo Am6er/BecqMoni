@@ -1622,7 +1622,7 @@ namespace BecquerelMonitor
                     y3 = this.height;
                 }
             }
-            if (num8 > this.width || y2 > this.height || y3 > this.width || num8 < 0 || y2 < 0 || y3 < 0)
+            if (num8 > this.width || y2 > this.height || y3 > this.height || num8 < 0 || y2 < 0 || y3 < 0)
             {
                 return;
             }
