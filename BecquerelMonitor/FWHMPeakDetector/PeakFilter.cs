@@ -144,7 +144,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
                     else
                     {
                         _kern_pos[j] = 0.0;
-                        _kern_neg[j] = -1 * kernel_for_edge[j];
+                        _kern_neg[j] = -1.0 * kernel_for_edge[j];
                     }
                     kern_pos_sum += _kern_pos[j];
                     kern_neg_sum += _kern_neg[j];
