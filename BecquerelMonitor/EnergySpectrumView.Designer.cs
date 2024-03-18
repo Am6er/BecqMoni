@@ -3166,7 +3166,9 @@ namespace BecquerelMonitor
             }
             int num3 = 10;
             ColorConfig colorConfig = this.globalConfigManager.GlobalConfig.ColorConfig;
-            if (this.validCursor && this.cursorChannel >= 0 && this.cursorChannel < this.energySpectrum.NumberOfChannels)
+            if (this.validCursor && this.cursorChannel >= 0 &&
+                this.cursorChannel < this.energySpectrum.NumberOfChannels &&
+                this.energySpectrum.NumberOfChannels > Math.Max(this.selectionStart, this.selectionEnd))
             {
                 using (Pen pen = new Pen(colorConfig.CursorColor.Color))
                 {
@@ -3273,7 +3275,7 @@ namespace BecquerelMonitor
                 }
                 num3 = 110;
             }
-            if (this.selectionStart != -1)
+            if (this.selectionStart != -1 && this.energySpectrum.NumberOfChannels > Math.Max(this.selectionStart, this.selectionEnd))
             {
                 int num12 = 194;
                 g.FillRectangle(Brushes.DarkGray, num2, num3, num, num12);
