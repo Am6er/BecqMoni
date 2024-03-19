@@ -143,6 +143,7 @@ namespace BecquerelMonitor.NucBase
                 this.IsotopeNLabel.Text = nuc.N.ToString();
                 this.IsotopeHLLabel.Text = nuc.HalfLife.ToString() + " " + nuc.HalfLifeUOM;
                 this.IsotopeSpecActivity.Text = nuc.SpecialActivity.ToString("e2") + " " + Resources.Bkg;
+                this.IsotopeAbundance.Text = nuc.Abundance.ToString() + " %";
 
                 this.ParentsDataGridView.Rows.Clear();
                 foreach (Decay parent in nuc.Parents)
@@ -187,6 +188,8 @@ namespace BecquerelMonitor.NucBase
             this.IsotopeZLabel.Text = nuc.Z.ToString();
             this.IsotopeNLabel.Text = nuc.N.ToString();
             this.IsotopeHLLabel.Text = nuc.HalfLife.ToString() + " " + nuc.HalfLifeUOM;
+            this.IsotopeSpecActivity.Text = nuc.SpecialActivity.ToString("e2") + " " + Resources.Bkg;
+            this.IsotopeAbundance.Text = nuc.Abundance.ToString() + " %";
 
             this.ParentsDataGridView.Rows.Clear();
             foreach (Decay parent in nuc.Parents)
@@ -281,6 +284,8 @@ namespace BecquerelMonitor.NucBase
                 this.IsotopeZLabel.Text = nuc.Z.ToString();
                 this.IsotopeNLabel.Text = nuc.N.ToString();
                 this.IsotopeHLLabel.Text = nuc.HalfLife.ToString() + " " + nuc.HalfLifeUOM;
+                this.IsotopeSpecActivity.Text = nuc.SpecialActivity.ToString("e2") + " " + Resources.Bkg;
+                this.IsotopeAbundance.Text = nuc.Abundance.ToString() + " %";
 
                 this.ParentsDataGridView.Rows.Clear();
                 foreach (Decay parent in nuc.Parents)

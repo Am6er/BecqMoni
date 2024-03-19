@@ -75,6 +75,8 @@
             this.XRayTypeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.DecaModeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
+            this.abundanceLbl = new System.Windows.Forms.Label();
+            this.IsotopeAbundance = new System.Windows.Forms.Label();
             this.groupBox1.SuspendLayout();
             this.panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.DaughtersDataGridView)).BeginInit();
@@ -291,6 +293,8 @@
             // 
             // groupBox2
             // 
+            this.groupBox2.Controls.Add(this.IsotopeAbundance);
+            this.groupBox2.Controls.Add(this.abundanceLbl);
             this.groupBox2.Controls.Add(this.IsotopeSpecActivity);
             this.groupBox2.Controls.Add(this.label13);
             this.groupBox2.Controls.Add(this.IsotopeHLLabel);
@@ -417,6 +421,16 @@
             this.DecaModeColumn.Name = "DecaModeColumn";
             this.DecaModeColumn.ReadOnly = true;
             // 
+            // abundanceLbl
+            // 
+            resources.ApplyResources(this.abundanceLbl, "abundanceLbl");
+            this.abundanceLbl.Name = "abundanceLbl";
+            // 
+            // IsotopeAbundance
+            // 
+            resources.ApplyResources(this.IsotopeAbundance, "IsotopeAbundance");
+            this.IsotopeAbundance.Name = "IsotopeAbundance";
+            // 
             // NucBase
             // 
             resources.ApplyResources(this, "$this");
@@ -486,5 +500,7 @@
         private System.Windows.Forms.ToolTip toolTip1;
         private System.Windows.Forms.Label IsotopeSpecActivity;
         private System.Windows.Forms.Label label13;
+        private System.Windows.Forms.Label abundanceLbl;
+        private System.Windows.Forms.Label IsotopeAbundance;
     }
 }

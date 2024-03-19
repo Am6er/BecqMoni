@@ -106,12 +106,25 @@ namespace BecquerelMonitor.NucBase
             }
         }
 
+        public double Abundance
+        {
+            get
+            {
+                return this.abundance;
+            }
+            set
+            {
+                this.abundance = value;
+            }
+        }
+
         int z;
         int n;
         string half_life;
         string half_life_unit;
         double activity;
         double half_life_sec = 0.0;
+        double abundance;
         List<Decay> parents = new List<Decay>();
         List<Decay> daughters = new List<Decay>();
     }
