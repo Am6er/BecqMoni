@@ -257,7 +257,7 @@ namespace BecquerelMonitor
                     } else
                     {
                         sendTroubleShoot("Error! Exchange response: BLE_IF busy");
-                        Trace.WriteLine("Exchange response: BLE_IF ready");
+                        Trace.WriteLine("Exchange response: BLE_IF busy");
                     }
                     return;
                 }
