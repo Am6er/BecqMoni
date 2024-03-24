@@ -896,7 +896,7 @@ namespace BecquerelMonitor
             }
             else if (this.verticalScaleType == VerticalScaleType.PowerScale)
             {
-                this.totalMaxValue *= 1.45;
+                this.totalMaxValue *= 1.25;
                 this.totalMinValue *= 0.98;
                 this.maxValue *= 1.45;
                 this.minValue *= 0.98;
