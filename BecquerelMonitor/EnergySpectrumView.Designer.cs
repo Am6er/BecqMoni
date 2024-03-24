@@ -887,25 +887,26 @@ namespace BecquerelMonitor
             {
                 this.maxValue = 0.0001;
             }
+            double maxYscale = 1.05;
             if (this.verticalScaleType == VerticalScaleType.LogarithmicScale)
             {
-                this.totalMaxValue *= 2.0;
+                this.totalMaxValue *= Math.Pow(maxYscale, 10);
                 this.totalMinValue = 0.0;
-                this.maxValue *= 2.0;
+                this.maxValue *= Math.Pow(maxYscale, 10);
                 this.minValue *= 0.7;
             }
             else if (this.verticalScaleType == VerticalScaleType.PowerScale)
             {
-                this.totalMaxValue *= 1.25;
+                this.totalMaxValue *= Math.Pow(maxYscale, this.PowNum);
                 this.totalMinValue *= 0.98;
-                this.maxValue *= 1.45;
+                this.maxValue *= Math.Pow(maxYscale, this.PowNum);
                 this.minValue *= 0.98;
             }
             else
             {
-                this.totalMaxValue *= 1.05;
+                this.totalMaxValue *= maxYscale;
                 this.totalMinValue *= 0.98;
-                this.maxValue *= 1.05;
+                this.maxValue *= maxYscale;
                 this.minValue *= 0.98;
             }
             if (this.verticalScaleType == VerticalScaleType.LogarithmicScale)
