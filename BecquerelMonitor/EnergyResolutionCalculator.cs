@@ -20,7 +20,7 @@ namespace BecquerelMonitor
         public static EnergyResolutionResult CalculateFWHM(EnergySpectrum spectrum, int startChannel, int endChannel)
         {
             EnergyCalibration energyCalibration = spectrum.EnergyCalibration;
-            if (startChannel >= endChannel)
+            if (startChannel >= endChannel || spectrum.NumberOfChannels < endChannel)
             {
                 return null;
             }
