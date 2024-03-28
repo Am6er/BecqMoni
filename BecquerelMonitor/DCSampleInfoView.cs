@@ -39,10 +39,10 @@ namespace BecquerelMonitor
             else
             {
                 this.label5.Text = "g";
-                this.numericUpDown1.Minimum = 0.1m;
+                this.numericUpDown1.Minimum = 0.01m;
                 this.numericUpDown1.Maximum = 100000m;
                 this.numericUpDown1.Increment = 100m;
-                this.numericUpDown1.DecimalPlaces = 1;
+                this.numericUpDown1.DecimalPlaces = 2;
                 this.numericUpDown1.Value = (decimal)sampleInfo.Weight * 1000m;
             }
             if (this.globalConfigManager.GlobalConfig.MeasurementConfig.VolumeUnit == VolumeUnit.Liter)
