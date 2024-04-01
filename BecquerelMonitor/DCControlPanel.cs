@@ -581,6 +581,13 @@ namespace BecquerelMonitor
             }
             activeResultData.DeviceConfig = this.deviceConfigManager.DeviceConfigMap[guid];
             activeResultData.DeviceConfigReference = activeResultData.DeviceConfig.CreateReference();
+            // dumb fix for incorrect channel pitch for digital MCA
+            if (activeResultData.EnergySpectrum.ChannelPitch != activeResultData.DeviceConfig.ChannelPitch &&
+                (activeResultData.DeviceConfig.InputDeviceConfig is RadiaCodeDeviceConfig || activeResultData.DeviceConfig.InputDeviceConfig is AtomSpectraDeviceConfig))
+            {
+                activeResultData.EnergySpectrum.ChannelPitch = activeResultData.DeviceConfig.ChannelPitch;
+            }
+
             int numberOfChannels = activeResultData.EnergySpectrum.NumberOfChannels;
             double channelPitch = activeResultData.EnergySpectrum.ChannelPitch;
             if (numberOfChannels != activeResultData.DeviceConfig.NumberOfChannels || channelPitch != activeResultData.DeviceConfig.ChannelPitch)
