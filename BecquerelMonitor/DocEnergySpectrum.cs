@@ -210,6 +210,10 @@ namespace BecquerelMonitor
                 {
                     return ((AtomSpectraDeviceController)deviceController).PulseDetector;
                 }
+                else if (deviceController is RadiaCodeDeviceController)
+                {
+                    return ((RadiaCodeDeviceController)deviceController).PulseDetector;
+                }
                 return null;
             }
             set
@@ -222,6 +226,10 @@ namespace BecquerelMonitor
                 else if (deviceController is AtomSpectraDeviceController)
                 {
                     ((AtomSpectraDeviceController)deviceController).PulseDetector = value;
+                }
+                else if (deviceController is RadiaCodeDeviceController)
+                {
+                    ((RadiaCodeDeviceController)deviceController).PulseDetector = value;
                 }
             }
         }
