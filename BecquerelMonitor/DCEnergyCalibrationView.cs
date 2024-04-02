@@ -724,13 +724,13 @@ namespace BecquerelMonitor
             }
 
             int PolynomOrder = (int)this.numericUpDown6.Value;
+            if (PolynomOrder == 0) PolynomOrder += 1;
             double[] matrix;
             List<CalibrationPoint> points = this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints;
             if (points.Count == 1)
             {
                 CalibrationPoint zero = new CalibrationPoint(0, 0, 0);
                 points.Add(zero);
-                PolynomOrder += 1;
             }
             try
             {
