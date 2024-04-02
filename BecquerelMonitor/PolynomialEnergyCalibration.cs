@@ -162,6 +162,10 @@ namespace BecquerelMonitor
             {
                 return this.coefficients[2] * Math.Pow(n, 2) + this.coefficients[1] * n + this.coefficients[0];
             }
+            if (this.polynomialOrder == 1 && this.coefficients.Length == 1)
+            {
+                return this.coefficients[0] * n + 0;
+            }
             return this.coefficients[1] * n + this.coefficients[0];
         }
 
