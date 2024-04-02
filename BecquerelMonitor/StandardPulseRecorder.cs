@@ -144,31 +144,26 @@ namespace BecquerelMonitor
         {
             double[] array = null;
             int bitsPerSample = (int)this.waveFormat.BitsPerSample;
-            int num = bitsPerSample;
-            if (num == 24)
+            if (bitsPerSample == 32)
             {
-
+                array = new double[data.Length / 4];
+                for (int i = 0; i < data.Length / 4; i++)
+                {
+                    double num6 = (double)BitConverter.ToInt32(data, i * 4) * 100.0 / 2147483648.0;
+                    array[i] = (this.negativePolarity ? (-num6) : num6);
+                }
+            }
+            if (bitsPerSample == 24)
+            {
                 array = new double[data.Length / 3];
                 for (int i = 0; i < data.Length / 3; i++)
                 {
-                    uint num2 = (uint)((uint)data[i * 3 + 2] << 16);
-                    uint num3 = (uint)((uint)data[i * 3 + 1] << 8);
-                    uint num4 = (uint)data[i * 3];
-                    uint num5;
-                    if ((num2 & 8388608u) == 0u)
-                    {
-                        num5 = (num2 | num3 | num4);
-                    }
-                    else
-                    {
-                        num5 = (4278190080u | num2 | num3 | num4);
-                    }
-                    double num6 = (double)num5 * 100.0 / 8388608.0;
+                    int int24 = ((data[i * 3 + 2] << 24) | (data[i * 3 + 1] << 16) | (data[i * 3] << 8)) >> 8;
+                    double num6 = (double)int24 * 100.0 / 8388608.0;
                     array[i] = (this.negativePolarity ? (-num6) : num6);
                 }
-
             }
-            if (num == 16)
+            if (bitsPerSample == 16)
             {
                 array = new double[data.Length / 2];
                 for (int j = 0; j < data.Length / 2; j++)
