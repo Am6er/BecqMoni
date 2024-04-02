@@ -114,8 +114,9 @@ namespace BecquerelMonitor
 			this.comboBox3.Items.AddRange(new object[]
 			{
 				componentResourceManager.GetString("comboBox3.Items"),
-				componentResourceManager.GetString("comboBox3.Items1")
-			});
+				componentResourceManager.GetString("comboBox3.Items1"),
+                componentResourceManager.GetString("comboBox3.Items2")
+            });
 			this.comboBox3.Name = "comboBox3";
 			this.comboBox3.SelectedIndexChanged += this.comboBox3_SelectedIndexChanged;
 			componentResourceManager.ApplyResources(this.label1, "label1");

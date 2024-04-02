@@ -459,6 +459,9 @@
   <data name="comboBox3.Items1" xml:space="preserve">
     <value>24</value>
   </data>
+  <data name="comboBox3.Items2" xml:space="preserve">
+    <value>32</value>
+  </data>
   <data name="label15.TabIndex" type="System.Int32, mscorlib">
     <value>90</value>
   </data>

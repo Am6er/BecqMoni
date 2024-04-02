@@ -636,6 +636,9 @@
   <data name="comboBox3.Items1" xml:space="preserve">
     <value>24</value>
   </data>
+  <data name="comboBox3.Items2" xml:space="preserve">
+    <value>32</value>
+  </data>
   <data name="doubleTextBox1.Text" xml:space="preserve">
     <value>0</value>
   </data>
