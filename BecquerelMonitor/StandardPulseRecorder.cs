@@ -145,33 +145,33 @@ namespace BecquerelMonitor
         {
             double[] array = null;
             int bitsPerSample = (int)this.waveFormat.BitsPerSample;
-                if (bitsPerSample == 32)
-                {
+            if (bitsPerSample == 32)
+            {
                 array = new double[data.Length / 4];
-                Parallel.For(0, data.Length / 4, i =>
+                for (int i = 0; i < data.Length / 4; i++)
                 {
                     double num6 = (double)BitConverter.ToInt32(data, i * 4) * 100.0 / 2147483648.0;
                     array[i] = (this.negativePolarity ? (-num6) : num6);
-                });
+                }
             }
             if (bitsPerSample == 24)
             {
                 array = new double[data.Length / 3];
-                Parallel.For(0, data.Length / 3, i => 
+                for (int i = 0; i < data.Length / 3; i++)
                 {
                     int int24 = ((data[i * 3 + 2] << 24) | (data[i * 3 + 1] << 16) | (data[i * 3] << 8)) >> 8;
                     double num6 = (double)int24 * 100.0 / 8388608.0;
                     array[i] = (this.negativePolarity ? (-num6) : num6);
-                });
+                }
             }
             if (bitsPerSample == 16)
             {
                 array = new double[data.Length / 2];
-                Parallel.For(0, data.Length / 3, i => 
+                for (int j = 0; j < data.Length / 2; j++)
                 {
-                    double num7 = (double)BitConverter.ToInt16(data, i * 2) * 100.0 / 32768.0;
-                    array[i] = (this.negativePolarity ? (-num7) : num7);
-                });
+                    double num7 = (double)BitConverter.ToInt16(data, j * 2) * 100.0 / 32768.0;
+                    array[j] = (this.negativePolarity ? (-num7) : num7);
+                }
             }
             this.DetectPulse(array);
         }
