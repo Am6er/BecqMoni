@@ -718,6 +718,7 @@ namespace BecquerelMonitor
         // Token: 0x06000831 RID: 2097 RVA: 0x0002E8C0 File Offset: 0x0002CAC0
         void button7_Click(object sender, EventArgs e)
         {
+            bool zeroPointAdded = false;
             for (int i = 0; i < this.energyCalibration.Coefficients.Length; i++)
             {
                 this.energyCalibration.Coefficients[i] = 0.0;
@@ -731,6 +732,7 @@ namespace BecquerelMonitor
             {
                 CalibrationPoint zero = new CalibrationPoint(0, 0, 0);
                 points.Add(zero);
+                zeroPointAdded = true;
             }
             try
             {
@@ -813,6 +815,7 @@ namespace BecquerelMonitor
                 mse = Utils.CalibrationSolver.MSE(matrix, points);
             }
             this.mainForm.SetStatusTextLeft(String.Format("{0} {1}: {2:0.00000}", Resources.MSGCalibrationDone, Resources.MSGMSE, mse));
+            if (zeroPointAdded) points.RemoveAt(1);
             this.multipointModified = false;
             this.calibrationDone = true;
             this.UpdateMultipointButtonState();
