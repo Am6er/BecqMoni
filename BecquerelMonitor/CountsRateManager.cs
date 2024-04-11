@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,7 +14,7 @@ namespace BecquerelMonitor
         public void AppendResultData(ResultData resultData)
         {
             if (!resultData.ResultDataStatus.Recording) return;
-            int new_counts = resultData.EnergySpectrum.ValidPulseCount;
+            int new_counts = resultData.EnergySpectrum.TotalPulseCount;
             double new_time = resultData.ResultDataStatus.ElapsedTime.TotalMilliseconds;
 
             if (new_time == 0) return;
@@ -32,7 +33,7 @@ namespace BecquerelMonitor
 
         public decimal GetCPS(ResultData resultData, decimal window)
         {
-            if (resultData.CountRates.Count <= 2) return 0;
+            if (resultData.CountRates.Count <= 3) return 0;
             double win_ms = resultData.CountRates[resultData.CountRates.Count - 1].ElapsedTimeInMs - (double)(window * 1000);
             CountRate last_countRate = resultData.CountRates[resultData.CountRates.Count - 1];
             CountRate first_countRate = null;
@@ -55,6 +56,10 @@ namespace BecquerelMonitor
             }
             if (last_countRate.ElapsedTimeInMs == first_countRate.ElapsedTimeInMs) { return 0; }
             double result = ((double)(last_countRate.Counts - first_countRate.Counts) * 1000.0) / (last_countRate.ElapsedTimeInMs - first_countRate.ElapsedTimeInMs);
+            if (result < 0)
+            {
+                return 0;
+            }
             return (decimal)result;
         }
 
