@@ -508,11 +508,18 @@ namespace BecquerelMonitor
                 this.countAutoSave = 0;
                 foreach (DocEnergySpectrum docEnergySpectrum in this.documentManager.DocumentList)
                 {
-                    if ((docEnergySpectrum.Dirty || docEnergySpectrum.UpdateSpectrum) && docEnergySpectrum.AutoSave && docEnergySpectrum.ActiveResultData.ResultDataStatus.Recording)
+                    if ((docEnergySpectrum.Dirty || docEnergySpectrum.UpdateSpectrum) && docEnergySpectrum.AutoSave)
                     {
-                        SaveDocument(docEnergySpectrum);
-                        DateTime dt = DateTime.Now;
-                        SetStatusTextLeft(String.Format(Resources.AutosaveText, dt.ToString()));
+                        foreach (ResultData resultData in docEnergySpectrum.ResultDataFile.ResultDataList)
+                        {
+                            if (resultData.ResultDataStatus.Recording)
+                            {
+                                SaveDocument(docEnergySpectrum);
+                                DateTime dt = DateTime.Now;
+                                SetStatusTextLeft(String.Format(Resources.AutosaveText, dt.ToString()));
+                                break;
+                            }
+                        }
                     }
                 }
             }
