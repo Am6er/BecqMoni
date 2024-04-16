@@ -1573,7 +1573,7 @@
     <value>groupBox4</value>
   </data>
   <data name="groupBox6.Size" type="System.Drawing.Size, System.Drawing">
-    <value>664, 153</value>
+    <value>664, 185</value>
   </data>
   <data name="groupBox6.Text" xml:space="preserve">
     <value>Save Settings</value>
@@ -5690,5 +5690,35 @@
   </data>
   <data name="&gt;&gt;numericUpDown14.Parent" xml:space="preserve">
     <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;autoSaveDefaultPolicyCheckBox.Name" xml:space="preserve">
+    <value>autoSaveDefaultPolicyCheckBox</value>
+  </data>
+  <data name="&gt;&gt;autoSaveDefaultPolicyCheckBox.Type" xml:space="preserve">
+    <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="autoSaveDefaultPolicyCheckBox.TabIndex" type="System.Int32, mscorlib">
+    <value>0</value>
+  </data>
+  <data name="&gt;&gt;autoSaveDefaultPolicyCheckBox.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="&gt;&gt;autoSaveDefaultPolicyCheckBox.Parent" xml:space="preserve">
+    <value>groupBox6</value>
+  </data>
+  <data name="autoSaveDefaultPolicyCheckBox.Size" type="System.Drawing.Size, System.Drawing">
+    <value>291, 17</value>
+  </data>
+  <data name="autoSaveDefaultPolicyCheckBox.Text" xml:space="preserve">
+    <value>Enable AutoSave by default in opened or new spectrums</value>
+  </data>
+  <data name="autoSaveDefaultPolicyCheckBox.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="autoSaveDefaultPolicyCheckBox.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="autoSaveDefaultPolicyCheckBox.Location" type="System.Drawing.Point, System.Drawing">
+    <value>21, 152</value>
   </data>
 </root>

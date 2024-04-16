@@ -869,6 +869,7 @@ namespace BecquerelMonitor
                 docEnergySpectrum.Show(this.dockPanel1);
                 docEnergySpectrum.SetDefaultHorizontalScale();
                 this.ShowMeasurementResult(true);
+                setAutosaveToDocument(docEnergySpectrum);
             }
         }
 
@@ -910,6 +911,7 @@ namespace BecquerelMonitor
                     docEnergySpectrum.Show(this.dockPanel1);
                     docEnergySpectrum.SetDefaultHorizontalScale();
                     this.ShowMeasurementResult(true);
+                    setAutosaveToDocument(docEnergySpectrum);
                 }
             }
         }
@@ -925,6 +927,7 @@ namespace BecquerelMonitor
                 docEnergySpectrum.Show(this.dockPanel1);
                 docEnergySpectrum.SetDefaultHorizontalScale();
                 this.ShowMeasurementResult(true);
+                setAutosaveToDocument(docEnergySpectrum);
             }
         }
 
@@ -1290,6 +1293,7 @@ namespace BecquerelMonitor
 
             this.activeDocument.Dirty = true;
             this.UpdateAllView();
+            setAutosaveToDocument(this.activeDocument);
         }
 
         // Token: 0x06000A75 RID: 2677 RVA: 0x0003E3E8 File Offset: 0x0003C5E8
@@ -1358,6 +1362,38 @@ namespace BecquerelMonitor
                 doc.Dirty = false;
             }
             return true;
+        }
+
+        bool ConfirmSaveUnnamedDocument(DocEnergySpectrum doc)
+        {
+            if (!doc.IsNamed)
+            {
+                DialogResult dialogResult = MessageBox.Show(string.Format(BecquerelMonitor.Properties.Resources.MSGFileOverwriteConfirmation, Path.GetFileName(doc.Filename)), BecquerelMonitor.Properties.Resources.ConfirmationDialogTitle, MessageBoxButtons.YesNoCancel, MessageBoxIcon.Exclamation);
+                if (dialogResult == DialogResult.Cancel)
+                {
+                    return false;
+                }
+                if (dialogResult == DialogResult.Yes)
+                {
+                    if (!this.documentManager.SaveDocumentWithName(doc))
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        void setAutosaveToDocument(DocEnergySpectrum doc)
+        {
+            if (globalConfig.AutosaveDefaultPolicy)
+            {
+                doc.AutoSave = this.ConfirmSaveUnnamedDocument(doc);
+            }
+            else
+            {
+                doc.AutoSave = globalConfig.AutosaveDefaultPolicy;
+            }
         }
 
         // Token: 0x06000A78 RID: 2680 RVA: 0x0003E564 File Offset: 0x0003C764
@@ -1977,6 +2013,7 @@ namespace BecquerelMonitor
             int presetTime = this.dcControlPanel.PresetTime;
             this.documentManager.ImportCsvToDocument(this.activeDocument, presetTime, openFileDialog.FileName);
             this.UpdateAllView();
+            setAutosaveToDocument(this.activeDocument);
         }
 
         // Token: 0x06000A93 RID: 2707 RVA: 0x0003F300 File Offset: 0x0003D500
@@ -2043,6 +2080,7 @@ namespace BecquerelMonitor
                 this.SubscribeDocumentEvent(docEnergySpectrum);
                 docEnergySpectrum.Show(this.dockPanel1);
                 this.ShowMeasurementResult(true);
+                setAutosaveToDocument(docEnergySpectrum);
             }
         }
 
@@ -2079,6 +2117,7 @@ namespace BecquerelMonitor
             this.documentManager.ImportDocumentAtomSpectra(this.activeDocument, openFileDialog.FileName);
             this.activeDocument.Dirty = true;
             this.UpdateAllView();
+            setAutosaveToDocument(this.activeDocument);
         }
 
         void N42StripMenuItem_Click(object sender, EventArgs e)
@@ -2101,6 +2140,7 @@ namespace BecquerelMonitor
             this.documentManager.ImportDocumentN42(this.activeDocument, openFileDialog.FileName);
             this.activeDocument.Dirty = true;
             this.UpdateAllView();
+            setAutosaveToDocument(this.activeDocument);
         }
 
         void N42ExpStripMenuItem_Click(object sender, EventArgs e)
@@ -2312,13 +2352,13 @@ namespace BecquerelMonitor
             this.activeDocument.ActiveResultData.PulseCollection = docEnergySpectrum.ActiveResultData.PulseCollection.Clone();
             this.activeDocument.ActiveResultData.SampleInfo = docEnergySpectrum.ActiveResultData.SampleInfo;
             this.activeDocument.ActiveResultData.StartTime = docEnergySpectrum.ActiveResultData.StartTime;
-
             this.activeDocument.Dirty = true;
             this.UpdateAllView();
             if (this.activeDocument.EnergySpectrumView.HorizontalMagnification == HorizontalMagnification.Fit)
             {
                 this.activeDocument.EnergySpectrumView.FitHorizontalScale();
             }
+            setAutosaveToDocument(this.activeDocument);
         }
 
         // Token: 0x06000AA1 RID: 2721 RVA: 0x0003F7A4 File Offset: 0x0003D9A4

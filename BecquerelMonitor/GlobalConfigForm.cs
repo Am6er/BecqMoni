@@ -84,6 +84,7 @@ namespace BecquerelMonitor
             this.numericUpDown10.Value = (int)globalConfig.AutosavePeriod;
             this.numericUpDown14.Value = (decimal)globalConfig.ChartViewConfig.HorizontalScale;
             this.comboBox11.SelectedIndex = (int)globalConfig.ChartViewConfig.MagnificationReference;
+            this.autoSaveDefaultPolicyCheckBox.Checked = globalConfig.AutosaveDefaultPolicy;
             EasyControlConfig easyControlConfig = globalConfig.EasyControlConfig;
             bool flag = false;
             for (int i = 0; i < this.deviceConfigManager.DeviceConfigList.Count; i++)
@@ -242,6 +243,7 @@ namespace BecquerelMonitor
             globalConfig.MeasurementConfig.ShowValuesForNDResult = this.checkBox2.Checked;
             globalConfig.DoSaveRawPulseData = this.checkBox1.Checked;
             globalConfig.AutosavePeriod = (int)this.numericUpDown10.Value;
+            globalConfig.AutosaveDefaultPolicy = this.autoSaveDefaultPolicyCheckBox.Checked;
             globalConfig.ChartViewConfig.HorizontalScale = (double)this.numericUpDown14.Value;
         }
 

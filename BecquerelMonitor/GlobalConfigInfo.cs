@@ -364,6 +364,18 @@ namespace BecquerelMonitor
             }
         }
 
+        public bool AutosaveDefaultPolicy
+        {
+            get
+            {
+                return this.autosavedefaultpolicy;
+            }
+            set
+            {
+                this.autosavedefaultpolicy = value;
+            }
+        }
+
         // Token: 0x040008AF RID: 2223
         int mainFormTop = 100;
 
@@ -416,6 +428,8 @@ namespace BecquerelMonitor
 
         //in minutes
         int autosaveperiod = 15;
+
+        bool autosavedefaultpolicy = false;
 
         // Token: 0x040008BD RID: 2237
         ResultTranslation resultTranslation = ResultTranslation.Becquerels;

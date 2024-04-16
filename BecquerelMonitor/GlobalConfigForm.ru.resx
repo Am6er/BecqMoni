@@ -2946,4 +2946,7 @@
   <data name="label92.Text" xml:space="preserve">
     <value>минут</value>
   </data>
+  <data name="autoSaveDefaultPolicyCheckBox.Text" xml:space="preserve">
+    <value>Включить автосохранение по умолчанию для открываемых или создаваемых спектров</value>
+  </data>
 </root>
