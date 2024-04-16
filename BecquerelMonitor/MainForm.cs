@@ -508,7 +508,7 @@ namespace BecquerelMonitor
                 this.countAutoSave = 0;
                 foreach (DocEnergySpectrum docEnergySpectrum in this.documentManager.DocumentList)
                 {
-                    if ((docEnergySpectrum.Dirty || docEnergySpectrum.UpdateSpectrum) && docEnergySpectrum.AutoSave)
+                    if ((docEnergySpectrum.Dirty || docEnergySpectrum.UpdateSpectrum) && docEnergySpectrum.AutoSave && docEnergySpectrum.ActiveResultData.ResultDataStatus.Recording)
                     {
                         SaveDocument(docEnergySpectrum);
                         DateTime dt = DateTime.Now;
