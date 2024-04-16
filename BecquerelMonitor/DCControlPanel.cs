@@ -137,6 +137,7 @@ namespace BecquerelMonitor
             activeDocument.Dirty = true;
             activeDocument.UpdateSpectrum = true;
             activeResultData.Dirty = true;
+            this.mainForm.setAutosaveToDocument(activeDocument);
             DCPulseView dcpulseView = this.mainForm.DCPulseView;
             activeResultData.MeasurementController.StartRecording();
             if (activeDocument.PulseDetector != null)
@@ -171,6 +172,7 @@ namespace BecquerelMonitor
             activeDocument.Dirty = true;
             activeDocument.UpdateSpectrum = true;
             activeResultData.Dirty = true;
+            this.mainForm.setAutosaveToDocument(activeDocument);
             DCPulseView dcpulseView = this.mainForm.DCPulseView;
             bool result = activeResultData.MeasurementController.AttachToDevice();
             if (activeDocument.PulseDetector != null)
