@@ -222,7 +222,8 @@
 			this.comboBox13 = new global::System.Windows.Forms.ComboBox();
 			this.comboBox12 = new global::System.Windows.Forms.ComboBox();
 			this.button3 = new global::System.Windows.Forms.Button();
-			this.tabControl1.SuspendLayout();
+            this.autoSaveDefaultPolicyCheckBox = new System.Windows.Forms.CheckBox();
+            this.tabControl1.SuspendLayout();
 			this.tabPage1.SuspendLayout();
 			this.groupBox2.SuspendLayout();
 			this.groupBox7.SuspendLayout();
@@ -249,7 +250,10 @@
 			resources.ApplyResources(this.checkBox1, "checkBox1");
 			this.checkBox1.Name = "checkBox1";
 			this.checkBox1.UseVisualStyleBackColor = true;
-			resources.ApplyResources(this.button1, "button1");
+            resources.ApplyResources(this.autoSaveDefaultPolicyCheckBox, "autoSaveDefaultPolicyCheckBox");
+            this.autoSaveDefaultPolicyCheckBox.Name = "autoSaveDefaultPolicyCheckBox";
+            this.autoSaveDefaultPolicyCheckBox.UseVisualStyleBackColor = true;
+            resources.ApplyResources(this.button1, "button1");
 			this.button1.DialogResult = global::System.Windows.Forms.DialogResult.OK;
 			this.button1.Name = "button1";
 			this.button1.UseVisualStyleBackColor = true;
@@ -1042,6 +1046,7 @@
 			this.groupBox6.Controls.Add(this.label91);
 			this.groupBox6.Controls.Add(this.label92);
             this.groupBox6.Controls.Add(this.numericUpDown10);
+            this.groupBox6.Controls.Add(this.autoSaveDefaultPolicyCheckBox);
             this.groupBox6.Name = "groupBox6";
 			this.groupBox6.TabStop = false;
 			resources.ApplyResources(this.groupBox5, "groupBox5");
@@ -1784,5 +1789,6 @@
 		global::System.Windows.Forms.Button button7;
 
 		global::System.Windows.Forms.NumericUpDown numericUpDown14;
-	}
+		global::System.Windows.Forms.CheckBox autoSaveDefaultPolicyCheckBox;
+    }
 }
