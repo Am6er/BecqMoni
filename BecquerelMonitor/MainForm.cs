@@ -869,7 +869,6 @@ namespace BecquerelMonitor
                 docEnergySpectrum.Show(this.dockPanel1);
                 docEnergySpectrum.SetDefaultHorizontalScale();
                 this.ShowMeasurementResult(true);
-                setAutosaveToDocument(docEnergySpectrum);
             }
         }
 
@@ -911,7 +910,6 @@ namespace BecquerelMonitor
                     docEnergySpectrum.Show(this.dockPanel1);
                     docEnergySpectrum.SetDefaultHorizontalScale();
                     this.ShowMeasurementResult(true);
-                    setAutosaveToDocument(docEnergySpectrum);
                 }
             }
         }
@@ -927,7 +925,6 @@ namespace BecquerelMonitor
                 docEnergySpectrum.Show(this.dockPanel1);
                 docEnergySpectrum.SetDefaultHorizontalScale();
                 this.ShowMeasurementResult(true);
-                setAutosaveToDocument(docEnergySpectrum);
             }
         }
 
@@ -985,6 +982,7 @@ namespace BecquerelMonitor
                     this.activeDocument.PulseDetector.NGPulseView = this.dcPulseView.NGPulseView;
                     this.activeDocument.PulseDetector.DoUpdatePulseView = this.doUpdatePulseView;
                 }
+                this.AutoSaveStripMenuItem.Checked = this.activeDocument.AutoSave;
             }
             else
             {
@@ -1293,7 +1291,6 @@ namespace BecquerelMonitor
 
             this.activeDocument.Dirty = true;
             this.UpdateAllView();
-            setAutosaveToDocument(this.activeDocument);
         }
 
         // Token: 0x06000A75 RID: 2677 RVA: 0x0003E3E8 File Offset: 0x0003C5E8
@@ -1384,7 +1381,7 @@ namespace BecquerelMonitor
             return true;
         }
 
-        void setAutosaveToDocument(DocEnergySpectrum doc)
+        public void setAutosaveToDocument(DocEnergySpectrum doc)
         {
             if (globalConfig.AutosaveDefaultPolicy)
             {
@@ -1394,6 +1391,7 @@ namespace BecquerelMonitor
             {
                 doc.AutoSave = globalConfig.AutosaveDefaultPolicy;
             }
+            AutoSaveStripMenuItem.Checked = doc.AutoSave;
         }
 
         // Token: 0x06000A78 RID: 2680 RVA: 0x0003E564 File Offset: 0x0003C764
@@ -2013,7 +2011,6 @@ namespace BecquerelMonitor
             int presetTime = this.dcControlPanel.PresetTime;
             this.documentManager.ImportCsvToDocument(this.activeDocument, presetTime, openFileDialog.FileName);
             this.UpdateAllView();
-            setAutosaveToDocument(this.activeDocument);
         }
 
         // Token: 0x06000A93 RID: 2707 RVA: 0x0003F300 File Offset: 0x0003D500
@@ -2080,7 +2077,6 @@ namespace BecquerelMonitor
                 this.SubscribeDocumentEvent(docEnergySpectrum);
                 docEnergySpectrum.Show(this.dockPanel1);
                 this.ShowMeasurementResult(true);
-                setAutosaveToDocument(docEnergySpectrum);
             }
         }
 
@@ -2117,7 +2113,6 @@ namespace BecquerelMonitor
             this.documentManager.ImportDocumentAtomSpectra(this.activeDocument, openFileDialog.FileName);
             this.activeDocument.Dirty = true;
             this.UpdateAllView();
-            setAutosaveToDocument(this.activeDocument);
         }
 
         void N42StripMenuItem_Click(object sender, EventArgs e)
@@ -2140,7 +2135,6 @@ namespace BecquerelMonitor
             this.documentManager.ImportDocumentN42(this.activeDocument, openFileDialog.FileName);
             this.activeDocument.Dirty = true;
             this.UpdateAllView();
-            setAutosaveToDocument(this.activeDocument);
         }
 
         void N42ExpStripMenuItem_Click(object sender, EventArgs e)
@@ -2358,7 +2352,6 @@ namespace BecquerelMonitor
             {
                 this.activeDocument.EnergySpectrumView.FitHorizontalScale();
             }
-            setAutosaveToDocument(this.activeDocument);
         }
 
         // Token: 0x06000AA1 RID: 2721 RVA: 0x0003F7A4 File Offset: 0x0003D9A4
