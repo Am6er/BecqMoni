@@ -2,6 +2,7 @@
 using MathNet.Numerics;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
@@ -49,8 +50,8 @@ namespace BecquerelMonitor.Utils
 
             try
             {
-                int poly_order = 8;
-                if (high_boundary - low_boundary < 8)
+                int poly_order = 18;
+                if (high_boundary - low_boundary < poly_order)
                 {
                     poly_order = high_boundary - low_boundary;
                 }
@@ -76,8 +77,9 @@ namespace BecquerelMonitor.Utils
                 if (new_centroid > high_boundary || new_centroid < low_boundary) new_centroid = centroid;
                 return (int)Math.Round(new_centroid);
             }
-            catch
+            catch (Exception ex)
             {
+                Trace.WriteLine(ex.StackTrace);
                 return centroid;
             }
         }
