@@ -422,7 +422,7 @@ namespace BecquerelMonitor
                 RecalcChartParameters();
                 this.dirty = false;
             }
-            return (int)(this.energyCalibration.EnergyToChannel((double)(scrollBarPos) / this.pixelPerEnergy / this.horizontalScale) - this.energyViewOffset);
+            return (int)(this.energyCalibration.EnergyToChannel((double)(scrollBarPos) / this.pixelPerEnergy / this.horizontalScale + this.energyViewOffset));
         }
 
         // Token: 0x060004AE RID: 1198 RVA: 0x0001666C File Offset: 0x0001486C
@@ -3768,7 +3768,7 @@ namespace BecquerelMonitor
         // Token: 0x060004D5 RID: 1237 RVA: 0x0001C828 File Offset: 0x0001AA28
         public void SetDefaultHorizontalScale()
         {
-            int num = base.Width - this.left - this.vScrollBar1.Width;
+            int num = base.Width - this.left - this.vScrollBar1.Width - 4;
 
             if (this.globalConfigManager.GlobalConfig.ChartViewConfig.DefaultHorizontalMagnification == HorizontalMagnification.Equal)
             {
@@ -3776,7 +3776,7 @@ namespace BecquerelMonitor
             }
             else
             {
-                this.horizontalScale = (double)num / (this.energyCalibration.ChannelToEnergy((double)this.numberOfChannels) * this.pixelPerEnergy + 42.0);
+                this.horizontalScale = (double)num / (this.energyCalibration.ChannelToEnergy((double)this.numberOfChannels) * this.pixelPerEnergy + 18.0);
                 int maximum = this.CalcMaximumXValue() + 5;
                 this.hScrollBar1.Maximum = maximum;
                 this.hScrollBar1.Value = 0;
