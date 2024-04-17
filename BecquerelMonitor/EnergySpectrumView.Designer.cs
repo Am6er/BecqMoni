@@ -3735,8 +3735,8 @@ namespace BecquerelMonitor
         // Token: 0x060004D4 RID: 1236 RVA: 0x0001C788 File Offset: 0x0001A988
         public void FitHorizontalScale()
         {
-            int num = base.Width - this.left - this.vScrollBar1.Width;
-            this.horizontalScale = (double)num / (this.energyCalibration.ChannelToEnergy((double)this.numberOfChannels) * this.pixelPerEnergy + 42.0);
+            int num = base.Width - this.left - this.vScrollBar1.Width - 4;
+            this.horizontalScale = (double)num / (this.energyCalibration.ChannelToEnergy((double)this.numberOfChannels) * this.pixelPerEnergy + 18.0);
             if (ActionEvent != null) ActionEvent(this, new EnergySpectrumActionEventArgs(true, (decimal)this.horizontalScale));
             int maximum = this.CalcMaximumXValue() + 5;
             this.hScrollBar1.Maximum = maximum;
