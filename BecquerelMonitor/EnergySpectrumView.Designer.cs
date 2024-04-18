@@ -1517,6 +1517,8 @@ namespace BecquerelMonitor
             this.selectionFWHM = energyResolutionResult.Resolution;
             this.selectionFullWidth = (int)(energyResolutionResult.RightChannel - energyResolutionResult.LeftChannel);
             this.selectionFWHMinkev = energyResolutionResult.ResolutionInkeV;
+            this.selectionCentroidCh = (int)energyResolutionResult.MaxChannel;
+            this.selectionCentroidkeV = energyCalibration.ChannelToEnergy(this.selectionCentroidCh);
             int num3 = -1;
             int y = -1;
             int num8;
@@ -3270,7 +3272,14 @@ namespace BecquerelMonitor
             }
             if (this.selectionStart != -1 && this.energySpectrum.NumberOfChannels > Math.Max(this.selectionStart, this.selectionEnd))
             {
-                int num12 = 194;
+                int num12;
+                if (this.selectionFWHM > 0.0)
+                {
+                    num12 = 194;
+                } else
+                {
+                    num12 = 164;
+                }
                 g.FillRectangle(Brushes.DarkGray, num2, num3, num, num12);
                 g.FillRectangle(Brushes.White, num2 - 3, num3 - 3, num, num12);
                 g.DrawRectangle(Pens.Black, num2 - 3, num3 - 3, num, num12);
@@ -3379,9 +3388,15 @@ namespace BecquerelMonitor
                         " (" + (this.selectionFWHMinkev).ToString("f2") + " " + Resources.kev + ")",
                         this.Font, Brushes.Black, r2, this.farFormat);
                     r2.Y += 16;
-                    g.DrawString(Resources._2Sigma, this.Font, Brushes.Black, r2);
-                    g.DrawString((this.selectionFullWidth).ToString() + " " + Resources.ChartChannelShort,
+                    //g.DrawString(Resources._2Sigma, this.Font, Brushes.Black, r2);
+                    //g.DrawString((this.selectionFullWidth).ToString() + " " + Resources.ChartChannelShort,
+                    //    this.Font, Brushes.Black, r2, this.farFormat);
+                    //r2.Y += 16;
+                    g.DrawString(Resources.Centroid, this.Font, Brushes.Black, r2);
+                    g.DrawString((this.selectionCentroidkeV).ToString("f2") + " " + Resources.kev +
+                        " (" + (this.selectionCentroidCh).ToString() + " " + Resources.ChartChannelShort + ")",
                         this.Font, Brushes.Black, r2, this.farFormat);
+
                 }
             }
         }
@@ -3908,6 +3923,10 @@ namespace BecquerelMonitor
         double selectionFWHM;
 
         int selectionFullWidth;
+
+        int selectionCentroidCh;
+
+        double selectionCentroidkeV;
 
         double selectionFWHMinkev;
 

@@ -48,40 +48,32 @@ namespace BecquerelMonitor.Utils
                 }
             }
 
-            try
+            int poly_order = 18;
+            if (high_boundary - low_boundary < poly_order)
             {
-                int poly_order = 18;
-                if (high_boundary - low_boundary < poly_order)
-                {
-                    poly_order = high_boundary - low_boundary;
-                }
-                double[] x = new double[high_boundary - low_boundary + 1];
-                double[] y = new double[high_boundary - low_boundary + 1];
-                for (int j = 0; j < high_boundary - low_boundary + 1; j++)
-                {
-                    x[j] = low_boundary + j;
-                    y[j] = Ln(energySpectrum.Spectrum[low_boundary + j]);
-                }
-                Func<double, double> func = Fit.PolynomialFunc(x, y, poly_order);
-                double new_centroid = centroid;
-                double max = func.Invoke(new_centroid);
-                for (int j = low_boundary; j < high_boundary; j++)
-                {
-                    double new_max = func.Invoke(j);
-                    if (new_max > max)
-                    {
-                        new_centroid = j;
-                        max = new_max;
-                    }
-                }
-                if (new_centroid > high_boundary || new_centroid < low_boundary) new_centroid = centroid;
-                return (int)Math.Round(new_centroid);
+                poly_order = high_boundary - low_boundary;
             }
-            catch (Exception ex)
+            double[] x = new double[high_boundary - low_boundary + 1];
+            double[] y = new double[high_boundary - low_boundary + 1];
+            for (int j = 0; j < high_boundary - low_boundary + 1; j++)
             {
-                Trace.WriteLine(ex.StackTrace);
-                return centroid;
+                x[j] = low_boundary + j;
+                y[j] = Ln(energySpectrum.Spectrum[low_boundary + j]);
             }
+            Func<double, double> func = Fit.PolynomialFunc(x, y, poly_order);
+            double new_centroid = centroid;
+            double max = func.Invoke(new_centroid);
+            for (int j = low_boundary; j < high_boundary; j++)
+            {
+                double new_max = func.Invoke(j);
+                if (new_max > max)
+                {
+                    new_centroid = j;
+                    max = new_max;
+                }
+            }
+            if (new_centroid > high_boundary || new_centroid < low_boundary) new_centroid = centroid;
+            return (int)Math.Round(new_centroid);
         }
 
         double Ln(double x)

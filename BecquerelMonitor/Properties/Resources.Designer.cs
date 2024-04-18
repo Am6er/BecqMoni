@@ -229,6 +229,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Centroid.
+        /// </summary>
+        internal static string Centroid {
+            get {
+                return ResourceManager.GetString("Centroid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
         internal static System.Drawing.Bitmap channel {
