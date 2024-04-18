@@ -93,15 +93,15 @@ namespace BecquerelMonitor
             {
                 for (int i = 0; i < finder.centroids.Length; i++)
                 {
-                    int centroid = (int)Math.Round(finder.centroids[i]);
+                    double centroid = finder.centroids[i];
                     int snr = (int)finder.snrs[i];
-                    int fwhm = (int)Math.Round(finder.fwhms[i]);
-                    centroid = sa.FindCentroid(energySpectrum, centroid, centroid - fwhm, centroid + fwhm);
+                    double fwhm = finder.fwhms[i];
+                    centroid = sa.FindCentroid(energySpectrum, (int)centroid, (int)(centroid - fwhm / 2.0), (int)(centroid + fwhm / 2.0));
 
                     NuclideDefinition bestNuclide = null;
                     double minDelta = -1;
                     Peak peak = new Peak();
-                    peak.Channel = centroid;
+                    peak.Channel = (int)centroid;
                     peak.Energy = energySpectrum.EnergyCalibration.ChannelToEnergy(peak.Channel);
                     peak.SNR = snr;
                     peak.FWHM = fwhm;
