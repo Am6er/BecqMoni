@@ -3353,7 +3353,7 @@ namespace BecquerelMonitor
                     num23 = num18 / this.energySpectrum.MeasurementTime;
                     if (num23 > 0 && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
                     {
-                        net_cps_err = Math.Sqrt(num18 + num19 * Math.Pow(this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime, 2.0));
+                        net_cps_err = Math.Sqrt(num18 + bgCounts * Math.Pow(this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime, 2.0));
                         double detectionLevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.DetectionLevel;
                         mda = this.energySpectrum.MeasurementTime * (
                             Math.Pow(detectionLevel,2.0) / (2.0 * this.energySpectrum.MeasurementTime) 
