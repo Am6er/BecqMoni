@@ -329,7 +329,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Peak counts:.
+        ///   Looks up a localized string similar to Peak Counts:.
         /// </summary>
         internal static string ChartHeaderPeakCounts {
             get {
@@ -1436,6 +1436,15 @@ namespace BecquerelMonitor.Properties {
             get {
                 object obj = ResourceManager.GetObject("log", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to MDA Counts:.
+        /// </summary>
+        internal static string MDA_cnts {
+            get {
+                return ResourceManager.GetString("MDA_cnts", resourceCulture);
             }
         }
         

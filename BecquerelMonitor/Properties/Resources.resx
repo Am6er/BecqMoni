@@ -41682,7 +41682,7 @@ Device channels: {0}, spectrum files channels: {1}</value>
     <value>Error while adding channel {0}. Error message: {1}</value>
   </data>
   <data name="ChartHeaderPeakCounts" xml:space="preserve">
-    <value>Peak counts:</value>
+    <value>Peak Counts:</value>
   </data>
   <data name="ChartChannelShort" xml:space="preserve">
     <value>ch</value>
@@ -41908,5 +41908,8 @@ see peak in spectrum now).</value>
   </data>
   <data name="Centroid" xml:space="preserve">
     <value>Centroid</value>
+  </data>
+  <data name="MDA_cnts" xml:space="preserve">
+    <value>MDA Counts:</value>
   </data>
 </root>

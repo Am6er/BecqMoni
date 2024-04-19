@@ -511,6 +511,9 @@ http://xptable.sourceforge.net/</value>
   <data name="LoadingFileMessage" xml:space="preserve">
     <value>Загружается файл ( {0} )...</value>
   </data>
+  <data name="MDA_cnts" xml:space="preserve">
+    <value>MDA Импульсов</value>
+  </data>
   <data name="MessageRemoveDeviceConfig" xml:space="preserve">
     <value>Удалить конфигурацию устройства "{0}"?</value>
   </data>
