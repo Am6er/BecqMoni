@@ -3302,6 +3302,7 @@ namespace BecquerelMonitor
                 double num19 = 0.0;
                 double peakcounts = 0.0;
                 double net_cps_err = 0.0;
+                double net_counts_err = 0.0;
                 double mda = 0.0;
                 double bgCounts = 0.0;
                 for (int i = num13; i <= num14; i++)
@@ -3357,7 +3358,8 @@ namespace BecquerelMonitor
                         double unclevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.ErrorLevel;
                         if (num23 > 0)
                         {
-                            net_cps_err = unclevel * Math.Sqrt(num17 + num19 * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime);
+                            net_counts_err = unclevel * Math.Sqrt(num17 + num19 * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime);
+                            net_cps_err = net_counts_err / this.energySpectrum.MeasurementTime;
                             mda = this.energySpectrum.MeasurementTime * (
                                 Math.Pow(detectionLevel, 2.0) / (2.0 * this.energySpectrum.MeasurementTime)
                                 + detectionLevel * Math.Sqrt(
@@ -3367,7 +3369,8 @@ namespace BecquerelMonitor
                                 );
                         } else
                         {
-                            net_cps_err = unclevel * Math.Sqrt(num19 + num17 * this.backgroundEnergySpectrum.MeasurementTime / this.energySpectrum.MeasurementTime);
+                            net_counts_err = unclevel * Math.Sqrt(num19 + num17 * this.backgroundEnergySpectrum.MeasurementTime / this.energySpectrum.MeasurementTime);
+                            net_cps_err = net_counts_err / this.backgroundEnergySpectrum.MeasurementTime;
                             mda = this.backgroundEnergySpectrum.MeasurementTime * (
                                 Math.Pow(detectionLevel, 2.0) / (2.0 * this.backgroundEnergySpectrum.MeasurementTime)
                                 + detectionLevel * Math.Sqrt(
@@ -3411,18 +3414,24 @@ namespace BecquerelMonitor
                 }
                 r2.Y += 16;
                 g.DrawString(Resources.ChartHeaderNetCounts, this.Font, Brushes.Black, r2);
-                g.DrawString(num18.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                if (net_counts_err != 0.0)
+                {
+                    g.DrawString(num18.ToString("f2") + " " + Resources.PlusMinus + net_counts_err.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                } else
+                {
+                    g.DrawString(num18.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                }
                 r2.Y += 16;
                 g.DrawString(Resources.ChartHeaderNetCps, this.Font, Brushes.Black, r2);
                 if (net_cps_err != 0.0)
                 {
-                    g.DrawString(num23.ToString("f4") + " " + Resources.PlusMinus + net_cps_err.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                    g.DrawString(num23.ToString("f4") + " " + Resources.PlusMinus + net_cps_err.ToString("f4"), this.Font, Brushes.Black, r2, this.farFormat);
                 } else
                 {
                     g.DrawString(num23.ToString("f4"), this.Font, Brushes.Black, r2, this.farFormat);
                 }
                 r2.Y += 16;
-                g.DrawString("MDA", this.Font, Brushes.Black, r2);
+                g.DrawString(Resources.MDA_cnts, this.Font, Brushes.Black, r2);
                 if (mda != 0.0)
                 {
                     g.DrawString(mda.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
