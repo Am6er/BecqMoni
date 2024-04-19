@@ -3353,10 +3353,11 @@ namespace BecquerelMonitor
                     num23 = num18 / this.energySpectrum.MeasurementTime;
                     if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
                     {
+                        double detectionLevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.DetectionLevel;
+                        double unclevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.ErrorLevel;
                         if (num23 > 0)
                         {
-                            net_cps_err = Math.Sqrt(num18 + num19 * Math.Pow(this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime, 2.0));
-                            double detectionLevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.DetectionLevel;
+                            net_cps_err = 100.0 * unclevel * Math.Sqrt(bgCounts + num17) / num17;
                             mda = this.energySpectrum.MeasurementTime * (
                                 Math.Pow(detectionLevel, 2.0) / (2.0 * this.energySpectrum.MeasurementTime)
                                 + detectionLevel * Math.Sqrt(
@@ -3366,8 +3367,7 @@ namespace BecquerelMonitor
                                 );
                         } else
                         {
-                            net_cps_err = Math.Sqrt(num19 + Math.Abs(num18) * Math.Pow(this.backgroundEnergySpectrum.MeasurementTime / this.energySpectrum.MeasurementTime, 2.0));
-                            double detectionLevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.DetectionLevel;
+                            net_cps_err = 100.0 * unclevel * Math.Sqrt(bgCounts + num17) / bgCounts;
                             mda = this.backgroundEnergySpectrum.MeasurementTime * (
                                 Math.Pow(detectionLevel, 2.0) / (2.0 * this.backgroundEnergySpectrum.MeasurementTime)
                                 + detectionLevel * Math.Sqrt(
