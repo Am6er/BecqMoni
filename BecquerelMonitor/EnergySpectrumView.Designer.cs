@@ -3351,7 +3351,7 @@ namespace BecquerelMonitor
                 if (this.energySpectrum.MeasurementTime != 0.0)
                 {
                     num23 = num18 / this.energySpectrum.MeasurementTime;
-                    if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                    if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0 && this.backgroundMode != BackgroundMode.Substract)
                     {
                         double detectionLevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.DetectionLevel;
                         double unclevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.ErrorLevel;
