@@ -3351,17 +3351,32 @@ namespace BecquerelMonitor
                 if (this.energySpectrum.MeasurementTime != 0.0)
                 {
                     num23 = num18 / this.energySpectrum.MeasurementTime;
-                    if (num23 > 0 && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                    if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
                     {
-                        net_cps_err = Math.Sqrt(num18 + num19 * Math.Pow(this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime, 2.0));
-                        double detectionLevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.DetectionLevel;
-                        mda = this.energySpectrum.MeasurementTime * (
-                            Math.Pow(detectionLevel,2.0) / (2.0 * this.energySpectrum.MeasurementTime) 
-                            + detectionLevel * Math.Sqrt(
-                                Math.Pow(detectionLevel, 2.0) / (4.0 * Math.Pow(this.energySpectrum.MeasurementTime, 2.0)) 
-                                + (bgCounts / this.backgroundEnergySpectrum.MeasurementTime) * (1 / this.energySpectrum.MeasurementTime + 1 / this.backgroundEnergySpectrum.MeasurementTime)
-                                )
-                            );
+                        if (num23 > 0)
+                        {
+                            net_cps_err = Math.Sqrt(num18 + num19 * Math.Pow(this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime, 2.0));
+                            double detectionLevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.DetectionLevel;
+                            mda = this.energySpectrum.MeasurementTime * (
+                                Math.Pow(detectionLevel, 2.0) / (2.0 * this.energySpectrum.MeasurementTime)
+                                + detectionLevel * Math.Sqrt(
+                                    Math.Pow(detectionLevel, 2.0) / (4.0 * Math.Pow(this.energySpectrum.MeasurementTime, 2.0))
+                                    + (bgCounts / this.backgroundEnergySpectrum.MeasurementTime) * (1 / this.energySpectrum.MeasurementTime + 1 / this.backgroundEnergySpectrum.MeasurementTime)
+                                    )
+                                );
+                        } else
+                        {
+                            net_cps_err = Math.Sqrt(num19 + Math.Abs(num18) * Math.Pow(this.backgroundEnergySpectrum.MeasurementTime / this.energySpectrum.MeasurementTime, 2.0));
+                            double detectionLevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.DetectionLevel;
+                            mda = this.backgroundEnergySpectrum.MeasurementTime * (
+                                Math.Pow(detectionLevel, 2.0) / (2.0 * this.backgroundEnergySpectrum.MeasurementTime)
+                                + detectionLevel * Math.Sqrt(
+                                    Math.Pow(detectionLevel, 2.0) / (4.0 * Math.Pow(this.backgroundEnergySpectrum.MeasurementTime, 2.0))
+                                    + (num17 / this.energySpectrum.MeasurementTime) * (1 / this.backgroundEnergySpectrum.MeasurementTime + 1 / this.energySpectrum.MeasurementTime)
+                                    )
+                                );
+                        }
+
                     } else
                     {
                         net_cps_err = 0.0;
