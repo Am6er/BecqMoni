@@ -3275,10 +3275,10 @@ namespace BecquerelMonitor
                 int num12;
                 if (this.selectionFWHM > 0.0)
                 {
-                    num12 = 194;
+                    num12 = 210;
                 } else
                 {
-                    num12 = 164;
+                    num12 = 180;
                 }
                 g.FillRectangle(Brushes.DarkGray, num2, num3, num, num12);
                 g.FillRectangle(Brushes.White, num2 - 3, num3 - 3, num, num12);
@@ -3301,6 +3301,9 @@ namespace BecquerelMonitor
                 double num18 = 0.0;
                 double num19 = 0.0;
                 double peakcounts = 0.0;
+                double net_cps_err = 0.0;
+                double mda = 0.0;
+                double bgCounts = 0.0;
                 for (int i = num13; i <= num14; i++)
                 {
                     int num20 = 0;
@@ -3333,6 +3336,7 @@ namespace BecquerelMonitor
                         if (num22 >= 0 && num22 < this.backgroundNumberOfChannels)
                         {
                             num21 = (double)this.backgroundEnergySpectrum.Spectrum[num22] * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime;
+                            bgCounts += (double)this.backgroundEnergySpectrum.Spectrum[num22];
                         }
                     }
                     num19 += num21;
@@ -3347,6 +3351,22 @@ namespace BecquerelMonitor
                 if (this.energySpectrum.MeasurementTime != 0.0)
                 {
                     num23 = num18 / this.energySpectrum.MeasurementTime;
+                    if (num23 > 0 && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                    {
+                        net_cps_err = Math.Sqrt(num18 + num19 * Math.Pow(this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime, 2.0));
+                        double detectionLevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.DetectionLevel;
+                        mda = this.energySpectrum.MeasurementTime * (
+                            Math.Pow(detectionLevel,2.0) / (2.0 * this.energySpectrum.MeasurementTime) 
+                            + detectionLevel * Math.Sqrt(
+                                Math.Pow(detectionLevel, 2.0) / (4.0 * Math.Pow(this.energySpectrum.MeasurementTime, 2.0)) 
+                                + (bgCounts / this.backgroundEnergySpectrum.MeasurementTime) * (1 / this.energySpectrum.MeasurementTime + 1 / this.backgroundEnergySpectrum.MeasurementTime)
+                                )
+                            );
+                    } else
+                    {
+                        net_cps_err = 0.0;
+                        mda = 0.0;
+                    }
                 }
                 Rectangle r2 = new Rectangle(num2 + 5, num3 + 4, num - 12, 32);
                 g.DrawString(Resources.ChartHeaderSelection, this.Font, Brushes.Black, r2);
@@ -3365,18 +3385,36 @@ namespace BecquerelMonitor
                 g.DrawString(Resources.ChartHeaderBGCounts, this.Font, Brushes.Black, r2);
                 g.DrawString(num19.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
                 r2.Y += 16;
+                g.DrawString(Resources.ChartHeaderCountBGRatio, this.Font, Brushes.Black, r2);
                 if (num19 != 0.0)
                 {
                     double num24 = num17 / num19 * 100.0;
-                    g.DrawString(Resources.ChartHeaderCountBGRatio, this.Font, Brushes.Black, r2);
                     g.DrawString(num24.ToString("f2") + Resources.PercentCharacter, this.Font, Brushes.Black, r2, this.farFormat);
+                } else
+                {
+                    g.DrawString("-", this.Font, Brushes.Black, r2, this.farFormat);
                 }
                 r2.Y += 16;
                 g.DrawString(Resources.ChartHeaderNetCounts, this.Font, Brushes.Black, r2);
                 g.DrawString(num18.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
                 r2.Y += 16;
                 g.DrawString(Resources.ChartHeaderNetCps, this.Font, Brushes.Black, r2);
-                g.DrawString(num23.ToString("f4"), this.Font, Brushes.Black, r2, this.farFormat);
+                if (net_cps_err != 0.0)
+                {
+                    g.DrawString(num23.ToString("f4") + " " + Resources.PlusMinus + net_cps_err.ToString("f2") + "%", this.Font, Brushes.Black, r2, this.farFormat);
+                } else
+                {
+                    g.DrawString("-", this.Font, Brushes.Black, r2, this.farFormat);
+                }
+                r2.Y += 16;
+                g.DrawString("MDA", this.Font, Brushes.Black, r2);
+                if (mda != 0.0)
+                {
+                    g.DrawString(mda.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                } else
+                {
+                    g.DrawString("-", this.Font, Brushes.Black, r2, this.farFormat);
+                }
                 r2.Y += 16;
                 g.DrawString(Resources.ChartHeaderPeakCounts, this.Font, Brushes.Black, r2);
                 g.DrawString(peakcounts.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
