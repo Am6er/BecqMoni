@@ -3357,7 +3357,7 @@ namespace BecquerelMonitor
                         double unclevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.ErrorLevel;
                         if (num23 > 0)
                         {
-                            net_cps_err = 100.0 * unclevel * Math.Sqrt(bgCounts + num17) / num17;
+                            net_cps_err = unclevel * Math.Sqrt(num17 + num19 * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime);
                             mda = this.energySpectrum.MeasurementTime * (
                                 Math.Pow(detectionLevel, 2.0) / (2.0 * this.energySpectrum.MeasurementTime)
                                 + detectionLevel * Math.Sqrt(
@@ -3367,7 +3367,7 @@ namespace BecquerelMonitor
                                 );
                         } else
                         {
-                            net_cps_err = 100.0 * unclevel * Math.Sqrt(bgCounts + num17) / bgCounts;
+                            net_cps_err = unclevel * Math.Sqrt(num19 + num17 * this.backgroundEnergySpectrum.MeasurementTime / this.energySpectrum.MeasurementTime);
                             mda = this.backgroundEnergySpectrum.MeasurementTime * (
                                 Math.Pow(detectionLevel, 2.0) / (2.0 * this.backgroundEnergySpectrum.MeasurementTime)
                                 + detectionLevel * Math.Sqrt(
@@ -3416,7 +3416,7 @@ namespace BecquerelMonitor
                 g.DrawString(Resources.ChartHeaderNetCps, this.Font, Brushes.Black, r2);
                 if (net_cps_err != 0.0)
                 {
-                    g.DrawString(num23.ToString("f4") + " " + Resources.PlusMinus + net_cps_err.ToString("f2") + "%", this.Font, Brushes.Black, r2, this.farFormat);
+                    g.DrawString(num23.ToString("f4") + " " + Resources.PlusMinus + net_cps_err.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
                 } else
                 {
                     g.DrawString(num23.ToString("f4"), this.Font, Brushes.Black, r2, this.farFormat);
