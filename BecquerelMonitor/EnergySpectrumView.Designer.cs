@@ -3404,7 +3404,7 @@ namespace BecquerelMonitor
                     g.DrawString(num23.ToString("f4") + " " + Resources.PlusMinus + net_cps_err.ToString("f2") + "%", this.Font, Brushes.Black, r2, this.farFormat);
                 } else
                 {
-                    g.DrawString("-", this.Font, Brushes.Black, r2, this.farFormat);
+                    g.DrawString(num23.ToString("f4"), this.Font, Brushes.Black, r2, this.farFormat);
                 }
                 r2.Y += 16;
                 g.DrawString("MDA", this.Font, Brushes.Black, r2);
