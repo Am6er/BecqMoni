@@ -4,13 +4,13 @@ using System.Resources;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-[assembly: AssemblyVersion("2024.04.19.5")]
+[assembly: AssemblyVersion("2024.04.19.6")]
 [assembly: AssemblyProduct("BecquerelMonitor")]
 [assembly: AssemblyCopyright("free")]
 [assembly: AssemblyTrademark("none")]
 [assembly: AssemblyConfiguration("")]
 [assembly: Guid("40110b38-4882-47c1-ad94-a71e58dcb5f8")]
-[assembly: AssemblyFileVersion("2024.04.19.5")]
+[assembly: AssemblyFileVersion("2024.04.19.6")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyCompany("free")]
 [assembly: CompilationRelaxations(8)]
