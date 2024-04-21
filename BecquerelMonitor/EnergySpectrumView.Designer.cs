@@ -3309,16 +3309,8 @@ namespace BecquerelMonitor
                 {
                     int num20 = 0;
                     double continuum = 0.0;
-                    if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0
-                        && this.substractedEnergySpectrum != null)
-                    {
-                        num20 = this.substractedEnergySpectrum.Spectrum[i];
-                        continuum = getY(i, num13, num14, this.substractedEnergySpectrum.Spectrum[num13], this.substractedEnergySpectrum.Spectrum[num14]);
-                    } else
-                    {
-                        num20 = this.energySpectrum.Spectrum[i];
-                        continuum = getY(i, num13, num14, this.energySpectrum.Spectrum[num13], this.energySpectrum.Spectrum[num14]);
-                    }
+                    num20 = this.energySpectrum.Spectrum[i];
+                    continuum = getY(i, num13, num14, this.energySpectrum.Spectrum[num13], this.energySpectrum.Spectrum[num14]);
                     if (continuum > num20)
                     {
                         continuum = num20;
@@ -3327,7 +3319,7 @@ namespace BecquerelMonitor
                     num18 += (double)(num20);
                     peakcounts += (double)num20;
                     double num21 = 0.0;
-                    if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0 && this.backgroundMode != BackgroundMode.Substract)
+                    if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
                     {
                         int num22 = i;
                         if (!this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
@@ -3352,7 +3344,7 @@ namespace BecquerelMonitor
                 if (this.energySpectrum.MeasurementTime != 0.0)
                 {
                     num23 = num18 / this.energySpectrum.MeasurementTime;
-                    if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0 && this.backgroundMode != BackgroundMode.Substract)
+                    if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
                     {
                         double detectionLevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.DetectionLevel;
                         double unclevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.ErrorLevel;
