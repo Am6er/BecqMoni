@@ -3275,10 +3275,10 @@ namespace BecquerelMonitor
                 int num12;
                 if (this.selectionFWHM > 0.0)
                 {
-                    num12 = 254;
+                    num12 = 270;
                 } else
                 {
-                    num12 = 208;
+                    num12 = 224;
                 }
                 g.FillRectangle(Brushes.DarkGray, num2, num3, num, num12);
                 g.FillRectangle(Brushes.White, num2 - 3, num3 - 3, num, num12);
@@ -3304,6 +3304,7 @@ namespace BecquerelMonitor
                 double net_cps_err = 0.0;
                 double net_counts_err = 0.0;
                 double Lc = 0.0;
+                double Lu = 0.0;
                 double Ld = 0.0;
                 double mda = 0.0;
                 double bgCounts = 0.0;
@@ -3331,18 +3332,8 @@ namespace BecquerelMonitor
                     num19 += num21;
                     num18 -= num21;
                     continuum = getY(i, num13, num14, this.energySpectrum.Spectrum[num13], this.energySpectrum.Spectrum[num14]);
-                    if (continuum > num20)
-                    {
-                        continuum = num20;
-                    }
-                    if (continuum < num21)
-                    {
-                        continuum = num21;
-                    }
-                    if (num20 - continuum > 0)
-                    {
-                        peakcounts += (num20 - continuum);
-                    }
+                    continuum = Math.Max(num21, continuum);
+                    peakcounts += (num20 - continuum);
                 }
                 double num23 = 0.0;
                 if (this.energySpectrum.MeasurementTime != 0.0)
@@ -3354,8 +3345,9 @@ namespace BecquerelMonitor
                         double unclevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.ErrorLevel;
                         if (num23 > 0)
                         {
-                            Lc = unclevel * Math.Sqrt(2.0*num19);
-                            Ld = unclevel * unclevel + 2 * unclevel * Math.Sqrt(2 * num19);
+                            Lc = unclevel * Math.Sqrt(2.0 * num19);
+                            Lu = num18 + unclevel * Math.Sqrt(num18 + 2.0 * num19);
+                            Ld = unclevel * unclevel + 2.0 * unclevel * Math.Sqrt(2.0 * num19);
                             net_counts_err = unclevel * Math.Sqrt(num17 + num19 * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime);
                             net_cps_err = net_counts_err / this.energySpectrum.MeasurementTime;
                             mda = this.energySpectrum.MeasurementTime * (
@@ -3363,19 +3355,6 @@ namespace BecquerelMonitor
                                 + detectionLevel * Math.Sqrt(
                                     Math.Pow(detectionLevel, 2.0) / (4.0 * Math.Pow(this.energySpectrum.MeasurementTime, 2.0))
                                     + (bgCounts / this.backgroundEnergySpectrum.MeasurementTime) * (1 / this.energySpectrum.MeasurementTime + 1 / this.backgroundEnergySpectrum.MeasurementTime)
-                                    )
-                                );
-                        } else
-                        {
-                            Lc = unclevel * Math.Sqrt(2.0 * num17);
-                            Ld = unclevel * unclevel + 2 * unclevel * Math.Sqrt(2 * num17);
-                            net_counts_err = unclevel * Math.Sqrt(num19 + num17 * this.backgroundEnergySpectrum.MeasurementTime / this.energySpectrum.MeasurementTime);
-                            net_cps_err = net_counts_err / this.backgroundEnergySpectrum.MeasurementTime;
-                            mda = this.backgroundEnergySpectrum.MeasurementTime * (
-                                Math.Pow(detectionLevel, 2.0) / (2.0 * this.backgroundEnergySpectrum.MeasurementTime)
-                                + detectionLevel * Math.Sqrt(
-                                    Math.Pow(detectionLevel, 2.0) / (4.0 * Math.Pow(this.backgroundEnergySpectrum.MeasurementTime, 2.0))
-                                    + (num17 / this.energySpectrum.MeasurementTime) * (1 / this.backgroundEnergySpectrum.MeasurementTime + 1 / this.energySpectrum.MeasurementTime)
                                     )
                                 );
                         }
@@ -3443,11 +3422,10 @@ namespace BecquerelMonitor
                     g.DrawString("-", this.Font, Brushes.Black, r2, this.farFormat);
                 }
                 r2.Y += 16;
-                
-                g.DrawString(Resources.MDA_cnts, this.Font, Brushes.Black, r2);
-                if (mda != 0.0)
+                g.DrawString(Resources.Lu_counts, this.Font, Brushes.Black, r2);
+                if (Lu != 0.0)
                 {
-                    g.DrawString(mda.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                    g.DrawString(Lu.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
                 }
                 else
                 {
@@ -3458,6 +3436,16 @@ namespace BecquerelMonitor
                 if (Ld != 0.0)
                 {
                     g.DrawString(Ld.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                }
+                else
+                {
+                    g.DrawString("-", this.Font, Brushes.Black, r2, this.farFormat);
+                }
+                r2.Y += 16;
+                g.DrawString(Resources.MDA_cnts, this.Font, Brushes.Black, r2);
+                if (mda != 0.0)
+                {
+                    g.DrawString(mda.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
                 }
                 else
                 {

@@ -41910,12 +41910,15 @@ see peak in spectrum now).</value>
     <value>Centroid</value>
   </data>
   <data name="MDA_cnts" xml:space="preserve">
-    <value>Lu (MDA) Counts:</value>
+    <value>MDA Counts:</value>
   </data>
   <data name="Lc_counts" xml:space="preserve">
     <value>Lc Counts:</value>
   </data>
   <data name="Ld_counts" xml:space="preserve">
     <value>Ld Counts:</value>
+  </data>
+  <data name="Lu_counts" xml:space="preserve">
+    <value>Lu Counts:</value>
   </data>
 </root>
