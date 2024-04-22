@@ -1458,7 +1458,16 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Lu (MDA) Counts:.
+        ///   Looks up a localized string similar to Lu Counts:.
+        /// </summary>
+        internal static string Lu_counts {
+            get {
+                return ResourceManager.GetString("Lu_counts", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to MDA Counts:.
         /// </summary>
         internal static string MDA_cnts {
             get {
