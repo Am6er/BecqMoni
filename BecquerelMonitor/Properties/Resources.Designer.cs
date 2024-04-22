@@ -1361,6 +1361,24 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Lc Counts:.
+        /// </summary>
+        internal static string Lc_counts {
+            get {
+                return ResourceManager.GetString("Lc_counts", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Ld Counts:.
+        /// </summary>
+        internal static string Ld_counts {
+            get {
+                return ResourceManager.GetString("Ld_counts", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to BecqMoni icons from Maks Vasilev
         ///https://github.com/MaksVasilev/BecqMoniResources
         ///
@@ -1440,7 +1458,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to MDA Counts:.
+        ///   Looks up a localized string similar to Lu (MDA) Counts:.
         /// </summary>
         internal static string MDA_cnts {
             get {
