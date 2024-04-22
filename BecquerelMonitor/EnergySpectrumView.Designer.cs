@@ -3499,9 +3499,9 @@ namespace BecquerelMonitor
         {
             if (x1 - x2 != 0)
             {
-                double k = (y1 - y2) / (x1 - x2);
-                double b = y1 - x1 * k;
-                return k * X + b;
+                double k = (double)(y1 - y2) / (double)(x1 - x2);
+                double b = (double)y1 - k * (double)x1;
+                return k * (double)X + b;
             } else
             {
                 return 0;
