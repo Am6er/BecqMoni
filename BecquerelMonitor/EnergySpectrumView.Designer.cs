@@ -3278,7 +3278,7 @@ namespace BecquerelMonitor
                     num12 = 242;
                 } else
                 {
-                    num12 = 212;
+                    num12 = 196;
                 }
                 g.FillRectangle(Brushes.DarkGray, num2, num3, num, num12);
                 g.FillRectangle(Brushes.White, num2 - 3, num3 - 3, num, num12);
@@ -3312,14 +3312,8 @@ namespace BecquerelMonitor
                     int num20 = 0;
                     double continuum = 0.0;
                     num20 = this.energySpectrum.Spectrum[i];
-                    continuum = getY(i, num13, num14, this.energySpectrum.Spectrum[num13], this.energySpectrum.Spectrum[num14]);
-                    if (continuum > num20)
-                    {
-                        continuum = num20;
-                    }
                     num17 += (double)num20;
                     num18 += (double)(num20);
-                    peakcounts += (double)num20;
                     double num21 = 0.0;
                     if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
                     {
@@ -3336,11 +3330,19 @@ namespace BecquerelMonitor
                     }
                     num19 += num21;
                     num18 -= num21;
+                    continuum = getY(i, num13, num14, this.energySpectrum.Spectrum[num13], this.energySpectrum.Spectrum[num14]);
+                    if (continuum > num20)
+                    {
+                        continuum = num20;
+                    }
                     if (continuum < num21)
                     {
                         continuum = num21;
                     }
-                    peakcounts -= continuum;
+                    if (num20 - continuum > 0)
+                    {
+                        peakcounts += (num20 - continuum);
+                    }
                 }
                 double num23 = 0.0;
                 if (this.energySpectrum.MeasurementTime != 0.0)
@@ -3460,11 +3462,11 @@ namespace BecquerelMonitor
                     g.DrawString("-", this.Font, Brushes.Black, r2, this.farFormat);
                 }
                 r2.Y += 16;
-                g.DrawString(Resources.ChartHeaderPeakCounts, this.Font, Brushes.Black, r2);
-                g.DrawString(peakcounts.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
-                r2.Y += 16;
                 if (this.selectionFWHM > 0.0)
                 {
+                    g.DrawString(Resources.ChartHeaderPeakCounts, this.Font, Brushes.Black, r2);
+                    g.DrawString(peakcounts.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                    r2.Y += 16;
                     g.DrawString(Resources.ChartHeaderFWHM, this.Font, Brushes.Black, r2);
                     g.DrawString((this.selectionFWHM * 100.0).ToString("f2") + Resources.PercentCharacter +
                         " (" + (this.selectionFWHMinkev).ToString("f2") + " " + Resources.kev + ")",
@@ -3497,8 +3499,8 @@ namespace BecquerelMonitor
         {
             if (x1 - x2 != 0)
             {
-                double k = k = (y1 - y2) / (x1 - x2);
-                double b = y1 - x1 * (y1 - y2) / (x1 - x2);
+                double k = (y1 - y2) / (x1 - x2);
+                double b = y1 - x1 * k;
                 return k * X + b;
             } else
             {
