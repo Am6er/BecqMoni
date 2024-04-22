@@ -3430,7 +3430,7 @@ namespace BecquerelMonitor
                     g.DrawString(num18.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
                 }
                 r2.Y += 16;
-                g.DrawString("Lc counts", this.Font, Brushes.Black, r2);
+                g.DrawString("Lc Counts", this.Font, Brushes.Black, r2);
                 if (Lc != 0.0)
                 {
                     g.DrawString(Lc.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
@@ -3440,7 +3440,7 @@ namespace BecquerelMonitor
                     g.DrawString("-", this.Font, Brushes.Black, r2, this.farFormat);
                 }
                 r2.Y += 16;
-                g.DrawString("Ld counts", this.Font, Brushes.Black, r2);
+                g.DrawString("Ld Counts", this.Font, Brushes.Black, r2);
                 if (Ld != 0.0)
                 {
                     g.DrawString(Ld.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
