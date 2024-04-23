@@ -222,6 +222,12 @@
   <data name="Detach.BTN" xml:space="preserve">
     <value>Откл.</value>
   </data>
+  <data name="Detected" xml:space="preserve">
+    <value>Обнаружено</value>
+  </data>
+  <data name="DetectedWithUncertain" xml:space="preserve">
+    <value>Вероятно обнаружено</value>
+  </data>
   <data name="DeviceTypeAtomSpectraVCP" xml:space="preserve">
     <value>AtomSpectraVCP</value>
   </data>
@@ -625,6 +631,9 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="NewROIConfigPrefix" xml:space="preserve">
     <value>Новая конфигурация ROI</value>
+  </data>
+  <data name="NotDetected" xml:space="preserve">
+    <value>Не обнаружено</value>
   </data>
   <data name="NotificationDialogTitle" xml:space="preserve">
     <value>Сообщение</value>

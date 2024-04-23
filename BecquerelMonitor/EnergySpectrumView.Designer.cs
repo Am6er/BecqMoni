@@ -393,6 +393,8 @@ namespace BecquerelMonitor
             this.InitializeComponent();
             this.farFormat = new StringFormat();
             this.farFormat.Alignment = StringAlignment.Far;
+            this.centerFormat = new StringFormat();
+            this.centerFormat.Alignment = StringAlignment.Center;
             ((Bitmap)this.button1.Image).MakeTransparent();
             ((Bitmap)this.button2.Image).MakeTransparent();
             this.hScrollBar1.Visible = true;
@@ -3362,7 +3364,11 @@ namespace BecquerelMonitor
                 {
                     infopanel_height += 46;
                 }
-                if (Lc > 0) {
+                if (Lc > 0 && net_counts < Lc) {
+                    infopanel_height += 88;
+                }
+                if (Lc > 0 && net_counts > Lc)
+                {
                     infopanel_height += 72;
                 }
                 if (bg_counts > 0)
@@ -3424,45 +3430,31 @@ namespace BecquerelMonitor
                 if (Lc > 0)
                 {
                     g.DrawLine(Pens.LightGray, r2.Left, r2.Top - 6, r2.Right, r2.Top - 6);
+                    if (net_counts < Lc)
+                    {
+                        g.DrawString(Resources.NotDetected, this.Font, Brushes.DarkRed, r2, this.centerFormat);
+                    } else if (net_counts > Lc && net_counts < Ld)
+                    {
+                        g.DrawString(Resources.DetectedWithUncertain, this.Font, Brushes.DarkOrange, r2, this.centerFormat);
+                    } else
+                    {
+                        g.DrawString(Resources.Detected, this.Font, Brushes.DarkGreen, r2, this.centerFormat);
+                    }
+                    r2.Y += 16;
                     g.DrawString(Resources.Lc_counts, this.Font, Brushes.Black, r2);
-                    if (Lc != 0.0)
-                    {
-                        g.DrawString(Lc.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
-                    }
-                    else
-                    {
-                        g.DrawString("-", this.Font, Brushes.Black, r2, this.farFormat);
-                    }
+                    g.DrawString(Lc.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
                     r2.Y += 16;
-                    g.DrawString(Resources.Lu_counts, this.Font, Brushes.Black, r2);
-                    if (Lu != 0.0)
+                    if (net_counts < Lc)
                     {
+                        g.DrawString(Resources.Lu_counts, this.Font, Brushes.Black, r2);
                         g.DrawString(Lu.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                        r2.Y += 16;
                     }
-                    else
-                    {
-                        g.DrawString("-", this.Font, Brushes.Black, r2, this.farFormat);
-                    }
-                    r2.Y += 16;
                     g.DrawString(Resources.Ld_counts, this.Font, Brushes.Black, r2);
-                    if (Ld != 0.0)
-                    {
-                        g.DrawString(Ld.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
-                    }
-                    else
-                    {
-                        g.DrawString("-", this.Font, Brushes.Black, r2, this.farFormat);
-                    }
+                    g.DrawString(Ld.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
                     r2.Y += 16;
                     g.DrawString(Resources.MDA_cnts, this.Font, Brushes.Black, r2);
-                    if (mda != 0.0)
-                    {
-                        g.DrawString(mda.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
-                    }
-                    else
-                    {
-                        g.DrawString("-", this.Font, Brushes.Black, r2, this.farFormat);
-                    }
+                    g.DrawString(mda.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
                     r2.Y += 22;
                 }
                 if (this.selectionFWHM > 0.0)
@@ -3994,6 +3986,8 @@ namespace BecquerelMonitor
 
         // Token: 0x0400020C RID: 524
         StringFormat farFormat;
+
+        StringFormat centerFormat;
 
         // Token: 0x0400020D RID: 525
         double pixelPerEnergy = 0.4;
