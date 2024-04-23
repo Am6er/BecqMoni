@@ -41921,4 +41921,7 @@ see peak in spectrum now).</value>
   <data name="Lu_counts" xml:space="preserve">
     <value>Lu Counts:</value>
   </data>
+  <data name="ChartHeaderCPS" xml:space="preserve">
+    <value>CPS:</value>
+  </data>
 </root>

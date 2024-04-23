@@ -3214,7 +3214,11 @@ namespace BecquerelMonitor
                         this.DrawPeakFlag(g, peak, this.cursorX, 2, pen2, brush, brush2);
                     }
                 }
-                int num6 = 94;
+                int num6 = 62;
+                if (this.backgroundEnergySpectrum != null && this.backgroundMode != BackgroundMode.Substract)
+                {
+                    num6 += 32;
+                }
                 g.FillRectangle(Brushes.DarkGray, num2, num3, num, num6);
                 g.FillRectangle(Brushes.White, num2 - 3, num3 - 3, num, num6);
                 g.DrawRectangle(Pens.Black, num2 - 3, num3 - 3, num, num6);
@@ -3269,20 +3273,13 @@ namespace BecquerelMonitor
                     }
                 }
                 num3 = 110;
+                if (this.backgroundEnergySpectrum == null)
+                {
+                    num3 -= 32;
+                }
             }
             if (this.selectionStart != -1 && this.energySpectrum.NumberOfChannels > Math.Max(this.selectionStart, this.selectionEnd))
             {
-                int num12;
-                if (this.selectionFWHM > 0.0)
-                {
-                    num12 = 270;
-                } else
-                {
-                    num12 = 224;
-                }
-                g.FillRectangle(Brushes.DarkGray, num2, num3, num, num12);
-                g.FillRectangle(Brushes.White, num2 - 3, num3 - 3, num, num12);
-                g.DrawRectangle(Pens.Black, num2 - 3, num3 - 3, num, num12);
                 int start_channel;
                 int end_channel;
                 if (this.selectionStart < this.selectionEnd)
@@ -3360,6 +3357,21 @@ namespace BecquerelMonitor
 
                     }
                 }
+                int infopanel_height = 104;
+                if (this.selectionFWHM > 0.0)
+                {
+                    infopanel_height += 46;
+                }
+                if (Lc > 0) {
+                    infopanel_height += 72;
+                }
+                if (bg_counts > 0)
+                {
+                    infopanel_height += 48;
+                }
+                g.FillRectangle(Brushes.DarkGray, num2, num3, num, infopanel_height);
+                g.FillRectangle(Brushes.White, num2 - 3, num3 - 3, num, infopanel_height);
+                g.DrawRectangle(Pens.Black, num2 - 3, num3 - 3, num, infopanel_height);
                 Rectangle r2 = new Rectangle(num2 + 5, num3 + 4, num - 12, 32);
                 g.DrawString(Resources.ChartHeaderSelection, this.Font, Brushes.Black, r2);
                 r2.Y += 22;
@@ -3373,80 +3385,86 @@ namespace BecquerelMonitor
                 g.DrawLine(Pens.LightGray, r2.Left, r2.Top - 6, r2.Right, r2.Top - 6);
                 g.DrawString(Resources.ChartHeaderGrossCounts, this.Font, Brushes.Black, r2);
                 g.DrawString(fg_counts.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
-                r2.Y += 16;
-                g.DrawString(Resources.ChartHeaderBGCounts, this.Font, Brushes.Black, r2);
-                g.DrawString(bg_counts.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
-                r2.Y += 16;
-                g.DrawString(Resources.ChartHeaderCountBGRatio, this.Font, Brushes.Black, r2);
                 if (bg_counts != 0.0)
                 {
+                    r2.Y += 16;
+                    g.DrawString(Resources.ChartHeaderBGCounts, this.Font, Brushes.Black, r2);
+                    g.DrawString(bg_counts.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                    r2.Y += 16;
+                    g.DrawString(Resources.ChartHeaderCountBGRatio, this.Font, Brushes.Black, r2);
                     double bg_ratio = fg_counts / bg_counts * 100.0;
                     g.DrawString(bg_ratio.ToString("f2") + Resources.PercentCharacter, this.Font, Brushes.Black, r2, this.farFormat);
+                    r2.Y += 16;
+                    g.DrawString(Resources.ChartHeaderNetCps, this.Font, Brushes.Black, r2);
+                    if (net_cps_err != 0.0)
+                    {
+                        g.DrawString(net_cps.ToString("f4") + " " + Resources.PlusMinus + net_cps_err.ToString("f4"), this.Font, Brushes.Black, r2, this.farFormat);
+                    }
+                    else
+                    {
+                        g.DrawString(net_cps.ToString("f4"), this.Font, Brushes.Black, r2, this.farFormat);
+                    }
+                    r2.Y += 16;
+                    g.DrawString(Resources.ChartHeaderNetCounts, this.Font, Brushes.Black, r2);
+                    if (net_counts_err != 0.0)
+                    {
+                        g.DrawString(net_counts.ToString("f2") + " " + Resources.PlusMinus + net_counts_err.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                    }
+                    else
+                    {
+                        g.DrawString(net_counts.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                    }
                 } else
                 {
-                    g.DrawString("-", this.Font, Brushes.Black, r2, this.farFormat);
-                }
-                r2.Y += 16;
-                g.DrawString(Resources.ChartHeaderNetCps, this.Font, Brushes.Black, r2);
-                if (net_cps_err != 0.0)
-                {
-                    g.DrawString(net_cps.ToString("f4") + " " + Resources.PlusMinus + net_cps_err.ToString("f4"), this.Font, Brushes.Black, r2, this.farFormat);
-                }
-                else
-                {
-                    g.DrawString(net_cps.ToString("f4"), this.Font, Brushes.Black, r2, this.farFormat);
-                }
-                r2.Y += 16;
-                g.DrawString(Resources.ChartHeaderNetCounts, this.Font, Brushes.Black, r2);
-                if (net_counts_err != 0.0)
-                {
-                    g.DrawString(net_counts.ToString("f2") + " " + Resources.PlusMinus + net_counts_err.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
-                } else
-                {
-                    g.DrawString(net_counts.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                    r2.Y += 16;
+                    g.DrawString(Resources.ChartHeaderCPS, this.Font, Brushes.Black, r2);
+                    g.DrawString(net_cps.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
                 }
                 r2.Y += 22;
-                g.DrawLine(Pens.LightGray, r2.Left, r2.Top - 6, r2.Right, r2.Top - 6);
-                g.DrawString(Resources.Lc_counts, this.Font, Brushes.Black, r2);
-                if (Lc != 0.0)
+                if (Lc > 0)
                 {
-                    g.DrawString(Lc.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                    g.DrawLine(Pens.LightGray, r2.Left, r2.Top - 6, r2.Right, r2.Top - 6);
+                    g.DrawString(Resources.Lc_counts, this.Font, Brushes.Black, r2);
+                    if (Lc != 0.0)
+                    {
+                        g.DrawString(Lc.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                    }
+                    else
+                    {
+                        g.DrawString("-", this.Font, Brushes.Black, r2, this.farFormat);
+                    }
+                    r2.Y += 16;
+                    g.DrawString(Resources.Lu_counts, this.Font, Brushes.Black, r2);
+                    if (Lu != 0.0)
+                    {
+                        g.DrawString(Lu.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                    }
+                    else
+                    {
+                        g.DrawString("-", this.Font, Brushes.Black, r2, this.farFormat);
+                    }
+                    r2.Y += 16;
+                    g.DrawString(Resources.Ld_counts, this.Font, Brushes.Black, r2);
+                    if (Ld != 0.0)
+                    {
+                        g.DrawString(Ld.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                    }
+                    else
+                    {
+                        g.DrawString("-", this.Font, Brushes.Black, r2, this.farFormat);
+                    }
+                    r2.Y += 16;
+                    g.DrawString(Resources.MDA_cnts, this.Font, Brushes.Black, r2);
+                    if (mda != 0.0)
+                    {
+                        g.DrawString(mda.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                    }
+                    else
+                    {
+                        g.DrawString("-", this.Font, Brushes.Black, r2, this.farFormat);
+                    }
+                    r2.Y += 22;
                 }
-                else
-                {
-                    g.DrawString("-", this.Font, Brushes.Black, r2, this.farFormat);
-                }
-                r2.Y += 16;
-                g.DrawString(Resources.Lu_counts, this.Font, Brushes.Black, r2);
-                if (Lu != 0.0)
-                {
-                    g.DrawString(Lu.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
-                }
-                else
-                {
-                    g.DrawString("-", this.Font, Brushes.Black, r2, this.farFormat);
-                }
-                r2.Y += 16;
-                g.DrawString(Resources.Ld_counts, this.Font, Brushes.Black, r2);
-                if (Ld != 0.0)
-                {
-                    g.DrawString(Ld.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
-                }
-                else
-                {
-                    g.DrawString("-", this.Font, Brushes.Black, r2, this.farFormat);
-                }
-                r2.Y += 16;
-                g.DrawString(Resources.MDA_cnts, this.Font, Brushes.Black, r2);
-                if (mda != 0.0)
-                {
-                    g.DrawString(mda.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
-                }
-                else
-                {
-                    g.DrawString("-", this.Font, Brushes.Black, r2, this.farFormat);
-                }
-                r2.Y += 22;
                 if (this.selectionFWHM > 0.0)
                 {
                     g.DrawLine(Pens.LightGray, r2.Left, r2.Top - 6, r2.Right, r2.Top - 6);
