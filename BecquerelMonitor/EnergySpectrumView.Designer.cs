@@ -3283,23 +3283,23 @@ namespace BecquerelMonitor
                 g.FillRectangle(Brushes.DarkGray, num2, num3, num, num12);
                 g.FillRectangle(Brushes.White, num2 - 3, num3 - 3, num, num12);
                 g.DrawRectangle(Pens.Black, num2 - 3, num3 - 3, num, num12);
-                int num13;
-                int num14;
+                int start_channel;
+                int end_channel;
                 if (this.selectionStart < this.selectionEnd)
                 {
-                    num13 = this.selectionStart;
-                    num14 = this.selectionEnd;
+                    start_channel = this.selectionStart;
+                    end_channel = this.selectionEnd;
                 }
                 else
                 {
-                    num13 = this.selectionEnd;
-                    num14 = this.selectionStart;
+                    start_channel = this.selectionEnd;
+                    end_channel = this.selectionStart;
                 }
-                double num15 = this.energyCalibration.ChannelToEnergy((double)num13);
-                double num16 = this.energyCalibration.ChannelToEnergy((double)num14);
-                double num17 = 0.0;
-                double num18 = 0.0;
-                double num19 = 0.0;
+                double start_energy = this.energyCalibration.ChannelToEnergy((double)start_channel);
+                double end_energy = this.energyCalibration.ChannelToEnergy((double)end_channel);
+                double fg_counts = 0.0;
+                double net_counts = 0.0;
+                double bg_counts = 0.0;
                 double peakcounts = 0.0;
                 double net_cps_err = 0.0;
                 double net_counts_err = 0.0;
@@ -3307,62 +3307,57 @@ namespace BecquerelMonitor
                 double Lu = 0.0;
                 double Ld = 0.0;
                 double mda = 0.0;
-                double bgCounts = 0.0;
-                for (int i = num13; i <= num14; i++)
+                double bg_counts_not_normalized = 0.0;
+                for (int i = start_channel; i <= end_channel; i++)
                 {
-                    int num20 = 0;
                     double continuum = 0.0;
-                    num20 = this.energySpectrum.Spectrum[i];
-                    num17 += (double)num20;
-                    num18 += (double)(num20);
-                    double num21 = 0.0;
+                    int fg_counts_in_channel = this.energySpectrum.Spectrum[i];
+                    fg_counts += (double)fg_counts_in_channel;
+                    net_counts += (double)fg_counts_in_channel;
+                    double bg_counts_in_channel = 0.0;
                     if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
                     {
-                        int num22 = i;
+                        int bg_channel = i;
                         if (!this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
                         {
-                            num22 = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy((double)i), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
+                            bg_channel = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy((double)i), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
                         }
-                        if (num22 >= 0 && num22 < this.backgroundNumberOfChannels)
+                        if (bg_channel >= 0 && bg_channel < this.backgroundNumberOfChannels)
                         {
-                            num21 = (double)this.backgroundEnergySpectrum.Spectrum[num22] * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime;
-                            bgCounts += (double)this.backgroundEnergySpectrum.Spectrum[num22];
+                            bg_counts_in_channel = (double)this.backgroundEnergySpectrum.Spectrum[bg_channel] * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime;
+                            bg_counts_not_normalized += (double)this.backgroundEnergySpectrum.Spectrum[bg_channel];
                         }
                     }
-                    num19 += num21;
-                    num18 -= num21;
-                    continuum = getY(i, num13, num14, this.energySpectrum.Spectrum[num13], this.energySpectrum.Spectrum[num14]);
-                    continuum = Math.Max(num21, continuum);
-                    peakcounts += (num20 - continuum);
+                    bg_counts += bg_counts_in_channel;
+                    net_counts -= bg_counts_in_channel;
+                    continuum = getY(i, start_channel, end_channel, this.energySpectrum.Spectrum[start_channel], this.energySpectrum.Spectrum[end_channel]);
+                    continuum = Math.Max(bg_counts_in_channel, continuum);
+                    peakcounts += (fg_counts_in_channel - continuum);
                 }
-                double num23 = 0.0;
+                double net_cps = 0.0;
                 if (this.energySpectrum.MeasurementTime != 0.0)
                 {
-                    num23 = num18 / this.energySpectrum.MeasurementTime;
+                    net_cps = net_counts / this.energySpectrum.MeasurementTime;
                     if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
                     {
                         double detectionLevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.DetectionLevel;
                         double unclevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.ErrorLevel;
-                        if (num23 > 0)
+                        if (net_cps > 0)
                         {
-                            Lc = unclevel * Math.Sqrt(2.0 * num19);
-                            Lu = num18 + unclevel * Math.Sqrt(num18 + 2.0 * num19);
-                            Ld = unclevel * unclevel + 2.0 * unclevel * Math.Sqrt(2.0 * num19);
-                            net_counts_err = unclevel * Math.Sqrt(num17 + num19 * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime);
+                            Lc = unclevel * Math.Sqrt(2.0 * bg_counts);
+                            Lu = net_counts + unclevel * Math.Sqrt(net_counts + 2.0 * bg_counts);
+                            Ld = unclevel * unclevel + 2.0 * unclevel * Math.Sqrt(2.0 * bg_counts);
+                            net_counts_err = unclevel * Math.Sqrt(fg_counts + bg_counts * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime);
                             net_cps_err = net_counts_err / this.energySpectrum.MeasurementTime;
                             mda = this.energySpectrum.MeasurementTime * (
                                 Math.Pow(detectionLevel, 2.0) / (2.0 * this.energySpectrum.MeasurementTime)
                                 + detectionLevel * Math.Sqrt(
                                     Math.Pow(detectionLevel, 2.0) / (4.0 * Math.Pow(this.energySpectrum.MeasurementTime, 2.0))
-                                    + (bgCounts / this.backgroundEnergySpectrum.MeasurementTime) * (1 / this.energySpectrum.MeasurementTime + 1 / this.backgroundEnergySpectrum.MeasurementTime)
+                                    + (bg_counts_not_normalized / this.backgroundEnergySpectrum.MeasurementTime) * (1 / this.energySpectrum.MeasurementTime + 1 / this.backgroundEnergySpectrum.MeasurementTime)
                                     )
                                 );
                         }
 
-                    } else
-                    {
-                        net_cps_err = 0.0;
-                        mda = 0.0;
                     }
                 }
                 Rectangle r2 = new Rectangle(num2 + 5, num3 + 4, num - 12, 32);
@@ -3370,23 +3365,23 @@ namespace BecquerelMonitor
                 r2.Y += 22;
                 g.DrawLine(Pens.LightGray, r2.Left, r2.Top - 6, r2.Right, r2.Top - 6);
                 g.DrawString(Resources.ChartHeaderChannel, this.Font, Brushes.Black, r2);
-                g.DrawString(num13.ToString() + " - " + num14.ToString(), this.Font, Brushes.Black, r2, this.farFormat);
+                g.DrawString(start_channel.ToString() + " - " + end_channel.ToString(), this.Font, Brushes.Black, r2, this.farFormat);
                 r2.Y += 16;
                 g.DrawString(Resources.ChartHeaderEnergy, this.Font, Brushes.Black, r2);
-                g.DrawString(num15.ToString("f2") + " - " + num16.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                g.DrawString(start_energy.ToString("f2") + " - " + end_energy.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
                 r2.Y += 22;
                 g.DrawLine(Pens.LightGray, r2.Left, r2.Top - 6, r2.Right, r2.Top - 6);
                 g.DrawString(Resources.ChartHeaderGrossCounts, this.Font, Brushes.Black, r2);
-                g.DrawString(num17.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                g.DrawString(fg_counts.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
                 r2.Y += 16;
                 g.DrawString(Resources.ChartHeaderBGCounts, this.Font, Brushes.Black, r2);
-                g.DrawString(num19.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                g.DrawString(bg_counts.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
                 r2.Y += 16;
                 g.DrawString(Resources.ChartHeaderCountBGRatio, this.Font, Brushes.Black, r2);
-                if (num19 != 0.0)
+                if (bg_counts != 0.0)
                 {
-                    double num24 = num17 / num19 * 100.0;
-                    g.DrawString(num24.ToString("f2") + Resources.PercentCharacter, this.Font, Brushes.Black, r2, this.farFormat);
+                    double bg_ratio = fg_counts / bg_counts * 100.0;
+                    g.DrawString(bg_ratio.ToString("f2") + Resources.PercentCharacter, this.Font, Brushes.Black, r2, this.farFormat);
                 } else
                 {
                     g.DrawString("-", this.Font, Brushes.Black, r2, this.farFormat);
@@ -3395,20 +3390,20 @@ namespace BecquerelMonitor
                 g.DrawString(Resources.ChartHeaderNetCps, this.Font, Brushes.Black, r2);
                 if (net_cps_err != 0.0)
                 {
-                    g.DrawString(num23.ToString("f4") + " " + Resources.PlusMinus + net_cps_err.ToString("f4"), this.Font, Brushes.Black, r2, this.farFormat);
+                    g.DrawString(net_cps.ToString("f4") + " " + Resources.PlusMinus + net_cps_err.ToString("f4"), this.Font, Brushes.Black, r2, this.farFormat);
                 }
                 else
                 {
-                    g.DrawString(num23.ToString("f4"), this.Font, Brushes.Black, r2, this.farFormat);
+                    g.DrawString(net_cps.ToString("f4"), this.Font, Brushes.Black, r2, this.farFormat);
                 }
                 r2.Y += 16;
                 g.DrawString(Resources.ChartHeaderNetCounts, this.Font, Brushes.Black, r2);
                 if (net_counts_err != 0.0)
                 {
-                    g.DrawString(num18.ToString("f2") + " " + Resources.PlusMinus + net_counts_err.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                    g.DrawString(net_counts.ToString("f2") + " " + Resources.PlusMinus + net_counts_err.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
                 } else
                 {
-                    g.DrawString(num18.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                    g.DrawString(net_counts.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
                 }
                 r2.Y += 22;
                 g.DrawLine(Pens.LightGray, r2.Left, r2.Top - 6, r2.Right, r2.Top - 6);
