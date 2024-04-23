@@ -3151,15 +3151,15 @@ namespace BecquerelMonitor
 
         void ShowCursorValues(Graphics g)
         {
-            int num = 190;
-            int num2;
-            if (this.cursorX < base.Width - (num + 20))
+            int table_width_origin = 200;
+            int table_width_rel;
+            if (this.cursorX < base.Width - (table_width_origin + 40))
             {
-                num2 = this.left + this.width - num - 10;
+                table_width_rel = this.left + this.width - table_width_origin - 10;
             }
             else
             {
-                num2 = this.left + 10;
+                table_width_rel = this.left + 10;
             }
             int num3 = 10;
             ColorConfig colorConfig = this.globalConfigManager.GlobalConfig.ColorConfig;
@@ -3221,10 +3221,10 @@ namespace BecquerelMonitor
                 {
                     num6 += 32;
                 }
-                g.FillRectangle(Brushes.DarkGray, num2, num3, num, num6);
-                g.FillRectangle(Brushes.White, num2 - 3, num3 - 3, num, num6);
-                g.DrawRectangle(Pens.Black, num2 - 3, num3 - 3, num, num6);
-                Rectangle r = new Rectangle(num2 + 5, num3 + 4, num - 12, 32);
+                g.FillRectangle(Brushes.DarkGray, table_width_rel, num3, table_width_origin, num6);
+                g.FillRectangle(Brushes.White, table_width_rel - 3, num3 - 3, table_width_origin, num6);
+                g.DrawRectangle(Pens.Black, table_width_rel - 3, num3 - 3, table_width_origin, num6);
+                Rectangle r = new Rectangle(table_width_rel + 5, num3 + 4, table_width_origin - 12, 32);
                 g.DrawString(Resources.ChartHeaderChannel, this.Font, Brushes.Black, r);
                 g.DrawString(this.cursorChannel.ToString(), this.Font, Brushes.Black, r, this.farFormat);
                 r.Y += 16;
@@ -3375,10 +3375,10 @@ namespace BecquerelMonitor
                 {
                     infopanel_height += 48;
                 }
-                g.FillRectangle(Brushes.DarkGray, num2, num3, num, infopanel_height);
-                g.FillRectangle(Brushes.White, num2 - 3, num3 - 3, num, infopanel_height);
-                g.DrawRectangle(Pens.Black, num2 - 3, num3 - 3, num, infopanel_height);
-                Rectangle r2 = new Rectangle(num2 + 5, num3 + 4, num - 12, 32);
+                g.FillRectangle(Brushes.DarkGray, table_width_rel, num3, table_width_origin, infopanel_height);
+                g.FillRectangle(Brushes.White, table_width_rel - 3, num3 - 3, table_width_origin, infopanel_height);
+                g.DrawRectangle(Pens.Black, table_width_rel - 3, num3 - 3, table_width_origin, infopanel_height);
+                Rectangle r2 = new Rectangle(table_width_rel + 5, num3 + 4, table_width_origin - 12, 32);
                 g.DrawString(Resources.ChartHeaderSelection, this.Font, Brushes.Black, r2);
                 r2.Y += 22;
                 g.DrawLine(Pens.LightGray, r2.Left, r2.Top - 6, r2.Right, r2.Top - 6);
