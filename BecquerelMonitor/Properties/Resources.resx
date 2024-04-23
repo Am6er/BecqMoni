@@ -41924,4 +41924,13 @@ see peak in spectrum now).</value>
   <data name="ChartHeaderCPS" xml:space="preserve">
     <value>CPS:</value>
   </data>
+  <data name="Detected" xml:space="preserve">
+    <value>Detected</value>
+  </data>
+  <data name="DetectedWithUncertain" xml:space="preserve">
+    <value>Detection with uncertain</value>
+  </data>
+  <data name="NotDetected" xml:space="preserve">
+    <value>Not detected</value>
+  </data>
 </root>

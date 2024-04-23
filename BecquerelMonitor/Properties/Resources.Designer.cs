@@ -551,6 +551,24 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Detected.
+        /// </summary>
+        internal static string Detected {
+            get {
+                return ResourceManager.GetString("Detected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Detection with uncertain.
+        /// </summary>
+        internal static string DetectedWithUncertain {
+            get {
+                return ResourceManager.GetString("DetectedWithUncertain", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to AtomSpectraVCP.
         /// </summary>
         internal static string DeviceTypeAtomSpectraVCP {
@@ -1868,6 +1886,15 @@ namespace BecquerelMonitor.Properties {
             get {
                 object obj = ResourceManager.GetObject("NoSmooth", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Not detected.
+        /// </summary>
+        internal static string NotDetected {
+            get {
+                return ResourceManager.GetString("NotDetected", resourceCulture);
             }
         }
         
