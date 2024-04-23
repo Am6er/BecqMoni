@@ -284,6 +284,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to CPS:.
+        /// </summary>
+        internal static string ChartHeaderCPS {
+            get {
+                return ResourceManager.GetString("ChartHeaderCPS", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Energy[keV]:.
         /// </summary>
         internal static string ChartHeaderEnergy {
