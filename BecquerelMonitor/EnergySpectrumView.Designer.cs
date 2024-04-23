@@ -3273,7 +3273,7 @@ namespace BecquerelMonitor
                     }
                 }
                 num3 = 110;
-                if (this.backgroundEnergySpectrum == null)
+                if (this.backgroundEnergySpectrum == null || this.backgroundMode == BackgroundMode.Substract)
                 {
                     num3 -= 32;
                 }
