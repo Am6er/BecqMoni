@@ -223,6 +223,8 @@
 			this.comboBox12 = new global::System.Windows.Forms.ComboBox();
 			this.button3 = new global::System.Windows.Forms.Button();
             this.autoSaveDefaultPolicyCheckBox = new System.Windows.Forms.CheckBox();
+			this.confidenceLevelcomboBox = new System.Windows.Forms.ComboBox();
+			this.confidenceLevelLabel = new System.Windows.Forms.Label();
             this.tabControl1.SuspendLayout();
 			this.tabPage1.SuspendLayout();
 			this.groupBox2.SuspendLayout();
@@ -289,6 +291,8 @@
 			this.groupBox2.Controls.Add(this.label87);
 			this.groupBox2.Controls.Add(this.numericUpDown8);
 			this.groupBox2.Controls.Add(this.numericUpDown9);
+			this.groupBox2.Controls.Add(this.confidenceLevelcomboBox);
+			this.groupBox2.Controls.Add(this.confidenceLevelLabel);
             this.groupBox2.Controls.Add(this.numericUpDown13);
             this.groupBox2.Controls.Add(this.label90);
             this.groupBox2.Controls.Add(this.label28);
@@ -351,6 +355,17 @@
 			this.numericUpDown9.Maximum = 50;
 			this.numericUpDown9.Increment = 1;
 			this.numericUpDown9.Value = 1;
+            resources.ApplyResources(this.confidenceLevelcomboBox, "confidenceLevelcomboBox");
+            this.confidenceLevelcomboBox.DropDownStyle = global::System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.confidenceLevelcomboBox.FormattingEnabled = true;
+            this.confidenceLevelcomboBox.Items.AddRange(new object[]
+            {
+				ConfidenceLevel.levels[0],
+                ConfidenceLevel.levels[1],
+                ConfidenceLevel.levels[2]
+            });
+            resources.ApplyResources(this.confidenceLevelLabel, "confidenceLevelLabel");
+            this.confidenceLevelLabel.Name = "confidenceLevelLabel";
             resources.ApplyResources(this.numericUpDown13, "numericUpDown13");
             this.numericUpDown13.Name = "numericUpDown13";
             this.numericUpDown13.Minimum = 0;
@@ -1790,5 +1805,7 @@
 
 		global::System.Windows.Forms.NumericUpDown numericUpDown14;
 		global::System.Windows.Forms.CheckBox autoSaveDefaultPolicyCheckBox;
+        global::System.Windows.Forms.ComboBox confidenceLevelcomboBox;
+        global::System.Windows.Forms.Label confidenceLevelLabel;
     }
 }

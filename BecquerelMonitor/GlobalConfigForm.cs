@@ -85,6 +85,7 @@ namespace BecquerelMonitor
             this.numericUpDown14.Value = (decimal)globalConfig.ChartViewConfig.HorizontalScale;
             this.comboBox11.SelectedIndex = (int)globalConfig.ChartViewConfig.MagnificationReference;
             this.autoSaveDefaultPolicyCheckBox.Checked = globalConfig.AutosaveDefaultPolicy;
+            this.confidenceLevelcomboBox.SelectedIndex = ConfidenceLevel.GetLevelIndex(globalConfig.ChartViewConfig.ConfidenceLevel);
             EasyControlConfig easyControlConfig = globalConfig.EasyControlConfig;
             bool flag = false;
             for (int i = 0; i < this.deviceConfigManager.DeviceConfigList.Count; i++)
@@ -206,6 +207,7 @@ namespace BecquerelMonitor
             globalConfig.ChartViewConfig.CountLimit = (int)this.numericUpDown13.Value;
             globalConfig.ChartViewConfig.ChartRefreshCycle = (int)this.numericUpDown3.Value;
             globalConfig.ChartViewConfig.MagnificationReference = (MagnificationReference)this.comboBox11.SelectedIndex;
+            globalConfig.ChartViewConfig.ConfidenceLevel = ConfidenceLevel.z_score[this.confidenceLevelcomboBox.SelectedIndex];
             EasyControlConfig easyControlConfig = globalConfig.EasyControlConfig;
             if (this.comboBox16.SelectedIndex >= 0)
             {

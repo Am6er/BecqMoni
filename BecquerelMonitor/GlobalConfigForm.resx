@@ -5721,4 +5721,61 @@
   <data name="autoSaveDefaultPolicyCheckBox.Location" type="System.Drawing.Point, System.Drawing">
     <value>21, 152</value>
   </data>
+  <data name="&gt;&gt;confidenceLevelLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;confidenceLevelLabel.Name" xml:space="preserve">
+    <value>confidenceLevelLabel</value>
+  </data>
+  <data name="confidenceLevelLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="&gt;&gt;confidenceLevelLabel.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;confidenceLevelLabel.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="confidenceLevelLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>20</value>
+  </data>
+  <data name="confidenceLevelLabel.Text" xml:space="preserve">
+    <value>Statistical limits, confidence level:</value>
+  </data>
+  <data name="confidenceLevelLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>81, 12</value>
+  </data>
+  <data name="confidenceLevelLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>276, 170</value>
+  </data>
+    <data name="&gt;&gt;confidenceLevelcomboBox.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="confidenceLevelcomboBox.Items1" xml:space="preserve">
+    <value>Center</value>
+  </data>
+  <data name="confidenceLevelcomboBox.Items2" xml:space="preserve">
+    <value>Right</value>
+  </data>
+  <data name="confidenceLevelcomboBox.Location" type="System.Drawing.Point, System.Drawing">
+    <value>485, 168</value>
+  </data>
+  <data name="&gt;&gt;confidenceLevelcomboBox.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;confidenceLevelcomboBox.Name" xml:space="preserve">
+    <value>confidenceLevelcomboBox</value>
+  </data>
+  <data name="confidenceLevelcomboBox.Size" type="System.Drawing.Size, System.Drawing">
+    <value>50, 20</value>
+  </data>
+  <data name="confidenceLevelcomboBox.TabIndex" type="System.Int32, mscorlib">
+    <value>22</value>
+  </data>
+  <data name="&gt;&gt;confidenceLevelcomboBox.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;confidenceLevelcomboBox.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
 </root>
