@@ -99,7 +99,7 @@ namespace BecquerelMonitor
                 row.Cells.Add(new Cell(text2));
                 row.Cells.Add(new Cell(peak.Channel.ToString(), peak.Channel));
                 row.Cells.Add(new Cell(peak.SNR.ToString(), peak.SNR));
-                row.Cells.Add(new Cell(peak.FWHM.ToString(), peak.FWHM));
+                row.Cells.Add(new Cell(peak.FWHM.ToString("f1"), Math.Round(peak.FWHM, 1)));
                 this.tableModel1.Rows.Add(row);
             }
             activeDocument.RefreshView();
