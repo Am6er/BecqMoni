@@ -3340,13 +3340,13 @@ namespace BecquerelMonitor
                     if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
                     {
                         double detectionLevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.DetectionLevel;
-                        double unclevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.ErrorLevel;
+                        double confidencelevel = (double)this.globalConfigManager.GlobalConfig.ChartViewConfig.ConfidenceLevel;
                         if (net_cps > 0)
                         {
-                            Lc = unclevel * Math.Sqrt(2.0 * bg_counts);
-                            Lu = net_counts + unclevel * Math.Sqrt(net_counts + 2.0 * bg_counts);
-                            Ld = unclevel * unclevel + 2.0 * unclevel * Math.Sqrt(2.0 * bg_counts);
-                            net_counts_err = unclevel * Math.Sqrt(fg_counts + bg_counts * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime);
+                            Lc = confidencelevel * Math.Sqrt(2.0 * bg_counts);
+                            Lu = net_counts + confidencelevel * Math.Sqrt(net_counts + 2.0 * bg_counts);
+                            Ld = confidencelevel * confidencelevel + 2.0 * confidencelevel * Math.Sqrt(2.0 * bg_counts);
+                            net_counts_err = confidencelevel * Math.Sqrt(fg_counts + bg_counts * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime);
                             net_cps_err = net_counts_err / this.energySpectrum.MeasurementTime;
                             mda = this.energySpectrum.MeasurementTime * (
                                 Math.Pow(detectionLevel, 2.0) / (2.0 * this.energySpectrum.MeasurementTime)
@@ -3435,7 +3435,8 @@ namespace BecquerelMonitor
                         g.DrawString(Resources.NotDetected, this.Font, Brushes.DarkRed, r2, this.centerFormat);
                     } else if (net_counts > Lc && net_counts < Ld)
                     {
-                        g.DrawString(Resources.DetectedWithUncertain, this.Font, Brushes.DarkOrange, r2, this.centerFormat);
+                        string confidencelevel_str = ConfidenceLevel.GetLevel(this.globalConfigManager.GlobalConfig.ChartViewConfig.ConfidenceLevel);
+                        g.DrawString(string.Format(Resources.DetectedWithUncertain, confidencelevel_str), this.Font, Brushes.DarkOrange, r2, this.centerFormat);
                     } else
                     {
                         g.DrawString(Resources.Detected, this.Font, Brushes.DarkGreen, r2, this.centerFormat);

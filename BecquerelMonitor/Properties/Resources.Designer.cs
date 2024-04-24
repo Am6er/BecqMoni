@@ -560,7 +560,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Detection with uncertain.
+        ///   Looks up a localized string similar to Detection with {0} , confidence.
         /// </summary>
         internal static string DetectedWithUncertain {
             get {

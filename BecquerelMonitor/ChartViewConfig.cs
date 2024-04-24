@@ -318,6 +318,20 @@
             }
         }
 
+        public decimal ConfidenceLevel
+        {
+            get
+            {
+                return this.confidenceLevel;
+            }
+            set
+            {
+                this.confidenceLevel = value;
+            }
+        }
+
+        decimal confidenceLevel = 1.645m;
+
         // Token: 0x040008CC RID: 2252
         VerticalUnit defaultVerticalUnit;
 

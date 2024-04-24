@@ -2949,4 +2949,7 @@
   <data name="autoSaveDefaultPolicyCheckBox.Text" xml:space="preserve">
     <value>Включить автосохранение по умолчанию для открываемых или создаваемых спектров</value>
   </data>
+  <data name="confidenceLevelLabel.Text" xml:space="preserve">
+    <value>Стат. лимиты, доверит. интервал:</value>
+  </data>
 </root>
