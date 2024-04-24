@@ -6,8 +6,8 @@ namespace BecquerelMonitor
 {
     public class ConfidenceLevel
     {
-        public readonly static string[] levels = new string[] {"90%", "95%", "99%" };
-        public readonly static decimal[] z_score = new decimal[] { 1.44m, 1.645m, 2.326m};
+        public readonly static string[] levels = new string[] {"84%", "90%", "95%", "99%" };
+        public readonly static decimal[] z_score = new decimal[] {1.0m, 1.282m, 1.645m, 2.326m};
 
         public static string GetLevel(decimal z_score_v)
         {
