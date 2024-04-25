@@ -358,12 +358,7 @@
             resources.ApplyResources(this.confidenceLevelcomboBox, "confidenceLevelcomboBox");
             this.confidenceLevelcomboBox.DropDownStyle = global::System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.confidenceLevelcomboBox.FormattingEnabled = true;
-            this.confidenceLevelcomboBox.Items.AddRange(new object[]
-            {
-				ConfidenceLevel.levels[0],
-                ConfidenceLevel.levels[1],
-                ConfidenceLevel.levels[2]
-            });
+            this.confidenceLevelcomboBox.Items.AddRange(ConfidenceLevel.levels);
             resources.ApplyResources(this.confidenceLevelLabel, "confidenceLevelLabel");
             this.confidenceLevelLabel.Name = "confidenceLevelLabel";
             resources.ApplyResources(this.numericUpDown13, "numericUpDown13");
