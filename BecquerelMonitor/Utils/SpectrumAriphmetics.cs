@@ -48,7 +48,12 @@ namespace BecquerelMonitor.Utils
                 }
             }
 
-            int poly_order = 18;
+            int poly_order = 16;
+            if (energySpectrum.NumberOfChannels <= 1024)
+            {
+                poly_order = 8;
+            }
+            
             if (high_boundary - low_boundary < poly_order)
             {
                 poly_order = high_boundary - low_boundary;
