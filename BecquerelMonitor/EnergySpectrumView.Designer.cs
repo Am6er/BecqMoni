@@ -3435,8 +3435,7 @@ namespace BecquerelMonitor
                         g.DrawString(Resources.NotDetected, this.Font, Brushes.DarkRed, r2, this.centerFormat);
                     } else if (net_counts > Lc && net_counts < Ld)
                     {
-                        string confidencelevel_str = ConfidenceLevel.GetLevel(this.globalConfigManager.GlobalConfig.ChartViewConfig.ConfidenceLevel);
-                        g.DrawString(string.Format(Resources.DetectedWithUncertain, confidencelevel_str), this.Font, Brushes.DarkOrange, r2, this.centerFormat);
+                        g.DrawString(Resources.DetectedWithUncertain, this.Font, Brushes.DarkOrange, r2, this.centerFormat);
                     } else
                     {
                         g.DrawString(Resources.Detected, this.Font, Brushes.DarkGreen, r2, this.centerFormat);
@@ -3451,7 +3450,8 @@ namespace BecquerelMonitor
                         g.DrawString(Lu.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
                         r2.Y += 16;
                     }
-                    g.DrawString(Resources.Ld_counts, this.Font, Brushes.Black, r2);
+                    string confidencelevel_str = ConfidenceLevel.GetLevel(this.globalConfigManager.GlobalConfig.ChartViewConfig.ConfidenceLevel);
+                    g.DrawString(Resources.Ld_counts + " (" + confidencelevel_str + ")", this.Font, Brushes.Black, r2);
                     g.DrawString(Ld.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
                     r2.Y += 16;
                     g.DrawString(Resources.MDA_cnts, this.Font, Brushes.Black, r2);

@@ -226,7 +226,7 @@
     <value>Обнаружено</value>
   </data>
   <data name="DetectedWithUncertain" xml:space="preserve">
-    <value>Обнаружено с {0} вероятности</value>
+    <value>Неопределённость</value>
   </data>
   <data name="DeviceTypeAtomSpectraVCP" xml:space="preserve">
     <value>AtomSpectraVCP</value>

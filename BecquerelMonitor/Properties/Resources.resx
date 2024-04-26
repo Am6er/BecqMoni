@@ -41928,7 +41928,7 @@ see peak in spectrum now).</value>
     <value>Detected</value>
   </data>
   <data name="DetectedWithUncertain" xml:space="preserve">
-    <value>Detection with {0} confidence</value>
+    <value>Uncertain</value>
   </data>
   <data name="NotDetected" xml:space="preserve">
     <value>Not detected</value>
