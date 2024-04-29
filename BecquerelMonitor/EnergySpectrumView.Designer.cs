@@ -3466,7 +3466,7 @@ namespace BecquerelMonitor
                     r2.Y += 16;
                     g.DrawString(Resources.ChartHeaderFWHM, this.Font, Brushes.Black, r2);
                     g.DrawString((this.selectionFWHM * 100.0).ToString("f2") + Resources.PercentCharacter +
-                        " (" + (this.selectionFWHMinkev).ToString("f2") + " " + Resources.kev + ")",
+                        " (" + (this.selectionFWHMinkev).ToString("f2") + " " + Resources.kev + ", " + this.selectionFullWidth.ToString() + " " + Resources.ChartChannelShort + ")",
                         this.Font, Brushes.Black, r2, this.farFormat);
                     r2.Y += 16;
                     //g.DrawString(Resources._2Sigma, this.Font, Brushes.Black, r2);
