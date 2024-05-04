@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace BecquerelMonitor.FWHMPeakDetector
 {
@@ -93,11 +94,10 @@ namespace BecquerelMonitor.FWHMPeakDetector
             this.bin_centers_raw = new double[counts.Length + 1];
             this.bin_widths_raw = new double[counts.Length + 1];
 
-            for (int i = 0; i < counts.Length; i++)
-            {
+            Parallel.For(0, counts.Length, i => {
                 this.counts[i] = Convert.ToDouble(energySpectrum.Spectrum[i]);
                 this.bin_edges_raw[i] = Convert.ToDouble(i);
-            }
+            });
             this.bin_edges_raw[counts.Length] = Convert.ToDouble(counts.Length);
 
 
