@@ -262,7 +262,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
         public double gaussian1 (double x, double mean, double sigma)
         {
             double z = x - mean;
-            return -1 * z * gaussian0(x, mean, sigma);
+            return -z * gaussian0(x, mean, sigma) / (sigma * sigma);
         }
 
         /// <summary>
