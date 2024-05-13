@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<DeviceConfigInfo xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <FormatVersion>120920</FormatVersion>
+  <Guid>9c0dbc93-b610-4c4e-a628-e17a187af7cd</Guid>
+  <Name>AudioSpectrometer 44.1kHz 16 bit</Name>
+  <LastUpdated>2024-04-03T12:33:19.409805+03:00</LastUpdated>
+  <DefaultMeasurementTime>3600</DefaultMeasurementTime>
+  <ChannelPitch>0.004</ChannelPitch>
+  <NumberOfChannels>4096</NumberOfChannels>
+  <DeviceType>AudioInputDevice</DeviceType>
+  <ThermometerType>None</ThermometerType>
+  <EnergyCalibrationType>Polynomial</EnergyCalibrationType>
+  <Note />
+  <AudioInputDeviceConfig>
+    <AudioInputDevice>
+      <DeviceId>0</DeviceId>
+      <Manufacturer>Unknown [65535]</Manufacturer>
+      <ProductId>65535</ProductId>
+      <DriverVersion>256</DriverVersion>
+      <Name>Microphone (2- USB Audio CODEC </Name>
+      <Channels>2</Channels>
+    </AudioInputDevice>
+    <SamplesPerSecond>44100</SamplesPerSecond>
+    <BitsPerSample>16</BitsPerSample>
+    <Volume>30</Volume>
+    <AutoVolumeSetting>true</AutoVolumeSetting>
+    <NegativePolarity>false</NegativePolarity>
+    <PulseDetectionMethod>PRA Homage Method</PulseDetectionMethod>
+    <PulseDetectionMethodConfig>
+      <LowerThreshold>0</LowerThreshold>
+      <UpperThreshold>100</UpperThreshold>
+      <PulseThreshold>0</PulseThreshold>
+      <PulseShapeSize>16</PulseShapeSize>
+      <PeakIndex>8</PeakIndex>
+      <PulseLowerThreshold>0.4</PulseLowerThreshold>
+      <PulseUpperThreshold>40</PulseUpperThreshold>
+      <NumberOfPulses>10025</NumberOfPulses>
+      <PulseShape>
+        <DataPoint>-0.23738390540256218</DataPoint>
+        <DataPoint>-0.23897450496837283</DataPoint>
+        <DataPoint>-0.23906956985080519</DataPoint>
+        <DataPoint>-0.23130017802278768</DataPoint>
+        <DataPoint>-0.14268073274598841</DataPoint>
+        <DataPoint>0.010164109956973788</DataPoint>
+        <DataPoint>0.13614743408303923</DataPoint>
+        <DataPoint>0.21044109990640988</DataPoint>
+        <DataPoint>0.23206876424018327</DataPoint>
+        <DataPoint>0.21619357788599158</DataPoint>
+        <DataPoint>0.17584865711956288</DataPoint>
+        <DataPoint>0.1243823656910672</DataPoint>
+        <DataPoint>0.069334814222959978</DataPoint>
+        <DataPoint>0.016957830359485618</DataPoint>
+        <DataPoint>-0.030563222223829286</DataPoint>
+        <DataPoint>-0.07156654025132822</DataPoint>
+      </PulseShape>
+    </PulseDetectionMethodConfig>
+  </AudioInputDeviceConfig>
+  <PolynomialEnergyCalibration>
+    <PolynomialOrder>1</PolynomialOrder>
+    <Coefficients>
+      <Coefficient>0</Coefficient>
+      <Coefficient>0.706951871657754</Coefficient>
+    </Coefficients>
+  </PolynomialEnergyCalibration>
+  <StabilizerConfig>
+    <TargetPeaks />
+  </StabilizerConfig>
+  <DoseRateConfig>
+    <DoseRateCalibrationPoints />
+  </DoseRateConfig>
+  <PeakDetectionMethodConfig>
+    <Min_SNR>10</Min_SNR>
+    <FWHM_AT_0>15</FWHM_AT_0>
+    <Ch_Fwhm>3756</Ch_Fwhm>
+    <Width_Fwhm>103</Width_Fwhm>
+    <Max_Items>40</Max_Items>
+    <Tolerance>10</Tolerance>
+    <Min_Range>30</Min_Range>
+    <Max_Range>2800</Max_Range>
+    <Min_FWHM_Tol>50</Min_FWHM_Tol>
+    <Max_FWHM_Tol>150</Max_FWHM_Tol>
+    <Enabled>true</Enabled>
+    <Ch_Concat>512</Ch_Concat>
+  </PeakDetectionMethodConfig>
+  <BackgroundSpectrumPathname />
+</DeviceConfigInfo>

@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<DeviceConfigInfo xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <FormatVersion>120920</FormatVersion>
+  <Guid>99fde0cd-dd49-4b01-ab69-d2808368a4a1</Guid>
+  <Name>RC-103 (282)</Name>
+  <LastUpdated>2024-04-25T17:21:20.8147898+03:00</LastUpdated>
+  <DefaultMeasurementTime>360000000</DefaultMeasurementTime>
+  <ChannelPitch>1</ChannelPitch>
+  <NumberOfChannels>1024</NumberOfChannels>
+  <DeviceType>RadiaCode</DeviceType>
+  <ThermometerType>None</ThermometerType>
+  <EnergyCalibrationType>Polynomial</EnergyCalibrationType>
+  <Note />
+  <RadiaCodeDeviceConfig>
+    <DeviceSerial>RC-103-000282</DeviceSerial>
+    <AddressBLE>90447824290074</AddressBLE>
+    <RC_EnergyCalibration>
+      <PolynomialOrder>2</PolynomialOrder>
+      <Coefficients>
+        <Coefficient>1.59250128269196</Coefficient>
+        <Coefficient>2.37407755851746</Coefficient>
+        <Coefficient>0.000391400011721998</Coefficient>
+      </Coefficients>
+    </RC_EnergyCalibration>
+  </RadiaCodeDeviceConfig>
+  <PolynomialEnergyCalibration>
+    <PolynomialOrder>2</PolynomialOrder>
+    <Coefficients>
+      <Coefficient>1.59250128269196</Coefficient>
+      <Coefficient>2.37407755851746</Coefficient>
+      <Coefficient>0.000391400011721998</Coefficient>
+    </Coefficients>
+  </PolynomialEnergyCalibration>
+  <StabilizerConfig>
+    <TargetPeaks />
+  </StabilizerConfig>
+  <DoseRateConfig>
+    <DoseRateCalibrationPoints />
+  </DoseRateConfig>
+  <PeakDetectionMethodConfig>
+    <Min_SNR>6</Min_SNR>
+    <FWHM_AT_0>6</FWHM_AT_0>
+    <Ch_Fwhm>266</Ch_Fwhm>
+    <Width_Fwhm>26</Width_Fwhm>
+    <Max_Items>40</Max_Items>
+    <Tolerance>10</Tolerance>
+    <Min_Range>10</Min_Range>
+    <Max_Range>2800</Max_Range>
+    <Min_FWHM_Tol>10</Min_FWHM_Tol>
+    <Max_FWHM_Tol>190</Max_FWHM_Tol>
+    <Enabled>true</Enabled>
+    <Ch_Concat>1024</Ch_Concat>
+  </PeakDetectionMethodConfig>
+  <BackgroundSpectrumPathname />
+</DeviceConfigInfo>
