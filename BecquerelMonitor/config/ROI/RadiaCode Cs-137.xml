@@ -3,7 +3,7 @@
   <FormatVersion>120920</FormatVersion>
   <Guid>d44abc80-0a37-4586-b923-c6247a4fce49</Guid>
   <Name>RadiaCode Cs-137</Name>
-  <LastUpdated>2024-02-20T14:08:11.9416668+03:00</LastUpdated>
+  <LastUpdated>2024-04-19T15:29:42.7669505+03:00</LastUpdated>
   <ROIDefinitions>
     <ROIDefinitionData>
       <Name>Point source 5 cm</Name>
@@ -31,7 +31,7 @@
     </ROIDefinitionData>
     <ROIDefinitionData>
       <Name>Marinelli 0.5l</Name>
-      <Enabled>false</Enabled>
+      <Enabled>true</Enabled>
       <PeakEnergy>662</PeakEnergy>
       <LowerLimit>562</LowerLimit>
       <UpperLimit>762</UpperLimit>
@@ -49,7 +49,7 @@
           <CoefficientError>0</CoefficientError>
           <Note />
           <LowerLimit>562</LowerLimit>
-          <UpperLimit>662</UpperLimit>
+          <UpperLimit>762</UpperLimit>
         </ROISimpleDifferenceData>
       </ROIPrimitives>
     </ROIDefinitionData>

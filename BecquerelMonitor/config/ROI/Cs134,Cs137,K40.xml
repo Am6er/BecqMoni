@@ -3,7 +3,7 @@
   <FormatVersion>120920</FormatVersion>
   <Guid>63afa7cf-0dc5-44d7-8933-535c84c4c18d</Guid>
   <Name>Cs134,Cs137,K40</Name>
-  <LastUpdated>2022-07-01T12:10:17.0768306+03:00</LastUpdated>
+  <LastUpdated>2024-04-19T18:55:02.3327036+03:00</LastUpdated>
   <ROIDefinitions>
     <ROIDefinitionData>
       <Name>Cs137</Name>
@@ -15,6 +15,7 @@
       <BecquerelCoefficient>290</BecquerelCoefficient>
       <BecquerelCoefficientError>0</BecquerelCoefficientError>
       <HalfLife>30.07</HalfLife>
+      <Intencity>0</Intencity>
       <Note><![CDATA[Cs134(605keV)
 Cs134(796keV)
 K40]]></Note>
@@ -62,6 +63,7 @@ It was determined by measurement of KCl.]]></Note>
       <BecquerelCoefficient>47.74944</BecquerelCoefficient>
       <BecquerelCoefficientError>0</BecquerelCoefficientError>
       <HalfLife>2.0648</HalfLife>
+      <Intencity>0</Intencity>
       <Note />
       <ROIPrimitives>
         <ROISimpleDifferenceData>
@@ -85,7 +87,7 @@ It was determined by measurement of KCl.]]></Note>
     </ROIDefinitionData>
     <ROIDefinitionData>
       <Name>K40</Name>
-      <Enabled>false</Enabled>
+      <Enabled>true</Enabled>
       <PeakEnergy>1460</PeakEnergy>
       <LowerLimit>1350</LowerLimit>
       <UpperLimit>1570</UpperLimit>
@@ -93,6 +95,7 @@ It was determined by measurement of KCl.]]></Note>
       <BecquerelCoefficient>635.928</BecquerelCoefficient>
       <BecquerelCoefficientError>0</BecquerelCoefficientError>
       <HalfLife>1277000000</HalfLife>
+      <Intencity>0</Intencity>
       <Note />
       <ROIPrimitives>
         <ROISimpleDifferenceData>
@@ -116,6 +119,7 @@ It was determined by measurement of KCl.]]></Note>
       <BecquerelCoefficient>0</BecquerelCoefficient>
       <BecquerelCoefficientError>0</BecquerelCoefficientError>
       <HalfLife>0</HalfLife>
+      <Intencity>0</Intencity>
       <Note />
       <ROIPrimitives />
     </ROIDefinitionData>
@@ -129,6 +133,7 @@ It was determined by measurement of KCl.]]></Note>
       <BecquerelCoefficient>0</BecquerelCoefficient>
       <BecquerelCoefficientError>0</BecquerelCoefficientError>
       <HalfLife>0</HalfLife>
+      <Intencity>0</Intencity>
       <Note />
       <ROIPrimitives />
     </ROIDefinitionData>

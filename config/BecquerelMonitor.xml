@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <GlobalConfigInfo xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <MainFormTop>72</MainFormTop>
-  <MainFormLeft>42</MainFormLeft>
-  <MainFormWidth>1839</MainFormWidth>
-  <MainFormHeight>890</MainFormHeight>
+  <MainFormTop>0</MainFormTop>
+  <MainFormLeft>946</MainFormLeft>
+  <MainFormWidth>974</MainFormWidth>
+  <MainFormHeight>1039</MainFormHeight>
   <MainFormMaximized>true</MainFormMaximized>
-  <DeviceConfigFormWidth>999</DeviceConfigFormWidth>
+  <DeviceConfigFormWidth>1024</DeviceConfigFormWidth>
   <DeviceConfigFormHeight>690</DeviceConfigFormHeight>
   <ROIConfigFormWidth>1164</ROIConfigFormWidth>
   <ROIConfigFormHeight>784</ROIConfigFormHeight>
@@ -25,26 +25,29 @@
   <Language />
   <OptionString />
   <ChartViewConfig>
-    <DefaultVerticalUnit>CountsPerSecond</DefaultVerticalUnit>
-    <DefaultVerticalScaleType>LogarithmicScale</DefaultVerticalScaleType>
+    <DefaultVerticalUnit>Counts</DefaultVerticalUnit>
+    <DefaultVerticalScaleType>LinearScale</DefaultVerticalScaleType>
     <DefaultChartType>BarChart</DefaultChartType>
     <DefaultVerticalFittingMode>MinMax</DefaultVerticalFittingMode>
     <DefaultSmoothingMothod>None</DefaultSmoothingMothod>
     <DefaultHorizontalUnit>Energy</DefaultHorizontalUnit>
     <DefaultBackgroundMode>Visible</DefaultBackgroundMode>
     <DefaultPeakMode>Invisible</DefaultPeakMode>
-    <DefaultHorizontalMagnification>Equal</DefaultHorizontalMagnification>
+    <DefaultHorizontalMagnification>Fit</DefaultHorizontalMagnification>
     <DefaultDrawingMode>Normal</DefaultDrawingMode>
     <Energy2ndCoefficientStep>1E-05</Energy2ndCoefficientStep>
     <EnergyPitch>5</EnergyPitch>
     <EnergyPercent>1</EnergyPercent>
     <EnergyCoefficientStep>0.01</EnergyCoefficientStep>
     <EnergyOffsetStep>1</EnergyOffsetStep>
-    <NumberOfSMADataPoints>20</NumberOfSMADataPoints>
-    <NumberOfWMADataPoints>20</NumberOfWMADataPoints>
+    <NumberOfSMADataPoints>6</NumberOfSMADataPoints>
+    <NumberOfWMADataPoints>6</NumberOfWMADataPoints>
     <ChartRefreshCycle>500</ChartRefreshCycle>
     <MagnificationReference>Left</MagnificationReference>
-    <CountLimit>100</CountLimit>
+    <CountLimit>10000</CountLimit>
+    <HorizontalScale>0.400001</HorizontalScale>
+    <PowNum>4</PowNum>
+    <ConfidenceLevel>1.645</ConfidenceLevel>
   </ChartViewConfig>
   <ColorConfig>
     <ActiveSpectrumColor>Black</ActiveSpectrumColor>
@@ -93,7 +96,7 @@
   <MeasurementConfig>
     <VolumeUnit>Milliliter</VolumeUnit>
     <WeightUnit>Gram</WeightUnit>
-    <ErrorLevel>2</ErrorLevel>
+    <ErrorLevel>3</ErrorLevel>
     <DetectionLevel>3</DetectionLevel>
     <DetectionCondition>0</DetectionCondition>
     <ShowValuesForNDResult>true</ShowValuesForNDResult>
@@ -121,4 +124,5 @@
     <MeasurementCompletion />
   </SoundConfig>
   <AutosavePeriod>15</AutosavePeriod>
+  <AutosaveDefaultPolicy>false</AutosaveDefaultPolicy>
 </GlobalConfigInfo>

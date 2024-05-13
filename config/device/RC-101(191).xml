@@ -1,28 +1,26 @@
 <?xml version="1.0"?>
 <DeviceConfigInfo xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <FormatVersion>120920</FormatVersion>
-  <Guid>1a0651a2-0b84-4c4e-8be8-c2d286eb82eb</Guid>
-  <Name>AtomSpectraVCP</Name>
-  <LastUpdated>2024-04-04T11:42:50.5111955+03:00</LastUpdated>
-  <DefaultMeasurementTime>3600000</DefaultMeasurementTime>
+  <Guid>ea3abb34-88a7-43a9-8d94-6c42ad627718</Guid>
+  <Name>RC-101(191)</Name>
+  <LastUpdated>2024-01-15T23:14:25.7450077+03:00</LastUpdated>
+  <DefaultMeasurementTime>36000000</DefaultMeasurementTime>
   <ChannelPitch>1</ChannelPitch>
-  <NumberOfChannels>8192</NumberOfChannels>
-  <DeviceType>AtomSpectraVCP</DeviceType>
+  <NumberOfChannels>1024</NumberOfChannels>
+  <DeviceType>RadiaCode</DeviceType>
   <ThermometerType>None</ThermometerType>
   <EnergyCalibrationType>Polynomial</EnergyCalibrationType>
   <Note />
-  <AtomSpectraDeviceConfig>
-    <ComPortName>COM7</ComPortName>
-    <BaudRate>600000</BaudRate>
-  </AtomSpectraDeviceConfig>
+  <RadiaCodeDeviceConfig>
+    <DeviceSerial>RC-101-000191</DeviceSerial>
+    <AddressBLE>90447822192831</AddressBLE>
+  </RadiaCodeDeviceConfig>
   <PolynomialEnergyCalibration>
-    <PolynomialOrder>4</PolynomialOrder>
+    <PolynomialOrder>2</PolynomialOrder>
     <Coefficients>
-      <Coefficient>-4.23836836242748</Coefficient>
-      <Coefficient>0.377567715025482</Coefficient>
-      <Coefficient>1.43747888527481E-05</Coefficient>
-      <Coefficient>-2.30943451827252E-09</Coefficient>
-      <Coefficient>1.61901447792848E-13</Coefficient>
+      <Coefficient>-15.3190727233887</Coefficient>
+      <Coefficient>2.82597327232361</Coefficient>
+      <Coefficient>0.000639676989521831</Coefficient>
     </Coefficients>
   </PolynomialEnergyCalibration>
   <StabilizerConfig>
@@ -33,15 +31,15 @@
   </DoseRateConfig>
   <PeakDetectionMethodConfig>
     <Min_SNR>10</Min_SNR>
-    <FWHM_AT_0>15</FWHM_AT_0>
-    <Ch_Fwhm>3756</Ch_Fwhm>
-    <Width_Fwhm>103</Width_Fwhm>
+    <FWHM_AT_0>8</FWHM_AT_0>
+    <Ch_Fwhm>234</Ch_Fwhm>
+    <Width_Fwhm>31</Width_Fwhm>
     <Max_Items>40</Max_Items>
     <Tolerance>10</Tolerance>
     <Min_Range>30</Min_Range>
     <Max_Range>2800</Max_Range>
-    <Min_FWHM_Tol>50</Min_FWHM_Tol>
-    <Max_FWHM_Tol>150</Max_FWHM_Tol>
+    <Min_FWHM_Tol>10</Min_FWHM_Tol>
+    <Max_FWHM_Tol>190</Max_FWHM_Tol>
     <Enabled>true</Enabled>
     <Ch_Concat>512</Ch_Concat>
   </PeakDetectionMethodConfig>

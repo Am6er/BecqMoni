@@ -3,7 +3,7 @@
   <FormatVersion>120920</FormatVersion>
   <Guid>63afa7cf-0dc5-44d7-8933-535c84c4c18d</Guid>
   <Name>Cs134,Cs137,K40</Name>
-  <LastUpdated>2022-07-01T12:10:17.0768306+03:00</LastUpdated>
+  <LastUpdated>2024-04-19T18:55:02.3327036+03:00</LastUpdated>
   <ROIDefinitions>
     <ROIDefinitionData>
       <Name>Cs137</Name>
@@ -15,6 +15,7 @@
       <BecquerelCoefficient>290</BecquerelCoefficient>
       <BecquerelCoefficientError>0</BecquerelCoefficientError>
       <HalfLife>30.07</HalfLife>
+      <Intencity>0</Intencity>
       <Note><![CDATA[Cs134(605keV)
 Cs134(796keV)
 K40]]></Note>
@@ -47,11 +48,7 @@ In order to be accurate, calibration by measuring multiple concentrations is nec
           <Coefficient>0.3870788</Coefficient>
           <CoefficientError>0</CoefficientError>
           <Note><![CDATA[Excludes K40 scattering components
-It was determined by measurement of KCl. Хлорид калия (KCl) является источником гамма-излучения с концентрацией 1,782 [γ/с/г], что приводит к распаду K40
-Гамма-излучение на единицу составляет 0,107, то есть 16,488 [Бк/г].Измерьте отношение g к w、
-Если скорость счета равна p[cps], то пиковая эффективность ε равна、
-ε = p / (1,782*0,99*вт), (для KCl чистоты 99%)
-Коэффициент пересчета Bq равен 1,782 * 0,99 * вт / 0,107 / p [Bq/cps].]]></Note>
+It was determined by measurement of KCl.]]></Note>
           <Reference>K40</Reference>
         </ROIReferenceData>
       </ROIPrimitives>
@@ -66,6 +63,7 @@ It was determined by measurement of KCl. Хлорид калия (KCl) явля�
       <BecquerelCoefficient>47.74944</BecquerelCoefficient>
       <BecquerelCoefficientError>0</BecquerelCoefficientError>
       <HalfLife>2.0648</HalfLife>
+      <Intencity>0</Intencity>
       <Note />
       <ROIPrimitives>
         <ROISimpleDifferenceData>
@@ -89,7 +87,7 @@ It was determined by measurement of KCl. Хлорид калия (KCl) явля�
     </ROIDefinitionData>
     <ROIDefinitionData>
       <Name>K40</Name>
-      <Enabled>false</Enabled>
+      <Enabled>true</Enabled>
       <PeakEnergy>1460</PeakEnergy>
       <LowerLimit>1350</LowerLimit>
       <UpperLimit>1570</UpperLimit>
@@ -97,6 +95,7 @@ It was determined by measurement of KCl. Хлорид калия (KCl) явля�
       <BecquerelCoefficient>635.928</BecquerelCoefficient>
       <BecquerelCoefficientError>0</BecquerelCoefficientError>
       <HalfLife>1277000000</HalfLife>
+      <Intencity>0</Intencity>
       <Note />
       <ROIPrimitives>
         <ROISimpleDifferenceData>
@@ -120,6 +119,7 @@ It was determined by measurement of KCl. Хлорид калия (KCl) явля�
       <BecquerelCoefficient>0</BecquerelCoefficient>
       <BecquerelCoefficientError>0</BecquerelCoefficientError>
       <HalfLife>0</HalfLife>
+      <Intencity>0</Intencity>
       <Note />
       <ROIPrimitives />
     </ROIDefinitionData>
@@ -133,6 +133,7 @@ It was determined by measurement of KCl. Хлорид калия (KCl) явля�
       <BecquerelCoefficient>0</BecquerelCoefficient>
       <BecquerelCoefficientError>0</BecquerelCoefficientError>
       <HalfLife>0</HalfLife>
+      <Intencity>0</Intencity>
       <Note />
       <ROIPrimitives />
     </ROIDefinitionData>
