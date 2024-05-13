@@ -143,12 +143,12 @@ namespace BecquerelMonitor
         // Token: 0x0600074E RID: 1870 RVA: 0x0002A5B4 File Offset: 0x000287B4
         double PulseHeight(double[] shape)
         {
-            double restored = 0.0;
+            double restored_summ = 0.0;
             for (int i = 0; i < this.pulseShapeSize; i++)
             {
-                restored += shape[i] * this.idealPulseShape[i];
+                restored_summ += shape[i] * this.idealPulseShape[i];
             }
-            return restored;
+            return restored_summ;
         }
 
         // Token: 0x0600074F RID: 1871 RVA: 0x0002A5F8 File Offset: 0x000287F8
