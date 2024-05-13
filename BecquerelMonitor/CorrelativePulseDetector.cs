@@ -143,12 +143,12 @@ namespace BecquerelMonitor
         // Token: 0x0600074E RID: 1870 RVA: 0x0002A5B4 File Offset: 0x000287B4
         double PulseHeight(double[] shape)
         {
-            double num = 0.0;
+            double restored = 0.0;
             for (int i = 0; i < this.pulseShapeSize; i++)
             {
-                num += this.pulseShape[i] * this.idealPulseShape[i];
+                restored += shape[i] * this.idealPulseShape[i];
             }
-            return num;
+            return restored;
         }
 
         // Token: 0x0600074F RID: 1871 RVA: 0x0002A5F8 File Offset: 0x000287F8
@@ -165,37 +165,33 @@ namespace BecquerelMonitor
             return num;
         }
 
-        // Token: 0x06000750 RID: 1872 RVA: 0x0002A65C File Offset: 0x0002885C
+        // Calculate Pearson correlation coefficient and compare it with correlationThreshold
         bool Discriminate(double[] pulseShape, int size)
         {
-            double num = 0.0;
-            double num2 = 0.0;
+            double med_pulseShape = 0.0;
+            double med_idealPulseShape = 0.0;
             for (int i = 0; i < this.pulseShapeSize; i++)
             {
-                double num3 = (i < size) ? pulseShape[i] : 0.0;
-                double num4 = this.idealPulseShape[i];
-                num += num3;
-                num2 += num4;
+                med_pulseShape += (i < size) ? pulseShape[i] : 0.0;
+                med_idealPulseShape += this.idealPulseShape[i];
             }
-            num /= (double)this.pulseShapeSize;
-            num2 /= (double)this.pulseShapeSize;
-            double num5 = 0.0;
-            double num6 = 0.0;
-            double num7 = 0.0;
+            med_pulseShape /= (double)this.pulseShapeSize;
+            med_idealPulseShape /= (double)this.pulseShapeSize;
+            double covariance = 0.0;
+            double variance_pulseShape = 0.0;
+            double variance_idealPulseShape = 0.0;
             for (int j = 0; j < this.pulseShapeSize; j++)
             {
-                double num8 = pulseShape[j];
-                double num9 = this.idealPulseShape[j];
-                num5 += (num8 - num) * (num9 - num2);
-                num6 += (num8 - num) * (num8 - num);
-                num7 += (num9 - num2) * (num9 - num2);
+                covariance += (pulseShape[j] - med_pulseShape) * (this.idealPulseShape[j] - med_idealPulseShape);
+                variance_pulseShape += (pulseShape[j] - med_pulseShape) * (pulseShape[j] - med_pulseShape);
+                variance_idealPulseShape += (this.idealPulseShape[j] - med_idealPulseShape) * (this.idealPulseShape[j] - med_idealPulseShape);
             }
-            double num10 = 0.0;
-            if (num6 != 0.0 && num7 != 0.0)
+            double pearson_corr_coeff = 0.0;
+            if (variance_pulseShape != 0.0 && variance_idealPulseShape != 0.0)
             {
-                num10 = num5 / Math.Sqrt(num6) / Math.Sqrt(num7);
+                pearson_corr_coeff = covariance / Math.Sqrt(variance_pulseShape) / Math.Sqrt(variance_idealPulseShape);
             }
-            return num10 > this.correlationThreshold;
+            return pearson_corr_coeff > this.correlationThreshold;
         }
 
         // Token: 0x040003AF RID: 943

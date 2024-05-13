@@ -271,45 +271,45 @@ namespace BecquerelMonitor
             }
         }
 
-        // Token: 0x06000EEF RID: 3823 RVA: 0x00056728 File Offset: 0x00054928
+        // Shape normalization to [-1;1]
         double[] NormalizePulseShape(double[] shape)
         {
-            double num = 0.0;
+            double med_shape = 0.0;
             for (int i = 0; i < this.pulseShapeSize; i++)
             {
-                num += shape[i];
+                med_shape += shape[i];
             }
-            num /= (double)this.pulseShapeSize;
+            med_shape /= (double)this.pulseShapeSize;
             for (int j = 0; j < this.pulseShapeSize; j++)
             {
-                this.normalizedPulseShape[j] = shape[j] - num;
+                this.normalizedPulseShape[j] = shape[j] - med_shape;
             }
-            double num2 = -100.0;
-            double num3 = 100.0;
+            double max_pulseShape = -100.0;
+            double min_pulseShape = 100.0;
             for (int k = 0; k < this.pulseShapeSize; k++)
             {
-                if (this.normalizedPulseShape[k] > num2)
+                if (this.normalizedPulseShape[k] > max_pulseShape)
                 {
-                    num2 = this.normalizedPulseShape[k];
+                    max_pulseShape = this.normalizedPulseShape[k];
                 }
-                if (this.normalizedPulseShape[k] < num3)
+                if (this.normalizedPulseShape[k] < min_pulseShape)
                 {
-                    num3 = this.normalizedPulseShape[k];
+                    min_pulseShape = this.normalizedPulseShape[k];
                 }
             }
-            double num4 = 0.0;
+            double variance_normalizedPulseShape = 0.0;
             for (int l = 0; l < this.pulseShapeSize; l++)
             {
-                num4 += this.normalizedPulseShape[l] * this.normalizedPulseShape[l];
+                variance_normalizedPulseShape += this.normalizedPulseShape[l] * this.normalizedPulseShape[l];
             }
-            double num5 = 0.0;
-            if (num4 != 0.0)
+            double normalization_coeff = 0.0;
+            if (variance_normalizedPulseShape != 0.0)
             {
-                num5 = (num2 - num3) / num4;
+                normalization_coeff = (max_pulseShape - min_pulseShape) / variance_normalizedPulseShape;
             }
             for (int m = 0; m < this.pulseShapeSize; m++)
             {
-                this.normalizedPulseShape[m] *= num5;
+                this.normalizedPulseShape[m] *= normalization_coeff;
             }
             return this.normalizedPulseShape;
         }

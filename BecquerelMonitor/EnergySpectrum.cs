@@ -179,10 +179,10 @@ namespace BecquerelMonitor
         // Token: 0x06000069 RID: 105 RVA: 0x000029F4 File Offset: 0x00000BF4
         public void Increment(double value)
         {
-            int num = (int)(value / this.channelPitch);
-            if (num >= 0 && num <= this.numberOfChannels - 1)
+            int channel = (int)(value / this.channelPitch);
+            if (channel >= 0 && channel <= this.numberOfChannels - 1)
             {
-                this.spectrum[num]++;
+                this.spectrum[channel]++;
                 this.validPulseCount++;
             }
         }
