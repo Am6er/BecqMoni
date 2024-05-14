@@ -216,10 +216,10 @@ namespace BecquerelMonitor.Utils
             return result;
         }
 
-        int gauss(int x, int amplitude, int fwhm, int median)
+        int gauss(double x, double amplitude, double fwhm, double median)
         {
             double sigma = fwhm / 2.35482;
-            return (int)(amplitude * Math.Exp(-Math.Pow(x - median,2)/(2*Math.Pow(sigma, 2))));
+            return (int)(amplitude * Math.Exp(-0.5 * Math.Pow((x - median) / sigma,2)));
         }
 
         public (int[], int, int, Color) GetPeak(Peak peak, EnergySpectrum continuum, bool smooth)
@@ -252,7 +252,7 @@ namespace BecquerelMonitor.Utils
             bool left_side = true;
             for (int i = min_ch; i <= max_ch; i++)
             {
-                retvalue[i] = gauss(i, amplitude, fwhm, median);
+                retvalue[i] = gauss((double)i, (double)amplitude, (double)fwhm, (double)median);
                 if (retvalue[i] == 0.0)
                 {
                     if (left_side)
