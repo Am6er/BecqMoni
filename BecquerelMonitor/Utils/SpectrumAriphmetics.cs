@@ -1,5 +1,6 @@
 ﻿using BecquerelMonitor.Properties;
 using MathNet.Numerics;
+using MathNet.Numerics.Interpolation;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -174,6 +175,39 @@ namespace BecquerelMonitor.Utils
                 substractedEnergySpectrum.ValidPulseCount = substractedEnergySpectrum.TotalPulseCount;
             }
             return substractedEnergySpectrum;
+        }
+
+        public EnergySpectrum NormalizeSpectrum(EnergySpectrum spectrum, ROIConfigData roi)
+        {
+            EnergySpectrum normalizedSpectrum = spectrum.Clone();
+
+            List<double> effEnergies = new List<double>();
+            List<double> effValues = new List<double>();
+            roi.ROIDefinitions.ForEach(def =>
+            {
+                if (def.PeakEnergy > 0 && def.Intencity > 0)
+                {
+                    effEnergies.Add(def.PeakEnergy);
+                    effValues.Add(def.Intencity / 100);
+                }
+            });
+
+            if (effEnergies.Count < 2)
+            {
+                return normalizedSpectrum;
+            }
+
+            IInterpolation effCurve = Interpolate.CubicSplineMonotone(effEnergies, effValues);
+            normalizedSpectrum.TotalPulseCount = 0;
+            Parallel.For(0, normalizedSpectrum.NumberOfChannels, i =>
+            {
+                double enrg = normalizedSpectrum.EnergyCalibration.ChannelToEnergy(i);
+                normalizedSpectrum.Spectrum[i] = Convert.ToInt32(normalizedSpectrum.Spectrum[i] / effCurve.Interpolate(enrg));
+                normalizedSpectrum.TotalPulseCount += normalizedSpectrum.Spectrum[i];
+            });
+            normalizedSpectrum.ValidPulseCount = normalizedSpectrum.TotalPulseCount;
+
+            return normalizedSpectrum;
         }
 
         public EnergySpectrum Continuum()
