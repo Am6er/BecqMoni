@@ -172,7 +172,11 @@
     <value>version xxxx</value>
   </data>
   <data name="label3.Text" xml:space="preserve">
-    <value>Free to use.</value>
+    <value>Free to use.
+	
+	Github: https://github.com/Am6er/BecqMoni
+	YouTube: https://www.youtube.com/@Am6er
+	</value>
   </data>
   <data name="label3.Size" type="System.Drawing.Size, System.Drawing">
     <value>312, 12</value>

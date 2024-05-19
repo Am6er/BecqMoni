@@ -244,7 +244,11 @@
     <value>версия xxxx</value>
   </data>
   <data name="label3.Text" xml:space="preserve">
-    <value>Свободное использование</value>
+    <value>Свободное использование
+	
+	Github: https://github.com/Am6er/BecqMoni
+	YouTube: https://www.youtube.com/@Am6er
+	</value>
   </data>
   <data name="label6.Text" xml:space="preserve">
     <value>Благодарности</value>
