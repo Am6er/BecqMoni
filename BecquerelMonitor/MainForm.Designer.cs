@@ -55,7 +55,8 @@ namespace BecquerelMonitor
 			this.AtomSpectraStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.ConcatSpectrumsStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.CutoffStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.N42StripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+            this.NormalizeSpectrumStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+            this.N42StripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.N42ExpStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.AtomSpectraExpStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.cSVFileToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
@@ -241,6 +242,7 @@ namespace BecquerelMonitor
 				this.toolStripMenuItem1,
 				this.ConcatSpectrumsStripMenuItem,
 				this.CutoffStripMenuItem,
+                this.NormalizeSpectrumStripMenuItem,
                 this.AutoSaveStripMenuItem,
                 this.toolStripSeparator7,
 				this.測定開始SToolStripMenuItem,
@@ -267,6 +269,9 @@ namespace BecquerelMonitor
 			resources.ApplyResources(this.CutoffStripMenuItem, "CutoffStripMenuItem");
 			this.CutoffStripMenuItem.Name = "CutoffStripMenuItem";
 			this.CutoffStripMenuItem.Click += new global::System.EventHandler(this.CutoffStripMenuItem_Click);
+            resources.ApplyResources(this.NormalizeSpectrumStripMenuItem, "NormalizeSpectrumStripMenuItem");
+            this.NormalizeSpectrumStripMenuItem.Name = "NormalizeSpectrumStripMenuItem";
+            this.NormalizeSpectrumStripMenuItem.Click += new global::System.EventHandler(this.NormalizeSpectrumStripMenuItem_Click);
             resources.ApplyResources(this.AutoSaveStripMenuItem, "AutoSaveStripMenuItem");
             this.AutoSaveStripMenuItem.Name = "AutoSaveStripMenuItem";
             this.AutoSaveStripMenuItem.Click += new global::System.EventHandler(this.AutoSaveStripMenuItem_Click);
@@ -644,8 +649,10 @@ namespace BecquerelMonitor
 
 		global::System.Windows.Forms.ToolStripMenuItem CutoffStripMenuItem;
 
-		// Token: 0x040005A8 RID: 1448
-		global::System.Windows.Forms.ToolStripMenuItem スペクトル一覧LToolStripMenuItem;
+        global::System.Windows.Forms.ToolStripMenuItem NormalizeSpectrumStripMenuItem;
+
+        // Token: 0x040005A8 RID: 1448
+        global::System.Windows.Forms.ToolStripMenuItem スペクトル一覧LToolStripMenuItem;
 
 		// Token: 0x040005A9 RID: 1449
 		global::System.Windows.Forms.ToolStripMenuItem スペクトルSToolStripMenuItem;

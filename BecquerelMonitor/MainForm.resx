@@ -1106,4 +1106,16 @@
   <data name="&gt;&gt;AutoSaveStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
+  <data name="NormalizeSpectrumStripMenuItem.Text" xml:space="preserve">
+    <value>Normalize spectrum with ROI</value>
+  </data>
+  <data name="NormalizeSpectrumStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+    <value>326, 22</value>
+  </data>
+  <data name="&gt;&gt;NormalizeSpectrumStripMenuItem.Name" xml:space="preserve">
+    <value>NormalizeSpectrumStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;NormalizeSpectrumStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
 </root>

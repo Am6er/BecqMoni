@@ -177,7 +177,7 @@ namespace BecquerelMonitor.Utils
             return substractedEnergySpectrum;
         }
 
-        public EnergySpectrum NormalizeSpectrum(EnergySpectrum spectrum, ROIConfigData roi)
+        public static EnergySpectrum NormalizeSpectrum(EnergySpectrum spectrum, ROIConfigData roi)
         {
             EnergySpectrum normalizedSpectrum = spectrum.Clone();
 
