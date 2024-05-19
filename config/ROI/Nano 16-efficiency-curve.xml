@@ -1,0 +1,220 @@
+<?xml version="1.0"?>
+<ROIConfigData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <FormatVersion>120920</FormatVersion>
+  <Guid>d219feaf-a922-447c-bea0-6e2a37568d73</Guid>
+  <Name>Nano 16-efficiency-curve</Name>
+  <LastUpdated>2024-05-18T12:38:10.5728152+03:00</LastUpdated>
+  <ROIDefinitions>
+    <ROIDefinitionData>
+      <Name>50</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>50</PeakEnergy>
+      <LowerLimit>-100</LowerLimit>
+      <UpperLimit>-100</UpperLimit>
+      <Color>SeaGreen</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>0</HalfLife>
+      <Intencity>71.3</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>100</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>100</PeakEnergy>
+      <LowerLimit>-100</LowerLimit>
+      <UpperLimit>-100</UpperLimit>
+      <Color>SeaGreen</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>0</HalfLife>
+      <Intencity>100</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>200</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>200</PeakEnergy>
+      <LowerLimit>-100</LowerLimit>
+      <UpperLimit>-100</UpperLimit>
+      <Color>SeaGreen</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>0</HalfLife>
+      <Intencity>90.6</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>300</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>300</PeakEnergy>
+      <LowerLimit>-100</LowerLimit>
+      <UpperLimit>-100</UpperLimit>
+      <Color>SeaGreen</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>0</HalfLife>
+      <Intencity>60.4</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>500</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>500</PeakEnergy>
+      <LowerLimit>-100</LowerLimit>
+      <UpperLimit>-100</UpperLimit>
+      <Color>SeaGreen</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>0</HalfLife>
+      <Intencity>28.8</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>800</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>800</PeakEnergy>
+      <LowerLimit>-100</LowerLimit>
+      <UpperLimit>-100</UpperLimit>
+      <Color>SeaGreen</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>0</HalfLife>
+      <Intencity>15.6</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>1200</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>1200</PeakEnergy>
+      <LowerLimit>-100</LowerLimit>
+      <UpperLimit>-100</UpperLimit>
+      <Color>SeaGreen</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>0</HalfLife>
+      <Intencity>9.32</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>1800</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>1800</PeakEnergy>
+      <LowerLimit>-100</LowerLimit>
+      <UpperLimit>-100</UpperLimit>
+      <Color>SeaGreen</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>0</HalfLife>
+      <Intencity>6.15</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>2400</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>2400</PeakEnergy>
+      <LowerLimit>-100</LowerLimit>
+      <UpperLimit>-100</UpperLimit>
+      <Color>SeaGreen</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>0</HalfLife>
+      <Intencity>4.99</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>3000</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>3000</PeakEnergy>
+      <LowerLimit>-100</LowerLimit>
+      <UpperLimit>-100</UpperLimit>
+      <Color>SeaGreen</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>0</HalfLife>
+      <Intencity>4.15</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>4000</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>4000</PeakEnergy>
+      <LowerLimit>-100</LowerLimit>
+      <UpperLimit>-100</UpperLimit>
+      <Color>SeaGreen</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>0</HalfLife>
+      <Intencity>3.07</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>5000</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>5000</PeakEnergy>
+      <LowerLimit>-100</LowerLimit>
+      <UpperLimit>-100</UpperLimit>
+      <Color>SeaGreen</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>0</HalfLife>
+      <Intencity>2.54</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>6000</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>6000</PeakEnergy>
+      <LowerLimit>-100</LowerLimit>
+      <UpperLimit>-100</UpperLimit>
+      <Color>SeaGreen</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>0</HalfLife>
+      <Intencity>1.98</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>7000</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>7000</PeakEnergy>
+      <LowerLimit>-100</LowerLimit>
+      <UpperLimit>-100</UpperLimit>
+      <Color>SeaGreen</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>0</HalfLife>
+      <Intencity>1.7</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>8000</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>8000</PeakEnergy>
+      <LowerLimit>-100</LowerLimit>
+      <UpperLimit>-100</UpperLimit>
+      <Color>SeaGreen</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>0</HalfLife>
+      <Intencity>1.59</Intencity>
+      <Note />
+      <ROIPrimitives />
+    </ROIDefinitionData>
+  </ROIDefinitions>
+  <Note />
+</ROIConfigData>

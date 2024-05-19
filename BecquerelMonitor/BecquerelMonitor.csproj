@@ -522,6 +522,12 @@
     </Compile>
     <Compile Include="ROISimpleDifferenceData.cs" />
     <Compile Include="SampleInfoData.cs" />
+    <Compile Include="SelectROIDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SelectROIDialog.Designer.cs">
+      <DependentUpon>SelectROIDialog.cs</DependentUpon>
+    </Compile>
     <Compile Include="SerialInputDeviceConfig.cs" />
     <Compile Include="SerializableColor.cs" />
     <Compile Include="ShowEnergyCalibrationViewEventArgs.cs" />
@@ -1036,6 +1042,12 @@
       <LastGenOutput>ROISimpleDifferenceControl.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="ROISimpleDifferenceControl.ru.resx" />
+    <EmbeddedResource Include="SelectROIDialog.resx">
+      <DependentUpon>SelectROIDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SelectROIDialog.ru.resx">
+      <DependentUpon>SelectROIDialog.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="SpectrumCutOffDialog.resx">
       <DependentUpon>SpectrumCutOffDialog.cs</DependentUpon>
     </EmbeddedResource>

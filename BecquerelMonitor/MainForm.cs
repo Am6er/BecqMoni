@@ -1300,6 +1300,44 @@ namespace BecquerelMonitor
             this.UpdateAllView();
         }
 
+        void NormalizeSpectrum(DocEnergySpectrum docEnergySpectrum)
+        {
+            ROIConfigData rOIConfigData = docEnergySpectrum.ActiveResultData.ROIConfig;
+
+            if (rOIConfigData == null || rOIConfigData.Guid == null)
+            {
+                using (SelectROIDialog dialog = new SelectROIDialog(this))
+                {
+                    dialog.ShowDialog();
+                    string roiGUID = dialog.SendData();
+                    if (roiGUID == null) return;
+                    rOIConfigData = roiConfigManager.ROIConfigMap[roiGUID];
+                }
+            }
+            if (rOIConfigData == null || rOIConfigData.Guid == null) return;
+
+            CreateDocument();
+            this.activeDocument.ActiveResultData.EnergySpectrum = SpectrumAriphmetics.NormalizeSpectrum(docEnergySpectrum.ActiveResultData.EnergySpectrum, rOIConfigData);
+            this.activeDocument.ActiveResultData.DeviceConfigReference = null;
+            this.activeDocument.ActiveResultData.DeviceConfig = new DeviceConfigInfo();
+            if (docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum != null && docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum.MeasurementTime != 0)
+            {
+                this.activeDocument.ActiveResultData.BackgroundEnergySpectrum = SpectrumAriphmetics.NormalizeSpectrum(docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum, rOIConfigData);
+                this.activeDocument.ActiveResultData.BackgroundSpectrumFile = docEnergySpectrum.ActiveResultData.BackgroundSpectrumFile;
+            }
+            this.activeDocument.ActiveResultData.ResultDataStatus = docEnergySpectrum.ActiveResultData.ResultDataStatus.Clone();
+            this.activeDocument.ActiveResultData.PresetTime = docEnergySpectrum.ActiveResultData.PresetTime;
+            this.activeDocument.ActiveResultData.EndTime = docEnergySpectrum.ActiveResultData.EndTime;
+            this.activeDocument.ActiveResultData.PulseCollection = docEnergySpectrum.ActiveResultData.PulseCollection.Clone();
+            this.activeDocument.ActiveResultData.SampleInfo = docEnergySpectrum.ActiveResultData.SampleInfo;
+            this.activeDocument.ActiveResultData.StartTime = docEnergySpectrum.ActiveResultData.StartTime;
+            this.activeDocument.ActiveResultData.ROIConfigReference = null;
+            this.activeDocument.ActiveResultData.ROIConfig = null;
+
+            this.activeDocument.Dirty = true;
+            this.UpdateAllView();
+        }
+
         // Token: 0x06000A75 RID: 2677 RVA: 0x0003E3E8 File Offset: 0x0003C5E8
         void CloseActiveDocument()
         {
@@ -1504,6 +1542,7 @@ namespace BecquerelMonitor
                 this.デ\u30FCタ消去CToolStripMenuItem.Enabled = false;
                 this.ConcatSpectrumsStripMenuItem.Enabled = false;
                 this.CutoffStripMenuItem.Enabled = false;
+                this.NormalizeSpectrumStripMenuItem.Enabled = false;
                 this.AutoSaveStripMenuItem.Enabled = false;
                 this.toolStripMenuItem1.Enabled = false;
                 return;
@@ -1514,6 +1553,7 @@ namespace BecquerelMonitor
             this.CombineSpectrasToolStripMenuItem.Enabled = enabled;
             this.ConcatSpectrumsStripMenuItem.Enabled = enabled;
             this.CutoffStripMenuItem.Enabled = enabled;
+            this.NormalizeSpectrumStripMenuItem.Enabled = enabled;
             this.AutoSaveStripMenuItem.Enabled = enabled;
             this.AutoSaveStripMenuItem.Checked = this.activeDocument.AutoSave;
             this.toolStripMenuItem1.Enabled = enabled;
@@ -2264,6 +2304,16 @@ namespace BecquerelMonitor
         {
             this.SaveSpectrumToFile(this.activeDocument);
         }
+
+        void NormalizeSpectrumStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (this.activeDocument == null)
+            {
+                return;
+            }
+            NormalizeSpectrum(this.activeDocument);
+        }
+
 
         void ConcatSpectrumsStripMenuItem_Click(object sender, EventArgs e)
         {
