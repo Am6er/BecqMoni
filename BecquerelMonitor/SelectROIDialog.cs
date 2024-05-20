@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Windows.UI.Notifications;
 
 namespace BecquerelMonitor
 {
@@ -17,6 +18,7 @@ namespace BecquerelMonitor
         string returnGUID = null;
         readonly ROIConfigManager ROIConfigManager;
         readonly List<ROIConfigData> ROIConfigDatas;
+        DeviceConfigManager deviceConfigManager;
 
 
         public SelectROIDialog()
@@ -29,9 +31,23 @@ namespace BecquerelMonitor
             InitializeComponent();
             this.mainForm = (MainForm)mainForm;
             this.Icon = Resources.becqmoni;
+            this.deviceConfigManager = DeviceConfigManager.GetInstance();
             this.ROIConfigManager = ROIConfigManager.GetInstance();
             this.ROIConfigDatas = this.ROIConfigManager.ROIConfigList;
             base.SuspendLayout();
+            if (deviceConfigManager.DeviceConfigMap.ContainsKey(this.mainForm.ActiveDocument.ActiveResultData.DeviceConfigReference.Guid))
+            {
+                DeviceConfigInfo deviceConfigInfo = this.deviceConfigManager.DeviceConfigMap[this.mainForm.ActiveDocument.ActiveResultData.DeviceConfigReference.Guid];
+                if(deviceConfigInfo.EfficencyROIGuid != null && this.ROIConfigManager.ROIConfigMap.ContainsKey(deviceConfigInfo.EfficencyROIGuid))
+                {
+                    this.returnGUID = deviceConfigInfo.EfficencyROIGuid;
+                    Close();
+                }
+                this.checkBox1.Enabled = true;
+            } else
+            {
+                this.checkBox1.Enabled = false;
+            }
             FillROIConfigs();
             base.ResumeLayout();
         }
@@ -40,7 +56,7 @@ namespace BecquerelMonitor
         {
             if (ROIConfigDatas == null || ROIConfigDatas.Count == 0) return;
 
-            Parallel.For(0, ROIConfigDatas.Count, i => 
+            for(int i = 0; i < ROIConfigDatas.Count; i++) 
             {
                 int counterData = 0;
                 for (int j = 0; j < ROIConfigDatas[i].ROIDefinitions.Count; j++)
@@ -56,7 +72,7 @@ namespace BecquerelMonitor
                             }
                         }
                     }
-            });
+            }
         }
 
         public string SendData()
@@ -81,6 +97,13 @@ namespace BecquerelMonitor
                 if (ROIConfigDatas[i].Name == comboBox1.SelectedItem.ToString())
                 {
                     this.returnGUID = ROIConfigDatas[i].Guid;
+                    if (this.checkBox1.Checked)
+                    {
+                        DeviceConfigInfo deviceConfigInfo = this.deviceConfigManager.DeviceConfigMap[this.mainForm.ActiveDocument.ActiveResultData.DeviceConfigReference.Guid];
+                        deviceConfigInfo.EfficencyROIGuid = this.returnGUID;
+                        this.deviceConfigManager.SaveConfig(deviceConfigInfo);
+                    }
+                    
                     break;
                 }
             }

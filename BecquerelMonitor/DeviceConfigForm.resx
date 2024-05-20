@@ -712,7 +712,7 @@
     <value>471, 551</value>
   </data>
   <data name="tabPage4.Text" xml:space="preserve">
-    <value>Background</value>
+    <value>References</value>
   </data>
   <data name="&gt;&gt;label28.ZOrder" xml:space="preserve">
     <value>7</value>
@@ -2945,5 +2945,86 @@
   </data>
   <data name="textBox16.Multiline" type="System.Boolean, mscorlib">
     <value>True</value>
+  </data>
+  <data name="effROIText.Location" type="System.Drawing.Point, System.Drawing">
+    <value>15, 113</value>
+  </data>
+  <data name="effROIText.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Top, Left, Right</value>
+  </data>
+  <data name="effROIText.Size" type="System.Drawing.Size, System.Drawing">
+    <value>448, 16</value>
+  </data>
+  <data name="effROIText.Text" xml:space="preserve">
+    <value>Select ROI with efficiency curve data:</value>
+  </data>
+  <data name="effROIText.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
+    <value>Center</value>
+  </data>
+  <data name="&gt;&gt;effROIText.Parent" xml:space="preserve">
+    <value>tabPage4</value>
+  </data>
+  <data name="effROIText.TabIndex" type="System.Int32, mscorlib">
+    <value>40</value>
+  </data>
+  <data name="&gt;&gt;effROIText.ZOrder" xml:space="preserve">
+    <value>6</value>
+  </data>
+  <data name="&gt;&gt;effROIText.Name" xml:space="preserve">
+    <value>effROIText</value>
+  </data>
+  <data name="&gt;&gt;effROIText.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="effROIText.Multiline" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="clearEffROI.TabIndex" type="System.Int32, mscorlib">
+    <value>50</value>
+  </data>
+  <data name="&gt;&gt;clearEffROI.Parent" xml:space="preserve">
+    <value>tabPage4</value>
+  </data>
+  <data name="clearEffROI.Text" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="clearEffROI.Size" type="System.Drawing.Size, System.Drawing">
+    <value>65, 23</value>
+  </data>
+  <data name="&gt;&gt;clearEffROI.Name" xml:space="preserve">
+    <value>clearEffROI</value>
+  </data>
+  <data name="&gt;&gt;clearEffROI.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;clearEffROI.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="clearEffROI.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="clearEffROI.Location" type="System.Drawing.Point, System.Drawing">
+    <value>328, 131</value>
+  </data>
+   <data name="selectEffROI.Size" type="System.Drawing.Size, System.Drawing">
+    <value>288, 21</value>
+  </data>
+  <data name="&gt;&gt;selectEffROI.ZOrder" xml:space="preserve">
+    <value>11</value>
+  </data>
+  <data name="selectEffROI.Location" type="System.Drawing.Point, System.Drawing">
+    <value>30, 133</value>
+  </data>
+  <data name="selectEffROI.TabIndex" type="System.Int32, mscorlib">
+    <value>9</value>
+  </data>
+  <data name="&gt;&gt;selectEffROI.Name" xml:space="preserve">
+    <value>selectEffROI</value>
+  </data>
+  <data name="&gt;&gt;selectEffROI.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;selectEffROI.Parent" xml:space="preserve">
+    <value>tabPage4</value>
   </data>
 </root>

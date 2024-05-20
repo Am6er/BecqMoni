@@ -8,6 +8,7 @@ using System.Drawing;
 using System.IO;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using XPTable.Editors;
 using XPTable.Events;
@@ -544,6 +545,39 @@ namespace BecquerelMonitor
             
 
             this.textBox17.Text = config.BackgroundSpectrumPathname;
+
+            List<ROIConfigData> rOIConfigDatas = ROIConfigManager.GetInstance().ROIConfigList;
+            if (rOIConfigDatas != null || rOIConfigDatas.Count > 0) 
+            {
+                string roiName = null;
+                if (config.EfficencyROIGuid != null && ROIConfigManager.GetInstance().ROIConfigMap.ContainsKey(config.EfficencyROIGuid))
+                {
+                    roiName = ROIConfigManager.GetInstance().ROIConfigMap[config.EfficencyROIGuid].Name;
+                }
+
+                selectEffROI.Items.Clear();
+                selectEffROI.SelectedIndex = -1;
+
+                for (int i = 0; i < rOIConfigDatas.Count; i++)
+                {
+                    int counterData = 0;
+                    for (int j = 0; j < rOIConfigDatas[i].ROIDefinitions.Count; j++)
+                    {
+                        if (rOIConfigDatas[i].ROIDefinitions[j].PeakEnergy > 0 && rOIConfigDatas[i].ROIDefinitions[j].Intencity > 0)
+                        {
+                            counterData++;
+                            if (counterData > 2)
+                            {
+                                selectEffROI.Items.Add(rOIConfigDatas[i].Name);
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (roiName != null) selectEffROI.SelectedIndex = selectEffROI.Items.IndexOf(roiName);
+            }
+
             this.contentsLoading = false;
         }
 
@@ -1401,6 +1435,29 @@ namespace BecquerelMonitor
             }
             this.textBox17.Text = openFileDialog.FileName;
             this.SetActiveDeviceConfigDirty();
+        }
+
+        void clearEffROI_Click(object sender, EventArgs e)
+        {
+            this.activeDeviceConfig.EfficencyROIGuid = null;
+            this.selectEffROI.SelectedIndex = -1;
+            this.SetActiveDeviceConfigDirty();
+        }
+
+        void selectEffROI_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (this.selectEffROI.SelectedIndex < 0 || this.contentsLoading) return;
+            string roiName = this.selectEffROI.SelectedItem.ToString();
+            List<ROIConfigData> rOIConfigDatas = ROIConfigManager.GetInstance().ROIConfigList;
+            for (int i = 0; i < rOIConfigDatas.Count; i++)
+            {
+                if (rOIConfigDatas[i].Name == roiName)
+                {
+                    this.activeDeviceConfig.EfficencyROIGuid = rOIConfigDatas[i].Guid;
+                    this.SetActiveDeviceConfigDirty();
+                    break;
+                }
+            }
         }
 
         // Token: 0x06000532 RID: 1330 RVA: 0x00021958 File Offset: 0x0001FB58

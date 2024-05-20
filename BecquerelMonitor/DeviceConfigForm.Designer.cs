@@ -142,6 +142,9 @@ namespace BecquerelMonitor
 			this.textColumn1 = new global::XPTable.Models.TextColumn();
 			this.textColumn2 = new global::XPTable.Models.TextColumn();
 			this.tableModel1 = new global::XPTable.Models.TableModel();
+			this.effROIText = new global::System.Windows.Forms.Label();
+			this.selectEffROI = new global::System.Windows.Forms.ComboBox();
+			this.clearEffROI = new global::System.Windows.Forms.Button();
 			this.tabControl1.SuspendLayout();
 			this.tabPage1.SuspendLayout();
 			this.tabPage2.SuspendLayout();
@@ -674,7 +677,10 @@ namespace BecquerelMonitor
 			this.tabPage4.Controls.Add(this.button7);
 			this.tabPage4.Controls.Add(this.label23);
 			this.tabPage4.Controls.Add(this.textBox17);
-			this.tabPage4.Name = "tabPage4";
+			this.tabPage4.Controls.Add(this.effROIText);
+            this.tabPage4.Controls.Add(this.selectEffROI);
+			this.tabPage4.Controls.Add(this.clearEffROI);
+            this.tabPage4.Name = "tabPage4";
 			resources.ApplyResources(this.label31, "label31");
 			this.label31.Name = "label31";
 			resources.ApplyResources(this.label16, "label16");
@@ -685,7 +691,18 @@ namespace BecquerelMonitor
 			this.button7.Click += new global::System.EventHandler(this.button7_Click);
 			resources.ApplyResources(this.label23, "label23");
 			this.label23.Name = "label23";
-			resources.ApplyResources(this.textBox17, "textBox17");
+            resources.ApplyResources(this.effROIText, "effROIText");
+            this.effROIText.Name = "effROIText";
+            resources.ApplyResources(this.clearEffROI, "clearEffROI");
+            this.clearEffROI.Name = "clearEffROI";
+            this.clearEffROI.UseVisualStyleBackColor = true;
+            this.clearEffROI.Click += new global::System.EventHandler(this.clearEffROI_Click);
+            resources.ApplyResources(this.selectEffROI, "selectEffROI");
+            this.selectEffROI.DropDownStyle = global::System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.selectEffROI.FormattingEnabled = true;
+            this.selectEffROI.Name = "selectEffROI";
+            this.selectEffROI.SelectedIndexChanged += new global::System.EventHandler(this.selectEffROI_SelectedIndexChanged);
+            resources.ApplyResources(this.textBox17, "textBox17");
 			this.textBox17.Name = "textBox17";
 			this.textBox17.TextChanged += new global::System.EventHandler(this.textBox17_TextChanged);
 			resources.ApplyResources(this.button12, "button12");
@@ -1088,5 +1105,8 @@ namespace BecquerelMonitor
         global::XPTable.Models.NumberColumn numberColumn6;
         global::XPTable.Models.NumberColumn numberColumn7;
         global::XPTable.Models.NumberColumn numberColumn8;
+		global::System.Windows.Forms.Label effROIText;
+		global::System.Windows.Forms.Button clearEffROI;
+		global::System.Windows.Forms.ComboBox selectEffROI;
     }
 }

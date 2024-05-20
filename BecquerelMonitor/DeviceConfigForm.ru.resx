@@ -1492,7 +1492,7 @@
     <value>Особенности устройства</value>
   </data>
   <data name="tabPage4.Text" xml:space="preserve">
-    <value>Фон</value>
+    <value>Ссылки</value>
   </data>
   <data name="tabPage5.Text" xml:space="preserve">
     <value>Анализ</value>
@@ -1553,5 +1553,11 @@
   </data>
   <data name="button16.Text" xml:space="preserve">
     <value>Удалить</value>
+  </data>
+  <data name="effROIText.Text" xml:space="preserve">
+    <value>Выберите ROI с данными по кривой эффективности:</value>
+  </data>
+  <data name="clearEffROI.Text" xml:space="preserve">
+    <value>Очистить</value>
   </data>
 </root>
