@@ -624,6 +624,24 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to EffCalcMC.txt|EffCalcMC.txt.
+        /// </summary>
+        internal static string EffCalcMCFileFilter {
+            get {
+                return ResourceManager.GetString("EffCalcMCFileFilter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to LSRM EffCalcMC.txt -&gt; ROI.
+        /// </summary>
+        internal static string EffCalcMCImportDialogTitle {
+            get {
+                return ResourceManager.GetString("EffCalcMCImportDialogTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Empty device list! You should add new device first!.
         /// </summary>
         internal static string EmptyDeviceList {
@@ -868,6 +886,15 @@ namespace BecquerelMonitor.Properties {
         internal static string ERREmptyRadiaCodeData {
             get {
                 return ResourceManager.GetString("ERREmptyRadiaCodeData", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Empty ROI config name.
+        /// </summary>
+        internal static string ERREmptyROIConfigName {
+            get {
+                return ResourceManager.GetString("ERREmptyROIConfigName", resourceCulture);
             }
         }
         
@@ -2141,6 +2168,15 @@ namespace BecquerelMonitor.Properties {
         internal static string RestartRequiredMessage {
             get {
                 return ResourceManager.GetString("RestartRequiredMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ROI efficiency curve imported successfully.
+        /// </summary>
+        internal static string ROICreationSucces {
+            get {
+                return ResourceManager.GetString("ROICreationSucces", resourceCulture);
             }
         }
         

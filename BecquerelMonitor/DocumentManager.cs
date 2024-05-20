@@ -3,6 +3,7 @@ using BecquerelMonitor.Properties;
 using BecquerelMonitor.Utils;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -1000,10 +1001,7 @@ namespace BecquerelMonitor
                 {
                     while (streamReader.Peek() != -1)
                     {
-                        string[] array = streamReader.ReadLine().Split(new char[]
-                        {
-                            ','
-                        });
+                        string[] array = streamReader.ReadLine().Split(new char[] { ',' });
                         if (array.Length >= 2)
                         {
                             int.Parse(array[0]);

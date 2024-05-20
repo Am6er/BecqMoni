@@ -41933,4 +41933,16 @@ see peak in spectrum now).</value>
   <data name="NotDetected" xml:space="preserve">
     <value>Not detected</value>
   </data>
+  <data name="EffCalcMCFileFilter" xml:space="preserve">
+    <value>EffCalcMC.txt|EffCalcMC.txt</value>
+  </data>
+  <data name="EffCalcMCImportDialogTitle" xml:space="preserve">
+    <value>LSRM EffCalcMC.txt -&gt; ROI</value>
+  </data>
+  <data name="ROICreationSucces" xml:space="preserve">
+    <value>ROI efficiency curve imported successfully</value>
+  </data>
+  <data name="ERREmptyROIConfigName" xml:space="preserve">
+    <value>Empty ROI config name</value>
+  </data>
 </root>

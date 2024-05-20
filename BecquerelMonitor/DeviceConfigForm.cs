@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Windows.UI.Xaml.Controls.Maps;
 using XPTable.Editors;
 using XPTable.Events;
 using XPTable.Models;
@@ -549,14 +550,15 @@ namespace BecquerelMonitor
             List<ROIConfigData> rOIConfigDatas = ROIConfigManager.GetInstance().ROIConfigList;
             if (rOIConfigDatas != null || rOIConfigDatas.Count > 0) 
             {
-                string roiName = null;
-                if (config.EfficencyROIGuid != null && ROIConfigManager.GetInstance().ROIConfigMap.ContainsKey(config.EfficencyROIGuid))
-                {
-                    roiName = ROIConfigManager.GetInstance().ROIConfigMap[config.EfficencyROIGuid].Name;
-                }
-
+                effROIdic.Clear();
                 selectEffROI.Items.Clear();
                 selectEffROI.SelectedIndex = -1;
+
+                string roiGuid = null;
+                if (config.EfficencyROIGuid != null && ROIConfigManager.GetInstance().ROIConfigMap.ContainsKey(config.EfficencyROIGuid))
+                {
+                    roiGuid = ROIConfigManager.GetInstance().ROIConfigMap[config.EfficencyROIGuid].Guid;
+                }
 
                 for (int i = 0; i < rOIConfigDatas.Count; i++)
                 {
@@ -569,13 +571,17 @@ namespace BecquerelMonitor
                             if (counterData > 2)
                             {
                                 selectEffROI.Items.Add(rOIConfigDatas[i].Name);
+                                effROIdic.Add(selectEffROI.Items.Count - 1, rOIConfigDatas[i].Guid);
+                                if (roiGuid != null && rOIConfigDatas[i].Guid == roiGuid)
+                                {
+                                    selectEffROI.SelectedIndex = selectEffROI.Items.Count - 1;
+                                }
                                 break;
                             }
                         }
                     }
                 }
 
-                if (roiName != null) selectEffROI.SelectedIndex = selectEffROI.Items.IndexOf(roiName);
             }
 
             this.contentsLoading = false;
@@ -1447,16 +1453,9 @@ namespace BecquerelMonitor
         void selectEffROI_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (this.selectEffROI.SelectedIndex < 0 || this.contentsLoading) return;
-            string roiName = this.selectEffROI.SelectedItem.ToString();
-            List<ROIConfigData> rOIConfigDatas = ROIConfigManager.GetInstance().ROIConfigList;
-            for (int i = 0; i < rOIConfigDatas.Count; i++)
-            {
-                if (rOIConfigDatas[i].Name == roiName)
-                {
-                    this.activeDeviceConfig.EfficencyROIGuid = rOIConfigDatas[i].Guid;
-                    this.SetActiveDeviceConfigDirty();
-                    break;
-                }
+            if (this.effROIdic.TryGetValue(this.selectEffROI.SelectedIndex, out string roiGuid)) {
+                this.activeDeviceConfig.EfficencyROIGuid = roiGuid;
+                this.SetActiveDeviceConfigDirty();
             }
         }
 
@@ -2101,5 +2100,7 @@ namespace BecquerelMonitor
         int selectedThermometerIndex = -1;
 
         PolynomialEnergyCalibration rc_EnergyCalibration;
+
+        Dictionary<int, string> effROIdic = new Dictionary<int, string>();
     }
 }
