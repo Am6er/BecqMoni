@@ -318,6 +318,18 @@ namespace BecquerelMonitor
             }
         }
 
+        public string EfficencyROIGuid
+        {
+            get
+            {
+                return this.efficencyROIGuid;
+            }
+            set
+            {
+                this.efficencyROIGuid = value;
+            }
+        }
+
         // Token: 0x1700033B RID: 827
         // (get) Token: 0x06000C21 RID: 3105 RVA: 0x00048224 File Offset: 0x00046424
         // (set) Token: 0x06000C22 RID: 3106 RVA: 0x0004822C File Offset: 0x0004642C
@@ -382,6 +394,10 @@ namespace BecquerelMonitor
             }
             this.peakDetectionMethodConfig = info.peakDetectionMethodConfig.Clone();
             this.backgroundSpectrumPathname = string.Copy(info.backgroundSpectrumPathname);
+            if (info.efficencyROIGuid != null)
+            {
+                this.efficencyROIGuid = string.Copy(info.efficencyROIGuid);
+            }
         }
 
         // Token: 0x06000C26 RID: 3110 RVA: 0x0004854C File Offset: 0x0004674C
@@ -510,5 +526,7 @@ namespace BecquerelMonitor
 
         // Token: 0x040007A2 RID: 1954
         string backgroundSpectrumPathname = "";
+
+        string efficencyROIGuid;
     }
 }

@@ -1302,9 +1302,19 @@ namespace BecquerelMonitor
 
         void NormalizeSpectrum(DocEnergySpectrum docEnergySpectrum)
         {
-            ROIConfigData rOIConfigData = docEnergySpectrum.ActiveResultData.ROIConfig;
+            ROIConfigData rOIConfigData = null;
+            DeviceConfigInfo deviceConfigInfo = null;
 
-            if (rOIConfigData == null || rOIConfigData.Guid == null)
+            if (this.deviceConfigManager.DeviceConfigMap.ContainsKey(this.ActiveDocument.ActiveResultData.DeviceConfigReference.Guid))
+            {
+                deviceConfigInfo = this.deviceConfigManager.DeviceConfigMap[this.ActiveDocument.ActiveResultData.DeviceConfigReference.Guid];
+            }
+
+            if (deviceConfigInfo != null && deviceConfigInfo.EfficencyROIGuid != null &&
+                ROIConfigManager.GetInstance().ROIConfigMap.ContainsKey(deviceConfigInfo.EfficencyROIGuid))
+            {
+                rOIConfigData = roiConfigManager.ROIConfigMap[deviceConfigInfo.EfficencyROIGuid];
+            } else
             {
                 using (SelectROIDialog dialog = new SelectROIDialog(this))
                 {
@@ -1314,9 +1324,13 @@ namespace BecquerelMonitor
                     rOIConfigData = roiConfigManager.ROIConfigMap[roiGUID];
                 }
             }
+
+
             if (rOIConfigData == null || rOIConfigData.Guid == null) return;
 
             CreateDocument();
+            this.activeDocument.ActiveResultData.ROIConfigReference = null;
+            this.activeDocument.ActiveResultData.ROIConfig = null;
             this.activeDocument.ActiveResultData.EnergySpectrum = SpectrumAriphmetics.NormalizeSpectrum(docEnergySpectrum.ActiveResultData.EnergySpectrum, rOIConfigData);
             this.activeDocument.ActiveResultData.DeviceConfigReference = null;
             this.activeDocument.ActiveResultData.DeviceConfig = new DeviceConfigInfo();
@@ -1331,8 +1345,7 @@ namespace BecquerelMonitor
             this.activeDocument.ActiveResultData.PulseCollection = docEnergySpectrum.ActiveResultData.PulseCollection.Clone();
             this.activeDocument.ActiveResultData.SampleInfo = docEnergySpectrum.ActiveResultData.SampleInfo;
             this.activeDocument.ActiveResultData.StartTime = docEnergySpectrum.ActiveResultData.StartTime;
-            this.activeDocument.ActiveResultData.ROIConfigReference = null;
-            this.activeDocument.ActiveResultData.ROIConfig = null;
+
 
             this.activeDocument.Dirty = true;
             this.UpdateAllView();
