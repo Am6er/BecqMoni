@@ -312,6 +312,9 @@
   <data name="ERREmptyRadiaCodeData" xml:space="preserve">
     <value>Отсутствуют данные об устройстве RadiaCode, нечего проверять. Нажмите кнопку "Scan BLE", выберите своё устройство и сохраните конфиг.</value>
   </data>
+  <data name="ERREmptyROIConfigName" xml:space="preserve">
+    <value>Пустое имя для конфига ROI</value>
+  </data>
   <data name="ERRExcelNotInstalled" xml:space="preserve">
     <value>MS Excell не установлен</value>
   </data>
@@ -664,6 +667,9 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="RestartRequiredMessage" xml:space="preserve">
     <value>Перезагрузите приложение для применения настроек.</value>
+  </data>
+  <data name="ROICreationSucces" xml:space="preserve">
+    <value>Кривая эффективности импортирована в ROI успешно</value>
   </data>
   <data name="ROIPrimitiveOperationTypeAddition" xml:space="preserve">
     <value>Дополнение</value>

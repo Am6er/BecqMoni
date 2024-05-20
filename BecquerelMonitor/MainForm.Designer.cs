@@ -62,7 +62,8 @@ namespace BecquerelMonitor
 			this.cSVFileToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.エクスポ\u30FCトEToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.cSVCToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.ECSVToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.EffCalcMCFileToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+            this.ECSVToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.fWHM用ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSeparator1 = new global::System.Windows.Forms.ToolStripSeparator();
 			this.終了XToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
@@ -188,7 +189,8 @@ namespace BecquerelMonitor
 				this.AtomSpectraStripMenuItem,
 				this.N42StripMenuItem,
 				this.cSVFileToolStripMenuItem,
-				this.ベクモニ旧形式v093bToolStripMenuItem
+				this.EffCalcMCFileToolStripMenuItem,
+                this.ベクモニ旧形式v093bToolStripMenuItem
 			});
 			this.インポ\u30FCトIToolStripMenuItem.Name = "インポートIToolStripMenuItem";
 			resources.ApplyResources(this.ベクモニ旧形式v093bToolStripMenuItem, "ベクモニ旧形式v093bToolStripMenuItem");
@@ -203,7 +205,10 @@ namespace BecquerelMonitor
 			resources.ApplyResources(this.cSVFileToolStripMenuItem, "cSVFileToolStripMenuItem");
 			this.cSVFileToolStripMenuItem.Name = "cSVFileToolStripMenuItem";
 			this.cSVFileToolStripMenuItem.Click += new global::System.EventHandler(this.cSVファイルCToolStripMenuItem_Click);
-			resources.ApplyResources(this.エクスポ\u30FCトEToolStripMenuItem, "エクスポートEToolStripMenuItem");
+            resources.ApplyResources(this.EffCalcMCFileToolStripMenuItem, "EffCalcMCFileToolStripMenuItem");
+            this.EffCalcMCFileToolStripMenuItem.Name = "EffCalcMCFileToolStripMenuItem";
+            this.EffCalcMCFileToolStripMenuItem.Click += new global::System.EventHandler(this.EffCalcMCFileToolStripMenuItem_Click);
+            resources.ApplyResources(this.エクスポ\u30FCトEToolStripMenuItem, "エクスポートEToolStripMenuItem");
 			this.エクスポ\u30FCトEToolStripMenuItem.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
 				this.N42ExpStripMenuItem,
@@ -675,8 +680,10 @@ namespace BecquerelMonitor
 		// Token: 0x040005AF RID: 1455
 		global::System.Windows.Forms.ToolStripMenuItem 測定停止TToolStripMenuItem;
 
-		// Token: 0x040005B0 RID: 1456
-		global::System.Windows.Forms.ToolStripMenuItem デ\u30FCタ消去CToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem EffCalcMCFileToolStripMenuItem;
+
+        // Token: 0x040005B0 RID: 1456
+        global::System.Windows.Forms.ToolStripMenuItem デ\u30FCタ消去CToolStripMenuItem;
 
 		// Token: 0x040005B1 RID: 1457
 		global::System.Windows.Forms.ImageList imageList1;

@@ -2051,6 +2051,29 @@ namespace BecquerelMonitor
             }
         }
 
+        void EffCalcMCFileToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.Title = Resources.EffCalcMCImportDialogTitle;
+            openFileDialog.Filter = Resources.EffCalcMCFileFilter;
+            openFileDialog.FilterIndex = 1;
+            openFileDialog.RestoreDirectory = true;
+            if (openFileDialog.ShowDialog() != DialogResult.OK)
+            {
+                return;
+            }
+            using (EffCalcMCDialog dialog = new EffCalcMCDialog(this))
+            {
+                dialog.ShowDialog();
+                string roiName = dialog.SendData();
+                if (roiName == null) return;
+                if (this.roiConfigManager.ImportEffCalcMCtoROI(roiName, openFileDialog.FileName))
+                {
+                    MessageBox.Show(Resources.ROICreationSucces);
+                }
+            }
+        }
+
         // Token: 0x06000A92 RID: 2706 RVA: 0x0003F2C0 File Offset: 0x0003D4C0
         void cSVファイルCToolStripMenuItem_Click(object sender, EventArgs e)
         {
