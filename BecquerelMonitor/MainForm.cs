@@ -2069,6 +2069,10 @@ namespace BecquerelMonitor
                 if (roiName == null) return;
                 if (this.roiConfigManager.ImportEffCalcMCtoROI(roiName, openFileDialog.FileName))
                 {
+                    if (this.dcControlPanel != null)
+                    {
+                        this.dcControlPanel.UpdateROIConfigList();
+                    }
                     MessageBox.Show(Resources.ROICreationSucces);
                 }
             }

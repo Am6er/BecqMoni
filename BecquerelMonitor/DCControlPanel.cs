@@ -82,7 +82,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x0600028E RID: 654 RVA: 0x0000B548 File Offset: 0x00009748
-        void UpdateROIConfigList()
+        public void UpdateROIConfigList()
         {
             this.comboBox2.Items.Clear();
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
