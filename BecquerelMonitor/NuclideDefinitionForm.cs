@@ -63,6 +63,7 @@ namespace BecquerelMonitor
             this.textBox1.Text = nuclide.Name;
             this.doubleTextBox1.Text = nuclide.Energy.ToString();
             this.doubleTextBox2.Text = nuclide.HalfLife.ToString();
+            this.intensityTextBox.Text = nuclide.Intencity.ToString();
             this.textBox2.Text = nuclide.Note;
             this.colorComboBox1.SelectedColor = nuclide.NuclideColor.Color;
             this.checkBox1.Checked = nuclide.Visible;
@@ -78,6 +79,7 @@ namespace BecquerelMonitor
                 nuclide.Name = this.textBox1.Text;
                 nuclide.Energy = this.doubleTextBox1.GetValue();
                 nuclide.HalfLife = this.doubleTextBox2.GetValue();
+                nuclide.Intencity = this.intensityTextBox.GetValue();
                 nuclide.Note = this.textBox2.Text;
                 nuclide.NuclideColor.Color = this.colorComboBox1.SelectedColor;
                 nuclide.Visible = this.checkBox1.Checked;
@@ -277,6 +279,11 @@ namespace BecquerelMonitor
 
         // Token: 0x060000D4 RID: 212 RVA: 0x00004388 File Offset: 0x00002588
         void doubleTextBox1_TextChanged(object sender, EventArgs e)
+        {
+            this.SetActiveNuclideDirty();
+        }
+
+        void intensityTextBox_TextChanged(object sender, EventArgs e)
         {
             this.SetActiveNuclideDirty();
         }

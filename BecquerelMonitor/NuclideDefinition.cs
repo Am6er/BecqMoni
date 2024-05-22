@@ -120,6 +120,18 @@ namespace BecquerelMonitor
             }
         }
 
+        public double Intencity
+        {
+            get
+            {
+                return this.intensity;
+            }
+            set
+            {
+                this.intensity = value;
+            }
+        }
+
         // Token: 0x040009B1 RID: 2481
         string name = "";
 
@@ -136,6 +148,8 @@ namespace BecquerelMonitor
         bool dirty;
 
         bool visible = true;
+
+        double intensity = 0;
 
         SerializableColor nuclideColor = Color.Gray;
     }

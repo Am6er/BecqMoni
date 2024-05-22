@@ -429,4 +429,7 @@
   <data name="checkBox1.Text" xml:space="preserve">
     <value>Отображать</value>
   </data>
+    <data name="intensityLabel.Text" xml:space="preserve">
+    <value>Интенсивность</value>
+  </data>
 </root>

@@ -3306,6 +3306,7 @@ namespace BecquerelMonitor
                 double Lu = 0.0;
                 double Ld = 0.0;
                 double mda = 0.0;
+                double activity = 0.0;
                 double bg_counts_not_normalized = 0.0;
                 for (int i = start_channel; i <= end_channel; i++)
                 {
@@ -3355,6 +3356,29 @@ namespace BecquerelMonitor
                                     + (bg_counts_not_normalized / this.backgroundEnergySpectrum.MeasurementTime) * (1 / this.energySpectrum.MeasurementTime + 1 / this.backgroundEnergySpectrum.MeasurementTime)
                                     )
                                 );
+                            //calc activity
+                            if (this.peakMode == PeakMode.Visible && this.selectionFWHM > 0.0 && this.activeResultData.Visible && this.activeResultData.DeviceConfig.EfficencyROIGuid != null
+                                && ROIConfigManager.GetInstance().ROIConfigMap.ContainsKey(this.activeResultData.DeviceConfig.EfficencyROIGuid))
+                            {
+                                int number_of_peaks = 0;
+                                ROIConfigData rOIConfigData = ROIConfigManager.GetInstance().ROIConfigMap[this.activeResultData.DeviceConfig.EfficencyROIGuid];
+                                Peak detected_peak = null;
+                                foreach (Peak peak in this.activeResultData.DetectedPeaks)
+                                {
+                                    if (start_energy < peak.Energy && end_energy > peak.Energy)
+                                    {
+                                        number_of_peaks++;
+                                        detected_peak = peak;
+                                    }
+                                }
+                                if (number_of_peaks == 1 && detected_peak != null && detected_peak.Nuclide.Intencity > 0)
+                                {
+                                    SpectrumAriphmetics sa = new SpectrumAriphmetics(this.energySpectrum);
+                                    EnergySpectrum sub = sa.Substract(this.backgroundEnergySpectrum);
+                                    activity = SpectrumAriphmetics.CalcNormalizeCPS(sub, rOIConfigData, start_channel, end_channel) / (detected_peak.Nuclide.Intencity / 100.0);
+                                    sa.Dispose();
+                                } 
+                            }
                         }
 
                     }
@@ -3374,6 +3398,10 @@ namespace BecquerelMonitor
                 if (bg_counts > 0)
                 {
                     infopanel_height += 48;
+                }
+                if (this.selectionFWHM > 0.0 && activity > 0.0)
+                {
+                    infopanel_height += 22;
                 }
                 g.FillRectangle(Brushes.DarkGray, table_width_rel, num3, table_width_origin, infopanel_height);
                 g.FillRectangle(Brushes.White, table_width_rel - 3, num3 - 3, table_width_origin, infopanel_height);
@@ -3454,6 +3482,13 @@ namespace BecquerelMonitor
                     g.DrawString(Resources.Ld_counts + " (" + confidencelevel_str + ")", this.Font, Brushes.Black, r2);
                     g.DrawString(Ld.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
                     r2.Y += 16;
+                    if (this.selectionFWHM > 0.0 && activity > 0.0)
+                    {
+                        g.DrawString(Resources.Activity, this.Font, Brushes.Black, r2);
+                        g.DrawString(activity.ToString("f2") + " " + Resources.Bq,
+                            this.Font, Brushes.Black, r2, this.farFormat);
+                        r2.Y += 16;
+                    }
                     g.DrawString(Resources.MDA_cnts, this.Font, Brushes.Black, r2);
                     g.DrawString(mda.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
                     r2.Y += 22;
