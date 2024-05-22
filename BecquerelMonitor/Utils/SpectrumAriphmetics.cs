@@ -207,12 +207,18 @@ namespace BecquerelMonitor.Utils
 
             IInterpolation effCurve = Interpolate.CubicSplineMonotone(effEnergies, effValues);
             normalizedSpectrum.TotalPulseCount = 0;
-            Parallel.For(minChannel, maxChannel, i =>
+            Parallel.For(0, normalizedSpectrum.NumberOfChannels, i =>
             {
-                double enrg = normalizedSpectrum.EnergyCalibration.ChannelToEnergy(i);
-                normalizedSpectrum.Spectrum[i] = Convert.ToInt32(normalizedSpectrum.Spectrum[i] / effCurve.Interpolate(enrg));
-                if (normalizedSpectrum.Spectrum[i] < 0 || normalizedSpectrum.Spectrum[i] >= int.MaxValue) { normalizedSpectrum.Spectrum[i] = 0; }
-                normalizedSpectrum.TotalPulseCount += normalizedSpectrum.Spectrum[i];
+                if (i > maxChannel || i < minChannel)
+                {
+                    normalizedSpectrum.Spectrum[i] = 0;
+                } else
+                {
+                    double enrg = normalizedSpectrum.EnergyCalibration.ChannelToEnergy(i);
+                    normalizedSpectrum.Spectrum[i] = Convert.ToInt32(normalizedSpectrum.Spectrum[i] / effCurve.Interpolate(enrg));
+                    if (normalizedSpectrum.Spectrum[i] < 0 || normalizedSpectrum.Spectrum[i] >= int.MaxValue) { normalizedSpectrum.Spectrum[i] = 0; }
+                    normalizedSpectrum.TotalPulseCount += normalizedSpectrum.Spectrum[i];
+                }
             });
             normalizedSpectrum.ValidPulseCount = normalizedSpectrum.TotalPulseCount;
 
