@@ -183,26 +183,35 @@ namespace BecquerelMonitor.Utils
 
             List<double> effEnergies = new List<double>();
             List<double> effValues = new List<double>();
+            double maxEnergy = Double.MinValue;
+            double minEnergy = Double.MaxValue;
+
             roi.ROIDefinitions.ForEach(def =>
             {
                 if (def.PeakEnergy > 0 && def.Intencity > 0)
                 {
+                    if (def.PeakEnergy > maxEnergy) { maxEnergy = def.PeakEnergy; }
+                    if (def.PeakEnergy < minEnergy) { minEnergy = def.PeakEnergy; }
                     effEnergies.Add(def.PeakEnergy);
                     effValues.Add(def.Intencity / 100);
                 }
             });
 
-            if (effEnergies.Count < 2)
+            if (effEnergies.Count < 2 || maxEnergy <= minEnergy)
             {
                 return normalizedSpectrum;
             }
 
-            IInterpolation effCurve = Interpolate.CubicSplineMonotone(effEnergies, effValues);
+            int minChannel = (int)spectrum.EnergyCalibration.EnergyToChannel(minEnergy, maxChannels: normalizedSpectrum.NumberOfChannels);
+            int maxChannel = (int)spectrum.EnergyCalibration.EnergyToChannel(maxEnergy, maxChannels: normalizedSpectrum.NumberOfChannels);
+
+            IInterpolation effCurve = Interpolate.Linear(effEnergies, effValues);
             normalizedSpectrum.TotalPulseCount = 0;
-            Parallel.For(0, normalizedSpectrum.NumberOfChannels, i =>
+            Parallel.For(minChannel, maxChannel, i =>
             {
                 double enrg = normalizedSpectrum.EnergyCalibration.ChannelToEnergy(i);
                 normalizedSpectrum.Spectrum[i] = Convert.ToInt32(normalizedSpectrum.Spectrum[i] / effCurve.Interpolate(enrg));
+                if (normalizedSpectrum.Spectrum[i] < 0 || normalizedSpectrum.Spectrum[i] >= int.MaxValue) { normalizedSpectrum.Spectrum[i] = 0; }
                 normalizedSpectrum.TotalPulseCount += normalizedSpectrum.Spectrum[i];
             });
             normalizedSpectrum.ValidPulseCount = normalizedSpectrum.TotalPulseCount;
