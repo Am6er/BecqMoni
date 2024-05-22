@@ -177,6 +177,48 @@ namespace BecquerelMonitor.Utils
             return substractedEnergySpectrum;
         }
 
+        public static double CalcNormalizeCPS(EnergySpectrum spectrum, ROIConfigData roi, int startCh, int endCh)
+        {
+
+            List<double> effEnergies = new List<double>();
+            List<double> effValues = new List<double>();
+            double maxEnergy = Double.MinValue;
+            double minEnergy = Double.MaxValue;
+
+            roi.ROIDefinitions.ForEach(def =>
+            {
+                if (def.PeakEnergy > 0 && def.Intencity > 0)
+                {
+                    if (def.PeakEnergy > maxEnergy) { maxEnergy = def.PeakEnergy; }
+                    if (def.PeakEnergy < minEnergy) { minEnergy = def.PeakEnergy; }
+                    effEnergies.Add(def.PeakEnergy);
+                    effValues.Add(def.Intencity / 100);
+                }
+            });
+
+            if (effEnergies.Count < 2 || maxEnergy <= minEnergy)
+            {
+                return 0;
+            }
+
+            int minChannel = (int)spectrum.EnergyCalibration.EnergyToChannel(minEnergy, maxChannels: spectrum.NumberOfChannels);
+            int maxChannel = (int)spectrum.EnergyCalibration.EnergyToChannel(maxEnergy, maxChannels: spectrum.NumberOfChannels);
+
+            IInterpolation effCurve = Interpolate.CubicSplineMonotone(effEnergies, effValues);
+            double result = 0;
+            Parallel.For(startCh, endCh, i =>
+            {
+                if (i < maxChannel && i > minChannel)
+                {
+                    double enrg = spectrum.EnergyCalibration.ChannelToEnergy(i);
+                    double res = Convert.ToInt32(spectrum.Spectrum[i] / effCurve.Interpolate(enrg));
+                    if (res > 0 && res < int.MaxValue) { result += res; }
+                }
+            });
+
+            return result / spectrum.MeasurementTime;
+        }
+
         public static EnergySpectrum NormalizeSpectrum(EnergySpectrum spectrum, ROIConfigData roi)
         {
             EnergySpectrum normalizedSpectrum = spectrum.Clone();

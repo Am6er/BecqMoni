@@ -70,6 +70,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Activity:.
+        /// </summary>
+        internal static string Activity {
+            get {
+                return ResourceManager.GetString("Activity", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to BecqMoni Nuclear Edition.
         /// </summary>
         internal static string ApplicationTitle {
@@ -198,6 +207,15 @@ namespace BecquerelMonitor.Properties {
         internal static string Bkg {
             get {
                 return ResourceManager.GetString("Bkg", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Bq.
+        /// </summary>
+        internal static string Bq {
+            get {
+                return ResourceManager.GetString("Bq", resourceCulture);
             }
         }
         

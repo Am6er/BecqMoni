@@ -41945,4 +41945,10 @@ see peak in spectrum now).</value>
   <data name="ERREmptyROIConfigName" xml:space="preserve">
     <value>Empty ROI config name</value>
   </data>
+  <data name="Activity" xml:space="preserve">
+    <value>Activity:</value>
+  </data>
+  <data name="Bq" xml:space="preserve">
+    <value>Bq</value>
+  </data>
 </root>

@@ -199,7 +199,7 @@
     <value>0</value>
   </data>
   <data name="label7.Location" type="System.Drawing.Point, System.Drawing">
-    <value>17, 131</value>
+    <value>17, 154</value>
   </data>
   <data name="label3.TabIndex" type="System.Int32, mscorlib">
     <value>19</value>
@@ -325,7 +325,7 @@
     <value>1</value>
   </data>
   <data name="textBox2.Location" type="System.Drawing.Point, System.Drawing">
-    <value>101, 128</value>
+    <value>101, 151</value>
   </data>
   <data name="doubleTextBox1.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
     <value>Right</value>
@@ -731,5 +731,83 @@
   </data>
   <data name="checkBox1.Location" type="System.Drawing.Point, System.Drawing">
     <value>101, 255</value>
+  </data>
+    <data name="intensityLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>17, 131</value>
+  </data>
+  <data name="intensityLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>35, 12</value>
+  </data>
+  <data name="intensityLabel.Text" xml:space="preserve">
+    <value>Intensity</value>
+  </data>
+  <data name="&gt;&gt;intensityLabel.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="&gt;&gt;intensityLabel.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="intensityLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="&gt;&gt;intensityLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;intensityLabel.Name" xml:space="preserve">
+    <value>intensityLabel</value>
+  </data>
+  <data name="intensityLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>24</value>
+  </data>
+  <data name="intensityTextBox.Size" type="System.Drawing.Size, System.Drawing">
+    <value>80, 19</value>
+  </data>
+  <data name="&gt;&gt;intensityTextBox.Name" xml:space="preserve">
+    <value>intensityTextBox</value>
+  </data>
+  <data name="&gt;&gt;intensityTextBox.Type" xml:space="preserve">
+    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitor, Version=0.9.9.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="intensityTextBox.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
+    <value>Right</value>
+  </data>
+  <data name="&gt;&gt;intensityTextBox.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;intensityTextBox.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="intensityTextBox.Location" type="System.Drawing.Point, System.Drawing">
+    <value>101, 129</value>
+  </data>
+  <data name="intensityTextBox.TabIndex" type="System.Int32, mscorlib">
+    <value>23</value>
+  </data>
+  <data name="intensitypercentLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>184, 131</value>
+  </data>
+  <data name="intensitypercentLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>35, 12</value>
+  </data>
+  <data name="intensitypercentLabel.Text" xml:space="preserve">
+    <value>%</value>
+  </data>
+  <data name="&gt;&gt;intensitypercentLabel.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="&gt;&gt;intensitypercentLabel.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="intensitypercentLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="&gt;&gt;intensitypercentLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;intensitypercentLabel.Name" xml:space="preserve">
+    <value>intensitypercentLabel</value>
+  </data>
+  <data name="intensitypercentLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>24</value>
   </data>
 </root>

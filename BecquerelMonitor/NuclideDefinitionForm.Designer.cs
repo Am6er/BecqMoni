@@ -37,7 +37,10 @@
 			this.label7 = new global::System.Windows.Forms.Label();
 			this.doubleTextBox2 = new global::BecquerelMonitor.DoubleTextBox();
 			this.doubleTextBox1 = new global::BecquerelMonitor.DoubleTextBox();
-			this.label6 = new global::System.Windows.Forms.Label();
+			this.intensityTextBox = new global::BecquerelMonitor.DoubleTextBox();
+			this.intensityLabel = new global::System.Windows.Forms.Label();
+			this.intensitypercentLabel = new global::System.Windows.Forms.Label();
+            this.label6 = new global::System.Windows.Forms.Label();
 			this.label4 = new global::System.Windows.Forms.Label();
 			this.label3 = new global::System.Windows.Forms.Label();
 			this.label2 = new global::System.Windows.Forms.Label();
@@ -111,7 +114,10 @@
 			this.tabPage1.Controls.Add(this.colorComboBox1);
 			this.tabPage1.Controls.Add(this.doubleTextBox2);
 			this.tabPage1.Controls.Add(this.doubleTextBox1);
-			this.tabPage1.Controls.Add(this.label6);
+            this.tabPage1.Controls.Add(this.intensityLabel);
+            this.tabPage1.Controls.Add(this.intensitypercentLabel);
+            this.tabPage1.Controls.Add(this.intensityTextBox);
+            this.tabPage1.Controls.Add(this.label6);
 			this.tabPage1.Controls.Add(this.label4);
 			this.tabPage1.Controls.Add(this.label3);
 			this.tabPage1.Controls.Add(this.label2);
@@ -137,6 +143,13 @@
 			resources.ApplyResources(this.doubleTextBox1, "doubleTextBox1");
 			this.doubleTextBox1.Name = "doubleTextBox1";
 			this.doubleTextBox1.TextChanged += new global::System.EventHandler(this.doubleTextBox1_TextChanged);
+            resources.ApplyResources(this.intensityTextBox, "intensityTextBox");
+            this.intensityTextBox.Name = "intensityTextBox";
+            this.intensityTextBox.TextChanged += new global::System.EventHandler(this.intensityTextBox_TextChanged);
+            resources.ApplyResources(this.intensityLabel, "intensityLabel");
+            this.intensityLabel.Name = "intensityLabel";
+            resources.ApplyResources(this.intensitypercentLabel, "intensitypercentLabel");
+            this.intensitypercentLabel.Name = "intensitypercentLabel";
             resources.ApplyResources(this.checkBox1, "checkBox1");
             this.checkBox1.Name = "checkBox1";
 			this.checkBox1.Checked = true;
@@ -221,8 +234,14 @@
 		// Token: 0x0400004C RID: 76
 		global::BecquerelMonitor.DoubleTextBox doubleTextBox1;
 
-		// Token: 0x0400004D RID: 77
-		global::System.Windows.Forms.Label label6;
+		global::BecquerelMonitor.DoubleTextBox intensityTextBox;
+
+		global::System.Windows.Forms.Label intensityLabel;
+
+        global::System.Windows.Forms.Label intensitypercentLabel;
+
+        // Token: 0x0400004D RID: 77
+        global::System.Windows.Forms.Label label6;
 
 		// Token: 0x0400004E RID: 78
 		global::System.Windows.Forms.Label label4;
