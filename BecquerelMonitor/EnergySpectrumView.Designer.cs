@@ -3151,7 +3151,7 @@ namespace BecquerelMonitor
 
         void ShowCursorValues(Graphics g)
         {
-            int table_width_origin = 200;
+            int table_width_origin = 230;
             int table_width_rel;
             if (this.cursorX < base.Width - (table_width_origin + 40))
             {
