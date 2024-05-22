@@ -730,7 +730,7 @@
     <value>True</value>
   </data>
   <data name="checkBox1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>101, 255</value>
+    <value>101, 278</value>
   </data>
     <data name="intensityLabel.Location" type="System.Drawing.Point, System.Drawing">
     <value>17, 131</value>
