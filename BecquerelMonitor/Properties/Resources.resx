@@ -41934,7 +41934,7 @@ see peak in spectrum now).</value>
     <value>Not detected</value>
   </data>
   <data name="EffCalcMCFileFilter" xml:space="preserve">
-    <value>EffCalcMC.txt|EffCalcMC.txt</value>
+    <value>EffCalcMC.txt|EffCalcMC.txt|*.txt|*.txt</value>
   </data>
   <data name="EffCalcMCImportDialogTitle" xml:space="preserve">
     <value>LSRM EffCalcMC.txt -&gt; ROI</value>

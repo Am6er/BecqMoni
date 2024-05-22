@@ -624,7 +624,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to EffCalcMC.txt|EffCalcMC.txt.
+        ///   Looks up a localized string similar to EffCalcMC.txt|EffCalcMC.txt|*.txt|*.txt.
         /// </summary>
         internal static string EffCalcMCFileFilter {
             get {
