@@ -205,7 +205,7 @@ namespace BecquerelMonitor.Utils
             int minChannel = (int)spectrum.EnergyCalibration.EnergyToChannel(minEnergy, maxChannels: normalizedSpectrum.NumberOfChannels);
             int maxChannel = (int)spectrum.EnergyCalibration.EnergyToChannel(maxEnergy, maxChannels: normalizedSpectrum.NumberOfChannels);
 
-            IInterpolation effCurve = Interpolate.Linear(effEnergies, effValues);
+            IInterpolation effCurve = Interpolate.CubicSplineMonotone(effEnergies, effValues);
             normalizedSpectrum.TotalPulseCount = 0;
             Parallel.For(minChannel, maxChannel, i =>
             {
