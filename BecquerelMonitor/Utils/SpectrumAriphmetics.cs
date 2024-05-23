@@ -185,14 +185,14 @@ namespace BecquerelMonitor.Utils
             double maxEnergy = Double.MinValue;
             double minEnergy = Double.MaxValue;
 
-            roi.ROIDefinitions.ForEach(def =>
+            roi.ROIEfficiency.ForEach(def =>
             {
-                if (def.PeakEnergy > 0 && def.Intencity > 0)
+                if (def.Energy > 0 && def.Efficiency > 0)
                 {
-                    if (def.PeakEnergy > maxEnergy) { maxEnergy = def.PeakEnergy; }
-                    if (def.PeakEnergy < minEnergy) { minEnergy = def.PeakEnergy; }
-                    effEnergies.Add(def.PeakEnergy);
-                    effValues.Add(def.Intencity / 100);
+                    if (def.Energy > maxEnergy) { maxEnergy = def.Energy; }
+                    if (def.Energy < minEnergy) { minEnergy = def.Energy; }
+                    effEnergies.Add(def.Energy);
+                    effValues.Add(def.Efficiency);
                 }
             });
 
@@ -228,14 +228,14 @@ namespace BecquerelMonitor.Utils
             double maxEnergy = Double.MinValue;
             double minEnergy = Double.MaxValue;
 
-            roi.ROIDefinitions.ForEach(def =>
+            roi.ROIEfficiency.ForEach(def =>
             {
-                if (def.PeakEnergy > 0 && def.Intencity > 0)
+                if (def.Energy > 0 && def.Efficiency > 0)
                 {
-                    if (def.PeakEnergy > maxEnergy) { maxEnergy = def.PeakEnergy; }
-                    if (def.PeakEnergy < minEnergy) { minEnergy = def.PeakEnergy; }
-                    effEnergies.Add(def.PeakEnergy);
-                    effValues.Add(def.Intencity / 100);
+                    if (def.Energy > maxEnergy) { maxEnergy = def.Energy; }
+                    if (def.Energy < minEnergy) { minEnergy = def.Energy; }
+                    effEnergies.Add(def.Energy);
+                    effValues.Add(def.Efficiency);
                 }
             });
 

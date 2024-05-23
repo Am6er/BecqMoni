@@ -562,22 +562,13 @@ namespace BecquerelMonitor
 
                 for (int i = 0; i < rOIConfigDatas.Count; i++)
                 {
-                    int counterData = 0;
-                    for (int j = 0; j < rOIConfigDatas[i].ROIDefinitions.Count; j++)
+                    if (rOIConfigDatas[i].HasEfficiency)
                     {
-                        if (rOIConfigDatas[i].ROIDefinitions[j].PeakEnergy > 0 && rOIConfigDatas[i].ROIDefinitions[j].Intencity > 0)
+                        selectEffROI.Items.Add(rOIConfigDatas[i].Name);
+                        effROIdic.Add(selectEffROI.Items.Count - 1, rOIConfigDatas[i].Guid);
+                        if (roiGuid != null && rOIConfigDatas[i].Guid == roiGuid)
                         {
-                            counterData++;
-                            if (counterData > 2)
-                            {
-                                selectEffROI.Items.Add(rOIConfigDatas[i].Name);
-                                effROIdic.Add(selectEffROI.Items.Count - 1, rOIConfigDatas[i].Guid);
-                                if (roiGuid != null && rOIConfigDatas[i].Guid == roiGuid)
-                                {
-                                    selectEffROI.SelectedIndex = selectEffROI.Items.Count - 1;
-                                }
-                                break;
-                            }
+                            selectEffROI.SelectedIndex = selectEffROI.Items.Count - 1;
                         }
                     }
                 }

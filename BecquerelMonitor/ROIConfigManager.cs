@@ -280,7 +280,7 @@ namespace BecquerelMonitor
 
         public bool ImportEffCalcMCtoROI(string ROIName, string filename)
         {
-            Dictionary<double, double> points = new Dictionary<double, double>();
+            List<ROIEfficiencyData> points = new List<ROIEfficiencyData>();
             try
             {
                 // read file
@@ -302,7 +302,12 @@ namespace BecquerelMonitor
                                     if (i > lineList.Count - 1) break;
                                 }
                             }
-                            points.Add(Convert.ToDouble(lineList[0]), Convert.ToDouble(lineList[1]));
+                            points.Add(new ROIEfficiencyData() 
+                            { 
+                                Energy = Convert.ToDouble(lineList[0]),
+                                Efficiency = Convert.ToDouble(lineList[1]),
+                                ErrorPercent = Convert.ToDouble(lineList[2])
+                            });
                         }
                     }
 
@@ -315,20 +320,7 @@ namespace BecquerelMonitor
                     roiconfigData.OriginalFilename = roiconfigData.Filename;
                     roiconfigData.LastUpdated = DateTime.Now;
                     roiconfigData.Dirty = false;
-                    foreach (KeyValuePair<double, double> point in points)
-                    {
-                        double energy = point.Key;
-                        double eff = point.Value;
-                        ROIDefinitionData rOIDefinitionData = new ROIDefinitionData();
-                        rOIDefinitionData.Name = energy.ToString();
-                        rOIDefinitionData.Enabled = true;
-                        rOIDefinitionData.PeakEnergy = energy;
-                        rOIDefinitionData.LowerLimit = -100;
-                        rOIDefinitionData.UpperLimit = -100;
-                        rOIDefinitionData.Intencity = eff * 100;
-                        rOIDefinitionData.Color = Color.Red;
-                        roiconfigData.ROIDefinitions.Add(rOIDefinitionData);
-                    }
+                    roiconfigData.ROIEfficiency = points;
                     string path = configROI + ROIName + ".xml";
                     using (FileStream fileStream = new FileStream(path, FileMode.Create))
                     {

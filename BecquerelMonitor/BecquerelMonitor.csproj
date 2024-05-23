@@ -506,6 +506,7 @@
       <DesignTime>True</DesignTime>
     </Compile>
     <Compile Include="ROICovellMethodData.cs" />
+    <Compile Include="ROIEfficiencyData.cs" />
     <Compile Include="ROIDefinitionData.cs" />
     <Compile Include="ROIPrimitiveControl.Designer.cs">
       <DependentUpon>ROIPrimitiveControl.resx</DependentUpon>
