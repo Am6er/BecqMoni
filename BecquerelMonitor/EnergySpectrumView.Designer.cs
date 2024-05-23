@@ -3485,10 +3485,19 @@ namespace BecquerelMonitor
                     r2.Y += 16;
                     if (this.selectionFWHM > 0.0 && activity > 0.0)
                     {
-                        g.DrawString(Resources.Activity, this.Font, Brushes.Black, r2);
-                        g.DrawString(activity.ToString("f2") + " " + Resources.Bq,
-                            this.Font, Brushes.Black, r2, this.farFormat);
-                        r2.Y += 16;
+                        if (net_counts < Lc)
+                        {
+                            g.DrawString(Resources.Activity + " " + Resources.Bq + ":", this.Font, Brushes.DarkRed, r2);
+                            g.DrawString("< " + (net_counts + net_counts_err).ToString("f2"),
+                                this.Font, Brushes.DarkRed, r2, this.farFormat);
+                            r2.Y += 16;
+                        } else
+                        {
+                            g.DrawString(Resources.Activity + " " + Resources.Bq + ":", this.Font, Brushes.Black, r2);
+                            g.DrawString(activity.ToString("f2") + " " + Resources.Bq,
+                                this.Font, Brushes.Black, r2, this.farFormat);
+                            r2.Y += 16;
+                        }
                     }
                     g.DrawString(Resources.MDA_cnts, this.Font, Brushes.Black, r2);
                     g.DrawString(mda.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
