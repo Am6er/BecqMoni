@@ -58,20 +58,11 @@ namespace BecquerelMonitor
 
             for(int i = 0; i < ROIConfigDatas.Count; i++) 
             {
-                int counterData = 0;
-                for (int j = 0; j < ROIConfigDatas[i].ROIDefinitions.Count; j++)
-                    {
-                        if (ROIConfigDatas[i].ROIDefinitions[j].PeakEnergy > 0 && ROIConfigDatas[i].ROIDefinitions[j].Intencity > 0)
-                        {
-                            counterData++;
-                            if (counterData > 2)
-                            {
-                                comboBox1.Items.Add(ROIConfigDatas[i].Name);
-                                if (comboBox1.SelectedIndex < 0) comboBox1.SelectedIndex = 0;
-                                break;
-                            }
-                        }
-                    }
+                if (ROIConfigDatas[i].HasEfficiency)
+                {
+                    comboBox1.Items.Add(ROIConfigDatas[i].Name);
+                    if (comboBox1.SelectedIndex < 0) comboBox1.SelectedIndex = 0;
+                }
             }
         }
 
