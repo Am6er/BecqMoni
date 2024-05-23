@@ -1310,19 +1310,12 @@ namespace BecquerelMonitor
                 deviceConfigInfo = this.deviceConfigManager.DeviceConfigMap[this.ActiveDocument.ActiveResultData.DeviceConfigReference.Guid];
             }
 
-            if (deviceConfigInfo != null && deviceConfigInfo.EfficencyROIGuid != null &&
-                ROIConfigManager.GetInstance().ROIConfigMap.ContainsKey(deviceConfigInfo.EfficencyROIGuid))
+            using (SelectROIDialog dialog = new SelectROIDialog(this))
             {
-                rOIConfigData = roiConfigManager.ROIConfigMap[deviceConfigInfo.EfficencyROIGuid];
-            } else
-            {
-                using (SelectROIDialog dialog = new SelectROIDialog(this))
-                {
-                    dialog.ShowDialog();
-                    string roiGUID = dialog.SendData();
-                    if (roiGUID == null) return;
-                    rOIConfigData = roiConfigManager.ROIConfigMap[roiGUID];
-                }
+                dialog.ShowDialog();
+                string roiGUID = dialog.SendData();
+                if (roiGUID == null) return;
+                rOIConfigData = roiConfigManager.ROIConfigMap[roiGUID];
             }
 
 
