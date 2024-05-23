@@ -3357,11 +3357,12 @@ namespace BecquerelMonitor
                                     )
                                 );
                             //calc activity
-                            if (this.peakMode == PeakMode.Visible && this.selectionFWHM > 0.0 && this.activeResultData.Visible && this.activeResultData.DeviceConfig.EfficencyROIGuid != null
-                                && ROIConfigManager.GetInstance().ROIConfigMap.ContainsKey(this.activeResultData.DeviceConfig.EfficencyROIGuid))
+                            if (this.peakMode == PeakMode.Visible && this.selectionFWHM > 0.0 &&
+                                this.activeResultData.Visible &&
+                                this.roiConfig != null && 
+                                this.roiConfig.HasEfficiency)
                             {
                                 int number_of_peaks = 0;
-                                ROIConfigData rOIConfigData = ROIConfigManager.GetInstance().ROIConfigMap[this.activeResultData.DeviceConfig.EfficencyROIGuid];
                                 Peak detected_peak = null;
                                 foreach (Peak peak in this.activeResultData.DetectedPeaks)
                                 {
@@ -3375,7 +3376,7 @@ namespace BecquerelMonitor
                                 {
                                     SpectrumAriphmetics sa = new SpectrumAriphmetics(this.energySpectrum);
                                     EnergySpectrum sub = sa.Substract(this.backgroundEnergySpectrum);
-                                    activity = SpectrumAriphmetics.CalcNormalizeCPS(sub, rOIConfigData, start_channel, end_channel) / (detected_peak.Nuclide.Intencity / 100.0);
+                                    activity = SpectrumAriphmetics.CalcNormalizeCPS(sub, this.roiConfig, start_channel, end_channel) / (detected_peak.Nuclide.Intencity / 100.0);
                                     sa.Dispose();
                                 } 
                             }
