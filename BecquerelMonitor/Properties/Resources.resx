@@ -41946,7 +41946,7 @@ see peak in spectrum now).</value>
     <value>Empty ROI config name</value>
   </data>
   <data name="Activity" xml:space="preserve">
-    <value>Activity:</value>
+    <value>Activity</value>
   </data>
   <data name="Bq" xml:space="preserve">
     <value>Bq</value>
