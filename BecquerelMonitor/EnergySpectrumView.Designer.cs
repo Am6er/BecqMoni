@@ -3376,7 +3376,7 @@ namespace BecquerelMonitor
                                 {
                                     SpectrumAriphmetics sa = new SpectrumAriphmetics(this.energySpectrum);
                                     EnergySpectrum sub = sa.Substract(this.backgroundEnergySpectrum);
-                                    activity = SpectrumAriphmetics.CalcNormalizeCPS(sub, this.roiConfig, start_channel, end_channel) / (detected_peak.Nuclide.Intencity / 100.0);
+                                    activity = SpectrumAriphmetics.CalcNormalizeCPS(sub, this.roiConfig, start_channel, end_channel, detected_peak) / (detected_peak.Nuclide.Intencity / 100.0);
                                     sa.Dispose();
                                 } 
                             }
