@@ -39,7 +39,8 @@ namespace BecquerelMonitor
             this.formLoading = true;
 
             // if ROI selected for that spectrum in Control panel, use it by default
-            if (this.mainForm.ActiveDocument.ActiveResultData.ROIConfigReference.Guid != null &&
+            if (this.mainForm.ActiveDocument.ActiveResultData.ROIConfigReference != null &&
+                this.mainForm.ActiveDocument.ActiveResultData.ROIConfigReference.Guid != null &&
                 this.ROIConfigManager.ROIConfigMap.ContainsKey(this.mainForm.ActiveDocument.ActiveResultData.ROIConfigReference.Guid) &&
                 this.ROIConfigManager.ROIConfigMap[this.mainForm.ActiveDocument.ActiveResultData.ROIConfigReference.Guid].HasEfficiency)
             {
