@@ -177,7 +177,7 @@ namespace BecquerelMonitor.Utils
             return substractedEnergySpectrum;
         }
 
-        public static double CalcNormalizeCPS(EnergySpectrum spectrum, ROIConfigData roi, int startCh, int endCh)
+        public static double CalcNormalizeCPS(EnergySpectrum spectrum, ROIConfigData roi, int startCh, int endCh, Peak peak)
         {
 
             List<double> effEnergies = new List<double>();
@@ -204,18 +204,17 @@ namespace BecquerelMonitor.Utils
             int minChannel = (int)spectrum.EnergyCalibration.EnergyToChannel(minEnergy, maxChannels: spectrum.NumberOfChannels);
             int maxChannel = (int)spectrum.EnergyCalibration.EnergyToChannel(maxEnergy, maxChannels: spectrum.NumberOfChannels);
 
+            if (startCh < minChannel) { startCh = minChannel; }
+            if (endCh > maxChannel) { endCh = maxChannel; }
+
             IInterpolation effCurve = Interpolate.CubicSplineMonotone(effEnergies, effValues);
+            double coefficient = effCurve.Interpolate(peak.Energy);
             double[] result_arr = new double[endCh - startCh];
             Parallel.For(startCh, endCh, i =>
             {
-                if (i < maxChannel && i > minChannel)
-                {
-                    double enrg = spectrum.EnergyCalibration.ChannelToEnergy(i);
-                    double res = Convert.ToInt32(spectrum.Spectrum[i] / effCurve.Interpolate(enrg));
-                    if (res > 0 && res < int.MaxValue) { result_arr[i - startCh] = res; }
-                }
+                double res = Convert.ToInt32(spectrum.Spectrum[i] / coefficient);
+                if (res > 0 && res < int.MaxValue) { result_arr[i - startCh] = res; }
             });
-
             return result_arr.Sum() / spectrum.MeasurementTime;
         }
 
