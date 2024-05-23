@@ -376,7 +376,14 @@ namespace BecquerelMonitor
             }
             if (this.roiConfigManager.ROIConfigList.Count > 0)
             {
-                resultData.ROIConfig = this.roiConfigManager.ROIConfigList[0];
+                if (resultData.DeviceConfig.EfficencyROIGuid != null &&
+                    this.roiConfigManager.ROIConfigMap.ContainsKey(resultData.DeviceConfig.EfficencyROIGuid))
+                {
+                    resultData.ROIConfig = this.roiConfigManager.ROIConfigMap[resultData.DeviceConfig.EfficencyROIGuid];
+                } else
+                {
+                    resultData.ROIConfig = this.roiConfigManager.ROIConfigList[0];
+                }
                 resultData.ROIConfigReference = resultData.ROIConfig.CreateReference();
             }
             return resultData;
