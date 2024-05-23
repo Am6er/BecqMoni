@@ -205,18 +205,18 @@ namespace BecquerelMonitor.Utils
             int maxChannel = (int)spectrum.EnergyCalibration.EnergyToChannel(maxEnergy, maxChannels: spectrum.NumberOfChannels);
 
             IInterpolation effCurve = Interpolate.CubicSplineMonotone(effEnergies, effValues);
-            double result = 0;
+            double[] result_arr = new double[endCh - startCh];
             Parallel.For(startCh, endCh, i =>
             {
                 if (i < maxChannel && i > minChannel)
                 {
                     double enrg = spectrum.EnergyCalibration.ChannelToEnergy(i);
                     double res = Convert.ToInt32(spectrum.Spectrum[i] / effCurve.Interpolate(enrg));
-                    if (res > 0 && res < int.MaxValue) { result += res; }
+                    if (res > 0 && res < int.MaxValue) { result_arr[i - startCh] = res; }
                 }
             });
 
-            return result / spectrum.MeasurementTime;
+            return result_arr.Sum() / spectrum.MeasurementTime;
         }
 
         public static EnergySpectrum NormalizeSpectrum(EnergySpectrum spectrum, ROIConfigData roi)
@@ -259,9 +259,9 @@ namespace BecquerelMonitor.Utils
                     double enrg = normalizedSpectrum.EnergyCalibration.ChannelToEnergy(i);
                     normalizedSpectrum.Spectrum[i] = Convert.ToInt32(normalizedSpectrum.Spectrum[i] / effCurve.Interpolate(enrg));
                     if (normalizedSpectrum.Spectrum[i] < 0 || normalizedSpectrum.Spectrum[i] >= int.MaxValue) { normalizedSpectrum.Spectrum[i] = 0; }
-                    normalizedSpectrum.TotalPulseCount += normalizedSpectrum.Spectrum[i];
                 }
             });
+            normalizedSpectrum.TotalPulseCount = normalizedSpectrum.Spectrum.Sum();
             normalizedSpectrum.ValidPulseCount = normalizedSpectrum.TotalPulseCount;
 
             return normalizedSpectrum;
