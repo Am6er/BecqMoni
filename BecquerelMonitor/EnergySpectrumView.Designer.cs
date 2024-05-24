@@ -3155,7 +3155,7 @@ namespace BecquerelMonitor
             int channel_table_x_pos;
             int region_table_x_pos;
             bool isRegionSelected = this.selectionStart != -1 && this.selectionEnd != -1;
-            if (this.cursorX < base.Width - (table_width_origin + 40))
+            if (this.cursorX < base.Width - (table_width_origin * 2 + 40))
             {
                 region_table_x_pos = this.left + this.width - table_width_origin - 10;
                 channel_table_x_pos = isRegionSelected 
