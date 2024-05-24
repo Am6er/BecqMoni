@@ -41,7 +41,7 @@ namespace BecquerelMonitor
             this.panel1.BackColor = Color.FromArgb(212, 218, 212);
             this.button2.Enabled = false;
             this.button4.Enabled = false;
-            this.button5.Enabled = false;
+            this.buttonSave.Enabled = false;
             this.EnableForm(false);
             this.EnableROIDefinitionForm(false);
             this.SetupNuclideDefinitionList();
@@ -205,7 +205,7 @@ namespace BecquerelMonitor
                 return;
             }
             this.activeROIConfig.Dirty = true;
-            this.button5.Enabled = true;
+            this.buttonSave.Enabled = true;
         }
 
         // Token: 0x060008FB RID: 2299 RVA: 0x00033E84 File Offset: 0x00032084
@@ -216,7 +216,7 @@ namespace BecquerelMonitor
                 return;
             }
             this.activeROIConfig.Dirty = false;
-            this.button5.Enabled = false;
+            this.buttonSave.Enabled = false;
         }
 
         // Token: 0x060008FC RID: 2300 RVA: 0x00033EAC File Offset: 0x000320AC
@@ -699,7 +699,7 @@ namespace BecquerelMonitor
         // Token: 0x06000913 RID: 2323 RVA: 0x00034FBC File Offset: 0x000331BC
         void control_ROIPrimitiveModified(object sender, EventArgs e)
         {
-            this.button5.Enabled = true;
+            this.buttonSave.Enabled = true;
             foreach (ROIPrimitiveData roiprimitiveData in this.activeROIDefinition.ROIPrimitives)
             {
                 if (!roiprimitiveData.Control.SaveFormContents(roiprimitiveData))
@@ -970,5 +970,17 @@ namespace BecquerelMonitor
 
         // Token: 0x0400050D RID: 1293
         bool reenter;
+
+        private void buttonEfficiency_Click(object sender, EventArgs e)
+        {
+            using (ROIEditEfficiencyDialog dialog = new ROIEditEfficiencyDialog(this))
+            {
+                dialog.ShowDialog();
+                if (activeROIConfig.Dirty)
+                {
+                    this.buttonSave.Enabled = true;
+                }
+            }
+        }
     }
 }
