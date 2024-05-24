@@ -78,7 +78,7 @@ namespace BecquerelMonitor
                     comboBox1.Items.Add(ROIConfigDatas[i].Name);
                     if (comboBox1.SelectedIndex < 0 && this.returnGUID != null && ROIConfigDatas[i].Guid == this.returnGUID)
                     {
-                        comboBox1.SelectedIndex = i;
+                        comboBox1.SelectedIndex = comboBox1.Items.Count - 1;
                     }
                 }
             }
