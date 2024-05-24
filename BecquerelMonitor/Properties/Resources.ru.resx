@@ -138,6 +138,12 @@
   <data name="BackgroundSelectionDialogTitle" xml:space="preserve">
     <value>Выберите файл фонового спектра</value>
   </data>
+  <data name="Bqkg" xml:space="preserve">
+    <value>Бк/кг</value>
+  </data>
+  <data name="Bql" xml:space="preserve">
+    <value>Бк/л</value>
+  </data>
   <data name="ButtonRefresh" xml:space="preserve">
     <value>Обновить</value>
   </data>

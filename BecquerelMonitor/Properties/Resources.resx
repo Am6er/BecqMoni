@@ -41951,4 +41951,10 @@ see peak in spectrum now).</value>
   <data name="Bq" xml:space="preserve">
     <value>Bq</value>
   </data>
+  <data name="Bqkg" xml:space="preserve">
+    <value>Bq/kg</value>
+  </data>
+  <data name="Bql" xml:space="preserve">
+    <value>Bq/l</value>
+  </data>
 </root>
