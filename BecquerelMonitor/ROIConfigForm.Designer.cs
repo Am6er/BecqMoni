@@ -27,8 +27,9 @@
 			this.button2 = new global::System.Windows.Forms.Button();
 			this.button3 = new global::System.Windows.Forms.Button();
 			this.button4 = new global::System.Windows.Forms.Button();
-			this.button5 = new global::System.Windows.Forms.Button();
+			this.buttonSave = new global::System.Windows.Forms.Button();
 			this.button6 = new global::System.Windows.Forms.Button();
+			this.buttonEfficiency = new System.Windows.Forms.Button();
 			this.tabControl1 = new global::System.Windows.Forms.TabControl();
 			this.label1 = new global::System.Windows.Forms.Label();
 			this.textBox1 = new global::System.Windows.Forms.TextBox();
@@ -129,14 +130,25 @@
 			this.button4.Name = "button4";
 			this.button4.UseVisualStyleBackColor = true;
 			this.button4.Click += new global::System.EventHandler(this.button4_Click);
-			resources.ApplyResources(this.button5, "button5");
-			this.button5.Name = "button5";
-			this.button5.UseVisualStyleBackColor = true;
-			this.button5.Click += new global::System.EventHandler(this.button5_Click);
+			resources.ApplyResources(this.buttonSave, "button5");
+			this.buttonSave.Name = "button5";
+			this.buttonSave.UseVisualStyleBackColor = true;
+			this.buttonSave.Click += new global::System.EventHandler(this.button5_Click);
 			resources.ApplyResources(this.button6, "button6");
 			this.button6.Name = "button6";
 			this.button6.UseVisualStyleBackColor = true;
 			this.button6.Click += new global::System.EventHandler(this.button6_Click);
+			
+			// 
+			// buttonEfficiency
+			//
+			this.buttonEfficiency.Location = new System.Drawing.Point(700, 5);
+			this.buttonEfficiency.Name = "buttonEfficiency";
+			this.buttonEfficiency.Size = new System.Drawing.Size(90, 23);
+			this.buttonEfficiency.Text = "Edit Eff. Curve";
+			this.buttonEfficiency.UseVisualStyleBackColor = true;
+			this.buttonEfficiency.Click += new System.EventHandler(this.buttonEfficiency_Click);
+
 			resources.ApplyResources(this.tabControl1, "tabControl1");
 			this.tabControl1.Name = "tabControl1";
 			this.tabControl1.SelectedIndex = 0;
@@ -281,6 +293,7 @@
 			this.panel1.Controls.Add(this.label7);
 			this.panel1.Controls.Add(this.button4);
 			this.panel1.Controls.Add(this.comboBox1);
+			this.panel1.Controls.Add(this.buttonEfficiency);
 			this.panel1.Name = "panel1";
 			resources.ApplyResources(this.label24, "label24");
 			this.label24.Name = "label24";
@@ -459,7 +472,7 @@
 			base.Controls.Add(this.label15);
 			base.Controls.Add(this.table3);
 			base.Controls.Add(this.button6);
-			base.Controls.Add(this.button5);
+			base.Controls.Add(this.buttonSave);
 			base.Name = "ROIConfigForm";
 			base.FormClosing += new global::System.Windows.Forms.FormClosingEventHandler(this.ROIConfigForm_FormClosing);
 			base.Load += new global::System.EventHandler(this.ROIConfigForm_Load);
@@ -498,7 +511,7 @@
 		global::System.Windows.Forms.Button button4;
 
 		// Token: 0x040004BD RID: 1213
-		global::System.Windows.Forms.Button button5;
+		global::System.Windows.Forms.Button buttonSave;
 
 		// Token: 0x040004BE RID: 1214
 		global::System.Windows.Forms.Button button6;
@@ -722,5 +735,7 @@
 
 		// Token: 0x04000506 RID: 1286
 		global::System.Windows.Forms.Label label25;
-	}
+
+		private System.Windows.Forms.Button buttonEfficiency;
+    }
 }
