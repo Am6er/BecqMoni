@@ -152,6 +152,9 @@ namespace BecquerelMonitor
             return new ROIPrimitiveData(this);
         }
 
+        public virtual void InitFromDefinition(ROIDefinitionData definition)
+        {}
+
         // Token: 0x04000779 RID: 1913
         string primitiveType;
 

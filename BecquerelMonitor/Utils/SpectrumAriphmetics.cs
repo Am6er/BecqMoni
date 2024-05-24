@@ -177,87 +177,38 @@ namespace BecquerelMonitor.Utils
             return substractedEnergySpectrum;
         }
 
-        public static double CalcNormalizeCPS(EnergySpectrum spectrum, ROIConfigData roi, int startCh, int endCh, Peak peak)
-        {
-
-            List<double> effEnergies = new List<double>();
-            List<double> effValues = new List<double>();
-            double maxEnergy = Double.MinValue;
-            double minEnergy = Double.MaxValue;
-
-            roi.ROIEfficiency.ForEach(def =>
-            {
-                if (def.Energy > 0 && def.Efficiency > 0)
-                {
-                    if (def.Energy > maxEnergy) { maxEnergy = def.Energy; }
-                    if (def.Energy < minEnergy) { minEnergy = def.Energy; }
-                    effEnergies.Add(def.Energy);
-                    effValues.Add(def.Efficiency);
-                }
-            });
-
-            if (effEnergies.Count < 2 || maxEnergy <= minEnergy)
-            {
-                return 0;
-            }
-
-            int minChannel = (int)spectrum.EnergyCalibration.EnergyToChannel(minEnergy, maxChannels: spectrum.NumberOfChannels);
-            int maxChannel = (int)spectrum.EnergyCalibration.EnergyToChannel(maxEnergy, maxChannels: spectrum.NumberOfChannels);
-
-            if (startCh < minChannel) { startCh = minChannel; }
-            if (endCh > maxChannel) { endCh = maxChannel; }
-
-            IInterpolation effCurve = Interpolate.CubicSplineMonotone(effEnergies, effValues);
-            double coefficient = effCurve.Interpolate(peak.Energy);
-            double[] result_arr = new double[endCh - startCh];
-            Parallel.For(startCh, endCh, i =>
-            {
-                double res = Convert.ToInt32(spectrum.Spectrum[i] / coefficient);
-                if (res > 0 && res < int.MaxValue) { result_arr[i - startCh] = res; }
-            });
-            return result_arr.Sum() / spectrum.MeasurementTime;
-        }
-
         public static EnergySpectrum NormalizeSpectrum(EnergySpectrum spectrum, ROIConfigData roi)
         {
             EnergySpectrum normalizedSpectrum = spectrum.Clone();
+            ROIAriphmetics roiAriphmetics = new ROIAriphmetics(roi);
 
-            List<double> effEnergies = new List<double>();
-            List<double> effValues = new List<double>();
-            double maxEnergy = Double.MinValue;
-            double minEnergy = Double.MaxValue;
-
-            roi.ROIEfficiency.ForEach(def =>
-            {
-                if (def.Energy > 0 && def.Efficiency > 0)
-                {
-                    if (def.Energy > maxEnergy) { maxEnergy = def.Energy; }
-                    if (def.Energy < minEnergy) { minEnergy = def.Energy; }
-                    effEnergies.Add(def.Energy);
-                    effValues.Add(def.Efficiency);
-                }
-            });
-
-            if (effEnergies.Count < 2 || maxEnergy <= minEnergy)
+            if (!roiAriphmetics.HasValidCurve)
             {
                 return normalizedSpectrum;
             }
 
-            int minChannel = (int)spectrum.EnergyCalibration.EnergyToChannel(minEnergy, maxChannels: normalizedSpectrum.NumberOfChannels);
-            int maxChannel = (int)spectrum.EnergyCalibration.EnergyToChannel(maxEnergy, maxChannels: normalizedSpectrum.NumberOfChannels);
-
-            IInterpolation effCurve = Interpolate.CubicSplineMonotone(effEnergies, effValues);
+            int minChannel = (int)spectrum.EnergyCalibration.EnergyToChannel(roiAriphmetics.MinEnergy, maxChannels: normalizedSpectrum.NumberOfChannels);
+            int maxChannel = (int)spectrum.EnergyCalibration.EnergyToChannel(roiAriphmetics.MaxEnergy, maxChannels: normalizedSpectrum.NumberOfChannels);
             normalizedSpectrum.TotalPulseCount = 0;
             Parallel.For(0, normalizedSpectrum.NumberOfChannels, i =>
             {
                 if (i > maxChannel || i < minChannel)
                 {
                     normalizedSpectrum.Spectrum[i] = 0;
-                } else
+                } 
+                else
                 {
                     double enrg = normalizedSpectrum.EnergyCalibration.ChannelToEnergy(i);
-                    normalizedSpectrum.Spectrum[i] = Convert.ToInt32(normalizedSpectrum.Spectrum[i] / effCurve.Interpolate(enrg));
-                    if (normalizedSpectrum.Spectrum[i] < 0 || normalizedSpectrum.Spectrum[i] >= int.MaxValue) { normalizedSpectrum.Spectrum[i] = 0; }
+                    ROIEfficiencyData effData = roiAriphmetics.CalculateEfficiency(enrg);
+                    if (effData != null && effData.Efficiency > 0)
+                    {
+                        normalizedSpectrum.Spectrum[i] = Convert.ToInt32(normalizedSpectrum.Spectrum[i] / effData.Efficiency);
+                        if (normalizedSpectrum.Spectrum[i] < 0 || normalizedSpectrum.Spectrum[i] >= int.MaxValue) { normalizedSpectrum.Spectrum[i] = 0; }
+                    }
+                    else
+                    {
+                        normalizedSpectrum.Spectrum[i] = 0;
+                    }
                 }
             });
             normalizedSpectrum.TotalPulseCount = normalizedSpectrum.Spectrum.Sum();

@@ -1,4 +1,5 @@
 ﻿using BecquerelMonitor.Properties;
+using BecquerelMonitor.Utils;
 using ColorComboBox;
 using System;
 using System.Drawing;
@@ -451,6 +452,7 @@ namespace BecquerelMonitor
             roiprimitiveData.PrimitiveType = roiprimitiveDefinition.Name;
             roiprimitiveData.Operation = roiprimitiveOperation;
             roiprimitiveData.OperationType = roiprimitiveOperation.Name;
+            roiprimitiveData.InitFromDefinition(this.activeROIDefinition);
             this.activeROIDefinition.ROIPrimitives.Add(roiprimitiveData);
             this.ShowPrimitiveList(this.activeROIDefinition);
             this.ListupROIDefinitions(this.activeROIConfig);
@@ -919,7 +921,6 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            double energy = nuclideDefinition.Energy;
             double num = (double)this.numericUpDown1.Value / 100.0;
             ROIDefinitionData roidefinitionData = new ROIDefinitionData();
             roidefinitionData.Name = nuclideDefinition.Name;
@@ -927,6 +928,21 @@ namespace BecquerelMonitor
             roidefinitionData.LowerLimit = Math.Floor(nuclideDefinition.Energy - nuclideDefinition.Energy * num / 2.0);
             roidefinitionData.UpperLimit = Math.Round(nuclideDefinition.Energy + nuclideDefinition.Energy * num / 2.0);
             roidefinitionData.HalfLife = nuclideDefinition.HalfLife;
+            roidefinitionData.Intencity = nuclideDefinition.Intencity;
+            if (this.activeROIConfig.HasEfficiency && nuclideDefinition.Intencity > 0)
+            {
+                ROIAriphmetics roiAriphmetics = new ROIAriphmetics(this.activeROIConfig);
+                ROIEfficiencyData effData = roiAriphmetics.CalculateEfficiency(nuclideDefinition.Energy);
+                if (effData != null && effData.Efficiency > 0)
+                {
+                    roidefinitionData.BecquerelCoefficient = (1 / effData.Efficiency) / (nuclideDefinition.Intencity / 100);
+                    if (effData.ErrorPercent > 0)
+                    {
+                        roidefinitionData.BecquerelCoefficientError = roidefinitionData.BecquerelCoefficient * (effData.ErrorPercent / 100);
+                    }
+                }
+            }
+
             this.activeROIConfig.ROIDefinitions.Add(roidefinitionData);
             this.ListupROIDefinitions(this.activeROIConfig);
             this.SetActiveROIConfigDirty();
