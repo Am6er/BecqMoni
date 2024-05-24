@@ -3152,16 +3152,24 @@ namespace BecquerelMonitor
         void ShowCursorValues(Graphics g)
         {
             int table_width_origin = 230;
-            int table_width_rel;
+            int channel_table_x_pos;
+            int region_table_x_pos;
+            bool isRegionSelected = this.selectionStart != -1 && this.selectionEnd != -1;
             if (this.cursorX < base.Width - (table_width_origin + 40))
             {
-                table_width_rel = this.left + this.width - table_width_origin - 10;
+                region_table_x_pos = this.left + this.width - table_width_origin - 10;
+                channel_table_x_pos = isRegionSelected 
+                    ? region_table_x_pos - table_width_origin - 10
+                    : region_table_x_pos;
             }
             else
             {
-                table_width_rel = this.left + 10;
+                region_table_x_pos = this.left + 10;
+                channel_table_x_pos = isRegionSelected
+                    ? region_table_x_pos + table_width_origin + 10
+                    : region_table_x_pos;
             }
-            int num3 = 10;
+            int table_y_pos = 10;
             ColorConfig colorConfig = this.globalConfigManager.GlobalConfig.ColorConfig;
             if (this.validCursor && this.cursorChannel >= 0 &&
                 this.cursorChannel < this.energySpectrum.NumberOfChannels &&
@@ -3221,10 +3229,10 @@ namespace BecquerelMonitor
                 {
                     num6 += 32;
                 }
-                g.FillRectangle(Brushes.DarkGray, table_width_rel, num3, table_width_origin, num6);
-                g.FillRectangle(Brushes.White, table_width_rel - 3, num3 - 3, table_width_origin, num6);
-                g.DrawRectangle(Pens.Black, table_width_rel - 3, num3 - 3, table_width_origin, num6);
-                Rectangle r = new Rectangle(table_width_rel + 5, num3 + 4, table_width_origin - 12, 32);
+                g.FillRectangle(Brushes.DarkGray, channel_table_x_pos, table_y_pos, table_width_origin, num6);
+                g.FillRectangle(Brushes.White, channel_table_x_pos - 3, table_y_pos - 3, table_width_origin, num6);
+                g.DrawRectangle(Pens.Black, channel_table_x_pos - 3, table_y_pos - 3, table_width_origin, num6);
+                Rectangle r = new Rectangle(channel_table_x_pos + 5, table_y_pos + 4, table_width_origin - 12, 32);
                 g.DrawString(Resources.ChartHeaderChannel, this.Font, Brushes.Black, r);
                 g.DrawString(this.cursorChannel.ToString(), this.Font, Brushes.Black, r, this.farFormat);
                 r.Y += 16;
@@ -3273,11 +3281,6 @@ namespace BecquerelMonitor
                         g.DrawString(Resources.ChartHeaderCountBGRatio, this.Font, Brushes.Black, r);
                         g.DrawString(num11.ToString("f2") + Resources.PercentCharacter, this.Font, Brushes.Black, r, this.farFormat);
                     }
-                }
-                num3 = 110;
-                if (this.backgroundEnergySpectrum == null || this.backgroundMode == BackgroundMode.Substract)
-                {
-                    num3 -= 32;
                 }
             }
             if (this.selectionStart != -1 && this.energySpectrum.NumberOfChannels > Math.Max(this.selectionStart, this.selectionEnd))
@@ -3430,10 +3433,10 @@ namespace BecquerelMonitor
                 {
                     infopanel_height += 54;
                 }
-                g.FillRectangle(Brushes.DarkGray, table_width_rel, num3, table_width_origin, infopanel_height);
-                g.FillRectangle(Brushes.White, table_width_rel - 3, num3 - 3, table_width_origin, infopanel_height);
-                g.DrawRectangle(Pens.Black, table_width_rel - 3, num3 - 3, table_width_origin, infopanel_height);
-                Rectangle r2 = new Rectangle(table_width_rel + 5, num3 + 4, table_width_origin - 12, 32);
+                g.FillRectangle(Brushes.DarkGray, region_table_x_pos, table_y_pos, table_width_origin, infopanel_height);
+                g.FillRectangle(Brushes.White, region_table_x_pos - 3, table_y_pos - 3, table_width_origin, infopanel_height);
+                g.DrawRectangle(Pens.Black, region_table_x_pos - 3, table_y_pos - 3, table_width_origin, infopanel_height);
+                Rectangle r2 = new Rectangle(region_table_x_pos + 5, table_y_pos + 4, table_width_origin - 12, 32);
                 g.DrawString(Resources.ChartHeaderSelection, this.Font, Brushes.Black, r2);
                 r2.Y += 22;
                 g.DrawLine(Pens.LightGray, r2.Left, r2.Top - 6, r2.Right, r2.Top - 6);
