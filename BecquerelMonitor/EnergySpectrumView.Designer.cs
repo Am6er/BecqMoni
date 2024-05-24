@@ -3152,16 +3152,24 @@ namespace BecquerelMonitor
         void ShowCursorValues(Graphics g)
         {
             int table_width_origin = 230;
-            int table_width_rel;
+            int channel_table_x_pos;
+            int region_table_x_pos;
+            bool isRegionSelected = this.selectionStart != -1 && this.selectionEnd != -1;
             if (this.cursorX < base.Width - (table_width_origin + 40))
             {
-                table_width_rel = this.left + this.width - table_width_origin - 10;
+                region_table_x_pos = this.left + this.width - table_width_origin - 10;
+                channel_table_x_pos = isRegionSelected 
+                    ? region_table_x_pos - table_width_origin - 10
+                    : region_table_x_pos;
             }
             else
             {
-                table_width_rel = this.left + 10;
+                region_table_x_pos = this.left + 10;
+                channel_table_x_pos = isRegionSelected
+                    ? region_table_x_pos + table_width_origin + 10
+                    : region_table_x_pos;
             }
-            int num3 = 10;
+            int table_y_pos = 10;
             ColorConfig colorConfig = this.globalConfigManager.GlobalConfig.ColorConfig;
             if (this.validCursor && this.cursorChannel >= 0 &&
                 this.cursorChannel < this.energySpectrum.NumberOfChannels &&
@@ -3221,10 +3229,10 @@ namespace BecquerelMonitor
                 {
                     num6 += 32;
                 }
-                g.FillRectangle(Brushes.DarkGray, table_width_rel, num3, table_width_origin, num6);
-                g.FillRectangle(Brushes.White, table_width_rel - 3, num3 - 3, table_width_origin, num6);
-                g.DrawRectangle(Pens.Black, table_width_rel - 3, num3 - 3, table_width_origin, num6);
-                Rectangle r = new Rectangle(table_width_rel + 5, num3 + 4, table_width_origin - 12, 32);
+                g.FillRectangle(Brushes.DarkGray, channel_table_x_pos, table_y_pos, table_width_origin, num6);
+                g.FillRectangle(Brushes.White, channel_table_x_pos - 3, table_y_pos - 3, table_width_origin, num6);
+                g.DrawRectangle(Pens.Black, channel_table_x_pos - 3, table_y_pos - 3, table_width_origin, num6);
+                Rectangle r = new Rectangle(channel_table_x_pos + 5, table_y_pos + 4, table_width_origin - 12, 32);
                 g.DrawString(Resources.ChartHeaderChannel, this.Font, Brushes.Black, r);
                 g.DrawString(this.cursorChannel.ToString(), this.Font, Brushes.Black, r, this.farFormat);
                 r.Y += 16;
@@ -3274,11 +3282,6 @@ namespace BecquerelMonitor
                         g.DrawString(num11.ToString("f2") + Resources.PercentCharacter, this.Font, Brushes.Black, r, this.farFormat);
                     }
                 }
-                num3 = 110;
-                if (this.backgroundEnergySpectrum == null || this.backgroundMode == BackgroundMode.Substract)
-                {
-                    num3 -= 32;
-                }
             }
             if (this.selectionStart != -1 && this.energySpectrum.NumberOfChannels > Math.Max(this.selectionStart, this.selectionEnd))
             {
@@ -3307,6 +3310,11 @@ namespace BecquerelMonitor
                 double Ld = 0.0;
                 double mda = 0.0;
                 double activity = 0.0;
+                double activityError = 0.0;
+                double activityByMass = 0.0;
+                double activityByMassError = 0.0;
+                double activityByVolume = 0.0;
+                double activityByVolumeError = 0.0;
                 double bg_counts_not_normalized = 0.0;
                 for (int i = start_channel; i <= end_channel; i++)
                 {
@@ -3374,10 +3382,31 @@ namespace BecquerelMonitor
                                 }
                                 if (number_of_peaks == 1 && detected_peak != null && detected_peak.Nuclide.Intencity > 0)
                                 {
-                                    SpectrumAriphmetics sa = new SpectrumAriphmetics(this.energySpectrum);
-                                    EnergySpectrum sub = sa.Substract(this.backgroundEnergySpectrum);
-                                    activity = SpectrumAriphmetics.CalcNormalizeCPS(sub, this.roiConfig, start_channel, end_channel, detected_peak) / (detected_peak.Nuclide.Intencity / 100.0);
-                                    sa.Dispose();
+                                    ROIAriphmetics roiAriphmetics = new ROIAriphmetics(this.roiConfig);
+                                    ROIEfficiencyData effData = roiAriphmetics.CalculateEfficiency(detected_peak.Energy);
+                                    if (effData != null && effData.Efficiency > 0)
+                                    {
+                                        double counts = net_counts < Lc ? Lu : net_counts;
+                                        double countsError = net_counts < Lc ? 0 : net_counts_err;
+                                        double cps = counts / this.activeResultData.EnergySpectrum.MeasurementTime;
+                                        double cpsErr = countsError / this.activeResultData.EnergySpectrum.MeasurementTime;
+
+                                        // TODO: take into account effData.ErrorPercent?
+                                        activity = (cps / effData.Efficiency) / (detected_peak.Nuclide.Intencity / 100.0);
+                                        activityError = (cpsErr / effData.Efficiency) / (detected_peak.Nuclide.Intencity / 100.0);
+                                        
+                                        if (this.activeResultData.SampleInfo.Weight > 0)
+                                        {
+                                            activityByMass = activity / this.activeResultData.SampleInfo.Weight;
+                                            activityByMassError = activityError / this.activeResultData.SampleInfo.Weight;
+                                        }
+
+                                        if (this.activeResultData.SampleInfo.Volume > 0)
+                                        {
+                                            activityByVolume = activity / this.activeResultData.SampleInfo.Volume;
+                                            activityByVolumeError = activityError / this.activeResultData.SampleInfo.Volume;
+                                        }
+                                    }
                                 } 
                             }
                         }
@@ -3402,12 +3431,12 @@ namespace BecquerelMonitor
                 }
                 if (this.selectionFWHM > 0.0 && activity > 0.0)
                 {
-                    infopanel_height += 22;
+                    infopanel_height += 54;
                 }
-                g.FillRectangle(Brushes.DarkGray, table_width_rel, num3, table_width_origin, infopanel_height);
-                g.FillRectangle(Brushes.White, table_width_rel - 3, num3 - 3, table_width_origin, infopanel_height);
-                g.DrawRectangle(Pens.Black, table_width_rel - 3, num3 - 3, table_width_origin, infopanel_height);
-                Rectangle r2 = new Rectangle(table_width_rel + 5, num3 + 4, table_width_origin - 12, 32);
+                g.FillRectangle(Brushes.DarkGray, region_table_x_pos, table_y_pos, table_width_origin, infopanel_height);
+                g.FillRectangle(Brushes.White, region_table_x_pos - 3, table_y_pos - 3, table_width_origin, infopanel_height);
+                g.DrawRectangle(Pens.Black, region_table_x_pos - 3, table_y_pos - 3, table_width_origin, infopanel_height);
+                Rectangle r2 = new Rectangle(region_table_x_pos + 5, table_y_pos + 4, table_width_origin - 12, 32);
                 g.DrawString(Resources.ChartHeaderSelection, this.Font, Brushes.Black, r2);
                 r2.Y += 22;
                 g.DrawLine(Pens.LightGray, r2.Left, r2.Top - 6, r2.Right, r2.Top - 6);
@@ -3487,15 +3516,38 @@ namespace BecquerelMonitor
                     {
                         if (net_counts < Lc)
                         {
-                            g.DrawString(Resources.Activity + " " + Resources.Bq + ":", this.Font, Brushes.DarkRed, r2);
-                            g.DrawString("< " + (net_counts + net_counts_err).ToString("f2"),
-                                this.Font, Brushes.DarkRed, r2, this.farFormat);
+                            Brush brush = Brushes.DarkRed;
+                            g.DrawString(Resources.Activity + " " + Resources.Bq + ":", this.Font, brush, r2);
+                            g.DrawString("< " + activity.ToString("f2"),
+                                this.Font, brush, r2, this.farFormat);
                             r2.Y += 16;
-                        } else
+
+                            g.DrawString(Resources.Activity + " " + Resources.Bqkg + ":", this.Font, brush, r2);
+                            g.DrawString("< " + activityByMass.ToString("f2"),
+                            this.Font, brush, r2, this.farFormat);
+                            r2.Y += 16;
+
+                            g.DrawString(Resources.Activity + " " + Resources.Bql + ":", this.Font, brush, r2);
+                            g.DrawString("< " + activityByVolume.ToString("f2"),
+                                this.Font, brush, r2, this.farFormat);
+                            r2.Y += 16;
+                        } 
+                        else
                         {
-                            g.DrawString(Resources.Activity + " " + Resources.Bq + ":", this.Font, Brushes.Black, r2);
-                            g.DrawString(activity.ToString("f2") + " " + Resources.Bq,
-                                this.Font, Brushes.Black, r2, this.farFormat);
+                            Brush brush = Brushes.Black;
+                            g.DrawString(Resources.Activity + " " + Resources.Bq + ":", this.Font, brush, r2);
+                            g.DrawString(activity.ToString("f2") + " " + Resources.PlusMinus + activityError.ToString("f2"),
+                                this.Font, brush, r2, this.farFormat);
+                            r2.Y += 16;
+
+                            g.DrawString(Resources.Activity + " " + Resources.Bqkg + ":", this.Font, brush, r2);
+                            g.DrawString(activityByMass.ToString("f2") + " " + Resources.PlusMinus + activityByMassError.ToString("f2"),
+                            this.Font, brush, r2, this.farFormat);
+                            r2.Y += 16;
+
+                            g.DrawString(Resources.Activity + " " + Resources.Bql + ":", this.Font, brush, r2);
+                            g.DrawString(activityByVolume.ToString("f2") + " " + Resources.PlusMinus + activityByVolumeError.ToString("f2"),
+                                this.Font, brush, r2, this.farFormat);
                             r2.Y += 16;
                         }
                     }
