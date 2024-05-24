@@ -562,7 +562,7 @@
     <value>Color</value>
   </data>
   <data name="label22.Location" type="System.Drawing.Point, System.Drawing">
-    <value>410, 10</value>
+    <value>432, 10</value>
   </data>
   <data name="comboBox1.Size" type="System.Drawing.Size, System.Drawing">
     <value>112, 20</value>
@@ -595,7 +595,7 @@
     <value>100, 12</value>
   </data>
   <data name="comboBox2.Size" type="System.Drawing.Size, System.Drawing">
-    <value>70, 20</value>
+    <value>100, 20</value>
   </data>
   <data name="label6.Size" type="System.Drawing.Size, System.Drawing">
     <value>25, 12</value>
@@ -697,7 +697,7 @@
     <value>True</value>
   </data>
   <data name="label23.Location" type="System.Drawing.Point, System.Drawing">
-    <value>525, 10</value>
+    <value>535, 10</value>
   </data>
   <data name="numericUpDown1.TabIndex" type="System.Int32, mscorlib">
     <value>28</value>
@@ -778,7 +778,7 @@
     <value>99, 143</value>
   </data>
   <data name="button9.Location" type="System.Drawing.Point, System.Drawing">
-    <value>448, 5</value>
+    <value>468, 5</value>
   </data>
   <data name="doubleTextBox1.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
     <value>Right</value>
@@ -940,7 +940,7 @@
     <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="label21.Location" type="System.Drawing.Point, System.Drawing">
-    <value>285, 10</value>
+    <value>281, 10</value>
   </data>
   <data name="label6.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -1396,7 +1396,7 @@
     <value>21</value>
   </data>
   <data name="label24.Location" type="System.Drawing.Point, System.Drawing">
-    <value>660, 10</value>
+    <value>670, 10</value>
   </data>
   <data name="table3.Location" type="System.Drawing.Point, System.Drawing">
     <value>6, 35</value>
@@ -1501,7 +1501,7 @@
     <value>36</value>
   </data>
   <data name="comboBox2.Location" type="System.Drawing.Point, System.Drawing">
-    <value>334, 7</value>
+    <value>325, 7</value>
   </data>
   <data name="&gt;&gt;textBox3.Type" xml:space="preserve">
     <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
@@ -1615,7 +1615,7 @@
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="button10.Location" type="System.Drawing.Point, System.Drawing">
-    <value>140, 6</value>
+    <value>140, 7</value>
   </data>
   <data name="&gt;&gt;label6.Name" xml:space="preserve">
     <value>label6</value>
@@ -1849,7 +1849,7 @@
     <value>Operation</value>
   </data>
   <data name="numericUpDown1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>610, 7</value>
+    <value>620, 7</value>
   </data>
   <data name="$this.AutoScaleDimensions" type="System.Drawing.SizeF, System.Drawing">
     <value>6, 12</value>
