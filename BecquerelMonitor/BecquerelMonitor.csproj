@@ -613,6 +613,7 @@
       <DependentUpon>CalibrationGraph.cs</DependentUpon>
     </Compile>
     <Compile Include="Utils\CalibrationSolver.cs" />
+    <Compile Include="Utils\ROIAriphmetics.cs" />
     <Compile Include="Utils\SpectrumAriphmetics.cs" />
     <Compile Include="Utils\WineCheck.cs" />
     <Compile Include="VerticalFittingMode.cs" />
