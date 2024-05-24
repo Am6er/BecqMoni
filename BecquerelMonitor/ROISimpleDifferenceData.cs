@@ -51,6 +51,14 @@
             return new ROISimpleDifferenceData(this);
         }
 
+        public override void InitFromDefinition(ROIDefinitionData definition)
+        {
+            base.InitFromDefinition(definition);
+
+            this.LowerLimit = definition.LowerLimit;
+            this.UpperLimit = definition.UpperLimit;
+        }
+
         // Token: 0x04000781 RID: 1921
         double lowerLimit;
 

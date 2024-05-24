@@ -134,6 +134,14 @@ namespace BecquerelMonitor
             return new ROICovellMethodData(this);
         }
 
+        public override void InitFromDefinition(ROIDefinitionData definition)
+        {
+            base.InitFromDefinition(definition);
+
+            this.LowerLimit = definition.LowerLimit;
+            this.UpperLimit = definition.UpperLimit;
+        }
+
         // Token: 0x040008A5 RID: 2213
         double lowerLimit;
 
