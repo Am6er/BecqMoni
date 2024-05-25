@@ -3305,6 +3305,7 @@ namespace BecquerelMonitor
                 double peakcounts = 0.0;
                 double net_cps_err = 0.0;
                 double net_counts_err = 0.0;
+                double net_counts_sigma = 0.0;
                 double Lc = 0.0;
                 double Lu = 0.0;
                 double Ld = 0.0;
@@ -3355,7 +3356,8 @@ namespace BecquerelMonitor
                             Lc = confidencelevel * Math.Sqrt(2.0 * bg_counts);
                             Lu = net_counts + confidencelevel * Math.Sqrt(net_counts + 2.0 * bg_counts);
                             Ld = confidencelevel * confidencelevel + 2.0 * confidencelevel * Math.Sqrt(2.0 * bg_counts);
-                            net_counts_err = confidencelevel * Math.Sqrt(fg_counts + bg_counts * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime);
+                            net_counts_sigma = Math.Sqrt(fg_counts + bg_counts * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime);
+                            net_counts_err = confidencelevel * net_counts_sigma;
                             net_cps_err = net_counts_err / this.energySpectrum.MeasurementTime;
                             mda = this.energySpectrum.MeasurementTime * (
                                 Math.Pow(detectionLevel, 2.0) / (2.0 * this.energySpectrum.MeasurementTime)
@@ -3387,13 +3389,19 @@ namespace BecquerelMonitor
                                     if (effData != null && effData.Efficiency > 0)
                                     {
                                         double counts = net_counts < Lc ? Lu : net_counts;
-                                        double countsError = net_counts < Lc ? 0 : net_counts_err;
+                                        double countsSigma = net_counts < Lc ? 0 : net_counts_sigma;
                                         double cps = counts / this.activeResultData.EnergySpectrum.MeasurementTime;
-                                        double cpsErr = countsError / this.activeResultData.EnergySpectrum.MeasurementTime;
+                                        double cpsSigma = countsSigma / this.activeResultData.EnergySpectrum.MeasurementTime;
 
-                                        // TODO: take into account effData.ErrorPercent?
-                                        activity = (cps / effData.Efficiency) / (detected_peak.Nuclide.Intencity / 100.0);
-                                        activityError = (cpsErr / effData.Efficiency) / (detected_peak.Nuclide.Intencity / 100.0);
+                                        double bqCoeff = (1 / effData.Efficiency) / (detected_peak.Nuclide.Intencity / 100.0);
+                                        double bqCoeffSigma = effData.ErrorPercent > 0
+                                            ? bqCoeff * (effData.ErrorPercent / 100)
+                                            : 0;
+
+                                        activity = cps * bqCoeff;
+                                        double activityCountsSigma = cpsSigma * bqCoeff;
+                                        double activityCoeffSigma = cps * bqCoeffSigma;
+                                        activityError = confidencelevel * Math.Sqrt(Math.Pow(activityCountsSigma, 2) + Math.Pow(activityCoeffSigma, 2));
                                         
                                         if (this.activeResultData.SampleInfo.Weight > 0)
                                         {
@@ -3518,17 +3526,17 @@ namespace BecquerelMonitor
                         {
                             Brush brush = Brushes.DarkRed;
                             g.DrawString(Resources.Activity + " " + Resources.Bq + ":", this.Font, brush, r2);
-                            g.DrawString("< " + activity.ToString("f2"),
+                            g.DrawString("< " + (activity + activityError).ToString("f2"),
                                 this.Font, brush, r2, this.farFormat);
                             r2.Y += 16;
 
                             g.DrawString(Resources.Activity + " " + Resources.Bqkg + ":", this.Font, brush, r2);
-                            g.DrawString("< " + activityByMass.ToString("f2"),
+                            g.DrawString("< " + (activityByMass + activityByMassError).ToString("f2"),
                             this.Font, brush, r2, this.farFormat);
                             r2.Y += 16;
 
                             g.DrawString(Resources.Activity + " " + Resources.Bql + ":", this.Font, brush, r2);
-                            g.DrawString("< " + activityByVolume.ToString("f2"),
+                            g.DrawString("< " + (activityByVolume + activityByVolumeError).ToString("f2"),
                                 this.Font, brush, r2, this.farFormat);
                             r2.Y += 16;
                         } 
