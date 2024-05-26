@@ -3300,23 +3300,30 @@ namespace BecquerelMonitor
                 double start_energy = this.energyCalibration.ChannelToEnergy((double)start_channel);
                 double end_energy = this.energyCalibration.ChannelToEnergy((double)end_channel);
                 double fg_counts = 0.0;
-                double net_counts = 0.0;
+                double fg_time = this.activeResultData.EnergySpectrum.MeasurementTime;
                 double bg_counts = 0.0;
+                double bg_time = this.activeResultData.BackgroundEnergySpectrum != null
+                    ? this.activeResultData.BackgroundEnergySpectrum.MeasurementTime
+                    : 0.0;
+                double normalized_bg_counts = 0.0;
+                double net_counts = 0.0;
                 double peakcounts = 0.0;
                 double net_cps_err = 0.0;
                 double net_counts_err = 0.0;
-                double net_counts_sigma = 0.0;
                 double Lc = 0.0;
                 double Lu = 0.0;
                 double Ld = 0.0;
                 double mda = 0.0;
                 double activity = 0.0;
                 double activityError = 0.0;
+                double activityUpperLimit = 0.0;
                 double activityByMass = 0.0;
                 double activityByMassError = 0.0;
+                double activityByMassUpperLimit = 0.0;
                 double activityByVolume = 0.0;
                 double activityByVolumeError = 0.0;
-                double bg_counts_not_normalized = 0.0;
+                double activityByVolumeUpperLimit = 0.0;
+                
                 for (int i = start_channel; i <= end_channel; i++)
                 {
                     double continuum = 0.0;
@@ -3324,7 +3331,7 @@ namespace BecquerelMonitor
                     fg_counts += (double)fg_counts_in_channel;
                     net_counts += (double)fg_counts_in_channel;
                     double bg_counts_in_channel = 0.0;
-                    if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                    if (bg_time > 0)
                     {
                         int bg_channel = i;
                         if (!this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
@@ -3333,40 +3340,36 @@ namespace BecquerelMonitor
                         }
                         if (bg_channel >= 0 && bg_channel < this.backgroundNumberOfChannels)
                         {
-                            bg_counts_in_channel = (double)this.backgroundEnergySpectrum.Spectrum[bg_channel] * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime;
-                            bg_counts_not_normalized += (double)this.backgroundEnergySpectrum.Spectrum[bg_channel];
+                            bg_counts_in_channel = (double)this.backgroundEnergySpectrum.Spectrum[bg_channel] * fg_time / bg_time;
+                            bg_counts += (double)this.backgroundEnergySpectrum.Spectrum[bg_channel];
                         }
                     }
-                    bg_counts += bg_counts_in_channel;
+                    normalized_bg_counts += bg_counts_in_channel;
                     net_counts -= bg_counts_in_channel;
                     continuum = getY(i, start_channel, end_channel, this.energySpectrum.Spectrum[start_channel], this.energySpectrum.Spectrum[end_channel]);
                     continuum = Math.Max(bg_counts_in_channel, continuum);
                     peakcounts += (fg_counts_in_channel - continuum);
                 }
                 double net_cps = 0.0;
-                if (this.energySpectrum.MeasurementTime != 0.0)
+                if (fg_time > 0)
                 {
-                    net_cps = net_counts / this.energySpectrum.MeasurementTime;
-                    if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                    net_cps = net_counts / fg_time;
+                    if (bg_time > 0)
                     {
                         double detectionLevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.DetectionLevel;
-                        double confidencelevel = (double)this.globalConfigManager.GlobalConfig.ChartViewConfig.ConfidenceLevel;
+                        double errorLevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.ErrorLevel;
+                        double limitsConfidenceLevel = (double)this.globalConfigManager.GlobalConfig.ChartViewConfig.ConfidenceLevel;
                         if (net_cps > 0)
                         {
-                            Lc = confidencelevel * Math.Sqrt(2.0 * bg_counts);
-                            Lu = net_counts + confidencelevel * Math.Sqrt(net_counts + 2.0 * bg_counts);
-                            Ld = confidencelevel * confidencelevel + 2.0 * confidencelevel * Math.Sqrt(2.0 * bg_counts);
-                            net_counts_sigma = Math.Sqrt(fg_counts + bg_counts * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime);
-                            net_counts_err = confidencelevel * net_counts_sigma;
-                            net_cps_err = net_counts_err / this.energySpectrum.MeasurementTime;
-                            mda = this.energySpectrum.MeasurementTime * (
-                                Math.Pow(detectionLevel, 2.0) / (2.0 * this.energySpectrum.MeasurementTime)
-                                + detectionLevel * Math.Sqrt(
-                                    Math.Pow(detectionLevel, 2.0) / (4.0 * Math.Pow(this.energySpectrum.MeasurementTime, 2.0))
-                                    + (bg_counts_not_normalized / this.backgroundEnergySpectrum.MeasurementTime) * (1 / this.energySpectrum.MeasurementTime + 1 / this.backgroundEnergySpectrum.MeasurementTime)
-                                    )
-                                );
-                            //calc activity
+                            Lc = ROIAriphmetics.CalculateLc(bg_counts, bg_time, fg_time, limitsConfidenceLevel);
+                            Lu = ROIAriphmetics.CalculateLu(fg_counts, fg_time, bg_counts, bg_time, limitsConfidenceLevel);
+                            Ld = ROIAriphmetics.CalculateLd(bg_counts, bg_time, fg_time, limitsConfidenceLevel);
+
+                            net_counts_err = ROIAriphmetics.CalculateNetCountError(fg_counts, fg_time, bg_counts, bg_time, errorLevel);
+                            net_cps_err = net_counts_err / fg_time;
+                            mda = ROIAriphmetics.CalculateMDACounts(bg_counts, bg_time, fg_time, detectionLevel);
+
+                            // calc activity
                             if (this.peakMode == PeakMode.Visible && this.selectionFWHM > 0.0 &&
                                 this.activeResultData.Visible &&
                                 this.roiConfig != null && 
@@ -3388,31 +3391,26 @@ namespace BecquerelMonitor
                                     ROIEfficiencyData effData = roiAriphmetics.CalculateEfficiency(detected_peak.Energy);
                                     if (effData != null && effData.Efficiency > 0)
                                     {
-                                        double counts = net_counts < Lc ? Lu : net_counts;
-                                        double countsSigma = net_counts < Lc ? 0 : net_counts_sigma;
-                                        double cps = counts / this.activeResultData.EnergySpectrum.MeasurementTime;
-                                        double cpsSigma = countsSigma / this.activeResultData.EnergySpectrum.MeasurementTime;
-
                                         double bqCoeff = (1 / effData.Efficiency) / (detected_peak.Nuclide.Intencity / 100.0);
-                                        double bqCoeffSigma = effData.ErrorPercent > 0
+                                        double bqCoeffError = effData.ErrorPercent > 0
                                             ? bqCoeff * (effData.ErrorPercent / 100)
                                             : 0;
 
-                                        activity = cps * bqCoeff;
-                                        double activityCountsSigma = cpsSigma * bqCoeff;
-                                        double activityCoeffSigma = cps * bqCoeffSigma;
-                                        activityError = confidencelevel * Math.Sqrt(Math.Pow(activityCountsSigma, 2) + Math.Pow(activityCoeffSigma, 2));
-                                        
+                                        activity = ROIAriphmetics.CalculateActivity(bqCoeff, fg_counts, fg_time, bg_counts, bg_time);
+                                        activityError = ROIAriphmetics.CalculateActivityError(bqCoeff, bqCoeffError, fg_counts, fg_time, bg_counts, bg_time, errorLevel);
+                                        activityUpperLimit = ROIAriphmetics.CalculateActivityUpperLimit(bqCoeff, bqCoeffError, fg_counts, fg_time, bg_counts, bg_time, limitsConfidenceLevel);
                                         if (this.activeResultData.SampleInfo.Weight > 0)
                                         {
                                             activityByMass = activity / this.activeResultData.SampleInfo.Weight;
                                             activityByMassError = activityError / this.activeResultData.SampleInfo.Weight;
+                                            activityByMassUpperLimit = activityUpperLimit / this.activeResultData.SampleInfo.Weight;
                                         }
 
                                         if (this.activeResultData.SampleInfo.Volume > 0)
                                         {
                                             activityByVolume = activity / this.activeResultData.SampleInfo.Volume;
                                             activityByVolumeError = activityError / this.activeResultData.SampleInfo.Volume;
+                                            activityByVolumeUpperLimit = activityUpperLimit / this.activeResultData.SampleInfo.Volume;
                                         }
                                     }
                                 } 
@@ -3433,7 +3431,7 @@ namespace BecquerelMonitor
                 {
                     infopanel_height += 72;
                 }
-                if (bg_counts > 0)
+                if (normalized_bg_counts > 0)
                 {
                     infopanel_height += 48;
                 }
@@ -3457,14 +3455,14 @@ namespace BecquerelMonitor
                 g.DrawLine(Pens.LightGray, r2.Left, r2.Top - 6, r2.Right, r2.Top - 6);
                 g.DrawString(Resources.ChartHeaderGrossCounts, this.Font, Brushes.Black, r2);
                 g.DrawString(fg_counts.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
-                if (bg_counts != 0.0)
+                if (normalized_bg_counts != 0.0)
                 {
                     r2.Y += 16;
                     g.DrawString(Resources.ChartHeaderBGCounts, this.Font, Brushes.Black, r2);
-                    g.DrawString(bg_counts.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                    g.DrawString(normalized_bg_counts.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
                     r2.Y += 16;
                     g.DrawString(Resources.ChartHeaderCountBGRatio, this.Font, Brushes.Black, r2);
-                    double bg_ratio = fg_counts / bg_counts * 100.0;
+                    double bg_ratio = fg_counts / normalized_bg_counts * 100.0;
                     g.DrawString(bg_ratio.ToString("f2") + Resources.PercentCharacter, this.Font, Brushes.Black, r2, this.farFormat);
                     r2.Y += 16;
                     g.DrawString(Resources.ChartHeaderNetCps, this.Font, Brushes.Black, r2);
@@ -3516,7 +3514,7 @@ namespace BecquerelMonitor
                         g.DrawString(Lu.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
                         r2.Y += 16;
                     }
-                    string confidencelevel_str = ConfidenceLevel.GetLevel(this.globalConfigManager.GlobalConfig.ChartViewConfig.ConfidenceLevel);
+                    string confidencelevel_str = ConfidenceLevel.GetSingleSideLevel(this.globalConfigManager.GlobalConfig.ChartViewConfig.ConfidenceLevel);
                     g.DrawString(Resources.Ld_counts + " (" + confidencelevel_str + ")", this.Font, Brushes.Black, r2);
                     g.DrawString(Ld.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
                     r2.Y += 16;
@@ -3526,17 +3524,17 @@ namespace BecquerelMonitor
                         {
                             Brush brush = Brushes.DarkRed;
                             g.DrawString(Resources.Activity + " " + Resources.Bq + ":", this.Font, brush, r2);
-                            g.DrawString("< " + (activity + activityError).ToString("f2"),
+                            g.DrawString("< " + activityUpperLimit.ToString("f2"),
                                 this.Font, brush, r2, this.farFormat);
                             r2.Y += 16;
 
                             g.DrawString(Resources.Activity + " " + Resources.Bqkg + ":", this.Font, brush, r2);
-                            g.DrawString("< " + (activityByMass + activityByMassError).ToString("f2"),
+                            g.DrawString("< " + activityByMassUpperLimit.ToString("f2"),
                             this.Font, brush, r2, this.farFormat);
                             r2.Y += 16;
 
                             g.DrawString(Resources.Activity + " " + Resources.Bql + ":", this.Font, brush, r2);
-                            g.DrawString("< " + (activityByVolume + activityByVolumeError).ToString("f2"),
+                            g.DrawString("< " + activityByVolumeUpperLimit.ToString("f2"),
                                 this.Font, brush, r2, this.farFormat);
                             r2.Y += 16;
                         } 
