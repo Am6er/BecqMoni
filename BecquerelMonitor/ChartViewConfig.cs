@@ -318,6 +318,9 @@
             }
         }
 
+        /// <summary>
+        /// Statistical limits confidence (single-sided).
+        /// </summary>
         public decimal ConfidenceLevel
         {
             get
