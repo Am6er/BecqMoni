@@ -1139,12 +1139,14 @@
     <None Include="NucBaseDataSet.xss">
       <DependentUpon>NucBaseDataSet.xsd</DependentUpon>
     </None>
+    <Content Include="config\ROI\Obsidian Marinelli 0.5.xml" />
     <Content Include="config\ROI\Ra-226 Intensities.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="config\ROI\RadiaCode Cs-137.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="config\ROI\RadiaCode Marinelli 0.5.xml" />
     <Content Include="config\ROI\Th-232 Intensities.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -1300,6 +1302,16 @@
       <IncludeHash>True</IncludeHash>
       <FileType>File</FileType>
     </PublishFile>
+    <PublishFile Include="config\ROI\Obsidian Marinelli 0.5.xml">
+      <Visible>False</Visible>
+      <Group>
+      </Group>
+      <TargetPath>
+      </TargetPath>
+      <PublishState>Include</PublishState>
+      <IncludeHash>True</IncludeHash>
+      <FileType>File</FileType>
+    </PublishFile>
     <PublishFile Include="config\ROI\Ra-226 Intensities.xml">
       <Visible>False</Visible>
       <Group>
@@ -1321,6 +1333,16 @@
       <FileType>File</FileType>
     </PublishFile>
     <PublishFile Include="config\ROI\RadiaCode Cs-137.xml">
+      <Visible>False</Visible>
+      <Group>
+      </Group>
+      <TargetPath>
+      </TargetPath>
+      <PublishState>Include</PublishState>
+      <IncludeHash>True</IncludeHash>
+      <FileType>File</FileType>
+    </PublishFile>
+    <PublishFile Include="config\ROI\RadiaCode Marinelli 0.5.xml">
       <Visible>False</Visible>
       <Group>
       </Group>
