@@ -1,0 +1,275 @@
+//---------------------------------
+//DETECTOR PARAMETERS BLOCK:
+//---------------------------------
+//Detector types: COAXIAL, SCINTILLATOR
+
+
+DetectorType = SCINTILLATOR
+
+// Coaxial detector
+DC_CrystalDiameter = 7.4 cm
+DC_CrystalHeight = 5.3 cm
+DC_CrystalHoleDiameter = 0.86 cm
+DC_CrystalHoleHeight = 1.63 cm
+DC_CrystalFrontDeadLayer = 0.07 cm
+DC_CrystalSideDeadLayer = 0.07 cm
+DC_CrystalBackDeadLayer = 0.07 cm
+DC_CrystalHoleBottomDeadLayer = 0.07 cm
+DC_CrystalHoleSideDeadLayer = 0.07 cm
+DC_CrystalSideCladdingThickness = 0.1 cm
+DC_CapToCrystalDistance = 0.35 cm
+DC_DetectorCapDiameter = 9 cm
+DC_DetectorCapFrontThickness = 0.15 cm
+DC_DetectorCapSideThickness = 0.15 cm
+DC_DetectorCapBackThickness = 0.15 cm
+DC_DetectorMountingThickness = 3 cm
+
+// Scintillator detector
+DS_CrystalDiameter = 1.854 cm
+DS_CrystalHeight = 5.9 cm
+DS_CrystalFrontReflectorThickness = 0.13 cm
+DS_CrystalSideReflectorThickness = 0.1 cm
+DS_CrystalFrontCladdingThickness = 0.18 cm
+DS_CrystalSideCladdingThickness = 0.2 cm
+DS_DetectorMountingThickness = 0.2 cm
+
+
+
+//---------------------------------
+//SOURCE PARAMETERS BLOCK:
+//---------------------------------
+//Source types: POINT, CYLINDER, MARINELLI
+
+SourceType = CYLINDER
+
+//Point source
+pdistance = 10.5 cm
+
+//Cylindrical source
+SC_BeakerToDetectorFrontDistance = 5.03 cm
+SC_BeakerDiameter = 4 cm
+SC_BeakerHeight = 0.6 cm
+SC_BeakerSideWallThickness = 0 cm
+SC_BeakerEndWallThickness = 0 cm
+SC_SourceHeight = 0.6 cm
+
+//Marinelli beaker source
+SM_BeakerToDetectorFrontDistance = 0.1 cm
+SM_BeakerDiameter = 15 cm
+SM_BeakerHeight = 9.3 cm
+SM_BeakerHoleDiameter = 9.6 cm
+SM_BeakerHoleHeight = 6.7 cm
+SM_BeakerSideThickness = 0.2 cm
+SM_BeakerEndWallThickness = 0.2 cm
+SM_BeakerHoleSideThickness = 0.2 cm
+SM_BeakerHoleEndWallThickness = 0.2 cm
+SM_SourceHeight = 8.9 cm
+
+
+//---------------------------------
+//MATERIAL PARAMETERS BLOCK:
+//---------------------------------
+//Coaxial detector materials:
+//---------------------------
+
+
+// Crystal
+DC_nCrystalElements = 1
+DC_RoCrystal = 5.323
+DC_ZCrystal[0] = 32
+DC_FractionsCrystal[0] = 1
+DC_FractionTypeCrystal = MASS
+M_DC_Crystal.MName = Germanium
+M_DC_Crystal.Nmaterials = 1
+M_DC_Crystal.Name[0] = Germanium                                
+M_DC_Crystal.MatRelWeight[0] = 1
+
+
+// Crystal Cladding
+DC_nCrystalSideCladdingElements = 1
+DC_RoCrystalSideCladding = 2.7
+DC_ZCrystalSideCladding[0] = 13
+DC_FractionsCrystalSideCladding[0] = 1
+DC_FractionTypeCrystalSideCladding = MASS
+M_DC_Crystal_Cladding.MName = Aluminum
+M_DC_Crystal_Cladding.Nmaterials = 1
+M_DC_Crystal_Cladding.Name[0] = Aluminum                                 
+M_DC_Crystal_Cladding.MatRelWeight[0] = 1
+
+
+//Crystal Mounting
+DC_nCrystalMountingElements = 1
+DC_RoCrystalMounting = 2.7
+DC_ZCrystalMounting[0] = 13
+DC_FractionsCrystalMounting[0] = 1
+DC_FractionTypeCrystalMounting = MASS
+M_DC_Crystal_Mounting.MName = Aluminum
+M_DC_Crystal_Mounting.Nmaterials = 1
+M_DC_Crystal_Mounting.Name[0] = Aluminum                                 
+M_DC_Crystal_Mounting.MatRelWeight[0] = 1
+
+
+//Detector Cap
+DC_nDetectorCapElements = 1
+DC_RoDetectorCap = 2.7
+DC_ZDetectorCap[0] = 13
+DC_FractionsDetectorCap[0] = 1
+DC_FractionTypeDetectorCap = MASS
+M_DC_Detector_Cap.MName = Aluminum
+M_DC_Detector_Cap.Nmaterials = 1
+M_DC_Detector_Cap.Name[0] = Aluminum                                 
+M_DC_Detector_Cap.MatRelWeight[0] = 1
+
+
+//Vacuum
+DC_nVacuum = 1
+DC_RoVacuum = 1e-10
+DC_ZVacuum[0] = 13
+DC_FractionsVacuum[0] = 1
+DC_FractionTypeVacuum = MASS
+M_DC_Vacuum.MName = Aluminum
+M_DC_Vacuum.Nmaterials = 1
+M_DC_Vacuum.Name[0] = Aluminum                                 
+M_DC_Vacuum.MatRelWeight[0] = 1
+
+
+// Scintillation detector materials:
+//----------------------------------
+
+
+// Crystal
+DS_nCrystalElements = 2
+DS_RoCrystal = 4.51
+DS_ZCrystal[0] = 53
+DS_FractionsCrystal[0] = 0.488451
+DS_ZCrystal[1] = 55
+DS_FractionsCrystal[1] = 0.511549
+DS_FractionTypeCrystal = MASS
+M_DS_Crystal.MName = Cesium iodide
+M_DS_Crystal.Nmaterials = 1
+M_DS_Crystal.Name[0] = Cesium iodide                            
+M_DS_Crystal.MatRelWeight[0] = 1
+
+
+// Crystal Cladding 
+DS_nCrystalCladdingElements = 1
+DS_RoCrystalCladding = 2.7
+DS_ZCrystalCladding[0] = 13
+DS_FractionsCrystalCladding[0] = 1
+DS_FractionTypeCrystalCladding = MASS
+M_DS_Crystal_Cladding.MName = Aluminum
+M_DS_Crystal_Cladding.Nmaterials = 1
+M_DS_Crystal_Cladding.Name[0] = Aluminum                                 
+M_DS_Crystal_Cladding.MatRelWeight[0] = 1
+
+
+// Reflector 
+DS_nCrystalReflectorElements = 2
+DS_RoCrystalReflector = 2.25
+DS_ZCrystalReflector[0] = 6
+DS_FractionsCrystalReflector[0] = 0.240183
+DS_ZCrystalReflector[1] = 9
+DS_FractionsCrystalReflector[1] = 0.759817
+DS_FractionTypeReflector = MASS
+M_DS_Reflector.MName = Polytetrafluoroethylene
+M_DS_Reflector.Nmaterials = 1
+M_DS_Reflector.Name[0] = Polytetrafluoroethylene                  
+M_DS_Reflector.MatRelWeight[0] = 1
+
+
+
+// Cylindrical beaker materials:
+//----------------------------
+
+// Walls 
+SC_nWallElements = 3
+SC_RoWall = 0.93
+SC_ZWall[0] = 1
+SC_FractionsWall[0] = 0.04196
+SC_ZWall[1] = 6
+SC_FractionsWall[1] = 0.625016
+SC_ZWall[2] = 8
+SC_FractionsWall[2] = 0.333024
+SC_FractionTypeWall = MASS
+M_SC_Beaker.MName = Polyethylene terephthalate
+M_SC_Beaker.Nmaterials = 1
+M_SC_Beaker.Name[0] = Polyethylene terephthalate               
+M_SC_Beaker.MatRelWeight[0] = 1
+
+
+//Source 
+SC_nSourceElements = 2
+SC_RoSource = 1
+SC_ZSource[0] = 1
+SC_FractionsSource[0] = 0.111898
+SC_ZSource[1] = 8
+SC_FractionsSource[1] = 0.888102
+SC_FractionTypeSource = MASS
+M_SC_Source.MName = Water, liquid
+M_SC_Source.Nmaterials = 1
+M_SC_Source.Name[0] = Water, liquid                            
+M_SC_Source.MatRelWeight[0] = 1
+
+
+// Empty space 
+SC_nEmptySpaceElements = 2
+SC_RoEmptySpace = 0.001205
+SC_ZEmptySpace[0] = 1
+SC_FractionsEmptySpace[0] = 0.111898
+SC_ZEmptySpace[1] = 8
+SC_FractionsEmptySpace[1] = 0.888102
+SC_FractionTypeEmptySpace = MASS
+M_SC_EmptySpace.MName = Water, liquid
+M_SC_EmptySpace.Nmaterials = 1
+M_SC_EmptySpace.Name[0] = Water, liquid                            
+M_SC_EmptySpace.MatRelWeight[0] = 1
+
+
+
+//Marinelli beaker materials:
+//---------------------------
+
+// Walls 
+SM_nWallElements = 3
+SM_RoWall = 0.93
+SM_ZWall[0] = 1
+SM_FractionsWall[0] = 0.04196
+SM_ZWall[1] = 6
+SM_FractionsWall[1] = 0.625016
+SM_ZWall[2] = 8
+SM_FractionsWall[2] = 0.333024
+SM_FractionTypeWall = MASS
+M_SM_Beaker.MName = Polyethylene terephthalate
+M_SM_Beaker.Nmaterials = 1
+M_SM_Beaker.Name[0] = Polyethylene terephthalate               
+M_SM_Beaker.MatRelWeight[0] = 1
+
+
+
+//Source  
+SM_nSourceElements = 2
+SM_RoSource = 1
+SM_ZSource[0] = 1
+SM_FractionsSource[0] = 0.111898
+SM_ZSource[1] = 8
+SM_FractionsSource[1] = 0.888102
+SM_FractionTypeSource = MASS
+M_SM_Source.MName = Water, liquid
+M_SM_Source.Nmaterials = 1
+M_SM_Source.Name[0] = Water, liquid                            
+M_SM_Source.MatRelWeight[0] = 1
+
+
+
+// Empty space 
+SM_nEmptySpaceElements = 2
+SM_RoEmptySpace = 0.001205
+SM_ZEmptySpace[0] = 1
+SM_FractionsEmptySpace[0] = 0.111898
+SM_ZEmptySpace[1] = 8
+SM_FractionsEmptySpace[1] = 0.888102
+SM_FractionTypeEmptySpace = MASS
+M_SM_EmptySpace.MName = Water, liquid
+M_SM_EmptySpace.Nmaterials = 1
+M_SM_EmptySpace.Name[0] = Water, liquid                            
+M_SM_EmptySpace.MatRelWeight[0] = 1
