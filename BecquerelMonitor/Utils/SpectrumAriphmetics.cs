@@ -524,7 +524,7 @@ namespace BecquerelMonitor.Utils
             return result;
         }
 
-        public double[] WMA2(int[] spectrum, int numberOfWMADataPoints, int countlimit = 100)
+        public double[] WMA2(double[] spectrum, int numberOfWMADataPoints, int countlimit = 100)
         {
             double[] result = new double[spectrum.Length];
             Parallel.For(0, spectrum.Length, i =>
@@ -602,7 +602,7 @@ namespace BecquerelMonitor.Utils
             return result;
         }
 
-        public double[] SMA2(int[] spectrum, int numberOfSMADataPoints, int countlimit = 100)
+        public double[] SMA2(double[] spectrum, int numberOfSMADataPoints, int countlimit = 100)
         {
             double[] result = new double[spectrum.Length];
             Parallel.For(0, spectrum.Length, i =>

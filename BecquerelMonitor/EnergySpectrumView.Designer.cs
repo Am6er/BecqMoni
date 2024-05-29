@@ -653,6 +653,93 @@ namespace BecquerelMonitor
                 this.backgroundNumberOfChannels = this.backgroundEnergySpectrum.NumberOfChannels;
                 this.backgroundEnergyCalibration = this.backgroundEnergySpectrum.EnergyCalibration;
             }
+
+            this.CalculateDataForSpecificModes();
+            this.SetupDrawingData();
+            this.CalculateDrawingDataBoundaries();
+            this.ApplySmoothingToDrawingData();
+        }
+
+        private void CalculateDataForSpecificModes()
+        {
+            if (this.backgroundMode == BackgroundMode.Substract)
+            {
+                if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                {
+                    SpectrumAriphmetics sa = new SpectrumAriphmetics(this.energySpectrum);
+                    this.substractedEnergySpectrum = sa.Substract(this.backgroundEnergySpectrum);
+                    sa.Dispose();
+                }
+                else
+                {
+                    this.substractedEnergySpectrum = this.energySpectrum;
+                }
+            }
+
+            if (this.backgroundMode == BackgroundMode.ShowContinuum)
+            {
+                SpectrumAriphmetics sa = new SpectrumAriphmetics((FWHMPeakDetectionMethodConfig)this.activeResultData.PeakDetectionMethodConfig, this.energySpectrum);
+                this.continuumEnergySpectrum = sa.Continuum();
+
+                this.peakEnergySpectrum.Clear();
+                if (this.activeResultData.DetectedPeaks.Count > 0)
+                {
+                    for (int i = 0; i < this.activeResultData.DetectedPeaks.Count; i++)
+                    {
+                        (int[] peakSpectrum, int min_ch, int max_ch, Color peakColor) = sa.GetPeak(this.activeResultData.DetectedPeaks[i], this.continuumEnergySpectrum, true);
+                        this.peakEnergySpectrum.Add((peakSpectrum, min_ch, max_ch, peakColor));
+                    }
+                }
+
+                sa.Dispose();
+            }
+        }
+
+        private void ApplySmoothingToDrawingData()
+        {
+            if (this.smoothingMethod == SmoothingMethod.SimpleMovingAverage)
+            {
+                SpectrumAriphmetics sa = new SpectrumAriphmetics();
+                int numberOfSMADataPoints = this.globalConfigManager.GlobalConfig.ChartViewConfig.NumberOfSMADataPoints;
+                int countlimit = this.globalConfigManager.GlobalConfig.ChartViewConfig.CountLimit;
+                foreach (ResultData resultData in this.resultDataList)
+                {
+                    resultData.EnergySpectrum.DrawingSpectrum = sa.SMA2(resultData.EnergySpectrum.DrawingSpectrum, numberOfSMADataPoints, countlimit: countlimit);
+
+                }
+                if (this.backgroundMode == BackgroundMode.Visible && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.Spectrum != null)
+                {
+                    this.backgroundEnergySpectrum.DrawingSpectrum = sa.SMA2(this.backgroundEnergySpectrum.DrawingSpectrum, numberOfSMADataPoints, countlimit: countlimit);
+                }
+                if (this.backgroundMode == BackgroundMode.ShowContinuum && this.continuumEnergySpectrum != null)
+                {
+                    this.continuumEnergySpectrum.DrawingSpectrum = sa.SMA2(this.continuumEnergySpectrum.DrawingSpectrum, numberOfSMADataPoints, countlimit: countlimit);
+                }
+                sa.Dispose();
+            }
+            else if (this.smoothingMethod == SmoothingMethod.WeightedMovingAverage)
+            {
+                SpectrumAriphmetics sa = new SpectrumAriphmetics();
+                int numberOfWMADataPoints = this.globalConfigManager.GlobalConfig.ChartViewConfig.NumberOfWMADataPoints;
+                int countlimit = this.globalConfigManager.GlobalConfig.ChartViewConfig.CountLimit;
+                foreach (ResultData resultData in this.resultDataList)
+                {
+                    resultData.EnergySpectrum.DrawingSpectrum = sa.WMA2(resultData.EnergySpectrum.DrawingSpectrum, numberOfWMADataPoints, countlimit: countlimit);
+                }
+                if (this.backgroundMode == BackgroundMode.Visible && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.Spectrum != null)
+                {
+                    this.backgroundEnergySpectrum.DrawingSpectrum = sa.WMA2(this.backgroundEnergySpectrum.DrawingSpectrum, numberOfWMADataPoints, countlimit: countlimit);
+                }
+                if (this.backgroundMode == BackgroundMode.ShowContinuum && this.continuumEnergySpectrum != null)
+                {
+                    this.continuumEnergySpectrum.DrawingSpectrum = sa.WMA2(this.continuumEnergySpectrum.DrawingSpectrum, numberOfWMADataPoints, countlimit: countlimit);
+                }
+                sa.Dispose();
+            }
+        }
+
+        private void CalculateDrawingDataBoundaries()
+        {
             this.height = base.ClientSize.Height - this.bottom - this.hScrollBar1.Height;
             this.width = base.ClientSize.Width - this.left - this.vScrollBar1.Width;
             this.scrollX = -this.hScrollBar1.Value;
@@ -672,85 +759,63 @@ namespace BecquerelMonitor
                 while (i < this.numberOfChannels - 1)
                 {
                     double e = this.energyCalibration.ChannelToEnergy((double)i);
-                    int num;
+                    int bgChannel;
                     try
                     {
-                        num = (int)this.backgroundEnergyCalibration.EnergyToChannel(e, maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
+                        bgChannel = (int)this.backgroundEnergyCalibration.EnergyToChannel(e, maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
                     }
                     catch (OutofChannelException)
                     {
                         goto IL_28F;
                     }
                     goto IL_1F4;
-                    IL_28F:
+                IL_28F:
                     i++;
                     continue;
-                    IL_1F4:
-                    if (num < 0 || num >= this.backgroundEnergySpectrum.NumberOfChannels)
+                IL_1F4:
+                    if (bgChannel < 0 || bgChannel >= this.backgroundEnergySpectrum.NumberOfChannels)
                     {
                         goto IL_28F;
                     }
-                    double num2;
+                    double bgChannelValue;
                     if (this.verticalUnit == VerticalUnit.CountsPerSecond)
                     {
-                        num2 = (double)this.backgroundEnergySpectrum.Spectrum[num] / this.backgroundEnergySpectrum.MeasurementTime;
+                        bgChannelValue = (double)this.backgroundEnergySpectrum.DrawingSpectrum[bgChannel] / this.backgroundEnergySpectrum.MeasurementTime;
                     }
                     else
                     {
-                        num2 = (double)this.backgroundEnergySpectrum.Spectrum[num] * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime;
+                        bgChannelValue = (double)this.backgroundEnergySpectrum.DrawingSpectrum[bgChannel] * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime;
                     }
-                    if (num2 > this.totalMaxValue)
+                    if (bgChannelValue > this.totalMaxValue)
                     {
-                        this.totalMaxValue = num2;
+                        this.totalMaxValue = bgChannelValue;
                     }
-                    if (num2 < this.totalMinValue)
+                    if (bgChannelValue < this.totalMinValue)
                     {
-                        this.totalMinValue = num2;
+                        this.totalMinValue = bgChannelValue;
                         goto IL_28F;
                     }
                     goto IL_28F;
                 }
             }
-            if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
-            {
-                SpectrumAriphmetics sa = new SpectrumAriphmetics(this.energySpectrum);
-                this.substractedEnergySpectrum = sa.Substract(this.backgroundEnergySpectrum);
-                sa.Dispose();
-            }
-            if (this.backgroundMode == BackgroundMode.ShowContinuum)
-            {
-                SpectrumAriphmetics sa = new SpectrumAriphmetics((FWHMPeakDetectionMethodConfig)this.activeResultData.PeakDetectionMethodConfig, this.energySpectrum);
-                this.continuumEnergySpectrum = sa.Continuum();
 
-                this.peakEnergySpectrum.Clear();
-                if (this.activeResultData.DetectedPeaks.Count > 0)
-                {
-                    for (int i = 0; i < this.activeResultData.DetectedPeaks.Count; i++)
-                    {
-                        (int[] peakSpectrum, int min_ch, int max_ch, Color peakColor) = sa.GetPeak(this.activeResultData.DetectedPeaks[i], this.continuumEnergySpectrum, true);
-                        this.peakEnergySpectrum.Add((peakSpectrum, min_ch, max_ch, peakColor));
-                    }
-                }
-                
-                sa.Dispose();
-            }
             foreach (ResultData resultData in this.resultDataList)
             {
                 EnergySpectrum energySpectrum = resultData.EnergySpectrum;
                 for (int j = 0; j < energySpectrum.NumberOfChannels - 1; j++)
                 {
-                    double num3 = (double)energySpectrum.Spectrum[j];
+                    double channelValue = (double)energySpectrum.DrawingSpectrum[j];
                     if (this.verticalUnit == VerticalUnit.CountsPerSecond && energySpectrum.MeasurementTime != 0.0)
                     {
-                        num3 /= energySpectrum.MeasurementTime;
+                        channelValue /= energySpectrum.MeasurementTime;
                     }
-                    if (num3 > this.totalMaxValue)
+                    if (channelValue > this.totalMaxValue)
                     {
-                        this.totalMaxValue = num3;
+                        this.totalMaxValue = channelValue;
                     }
-                    if (num3 < this.totalMinValue)
+                    if (channelValue < this.totalMinValue)
                     {
-                        this.totalMinValue = num3;
+                        this.totalMinValue = channelValue;
                     }
                 }
             }
@@ -769,93 +834,62 @@ namespace BecquerelMonitor
             {
                 this.totalMinValue = 0.0;
             }
-            if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
-            {
-                for (int j = 0; j < this.substractedEnergySpectrum.NumberOfChannels - 1; j++)
-                {
-                    double num3 = (double)this.substractedEnergySpectrum.Spectrum[j];
-                    if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.substractedEnergySpectrum.MeasurementTime != 0.0)
-                    {
-                        num3 /= this.substractedEnergySpectrum.MeasurementTime;
-                    }
-                    if (num3 > this.totalMaxValue)
-                    {
-                        this.totalMaxValue = num3;
-                    }
-                    if (num3 < this.totalMinValue)
-                    {
-                        this.totalMinValue = num3;
-                    }
-                }
-            }
             this.maxValue = 0.0;
             this.minValue = double.PositiveInfinity;
             bool flag = false;
             int k = this.minChannel;
             while (k < this.maxChannel)
             {
-                double num5;
+                double channelValue;
                 if ((this.fittingMode == VerticalFittingMode.BackgroundMinMax || this.energySpectrum.MeasurementTime == 0.0) && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
                 {
                     double e2 = this.energyCalibration.ChannelToEnergy((double)k);
-                    int num4;
+                    int bgChannel;
                     try
                     {
-                        num4 = (int)this.backgroundEnergyCalibration.EnergyToChannel(e2, maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
+                        bgChannel = (int)this.backgroundEnergyCalibration.EnergyToChannel(e2, maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
                     }
                     catch (OutofChannelException)
                     {
                         goto IL_595;
                     }
-                    if (num4 >= 0 && num4 < this.backgroundEnergySpectrum.NumberOfChannels)
+                    if (bgChannel >= 0 && bgChannel < this.backgroundEnergySpectrum.NumberOfChannels)
                     {
                         if (this.verticalUnit == VerticalUnit.CountsPerSecond)
                         {
-                            num5 = (double)this.backgroundEnergySpectrum.Spectrum[num4] / this.backgroundEnergySpectrum.MeasurementTime;
+                            channelValue = (double)this.backgroundEnergySpectrum.DrawingSpectrum[bgChannel] / this.backgroundEnergySpectrum.MeasurementTime;
                             goto IL_53A;
                         }
-                        num5 = (double)this.backgroundEnergySpectrum.Spectrum[num4] * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime;
+                        channelValue = (double)this.backgroundEnergySpectrum.DrawingSpectrum[bgChannel] * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime;
                         goto IL_53A;
                     }
                 }
                 else
                 {
-                    if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
-                    {
-                        num5 = (double)this.substractedEnergySpectrum.Spectrum[k];
-                    } else
-                    {
-                        num5 = (double)this.energySpectrum.Spectrum[k];
-                    }
-                        
+                    channelValue = (double)this.energySpectrum.DrawingSpectrum[k];
+
                     if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.MeasurementTime != 0.0)
                     {
-                        if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
-                        {
-                            num5 /= this.substractedEnergySpectrum.MeasurementTime;
-                        } else
-                        {
-                            num5 /= this.energySpectrum.MeasurementTime;
-                        }
+                        channelValue /= this.energySpectrum.MeasurementTime;
                         goto IL_53A;
                     }
                     goto IL_53A;
                 }
-                IL_595:
+            IL_595:
                 k++;
                 continue;
-                IL_53A:
-                if (!flag && num5 != 0.0)
+            IL_53A:
+                if (!flag && channelValue != 0.0)
                 {
                     flag = true;
                 }
-                if (num5 > this.maxValue)
+                if (channelValue > this.maxValue)
                 {
-                    this.maxValue = num5;
+                    this.maxValue = channelValue;
                 }
-                if (num5 < this.minValue && (flag || num5 != 0.0))
+                if (channelValue < this.minValue && (flag || channelValue != 0.0))
                 {
-                    this.minValue = num5;
+                    this.minValue = channelValue;
                     goto IL_595;
                 }
                 goto IL_595;
@@ -945,7 +979,7 @@ namespace BecquerelMonitor
                         this.totalMinValue = 7E-05;
                     }
                 }
-                IL_8F8:
+            IL_8F8:
                 if (this.minValue == 0.0)
                 {
                     if (this.verticalUnit == VerticalUnit.Counts)
@@ -1107,100 +1141,75 @@ namespace BecquerelMonitor
             {
                 this.verticalScale = 1.0;
             }
+        }
+
+        private void SetupDrawingData()
+        {
+            // ensure drawing spectrum arrays
             if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.Spectrum != null && (this.backgroundEnergySpectrum.DrawingSpectrum == null || this.backgroundNumberOfChannels != this.backgroundEnergySpectrum.DrawingSpectrum.Length))
             {
                 this.backgroundEnergySpectrum.DrawingSpectrum = new double[this.backgroundNumberOfChannels];
             }
-            foreach (ResultData resultData3 in this.resultDataList)
-            {
-                if (resultData3.EnergySpectrum.DrawingSpectrum == null || resultData3.EnergySpectrum.NumberOfChannels != resultData3.EnergySpectrum.DrawingSpectrum.Length)
-                {
-                    resultData3.EnergySpectrum.DrawingSpectrum = new double[resultData3.EnergySpectrum.NumberOfChannels];
-                }
-            }
-            if (this.smoothingMethod == SmoothingMethod.None)
-            {
-                if (this.backgroundMode == BackgroundMode.Visible && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.Spectrum != null)
-                {
-                    Parallel.For(0, this.backgroundNumberOfChannels, l =>
-                    {
-                        this.backgroundEnergySpectrum.DrawingSpectrum[l] = (double)this.backgroundEnergySpectrum.Spectrum[l];
-                    });
-                }
-                if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
-                {
-                    Parallel.For(0, this.substractedEnergySpectrum.NumberOfChannels, l =>
-                    {
-                        this.substractedEnergySpectrum.DrawingSpectrum[l] = (double)this.substractedEnergySpectrum.Spectrum[l];
-                    });
-                }
-                if (this.backgroundMode == BackgroundMode.ShowContinuum && this.continuumEnergySpectrum != null)
-                {
-                    Parallel.For(0, this.continuumEnergySpectrum.NumberOfChannels, l => 
-                    { 
-                        this.continuumEnergySpectrum.DrawingSpectrum[l] = (double)this.continuumEnergySpectrum.Spectrum[l]; 
-                    });
-                }
-                    
-                using (List<ResultData>.Enumerator enumerator4 = this.resultDataList.GetEnumerator())
-                {
-                    while (enumerator4.MoveNext())
-                    {
-                        ResultData resultData4 = enumerator4.Current;
-                        Parallel.For(0, resultData4.EnergySpectrum.NumberOfChannels, m =>
-                        {
-                            resultData4.EnergySpectrum.DrawingSpectrum[m] = (double)resultData4.EnergySpectrum.Spectrum[m];
-                        });
-                    }
-                    return;
-                }
-            }
-            if (this.smoothingMethod == SmoothingMethod.SimpleMovingAverage)
-            {
-                SpectrumAriphmetics sa = new SpectrumAriphmetics();
-                int numberOfSMADataPoints = this.globalConfigManager.GlobalConfig.ChartViewConfig.NumberOfSMADataPoints;
-                int countlimit = this.globalConfigManager.GlobalConfig.ChartViewConfig.CountLimit;
-                foreach (ResultData resultData5 in this.resultDataList)
-                {
-                    resultData5.EnergySpectrum.DrawingSpectrum = sa.SMA2(resultData5.EnergySpectrum.Spectrum, numberOfSMADataPoints, countlimit: countlimit);
 
-                }
-                if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
-                {
-                    this.substractedEnergySpectrum.DrawingSpectrum = sa.SMA2(this.substractedEnergySpectrum.Spectrum, numberOfSMADataPoints, countlimit: countlimit);
-                }
-                if (this.backgroundMode == BackgroundMode.Visible && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.Spectrum != null)
-                {
-                    this.backgroundEnergySpectrum.DrawingSpectrum = sa.SMA2(this.backgroundEnergySpectrum.Spectrum, numberOfSMADataPoints, countlimit: countlimit);
-                }
-                if (this.backgroundMode == BackgroundMode.ShowContinuum && this.continuumEnergySpectrum != null)
-                {
-                    this.continuumEnergySpectrum.DrawingSpectrum = sa.SMA2(this.continuumEnergySpectrum.Spectrum, numberOfSMADataPoints, countlimit: countlimit);
-                }
-                sa.Dispose();
-            }
-            else if (this.smoothingMethod == SmoothingMethod.WeightedMovingAverage)
+            foreach (ResultData resultData in this.resultDataList)
             {
-                SpectrumAriphmetics sa = new SpectrumAriphmetics();
-                int numberOfWMADataPoints = this.globalConfigManager.GlobalConfig.ChartViewConfig.NumberOfWMADataPoints;
-                int countlimit = this.globalConfigManager.GlobalConfig.ChartViewConfig.CountLimit;
-                foreach (ResultData resultData6 in this.resultDataList)
+                if (resultData.EnergySpectrum.DrawingSpectrum == null || resultData.EnergySpectrum.NumberOfChannels != resultData.EnergySpectrum.DrawingSpectrum.Length)
                 {
-                    resultData6.EnergySpectrum.DrawingSpectrum = sa.WMA2(resultData6.EnergySpectrum.Spectrum, numberOfWMADataPoints, countlimit: countlimit);
+                    resultData.EnergySpectrum.DrawingSpectrum = new double[resultData.EnergySpectrum.NumberOfChannels];
                 }
-                if (this.backgroundMode == BackgroundMode.Visible && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.Spectrum != null)
+            }
+
+            if (this.backgroundMode == BackgroundMode.ShowContinuum && this.continuumEnergySpectrum != null && (this.continuumEnergySpectrum.DrawingSpectrum == null || this.continuumEnergySpectrum.NumberOfChannels != this.continuumEnergySpectrum.DrawingSpectrum.Length))
+            {
+                this.continuumEnergySpectrum.DrawingSpectrum = new double[this.continuumEnergySpectrum.NumberOfChannels];
+            }
+
+            // fill arrays with data
+            if (this.backgroundMode == BackgroundMode.Visible && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.Spectrum != null)
+            {
+                Parallel.For(0, this.backgroundNumberOfChannels, l =>
                 {
-                    this.backgroundEnergySpectrum.DrawingSpectrum = sa.WMA2(this.backgroundEnergySpectrum.Spectrum, numberOfWMADataPoints, countlimit: countlimit);
-                }
-                if (this.backgroundMode == BackgroundMode.ShowContinuum && this.continuumEnergySpectrum != null)
+                    this.backgroundEnergySpectrum.DrawingSpectrum[l] = (double)this.backgroundEnergySpectrum.Spectrum[l];
+                });
+            }
+
+            if (this.backgroundMode == BackgroundMode.ShowContinuum && this.continuumEnergySpectrum != null && this.continuumEnergySpectrum.Spectrum != null)
+            {
+                Parallel.For(0, this.continuumEnergySpectrum.NumberOfChannels, l =>
                 {
-                    this.continuumEnergySpectrum.DrawingSpectrum = sa.WMA2(this.continuumEnergySpectrum.Spectrum, numberOfWMADataPoints, countlimit: countlimit);
-                }
-                if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                    this.continuumEnergySpectrum.DrawingSpectrum[l] = (double)this.continuumEnergySpectrum.Spectrum[l];
+                });
+            }
+
+            foreach (ResultData resultData in this.resultDataList)
+            {
+                EnergySpectrum source;
+                if (this.backgroundMode == BackgroundMode.Substract)
                 {
-                    this.substractedEnergySpectrum.DrawingSpectrum = sa.WMA2(this.substractedEnergySpectrum.Spectrum, numberOfWMADataPoints, countlimit: countlimit);
+                    if (resultData == activeResultData)
+                    {
+                        source = this.substractedEnergySpectrum;
+                    }
+                    else if (resultData.BackgroundEnergySpectrum != null && resultData.BackgroundEnergySpectrum.MeasurementTime > 0)
+                    {
+                        SpectrumAriphmetics sa = new SpectrumAriphmetics(resultData.EnergySpectrum);
+                        source = sa.Substract(resultData.BackgroundEnergySpectrum);
+                        sa.Dispose();
+                    }
+                    else
+                    {
+                        source = resultData.EnergySpectrum;
+                    }
                 }
-                sa.Dispose();
+                else
+                {
+                    source = resultData.EnergySpectrum;
+                }
+
+                Parallel.For(0, resultData.EnergySpectrum.NumberOfChannels, l =>
+                {
+                    resultData.EnergySpectrum.DrawingSpectrum[l] = (double)source.Spectrum[l];
+                });
             }
         }
 
@@ -1289,53 +1298,34 @@ namespace BecquerelMonitor
                         {
                             goto IL_438;
                         }
-                        int alpha2 = (int)(colorConfig.ActiveSpectrumColorTransparency * 255m / 100m);
-                        if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0 
-                            && this.substractedEnergySpectrum != null)
-                        {
-                            using (Brush brush2 = new SolidBrush(Color.FromArgb(alpha2, colorConfig.BgDiffColor.Color)))
-                            {
-                                using (new Pen(Color.FromArgb(255, colorConfig.BgDiffColor.Color)))
-                                {
-                                    this.DrawBarChart(g, brush2, this.substractedEnergySpectrum, this.substractedEnergySpectrum.EnergyCalibration, false);
-                                }
-                                goto IL_438;
-                            }
-                        } else
-                        {
-                            using (Brush brush2 = new SolidBrush(Color.FromArgb(alpha2, colorConfig.ActiveSpectrumColor.Color)))
-                            {
-                                using (new Pen(Color.FromArgb(alpha2, colorConfig.ActiveSpectrumColor.Color)))
-                                {
-                                    this.DrawBarChart(g, brush2, this.energySpectrum, this.energyCalibration, false);
-                                }
-                                goto IL_438;
-                            }
-                        }
                         
+                        int alpha2 = (int)(colorConfig.ActiveSpectrumColorTransparency * 255m / 100m);
+                        Color color = this.backgroundMode == BackgroundMode.Substract
+                            ? Color.FromArgb(alpha2, colorConfig.BgDiffColor.Color)
+                            : Color.FromArgb(alpha2, colorConfig.ActiveSpectrumColor.Color);
+
+                        using (Brush brush2 = new SolidBrush(color))
+                        {
+                            using (new Pen(Color.FromArgb(alpha2, colorConfig.ActiveSpectrumColor.Color)))
+                            {
+                                this.DrawBarChart(g, brush2, this.energySpectrum, this.energyCalibration, false);
+                            }
+                            goto IL_438;
+                        }
                     }
                     if (this.energySpectrum.MeasurementTime != 0.0)
                     {
                         int alpha3 = (int)(colorConfig.ActiveSpectrumColorTransparency * 255m / 100m);
-                        if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0 
-                            && this.substractedEnergySpectrum != null)
+                        Color color = this.backgroundMode == BackgroundMode.Substract
+                            ? Color.FromArgb(alpha3, colorConfig.BgDiffColor.Color)
+                            : Color.FromArgb(alpha3, colorConfig.ActiveSpectrumColor.Color);
+
+
+                        using (Brush brush3 = new SolidBrush(color))
                         {
-                            using (Brush brush3 = new SolidBrush(Color.FromArgb(alpha3, colorConfig.BgDiffColor.Color)))
+                            using (new Pen(Color.FromArgb(alpha3, colorConfig.ActiveSpectrumColor.Color)))
                             {
-                                using (new Pen(Color.FromArgb(255, colorConfig.BgDiffColor.Color)))
-                                {
-                                    this.DrawBarChart(g, brush3, this.substractedEnergySpectrum, this.substractedEnergySpectrum.EnergyCalibration, false);
-                                }
-                            }
-                        }
-                        else
-                        {
-                            using (Brush brush3 = new SolidBrush(Color.FromArgb(alpha3, colorConfig.ActiveSpectrumColor.Color)))
-                            {
-                                using (new Pen(Color.FromArgb(alpha3, colorConfig.ActiveSpectrumColor.Color)))
-                                {
-                                    this.DrawBarChart(g, brush3, this.energySpectrum, this.energyCalibration, false);
-                                }
+                                this.DrawBarChart(g, brush3, this.energySpectrum, this.energyCalibration, false);
                             }
                         }
                     }
@@ -1407,21 +1397,16 @@ namespace BecquerelMonitor
                     }
                     if (this.energySpectrum.MeasurementTime != 0.0)
                     {
-                        if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0 
-                            && this.substractedEnergySpectrum != null)
-                        {
-                            using (Pen pen6 = new Pen(colorConfig.BgDiffColor.Color))
-                            {
-                                this.DrawLineChart(g, pen6, this.substractedEnergySpectrum, this.substractedEnergySpectrum.EnergyCalibration, false);
-                            }
-                        }
-                        else
-                        {
-                            using (Pen pen6 = new Pen(colorConfig.ActiveSpectrumColor.Color))
+                        
+                            Color color = this.backgroundMode == BackgroundMode.Substract
+                                ? colorConfig.BgDiffColor.Color
+                                : colorConfig.ActiveSpectrumColor.Color;
+
+                            using (Pen pen6 = new Pen(color))
                             {
                                 this.DrawLineChart(g, pen6, this.energySpectrum, this.energyCalibration, false);
                             }
-                        }
+
                     }
                     if (this.drawingMode == DrawingMode.HighDefinition)
                     {
