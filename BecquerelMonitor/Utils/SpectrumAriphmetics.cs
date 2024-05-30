@@ -180,8 +180,12 @@ namespace BecquerelMonitor.Utils
         public static EnergySpectrum NormalizeSpectrum(EnergySpectrum spectrum, ROIConfigData roi)
         {
             EnergySpectrum normalizedSpectrum = spectrum.Clone();
-            ROIAriphmetics roiAriphmetics = new ROIAriphmetics(roi);
+            if (roi == null)
+            {
+                return normalizedSpectrum;
+            }
 
+            ROIAriphmetics roiAriphmetics = new ROIAriphmetics(roi);
             if (!roiAriphmetics.HasValidCurve)
             {
                 return normalizedSpectrum;
