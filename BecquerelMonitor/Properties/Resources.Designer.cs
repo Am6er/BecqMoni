@@ -392,6 +392,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Selected Region (normalized by eff.).
+        /// </summary>
+        internal static string ChartHeaderSelectionEffNormalized {
+            get {
+                return ResourceManager.GetString("ChartHeaderSelectionEffNormalized", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Weight:.
         /// </summary>
         internal static string ChartHeaderWeight {
@@ -1938,6 +1947,16 @@ namespace BecquerelMonitor.Properties {
         internal static System.Drawing.Bitmap nopeak {
             get {
                 object obj = ResourceManager.GetObject("nopeak", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap NORM {
+            get {
+                object obj = ResourceManager.GetObject("NORM", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

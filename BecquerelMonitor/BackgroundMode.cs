@@ -16,6 +16,9 @@ namespace BecquerelMonitor
         Substract,
 
         [XmlEnum(Name = "ShowContinuum")]
-        ShowContinuum
+        ShowContinuum,
+
+        [XmlEnum(Name = "NormalizeByEfficiency")]
+        NormalizeByEfficiency
     }
 }

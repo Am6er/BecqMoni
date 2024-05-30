@@ -320,6 +320,18 @@ namespace BecquerelMonitor
             toolStripContainer1.BottomToolStripPanel.ResumeLayout();
         }
 
+        private void EvaluateNormByEffMode()
+        {
+            bool normByEffIsAvailable = this.IsNormalizeByEfficiencyAvailable();
+            this.NormByEffToolStripMenuItem.Enabled = normByEffIsAvailable;
+
+            if (!normByEffIsAvailable && this.view.BackgroundMode == BackgroundMode.NormalizeByEfficiency)
+            {
+                this.view.BackgroundMode = BackgroundMode.Visible;
+                this.toolStripSplitButtonBgMode.Image = BecquerelMonitor.Properties.Resources.BG;
+            }
+        }
+
         private void View_ActionEvent(object sender, EnergySpectrumActionEventArgs e)
         {
             decimal value = e.NewScaleValue;
@@ -496,6 +508,7 @@ namespace BecquerelMonitor
         // Token: 0x0600032F RID: 815 RVA: 0x0000FDF8 File Offset: 0x0000DFF8
         public void RefreshView()
         {
+            this.EvaluateNormByEffMode();
             this.view.PrepareViewData();
             this.view.RecalcScrollBar();
             this.view.Invalidate();
@@ -511,7 +524,7 @@ namespace BecquerelMonitor
                     image = BecquerelMonitor.Properties.Resources.BG;
                     break;
                 case BackgroundMode.Invisible:
-                    image = BecquerelMonitor.Properties.Resources.CONT;
+                    image = BecquerelMonitor.Properties.Resources.NOBG;
                     break;
                 case BackgroundMode.Substract:
                     image = BecquerelMonitor.Properties.Resources.SUB;
@@ -519,8 +532,11 @@ namespace BecquerelMonitor
                 case BackgroundMode.ShowContinuum:
                     image = BecquerelMonitor.Properties.Resources.CONT;
                     break;
+                case BackgroundMode.NormalizeByEfficiency:
+                    image = BecquerelMonitor.Properties.Resources.NORM;
+                    break;
             }
-            this.toolStripSplitButton7.Image = image;
+            this.toolStripSplitButtonBgMode.Image = image;
             image = BecquerelMonitor.Properties.Resources.HD1;
             switch (this.view.DrawingMode)
             {
@@ -643,15 +659,35 @@ namespace BecquerelMonitor
                     image = BecquerelMonitor.Properties.Resources.CONT;
                     break;
                 case BackgroundMode.ShowContinuum:
+                    if (this.IsNormalizeByEfficiencyAvailable())
+                    {
+                        backgroundMode = BackgroundMode.NormalizeByEfficiency;
+                        image = BecquerelMonitor.Properties.Resources.NORM;
+                    }
+                    else
+                    {
+                        backgroundMode = BackgroundMode.Visible;
+                        image = BecquerelMonitor.Properties.Resources.BG;
+                    }
+                    
+                    break;
+                case BackgroundMode.NormalizeByEfficiency:
                     backgroundMode = BackgroundMode.Visible;
                     image = BecquerelMonitor.Properties.Resources.BG;
                     break;
             }
             this.view.BackgroundMode = backgroundMode;
-            this.toolStripSplitButton7.Image = image;
+            this.toolStripSplitButtonBgMode.Image = image;
             this.UpdateDetectedPeaks = true;
             this.UpdateDoseRate = true;
             this.RefreshView();
+        }
+
+        private bool IsNormalizeByEfficiencyAvailable()
+        {
+            return this.ActiveResultData != null 
+                && this.ActiveResultData.ROIConfig != null 
+                && this.ActiveResultData.ROIConfig.HasEfficiency;
         }
 
         // Token: 0x06000332 RID: 818 RVA: 0x00010118 File Offset: 0x0000E318
@@ -661,13 +697,14 @@ namespace BecquerelMonitor
             this.バックグラウンド表示なしToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.Invisible);
             this.SubstractBgToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.Substract);
             this.ShowConToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.ShowContinuum);
+            this.NormByEffToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.NormalizeByEfficiency);
         }
 
         // Token: 0x06000333 RID: 819 RVA: 0x0001015C File Offset: 0x0000E35C
         void バックグラウンド表示ありToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.BackgroundMode = BackgroundMode.Visible;
-            this.toolStripSplitButton7.Image = BecquerelMonitor.Properties.Resources.BG;
+            this.toolStripSplitButtonBgMode.Image = BecquerelMonitor.Properties.Resources.BG;
             this.UpdateDetectedPeaks = true;
             this.UpdateDoseRate = true;
             this.RefreshView();
@@ -677,7 +714,7 @@ namespace BecquerelMonitor
         void バックグラウンド表示なしToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.BackgroundMode = BackgroundMode.Invisible;
-            this.toolStripSplitButton7.Image = BecquerelMonitor.Properties.Resources.NOBG;
+            this.toolStripSplitButtonBgMode.Image = BecquerelMonitor.Properties.Resources.NOBG;
             this.UpdateDetectedPeaks = true;
             this.UpdateDoseRate = true;
             this.RefreshView();
@@ -686,7 +723,7 @@ namespace BecquerelMonitor
         void SubstractBgToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.BackgroundMode = BackgroundMode.Substract;
-            this.toolStripSplitButton7.Image = BecquerelMonitor.Properties.Resources.SUB;
+            this.toolStripSplitButtonBgMode.Image = BecquerelMonitor.Properties.Resources.SUB;
             this.UpdateDetectedPeaks = true;
             this.UpdateDoseRate = true;
             this.RefreshView();
@@ -695,7 +732,16 @@ namespace BecquerelMonitor
         void ShowConToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.BackgroundMode = BackgroundMode.ShowContinuum;
-            this.toolStripSplitButton7.Image = BecquerelMonitor.Properties.Resources.CONT;
+            this.toolStripSplitButtonBgMode.Image = BecquerelMonitor.Properties.Resources.CONT;
+            this.UpdateDetectedPeaks = true;
+            this.UpdateDoseRate = true;
+            this.RefreshView();
+        }
+
+        void NormByEffToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            this.view.BackgroundMode = BackgroundMode.NormalizeByEfficiency;
+            this.toolStripSplitButtonBgMode.Image = BecquerelMonitor.Properties.Resources.NORM;
             this.UpdateDetectedPeaks = true;
             this.UpdateDoseRate = true;
             this.RefreshView();
