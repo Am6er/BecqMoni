@@ -693,6 +693,21 @@ namespace BecquerelMonitor
 
                 sa.Dispose();
             }
+
+            if (this.backgroundMode == BackgroundMode.NormalizeByEfficiency)
+            {
+                ROIConfigData roi = this.activeResultData.ROIConfig;
+                if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                {
+                    this.normByEffBgEnergySpectrum = SpectrumAriphmetics.NormalizeSpectrum(this.backgroundEnergySpectrum, roi);
+                }
+                else
+                {
+                    this.normByEffBgEnergySpectrum = this.backgroundEnergySpectrum;
+                }
+
+                this.normByEffEnergySpectrum = SpectrumAriphmetics.NormalizeSpectrum(this.energySpectrum, roi);
+            }
         }
 
         private void ApplySmoothingToDrawingData()
@@ -707,7 +722,7 @@ namespace BecquerelMonitor
                     resultData.EnergySpectrum.DrawingSpectrum = sa.SMA2(resultData.EnergySpectrum.DrawingSpectrum, numberOfSMADataPoints, countlimit: countlimit);
 
                 }
-                if (this.backgroundMode == BackgroundMode.Visible && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.Spectrum != null)
+                if (this.IsBackgroundVisible())
                 {
                     this.backgroundEnergySpectrum.DrawingSpectrum = sa.SMA2(this.backgroundEnergySpectrum.DrawingSpectrum, numberOfSMADataPoints, countlimit: countlimit);
                 }
@@ -726,7 +741,7 @@ namespace BecquerelMonitor
                 {
                     resultData.EnergySpectrum.DrawingSpectrum = sa.WMA2(resultData.EnergySpectrum.DrawingSpectrum, numberOfWMADataPoints, countlimit: countlimit);
                 }
-                if (this.backgroundMode == BackgroundMode.Visible && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.Spectrum != null)
+                if (this.IsBackgroundVisible())
                 {
                     this.backgroundEnergySpectrum.DrawingSpectrum = sa.WMA2(this.backgroundEnergySpectrum.DrawingSpectrum, numberOfWMADataPoints, countlimit: countlimit);
                 }
@@ -753,7 +768,7 @@ namespace BecquerelMonitor
             }
             this.totalMaxValue = 0.0;
             this.totalMinValue = double.PositiveInfinity;
-            if (this.backgroundMode == BackgroundMode.Visible && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+            if (this.IsBackgroundVisible())
             {
                 int i = 0;
                 while (i < this.numberOfChannels - 1)
@@ -1165,11 +1180,14 @@ namespace BecquerelMonitor
             }
 
             // fill arrays with data
-            if (this.backgroundMode == BackgroundMode.Visible && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.Spectrum != null)
+            if (this.IsBackgroundVisible())
             {
+                EnergySpectrum source = this.backgroundMode == BackgroundMode.NormalizeByEfficiency
+                    ? this.normByEffBgEnergySpectrum
+                    : this.backgroundEnergySpectrum;
                 Parallel.For(0, this.backgroundNumberOfChannels, l =>
                 {
-                    this.backgroundEnergySpectrum.DrawingSpectrum[l] = (double)this.backgroundEnergySpectrum.Spectrum[l];
+                    this.backgroundEnergySpectrum.DrawingSpectrum[l] = (double)source.Spectrum[l];
                 });
             }
 
@@ -1199,6 +1217,17 @@ namespace BecquerelMonitor
                     else
                     {
                         source = resultData.EnergySpectrum;
+                    }
+                }
+                else if (this.backgroundMode == BackgroundMode.NormalizeByEfficiency)
+                {
+                    if (resultData == activeResultData)
+                    {
+                        source = this.normByEffEnergySpectrum;
+                    }
+                    else
+                    {                        
+                        source = SpectrumAriphmetics.NormalizeSpectrum(resultData.EnergySpectrum, resultData.ROIConfig);
                     }
                 }
                 else
@@ -1252,7 +1281,7 @@ namespace BecquerelMonitor
             }
             if (this.activeResultData.Visible)
             {
-                if (this.backgroundMode == BackgroundMode.Visible)
+                if (this.IsBackgroundVisible())
                 {
                     this.ShowROINetRegion(g, true);
                 }
@@ -1260,7 +1289,7 @@ namespace BecquerelMonitor
                 {
                     if (colorConfig.SpectrumDrawingOrder == 0)
                     {
-                        if (this.backgroundMode == BackgroundMode.Visible && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                        if (this.IsBackgroundVisible())
                         {
                             int alpha = (int)(colorConfig.BackgroundSpectrumColorTransparency * 255m / 100m);
                             using (Brush brush = new SolidBrush(Color.FromArgb(alpha, colorConfig.BackgroundSpectrumColor.Color)))
@@ -1298,7 +1327,7 @@ namespace BecquerelMonitor
                         {
                             goto IL_438;
                         }
-                        
+
                         int alpha2 = (int)(colorConfig.ActiveSpectrumColorTransparency * 255m / 100m);
                         Color color = this.backgroundMode == BackgroundMode.Substract
                             ? Color.FromArgb(alpha2, colorConfig.BgDiffColor.Color)
@@ -1329,7 +1358,7 @@ namespace BecquerelMonitor
                             }
                         }
                     }
-                    if (this.backgroundMode == BackgroundMode.Visible && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                    if (this.IsBackgroundVisible())
                     {
                         int alpha4 = (int)(colorConfig.BackgroundSpectrumColorTransparency * 255m / 100m);
                         using (Brush brush4 = new SolidBrush(Color.FromArgb(alpha4, colorConfig.BackgroundSpectrumColor.Color)))
@@ -1373,7 +1402,7 @@ namespace BecquerelMonitor
                         g.SmoothingMode = SmoothingMode.AntiAlias;
                         g.PixelOffsetMode = PixelOffsetMode.Half;
                     }
-                    if (this.backgroundMode == BackgroundMode.Visible && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                    if (this.IsBackgroundVisible())
                     {
                         using (Pen pen5 = new Pen(colorConfig.BackgroundSpectrumColor.Color))
                         {
@@ -1471,20 +1500,20 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            int num;
-            int num2;
+            int selStart;
+            int selEnd;
             if (this.selectionStart < this.selectionEnd)
             {
-                num = this.selectionStart;
-                num2 = this.selectionEnd;
+                selStart = this.selectionStart;
+                selEnd = this.selectionEnd;
             }
             else
             {
-                num = this.selectionEnd;
-                num2 = this.selectionStart;
+                selStart = this.selectionEnd;
+                selEnd = this.selectionStart;
             }
             this.selectionFWHM = -1.0;
-            if (num == num2)
+            if (selStart == selEnd)
             {
                 return;
             }
@@ -1492,10 +1521,15 @@ namespace BecquerelMonitor
             EnergyResolutionResult energyResolutionResult;
             if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.substractedEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
             {
-                energyResolutionResult = EnergyResolutionCalculator.CalculateFWHM(this.substractedEnergySpectrum, num, num2);
-            } else
+                energyResolutionResult = EnergyResolutionCalculator.CalculateFWHM(this.substractedEnergySpectrum, selStart, selEnd);
+            }
+            else if (this.backgroundMode == BackgroundMode.NormalizeByEfficiency)
             {
-                energyResolutionResult = EnergyResolutionCalculator.CalculateFWHM(this.energySpectrum, num, num2);
+                energyResolutionResult = EnergyResolutionCalculator.CalculateFWHM(this.normByEffEnergySpectrum, selStart, selEnd);
+            }
+            else
+            {
+                energyResolutionResult = EnergyResolutionCalculator.CalculateFWHM(this.energySpectrum, selStart, selEnd);
             }
             if (energyResolutionResult == null)
             {
@@ -2495,7 +2529,7 @@ namespace BecquerelMonitor
                             {
                                 num9 /= this.energySpectrum.MeasurementTime;
                             }
-                            if (this.backgroundEnergySpectrum == null || this.backgroundEnergySpectrum.MeasurementTime == 0.0 || this.backgroundMode != BackgroundMode.Visible)
+                            if (!this.IsBackgroundVisible())
                             {
                                 num10 = 0.0;
                             }
@@ -2608,6 +2642,12 @@ namespace BecquerelMonitor
                     goto IL_1F4;
                 }
             }
+        }
+
+        private bool IsBackgroundVisible()
+        {
+            return (this.backgroundMode == BackgroundMode.Visible || this.backgroundMode == BackgroundMode.NormalizeByEfficiency)
+                && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0;
         }
 
         String FormatAs10Power(decimal val)
@@ -3136,6 +3176,15 @@ namespace BecquerelMonitor
 
         void ShowCursorValues(Graphics g)
         {
+            string intFormat = "n0";
+            string floatFormat = "n2";
+            string preciseFloatFormat = "n4";
+            bool normalizeByEfficiency = this.backgroundMode == BackgroundMode.NormalizeByEfficiency;
+            double fg_time = this.activeResultData.EnergySpectrum.MeasurementTime;
+            double bg_time = this.activeResultData.BackgroundEnergySpectrum != null
+                ? this.activeResultData.BackgroundEnergySpectrum.MeasurementTime
+                : 0.0;
+
             int table_width_origin = 230;
             int channel_table_x_pos;
             int region_table_x_pos;
@@ -3219,57 +3268,64 @@ namespace BecquerelMonitor
                 g.DrawRectangle(Pens.Black, channel_table_x_pos - 3, table_y_pos - 3, table_width_origin, num6);
                 Rectangle r = new Rectangle(channel_table_x_pos + 5, table_y_pos + 4, table_width_origin - 12, 32);
                 g.DrawString(Resources.ChartHeaderChannel, this.Font, Brushes.Black, r);
-                g.DrawString(this.cursorChannel.ToString(), this.Font, Brushes.Black, r, this.farFormat);
+                g.DrawString(this.cursorChannel.ToString(intFormat), this.Font, Brushes.Black, r, this.farFormat);
                 r.Y += 16;
-                double num7 = this.energyCalibration.ChannelToEnergy((double)this.cursorChannel);
+                double channelEnergy = this.energyCalibration.ChannelToEnergy((double)this.cursorChannel);
                 g.DrawString(Resources.ChartHeaderEnergy, this.Font, Brushes.Black, r);
-                g.DrawString(num7.ToString("f2"), this.Font, Brushes.Black, r, this.farFormat);
+                g.DrawString(channelEnergy.ToString(floatFormat), this.Font, Brushes.Black, r, this.farFormat);
                 r.Y += 22;
                 g.DrawLine(Pens.LightGray, r.Left, r.Top - 6, r.Right, r.Top - 6);
-                int num8 = 0;
+                int channelGrossCounts = 0;
                 if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
                 {
-                    num8 = this.substractedEnergySpectrum.Spectrum[this.cursorChannel];
-                } else
+                    channelGrossCounts = this.substractedEnergySpectrum.Spectrum[this.cursorChannel];
+                } 
+                else
                 {
-                    num8 = this.energySpectrum.Spectrum[this.cursorChannel];
+                    channelGrossCounts = normalizeByEfficiency
+                        ? this.normByEffEnergySpectrum.Spectrum[this.cursorChannel]
+                        : this.energySpectrum.Spectrum[this.cursorChannel];
                 }
                     
                 g.DrawString(Resources.ChartHeaderGrossCounts, this.Font, Brushes.Black, r);
-                g.DrawString(num8.ToString("f2"), this.Font, Brushes.Black, r, this.farFormat);
+                g.DrawString(channelGrossCounts.ToString(floatFormat), this.Font, Brushes.Black, r, this.farFormat);
                 if (this.backgroundEnergySpectrum != null && this.backgroundMode != BackgroundMode.Substract)
                 {
-                    double num9 = 0.0;
-                    if (this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                    double adjBgChannelCounts = 0.0;
+                    if (bg_time > 0)
                     {
-                        int num10;
+                        int bgChannelIndex;
                         if (this.backgroundEnergyCalibration.Equals(this.baseEnergyCalibration))
                         {
-                            num10 = this.cursorChannel;
+                            bgChannelIndex = this.cursorChannel;
                         }
                         else
                         {
-                            num10 = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy((double)this.cursorChannel), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
+                            bgChannelIndex = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy((double)this.cursorChannel), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
                         }
-                        if (num10 >= 0 && num10 < this.backgroundNumberOfChannels)
+                        if (bgChannelIndex >= 0 && bgChannelIndex < this.backgroundNumberOfChannels)
                         {
-                            num9 = (double)this.backgroundEnergySpectrum.Spectrum[num10] * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime;
+                            adjBgChannelCounts = normalizeByEfficiency
+                                ? (double)this.normByEffBgEnergySpectrum.Spectrum[bgChannelIndex]
+                                : (double)this.backgroundEnergySpectrum.Spectrum[bgChannelIndex];
+                            adjBgChannelCounts *= fg_time / bg_time;
                         }
                     }
                     r.Y += 16;
                     g.DrawString(Resources.ChartHeaderBGCounts, this.Font, Brushes.Black, r);
-                    g.DrawString(num9.ToString("f2"), this.Font, Brushes.Black, r, this.farFormat);
+                    g.DrawString(adjBgChannelCounts.ToString(floatFormat), this.Font, Brushes.Black, r, this.farFormat);
                     r.Y += 16;
-                    if (num9 != 0.0)
+                    if (adjBgChannelCounts != 0.0)
                     {
-                        double num11 = (double)num8 / num9 * 100.0;
+                        double num11 = (double)channelGrossCounts / adjBgChannelCounts * 100.0;
                         g.DrawString(Resources.ChartHeaderCountBGRatio, this.Font, Brushes.Black, r);
-                        g.DrawString(num11.ToString("f2") + Resources.PercentCharacter, this.Font, Brushes.Black, r, this.farFormat);
+                        g.DrawString(num11.ToString(floatFormat) + Resources.PercentCharacter, this.Font, Brushes.Black, r, this.farFormat);
                     }
                 }
             }
             if (this.selectionStart != -1 && this.energySpectrum.NumberOfChannels > Math.Max(this.selectionStart, this.selectionEnd))
             {
+                // calculation data
                 int start_channel;
                 int end_channel;
                 if (this.selectionStart < this.selectionEnd)
@@ -3285,14 +3341,16 @@ namespace BecquerelMonitor
                 double start_energy = this.energyCalibration.ChannelToEnergy((double)start_channel);
                 double end_energy = this.energyCalibration.ChannelToEnergy((double)end_channel);
                 double fg_counts = 0.0;
-                double fg_time = this.activeResultData.EnergySpectrum.MeasurementTime;
+                double fg_eff_norm_counts = 0.0;
                 double bg_counts = 0.0;
-                double bg_time = this.activeResultData.BackgroundEnergySpectrum != null
-                    ? this.activeResultData.BackgroundEnergySpectrum.MeasurementTime
-                    : 0.0;
-                double normalized_bg_counts = 0.0;
+                double bg_eff_norm_counts = 0.0;
+
+                // display data
+                double gross_counts = 0.0;
+                double adj_bg_counts = 0.0;
                 double net_counts = 0.0;
                 double peakcounts = 0.0;
+                double net_cps = 0.0;
                 double net_cps_err = 0.0;
                 double net_counts_err = 0.0;
                 double Lc = 0.0;
@@ -3311,11 +3369,16 @@ namespace BecquerelMonitor
                 
                 for (int i = start_channel; i <= end_channel; i++)
                 {
-                    double continuum = 0.0;
-                    int fg_counts_in_channel = this.energySpectrum.Spectrum[i];
-                    fg_counts += (double)fg_counts_in_channel;
-                    net_counts += (double)fg_counts_in_channel;
-                    double bg_counts_in_channel = 0.0;
+                    fg_counts += this.energySpectrum.Spectrum[i];
+                    if (normalizeByEfficiency)
+                    {
+                        fg_eff_norm_counts += (double)this.normByEffEnergySpectrum.Spectrum[i];
+                    }
+                    int fg_counts_in_channel = normalizeByEfficiency
+                        ? this.normByEffEnergySpectrum.Spectrum[i]
+                        : this.energySpectrum.Spectrum[i];
+
+                    double adj_bg_counts_in_channel = 0.0;
                     if (bg_time > 0)
                     {
                         int bg_channel = i;
@@ -3325,34 +3388,70 @@ namespace BecquerelMonitor
                         }
                         if (bg_channel >= 0 && bg_channel < this.backgroundNumberOfChannels)
                         {
-                            bg_counts_in_channel = (double)this.backgroundEnergySpectrum.Spectrum[bg_channel] * fg_time / bg_time;
                             bg_counts += (double)this.backgroundEnergySpectrum.Spectrum[bg_channel];
+                            if (normalizeByEfficiency)
+                            {
+                                bg_eff_norm_counts += (double)this.normByEffBgEnergySpectrum.Spectrum[bg_channel];
+                            }
+
+                            adj_bg_counts_in_channel = normalizeByEfficiency
+                                ? (double)this.normByEffBgEnergySpectrum.Spectrum[bg_channel]
+                                : (double)this.backgroundEnergySpectrum.Spectrum[bg_channel];
+                            adj_bg_counts_in_channel *= fg_time / bg_time;
                         }
                     }
-                    normalized_bg_counts += bg_counts_in_channel;
-                    net_counts -= bg_counts_in_channel;
-                    continuum = getY(i, start_channel, end_channel, this.energySpectrum.Spectrum[start_channel], this.energySpectrum.Spectrum[end_channel]);
-                    continuum = Math.Max(bg_counts_in_channel, continuum);
+
+                    int continuumFrom = normalizeByEfficiency
+                        ? this.normByEffEnergySpectrum.Spectrum[start_channel]
+                        : this.energySpectrum.Spectrum[start_channel];
+                    int continuumTo = normalizeByEfficiency
+                        ? this.normByEffEnergySpectrum.Spectrum[end_channel]
+                        : this.energySpectrum.Spectrum[end_channel];
+                    double continuum = getY(i, start_channel, end_channel, continuumFrom, continuumTo);
+                    continuum = Math.Max(adj_bg_counts_in_channel, continuum);
                     peakcounts += (fg_counts_in_channel - continuum);
                 }
-                double net_cps = 0.0;
+
+                gross_counts = normalizeByEfficiency
+                    ? fg_eff_norm_counts
+                    : fg_counts;
+                if (bg_time > 0)
+                {
+                    adj_bg_counts = normalizeByEfficiency
+                        ? bg_eff_norm_counts
+                        : bg_counts;
+                    adj_bg_counts *= fg_time / bg_time;
+                }
+
                 if (fg_time > 0)
                 {
-                    net_cps = net_counts / fg_time;
+                    double detectionLevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.DetectionLevel;
+                    double errorLevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.ErrorLevel;
+                    double limitsConfidenceLevel = (double)this.globalConfigManager.GlobalConfig.ChartViewConfig.ConfidenceLevel;
+
                     if (bg_time > 0)
                     {
-                        double detectionLevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.DetectionLevel;
-                        double errorLevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.ErrorLevel;
-                        double limitsConfidenceLevel = (double)this.globalConfigManager.GlobalConfig.ChartViewConfig.ConfidenceLevel;
-                        if (net_cps > 0)
+                        net_counts = ROIAriphmetics.CalculateNetCount(fg_counts, fg_time, bg_counts, bg_time);
+                        net_counts_err = ROIAriphmetics.CalculateNetCountError(fg_counts, fg_time, bg_counts, bg_time, errorLevel);
+
+                        if (net_counts > 0)
                         {
                             Lc = ROIAriphmetics.CalculateLc(bg_counts, bg_time, fg_time, limitsConfidenceLevel);
                             Lu = ROIAriphmetics.CalculateLu(fg_counts, fg_time, bg_counts, bg_time, limitsConfidenceLevel);
                             Ld = ROIAriphmetics.CalculateLd(bg_counts, bg_time, fg_time, limitsConfidenceLevel);
-
-                            net_counts_err = ROIAriphmetics.CalculateNetCountError(fg_counts, fg_time, bg_counts, bg_time, errorLevel);
-                            net_cps_err = net_counts_err / fg_time;
                             mda = ROIAriphmetics.CalculateMDACounts(bg_counts, bg_time, fg_time, detectionLevel);
+
+                            if (normalizeByEfficiency)
+                            {
+                                double eff_norm_net_counts = ROIAriphmetics.CalculateNetCount(fg_eff_norm_counts, fg_time, bg_eff_norm_counts, bg_time);
+                                double adj = eff_norm_net_counts / net_counts;
+                                Lc *= adj;
+                                Lu *= adj;
+                                Ld *= adj;
+                                mda *= adj;
+                                net_counts *= adj;
+                                net_counts_err *= adj;
+                            }
 
                             // calc activity
                             if (this.peakMode == PeakMode.Visible && this.selectionFWHM > 0.0 &&
@@ -3401,8 +3500,22 @@ namespace BecquerelMonitor
                                 } 
                             }
                         }
-
                     }
+                    else
+                    {
+                        net_counts = ROIAriphmetics.CalculateNetCount(fg_counts, fg_time, 0, 0);
+                        net_counts_err = ROIAriphmetics.CalculateNetCountError(fg_counts, fg_time, 0, 0, errorLevel);
+                        if (normalizeByEfficiency)
+                        {
+                            double eff_norm_net_counts = ROIAriphmetics.CalculateNetCount(fg_eff_norm_counts, fg_time, 0, 0);
+                            double adj = eff_norm_net_counts / net_counts;
+                            net_counts *= adj;
+                            net_counts_err *= adj;
+                        }
+                    }
+
+                    net_cps = net_counts / fg_time;
+                    net_cps_err = net_counts_err / fg_time;
                 }
                 int infopanel_height = 104;
                 if (this.selectionFWHM > 0.0)
@@ -3416,7 +3529,7 @@ namespace BecquerelMonitor
                 {
                     infopanel_height += 72;
                 }
-                if (normalized_bg_counts > 0)
+                if (adj_bg_counts > 0)
                 {
                     infopanel_height += 48;
                 }
@@ -3428,52 +3541,52 @@ namespace BecquerelMonitor
                 g.FillRectangle(Brushes.White, region_table_x_pos - 3, table_y_pos - 3, table_width_origin, infopanel_height);
                 g.DrawRectangle(Pens.Black, region_table_x_pos - 3, table_y_pos - 3, table_width_origin, infopanel_height);
                 Rectangle r2 = new Rectangle(region_table_x_pos + 5, table_y_pos + 4, table_width_origin - 12, 32);
-                g.DrawString(Resources.ChartHeaderSelection, this.Font, Brushes.Black, r2);
+                g.DrawString(normalizeByEfficiency ? Resources.ChartHeaderSelectionEffNormalized : Resources.ChartHeaderSelection, this.Font, Brushes.Black, r2);
                 r2.Y += 22;
                 g.DrawLine(Pens.LightGray, r2.Left, r2.Top - 6, r2.Right, r2.Top - 6);
                 g.DrawString(Resources.ChartHeaderChannel, this.Font, Brushes.Black, r2);
-                g.DrawString(start_channel.ToString() + " - " + end_channel.ToString(), this.Font, Brushes.Black, r2, this.farFormat);
+                g.DrawString(start_channel.ToString(intFormat) + " - " + end_channel.ToString(intFormat), this.Font, Brushes.Black, r2, this.farFormat);
                 r2.Y += 16;
                 g.DrawString(Resources.ChartHeaderEnergy, this.Font, Brushes.Black, r2);
-                g.DrawString(start_energy.ToString("f2") + " - " + end_energy.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                g.DrawString(start_energy.ToString(floatFormat) + " - " + end_energy.ToString(floatFormat), this.Font, Brushes.Black, r2, this.farFormat);
                 r2.Y += 22;
                 g.DrawLine(Pens.LightGray, r2.Left, r2.Top - 6, r2.Right, r2.Top - 6);
                 g.DrawString(Resources.ChartHeaderGrossCounts, this.Font, Brushes.Black, r2);
-                g.DrawString(fg_counts.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
-                if (normalized_bg_counts != 0.0)
+                g.DrawString(gross_counts.ToString(floatFormat), this.Font, Brushes.Black, r2, this.farFormat);
+                if (adj_bg_counts != 0.0)
                 {
                     r2.Y += 16;
                     g.DrawString(Resources.ChartHeaderBGCounts, this.Font, Brushes.Black, r2);
-                    g.DrawString(normalized_bg_counts.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                    g.DrawString(adj_bg_counts.ToString(floatFormat), this.Font, Brushes.Black, r2, this.farFormat);
                     r2.Y += 16;
                     g.DrawString(Resources.ChartHeaderCountBGRatio, this.Font, Brushes.Black, r2);
-                    double bg_ratio = fg_counts / normalized_bg_counts * 100.0;
-                    g.DrawString(bg_ratio.ToString("f2") + Resources.PercentCharacter, this.Font, Brushes.Black, r2, this.farFormat);
+                    double bg_ratio = gross_counts / adj_bg_counts * 100.0;
+                    g.DrawString(bg_ratio.ToString(floatFormat) + Resources.PercentCharacter, this.Font, Brushes.Black, r2, this.farFormat);
                     r2.Y += 16;
                     g.DrawString(Resources.ChartHeaderNetCps, this.Font, Brushes.Black, r2);
                     if (net_cps_err != 0.0)
                     {
-                        g.DrawString(net_cps.ToString("f4") + " " + Resources.PlusMinus + net_cps_err.ToString("f4"), this.Font, Brushes.Black, r2, this.farFormat);
+                        g.DrawString(net_cps.ToString(preciseFloatFormat) + " " + Resources.PlusMinus + net_cps_err.ToString(preciseFloatFormat), this.Font, Brushes.Black, r2, this.farFormat);
                     }
                     else
                     {
-                        g.DrawString(net_cps.ToString("f4"), this.Font, Brushes.Black, r2, this.farFormat);
+                        g.DrawString(net_cps.ToString(preciseFloatFormat), this.Font, Brushes.Black, r2, this.farFormat);
                     }
                     r2.Y += 16;
                     g.DrawString(Resources.ChartHeaderNetCounts, this.Font, Brushes.Black, r2);
                     if (net_counts_err != 0.0)
                     {
-                        g.DrawString(net_counts.ToString("f2") + " " + Resources.PlusMinus + net_counts_err.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                        g.DrawString(net_counts.ToString(floatFormat) + " " + Resources.PlusMinus + net_counts_err.ToString(floatFormat), this.Font, Brushes.Black, r2, this.farFormat);
                     }
                     else
                     {
-                        g.DrawString(net_counts.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                        g.DrawString(net_counts.ToString(floatFormat), this.Font, Brushes.Black, r2, this.farFormat);
                     }
                 } else
                 {
                     r2.Y += 16;
                     g.DrawString(Resources.ChartHeaderCPS, this.Font, Brushes.Black, r2);
-                    g.DrawString(net_cps.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                    g.DrawString(net_cps.ToString(preciseFloatFormat), this.Font, Brushes.Black, r2, this.farFormat);
                 }
                 r2.Y += 22;
                 if (Lc > 0)
@@ -3491,17 +3604,20 @@ namespace BecquerelMonitor
                     }
                     r2.Y += 16;
                     g.DrawString(Resources.Lc_counts, this.Font, Brushes.Black, r2);
-                    g.DrawString(Lc.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                    g.DrawString(Lc.ToString(floatFormat), this.Font, Brushes.Black, r2, this.farFormat);
                     r2.Y += 16;
                     if (net_counts < Lc)
                     {
                         g.DrawString(Resources.Lu_counts, this.Font, Brushes.Black, r2);
-                        g.DrawString(Lu.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                        g.DrawString(Lu.ToString(floatFormat), this.Font, Brushes.Black, r2, this.farFormat);
                         r2.Y += 16;
                     }
                     string confidencelevel_str = ConfidenceLevel.GetSingleSideLevel(this.globalConfigManager.GlobalConfig.ChartViewConfig.ConfidenceLevel);
                     g.DrawString(Resources.Ld_counts + " (" + confidencelevel_str + ")", this.Font, Brushes.Black, r2);
-                    g.DrawString(Ld.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                    g.DrawString(Ld.ToString(floatFormat), this.Font, Brushes.Black, r2, this.farFormat);
+                    r2.Y += 16;
+                    g.DrawString(Resources.MDA_cnts, this.Font, Brushes.Black, r2);
+                    g.DrawString(mda.ToString(floatFormat), this.Font, Brushes.Black, r2, this.farFormat);
                     r2.Y += 16;
                     if (this.selectionFWHM > 0.0 && activity > 0.0)
                     {
@@ -3509,17 +3625,17 @@ namespace BecquerelMonitor
                         {
                             Brush brush = Brushes.DarkRed;
                             g.DrawString(Resources.Activity + " " + Resources.Bq + ":", this.Font, brush, r2);
-                            g.DrawString("< " + activityUpperLimit.ToString("f2"),
+                            g.DrawString("< " + activityUpperLimit.ToString(floatFormat),
                                 this.Font, brush, r2, this.farFormat);
                             r2.Y += 16;
 
                             g.DrawString(Resources.Activity + " " + Resources.Bqkg + ":", this.Font, brush, r2);
-                            g.DrawString("< " + activityByMassUpperLimit.ToString("f2"),
+                            g.DrawString("< " + activityByMassUpperLimit.ToString(floatFormat),
                             this.Font, brush, r2, this.farFormat);
                             r2.Y += 16;
 
                             g.DrawString(Resources.Activity + " " + Resources.Bql + ":", this.Font, brush, r2);
-                            g.DrawString("< " + activityByVolumeUpperLimit.ToString("f2"),
+                            g.DrawString("< " + activityByVolumeUpperLimit.ToString(floatFormat),
                                 this.Font, brush, r2, this.farFormat);
                             r2.Y += 16;
                         } 
@@ -3527,34 +3643,32 @@ namespace BecquerelMonitor
                         {
                             Brush brush = Brushes.Black;
                             g.DrawString(Resources.Activity + " " + Resources.Bq + ":", this.Font, brush, r2);
-                            g.DrawString(activity.ToString("f2") + " " + Resources.PlusMinus + activityError.ToString("f2"),
+                            g.DrawString(activity.ToString(floatFormat) + " " + Resources.PlusMinus + activityError.ToString(floatFormat),
                                 this.Font, brush, r2, this.farFormat);
                             r2.Y += 16;
 
                             g.DrawString(Resources.Activity + " " + Resources.Bqkg + ":", this.Font, brush, r2);
-                            g.DrawString(activityByMass.ToString("f2") + " " + Resources.PlusMinus + activityByMassError.ToString("f2"),
+                            g.DrawString(activityByMass.ToString(floatFormat) + " " + Resources.PlusMinus + activityByMassError.ToString(floatFormat),
                             this.Font, brush, r2, this.farFormat);
                             r2.Y += 16;
 
                             g.DrawString(Resources.Activity + " " + Resources.Bql + ":", this.Font, brush, r2);
-                            g.DrawString(activityByVolume.ToString("f2") + " " + Resources.PlusMinus + activityByVolumeError.ToString("f2"),
+                            g.DrawString(activityByVolume.ToString(floatFormat) + " " + Resources.PlusMinus + activityByVolumeError.ToString(floatFormat),
                                 this.Font, brush, r2, this.farFormat);
                             r2.Y += 16;
                         }
                     }
-                    g.DrawString(Resources.MDA_cnts, this.Font, Brushes.Black, r2);
-                    g.DrawString(mda.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
-                    r2.Y += 22;
+                    r2.Y += 6;
                 }
                 if (this.selectionFWHM > 0.0)
                 {
                     g.DrawLine(Pens.LightGray, r2.Left, r2.Top - 6, r2.Right, r2.Top - 6);
                     g.DrawString(Resources.ChartHeaderPeakCounts, this.Font, Brushes.Black, r2);
-                    g.DrawString(peakcounts.ToString("f2"), this.Font, Brushes.Black, r2, this.farFormat);
+                    g.DrawString(peakcounts.ToString(floatFormat), this.Font, Brushes.Black, r2, this.farFormat);
                     r2.Y += 16;
                     g.DrawString(Resources.ChartHeaderFWHM, this.Font, Brushes.Black, r2);
-                    g.DrawString((this.selectionFWHM * 100.0).ToString("f2") + Resources.PercentCharacter +
-                        " (" + (this.selectionFWHMinkev).ToString("f2") + " " + Resources.kev + ", " + this.selectionFullWidth.ToString() + " " + Resources.ChartChannelShort + ")",
+                    g.DrawString((this.selectionFWHM * 100.0).ToString(floatFormat) + Resources.PercentCharacter +
+                        " (" + (this.selectionFWHMinkev).ToString(floatFormat) + " " + Resources.kev + ", " + this.selectionFullWidth.ToString(intFormat) + " " + Resources.ChartChannelShort + ")",
                         this.Font, Brushes.Black, r2, this.farFormat);
                     r2.Y += 16;
                     //g.DrawString(Resources._2Sigma, this.Font, Brushes.Black, r2);
@@ -3562,8 +3676,8 @@ namespace BecquerelMonitor
                     //    this.Font, Brushes.Black, r2, this.farFormat);
                     //r2.Y += 16;
                     g.DrawString(Resources.Centroid, this.Font, Brushes.Black, r2);
-                    g.DrawString((this.selectionCentroidkeV).ToString("f2") + " " + Resources.kev +
-                        " (" + (this.selectionCentroidCh).ToString() + " " + Resources.ChartChannelShort + ")",
+                    g.DrawString((this.selectionCentroidkeV).ToString(floatFormat) + " " + Resources.kev +
+                        " (" + (this.selectionCentroidCh).ToString(intFormat) + " " + Resources.ChartChannelShort + ")",
                         this.Font, Brushes.Black, r2, this.farFormat);
 
                 }
@@ -4016,6 +4130,10 @@ namespace BecquerelMonitor
         EnergySpectrum continuumEnergySpectrum;
 
         List<(int[], int, int, Color)> peakEnergySpectrum = new List<(int[], int, int, Color)>();
+
+        EnergySpectrum normByEffBgEnergySpectrum;
+
+        EnergySpectrum normByEffEnergySpectrum;
 
 
         // Token: 0x040001FB RID: 507

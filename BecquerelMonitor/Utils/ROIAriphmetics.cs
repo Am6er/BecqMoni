@@ -77,6 +77,11 @@ namespace BecquerelMonitor.Utils
 
         public static double CalculateNetCount(double fgCounts, double fgTime, double bgCounts, double bgTime)
         {
+            if (bgTime <= 0)
+            {
+                return fgCounts;
+            }
+
             double adjustedBgCounts = bgCounts * fgTime / bgTime;
             double netCount = fgCounts - adjustedBgCounts;
 
@@ -85,10 +90,14 @@ namespace BecquerelMonitor.Utils
 
         public static double CalculateNetCountError(double fgCounts, double fgTime, double bgCounts, double bgTime, double confidence)
         {
-            double bgSigma = Math.Sqrt(bgCounts);
-            double adjBgSigma = bgSigma * fgTime / bgTime;
             double fgSigma = Math.Sqrt(fgCounts);
-
+            double adjBgSigma = 0;
+            if (bgTime > 0)
+            {
+                double bgSigma = Math.Sqrt(bgCounts);
+                adjBgSigma = bgSigma * fgTime / bgTime;
+            }
+            
             return confidence * Math.Sqrt(Math.Pow(fgSigma, 2.0) + Math.Pow(adjBgSigma, 2.0));
         }
 
