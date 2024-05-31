@@ -49,7 +49,8 @@ namespace BecquerelMonitor
             int[] roiconfigListColumnSizes = this.globalConfigManager.GlobalConfig.ROIConfigListColumnSizes;
             for (int i = 0; i < this.columnModel3.Columns.Count; i++)
             {
-                this.columnModel3.Columns[i].Width = ((roiconfigListColumnSizes[i] > 32) ? roiconfigListColumnSizes[i] : 32);
+                int columnsize = (roiconfigListColumnSizes.Length > i) ? roiconfigListColumnSizes[i] : 32;
+                this.columnModel3.Columns[i].Width = ((columnsize > 32) ? columnsize : 32);
             }
         }
 
@@ -88,6 +89,10 @@ namespace BecquerelMonitor
                 Row row = new Row();
                 row.Cells.Add(new Cell(roiconfigData2.Name));
                 row.Cells.Add(new Cell(roiconfigData2.LastUpdated.ToShortDateString() + " " + roiconfigData2.LastUpdated.ToLongTimeString()));
+                if (roiconfigData2.HasEfficiency)
+                {
+                    row.Cells.Add(new Cell("", true));
+                }
                 row.Tag = roiconfigData2;
                 this.tableModel3.Rows.Add(row);
                 if (this.activeROIConfig != null && this.activeROIConfig.Guid == roiconfigData2.Guid)

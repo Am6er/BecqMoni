@@ -414,7 +414,8 @@ namespace BecquerelMonitor
         int[] roiConfigListColumnSizes = new int[]
         {
             120,
-            120
+            120,
+            40
         };
 
         // Token: 0x040008BA RID: 2234

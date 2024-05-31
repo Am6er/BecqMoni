@@ -1962,4 +1962,16 @@
   <data name="doubleTextBox7.TabIndex" type="System.Int32, mscorlib">
     <value>36</value>
   </data>
+  <data name="checkBoxColumnEff.Width" type="System.Int32, mscorlib">
+    <value>50</value>
+  </data>
+  <data name="&gt;&gt;checkBoxColumnEff.Name" xml:space="preserve">
+    <value>checkBoxColumnEff</value>
+  </data>
+  <data name="&gt;&gt;checkBoxColumnEff.Type" xml:space="preserve">
+    <value>XPTable.Models.CheckBoxColumn, BecquerelMonitorPlus, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="checkBoxColumnEff.Text" xml:space="preserve">
+    <value>Eff. ROI</value>
+  </data>
 </root>

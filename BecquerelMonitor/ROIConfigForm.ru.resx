@@ -1137,4 +1137,7 @@
   <data name="label26.Text" xml:space="preserve">
     <value>Интенсивность %</value>
   </data>
+  <data name="textColumnEff.Text" xml:space="preserve">
+    <value>Эфф. ROI</value>
+  </data>
 </root>
