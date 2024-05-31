@@ -104,7 +104,8 @@
 			this.columnModel3 = new global::XPTable.Models.ColumnModel();
 			this.textColumn1 = new global::XPTable.Models.TextColumn();
 			this.textColumn12 = new global::XPTable.Models.TextColumn();
-			this.tableModel3 = new global::XPTable.Models.TableModel();
+			this.checkBoxColumnEff = new global::XPTable.Models.CheckBoxColumn();
+            this.tableModel3 = new global::XPTable.Models.TableModel();
 			this.groupBox1.SuspendLayout();
 			this.groupBox3.SuspendLayout();
 			this.groupBox2.SuspendLayout();
@@ -454,15 +455,19 @@
 			this.columnModel3.Columns.AddRange(new global::XPTable.Models.Column[]
 			{
 				this.textColumn1,
-				this.textColumn12
-			});
+				this.textColumn12,
+                this.checkBoxColumnEff
+            });
 			resources.ApplyResources(this.textColumn1, "textColumn1");
 			this.textColumn1.Editable = false;
 			this.textColumn1.IsTextTrimmed = false;
 			resources.ApplyResources(this.textColumn12, "textColumn12");
 			this.textColumn12.Editable = false;
 			this.textColumn12.IsTextTrimmed = false;
-			resources.ApplyResources(this, "$this");
+            resources.ApplyResources(this.checkBoxColumnEff, "checkBoxColumnEff");
+            this.checkBoxColumnEff.Editable = false;
+            this.checkBoxColumnEff.IsTextTrimmed = false;
+            resources.ApplyResources(this, "$this");
 			base.AutoScaleMode = global::System.Windows.Forms.AutoScaleMode.Font;
 			base.Controls.Add(this.button10);
 			base.Controls.Add(this.panel1);
@@ -672,8 +677,10 @@
 		// Token: 0x040004F2 RID: 1266
 		global::XPTable.Models.TextColumn textColumn12;
 
-		// Token: 0x040004F3 RID: 1267
-		global::XPTable.Models.TextColumn textColumn13;
+		global::XPTable.Models.CheckBoxColumn checkBoxColumnEff;
+
+        // Token: 0x040004F3 RID: 1267
+        global::XPTable.Models.TextColumn textColumn13;
 
 		// Token: 0x040004F4 RID: 1268
 		global::System.Windows.Forms.Panel panel1;
