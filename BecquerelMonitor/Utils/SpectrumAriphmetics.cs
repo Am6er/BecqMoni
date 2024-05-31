@@ -206,8 +206,15 @@ namespace BecquerelMonitor.Utils
                     ROIEfficiencyData effData = roiAriphmetics.CalculateEfficiency(enrg);
                     if (effData != null && effData.Efficiency > 0)
                     {
-                        normalizedSpectrum.Spectrum[i] = Convert.ToInt32(normalizedSpectrum.Spectrum[i] / effData.Efficiency);
-                        if (normalizedSpectrum.Spectrum[i] < 0 || normalizedSpectrum.Spectrum[i] >= int.MaxValue) { normalizedSpectrum.Spectrum[i] = 0; }
+                        double normChannelValue = normalizedSpectrum.Spectrum[i] / effData.Efficiency;
+                        if (normChannelValue < 0 || normChannelValue >= int.MaxValue) 
+                        { 
+                            normalizedSpectrum.Spectrum[i] = 0; 
+                        }
+                        else 
+                        {
+                            normalizedSpectrum.Spectrum[i] = Convert.ToInt32(normChannelValue);
+                        }
                     }
                     else
                     {
@@ -215,7 +222,16 @@ namespace BecquerelMonitor.Utils
                     }
                 }
             });
-            normalizedSpectrum.TotalPulseCount = normalizedSpectrum.Spectrum.Sum();
+
+            try 
+            {
+                normalizedSpectrum.TotalPulseCount = normalizedSpectrum.Spectrum.Sum();
+            }
+            catch (OverflowException)
+            {
+                normalizedSpectrum.TotalPulseCount = int.MaxValue;
+            }
+            
             normalizedSpectrum.ValidPulseCount = normalizedSpectrum.TotalPulseCount;
 
             return normalizedSpectrum;
