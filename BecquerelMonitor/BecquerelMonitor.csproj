@@ -973,9 +973,11 @@
     </EmbeddedResource>
     <EmbeddedResource Include="DocEnergySpectrum.resx">
       <DependentUpon>DocEnergySpectrum.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="DocEnergySpectrum.ru.resx">
       <DependentUpon>DocEnergySpectrum.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="EffCalcMCDialog.resx">
       <DependentUpon>EffCalcMCDialog.cs</DependentUpon>
@@ -1120,6 +1122,7 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <None Include="Resources\NORM.bmp" />
     <None Include="Resources\screenshot.bmp" />
     <None Include="Resources\pow.bmp" />
     <None Include="Resources\scale.bmp" />
