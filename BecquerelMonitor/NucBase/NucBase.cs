@@ -7,6 +7,7 @@ using System.Threading;
 using System.Globalization;
 using BecquerelMonitor;
 using System.ComponentModel;
+using System.Diagnostics;
 
 namespace BecquerelMonitor.NucBase
 {
@@ -111,7 +112,7 @@ namespace BecquerelMonitor.NucBase
             else
             {
                 List<string> daughters = fw.GetDaughters(isotope, intensity);
-                daughters.Add(isotope);
+                if (!daughters.Contains(isotope)) daughters.Add(isotope);
                 if (daughters.Count > 0)
                 {
                     this.ResultDataGridView.Rows.Clear();
@@ -123,6 +124,7 @@ namespace BecquerelMonitor.NucBase
                             foreach (DecayRad decrad in decayRads)
                             {
                                 this.ResultDataGridView.Rows.Add(decrad.Name, decrad.DecayLine, decrad.Energy, decrad.Intensity, decrad.XrayType, decrad.DecayTypeString);
+                                Trace.WriteLine($"{this.ResultDataGridView.Rows.Count} rows added");
                             }
                         }
                     }
