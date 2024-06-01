@@ -2512,46 +2512,34 @@ namespace BecquerelMonitor
                     IL_1F4:
                     if ((int)num8 >= 0 && (int)num8 < this.energySpectrum.Spectrum.Length)
                     {
-                        double num9 = 0.0;
+                        double num9 = this.energySpectrum.DrawingSpectrum[(int)num8];
                         double num10 = 0.0;
-                        if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null 
-                            && this.backgroundEnergySpectrum.MeasurementTime != 0.0 && this.substractedEnergySpectrum != null)
+                        if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.MeasurementTime != 0.0)
                         {
-                            num9 = this.substractedEnergySpectrum.DrawingSpectrum[(int)num8];
-                            if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.substractedEnergySpectrum.MeasurementTime != 0.0)
-                            {
-                                num9 /= this.substractedEnergySpectrum.MeasurementTime;
-                            }
-                        } else
+                            num9 /= this.energySpectrum.MeasurementTime;
+                        }
+                        if (!this.IsBackgroundVisible())
                         {
-                            num9 = this.energySpectrum.DrawingSpectrum[(int)num8];
-                            if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.MeasurementTime != 0.0)
+                            num10 = 0.0;
+                        }
+                        else
+                        {
+                            int num11 = (int)num8;
+                            if (!this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
                             {
-                                num9 /= this.energySpectrum.MeasurementTime;
+                                num11 = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy(num8), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
                             }
-                            if (!this.IsBackgroundVisible())
+                            if (num11 < 0 || num11 >= this.backgroundEnergySpectrum.Spectrum.Length)
                             {
-                                num10 = 0.0;
+                                goto IL_4E9;
+                            }
+                            if (this.verticalUnit == VerticalUnit.CountsPerSecond)
+                            {
+                                num10 = this.backgroundEnergySpectrum.DrawingSpectrum[num11] / this.backgroundEnergySpectrum.MeasurementTime;
                             }
                             else
                             {
-                                int num11 = (int)num8;
-                                if (!this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
-                                {
-                                    num11 = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy(num8), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
-                                }
-                                if (num11 < 0 || num11 >= this.backgroundEnergySpectrum.Spectrum.Length)
-                                {
-                                    goto IL_4E9;
-                                }
-                                if (this.verticalUnit == VerticalUnit.CountsPerSecond)
-                                {
-                                    num10 = this.backgroundEnergySpectrum.DrawingSpectrum[num11] / this.backgroundEnergySpectrum.MeasurementTime;
-                                }
-                                else
-                                {
-                                    num10 = this.backgroundEnergySpectrum.DrawingSpectrum[num11] * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime;
-                                }
+                                num10 = this.backgroundEnergySpectrum.DrawingSpectrum[num11] * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime;
                             }
                         }
 
