@@ -8,11 +8,18 @@ using System.Globalization;
 using BecquerelMonitor;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Linq;
 
 namespace BecquerelMonitor.NucBase
 {
     public partial class NucBase : Form
     {
+        private const int CheckedColumnIdx = 0;
+        private const int NameColumnIdx = 1;
+        private const int EnergyColumnIdx = 3;
+        private const int IntencityColumnIdx = 4;
+        private const int HalfLifeColumnIdx = 7;
+
         public NucBase(Form mainForm)
         {
             InitializeComponent();
@@ -59,40 +66,8 @@ namespace BecquerelMonitor.NucBase
             double half_life = -1;
             if (this.HalfLifeUOMComboBox.Text.Length > 0 && this.HalfLifeTextBox.Text.Length > 0)
             {
-                double coeff;
-                switch (this.HalfLifeUOMComboBox.Text)
-                {
-                    case "s":
-                        coeff = 1;
-                        break;
-                    case "m":
-                        coeff = 60;
-                        break;
-                    case "h":
-                        coeff = 3600;
-                        break;
-                    case "d":
-                        coeff = 86400;
-                        break;
-                    case "Y":
-                        coeff = 31536000;
-                        break;
-                    case "ms":
-                        coeff = 1.0 / 1000.0;
-                        break;
-                    case "us":
-                        coeff = 1.0 / 1000000.0;
-                        break;
-                    case "ns":
-                        coeff = 1.0 / 1000000000.0;
-                        break;
-                    default:
-                        coeff = 1.0;
-                        break;
-                }
-                half_life = coeff * Convert.ToDouble(this.HalfLifeTextBox.Text);
+                half_life = ConvertHalfLifeToSeconds(Convert.ToDouble(this.HalfLifeTextBox.Text), this.HalfLifeUOMComboBox.Text);
             }
-
 
             NucBaseFramework fw = new NucBaseFramework();
 
@@ -104,7 +79,7 @@ namespace BecquerelMonitor.NucBase
                     this.ResultDataGridView.Rows.Clear();
                     foreach (DecayRad decrad in decayRads)
                     {
-                        this.ResultDataGridView.Rows.Add(decrad.Name, decrad.DecayLine, decrad.Energy, decrad.Intensity, decrad.XrayType, decrad.DecayTypeString);
+                        AddRow(decrad);
                     }
                     RestoreSorting();
                 }
@@ -123,7 +98,7 @@ namespace BecquerelMonitor.NucBase
                         {
                             foreach (DecayRad decrad in decayRads)
                             {
-                                this.ResultDataGridView.Rows.Add(decrad.Name, decrad.DecayLine, decrad.Energy, decrad.Intensity, decrad.XrayType, decrad.DecayTypeString);
+                                AddRow(decrad);
                                 Trace.WriteLine($"{this.ResultDataGridView.Rows.Count} rows added");
                             }
                         }
@@ -131,7 +106,6 @@ namespace BecquerelMonitor.NucBase
                     RestoreSorting();
                 }
             }
-
 
             if (this.IsotopeTextBox.Text.Length == 0)
             {
@@ -161,6 +135,52 @@ namespace BecquerelMonitor.NucBase
             }
         }
 
+        private double ConvertHalfLifeToSeconds(double value, string unit)
+        {
+            double coeff;
+
+            switch (unit)
+            {
+                case "s":
+                    coeff = 1;
+                    break;
+                case "m":
+                    coeff = 60;
+                    break;
+                case "h":
+                    coeff = 3600;
+                    break;
+                case "d":
+                    coeff = 86400;
+                    break;
+                case "Y":
+                    coeff = 31536000;
+                    break;
+                case "ms":
+                    coeff = 1.0 / 1000.0;
+                    break;
+                case "us":
+                    coeff = 1.0 / 1000000.0;
+                    break;
+                case "ns":
+                    coeff = 1.0 / 1000000000.0;
+                    break;
+                default:
+                    coeff = 1.0;
+                    break;
+            }
+            
+            return coeff * value;
+        }
+
+        private void AddRow(DecayRad decrad)
+        {
+            // TODO: use data binding?
+            bool isGamma = decrad.DecayLine == "G";
+            string hl = decrad.HalfLife.ToString() + "(" + decrad.HalfLifeUnit + ")";
+            this.ResultDataGridView.Rows.Add(isGamma, decrad.Name, decrad.DecayLine, decrad.Energy, decrad.Intensity, decrad.XrayType, decrad.DecayTypeString, hl);
+        }
+
         public void CallSearch(decimal energy)
         {
             double delta = 10;
@@ -181,9 +201,14 @@ namespace BecquerelMonitor.NucBase
         {
             if (e.RowIndex == -1)
             {
+                if (e.ColumnIndex == CheckedColumnIdx)
+                {
+                    ToggleSelection();
+                }
+
                 return;
             }
-            string isotope = this.ResultDataGridView.Rows[e.RowIndex].Cells[0].Value.ToString();
+            string isotope = this.ResultDataGridView.Rows[e.RowIndex].Cells[NameColumnIdx].Value.ToString();
             NucBaseFramework fw = new NucBaseFramework();
             Nuclide nuc = fw.getNuclude(isotope);
             this.IsotopeNameLabel.Text = isotope;
@@ -203,6 +228,19 @@ namespace BecquerelMonitor.NucBase
             foreach (Decay daughter in nuc.Daughters)
             {
                 this.DaughtersDataGridView.Rows.Add(daughter.NucName, daughter.DecayTypeString, daughter.DecayPercent);
+            }
+        }
+
+        private void ToggleSelection()
+        {
+            var checkCol = this.ResultDataGridView.Columns[CheckedColumnIdx];
+            checkCol.HeaderText = checkCol.HeaderText == "X"
+                ? ""
+                : "X";
+
+            foreach (DataGridViewRow row in this.ResultDataGridView.Rows)
+            {
+                row.Cells[CheckedColumnIdx].Value = checkCol.HeaderText == "X";
             }
         }
 
@@ -277,7 +315,7 @@ namespace BecquerelMonitor.NucBase
             {
                 return;
             }
-            string isotope = this.ResultDataGridView.Rows[e.RowIndex].Cells[0].Value.ToString();
+            string isotope = this.ResultDataGridView.Rows[e.RowIndex].Cells[NameColumnIdx].Value.ToString();
             if (isotope != null)
             {
                 NucBaseFramework fw = new NucBaseFramework();
@@ -307,6 +345,59 @@ namespace BecquerelMonitor.NucBase
         {
             int DisplayTime = 10000;
             this.toolTip1.Show(Resources.NucBase_IsotopeTextBoxTooltip1, this.IsotopeTextBox, 0, -23, DisplayTime);
+        }
+
+        private void buttonImportDef_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                int updatedCount = 0;
+                int createdCount = 0;
+                NuclideDefinitionManager defManager = NuclideDefinitionManager.GetInstance();
+                foreach (DataGridViewRow row in this.ResultDataGridView.Rows)
+                {
+                    if ((bool)row.Cells[CheckedColumnIdx].Value == true)
+                    {
+                        string name = (string)row.Cells[NameColumnIdx].Value;
+                        double energy = (double)row.Cells[EnergyColumnIdx].Value;
+                        double intencity = (double)row.Cells[IntencityColumnIdx].Value;
+                        double halfLife = Convert.ToDouble(((string)row.Cells[HalfLifeColumnIdx].Value).Split('(')[0]);
+                        string halfLifeUnit = ((string)row.Cells[HalfLifeColumnIdx].Value).Split('(')[1].Substring(0, 1);
+                        double halfLifeYears = ConvertHalfLifeToSeconds(halfLife, halfLifeUnit) / 31536000;
+
+                        NuclideDefinition existingDef = defManager.NuclideDefinitions.FirstOrDefault(def => def.Name == name && def.Energy == energy);
+                        if (existingDef != null)
+                        {
+                            existingDef.Intencity = intencity;
+                            existingDef.HalfLife = halfLifeYears;
+                            updatedCount++;
+                        }
+                        else
+                        {
+                            defManager.NuclideDefinitions.Add(new NuclideDefinition()
+                            {
+                                Name = name,
+                                Energy = energy,
+                                Intencity = intencity,
+                                HalfLife = halfLifeYears,
+                                Visible = true,
+                                NuclideColor = new SerializableColor(System.Drawing.Color.Green)
+                            });
+                            createdCount++;
+                        }
+                    }
+                }
+
+                if (updatedCount > 0 || createdCount > 0)
+                {
+                    defManager.SaveDefinitionFile();
+                    MessageBox.Show(string.Format(Resources.NuclideDefImportSuccess, createdCount, updatedCount));
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(string.Format(Resources.NuclideDefImportError, ex.Message + ex.StackTrace));
+            }
         }
     }
 }

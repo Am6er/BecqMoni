@@ -1,4 +1,6 @@
-﻿namespace BecquerelMonitor.NucBase
+﻿using System.Windows.Forms.VisualStyles;
+
+namespace BecquerelMonitor.NucBase
 {
     partial class NucBase
     {
@@ -46,6 +48,7 @@
             this.IsotopeTextBox = new System.Windows.Forms.TextBox();
             this.SearchButton = new System.Windows.Forms.Button();
             this.panel1 = new System.Windows.Forms.Panel();
+            this.buttonImportDef = new System.Windows.Forms.Button();
             this.label7 = new System.Windows.Forms.Label();
             this.DaughtersDataGridView = new System.Windows.Forms.DataGridView();
             this.NameColumn1 = new System.Windows.Forms.DataGridViewTextBoxColumn();
@@ -57,6 +60,8 @@
             this.TypeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.PercentColum = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.IsotopeAbundance = new System.Windows.Forms.Label();
+            this.abundanceLbl = new System.Windows.Forms.Label();
             this.IsotopeSpecActivity = new System.Windows.Forms.Label();
             this.label13 = new System.Windows.Forms.Label();
             this.IsotopeHLLabel = new System.Windows.Forms.Label();
@@ -68,15 +73,15 @@
             this.IsotopeNameLabel = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.ResultDataGridView = new System.Windows.Forms.DataGridView();
+            this.CheckBoxColumn = new System.Windows.Forms.DataGridViewCheckBoxColumn();
             this.NameColumn2 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.EnTypeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.EnergyColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.IntensityColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.XRayTypeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.DecaModeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.HalfLifeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
-            this.abundanceLbl = new System.Windows.Forms.Label();
-            this.IsotopeAbundance = new System.Windows.Forms.Label();
             this.groupBox1.SuspendLayout();
             this.panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.DaughtersDataGridView)).BeginInit();
@@ -199,6 +204,7 @@
             // panel1
             // 
             resources.ApplyResources(this.panel1, "panel1");
+            this.panel1.Controls.Add(this.buttonImportDef);
             this.panel1.Controls.Add(this.label7);
             this.panel1.Controls.Add(this.DaughtersDataGridView);
             this.panel1.Controls.Add(this.label6);
@@ -206,6 +212,13 @@
             this.panel1.Controls.Add(this.groupBox2);
             this.panel1.Controls.Add(this.ResultDataGridView);
             this.panel1.Name = "panel1";
+            // 
+            // buttonImportDef
+            // 
+            resources.ApplyResources(this.buttonImportDef, "buttonImportDef");
+            this.buttonImportDef.Name = "buttonImportDef";
+            this.buttonImportDef.UseVisualStyleBackColor = true;
+            this.buttonImportDef.Click += new System.EventHandler(this.buttonImportDef_Click);
             // 
             // label7
             // 
@@ -309,6 +322,16 @@
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.TabStop = false;
             // 
+            // IsotopeAbundance
+            // 
+            resources.ApplyResources(this.IsotopeAbundance, "IsotopeAbundance");
+            this.IsotopeAbundance.Name = "IsotopeAbundance";
+            // 
+            // abundanceLbl
+            // 
+            resources.ApplyResources(this.abundanceLbl, "abundanceLbl");
+            this.abundanceLbl.Name = "abundanceLbl";
+            // 
             // IsotopeSpecActivity
             // 
             resources.ApplyResources(this.IsotopeSpecActivity, "IsotopeSpecActivity");
@@ -367,19 +390,28 @@
             this.ResultDataGridView.BackgroundColor = System.Drawing.SystemColors.Window;
             this.ResultDataGridView.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.ResultDataGridView.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.CheckBoxColumn,
             this.NameColumn2,
             this.EnTypeColumn,
             this.EnergyColumn,
             this.IntensityColumn,
             this.XRayTypeColumn,
-            this.DecaModeColumn});
+            this.DecaModeColumn,
+            this.HalfLifeColumn});
             resources.ApplyResources(this.ResultDataGridView, "ResultDataGridView");
             this.ResultDataGridView.Name = "ResultDataGridView";
-            this.ResultDataGridView.ReadOnly = true;
             this.ResultDataGridView.RowHeadersVisible = false;
             this.ResultDataGridView.ShowEditingIcon = false;
             this.ResultDataGridView.CellClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.ResultDataGridView_CellClick);
             this.ResultDataGridView.CellEnter += new System.Windows.Forms.DataGridViewCellEventHandler(this.ResultDataGridView_CellEnter);
+            // 
+            // CheckBoxColumn
+            // 
+            this.CheckBoxColumn.FalseValue = false;
+            resources.ApplyResources(this.CheckBoxColumn, "CheckBoxColumn");
+            this.CheckBoxColumn.Name = "CheckBoxColumn";
+            this.CheckBoxColumn.Resizable = System.Windows.Forms.DataGridViewTriState.False;
+            this.CheckBoxColumn.TrueValue = true;
             // 
             // NameColumn2
             // 
@@ -421,15 +453,11 @@
             this.DecaModeColumn.Name = "DecaModeColumn";
             this.DecaModeColumn.ReadOnly = true;
             // 
-            // abundanceLbl
+            // HalfLifeColumn
             // 
-            resources.ApplyResources(this.abundanceLbl, "abundanceLbl");
-            this.abundanceLbl.Name = "abundanceLbl";
-            // 
-            // IsotopeAbundance
-            // 
-            resources.ApplyResources(this.IsotopeAbundance, "IsotopeAbundance");
-            this.IsotopeAbundance.Name = "IsotopeAbundance";
+            resources.ApplyResources(this.HalfLifeColumn, "HalfLifeColumn");
+            this.HalfLifeColumn.Name = "HalfLifeColumn";
+            this.HalfLifeColumn.ReadOnly = true;
             // 
             // NucBase
             // 
@@ -482,12 +510,6 @@
         private System.Windows.Forms.TextBox IntencityTextBox;
         private System.Windows.Forms.CheckBox IncludeDecayChainCheckBox;
         private System.Windows.Forms.Label label8;
-        private System.Windows.Forms.DataGridViewTextBoxColumn NameColumn2;
-        private System.Windows.Forms.DataGridViewTextBoxColumn EnTypeColumn;
-        private System.Windows.Forms.DataGridViewTextBoxColumn EnergyColumn;
-        private System.Windows.Forms.DataGridViewTextBoxColumn IntensityColumn;
-        private System.Windows.Forms.DataGridViewTextBoxColumn XRayTypeColumn;
-        private System.Windows.Forms.DataGridViewTextBoxColumn DecaModeColumn;
         private System.Windows.Forms.ComboBox HalfLifeUOMComboBox;
         private System.Windows.Forms.TextBox HalfLifeTextBox;
         private System.Windows.Forms.Label label12;
@@ -502,5 +524,14 @@
         private System.Windows.Forms.Label label13;
         private System.Windows.Forms.Label abundanceLbl;
         private System.Windows.Forms.Label IsotopeAbundance;
+        private System.Windows.Forms.Button buttonImportDef;
+        private System.Windows.Forms.DataGridViewCheckBoxColumn CheckBoxColumn;
+        private System.Windows.Forms.DataGridViewTextBoxColumn NameColumn2;
+        private System.Windows.Forms.DataGridViewTextBoxColumn EnTypeColumn;
+        private System.Windows.Forms.DataGridViewTextBoxColumn EnergyColumn;
+        private System.Windows.Forms.DataGridViewTextBoxColumn IntensityColumn;
+        private System.Windows.Forms.DataGridViewTextBoxColumn XRayTypeColumn;
+        private System.Windows.Forms.DataGridViewTextBoxColumn DecaModeColumn;
+        private System.Windows.Forms.DataGridViewTextBoxColumn HalfLifeColumn;
     }
 }

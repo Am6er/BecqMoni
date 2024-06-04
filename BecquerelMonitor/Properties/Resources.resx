@@ -41963,4 +41963,10 @@ see peak in spectrum now).</value>
   <data name="ChartHeaderSelectionEffNormalized" xml:space="preserve">
     <value>Selected Region (normalized by eff.)</value>
   </data>
+  <data name="NuclideDefImportError" xml:space="preserve">
+    <value>Import failed - {0}</value>
+  </data>
+  <data name="NuclideDefImportSuccess" xml:space="preserve">
+    <value>Import successful. Added - {0} item(s), updated - {1} item(s).</value>
+  </data>
 </root>

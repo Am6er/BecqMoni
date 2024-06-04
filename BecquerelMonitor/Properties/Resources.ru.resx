@@ -656,6 +656,12 @@ http://xptable.sourceforge.net/</value>
   <data name="NucBase.IsotopeTextBoxTooltip1" xml:space="preserve">
     <value>Пример: AM-241, AM241, 241AM. Изомер: PA234m1, 234PAm1, PA-234m1</value>
   </data>
+  <data name="NuclideDefImportError" xml:space="preserve">
+    <value>Ошибка импорта - {0}</value>
+  </data>
+  <data name="NuclideDefImportSuccess" xml:space="preserve">
+    <value>Импорт завершен. Добавлено - {0}, обновлено - {1}.</value>
+  </data>
   <data name="OpenFileDialogTitle" xml:space="preserve">
     <value>Открыть файл спектра</value>
   </data>

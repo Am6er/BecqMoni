@@ -115,6 +115,8 @@ namespace BecquerelMonitor.NucBase
                     decrad.DecayLine = reader.GetString(3);
                     decrad.XrayType = reader.GetString(4);
                     decrad.DecayType = Convert.ToInt32(reader.GetString(5));
+                    decrad.HalfLife = Convert.ToDouble(reader.GetString(6));
+                    decrad.HalfLifeUnit = Convert.ToString(reader.GetString(7));
                     decayRads.Add(decrad);
                 }
             } catch (Exception ex)
