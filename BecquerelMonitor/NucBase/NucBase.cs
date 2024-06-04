@@ -19,6 +19,7 @@ namespace BecquerelMonitor.NucBase
         private const int EnergyColumnIdx = 3;
         private const int IntencityColumnIdx = 4;
         private const int HalfLifeColumnIdx = 7;
+        private string SearchedIsotope;
 
         public NucBase(Form mainForm)
         {
@@ -47,6 +48,7 @@ namespace BecquerelMonitor.NucBase
             string isotope_number = Regex.Match(isotope, @"\d+").Value;
             string isotope_name = Regex.Match(isotope, @"[a-zA-Z]+").Value;
             isotope = isotope_number + isotope_name + isomer;
+            this.SearchedIsotope = isotope;
             bool incDecayChain = this.IncludeDecayChainCheckBox.Checked;
             double lowEnergy = 0.0;
             if (this.LowEnrgTextBox.Text.Length != 0)
@@ -132,6 +134,14 @@ namespace BecquerelMonitor.NucBase
                 {
                     this.DaughtersDataGridView.Rows.Add(daughter.NucName, daughter.DecayTypeString, daughter.DecayPercent);
                 }
+            }
+
+            if (ResultDataGridView.Rows.Count > 0)
+            {
+                buttonImportDef.Enabled = true;
+            } else
+            {
+                buttonImportDef.Enabled = false;
             }
         }
 
@@ -233,6 +243,7 @@ namespace BecquerelMonitor.NucBase
 
         private void ToggleSelection()
         {
+            this.ResultDataGridView.SuspendLayout();
             var checkCol = this.ResultDataGridView.Columns[CheckedColumnIdx];
             checkCol.HeaderText = checkCol.HeaderText == "X"
                 ? ""
@@ -242,6 +253,8 @@ namespace BecquerelMonitor.NucBase
             {
                 row.Cells[CheckedColumnIdx].Value = checkCol.HeaderText == "X";
             }
+            this.ResultDataGridView.RefreshEdit();
+            this.ResultDataGridView.ResumeLayout();
         }
 
         private void IsotopeTextBox_TextChanged(object sender, EventArgs e)
@@ -365,7 +378,12 @@ namespace BecquerelMonitor.NucBase
                         string halfLifeUnit = ((string)row.Cells[HalfLifeColumnIdx].Value).Split('(')[1].Substring(0, 1);
                         double halfLifeYears = ConvertHalfLifeToSeconds(halfLife, halfLifeUnit) / 31536000;
 
-                        NuclideDefinition existingDef = defManager.NuclideDefinitions.FirstOrDefault(def => def.Name == name && def.Energy == energy);
+                        if (IncludeDecayChainCheckBox.Checked && this.SearchedIsotope != name)
+                        {
+                            name += " (" + this.SearchedIsotope + ")";
+                        }
+
+                        NuclideDefinition existingDef = defManager.NuclideDefinitions.FirstOrDefault(def => def.Energy == energy);
                         if (existingDef != null)
                         {
                             existingDef.Intencity = intencity;

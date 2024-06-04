@@ -531,6 +531,9 @@
   <data name="panel1.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Bottom, Left, Right</value>
   </data>
+  <data name="buttonImportDef.Enabled" type="System.Boolean, mscorlib">
+    <value>False</value>
+  </data>
   <data name="buttonImportDef.Location" type="System.Drawing.Point, System.Drawing">
     <value>8, 386</value>
   </data>
