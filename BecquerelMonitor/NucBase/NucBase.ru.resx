@@ -237,4 +237,10 @@
   <data name="$this.Text" xml:space="preserve">
     <value>База изотопов</value>
   </data>
+  <data name="HalfLifeColumn.HeaderText" xml:space="preserve">
+    <value>Период полураспада</value>
+  </data>
+  <data name="buttonImportDef.Text" xml:space="preserve">
+    <value>Импортировать выбранные элементы в список изотопов</value>
+  </data>
 </root>
