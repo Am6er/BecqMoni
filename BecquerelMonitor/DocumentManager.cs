@@ -621,6 +621,7 @@ namespace BecquerelMonitor
                 XmlReaderSettings settings = new XmlReaderSettings { NameTable = new NameTable() };
                 XmlNamespaceManager xmlns = new XmlNamespaceManager(settings.NameTable);
                 xmlns.AddNamespace("DHS", "http://www.w3.org/2001/XMLSchema-instance");
+                xmlns.AddNamespace("H3D", "http://hz/XMLSchema-instance");
                 XmlParserContext context = new XmlParserContext(null, xmlns, "", XmlSpace.Default);
                 //Add DHS namespace for Interspec compatibility
 
@@ -645,7 +646,14 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message, ex.StackTrace));
+                if (ex.InnerException != null)
+                {
+                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message + " " + ex.InnerException.Message, ex.StackTrace));
+                }
+                else
+                {
+                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message, ex.StackTrace));
+                }
                 return;
             }
         }
