@@ -531,6 +531,129 @@
   <data name="panel1.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Bottom, Left, Right</value>
   </data>
+  <data name="comboBoxNameFormat.Enabled" type="System.Boolean, mscorlib">
+    <value>False</value>
+  </data>
+  <data name="comboBoxNameFormat.Items" xml:space="preserve">
+    <value>137CS, 234PAm1</value>
+  </data>
+  <data name="comboBoxNameFormat.Items1" xml:space="preserve">
+    <value>Cs137, Pa234m1</value>
+  </data>
+  <data name="comboBoxNameFormat.Items2" xml:space="preserve">
+    <value>Cs-137, Pa-234m1</value>
+  </data>
+  <data name="comboBoxNameFormat.Location" type="System.Drawing.Point, System.Drawing">
+    <value>325, 434</value>
+  </data>
+  <data name="comboBoxNameFormat.Size" type="System.Drawing.Size, System.Drawing">
+    <value>117, 21</value>
+  </data>
+  <data name="comboBoxNameFormat.TabIndex" type="System.Int32, mscorlib">
+    <value>10</value>
+  </data>
+  <data name="&gt;&gt;comboBoxNameFormat.Name" xml:space="preserve">
+    <value>comboBoxNameFormat</value>
+  </data>
+  <data name="&gt;&gt;comboBoxNameFormat.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;comboBoxNameFormat.Parent" xml:space="preserve">
+    <value>panel1</value>
+  </data>
+  <data name="&gt;&gt;comboBoxNameFormat.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="labelNameFormat.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="labelNameFormat.Enabled" type="System.Boolean, mscorlib">
+    <value>False</value>
+  </data>
+  <data name="labelNameFormat.Location" type="System.Drawing.Point, System.Drawing">
+    <value>322, 416</value>
+  </data>
+  <data name="labelNameFormat.Size" type="System.Drawing.Size, System.Drawing">
+    <value>112, 13</value>
+  </data>
+  <data name="labelNameFormat.TabIndex" type="System.Int32, mscorlib">
+    <value>9</value>
+  </data>
+  <data name="labelNameFormat.Text" xml:space="preserve">
+    <value>Definition name format</value>
+  </data>
+  <data name="&gt;&gt;labelNameFormat.Name" xml:space="preserve">
+    <value>labelNameFormat</value>
+  </data>
+  <data name="&gt;&gt;labelNameFormat.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;labelNameFormat.Parent" xml:space="preserve">
+    <value>panel1</value>
+  </data>
+  <data name="&gt;&gt;labelNameFormat.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="checkBoxAppendRootName.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="checkBoxAppendRootName.Enabled" type="System.Boolean, mscorlib">
+    <value>False</value>
+  </data>
+  <data name="checkBoxAppendRootName.Location" type="System.Drawing.Point, System.Drawing">
+    <value>8, 438</value>
+  </data>
+  <data name="checkBoxAppendRootName.Size" type="System.Drawing.Size, System.Drawing">
+    <value>303, 17</value>
+  </data>
+  <data name="checkBoxAppendRootName.TabIndex" type="System.Int32, mscorlib">
+    <value>8</value>
+  </data>
+  <data name="checkBoxAppendRootName.Text" xml:space="preserve">
+    <value>Append main isotope to decay product, ex. Pb214 (Ra226)</value>
+  </data>
+  <data name="&gt;&gt;checkBoxAppendRootName.Name" xml:space="preserve">
+    <value>checkBoxAppendRootName</value>
+  </data>
+  <data name="&gt;&gt;checkBoxAppendRootName.Type" xml:space="preserve">
+    <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;checkBoxAppendRootName.Parent" xml:space="preserve">
+    <value>panel1</value>
+  </data>
+  <data name="&gt;&gt;checkBoxAppendRootName.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="checkBoxOverwriteDef.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="checkBoxOverwriteDef.Enabled" type="System.Boolean, mscorlib">
+    <value>False</value>
+  </data>
+  <data name="checkBoxOverwriteDef.Location" type="System.Drawing.Point, System.Drawing">
+    <value>8, 415</value>
+  </data>
+  <data name="checkBoxOverwriteDef.Size" type="System.Drawing.Size, System.Drawing">
+    <value>224, 17</value>
+  </data>
+  <data name="checkBoxOverwriteDef.TabIndex" type="System.Int32, mscorlib">
+    <value>7</value>
+  </data>
+  <data name="checkBoxOverwriteDef.Text" xml:space="preserve">
+    <value>Overwrite definitions with the same energy</value>
+  </data>
+  <data name="&gt;&gt;checkBoxOverwriteDef.Name" xml:space="preserve">
+    <value>checkBoxOverwriteDef</value>
+  </data>
+  <data name="&gt;&gt;checkBoxOverwriteDef.Type" xml:space="preserve">
+    <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;checkBoxOverwriteDef.Parent" xml:space="preserve">
+    <value>panel1</value>
+  </data>
+  <data name="&gt;&gt;checkBoxOverwriteDef.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
   <data name="buttonImportDef.Enabled" type="System.Boolean, mscorlib">
     <value>False</value>
   </data>
@@ -556,7 +679,7 @@
     <value>panel1</value>
   </data>
   <data name="&gt;&gt;buttonImportDef.ZOrder" xml:space="preserve">
-    <value>0</value>
+    <value>4</value>
   </data>
   <data name="label7.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -583,7 +706,7 @@
     <value>panel1</value>
   </data>
   <data name="&gt;&gt;label7.ZOrder" xml:space="preserve">
-    <value>1</value>
+    <value>5</value>
   </data>
   <metadata name="NameColumn1.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>True</value>
@@ -631,7 +754,7 @@
     <value>panel1</value>
   </data>
   <data name="&gt;&gt;DaughtersDataGridView.ZOrder" xml:space="preserve">
-    <value>2</value>
+    <value>6</value>
   </data>
   <data name="label6.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -658,7 +781,7 @@
     <value>panel1</value>
   </data>
   <data name="&gt;&gt;label6.ZOrder" xml:space="preserve">
-    <value>3</value>
+    <value>7</value>
   </data>
   <metadata name="NameColumn.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>True</value>
@@ -706,7 +829,7 @@
     <value>panel1</value>
   </data>
   <data name="&gt;&gt;ParentsDataGridView.ZOrder" xml:space="preserve">
-    <value>4</value>
+    <value>8</value>
   </data>
   <data name="IsotopeAbundance.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -1036,7 +1159,7 @@
     <value>panel1</value>
   </data>
   <data name="&gt;&gt;groupBox2.ZOrder" xml:space="preserve">
-    <value>5</value>
+    <value>9</value>
   </data>
   <data name="CheckBoxColumn.HeaderText" xml:space="preserve">
     <value>X</value>
@@ -1129,13 +1252,13 @@
     <value>panel1</value>
   </data>
   <data name="&gt;&gt;ResultDataGridView.ZOrder" xml:space="preserve">
-    <value>6</value>
+    <value>10</value>
   </data>
   <data name="panel1.Location" type="System.Drawing.Point, System.Drawing">
     <value>0, 60</value>
   </data>
   <data name="panel1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>976, 418</value>
+    <value>976, 458</value>
   </data>
   <data name="panel1.TabIndex" type="System.Int32, mscorlib">
     <value>1</value>
@@ -1165,13 +1288,13 @@
     <value>True</value>
   </data>
   <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
-    <value>988, 481</value>
+    <value>988, 521</value>
   </data>
   <data name="$this.MaximumSize" type="System.Drawing.Size, System.Drawing">
-    <value>1004, 520</value>
+    <value>1004, 560</value>
   </data>
   <data name="$this.MinimumSize" type="System.Drawing.Size, System.Drawing">
-    <value>1004, 489</value>
+    <value>1004, 560</value>
   </data>
   <data name="$this.StartPosition" type="System.Windows.Forms.FormStartPosition, System.Windows.Forms">
     <value>CenterParent</value>
