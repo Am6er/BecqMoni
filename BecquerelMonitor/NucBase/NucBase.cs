@@ -41,11 +41,12 @@ namespace BecquerelMonitor.NucBase
             string isotopeTextBox = this.IsotopeTextBox.Text.Trim().Replace("-", "");
             Match isomerRegex = Regex.Match(isotopeTextBox, @"[m]\d{0,1}$");
             string isomer = "";
+            string isotope = isotopeTextBox.ToUpper();
             if (isomerRegex.Index + isomerRegex.Length == isotopeTextBox.Length) 
             {
                 isomer = isomerRegex.Value;
+                isotope = isotopeTextBox.Substring(0, isomerRegex.Index).ToUpper();
             }
-            string isotope = isotopeTextBox.ToUpper();
             string isotope_number = Regex.Match(isotope, @"\d+").Value;
             string isotope_name = Regex.Match(isotope, @"[a-zA-Z]+").Value;
             isotope = isotope_number + isotope_name + isomer;
