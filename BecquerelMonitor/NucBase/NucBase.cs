@@ -36,7 +36,7 @@ namespace BecquerelMonitor.NucBase
             {
                 isomer = isomerRegex.Value;
             }
-            string isotope = isotopeTextBox.ToUpper();
+            string isotope = isotopeTextBox.Substring(0, isomerRegex.Index).ToUpper();
             string isotope_number = Regex.Match(isotope, @"\d+").Value;
             string isotope_name = Regex.Match(isotope, @"[a-zA-Z]+").Value;
             isotope = isotope_number + isotope_name + isomer;
