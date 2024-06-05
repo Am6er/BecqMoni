@@ -645,7 +645,14 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message, ex.StackTrace));
+                if (ex.InnerException != null)
+                {
+                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message + " " + ex.InnerException.Message, ex.StackTrace));
+                }
+                else
+                {
+                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message, ex.StackTrace));
+                }
                 return;
             }
         }
