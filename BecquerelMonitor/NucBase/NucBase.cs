@@ -378,7 +378,8 @@ namespace BecquerelMonitor.NucBase
                 {
                     if ((bool)row.Cells[CheckedColumnIdx].Value == true)
                     {
-                        string name = FormatIsotopeName((string)row.Cells[NameColumnIdx].Value);
+                        string name = (string)row.Cells[NameColumnIdx].Value;
+                        string formattedName = FormatIsotopeName(name);
                         double energy = (double)row.Cells[EnergyColumnIdx].Value;
                         double intencity = (double)row.Cells[IntencityColumnIdx].Value;
                         double halfLife = Convert.ToDouble(((string)row.Cells[HalfLifeColumnIdx].Value).Split('(')[0]);
@@ -387,13 +388,13 @@ namespace BecquerelMonitor.NucBase
 
                         if (IncludeDecayChainCheckBox.Checked && checkBoxAppendRootName.Checked && this.SearchedIsotope != name)
                         {
-                            name += " (" + FormatIsotopeName(this.SearchedIsotope) + ")";
+                            formattedName += " (" + FormatIsotopeName(this.SearchedIsotope) + ")";
                         }
 
                         NuclideDefinition existingDef = defManager.NuclideDefinitions.FirstOrDefault(def => def.Energy == energy);
                         if (existingDef != null && checkBoxOverwriteDef.Checked)
                         {
-                            existingDef.Name = name;
+                            existingDef.Name = formattedName;
                             existingDef.Intencity = intencity;
                             existingDef.HalfLife = halfLifeYears;
                             updatedCount++;
@@ -403,7 +404,7 @@ namespace BecquerelMonitor.NucBase
                         {
                             defManager.NuclideDefinitions.Add(new NuclideDefinition()
                             {
-                                Name = name,
+                                Name = formattedName,
                                 Energy = energy,
                                 Intencity = intencity,
                                 HalfLife = halfLifeYears,
