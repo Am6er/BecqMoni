@@ -2125,6 +2125,24 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Import failed - {0}.
+        /// </summary>
+        internal static string NuclideDefImportError {
+            get {
+                return ResourceManager.GetString("NuclideDefImportError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Import successful. Added - {0} item(s), updated - {1} item(s)..
+        /// </summary>
+        internal static string NuclideDefImportSuccess {
+            get {
+                return ResourceManager.GetString("NuclideDefImportSuccess", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Open Spectrum File.
         /// </summary>
         internal static string OpenFileDialogTitle {
