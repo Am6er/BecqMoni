@@ -243,4 +243,13 @@
   <data name="buttonImportDef.Text" xml:space="preserve">
     <value>Импортировать выбранные элементы в список изотопов</value>
   </data>
+  <data name="checkBoxAppendRootName.Text" xml:space="preserve">
+    <value>Добавлять имя основного изотопа к дочернему - Pb214 (Ra226)</value>
+  </data>
+  <data name="checkBoxOverwriteDef.Text" xml:space="preserve">
+    <value>Заменять записи при совпадении энергии</value>
+  </data>
+  <data name="labelNameFormat.Text" xml:space="preserve">
+    <value>Формат имени изотопа</value>
+  </data>
 </root>

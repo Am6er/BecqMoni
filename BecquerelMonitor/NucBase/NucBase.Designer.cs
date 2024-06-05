@@ -48,6 +48,10 @@ namespace BecquerelMonitor.NucBase
             this.IsotopeTextBox = new System.Windows.Forms.TextBox();
             this.SearchButton = new System.Windows.Forms.Button();
             this.panel1 = new System.Windows.Forms.Panel();
+            this.comboBoxNameFormat = new System.Windows.Forms.ComboBox();
+            this.labelNameFormat = new System.Windows.Forms.Label();
+            this.checkBoxAppendRootName = new System.Windows.Forms.CheckBox();
+            this.checkBoxOverwriteDef = new System.Windows.Forms.CheckBox();
             this.buttonImportDef = new System.Windows.Forms.Button();
             this.label7 = new System.Windows.Forms.Label();
             this.DaughtersDataGridView = new System.Windows.Forms.DataGridView();
@@ -175,6 +179,7 @@ namespace BecquerelMonitor.NucBase
             resources.ApplyResources(this.IncludeDecayChainCheckBox, "IncludeDecayChainCheckBox");
             this.IncludeDecayChainCheckBox.Name = "IncludeDecayChainCheckBox";
             this.IncludeDecayChainCheckBox.UseVisualStyleBackColor = true;
+            this.IncludeDecayChainCheckBox.CheckedChanged += new System.EventHandler(this.IncludeDecayChainCheckBox_CheckedChanged);
             // 
             // label8
             // 
@@ -204,6 +209,10 @@ namespace BecquerelMonitor.NucBase
             // panel1
             // 
             resources.ApplyResources(this.panel1, "panel1");
+            this.panel1.Controls.Add(this.comboBoxNameFormat);
+            this.panel1.Controls.Add(this.labelNameFormat);
+            this.panel1.Controls.Add(this.checkBoxAppendRootName);
+            this.panel1.Controls.Add(this.checkBoxOverwriteDef);
             this.panel1.Controls.Add(this.buttonImportDef);
             this.panel1.Controls.Add(this.label7);
             this.panel1.Controls.Add(this.DaughtersDataGridView);
@@ -212,6 +221,35 @@ namespace BecquerelMonitor.NucBase
             this.panel1.Controls.Add(this.groupBox2);
             this.panel1.Controls.Add(this.ResultDataGridView);
             this.panel1.Name = "panel1";
+            // 
+            // comboBoxNameFormat
+            // 
+            resources.ApplyResources(this.comboBoxNameFormat, "comboBoxNameFormat");
+            this.comboBoxNameFormat.FormattingEnabled = true;
+            this.comboBoxNameFormat.Items.AddRange(new object[] {
+            resources.GetString("comboBoxNameFormat.Items"),
+            resources.GetString("comboBoxNameFormat.Items1"),
+            resources.GetString("comboBoxNameFormat.Items2")});
+            this.comboBoxNameFormat.Name = "comboBoxNameFormat";
+            // 
+            // labelNameFormat
+            // 
+            resources.ApplyResources(this.labelNameFormat, "labelNameFormat");
+            this.labelNameFormat.Name = "labelNameFormat";
+            // 
+            // checkBoxAppendRootName
+            // 
+            resources.ApplyResources(this.checkBoxAppendRootName, "checkBoxAppendRootName");
+            this.checkBoxAppendRootName.Checked = true;
+            this.checkBoxAppendRootName.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.checkBoxAppendRootName.Name = "checkBoxAppendRootName";
+            this.checkBoxAppendRootName.UseVisualStyleBackColor = true;
+            // 
+            // checkBoxOverwriteDef
+            // 
+            resources.ApplyResources(this.checkBoxOverwriteDef, "checkBoxOverwriteDef");
+            this.checkBoxOverwriteDef.Name = "checkBoxOverwriteDef";
+            this.checkBoxOverwriteDef.UseVisualStyleBackColor = true;
             // 
             // buttonImportDef
             // 
@@ -533,5 +571,9 @@ namespace BecquerelMonitor.NucBase
         private System.Windows.Forms.DataGridViewTextBoxColumn XRayTypeColumn;
         private System.Windows.Forms.DataGridViewTextBoxColumn DecaModeColumn;
         private System.Windows.Forms.DataGridViewTextBoxColumn HalfLifeColumn;
+        private System.Windows.Forms.Label labelNameFormat;
+        private System.Windows.Forms.CheckBox checkBoxAppendRootName;
+        private System.Windows.Forms.CheckBox checkBoxOverwriteDef;
+        private System.Windows.Forms.ComboBox comboBoxNameFormat;
     }
 }

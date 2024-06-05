@@ -323,6 +323,7 @@
 			this.comboBox2.DropDownStyle = global::System.Windows.Forms.ComboBoxStyle.DropDownList;
 			this.comboBox2.FormattingEnabled = true;
 			this.comboBox2.Name = "comboBox2";
+			this.comboBox2.DropDownWidth = 200;
 			this.comboBox2.SelectedIndexChanged += new global::System.EventHandler(this.comboBox2_SelectedIndexChanged);
 			resources.ApplyResources(this.label21, "label21");
 			this.label21.Name = "label21";

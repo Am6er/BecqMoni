@@ -27,6 +27,7 @@ namespace BecquerelMonitor.NucBase
             this.mainForm = mainForm;
             this.Icon = Resources.becqmoni;
             this.IncludeDecayChainCheckBox.Enabled = false;
+            this.comboBoxNameFormat.SelectedIndex = 1;
         }
 
         private void SearchButton_Click(object sender, EventArgs e)
@@ -136,13 +137,19 @@ namespace BecquerelMonitor.NucBase
                 }
             }
 
-            if (ResultDataGridView.Rows.Count > 0)
-            {
-                buttonImportDef.Enabled = true;
-            } else
-            {
-                buttonImportDef.Enabled = false;
-            }
+            UpdateNuclideDefinitionControlsState();
+        }
+
+        private void UpdateNuclideDefinitionControlsState()
+        {
+            bool hasRows = this.ResultDataGridView.Rows.Count > 0;
+
+            buttonImportDef.Enabled = hasRows;
+            checkBoxOverwriteDef.Enabled = hasRows;
+            checkBoxAppendRootName.Enabled = IncludeDecayChainCheckBox.Checked;
+            checkBoxAppendRootName.Checked = IncludeDecayChainCheckBox.Checked;
+            comboBoxNameFormat.Enabled = hasRows;
+            labelNameFormat.Enabled = hasRows;
         }
 
         private double ConvertHalfLifeToSeconds(double value, string unit)
@@ -244,7 +251,7 @@ namespace BecquerelMonitor.NucBase
         private void ToggleSelection()
         {
             this.ResultDataGridView.SuspendLayout();
-            var checkCol = this.ResultDataGridView.Columns[CheckedColumnIdx];
+            DataGridViewColumn checkCol = this.ResultDataGridView.Columns[CheckedColumnIdx];
             checkCol.HeaderText = checkCol.HeaderText == "X"
                 ? ""
                 : "X";
@@ -371,26 +378,28 @@ namespace BecquerelMonitor.NucBase
                 {
                     if ((bool)row.Cells[CheckedColumnIdx].Value == true)
                     {
-                        string name = (string)row.Cells[NameColumnIdx].Value;
+                        string name = FormatIsotopeName((string)row.Cells[NameColumnIdx].Value);
                         double energy = (double)row.Cells[EnergyColumnIdx].Value;
                         double intencity = (double)row.Cells[IntencityColumnIdx].Value;
                         double halfLife = Convert.ToDouble(((string)row.Cells[HalfLifeColumnIdx].Value).Split('(')[0]);
                         string halfLifeUnit = ((string)row.Cells[HalfLifeColumnIdx].Value).Split('(')[1].Substring(0, 1);
                         double halfLifeYears = ConvertHalfLifeToSeconds(halfLife, halfLifeUnit) / 31536000;
 
-                        if (IncludeDecayChainCheckBox.Checked && this.SearchedIsotope != name)
+                        if (IncludeDecayChainCheckBox.Checked && checkBoxAppendRootName.Checked && this.SearchedIsotope != name)
                         {
-                            name += " (" + this.SearchedIsotope + ")";
+                            name += " (" + FormatIsotopeName(this.SearchedIsotope) + ")";
                         }
 
                         NuclideDefinition existingDef = defManager.NuclideDefinitions.FirstOrDefault(def => def.Energy == energy);
-                        if (existingDef != null)
+                        if (existingDef != null && checkBoxOverwriteDef.Checked)
                         {
+                            existingDef.Name = name;
                             existingDef.Intencity = intencity;
                             existingDef.HalfLife = halfLifeYears;
                             updatedCount++;
                         }
-                        else
+                        
+                        if (existingDef == null)
                         {
                             defManager.NuclideDefinitions.Add(new NuclideDefinition()
                             {
@@ -416,6 +425,40 @@ namespace BecquerelMonitor.NucBase
             {
                 MessageBox.Show(string.Format(Resources.NuclideDefImportError, ex.Message + ex.StackTrace));
             }
+        }
+
+        private string FormatIsotopeName(string nameFromDb)
+        {
+            Regex nameFormat = new Regex("^([0-9]+){1}([A-Z]+){1}(m[0-9]+)?$");
+            Match match = nameFormat.Match(nameFromDb);
+            if (!match.Success)
+            {
+                return nameFromDb;
+            }
+
+            string mass = match.Groups[1].Value;
+            string isotope = match.Groups[2].Value;
+            string isotopeLower = $"{isotope.Substring(0, 1)}{isotope.Substring(1).ToLower()}";
+            string isomer = match.Groups.Count > 3
+                ? match.Groups[3].Value
+                : string.Empty;
+
+            switch (comboBoxNameFormat.SelectedIndex)
+            {
+                case 0: // 137CS, 234PAm1
+                    return $"{mass}{isotope}{isomer}";
+                case 1: // Cs137, Pa234m1
+                    return $"{isotopeLower}{mass}{isomer}";
+                case 2: // Cs-137, Pa-234m1
+                    return $"{isotopeLower}-{mass}{isomer}";
+                default: // Cs137, Pa234m1
+                    return $"{isotopeLower}{mass}{isomer}";
+            }
+        }
+
+        private void IncludeDecayChainCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            UpdateNuclideDefinitionControlsState();
         }
     }
 }
