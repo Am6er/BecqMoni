@@ -224,6 +224,7 @@ namespace BecquerelMonitor.NucBase
             // 
             // comboBoxNameFormat
             // 
+            this.comboBoxNameFormat.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             resources.ApplyResources(this.comboBoxNameFormat, "comboBoxNameFormat");
             this.comboBoxNameFormat.FormattingEnabled = true;
             this.comboBoxNameFormat.Items.AddRange(new object[] {
