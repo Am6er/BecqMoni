@@ -106,11 +106,37 @@ namespace BecquerelMonitor.NucBase
             }
         }
 
+        public double HalfLife
+        {
+            get
+            {
+                return this.halfLife;
+            }
+            set
+            {
+                this.halfLife = value;
+            }
+        }
+
+        public string HalfLifeUnit
+        {
+            get
+            {
+                return this.halfLifeUnit;
+            }
+            set
+            {
+                this.halfLifeUnit = value;
+            }
+        }
+
         string name;
         double energy;
         double intensity;
         string decay_line;
         string xray_type;
         int dectype;
+        double halfLife;
+        string halfLifeUnit;
     }
 }
