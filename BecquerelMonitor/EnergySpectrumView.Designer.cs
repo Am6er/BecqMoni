@@ -3457,7 +3457,7 @@ namespace BecquerelMonitor
                                         detected_peak = peak;
                                     }
                                 }
-                                if (number_of_peaks == 1 && detected_peak != null && detected_peak.Nuclide.Intencity > 0)
+                                if (number_of_peaks == 1 && detected_peak != null && detected_peak.Nuclide != null && detected_peak.Nuclide.Intencity > 0)
                                 {
                                     ROIAriphmetics roiAriphmetics = new ROIAriphmetics(this.roiConfig);
                                     ROIEfficiencyData effData = roiAriphmetics.CalculateEfficiency(detected_peak.Energy);
