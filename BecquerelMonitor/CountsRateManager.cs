@@ -23,13 +23,16 @@ namespace BecquerelMonitor
                 // if old counts > new counts or old time > new time, then reset history. Because it's new spectrum.
                 if (resultData.CountRates[resultData.CountRates.Count - 1].Counts > new_counts ||
                 resultData.CountRates[resultData.CountRates.Count - 1].ElapsedTimeInMs > new_time) resultData.CountRates.Clear();
+            }
 
+            if (resultData.CountRates.Count > 0)
+            {
                 // data comes too fast, skip this counts
                 if (resultData.CountRates[resultData.CountRates.Count - 1].ElapsedTimeInMs == new_time ||
                 new_time - resultData.CountRates[resultData.CountRates.Count - 1].ElapsedTimeInMs < 1000.0) return;
             }
-            
-            if (resultData.CountRates.Count >= UpperWindow)
+
+                if (resultData.CountRates.Count >= UpperWindow)
             {
                 resultData.CountRates.RemoveAt(0);
             }
