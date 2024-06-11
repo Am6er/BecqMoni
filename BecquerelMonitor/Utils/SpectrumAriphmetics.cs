@@ -153,8 +153,8 @@ namespace BecquerelMonitor.Utils
                     {
                         substractedEnergySpectrum.Spectrum[i] = 0;
                     }
-                    substractedEnergySpectrum.TotalPulseCount += substractedEnergySpectrum.Spectrum[i];
                 });
+                substractedEnergySpectrum.TotalPulseCount = substractedEnergySpectrum.Spectrum.Sum();
                 substractedEnergySpectrum.ValidPulseCount = substractedEnergySpectrum.TotalPulseCount;
             } else
             {
@@ -170,8 +170,8 @@ namespace BecquerelMonitor.Utils
                             substractedEnergySpectrum.Spectrum[i] = 0;
                         }
                     }
-                    substractedEnergySpectrum.TotalPulseCount += substractedEnergySpectrum.Spectrum[i];
                 });
+                substractedEnergySpectrum.TotalPulseCount = substractedEnergySpectrum.Spectrum.Sum();
                 substractedEnergySpectrum.ValidPulseCount = substractedEnergySpectrum.TotalPulseCount;
             }
             return substractedEnergySpectrum;
