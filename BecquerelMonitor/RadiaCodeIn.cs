@@ -648,11 +648,8 @@ namespace BecquerelMonitor
                                 sendTroubleShoot($"Spectrum real time: {packet.TIME_S}");
                                 sendTroubleShoot($"Spectrum calibration: A0={packet.A0} A1={packet.A1} A2={packet.A2}");
                                 packet.SPECTRUM.CopyTo(hystogram_buffered, 0);
-                                ulong sum = 0;
-                                Parallel.For(0, hystogram_buffered.Length, i =>
-                                {
-                                    sum += (ulong)hystogram_buffered[i];
-                                });
+                                ulong sum = (ulong)hystogram_buffered.Sum();
+
                                 if (packet.TIME_S != 0) this.cps = sum / packet.TIME_S;
                                 sendTroubleShoot($"Spectrum cps: {this.cps}");
                                 sendTroubleShoot($"Spectrum total counts: {sum}");
