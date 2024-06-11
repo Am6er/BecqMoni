@@ -96,12 +96,12 @@ namespace BecquerelMonitor
                     double centroid = finder.centroids[i];
                     int snr = (int)finder.snrs[i];
                     double fwhm = finder.fwhms[i];
-                    centroid = sa.FindCentroid(energySpectrum, (int)centroid, (int)(centroid - fwhm), (int)(centroid + fwhm));
+                    centroid = sa.FindCentroid(energySpectrum, Convert.ToInt32(centroid), Convert.ToInt32(centroid - fwhm), Convert.ToInt32(centroid + fwhm));
 
                     NuclideDefinition bestNuclide = null;
                     double minDelta = -1;
                     Peak peak = new Peak();
-                    peak.Channel = (int)centroid;
+                    peak.Channel = Convert.ToInt32(centroid);
                     peak.Energy = energySpectrum.EnergyCalibration.ChannelToEnergy(peak.Channel);
                     peak.SNR = snr;
                     peak.FWHM = fwhm;
@@ -141,8 +141,8 @@ namespace BecquerelMonitor
 
         FWHMPeakDetector.PeakFinder PeakFinder(EnergySpectrum energySpectrum, FWHMPeakDetectionMethodConfig fWHMPeakDetectionMethodConfig)
         {
-            int min_range_ch = (int)energySpectrum.EnergyCalibration.EnergyToChannel(fWHMPeakDetectionMethodConfig.Min_Range, maxChannels: energySpectrum.NumberOfChannels);
-            int max_range_ch = (int)energySpectrum.EnergyCalibration.EnergyToChannel(fWHMPeakDetectionMethodConfig.Max_Range, maxChannels: energySpectrum.NumberOfChannels);
+            int min_range_ch = Convert.ToInt32(energySpectrum.EnergyCalibration.EnergyToChannel(fWHMPeakDetectionMethodConfig.Min_Range, maxChannels: energySpectrum.NumberOfChannels));
+            int max_range_ch = Convert.ToInt32(energySpectrum.EnergyCalibration.EnergyToChannel(fWHMPeakDetectionMethodConfig.Max_Range, maxChannels: energySpectrum.NumberOfChannels));
 
             double fwhm_tol_min = ((double)fWHMPeakDetectionMethodConfig.Min_FWHM_Tol) / 100;
             double fwhm_tol_max = ((double)fWHMPeakDetectionMethodConfig.Max_FWHM_Tol) / 100;

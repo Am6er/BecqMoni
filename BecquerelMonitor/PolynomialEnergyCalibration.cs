@@ -219,7 +219,7 @@ namespace BecquerelMonitor
                         System.Windows.Forms.MessageBox.Show(Resources.CalibrationFunctionError);
                         return 0;
                     }
-                    return -c / b;
+                    return - c / b;
                 }
                 else
                 {
@@ -239,7 +239,7 @@ namespace BecquerelMonitor
                 {
                     double roots = FindRoots.OfFunction(f1, 0, maxCh);
                     //System.Windows.Forms.MessageBox.Show("Calibration coefficients are incorrect channels for Energy: " + enrg + " roots = " + roots);
-                    return Math.Round(roots, 2);
+                    return roots;
                 }
                 catch
                 {
@@ -256,7 +256,7 @@ namespace BecquerelMonitor
                 try
                 {
                     double roots = FindRoots.OfFunction(f1, 0, maxCh);
-                    return Math.Round(roots, 2);
+                    return roots;
                 }
                 catch
                 {

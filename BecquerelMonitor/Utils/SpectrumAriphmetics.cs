@@ -79,7 +79,7 @@ namespace BecquerelMonitor.Utils
                 }
             }
             if (new_centroid > high_boundary || new_centroid < low_boundary) new_centroid = centroid;
-            return (int)Math.Round(new_centroid);
+            return Convert.ToInt32(new_centroid);
         }
 
         double Ln(double x)
@@ -153,8 +153,8 @@ namespace BecquerelMonitor.Utils
                     {
                         substractedEnergySpectrum.Spectrum[i] = 0;
                     }
-                    substractedEnergySpectrum.TotalPulseCount += substractedEnergySpectrum.Spectrum[i];
                 });
+                substractedEnergySpectrum.TotalPulseCount = substractedEnergySpectrum.Spectrum.Sum();
                 substractedEnergySpectrum.ValidPulseCount = substractedEnergySpectrum.TotalPulseCount;
             } else
             {
@@ -170,8 +170,8 @@ namespace BecquerelMonitor.Utils
                             substractedEnergySpectrum.Spectrum[i] = 0;
                         }
                     }
-                    substractedEnergySpectrum.TotalPulseCount += substractedEnergySpectrum.Spectrum[i];
                 });
+                substractedEnergySpectrum.TotalPulseCount = substractedEnergySpectrum.Spectrum.Sum();
                 substractedEnergySpectrum.ValidPulseCount = substractedEnergySpectrum.TotalPulseCount;
             }
             return substractedEnergySpectrum;
@@ -191,8 +191,8 @@ namespace BecquerelMonitor.Utils
                 return normalizedSpectrum;
             }
 
-            int minChannel = (int)spectrum.EnergyCalibration.EnergyToChannel(roiAriphmetics.MinEnergy, maxChannels: normalizedSpectrum.NumberOfChannels);
-            int maxChannel = (int)spectrum.EnergyCalibration.EnergyToChannel(roiAriphmetics.MaxEnergy, maxChannels: normalizedSpectrum.NumberOfChannels);
+            int minChannel = Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(roiAriphmetics.MinEnergy, maxChannels: normalizedSpectrum.NumberOfChannels));
+            int maxChannel = Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(roiAriphmetics.MaxEnergy, maxChannels: normalizedSpectrum.NumberOfChannels));
             normalizedSpectrum.TotalPulseCount = 0;
             Parallel.For(0, normalizedSpectrum.NumberOfChannels, i =>
             {
@@ -280,7 +280,7 @@ namespace BecquerelMonitor.Utils
         int gauss(double x, double amplitude, double fwhm, double median)
         {
             double sigma = fwhm / 2.35482;
-            return (int)(amplitude * Math.Exp(-0.5 * Math.Pow((x - median) / sigma,2)));
+            return Convert.ToInt32(amplitude * Math.Exp(-0.5 * Math.Pow((x - median) / sigma,2)));
         }
 
         public (int[], int, int, Color) GetPeak(Peak peak, EnergySpectrum continuum, bool smooth)
@@ -294,7 +294,7 @@ namespace BecquerelMonitor.Utils
             {
                 amplitude = this.EnergySpectrum.Spectrum[peak.Channel] - continuum.Spectrum[peak.Channel];
             }
-            int fwhm = (int)peak.FWHM;
+            int fwhm = Convert.ToInt32(peak.FWHM);
             int median = peak.Channel;
             int interval = 3 * fwhm;
             int min_ch = median - interval;
@@ -364,7 +364,7 @@ namespace BecquerelMonitor.Utils
             double[] r = new double[x.Length];
             r = r.Select((i, iter) => (baseline[iter] == 0) ? 0 : coeff * (FWHM(iter, this.FWHMPeakDetectionMethodConfig))).ToArray();
 
-            int n = (int)r.Max();
+            int n = Convert.ToInt32(r.Max());
 
             int[] seq = new int[n];
             if (decreasing)
@@ -401,7 +401,7 @@ namespace BecquerelMonitor.Utils
                 baseline = baseline.Select(i => iLLS(i)).ToArray();
             }
 
-            int[] baseline_arr = baseline.Select(i => (int)i).ToArray();
+            int[] baseline_arr = baseline.Select(i => Convert.ToInt32(i)).ToArray();
 
             int baseline_max = 0;
             int baseline_max_i = 0;
@@ -464,7 +464,7 @@ namespace BecquerelMonitor.Utils
         public static EnergySpectrum CutoffSpectrumEnergy(EnergySpectrum energySpectrum, double energyVal)
         {
             PolynomialEnergyCalibration calibration = (PolynomialEnergyCalibration)energySpectrum.EnergyCalibration;
-            int newChan = (int)calibration.EnergyToChannel(energyVal, maxCh: energySpectrum.NumberOfChannels);
+            int newChan = Convert.ToInt32(calibration.EnergyToChannel(energyVal, maxCh: energySpectrum.NumberOfChannels));
             return CutoffSpectrumChannels(energySpectrum, newChan);
         }
 
@@ -496,7 +496,7 @@ namespace BecquerelMonitor.Utils
             newSpectrum.MeasurementTime = energySpectrum.MeasurementTime;
             newSpectrum.TotalPulseCount = newSpectrum.Spectrum.Sum();
             double newValidPulseCount = (double)newSpectrum.TotalPulseCount * (double)energySpectrum.ValidPulseCount / (double)energySpectrum.TotalPulseCount;
-            newSpectrum.ValidPulseCount = (int)newValidPulseCount;
+            newSpectrum.ValidPulseCount = Convert.ToInt32(newValidPulseCount);
             newSpectrum.NumberOfSamples = energySpectrum.NumberOfSamples;
             return newSpectrum;
         }
@@ -516,7 +516,7 @@ namespace BecquerelMonitor.Utils
             newSpectrum.MeasurementTime = energySpectrum.MeasurementTime;
             newSpectrum.TotalPulseCount = newSpectrum.Spectrum.Sum();
             double newValidPulseCount = (double)newSpectrum.TotalPulseCount * (double)energySpectrum.ValidPulseCount / (double)energySpectrum.TotalPulseCount;
-            newSpectrum.ValidPulseCount = (int)newValidPulseCount;
+            newSpectrum.ValidPulseCount = Convert.ToInt32(newValidPulseCount);
             newSpectrum.NumberOfSamples = energySpectrum.NumberOfSamples;
             return newSpectrum;
         }
@@ -552,7 +552,7 @@ namespace BecquerelMonitor.Utils
                 int window_size = 1;
                 if (spectrum[i] <= countlimit)
                 {
-                    window_size = (int)Math.Round((double)spectrum[i] * (1 - (double)numberOfWMADataPoints) / (double)countlimit + (double)numberOfWMADataPoints);
+                    window_size = Convert.ToInt32((double)spectrum[i] * (1 - (double)numberOfWMADataPoints) / (double)countlimit + (double)numberOfWMADataPoints);
                 }
                 if (window_size == 1)
                 {
@@ -591,7 +591,7 @@ namespace BecquerelMonitor.Utils
                 int window_size = 1;
                 if (spectrum[i] <= countlimit)
                 {
-                    window_size = (int)Math.Round((double)spectrum[i] * (1 - (double)numberOfWMADataPoints) / (double)countlimit + (double)numberOfWMADataPoints);
+                    window_size = Convert.ToInt32((double)spectrum[i] * (1 - (double)numberOfWMADataPoints) / (double)countlimit + (double)numberOfWMADataPoints);
                 }
                 if (window_size == 1)
                 {
@@ -616,7 +616,7 @@ namespace BecquerelMonitor.Utils
                         part += (double)spectrum[ch] * weight;
                         total += weight;
                     }
-                    result[i] = (int)(part / total);
+                    result[i] = Convert.ToInt32(part / total);
                 }
             });
             return result;
@@ -631,7 +631,7 @@ namespace BecquerelMonitor.Utils
                 int window_size = 1;
                 if (spectrum[i] <= countlimit)
                 {
-                    window_size = (int)Math.Round((double)spectrum[i] * (1 - (double)numberOfSMADataPoints) / (double)countlimit + (double)numberOfSMADataPoints);
+                    window_size = Convert.ToInt32((double)spectrum[i] * (1 - (double)numberOfSMADataPoints) / (double)countlimit + (double)numberOfSMADataPoints);
                 }
                 if (window_size == 1)
                 {
@@ -667,7 +667,7 @@ namespace BecquerelMonitor.Utils
                 int window_size = 1;
                 if (spectrum[i] <= countlimit)
                 {
-                    window_size = (int)Math.Round((double)spectrum[i] * (1 - (double)numberOfSMADataPoints) / (double)countlimit + (double)numberOfSMADataPoints);
+                    window_size = Convert.ToInt32((double)spectrum[i] * (1 - (double)numberOfSMADataPoints) / (double)countlimit + (double)numberOfSMADataPoints);
                 }
                 if (window_size == 1)
                 {
@@ -688,7 +688,7 @@ namespace BecquerelMonitor.Utils
                         }
                         new_count += (double)spectrum[ch];
                     }
-                    result[i] = (int)(new_count / (double)window_size);
+                    result[i] = Convert.ToInt32(new_count / (double)window_size);
                 }
             });
             return result;
