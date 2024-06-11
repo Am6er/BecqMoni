@@ -3218,8 +3218,8 @@ namespace BecquerelMonitor
                     foreach (NuclideDefinition nuclideDefinition in this.nuclideManager.NuclideDefinitions)
                     {
                         if (!nuclideDefinition.Visible) continue;
-                        if (this.cursorEnergy >= nuclideDefinition.Energy-(pitch + (int)Math.Round(nuclideDefinition.Energy * percent/100, 0)) &&
-                            this.cursorEnergy <= nuclideDefinition.Energy + (pitch + (int)Math.Round(nuclideDefinition.Energy * percent / 100, 0)))
+                        if (this.cursorEnergy >= nuclideDefinition.Energy - ((double)pitch + nuclideDefinition.Energy * (double)percent / 100.0) &&
+                            this.cursorEnergy <= nuclideDefinition.Energy + ((double)pitch + nuclideDefinition.Energy * (double)percent / 100.0))
                         {
                             if (best_Energy == 0)
                             {
