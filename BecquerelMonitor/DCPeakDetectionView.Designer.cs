@@ -106,7 +106,7 @@ namespace BecquerelMonitor
 			this.textColumn6.Editable = false;
 			this.textColumn6.IsTextTrimmed = false;
 			this.textColumn6.Sortable = true;
-			this.textColumn6.Width = 40;
+			this.textColumn6.Width = 45;
 			resources.ApplyResources(this.textColumn6, "textColumn6");
 
 
