@@ -26,45 +26,45 @@ namespace BecquerelMonitor
             }
             EnergyResolutionCalculator.result.StartChannel = (double)startChannel;
             EnergyResolutionCalculator.result.EndChannel = (double)endChannel;
-            int num = startChannel;
+            int centroid = startChannel;
             if (spectrum.Spectrum.Length <= startChannel) return null;
-            double num2 = (double)spectrum.Spectrum[startChannel];
+            double centroid_counts = (double)spectrum.Spectrum[centroid];
             for (int i = startChannel; i <= endChannel; i++)
             {
-                if ((double)spectrum.Spectrum[i] > num2)
+                if ((double)spectrum.Spectrum[i] > centroid_counts)
                 {
-                    num2 = (double)spectrum.Spectrum[i];
-                    num = i;
+                    centroid_counts = (double)spectrum.Spectrum[i];
+                    centroid = i;
                 }
             }
 
             SpectrumAriphmetics sa = new SpectrumAriphmetics();
-            int cent = sa.FindCentroid(spectrum, num, startChannel, endChannel);
+            int centroid_new = sa.FindCentroid(spectrum, centroid, startChannel, endChannel);
             sa.Dispose();
 
 
-            EnergyResolutionCalculator.result.MaxChannel = (double)cent;
+            EnergyResolutionCalculator.result.MaxChannel = (double)centroid_new;
             EnergyResolutionCalculator.result.MaxValue = (double)spectrum.Spectrum[(int)EnergyResolutionCalculator.result.MaxChannel];
 
-            double num3 = (double)spectrum.Spectrum[startChannel];
-            double num4 = (double)spectrum.Spectrum[endChannel];
-            double num5 = num3 + (num4 - num3) * (double)(num - startChannel) / (double)(endChannel - startChannel);
-            EnergyResolutionCalculator.result.StartValue = num3;
-            EnergyResolutionCalculator.result.EndValue = num4;
-            EnergyResolutionCalculator.result.MaxBaseValue = num5;
-            double num6 = (num2 - num5) / 2.0 + num5;
-            EnergyResolutionCalculator.result.HalfValue = num6;
+            double start_counts = (double)spectrum.Spectrum[startChannel];
+            double end_counts = (double)spectrum.Spectrum[endChannel];
+            double maxBaseValue = start_counts + (end_counts - start_counts) * (double)(centroid - startChannel) / (double)(endChannel - startChannel);
+            EnergyResolutionCalculator.result.StartValue = start_counts;
+            EnergyResolutionCalculator.result.EndValue = end_counts;
+            EnergyResolutionCalculator.result.MaxBaseValue = maxBaseValue;
+            double halfValue = (centroid_counts - maxBaseValue) / 2.0 + maxBaseValue;
+            EnergyResolutionCalculator.result.HalfValue = halfValue;
             double num7 = -1.0;
             int j = startChannel + 1;
-            while (j < num)
+            while (j < centroid)
             {
-                if ((double)spectrum.Spectrum[j] > num6)
+                if ((double)spectrum.Spectrum[j] > halfValue)
                 {
                     if (spectrum.Spectrum[j] == spectrum.Spectrum[j - 1])
                     {
                         return null;
                     }
-                    num7 = (double)(j - 1) + (num6 - (double)spectrum.Spectrum[j - 1]) / (double)(spectrum.Spectrum[j] - spectrum.Spectrum[j - 1]);
+                    num7 = (double)(j - 1) + (halfValue - (double)spectrum.Spectrum[j - 1]) / (double)(spectrum.Spectrum[j] - spectrum.Spectrum[j - 1]);
                     break;
                 }
                 else
@@ -78,15 +78,15 @@ namespace BecquerelMonitor
             }
             double num8 = -1.0;
             int k = endChannel - 1;
-            while (k > num)
+            while (k > centroid)
             {
-                if ((double)spectrum.Spectrum[k] > num6)
+                if ((double)spectrum.Spectrum[k] > halfValue)
                 {
                     if (spectrum.Spectrum[k] == spectrum.Spectrum[k + 1])
                     {
                         return null;
                     }
-                    num8 = (double)(k + 1) - (num6 - (double)spectrum.Spectrum[k + 1]) / (double)(spectrum.Spectrum[k] - spectrum.Spectrum[k + 1]);
+                    num8 = (double)(k + 1) - (halfValue - (double)spectrum.Spectrum[k + 1]) / (double)(spectrum.Spectrum[k] - spectrum.Spectrum[k + 1]);
                     break;
                 }
                 else
@@ -100,11 +100,10 @@ namespace BecquerelMonitor
             }
             EnergyResolutionCalculator.result.LeftChannel = num7;
             EnergyResolutionCalculator.result.RightChannel = num8;
-            double num9 = energyCalibration.ChannelToEnergy(num7);
-            double num10 = energyCalibration.ChannelToEnergy(num8);
-            double num11 = energyCalibration.ChannelToEnergy((double)num);
-            double resolution = (num10 - num9) / num11;
-            double resolutioninkev = num10 - num9;
+            double leftEnergy = energyCalibration.ChannelToEnergy(num7);
+            double rightEnergy = energyCalibration.ChannelToEnergy(num8);
+            double resolution = (rightEnergy - leftEnergy) / energyCalibration.ChannelToEnergy((double)centroid);
+            double resolutioninkev = rightEnergy - leftEnergy;
             EnergyResolutionCalculator.result.Resolution = resolution;
             EnergyResolutionCalculator.result.ResolutionInkeV = resolutioninkev;
             return EnergyResolutionCalculator.result;
