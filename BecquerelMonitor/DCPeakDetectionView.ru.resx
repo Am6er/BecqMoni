@@ -359,6 +359,6 @@
     <value>SNR</value>
   </data>
   <data name="textColumn6.Text" xml:space="preserve">
-    <value>σ</value>
+    <value>FWHM</value>
   </data>
 </root>
