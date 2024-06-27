@@ -2083,11 +2083,8 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            if (this.activeDocument == null)
-            {
-                CreateDocument();
-            }
 
+            CreateDocument();
             int presetTime = this.dcControlPanel.PresetTime;
             this.documentManager.ImportCsvToDocument(this.activeDocument, presetTime, openFileDialog.FileName);
             this.UpdateAllView();
@@ -2185,11 +2182,7 @@ namespace BecquerelMonitor
                 return;
             }
 
-            if (this.activeDocument == null)
-            {
-                CreateDocument();
-            }
-
+            CreateDocument();
             this.documentManager.ImportDocumentAtomSpectra(this.activeDocument, openFileDialog.FileName);
             this.activeDocument.Dirty = true;
             this.UpdateAllView();
@@ -2207,11 +2200,7 @@ namespace BecquerelMonitor
                 return;
             }
 
-            if (this.activeDocument == null)
-            {
-                CreateDocument();
-            }
-
+            CreateDocument();
             this.documentManager.ImportDocumentN42(this.activeDocument, openFileDialog.FileName);
             this.activeDocument.Dirty = true;
             this.UpdateAllView();
