@@ -424,7 +424,7 @@ namespace BecquerelMonitor
                 RecalcChartParameters();
                 this.dirty = false;
             }
-            return (int)(this.energyCalibration.EnergyToChannel((double)(scrollBarPos) / this.pixelPerEnergy / this.horizontalScale + this.energyViewOffset));
+            return (int)(this.energyCalibration.EnergyToChannel((double)(scrollBarPos) / this.pixelPerEnergy / this.horizontalScale + this.energyViewOffset, maxChannels: this.energySpectrum.NumberOfChannels));
         }
 
         // Token: 0x060004AE RID: 1198 RVA: 0x0001666C File Offset: 0x0001486C
