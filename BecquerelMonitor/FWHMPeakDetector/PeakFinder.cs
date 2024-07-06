@@ -168,7 +168,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
                 snr(x) = snr(x0) - 0.5 d2snr/dx2(x0) (x-x0)^2
                 0.5 = 1 - 0.5 d2snr/dx2 (fwhm/2)^2 / snr0
                 1 = d2snr/dx2 (fwhm/2)^2 / snr0
-                fwhm = 2 sqrt(snr0 / d2snr/dx2)
+                fwhm = 2 sqrt(2 * snr0 / d2snr/dx2)
                 */
 
                 int xbin = this.spectrum.find_bin_index(xpeak);
@@ -191,7 +191,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
                 }
 
                 d2 *= -1;
-                double fwhm = 2 * Math.Sqrt(this.snr[xbin] / d2);
+                double fwhm = 2 * Math.Sqrt(2 * this.snr[xbin] / d2);
                 // add the peak if it has a similar FWHM to the kernel's FWHM
                 if (this.fwhm_tol_min * fwhm0 <= fwhm && fwhm <= this.fwhm_tol_max * fwhm0)
                 {

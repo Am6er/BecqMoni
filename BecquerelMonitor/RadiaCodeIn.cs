@@ -165,15 +165,25 @@ namespace BecquerelMonitor
             }
         }
 
-        private void doDiscovery()
+        private async void doDiscovery()
         {
+            await TestBT();
             Trace.WriteLine("Run discovery, to awaiken device");
             if (watcher == null) watcher = new BluetoothLEAdvertisementWatcher();
             watcher.ScanningMode = BluetoothLEScanningMode.Active;
             watcher.Received += Watcher_Recived;
-            watcher.Start();
-            Thread.Sleep(5000);
-            watcher.Stop();
+            try
+            {
+                watcher.Start();
+                Thread.Sleep(5000);
+            }
+            catch (Exception ex) {
+                MessageBox.Show($"{ex.Message}: {ex.StackTrace}", "Error doing discovery", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                if (PortFailure != null) { PortFailure(this, null); }
+            } finally
+            {
+                watcher.Stop();
+            }
         }
 
         private void Watcher_Recived(BluetoothLEAdvertisementWatcher sender, BluetoothLEAdvertisementReceivedEventArgs args)
@@ -379,14 +389,13 @@ namespace BecquerelMonitor
             get { return this.guid; }
         }
 
-        public async void setDeviceSerial(string devSerial, string addrBle)
+        public void setDeviceSerial(string devSerial, string addrBle)
         {
             if (addrBle != null)
             {
                 this.deviceserial = devSerial;
                 this.addressble = addrBle;
                 this.device_serial_changed = true;
-                await TestBT();
             } else
             {
                 sendTroubleShoot("Address BLE is empty, nothing to test");
