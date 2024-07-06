@@ -46,18 +46,6 @@ namespace BecquerelMonitor
             FWHMPeakDetector.PeakFinder finder = PeakFinder(energySpectrum, FWHMPeakDetectionMethodConfig);
 
             peaks = CollectPeaks(finder, energySpectrum, FWHMPeakDetectionMethodConfig.Tolerance, resultData.DetectedPeaks, sa);
-
-            /*
-            energySpectrum = sa.SubtractPeaks(peaks, energySpectrum);
-            finder = PeakFinder(energySpectrum, FWHMPeakDetectionMethodConfig);
-            List<Peak> peaks2 = CollectPeaks(finder, energySpectrum, FWHMPeakDetectionMethodConfig.Tolerance, peaks, sa);
-            peaks.AddRange(peaks2);
-
-            energySpectrum = sa.SubtractPeaks(peaks2, energySpectrum);
-            finder = PeakFinder(energySpectrum, FWHMPeakDetectionMethodConfig);
-            List<Peak> peaks3 = CollectPeaks(finder, energySpectrum, FWHMPeakDetectionMethodConfig.Tolerance, peaks, sa);
-            peaks.AddRange(peaks3);
-            */
             
             resultData.DetectedPeaks = peaks;
 
@@ -99,7 +87,7 @@ namespace BecquerelMonitor
                     centroid = sa.FindCentroid(energySpectrum, Convert.ToInt32(centroid), Convert.ToInt32(centroid - fwhm), Convert.ToInt32(centroid + fwhm));
 
                     NuclideDefinition bestNuclide = null;
-                    double minDelta = -1;
+                    double minDelta = Double.MaxValue;
                     Peak peak = new Peak();
                     peak.Channel = Convert.ToInt32(centroid);
                     peak.Energy = energySpectrum.EnergyCalibration.ChannelToEnergy(peak.Channel);
@@ -107,24 +95,12 @@ namespace BecquerelMonitor
                     peak.FWHM = fwhm;
                     foreach (NuclideDefinition nuclideDefinition in this.nuclideManager.NuclideDefinitions)
                     {
-                        if (!nuclideDefinition.Visible) continue;
+                        if (!nuclideDefinition.Visible || nuclideDefinition.Energy == 0.0) continue;
                         double delta = Math.Abs((peak.Energy - nuclideDefinition.Energy) / nuclideDefinition.Energy);
-                        //double tol = FWHMPeakDetectionMethodConfig.Tolerance;
-                        if (delta < tol / 100.0 && delta < tol)
+                        if (delta < tol / 100.0 && delta < minDelta)
                         {
-                            if (minDelta == -1)
-                            {
-                                bestNuclide = nuclideDefinition;
-                                minDelta = delta;
-                            }
-                            else
-                            {
-                                if (delta < minDelta)
-                                {
-                                    bestNuclide = nuclideDefinition;
-                                    minDelta = delta;
-                                }
-                            }
+                            bestNuclide = nuclideDefinition;
+                            minDelta = delta;
                         }
                         peak.Nuclide = bestNuclide;
                     }
@@ -133,7 +109,6 @@ namespace BecquerelMonitor
                         peaks.Add(peak);
                         existPeaks.Add(peak);
                     }
-                    //energySpectrum = sa.SubtractPeak(peak, energySpectrum);
                 }
             }
             return peaks;
