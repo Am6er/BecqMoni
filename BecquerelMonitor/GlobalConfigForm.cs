@@ -85,6 +85,7 @@ namespace BecquerelMonitor
             this.numericUpDown14.Value = (decimal)globalConfig.ChartViewConfig.HorizontalScale;
             this.comboBox11.SelectedIndex = (int)globalConfig.ChartViewConfig.MagnificationReference;
             this.autoSaveDefaultPolicyCheckBox.Checked = globalConfig.AutosaveDefaultPolicy;
+            this.importSpectrumWithEmptyConfigCheckBox.Checked = globalConfig.ImportSpectrumWithEmptyConfig;
             this.confidenceLevelcomboBox.SelectedIndex = ConfidenceLevel.GetSingleSideLevelIndex(globalConfig.ChartViewConfig.ConfidenceLevel);
             EasyControlConfig easyControlConfig = globalConfig.EasyControlConfig;
             bool flag = false;
@@ -246,7 +247,9 @@ namespace BecquerelMonitor
             globalConfig.DoSaveRawPulseData = this.checkBox1.Checked;
             globalConfig.AutosavePeriod = (int)this.numericUpDown10.Value;
             globalConfig.AutosaveDefaultPolicy = this.autoSaveDefaultPolicyCheckBox.Checked;
+            globalConfig.ImportSpectrumWithEmptyConfig = this.importSpectrumWithEmptyConfigCheckBox.Checked;
             globalConfig.ChartViewConfig.HorizontalScale = (double)this.numericUpDown14.Value;
+
         }
 
         // Token: 0x06000AC7 RID: 2759 RVA: 0x00041060 File Offset: 0x0003F260

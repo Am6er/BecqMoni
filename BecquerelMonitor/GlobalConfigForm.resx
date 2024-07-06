@@ -5778,4 +5778,10 @@
   <data name="&gt;&gt;confidenceLevelcomboBox.ZOrder" xml:space="preserve">
     <value>1</value>
   </data>
+  <data name="miscSettingsGroupBox.Text" xml:space="preserve">
+    <value>Misc</value>
+  </data>
+  <data name="importSpectrumWithEmptyConfigCheckBox.Text" xml:space="preserve">
+    <value>Set empty configuration for imported spectrums</value>
+  </data>
 </root>
