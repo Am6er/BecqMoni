@@ -2952,4 +2952,10 @@
   <data name="confidenceLevelLabel.Text" xml:space="preserve">
     <value>Стат. лимиты, доверит. интервал:</value>
   </data>
+  <data name="miscSettingsGroupBox.Text" xml:space="preserve">
+    <value>Прочее</value>
+  </data>
+  <data name="importSpectrumWithEmptyConfigCheckBox.Text" xml:space="preserve">
+    <value>Устанавливать пустую конфигурацию импортируемым спектрам</value>
+  </data>
 </root>

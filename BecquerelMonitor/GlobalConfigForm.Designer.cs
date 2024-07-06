@@ -225,6 +225,8 @@
             this.autoSaveDefaultPolicyCheckBox = new System.Windows.Forms.CheckBox();
 			this.confidenceLevelcomboBox = new System.Windows.Forms.ComboBox();
 			this.confidenceLevelLabel = new System.Windows.Forms.Label();
+			this.miscSettingsGroupBox = new global::System.Windows.Forms.GroupBox();
+			this.importSpectrumWithEmptyConfigCheckBox = new global::System.Windows.Forms.CheckBox();
             this.tabControl1.SuspendLayout();
 			this.tabPage1.SuspendLayout();
 			this.groupBox2.SuspendLayout();
@@ -246,6 +248,7 @@
 			this.tabPage2.SuspendLayout();
 			this.groupBox6.SuspendLayout();
 			this.groupBox5.SuspendLayout();
+			this.miscSettingsGroupBox.SuspendLayout();
 			((global::System.ComponentModel.ISupportInitialize)this.numericUpDown5).BeginInit();
 			((global::System.ComponentModel.ISupportInitialize)this.numericUpDown4).BeginInit();
 			base.SuspendLayout();
@@ -1049,6 +1052,7 @@
 			this.tabPage2.BackColor = global::System.Drawing.SystemColors.Control;
 			this.tabPage2.Controls.Add(this.groupBox6);
 			this.tabPage2.Controls.Add(this.groupBox5);
+			this.tabPage2.Controls.Add(this.miscSettingsGroupBox);
 			this.tabPage2.Name = "tabPage2";
 			resources.ApplyResources(this.groupBox6, "groupBox6");
 			this.groupBox6.Controls.Add(this.checkBox1);
@@ -1059,6 +1063,21 @@
             this.groupBox6.Controls.Add(this.autoSaveDefaultPolicyCheckBox);
             this.groupBox6.Name = "groupBox6";
 			this.groupBox6.TabStop = false;
+
+            // ------------ misc settings -----------------
+
+			resources.ApplyResources(this.importSpectrumWithEmptyConfigCheckBox, "importSpectrumWithEmptyConfigCheckBox");
+			this.importSpectrumWithEmptyConfigCheckBox.Name = "importSpectrumWithEmptyConfigCheckBox";
+			this.importSpectrumWithEmptyConfigCheckBox.Location = new System.Drawing.Point(21, 17);
+			this.importSpectrumWithEmptyConfigCheckBox.Size = new System.Drawing.Size(500, 16);
+
+            resources.ApplyResources(this.miscSettingsGroupBox, "miscSettingsGroupBox");
+            this.miscSettingsGroupBox.Name = "miscSettingsGroupBox";
+			this.miscSettingsGroupBox.Location = new System.Drawing.Point(6, 400);
+			this.miscSettingsGroupBox.Size = new System.Drawing.Size(664, 150);
+			this.miscSettingsGroupBox.Controls.Add(this.importSpectrumWithEmptyConfigCheckBox);
+            // ------------ end misc settings --------------
+
 			resources.ApplyResources(this.groupBox5, "groupBox5");
 			this.groupBox5.Controls.Add(this.checkBox2);
 			this.groupBox5.Controls.Add(this.comboBox14);
@@ -1193,6 +1212,8 @@
 			this.groupBox6.PerformLayout();
 			this.groupBox5.ResumeLayout(false);
 			this.groupBox5.PerformLayout();
+			this.miscSettingsGroupBox.ResumeLayout();
+			this.miscSettingsGroupBox.PerformLayout();
 			((global::System.ComponentModel.ISupportInitialize)this.numericUpDown5).EndInit();
 			((global::System.ComponentModel.ISupportInitialize)this.numericUpDown4).EndInit();
 			base.ResumeLayout(false);
@@ -1802,5 +1823,7 @@
 		global::System.Windows.Forms.CheckBox autoSaveDefaultPolicyCheckBox;
         global::System.Windows.Forms.ComboBox confidenceLevelcomboBox;
         global::System.Windows.Forms.Label confidenceLevelLabel;
+        global::System.Windows.Forms.GroupBox miscSettingsGroupBox;
+        global::System.Windows.Forms.CheckBox importSpectrumWithEmptyConfigCheckBox;
     }
 }
