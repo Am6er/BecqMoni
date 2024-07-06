@@ -1560,4 +1560,25 @@
   <data name="clearEffROI.Text" xml:space="preserve">
     <value>Очистить</value>
   </data>
+  <data name="labelDREstimateTitle.Text" xml:space="preserve">
+    <value>Экспериментально: оценка кривой мощности дозы по LSRM модели и спектру K40</value>
+  </data>
+  <data name="buttonEstimateDRConf.Text" xml:space="preserve">
+    <value>Рассчитать конфигурацию</value>
+  </data>
+	<data name="labelK40ResNote.Text" xml:space="preserve">
+    <value>%, разрешение на линии 1460 кэВ</value>
+  </data>
+	<data name="labelEffNote.Text" xml:space="preserve">
+    <value>*точечный источник в 20 см от геом. центра детектора (LSRM effcalc, 40 кэВ - 3 МэВ)</value>
+  </data>
+	<data name="buttonLoadEff.Text" xml:space="preserve">
+    <value>Загрузить файл эфф.*</value>
+  </data>
+	<data name="labelSpectrumNote.Text" xml:space="preserve">
+    <value>*обязательно с фоном</value>
+  </data>
+	<data name="buttonLoadK40Spectrum.Text" xml:space="preserve">
+    <value>Загрузить файл спектра K40*</value>
+  </data>
 </root>

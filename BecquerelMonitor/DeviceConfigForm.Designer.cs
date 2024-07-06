@@ -685,12 +685,12 @@ namespace BecquerelMonitor
             // 
             // labelDREstimateTitle
             // 
+			resources.ApplyResources(this.labelDREstimateTitle, "labelDREstimateTitle");
             this.labelDREstimateTitle.AutoSize = true;
             this.labelDREstimateTitle.Location = new System.Drawing.Point(18, 384);
             this.labelDREstimateTitle.Name = "labelDREstimateTitle";
             this.labelDREstimateTitle.Size = new System.Drawing.Size(415, 13);
             this.labelDREstimateTitle.TabIndex = 30;
-            this.labelDREstimateTitle.Text = "Experimental: predict doserate curve based on LSRM model and K40 sample spectrum";
             // 
             // textBoxEffFile
             // 
@@ -712,23 +712,23 @@ namespace BecquerelMonitor
             // 
             // buttonEstimateDRConf
             // 
+			resources.ApplyResources(this.buttonEstimateDRConf, "buttonEstimateDRConf");
             this.buttonEstimateDRConf.Enabled = false;
             this.buttonEstimateDRConf.Location = new System.Drawing.Point(20, 512);
             this.buttonEstimateDRConf.Name = "buttonEstimateDRConf";
             this.buttonEstimateDRConf.Size = new System.Drawing.Size(169, 23);
             this.buttonEstimateDRConf.TabIndex = 27;
-            this.buttonEstimateDRConf.Text = "Estimate Dose Rate Config";
             this.buttonEstimateDRConf.UseVisualStyleBackColor = true;
             this.buttonEstimateDRConf.Click += new System.EventHandler(this.buttonEstimateDRConf_Click);
             // 
             // labelK40ResNote
             // 
+			resources.ApplyResources(this.labelK40ResNote, "labelK40ResNote");
             this.labelK40ResNote.AutoSize = true;
             this.labelK40ResNote.Location = new System.Drawing.Point(65, 488);
             this.labelK40ResNote.Name = "labelK40ResNote";
             this.labelK40ResNote.Size = new System.Drawing.Size(124, 13);
             this.labelK40ResNote.TabIndex = 26;
-            this.labelK40ResNote.Text = "% resolution at 1460 keV";
             // 
             // upDownK40Res
             // 
@@ -750,39 +750,39 @@ namespace BecquerelMonitor
             // 
             // labelEffNote
             // 
+			resources.ApplyResources(this.labelEffNote, "labelEffNote");
             this.labelEffNote.AutoSize = true;
             this.labelEffNote.Location = new System.Drawing.Point(17, 470);
             this.labelEffNote.Name = "labelEffNote";
             this.labelEffNote.Size = new System.Drawing.Size(378, 13);
             this.labelEffNote.TabIndex = 24;
-            this.labelEffNote.Text = "*point source 20 cm away from detector center (LSRM effcalc, 40 keV - 3MeV)";
             // 
             // buttonLoadEff
             // 
+			resources.ApplyResources(this.buttonLoadEff, "buttonLoadEff");
             this.buttonLoadEff.Location = new System.Drawing.Point(20, 444);
             this.buttonLoadEff.Name = "buttonLoadEff";
             this.buttonLoadEff.Size = new System.Drawing.Size(169, 23);
             this.buttonLoadEff.TabIndex = 23;
-            this.buttonLoadEff.Text = "Load Efficiency Data*";
             this.buttonLoadEff.UseVisualStyleBackColor = true;
             this.buttonLoadEff.Click += new System.EventHandler(this.buttonLoadEff_Click);
             // 
             // labelSpectrumNote
             // 
+			resources.ApplyResources(this.labelSpectrumNote, "labelSpectrumNote");
             this.labelSpectrumNote.AutoSize = true;
             this.labelSpectrumNote.Location = new System.Drawing.Point(17, 428);
             this.labelSpectrumNote.Name = "labelSpectrumNote";
             this.labelSpectrumNote.Size = new System.Drawing.Size(131, 13);
             this.labelSpectrumNote.TabIndex = 22;
-            this.labelSpectrumNote.Text = "*must contain background";
             // 
             // buttonLoadK40Spectrum
             // 
+			resources.ApplyResources(this.buttonLoadK40Spectrum, "buttonLoadK40Spectrum");
             this.buttonLoadK40Spectrum.Location = new System.Drawing.Point(20, 402);
             this.buttonLoadK40Spectrum.Name = "buttonLoadK40Spectrum";
             this.buttonLoadK40Spectrum.Size = new System.Drawing.Size(170, 23);
             this.buttonLoadK40Spectrum.TabIndex = 21;
-            this.buttonLoadK40Spectrum.Text = "Load K40 Spectrum*";
             this.buttonLoadK40Spectrum.UseVisualStyleBackColor = true;
             this.buttonLoadK40Spectrum.Click += new System.EventHandler(this.buttonLoadK40Spectrum_Click);
 
