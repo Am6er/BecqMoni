@@ -477,15 +477,19 @@ namespace BecquerelMonitor
                     {
                         NumOfChannels = streamReader.ReadLine();
                     }
-                    if (doc.ActiveResultData.EnergySpectrum.NumberOfChannels != Convert.ToInt32(NumOfChannels))
-                    {
-                        MessageBox.Show(String.Format(Resources.ERRImportAtomSpectra,
-                            doc.ActiveResultData.EnergySpectrum.NumberOfChannels,
-                            NumOfChannels), Resources.Warning, MessageBoxButtons.OK, MessageBoxIcon.Warning);
 
-                        doc.ActiveResultData.EnergySpectrum = new EnergySpectrum(1.0, Convert.ToInt32(NumOfChannels));
-                        doc.ActiveResultData.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
-                        doc.ActiveResultData.DeviceConfig = new DeviceConfigInfo();
+                    bool importWithEmtyConfig = GlobalConfigManager.GetInstance().GlobalConfig.ImportSpectrumWithEmptyConfig;
+                    bool channelMismatch = doc.ActiveResultData.EnergySpectrum.NumberOfChannels != Convert.ToInt32(NumOfChannels);
+                    if (importWithEmtyConfig || channelMismatch)
+                    {
+                        if (!importWithEmtyConfig)
+                        {
+                            MessageBox.Show(String.Format(Resources.ERRImportAtomSpectra,
+                                doc.ActiveResultData.EnergySpectrum.NumberOfChannels,
+                                NumOfChannels), Resources.Warning, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        }
+
+                        this.ResetSpectrumConfig(doc.ActiveResultData, Convert.ToInt32(NumOfChannels));
                     }
                 }
                 if (!this.CheckDocument(doc.ResultDataFile))
@@ -496,7 +500,8 @@ namespace BecquerelMonitor
                     this.CheckDocument(doc.ResultDataFile, doCorrections: true);
                     doc.Dirty = true;
                 }
-            } catch (Exception ex)
+            } 
+            catch (Exception ex)
             {
                 MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message, ex.StackTrace));
                 return;
@@ -608,8 +613,12 @@ namespace BecquerelMonitor
 
             EnergySpectrum energySpectrum = doc.ActiveResultData.EnergySpectrum;
             energySpectrum.Initialize();
-            ResultDataStatus resultDataStatus = doc.ActiveResultData.ResultDataStatus;
-            SampleInfoData info = doc.ActiveResultData.SampleInfo;
+
+            bool importWithEmtyConfig = GlobalConfigManager.GetInstance().GlobalConfig.ImportSpectrumWithEmptyConfig;
+            if (importWithEmtyConfig)
+            {
+                this.ResetSpectrumConfig(doc.ActiveResultData, 1024);
+            }
 
             try
             {
@@ -1024,6 +1033,13 @@ namespace BecquerelMonitor
             {
                 MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, fileName, ex.Message));
             }
+            
+            bool importWithEmtyConfig = GlobalConfigManager.GetInstance().GlobalConfig.ImportSpectrumWithEmptyConfig;
+            if (importWithEmtyConfig)
+            {
+                this.ResetSpectrumConfig(doc.ActiveResultData, list.Count);
+            }
+
             EnergySpectrum energySpectrum = doc.ActiveResultData.EnergySpectrum;
             energySpectrum.Initialize();
             int num3 = 0;
@@ -1041,6 +1057,18 @@ namespace BecquerelMonitor
             ResultDataStatus resultDataStatus = doc.ActiveResultData.ResultDataStatus;
             resultDataStatus.TotalTime = TimeSpan.FromSeconds((double)presetTime);
             resultDataStatus.ElapsedTime = TimeSpan.FromSeconds((double)presetTime);
+        }
+
+        private void ResetSpectrumConfig(ResultData data, int numberOfChannels)
+        {
+            data.EnergySpectrum = new EnergySpectrum(1.0, numberOfChannels);
+            data.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
+            data.BackgroundEnergySpectrum = null;
+            data.BackgroundSpectrumPathname = null;
+            data.BackgroundSpectrumFile = null;
+            data.ROIConfig = null;
+            data.ROIConfigReference = null;
+            data.DeviceConfig = new DeviceConfigInfo();
         }
 
         // Token: 0x040000B9 RID: 185

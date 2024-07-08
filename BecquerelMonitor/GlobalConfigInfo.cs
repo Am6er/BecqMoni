@@ -375,6 +375,18 @@ namespace BecquerelMonitor
                 this.autosavedefaultpolicy = value;
             }
         }
+        
+        public bool ImportSpectrumWithEmptyConfig
+        {
+            get
+            {
+                return this.importSpectrumWithEmptyConfig;
+            }
+            set
+            {
+                this.importSpectrumWithEmptyConfig = value;
+            }
+        }
 
         // Token: 0x040008AF RID: 2223
         int mainFormTop = 100;
@@ -431,6 +443,8 @@ namespace BecquerelMonitor
         int autosaveperiod = 15;
 
         bool autosavedefaultpolicy = false;
+
+        bool importSpectrumWithEmptyConfig = false;
 
         // Token: 0x040008BD RID: 2237
         ResultTranslation resultTranslation = ResultTranslation.Becquerels;
