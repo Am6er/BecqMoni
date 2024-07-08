@@ -2229,8 +2229,8 @@ namespace BecquerelMonitor
             double regionEfficiency = efficiency.Interpolate(energyRef);
             EnergySpectrum substracted = new SpectrumAriphmetics(fgSpectrum).Substract(bgSpectrum);
 
-            int regionStartIndex = Convert.ToInt32(fgSpectrum.EnergyCalibration.EnergyToChannel(regionStartEnergy));
-            int regionEndIndex = Convert.ToInt32(fgSpectrum.EnergyCalibration.EnergyToChannel(regionEndEnergy));
+            int regionStartIndex = Convert.ToInt32(fgSpectrum.EnergyCalibration.EnergyToChannel(regionStartEnergy, maxChannels: fgSpectrum.NumberOfChannels));
+            int regionEndIndex = Convert.ToInt32(fgSpectrum.EnergyCalibration.EnergyToChannel(regionEndEnergy, maxChannels: fgSpectrum.NumberOfChannels));
             double regionCps = 0;
             for (int i = regionStartIndex; i < regionEndIndex; i++)
             {
@@ -2257,8 +2257,8 @@ namespace BecquerelMonitor
             IInterpolation muCurve = Interpolate.CubicSplineMonotone(energies, muValues);
             IInterpolation RToSvCurve = Interpolate.CubicSplineMonotone(energies, RToSv);
             double effReference = efficiency.Interpolate(energyReference);
-            int doseRateMinChannel = Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(energies[0]));
-            int doseRateMaxChannel = Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(energies[energies.Length - 1]));
+            int doseRateMinChannel = Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(energies[0], maxChannels: spectrum.NumberOfChannels));
+            int doseRateMaxChannel = Math.Min(Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(energies[energies.Length - 1], maxChannels: spectrum.NumberOfChannels)), spectrum.NumberOfChannels - 1);
             for (int i = doseRateMinChannel; i <= doseRateMaxChannel; i++)
             {
                 double channelEnergy = spectrum.EnergyCalibration.ChannelToEnergy(i);
