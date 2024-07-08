@@ -3048,4 +3048,7 @@
   <data name="buttonLoadK40Spectrum.Text" xml:space="preserve">
     <value>Load K40 Spectrum*</value>
   </data>
+  <data name="buttonClearDoseRate.Text" xml:space="preserve">
+    <value>Clear all</value>
+  </data>
 </root>
