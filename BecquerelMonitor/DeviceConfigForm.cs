@@ -2293,5 +2293,12 @@ namespace BecquerelMonitor
 
             return doseRateCalibrationPoints;
         }
+
+        private void buttonClearDoseRate_Click(object sender, EventArgs e)
+        {
+            tableModel4.Rows.Clear();
+            this.SetActiveDeviceConfigDirty();
+            this.EvaluateButtonEstimateDRState();
+        }
     }
 }

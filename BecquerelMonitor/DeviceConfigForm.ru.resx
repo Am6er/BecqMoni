@@ -1581,4 +1581,7 @@
 	<data name="buttonLoadK40Spectrum.Text" xml:space="preserve">
     <value>Загрузить файл спектра K40*</value>
   </data>
+  <data name="buttonClearDoseRate.Text" xml:space="preserve">
+    <value>Очистить все</value>
+  </data>
 </root>
