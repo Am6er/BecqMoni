@@ -145,6 +145,19 @@ namespace BecquerelMonitor
 			this.effROIText = new global::System.Windows.Forms.Label();
 			this.selectEffROI = new global::System.Windows.Forms.ComboBox();
 			this.clearEffROI = new global::System.Windows.Forms.Button();
+
+			// dose rate config calculation
+			this.buttonLoadK40Spectrum = new System.Windows.Forms.Button();
+			this.labelSpectrumNote = new System.Windows.Forms.Label();
+			this.labelEffNote = new System.Windows.Forms.Label();
+			this.buttonLoadEff = new System.Windows.Forms.Button();
+			this.buttonEstimateDRConf = new System.Windows.Forms.Button();
+			this.labelK40ResNote = new System.Windows.Forms.Label();
+			this.upDownK40Res = new System.Windows.Forms.NumericUpDown();
+			this.textBoxEffFile = new System.Windows.Forms.TextBox();
+			this.textBoxK40File = new System.Windows.Forms.TextBox();
+			this.labelDREstimateTitle = new System.Windows.Forms.Label();
+
 			this.tabControl1.SuspendLayout();
 			this.tabPage1.SuspendLayout();
 			this.tabPage2.SuspendLayout();
@@ -533,13 +546,14 @@ namespace BecquerelMonitor
             this.numberColumn7.Minimum = 0;
             this.numberColumn7.Maximum = 100000;
             this.numberColumn7.Sortable = false;
+            this.numberColumn7.Width = 60;
             this.numberColumn7.Alignment = global::XPTable.Models.ColumnAlignment.Center;
             resources.ApplyResources(this.numberColumn8, "numberColumn8");
             this.numberColumn8.IsTextTrimmed = false;
             this.numberColumn8.Minimum = 0;
             this.numberColumn8.Maximum = 100000;
             this.numberColumn8.Sortable = false;
-			this.numberColumn8.Width = 140;
+			this.numberColumn8.Width = 160;
             this.numberColumn8.Alignment = global::XPTable.Models.ColumnAlignment.Center;
 
             resources.ApplyResources(this.button15, "button15");
@@ -667,6 +681,123 @@ namespace BecquerelMonitor
             //global::System.Windows.Forms.NumericUpDown numericUpDown12 = this.numericUpDown12;
             //global::System.Windows.Forms.NumericUpDown numericUpDown13 = this.numericUpDown13;
 
+            // --------- dose rate config calc -------------
+            // 
+            // labelDREstimateTitle
+            // 
+			resources.ApplyResources(this.labelDREstimateTitle, "labelDREstimateTitle");
+            this.labelDREstimateTitle.AutoSize = true;
+            this.labelDREstimateTitle.Location = new System.Drawing.Point(18, 384);
+            this.labelDREstimateTitle.Name = "labelDREstimateTitle";
+            this.labelDREstimateTitle.Size = new System.Drawing.Size(415, 13);
+            this.labelDREstimateTitle.TabIndex = 30;
+            // 
+            // textBoxEffFile
+            // 
+            this.textBoxEffFile.Location = new System.Drawing.Point(195, 446);
+            this.textBoxEffFile.Name = "textBoxEffFile";
+            this.textBoxEffFile.ReadOnly = true;
+            this.textBoxEffFile.Size = new System.Drawing.Size(260, 20);
+            this.textBoxEffFile.TabIndex = 29;
+            this.textBoxEffFile.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            // 
+            // textBoxK40File
+            // 
+            this.textBoxK40File.Location = new System.Drawing.Point(196, 404);
+            this.textBoxK40File.Name = "textBoxK40File";
+            this.textBoxK40File.ReadOnly = true;
+            this.textBoxK40File.Size = new System.Drawing.Size(259, 20);
+            this.textBoxK40File.TabIndex = 28;
+            this.textBoxK40File.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            // 
+            // buttonEstimateDRConf
+            // 
+			resources.ApplyResources(this.buttonEstimateDRConf, "buttonEstimateDRConf");
+            this.buttonEstimateDRConf.Enabled = false;
+            this.buttonEstimateDRConf.Location = new System.Drawing.Point(20, 512);
+            this.buttonEstimateDRConf.Name = "buttonEstimateDRConf";
+            this.buttonEstimateDRConf.Size = new System.Drawing.Size(169, 23);
+            this.buttonEstimateDRConf.TabIndex = 27;
+            this.buttonEstimateDRConf.UseVisualStyleBackColor = true;
+            this.buttonEstimateDRConf.Click += new System.EventHandler(this.buttonEstimateDRConf_Click);
+            // 
+            // labelK40ResNote
+            // 
+			resources.ApplyResources(this.labelK40ResNote, "labelK40ResNote");
+            this.labelK40ResNote.AutoSize = true;
+            this.labelK40ResNote.Location = new System.Drawing.Point(65, 488);
+            this.labelK40ResNote.Name = "labelK40ResNote";
+            this.labelK40ResNote.Size = new System.Drawing.Size(124, 13);
+            this.labelK40ResNote.TabIndex = 26;
+            // 
+            // upDownK40Res
+            // 
+            this.upDownK40Res.DecimalPlaces = 1;
+            this.upDownK40Res.Increment = new decimal(new int[] {
+                1,
+                0,
+                0,
+                65536});
+            this.upDownK40Res.Location = new System.Drawing.Point(20, 486);
+            this.upDownK40Res.Name = "upDownK40Res";
+            this.upDownK40Res.Size = new System.Drawing.Size(39, 20);
+            this.upDownK40Res.TabIndex = 25;
+            this.upDownK40Res.Value = new decimal(new int[] {
+                55,
+                0,
+                0,
+                65536});
+            // 
+            // labelEffNote
+            // 
+			resources.ApplyResources(this.labelEffNote, "labelEffNote");
+            this.labelEffNote.AutoSize = true;
+            this.labelEffNote.Location = new System.Drawing.Point(17, 470);
+            this.labelEffNote.Name = "labelEffNote";
+            this.labelEffNote.Size = new System.Drawing.Size(378, 13);
+            this.labelEffNote.TabIndex = 24;
+            // 
+            // buttonLoadEff
+            // 
+			resources.ApplyResources(this.buttonLoadEff, "buttonLoadEff");
+            this.buttonLoadEff.Location = new System.Drawing.Point(20, 444);
+            this.buttonLoadEff.Name = "buttonLoadEff";
+            this.buttonLoadEff.Size = new System.Drawing.Size(169, 23);
+            this.buttonLoadEff.TabIndex = 23;
+            this.buttonLoadEff.UseVisualStyleBackColor = true;
+            this.buttonLoadEff.Click += new System.EventHandler(this.buttonLoadEff_Click);
+            // 
+            // labelSpectrumNote
+            // 
+			resources.ApplyResources(this.labelSpectrumNote, "labelSpectrumNote");
+            this.labelSpectrumNote.AutoSize = true;
+            this.labelSpectrumNote.Location = new System.Drawing.Point(17, 428);
+            this.labelSpectrumNote.Name = "labelSpectrumNote";
+            this.labelSpectrumNote.Size = new System.Drawing.Size(131, 13);
+            this.labelSpectrumNote.TabIndex = 22;
+            // 
+            // buttonLoadK40Spectrum
+            // 
+			resources.ApplyResources(this.buttonLoadK40Spectrum, "buttonLoadK40Spectrum");
+            this.buttonLoadK40Spectrum.Location = new System.Drawing.Point(20, 402);
+            this.buttonLoadK40Spectrum.Name = "buttonLoadK40Spectrum";
+            this.buttonLoadK40Spectrum.Size = new System.Drawing.Size(170, 23);
+            this.buttonLoadK40Spectrum.TabIndex = 21;
+            this.buttonLoadK40Spectrum.UseVisualStyleBackColor = true;
+            this.buttonLoadK40Spectrum.Click += new System.EventHandler(this.buttonLoadK40Spectrum_Click);
+
+            this.tabPage7.Controls.Add(this.labelDREstimateTitle);
+            this.tabPage7.Controls.Add(this.textBoxEffFile);
+            this.tabPage7.Controls.Add(this.textBoxK40File);
+            this.tabPage7.Controls.Add(this.buttonEstimateDRConf);
+            this.tabPage7.Controls.Add(this.labelK40ResNote);
+            this.tabPage7.Controls.Add(this.upDownK40Res);
+            this.tabPage7.Controls.Add(this.labelEffNote);
+            this.tabPage7.Controls.Add(this.buttonLoadEff);
+            this.tabPage7.Controls.Add(this.labelSpectrumNote);
+            this.tabPage7.Controls.Add(this.buttonLoadK40Spectrum);
+
+			// --------- end dose rate config calc -------------
 
             resources.ApplyResources(this.label38, "label38");
 			this.label38.Name = "label38";
@@ -1108,5 +1239,17 @@ namespace BecquerelMonitor
 		global::System.Windows.Forms.Label effROIText;
 		global::System.Windows.Forms.Button clearEffROI;
 		global::System.Windows.Forms.ComboBox selectEffROI;
+
+		// dose rate calculation
+        private System.Windows.Forms.Button buttonLoadK40Spectrum;
+        private System.Windows.Forms.Label labelSpectrumNote;
+        private System.Windows.Forms.Label labelEffNote;
+        private System.Windows.Forms.Button buttonLoadEff;
+        private System.Windows.Forms.Button buttonEstimateDRConf;
+        private System.Windows.Forms.Label labelK40ResNote;
+        private System.Windows.Forms.NumericUpDown upDownK40Res;
+        private System.Windows.Forms.TextBox textBoxEffFile;
+        private System.Windows.Forms.TextBox textBoxK40File;
+        private System.Windows.Forms.Label labelDREstimateTitle;
     }
 }
