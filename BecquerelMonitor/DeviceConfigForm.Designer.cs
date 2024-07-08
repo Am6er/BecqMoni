@@ -37,6 +37,7 @@ namespace BecquerelMonitor
 			this.button14 = new global::System.Windows.Forms.Button();
             this.button15 = new global::System.Windows.Forms.Button();
             this.button16 = new global::System.Windows.Forms.Button();
+			this.buttonClearDoseRate = new global::System.Windows.Forms.Button();
             this.label18 = new global::System.Windows.Forms.Label();
 			this.tabControl1 = new global::System.Windows.Forms.TabControl();
 			this.tabPage1 = new global::System.Windows.Forms.TabPage();
@@ -504,6 +505,7 @@ namespace BecquerelMonitor
             this.groupBox3.Controls.Add(this.table4);
 			this.groupBox3.Controls.Add(this.button15);
             this.groupBox3.Controls.Add(this.button16);
+            this.groupBox3.Controls.Add(this.buttonClearDoseRate);
             this.groupBox3.Name = "groupBox3";
 			this.groupBox3.TabStop = false;
             resources.ApplyResources(this.table4, "table4");
@@ -565,6 +567,12 @@ namespace BecquerelMonitor
             this.button16.Name = "button16";
             this.button16.UseVisualStyleBackColor = true;
             this.button16.Click += new global::System.EventHandler(this.button16_Click);
+
+			resources.ApplyResources(this.buttonClearDoseRate, "buttonClearDoseRate");
+			this.buttonClearDoseRate.Name = "buttonClearDoseRate";
+			this.buttonClearDoseRate.Location = new System.Drawing.Point(325, 325);
+			this.buttonClearDoseRate.Size = new System.Drawing.Size(100, 23);
+			this.buttonClearDoseRate.Click += new global::System.EventHandler(this.buttonClearDoseRate_Click);
 
             resources.ApplyResources(this.label49, "label49");
 			this.label49.Name = "label49";
@@ -1251,5 +1259,6 @@ namespace BecquerelMonitor
         private System.Windows.Forms.TextBox textBoxEffFile;
         private System.Windows.Forms.TextBox textBoxK40File;
         private System.Windows.Forms.Label labelDREstimateTitle;
+        private System.Windows.Forms.Button buttonClearDoseRate;
     }
 }
