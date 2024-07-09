@@ -18,7 +18,7 @@ namespace BecquerelMonitor
             get
             {
                 int result;
-                if (!int.TryParse(this.integerTextBox1.Text, out result))
+                if (!int.TryParse(this.realTimeLimitTextBox.Text, out result))
                 {
                     return -1;
                 }
@@ -26,7 +26,7 @@ namespace BecquerelMonitor
             }
             set
             {
-                this.integerTextBox1.Text = value.ToString();
+                this.realTimeLimitTextBox.Text = value.ToString();
             }
         }
 
@@ -35,11 +35,11 @@ namespace BecquerelMonitor
         {
             this.InitializeComponent();
             this.mainForm = mainForm;
-            this.button1.Enabled = true;
-            this.button2.Enabled = false;
-            this.button5.Enabled = true;
-            this.button11.Text = Resources.Attach_BTN;
-            this.button11.Visible = false;
+            this.startBtn.Enabled = true;
+            this.stopBtn.Enabled = false;
+            this.reloadFromConfigBtn.Enabled = true;
+            this.attachBtn.Text = Resources.Attach_BTN;
+            this.attachBtn.Visible = false;
             this.UpdateDeviceConfigList();
             this.UpdateROIConfigList();
             this.deviceConfigManager.DeviceConfigListChanged += this.manager_DeviceConfigChanged;
@@ -72,24 +72,24 @@ namespace BecquerelMonitor
         // Token: 0x0600028D RID: 653 RVA: 0x0000B4D4 File Offset: 0x000096D4
         void UpdateDeviceConfigList()
         {
-            this.comboBox1.Items.Clear();
+            this.devConfigComboBox.Items.Clear();
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
             for (int i = 0; i < this.deviceConfigManager.DeviceConfigList.Count; i++)
             {
                 DeviceConfigInfo deviceConfigInfo = this.deviceConfigManager.DeviceConfigList[i];
-                this.comboBox1.Items.Add(deviceConfigInfo.Name);
+                this.devConfigComboBox.Items.Add(deviceConfigInfo.Name);
             }
         }
 
         // Token: 0x0600028E RID: 654 RVA: 0x0000B548 File Offset: 0x00009748
         public void UpdateROIConfigList()
         {
-            this.comboBox2.Items.Clear();
+            this.roiConfigComboBox.Items.Clear();
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
             for (int i = 0; i < this.roiConfigManager.ROIConfigList.Count; i++)
             {
                 ROIConfigData roiconfigData = this.roiConfigManager.ROIConfigList[i];
-                this.comboBox2.Items.Add(roiconfigData.Name);
+                this.roiConfigComboBox.Items.Add(roiconfigData.Name);
             }
         }
 
@@ -101,15 +101,15 @@ namespace BecquerelMonitor
 
         void button11_Click(object sender, EventArgs e)
         {
-            if (this.button11.Text == Resources.Attach_BTN)
+            if (this.attachBtn.Text == Resources.Attach_BTN)
             {
                 bool result = this.AttachToDevice();
                 if (!result) return;
-                this.button11.Text = Resources.Detach_BTN;
+                this.attachBtn.Text = Resources.Detach_BTN;
             } else
             {
                 this.DetachFromDevice();
-                this.button11.Text = Resources.Attach_BTN;
+                this.attachBtn.Text = Resources.Attach_BTN;
             }
             
         }
@@ -276,22 +276,22 @@ namespace BecquerelMonitor
             ResultData activeResultData = activeDocument.ActiveResultData;
             ResultDataStatus resultDataStatus = activeResultData.ResultDataStatus;
             this.formUpdating = true;
-            this.textBox10.Text = Path.GetFileName(activeDocument.Filename);
-            this.checkBox1.Checked = activeDocument.ActiveResultData.MeasurementController.SaveOnMeasurementEnd;
+            this.spectrumNameLbl.Text = Path.GetFileName(activeDocument.Filename);
+            this.saveWhenFinishedCheckBox.Checked = activeDocument.ActiveResultData.MeasurementController.SaveOnMeasurementEnd;
             bool flag = false;
             for (int i = 0; i < this.deviceConfigManager.DeviceConfigList.Count; i++)
             {
                 DeviceConfigInfo deviceConfigInfo = this.deviceConfigManager.DeviceConfigList[i];
                 if (activeResultData.DeviceConfig.Guid == deviceConfigInfo.Guid)
                 {
-                    this.comboBox1.SelectedIndex = i;
+                    this.devConfigComboBox.SelectedIndex = i;
                     flag = true;
                     break;
                 }
             }
             if (!flag)
             {
-                this.comboBox1.SelectedIndex = -1;
+                this.devConfigComboBox.SelectedIndex = -1;
             }
             flag = false;
             for (int j = 0; j < this.roiConfigManager.ROIConfigList.Count; j++)
@@ -299,40 +299,40 @@ namespace BecquerelMonitor
                 ROIConfigData roiconfigData = this.roiConfigManager.ROIConfigList[j];
                 if (activeResultData.ROIConfig != null && activeResultData.ROIConfig.Guid == roiconfigData.Guid)
                 {
-                    this.comboBox2.SelectedIndex = j;
+                    this.roiConfigComboBox.SelectedIndex = j;
                     flag = true;
                     break;
                 }
             }
             if (!flag)
             {
-                this.comboBox2.SelectedIndex = -1;
+                this.roiConfigComboBox.SelectedIndex = -1;
             }
             this.textBox1.Text = Path.GetFileName(activeResultData.BackgroundSpectrumFile);
-            this.integerTextBox1.Text = resultDataStatus.PresetTime.ToString();
+            this.realTimeLimitTextBox.Text = resultDataStatus.PresetTime.ToString();
             if (resultDataStatus.Recording)
             {
-                this.button1.Enabled = false;
-                this.button2.Enabled = true;
-                this.comboBox1.Enabled = false;
-                this.button5.Enabled = false;
-                this.button11.Text = Resources.Detach_BTN;
+                this.startBtn.Enabled = false;
+                this.stopBtn.Enabled = true;
+                this.devConfigComboBox.Enabled = false;
+                this.reloadFromConfigBtn.Enabled = false;
+                this.attachBtn.Text = Resources.Detach_BTN;
             }
             else
             {
-                this.button1.Enabled = true;
-                this.button2.Enabled = false;
-                this.comboBox1.Enabled = true;
-                this.button5.Enabled = true;
-                this.button11.Text = Resources.Attach_BTN;
+                this.startBtn.Enabled = true;
+                this.stopBtn.Enabled = false;
+                this.devConfigComboBox.Enabled = true;
+                this.reloadFromConfigBtn.Enabled = true;
+                this.attachBtn.Text = Resources.Attach_BTN;
             }
             this.ShowRecordingStatus();
             if (this.mainForm.ActiveDocument.ActiveResultData.DeviceConfig.DeviceType == "AtomSpectraVCP")
             {
-                this.button11.Visible = true;
+                this.attachBtn.Visible = true;
             } else
             {
-                this.button11.Visible = false;
+                this.attachBtn.Visible = false;
             }
             this.formUpdating = false;
         }
@@ -355,10 +355,10 @@ namespace BecquerelMonitor
             ResultDataStatus resultDataStatus = activeResultData.ResultDataStatus;
             this.ShowMeasurementProgressBar();
             double totalSeconds = resultDataStatus.ElapsedTime.TotalSeconds;
-            this.textBox3.Text = activeResultData.EnergySpectrum.TotalPulseCount.ToString();
-            this.textBox5.Text = activeResultData.EnergySpectrum.ValidPulseCount.ToString();
+            this.totalCntTextBox.Text = activeResultData.EnergySpectrum.TotalPulseCount.ToString();
+            this.validCntTextBox.Text = activeResultData.EnergySpectrum.ValidPulseCount.ToString();
             int num = activeResultData.EnergySpectrum.TotalPulseCount - activeResultData.EnergySpectrum.ValidPulseCount;
-            this.textBox6.Text = num.ToString(); //invalid pulses
+            this.invalidCountsTextBox.Text = num.ToString(); //invalid pulses
             double num2 = 0.0;
             if (totalSeconds != 0.0)
             {
@@ -373,7 +373,7 @@ namespace BecquerelMonitor
                     //num2 = (double)(activeResultData.EnergySpectrum.TotalPulseCount) / totalSeconds;
                 }
             }
-            this.textBox4.Text = num2.ToString("f2");
+            this.countRateTextBox.Text = num2.ToString("f2");
         }
 
         // Token: 0x06000297 RID: 663 RVA: 0x0000BAD8 File Offset: 0x00009CD8
@@ -428,13 +428,13 @@ namespace BecquerelMonitor
                 return;
             }
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
-            if (activeDocument == null || this.comboBox1.SelectedIndex == -1)
+            if (activeDocument == null || this.devConfigComboBox.SelectedIndex == -1)
             {
                 return;
             }
             ResultData activeResultData = activeDocument.ActiveResultData;
             DeviceConfigInfo deviceConfig = activeResultData.DeviceConfig;
-            activeResultData.DeviceConfig = this.deviceConfigManager.DeviceConfigList[this.comboBox1.SelectedIndex];
+            activeResultData.DeviceConfig = this.deviceConfigManager.DeviceConfigList[this.devConfigComboBox.SelectedIndex];
             activeResultData.DeviceConfigReference = activeResultData.DeviceConfig.CreateReference();
             if (deviceConfig.Guid != activeResultData.DeviceConfig.Guid)
             {
@@ -456,13 +456,13 @@ namespace BecquerelMonitor
                 return;
             }
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
-            if (activeDocument == null || this.comboBox2.SelectedIndex == -1)
+            if (activeDocument == null || this.roiConfigComboBox.SelectedIndex == -1)
             {
                 return;
             }
             ResultData activeResultData = activeDocument.ActiveResultData;
             ROIConfigData roiconfig = activeResultData.ROIConfig;
-            activeResultData.ROIConfig = this.roiConfigManager.ROIConfigList[this.comboBox2.SelectedIndex];
+            activeResultData.ROIConfig = this.roiConfigManager.ROIConfigList[this.roiConfigComboBox.SelectedIndex];
             if (roiconfig == null || roiconfig.Guid != activeResultData.ROIConfig.Guid)
             {
                 activeDocument.Dirty = true;
@@ -549,7 +549,7 @@ namespace BecquerelMonitor
                 activeResultData.ROIConfig = null;
                 activeResultData.ROIConfigReference = null;
                 activeDocument.Dirty = true;
-                this.comboBox2.SelectedIndex = -1;
+                this.roiConfigComboBox.SelectedIndex = -1;
                 activeDocument.UpdateEnergySpectrum();
                 this.mainForm.ShowMeasurementResult(true);
             }
@@ -671,7 +671,7 @@ namespace BecquerelMonitor
             {
                 this.PresetTimeChanged();
                 e.SuppressKeyPress = true;
-                this.integerTextBox1.SelectAll();
+                this.realTimeLimitTextBox.SelectAll();
             }
         }
 
@@ -686,9 +686,9 @@ namespace BecquerelMonitor
             ResultData activeResultData = activeDocument.ActiveResultData;
             ResultDataStatus resultDataStatus = activeResultData.ResultDataStatus;
             int presetTime = 0;
-            if (!int.TryParse(this.integerTextBox1.Text, out presetTime))
+            if (!int.TryParse(this.realTimeLimitTextBox.Text, out presetTime))
             {
-                this.integerTextBox1.Text = "0";
+                this.realTimeLimitTextBox.Text = "0";
             }
             resultDataStatus.PresetTime = presetTime;
             activeResultData.PresetTime = presetTime;
@@ -718,21 +718,21 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            if (this.checkBox1.Checked && !activeDocument.IsNamed)
+            if (this.saveWhenFinishedCheckBox.Checked && !activeDocument.IsNamed)
             {
                 this.mainForm.SaveDocumentWithName();
                 this.formUpdating = true;
                 if (!activeDocument.IsNamed)
                 {
-                    this.checkBox1.Checked = false;
+                    this.saveWhenFinishedCheckBox.Checked = false;
                 }
                 else
                 {
-                    this.checkBox1.Checked = true;
+                    this.saveWhenFinishedCheckBox.Checked = true;
                 }
                 this.formUpdating = false;
             }
-            activeDocument.ActiveResultData.MeasurementController.SaveOnMeasurementEnd = this.checkBox1.Checked;
+            activeDocument.ActiveResultData.MeasurementController.SaveOnMeasurementEnd = this.saveWhenFinishedCheckBox.Checked;
         }
 
         // Token: 0x060002A8 RID: 680 RVA: 0x0000C42C File Offset: 0x0000A62C
@@ -743,7 +743,7 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            this.checkBox1.Checked = enable;
+            this.saveWhenFinishedCheckBox.Checked = enable;
             activeDocument.ActiveResultData.MeasurementController.SaveOnMeasurementEnd = enable;
         }
 
