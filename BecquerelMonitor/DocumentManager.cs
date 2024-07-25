@@ -284,7 +284,14 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message));
+                if (ex.InnerException != null && ex.InnerException.Message != null)
+                {
+                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message + " " + ex.InnerException.Message));
+                } else
+                {
+                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message));
+                }
+                
                 Cursor.Current = Cursors.Default;
                 return null;
             }
@@ -352,7 +359,14 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, pathname, ex.Message));
+                if (ex.InnerException != null && ex.InnerException.Message != null)
+                {
+                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, pathname, ex.Message + " " + ex.InnerException.Message));
+                }
+                else
+                {
+                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, pathname, ex.Message));
+                }
                 Cursor.Current = Cursors.Default;
                 return null;
             }
@@ -435,7 +449,14 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message));
+                if (ex.InnerException != null && ex.InnerException.Message != null)
+                {
+                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message + " " + ex.InnerException.Message));
+                }
+                else
+                {
+                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message));
+                }
                 return null;
             }
             docEnergySpectrum2.IsNamed = true;
@@ -503,7 +524,14 @@ namespace BecquerelMonitor
             } 
             catch (Exception ex)
             {
-                MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message, ex.StackTrace));
+                if (ex.InnerException != null && ex.InnerException.Message != null)
+                {
+                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message + " " + ex.InnerException.Message));
+                }
+                else
+                {
+                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message, ex.StackTrace));
+                }
                 return;
             }
             
@@ -602,7 +630,14 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message, ex.StackTrace));
+                if (ex.InnerException != null && ex.InnerException.Message != null)
+                {
+                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message + " " + ex.InnerException.Message));
+                }
+                else
+                {
+                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message, ex.StackTrace));
+                }
                 return;
             }
         }
@@ -1031,7 +1066,14 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, fileName, ex.Message));
+                if (ex.InnerException != null && ex.InnerException.Message != null)
+                {
+                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, fileName, ex.Message + " " + ex.InnerException.Message));
+                }
+                else
+                {
+                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, fileName, ex.Message));
+                }
             }
             
             bool importWithEmtyConfig = GlobalConfigManager.GetInstance().GlobalConfig.ImportSpectrumWithEmptyConfig;
