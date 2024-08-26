@@ -22,67 +22,61 @@
             
             this.label9 = new global::System.Windows.Forms.Label();
 			this.dateTimePicker2 = new global::System.Windows.Forms.DateTimePicker();
-			this.numericUpDown2 = new global::System.Windows.Forms.NumericUpDown();
-			this.numericUpDown1 = new global::System.Windows.Forms.NumericUpDown();
+			this.numericUpDownVolume = new global::System.Windows.Forms.NumericUpDown();
+			this.numericUpDownWeight = new global::System.Windows.Forms.NumericUpDown();
 			this.label8 = new global::System.Windows.Forms.Label();
 			this.label7 = new global::System.Windows.Forms.Label();
-			this.textBox3 = new global::System.Windows.Forms.TextBox();
-			this.textBox2 = new global::System.Windows.Forms.TextBox();
+			this.textBoxLocation = new global::System.Windows.Forms.TextBox();
+			this.textBoxName = new global::System.Windows.Forms.TextBox();
 			this.label6 = new global::System.Windows.Forms.Label();
 			this.label5 = new global::System.Windows.Forms.Label();
 			this.label4 = new global::System.Windows.Forms.Label();
 			this.label3 = new global::System.Windows.Forms.Label();
 			this.label2 = new global::System.Windows.Forms.Label();
 			this.label1 = new global::System.Windows.Forms.Label();
-			this.textBox1 = new global::System.Windows.Forms.TextBox();
-			this.dateTimePicker1 = new global::System.Windows.Forms.DateTimePicker();
-			((global::System.ComponentModel.ISupportInitialize)this.numericUpDown2).BeginInit();
-			((global::System.ComponentModel.ISupportInitialize)this.numericUpDown1).BeginInit();
+			this.textBoxNote = new global::System.Windows.Forms.TextBox();
+			this.dateTimePickerSampleTime = new global::System.Windows.Forms.DateTimePicker();
+			((global::System.ComponentModel.ISupportInitialize)this.numericUpDownVolume).BeginInit();
+			((global::System.ComponentModel.ISupportInitialize)this.numericUpDownWeight).BeginInit();
 			base.SuspendLayout();
 			resources.ApplyResources(this.label9, "label9");
 			this.label9.Name = "label9";
 			resources.ApplyResources(this.dateTimePicker2, "dateTimePicker2");
 			this.dateTimePicker2.Format = global::System.Windows.Forms.DateTimePickerFormat.Custom;
 			this.dateTimePicker2.Name = "dateTimePicker2";
-			this.dateTimePicker2.ValueChanged += new global::System.EventHandler(this.dateTimePicker2_ValueChanged);
-			this.numericUpDown2.DecimalPlaces = 3;
-			this.numericUpDown2.Increment = new decimal(new int[]
+			this.dateTimePicker2.ValueChanged += new global::System.EventHandler(this.dateTimePickerSampleTime_ValueChanged);
+			this.numericUpDownVolume.DecimalPlaces = 3;
+			this.numericUpDownVolume.Increment = new decimal(new int[]
 			{
 				1,
 				0,
 				0,
 				65536
 			});
-			resources.ApplyResources(this.numericUpDown2, "numericUpDown2");
-			this.numericUpDown2.Name = "numericUpDown2";
-			this.numericUpDown2.ValueChanged += new global::System.EventHandler(this.numericUpDown2_ValueChanged);
-			this.numericUpDown2.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.numericUpDown2_KeyDown);
-			this.numericUpDown1.DecimalPlaces = 3;
-			this.numericUpDown1.Increment = new decimal(new int[]
+			resources.ApplyResources(this.numericUpDownVolume, "numericUpDown2");
+			this.numericUpDownVolume.Name = "numericUpDown2";
+			this.numericUpDownVolume.ValueChanged += new global::System.EventHandler(this.numericUpDownVolume_ValueChanged);
+			this.numericUpDownWeight.DecimalPlaces = 3;
+			this.numericUpDownWeight.Increment = new decimal(new int[]
 			{
 				1,
 				0,
 				0,
 				65536
 			});
-			resources.ApplyResources(this.numericUpDown1, "numericUpDown1");
-			this.numericUpDown1.Name = "numericUpDown1";
-			this.numericUpDown1.ValueChanged += new global::System.EventHandler(this.numericUpDown1_ValueChanged);
-			this.numericUpDown1.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.numericUpDown1_KeyDown);
+			resources.ApplyResources(this.numericUpDownWeight, "numericUpDown1");
+			this.numericUpDownWeight.Name = "numericUpDown1";
+			this.numericUpDownWeight.ValueChanged += new global::System.EventHandler(this.numericUpDownWeight_ValueChanged);
 			resources.ApplyResources(this.label8, "label8");
 			this.label8.Name = "label8";
 			resources.ApplyResources(this.label7, "label7");
 			this.label7.Name = "label7";
-			resources.ApplyResources(this.textBox3, "textBox3");
-			this.textBox3.Name = "textBox3";
-			this.textBox3.TextChanged += new global::System.EventHandler(this.textBox3_TextChanged);
-			this.textBox3.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.textBox3_KeyDown);
-			this.textBox3.Validated += new global::System.EventHandler(this.textBox3_Validated);
-			resources.ApplyResources(this.textBox2, "textBox2");
-			this.textBox2.Name = "textBox2";
-			this.textBox2.TextChanged += new global::System.EventHandler(this.textBox2_TextChanged);
-			this.textBox2.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.textBox2_KeyDown);
-			this.textBox2.Validated += new global::System.EventHandler(this.textBox2_Validated);
+			resources.ApplyResources(this.textBoxLocation, "textBox3");
+			this.textBoxLocation.Name = "textBox3";
+			this.textBoxLocation.TextChanged += new global::System.EventHandler(this.textBoxLocation_Changed);
+			resources.ApplyResources(this.textBoxName, "textBox2");
+			this.textBoxName.Name = "textBox2";
+			this.textBoxName.TextChanged += new global::System.EventHandler(this.textBoxName_Changed);
 			resources.ApplyResources(this.label6, "label6");
 			this.label6.Name = "label6";
 			resources.ApplyResources(this.label5, "label5");
@@ -95,37 +89,34 @@
 			this.label2.Name = "label2";
 			resources.ApplyResources(this.label1, "label1");
 			this.label1.Name = "label1";
-			resources.ApplyResources(this.textBox1, "textBox1");
-			this.textBox1.Name = "textBox1";
-			this.textBox1.TextChanged += new global::System.EventHandler(this.textBox1_TextChanged);
-			this.textBox1.Validated += new global::System.EventHandler(this.textBox1_Validated);
-			resources.ApplyResources(this.dateTimePicker1, "dateTimePicker1");
-			this.dateTimePicker1.Format = global::System.Windows.Forms.DateTimePickerFormat.Custom;
-			this.dateTimePicker1.Name = "dateTimePicker1";
-			this.dateTimePicker1.ValueChanged += new global::System.EventHandler(this.dateTimePicker1_ValueChanged);
-			this.dateTimePicker1.Validated += new global::System.EventHandler(this.dateTimePicker1_Validated);
+			resources.ApplyResources(this.textBoxNote, "textBox1");
+			this.textBoxNote.Name = "textBox1";
+			this.textBoxNote.TextChanged += new global::System.EventHandler(this.textBoxNote_TextChanged);
+			resources.ApplyResources(this.dateTimePickerSampleTime, "dateTimePicker1");
+			this.dateTimePickerSampleTime.Format = global::System.Windows.Forms.DateTimePickerFormat.Custom;
+			this.dateTimePickerSampleTime.Name = "dateTimePicker1";
+			this.dateTimePickerSampleTime.ValueChanged += new global::System.EventHandler(this.dateTimePickerSampleTime_ValueChanged);
 			resources.ApplyResources(this, "$this");
 			base.Controls.Add(this.label9);
 			base.Controls.Add(this.dateTimePicker2);
-			base.Controls.Add(this.numericUpDown2);
-			base.Controls.Add(this.numericUpDown1);
+			base.Controls.Add(this.numericUpDownVolume);
+			base.Controls.Add(this.numericUpDownWeight);
 			base.Controls.Add(this.label8);
 			base.Controls.Add(this.label7);
-			base.Controls.Add(this.textBox3);
-			base.Controls.Add(this.textBox2);
+			base.Controls.Add(this.textBoxLocation);
+			base.Controls.Add(this.textBoxName);
 			base.Controls.Add(this.label6);
 			base.Controls.Add(this.label5);
 			base.Controls.Add(this.label4);
 			base.Controls.Add(this.label3);
 			base.Controls.Add(this.label2);
 			base.Controls.Add(this.label1);
-			base.Controls.Add(this.textBox1);
-			base.Controls.Add(this.dateTimePicker1);
+			base.Controls.Add(this.textBoxNote);
+			base.Controls.Add(this.dateTimePickerSampleTime);
 			base.HideOnClose = true;
 			base.Name = "DCSampleInfoView";
-			base.FormClosed += new global::System.Windows.Forms.FormClosedEventHandler(this.DCSampleInfoView_FormClosed);
-			((global::System.ComponentModel.ISupportInitialize)this.numericUpDown2).EndInit();
-			((global::System.ComponentModel.ISupportInitialize)this.numericUpDown1).EndInit();
+			((global::System.ComponentModel.ISupportInitialize)this.numericUpDownVolume).EndInit();
+			((global::System.ComponentModel.ISupportInitialize)this.numericUpDownWeight).EndInit();
 			base.ResumeLayout(false);
 			base.PerformLayout();
 		}
@@ -134,10 +125,10 @@
 		global::System.ComponentModel.IContainer components;
 
 		// Token: 0x0400051A RID: 1306
-		global::System.Windows.Forms.DateTimePicker dateTimePicker1;
+		global::System.Windows.Forms.DateTimePicker dateTimePickerSampleTime;
 
 		// Token: 0x0400051B RID: 1307
-		global::System.Windows.Forms.TextBox textBox1;
+		global::System.Windows.Forms.TextBox textBoxNote;
 
 		// Token: 0x0400051C RID: 1308
 		global::System.Windows.Forms.Label label1;
@@ -158,10 +149,10 @@
 		global::System.Windows.Forms.Label label6;
 
 		// Token: 0x04000522 RID: 1314
-		global::System.Windows.Forms.TextBox textBox2;
+		global::System.Windows.Forms.TextBox textBoxName;
 
 		// Token: 0x04000523 RID: 1315
-		global::System.Windows.Forms.TextBox textBox3;
+		global::System.Windows.Forms.TextBox textBoxLocation;
 
 		// Token: 0x04000524 RID: 1316
 		global::System.Windows.Forms.Label label7;
@@ -170,10 +161,10 @@
 		global::System.Windows.Forms.Label label8;
 
 		// Token: 0x04000526 RID: 1318
-		global::System.Windows.Forms.NumericUpDown numericUpDown1;
+		global::System.Windows.Forms.NumericUpDown numericUpDownWeight;
 
 		// Token: 0x04000527 RID: 1319
-		global::System.Windows.Forms.NumericUpDown numericUpDown2;
+		global::System.Windows.Forms.NumericUpDown numericUpDownVolume;
 
 		// Token: 0x04000528 RID: 1320
 		global::System.Windows.Forms.DateTimePicker dateTimePicker2;
