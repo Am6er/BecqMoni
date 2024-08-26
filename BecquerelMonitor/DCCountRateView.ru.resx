@@ -133,4 +133,7 @@
   <data name="secLbl.Text" xml:space="preserve">
     <value>сек</value>
   </data>
+  <data name="LossCountsRatioLabel.Text" xml:space="preserve">
+    <value>Потери счёта</value>
+  </data>
 </root>

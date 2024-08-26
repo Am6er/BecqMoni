@@ -123,7 +123,7 @@
   </data>
   <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
   <data name="timeConstantLbl.Location" type="System.Drawing.Point, System.Drawing">
-    <value>10, 53</value>
+    <value>10, 93</value>
   </data>
   <data name="timeConstantLbl.Size" type="System.Drawing.Size, System.Drawing">
     <value>75, 13</value>
@@ -144,7 +144,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;timeConstantLbl.ZOrder" xml:space="preserve">
-    <value>5</value>
+    <value>8</value>
   </data>
   <data name="countsRateLbl.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -171,7 +171,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;countsRateLbl.ZOrder" xml:space="preserve">
-    <value>4</value>
+    <value>7</value>
   </data>
   <data name="cpslabel.Font" type="System.Drawing.Font, System.Drawing">
     <value>Microsoft Sans Serif, 14.25pt, style=Bold</value>
@@ -228,13 +228,13 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;label4.ZOrder" xml:space="preserve">
-    <value>3</value>
+    <value>6</value>
   </data>
   <data name="secLbl.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
   <data name="secLbl.Location" type="System.Drawing.Point, System.Drawing">
-    <value>168, 54</value>
+    <value>168, 94</value>
   </data>
   <data name="secLbl.Size" type="System.Drawing.Size, System.Drawing">
     <value>24, 13</value>
@@ -255,7 +255,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;secLbl.ZOrder" xml:space="preserve">
-    <value>2</value>
+    <value>5</value>
   </data>
   <data name="panel1.Location" type="System.Drawing.Point, System.Drawing">
     <value>93, 9</value>
@@ -276,10 +276,10 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;panel1.ZOrder" xml:space="preserve">
-    <value>1</value>
+    <value>4</value>
   </data>
   <data name="windowControl.Location" type="System.Drawing.Point, System.Drawing">
-    <value>107, 50</value>
+    <value>107, 90</value>
   </data>
   <data name="windowControl.Size" type="System.Drawing.Size, System.Drawing">
     <value>54, 20</value>
@@ -301,6 +301,93 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;windowControl.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <data name="LossCountsRatioLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="LossCountsRatioLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>9, 62</value>
+  </data>
+  <data name="LossCountsRatioLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>93, 13</value>
+  </data>
+  <data name="LossCountsRatioLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>10</value>
+  </data>
+  <data name="LossCountsRatioLabel.Text" xml:space="preserve">
+    <value>Loss Counts Ratio</value>
+  </data>
+  <data name="&gt;&gt;LossCountsRatioLabel.Name" xml:space="preserve">
+    <value>LossCountsRatioLabel</value>
+  </data>
+  <data name="&gt;&gt;LossCountsRatioLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;LossCountsRatioLabel.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;LossCountsRatioLabel.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="LossCountsRatioValLbl.Font" type="System.Drawing.Font, System.Drawing">
+    <value>Microsoft Sans Serif, 14.25pt, style=Bold</value>
+  </data>
+  <data name="LossCountsRatioValLbl.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="LossCountsRatioValLbl.Location" type="System.Drawing.Point, System.Drawing">
+    <value>114, 54</value>
+  </data>
+  <data name="LossCountsRatioValLbl.Size" type="System.Drawing.Size, System.Drawing">
+    <value>94, 24</value>
+  </data>
+  <data name="LossCountsRatioValLbl.TabIndex" type="System.Int32, mscorlib">
+    <value>5</value>
+  </data>
+  <data name="LossCountsRatioValLbl.Text" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="LossCountsRatioValLbl.TextAlign" type="System.Drawing.ContentAlignment, System.Drawing">
+    <value>MiddleRight</value>
+  </data>
+  <data name="&gt;&gt;LossCountsRatioValLbl.Name" xml:space="preserve">
+    <value>LossCountsRatioValLbl</value>
+  </data>
+  <data name="&gt;&gt;LossCountsRatioValLbl.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;LossCountsRatioValLbl.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;LossCountsRatioValLbl.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="percentlbl.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="percentlbl.Location" type="System.Drawing.Point, System.Drawing">
+    <value>222, 61</value>
+  </data>
+  <data name="percentlbl.Size" type="System.Drawing.Size, System.Drawing">
+    <value>15, 13</value>
+  </data>
+  <data name="percentlbl.TabIndex" type="System.Int32, mscorlib">
+    <value>11</value>
+  </data>
+  <data name="percentlbl.Text" xml:space="preserve">
+    <value>%</value>
+  </data>
+  <data name="&gt;&gt;percentlbl.Name" xml:space="preserve">
+    <value>percentlbl</value>
+  </data>
+  <data name="&gt;&gt;percentlbl.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;percentlbl.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;percentlbl.ZOrder" xml:space="preserve">
     <value>0</value>
   </data>
   <metadata name="$this.Localizable" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
@@ -316,7 +403,7 @@
     <value>365, 90</value>
   </data>
   <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
-    <value>366, 90</value>
+    <value>366, 130</value>
   </data>
   <data name="$this.Font" type="System.Drawing.Font, System.Drawing">
     <value>Microsoft Sans Serif, 8pt</value>
@@ -331,6 +418,6 @@
     <value>DCCountRateView</value>
   </data>
   <data name="&gt;&gt;$this.Type" xml:space="preserve">
-    <value>BecquerelMonitor.ToolWindow, BecquerelMonitor, Version=2024.7.8.3, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.ToolWindow, BecquerelMonitor, Version=2024.7.25.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
 </root>

@@ -18,15 +18,10 @@ namespace BecquerelMonitor
         } 
 
         
-        public void ShowCountsRate(decimal value)
+        public void UpdateInfo(decimal Cps, int sEffRatio)
         {
-            if (value == 0)
-            {
-                this.cpslabel.Text = "0.00";
-                return;
-            }
-
-            this.cpslabel.Text = String.Format("{0:F2}", value);
+            this.LossCountsRatioValLbl.Text = sEffRatio.ToString();
+            this.cpslabel.Text = String.Format("{0:F2}", Cps);
         }
 
         GlobalConfigManager globalConfigManager = GlobalConfigManager.GetInstance();

@@ -30,6 +30,9 @@
             this.secLbl = new System.Windows.Forms.Label();
             this.panel1 = new System.Windows.Forms.Panel();
             this.windowControl = new System.Windows.Forms.NumericUpDown();
+            this.LossCountsRatioLabel = new System.Windows.Forms.Label();
+            this.LossCountsRatioValLbl = new System.Windows.Forms.Label();
+            this.percentlbl = new System.Windows.Forms.Label();
             this.panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.windowControl)).BeginInit();
             this.SuspendLayout();
@@ -88,9 +91,28 @@
             0,
             0});
             // 
+            // LossCountsRatioLabel
+            // 
+            resources.ApplyResources(this.LossCountsRatioLabel, "LossCountsRatioLabel");
+            this.LossCountsRatioLabel.Name = "LossCountsRatioLabel";
+            // 
+            // LossCountsRatioValLbl
+            // 
+            this.LossCountsRatioValLbl.BackColor = System.Drawing.SystemColors.ControlLight;
+            resources.ApplyResources(this.LossCountsRatioValLbl, "LossCountsRatioValLbl");
+            this.LossCountsRatioValLbl.Name = "LossCountsRatioValLbl";
+            // 
+            // percentlbl
+            // 
+            resources.ApplyResources(this.percentlbl, "percentlbl");
+            this.percentlbl.Name = "percentlbl";
+            // 
             // DCCountRateView
             // 
             resources.ApplyResources(this, "$this");
+            this.Controls.Add(this.percentlbl);
+            this.Controls.Add(this.LossCountsRatioValLbl);
+            this.Controls.Add(this.LossCountsRatioLabel);
             this.Controls.Add(this.windowControl);
             this.Controls.Add(this.panel1);
             this.Controls.Add(this.secLbl);
@@ -116,5 +138,8 @@
 		System.Windows.Forms.Label secLbl;
 		System.Windows.Forms.Panel panel1;
         private System.Windows.Forms.NumericUpDown windowControl;
+        private System.Windows.Forms.Label LossCountsRatioLabel;
+        private System.Windows.Forms.Label LossCountsRatioValLbl;
+        private System.Windows.Forms.Label percentlbl;
     }
 }

@@ -8,10 +8,11 @@ namespace BecquerelMonitor
 {
     public class CountRate
     {
-        public CountRate(int counts_, double elapsedtime_)
+        public CountRate(int counts_, int invalidcounts_, double elapsedtime_)
         {
             this.counts = counts_;
             this.elapsedtime = elapsedtime_;
+            this.invalidcounts = invalidcounts_;
         }
 
         public int Counts
@@ -38,7 +39,20 @@ namespace BecquerelMonitor
             }
         }
 
+        public int InvalidCounts
+        {
+            get
+            {
+                return this.invalidcounts;
+            }
+            set
+            {
+                this.invalidcounts = value;
+            }
+        }
+
         int counts;
         double elapsedtime;
+        int invalidcounts;
     }
 }
