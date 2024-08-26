@@ -598,7 +598,8 @@ namespace BecquerelMonitor
             {
                 decimal window = this.dcCountRateView.getWindow();
                 decimal cps = this.countsRateManager.GetCPS(this.activeDocument.ActiveResultData, window);
-                this.dcCountRateView.ShowCountsRate(cps);
+                int speceffratio = this.countsRateManager.GetSpecEffRatio(this.activeDocument.ActiveResultData, window);
+                this.dcCountRateView.UpdateInfo(cps, speceffratio);
             }
         }
 
