@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace BecquerelMonitor
+﻿namespace BecquerelMonitor
 {
     public class CountsRateManager
     {
@@ -96,6 +89,8 @@ namespace BecquerelMonitor
 
             double totaldelta = last_countRate.Counts - first_countRate.Counts;
             double invaliddelta = last_countRate.InvalidCounts - first_countRate.InvalidCounts;
+
+            if (totaldelta == 0.0) return 0;
 
             int result = (int)(100.0 * (invaliddelta / totaldelta));
             return result;
