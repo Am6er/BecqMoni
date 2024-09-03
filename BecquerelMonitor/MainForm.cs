@@ -1062,6 +1062,7 @@ namespace BecquerelMonitor
         // Token: 0x06000A6C RID: 2668 RVA: 0x0003DF68 File Offset: 0x0003C168
         void activeDocument_MeasurementTerminated(object sender, EventArgs e)
         {
+            this.RefreshAllView();
             this.dcControlPanel.ShowDocumentStatus();
         }
 
