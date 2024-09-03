@@ -145,7 +145,15 @@ namespace BecquerelMonitor
             }
             set
             {
-                this.backgroundSpectrumFile = string.Join("", value.Split(Path.GetInvalidFileNameChars()));
+                if (value != null)
+                {
+                    this.backgroundSpectrumFile = string.Join("", value.Split(Path.GetInvalidFileNameChars()));
+                }
+                else
+                {
+                    this.backgroundSpectrumFile = value;
+                }
+                
             }
         }
 
@@ -437,6 +445,25 @@ namespace BecquerelMonitor
             this.energySpectrum = new EnergySpectrum(old.EnergySpectrum);
             this.backgroundEnergySpectrum = new EnergySpectrum(old.BackgroundEnergySpectrum);
             this.pulseCollection = old.PulseCollection;
+        }
+
+        public ResultData Clone()
+        {
+            ResultData resultData = new ResultData();
+            resultData.SampleInfo = this.SampleInfo.Clone();
+            resultData.DeviceConfig = this.DeviceConfig;
+            resultData.DeviceConfigReference = this.DeviceConfigReference;
+            resultData.ROIConfigReference = this.ROIConfigReference;
+            resultData.ROIConfig = this.ROIConfig;
+            resultData.StartTime = this.StartTime;
+            resultData.EndTime = this.EndTime;
+            resultData.BackgroundEnergySpectrum = this.BackgroundEnergySpectrum.Clone();
+            resultData.BackgroundSpectrumFile = this.BackgroundSpectrumFile;
+            resultData.BackgroundSpectrumPathname = this.BackgroundSpectrumPathname;
+            resultData.EnergySpectrum = this.EnergySpectrum.Clone();
+            resultData.PulseCollection = this.PulseCollection.Clone();
+
+            return resultData;
         }
 
         // Token: 0x04000361 RID: 865
