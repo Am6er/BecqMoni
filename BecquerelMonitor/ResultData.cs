@@ -1,6 +1,7 @@
 ﻿using BecquerelMonitor.Utils;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Xml.Serialization;
 
 namespace BecquerelMonitor
@@ -144,7 +145,7 @@ namespace BecquerelMonitor
             }
             set
             {
-                this.backgroundSpectrumFile = value;
+                this.backgroundSpectrumFile = string.Join("", value.Split(Path.GetInvalidFileNameChars()));
             }
         }
 
