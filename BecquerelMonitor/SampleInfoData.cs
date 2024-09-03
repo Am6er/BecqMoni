@@ -95,6 +95,18 @@ namespace BecquerelMonitor
             }
         }
 
+        public SampleInfoData Clone()
+        {
+            SampleInfoData sampleInfoData = new SampleInfoData();
+            sampleInfoData.Name = this.Name;
+            sampleInfoData.Volume = this.Volume;
+            sampleInfoData.Note = this.Note;
+            sampleInfoData.Weight = this.Weight;
+            sampleInfoData.Time = this.Time;
+
+            return sampleInfoData;
+        }
+
         // Token: 0x04000026 RID: 38
         string name = "";
 

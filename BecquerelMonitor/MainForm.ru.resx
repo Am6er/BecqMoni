@@ -643,7 +643,7 @@
     <value>statusStrip1</value>
   </data>
   <data name="toolStripMenuItem1.Text" xml:space="preserve">
-    <value>&amp;Экспорт в файл</value>
+    <value>&amp;Экспорт спектра в файл</value>
   </data>
   <data name="toolStripMenuItem2.Text" xml:space="preserve">
     <value>Отчёт...</value>
@@ -776,5 +776,8 @@
   </data>
   <data name="NormalizeSpectrumStripMenuItem.Text" xml:space="preserve">
     <value>Нормализовать спектр по ROI</value>
+  </data>
+  <data name="exportBgToolStripMenuItem.Text" xml:space="preserve">
+    <value>Экспортировать спектр фона в файл</value>
   </data>
 </root>

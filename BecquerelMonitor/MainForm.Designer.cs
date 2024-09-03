@@ -72,7 +72,8 @@ namespace BecquerelMonitor
 			this.削除DToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.既存ファイルから追加FToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripMenuItem1 = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolStripSeparator7 = new global::System.Windows.Forms.ToolStripSeparator();
+			this.exportBgToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator7 = new global::System.Windows.Forms.ToolStripSeparator();
 			this.測定開始SToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.測定停止TToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.デ\u30FCタ消去CToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
@@ -245,6 +246,7 @@ namespace BecquerelMonitor
 				this.削除DToolStripMenuItem,
 				this.既存ファイルから追加FToolStripMenuItem,
 				this.toolStripMenuItem1,
+				this.exportBgToolStripMenuItem,
 				this.ConcatSpectrumsStripMenuItem,
 				this.CutoffStripMenuItem,
                 this.NormalizeSpectrumStripMenuItem,
@@ -268,7 +270,10 @@ namespace BecquerelMonitor
 			resources.ApplyResources(this.toolStripMenuItem1, "toolStripMenuItem1");
 			this.toolStripMenuItem1.Name = "toolStripMenuItem1";
 			this.toolStripMenuItem1.Click += new global::System.EventHandler(this.toolStripMenuItem1_Click);
-			resources.ApplyResources(this.ConcatSpectrumsStripMenuItem, "ConcatSpectrumsStripMenuItem");
+            resources.ApplyResources(this.exportBgToolStripMenuItem, "exportBgToolStripMenuItem");
+            this.exportBgToolStripMenuItem.Name = "exportBgToolStripMenuItem";
+            this.exportBgToolStripMenuItem.Click += new global::System.EventHandler(this.exportBgToolStripMenuItem_Click);
+            resources.ApplyResources(this.ConcatSpectrumsStripMenuItem, "ConcatSpectrumsStripMenuItem");
 			this.ConcatSpectrumsStripMenuItem.Name = "ConcatSpectrumsStripMenuItem";
 			this.ConcatSpectrumsStripMenuItem.Click += new global::System.EventHandler(this.ConcatSpectrumsStripMenuItem_Click);
 			resources.ApplyResources(this.CutoffStripMenuItem, "CutoffStripMenuItem");
@@ -708,6 +713,8 @@ namespace BecquerelMonitor
 
 		// Token: 0x040005B6 RID: 1462
 		global::System.Windows.Forms.ToolStripMenuItem toolStripMenuItem1;
+
+		global::System.Windows.Forms.ToolStripMenuItem exportBgToolStripMenuItem;
 
 		// Token: 0x040005B7 RID: 1463
 		global::System.Windows.Forms.ToolStripMenuItem toolStripMenuItem2;
