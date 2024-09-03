@@ -7,6 +7,7 @@ using MathNet.Numerics.Interpolation;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -896,8 +897,9 @@ namespace BecquerelMonitor
                 t.ForeColor = Color.Black;
                 this.SetActiveDeviceConfigDirty();
             }
-            catch
+            catch (Exception ex)
             {
+                Trace.WriteLine(ex.ToString());
                 t.ForeColor = Color.Red;
             }
         }
@@ -1947,7 +1949,7 @@ namespace BecquerelMonitor
                 System.Globalization.CultureInfo.InvariantCulture,
                 out result))
             {
-                if (result > -100.0 && result < 100.0)
+                if (result > -200.0 && result < 200.0)
                 {
                     return result;
                 }
