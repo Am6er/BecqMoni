@@ -368,7 +368,7 @@ namespace BecquerelMonitor
                 deadTime = (double)100.0 * (totalSeconds - activeResultData.EnergySpectrum.LiveTime) / totalSeconds;
             }
             this.countRateTextBox.Text = cps.ToString("f2");
-            this.deadTimetextBox.Text = deadTime.ToString("f6");
+            this.deadTimetextBox.Text = deadTime.ToString("f4");
         }
 
         // Token: 0x06000297 RID: 663 RVA: 0x0000BAD8 File Offset: 0x00009CD8
