@@ -365,10 +365,10 @@ namespace BecquerelMonitor
             if (totalSeconds != 0.0)
             {
                 cps = (double)activeResultData.EnergySpectrum.ValidPulseCount / totalSeconds;
-                deadTime = (double)activeResultData.EnergySpectrum.LiveTime / totalSeconds;
+                deadTime = (double)100.0 * (totalSeconds - activeResultData.EnergySpectrum.LiveTime) / totalSeconds;
             }
             this.countRateTextBox.Text = cps.ToString("f2");
-            this.deadTimetextBox.Text = deadTime.ToString("f4");
+            this.deadTimetextBox.Text = deadTime.ToString("f6");
         }
 
         // Token: 0x06000297 RID: 663 RVA: 0x0000BAD8 File Offset: 0x00009CD8
