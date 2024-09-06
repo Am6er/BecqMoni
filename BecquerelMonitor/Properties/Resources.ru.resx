@@ -746,4 +746,10 @@ http://xptable.sourceforge.net/</value>
   <data name="WriteCalibrationToAtomProProgress" xml:space="preserve">
     <value>Запись коэффициентов калибровки в устройство. Статус: {0}% выполнено.</value>
   </data>
+  <data name="DeadTimeLblText" xml:space="preserve">
+    <value>Мертвое время: {0} μs</value>
+  </data>
+  <data name="UpdateDeadTime" xml:space="preserve">
+    <value>Обновить Мертвое Время</value>
+  </data>
 </root>

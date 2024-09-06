@@ -125,7 +125,7 @@
         AAEAAAD/////AQAAAAAAAAAMAgAAAFdTeXN0ZW0uV2luZG93cy5Gb3JtcywgVmVyc2lvbj00LjAuMC4w
         LCBDdWx0dXJlPW5ldXRyYWwsIFB1YmxpY0tleVRva2VuPWI3N2E1YzU2MTkzNGUwODkFAQAAACZTeXN0
         ZW0uV2luZG93cy5Gb3Jtcy5JbWFnZUxpc3RTdHJlYW1lcgEAAAAERGF0YQcCAgAAAAkDAAAADwMAAADI
-        BwAAAk1TRnQBSQFMAgEBBAEAAdwBAAHcAQABEAEAARABAAT/AQkBAAj/AUIBTQE2AQQGAAE2AQQCAAEo
+        BwAAAk1TRnQBSQFMAgEBBAEAAeQBAAHkAQABEAEAARABAAT/AQkBAAj/AUIBTQE2AQQGAAE2AQQCAAEo
         AwABQAMAASADAAEBAQABCAYAAQgYAAGAAgABgAMAAoABAAGAAwABgAEAAYABAAKAAgADwAEAAcAB3AHA
         AQAB8AHKAaYBAAEzBQABMwEAATMBAAEzAQACMwIAAxYBAAMcAQADIgEAAykBAANVAQADTQEAA0IBAAM5
         AQABgAF8Af8BAAJQAf8BAAGTAQAB1gEAAf8B7AHMAQABxgHWAe8BAAHWAucBAAGQAakBrQIAAf8BMwMA
@@ -198,7 +198,7 @@
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;attachBtn.ZOrder" xml:space="preserve">
-    <value>3</value>
+    <value>7</value>
   </data>
   <data name="clearRoiBtn.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Right</value>
@@ -366,7 +366,7 @@
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;startBtn.ZOrder" xml:space="preserve">
-    <value>2</value>
+    <value>6</value>
   </data>
   <data name="stopBtn.ImageAlign" type="System.Drawing.ContentAlignment, System.Drawing">
     <value>TopLeft</value>
@@ -402,7 +402,7 @@
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;stopBtn.ZOrder" xml:space="preserve">
-    <value>4</value>
+    <value>8</value>
   </data>
   <data name="clearBtn.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Right</value>
@@ -441,7 +441,7 @@
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;clearBtn.ZOrder" xml:space="preserve">
-    <value>7</value>
+    <value>11</value>
   </data>
   <data name="roiConfigComboBox.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Left, Right</value>
@@ -525,13 +525,13 @@
     <value>realTimeLimitTextBox</value>
   </data>
   <data name="&gt;&gt;realTimeLimitTextBox.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=2024.7.8.3, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=2024.9.3.4, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;realTimeLimitTextBox.Parent" xml:space="preserve">
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;realTimeLimitTextBox.ZOrder" xml:space="preserve">
-    <value>0</value>
+    <value>4</value>
   </data>
   <data name="percentageProgressBar1.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Left, Right</value>
@@ -558,13 +558,13 @@
     <value>percentageProgressBar1</value>
   </data>
   <data name="&gt;&gt;percentageProgressBar1.Type" xml:space="preserve">
-    <value>BecquerelMonitor.PercentageProgressBar, BecquerelMonitor, Version=2024.7.8.3, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.PercentageProgressBar, BecquerelMonitor, Version=2024.9.3.4, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;percentageProgressBar1.Parent" xml:space="preserve">
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;percentageProgressBar1.ZOrder" xml:space="preserve">
-    <value>1</value>
+    <value>5</value>
   </data>
   <data name="saveWhenFinishedCheckBox.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -599,6 +599,111 @@
   <data name="groupBox1.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Bottom, Left, Right</value>
   </data>
+  <data name="liveTimetextBox.Location" type="System.Drawing.Point, System.Drawing">
+    <value>297, 127</value>
+  </data>
+  <data name="liveTimetextBox.Size" type="System.Drawing.Size, System.Drawing">
+    <value>75, 20</value>
+  </data>
+  <data name="liveTimetextBox.TabIndex" type="System.Int32, mscorlib">
+    <value>53</value>
+  </data>
+  <data name="liveTimetextBox.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
+    <value>Right</value>
+  </data>
+  <data name="&gt;&gt;liveTimetextBox.Name" xml:space="preserve">
+    <value>liveTimetextBox</value>
+  </data>
+  <data name="&gt;&gt;liveTimetextBox.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;liveTimetextBox.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;liveTimetextBox.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="liveTimeLbl.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="liveTimeLbl.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="liveTimeLbl.Location" type="System.Drawing.Point, System.Drawing">
+    <value>215, 127</value>
+  </data>
+  <data name="liveTimeLbl.Size" type="System.Drawing.Size, System.Drawing">
+    <value>53, 13</value>
+  </data>
+  <data name="liveTimeLbl.TabIndex" type="System.Int32, mscorlib">
+    <value>52</value>
+  </data>
+  <data name="liveTimeLbl.Text" xml:space="preserve">
+    <value>Live Time</value>
+  </data>
+  <data name="&gt;&gt;liveTimeLbl.Name" xml:space="preserve">
+    <value>liveTimeLbl</value>
+  </data>
+  <data name="&gt;&gt;liveTimeLbl.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;liveTimeLbl.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;liveTimeLbl.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="deadTimetextBox.Location" type="System.Drawing.Point, System.Drawing">
+    <value>109, 123</value>
+  </data>
+  <data name="deadTimetextBox.Size" type="System.Drawing.Size, System.Drawing">
+    <value>75, 20</value>
+  </data>
+  <data name="deadTimetextBox.TabIndex" type="System.Int32, mscorlib">
+    <value>51</value>
+  </data>
+  <data name="deadTimetextBox.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
+    <value>Right</value>
+  </data>
+  <data name="&gt;&gt;deadTimetextBox.Name" xml:space="preserve">
+    <value>deadTimetextBox</value>
+  </data>
+  <data name="&gt;&gt;deadTimetextBox.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;deadTimetextBox.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;deadTimetextBox.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="deadTimeLbl.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="deadTimeLbl.Location" type="System.Drawing.Point, System.Drawing">
+    <value>10, 127</value>
+  </data>
+  <data name="deadTimeLbl.Size" type="System.Drawing.Size, System.Drawing">
+    <value>70, 13</value>
+  </data>
+  <data name="deadTimeLbl.TabIndex" type="System.Int32, mscorlib">
+    <value>50</value>
+  </data>
+  <data name="deadTimeLbl.Text" xml:space="preserve">
+    <value>Dead Time %</value>
+  </data>
+  <data name="&gt;&gt;deadTimeLbl.Name" xml:space="preserve">
+    <value>deadTimeLbl</value>
+  </data>
+  <data name="&gt;&gt;deadTimeLbl.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;deadTimeLbl.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;deadTimeLbl.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
   <data name="realTimeLbl.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
@@ -627,7 +732,7 @@
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;realTimeLbl.ZOrder" xml:space="preserve">
-    <value>5</value>
+    <value>9</value>
   </data>
   <data name="invalidCntLbl.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -657,7 +762,7 @@
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;invalidCntLbl.ZOrder" xml:space="preserve">
-    <value>6</value>
+    <value>10</value>
   </data>
   <data name="totalCntTextBox.Location" type="System.Drawing.Point, System.Drawing">
     <value>109, 74</value>
@@ -681,7 +786,7 @@
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;totalCntTextBox.ZOrder" xml:space="preserve">
-    <value>8</value>
+    <value>12</value>
   </data>
   <data name="invalidCountsTextBox.Location" type="System.Drawing.Point, System.Drawing">
     <value>297, 99</value>
@@ -705,7 +810,7 @@
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;invalidCountsTextBox.ZOrder" xml:space="preserve">
-    <value>9</value>
+    <value>13</value>
   </data>
   <data name="validCntTextBox.Location" type="System.Drawing.Point, System.Drawing">
     <value>297, 74</value>
@@ -729,7 +834,7 @@
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;validCntTextBox.ZOrder" xml:space="preserve">
-    <value>10</value>
+    <value>14</value>
   </data>
   <data name="validCntLbl.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -759,7 +864,7 @@
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;validCntLbl.ZOrder" xml:space="preserve">
-    <value>11</value>
+    <value>15</value>
   </data>
   <data name="totalCntLbl.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -789,7 +894,7 @@
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;totalCntLbl.ZOrder" xml:space="preserve">
-    <value>12</value>
+    <value>16</value>
   </data>
   <data name="countRateLbl.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -819,7 +924,7 @@
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;countRateLbl.ZOrder" xml:space="preserve">
-    <value>13</value>
+    <value>17</value>
   </data>
   <data name="countRateTextBox.Location" type="System.Drawing.Point, System.Drawing">
     <value>109, 99</value>
@@ -843,13 +948,13 @@
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;countRateTextBox.ZOrder" xml:space="preserve">
-    <value>14</value>
+    <value>18</value>
   </data>
   <data name="groupBox1.Location" type="System.Drawing.Point, System.Drawing">
     <value>12, 131</value>
   </data>
   <data name="groupBox1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>414, 130</value>
+    <value>414, 149</value>
   </data>
   <data name="groupBox1.TabIndex" type="System.Int32, mscorlib">
     <value>68</value>
@@ -1183,6 +1288,6 @@
     <value>DCControlPanel</value>
   </data>
   <data name="&gt;&gt;$this.Type" xml:space="preserve">
-    <value>BecquerelMonitor.ToolWindow, BecquerelMonitor, Version=2024.7.8.3, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.ToolWindow, BecquerelMonitor, Version=2024.9.3.4, Culture=neutral, PublicKeyToken=null</value>
   </data>
 </root>

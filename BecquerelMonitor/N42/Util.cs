@@ -95,7 +95,7 @@ namespace BecquerelMonitor.N42
                 {
                     id = idSpectrum, //"SpectrumData",
                     energyCalibrationReference = idEnergyCalibration, //rad.EnergyCalibration[0].id,
-                    LiveTimeDuration = "PT" + data.EnergySpectrum.MeasurementTime + "S"
+                    LiveTimeDuration = "PT" + data.EnergySpectrum.LiveTime + "S"
                 };
                 rad.Spectrum[0].ChannelData.SpectrumFromArray(data.EnergySpectrum.Spectrum);
 
@@ -207,19 +207,18 @@ namespace BecquerelMonitor.N42
                 }
                 catch
                 { }
+                int LiveTime = 0;
                 int ElapsedTime = 0;
                 if (radMeasurement.Spectrum[0].LiveTimeDuration != null && radMeasurement.Spectrum[0].LiveTimeDuration != "")
                 {
-                    ElapsedTime = (int)XmlConvert.ToTimeSpan(radMeasurement.Spectrum[0].LiveTimeDuration).TotalSeconds;
+                    LiveTime = (int)XmlConvert.ToTimeSpan(radMeasurement.Spectrum[0].LiveTimeDuration).TotalSeconds;
                 }
-                if (ElapsedTime == 0)
+                if (radMeasurement.RealTimeDuration != null && radMeasurement.RealTimeDuration != "")
                 {
-                    if (radMeasurement.RealTimeDuration != null && radMeasurement.RealTimeDuration != "")
-                    {
-                        ElapsedTime = (int)XmlConvert.ToTimeSpan(radMeasurement.RealTimeDuration).TotalSeconds;
-                    }
+                    ElapsedTime = (int)XmlConvert.ToTimeSpan(radMeasurement.RealTimeDuration).TotalSeconds;
                 }
                 resultData.EnergySpectrum.MeasurementTime = ElapsedTime;
+                resultData.EnergySpectrum.LiveTime = LiveTime;
                 resultData.ResultDataStatus.TotalTime = TimeSpan.FromSeconds(ElapsedTime);
                 resultData.ResultDataStatus.ElapsedTime = TimeSpan.FromSeconds(ElapsedTime);
                 resultData.ResultDataStatus.PresetTime = ElapsedTime;

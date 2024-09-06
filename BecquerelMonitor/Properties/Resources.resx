@@ -41969,4 +41969,10 @@ see peak in spectrum now).</value>
   <data name="NuclideDefImportSuccess" xml:space="preserve">
     <value>Import successful. Added - {0} item(s), updated - {1} item(s).</value>
   </data>
+  <data name="UpdateDeadTime" xml:space="preserve">
+    <value>Update Dead Time</value>
+  </data>
+  <data name="DeadTimeLblText" xml:space="preserve">
+    <value>Dead Time: {0} μs</value>
+  </data>
 </root>

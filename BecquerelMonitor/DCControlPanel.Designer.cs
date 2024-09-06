@@ -59,6 +59,10 @@ namespace BecquerelMonitor
             this.spectrumNameLbl = new System.Windows.Forms.TextBox();
             this.saveToLbl = new System.Windows.Forms.Label();
             this.deviceConfigLbl = new System.Windows.Forms.Label();
+            this.deadTimeLbl = new System.Windows.Forms.Label();
+            this.deadTimetextBox = new System.Windows.Forms.TextBox();
+            this.liveTimeLbl = new System.Windows.Forms.Label();
+            this.liveTimetextBox = new System.Windows.Forms.TextBox();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -189,6 +193,10 @@ namespace BecquerelMonitor
             // groupBox1
             // 
             resources.ApplyResources(this.groupBox1, "groupBox1");
+            this.groupBox1.Controls.Add(this.liveTimetextBox);
+            this.groupBox1.Controls.Add(this.liveTimeLbl);
+            this.groupBox1.Controls.Add(this.deadTimetextBox);
+            this.groupBox1.Controls.Add(this.deadTimeLbl);
             this.groupBox1.Controls.Add(this.realTimeLimitTextBox);
             this.groupBox1.Controls.Add(this.percentageProgressBar1);
             this.groupBox1.Controls.Add(this.startBtn);
@@ -315,6 +323,30 @@ namespace BecquerelMonitor
             resources.ApplyResources(this.deviceConfigLbl, "deviceConfigLbl");
             this.deviceConfigLbl.Name = "deviceConfigLbl";
             // 
+            // deadTimeLbl
+            // 
+            resources.ApplyResources(this.deadTimeLbl, "deadTimeLbl");
+            this.deadTimeLbl.Name = "deadTimeLbl";
+            // 
+            // deadTimetextBox
+            // 
+            resources.ApplyResources(this.deadTimetextBox, "deadTimetextBox");
+            this.deadTimetextBox.Name = "deadTimetextBox";
+            this.deadTimetextBox.ReadOnly = true;
+            this.deadTimetextBox.TabStop = false;
+            // 
+            // liveTimeLbl
+            // 
+            resources.ApplyResources(this.liveTimeLbl, "liveTimeLbl");
+            this.liveTimeLbl.Name = "liveTimeLbl";
+            // 
+            // liveTimetextBox
+            // 
+            resources.ApplyResources(this.liveTimetextBox, "liveTimetextBox");
+            this.liveTimetextBox.Name = "liveTimetextBox";
+            this.liveTimetextBox.ReadOnly = true;
+            this.liveTimetextBox.TabStop = false;
+            // 
             // DCControlPanel
             // 
             resources.ApplyResources(this, "$this");
@@ -382,5 +414,9 @@ namespace BecquerelMonitor
 		System.Windows.Forms.Button clearBgBtn;
 		System.Windows.Forms.Button clearRoiBtn;
 		System.Windows.Forms.Button attachBtn;
-	}
+        private System.Windows.Forms.TextBox deadTimetextBox;
+        private System.Windows.Forms.Label deadTimeLbl;
+        private System.Windows.Forms.TextBox liveTimetextBox;
+        private System.Windows.Forms.Label liveTimeLbl;
+    }
 }

@@ -221,6 +221,9 @@ namespace BecquerelMonitor
                     resultDataStatus.ElapsedTime = DateTime.Now - this.resultData.StartTime + resultDataStatus.TotalTime;
                 }
                 this.resultData.EnergySpectrum.MeasurementTime = resultDataStatus.ElapsedTime.TotalSeconds;
+                this.resultData.EnergySpectrum.LiveTime = Utils.LiveTime.Calculate(this.resultData.EnergySpectrum.MeasurementTime,
+                    this.resultData.EnergySpectrum.TotalPulseCount,
+                    this.resultData.DeviceConfig.InputDeviceConfig.DeadTime());
             }
             else
             {

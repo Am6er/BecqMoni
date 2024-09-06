@@ -21,6 +21,7 @@ namespace BecquerelMonitor
         private string ComPort = "-------";
         private int BaudRate = 600000;
         bool formLoading = false;
+        private double deadTime = 0;
         AutoCompleteStringCollection autoComplete = new AutoCompleteStringCollection();
 
         void InitializeComponent()
@@ -32,6 +33,8 @@ namespace BecquerelMonitor
             this.CommandLineOut = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
+            this.deadTimeLbl = new System.Windows.Forms.Label();
+            this.deadTimeBtn = new System.Windows.Forms.Button();
             this.button1 = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
@@ -99,8 +102,26 @@ namespace BecquerelMonitor
             this.CommandLineOut.Name = "CommandLineOut";
             this.CommandLineOut.ReadOnly = true;
             this.CommandLineOut.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.CommandLineOut.Size = new System.Drawing.Size(428, 409);
+            this.CommandLineOut.Size = new System.Drawing.Size(428, 370);
             this.CommandLineOut.TabIndex = 101;
+            //
+            // deadTimeLbl
+            //
+            this.deadTimeLbl.AutoSize = true;
+            this.deadTimeLbl.Location = new System.Drawing.Point(200, 555);
+            this.deadTimeLbl.Name = "deadTimeLbl";
+            this.deadTimeLbl.TabIndex = 103;
+            this.deadTimeLbl.Text = "Dead Time: 0";
+            //
+            // deadTimeBtn
+            //
+            this.deadTimeBtn.AutoSize = true;
+            this.deadTimeBtn.Location = new System.Drawing.Point(20, 550);
+            this.deadTimeBtn.Name = "deadTimeBtn";
+            this.deadTimeBtn.Size = new System.Drawing.Size(56, 13);
+            this.deadTimeBtn.TabIndex = 103;
+            this.deadTimeBtn.Text = Resources.UpdateDeadTime;
+            this.deadTimeBtn.Enabled = false;
             // 
             // label2
             // 
@@ -119,6 +140,9 @@ namespace BecquerelMonitor
             this.Controls.Add(this.CommandLineIn);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.label3);
+            this.Controls.Add(this.deadTimeLbl);
+            this.Controls.Add(this.deadTimeBtn);
+            deadTimeBtn.Click += deadTimeBtn_Click;
             this.Controls.Add(this.button1);
             button1.Click += Button1_Click;
             this.Controls.Add(this.comPortsBox);
@@ -134,6 +158,8 @@ namespace BecquerelMonitor
             this.Controls.SetChildIndex(this.label2, 0);
             this.Controls.SetChildIndex(this.label3, 0);
             this.Controls.SetChildIndex(this.button1, 0);
+            this.Controls.SetChildIndex(this.deadTimeLbl, 0);
+            this.Controls.SetChildIndex(this.deadTimeBtn, 0);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -143,6 +169,51 @@ namespace BecquerelMonitor
         {
             fillPorts();
             TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedItem));
+        }
+
+        private void deadTimeBtn_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                List<AtomSpectraVCPIn> instances = AtomSpectraVCPIn.getAllInstances();
+                AtomSpectraVCPIn device = null;
+                bool runexist = false;
+                string comPort = comPortsBox.SelectedItem.ToString();
+                int baudRate = int.Parse(baudratesBox.SelectedItem.ToString());
+                if (instances.Count > 0)
+                {
+                    foreach (AtomSpectraVCPIn instance in instances)
+                    {
+                        if (instance.COMPort == comPort)
+                        {
+                            device = instance;
+                            runexist = true;
+                            break;
+                        }
+                    }
+                }
+                if (!runexist)
+                {
+                    device = new AtomSpectraVCPIn(this.deviceConfigForm.ActiveDeviceConfig.Guid);
+                    device.setPort(comPort, baudRate);
+                }
+                device.sendCommand("-inf");
+                string[] output = device.getCommandOutput(2000).Split(' ');
+                int rise = int.Parse(output[3]);
+                int fall = int.Parse(output[5]);
+                double f = double.Parse(output[9]);
+                this.deadTime = ((double)rise + (double)fall + 1.0) / f;
+                this.deadTimeLbl.Text = String.Format(Resources.DeadTimeLblText, this.deadTime * 1.0E+06);
+                SetActiveDeviceConfigDirty();
+                if (!runexist)
+                {
+                    device.Dispose();
+                }
+            }
+            catch
+            {
+
+            }
         }
 
         private void fillPorts()
@@ -259,6 +330,8 @@ namespace BecquerelMonitor
             this.ComPort = atomSpectraVCPInputDevice.ComPortName;
             this.BaudRate = atomSpectraVCPInputDevice.BaudRate;
             fillPorts();
+            this.deadTime = atomSpectraVCPInputDevice.DeadTimeValue;
+            this.deadTimeLbl.Text = String.Format(Resources.DeadTimeLblText, this.deadTime * 1.0E+06);
             this.formLoading = false;
             TestConnection(this.ComPort, this.BaudRate);
         }
@@ -273,6 +346,7 @@ namespace BecquerelMonitor
                 {
                     atomSpectraVCPInputDevice.ComPortName = comPortsBox.SelectedItem.ToString();
                     atomSpectraVCPInputDevice.BaudRate = int.Parse(baudratesBox.SelectedItem.ToString());
+                    atomSpectraVCPInputDevice.DeadTimeValue = deadTime;
                 }
                 else
                 {
@@ -425,15 +499,18 @@ namespace BecquerelMonitor
                         this.label3.ForeColor = Color.Green;
                         this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusConnected) + Environment.NewLine +
                         "SN: " + serialNumber;
+                        this.deadTimeBtn.Enabled = true;
                         break;
                     case -1:
                         this.label3.ForeColor = Color.Red;
                         this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusUnknown);
+                        this.deadTimeBtn.Enabled = false;
                         break;
                     case 1:
                         this.label3.ForeColor = Color.Purple;
                         this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusBusy) + Environment.NewLine +
                         "baudrate: " + serialNumber;
+                        this.deadTimeBtn.Enabled = false;
                         break;
                 }
 

@@ -4,6 +4,7 @@
     {
         string com_port_name;
         int baud_rate = 600000;
+        double deadTime = 0;
 
         public string ComPortName
         {
@@ -17,6 +18,12 @@
             set {baud_rate = value; }
         }
 
+        public double DeadTimeValue
+        {
+            get { return deadTime; }
+            set { this.deadTime = value; }
+        }
+
         public AtomSpectraDeviceConfig()
         {
 
@@ -26,11 +33,17 @@
         {
             this.com_port_name = instance.com_port_name;
             this.baud_rate = instance.baud_rate;
+            this.deadTime = instance.deadTime;
         }
 
         public override InputDeviceConfig Clone()
         {
             return new AtomSpectraDeviceConfig(this);
+        }
+
+        public override double DeadTime()
+        {
+            return this.deadTime;
         }
     }
 }

@@ -120,6 +120,7 @@ namespace BecquerelMonitor.Utils
                 }
 
                 this.MainSpectrum.ActiveResultData.EnergySpectrum.MeasurementTime += docenergySpectrum.ActiveResultData.EnergySpectrum.MeasurementTime;
+                this.MainSpectrum.ActiveResultData.EnergySpectrum.LiveTime += docenergySpectrum.ActiveResultData.EnergySpectrum.LiveTime;
                 this.MainSpectrum.ActiveResultData.EnergySpectrum.TotalPulseCount += docenergySpectrum.ActiveResultData.EnergySpectrum.TotalPulseCount;
                 this.MainSpectrum.ActiveResultData.EnergySpectrum.ValidPulseCount += docenergySpectrum.ActiveResultData.EnergySpectrum.ValidPulseCount;
 
@@ -455,6 +456,7 @@ namespace BecquerelMonitor.Utils
             newSpectrum.NumberOfChannels = newChan;
             Array.Copy(energySpectrum.Spectrum, newSpectrum.Spectrum, newChan);
             newSpectrum.MeasurementTime = energySpectrum.MeasurementTime;
+            newSpectrum.LiveTime = energySpectrum.LiveTime;
             newSpectrum.TotalPulseCount = newSpectrum.Spectrum.Sum();
             newSpectrum.ValidPulseCount = newSpectrum.TotalPulseCount;
             newSpectrum.NumberOfSamples = energySpectrum.NumberOfSamples;
@@ -494,6 +496,7 @@ namespace BecquerelMonitor.Utils
             newSpectrum.NumberOfChannels = newChan;
             newSpectrum.Spectrum = ConcatArray(energySpectrum.Spectrum, newChan);
             newSpectrum.MeasurementTime = energySpectrum.MeasurementTime;
+            newSpectrum.LiveTime = energySpectrum.LiveTime;
             newSpectrum.TotalPulseCount = newSpectrum.Spectrum.Sum();
             double newValidPulseCount = (double)newSpectrum.TotalPulseCount * (double)energySpectrum.ValidPulseCount / (double)energySpectrum.TotalPulseCount;
             newSpectrum.ValidPulseCount = Convert.ToInt32(newValidPulseCount);
@@ -514,6 +517,7 @@ namespace BecquerelMonitor.Utils
             newSpectrum.NumberOfChannels = newChan;
             newSpectrum.Spectrum = RestoreArray(energySpectrum.Spectrum, newChan);
             newSpectrum.MeasurementTime = energySpectrum.MeasurementTime;
+            newSpectrum.LiveTime = energySpectrum.LiveTime;
             newSpectrum.TotalPulseCount = newSpectrum.Spectrum.Sum();
             double newValidPulseCount = (double)newSpectrum.TotalPulseCount * (double)energySpectrum.ValidPulseCount / (double)energySpectrum.TotalPulseCount;
             newSpectrum.ValidPulseCount = Convert.ToInt32(newValidPulseCount);

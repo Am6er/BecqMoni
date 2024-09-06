@@ -359,21 +359,16 @@ namespace BecquerelMonitor
             this.validCntTextBox.Text = activeResultData.EnergySpectrum.ValidPulseCount.ToString();
             int num = activeResultData.EnergySpectrum.TotalPulseCount - activeResultData.EnergySpectrum.ValidPulseCount;
             this.invalidCountsTextBox.Text = num.ToString(); //invalid pulses
-            double num2 = 0.0;
+            this.liveTimetextBox.Text = activeResultData.EnergySpectrum.LiveTime.ToString("f2");
+            double cps = 0.0;
+            double deadTime = 0.0;
             if (totalSeconds != 0.0)
             {
-                /*
-                if (activeResultData.MeasurementController.DeviceController is AtomSpectraDeviceController)
-                {
-                    num2 = ((AtomSpectraDeviceController)activeResultData.MeasurementController.DeviceController).getCPS();
-                }
-                else*/
-                {
-                    num2 = (double)activeResultData.EnergySpectrum.ValidPulseCount / totalSeconds;
-                    //num2 = (double)(activeResultData.EnergySpectrum.TotalPulseCount) / totalSeconds;
-                }
+                cps = (double)activeResultData.EnergySpectrum.ValidPulseCount / totalSeconds;
+                deadTime = (double)activeResultData.EnergySpectrum.LiveTime / totalSeconds;
             }
-            this.countRateTextBox.Text = num2.ToString("f2");
+            this.countRateTextBox.Text = cps.ToString("f2");
+            this.deadTimetextBox.Text = deadTime.ToString("f2");
         }
 
         // Token: 0x06000297 RID: 663 RVA: 0x0000BAD8 File Offset: 0x00009CD8
@@ -652,6 +647,9 @@ namespace BecquerelMonitor
             resultData.EnergySpectrum.MeasurementTime = energySpectrum.MeasurementTime;
             resultData.EnergySpectrum.TotalPulseCount = energySpectrum.TotalPulseCount;
             resultData.EnergySpectrum.NumberOfSamples = energySpectrum.NumberOfSamples;
+            resultData.EnergySpectrum.LiveTime = Utils.LiveTime.Calculate(resultData.EnergySpectrum.MeasurementTime,
+                                                                            resultData.EnergySpectrum.TotalPulseCount,
+                                                                            resultData.DeviceConfig.InputDeviceConfig.DeadTime());
             foreach (Pulse pulse in resultData.PulseCollection.Pulses)
             {
                 resultData.EnergySpectrum.Increment(pulse.Height);
