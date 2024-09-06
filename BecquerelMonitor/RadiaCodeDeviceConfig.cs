@@ -40,5 +40,10 @@
         {
             return new RadiaCodeDeviceConfig(this);
         }
+
+        public override double DeadTime()
+        {
+            return 5.0E-06;
+        }
     }
 }

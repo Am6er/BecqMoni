@@ -18,6 +18,8 @@ namespace BecquerelMonitor
         private TextBox CommandLineOut;
         private Label label2;
         private Label label3;
+        private Label deadTimeLbl;
+        private Button deadTimeBtn;
         private Button button1;
     }
 }

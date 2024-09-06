@@ -151,6 +151,9 @@ namespace BecquerelMonitor
             resultData.EndTime = DateTime.Now;
             resultData.EnergySpectrum.MeasurementTime = resultDataStatus.TotalTime.TotalSeconds;
             resultData.EnergySpectrum.NumberOfSamples = resultDataStatus.TimeInSamples;
+            resultData.EnergySpectrum.LiveTime = Utils.LiveTime.Calculate(resultData.EnergySpectrum.MeasurementTime,
+                                                                            resultData.EnergySpectrum.TotalPulseCount,
+                                                                            audioInputDeviceConfig.DeadTime());
             resultDataStatus.Recording = false;
             waveIn.Dispose();
             GC.Collect();

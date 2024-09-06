@@ -10,5 +10,10 @@ namespace BecquerelMonitor
         {
             throw new NotImplementedException();
         }
+
+        public override double DeadTime()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

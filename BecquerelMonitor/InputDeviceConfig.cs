@@ -5,5 +5,7 @@
     {
         // Token: 0x06000378 RID: 888
         public abstract InputDeviceConfig Clone();
+
+        public abstract double DeadTime();
     }
 }

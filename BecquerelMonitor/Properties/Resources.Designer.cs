@@ -551,6 +551,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Dead Time: {0} μs.
+        /// </summary>
+        internal static string DeadTimeLblText {
+            get {
+                return ResourceManager.GetString("DeadTimeLblText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Default.
         /// </summary>
         internal static string Default {
@@ -2437,6 +2446,15 @@ namespace BecquerelMonitor.Properties {
             get {
                 object obj = ResourceManager.GetObject("Up", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update Dead Time.
+        /// </summary>
+        internal static string UpdateDeadTime {
+            get {
+                return ResourceManager.GetString("UpdateDeadTime", resourceCulture);
             }
         }
         

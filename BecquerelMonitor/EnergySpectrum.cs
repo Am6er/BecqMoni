@@ -97,6 +97,18 @@ namespace BecquerelMonitor
             }
         }
 
+        public double LiveTime
+        {
+            get
+            {
+                return this.liveTime;
+            }
+            set
+            {
+                this.liveTime = value;
+            }
+        }
+
         // Token: 0x17000024 RID: 36
         // (get) Token: 0x06000060 RID: 96 RVA: 0x000028C4 File Offset: 0x00000AC4
         // (set) Token: 0x06000061 RID: 97 RVA: 0x000028CC File Offset: 0x00000ACC
@@ -222,6 +234,7 @@ namespace BecquerelMonitor
             returnValue.channelPitch = this.channelPitch;
             returnValue.numberOfChannels = this.numberOfChannels;
             returnValue.measurementTime = this.measurementTime;
+            returnValue.liveTime = this.liveTime;
             returnValue.energyCalibration = this.energyCalibration.Clone();
             returnValue.numberOfSamples = this.numberOfSamples;
             returnValue.totalPulseCount = this.totalPulseCount;
@@ -247,6 +260,8 @@ namespace BecquerelMonitor
 
         // Token: 0x04000022 RID: 34
         double measurementTime;
+
+        double liveTime;
 
         // Token: 0x04000023 RID: 35
         long numberOfSamples;

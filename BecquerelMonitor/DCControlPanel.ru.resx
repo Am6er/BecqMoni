@@ -216,4 +216,10 @@
   <data name="percentageProgressBar1.ToolTip" xml:space="preserve">
     <value>Нажмите, чтобы изменить формат отображаемого времени</value>
   </data>
+  <data name="liveTimeLbl.Text" xml:space="preserve">
+    <value>Время без МВ</value>
+  </data>
+  <data name="deadTimeLbl.Text" xml:space="preserve">
+    <value>Мерт. Время %</value>
+  </data>
 </root>

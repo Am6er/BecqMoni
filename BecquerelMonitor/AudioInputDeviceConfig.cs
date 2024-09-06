@@ -150,6 +150,12 @@ namespace BecquerelMonitor
             return new AudioInputDeviceConfig(this);
         }
 
+        public override double DeadTime()
+        {
+            PRAHomageMethodConfig pRAHomageMethodConfig = (PRAHomageMethodConfig)this.PulseDetectionMethodConfig;
+            return (double)pRAHomageMethodConfig.PulseShapeSize / (double)this.samplesPerSecond;
+        }
+
         // Token: 0x04000163 RID: 355
         WaveInDeviceCaps audioInputDevice;
 
