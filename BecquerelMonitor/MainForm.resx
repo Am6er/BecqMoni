@@ -755,23 +755,23 @@
   <data name="dockPanel1.Location" type="System.Drawing.Point, System.Drawing">
     <value>0, 26</value>
   </data>
-  <data name="核種定義の編集NToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+  <data name="NuclideDefinitionToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>240, 22</value>
   </data>
-  <data name="核種定義の編集NToolStripMenuItem.Text" xml:space="preserve">
+  <data name="NuclideDefinitionToolStripMenuItem.Text" xml:space="preserve">
     <value>Edit &amp;Nuclide Definitions...</value>
   </data>
   <data name="&gt;&gt;削除DToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;核種定義の編集NToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;NuclideDefinitionToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;削除DToolStripMenuItem.Name" xml:space="preserve">
     <value>削除DToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;核種定義の編集NToolStripMenuItem.Name" xml:space="preserve">
-    <value>核種定義の編集NToolStripMenuItem</value>
+  <data name="&gt;&gt;NuclideDefinitionToolStripMenuItem.Name" xml:space="preserve">
+    <value>NuclideDefinitionToolStripMenuItem</value>
   </data>
   <data name="toolStripSeparator7.Size" type="System.Drawing.Size, System.Drawing">
     <value>187, 6</value>
@@ -1141,5 +1141,8 @@
   </data>
   <data name="&gt;&gt;exportBgToolStripMenuItem.Name" xml:space="preserve">
     <value>exportBgToolStripMenuItem</value>
+  </data>
+  <data name="NuclideSetToolStripMenuItem.Text" xml:space="preserve">
+    <value>Edit Nuclide Sets...</value>
   </data>
 </root>

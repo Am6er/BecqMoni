@@ -543,10 +543,10 @@
   <data name="&gt;&gt;既存ファイルから追加FToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;核種定義の編集NToolStripMenuItem.Name" xml:space="preserve">
-    <value>核種定義の編集NToolStripMenuItem</value>
+  <data name="&gt;&gt;NuclideDefinitionToolStripMenuItem.Name" xml:space="preserve">
+    <value>NuclideDefinitionToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;核種定義の編集NToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;NuclideDefinitionToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;測定停止TToolStripMenuItem.Name" xml:space="preserve">
@@ -741,7 +741,7 @@
   <data name="既存ファイルから追加FToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Импорт из файла</value>
   </data>
-  <data name="核種定義の編集NToolStripMenuItem.Text" xml:space="preserve">
+  <data name="NuclideDefinitionToolStripMenuItem.Text" xml:space="preserve">
     <value>Редактировать библиотеку изотопов...</value>
   </data>
   <data name="測定停止TToolStripMenuItem.Text" xml:space="preserve">
@@ -779,5 +779,8 @@
   </data>
   <data name="exportBgToolStripMenuItem.Text" xml:space="preserve">
     <value>Экспортировать спектр фона в файл</value>
+  </data>
+  <data name="NuclideSetToolStripMenuItem.Text" xml:space="preserve">
+    <value>Редактировать наборы изотопов...</value>
   </data>
 </root>

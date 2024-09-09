@@ -44,6 +44,8 @@ namespace BecquerelMonitor
 			this.numericUpDown3 = new global::System.Windows.Forms.NumericUpDown();
 			this.button1 = new global::System.Windows.Forms.Button();
 			this.label4 = new global::System.Windows.Forms.Label();
+			this.comboBoxNuclSet = new System.Windows.Forms.ComboBox();
+			this.labelSetName = new System.Windows.Forms.Label();
 			((global::System.ComponentModel.ISupportInitialize)this.table1).BeginInit();
 			((global::System.ComponentModel.ISupportInitialize)this.numericUpDown1).BeginInit();
 			((global::System.ComponentModel.ISupportInitialize)this.numericUpDown2).BeginInit();
@@ -164,6 +166,29 @@ namespace BecquerelMonitor
 			this.button1.Click += new global::System.EventHandler(this.button1_Click);
 			resources.ApplyResources(this.label4, "label4");
 			this.label4.Name = "label4";
+
+			// 
+			// comboBoxNuclSet
+			// 
+			this.comboBoxNuclSetAllNuclidesText = resources.GetString("ComboBoxNuclSetAllNuclides");
+			this.comboBoxNuclSet.FormattingEnabled = true;
+			this.comboBoxNuclSet.Location = new System.Drawing.Point(62, 33);
+			this.comboBoxNuclSet.Name = "comboBoxNuclSet";
+			this.comboBoxNuclSet.Size = new System.Drawing.Size(162, 21);
+			this.comboBoxNuclSet.TabIndex = 10;
+			this.comboBoxNuclSet.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+			this.comboBoxNuclSet.SelectedIndexChanged += new System.EventHandler(this.comboBoxNuclSet_SelectedIndexChanged);
+
+			//	
+			// labelSetName
+			// 
+			resources.ApplyResources(this.labelSetName, "labelSetName");
+			this.labelSetName.Location = new System.Drawing.Point(7, 37);
+			this.labelSetName.Name = "labelSetName";
+			this.labelSetName.Size = new System.Drawing.Size(46, 13);
+			this.labelSetName.TabIndex = 11;
+
+
 			resources.ApplyResources(this, "$this");
 			base.Controls.Add(this.label4);
 			base.Controls.Add(this.button1);
@@ -174,6 +199,8 @@ namespace BecquerelMonitor
 			base.Controls.Add(this.numericUpDown2);
 			base.Controls.Add(this.numericUpDown1);
 			base.Controls.Add(this.table1);
+			this.Controls.Add(this.labelSetName);
+			this.Controls.Add(this.comboBoxNuclSet);
 			base.HideOnClose = true;
 			base.Name = "DCPeakDetectionView";
 			((global::System.ComponentModel.ISupportInitialize)this.table1).EndInit();
@@ -242,5 +269,9 @@ namespace BecquerelMonitor
 		global::System.Windows.Forms.ToolStripMenuItem toolStripMenuItem2;
 
 		global::System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
-	}
+
+		global::System.Windows.Forms.ComboBox comboBoxNuclSet;
+
+		global::System.Windows.Forms.Label labelSetName;
+    }
 }

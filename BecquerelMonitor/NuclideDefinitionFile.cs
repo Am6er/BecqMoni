@@ -22,7 +22,21 @@ namespace BecquerelMonitor
             }
         }
 
+        [XmlArrayItem("NuclideSet", typeof(NuclideSet))]
+        public List<NuclideSet> NuclideSets
+        {
+            get
+            {
+                return this.nuclideSets;
+            }
+            set
+            {
+                this.nuclideSets = value;
+            }
+        }
+
         // Token: 0x040009B0 RID: 2480
         List<NuclideDefinition> nuclideDefinitions = new List<NuclideDefinition>();
+        List<NuclideSet> nuclideSets = new List<NuclideSet>();
     }
 }

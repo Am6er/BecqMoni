@@ -9,7 +9,7 @@ namespace BecquerelMonitor
 {
     public class PeakDetector
     {
-        public List<Peak> DetectPeak(ResultData resultData, BackgroundMode bgMode, SmoothingMethod smoothMethod)
+        public List<Peak> DetectPeak(ResultData resultData, BackgroundMode bgMode, SmoothingMethod smoothMethod, NuclideSet nuclideSet)
         {
             FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)resultData.PeakDetectionMethodConfig;
             EnergySpectrum energySpectrum;
@@ -45,7 +45,7 @@ namespace BecquerelMonitor
 
             FWHMPeakDetector.PeakFinder finder = PeakFinder(energySpectrum, FWHMPeakDetectionMethodConfig);
 
-            peaks = CollectPeaks(finder, energySpectrum, FWHMPeakDetectionMethodConfig.Tolerance, resultData.DetectedPeaks, sa);
+            peaks = CollectPeaks(finder, energySpectrum, FWHMPeakDetectionMethodConfig.Tolerance, resultData.DetectedPeaks, sa, nuclideSet);
             
             resultData.DetectedPeaks = peaks;
 
@@ -74,7 +74,7 @@ namespace BecquerelMonitor
             return true;
         }
 
-        List<Peak> CollectPeaks(FWHMPeakDetector.PeakFinder finder, EnergySpectrum energySpectrum, double tol, List<Peak> existPeaks, SpectrumAriphmetics sa)
+        List<Peak> CollectPeaks(FWHMPeakDetector.PeakFinder finder, EnergySpectrum energySpectrum, double tol, List<Peak> existPeaks, SpectrumAriphmetics sa, NuclideSet nuclideSet)
         {
             List<Peak> peaks = new List<Peak>();
             if (finder.centroids != null)
@@ -96,6 +96,7 @@ namespace BecquerelMonitor
                     foreach (NuclideDefinition nuclideDefinition in this.nuclideManager.NuclideDefinitions)
                     {
                         if (!nuclideDefinition.Visible || nuclideDefinition.Energy == 0.0) continue;
+                        if (nuclideSet != null && !nuclideDefinition.Sets.Contains(nuclideSet.Id)) continue;
                         double delta = Math.Abs((peak.Energy - nuclideDefinition.Energy) / nuclideDefinition.Energy);
                         if (delta < tol / 100.0 && delta < minDelta)
                         {
@@ -104,6 +105,7 @@ namespace BecquerelMonitor
                         }
                         peak.Nuclide = bestNuclide;
                     }
+                    if (peak.Nuclide == null && nuclideSet?.HideUnknownPeaks == true) continue;
                     if (isNewPeak(existPeaks, peak))
                     {
                         peaks.Add(peak);
