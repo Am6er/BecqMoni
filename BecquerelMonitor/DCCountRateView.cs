@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Drawing;
 
 namespace BecquerelMonitor
 {
@@ -12,16 +13,30 @@ namespace BecquerelMonitor
             this.InitializeComponent();
         }
 
-        public decimal getWindow()
+        public double getWindow()
         {
-            return this.windowControl.Value;
+            return (double)this.windowControl.Value;
         } 
 
         
-        public void UpdateInfo(decimal Cps, int sEffRatio)
+        public void UpdateInfo(double Cps, int sEffRatio, double deadTime)
         {
             this.LossCountsRatioValLbl.Text = sEffRatio.ToString();
-            this.cpslabel.Text = String.Format("{0:F2}", Cps);
+            this.cpslabel.Text = Cps.ToString("f2");
+            if (deadTime <= 20.0)
+            {
+                this.DeadTimeValLbl.ForeColor = Color.Black;
+            }
+            else if (deadTime > 20.0 && deadTime <= 50.0)
+            {
+                this.DeadTimeValLbl.ForeColor = Color.DarkOrange;
+            }
+            else if (deadTime > 50.0)
+            {
+                this.DeadTimeValLbl.ForeColor = Color.DarkRed;
+            }
+            this.DeadTimeValLbl.BackColor = this.DeadTimeValLbl.BackColor;
+            this.DeadTimeValLbl.Text = deadTime.ToString("f4");
         }
 
         GlobalConfigManager globalConfigManager = GlobalConfigManager.GetInstance();
