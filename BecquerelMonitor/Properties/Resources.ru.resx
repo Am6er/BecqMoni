@@ -617,6 +617,9 @@ http://xptable.sourceforge.net/</value>
   <data name="MSGSavingNuclideDefinition" xml:space="preserve">
     <value>Библиотека изотопов была изменена. Сохранить?</value>
   </data>
+  <data name="MSGSavingNuclideSet" xml:space="preserve">
+    <value>Набор(ы) изотопов был изменен. Сохранить?</value>
+  </data>
   <data name="MSGThermometerTypeChanging" xml:space="preserve">
     <value>Изменение типа термометра приведёт к реинициализации всех полей. ОК?</value>
   </data>

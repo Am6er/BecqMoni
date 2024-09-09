@@ -329,7 +329,7 @@
     <value>6</value>
   </data>
   <data name="table1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>0, 61</value>
+    <value>0, 75</value>
   </data>
   <data name="&gt;&gt;tableModel1.Name" xml:space="preserve">
     <value>tableModel1</value>
@@ -497,7 +497,7 @@
     <value>90</value>
   </data>
   <data name="label4.Location" type="System.Drawing.Point, System.Drawing">
-    <value>7, 43</value>
+    <value>7, 60</value>
   </data>
   <data name="label4.TabIndex" type="System.Int32, mscorlib">
     <value>9</value>
@@ -507,5 +507,11 @@
   </data>
   <data name="$this.AutoScaleDimensions" type="System.Drawing.SizeF, System.Drawing">
     <value>6, 12</value>
+  </data>
+  <data name="labelSetName.Text" xml:space="preserve">
+    <value>Use set:</value>
+  </data>
+  <data name="ComboBoxNuclSetAllNuclides" xml:space="preserve">
+    <value>--- All Nuclides ---</value>
   </data>
 </root>

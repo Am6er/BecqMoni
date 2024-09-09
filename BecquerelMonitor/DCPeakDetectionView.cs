@@ -14,6 +14,8 @@ namespace BecquerelMonitor
         {
             this.mainForm = mainForm;
             this.InitializeComponent();
+
+            this.RefreshNuclideSets();
         }
 
         // Token: 0x0600043E RID: 1086 RVA: 0x0001423C File Offset: 0x0001243C
@@ -71,6 +73,11 @@ namespace BecquerelMonitor
         public void UpdatePeakDetectionResult()
         {
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+            if (activeDocument == null)
+            {
+                return;
+            }
+
             FWHMPeakDetectionMethodConfig peakConfig = (FWHMPeakDetectionMethodConfig) activeDocument.ActiveResultData.PeakDetectionMethodConfig;
             if (!peakConfig.Enabled)
             {
@@ -79,7 +86,7 @@ namespace BecquerelMonitor
             ResultData activeResultData = activeDocument.ActiveResultData;
             PeakDetector peakDetector = new PeakDetector();
             List<Peak> list = null;
-            list = peakDetector.DetectPeak(activeResultData, activeDocument.EnergySpectrumView.BackgroundMode, activeDocument.EnergySpectrumView.SmoothingMethod);
+            list = peakDetector.DetectPeak(activeResultData, activeDocument.EnergySpectrumView.BackgroundMode, activeDocument.EnergySpectrumView.SmoothingMethod, this.selectedNuclideSet);
 
             this.tableModel1.Rows.Clear();
             foreach (Peak peak in list)
@@ -104,6 +111,24 @@ namespace BecquerelMonitor
             }
             activeDocument.RefreshView();
             //this.table1.AutoResizeColumnWidths();
+        }
+
+        public void RefreshNuclideSets()
+        {
+            this.comboBoxNuclSet.Items.Clear();
+            this.comboBoxNuclSet.Items.Add(comboBoxNuclSetAllNuclidesText);
+            foreach (NuclideSet set in this.nuclideManager.NuclideSets)
+            {
+                this.comboBoxNuclSet.Items.Add(set.Name);
+            }
+            if (this.selectedNuclideSet != null)
+            {
+                this.comboBoxNuclSet.SelectedIndex = this.nuclideManager.NuclideSets.IndexOf(this.selectedNuclideSet) + 1;
+            }
+            else
+            {
+                this.comboBoxNuclSet.SelectedIndex = 0;
+            }
         }
 
         // Token: 0x06000440 RID: 1088 RVA: 0x00014468 File Offset: 0x00012668
@@ -207,6 +232,20 @@ namespace BecquerelMonitor
             this.mainForm.ShowNuclideDefinitionForm();
         }
 
+        private void comboBoxNuclSet_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (this.comboBoxNuclSet.SelectedIndex > 0)
+            {
+                this.selectedNuclideSet = this.nuclideManager.NuclideSets[this.comboBoxNuclSet.SelectedIndex - 1];
+            }
+            else
+            {
+                this.selectedNuclideSet = null;
+            }
+
+            this.UpdatePeakDetectionResult();
+        }
+
         // Token: 0x040001B3 RID: 435
         MainForm mainForm;
 
@@ -216,6 +255,12 @@ namespace BecquerelMonitor
         // Token: 0x040001B5 RID: 437
         GlobalConfigManager globalConfigManager = GlobalConfigManager.GetInstance();
 
+        NuclideDefinitionManager nuclideManager = NuclideDefinitionManager.GetInstance();
+
         bool FormLoading = false;
+
+        string comboBoxNuclSetAllNuclidesText;
+
+        private NuclideSet selectedNuclideSet = null;
     }
 }
