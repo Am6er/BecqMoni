@@ -56,6 +56,7 @@ namespace BecquerelMonitor
 			this.ConcatSpectrumsStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.CutoffStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
             this.NormalizeSpectrumStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.ApplyDeadTimeCorrectionStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
             this.N42StripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.N42ExpStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.AtomSpectraExpStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
@@ -250,6 +251,7 @@ namespace BecquerelMonitor
 				this.ConcatSpectrumsStripMenuItem,
 				this.CutoffStripMenuItem,
                 this.NormalizeSpectrumStripMenuItem,
+				this.ApplyDeadTimeCorrectionStripMenuItem,
                 this.AutoSaveStripMenuItem,
                 this.toolStripSeparator7,
 				this.測定開始SToolStripMenuItem,
@@ -282,6 +284,9 @@ namespace BecquerelMonitor
             resources.ApplyResources(this.NormalizeSpectrumStripMenuItem, "NormalizeSpectrumStripMenuItem");
             this.NormalizeSpectrumStripMenuItem.Name = "NormalizeSpectrumStripMenuItem";
             this.NormalizeSpectrumStripMenuItem.Click += new global::System.EventHandler(this.NormalizeSpectrumStripMenuItem_Click);
+            resources.ApplyResources(this.ApplyDeadTimeCorrectionStripMenuItem, "ApplyDeadTimeCorrectionStripMenuItem");
+            this.ApplyDeadTimeCorrectionStripMenuItem.Name = "ApplyDeadTimeCorrectionStripMenuItem";
+            this.ApplyDeadTimeCorrectionStripMenuItem.Click += new global::System.EventHandler(this.ApplyDeadTimeCorrectionStripMenuItem_Click);
             resources.ApplyResources(this.AutoSaveStripMenuItem, "AutoSaveStripMenuItem");
             this.AutoSaveStripMenuItem.Name = "AutoSaveStripMenuItem";
             this.AutoSaveStripMenuItem.Click += new global::System.EventHandler(this.AutoSaveStripMenuItem_Click);
@@ -660,6 +665,8 @@ namespace BecquerelMonitor
 		global::System.Windows.Forms.ToolStripMenuItem CutoffStripMenuItem;
 
         global::System.Windows.Forms.ToolStripMenuItem NormalizeSpectrumStripMenuItem;
+
+        global::System.Windows.Forms.ToolStripMenuItem ApplyDeadTimeCorrectionStripMenuItem;
 
         // Token: 0x040005A8 RID: 1448
         global::System.Windows.Forms.ToolStripMenuItem スペクトル一覧LToolStripMenuItem;

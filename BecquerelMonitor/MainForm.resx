@@ -1142,4 +1142,16 @@
   <data name="&gt;&gt;exportBgToolStripMenuItem.Name" xml:space="preserve">
     <value>exportBgToolStripMenuItem</value>
   </data>
+  <data name="ApplyDeadTimeCorrectionStripMenuItem.Text" xml:space="preserve">
+    <value>Apply dead time correction</value>
+  </data>
+  <data name="ApplyDeadTimeCorrectionStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+    <value>326, 22</value>
+  </data>
+  <data name="&gt;&gt;ApplyDeadTimeCorrectionStripMenuItem.Name" xml:space="preserve">
+    <value>ApplyDeadTimeCorrectionStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;ApplyDeadTimeCorrectionStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
 </root>

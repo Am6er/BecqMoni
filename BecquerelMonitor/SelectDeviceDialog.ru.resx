@@ -117,118 +117,17 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="$this.TabText" xml:space="preserve">
-    <value>Управление измерением</value>
+  <assembly alias="mscorlib" name="mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="SelectDeviceLbl.Text" xml:space="preserve">
+    <value>Выберите устройство из списка ниже:</value>
+  </data>
+  <data name="ApplyBtn.Text" xml:space="preserve">
+    <value>Применить</value>
+  </data>
+  <data name="CancelBtn.Text" xml:space="preserve">
+    <value>Отмена</value>
   </data>
   <data name="$this.Text" xml:space="preserve">
-    <value>Управление измерением</value>
-  </data>
-  <data name="attachBtn.ToolTip" xml:space="preserve">
-    <value>Подключиться к Atom Spectra Pro</value>
-  </data>
-  <data name="attachBtn.Text" xml:space="preserve">
-    <value>Подключиться</value>
-  </data>
-  <data name="startBtn.Text" xml:space="preserve">
-    <value>Старт</value>
-  </data>
-  <data name="startBtn.ToolTip" xml:space="preserve">
-    <value>Начало измерения</value>
-  </data>
-  <data name="devConfigEditBtn.Text" xml:space="preserve">
-    <value>Редак.</value>
-  </data>
-  <data name="stopBtn.Text" xml:space="preserve">
-    <value>Стоп</value>
-  </data>
-  <data name="stopBtn.ToolTip" xml:space="preserve">
-    <value>Остановка измерения</value>
-  </data>
-  <data name="spectrumSaveBtn.Text" xml:space="preserve">
-    <value>Выбр.</value>
-  </data>
-  <data name="roiConfigEditBtn.Text" xml:space="preserve">
-    <value>Редак.</value>
-  </data>
-  <data name="reloadFromConfigBtn.ToolTip" xml:space="preserve">
-    <value>Применить изменения из конфигурации устройства к текущему спектру</value>
-  </data>
-  <data name="selectBgBtn.Text" xml:space="preserve">
-    <value>Выбр.</value>
-  </data>
-  <data name="selectBgBtn.ToolTip" xml:space="preserve">
-    <value>Выбрать файл</value>
-  </data>
-  <data name="clearBtn.Text" xml:space="preserve">
-    <value>Сброс</value>
-  </data>
-  <data name="clearBtn.ToolTip" xml:space="preserve">
-    <value>Очистить спектр</value>
-  </data>
-  <data name="clearBgBtn.ToolTip" xml:space="preserve">
-    <value>Очистить фоновый спектр</value>
-  </data>
-  <data name="clearRoiBtn.ToolTip" xml:space="preserve">
-    <value>Очистить конфигурацию ROI</value>
-  </data>
-  <data name="saveWhenFinishedCheckBox.Text" xml:space="preserve">
-    <value>Автоматическое сохранение в конце изменения</value>
-  </data>
-  <data name="devConfigComboBox.ToolTip" xml:space="preserve">
-    <value>Выбрать конфигурацию устройства</value>
-  </data>
-  <data name="roiConfigComboBox.ToolTip" xml:space="preserve">
-    <value>Выбрать конфигурацию ROI</value>
-  </data>
-  <data name="realTimeLimitTextBox.ToolTip" xml:space="preserve">
-    <value>Лимит измерения спектра</value>
-  </data>
-  <data name="roiConfigLbl.Text" xml:space="preserve">
-    <value>Настр. ROI</value>
-  </data>
-  <data name="countRateLbl.Text" xml:space="preserve">
-    <value>Скор. счета cps</value>
-  </data>
-  <data name="deviceConfigLbl.Text" xml:space="preserve">
-    <value>Устройство</value>
-  </data>
-  <data name="totalCntLbl.Text" xml:space="preserve">
-    <value>Всего импульсов</value>
-  </data>
-  <data name="validCntLbl.Text" xml:space="preserve">
-    <value>Корректн. имп.</value>
-  </data>
-  <data name="invalidCntLbl.Text" xml:space="preserve">
-    <value>Некорр. имп.</value>
-  </data>
-  <data name="realTimeLbl.Text" xml:space="preserve">
-    <value>Тек. время</value>
-  </data>
-  <data name="bachgroundLbl.Text" xml:space="preserve">
-    <value>Фон</value>
-  </data>
-  <data name="saveToLbl.Text" xml:space="preserve">
-    <value>Сохранить в</value>
-  </data>
-  <data name="percentageProgressBar1.Text" xml:space="preserve">
-    <value>28800 (0.0%)</value>
-  </data>
-  <data name="percentageProgressBar1.ToolTip" xml:space="preserve">
-    <value>Нажмите, чтобы изменить формат отображаемого времени</value>
-  </data>
-  <data name="liveTimeLbl.Text" xml:space="preserve">
-    <value>Время без МВ</value>
-  </data>
-  <data name="deadTimeLbl.Text" xml:space="preserve">
-    <value>Мерт. Время %</value>
-  </data>
-  <data name="deadTimeLbl.ToolTip" xml:space="preserve">
-    <value>Загрузка детектора в %. 
-&lt;20% - норма, 
-20%&lt; x &lt;50% - предупреждение (деградация FWHM и спектра), 
-&gt;50% - критично (полная деградация спектра)</value>
-  </data>
-  <data name="liveTimeLbl.ToolTip" xml:space="preserve">
-    <value>Время записи спектра без учёта мёртвого времени</value>
+    <value>Выберите устройство</value>
   </data>
 </root>
