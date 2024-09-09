@@ -596,10 +596,11 @@ namespace BecquerelMonitor
         {
             if (this.activeDocument != null && this.dcCountRateView != null)
             {
-                decimal window = this.dcCountRateView.getWindow();
-                decimal cps = this.countsRateManager.GetCPS(this.activeDocument.ActiveResultData, window);
+                double window = this.dcCountRateView.getWindow();
+                double cps = this.countsRateManager.GetCPS(this.activeDocument.ActiveResultData, window);
                 int speceffratio = this.countsRateManager.GetSpecEffRatio(this.activeDocument.ActiveResultData, window);
-                this.dcCountRateView.UpdateInfo(cps, speceffratio);
+                double deadTime = this.countsRateManager.GetDeadTime(this.activeDocument.ActiveResultData, window);
+                this.dcCountRateView.UpdateInfo(cps, speceffratio, deadTime);
             }
         }
 

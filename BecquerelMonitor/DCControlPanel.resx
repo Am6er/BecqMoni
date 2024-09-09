@@ -616,9 +616,9 @@
   </data>
   <data name="deadTimeLbl.ToolTip" xml:space="preserve">
     <value>Detector load in %. 
-&amp;lt;20% - normal, 
-20%&amp;lt; x &amp;lt;50% - warning (FWHM, spectrum degradation), 
-&amp;gt;50% - critical (total spectrum destroy)</value>
+&lt; 20% - normal, 
+20% &lt; x &lt; 50% - warning (FWHM, spectrum degradation), 
+&gt; 50% - critical (total spectrum destroy)</value>
   </data>
   <data name="&gt;&gt;deadTimeLbl.Name" xml:space="preserve">
     <value>deadTimeLbl</value>

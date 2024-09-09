@@ -385,6 +385,7 @@ namespace BecquerelMonitor
             {
                 this.deadTimetextBox.ForeColor = Color.DarkRed;
             }
+            this.deadTimetextBox.BackColor = this.deadTimetextBox.BackColor;
             this.deadTimetextBox.Text = deadTime.ToString("f4");
         }
 
