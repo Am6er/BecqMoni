@@ -31,13 +31,15 @@ namespace BecquerelMonitor
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(NuclideSetForm));
-            XPTable.Models.DataSourceColumnBinder dataSourceColumnBinder1 = new XPTable.Models.DataSourceColumnBinder();
-            XPTable.Renderers.DragDropRenderer dragDropRenderer1 = new XPTable.Renderers.DragDropRenderer();
             XPTable.Models.DataSourceColumnBinder dataSourceColumnBinder2 = new XPTable.Models.DataSourceColumnBinder();
             XPTable.Renderers.DragDropRenderer dragDropRenderer2 = new XPTable.Renderers.DragDropRenderer();
+            XPTable.Models.DataSourceColumnBinder dataSourceColumnBinder3 = new XPTable.Models.DataSourceColumnBinder();
+            XPTable.Renderers.DragDropRenderer dragDropRenderer3 = new XPTable.Renderers.DragDropRenderer();
             this.buttonClose = new System.Windows.Forms.Button();
             this.buttonSave = new System.Windows.Forms.Button();
             this.groupBoxEdit = new System.Windows.Forms.GroupBox();
+            this.labelFilter = new System.Windows.Forms.Label();
+            this.textBoxFilter = new System.Windows.Forms.TextBox();
             this.tableNuclides = new XPTable.Models.Table();
             this.columnModelNuclides = new XPTable.Models.ColumnModel();
             this.columnNuclideIncluded = new XPTable.Models.CheckBoxColumn();
@@ -74,26 +76,39 @@ namespace BecquerelMonitor
             // 
             // groupBoxEdit
             // 
-            resources.ApplyResources(this.groupBoxEdit, "groupBoxEdit");
+            this.groupBoxEdit.Controls.Add(this.labelFilter);
+            this.groupBoxEdit.Controls.Add(this.textBoxFilter);
             this.groupBoxEdit.Controls.Add(this.tableNuclides);
             this.groupBoxEdit.Controls.Add(this.buttonDeleteSet);
             this.groupBoxEdit.Controls.Add(this.labelNuclides);
             this.groupBoxEdit.Controls.Add(this.buttonAddSet);
             this.groupBoxEdit.Controls.Add(this.labelSets);
             this.groupBoxEdit.Controls.Add(this.tableSets);
+            resources.ApplyResources(this.groupBoxEdit, "groupBoxEdit");
             this.groupBoxEdit.Name = "groupBoxEdit";
             this.groupBoxEdit.TabStop = false;
             // 
+            // labelFilter
+            // 
+            resources.ApplyResources(this.labelFilter, "labelFilter");
+            this.labelFilter.Name = "labelFilter";
+            // 
+            // textBoxFilter
+            // 
+            resources.ApplyResources(this.textBoxFilter, "textBoxFilter");
+            this.textBoxFilter.Name = "textBoxFilter";
+            this.textBoxFilter.TextChanged += new System.EventHandler(this.textBoxFilter_TextChanged);
+            // 
             // tableNuclides
             // 
-            resources.ApplyResources(this.tableNuclides, "tableNuclides");
             this.tableNuclides.BorderColor = System.Drawing.Color.Black;
             this.tableNuclides.ColumnModel = this.columnModelNuclides;
             this.tableNuclides.DataMember = null;
-            this.tableNuclides.DataSourceColumnBinder = dataSourceColumnBinder1;
-            dragDropRenderer1.ForeColor = System.Drawing.Color.Red;
-            this.tableNuclides.DragDropRenderer = dragDropRenderer1;
+            this.tableNuclides.DataSourceColumnBinder = dataSourceColumnBinder2;
+            dragDropRenderer2.ForeColor = System.Drawing.Color.Red;
+            this.tableNuclides.DragDropRenderer = dragDropRenderer2;
             this.tableNuclides.GridLinesContrainedToData = false;
+            resources.ApplyResources(this.tableNuclides, "tableNuclides");
             this.tableNuclides.Name = "tableNuclides";
             this.tableNuclides.TableModel = this.tableModelNuclides;
             this.tableNuclides.UnfocusedBorderColor = System.Drawing.Color.Black;
@@ -103,33 +118,33 @@ namespace BecquerelMonitor
             // columnModelNuclides
             // 
             this.columnModelNuclides.Columns.AddRange(new XPTable.Models.Column[] {
-            this.columnNuclideIncluded,
-            this.columnNuclideName,
-            this.columnNuclideEnergy});
+            ((XPTable.Models.Column)(this.columnNuclideIncluded)),
+            ((XPTable.Models.Column)(this.columnNuclideName)),
+            ((XPTable.Models.Column)(this.columnNuclideEnergy))});
             // 
             // columnNuclideIncluded
             // 
-            resources.ApplyResources(this.columnNuclideIncluded, "columnNuclideIncluded");
             this.columnNuclideIncluded.IsTextTrimmed = false;
             this.columnNuclideIncluded.Resizable = false;
             this.columnNuclideIncluded.Selectable = false;
             this.columnNuclideIncluded.Sortable = false;
+            resources.ApplyResources(this.columnNuclideIncluded, "columnNuclideIncluded");
             // 
             // columnNuclideName
             // 
-            resources.ApplyResources(this.columnNuclideName, "columnNuclideName");
             this.columnNuclideName.Editable = false;
             this.columnNuclideName.IsTextTrimmed = false;
             this.columnNuclideName.Selectable = false;
             this.columnNuclideName.Sortable = false;
+            resources.ApplyResources(this.columnNuclideName, "columnNuclideName");
             // 
             // columnNuclideEnergy
             // 
-            resources.ApplyResources(this.columnNuclideEnergy, "columnNuclideEnergy");
             this.columnNuclideEnergy.Editable = false;
             this.columnNuclideEnergy.IsTextTrimmed = false;
             this.columnNuclideEnergy.Selectable = false;
             this.columnNuclideEnergy.Sortable = false;
+            resources.ApplyResources(this.columnNuclideEnergy, "columnNuclideEnergy");
             // 
             // buttonDeleteSet
             // 
@@ -157,14 +172,14 @@ namespace BecquerelMonitor
             // 
             // tableSets
             // 
-            resources.ApplyResources(this.tableSets, "tableSets");
             this.tableSets.BorderColor = System.Drawing.Color.Black;
             this.tableSets.ColumnModel = this.columnModelSets;
             this.tableSets.DataMember = null;
-            this.tableSets.DataSourceColumnBinder = dataSourceColumnBinder2;
-            dragDropRenderer2.ForeColor = System.Drawing.Color.Red;
-            this.tableSets.DragDropRenderer = dragDropRenderer2;
+            this.tableSets.DataSourceColumnBinder = dataSourceColumnBinder3;
+            dragDropRenderer3.ForeColor = System.Drawing.Color.Red;
+            this.tableSets.DragDropRenderer = dragDropRenderer3;
             this.tableSets.GridLinesContrainedToData = false;
+            resources.ApplyResources(this.tableSets, "tableSets");
             this.tableSets.Name = "tableSets";
             this.tableSets.TableModel = this.tableModelSets;
             this.tableSets.UnfocusedBorderColor = System.Drawing.Color.Black;
@@ -175,19 +190,19 @@ namespace BecquerelMonitor
             // columnModelSets
             // 
             this.columnModelSets.Columns.AddRange(new XPTable.Models.Column[] {
-            this.columnSetName,
-            this.columnSetHideUnknown});
+            ((XPTable.Models.Column)(this.columnSetName)),
+            ((XPTable.Models.Column)(this.columnSetHideUnknown))});
             // 
             // columnSetName
             // 
-            resources.ApplyResources(this.columnSetName, "columnSetName");
             this.columnSetName.IsTextTrimmed = false;
             this.columnSetName.Sortable = false;
+            resources.ApplyResources(this.columnSetName, "columnSetName");
             // 
             // columnSetHideUnknown
             // 
-            resources.ApplyResources(this.columnSetHideUnknown, "columnSetHideUnknown");
             this.columnSetHideUnknown.IsTextTrimmed = false;
+            resources.ApplyResources(this.columnSetHideUnknown, "columnSetHideUnknown");
             // 
             // NuclideSetForm
             // 
@@ -225,5 +240,7 @@ namespace BecquerelMonitor
         private XPTable.Models.TableModel tableModelSets;
         private XPTable.Models.TableModel tableModelNuclides;
         private XPTable.Models.CheckBoxColumn columnSetHideUnknown;
+        private System.Windows.Forms.TextBox textBoxFilter;
+        private System.Windows.Forms.Label labelFilter;
     }
 }
