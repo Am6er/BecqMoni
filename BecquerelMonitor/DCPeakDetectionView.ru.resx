@@ -361,4 +361,10 @@
   <data name="textColumn6.Text" xml:space="preserve">
     <value>FWHM</value>
   </data>
+  <data name="labelSetName.Text" xml:space="preserve">
+    <value>Набор:</value>
+  </data>
+  <data name="ComboBoxNuclSetAllNuclides" xml:space="preserve">
+    <value>--- Все изотопы ---</value>
+  </data>
 </root>

@@ -40,6 +40,18 @@ namespace BecquerelMonitor
             }
         }
 
+        public List<NuclideSet> NuclideSets
+        {
+            get
+            {
+                return this.nuclideDefinitionFile.NuclideSets;
+            }
+            set
+            {
+                this.nuclideDefinitionFile.NuclideSets = value;
+            }
+        }
+
         // Token: 0x06000932 RID: 2354 RVA: 0x00035750 File Offset: 0x00033950
         public static NuclideDefinitionManager GetInstance()
         {
@@ -57,9 +69,9 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000934 RID: 2356 RVA: 0x000357C4 File Offset: 0x000339C4
-        public bool LoadDefinitionFile()
+        public bool LoadDefinitionFile(bool forceReload = false)
         {
-            if (this.isLoaded)
+            if (this.isLoaded && !forceReload)
             {
                 return true;
             }

@@ -105,7 +105,8 @@ namespace BecquerelMonitor
 			this.ツ\u30FCルTToolStripMenuItem1 = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.デバイス構成の編集DToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.rOI定義RToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.核種定義の編集NToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.NuclideDefinitionToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.NuclideSetToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.OpenConfigNToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.NucDB = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSeparator5 = new global::System.Windows.Forms.ToolStripSeparator();
@@ -396,7 +397,8 @@ namespace BecquerelMonitor
 			{
 				this.デバイス構成の編集DToolStripMenuItem,
 				this.rOI定義RToolStripMenuItem,
-				this.核種定義の編集NToolStripMenuItem,
+				this.NuclideDefinitionToolStripMenuItem,
+				this.NuclideSetToolStripMenuItem,
 				this.NucDB,
 				this.OpenConfigNToolStripMenuItem,
 				this.toolStripSeparator5,
@@ -409,9 +411,12 @@ namespace BecquerelMonitor
 			resources.ApplyResources(this.rOI定義RToolStripMenuItem, "rOI定義RToolStripMenuItem");
 			this.rOI定義RToolStripMenuItem.Name = "rOI定義RToolStripMenuItem";
 			this.rOI定義RToolStripMenuItem.Click += new global::System.EventHandler(this.rOI定義RToolStripMenuItem_Click);
-			resources.ApplyResources(this.核種定義の編集NToolStripMenuItem, "核種定義の編集NToolStripMenuItem");
-			this.核種定義の編集NToolStripMenuItem.Name = "核種定義の編集NToolStripMenuItem";
-			this.核種定義の編集NToolStripMenuItem.Click += new global::System.EventHandler(this.核種定義の編集NToolStripMenuItem_Click);
+			resources.ApplyResources(this.NuclideDefinitionToolStripMenuItem, "NuclideDefinitionToolStripMenuItem");
+			this.NuclideDefinitionToolStripMenuItem.Name = "NuclideDefinitionToolStripMenuItem";
+			this.NuclideDefinitionToolStripMenuItem.Click += new global::System.EventHandler(this.NuclideDefinitionToolStripMenuItem_Click);
+			resources.ApplyResources(this.NuclideSetToolStripMenuItem, "NuclideSetToolStripMenuItem");
+			this.NuclideSetToolStripMenuItem.Name = "NuclideSetToolStripMenuItem";
+			this.NuclideSetToolStripMenuItem.Click += new global::System.EventHandler(this.NuclideSetToolStripMenuItem_Click);
 			resources.ApplyResources(this.OpenConfigNToolStripMenuItem, "OpenConfigNToolStripMenuItem");
 			this.OpenConfigNToolStripMenuItem.Name = "OpenConfigNToolStripMenuItem";
 			this.OpenConfigNToolStripMenuItem.Click += new global::System.EventHandler(this.OpenConfigNToolStripMenuItem_Click);
@@ -708,8 +713,10 @@ namespace BecquerelMonitor
 
         global::System.Windows.Forms.ToolStripMenuItem AutoSaveStripMenuItem;
 
-        // Token: 0x040005B4 RID: 1460
-        global::System.Windows.Forms.ToolStripMenuItem 核種定義の編集NToolStripMenuItem;
+		// Token: 0x040005B4 RID: 1460
+		global::System.Windows.Forms.ToolStripMenuItem NuclideDefinitionToolStripMenuItem;
+
+		global::System.Windows.Forms.ToolStripMenuItem NuclideSetToolStripMenuItem;
 
 		global::System.Windows.Forms.ToolStripMenuItem OpenConfigNToolStripMenuItem;
 
