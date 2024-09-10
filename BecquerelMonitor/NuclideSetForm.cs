@@ -37,16 +37,31 @@ namespace BecquerelMonitor
             {
                 foreach (NuclideDefinition nuclideDefinition in this.nuclideManager.NuclideDefinitions)
                 {
-                    Row row = new Row();
-                    bool included = nuclideDefinition.Sets.Contains(this.selectedSet.Id);
-                    row.Cells.Add(new Cell() { Checked = included });
-                    row.Cells.Add(new Cell(nuclideDefinition.Name));
-                    row.Cells.Add(new Cell(nuclideDefinition.Energy.ToString(), nuclideDefinition.Energy));
+                    if (!string.IsNullOrWhiteSpace(this.textBoxFilter.Text)
+                        && !string.IsNullOrWhiteSpace(nuclideDefinition.Name)
+                        && !nuclideDefinition.Name.ToLowerInvariant().Contains(this.textBoxFilter.Text.ToLowerInvariant()))
+                    {
+                        continue;
+                    }
+
+                    Row row = CreateNuclideRow(nuclideDefinition, this.selectedSet.Id);
                     this.tableModelNuclides.Rows.Add(row);
                 }
             }
 
             this.tableNuclides.ResumeLayout();
+        }
+
+        private Row CreateNuclideRow(NuclideDefinition nuclideDefinition, Guid selectedSetId)
+        {
+            Row row = new Row();
+            bool included = nuclideDefinition.Sets.Contains(selectedSetId);
+            row.Cells.Add(new Cell() { Checked = included });
+            row.Cells.Add(new Cell(nuclideDefinition.Name));
+            row.Cells.Add(new Cell(nuclideDefinition.Energy.ToString(), nuclideDefinition.Energy));
+            row.Tag = nuclideDefinition;
+
+            return row;
         }
 
         private void RenderTableSets()
@@ -121,7 +136,7 @@ namespace BecquerelMonitor
             if (e.Cell.Index == NuclideCheckboxColumnIndex)
             {
                 bool include = !e.Cell.Checked;
-                this.UpdateNuclideDefinition(e.Row, include);
+                this.UpdateNuclideDefinition(this.tableModelNuclides.Rows[e.Row].Tag as NuclideDefinition, include);
             }
         }
 
@@ -143,20 +158,14 @@ namespace BecquerelMonitor
                 bool include = checkCol.Text == "X";
                 Row row = this.tableModelNuclides.Rows[i];
                 row.Cells[NuclideCheckboxColumnIndex].Checked = include;
-                this.UpdateNuclideDefinition(i, include);
+                this.UpdateNuclideDefinition(row.Tag as NuclideDefinition, include);
             }
 
             this.tableNuclides.ResumeLayout();
         }
 
-        private void UpdateNuclideDefinition(int index, bool include)
+        private void UpdateNuclideDefinition(NuclideDefinition def, bool include)
         {
-            if (this.selectedSet == null)
-            {
-                return;
-            }
-
-            NuclideDefinition def = this.nuclideManager.NuclideDefinitions[index];
             if (include)
             {
                 def.Sets.Add(this.selectedSet.Id);
@@ -260,6 +269,11 @@ namespace BecquerelMonitor
                 this.selectedSet.HideUnknownPeaks = e.Cell.Checked;
                 this.MarkAsDirty();
             }
+        }
+
+        private void textBoxFilter_TextChanged(object sender, EventArgs e)
+        {
+            this.UpdateTableNuclides();
         }
     }
 }
