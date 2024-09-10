@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Xml.Serialization;
 using System.Drawing;
+using System.Collections.Generic;
 
 namespace BecquerelMonitor
 {
@@ -132,6 +133,18 @@ namespace BecquerelMonitor
             }
         }
 
+        public HashSet<Guid> Sets
+        {
+            get
+            {
+                return this.sets;
+            }
+            set
+            {
+                this.sets = value;
+            }
+        }
+
         // Token: 0x040009B1 RID: 2481
         string name = "";
 
@@ -152,5 +165,7 @@ namespace BecquerelMonitor
         double intensity = 0;
 
         SerializableColor nuclideColor = Color.Gray;
+
+        HashSet<Guid> sets = new HashSet<Guid>();
     }
 }

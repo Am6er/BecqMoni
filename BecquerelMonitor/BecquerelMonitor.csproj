@@ -422,6 +422,7 @@
     </Compile>
     <Compile Include="NucBase\NucBaseFramework.cs" />
     <Compile Include="NucBase\Nuclide.cs" />
+    <Compile Include="NuclideSet.cs" />
     <Compile Include="NuclideDefinition.cs" />
     <Compile Include="NuclideDefinitionFile.cs" />
     <Compile Include="NuclideDefinitionForm.cs">
@@ -431,6 +432,12 @@
       <DependentUpon>NuclideDefinitionForm.cs</DependentUpon>
     </Compile>
     <Compile Include="NuclideDefinitionManager.cs" />
+    <Compile Include="NuclideSetForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="NuclideSetForm.Designer.cs">
+      <DependentUpon>NuclideSetForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="OutofChannelException.cs" />
     <Compile Include="Package.cs" />
     <Compile Include="Peak.cs" />
@@ -930,9 +937,11 @@
     </EmbeddedResource>
     <EmbeddedResource Include="DCPeakDetectionView.resx">
       <DependentUpon>DCPeakDetectionView.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="DCPeakDetectionView.ru.resx">
       <DependentUpon>DCPeakDetectionView.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="DCPulseView.resx">
       <DependentUpon>DCPulseView.cs</DependentUpon>
@@ -1026,6 +1035,13 @@
     </EmbeddedResource>
     <EmbeddedResource Include="NuclideDefinitionForm.ru.resx">
       <DependentUpon>NuclideDefinitionForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="NuclideSetForm.resx">
+      <DependentUpon>NuclideSetForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="NuclideSetForm.ru.resx">
+      <DependentUpon>NuclideSetForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

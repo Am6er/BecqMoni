@@ -1142,9 +1142,14 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000A71 RID: 2673 RVA: 0x0003E230 File Offset: 0x0003C430
-        void 核種定義の編集NToolStripMenuItem_Click(object sender, EventArgs e)
+        void NuclideDefinitionToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.ShowNuclideDefinitionForm();
+        }
+
+        void NuclideSetToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            this.ShowNuclideSetForm();
         }
 
         void OpenConfigNToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1190,6 +1195,12 @@ namespace BecquerelMonitor
             this.nuclideDefinitionForm.Show();
             this.nuclideDefinitionForm.Activate();
             return this.nuclideDefinitionForm;
+        }
+
+        public void ShowNuclideSetForm()
+        {
+            NuclideSetForm form = new NuclideSetForm(this);
+            form.ShowDialog();
         }
 
         // Token: 0x06000A73 RID: 2675 RVA: 0x0003E2F4 File Offset: 0x0003C4F4
@@ -2091,6 +2102,14 @@ namespace BecquerelMonitor
             catch (Exception ex)
             {
                 MessageBox.Show(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message));
+            }
+        }
+
+        public void RefresNuclideSetList()
+        {
+            if (this.dcPeakDetectionView != null)
+            {
+                this.dcPeakDetectionView.RefreshNuclideSets();
             }
         }
 

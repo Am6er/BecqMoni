@@ -1838,6 +1838,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Nuclide set(s) has been modified. Save?.
+        /// </summary>
+        internal static string MSGSavingNuclideSet {
+            get {
+                return ResourceManager.GetString("MSGSavingNuclideSet", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Changing thermometer type causes initialization of input fields. OK?.
         /// </summary>
         internal static string MSGThermometerTypeChanging {

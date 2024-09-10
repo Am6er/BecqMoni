@@ -145,6 +145,9 @@
   <data name="MSGSavingNuclideDefinition" xml:space="preserve">
     <value>Nuclide definition has been modified. Save?</value>
   </data>
+  <data name="MSGSavingNuclideSet" xml:space="preserve">
+    <value>Nuclide set(s) has been modified. Save?</value>
+  </data>
   <data name="ERRDeviceConfigNotSelected" xml:space="preserve">
     <value>Device configuration is not selected.</value>
   </data>
