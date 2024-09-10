@@ -32,10 +32,10 @@
             resultData.CountRates.Add(new CountRate(new_counts, resultData.EnergySpectrum.TotalPulseCount - resultData.EnergySpectrum.ValidPulseCount, new_time));
         }
 
-        public decimal GetCPS(ResultData resultData, decimal window)
+        public double GetCPS(ResultData resultData, double window)
         {
             if (resultData.CountRates.Count <= 3) return 0;
-            double win_ms = resultData.CountRates[resultData.CountRates.Count - 1].ElapsedTimeInMs - (double)(window * 1000);
+            double win_ms = resultData.CountRates[resultData.CountRates.Count - 1].ElapsedTimeInMs - (double)(window * 1000.0);
             CountRate last_countRate = resultData.CountRates[resultData.CountRates.Count - 1];
             CountRate first_countRate = null;
 
@@ -60,13 +60,32 @@
             {
                 return 0;
             }
-            return (decimal)result;
+            return result;
         }
 
-        public int GetSpecEffRatio(ResultData resultData, decimal window)
+        public double GetDeadTime(ResultData resultData, double window)
+        {
+            if (resultData.DeviceConfig == null ||
+                resultData.DeviceConfig.InputDeviceConfig == null ||
+                resultData.DeviceConfig.InputDeviceConfig.DeadTime() == 0)
+            { return 0; }
+
+            double deadTime = resultData.DeviceConfig.InputDeviceConfig.DeadTime();
+            double liveTime = Utils.LiveTime.Calculate2(window, GetCPS(resultData, window), deadTime);
+            if (liveTime != 0)
+            {
+                return 100.0 * (window - liveTime) / window;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+
+        public int GetSpecEffRatio(ResultData resultData, double window)
         {
             if (resultData.CountRates.Count <= 3) return 0;
-            double win_ms = resultData.CountRates[resultData.CountRates.Count - 1].ElapsedTimeInMs - (double)(window * 1000);
+            double win_ms = resultData.CountRates[resultData.CountRates.Count - 1].ElapsedTimeInMs - window * 1000.0;
             CountRate last_countRate = resultData.CountRates[resultData.CountRates.Count - 1];
             CountRate first_countRate = null;
 

@@ -1,6 +1,7 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
@@ -365,9 +366,26 @@ namespace BecquerelMonitor
             if (totalSeconds != 0.0)
             {
                 cps = (double)activeResultData.EnergySpectrum.ValidPulseCount / totalSeconds;
-                deadTime = (double)100.0 * (totalSeconds - activeResultData.EnergySpectrum.LiveTime) / totalSeconds;
+                if (activeResultData.EnergySpectrum.LiveTime != 0)
+                {
+                    deadTime = (double)100.0 * (totalSeconds - activeResultData.EnergySpectrum.LiveTime) / totalSeconds;
+                } else
+                {
+                    deadTime = 0;
+                }
             }
             this.countRateTextBox.Text = cps.ToString("f2");
+            if (deadTime <= 20.0)
+            {
+                this.deadTimetextBox.ForeColor = Color.Black;
+            } else if (deadTime > 20.0 && deadTime <= 50.0)
+            {
+                this.deadTimetextBox.ForeColor = Color.DarkOrange;
+            } else if (deadTime > 50.0)
+            {
+                this.deadTimetextBox.ForeColor = Color.DarkRed;
+            }
+            this.deadTimetextBox.BackColor = this.deadTimetextBox.BackColor;
             this.deadTimetextBox.Text = deadTime.ToString("f4");
         }
 
@@ -378,16 +396,16 @@ namespace BecquerelMonitor
             ResultData activeResultData = activeDocument.ActiveResultData;
             ResultDataStatus resultDataStatus = activeResultData.ResultDataStatus;
             double totalSeconds = resultDataStatus.ElapsedTime.TotalSeconds;
-            double num = totalSeconds / (double)resultDataStatus.PresetTime * 100.0;
-            if (num < 0.0)
+            double progress = totalSeconds / (double)resultDataStatus.PresetTime * 100.0;
+            if (progress < 0.0)
             {
-                num = 0.0;
+                progress = 0.0;
             }
-            if (num > 100.0)
+            if (progress > 100.0)
             {
-                num = 100.0;
+                progress = 100.0;
             }
-            this.percentageProgressBar1.DoubleValue = num;
+            this.percentageProgressBar1.DoubleValue = progress;
             this.percentageProgressBar1.PriorText = ((int)totalSeconds).ToString();
             this.percentageProgressBar1.Invalidate();
         }

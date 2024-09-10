@@ -33,6 +33,9 @@
             this.LossCountsRatioLabel = new System.Windows.Forms.Label();
             this.LossCountsRatioValLbl = new System.Windows.Forms.Label();
             this.percentlbl = new System.Windows.Forms.Label();
+            this.DeadTimeLbl = new System.Windows.Forms.Label();
+            this.DeadTimeValLbl = new System.Windows.Forms.Label();
+            this.label2 = new System.Windows.Forms.Label();
             this.panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.windowControl)).BeginInit();
             this.SuspendLayout();
@@ -107,9 +110,28 @@
             resources.ApplyResources(this.percentlbl, "percentlbl");
             this.percentlbl.Name = "percentlbl";
             // 
+            // DeadTimeLbl
+            // 
+            resources.ApplyResources(this.DeadTimeLbl, "DeadTimeLbl");
+            this.DeadTimeLbl.Name = "DeadTimeLbl";
+            // 
+            // DeadTimeValLbl
+            // 
+            this.DeadTimeValLbl.BackColor = System.Drawing.SystemColors.ControlLight;
+            resources.ApplyResources(this.DeadTimeValLbl, "DeadTimeValLbl");
+            this.DeadTimeValLbl.Name = "DeadTimeValLbl";
+            // 
+            // label2
+            // 
+            resources.ApplyResources(this.label2, "label2");
+            this.label2.Name = "label2";
+            // 
             // DCCountRateView
             // 
             resources.ApplyResources(this, "$this");
+            this.Controls.Add(this.label2);
+            this.Controls.Add(this.DeadTimeValLbl);
+            this.Controls.Add(this.DeadTimeLbl);
             this.Controls.Add(this.percentlbl);
             this.Controls.Add(this.LossCountsRatioValLbl);
             this.Controls.Add(this.LossCountsRatioLabel);
@@ -141,5 +163,8 @@
         private System.Windows.Forms.Label LossCountsRatioLabel;
         private System.Windows.Forms.Label LossCountsRatioValLbl;
         private System.Windows.Forms.Label percentlbl;
+        private System.Windows.Forms.Label DeadTimeLbl;
+        private System.Windows.Forms.Label DeadTimeValLbl;
+        private System.Windows.Forms.Label label2;
     }
 }

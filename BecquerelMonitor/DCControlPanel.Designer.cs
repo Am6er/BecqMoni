@@ -39,12 +39,12 @@ namespace BecquerelMonitor
             this.devConfigComboBox = new System.Windows.Forms.ComboBox();
             this.realTimeLimitTextBox = new BecquerelMonitor.IntegerTextBox();
             this.percentageProgressBar1 = new BecquerelMonitor.PercentageProgressBar();
+            this.liveTimeLbl = new System.Windows.Forms.Label();
+            this.deadTimeLbl = new System.Windows.Forms.Label();
             this.saveWhenFinishedCheckBox = new System.Windows.Forms.CheckBox();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.liveTimetextBox = new System.Windows.Forms.TextBox();
-            this.liveTimeLbl = new System.Windows.Forms.Label();
             this.deadTimetextBox = new System.Windows.Forms.TextBox();
-            this.deadTimeLbl = new System.Windows.Forms.Label();
             this.realTimeLbl = new System.Windows.Forms.Label();
             this.invalidCntLbl = new System.Windows.Forms.Label();
             this.totalCntTextBox = new System.Windows.Forms.TextBox();
@@ -74,6 +74,12 @@ namespace BecquerelMonitor
             this.imageList1.Images.SetKeyName(1, "stop.ico");
             this.imageList1.Images.SetKeyName(2, "clear.ico");
             this.imageList1.Images.SetKeyName(3, "reload.ico");
+            // 
+            // toolTip1
+            // 
+            this.toolTip1.AutoPopDelay = 10000;
+            this.toolTip1.InitialDelay = 500;
+            this.toolTip1.ReshowDelay = 100;
             // 
             // attachBtn
             // 
@@ -183,6 +189,18 @@ namespace BecquerelMonitor
             this.toolTip1.SetToolTip(this.percentageProgressBar1, resources.GetString("percentageProgressBar1.ToolTip"));
             this.percentageProgressBar1.Click += new System.EventHandler(this.percentageProgressBar1_Click);
             // 
+            // liveTimeLbl
+            // 
+            resources.ApplyResources(this.liveTimeLbl, "liveTimeLbl");
+            this.liveTimeLbl.Name = "liveTimeLbl";
+            this.toolTip1.SetToolTip(this.liveTimeLbl, resources.GetString("liveTimeLbl.ToolTip"));
+            // 
+            // deadTimeLbl
+            // 
+            resources.ApplyResources(this.deadTimeLbl, "deadTimeLbl");
+            this.deadTimeLbl.Name = "deadTimeLbl";
+            this.toolTip1.SetToolTip(this.deadTimeLbl, resources.GetString("deadTimeLbl.ToolTip"));
+            // 
             // saveWhenFinishedCheckBox
             // 
             resources.ApplyResources(this.saveWhenFinishedCheckBox, "saveWhenFinishedCheckBox");
@@ -222,22 +240,12 @@ namespace BecquerelMonitor
             this.liveTimetextBox.ReadOnly = true;
             this.liveTimetextBox.TabStop = false;
             // 
-            // liveTimeLbl
-            // 
-            resources.ApplyResources(this.liveTimeLbl, "liveTimeLbl");
-            this.liveTimeLbl.Name = "liveTimeLbl";
-            // 
             // deadTimetextBox
             // 
             resources.ApplyResources(this.deadTimetextBox, "deadTimetextBox");
             this.deadTimetextBox.Name = "deadTimetextBox";
             this.deadTimetextBox.ReadOnly = true;
             this.deadTimetextBox.TabStop = false;
-            // 
-            // deadTimeLbl
-            // 
-            resources.ApplyResources(this.deadTimeLbl, "deadTimeLbl");
-            this.deadTimeLbl.Name = "deadTimeLbl";
             // 
             // realTimeLbl
             // 

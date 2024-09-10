@@ -780,6 +780,9 @@
   <data name="exportBgToolStripMenuItem.Text" xml:space="preserve">
     <value>Экспортировать спектр фона в файл</value>
   </data>
+  <data name="ApplyDeadTimeCorrectionStripMenuItem.Text" xml:space="preserve">
+    <value>Применить коррекцию мёртвого времени</value>
+  </data>
   <data name="NuclideSetToolStripMenuItem.Text" xml:space="preserve">
     <value>Редактировать наборы изотопов...</value>
   </data>
