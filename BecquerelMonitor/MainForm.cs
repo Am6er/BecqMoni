@@ -596,10 +596,11 @@ namespace BecquerelMonitor
         {
             if (this.activeDocument != null && this.dcCountRateView != null)
             {
-                decimal window = this.dcCountRateView.getWindow();
-                decimal cps = this.countsRateManager.GetCPS(this.activeDocument.ActiveResultData, window);
+                double window = this.dcCountRateView.getWindow();
+                double cps = this.countsRateManager.GetCPS(this.activeDocument.ActiveResultData, window);
                 int speceffratio = this.countsRateManager.GetSpecEffRatio(this.activeDocument.ActiveResultData, window);
-                this.dcCountRateView.UpdateInfo(cps, speceffratio);
+                double deadTime = this.countsRateManager.GetDeadTime(this.activeDocument.ActiveResultData, window);
+                this.dcCountRateView.UpdateInfo(cps, speceffratio, deadTime);
             }
         }
 
@@ -1562,6 +1563,7 @@ namespace BecquerelMonitor
                 this.ConcatSpectrumsStripMenuItem.Enabled = false;
                 this.CutoffStripMenuItem.Enabled = false;
                 this.NormalizeSpectrumStripMenuItem.Enabled = false;
+                this.ApplyDeadTimeCorrectionStripMenuItem.Enabled = false;
                 this.AutoSaveStripMenuItem.Enabled = false;
                 this.toolStripMenuItem1.Enabled = false;
                 this.exportBgToolStripMenuItem.Enabled = false;
@@ -1574,6 +1576,9 @@ namespace BecquerelMonitor
             this.ConcatSpectrumsStripMenuItem.Enabled = enabled;
             this.CutoffStripMenuItem.Enabled = enabled;
             this.NormalizeSpectrumStripMenuItem.Enabled = enabled;
+            this.ApplyDeadTimeCorrectionStripMenuItem.Enabled = enabled &&
+                this.activeDocument.ActiveResultData.EnergySpectrum.MeasurementTime > 0 &&
+                this.activeDocument.ActiveResultData.EnergySpectrum.TotalPulseCount > 0;
             this.AutoSaveStripMenuItem.Enabled = enabled;
             this.AutoSaveStripMenuItem.Checked = this.activeDocument.AutoSave;
             this.toolStripMenuItem1.Enabled = enabled;
@@ -2403,6 +2408,32 @@ namespace BecquerelMonitor
                 return;
             }
             NormalizeSpectrum(this.activeDocument);
+        }
+
+        void ApplyDeadTimeCorrectionStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (this.activeDocument == null)
+            {
+                return;
+            }
+
+            DeviceConfigInfo deviceConfigInfo = null;
+
+            using (SelectDeviceDialog dialog = new SelectDeviceDialog(this))
+            {
+                dialog.ShowDialog();
+                string deviceGUID = dialog.SendData();
+                if (deviceGUID == null) return;
+                deviceConfigInfo = deviceConfigManager.DeviceConfigMap[deviceGUID];
+            }
+
+            if (deviceConfigInfo == null) return;
+
+            this.activeDocument.ActiveResultData.EnergySpectrum.LiveTime = Utils.LiveTime.Calculate(this.activeDocument.ActiveResultData.EnergySpectrum.MeasurementTime,
+                this.activeDocument.ActiveResultData.EnergySpectrum.TotalPulseCount, deviceConfigInfo.InputDeviceConfig.DeadTime());
+
+            this.activeDocument.Dirty = true;
+            this.UpdateAllView();
         }
 
 

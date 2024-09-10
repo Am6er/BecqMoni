@@ -35,8 +35,8 @@
     <MinimumRequiredVersion>2022.07.08.7</MinimumRequiredVersion>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
-    <ApplicationRevision>4</ApplicationRevision>
-    <ApplicationVersion>2024.09.06.4</ApplicationVersion>
+    <ApplicationRevision>2</ApplicationRevision>
+    <ApplicationVersion>2024.09.09.2</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -542,6 +542,12 @@
     </Compile>
     <Compile Include="ROISimpleDifferenceData.cs" />
     <Compile Include="SampleInfoData.cs" />
+    <Compile Include="SelectDeviceDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SelectDeviceDialog.Designer.cs">
+      <DependentUpon>SelectDeviceDialog.cs</DependentUpon>
+    </Compile>
     <Compile Include="SelectROIDialog.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -1088,6 +1094,12 @@
       <LastGenOutput>ROISimpleDifferenceControl.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="ROISimpleDifferenceControl.ru.resx" />
+    <EmbeddedResource Include="SelectDeviceDialog.resx">
+      <DependentUpon>SelectDeviceDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SelectDeviceDialog.ru.resx">
+      <DependentUpon>SelectDeviceDialog.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="SelectROIDialog.resx">
       <DependentUpon>SelectROIDialog.cs</DependentUpon>
     </EmbeddedResource>

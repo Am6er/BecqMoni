@@ -136,4 +136,7 @@
   <data name="LossCountsRatioLabel.Text" xml:space="preserve">
     <value>Потери счёта</value>
   </data>
+  <data name="DeadTimeLbl.Text" xml:space="preserve">
+    <value>Мёртвое время</value>
+  </data>
 </root>

@@ -217,6 +217,7 @@ namespace BecquerelMonitor
             this.validPulseCount = 0;
             this.measurementTime = 0.0;
             this.numberOfSamples = 0L;
+            this.liveTime = 0.0;
         }
 
         public EnergySpectrum Clone()
