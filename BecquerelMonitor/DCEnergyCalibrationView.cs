@@ -180,7 +180,7 @@ namespace BecquerelMonitor
             base.SuspendLayout();
             size.Height += 160;
             base.Size = size;
-            autoScrollMinSize.Height = 380;
+            autoScrollMinSize.Height = 460;
             base.AutoScrollMinSize = autoScrollMinSize;
             this.button6.Text = Resources.MultipointCalibrationString + " <<";
             base.VerticalScroll.Value = base.VerticalScroll.Maximum;
@@ -195,7 +195,7 @@ namespace BecquerelMonitor
             this.panel1.Visible = false;
             size.Height -= 160;
             base.Size = size;
-            autoScrollMinSize.Height = 222;
+            autoScrollMinSize.Height = 300;
             base.AutoScrollMinSize = autoScrollMinSize;
             this.button6.Text = Resources.MultipointCalibrationString + " >>";
         }
