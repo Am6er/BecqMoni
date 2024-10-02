@@ -41978,4 +41978,10 @@ see peak in spectrum now).</value>
   <data name="DeadTimeLblText" xml:space="preserve">
     <value>Dead Time: {0} μs</value>
   </data>
+  <data name="RefreshBG" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\RefreshBG.bmp;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="save" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\save.bmp;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
 </root>

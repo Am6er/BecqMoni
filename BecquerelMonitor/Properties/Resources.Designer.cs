@@ -2236,6 +2236,16 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap RefreshBG {
+            get {
+                object obj = ResourceManager.GetObject("RefreshBG", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Reset calibration question.
         /// </summary>
         internal static string ResetCalibrationQuestion {
@@ -2313,6 +2323,16 @@ namespace BecquerelMonitor.Properties {
         internal static string ROIPrimitiveTypeROIReference {
             get {
                 return ResourceManager.GetString("ROIPrimitiveTypeROIReference", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap save {
+            get {
+                object obj = ResourceManager.GetObject("save", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
             }
         }
         

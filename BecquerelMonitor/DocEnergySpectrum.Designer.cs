@@ -50,7 +50,9 @@ namespace BecquerelMonitor
 			this.toolStripSplitButton2 = new global::System.Windows.Forms.ToolStripSplitButton();
 			this.toolStripNumericUpdown = new ToolStripNumericUpdown();
 			this.toolStripScreenShotButton = new ToolStripButton();
-			this.toolStripNumUpDownScale = new ToolStripNumericUpdown();
+			this.toolStripRefreshBgButton = new ToolStripButton();
+			this.toolStripSaveButton = new ToolStripButton();
+            this.toolStripNumUpDownScale = new ToolStripNumericUpdown();
             this.リニア表示ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.powToolStripMenuItem = new global::System.Windows.Forms .ToolStripMenuItem();
 			this.対数表示ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
@@ -59,8 +61,10 @@ namespace BecquerelMonitor
 			this.自動フィットToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.自動フィットBGToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSeparator3 = new global::System.Windows.Forms.ToolStripSeparator();
-			this.toolStripLabel3 = new global::System.Windows.Forms.ToolStripLabel();
-			this.toolStripSplitButton4 = new global::System.Windows.Forms.ToolStripSplitButton();
+            this.toolStripSeparator4 = new global::System.Windows.Forms.ToolStripSeparator();
+            this.toolStripLabel3 = new global::System.Windows.Forms.ToolStripLabel();
+            this.toolStripLabel4 = new global::System.Windows.Forms.ToolStripLabel();
+            this.toolStripSplitButton4 = new global::System.Windows.Forms.ToolStripSplitButton();
 			this.チャネル表示ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.エネルギ\u30FC表示ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripButton2 = new global::System.Windows.Forms.ToolStripButton();
@@ -120,15 +124,23 @@ namespace BecquerelMonitor
 				this.toolStripSplitButton3,
 				this.toolStripSplitButton6,
 				this.toolStripSplitButton9,
-				this.toolStripScreenShotButton
-			});
+				this.toolStripScreenShotButton,
+                this.toolStripSeparator4,
+				this.toolStripLabel4,
+                this.toolStripSaveButton,
+                this.toolStripRefreshBgButton
+            });
 			this.toolStrip2.Name = "toolStrip2";
 			this.toolStrip2.SuppressHighlighting = false;
 			this.toolTip1.SetToolTip(this.toolStrip2, resources.GetString("toolStrip2.ToolTip"));
 			resources.ApplyResources(this.toolStripLabel2, "toolStripLabel2");
 			this.toolStripLabel2.Name = "toolStripLabel2";
 			resources.ApplyResources(this.toolStripSplitButtonBgMode, "toolStripSplitButton7");
-			this.toolStripSplitButtonBgMode.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            resources.ApplyResources(this.toolStripSeparator4, "toolStripSeparator4");
+            this.toolStripSeparator4.Name = "toolStripSeparator4";
+            resources.ApplyResources(this.toolStripLabel4, "toolStripLabel4");
+            this.toolStripLabel4.Name = "toolStripLabel4";
+            this.toolStripSplitButtonBgMode.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
 			this.toolStripSplitButtonBgMode.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
 				this.バックグラウンド表示ありToolStripMenuItem,
@@ -231,6 +243,16 @@ namespace BecquerelMonitor
             this.toolStripScreenShotButton.Image = global::BecquerelMonitor.Properties.Resources.screenshot;
             this.toolStripScreenShotButton.Name = "toolStripScreenShotButton";
             this.toolStripScreenShotButton.Click += new global::System.EventHandler(this.toolStripScreenShotButton_Click);
+            resources.ApplyResources(this.toolStripRefreshBgButton, "toolStripRefreshBgButton");
+            this.toolStripRefreshBgButton.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripRefreshBgButton.Image = global::BecquerelMonitor.Properties.Resources.RefreshBG;
+            this.toolStripRefreshBgButton.Name = "toolStripRefreshBgButton";
+            this.toolStripRefreshBgButton.Click += new global::System.EventHandler(this.toolStripRefreshBgButton_Click);
+            resources.ApplyResources(this.toolStripSaveButton, "toolStripSaveButton");
+            this.toolStripSaveButton.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripSaveButton.Image = global::BecquerelMonitor.Properties.Resources.save;
+            this.toolStripSaveButton.Name = "toolStripSaveButton";
+            this.toolStripSaveButton.Click += new global::System.EventHandler(this.toolStripSaveButton_Click);
             resources.ApplyResources(this.ピ\u30FCク表示ありToolStripMenuItem, "ピーク表示ありToolStripMenuItem");
 			this.ピ\u30FCク表示ありToolStripMenuItem.Name = "ピーク表示ありToolStripMenuItem";
 			this.ピ\u30FCク表示ありToolStripMenuItem.Click += new global::System.EventHandler(this.ピ\u30FCク表示ありToolStripMenuItem_Click);
@@ -541,7 +563,11 @@ namespace BecquerelMonitor
 
 		ToolStripButton toolStripScreenShotButton;
 
-		ToolStripNumericUpdown toolStripNumUpDownScale;
+        ToolStripButton toolStripRefreshBgButton;
+
+        ToolStripButton toolStripSaveButton;
+
+        ToolStripNumericUpdown toolStripNumUpDownScale;
 
         // Token: 0x0400011D RID: 285
         global::System.Windows.Forms.ToolStripMenuItem 対数表示ToolStripMenuItem;
@@ -575,11 +601,15 @@ namespace BecquerelMonitor
 		// Token: 0x04000126 RID: 294
 		global::System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
 
-		// Token: 0x04000127 RID: 295
-		global::System.Windows.Forms.ToolStripLabel toolStripLabel3;
+        global::System.Windows.Forms.ToolStripSeparator toolStripSeparator4;
 
-		// Token: 0x04000128 RID: 296
-		global::System.Windows.Forms.ToolStripSplitButton toolStripSplitButton4;
+        // Token: 0x04000127 RID: 295
+        global::System.Windows.Forms.ToolStripLabel toolStripLabel3;
+
+        global::System.Windows.Forms.ToolStripLabel toolStripLabel4;
+
+        // Token: 0x04000128 RID: 296
+        global::System.Windows.Forms.ToolStripSplitButton toolStripSplitButton4;
 
 		// Token: 0x04000129 RID: 297
 		global::System.Windows.Forms.ToolStripMenuItem エネルギ\u30FC表示ToolStripMenuItem;

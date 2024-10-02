@@ -798,4 +798,13 @@
   <data name="toolStripNumUpDownScale.ToolTipText" xml:space="preserve">
     <value>Изменить масштаб по оси X</value>
   </data>
+  <data name="toolStripLabel4.Text" xml:space="preserve">
+    <value>Изменить:</value>
+  </data>
+  <data name="toolStripRefreshBgButton.ToolTipText" xml:space="preserve">
+    <value>Перезагрузить фон из файла</value>
+  </data>
+  <data name="toolStripSaveButton.ToolTipText" xml:space="preserve">
+    <value>Сохранить текущий документ</value>
+  </data>
 </root>
