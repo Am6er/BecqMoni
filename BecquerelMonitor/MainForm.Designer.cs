@@ -472,9 +472,9 @@ namespace BecquerelMonitor
 			this.dockPanel1.DefaultFloatWindowSize = new global::System.Drawing.Size(400, 300);
 			this.dockPanel1.DockBackColor = global::System.Drawing.SystemColors.ControlDark;
 			this.dockPanel1.Name = "dockPanel1";
-			this.dockPanel1.ShowDocumentIcon = true;
+			this.dockPanel1.ShowDocumentIcon = false;
 			this.dockPanel1.Theme = new VS2015BlueTheme();
-			dockPanelGradient.EndColor = global::System.Drawing.SystemColors.ControlLight;
+            dockPanelGradient.EndColor = global::System.Drawing.SystemColors.ControlLight;
 			dockPanelGradient.StartColor = global::System.Drawing.SystemColors.ControlLight;
 			autoHideStripSkin.DockStripGradient = dockPanelGradient;
 			tabGradient.EndColor = global::System.Drawing.SystemColors.Control;
