@@ -247,6 +247,7 @@ namespace BecquerelMonitor
             {
                 this.filename = value;
                 this.Text = DocumentTextWithDirtyFlag(this.filename);
+                this.ToolTipText = this.Text;
             }
         }
 
@@ -346,6 +347,7 @@ namespace BecquerelMonitor
         private void SetupDocumentTextWithDirtyFlag()
         {
             this.Text = DocumentTextWithDirtyFlag(this.filename);
+            this.ToolTipText = this.Text;
         }
 
         private void View_ActionEvent(object sender, EnergySpectrumActionEventArgs e)
@@ -366,6 +368,7 @@ namespace BecquerelMonitor
         {
             this.filename = filename;
             this.Text = DocumentTextWithDirtyFlag(filename);
+            this.ToolTipText = this.Text;
         }
 
         private string DocumentTextWithDirtyFlag(string filenametxt)
@@ -373,7 +376,7 @@ namespace BecquerelMonitor
             string text = Path.GetFileNameWithoutExtension(filenametxt);
             if (this.Dirty)
             {
-                return text + " *";
+                return "* " + text;
             } else
             {
                 return text;
