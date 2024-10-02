@@ -246,8 +246,7 @@ namespace BecquerelMonitor
             set
             {
                 this.filename = value;
-                this.Text = DocumentTextWithDirtyFlag(this.filename);
-                this.ToolTipText = this.Text;
+                DocumentTextWithDirtyFlag();
             }
         }
 
@@ -288,6 +287,7 @@ namespace BecquerelMonitor
             set
             {
                 this.dirty = value;
+                DocumentTextWithDirtyFlag();
             }
         }
 
@@ -346,8 +346,7 @@ namespace BecquerelMonitor
 
         private void SetupDocumentTextWithDirtyFlag()
         {
-            this.Text = DocumentTextWithDirtyFlag(this.filename);
-            this.ToolTipText = this.Text;
+            DocumentTextWithDirtyFlag();
         }
 
         private void View_ActionEvent(object sender, EnergySpectrumActionEventArgs e)
@@ -367,20 +366,20 @@ namespace BecquerelMonitor
         public DocEnergySpectrum(string filename) : this()
         {
             this.filename = filename;
-            this.Text = DocumentTextWithDirtyFlag(filename);
-            this.ToolTipText = this.Text;
+            DocumentTextWithDirtyFlag();
         }
 
-        private string DocumentTextWithDirtyFlag(string filenametxt)
+        private void DocumentTextWithDirtyFlag()
         {
-            string text = Path.GetFileNameWithoutExtension(filenametxt);
+            string text = Path.GetFileNameWithoutExtension(this.filename);
             if (this.Dirty)
             {
-                return "* " + text;
+                this.Text = "* " + text;
             } else
             {
-                return text;
+                this.Text = text;
             }
+            this.ToolTipText = this.Text;
         }
 
         // Token: 0x06000321 RID: 801 RVA: 0x0000FA10 File Offset: 0x0000DC10
