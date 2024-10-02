@@ -172,10 +172,10 @@ namespace BecquerelMonitor
                 this.activeEnergyCalibration = value;
                 if (this.activeEnergyCalibration)
                 {
-                    this.toolStripSplitButton10.Image = BecquerelMonitor.Properties.Resources.EnergyCalibration;
+                    this.toolStripSplitButton10.Image = Properties.Resources.EnergyCalibration;
                     return;
                 }
-                this.toolStripSplitButton10.Image = BecquerelMonitor.Properties.Resources.EnergyCalibration2;
+                this.toolStripSplitButton10.Image = Properties.Resources.EnergyCalibration2;
             }
         }
 
@@ -246,7 +246,7 @@ namespace BecquerelMonitor
             set
             {
                 this.filename = value;
-                this.Text = Path.GetFileNameWithoutExtension(this.filename);
+                this.Text = DocumentTextWithDirtyFlag(this.filename);
             }
         }
 
@@ -328,8 +328,24 @@ namespace BecquerelMonitor
             if (!normByEffIsAvailable && this.view.BackgroundMode == BackgroundMode.NormalizeByEfficiency)
             {
                 this.view.BackgroundMode = BackgroundMode.Visible;
-                this.toolStripSplitButtonBgMode.Image = BecquerelMonitor.Properties.Resources.BG;
+                this.toolStripSplitButtonBgMode.Image = Properties.Resources.BG;
             }
+        }
+
+        private void SetupBGAffinityButtons()
+        {
+            bool isBGexists = this.IsBackgroundExists();
+            this.toolStripRefreshBgButton.Enabled = isBGexists;
+        }
+
+        private void SetupSaveDocumentButtons()
+        {
+            this.toolStripSaveButton.Enabled = this.Dirty;
+        }
+
+        private void SetupDocumentTextWithDirtyFlag()
+        {
+            this.Text = DocumentTextWithDirtyFlag(this.filename);
         }
 
         private void View_ActionEvent(object sender, EnergySpectrumActionEventArgs e)
@@ -349,8 +365,19 @@ namespace BecquerelMonitor
         public DocEnergySpectrum(string filename) : this()
         {
             this.filename = filename;
-            string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filename);
-            this.Text = fileNameWithoutExtension;
+            this.Text = DocumentTextWithDirtyFlag(filename);
+        }
+
+        private string DocumentTextWithDirtyFlag(string filenametxt)
+        {
+            string text = Path.GetFileNameWithoutExtension(filenametxt);
+            if (this.Dirty)
+            {
+                return text + " *";
+            } else
+            {
+                return text;
+            }
         }
 
         // Token: 0x06000321 RID: 801 RVA: 0x0000FA10 File Offset: 0x0000DC10
@@ -510,6 +537,9 @@ namespace BecquerelMonitor
         {
             this.EvaluateNormByEffMode();
             this.view.PrepareViewData();
+            this.SetupBGAffinityButtons();
+            this.SetupSaveDocumentButtons();
+            this.SetupDocumentTextWithDirtyFlag();
             this.view.RecalcScrollBar();
             this.view.Invalidate();
         }
@@ -517,123 +547,123 @@ namespace BecquerelMonitor
         // Token: 0x06000330 RID: 816 RVA: 0x0000FE1C File Offset: 0x0000E01C
         void SetToolStripIcons()
         {
-            Image image = BecquerelMonitor.Properties.Resources.BG;
+            Image image = Properties.Resources.BG;
             switch (this.view.BackgroundMode)
             {
                 case BackgroundMode.Visible:
-                    image = BecquerelMonitor.Properties.Resources.BG;
+                    image = Properties.Resources.BG;
                     break;
                 case BackgroundMode.Invisible:
-                    image = BecquerelMonitor.Properties.Resources.NOBG;
+                    image = Properties.Resources.NOBG;
                     break;
                 case BackgroundMode.Substract:
-                    image = BecquerelMonitor.Properties.Resources.SUB;
+                    image = Properties.Resources.SUB;
                     break;
                 case BackgroundMode.ShowContinuum:
-                    image = BecquerelMonitor.Properties.Resources.CONT;
+                    image = Properties.Resources.CONT;
                     break;
                 case BackgroundMode.NormalizeByEfficiency:
-                    image = BecquerelMonitor.Properties.Resources.NORM;
+                    image = Properties.Resources.NORM;
                     break;
             }
             this.toolStripSplitButtonBgMode.Image = image;
-            image = BecquerelMonitor.Properties.Resources.HD1;
+            image = Properties.Resources.HD1;
             switch (this.view.DrawingMode)
             {
                 case DrawingMode.HighDefinition:
-                    image = BecquerelMonitor.Properties.Resources.HD;
+                    image = Properties.Resources.HD;
                     break;
                 case DrawingMode.Normal:
-                    image = BecquerelMonitor.Properties.Resources.HD1;
+                    image = Properties.Resources.HD1;
                     break;
             }
             this.toolStripSplitButton8.Image = image;
-            image = BecquerelMonitor.Properties.Resources.cnt;
+            image = Properties.Resources.cnt;
             switch (this.view.VerticalUnit)
             {
                 case VerticalUnit.Counts:
-                    image = BecquerelMonitor.Properties.Resources.cnt;
+                    image = Properties.Resources.cnt;
                     break;
                 case VerticalUnit.CountsPerSecond:
-                    image = BecquerelMonitor.Properties.Resources.cps;
+                    image = Properties.Resources.cps;
                     break;
             }
             this.toolStripSplitButton1.Image = image;
-            image = BecquerelMonitor.Properties.Resources.log;
+            image = Properties.Resources.log;
             switch (this.view.VerticalScaleType)
             {
                 case VerticalScaleType.LinearScale:
-                    image = BecquerelMonitor.Properties.Resources.linear;
+                    image = Properties.Resources.linear;
                     this.toolStripNumericUpdown.Enabled = false;
                     break;
                 case VerticalScaleType.LogarithmicScale:
-                    image = BecquerelMonitor.Properties.Resources.log;
+                    image = Properties.Resources.log;
                     this.toolStripNumericUpdown.Enabled = false;
                     break;
                 case VerticalScaleType.PowerScale:
-                    image = BecquerelMonitor.Properties.Resources.pow;
+                    image = Properties.Resources.pow;
                     this.toolStripNumericUpdown.Enabled = true;
                     break;
             }
             this.toolStripSplitButton2.Image = image;
-            image = BecquerelMonitor.Properties.Resources.line;
+            image = Properties.Resources.line;
             switch (this.view.ChartType)
             {
                 case ChartType.BarChart:
-                    image = BecquerelMonitor.Properties.Resources.bar;
+                    image = Properties.Resources.bar;
                     break;
                 case ChartType.LineChart:
-                    image = BecquerelMonitor.Properties.Resources.line;
+                    image = Properties.Resources.line;
                     break;
             }
             this.toolStripSplitButton3.Image = image;
-            image = BecquerelMonitor.Properties.Resources.fit1;
+            image = Properties.Resources.fit1;
             switch (this.view.VerticalFittingMode)
             {
                 case VerticalFittingMode.None:
-                    image = BecquerelMonitor.Properties.Resources.None;
+                    image = Properties.Resources.None;
                     break;
                 case VerticalFittingMode.MinMax:
-                    image = BecquerelMonitor.Properties.Resources.fit1;
+                    image = Properties.Resources.fit1;
                     break;
                 case VerticalFittingMode.BackgroundMinMax:
-                    image = BecquerelMonitor.Properties.Resources.bgfit;
+                    image = Properties.Resources.bgfit;
                     break;
             }
             this.toolStripSplitButton5.Image = image;
-            image = BecquerelMonitor.Properties.Resources.NoSmooth;
+            image = Properties.Resources.NoSmooth;
             switch (this.view.SmoothingMethod)
             {
                 case SmoothingMethod.None:
-                    image = BecquerelMonitor.Properties.Resources.NoSmooth;
+                    image = Properties.Resources.NoSmooth;
                     break;
                 case SmoothingMethod.SimpleMovingAverage:
-                    image = BecquerelMonitor.Properties.Resources.SMA;
+                    image = Properties.Resources.SMA;
                     break;
                 case SmoothingMethod.WeightedMovingAverage:
-                    image = BecquerelMonitor.Properties.Resources.WMA;
+                    image = Properties.Resources.WMA;
                     break;
             }
             this.toolStripSplitButton6.Image = image;
-            image = BecquerelMonitor.Properties.Resources.ene;
+            image = Properties.Resources.ene;
             switch (this.view.HorizontalUnit)
             {
                 case HorizontalUnit.Channel:
-                    image = BecquerelMonitor.Properties.Resources.channel;
+                    image = Properties.Resources.channel;
                     break;
                 case HorizontalUnit.Energy:
-                    image = BecquerelMonitor.Properties.Resources.ene;
+                    image = Properties.Resources.ene;
                     break;
             }
             this.toolStripSplitButton4.Image = image;
-            image = BecquerelMonitor.Properties.Resources.peak;
+            image = Properties.Resources.peak;
             switch (this.view.PeakMode)
             {
                 case PeakMode.Visible:
-                    image = BecquerelMonitor.Properties.Resources.peak;
+                    image = Properties.Resources.peak;
                     break;
                 case PeakMode.Invisible:
-                    image = BecquerelMonitor.Properties.Resources.nopeak;
+                    image = Properties.Resources.nopeak;
                     break;
             }
             this.toolStripSplitButton9.Image = image;
@@ -643,37 +673,37 @@ namespace BecquerelMonitor
         void toolStripSplitButton7_ButtonClick(object sender, EventArgs e)
         {
             BackgroundMode backgroundMode = BackgroundMode.Invisible;
-            Image image = BecquerelMonitor.Properties.Resources.NOBG;
+            Image image = Properties.Resources.NOBG;
             switch (this.view.BackgroundMode)
             {
                 case BackgroundMode.Visible:
                     backgroundMode = BackgroundMode.Invisible;
-                    image = BecquerelMonitor.Properties.Resources.NOBG;
+                    image = Properties.Resources.NOBG;
                     break;
                 case BackgroundMode.Invisible:
                     backgroundMode = BackgroundMode.Substract;
-                    image = BecquerelMonitor.Properties.Resources.SUB;
+                    image = Properties.Resources.SUB;
                     break;
                 case BackgroundMode.Substract:
                     backgroundMode = BackgroundMode.ShowContinuum;
-                    image = BecquerelMonitor.Properties.Resources.CONT;
+                    image = Properties.Resources.CONT;
                     break;
                 case BackgroundMode.ShowContinuum:
                     if (this.IsNormalizeByEfficiencyAvailable())
                     {
                         backgroundMode = BackgroundMode.NormalizeByEfficiency;
-                        image = BecquerelMonitor.Properties.Resources.NORM;
+                        image = Properties.Resources.NORM;
                     }
                     else
                     {
                         backgroundMode = BackgroundMode.Visible;
-                        image = BecquerelMonitor.Properties.Resources.BG;
+                        image = Properties.Resources.BG;
                     }
                     
                     break;
                 case BackgroundMode.NormalizeByEfficiency:
                     backgroundMode = BackgroundMode.Visible;
-                    image = BecquerelMonitor.Properties.Resources.BG;
+                    image = Properties.Resources.BG;
                     break;
             }
             this.view.BackgroundMode = backgroundMode;
@@ -690,6 +720,13 @@ namespace BecquerelMonitor
                 && this.ActiveResultData.ROIConfig.HasEfficiency;
         }
 
+        private bool IsBackgroundExists()
+        {
+            return this.ActiveResultData != null
+                && this.ActiveResultData.BackgroundEnergySpectrum != null
+                && this.ActiveResultData.BackgroundSpectrumFile != "";
+        }
+
         // Token: 0x06000332 RID: 818 RVA: 0x00010118 File Offset: 0x0000E318
         void toolStripSplitButton7_DropDownOpening(object sender, EventArgs e)
         {
@@ -704,7 +741,7 @@ namespace BecquerelMonitor
         void バックグラウンド表示ありToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.BackgroundMode = BackgroundMode.Visible;
-            this.toolStripSplitButtonBgMode.Image = BecquerelMonitor.Properties.Resources.BG;
+            this.toolStripSplitButtonBgMode.Image = Properties.Resources.BG;
             this.UpdateDetectedPeaks = true;
             this.UpdateDoseRate = true;
             this.RefreshView();
@@ -714,7 +751,7 @@ namespace BecquerelMonitor
         void バックグラウンド表示なしToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.BackgroundMode = BackgroundMode.Invisible;
-            this.toolStripSplitButtonBgMode.Image = BecquerelMonitor.Properties.Resources.NOBG;
+            this.toolStripSplitButtonBgMode.Image = Properties.Resources.NOBG;
             this.UpdateDetectedPeaks = true;
             this.UpdateDoseRate = true;
             this.RefreshView();
@@ -723,7 +760,7 @@ namespace BecquerelMonitor
         void SubstractBgToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.BackgroundMode = BackgroundMode.Substract;
-            this.toolStripSplitButtonBgMode.Image = BecquerelMonitor.Properties.Resources.SUB;
+            this.toolStripSplitButtonBgMode.Image = Properties.Resources.SUB;
             this.UpdateDetectedPeaks = true;
             this.UpdateDoseRate = true;
             this.RefreshView();
@@ -732,7 +769,7 @@ namespace BecquerelMonitor
         void ShowConToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.BackgroundMode = BackgroundMode.ShowContinuum;
-            this.toolStripSplitButtonBgMode.Image = BecquerelMonitor.Properties.Resources.CONT;
+            this.toolStripSplitButtonBgMode.Image = Properties.Resources.CONT;
             this.UpdateDetectedPeaks = true;
             this.UpdateDoseRate = true;
             this.RefreshView();
@@ -741,7 +778,7 @@ namespace BecquerelMonitor
         void NormByEffToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.BackgroundMode = BackgroundMode.NormalizeByEfficiency;
-            this.toolStripSplitButtonBgMode.Image = BecquerelMonitor.Properties.Resources.NORM;
+            this.toolStripSplitButtonBgMode.Image = Properties.Resources.NORM;
             this.UpdateDetectedPeaks = true;
             this.UpdateDoseRate = true;
             this.RefreshView();
@@ -751,16 +788,16 @@ namespace BecquerelMonitor
         void toolStripSplitButton8_ButtonClick(object sender, EventArgs e)
         {
             DrawingMode drawingMode = DrawingMode.Normal;
-            Image image = BecquerelMonitor.Properties.Resources.HD1;
+            Image image = Properties.Resources.HD1;
             switch (this.view.DrawingMode)
             {
                 case DrawingMode.HighDefinition:
                     drawingMode = DrawingMode.Normal;
-                    image = BecquerelMonitor.Properties.Resources.HD1;
+                    image = Properties.Resources.HD1;
                     break;
                 case DrawingMode.Normal:
                     drawingMode = DrawingMode.HighDefinition;
-                    image = BecquerelMonitor.Properties.Resources.HD;
+                    image = Properties.Resources.HD;
                     break;
             }
             this.view.DrawingMode = drawingMode;
@@ -779,7 +816,7 @@ namespace BecquerelMonitor
         void 高精細表示ToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.DrawingMode = DrawingMode.HighDefinition;
-            this.toolStripSplitButton8.Image = BecquerelMonitor.Properties.Resources.HD;
+            this.toolStripSplitButton8.Image = Properties.Resources.HD;
             this.RefreshView();
         }
 
@@ -787,7 +824,7 @@ namespace BecquerelMonitor
         void 通常表示ToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.DrawingMode = DrawingMode.Normal;
-            this.toolStripSplitButton8.Image = BecquerelMonitor.Properties.Resources.HD1;
+            this.toolStripSplitButton8.Image = Properties.Resources.HD1;
             this.RefreshView();
         }
 
@@ -795,16 +832,16 @@ namespace BecquerelMonitor
         void toolStripSplitButton1_ButtonClick(object sender, EventArgs e)
         {
             VerticalUnit verticalUnit = VerticalUnit.Counts;
-            Image image = BecquerelMonitor.Properties.Resources.cnt;
+            Image image = Properties.Resources.cnt;
             switch (this.view.VerticalUnit)
             {
                 case VerticalUnit.Counts:
                     verticalUnit = VerticalUnit.CountsPerSecond;
-                    image = BecquerelMonitor.Properties.Resources.cps;
+                    image = Properties.Resources.cps;
                     break;
                 case VerticalUnit.CountsPerSecond:
                     verticalUnit = VerticalUnit.Counts;
-                    image = BecquerelMonitor.Properties.Resources.cnt;
+                    image = Properties.Resources.cnt;
                     break;
             }
             this.view.VerticalUnit = verticalUnit;
@@ -816,7 +853,7 @@ namespace BecquerelMonitor
         void cps表示ToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.VerticalUnit = VerticalUnit.CountsPerSecond;
-            this.toolStripSplitButton1.Image = BecquerelMonitor.Properties.Resources.cps;
+            this.toolStripSplitButton1.Image = Properties.Resources.cps;
             this.RefreshView();
         }
 
@@ -824,7 +861,7 @@ namespace BecquerelMonitor
         void カウント表示ToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.VerticalUnit = VerticalUnit.Counts;
-            this.toolStripSplitButton1.Image = BecquerelMonitor.Properties.Resources.cnt;
+            this.toolStripSplitButton1.Image = Properties.Resources.cnt;
             this.RefreshView();
         }
 
@@ -857,22 +894,22 @@ namespace BecquerelMonitor
         void toolStripSplitButton2_ButtonClick(object sender, EventArgs e)
         {
             VerticalScaleType verticalScaleType = VerticalScaleType.LogarithmicScale;
-            Image image = BecquerelMonitor.Properties.Resources.log;
+            Image image = Properties.Resources.log;
             switch (this.view.VerticalScaleType)
             {
                 case VerticalScaleType.LinearScale:
                     verticalScaleType = VerticalScaleType.PowerScale;
-                    image = BecquerelMonitor.Properties.Resources.pow;
+                    image = Properties.Resources.pow;
                     this.toolStripNumericUpdown.Enabled = true;
                     break;
                 case VerticalScaleType.PowerScale:
                     verticalScaleType = VerticalScaleType.LogarithmicScale;
-                    image = BecquerelMonitor.Properties.Resources.log;
+                    image = Properties.Resources.log;
                     this.toolStripNumericUpdown.Enabled = false;
                     break;
                 case VerticalScaleType.LogarithmicScale:
                     verticalScaleType = VerticalScaleType.LinearScale;
-                    image = BecquerelMonitor.Properties.Resources.linear;
+                    image = Properties.Resources.linear;
                     this.toolStripNumericUpdown.Enabled = false;
                     break;
             }
@@ -885,7 +922,7 @@ namespace BecquerelMonitor
         void 対数表示ToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.VerticalScaleType = VerticalScaleType.LogarithmicScale;
-            this.toolStripSplitButton2.Image = BecquerelMonitor.Properties.Resources.log;
+            this.toolStripSplitButton2.Image = Properties.Resources.log;
             this.toolStripNumericUpdown.Enabled = false;
             this.RefreshView();
         }
@@ -893,7 +930,7 @@ namespace BecquerelMonitor
         void powToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.VerticalScaleType = VerticalScaleType.PowerScale;
-            this.toolStripSplitButton2.Image = BecquerelMonitor.Properties.Resources.pow;
+            this.toolStripSplitButton2.Image = Properties.Resources.pow;
             this.toolStripNumericUpdown.Enabled = true;
             this.RefreshView();
         }
@@ -902,7 +939,7 @@ namespace BecquerelMonitor
         void リニア表示ToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.VerticalScaleType = VerticalScaleType.LinearScale;
-            this.toolStripSplitButton2.Image = BecquerelMonitor.Properties.Resources.linear;
+            this.toolStripSplitButton2.Image = Properties.Resources.linear;
             this.toolStripNumericUpdown.Enabled = false;
             this.RefreshView();
         }
@@ -919,16 +956,16 @@ namespace BecquerelMonitor
         void toolStripSplitButton3_ButtonClick(object sender, EventArgs e)
         {
             ChartType chartType = ChartType.LineChart;
-            Image image = BecquerelMonitor.Properties.Resources.line;
+            Image image = Properties.Resources.line;
             switch (this.view.ChartType)
             {
                 case ChartType.BarChart:
                     chartType = ChartType.LineChart;
-                    image = BecquerelMonitor.Properties.Resources.line;
+                    image = Properties.Resources.line;
                     break;
                 case ChartType.LineChart:
                     chartType = ChartType.BarChart;
-                    image = BecquerelMonitor.Properties.Resources.bar;
+                    image = Properties.Resources.bar;
                     break;
             }
             this.view.ChartType = chartType;
@@ -940,7 +977,7 @@ namespace BecquerelMonitor
         void 折れ線グラフToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.ChartType = ChartType.LineChart;
-            this.toolStripSplitButton3.Image = BecquerelMonitor.Properties.Resources.line;
+            this.toolStripSplitButton3.Image = Properties.Resources.line;
             this.RefreshView();
         }
 
@@ -948,7 +985,7 @@ namespace BecquerelMonitor
         void バ\u30FCグラフToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.ChartType = ChartType.BarChart;
-            this.toolStripSplitButton3.Image = BecquerelMonitor.Properties.Resources.bar;
+            this.toolStripSplitButton3.Image = Properties.Resources.bar;
             this.RefreshView();
         }
 
@@ -963,20 +1000,20 @@ namespace BecquerelMonitor
         void toolStripSplitButton5_ButtonClick(object sender, EventArgs e)
         {
             VerticalFittingMode verticalFittingMode = VerticalFittingMode.MinMax;
-            Image image = BecquerelMonitor.Properties.Resources.fit1;
+            Image image = Properties.Resources.fit1;
             switch (this.view.VerticalFittingMode)
             {
                 case VerticalFittingMode.None:
                     verticalFittingMode = VerticalFittingMode.MinMax;
-                    image = BecquerelMonitor.Properties.Resources.fit1;
+                    image = Properties.Resources.fit1;
                     break;
                 case VerticalFittingMode.MinMax:
                     verticalFittingMode = VerticalFittingMode.BackgroundMinMax;
-                    image = BecquerelMonitor.Properties.Resources.bgfit;
+                    image = Properties.Resources.bgfit;
                     break;
                 case VerticalFittingMode.BackgroundMinMax:
                     verticalFittingMode = VerticalFittingMode.None;
-                    image = BecquerelMonitor.Properties.Resources.None;
+                    image = Properties.Resources.None;
                     break;
             }
             this.view.VerticalFittingMode = verticalFittingMode;
@@ -988,7 +1025,7 @@ namespace BecquerelMonitor
         void 自動フィットToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.VerticalFittingMode = VerticalFittingMode.MinMax;
-            this.toolStripSplitButton5.Image = BecquerelMonitor.Properties.Resources.fit1;
+            this.toolStripSplitButton5.Image = Properties.Resources.fit1;
             this.RefreshView();
         }
 
@@ -996,7 +1033,7 @@ namespace BecquerelMonitor
         void 自動フィットBGToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.VerticalFittingMode = VerticalFittingMode.BackgroundMinMax;
-            this.toolStripSplitButton5.Image = BecquerelMonitor.Properties.Resources.bgfit;
+            this.toolStripSplitButton5.Image = Properties.Resources.bgfit;
             this.RefreshView();
         }
 
@@ -1004,7 +1041,7 @@ namespace BecquerelMonitor
         void なしToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.VerticalFittingMode = VerticalFittingMode.None;
-            this.toolStripSplitButton5.Image = BecquerelMonitor.Properties.Resources.None;
+            this.toolStripSplitButton5.Image = Properties.Resources.None;
             this.view.Invalidate();
         }
 
@@ -1020,20 +1057,20 @@ namespace BecquerelMonitor
         void toolStripSplitButton6_ButtonClick(object sender, EventArgs e)
         {
             SmoothingMethod smoothingMethod = SmoothingMethod.None;
-            Image image = BecquerelMonitor.Properties.Resources.NoSmooth;
+            Image image = Properties.Resources.NoSmooth;
             switch (this.view.SmoothingMethod)
             {
                 case SmoothingMethod.None:
                     smoothingMethod = SmoothingMethod.SimpleMovingAverage;
-                    image = BecquerelMonitor.Properties.Resources.SMA;
+                    image = Properties.Resources.SMA;
                     break;
                 case SmoothingMethod.SimpleMovingAverage:
                     smoothingMethod = SmoothingMethod.WeightedMovingAverage;
-                    image = BecquerelMonitor.Properties.Resources.WMA;
+                    image = Properties.Resources.WMA;
                     break;
                 case SmoothingMethod.WeightedMovingAverage:
                     smoothingMethod = SmoothingMethod.None;
-                    image = BecquerelMonitor.Properties.Resources.NoSmooth;
+                    image = Properties.Resources.NoSmooth;
                     break;
             }
             this.view.SmoothingMethod = smoothingMethod;
@@ -1046,7 +1083,7 @@ namespace BecquerelMonitor
         void スム\u30FCジングなしToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.SmoothingMethod = SmoothingMethod.None;
-            this.toolStripSplitButton6.Image = BecquerelMonitor.Properties.Resources.NoSmooth;
+            this.toolStripSplitButton6.Image = Properties.Resources.NoSmooth;
             this.UpdateDetectedPeaks = true;
             this.RefreshView();
         }
@@ -1055,7 +1092,7 @@ namespace BecquerelMonitor
         void 単純移動平均ToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.SmoothingMethod = SmoothingMethod.SimpleMovingAverage;
-            this.toolStripSplitButton6.Image = BecquerelMonitor.Properties.Resources.SMA;
+            this.toolStripSplitButton6.Image = Properties.Resources.SMA;
             this.UpdateDetectedPeaks = true;
             this.RefreshView();
         }
@@ -1064,7 +1101,7 @@ namespace BecquerelMonitor
         void 加重移動平均ToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.SmoothingMethod = SmoothingMethod.WeightedMovingAverage;
-            this.toolStripSplitButton6.Image = BecquerelMonitor.Properties.Resources.WMA;
+            this.toolStripSplitButton6.Image = Properties.Resources.WMA;
             this.UpdateDetectedPeaks = true;
             this.RefreshView();
         }
@@ -1081,16 +1118,16 @@ namespace BecquerelMonitor
         void toolStripSplitButton4_ButtonClick(object sender, EventArgs e)
         {
             HorizontalUnit horizontalUnit = HorizontalUnit.Energy;
-            Image image = BecquerelMonitor.Properties.Resources.ene;
+            Image image = Properties.Resources.ene;
             switch (this.view.HorizontalUnit)
             {
                 case HorizontalUnit.Channel:
                     horizontalUnit = HorizontalUnit.Energy;
-                    image = BecquerelMonitor.Properties.Resources.ene;
+                    image = Properties.Resources.ene;
                     break;
                 case HorizontalUnit.Energy:
                     horizontalUnit = HorizontalUnit.Channel;
-                    image = BecquerelMonitor.Properties.Resources.channel;
+                    image = Properties.Resources.channel;
                     break;
             }
             this.view.HorizontalUnit = horizontalUnit;
@@ -1102,7 +1139,7 @@ namespace BecquerelMonitor
         void エネルギ\u30FC表示ToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.HorizontalUnit = HorizontalUnit.Energy;
-            this.toolStripSplitButton4.Image = BecquerelMonitor.Properties.Resources.ene;
+            this.toolStripSplitButton4.Image = Properties.Resources.ene;
             this.RefreshView();
         }
 
@@ -1110,7 +1147,7 @@ namespace BecquerelMonitor
         void チャネル表示ToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.HorizontalUnit = HorizontalUnit.Channel;
-            this.toolStripSplitButton4.Image = BecquerelMonitor.Properties.Resources.channel;
+            this.toolStripSplitButton4.Image = Properties.Resources.channel;
             this.RefreshView();
         }
 
@@ -1125,12 +1162,12 @@ namespace BecquerelMonitor
         void toolStripSplitButton9_ButtonClick(object sender, EventArgs e)
         {
             PeakMode peakMode = PeakMode.Invisible;
-            Image image = BecquerelMonitor.Properties.Resources.nopeak;
+            Image image = Properties.Resources.nopeak;
             switch (this.view.PeakMode)
             {
                 case PeakMode.Visible:
                     peakMode = PeakMode.Invisible;
-                    image = BecquerelMonitor.Properties.Resources.nopeak;
+                    image = Properties.Resources.nopeak;
                     FWHMPeakDetectionMethodConfig cfg = (FWHMPeakDetectionMethodConfig)this.ActiveResultData.PeakDetectionMethodConfig;
                     FWHMPeakDetectionMethodConfig devcfg = (FWHMPeakDetectionMethodConfig)this.ActiveResultData.DeviceConfig.PeakDetectionMethodConfig;
                     cfg.Enabled = false;
@@ -1139,7 +1176,7 @@ namespace BecquerelMonitor
                     break;
                 case PeakMode.Invisible:
                     peakMode = PeakMode.Visible;
-                    image = BecquerelMonitor.Properties.Resources.peak;
+                    image = Properties.Resources.peak;
                     FWHMPeakDetectionMethodConfig peakConfig = (FWHMPeakDetectionMethodConfig)this.ActiveResultData.PeakDetectionMethodConfig;
                     FWHMPeakDetectionMethodConfig devConfig = (FWHMPeakDetectionMethodConfig)this.ActiveResultData.DeviceConfig.PeakDetectionMethodConfig;
                     peakConfig.Enabled = true;
@@ -1163,7 +1200,7 @@ namespace BecquerelMonitor
         void ピ\u30FCク表示ありToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.PeakMode = PeakMode.Visible;
-            this.toolStripSplitButton9.Image = BecquerelMonitor.Properties.Resources.peak;
+            this.toolStripSplitButton9.Image = Properties.Resources.peak;
             FWHMPeakDetectionMethodConfig cfg = (FWHMPeakDetectionMethodConfig)this.ActiveResultData.PeakDetectionMethodConfig;
             cfg.Enabled = true;
             this.UpdateDetectedPeaks = true;
@@ -1174,7 +1211,7 @@ namespace BecquerelMonitor
         void ピ\u30FCク表示なしToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.PeakMode = PeakMode.Invisible;
-            this.toolStripSplitButton9.Image = BecquerelMonitor.Properties.Resources.nopeak;
+            this.toolStripSplitButton9.Image = Properties.Resources.nopeak;
             FWHMPeakDetectionMethodConfig cfg = (FWHMPeakDetectionMethodConfig)this.ActiveResultData.PeakDetectionMethodConfig;
             cfg.Enabled = false;
             this.UpdateDetectedPeaks = false;
@@ -1305,6 +1342,46 @@ namespace BecquerelMonitor
         void toolStripScreenShotButton_Click(object sender, EventArgs e)
         {
             this.view.takeScreenshot();
+        }
+
+        void toolStripRefreshBgButton_Click(object sender, EventArgs e)
+        {
+            if (!IsBackgroundExists()) return;
+            if (this.ActiveResultData.BackgroundSpectrumPathname == "")
+            {
+                OpenFileDialog openFileDialog = new OpenFileDialog();
+                openFileDialog.Title = Properties.Resources.BackgroundSelectionDialogTitle;
+                openFileDialog.Filter = this.ActiveResultData.BackgroundSpectrumFile + "|" + this.ActiveResultData.BackgroundSpectrumFile + "";
+                openFileDialog.FilterIndex = 1;
+                openFileDialog.RestoreDirectory = true;
+                if (openFileDialog.ShowDialog() != DialogResult.OK)
+                {
+                    return;
+                }
+                this.ActiveResultData.BackgroundSpectrumPathname = openFileDialog.FileName;
+            }
+            DocumentManager.GetInstance().LoadBackgroundSpectrum(this.ActiveResultData);
+            if (this.ActiveResultData.BackgroundEnergySpectrum != null && this.ActiveResultData.EnergySpectrum.NumberOfChannels != this.ActiveResultData.BackgroundEnergySpectrum.NumberOfChannels)
+            {
+                MessageBox.Show(Properties.Resources.ERRIncompatibleChannelParameters, Properties.Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                this.ActiveResultData.BackgroundEnergySpectrum = null;
+                this.ActiveResultData.BackgroundSpectrumFile = "";
+                this.ActiveResultData.BackgroundSpectrumPathname = "";
+            }
+            this.Dirty = true;
+            this.UpdateEnergySpectrum();
+        }
+
+        void toolStripSaveButton_Click(object sender, EventArgs e)
+        {
+            if (!IsNamed)
+            {
+                DocumentManager.GetInstance().SaveDocumentWithName(this);
+            } else
+            {
+                DocumentManager.GetInstance().SaveDocument(this);
+            }
+            
         }
 
         void toolStripNumUpDownScale_ValueChanged(object sender, EventArgs e)

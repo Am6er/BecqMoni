@@ -35,8 +35,8 @@
     <MinimumRequiredVersion>2022.07.08.7</MinimumRequiredVersion>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
-    <ApplicationRevision>2</ApplicationRevision>
-    <ApplicationVersion>2024.09.10.2</ApplicationVersion>
+    <ApplicationRevision>1</ApplicationRevision>
+    <ApplicationVersion>2024.10.02.1</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -512,6 +512,11 @@
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
     </Compile>
+    <Compile Include="ROICovellMethodControl.ru.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>ROICovellMethodControl.ru.resx</DependentUpon>
+    </Compile>
     <Compile Include="ROICovellMethodData.cs" />
     <Compile Include="ROIEditEfficiencyDialog.cs">
       <SubType>Form</SubType>
@@ -534,11 +539,21 @@
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
     </Compile>
+    <Compile Include="ROIReferenceControl.ru.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>ROIReferenceControl.ru.resx</DependentUpon>
+    </Compile>
     <Compile Include="ROIReferenceData.cs" />
     <Compile Include="ROISimpleDifferenceControl.Designer.cs">
       <DependentUpon>ROISimpleDifferenceControl.resx</DependentUpon>
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="ROISimpleDifferenceControl.ru.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>ROISimpleDifferenceControl.ru.resx</DependentUpon>
     </Compile>
     <Compile Include="ROISimpleDifferenceData.cs" />
     <Compile Include="SampleInfoData.cs" />
@@ -1072,7 +1087,10 @@
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>ROICovellMethodControl.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <EmbeddedResource Include="ROICovellMethodControl.ru.resx" />
+    <EmbeddedResource Include="ROICovellMethodControl.ru.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>ROICovellMethodControl.ru.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
     <EmbeddedResource Include="ROIEditEfficiencyDialog.resx">
       <DependentUpon>ROIEditEfficiencyDialog.cs</DependentUpon>
       <SubType>Designer</SubType>
@@ -1088,12 +1106,18 @@
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>ROIReferenceControl.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <EmbeddedResource Include="ROIReferenceControl.ru.resx" />
+    <EmbeddedResource Include="ROIReferenceControl.ru.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>ROIReferenceControl.ru.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
     <EmbeddedResource Include="ROISimpleDifferenceControl.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>ROISimpleDifferenceControl.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <EmbeddedResource Include="ROISimpleDifferenceControl.ru.resx" />
+    <EmbeddedResource Include="ROISimpleDifferenceControl.ru.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>ROISimpleDifferenceControl.ru.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
     <EmbeddedResource Include="SelectDeviceDialog.resx">
       <DependentUpon>SelectDeviceDialog.cs</DependentUpon>
     </EmbeddedResource>
@@ -1151,6 +1175,8 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <None Include="Resources\save.bmp" />
+    <None Include="Resources\RefreshBG.bmp" />
     <None Include="Resources\NORM.bmp" />
     <None Include="Resources\screenshot.bmp" />
     <None Include="Resources\pow.bmp" />

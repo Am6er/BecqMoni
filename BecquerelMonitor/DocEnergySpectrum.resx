@@ -1108,4 +1108,22 @@
   <data name="toolStripNumUpDownScale.ToolTipText" xml:space="preserve">
     <value>Change X scale</value>
   </data>
+  <data name="toolStripLabel4.Size" type="System.Drawing.Size, System.Drawing">
+    <value>57, 22</value>
+  </data>
+  <data name="toolStripLabel4.Text" xml:space="preserve">
+    <value>Modify:</value>
+  </data>
+  <data name="&gt;&gt;toolStripLabel4.Name" xml:space="preserve">
+    <value>toolStripLabel4</value>
+  </data>
+  <data name="&gt;&gt;toolStripLabel4.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripLabel, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="toolStripRefreshBgButton.ToolTipText" xml:space="preserve">
+    <value>Reload background from file</value>
+  </data>
+  <data name="toolStripSaveButton.ToolTipText" xml:space="preserve">
+    <value>Save current document</value>
+  </data>
 </root>
