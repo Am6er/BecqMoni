@@ -453,6 +453,11 @@ namespace BecquerelMonitor
                     this.ShowMeasurementResult(false);
                     this.activeDocument.UpdateMeasurementResult = false;
                 }
+                if (this.activeDocument != null && this.activeDocument.UpdateSpectrumList)
+                {
+                    this.UpdateSpectrumListView();
+                    this.activeDocument.UpdateSpectrumList = false;
+                }
             }
             this.count200 += 100;
             if (this.count200 >= 200)

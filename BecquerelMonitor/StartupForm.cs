@@ -14,10 +14,6 @@ namespace BecquerelMonitor
             this.InitializeComponent();
             base.Icon = Resources.becqmoni;
             CultureInfo currentUICulture = Thread.CurrentThread.CurrentUICulture;
-            if (this.label5.Text.StartsWith("起動"))
-            {
-                this.panel2.BackgroundImage = Resources.ベクモニロゴ;
-            }
             this.textBox1.HideSelection = false;
             GlobalConfigManager instance = GlobalConfigManager.GetInstance();
             this.label3.Text = string.Format(Resources.VersionString, instance.VersionString) + " ";

@@ -1126,4 +1126,7 @@
   <data name="toolStripSaveButton.ToolTipText" xml:space="preserve">
     <value>Save current document</value>
   </data>
+  <data name="toolStripSplitButton.ToolTipText" xml:space="preserve">
+    <value>Split active document into foreground and background spectrum list</value>
+  </data>
 </root>

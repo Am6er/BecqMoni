@@ -134,6 +134,18 @@ namespace BecquerelMonitor
             }
         }
 
+        public bool UpdateSpectrumList
+        {
+            get
+            {
+                return this.updateSpectrumList;
+            }
+            set
+            {
+                this.updateSpectrumList = value;
+            }
+        }
+
         public bool UpdateDetectedPeaks
         {
             get
@@ -337,9 +349,10 @@ namespace BecquerelMonitor
         {
             bool isBGexists = this.IsBackgroundExists();
             this.toolStripRefreshBgButton.Enabled = isBGexists;
+            this.toolStripSplitButton.Enabled = isBGexists && this.ResultDataFile.ResultDataList.Count == 1;
         }
 
-        private void SetupSaveDocumentButtons()
+        private void SetupSaveDocumentButton()
         {
             this.toolStripSaveButton.Enabled = this.Dirty;
         }
@@ -534,7 +547,7 @@ namespace BecquerelMonitor
             this.EvaluateNormByEffMode();
             this.view.PrepareViewData();
             this.SetupBGAffinityButtons();
-            this.SetupSaveDocumentButtons();
+            this.SetupSaveDocumentButton();
             this.DocumentTextWithDirtyFlag();
             this.view.RecalcScrollBar();
             this.view.Invalidate();
@@ -1380,6 +1393,15 @@ namespace BecquerelMonitor
             
         }
 
+        void toolStripSplitButton_Click(object sender, EventArgs e)
+        {
+            DocumentManager.GetInstance().SplitDocEnergySpectrum(this);
+            this.UpdateMeasurementResult = true;
+            this.UpdateSpectrum = true;
+            this.UpdateSpectrumList = true;
+            this.UpdateEnergySpectrum();
+        }
+
         void toolStripNumUpDownScale_ValueChanged(object sender, EventArgs e)
         {
             this.view.zoom(this.toolStripNumUpDownScale.NumericUpDownControl.Value);
@@ -1486,6 +1508,8 @@ namespace BecquerelMonitor
         bool updateDetectedPeaks = false;
 
         bool updateDoseRate = false;
+
+        bool updateSpectrumList = false;
 
         // Token: 0x04000153 RID: 339
         bool activeEnergyCalibration;
