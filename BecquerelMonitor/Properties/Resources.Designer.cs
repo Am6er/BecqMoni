@@ -2396,6 +2396,16 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap split {
+            get {
+                object obj = ResourceManager.GetObject("split", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap start {
             get {
                 object obj = ResourceManager.GetObject("start", resourceCulture);
@@ -2586,16 +2596,6 @@ namespace BecquerelMonitor.Properties {
         internal static System.Drawing.Bitmap Zoomout {
             get {
                 object obj = ResourceManager.GetObject("Zoomout", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
-        /// </summary>
-        internal static System.Drawing.Bitmap ベクモニロゴ {
-            get {
-                object obj = ResourceManager.GetObject("ベクモニロゴ", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

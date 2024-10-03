@@ -457,6 +457,7 @@ namespace BecquerelMonitor
             resultData.ROIConfig = this.ROIConfig;
             resultData.StartTime = this.StartTime;
             resultData.EndTime = this.EndTime;
+            resultData.PresetTime = this.PresetTime;
             resultData.BackgroundEnergySpectrum = this.BackgroundEnergySpectrum.Clone();
             resultData.BackgroundSpectrumFile = this.BackgroundSpectrumFile;
             resultData.BackgroundSpectrumPathname = this.BackgroundSpectrumPathname;

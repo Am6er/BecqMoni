@@ -52,6 +52,7 @@ namespace BecquerelMonitor
 			this.toolStripScreenShotButton = new ToolStripButton();
 			this.toolStripRefreshBgButton = new ToolStripButton();
 			this.toolStripSaveButton = new ToolStripButton();
+			this.toolStripSplitButton = new ToolStripButton();
             this.toolStripNumUpDownScale = new ToolStripNumericUpdown();
             this.リニア表示ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.powToolStripMenuItem = new global::System.Windows.Forms .ToolStripMenuItem();
@@ -128,7 +129,8 @@ namespace BecquerelMonitor
                 this.toolStripSeparator4,
 				this.toolStripLabel4,
                 this.toolStripSaveButton,
-                this.toolStripRefreshBgButton
+                this.toolStripRefreshBgButton,
+				this.toolStripSplitButton
             });
 			this.toolStrip2.Name = "toolStrip2";
 			this.toolStrip2.SuppressHighlighting = false;
@@ -253,6 +255,11 @@ namespace BecquerelMonitor
             this.toolStripSaveButton.Image = global::BecquerelMonitor.Properties.Resources.save;
             this.toolStripSaveButton.Name = "toolStripSaveButton";
             this.toolStripSaveButton.Click += new global::System.EventHandler(this.toolStripSaveButton_Click);
+            resources.ApplyResources(this.toolStripSplitButton, "toolStripSplitButton");
+            this.toolStripSplitButton.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripSplitButton.Image = global::BecquerelMonitor.Properties.Resources.split;
+            this.toolStripSplitButton.Name = "toolStripSplitButton";
+            this.toolStripSplitButton.Click += new global::System.EventHandler(this.toolStripSplitButton_Click);
             resources.ApplyResources(this.ピ\u30FCク表示ありToolStripMenuItem, "ピーク表示ありToolStripMenuItem");
 			this.ピ\u30FCク表示ありToolStripMenuItem.Name = "ピーク表示ありToolStripMenuItem";
 			this.ピ\u30FCク表示ありToolStripMenuItem.Click += new global::System.EventHandler(this.ピ\u30FCク表示ありToolStripMenuItem_Click);
@@ -566,6 +573,8 @@ namespace BecquerelMonitor
         ToolStripButton toolStripRefreshBgButton;
 
         ToolStripButton toolStripSaveButton;
+
+		ToolStripButton toolStripSplitButton;
 
         ToolStripNumericUpdown toolStripNumUpDownScale;
 

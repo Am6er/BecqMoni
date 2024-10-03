@@ -955,6 +955,31 @@ namespace BecquerelMonitor
             }
         }
 
+        public void SplitDocEnergySpectrum(DocEnergySpectrum doc)
+        {
+            ResultData resultData = doc.ActiveResultData.Clone();
+            resultData.EnergySpectrum = resultData.BackgroundEnergySpectrum.Clone();
+            resultData.SampleInfo.Name = Path.GetFileNameWithoutExtension(resultData.BackgroundSpectrumFile);
+            resultData.MeasurementController = doc.ActiveResultData.MeasurementController;
+            resultData.ROIConfig = doc.ActiveResultData.ROIConfig;
+            resultData.ROIConfigReference = doc.ActiveResultData.ROIConfigReference;
+            resultData.ResultDataStatus = doc.ActiveResultData.ResultDataStatus.Clone();
+            resultData.ResultDataStatus.TotalTime = TimeSpan.FromSeconds(resultData.EnergySpectrum.MeasurementTime);
+            resultData.ResultDataStatus.ElapsedTime = TimeSpan.FromSeconds(resultData.EnergySpectrum.MeasurementTime);
+            resultData.ResultDataStatus.TimeInSamples = resultData.EnergySpectrum.NumberOfSamples;
+            resultData.BackgroundEnergySpectrum = null;
+            resultData.BackgroundSpectrumFile = "";
+            resultData.BackgroundSpectrumPathname = "";
+            resultData.Dirty = true;
+            doc.ResultDataFile.ResultDataList.Add(resultData);
+            if (doc.ActiveResultData.SampleInfo.Name == "") doc.ActiveResultData.SampleInfo.Name = Path.GetFileNameWithoutExtension(doc.Filename);
+            doc.ActiveResultData.BackgroundEnergySpectrum = null;
+            doc.ActiveResultData.BackgroundSpectrumFile = "";
+            doc.ActiveResultData.BackgroundSpectrumPathname = "";
+            //doc.ActiveResultDataIndex = doc.ResultDataFile.ResultDataList.Count - 1;
+            doc.Dirty = true;
+        }
+
         // Token: 0x06000278 RID: 632 RVA: 0x0000A4F8 File Offset: 0x000086F8
         public void ExportDocumentToCsv(DocEnergySpectrum doc)
         {

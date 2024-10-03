@@ -8506,73 +8506,6 @@ http://xptable.sourceforge.net/</value>
   <data name="MSGClearSpectrum" xml:space="preserve">
     <value>Clear spectrum?</value>
   </data>
-  <data name="ベクモニロゴ" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
-    <value>
-        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
-        RYr8eDjllP8DhiwnfPhnsowAAAAASUVORK5CYII=
-</value>
-  </data>
   <data name="MSGThermometerTypeChanging" xml:space="preserve">
     <value>Changing thermometer type causes initialization of input fields. OK?</value>
   </data>
@@ -41983,5 +41916,8 @@ see peak in spectrum now).</value>
   </data>
   <data name="save" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\save.bmp;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="split" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\split.bmp;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
 </root>
