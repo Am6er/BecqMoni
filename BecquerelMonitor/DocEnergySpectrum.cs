@@ -344,11 +344,6 @@ namespace BecquerelMonitor
             this.toolStripSaveButton.Enabled = this.Dirty;
         }
 
-        private void SetupDocumentTextWithDirtyFlag()
-        {
-            DocumentTextWithDirtyFlag();
-        }
-
         private void View_ActionEvent(object sender, EnergySpectrumActionEventArgs e)
         {
             decimal value = e.NewScaleValue;
@@ -379,7 +374,6 @@ namespace BecquerelMonitor
             {
                 this.Text = text;
             }
-            this.ToolTipText = this.Text;
         }
 
         // Token: 0x06000321 RID: 801 RVA: 0x0000FA10 File Offset: 0x0000DC10
@@ -541,7 +535,7 @@ namespace BecquerelMonitor
             this.view.PrepareViewData();
             this.SetupBGAffinityButtons();
             this.SetupSaveDocumentButtons();
-            this.SetupDocumentTextWithDirtyFlag();
+            this.DocumentTextWithDirtyFlag();
             this.view.RecalcScrollBar();
             this.view.Invalidate();
         }
