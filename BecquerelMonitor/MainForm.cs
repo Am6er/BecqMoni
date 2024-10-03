@@ -456,6 +456,7 @@ namespace BecquerelMonitor
                 if (this.activeDocument != null && this.activeDocument.UpdateSpectrumList)
                 {
                     this.UpdateSpectrumListView();
+                    this.UpdateSampleInfo();
                     this.activeDocument.UpdateSpectrumList = false;
                 }
             }
