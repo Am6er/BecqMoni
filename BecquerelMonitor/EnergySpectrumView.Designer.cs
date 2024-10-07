@@ -682,10 +682,13 @@ namespace BecquerelMonitor
                 this.continuumEnergySpectrum = sa.Continuum();
 
                 this.peakEnergySpectrum.Clear();
-                foreach(Peak peak in new List<Peak>(this.activeResultData.DetectedPeaks))
+                if (this.activeResultData.DetectedPeaks.Count > 0)
                 {
-                    (int[] peakSpectrum, int min_ch, int max_ch, Color peakColor) = sa.GetPeak(peak, this.continuumEnergySpectrum, true);
-                    this.peakEnergySpectrum.Add((peakSpectrum, min_ch, max_ch, peakColor));
+                    for (int i = 0; i < this.activeResultData.DetectedPeaks.Count; i++)
+                    {
+                        (int[] peakSpectrum, int min_ch, int max_ch, Color peakColor) = sa.GetPeak(this.activeResultData.DetectedPeaks[i], this.continuumEnergySpectrum, true);
+                        this.peakEnergySpectrum.Add((peakSpectrum, min_ch, max_ch, peakColor));
+                    }
                 }
 
                 sa.Dispose();
@@ -2925,7 +2928,7 @@ namespace BecquerelMonitor
             Peak peak = null;
             Peak peak2 = null;
             int num = 0;
-            foreach (Peak peak3 in new List<Peak>(this.activeResultData.DetectedPeaks))
+            foreach (Peak peak3 in this.activeResultData.DetectedPeaks)
             {
                 int channel = peak3.Channel;
                 int num2;
@@ -2949,7 +2952,7 @@ namespace BecquerelMonitor
             {
                 peak = peak2;
             }
-            foreach (Peak peak4 in new List<Peak>(this.activeResultData.DetectedPeaks))
+            foreach (Peak peak4 in this.activeResultData.DetectedPeaks)
             {
                 int channel2 = peak4.Channel;
                 int num4;
@@ -3446,7 +3449,7 @@ namespace BecquerelMonitor
                             {
                                 int number_of_peaks = 0;
                                 Peak detected_peak = null;
-                                foreach (Peak peak in new List<Peak>(this.activeResultData.DetectedPeaks))
+                                foreach (Peak peak in this.activeResultData.DetectedPeaks)
                                 {
                                     if (start_energy < peak.Energy && end_energy > peak.Energy)
                                     {
