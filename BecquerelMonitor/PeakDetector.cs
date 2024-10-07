@@ -4,13 +4,12 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 
 namespace BecquerelMonitor
 {
     public class PeakDetector
     {
-        public void DetectPeak(ResultData resultData, BackgroundMode bgMode, SmoothingMethod smoothMethod, NuclideSet nuclideSet)
+        public List<Peak> DetectPeak(ResultData resultData, BackgroundMode bgMode, SmoothingMethod smoothMethod, NuclideSet nuclideSet)
         {
             FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)resultData.PeakDetectionMethodConfig;
             EnergySpectrum energySpectrum;
@@ -40,24 +39,19 @@ namespace BecquerelMonitor
             List<Peak> peaks = new List<Peak>();
             if (energySpectrum.TotalPulseCount == 0)
             {
-                resultData.DetectedPeaks.Clear();
-                return;
+                return peaks;
             }
+            resultData.DetectedPeaks.Clear();
 
-            if (finder == null)
-            {
-                new Thread(delegate()
-                {
-                    finder = PeakFinder(energySpectrum, FWHMPeakDetectionMethodConfig);
-                    resultData.DetectedPeaks.Clear();
-                    peaks = CollectPeaks(finder, energySpectrum, FWHMPeakDetectionMethodConfig.Tolerance, resultData.DetectedPeaks, sa, nuclideSet);
-                    resultData.DetectedPeaks = peaks;
-                    finder = null;
-                }).Start();
-            }
+            FWHMPeakDetector.PeakFinder finder = PeakFinder(energySpectrum, FWHMPeakDetectionMethodConfig);
+
+            peaks = CollectPeaks(finder, energySpectrum, FWHMPeakDetectionMethodConfig.Tolerance, resultData.DetectedPeaks, sa, nuclideSet);
+            
+            resultData.DetectedPeaks = peaks;
 
             //sa.Dispose();
             GC.Collect();
+            return peaks;
         }
 
         bool isNewPeak(List<Peak> peaks, Peak newpeak)
@@ -154,7 +148,5 @@ namespace BecquerelMonitor
 
         // Token: 0x0400025C RID: 604
         NuclideDefinitionManager nuclideManager = NuclideDefinitionManager.GetInstance();
-
-        private FWHMPeakDetector.PeakFinder finder = null;
     }
 }
