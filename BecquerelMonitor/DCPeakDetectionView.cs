@@ -85,10 +85,11 @@ namespace BecquerelMonitor
             }
             ResultData activeResultData = activeDocument.ActiveResultData;
             PeakDetector peakDetector = new PeakDetector();
-            peakDetector.DetectPeak(activeResultData, activeDocument.EnergySpectrumView.BackgroundMode, activeDocument.EnergySpectrumView.SmoothingMethod, this.selectedNuclideSet);
+            List<Peak> list = null;
+            list = peakDetector.DetectPeak(activeResultData, activeDocument.EnergySpectrumView.BackgroundMode, activeDocument.EnergySpectrumView.SmoothingMethod, this.selectedNuclideSet);
 
             this.tableModel1.Rows.Clear();
-            foreach (Peak peak in new List<Peak>(activeResultData.DetectedPeaks))
+            foreach (Peak peak in list)
             {
                 Row row = new Row();
                 string text = Resources.UnknownNuclide;
