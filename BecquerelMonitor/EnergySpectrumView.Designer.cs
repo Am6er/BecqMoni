@@ -3959,7 +3959,7 @@ namespace BecquerelMonitor
                 dialog.FilterIndex = 1;
                 dialog.RestoreDirectory = true;
                 MainForm mf = (MainForm)MainForm.ActiveForm;
-                dialog.FileName = mf.ActiveDocument.Text;
+                dialog.FileName = mf.ActiveDocument.Text.Trim(new char[] { '*', ' ' });
                 if (dialog.ShowDialog() == DialogResult.OK)
                 {
                     try
