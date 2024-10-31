@@ -1,6 +1,7 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
 using System.Linq;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace BecquerelMonitor
@@ -281,6 +282,15 @@ namespace BecquerelMonitor
             ResultDataStatus resultDataStatus = resultData.ResultDataStatus;
             if (deviceGuid != null)
             {
+                // Preset time elapsed
+                if (resultDataStatus.ElapsedTime.TotalSeconds >= (double)resultDataStatus.PresetTime)
+                {
+                    // Wait 3 seconds on case user "attach" to Atomspectra Pro device with empty spectrum document
+                    for (int i = 0; i <= 30; i++)
+                    {
+                        Thread.Sleep(100);
+                    }
+                }
                 AtomSpectraVCPIn.getInstance(deviceGuid).sendCommand("-sto");
                 resultData.EndTime = DateTime.Now;
                 resultDataStatus.Recording = !AtomSpectraVCPIn.getInstance(deviceGuid).waitForAnswer("-ok", 1000);
