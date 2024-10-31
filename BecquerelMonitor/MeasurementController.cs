@@ -1,7 +1,6 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
 using System.Media;
-using System.Threading;
 using System.Windows.Forms;
 
 namespace BecquerelMonitor
