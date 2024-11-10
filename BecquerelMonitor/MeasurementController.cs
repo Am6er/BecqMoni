@@ -229,13 +229,9 @@ namespace BecquerelMonitor
             {
                 bool testing = resultDataStatus.Testing;
             }
+            // Preset time elapsed
             if (resultDataStatus.Recording && resultDataStatus.ElapsedTime.TotalSeconds >= (double)resultDataStatus.PresetTime)
             {
-                if (this.resultData.MeasurementController.DeviceController is AtomSpectraDeviceController)
-                {
-                    AtomSpectraVCPIn.getInstance(this.resultData.DeviceConfig.Guid).sendCommand("-sho");
-                    AtomSpectraVCPIn.getInstance(this.resultData.DeviceConfig.Guid).waitForAnswer("-ok collecting", 1000);
-                }
                 this.StopRecording();
                 this.document.UpdateSpectrum = false;
                 if (this.saveOnMeasurementEnd)
