@@ -185,7 +185,7 @@ namespace WinMM
                         Monitor.Pulse(this.bufferingLock);
                     }
                     NativeMethods.Throw(NativeMethods.waveInReset(this.handle), NativeMethods.ErrorSource.WaveIn);
-                    this.bufferMaintainerThread.Join();
+                    if (!this.bufferMaintainerThread.Join(5000)) { this.bufferMaintainerThread.Abort(); }
                     this.bufferMaintainerThread = null;
                 }
             }
