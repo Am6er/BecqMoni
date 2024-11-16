@@ -2246,15 +2246,19 @@ namespace BecquerelMonitor
             openFileDialog.Filter = Resources.AtomSpectraFileFilter;
             openFileDialog.FilterIndex = 1;
             openFileDialog.RestoreDirectory = true;
+            openFileDialog.Multiselect = true;
             if (openFileDialog.ShowDialog() != DialogResult.OK)
             {
                 return;
             }
 
-            CreateDocument();
-            this.documentManager.ImportDocumentAtomSpectra(this.activeDocument, openFileDialog.FileName);
-            this.activeDocument.Dirty = true;
-            this.UpdateAllView();
+            foreach (string filePath in openFileDialog.FileNames)
+            {
+                CreateDocument();
+                this.documentManager.ImportDocumentAtomSpectra(this.activeDocument, filePath);
+                this.activeDocument.Dirty = true;
+                this.UpdateAllView();
+            }
         }
 
         void N42StripMenuItem_Click(object sender, EventArgs e)
