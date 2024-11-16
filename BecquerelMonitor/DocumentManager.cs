@@ -485,13 +485,13 @@ namespace BecquerelMonitor
             return docEnergySpectrum2;
         }
 
-        public void ImportDocumentAtomSpectra(DocEnergySpectrum doc, string filename)
+        public void ImportDocumentAtomSpectra(DocEnergySpectrum doc, string filePath)
         {
             GC.Collect();
 
             try
             {
-                using (StreamReader streamReader = new StreamReader(filename, Encoding.GetEncoding("UTF-8")))
+                using (StreamReader streamReader = new StreamReader(filePath, Encoding.GetEncoding("UTF-8")))
                 {
                     string NumOfChannels = streamReader.ReadLine();
                     for (int i = 0; i < 9; i++)
@@ -515,7 +515,7 @@ namespace BecquerelMonitor
                 }
                 if (!this.CheckDocument(doc.ResultDataFile))
                 {
-                    string text = String.Format(Resources.ERRFileOpenFailure, filename, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
+                    string text = String.Format(Resources.ERRFileOpenFailure, filePath, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
                     DialogResult res = MessageBox.Show(text, Resources.ResetCalibrationQuestion, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                     if (res == DialogResult.No) return;
                     this.CheckDocument(doc.ResultDataFile, doCorrections: true);
@@ -526,11 +526,11 @@ namespace BecquerelMonitor
             {
                 if (ex.InnerException != null && ex.InnerException.Message != null)
                 {
-                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message + " " + ex.InnerException.Message));
+                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filePath, ex.Message + " " + ex.InnerException.Message));
                 }
                 else
                 {
-                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message, ex.StackTrace));
+                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filePath, ex.Message, ex.StackTrace));
                 }
                 return;
             }
@@ -544,7 +544,7 @@ namespace BecquerelMonitor
             try
             {
                 Cursor.Current = Cursors.WaitCursor;
-                using (StreamReader streamReader = new StreamReader(filename, Encoding.GetEncoding("UTF-8")))
+                using (StreamReader streamReader = new StreamReader(filePath, Encoding.GetEncoding("UTF-8")))
                 {
 
                     string fileformat = streamReader.ReadLine();
@@ -573,8 +573,9 @@ namespace BecquerelMonitor
 
                         info.Note = SpectrumSummaryText;
                         info.Name = SpectrumName;
-                        doc.Filename = SpectrumName + ".xml";
-                        doc.Text = SpectrumName;
+                        string fileName = Path.GetFileNameWithoutExtension(filePath);
+                        doc.Filename = fileName + ".xml";
+                        doc.Text = fileName;
                         info.Location = Lattitude + ", " + Longitude;
 
                         if (streamReader.ReadLine() != "")
@@ -632,11 +633,11 @@ namespace BecquerelMonitor
             {
                 if (ex.InnerException != null && ex.InnerException.Message != null)
                 {
-                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message + " " + ex.InnerException.Message));
+                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filePath, ex.Message + " " + ex.InnerException.Message));
                 }
                 else
                 {
-                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message, ex.StackTrace));
+                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filePath, ex.Message, ex.StackTrace));
                 }
                 return;
             }
