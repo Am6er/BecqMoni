@@ -1055,6 +1055,7 @@ namespace BecquerelMonitor
             {
                 using (StreamWriter streamWriter = new StreamWriter(fileName, false, Encoding.GetEncoding(65001)))
                 {
+                    streamWriter.WriteLine("# channel, energy, count");
                     for (int i = 0; i < energySpectrum.NumberOfChannels; i++)
                     {
                         streamWriter.WriteLine(i + "," + cal.ChannelToEnergy(i) + "," + energySpectrum.Spectrum[i]);
