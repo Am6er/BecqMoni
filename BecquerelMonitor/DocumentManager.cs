@@ -711,7 +711,7 @@ namespace BecquerelMonitor
             saveFileDialog.Filter = Resources.AtomSpectraFileFilter;
             saveFileDialog.FilterIndex = 1;
             saveFileDialog.RestoreDirectory = true;
-            saveFileDialog.FileName = doc.Text + ".txt";
+            saveFileDialog.FileName = doc.Text.Trim(new char[] { '*', ' ' }) + ".txt";
             if (saveFileDialog.ShowDialog() != DialogResult.OK)
             {
                 return;
@@ -744,7 +744,7 @@ namespace BecquerelMonitor
                     //37.594665
                     writer.WriteLine("0");
                     //Am241
-                    writer.WriteLine(doc.Text);
+                    writer.WriteLine(doc.Text.Trim(new char[] { '*', ' ' }));
                     //Empty Line
                     writer.WriteLine("");
                     //180845.000000
@@ -780,7 +780,7 @@ namespace BecquerelMonitor
             saveFileDialog.Filter = Resources.N42FileFilter;
             saveFileDialog.FilterIndex = 1;
             saveFileDialog.RestoreDirectory = true;
-            saveFileDialog.FileName = doc.Text + ".N42";
+            saveFileDialog.FileName = doc.Text.Trim(new char[] { '*', ' ' }) + ".N42";
             if (saveFileDialog.ShowDialog() != DialogResult.OK)
             {
                 return;
@@ -989,7 +989,7 @@ namespace BecquerelMonitor
             saveFileDialog.Filter = Resources.CsvFileFilter;
             saveFileDialog.FilterIndex = 1;
             saveFileDialog.RestoreDirectory = true;
-            saveFileDialog.FileName = doc.Text + ".csv";
+            saveFileDialog.FileName = doc.Text.Trim(new char[] { '*', ' ' }) + ".csv";
             if (saveFileDialog.ShowDialog() != DialogResult.OK)
             {
                 return;
@@ -1019,7 +1019,7 @@ namespace BecquerelMonitor
             saveFileDialog.Filter = Resources.CsvFileFilter;
             saveFileDialog.FilterIndex = 1;
             saveFileDialog.RestoreDirectory = true;
-            saveFileDialog.FileName = doc.Text + ".csv";
+            saveFileDialog.FileName = doc.Text.Trim(new char[] { '*', ' ' }) + ".csv";
             if (saveFileDialog.ShowDialog() != DialogResult.OK)
             {
                 return;
