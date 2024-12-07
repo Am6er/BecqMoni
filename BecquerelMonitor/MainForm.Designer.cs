@@ -90,7 +90,8 @@ namespace BecquerelMonitor
 			this.ピ\u30FCク検出DToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.パルス表示PToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripMenuItem5 = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolStripMenuItem3 = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.waterfallToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripMenuItem3 = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSeparator2 = new global::System.Windows.Forms.ToolStripSeparator();
 			this.測定結果表示RToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSeparator8 = new global::System.Windows.Forms.ToolStripSeparator();
@@ -317,6 +318,7 @@ namespace BecquerelMonitor
 				this.ピ\u30FCク検出DToolStripMenuItem,
 				this.パルス表示PToolStripMenuItem,
 				this.toolStripMenuItem5,
+				this.waterfallToolStripMenuItem,
 				this.toolStripMenuItem3,
 				this.toolStripSeparator2,
 				this.測定結果表示RToolStripMenuItem,
@@ -350,7 +352,10 @@ namespace BecquerelMonitor
 			resources.ApplyResources(this.toolStripMenuItem5, "toolStripMenuItem5");
 			this.toolStripMenuItem5.Name = "toolStripMenuItem5";
 			this.toolStripMenuItem5.Click += new global::System.EventHandler(this.toolStripMenuItem5_Click);
-			resources.ApplyResources(this.toolStripMenuItem3, "toolStripMenuItem3");
+            resources.ApplyResources(this.waterfallToolStripMenuItem, "waterfallToolStripMenuItem");
+            this.waterfallToolStripMenuItem.Name = "waterfallToolStripMenuItem";
+            this.waterfallToolStripMenuItem.Click += new global::System.EventHandler(this.waterfallToolStripMenuItem_Click);
+            resources.ApplyResources(this.toolStripMenuItem3, "toolStripMenuItem3");
 			this.toolStripMenuItem3.Name = "toolStripMenuItem3";
 			this.toolStripMenuItem3.Click += new global::System.EventHandler(this.toolStripMenuItem3_Click);
 			resources.ApplyResources(this.toolStripSeparator2, "toolStripSeparator2");
@@ -764,8 +769,10 @@ namespace BecquerelMonitor
 		// Token: 0x040005C0 RID: 1472
 		global::System.Windows.Forms.ToolStripMenuItem toolStripMenuItem5;
 
-		// Token: 0x040005C1 RID: 1473
-		global::System.Windows.Forms.ToolStripMenuItem cSVFileToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem waterfallToolStripMenuItem;
+
+        // Token: 0x040005C1 RID: 1473
+        global::System.Windows.Forms.ToolStripMenuItem cSVFileToolStripMenuItem;
 
 		// Token: 0x040005C2 RID: 1474
 		global::System.Windows.Forms.ToolStripMenuItem toolStripMenuItem6;

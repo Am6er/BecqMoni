@@ -786,4 +786,7 @@
   <data name="NuclideSetToolStripMenuItem.Text" xml:space="preserve">
     <value>Редактировать наборы изотопов...</value>
   </data>
+  <data name="waterfallToolStripMenuItem.Text" xml:space="preserve">
+    <value>Водопад</value>
+  </data>
 </root>

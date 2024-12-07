@@ -234,6 +234,7 @@ namespace BecquerelMonitor
             this.dcSpectrumExplorerView = new DCSpectrumExplorerView(this);
             this.dcEnergyCalibrationView = new DCEnergyCalibrationView(this);
             this.dcCountRateView = new DCCountRateView(this);
+            this.dcWaterfallView = new DCWaterfallView(this);
             this.dcControlPanel.Enabled = false;
             this.dcSampleInfoView.Enabled = false;
             this.dcSpectrumListView.Enabled = false;
@@ -331,6 +332,10 @@ namespace BecquerelMonitor
             if (a == typeof(DCCountRateView).ToString())
             {
                 return this.dcCountRateView;
+            }
+            if (a == typeof(DCWaterfallView).ToString())
+            {
+                return this.dcWaterfallView;
             }
             if (a == typeof(DCResultView).ToString())
             {
@@ -850,6 +855,15 @@ namespace BecquerelMonitor
             ShowDetectorFeature();
         }
 
+        void waterfallToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (this.dcWaterfallView == null || this.dcWaterfallView.IsDisposed)
+            {
+                this.dcWaterfallView = new DCWaterfallView(this);
+            }
+            this.dcWaterfallView.Show(this.dockPanel1);
+        }
+
         // Token: 0x06000A62 RID: 2658 RVA: 0x0003D8C8 File Offset: 0x0003BAC8
         void 測定結果表示RToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -971,6 +985,7 @@ namespace BecquerelMonitor
                 this.dcControlPanel.Enabled = true;
                 this.dcSampleInfoView.Enabled = true;
                 this.dcCountRateView.Enabled = true;
+                this.dcWaterfallView.Enabled = true;
                 foreach (DCResultView dcresultView in this.dcResultViewList)
                 {
                     dcresultView.Enabled = true;
@@ -1004,6 +1019,7 @@ namespace BecquerelMonitor
                 this.dcControlPanel.Enabled = false;
                 this.dcSampleInfoView.Enabled = false;
                 this.dcCountRateView.Enabled = false;
+                this.dcWaterfallView.Enabled = false;
                 foreach (DCResultView dcresultView2 in this.dcResultViewList)
                 {
                     dcresultView2.Enabled = false;
@@ -1039,6 +1055,7 @@ namespace BecquerelMonitor
             this.dcControlPanel.Enabled = true;
             this.dcSampleInfoView.Enabled = true;
             this.dcCountRateView.Enabled = true;
+            this.dcWaterfallView.Enabled = true;
             foreach (DCResultView dcresultView in this.dcResultViewList)
             {
                 dcresultView.Enabled = true;
@@ -2850,6 +2867,8 @@ namespace BecquerelMonitor
 
         // Token: 0x040005DD RID: 1501
         DCCountRateView dcCountRateView;
+
+        DCWaterfallView dcWaterfallView;
 
         NucBase.NucBase nucBaseView;
 
