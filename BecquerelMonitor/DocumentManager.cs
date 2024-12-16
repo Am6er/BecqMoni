@@ -1028,6 +1028,7 @@ namespace BecquerelMonitor
             PolynomialEnergyCalibration cal = (PolynomialEnergyCalibration)doc.ActiveResultData.EnergySpectrum.EnergyCalibration;
 
             EnergySpectrum energySpectrum;
+            double[] dSpectrum = new double[doc.ActiveResultData.EnergySpectrum.NumberOfChannels];
             SpectrumAriphmetics sa = new SpectrumAriphmetics();
             if (bgMode == BackgroundMode.Substract && doc.ActiveResultData.BackgroundEnergySpectrum != null)
             {
@@ -1043,11 +1044,14 @@ namespace BecquerelMonitor
             {
                 case SmoothingMethod.SimpleMovingAverage:
                     int points = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.NumberOfSMADataPoints;
-                    energySpectrum.Spectrum = sa.SMA(energySpectrum.Spectrum, points, countlimit: countlimit);
+                    dSpectrum = sa.SMA2(Array.ConvertAll(energySpectrum.Spectrum, i => (double)i), points, countlimit: countlimit);
                     break;
                 case SmoothingMethod.WeightedMovingAverage:
                     points = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.NumberOfWMADataPoints;
-                    energySpectrum.Spectrum = sa.WMA(energySpectrum.Spectrum, points, countlimit: countlimit);
+                    dSpectrum = sa.WMA2(Array.ConvertAll(energySpectrum.Spectrum, i => (double)i), points, countlimit: countlimit);
+                    break;
+                default:
+                    dSpectrum = Array.ConvertAll(energySpectrum.Spectrum, i => (double)i);
                     break;
             }
 
@@ -1058,7 +1062,7 @@ namespace BecquerelMonitor
                     streamWriter.WriteLine("channel, energy, count");
                     for (int i = 0; i < energySpectrum.NumberOfChannels; i++)
                     {
-                        streamWriter.WriteLine(i + "," + cal.ChannelToEnergy(i) + "," + energySpectrum.Spectrum[i]);
+                        streamWriter.WriteLine(i + "," + cal.ChannelToEnergy(i) + "," + dSpectrum[i]);
                     }
                 }
             }
