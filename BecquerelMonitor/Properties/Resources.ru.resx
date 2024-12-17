@@ -755,10 +755,13 @@ http://xptable.sourceforge.net/</value>
   <data name="UpdateDeadTime" xml:space="preserve">
     <value>Обновить Мертвое Время</value>
   </data>
-  <data name="ImportSPEFileDialogTitle" xml:space="preserve">
-    <value>Импорт файла SpectraLine SPE</value>
+  <data name="ImportGBSFileDialogTitle" xml:space="preserve">
+    <value>Импорт файла SpectraLine GBS</value>
   </data>
   <data name="SPEFileFilter" xml:space="preserve">
     <value>Файлы SpectraLine SPE (*.spe)|*.spe|Все файлы (*.*)|*.*</value>
+  </data>
+  <data name="ERROpenGBSFormat" xml:space="preserve">
+    <value>Ошибка. Не могу импортировать файл SpectraLine GBS. Ожидался заголовок в начале файла $SPEC_ID, получен: {0}</value>
   </data>
 </root>

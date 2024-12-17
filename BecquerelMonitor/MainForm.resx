@@ -1157,16 +1157,16 @@
   <data name="NuclideSetToolStripMenuItem.Text" xml:space="preserve">
     <value>Edit Nuclide Sets...</value>
   </data>
-  <data name="SPEFileToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+  <data name="GBSFileToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>326, 22</value>
   </data>
-  <data name="SPEFileToolStripMenuItem.Text" xml:space="preserve">
-    <value>SpectraLine SPE</value>
+  <data name="GBSFileToolStripMenuItem.Text" xml:space="preserve">
+    <value>SpectraLine GBS</value>
   </data>
-  <data name="&gt;&gt;SPEFileToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;GBSFileToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;SPEFileToolStripMenuItem.Name" xml:space="preserve">
-    <value>SPEFileToolStripMenuItem</value>
+  <data name="&gt;&gt;GBSFileToolStripMenuItem.Name" xml:space="preserve">
+    <value>GBSFileToolStripMenuItem</value>
   </data>
 </root>

@@ -485,7 +485,7 @@ namespace BecquerelMonitor
             return docEnergySpectrum2;
         }
 
-        public void ImportDocumentSPE(DocEnergySpectrum doc, string filePath)
+        public void ImportDocumentGBS(DocEnergySpectrum doc, string filePath)
         {
             GC.Collect();
 
@@ -505,7 +505,7 @@ namespace BecquerelMonitor
                     string fileheader = streamReader.ReadLine();
                     if (fileheader != "$SPEC_ID:")
                     {
-                        throw new Exception(String.Format(Resources.ERROpenAtomSpectraFormat, fileheader));
+                        throw new Exception(String.Format(Resources.ERROpenGBSFormat, fileheader));
                     }
 
                     string SpectrumSummaryText = streamReader.ReadLine();
