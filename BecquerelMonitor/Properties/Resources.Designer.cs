@@ -1432,6 +1432,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Import SpectraLine SPE Spectrum File.
+        /// </summary>
+        internal static string ImportSPEFileDialogTitle {
+            get {
+                return ResourceManager.GetString("ImportSPEFileDialogTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Initializing...
         ///.
         /// </summary>
@@ -2390,6 +2399,15 @@ namespace BecquerelMonitor.Properties {
         internal static string SpectrumFileFilter {
             get {
                 return ResourceManager.GetString("SpectrumFileFilter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Atom Spectra Files (*.spe)|*.spe|All Files (*.*)|*.*.
+        /// </summary>
+        internal static string SPEFileFilter {
+            get {
+                return ResourceManager.GetString("SPEFileFilter", resourceCulture);
             }
         }
         

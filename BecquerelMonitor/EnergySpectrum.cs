@@ -202,17 +202,7 @@ namespace BecquerelMonitor
         // Token: 0x0600006A RID: 106 RVA: 0x00002A44 File Offset: 0x00000C44
         public void Initialize()
         {
-            if (this.spectrum == null || this.spectrum.Length != this.numberOfChannels)
-            {
-                this.spectrum = new int[this.numberOfChannels];
-            }
-            else
-            {
-                for (int i = 0; i < this.numberOfChannels; i++)
-                {
-                    this.spectrum[i] = 0;
-                }
-            }
+            this.spectrum = new int[this.numberOfChannels];
             this.totalPulseCount = 0;
             this.validPulseCount = 0;
             this.measurementTime = 0.0;

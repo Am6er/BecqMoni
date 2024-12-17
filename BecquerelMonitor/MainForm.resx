@@ -1157,4 +1157,16 @@
   <data name="NuclideSetToolStripMenuItem.Text" xml:space="preserve">
     <value>Edit Nuclide Sets...</value>
   </data>
+  <data name="SPEFileToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+    <value>326, 22</value>
+  </data>
+  <data name="SPEFileToolStripMenuItem.Text" xml:space="preserve">
+    <value>SpectraLine SPE</value>
+  </data>
+  <data name="&gt;&gt;SPEFileToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;SPEFileToolStripMenuItem.Name" xml:space="preserve">
+    <value>SPEFileToolStripMenuItem</value>
+  </data>
 </root>
