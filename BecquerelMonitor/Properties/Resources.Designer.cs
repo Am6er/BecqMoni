@@ -1163,6 +1163,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Error. Can not open this file. Expected $SPEC_ID file header, got: {0}.
+        /// </summary>
+        internal static string ERROpenGBSFormat {
+            get {
+                return ResourceManager.GetString("ERROpenGBSFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Error.
         /// </summary>
         internal static string ErrorDialogTitle {
@@ -1366,6 +1375,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Spectraline GBS Spectra Files (*.spe)|*.spe|All Files (*.*)|*.*.
+        /// </summary>
+        internal static string GBSFileFilter {
+            get {
+                return ResourceManager.GetString("GBSFileFilter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
         internal static System.Drawing.Bitmap HD {
@@ -1405,6 +1423,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Import SpectraLine GBS Spectrum File.
+        /// </summary>
+        internal static string ImportGBSFileDialogTitle {
+            get {
+                return ResourceManager.GetString("ImportGBSFileDialogTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Import N42 Spectrum File.
         /// </summary>
         internal static string ImportN42FileDialogTitle {
@@ -1428,15 +1455,6 @@ namespace BecquerelMonitor.Properties {
         internal static string ImportSpectraFromFileDialogTitle {
             get {
                 return ResourceManager.GetString("ImportSpectraFromFileDialogTitle", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Import SpectraLine SPE Spectrum File.
-        /// </summary>
-        internal static string ImportSPEFileDialogTitle {
-            get {
-                return ResourceManager.GetString("ImportSPEFileDialogTitle", resourceCulture);
             }
         }
         
@@ -2399,15 +2417,6 @@ namespace BecquerelMonitor.Properties {
         internal static string SpectrumFileFilter {
             get {
                 return ResourceManager.GetString("SpectrumFileFilter", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Atom Spectra Files (*.spe)|*.spe|All Files (*.*)|*.*.
-        /// </summary>
-        internal static string SPEFileFilter {
-            get {
-                return ResourceManager.GetString("SPEFileFilter", resourceCulture);
             }
         }
         

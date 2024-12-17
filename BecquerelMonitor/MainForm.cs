@@ -2146,11 +2146,11 @@ namespace BecquerelMonitor
             }
         }
 
-        void SPEFileToolStripMenuItem_Click(object sender, EventArgs e)
+        void GBSFileToolStripMenuItem_Click(object sender, EventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Title = Resources.ImportSPEFileDialogTitle;
-            openFileDialog.Filter = Resources.SPEFileFilter;
+            openFileDialog.Title = Resources.ImportGBSFileDialogTitle;
+            openFileDialog.Filter = Resources.GBSFileFilter;
             openFileDialog.FilterIndex = 1;
             openFileDialog.RestoreDirectory = true;
             openFileDialog.Multiselect = true;
@@ -2162,7 +2162,7 @@ namespace BecquerelMonitor
             foreach (string filePath in openFileDialog.FileNames)
             {
                 CreateDocument();
-                this.documentManager.ImportDocumentSPE(this.activeDocument, filePath);
+                this.documentManager.ImportDocumentGBS(this.activeDocument, filePath);
                 this.activeDocument.Dirty = true;
                 this.UpdateAllView();
             }
