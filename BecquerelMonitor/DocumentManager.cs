@@ -485,6 +485,151 @@ namespace BecquerelMonitor
             return docEnergySpectrum2;
         }
 
+        public void ImportDocumentSPE(DocEnergySpectrum doc, string filePath)
+        {
+            GC.Collect();
+
+            SampleInfoData info = doc.ActiveResultData.SampleInfo;
+
+            try
+            {
+                Cursor.Current = Cursors.WaitCursor;
+                using (StreamReader streamReader = new StreamReader(filePath, Encoding.GetEncoding("UTF-8")))
+                {
+                    string fileName = Path.GetFileNameWithoutExtension(filePath);
+                    info.Name = fileName;
+                    doc.Filename = fileName + ".xml";
+                    doc.Text = fileName;
+
+                    // $SPEC_ID:
+                    string fileheader = streamReader.ReadLine();
+                    if (fileheader != "$SPEC_ID:")
+                    {
+                        throw new Exception(String.Format(Resources.ERROpenAtomSpectraFormat, fileheader));
+                    }
+
+                    string SpectrumSummaryText = streamReader.ReadLine();
+                    info.Note = SpectrumSummaryText;
+
+                    // $DATE_MEA:
+                    fileheader = streamReader.ReadLine();
+                    while (true)
+                    {
+                        if (fileheader == "$DATE_MEA:") break;
+                        fileheader = streamReader.ReadLine();
+                    }
+
+                    // 11/30/2024 21:02:07
+                    string Time1 = streamReader.ReadLine();
+                    info.Time = DateTime.ParseExact(Time1, "MM/dd/yyyy H:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
+                    doc.ActiveResultData.StartTime = info.Time;
+
+                    // $MEAS_TIM:
+                    fileheader = streamReader.ReadLine();
+                    while (true)
+                    {
+                        if (fileheader == "$MEAS_TIM:") break;
+                        fileheader = streamReader.ReadLine();
+                    }
+
+                    string LiveTimeRealTime = streamReader.ReadLine();
+
+                    // $DATA:
+                    fileheader = streamReader.ReadLine();
+                    while (true)
+                    {
+                        if (fileheader == "$DATA:") break;
+                        fileheader = streamReader.ReadLine();
+                    }
+
+                    int numberOfChannels = XmlConvert.ToInt32(streamReader.ReadLine().Split(new string[] { " " }, StringSplitOptions.RemoveEmptyEntries)[1].Trim()) + 1;
+
+                    bool importWithEmtyConfig = GlobalConfigManager.GetInstance().GlobalConfig.ImportSpectrumWithEmptyConfig;
+                    bool channelMismatch = doc.ActiveResultData.EnergySpectrum.NumberOfChannels != numberOfChannels;
+                    if (channelMismatch || importWithEmtyConfig)
+                    {
+                        this.ResetSpectrumConfig(doc.ActiveResultData, numberOfChannels);
+                    }
+
+                    EnergySpectrum energySpectrum = doc.ActiveResultData.EnergySpectrum;
+                    energySpectrum.Initialize();
+                    ResultDataStatus resultDataStatus = doc.ActiveResultData.ResultDataStatus;
+
+                    energySpectrum.LiveTime = XmlConvert.ToDouble(LiveTimeRealTime.Split(new string[] { "  " }, StringSplitOptions.RemoveEmptyEntries)[0].Trim());
+                    energySpectrum.MeasurementTime = XmlConvert.ToDouble(LiveTimeRealTime.Split(new string[] { "  " }, StringSplitOptions.RemoveEmptyEntries)[1].Trim());
+                    resultDataStatus.TotalTime = TimeSpan.FromSeconds(energySpectrum.MeasurementTime);
+                    resultDataStatus.ElapsedTime = TimeSpan.FromSeconds(energySpectrum.MeasurementTime);
+                    resultDataStatus.PresetTime = (int)energySpectrum.MeasurementTime;
+                    doc.ActiveResultData.EndTime = doc.ActiveResultData.StartTime.AddSeconds(energySpectrum.MeasurementTime);
+
+                    for (int i = 0; i < energySpectrum.Spectrum.Length; i++)
+                    {
+                        energySpectrum.Spectrum[i] = XmlConvert.ToInt32(streamReader.ReadLine());
+                    }
+
+                    // $ENER_DATA:
+                    fileheader = streamReader.ReadLine();
+                    while (true)
+                    {
+                        if (fileheader == "$ENER_DATA:") break;
+                        fileheader = streamReader.ReadLine();
+                    }
+
+                    // skip first string
+                    streamReader.ReadLine();
+
+                    // read base calibration
+                    List<CalibrationPoint> points = new List<CalibrationPoint>();
+                    for (int i = 0; i < 3; i++)
+                    {
+                        string calibrationData = streamReader.ReadLine();
+                        int channel = XmlConvert.ToInt32(calibrationData.Split(new string[] { " " }, StringSplitOptions.RemoveEmptyEntries)[0].Trim());
+                        decimal energy = XmlConvert.ToDecimal(calibrationData.Split(new string[] { " " }, StringSplitOptions.RemoveEmptyEntries)[1].Trim());
+                        int count = energySpectrum.Spectrum[channel];
+                        CalibrationPoint point = new CalibrationPoint(channel, energy, count);
+                        points.Add(point);
+                    }
+
+                    double[] matrix = Utils.CalibrationSolver.Solve(points, 2);
+                    PolynomialEnergyCalibration energyCalibration = (PolynomialEnergyCalibration)energySpectrum.EnergyCalibration;
+                    energyCalibration.Coefficients = new double[matrix.Length];
+                    energyCalibration.PolynomialOrder = matrix.Length - 1;
+                    energyCalibration.Coefficients = matrix;
+
+                    if (!energyCalibration.CheckCalibration(channels: energySpectrum.NumberOfChannels))
+                    {
+                        MessageBox.Show(Resources.CalibrationFunctionError);
+                    }
+
+                    // $COUNTS:
+                    fileheader = streamReader.ReadLine();
+                    while (true)
+                    {
+                        if (fileheader == "$COUNTS:") break;
+                        fileheader = streamReader.ReadLine();
+                    }
+
+                    int TotalPulseCount = XmlConvert.ToInt32(streamReader.ReadLine().Trim());
+                    energySpectrum.TotalPulseCount = TotalPulseCount;
+                    energySpectrum.ValidPulseCount = energySpectrum.Spectrum.Sum();
+
+                    streamReader.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                if (ex.InnerException != null && ex.InnerException.Message != null)
+                {
+                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filePath, ex.Message + " " + ex.InnerException.Message));
+                }
+                else
+                {
+                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filePath, ex.Message + " " + ex.StackTrace));
+                }
+            }
+            Cursor.Current = Cursors.Default;
+        }
+
         public void ImportDocumentAtomSpectra(DocEnergySpectrum doc, string filePath)
         {
             GC.Collect();
