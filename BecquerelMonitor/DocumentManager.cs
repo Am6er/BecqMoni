@@ -501,9 +501,10 @@ namespace BecquerelMonitor
                     doc.Filename = fileName + ".xml";
                     doc.Text = fileName;
 
-                    // $SPEC_ID:
+                    // From https://www.gbs-elektronik.de/media/download_gallery/Ritecdat_e.pdf
+                    // $SPEC_ID: or $APPLICATION_ID: or $DEVICE_ID:
                     string fileheader = streamReader.ReadLine();
-                    if (fileheader != "$SPEC_ID:")
+                    if (fileheader != "$SPEC_ID:" && fileheader != "$APPLICATION_ID:" && fileheader != "$DEVICE_ID:")
                     {
                         throw new Exception(String.Format(Resources.ERROpenGBSFormat, fileheader));
                     }
@@ -571,16 +572,15 @@ namespace BecquerelMonitor
                     fileheader = streamReader.ReadLine();
                     while (true)
                     {
-                        if (fileheader == "$ENER_DATA:") break;
+                        if (fileheader == "$ENER_DATA_X:") break;
                         fileheader = streamReader.ReadLine();
                     }
 
-                    // skip first string
-                    streamReader.ReadLine();
+                    int numpoints = XmlConvert.ToInt32(streamReader.ReadLine().Trim());
 
                     // read base calibration
                     List<CalibrationPoint> points = new List<CalibrationPoint>();
-                    for (int i = 0; i < 3; i++)
+                    for (int i = 0; i < numpoints; i++)
                     {
                         string calibrationData = streamReader.ReadLine();
                         int channel = XmlConvert.ToInt32(calibrationData.Split(new string[] { " " }, StringSplitOptions.RemoveEmptyEntries)[0].Trim());
@@ -590,7 +590,7 @@ namespace BecquerelMonitor
                         points.Add(point);
                     }
 
-                    double[] matrix = Utils.CalibrationSolver.Solve(points, 2);
+                    double[] matrix = Utils.CalibrationSolver.Solve(points, numpoints - 1);
                     PolynomialEnergyCalibration energyCalibration = (PolynomialEnergyCalibration)energySpectrum.EnergyCalibration;
                     energyCalibration.Coefficients = new double[matrix.Length];
                     energyCalibration.PolynomialOrder = matrix.Length - 1;
@@ -611,7 +611,7 @@ namespace BecquerelMonitor
 
                     int TotalPulseCount = XmlConvert.ToInt32(streamReader.ReadLine().Trim());
                     energySpectrum.TotalPulseCount = TotalPulseCount;
-                    energySpectrum.ValidPulseCount = energySpectrum.Spectrum.Sum();
+                    energySpectrum.ValidPulseCount = TotalPulseCount;
 
                     streamReader.Close();
                 }
