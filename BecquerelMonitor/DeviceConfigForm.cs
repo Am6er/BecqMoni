@@ -542,7 +542,7 @@ namespace BecquerelMonitor
             this.numericUpDown16.Minimum = 256;
             this.numericUpDown16.Maximum = config.NumberOfChannels;
             this.numericUpDown16.Increment = 1;
-            if (FWHMPeakDetectionMethodConfig.Ch_Concat < config.NumberOfChannels)
+            if (FWHMPeakDetectionMethodConfig.Ch_Concat < config.NumberOfChannels && FWHMPeakDetectionMethodConfig.Ch_Concat > 256)
             {
                 this.numericUpDown16.Value = (decimal)FWHMPeakDetectionMethodConfig.Ch_Concat;
             } else
