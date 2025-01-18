@@ -77,6 +77,8 @@
 			this.numericUpDown9 = new global::System.Windows.Forms.NumericUpDown();
             this.numericUpDown13 = new global::System.Windows.Forms.NumericUpDown();
             this.numericUpDown14 = new global::System.Windows.Forms.NumericUpDown();
+            this.progressiveSmoothCheckbox = new global::System.Windows.Forms.CheckBox();
+            this.progressiveSmoothTooltip = new global::System.Windows.Forms.ToolTip();
             this.label58 = new global::System.Windows.Forms.Label();
 			this.label59 = new global::System.Windows.Forms.Label();
 			this.label60 = new global::System.Windows.Forms.Label();
@@ -297,6 +299,7 @@
 			this.groupBox2.Controls.Add(this.confidenceLevelcomboBox);
 			this.groupBox2.Controls.Add(this.confidenceLevelLabel);
             this.groupBox2.Controls.Add(this.numericUpDown13);
+            this.groupBox2.Controls.Add(this.progressiveSmoothCheckbox);
             this.groupBox2.Controls.Add(this.label90);
             this.groupBox2.Controls.Add(this.label28);
 			this.groupBox2.Controls.Add(this.label27);
@@ -370,6 +373,12 @@
             this.numericUpDown13.Maximum = decimal.MaxValue;
             this.numericUpDown13.Increment = 10;
             this.numericUpDown13.Value = 100;
+            resources.ApplyResources(this.progressiveSmoothCheckbox, "progressiveSmoothCheckbox");
+            this.progressiveSmoothCheckbox.Name = "progressiveSmoothCheckbox";
+            resources.ApplyResources(this.progressiveSmoothTooltip, "progressiveSmoothTooltip");
+            this.progressiveSmoothTooltip.IsBalloon = true;
+            this.progressiveSmoothTooltip.InitialDelay = 0;
+            this.progressiveSmoothTooltip.SetToolTip(this.progressiveSmoothCheckbox, this.progressiveSmoothCheckbox.Tag as string);
             resources.ApplyResources(this.label90, "label90");
             this.label90.Name = "label90";
             resources.ApplyResources(this.label28, "label28");
@@ -1636,6 +1645,9 @@
 		global::System.Windows.Forms.NumericUpDown numericUpDown9;
 
         global::System.Windows.Forms.NumericUpDown numericUpDown13;
+
+        global::System.Windows.Forms.CheckBox progressiveSmoothCheckbox;
+        global::System.Windows.Forms.ToolTip progressiveSmoothTooltip;
 
         // Token: 0x0400067B RID: 1659
         global::System.Windows.Forms.NumericUpDown numericUpDown6;

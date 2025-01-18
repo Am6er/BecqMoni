@@ -5784,4 +5784,18 @@
   <data name="importSpectrumWithEmptyConfigCheckBox.Text" xml:space="preserve">
     <value>Set empty configuration for imported spectrums</value>
   </data>
+  <data name="progressiveSmoothCheckbox.Size" type="System.Drawing.Size, System.Drawing">
+	<value>175, 18</value>
+  </data>
+  <data name="progressiveSmoothCheckbox.Location" type="System.Drawing.Point, System.Drawing">
+    <value>16, 74</value>
+  </data>
+  <data name="progressiveSmoothCheckbox.Text" xml:space="preserve">
+    <value>Progressive Window Size</value>
+  </data>
+  <data name="progressiveSmoothCheckbox.Tag" xml:space="preserve">
+    <value>Setting above is applied to the middle of the spectrum
+Window size increases with channel number (from 0 at zero channel to 1.4x at spectrum end)
+Formula: size = middle_size * sqrt(channel_index / (channel_count / 2))</value>
+  </data>
 </root>
