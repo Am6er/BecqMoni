@@ -548,7 +548,7 @@ namespace BecquerelMonitor.Utils
             return result;
         }
 
-        public double[] WMA2(double[] spectrum, int numberOfWMADataPoints, int countlimit = 100)
+        public double[] WMA2(double[] spectrum, int numberOfWMADataPoints, int countlimit = 100, bool progressive = false)
         {
             double[] result = new double[spectrum.Length];
             Parallel.For(0, spectrum.Length, i =>
@@ -556,7 +556,19 @@ namespace BecquerelMonitor.Utils
                 int window_size = 1;
                 if (spectrum[i] <= countlimit)
                 {
-                    window_size = Convert.ToInt32((double)spectrum[i] * (1 - (double)numberOfWMADataPoints) / (double)countlimit + (double)numberOfWMADataPoints);
+                    double pointsNum = numberOfWMADataPoints;
+                    if (progressive)
+                    {
+                        pointsNum *= Math.Sqrt(i / (spectrum.Length / 2.0));
+
+                        if (pointsNum < 1)
+                        {
+                            result[i] = spectrum[i];
+                            return;
+                        }
+                    }
+
+                    window_size = Convert.ToInt32((double)spectrum[i] * (1 - (double)pointsNum) / (double)countlimit + (double)pointsNum);
                 }
                 if (window_size == 1)
                 {
@@ -566,7 +578,7 @@ namespace BecquerelMonitor.Utils
                 {
                     double part = 0.0;
                     double total = 0.0;
-                    for (int j = i - numberOfWMADataPoints / 2; j < i - numberOfWMADataPoints / 2 + numberOfWMADataPoints; j++)
+                    for (int j = i - window_size / 2; j < i - window_size / 2 + window_size; j++)
                     {
                         int ch = j;
                         if (ch < 0)
@@ -577,7 +589,7 @@ namespace BecquerelMonitor.Utils
                         {
                             ch = spectrum.Length - 1;
                         }
-                        double weight = (double)(numberOfWMADataPoints / 2 + 1 - Math.Abs(i - ch));
+                        double weight = (double)(window_size / 2 + 1 - Math.Abs(i - ch));
                         part += (double)spectrum[ch] * weight;
                         total += weight;
                     }
@@ -587,7 +599,7 @@ namespace BecquerelMonitor.Utils
             return result;
         }
 
-        public int[] WMA(int[] spectrum, int numberOfWMADataPoints, int countlimit = 100)
+        public int[] WMA(int[] spectrum, int numberOfWMADataPoints, int countlimit = 100, bool progressive = false)
         {
             int[] result = new int[spectrum.Length];
             Parallel.For(0, spectrum.Length, i =>
@@ -595,7 +607,19 @@ namespace BecquerelMonitor.Utils
                 int window_size = 1;
                 if (spectrum[i] <= countlimit)
                 {
-                    window_size = Convert.ToInt32((double)spectrum[i] * (1 - (double)numberOfWMADataPoints) / (double)countlimit + (double)numberOfWMADataPoints);
+                    double pointsNum = numberOfWMADataPoints;
+                    if (progressive)
+                    {
+                        pointsNum *= Math.Sqrt(i / (spectrum.Length / 2.0));
+
+                        if (pointsNum < 1)
+                        {
+                            result[i] = spectrum[i];
+                            return;
+                        }
+                    }
+
+                    window_size = Convert.ToInt32((double)spectrum[i] * (1 - (double)pointsNum) / (double)countlimit + (double)pointsNum);
                 }
                 if (window_size == 1)
                 {
@@ -605,7 +629,7 @@ namespace BecquerelMonitor.Utils
                 {
                     double part = 0.0;
                     double total = 0.0;
-                    for (int j = i - numberOfWMADataPoints / 2; j < i - numberOfWMADataPoints / 2 + numberOfWMADataPoints; j++)
+                    for (int j = i - window_size / 2; j < i - window_size / 2 + window_size; j++)
                     {
                         int ch = j;
                         if (ch < 0)
@@ -616,7 +640,7 @@ namespace BecquerelMonitor.Utils
                         {
                             ch = spectrum.Length - 1;
                         }
-                        double weight = (double)(numberOfWMADataPoints / 2 + 1 - Math.Abs(i - ch));
+                        double weight = (double)(window_size / 2 + 1 - Math.Abs(i - ch));
                         part += (double)spectrum[ch] * weight;
                         total += weight;
                     }
@@ -626,7 +650,7 @@ namespace BecquerelMonitor.Utils
             return result;
         }
 
-        public double[] SMA2(double[] spectrum, int numberOfSMADataPoints, int countlimit = 100)
+        public double[] SMA2(double[] spectrum, int numberOfSMADataPoints, int countlimit = 100, bool progressive = true)
         {
             double[] result = new double[spectrum.Length];
             Parallel.For(0, spectrum.Length, i =>
@@ -635,7 +659,19 @@ namespace BecquerelMonitor.Utils
                 int window_size = 1;
                 if (spectrum[i] <= countlimit)
                 {
-                    window_size = Convert.ToInt32((double)spectrum[i] * (1 - (double)numberOfSMADataPoints) / (double)countlimit + (double)numberOfSMADataPoints);
+                    double pointsNum = numberOfSMADataPoints;
+                    if (progressive)
+                    {
+                        pointsNum *= Math.Sqrt(i / (spectrum.Length / 2.0));
+
+                        if (pointsNum < 1)
+                        {
+                            result[i] = spectrum[i];
+                            return;
+                        }
+                    }
+
+                    window_size = Convert.ToInt32((double)spectrum[i] * (1 - (double)pointsNum) / (double)countlimit + (double)pointsNum);
                 }
                 if (window_size == 1)
                 {
@@ -662,7 +698,7 @@ namespace BecquerelMonitor.Utils
             return result;
         }
 
-        public int[] SMA(int[] spectrum, int numberOfSMADataPoints, int countlimit = 100)
+        public int[] SMA(int[] spectrum, int numberOfSMADataPoints, int countlimit = 100, bool progressive = false)
         {
             int[] result = new int[spectrum.Length];
             Parallel.For(0, spectrum.Length, i =>
@@ -671,7 +707,19 @@ namespace BecquerelMonitor.Utils
                 int window_size = 1;
                 if (spectrum[i] <= countlimit)
                 {
-                    window_size = Convert.ToInt32((double)spectrum[i] * (1 - (double)numberOfSMADataPoints) / (double)countlimit + (double)numberOfSMADataPoints);
+                    double pointsNum = numberOfSMADataPoints;
+                    if (progressive)
+                    {
+                        pointsNum *= Math.Sqrt(i / (spectrum.Length / 2.0));
+
+                        if (pointsNum < 1)
+                        {
+                            result[i] = spectrum[i];
+                            return;
+                        }
+                    }
+
+                    window_size = Convert.ToInt32((double)spectrum[i] * (1 - (double)pointsNum) / (double)countlimit + (double)pointsNum);
                 }
                 if (window_size == 1)
                 {

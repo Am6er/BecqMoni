@@ -294,6 +294,18 @@
             }
         }
 
+        public bool ProgresiveSmooth
+        {
+            get
+            {
+                return this.progressiveSmooth;
+            }
+            set
+            {
+                this.progressiveSmooth = value;
+            }
+        }
+
         public double HorizontalScale
         {
             get
@@ -381,6 +393,8 @@
         int numberOfWMADataPoints = 11;
 
         int countlimit = 100;
+
+        bool progressiveSmooth = false;
 
         // Token: 0x040008DB RID: 2267
         int chartRefreshCycle = 500;
