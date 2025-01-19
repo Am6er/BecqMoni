@@ -80,6 +80,7 @@ namespace BecquerelMonitor
             this.numericUpDown1.Value = globalConfig.ChartViewConfig.NumberOfSMADataPoints;
             this.numericUpDown2.Value = globalConfig.ChartViewConfig.NumberOfWMADataPoints;
             this.numericUpDown13.Value = (int)globalConfig.ChartViewConfig.CountLimit;
+            this.progressiveSmoothCheckbox.Checked = globalConfig.ChartViewConfig.ProgresiveSmooth;
             this.numericUpDown3.Value = globalConfig.ChartViewConfig.ChartRefreshCycle;
             this.numericUpDown10.Value = (int)globalConfig.AutosavePeriod;
             this.numericUpDown14.Value = (decimal)globalConfig.ChartViewConfig.HorizontalScale;
@@ -206,6 +207,7 @@ namespace BecquerelMonitor
             globalConfig.ChartViewConfig.NumberOfSMADataPoints = (int)this.numericUpDown1.Value;
             globalConfig.ChartViewConfig.NumberOfWMADataPoints = (int)this.numericUpDown2.Value;
             globalConfig.ChartViewConfig.CountLimit = (int)this.numericUpDown13.Value;
+            globalConfig.ChartViewConfig.ProgresiveSmooth = this.progressiveSmoothCheckbox.Checked;
             globalConfig.ChartViewConfig.ChartRefreshCycle = (int)this.numericUpDown3.Value;
             globalConfig.ChartViewConfig.MagnificationReference = (MagnificationReference)this.comboBox11.SelectedIndex;
             globalConfig.ChartViewConfig.ConfidenceLevel = ConfidenceLevel.z_score_single_side[this.confidenceLevelcomboBox.SelectedIndex];

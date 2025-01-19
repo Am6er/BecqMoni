@@ -2958,4 +2958,12 @@
   <data name="importSpectrumWithEmptyConfigCheckBox.Text" xml:space="preserve">
     <value>Устанавливать пустую конфигурацию импортируемым спектрам</value>
   </data>
+  <data name="progressiveSmoothCheckbox.Text" xml:space="preserve">
+    <value>Прогрессивный размер окна</value>
+  </data>
+  <data name="progressiveSmoothCheckbox.Tag" xml:space="preserve">
+    <value>Установка выше применяется к середине спектра
+Размер окна растет с ростом номера канала (от 0 для нулевого канала до 1.4x в конце спектра)
+Формула: size = middle_size * sqrt(channel_index / (channel_count / 2))</value>
+  </data>
 </root>

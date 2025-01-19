@@ -717,18 +717,19 @@ namespace BecquerelMonitor
                 SpectrumAriphmetics sa = new SpectrumAriphmetics();
                 int numberOfSMADataPoints = this.globalConfigManager.GlobalConfig.ChartViewConfig.NumberOfSMADataPoints;
                 int countlimit = this.globalConfigManager.GlobalConfig.ChartViewConfig.CountLimit;
+                bool progressiveSmooth = this.globalConfigManager.GlobalConfig.ChartViewConfig.ProgresiveSmooth;
                 foreach (ResultData resultData in this.resultDataList)
                 {
-                    resultData.EnergySpectrum.DrawingSpectrum = sa.SMA2(resultData.EnergySpectrum.DrawingSpectrum, numberOfSMADataPoints, countlimit: countlimit);
+                    resultData.EnergySpectrum.DrawingSpectrum = sa.SMA2(resultData.EnergySpectrum.DrawingSpectrum, numberOfSMADataPoints, countlimit: countlimit, progressive: progressiveSmooth);
 
                 }
                 if (this.IsBackgroundVisible())
                 {
-                    this.backgroundEnergySpectrum.DrawingSpectrum = sa.SMA2(this.backgroundEnergySpectrum.DrawingSpectrum, numberOfSMADataPoints, countlimit: countlimit);
+                    this.backgroundEnergySpectrum.DrawingSpectrum = sa.SMA2(this.backgroundEnergySpectrum.DrawingSpectrum, numberOfSMADataPoints, countlimit: countlimit, progressive: progressiveSmooth);
                 }
                 if (this.backgroundMode == BackgroundMode.ShowContinuum && this.continuumEnergySpectrum != null)
                 {
-                    this.continuumEnergySpectrum.DrawingSpectrum = sa.SMA2(this.continuumEnergySpectrum.DrawingSpectrum, numberOfSMADataPoints, countlimit: countlimit);
+                    this.continuumEnergySpectrum.DrawingSpectrum = sa.SMA2(this.continuumEnergySpectrum.DrawingSpectrum, numberOfSMADataPoints, countlimit: countlimit, progressive: progressiveSmooth);
                 }
                 sa.Dispose();
             }
@@ -737,17 +738,18 @@ namespace BecquerelMonitor
                 SpectrumAriphmetics sa = new SpectrumAriphmetics();
                 int numberOfWMADataPoints = this.globalConfigManager.GlobalConfig.ChartViewConfig.NumberOfWMADataPoints;
                 int countlimit = this.globalConfigManager.GlobalConfig.ChartViewConfig.CountLimit;
+                bool progressiveSmooth = this.globalConfigManager.GlobalConfig.ChartViewConfig.ProgresiveSmooth;
                 foreach (ResultData resultData in this.resultDataList)
                 {
-                    resultData.EnergySpectrum.DrawingSpectrum = sa.WMA2(resultData.EnergySpectrum.DrawingSpectrum, numberOfWMADataPoints, countlimit: countlimit);
+                    resultData.EnergySpectrum.DrawingSpectrum = sa.WMA2(resultData.EnergySpectrum.DrawingSpectrum, numberOfWMADataPoints, countlimit: countlimit, progressive: progressiveSmooth);
                 }
                 if (this.IsBackgroundVisible())
                 {
-                    this.backgroundEnergySpectrum.DrawingSpectrum = sa.WMA2(this.backgroundEnergySpectrum.DrawingSpectrum, numberOfWMADataPoints, countlimit: countlimit);
+                    this.backgroundEnergySpectrum.DrawingSpectrum = sa.WMA2(this.backgroundEnergySpectrum.DrawingSpectrum, numberOfWMADataPoints, countlimit: countlimit, progressive: progressiveSmooth);
                 }
                 if (this.backgroundMode == BackgroundMode.ShowContinuum && this.continuumEnergySpectrum != null)
                 {
-                    this.continuumEnergySpectrum.DrawingSpectrum = sa.WMA2(this.continuumEnergySpectrum.DrawingSpectrum, numberOfWMADataPoints, countlimit: countlimit);
+                    this.continuumEnergySpectrum.DrawingSpectrum = sa.WMA2(this.continuumEnergySpectrum.DrawingSpectrum, numberOfWMADataPoints, countlimit: countlimit, progressive: progressiveSmooth);
                 }
                 sa.Dispose();
             }

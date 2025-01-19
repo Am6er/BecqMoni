@@ -548,154 +548,239 @@ namespace BecquerelMonitor.Utils
             return result;
         }
 
-        public double[] WMA2(double[] spectrum, int numberOfWMADataPoints, int countlimit = 100)
+        public double[] WMA2(double[] spectrum, int numberOfWMADataPoints, int countlimit = 100, bool progressive = false)
         {
             double[] result = new double[spectrum.Length];
-            Parallel.For(0, spectrum.Length, i =>
+            if (progressive)
             {
-                int window_size = 1;
-                if (spectrum[i] <= countlimit)
+                Parallel.For(0, spectrum.Length, i =>
                 {
-                    window_size = Convert.ToInt32((double)spectrum[i] * (1 - (double)numberOfWMADataPoints) / (double)countlimit + (double)numberOfWMADataPoints);
-                }
-                if (window_size == 1)
-                {
-                    result[i] = spectrum[i];
-                }
-                else
-                {
-                    double part = 0.0;
-                    double total = 0.0;
-                    for (int j = i - numberOfWMADataPoints / 2; j < i - numberOfWMADataPoints / 2 + numberOfWMADataPoints; j++)
+                    double pointsnum = GetProgressivePointsNum(i, spectrum.Length, numberOfWMADataPoints);
+                    if (pointsnum < 1)
                     {
-                        int ch = j;
-                        if (ch < 0)
-                        {
-                            ch = 0;
-                        }
-                        else if (ch >= spectrum.Length)
-                        {
-                            ch = spectrum.Length - 1;
-                        }
-                        double weight = (double)(numberOfWMADataPoints / 2 + 1 - Math.Abs(i - ch));
-                        part += (double)spectrum[ch] * weight;
-                        total += weight;
+                        result[i] = spectrum[i];
+                        return;
                     }
-                    result[i] = part / total;
-                }
-            });
+
+                    int window_size = GetWindowSize(spectrum[i], countlimit, pointsnum);
+                    if (window_size == 1)
+                    {
+                        result[i] = spectrum[i];
+                        return;
+                    }
+
+                    result[i] = GetWMAPointValue(spectrum, i, window_size);
+                });
+            }
+            else
+            {
+                Parallel.For(0, spectrum.Length, i =>
+                {
+                    int window_size = GetWindowSize(spectrum[i], countlimit, numberOfWMADataPoints);
+                    if (window_size == 1)
+                    {
+                        result[i] = spectrum[i];
+                    }
+                    else
+                    {
+                        result[i] = GetWMAPointValue(spectrum, i, window_size);
+                    }
+                });
+            }
+            
             return result;
         }
 
-        public int[] WMA(int[] spectrum, int numberOfWMADataPoints, int countlimit = 100)
+        public int[] WMA(int[] spectrum, int numberOfWMADataPoints, int countlimit = 100, bool progressive = false)
         {
             int[] result = new int[spectrum.Length];
-            Parallel.For(0, spectrum.Length, i =>
+            if (progressive)
             {
-                int window_size = 1;
-                if (spectrum[i] <= countlimit)
+                Parallel.For(0, spectrum.Length, i =>
                 {
-                    window_size = Convert.ToInt32((double)spectrum[i] * (1 - (double)numberOfWMADataPoints) / (double)countlimit + (double)numberOfWMADataPoints);
-                }
-                if (window_size == 1)
-                {
-                    result[i] = spectrum[i];
-                }
-                else
-                {
-                    double part = 0.0;
-                    double total = 0.0;
-                    for (int j = i - numberOfWMADataPoints / 2; j < i - numberOfWMADataPoints / 2 + numberOfWMADataPoints; j++)
+                    double pointsnum = GetProgressivePointsNum(i, spectrum.Length, numberOfWMADataPoints);
+                    if (pointsnum < 1)
                     {
-                        int ch = j;
-                        if (ch < 0)
-                        {
-                            ch = 0;
-                        }
-                        else if (ch >= spectrum.Length)
-                        {
-                            ch = spectrum.Length - 1;
-                        }
-                        double weight = (double)(numberOfWMADataPoints / 2 + 1 - Math.Abs(i - ch));
-                        part += (double)spectrum[ch] * weight;
-                        total += weight;
+                        result[i] = spectrum[i];
+                        return;
                     }
-                    result[i] = Convert.ToInt32(part / total);
-                }
-            });
+
+                    int window_size = GetWindowSize(spectrum[i], countlimit, pointsnum);
+                    if (window_size == 1)
+                    {
+                        result[i] = spectrum[i];
+                        return;
+                    }
+
+                    result[i] = Convert.ToInt32(GetWMAPointValue(spectrum, i, window_size));
+                });
+            }
+            else
+            {
+                Parallel.For(0, spectrum.Length, i =>
+                {
+                    int window_size = GetWindowSize(spectrum[i], countlimit, numberOfWMADataPoints);
+                    if (window_size == 1)
+                    {
+                        result[i] = spectrum[i];
+                    }
+                    else
+                    {
+                        result[i] = Convert.ToInt32(GetWMAPointValue(spectrum, i, window_size));
+                    }
+                });
+            }
+
             return result;
         }
 
-        public double[] SMA2(double[] spectrum, int numberOfSMADataPoints, int countlimit = 100)
+        public double[] SMA2(double[] spectrum, int numberOfSMADataPoints, int countlimit = 100, bool progressive = true)
         {
             double[] result = new double[spectrum.Length];
-            Parallel.For(0, spectrum.Length, i =>
+            if (progressive)
             {
-                double new_count = 0.0;
-                int window_size = 1;
-                if (spectrum[i] <= countlimit)
+                Parallel.For(0, spectrum.Length, i =>
                 {
-                    window_size = Convert.ToInt32((double)spectrum[i] * (1 - (double)numberOfSMADataPoints) / (double)countlimit + (double)numberOfSMADataPoints);
-                }
-                if (window_size == 1)
-                {
-                    result[i] = spectrum[i];
-                }
-                else
-                {
-                    for (int j = i - window_size / 2; j < i - window_size / 2 + window_size; j++)
+                    double pointsnum = GetProgressivePointsNum(i, spectrum.Length, numberOfSMADataPoints);
+                    if (pointsnum < 1)
                     {
-                        int ch = j;
-                        if (ch < 0)
-                        {
-                            ch = 0;
-                        }
-                        else if (ch >= spectrum.Length)
-                        {
-                            ch = spectrum.Length - 1;
-                        }
-                        new_count += (double)spectrum[ch];
+                        result[i] = spectrum[i];
+                        return;
                     }
-                    result[i] = new_count / (double)window_size;
-                }
-            });
+
+                    int window_size = GetWindowSize(spectrum[i], countlimit, pointsnum);
+                    if (window_size == 1)
+                    {
+                        result[i] = spectrum[i];
+                        return;
+                    }
+
+                    double new_count = GetSMAPointValue(spectrum, i, window_size);
+                    result[i] = new_count / window_size;
+                });
+            }
+            else
+            {
+                Parallel.For(0, spectrum.Length, i =>
+                {
+                    int window_size = GetWindowSize(spectrum[i], countlimit, numberOfSMADataPoints);
+                    if (window_size == 1)
+                    {
+                        result[i] = spectrum[i];
+                    }
+                    else
+                    {
+                        double new_count = GetSMAPointValue(spectrum, i, window_size);
+                        result[i] = new_count / window_size;
+                    }
+                });
+            }
+
             return result;
         }
 
-        public int[] SMA(int[] spectrum, int numberOfSMADataPoints, int countlimit = 100)
+        public int[] SMA(int[] spectrum, int numberOfSMADataPoints, int countlimit = 100, bool progressive = false)
         {
             int[] result = new int[spectrum.Length];
-            Parallel.For(0, spectrum.Length, i =>
+            if (progressive)
             {
-                double new_count = 0.0;
-                int window_size = 1;
-                if (spectrum[i] <= countlimit)
+                Parallel.For(0, spectrum.Length, i =>
                 {
-                    window_size = Convert.ToInt32((double)spectrum[i] * (1 - (double)numberOfSMADataPoints) / (double)countlimit + (double)numberOfSMADataPoints);
-                }
-                if (window_size == 1)
-                {
-                    result[i] = spectrum[i];
-                }
-                else
-                {
-                    for (int j = i - window_size / 2; j < i - window_size / 2 + window_size; j++)
+                    double pointsnum = GetProgressivePointsNum(i, spectrum.Length, numberOfSMADataPoints);
+                    if (pointsnum < 1)
                     {
-                        int ch = j;
-                        if (ch < 0)
-                        {
-                            ch = 0;
-                        }
-                        else if (ch >= spectrum.Length)
-                        {
-                            ch = spectrum.Length - 1;
-                        }
-                        new_count += (double)spectrum[ch];
+                        result[i] = spectrum[i];
+                        return;
                     }
-                    result[i] = Convert.ToInt32(new_count / (double)window_size);
-                }
-            });
+
+                    int window_size = GetWindowSize(spectrum[i], countlimit, pointsnum);
+                    if (window_size == 1)
+                    {
+                        result[i] = spectrum[i];
+                        return;
+                    }
+
+                    double new_count = GetSMAPointValue(spectrum, i, window_size);
+                    result[i] = Convert.ToInt32(new_count / window_size);
+                });
+            }
+            else
+            {
+                Parallel.For(0, spectrum.Length, i =>
+                {
+                    int window_size = GetWindowSize(spectrum[i], countlimit, numberOfSMADataPoints);
+                    if (window_size == 1)
+                    {
+                        result[i] = spectrum[i];
+                    }
+                    else
+                    {
+                        double new_count = GetSMAPointValue(spectrum, i, window_size);
+                        result[i] = Convert.ToInt32(new_count / window_size);
+                    }
+                });
+            }
+            
             return result;
+        }
+
+        private static double GetSMAPointValue<T>(T[] spectrum, int i, int window_size)
+        {
+            double new_count = 0.0;
+            for (int j = i - window_size / 2; j < i - window_size / 2 + window_size; j++)
+            {
+                int ch = j;
+                if (ch < 0)
+                {
+                    ch = 0;
+                }
+                else if (ch >= spectrum.Length)
+                {
+                    ch = spectrum.Length - 1;
+                }
+                new_count += Convert.ToDouble(spectrum[ch]);
+            }
+
+            return new_count;
+        }
+
+        private static double GetWMAPointValue<T>(T[] spectrum, int i, int window_size)
+        {
+            double part = 0.0;
+            double total = 0.0;
+            for (int j = i - window_size / 2; j < i - window_size / 2 + window_size; j++)
+            {
+                int ch = j;
+                if (ch < 0)
+                {
+                    ch = 0;
+                }
+                else if (ch >= spectrum.Length)
+                {
+                    ch = spectrum.Length - 1;
+                }
+                double weight = (double)(window_size / 2 + 1 - Math.Abs(i - ch));
+                part += Convert.ToDouble(spectrum[ch]) * weight;
+                total += weight;
+            }
+            double value = part / total;
+            return value;
+        }
+
+        private static double GetProgressivePointsNum(int channelIndex, int channelCount, int numberOfDataPoints)
+        {
+            return numberOfDataPoints * Math.Sqrt(channelIndex / (channelCount / 2.0));
+        }
+
+        private static int GetWindowSize(double channelValue, int countlimit, double pointsNum)
+        {
+            int window_size = 1;
+            if (channelValue <= countlimit)
+            {
+                window_size = Convert.ToInt32(channelValue * (1 - pointsNum) / countlimit + pointsNum);
+            }
+
+            return window_size;
         }
 
         public void Dispose()

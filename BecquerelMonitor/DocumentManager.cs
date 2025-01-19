@@ -1185,15 +1185,16 @@ namespace BecquerelMonitor
                 energySpectrum = doc.ActiveResultData.EnergySpectrum.Clone();
             }
             int countlimit = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.CountLimit;
+            bool progressiveSmooth = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.ProgresiveSmooth;
             switch (smoothMethod)
             {
                 case SmoothingMethod.SimpleMovingAverage:
                     int points = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.NumberOfSMADataPoints;
-                    dSpectrum = sa.SMA2(Array.ConvertAll(energySpectrum.Spectrum, i => (double)i), points, countlimit: countlimit);
+                    dSpectrum = sa.SMA2(Array.ConvertAll(energySpectrum.Spectrum, i => (double)i), points, countlimit: countlimit, progressive: progressiveSmooth);
                     break;
                 case SmoothingMethod.WeightedMovingAverage:
                     points = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.NumberOfWMADataPoints;
-                    dSpectrum = sa.WMA2(Array.ConvertAll(energySpectrum.Spectrum, i => (double)i), points, countlimit: countlimit);
+                    dSpectrum = sa.WMA2(Array.ConvertAll(energySpectrum.Spectrum, i => (double)i), points, countlimit: countlimit, progressive: progressiveSmooth);
                     break;
                 default:
                     dSpectrum = Array.ConvertAll(energySpectrum.Spectrum, i => (double)i);
