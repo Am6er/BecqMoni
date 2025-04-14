@@ -148,15 +148,15 @@ namespace BecquerelMonitor
 			this.clearEffROI = new global::System.Windows.Forms.Button();
 
 			// dose rate config calculation
-			this.buttonLoadK40Spectrum = new System.Windows.Forms.Button();
+			this.buttonLoadDoseRateSpectrum = new System.Windows.Forms.Button();
 			this.labelSpectrumNote = new System.Windows.Forms.Label();
 			this.labelEffNote = new System.Windows.Forms.Label();
 			this.buttonLoadEff = new System.Windows.Forms.Button();
 			this.buttonEstimateDRConf = new System.Windows.Forms.Button();
-			this.labelK40ResNote = new System.Windows.Forms.Label();
-			this.upDownK40Res = new System.Windows.Forms.NumericUpDown();
+			this.labelDoseRateValue = new System.Windows.Forms.Label();
+			this.upDownDoseRateValue = new System.Windows.Forms.NumericUpDown();
 			this.textBoxEffFile = new System.Windows.Forms.TextBox();
-			this.textBoxK40File = new System.Windows.Forms.TextBox();
+			this.textBoxDoseRateSpectrumFile = new System.Windows.Forms.TextBox();
 			this.labelDREstimateTitle = new System.Windows.Forms.Label();
 
 			this.tabControl1.SuspendLayout();
@@ -709,14 +709,14 @@ namespace BecquerelMonitor
             this.textBoxEffFile.TabIndex = 29;
             this.textBoxEffFile.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             // 
-            // textBoxK40File
+            // textBoxDoseRateSpectrumFile
             // 
-            this.textBoxK40File.Location = new System.Drawing.Point(196, 404);
-            this.textBoxK40File.Name = "textBoxK40File";
-            this.textBoxK40File.ReadOnly = true;
-            this.textBoxK40File.Size = new System.Drawing.Size(259, 20);
-            this.textBoxK40File.TabIndex = 28;
-            this.textBoxK40File.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            this.textBoxDoseRateSpectrumFile.Location = new System.Drawing.Point(196, 404);
+            this.textBoxDoseRateSpectrumFile.Name = "textBoxDoseRateSpectrumFile";
+            this.textBoxDoseRateSpectrumFile.ReadOnly = true;
+            this.textBoxDoseRateSpectrumFile.Size = new System.Drawing.Size(259, 20);
+            this.textBoxDoseRateSpectrumFile.TabIndex = 28;
+            this.textBoxDoseRateSpectrumFile.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             // 
             // buttonEstimateDRConf
             // 
@@ -729,32 +729,24 @@ namespace BecquerelMonitor
             this.buttonEstimateDRConf.UseVisualStyleBackColor = true;
             this.buttonEstimateDRConf.Click += new System.EventHandler(this.buttonEstimateDRConf_Click);
             // 
-            // labelK40ResNote
+            // labelDoseRateValue
             // 
-			resources.ApplyResources(this.labelK40ResNote, "labelK40ResNote");
-            this.labelK40ResNote.AutoSize = true;
-            this.labelK40ResNote.Location = new System.Drawing.Point(65, 488);
-            this.labelK40ResNote.Name = "labelK40ResNote";
-            this.labelK40ResNote.Size = new System.Drawing.Size(124, 13);
-            this.labelK40ResNote.TabIndex = 26;
+			resources.ApplyResources(this.labelDoseRateValue, "labelDoseRateValue");
+            this.labelDoseRateValue.AutoSize = true;
+            this.labelDoseRateValue.Location = new System.Drawing.Point(85, 488);
+            this.labelDoseRateValue.Name = "labelDoseRateValue";
+            this.labelDoseRateValue.Size = new System.Drawing.Size(124, 13);
+            this.labelDoseRateValue.TabIndex = 26;
             // 
-            // upDownK40Res
+            // upDownDoseRateValue
             // 
-            this.upDownK40Res.DecimalPlaces = 1;
-            this.upDownK40Res.Increment = new decimal(new int[] {
-                1,
-                0,
-                0,
-                65536});
-            this.upDownK40Res.Location = new System.Drawing.Point(20, 486);
-            this.upDownK40Res.Name = "upDownK40Res";
-            this.upDownK40Res.Size = new System.Drawing.Size(39, 20);
-            this.upDownK40Res.TabIndex = 25;
-            this.upDownK40Res.Value = new decimal(new int[] {
-                55,
-                0,
-                0,
-                65536});
+            this.upDownDoseRateValue.DecimalPlaces = 2;
+            this.upDownDoseRateValue.Increment = 0.1M;
+            this.upDownDoseRateValue.Location = new System.Drawing.Point(20, 486);
+            this.upDownDoseRateValue.Name = "upDownDoseRateValue";
+            this.upDownDoseRateValue.Size = new System.Drawing.Size(60, 20);
+            this.upDownDoseRateValue.TabIndex = 25;
+			this.upDownDoseRateValue.Value = 0.5M;
             // 
             // labelEffNote
             // 
@@ -784,26 +776,26 @@ namespace BecquerelMonitor
             this.labelSpectrumNote.Size = new System.Drawing.Size(131, 13);
             this.labelSpectrumNote.TabIndex = 22;
             // 
-            // buttonLoadK40Spectrum
+            // buttonLoadDoseRateSpectrum
             // 
-			resources.ApplyResources(this.buttonLoadK40Spectrum, "buttonLoadK40Spectrum");
-            this.buttonLoadK40Spectrum.Location = new System.Drawing.Point(20, 402);
-            this.buttonLoadK40Spectrum.Name = "buttonLoadK40Spectrum";
-            this.buttonLoadK40Spectrum.Size = new System.Drawing.Size(170, 23);
-            this.buttonLoadK40Spectrum.TabIndex = 21;
-            this.buttonLoadK40Spectrum.UseVisualStyleBackColor = true;
-            this.buttonLoadK40Spectrum.Click += new System.EventHandler(this.buttonLoadK40Spectrum_Click);
+			resources.ApplyResources(this.buttonLoadDoseRateSpectrum, "buttonLoadDoseRateSpectrum");
+            this.buttonLoadDoseRateSpectrum.Location = new System.Drawing.Point(20, 402);
+            this.buttonLoadDoseRateSpectrum.Name = "buttonLoadDoseRateSpectrum";
+            this.buttonLoadDoseRateSpectrum.Size = new System.Drawing.Size(170, 23);
+            this.buttonLoadDoseRateSpectrum.TabIndex = 21;
+            this.buttonLoadDoseRateSpectrum.UseVisualStyleBackColor = true;
+            this.buttonLoadDoseRateSpectrum.Click += new System.EventHandler(this.buttonLoadDoseRateSpectrum_Click);
 
             this.tabPage7.Controls.Add(this.labelDREstimateTitle);
             this.tabPage7.Controls.Add(this.textBoxEffFile);
-            this.tabPage7.Controls.Add(this.textBoxK40File);
+            this.tabPage7.Controls.Add(this.textBoxDoseRateSpectrumFile);
             this.tabPage7.Controls.Add(this.buttonEstimateDRConf);
-            this.tabPage7.Controls.Add(this.labelK40ResNote);
-            this.tabPage7.Controls.Add(this.upDownK40Res);
+            this.tabPage7.Controls.Add(this.labelDoseRateValue);
+            this.tabPage7.Controls.Add(this.upDownDoseRateValue);
             this.tabPage7.Controls.Add(this.labelEffNote);
             this.tabPage7.Controls.Add(this.buttonLoadEff);
             this.tabPage7.Controls.Add(this.labelSpectrumNote);
-            this.tabPage7.Controls.Add(this.buttonLoadK40Spectrum);
+            this.tabPage7.Controls.Add(this.buttonLoadDoseRateSpectrum);
 
 			// --------- end dose rate config calc -------------
 
@@ -1249,15 +1241,15 @@ namespace BecquerelMonitor
 		global::System.Windows.Forms.ComboBox selectEffROI;
 
 		// dose rate calculation
-        private System.Windows.Forms.Button buttonLoadK40Spectrum;
+        private System.Windows.Forms.Button buttonLoadDoseRateSpectrum;
         private System.Windows.Forms.Label labelSpectrumNote;
         private System.Windows.Forms.Label labelEffNote;
         private System.Windows.Forms.Button buttonLoadEff;
         private System.Windows.Forms.Button buttonEstimateDRConf;
-        private System.Windows.Forms.Label labelK40ResNote;
-        private System.Windows.Forms.NumericUpDown upDownK40Res;
+        private System.Windows.Forms.Label labelDoseRateValue;
+        private System.Windows.Forms.NumericUpDown upDownDoseRateValue;
         private System.Windows.Forms.TextBox textBoxEffFile;
-        private System.Windows.Forms.TextBox textBoxK40File;
+        private System.Windows.Forms.TextBox textBoxDoseRateSpectrumFile;
         private System.Windows.Forms.Label labelDREstimateTitle;
         private System.Windows.Forms.Button buttonClearDoseRate;
     }
