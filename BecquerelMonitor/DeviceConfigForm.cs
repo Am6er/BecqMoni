@@ -2103,11 +2103,10 @@ namespace BecquerelMonitor
 
         Dictionary<int, string> effROIdic = new Dictionary<int, string>();
 
-        private EnergySpectrum k40fg;
-        private EnergySpectrum k40bg;
-        private IInterpolation k40Eff;
+        private EnergySpectrum doseRateSpectrum;
+        private IInterpolation efficiencyCurve;
 
-        private void buttonLoadK40Spectrum_Click(object sender, EventArgs e)
+        private void buttonLoadDoseRateSpectrum_Click(object sender, EventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.Title = Resources.OpenFileDialogTitle;
@@ -2119,15 +2118,14 @@ namespace BecquerelMonitor
                 return;
             }
 
-            this.textBoxK40File.Text = openFileDialog.FileName;
+            this.textBoxDoseRateSpectrumFile.Text = openFileDialog.FileName;
 
             using (FileStream fileStream = new FileStream(openFileDialog.FileName, FileMode.Open))
             {
                 XmlSerializer xmlSerializer = new XmlSerializer(typeof(ResultDataFile));
                 ResultDataFile result = (ResultDataFile)xmlSerializer.Deserialize(fileStream);
                 // TODO: add input data validation
-                k40fg = result.ResultDataList[0].EnergySpectrum;
-                k40bg = result.ResultDataList[0].BackgroundEnergySpectrum;
+                doseRateSpectrum = result.ResultDataList[0].EnergySpectrum;
             }
 
             EvaluateButtonEstimateDRState();
@@ -2185,25 +2183,20 @@ namespace BecquerelMonitor
             }
 
             // TODO: add input data validation
-            k40Eff = Interpolate.CubicSplineMonotone(points.Select(p => p.Energy), points.Select(p => p.Efficiency));
+            efficiencyCurve = Interpolate.CubicSplineMonotone(points.Select(p => p.Energy), points.Select(p => p.Efficiency));
 
             EvaluateButtonEstimateDRState();
         }
 
         private void buttonEstimateDRConf_Click(object sender, EventArgs e)
         {
-            if (k40fg == null || k40bg == null || k40Eff == null)
+            if (doseRateSpectrum == null || efficiencyCurve == null || this.upDownDoseRateValue.Value <= 0)
             {
                 return;
             }
 
-            double activity = 100000; // Bq
-            double expectedDoseRate = 0.0462; // uSv/h at 20 cm from point source
-            double energy = 1460;
-            double intencity = 0.1066;
-            double resolution = Convert.ToDouble(this.upDownK40Res.Value / 100);
-            EnergySpectrum scaled = SubstractAndScaleSpectrum(k40fg, k40bg, k40Eff, activity, energy, resolution, intencity);
-            List<DoseRateCalibrationPoint> doseConfig = CalculateDoseRateConfig(scaled, k40Eff, energy, expectedDoseRate);
+            double expectedDoseRate = (double)this.upDownDoseRateValue.Value;
+            List<DoseRateCalibrationPoint> doseConfig = CalculateDoseRateConfig(doseRateSpectrum, efficiencyCurve, expectedDoseRate);
             tableModel4.Rows.AddRange(doseConfig.Select(dc =>
             {
                 Row row = new Row();
@@ -2221,74 +2214,59 @@ namespace BecquerelMonitor
 
         private void EvaluateButtonEstimateDRState()
         {
-            buttonEstimateDRConf.Enabled = k40fg != null && k40bg != null && k40Eff != null && table4.RowCount == 0;
+            buttonEstimateDRConf.Enabled = doseRateSpectrum != null && efficiencyCurve != null && table4.RowCount == 0;
         }
 
-        private EnergySpectrum SubstractAndScaleSpectrum(EnergySpectrum fgSpectrum, EnergySpectrum bgSpectrum, IInterpolation efficiency, double activityRef, double energyRef, double resolution, double intencity)
+        private List<DoseRateCalibrationPoint> CalculateDoseRateConfig(EnergySpectrum spectrum, IInterpolation efficiency, double expectedDoseRate)
         {
-            double regionStartEnergy = energyRef - energyRef * resolution;
-            double regionEndEnergy = energyRef + energyRef * resolution;
-            double regionEfficiency = efficiency.Interpolate(energyRef);
-            EnergySpectrum substracted = new SpectrumAriphmetics(fgSpectrum).Substract(bgSpectrum);
-
-            int regionStartIndex = Convert.ToInt32(fgSpectrum.EnergyCalibration.EnergyToChannel(regionStartEnergy, maxChannels: fgSpectrum.NumberOfChannels));
-            int regionEndIndex = Convert.ToInt32(fgSpectrum.EnergyCalibration.EnergyToChannel(regionEndEnergy, maxChannels: fgSpectrum.NumberOfChannels));
-            double regionCps = 0;
-            for (int i = regionStartIndex; i < regionEndIndex; i++)
-            {
-                regionCps += substracted.Spectrum[i] / substracted.MeasurementTime;
-            }
-
-            double expectedRegionCps = activityRef * intencity * regionEfficiency;
-            double scaleFactor = expectedRegionCps / regionCps;
-            EnergySpectrum scaled = substracted.Clone();
-            Parallel.For(0, scaled.NumberOfChannels, i =>
-            {
-                scaled.Spectrum[i] = Convert.ToInt32(scaled.Spectrum[i] * scaleFactor);
-            });
-
-            return scaled;
-        }
-
-        private List<DoseRateCalibrationPoint> CalculateDoseRateConfig(EnergySpectrum spectrum, IInterpolation efficiency, double energyReference, double doseRateReference)
-        {
-            double doseRate = 0;
             double[] energies = { 40, 50, 60, 80, 100, 150, 200, 300, 400, 500, 600, 800, 1000, 1500, 2000, 3000 };
             double[] muValues = { 0.006694, 0.004031, 0.003004, 0.002393, 0.002318, 0.002494, 0.002672, 0.002872, 0.002949, 0.002966, 0.002953, 0.002882, 0.002787, 0.002545, 0.002342, 0.002054 };
             double[] RToSv = { 1.29, 1.46, 1.52, 1.51, 1.44, 1.31, 1.22, 1.15, 1.10, 1.07, 1.04, 1.02, 1.01, 0.99, 0.99, 0.98 };
             IInterpolation muCurve = Interpolate.CubicSplineMonotone(energies, muValues);
             IInterpolation RToSvCurve = Interpolate.CubicSplineMonotone(energies, RToSv);
-            double effReference = efficiency.Interpolate(energyReference);
-            int doseRateMinChannel = Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(energies[0], maxChannels: spectrum.NumberOfChannels));
-            int doseRateMaxChannel = Math.Min(Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(energies[energies.Length - 1], maxChannels: spectrum.NumberOfChannels)), spectrum.NumberOfChannels - 1);
-            for (int i = doseRateMinChannel; i <= doseRateMaxChannel; i++)
-            {
-                double channelEnergy = spectrum.EnergyCalibration.ChannelToEnergy(i);
-                double channelEff = efficiency.Interpolate(channelEnergy);
-                double channelCps = spectrum.Spectrum[i] / spectrum.MeasurementTime;
-                double sensFactor = channelEff / effReference;
-                double doseRateFactor = muCurve.Interpolate(channelEnergy) * RToSvCurve.Interpolate(channelEnergy);
-                double relativeCps = channelCps / sensFactor;
-                doseRate += relativeCps * doseRateFactor;
-            }
 
-            double doseRatecoeff = doseRateReference / doseRate;
-            List<DoseRateCalibrationPoint> doseRateCalibrationPoints = new List<DoseRateCalibrationPoint>();
+            // calculate dose rate for spectrum as is
+            double doseRate = 0;
+            List<double> rangeCpsList = new List<double>();
+            List<double> rangeEffList = new List<double>();
+            List<double> rangeDoseRateFactorList = new List<double>();
             for (int i = 0; i < energies.Length - 1; i++)
             {
                 double fromE = energies[i];
                 double toE = energies[i + 1];
+                int fromChannel = Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(fromE, maxChannels: spectrum.NumberOfChannels));
+                int toChannel = Math.Min(Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(toE, maxChannels: spectrum.NumberOfChannels)), spectrum.NumberOfChannels - 1);
                 double centerE = (fromE + toE) / 2;
-                double doseRateFactor = muCurve.Interpolate(centerE) * RToSvCurve.Interpolate(centerE) * doseRatecoeff;
-                double centerEff = efficiency.Interpolate(centerE);
-                double sensFactor = centerEff / effReference;
 
+                double doseRateFactor = muCurve.Interpolate(centerE) * RToSvCurve.Interpolate(centerE) * centerE;
+                rangeDoseRateFactorList.Add(doseRateFactor);
+
+                double rangeEff = efficiency.Interpolate(centerE);
+                rangeEffList.Add(rangeEff);
+                
+                double rangeCounts = 0;
+                for (int j = fromChannel; j < toChannel; j++)
+                {
+                    rangeCounts += spectrum.Spectrum[j];
+                }
+                double rangeCps = rangeCounts / spectrum.MeasurementTime;
+                rangeCpsList.Add(rangeCps);
+
+                double rangeDoseRate = rangeCps * doseRateFactor / rangeEff;
+                doseRate += rangeDoseRate;
+            }
+
+            // adjust rates according to expected value
+            double doseRateCoeff = expectedDoseRate / doseRate;
+            List<DoseRateCalibrationPoint> doseRateCalibrationPoints = new List<DoseRateCalibrationPoint>();
+            for (int i = 0; i < energies.Length - 1; i++)
+            {
                 DoseRateCalibrationPoint point = new DoseRateCalibrationPoint()
                 {
-                    LowerBound = fromE,
-                    UpperBound = toE,
+                    LowerBound = energies[i],
+                    UpperBound = energies[i + 1],
                     CPS = 1,
-                    EtalonDoseRateValue = doseRateFactor / sensFactor
+                    EtalonDoseRateValue = doseRateCoeff * rangeDoseRateFactorList[i] / rangeEffList[i],
                 };
                 doseRateCalibrationPoints.Add(point);
             }
