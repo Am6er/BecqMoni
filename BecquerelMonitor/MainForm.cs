@@ -133,7 +133,7 @@ namespace BecquerelMonitor
             ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
             this.globalConfigManager.PrepareConfigFile();
             this.resultManager = new MeasurementResultManager();
-            this.doseRateManager = new DoseRateManager();
+            this.doseRateManager = new DoseRateManager(this.globalConfigManager);
             this.countsRateManager = new CountsRateManager();
             this.InitializeComponent();
             base.Icon = BecquerelMonitor.Properties.Resources.becqmoni;

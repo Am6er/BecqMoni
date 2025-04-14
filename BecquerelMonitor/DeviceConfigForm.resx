@@ -3028,25 +3028,25 @@
     <value>tabPage4</value>
   </data>
   <data name="labelDREstimateTitle.Text" xml:space="preserve">
-    <value>Experimental: predict doserate curve based on LSRM model and K40 sample spectrum</value>
+    <value>Experimental: predict doserate curve based on LSRM model and sample spectrum</value>
   </data>
   <data name="buttonEstimateDRConf.Text" xml:space="preserve">
     <value>Calculate Dose Rate Config</value>
   </data>
-  <data name="labelK40ResNote.Text" xml:space="preserve">
-    <value>% resolution at 1460 keV</value>
+  <data name="labelDoseRateValue.Text" xml:space="preserve">
+    <value>uSv/h, source dose rate</value>
   </data>
   <data name="labelEffNote.Text" xml:space="preserve">
-    <value>*point source 20 cm away from detector center (LSRM effcalc, 40 keV - 3MeV)</value>
+    <value>*only curve shape is important (LSRM effcalc, 40 keV - 3MeV)</value>
   </data>
   <data name="buttonLoadEff.Text" xml:space="preserve">
     <value>Load Efficiency Data*</value>
   </data>
   <data name="labelSpectrumNote.Text" xml:space="preserve">
-    <value>*must contain background</value>
+    <value>*source with a known dose rate</value>
   </data>
-  <data name="buttonLoadK40Spectrum.Text" xml:space="preserve">
-    <value>Load K40 Spectrum*</value>
+  <data name="buttonLoadDoseRateSpectrum.Text" xml:space="preserve">
+    <value>Load Spectrum*</value>
   </data>
   <data name="buttonClearDoseRate.Text" xml:space="preserve">
     <value>Clear all</value>

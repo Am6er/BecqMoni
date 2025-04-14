@@ -1561,25 +1561,25 @@
     <value>Очистить</value>
   </data>
   <data name="labelDREstimateTitle.Text" xml:space="preserve">
-    <value>Экспериментально: оценка кривой мощности дозы по LSRM модели и спектру K40</value>
+    <value>Экспериментально: оценка кривой мощности дозы по LSRM модели и спектру</value>
   </data>
   <data name="buttonEstimateDRConf.Text" xml:space="preserve">
     <value>Рассчитать конфигурацию</value>
   </data>
-	<data name="labelK40ResNote.Text" xml:space="preserve">
-    <value>%, разрешение на линии 1460 кэВ</value>
+	<data name="labelDoseRateValue.Text" xml:space="preserve">
+    <value>мкЗв/ч, мощность дозы от источника</value>
   </data>
 	<data name="labelEffNote.Text" xml:space="preserve">
-    <value>*точечный источник в 20 см от геом. центра детектора (LSRM effcalc, 40 кэВ - 3 МэВ)</value>
+    <value>*важна только форма кривой (LSRM effcalc, 40 кэВ - 3 МэВ)</value>
   </data>
 	<data name="buttonLoadEff.Text" xml:space="preserve">
     <value>Загрузить файл эфф.*</value>
   </data>
 	<data name="labelSpectrumNote.Text" xml:space="preserve">
-    <value>*обязательно с фоном</value>
+    <value>*от источника с известной мощностью дозы</value>
   </data>
-	<data name="buttonLoadK40Spectrum.Text" xml:space="preserve">
-    <value>Загрузить файл спектра K40*</value>
+	<data name="buttonLoadDoseRateSpectrum.Text" xml:space="preserve">
+    <value>Загрузить файл спектра*</value>
   </data>
   <data name="buttonClearDoseRate.Text" xml:space="preserve">
     <value>Очистить все</value>
