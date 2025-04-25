@@ -124,6 +124,18 @@ namespace BecquerelMonitor
             }
         }
 
+        public CDATA SerialNumber
+        {
+            get
+            {
+                return this.serialnumber;
+            }
+            set
+            {
+                this.serialnumber = value;
+            }
+        }
+
         // Token: 0x17000025 RID: 37
         // (get) Token: 0x06000062 RID: 98 RVA: 0x000028D8 File Offset: 0x00000AD8
         // (set) Token: 0x06000063 RID: 99 RVA: 0x000028E0 File Offset: 0x00000AE0
@@ -230,6 +242,7 @@ namespace BecquerelMonitor
             returnValue.numberOfSamples = this.numberOfSamples;
             returnValue.totalPulseCount = this.totalPulseCount;
             returnValue.validPulseCount = this.validPulseCount;
+            returnValue.serialnumber = this.serialnumber;
 
             return returnValue;
         }
@@ -262,5 +275,7 @@ namespace BecquerelMonitor
 
         // Token: 0x04000025 RID: 37
         double[] drawingSpectrum;
+
+        CDATA serialnumber;
     }
 }
