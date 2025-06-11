@@ -45,6 +45,7 @@ namespace BecquerelMonitor
                 {
                     counts += energySpectrum.Spectrum[i];
                 }
+                if (counts == 0) continue;
                 double error = Math.Sqrt(counts) / counts;
                 double dr = counts * point.Sensitivity;
                 doseRates.Add(dr);
