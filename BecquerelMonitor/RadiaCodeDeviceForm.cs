@@ -115,7 +115,7 @@ namespace BecquerelMonitor
             {
                 try
                 {
-                    if (dev.Name == null && dev.Name.IndexOf("RadiaCode-10") == -1) return;
+                    if (dev.Name == null && dev.Name.IndexOf("RadiaCode-1") == -1) return;
                 } catch (Exception) { }
                 if (!devices.ContainsKey(args.BluetoothAddress))
                 {
@@ -164,6 +164,7 @@ namespace BecquerelMonitor
                     case "RadiaCode-101": deviceConfigForm.ActiveDeviceConfig.PeakDetectionMethodConfig = RadiacodePresets.RC101_FWHM_Preset(); break;
                     case "RadiaCode-102": deviceConfigForm.ActiveDeviceConfig.PeakDetectionMethodConfig = RadiacodePresets.RC102_FWHM_Preset(); break;
                     case "RadiaCode-103": deviceConfigForm.ActiveDeviceConfig.PeakDetectionMethodConfig = RadiacodePresets.RC103_FWHM_Preset(); break;
+                    case "RadiaCode-110": deviceConfigForm.ActiveDeviceConfig.PeakDetectionMethodConfig = RadiacodePresets.RC103_FWHM_Preset(); break;
                 }
                 
                 deviceConfigForm.LoadPeakFinderPresetContents(deviceConfigForm.ActiveDeviceConfig);
