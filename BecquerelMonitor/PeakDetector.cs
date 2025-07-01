@@ -55,7 +55,7 @@ namespace BecquerelMonitor
             return peaks;
         }
 
-        bool isNewPeak(List<Peak> peaks, Peak newpeak)
+        bool isNewPeak(List<Peak> peaks, Peak newpeak, bool hidepeaks)
         {
             foreach (Peak peak in peaks)
             {
@@ -72,7 +72,14 @@ namespace BecquerelMonitor
                         double oldpeak_delta = Math.Abs(peak.Energy -  peak.Nuclide.Energy);
                         if (newpeak_delta < oldpeak_delta)
                         {
-                            peak.Nuclide = null;
+                            if (!hidepeaks)
+                            {
+                                peak.Nuclide = null;
+                            } else
+                            {
+                                peaks.Remove(peak);
+                            }
+
                             //Trace.WriteLine("New peak added, ch=" + newpeak.Channel + " En=" + newpeak.Energy);
                             return true;
                         } else
@@ -118,7 +125,9 @@ namespace BecquerelMonitor
                         peak.Nuclide = bestNuclide;
                     }
                     if (peak.Nuclide == null && nuclideSet?.HideUnknownPeaks == true) continue;
-                    if (isNewPeak(existPeaks, peak))
+                    bool hidepeaks = false;
+                    if (nuclideSet != null) hidepeaks = nuclideSet.HideUnknownPeaks;
+                    if (isNewPeak(existPeaks, peak, hidepeaks))
                     {
                         peaks.Add(peak);
                         existPeaks.Add(peak);
