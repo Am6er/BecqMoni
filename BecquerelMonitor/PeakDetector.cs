@@ -67,7 +67,18 @@ namespace BecquerelMonitor
                 {
                     if (newpeak.Nuclide.Energy == peak.Nuclide.Energy)
                     {
-                        return false;
+                        //Fix if new peak suits better by energy, than older one.
+                        double newpeak_delta = Math.Abs(newpeak.Energy - newpeak.Nuclide.Energy);
+                        double oldpeak_delta = Math.Abs(peak.Energy -  peak.Nuclide.Energy);
+                        if (newpeak_delta < oldpeak_delta)
+                        {
+                            peak.Nuclide = null;
+                            //Trace.WriteLine("New peak added, ch=" + newpeak.Channel + " En=" + newpeak.Energy);
+                            return true;
+                        } else
+                        {
+                            return false;
+                        }  
                     }
                 }
             }
