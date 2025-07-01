@@ -55,9 +55,9 @@ namespace BecquerelMonitor
             return peaks;
         }
 
-        bool isNewPeak(List<Peak> peaks, Peak newpeak, bool hidepeaks)
+        bool isNewPeak(List<Peak> existpeaks, Peak newpeak, bool hidepeaks, List<Peak> peaks)
         {
-            foreach (Peak peak in peaks)
+            foreach (Peak peak in existpeaks)
             {
                 if (Math.Abs(newpeak.Channel - peak.Channel) <= 4)
                 {
@@ -77,6 +77,7 @@ namespace BecquerelMonitor
                                 peak.Nuclide = null;
                             } else
                             {
+                                existpeaks.Remove(peak);
                                 peaks.Remove(peak);
                             }
 
@@ -127,7 +128,7 @@ namespace BecquerelMonitor
                     if (peak.Nuclide == null && nuclideSet?.HideUnknownPeaks == true) continue;
                     bool hidepeaks = false;
                     if (nuclideSet != null) hidepeaks = nuclideSet.HideUnknownPeaks;
-                    if (isNewPeak(existPeaks, peak, hidepeaks))
+                    if (isNewPeak(existPeaks, peak, hidepeaks, peaks))
                     {
                         peaks.Add(peak);
                         existPeaks.Add(peak);
