@@ -442,6 +442,7 @@ namespace BecquerelMonitor
                     this.UpdateCalibrationPeak();
                     this.countsRateManager.AppendResultData(this.activeDocument.ActiveResultData);
                     this.ShowCountsRate();
+                    this.ShowDetectorFeature();
                 }
             }
             this.count500 += 100;
@@ -479,7 +480,7 @@ namespace BecquerelMonitor
                     {
                         if (this.activeDocument != null && this.activeDocument.Equals(docEnergySpectrum))
                         {
-                            SetStatusTextCenter($"Radiacode BLE status: {docEnergySpectrum.ActiveResultData.DetectorFeature}");
+                            SetStatusTextCenter($"Radiacode BLE status: {docEnergySpectrum.ActiveResultData.DetectorFeature}", false);
                             break;
                         }
                     }
@@ -542,7 +543,7 @@ namespace BecquerelMonitor
                         docEnergySpectrum.ActiveResultData.DetectorFeature = dc.getTemp();
                         if (this.activeDocument.Equals(docEnergySpectrum))
                         {
-                            SetStatusTextCenter(String.Format(Resources.TemperatureStr, docEnergySpectrum.ActiveResultData.DetectorFeature));
+                            SetStatusTextCenter(String.Format(Resources.TemperatureStr, docEnergySpectrum.ActiveResultData.DetectorFeature), true);
                         }
                     }
                 }
@@ -614,11 +615,20 @@ namespace BecquerelMonitor
         {
             if (this.activeDocument != null && this.activeDocument.ActiveResultData.DetectorFeature != null)
             {
-                SetStatusTextCenter(String.Format(Resources.TemperatureStr, this.activeDocument.ActiveResultData.DetectorFeature));
+                SetStatusTextCenter(String.Format(Resources.TemperatureStr, this.activeDocument.ActiveResultData.DetectorFeature), true);
+                return;
             }
-            else
+            if (this.activeDocument != null && this.activeDocument.ActiveResultData.DetectorFeature == null)
             {
-                 ClearStatusTextCenter();
+                if (this.activeDocument.ActiveResultData.DeviceConfig.InputDeviceConfig is AtomSpectraDeviceConfig
+                    && (this.activeDocument.UpdateSpectrum || this.activeDocument.UpdateMeasurementResult))
+                {
+                    ClearStatusTextCenter(true);
+                } else
+                {
+                    ClearStatusTextCenter(false);
+                }
+                
             }
         }
 
@@ -1905,9 +1915,15 @@ namespace BecquerelMonitor
             this.toolStripStatusLabel1.Text = Text;
         }
 
-        public void SetStatusTextCenter(string Text)
+        public void SetStatusTextCenter(string Text, bool canrefresh)
         {
-            this.toolStripStatusLabel2.Text = Text;
+            if (canrefresh)
+            {
+                this.toolStripStatusLabel2.Text = "🔃 " + Text;
+            } else
+            {
+                this.toolStripStatusLabel2.Text = Text;
+            }
         }
 
         private void ToolStripStatusLabel2_Click(object sender, System.EventArgs e)
@@ -1917,18 +1933,7 @@ namespace BecquerelMonitor
             {
                 AtomSpectraDeviceController dc = (AtomSpectraDeviceController)this.activeDocument.ActiveResultData.MeasurementController.DeviceController;
                 this.activeDocument.ActiveResultData.DetectorFeature = dc.getTemp();
-                SetStatusTextCenter(String.Format(Resources.TemperatureStr, this.activeDocument.ActiveResultData.DetectorFeature));
-            }
-        }
-
-        private void Show_ToolStripLabel2ToolTip(object sender, System.EventArgs e)
-        {
-            if (this.activeDocument.ActiveResultData.MeasurementController.DeviceController is AtomSpectraDeviceController
-                && this.activeDocument.ActiveResultData.ResultDataStatus.Recording)
-            {
-                ToolTip toolTip = new ToolTip();
-                toolTip.Show(BecquerelMonitor.Properties.Resources.ClickToRefresh, statusStrip1,
-                             statusStrip1.PointToClient(Cursor.Position), 2000);
+                SetStatusTextCenter(String.Format(Resources.TemperatureStr, this.activeDocument.ActiveResultData.DetectorFeature), true);
             }
         }
 
@@ -1942,9 +1947,15 @@ namespace BecquerelMonitor
             this.toolStripStatusLabel1.Text = "";
         }
 
-        public void ClearStatusTextCenter()
+        public void ClearStatusTextCenter(bool canrefresh)
         {
-            this.toolStripStatusLabel2.Text = "";
+            if (canrefresh)
+            {
+                this.toolStripStatusLabel2.Text = "🔃";
+            } else
+            {
+                this.toolStripStatusLabel2.Text = "";
+            }
         }
 
         public void ClearStatusTextRight()
@@ -1993,7 +2004,8 @@ namespace BecquerelMonitor
         {
             DocEnergySpectrum docEnergySpectrum = this.activeDocument;
             this.dcSampleInfoView.LoadFormContents();
-            ShowCountsRate();
+            this.ShowCountsRate();
+            this.ShowDetectorFeature();
             this.dcControlPanel.ShowDocumentStatus();
             docEnergySpectrum.UpdateEnergySpectrum();
             this.ShowMeasurementResult(true);
@@ -2362,7 +2374,8 @@ namespace BecquerelMonitor
         public void RefreshAllView()
         {
             this.dcSampleInfoView.LoadFormContents();
-            ShowCountsRate();
+            this.ShowCountsRate();
+            this.ShowDetectorFeature();
             this.ShowMeasurementResult(true);
             if (this.dcEnergyCalibrationView != null)
             {
