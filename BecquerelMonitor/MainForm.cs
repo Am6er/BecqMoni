@@ -613,10 +613,19 @@ namespace BecquerelMonitor
 
         public void ShowDetectorFeature()
         {
-            if (this.activeDocument != null && this.activeDocument.ActiveResultData.DetectorFeature != null)
+            if (this.activeDocument != null 
+                && this.activeDocument.ActiveResultData.DetectorFeature != null)
             {
-                SetStatusTextCenter(String.Format(Resources.TemperatureStr, this.activeDocument.ActiveResultData.DetectorFeature), true);
-                return;
+                if (this.activeDocument.ActiveResultData.DeviceConfig.InputDeviceConfig is AtomSpectraDeviceConfig)
+                {
+                    SetStatusTextCenter(String.Format(Resources.TemperatureStr, this.activeDocument.ActiveResultData.DetectorFeature), true);
+                    return;
+                }
+                if (this.activeDocument.ActiveResultData.DeviceConfig.InputDeviceConfig is RadiaCodeDeviceConfig)
+                {
+                    SetStatusTextCenter($"Radiacode BLE status: {this.activeDocument.ActiveResultData.DetectorFeature}", false);
+                    return;
+                }
             }
             if (this.activeDocument != null && this.activeDocument.ActiveResultData.DetectorFeature == null)
             {
