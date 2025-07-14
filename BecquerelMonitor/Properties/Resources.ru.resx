@@ -764,4 +764,7 @@ http://xptable.sourceforge.net/</value>
   <data name="ERROpenGBSFormat" xml:space="preserve">
     <value>Ошибка. Не могу импортировать файл SpectraLine GBS. Ожидался заголовок в начале файла $SPEC_ID, получен: {0}</value>
   </data>
+  <data name="ClickToRefresh" xml:space="preserve">
+    <value>Нажмите чтобы обновить статус</value>
+  </data>
 </root>

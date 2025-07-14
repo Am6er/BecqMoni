@@ -1910,6 +1910,28 @@ namespace BecquerelMonitor
             this.toolStripStatusLabel2.Text = Text;
         }
 
+        private void ToolStripStatusLabel2_Click(object sender, System.EventArgs e)
+        {
+            if (this.activeDocument.ActiveResultData.MeasurementController.DeviceController is AtomSpectraDeviceController
+                && this.activeDocument.ActiveResultData.ResultDataStatus.Recording)
+            {
+                AtomSpectraDeviceController dc = (AtomSpectraDeviceController)this.activeDocument.ActiveResultData.MeasurementController.DeviceController;
+                this.activeDocument.ActiveResultData.DetectorFeature = dc.getTemp();
+                SetStatusTextCenter(String.Format(Resources.TemperatureStr, this.activeDocument.ActiveResultData.DetectorFeature));
+            }
+        }
+
+        private void Show_ToolStripLabel2ToolTip(object sender, System.EventArgs e)
+        {
+            if (this.activeDocument.ActiveResultData.MeasurementController.DeviceController is AtomSpectraDeviceController
+                && this.activeDocument.ActiveResultData.ResultDataStatus.Recording)
+            {
+                ToolTip toolTip = new ToolTip();
+                toolTip.Show(BecquerelMonitor.Properties.Resources.ClickToRefresh, statusStrip1,
+                             statusStrip1.PointToClient(Cursor.Position), 2000);
+            }
+        }
+
         public void SetStatusTextRight(string Text)
         {
             this.toolStripStatusLabel3.Text = Text;
