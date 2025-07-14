@@ -420,6 +420,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Click to refresh status.
+        /// </summary>
+        internal static string ClickToRefresh {
+            get {
+                return ResourceManager.GetString("ClickToRefresh", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
         internal static System.Drawing.Bitmap cnt {

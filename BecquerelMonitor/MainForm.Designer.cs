@@ -469,6 +469,9 @@ namespace BecquerelMonitor
 			resources.ApplyResources(this.toolStripStatusLabel2, "toolStripStatusLabel2");
 			this.toolStripStatusLabel2.Name = "toolStripStatusLabel2";
 			this.toolStripStatusLabel2.Spring = true;
+            this.toolStripStatusLabel2.Click += ToolStripStatusLabel2_Click;
+			this.toolStripStatusLabel2.DoubleClick += ToolStripStatusLabel2_Click;
+            this.toolStripStatusLabel2.MouseHover += Show_ToolStripLabel2ToolTip;
             resources.ApplyResources(this.toolStripStatusLabel3, "toolStripStatusLabel3");
             this.toolStripStatusLabel3.Name = "toolStripStatusLabel3";
             this.toolStripStatusLabel3.AutoSize = true;
