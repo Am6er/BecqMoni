@@ -162,7 +162,16 @@ namespace BecquerelMonitor.N42
             {
                 RadMeasurement radMeasurement = rad.RadMeasurement[i];
                 EnergyCalibration radCalibration;
-                if (rad.EnergyCalibration.Length <= i)
+                if (rad.EnergyCalibration == null)
+                {
+                    // No energy calibration, according N42 spec, create empty one.
+                    radCalibration = new EnergyCalibration
+                    {
+                        CoefficientValues = "0 1",
+                        id = "Empty"
+                    };
+                }
+                else if (rad.EnergyCalibration.Length <= i)
                 {
                     radCalibration = rad.EnergyCalibration[0];
                 } else
