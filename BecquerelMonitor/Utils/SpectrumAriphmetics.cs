@@ -139,6 +139,7 @@ namespace BecquerelMonitor.Utils
         public EnergySpectrum Substract(EnergySpectrum bgenergySpectrum)
         {
             EnergySpectrum substractedEnergySpectrum = this.EnergySpectrum.Clone();
+            int invalidPulseCount = this.EnergySpectrum.TotalPulseCount - this.EnergySpectrum.ValidPulseCount;
             if (this.EnergySpectrum.MeasurementTime == 0 || bgenergySpectrum.MeasurementTime == 0)
             {
                 return substractedEnergySpectrum;
@@ -156,7 +157,7 @@ namespace BecquerelMonitor.Utils
                     }
                 });
                 substractedEnergySpectrum.TotalPulseCount = substractedEnergySpectrum.Spectrum.Sum();
-                substractedEnergySpectrum.ValidPulseCount = substractedEnergySpectrum.TotalPulseCount;
+                substractedEnergySpectrum.ValidPulseCount = substractedEnergySpectrum.TotalPulseCount - invalidPulseCount;
             } else
             {
                 Parallel.For(0, substractedEnergySpectrum.NumberOfChannels, i =>
@@ -173,7 +174,7 @@ namespace BecquerelMonitor.Utils
                     }
                 });
                 substractedEnergySpectrum.TotalPulseCount = substractedEnergySpectrum.Spectrum.Sum();
-                substractedEnergySpectrum.ValidPulseCount = substractedEnergySpectrum.TotalPulseCount;
+                substractedEnergySpectrum.ValidPulseCount = substractedEnergySpectrum.TotalPulseCount - invalidPulseCount;
             }
             return substractedEnergySpectrum;
         }
