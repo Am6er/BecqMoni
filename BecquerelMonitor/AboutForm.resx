@@ -125,6 +125,9 @@
   <data name="label1.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
+  <data name="label1.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
   <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
   <data name="label1.Location" type="System.Drawing.Point, System.Drawing">
     <value>362, 29</value>
@@ -148,7 +151,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;label1.ZOrder" xml:space="preserve">
-    <value>8</value>
+    <value>11</value>
   </data>
   <data name="label2.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Right</value>
@@ -156,8 +159,11 @@
   <data name="label2.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
+  <data name="label2.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
   <data name="label2.Location" type="System.Drawing.Point, System.Drawing">
-    <value>362, 89</value>
+    <value>362, 68</value>
   </data>
   <data name="label2.Size" type="System.Drawing.Size, System.Drawing">
     <value>64, 13</value>
@@ -178,7 +184,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;label2.ZOrder" xml:space="preserve">
-    <value>7</value>
+    <value>10</value>
   </data>
   <data name="label3.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Right</value>
@@ -186,21 +192,20 @@
   <data name="label3.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
+  <data name="label3.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
   <data name="label3.Location" type="System.Drawing.Point, System.Drawing">
-    <value>362, 135</value>
+    <value>362, 110</value>
   </data>
   <data name="label3.Size" type="System.Drawing.Size, System.Drawing">
-    <value>227, 65</value>
+    <value>63, 13</value>
   </data>
   <data name="label3.TabIndex" type="System.Int32, mscorlib">
     <value>2</value>
   </data>
   <data name="label3.Text" xml:space="preserve">
-    <value>Free to use.
-	
-	Github: https://github.com/Am6er/BecqMoni
-	YouTube: https://www.youtube.com/@Am6er
-	</value>
+    <value>Free to use.</value>
   </data>
   <data name="&gt;&gt;label3.Name" xml:space="preserve">
     <value>label3</value>
@@ -212,10 +217,13 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;label3.ZOrder" xml:space="preserve">
-    <value>6</value>
+    <value>9</value>
   </data>
   <data name="label4.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
+  </data>
+  <data name="label4.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
   </data>
   <data name="label4.Location" type="System.Drawing.Point, System.Drawing">
     <value>24, 98</value>
@@ -236,10 +244,13 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;label4.ZOrder" xml:space="preserve">
-    <value>5</value>
+    <value>8</value>
   </data>
   <data name="label5.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
+  </data>
+  <data name="label5.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
   </data>
   <data name="label5.Location" type="System.Drawing.Point, System.Drawing">
     <value>24, 120</value>
@@ -260,10 +271,13 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;label5.ZOrder" xml:space="preserve">
-    <value>4</value>
+    <value>7</value>
   </data>
   <data name="button1.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Bottom, Right</value>
+  </data>
+  <data name="button1.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
   </data>
   <data name="button1.Location" type="System.Drawing.Point, System.Drawing">
     <value>741, 460</value>
@@ -287,7 +301,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;button1.ZOrder" xml:space="preserve">
-    <value>3</value>
+    <value>6</value>
   </data>
   <data name="textBox1.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Bottom, Left, Right</value>
@@ -317,37 +331,16 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;textBox1.ZOrder" xml:space="preserve">
-    <value>2</value>
-  </data>
-  <data name="iconPanel1.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
-    <value>Top, Bottom, Left, Right</value>
-  </data>
-  <data name="iconPanel1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>12, 9</value>
-  </data>
-  <data name="iconPanel1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>305, 315</value>
-  </data>
-  <data name="iconPanel1.TabIndex" type="System.Int32, mscorlib">
-    <value>7</value>
-  </data>
-  <data name="&gt;&gt;iconPanel1.Name" xml:space="preserve">
-    <value>iconPanel1</value>
-  </data>
-  <data name="&gt;&gt;iconPanel1.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IconPanel, BecquerelMonitor, Version=2024.7.8.3, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;iconPanel1.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;iconPanel1.ZOrder" xml:space="preserve">
-    <value>1</value>
+    <value>5</value>
   </data>
   <data name="label6.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Bottom, Left</value>
   </data>
   <data name="label6.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
+  </data>
+  <data name="label6.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
   </data>
   <data name="label6.Location" type="System.Drawing.Point, System.Drawing">
     <value>12, 342</value>
@@ -371,6 +364,138 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;label6.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <data name="label7.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Top, Right</value>
+  </data>
+  <data name="label7.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="label7.Font" type="System.Drawing.Font, System.Drawing">
+    <value>Microsoft Sans Serif, 8.25pt, style=Underline</value>
+  </data>
+  <data name="label7.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="label7.Location" type="System.Drawing.Point, System.Drawing">
+    <value>362, 156</value>
+  </data>
+  <data name="label7.Size" type="System.Drawing.Size, System.Drawing">
+    <value>220, 13</value>
+  </data>
+  <data name="label7.TabIndex" type="System.Int32, mscorlib">
+    <value>9</value>
+  </data>
+  <data name="label7.Text" xml:space="preserve">
+    <value>Github: https://github.com/Am6er/BecqMoni</value>
+  </data>
+  <data name="&gt;&gt;label7.Name" xml:space="preserve">
+    <value>label7</value>
+  </data>
+  <data name="&gt;&gt;label7.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label7.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;label7.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="iconPanel1.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Top, Bottom, Left, Right</value>
+  </data>
+  <data name="iconPanel1.Location" type="System.Drawing.Point, System.Drawing">
+    <value>12, 9</value>
+  </data>
+  <data name="iconPanel1.Size" type="System.Drawing.Size, System.Drawing">
+    <value>305, 315</value>
+  </data>
+  <data name="iconPanel1.TabIndex" type="System.Int32, mscorlib">
+    <value>7</value>
+  </data>
+  <data name="&gt;&gt;iconPanel1.Name" xml:space="preserve">
+    <value>iconPanel1</value>
+  </data>
+  <data name="&gt;&gt;iconPanel1.Type" xml:space="preserve">
+    <value>BecquerelMonitor.IconPanel, BecquerelMonitor, Version=2025.7.28.2, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;iconPanel1.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;iconPanel1.ZOrder" xml:space="preserve">
+    <value>4</value>
+  </data>
+  <data name="label8.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Top, Right</value>
+  </data>
+  <data name="label8.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="label8.Font" type="System.Drawing.Font, System.Drawing">
+    <value>Microsoft Sans Serif, 8.25pt, style=Underline</value>
+  </data>
+  <data name="label8.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="label8.Location" type="System.Drawing.Point, System.Drawing">
+    <value>362, 203</value>
+  </data>
+  <data name="label8.Size" type="System.Drawing.Size, System.Drawing">
+    <value>227, 13</value>
+  </data>
+  <data name="label8.TabIndex" type="System.Int32, mscorlib">
+    <value>10</value>
+  </data>
+  <data name="label8.Text" xml:space="preserve">
+    <value>YouTube: https://www.youtube.com/@Am6er</value>
+  </data>
+  <data name="&gt;&gt;label8.Name" xml:space="preserve">
+    <value>label8</value>
+  </data>
+  <data name="&gt;&gt;label8.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label8.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;label8.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="label9.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Top, Right</value>
+  </data>
+  <data name="label9.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="label9.Font" type="System.Drawing.Font, System.Drawing">
+    <value>Microsoft Sans Serif, 8.25pt, style=Underline</value>
+  </data>
+  <data name="label9.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="label9.Location" type="System.Drawing.Point, System.Drawing">
+    <value>362, 256</value>
+  </data>
+  <data name="label9.Size" type="System.Drawing.Size, System.Drawing">
+    <value>231, 13</value>
+  </data>
+  <data name="label9.TabIndex" type="System.Int32, mscorlib">
+    <value>11</value>
+  </data>
+  <data name="label9.Text" xml:space="preserve">
+    <value>RuTube: https://rutube.ru/channel/30585350/</value>
+  </data>
+  <data name="&gt;&gt;label9.Name" xml:space="preserve">
+    <value>label9</value>
+  </data>
+  <data name="&gt;&gt;label9.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label9.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;label9.ZOrder" xml:space="preserve">
     <value>0</value>
   </data>
   <metadata name="$this.Localizable" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
@@ -381,6 +506,9 @@
   </data>
   <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
     <value>639, 506</value>
+  </data>
+  <data name="$this.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
   </data>
   <data name="$this.MaximumSize" type="System.Drawing.Size, System.Drawing">
     <value>655, 545</value>
