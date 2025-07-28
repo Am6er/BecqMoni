@@ -1592,6 +1592,7 @@ namespace BecquerelMonitor
                 this.AutoSaveStripMenuItem.Enabled = false;
                 this.toolStripMenuItem1.Enabled = false;
                 this.exportBgToolStripMenuItem.Enabled = false;
+                this.hardSubtractToolStripMenuItem.Enabled = false;
                 return;
             }
             bool enabled = this.activeDocument.ResultDataFile.ResultDataList.Count < this.globalConfigManager.MaximumSpectrumPerFile;
@@ -1608,6 +1609,7 @@ namespace BecquerelMonitor
             this.AutoSaveStripMenuItem.Checked = this.activeDocument.AutoSave;
             this.toolStripMenuItem1.Enabled = enabled;
             this.exportBgToolStripMenuItem.Enabled = this.activeDocument.ActiveResultData.BackgroundEnergySpectrum != null;
+            this.hardSubtractToolStripMenuItem.Enabled = this.activeDocument.ActiveResultData.BackgroundEnergySpectrum != null;
             this.測定開始SToolStripMenuItem.Enabled = !this.activeDocument.ActiveResultData.ResultDataStatus.Recording;
             this.測定停止TToolStripMenuItem.Enabled = this.activeDocument.ActiveResultData.ResultDataStatus.Recording;
         }
@@ -2068,6 +2070,49 @@ namespace BecquerelMonitor
             }
         }
 
+        public void SaveHardSubtractSpectrumToFile()
+        {
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.Title = Resources.ExportSpectraToFileDialogTitle;
+            saveFileDialog.Filter = Resources.SpectrumFileFilter;
+            saveFileDialog.FilterIndex = 1;
+            saveFileDialog.RestoreDirectory = true;
+            if (this.activeDocument.ActiveResultData.BackgroundSpectrumFile != null || this.activeDocument.ActiveResultData.BackgroundSpectrumFile != "")
+            {
+                saveFileDialog.FileName = this.activeDocument.Text + " - subtract" + ".xml";
+            }
+            if (saveFileDialog.ShowDialog() != DialogResult.OK)
+            {
+                return;
+            }
+            string fileName = saveFileDialog.FileName;
+            SpectrumAriphmetics sa = new SpectrumAriphmetics(this.activeDocument.ActiveResultData.EnergySpectrum);
+            ResultDataFile resultDataFile = new ResultDataFile();
+            ResultData resultData = this.activeDocument.ActiveResultData.Clone();
+            resultData.EnergySpectrum = sa.Substract(this.activeDocument.ActiveResultData.BackgroundEnergySpectrum);
+            resultData.SampleInfo.Name = Path.GetFileNameWithoutExtension(fileName);
+            resultData.BackgroundEnergySpectrum = null;
+            resultData.BackgroundSpectrumFile = null;
+            resultData.BackgroundSpectrumPathname = null;
+            resultDataFile.ResultDataList.Add(resultData);
+
+            try
+            {
+                Cursor.Current = Cursors.WaitCursor;
+                using (FileStream fileStream = new FileStream(fileName, FileMode.Create))
+                {
+                    XmlSerializer xmlSerializer = new XmlSerializer(typeof(ResultDataFile));
+                    xmlSerializer.Serialize(fileStream, resultDataFile);
+                }
+                OpenExistingDocument(fileName);
+                Cursor.Current = Cursors.Default;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message));
+            }
+        }
+
         public void SaveBGSpectrumToFile()
         {
             SaveFileDialog saveFileDialog = new SaveFileDialog();
@@ -2475,6 +2520,11 @@ namespace BecquerelMonitor
         void exportBgToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.SaveBGSpectrumToFile();
+        }
+
+        void hardSubtractToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            this.SaveHardSubtractSpectrumToFile();
         }
 
         void NormalizeSpectrumStripMenuItem_Click(object sender, EventArgs e)
