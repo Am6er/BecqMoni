@@ -830,6 +830,11 @@ namespace BecquerelMonitor
                 System.Globalization.CultureInfo.InvariantCulture,
                 out result))
             {
+                return result;
+
+                //Let's try not to prohibit the user from entering data that seems strange.
+                //For example: kromek CZT have absolute offset = -400
+                /*
                 if (result > -100.0 && result < 100.0)
                 {
                     return result;
@@ -838,6 +843,7 @@ namespace BecquerelMonitor
                 {
                     throw new Exception();
                 }
+                */
             }
             //System.Windows.Forms.MessageBox.Show("Error while converting text to double: " + str);
             throw new Exception();
