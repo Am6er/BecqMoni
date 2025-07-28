@@ -140,6 +140,8 @@ namespace BecquerelMonitor
 
             this.LowerLimit = definition.LowerLimit;
             this.UpperLimit = definition.UpperLimit;
+            this.LeftRegionCenter = definition.LowerLimit;
+            this.RightRegionCenter = definition.UpperLimit;
         }
 
         // Token: 0x040008A5 RID: 2213
