@@ -296,7 +296,18 @@ namespace BecquerelMonitor
                 {
                     if (pe.PolynomialOrder > 1)
                     {
-                        PolynomialEnergyCalibration newPe = (PolynomialEnergyCalibration)pe.Clone().Downgrade(order - 1);
+                        int coeff = 0;
+                        if (pe.PolynomialOrder > 2)
+                        {
+                            for (int i = pe.Coefficients.Length - 1; i > 1; i--)
+                            {
+                                if (pe.Coefficients[i] == 0.0 || (i == order)) coeff++;
+                            }
+                        } else
+                        {
+                            coeff = 1;
+                        }
+                            PolynomialEnergyCalibration newPe = (PolynomialEnergyCalibration)pe.Clone().Downgrade(order - coeff);
                         if (newPe.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
                         {
                             this.energyCalibration = (PolynomialEnergyCalibration)newPe;
