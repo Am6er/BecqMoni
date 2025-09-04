@@ -54,7 +54,7 @@ namespace BecquerelMonitor
             EnergyResolutionCalculator.result.MaxBaseValue = maxBaseValue;
             double halfValue = (centroid_counts - maxBaseValue) / 2.0 + maxBaseValue;
             EnergyResolutionCalculator.result.HalfValue = halfValue;
-            double num7 = -1.0;
+            double leftChannel = -1.0;
             int j = startChannel + 1;
             while (j < centroid)
             {
@@ -64,7 +64,7 @@ namespace BecquerelMonitor
                     {
                         return null;
                     }
-                    num7 = (double)(j - 1) + (halfValue - (double)spectrum.Spectrum[j - 1]) / (double)(spectrum.Spectrum[j] - spectrum.Spectrum[j - 1]);
+                    leftChannel = (double)(j - 1) + (halfValue - (double)spectrum.Spectrum[j - 1]) / (double)(spectrum.Spectrum[j] - spectrum.Spectrum[j - 1]);
                     break;
                 }
                 else
@@ -72,11 +72,11 @@ namespace BecquerelMonitor
                     j++;
                 }
             }
-            if (num7 < 0.0)
+            if (leftChannel < 0.0)
             {
                 return null;
             }
-            double num8 = -1.0;
+            double rightChannel = -1.0;
             int k = endChannel - 1;
             while (k > centroid)
             {
@@ -86,7 +86,7 @@ namespace BecquerelMonitor
                     {
                         return null;
                     }
-                    num8 = (double)(k + 1) - (halfValue - (double)spectrum.Spectrum[k + 1]) / (double)(spectrum.Spectrum[k] - spectrum.Spectrum[k + 1]);
+                    rightChannel = (double)(k + 1) - (halfValue - (double)spectrum.Spectrum[k + 1]) / (double)(spectrum.Spectrum[k] - spectrum.Spectrum[k + 1]);
                     break;
                 }
                 else
@@ -94,14 +94,14 @@ namespace BecquerelMonitor
                     k--;
                 }
             }
-            if (num8 < 0.0)
+            if (rightChannel < 0.0)
             {
                 return null;
             }
-            EnergyResolutionCalculator.result.LeftChannel = num7;
-            EnergyResolutionCalculator.result.RightChannel = num8;
-            double leftEnergy = energyCalibration.ChannelToEnergy(num7);
-            double rightEnergy = energyCalibration.ChannelToEnergy(num8);
+            EnergyResolutionCalculator.result.LeftChannel = leftChannel;
+            EnergyResolutionCalculator.result.RightChannel = rightChannel;
+            double leftEnergy = energyCalibration.ChannelToEnergy(leftChannel);
+            double rightEnergy = energyCalibration.ChannelToEnergy(rightChannel);
             double resolution = (rightEnergy - leftEnergy) / energyCalibration.ChannelToEnergy((double)centroid);
             double resolutioninkev = rightEnergy - leftEnergy;
             EnergyResolutionCalculator.result.Resolution = resolution;
