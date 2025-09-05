@@ -88,6 +88,30 @@ namespace BecquerelMonitor.Utils
             return Math.Log(x);
         }
 
+        /// <summary>
+        /// Y = k*x + b
+        /// using known points (x1,y1), (x2, y2)
+        /// </summary>
+        /// <param name="X"></param>
+        /// <param name="x1"></param>
+        /// <param name="x2"></param>
+        /// <param name="y1"></param>
+        /// <param name="y2"></param>
+        /// <returns></returns>
+        public static double getY(int X, int x1, int x2, int y1, int y2)
+        {
+            if (x1 - x2 != 0)
+            {
+                double k = (double)(y1 - y2) / (double)(x1 - x2);
+                double b = (double)y1 - k * (double)x1;
+                return k * (double)X + b;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+
         public DocEnergySpectrum CombineWith(DocEnergySpectrum docenergySpectrum)
         {
             if (this.MainSpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels == docenergySpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels)
