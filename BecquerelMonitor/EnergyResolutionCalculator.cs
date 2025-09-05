@@ -1,5 +1,6 @@
 ﻿using BecquerelMonitor.Utils;
 using System;
+using Windows.UI.Xaml.Documents;
 
 namespace BecquerelMonitor
 {
