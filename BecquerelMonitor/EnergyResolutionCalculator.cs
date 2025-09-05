@@ -55,49 +55,27 @@ namespace BecquerelMonitor
             double halfValue = (centroid_counts - maxBaseValue) / 2.0 + maxBaseValue;
             EnergyResolutionCalculator.result.HalfValue = halfValue;
             double leftChannel = -1.0;
-            int j = startChannel + 1;
-            while (j < centroid)
+            for(int j = startChannel + 1; j < centroid; j++)
             {
                 if ((double)spectrum.Spectrum[j] > halfValue)
                 {
-                    if (spectrum.Spectrum[j] == spectrum.Spectrum[j - 1])
-                    {
-                        return null;
-                    }
+                    if (spectrum.Spectrum[j] == spectrum.Spectrum[j - 1]) return null;
                     leftChannel = (double)(j - 1) + (halfValue - (double)spectrum.Spectrum[j - 1]) / (double)(spectrum.Spectrum[j] - spectrum.Spectrum[j - 1]);
                     break;
                 }
-                else
-                {
-                    j++;
-                }
             }
-            if (leftChannel < 0.0)
-            {
-                return null;
-            }
+            if (leftChannel < 0.0) return null;
             double rightChannel = -1.0;
-            int k = endChannel - 1;
-            while (k > centroid)
+            for(int k = endChannel - 1; k > centroid; k--)
             {
                 if ((double)spectrum.Spectrum[k] > halfValue)
                 {
-                    if (spectrum.Spectrum[k] == spectrum.Spectrum[k + 1])
-                    {
-                        return null;
-                    }
+                    if (spectrum.Spectrum[k] == spectrum.Spectrum[k + 1]) return null;
                     rightChannel = (double)(k + 1) - (halfValue - (double)spectrum.Spectrum[k + 1]) / (double)(spectrum.Spectrum[k] - spectrum.Spectrum[k + 1]);
                     break;
                 }
-                else
-                {
-                    k--;
-                }
             }
-            if (rightChannel < 0.0)
-            {
-                return null;
-            }
+            if (rightChannel < 0.0) return null;
             EnergyResolutionCalculator.result.LeftChannel = leftChannel;
             EnergyResolutionCalculator.result.RightChannel = rightChannel;
             double leftEnergy = energyCalibration.ChannelToEnergy(leftChannel);
