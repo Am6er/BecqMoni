@@ -104,7 +104,7 @@ namespace BecquerelMonitor
                     double centroid = finder.centroids[i];
                     int snr = (int)finder.snrs[i];
                     double fwhm = finder.fwhms[i];
-                    centroid = sa.FindCentroid(energySpectrum, Convert.ToInt32(centroid), Convert.ToInt32(centroid - fwhm), Convert.ToInt32(centroid + fwhm));
+                    //centroid = sa.FindCentroid(energySpectrum, Convert.ToInt32(centroid), Convert.ToInt32(centroid - fwhm), Convert.ToInt32(centroid + fwhm));
 
                     NuclideDefinition bestNuclide = null;
                     double minDelta = Double.MaxValue;
