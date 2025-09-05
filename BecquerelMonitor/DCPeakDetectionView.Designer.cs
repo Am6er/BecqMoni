@@ -30,8 +30,8 @@ namespace BecquerelMonitor
 			this.textColumn1 = new global::XPTable.Models.NumberColumn();
             this.textColumn4 = new global::XPTable.Models.TextColumn();
 			this.textColumn5 = new global::XPTable.Models.NumberColumn();
-            this.textColumn6 = new global::XPTable.Models.NumberColumn();
-			this.textColumn2 = new global::XPTable.Models.NumberColumn();
+            this.textColumn6 = new global::XPTable.Models.TextColumn();
+            this.textColumn2 = new global::XPTable.Models.NumberColumn();
             this.tableModel1 = new global::XPTable.Models.TableModel();
 			this.numericUpDown1 = new global::System.Windows.Forms.NumericUpDown();
 			this.numericUpDown2 = new global::System.Windows.Forms.NumericUpDown();
@@ -108,7 +108,7 @@ namespace BecquerelMonitor
 			this.textColumn6.Editable = false;
 			this.textColumn6.IsTextTrimmed = false;
 			this.textColumn6.Sortable = true;
-			this.textColumn6.Width = 45;
+			this.textColumn6.Width = 55;
 			resources.ApplyResources(this.textColumn6, "textColumn6");
 
 
@@ -235,7 +235,7 @@ namespace BecquerelMonitor
 
 		global::XPTable.Models.NumberColumn textColumn5;
 
-		global::XPTable.Models.NumberColumn textColumn6;
+		global::XPTable.Models.TextColumn textColumn6;
 
 		// Token: 0x040001BD RID: 445
 		global::System.Windows.Forms.NumericUpDown numericUpDown1;

@@ -1,4 +1,5 @@
-﻿using BecquerelMonitor.Properties;
+﻿using BecquerelMonitor.N42;
+using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
@@ -84,6 +85,7 @@ namespace BecquerelMonitor
                 return;
             }
             ResultData activeResultData = activeDocument.ActiveResultData;
+            PolynomialEnergyCalibration energyCalibration = (PolynomialEnergyCalibration)activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration;
             PeakDetector peakDetector = new PeakDetector();
             List<Peak> list = null;
             list = peakDetector.DetectPeak(activeResultData, activeDocument.EnergySpectrumView.BackgroundMode, activeDocument.EnergySpectrumView.SmoothingMethod, this.selectedNuclideSet);
@@ -106,7 +108,12 @@ namespace BecquerelMonitor
                 row.Cells.Add(new Cell(text2));
                 row.Cells.Add(new Cell(peak.Channel.ToString(), peak.Channel));
                 row.Cells.Add(new Cell(peak.SNR.ToString(), peak.SNR));
-                row.Cells.Add(new Cell(peak.FWHM.ToString("f1"), Math.Round(peak.FWHM, 1)));
+
+                double leftEnergy = energyCalibration.ChannelToEnergy(peak.Channel - peak.FWHM / 2.0);
+                double rightEnergy = energyCalibration.ChannelToEnergy(peak.Channel + peak.FWHM / 2.0);
+                double resolution = 100.0 * (rightEnergy - leftEnergy) / energyCalibration.ChannelToEnergy((double)peak.Channel);
+
+                row.Cells.Add(new Cell(peak.FWHM.ToString("f0") + " " + resolution.ToString("f1") + "%"));
                 this.tableModel1.Rows.Add(row);
             }
             activeDocument.RefreshView();
