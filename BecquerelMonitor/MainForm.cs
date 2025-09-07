@@ -1456,7 +1456,7 @@ namespace BecquerelMonitor
             if (!doc.IsNamed)
             {
                 DialogResult dialogResult = MessageBox.Show(string.Format(BecquerelMonitor.Properties.Resources.MSGFileOverwriteConfirmation, Path.GetFileName(doc.Filename)), BecquerelMonitor.Properties.Resources.ConfirmationDialogTitle, MessageBoxButtons.YesNoCancel, MessageBoxIcon.Exclamation);
-                if (dialogResult == DialogResult.Cancel)
+                if (dialogResult == DialogResult.Cancel || dialogResult == DialogResult.No)
                 {
                     return false;
                 }
@@ -1471,7 +1471,7 @@ namespace BecquerelMonitor
             return true;
         }
 
-        public void setAutosaveToDocument(DocEnergySpectrum doc)
+        public bool setAutosaveToDocument(DocEnergySpectrum doc)
         {
             if (globalConfig.AutosaveDefaultPolicy)
             {
@@ -1482,6 +1482,7 @@ namespace BecquerelMonitor
                 doc.AutoSave = globalConfig.AutosaveDefaultPolicy;
             }
             AutoSaveStripMenuItem.Checked = doc.AutoSave;
+            return doc.AutoSave;
         }
 
         // Token: 0x06000A78 RID: 2680 RVA: 0x0003E564 File Offset: 0x0003C764
