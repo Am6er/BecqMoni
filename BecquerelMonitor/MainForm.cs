@@ -1514,7 +1514,6 @@ namespace BecquerelMonitor
                     this.activeDocument.AutoSave = this.SaveActiveDocument();
                 }
             }
-            this.スペクトルSToolStripMenuItem.ShowDropDown();
         }
 
         public bool SaveActiveDocument()
