@@ -1476,6 +1476,7 @@ namespace BecquerelMonitor
             if (globalConfig.AutosaveDefaultPolicy)
             {
                 doc.AutoSave = this.ConfirmSaveUnnamedDocument(doc);
+                if (!doc.AutoSave) MessageBox.Show(Resources.AutoSaveExclamationText, Resources.AutoSaveExclamationTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
             else
             {

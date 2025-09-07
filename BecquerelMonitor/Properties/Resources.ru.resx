@@ -767,4 +767,10 @@ http://xptable.sourceforge.net/</value>
   <data name="ClickToRefresh" xml:space="preserve">
     <value>Нажмите чтобы обновить статус</value>
   </data>
+  <data name="AutoSaveExclamationText" xml:space="preserve">
+    <value>Вы сейчас отменили сохранение неизвестного документа, в то время как у вас включено автосохранение глобально в настройках приложения. Поэтому автосохранение в этом спектре сейчас ВЫКЛЮЧЕНО!</value>
+  </data>
+  <data name="AutoSaveExclamationTitle" xml:space="preserve">
+    <value>Автосохранение выключено в этом файле!</value>
+  </data>
 </root>

@@ -125,6 +125,24 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to You just canceled save unnamed spectrum file, while autosave feature is turned ON globally by default in settings! This file WILL NOT have autosaving feature!.
+        /// </summary>
+        internal static string AutoSaveExclamationText {
+            get {
+                return ResourceManager.GetString("AutoSaveExclamationText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Autosave disabled on this file!.
+        /// </summary>
+        internal static string AutoSaveExclamationTitle {
+            get {
+                return ResourceManager.GetString("AutoSaveExclamationTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to {0} Autosaving documents.
         /// </summary>
         internal static string AutosaveText {
