@@ -388,6 +388,18 @@ namespace BecquerelMonitor
             }
         }
 
+        public bool ControlPanelisDateTimeFormat
+        {
+            get
+            {
+                return this.controlPanelisDateTimeFormat;
+            }
+            set
+            {
+                this.controlPanelisDateTimeFormat = value;
+            }
+        }
+
         // Token: 0x040008AF RID: 2223
         int mainFormTop = 100;
 
@@ -472,5 +484,7 @@ namespace BecquerelMonitor
 
         // Token: 0x040008C5 RID: 2245
         SoundConfig soundConfig = new SoundConfig();
+
+        bool controlPanelisDateTimeFormat = false;
     }
 }

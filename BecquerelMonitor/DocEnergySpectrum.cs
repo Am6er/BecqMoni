@@ -886,7 +886,6 @@ namespace BecquerelMonitor
             this.view.PowNum = (double)this.toolStripNumericUpdown.NumericUpDownControl.Value;
             GlobalConfigInfo globalConfig = GlobalConfigManager.GetInstance().GlobalConfig;
             globalConfig.ChartViewConfig.PowNum = this.view.PowNum;
-            GlobalConfigManager.GetInstance().SaveConfigFile();
             this.RefreshView();
         }
 

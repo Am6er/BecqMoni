@@ -30,6 +30,7 @@ namespace BecquerelMonitor
             base.SetStyle(ControlStyles.UserPaint, true);
             base.SetStyle(ControlStyles.DoubleBuffer, true);
             base.SetStyle(ControlStyles.AllPaintingInWmPaint, true);
+            this.dateFmt = GlobalConfigManager.GetInstance().GlobalConfig.ControlPanelisDateTimeFormat;
         }
 
         // Token: 0x17000320 RID: 800
@@ -158,10 +159,16 @@ namespace BecquerelMonitor
         public void DisplayFormatCycle(EventArgs e)
         {
             this.dateFmt = !this.dateFmt;
+            GlobalConfigManager.GetInstance().GlobalConfig.ControlPanelisDateTimeFormat = this.dateFmt;
             if (this.percentageVisible)
             {
                 base.Invalidate();
             }
+        }
+
+        public void setDateFormat(bool dateFormat)
+        {
+            this.dateFmt = dateFormat;
         }
 
         // Token: 0x06000BDF RID: 3039 RVA: 0x00047C48 File Offset: 0x00045E48
