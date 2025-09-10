@@ -42099,4 +42099,7 @@ see peak in spectrum now).</value>
   <data name="AutoSaveExclamationTitle" xml:space="preserve">
     <value>Autosave disabled on this file!</value>
   </data>
+  <data name="ERRAppAllreadyRunning" xml:space="preserve">
+    <value>BecqMoni allready running! To avoid layout config files damage this app start is canceled. Check task manager for running processes BecquerelMonitor.exe!</value>
+  </data>
 </root>

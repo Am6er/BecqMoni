@@ -780,6 +780,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to BecqMoni allready running! To avoid layout config files damage this app start is canceled. Check task manager for running processes BecquerelMonitor.exe!.
+        /// </summary>
+        internal static string ERRAppAllreadyRunning {
+            get {
+                return ResourceManager.GetString("ERRAppAllreadyRunning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Specified audio device is not found..
         /// </summary>
         internal static string ERRAudioDeviceNotFound {

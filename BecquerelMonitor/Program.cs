@@ -1,15 +1,28 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Windows.Forms;
 
 namespace BecquerelMonitor
 {
-    // Token: 0x020000A1 RID: 161
+
     static class Program
     {
-        // Token: 0x060007F7 RID: 2039 RVA: 0x0002C3FC File Offset: 0x0002A5FC
+
         [STAThread]
         static void Main(string[] args)
         {
+            Process currentProcess = Process.GetCurrentProcess();
+            Process[] processes = Process.GetProcessesByName(currentProcess.ProcessName);
+
+            foreach (Process process in processes) {
+                if (process.Id != currentProcess.Id && process.MainModule.FileName.Equals(currentProcess.MainModule.FileName)) {
+                    MessageBox.Show(Properties.Resources.ERRAppAllreadyRunning, 
+                        Properties.Resources.ErrorExclamation, 
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+            }
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new MainForm(args));
