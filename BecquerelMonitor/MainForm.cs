@@ -1648,8 +1648,10 @@ namespace BecquerelMonitor
                     if (dialogResult == DialogResult.OK)
                     {
                         updateCheck.Update();
-                        MessageBox.Show(Resources.MSGRestartNeeded);
-                        Application.Restart();
+                        DialogResult dialogRestartResult = MessageBox.Show(Resources.MSGRestartNeeded, 
+                            Resources.MSGUpdateShort, 
+                            MessageBoxButtons.OKCancel);
+                        if (dialogRestartResult == DialogResult.OK) Application.Restart();
                     }
                 }
                 else
