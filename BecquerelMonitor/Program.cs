@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using System.Windows.Forms;
 
 namespace BecquerelMonitor
@@ -22,6 +23,8 @@ namespace BecquerelMonitor
                     return;
                 }
             }
+
+            Environment.CurrentDirectory = Path.GetDirectoryName(currentProcess.MainModule.FileName);
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
