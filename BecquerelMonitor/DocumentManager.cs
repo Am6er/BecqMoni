@@ -3,7 +3,6 @@ using BecquerelMonitor.Properties;
 using BecquerelMonitor.Utils;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -935,12 +934,13 @@ namespace BecquerelMonitor
             try
             {
                 Util util = new Util();
-                RadInstrumentData rad = util.ExportToN42(doc);
+                RadInstrumentData radN42Object = util.ExportToN42(doc);
+                XmlSerializer xmlSerializer = new XmlSerializer(typeof(RadInstrumentData));
 
-                using (var writer = new System.IO.StreamWriter(fileName))
+                using (FileStream fileStream = new FileStream(fileName, FileMode.Create))
+                using (XmlWriter writer = XmlWriter.Create(fileStream, xmlSettings))
                 {
-                    XmlSerializer xmlSerializer = new XmlSerializer(typeof(RadInstrumentData));
-                    xmlSerializer.Serialize(writer, rad);
+                    xmlSerializer.Serialize(writer, radN42Object);
                     writer.Flush();
                 }
             }
@@ -964,20 +964,26 @@ namespace BecquerelMonitor
         public bool SaveDocument(DocEnergySpectrum doc)
         {
             ResultDataFile resultDataFile = doc.ResultDataFile;
+            Cursor.Current = Cursors.WaitCursor;
             try
             {
-                Cursor.Current = Cursors.WaitCursor;
+                XmlSerializer xmlSerializer = new XmlSerializer(typeof(ResultDataFile));
+
                 using (FileStream fileStream = new FileStream(doc.Filename, FileMode.Create))
+                using (XmlWriter writer = XmlWriter.Create(fileStream, xmlSettings))
                 {
-                    XmlSerializer xmlSerializer = new XmlSerializer(typeof(ResultDataFile));
-                    xmlSerializer.Serialize(fileStream, resultDataFile);
+                    xmlSerializer.Serialize(writer, resultDataFile);
+                    writer.Flush();
                 }
-                Cursor.Current = Cursors.Default;
             }
             catch (Exception ex)
             {
                 MessageBox.Show(string.Format(Resources.ERRFileSaveFailure, doc.Filename, ex.Message));
                 return false;
+            }
+            finally
+            {
+                Cursor.Current = Cursors.Default;
             }
             doc.Dirty = doc.ActiveResultData.ResultDataStatus.Recording;
             return true;
@@ -1304,5 +1310,11 @@ namespace BecquerelMonitor
 
         // Token: 0x040000BD RID: 189
         double defaultEnergyScale;
+
+        XmlWriterSettings xmlSettings = new XmlWriterSettings
+        {
+            Encoding = Encoding.UTF8,
+            Indent = true
+        };
     }
 }
