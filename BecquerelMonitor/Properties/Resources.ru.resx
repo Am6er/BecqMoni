@@ -773,4 +773,7 @@ http://xptable.sourceforge.net/</value>
   <data name="AutoSaveExclamationTitle" xml:space="preserve">
     <value>Автосохранение выключено в этом файле!</value>
   </data>
+  <data name="ERRAppAllreadyRunning" xml:space="preserve">
+    <value>Приложение BecqMoni уже запущено! Чтобы избежать проблем с конфигурационными файлами, этот запуск приложения отменяется. Проверьте диспетчер задач на запущенные процессы BecquerelMonitor.exe!</value>
+  </data>
 </root>
