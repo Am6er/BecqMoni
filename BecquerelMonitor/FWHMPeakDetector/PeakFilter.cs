@@ -96,10 +96,12 @@ namespace BecquerelMonitor.FWHMPeakDetector
             double sigma = this.fwhm(x) / 2.35482;
 
             // TODO: Maybe optimize cycle?
-            double[] g1_x0 = gaussian1(edges.Take(edges.Length - 1).ToArray(), x, sigma); //-0.00000,-0.99309,-1.94530,-2.81854,-3.58004
+            double[] g1_x0 = gaussian1(edges.Take(edges.Length - 1).ToArray(), x, sigma);
+            //double[] g1_x0 = exp_gauss_exp1(edges.Take(edges.Length - 1).ToArray(), x, sigma, 0.9, 2.0);
             double[] edges_wo1 = new double[edges.Length - 1];
             Array.Copy(edges, 1, edges_wo1, 0, edges.Length - 1);
-            double[] g1_x1 = gaussian1(edges_wo1, x, sigma); //-0.99309,-1.94530,-2.81854,-3.58004
+            double[] g1_x1 = gaussian1(edges_wo1, x, sigma);
+            //double[] g1_x1 = exp_gauss_exp1(edges_wo1, x, sigma, 0.9, 2.0);
 
             double[] result = new double[edges.Length - 1];
             for (int i = 0; i < result.Length; i++)
@@ -299,6 +301,34 @@ namespace BecquerelMonitor.FWHMPeakDetector
             Parallel.For(0, x.Length, i =>
             {
                 result[i] = gaussian1(x[i], mean, sigma);
+            });
+
+            return result;
+        }
+
+        public double exp_gauss_exp0(double x, double median, double sigma, double left, double right)
+        {
+            double t = (x - median) / sigma;
+            if (t > right) return  Math.Exp(0.5 * right * right - right * t);
+            if (t > -left) return Math.Exp(-0.5 * t * t);
+            return Math.Exp(0.5 * left * left + left * t);
+        }
+
+        public double exp_gauss_exp1(double x, double median, double sigma, double left, double right)
+        {
+            double t = (x - median) / sigma;
+            if (t > right) return - (right / sigma) * Math.Exp(0.5 * right * right - right * t);
+            if (t > -left) return (median - x) * Math.Exp(-0.5 * t * t) / (sigma * sigma);
+            return Math.Exp(0.5 * left * left + left * t);
+        }
+
+        public double[] exp_gauss_exp1(double[] x, double mean, double sigma, double left, double right)
+        {
+            double[] result = new double[x.Length];
+
+            Parallel.For(0, x.Length, i =>
+            {
+                result[i] = exp_gauss_exp1(x[i], mean, sigma, left, right);
             });
 
             return result;
