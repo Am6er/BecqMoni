@@ -319,7 +319,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
             double t = (x - median) / sigma;
             if (t > right) return - (right / sigma) * Math.Exp(0.5 * right * right - right * t);
             if (t > -left) return (median - x) * Math.Exp(-0.5 * t * t) / (sigma * sigma);
-            return Math.Exp(0.5 * left * left + left * t);
+            return left * Math.Exp(0.5 * left * left + left * t) / sigma;
         }
 
         public double[] exp_gauss_exp1(double[] x, double mean, double sigma, double left, double right)
