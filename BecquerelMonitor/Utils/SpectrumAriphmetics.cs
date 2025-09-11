@@ -302,7 +302,7 @@ namespace BecquerelMonitor.Utils
 
         int gauss(double x, double amplitude, double fwhm, double median)
         {
-            double sigma = fwhm / (2.35482 * 0.9);
+            double sigma = fwhm / 2.35482;
             return Convert.ToInt32(amplitude * Math.Exp(-0.5 * Math.Pow((x - median) / sigma,2)));
         }
 
