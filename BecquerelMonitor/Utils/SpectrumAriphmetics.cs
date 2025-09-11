@@ -34,6 +34,28 @@ namespace BecquerelMonitor.Utils
             this.EnergySpectrum = energySpectrum.Clone();
         }
 
+
+        /// <summary>
+        /// Calculates the Probability Density Function (PDF) of an Exponentially Modified Gaussian (EMG) distribution.
+        /// </summary>
+        /// <param name="x">The value at which to evaluate the PDF.</param>
+        /// <param name="mu">The mean of the Gaussian component.</param>
+        /// <param name="sigma">The standard deviation of the Gaussian component.</param>
+        /// <param name="lambda">The rate parameter of the Exponential component.</param>
+        /// <returns>The PDF value at x.</returns>
+        public static double EMG(double x, double mu, double sigma, double lambda)
+        {
+            // The PDF of the EMG is given by:
+            // f(x) = (lambda / 2) * exp(lambda * (mu + (sigma^2 * lambda / 2) - x)) * erfc((mu + (sigma^2 * lambda) - x) / (sqrt(2) * sigma))
+            // where erfc is the complementary error function.
+
+            double term1 = lambda / 2.0;
+            double term2_exponent = lambda * (mu + (sigma * sigma * lambda / 2.0) - x);
+            double term3_erfc_arg = (mu + (sigma * sigma * lambda) - x) / (Constants.Sqrt2 * sigma);
+
+            return term1 * Math.Exp(term2_exponent) * SpecialFunctions.Erfc(term3_erfc_arg);
+        }
+
         public int FindCentroid(EnergySpectrum energySpectrum, int centroid, int low_boundary, int high_boundary)
         {
             if (low_boundary < 0) low_boundary = 0;
