@@ -1,9 +1,7 @@
 ﻿using BecquerelMonitor.Properties;
 using MathNet.Numerics;
-using MathNet.Numerics.Interpolation;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
@@ -32,28 +30,6 @@ namespace BecquerelMonitor.Utils
         {
             this.FWHMPeakDetectionMethodConfig = fWHMPeakDetectionMethodConfig;
             this.EnergySpectrum = energySpectrum.Clone();
-        }
-
-
-        /// <summary>
-        /// Calculates the Probability Density Function (PDF) of an Exponentially Modified Gaussian (EMG) distribution.
-        /// </summary>
-        /// <param name="x">The value at which to evaluate the PDF.</param>
-        /// <param name="mu">The mean of the Gaussian component.</param>
-        /// <param name="sigma">The standard deviation of the Gaussian component.</param>
-        /// <param name="lambda">The rate parameter of the Exponential component.</param>
-        /// <returns>The PDF value at x.</returns>
-        public static double EMG(double x, double mu, double sigma, double lambda)
-        {
-            // The PDF of the EMG is given by:
-            // f(x) = (lambda / 2) * exp(lambda * (mu + (sigma^2 * lambda / 2) - x)) * erfc((mu + (sigma^2 * lambda) - x) / (sqrt(2) * sigma))
-            // where erfc is the complementary error function.
-
-            double term1 = lambda / 2.0;
-            double term2_exponent = lambda * (mu + (sigma * sigma * lambda / 2.0) - x);
-            double term3_erfc_arg = (mu + (sigma * sigma * lambda) - x) / (Constants.Sqrt2 * sigma);
-
-            return term1 * Math.Exp(term2_exponent) * SpecialFunctions.Erfc(term3_erfc_arg);
         }
 
         public int FindCentroid(EnergySpectrum energySpectrum, int centroid, int low_boundary, int high_boundary)
@@ -326,8 +302,17 @@ namespace BecquerelMonitor.Utils
 
         int gauss(double x, double amplitude, double fwhm, double median)
         {
-            double sigma = fwhm / 2.35482;
+            double sigma = fwhm / (2.35482 * 0.9);
             return Convert.ToInt32(amplitude * Math.Exp(-0.5 * Math.Pow((x - median) / sigma,2)));
+        }
+
+        int exp_gauss_exp(double x, double amplitude, double median, double fwhm, double left, double right)
+        {
+            double sigma = fwhm / 2.35482;
+            double t = (x - median) / sigma;
+            if (t > right) return Convert.ToInt32(amplitude * Math.Exp(0.5 * right * right - right * t));
+            if (t > -left) return Convert.ToInt32(amplitude * Math.Exp(-0.5 * t * t));
+            return Convert.ToInt32(amplitude * Math.Exp(0.5 * left * left + left * t));
         }
 
         public (int[], int, int, Color) GetPeak(Peak peak, EnergySpectrum continuum, bool smooth)
@@ -361,6 +346,7 @@ namespace BecquerelMonitor.Utils
             for (int i = min_ch; i <= max_ch; i++)
             {
                 retvalue[i] = gauss((double)i, (double)amplitude, (double)fwhm, (double)median);
+                //retvalue[i] = exp_gauss_exp((double)i, (double)amplitude, (double)median, (double)fwhm, 0.9, 2.0);
                 if (retvalue[i] == 0.0)
                 {
                     if (left_side)
