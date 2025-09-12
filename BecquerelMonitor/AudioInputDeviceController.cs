@@ -159,7 +159,10 @@ namespace BecquerelMonitor
             GC.Collect();
             if (resultDataStatus.AudioVolumeChanged)
             {
-                this.audioVolumeController.SetVolume(audioInputDeviceConfig.AudioInputDevice.DeviceId, resultDataStatus.PreviousVolume);
+                try
+                {
+                    this.audioVolumeController.SetVolume(audioInputDeviceConfig.AudioInputDevice.DeviceId, resultDataStatus.PreviousVolume);
+                } catch (Exception) { }
             }
         }
 
