@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace BecquerelMonitor.FWHMPeakDetector
@@ -34,6 +31,9 @@ namespace BecquerelMonitor.FWHMPeakDetector
         double ref_x;
         double ref_fwhm;
         double fwhm_at_0;
+        int peak_type;
+        double left_skew;
+        double right_skew;
 
         /// <summary>
         /// Empty constructor
@@ -49,7 +49,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
         /// <param name="ref_x">Initial reference channel position with given fwhm</param>
         /// <param name="ref_fwhm">Initial reference fwhm for given ref_x</param>
         /// <param name="fwhm_at_0">FWHM at Energy = 0keV</param>
-        public PeakFilter(double ref_x, double ref_fwhm, double fwhm_at_0 = 1.0)
+        public PeakFilter(double ref_x, double ref_fwhm, double fwhm_at_0 = 1.0, int peak_type = 0, double left_skew = 1.0, double right_skew = 1.0)
         {
             if (ref_x <= 0.0)
             {
@@ -66,6 +66,9 @@ namespace BecquerelMonitor.FWHMPeakDetector
             this.ref_x = ref_x;
             this.ref_fwhm = ref_fwhm;
             this.fwhm_at_0 = fwhm_at_0;
+            this.peak_type = peak_type;
+            this.left_skew = left_skew;
+            this.right_skew = right_skew;
         }
 
         /// <summary>
@@ -96,12 +99,19 @@ namespace BecquerelMonitor.FWHMPeakDetector
             double sigma = this.fwhm(x) / 2.35482;
 
             // TODO: Maybe optimize cycle?
-            double[] g1_x0 = gaussian1(edges.Take(edges.Length - 1).ToArray(), x, sigma);
-            //double[] g1_x0 = exp_gauss_exp1(edges.Take(edges.Length - 1).ToArray(), x, sigma, 0.9, 2.0);
+            double[] g1_x0;
+            double[] g1_x1;
             double[] edges_wo1 = new double[edges.Length - 1];
             Array.Copy(edges, 1, edges_wo1, 0, edges.Length - 1);
-            double[] g1_x1 = gaussian1(edges_wo1, x, sigma);
-            //double[] g1_x1 = exp_gauss_exp1(edges_wo1, x, sigma, 0.9, 2.0);
+            if (peak_type == 0)
+            {
+                g1_x0 = gaussian1(edges.Take(edges.Length - 1).ToArray(), x, sigma);
+                g1_x1 = gaussian1(edges_wo1, x, sigma);
+            } else
+            {
+                g1_x0 = exp_gauss_exp1(edges.Take(edges.Length - 1).ToArray(), x, sigma, left_skew, right_skew);
+                g1_x1 = exp_gauss_exp1(edges_wo1, x, sigma, left_skew, right_skew);
+            }
 
             double[] result = new double[edges.Length - 1];
             for (int i = 0; i < result.Length; i++)
