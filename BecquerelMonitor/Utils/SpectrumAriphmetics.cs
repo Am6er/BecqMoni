@@ -275,10 +275,10 @@ namespace BecquerelMonitor.Utils
             return continuum;
         }
 
-        public EnergySpectrum SubtractPeak(Peak peak, EnergySpectrum energySpectrum)
+        public EnergySpectrum SubtractPeak(Peak peak, EnergySpectrum energySpectrum, FWHMPeakDetectionMethodConfig fwhmcfg)
         {
             EnergySpectrum result = energySpectrum.Clone();
-            (int[] peakspectrum, int min_val, int max_val, Color peakColor) = GetPeak(peak, result, true);
+            (int[] peakspectrum, int min_val, int max_val, Color peakColor) = GetPeak(peak, result, true, fwhmcfg);
             for (int i = min_val; i <= max_val; i++)
             {
                 result.Spectrum[i] -= peakspectrum[i];
@@ -290,12 +290,12 @@ namespace BecquerelMonitor.Utils
             return result;
         }
 
-        public EnergySpectrum SubtractPeaks(List<Peak> peaks, EnergySpectrum energySpectrum)
+        public EnergySpectrum SubtractPeaks(List<Peak> peaks, EnergySpectrum energySpectrum, FWHMPeakDetectionMethodConfig fwhmcfg)
         {
             EnergySpectrum result = energySpectrum.Clone();
             foreach(Peak peak in peaks)
             {
-                result = SubtractPeak(peak, result);
+                result = SubtractPeak(peak, result, fwhmcfg);
             }
             return result;
         }
@@ -303,7 +303,8 @@ namespace BecquerelMonitor.Utils
         int gauss(double x, double amplitude, double fwhm, double median)
         {
             double sigma = fwhm / 2.35482;
-            return Convert.ToInt32(amplitude * Math.Exp(-0.5 * Math.Pow((x - median) / sigma,2)));
+            double t = (x - median) / sigma;
+            return Convert.ToInt32(amplitude * Math.Exp(-0.5 * t * t));
         }
 
         int exp_gauss_exp(double x, double amplitude, double median, double fwhm, double left, double right)
@@ -315,7 +316,7 @@ namespace BecquerelMonitor.Utils
             return Convert.ToInt32(amplitude * Math.Exp(0.5 * left * left + left * t));
         }
 
-        public (int[], int, int, Color) GetPeak(Peak peak, EnergySpectrum continuum, bool smooth)
+        public (int[], int, int, Color) GetPeak(Peak peak, EnergySpectrum continuum, bool smooth, FWHMPeakDetectionMethodConfig fwhmcfg)
         {
             int amplitude;
             int[] SMASpectrum = SMA(this.EnergySpectrum.Spectrum, 3, countlimit: 100);
@@ -345,8 +346,13 @@ namespace BecquerelMonitor.Utils
             bool left_side = true;
             for (int i = min_ch; i <= max_ch; i++)
             {
-                retvalue[i] = gauss((double)i, (double)amplitude, (double)fwhm, (double)median);
-                //retvalue[i] = exp_gauss_exp((double)i, (double)amplitude, (double)median, (double)fwhm, 0.9, 2.0);
+                if (fwhmcfg.PeakType == 0)
+                {
+                    retvalue[i] = gauss((double)i, (double)amplitude, (double)fwhm, (double)median);
+                } else
+                {
+                    retvalue[i] = exp_gauss_exp((double)i, (double)amplitude, (double)median, (double)fwhm, fwhmcfg.ExpGaussExpLeftTail, fwhmcfg.ExpGaussExpRightTail);
+                }
                 if (retvalue[i] == 0.0)
                 {
                     if (left_side)

@@ -1,7 +1,5 @@
 ﻿using BecquerelMonitor.Hash;
-using BecquerelMonitor.N42;
 using BecquerelMonitor.Properties;
-using BecquerelMonitor.Utils;
 using MathNet.Numerics;
 using MathNet.Numerics.Interpolation;
 using System;
@@ -13,10 +11,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml.Serialization;
-using Windows.UI.Xaml.Controls.Maps;
 using XPTable.Editors;
 using XPTable.Events;
 using XPTable.Models;
@@ -549,7 +545,23 @@ namespace BecquerelMonitor
             {
                 this.numericUpDown16.Value = (decimal)config.NumberOfChannels;
             }
-            
+
+            this.label49.Text = Resources.FWHMPeakConfigDescription;
+
+            this.peakTypecomboBox.SelectedIndex = FWHMPeakDetectionMethodConfig.PeakType;
+            this.leftSkewnumericUpDown.Value = (decimal)FWHMPeakDetectionMethodConfig.ExpGaussExpLeftTail;
+            this.rightSkewnumericUpDown.Value = (decimal)FWHMPeakDetectionMethodConfig.ExpGaussExpRightTail;
+            if (peakTypecomboBox.SelectedIndex == 0)
+            {
+                leftSkewnumericUpDown.Enabled = false;
+                rightSkewnumericUpDown.Enabled = false;
+            }
+            else
+            {
+                leftSkewnumericUpDown.Enabled = true;
+                rightSkewnumericUpDown.Enabled = true;
+            }
+
 
             this.textBox17.Text = config.BackgroundSpectrumPathname;
 
@@ -595,6 +607,9 @@ namespace BecquerelMonitor
             this.numericUpDown15.Value = FWHMPeakDetectionMethodConfig.Max_FWHM_Tol;
             this.numericUpDown16.Value = FWHMPeakDetectionMethodConfig.Ch_Concat;
             this.numericUpDown12.Value = (decimal)FWHMPeakDetectionMethodConfig.Min_Range;
+            this.peakTypecomboBox.SelectedIndex = FWHMPeakDetectionMethodConfig.PeakType;
+            this.leftSkewnumericUpDown.Value = (decimal)FWHMPeakDetectionMethodConfig.ExpGaussExpLeftTail;
+            this.rightSkewnumericUpDown.Value = (decimal)FWHMPeakDetectionMethodConfig.ExpGaussExpRightTail;
             this.contentsLoading = false;
 
             /*
@@ -698,6 +713,9 @@ namespace BecquerelMonitor
                 FWHMPeakDetectionMethodConfig.Min_FWHM_Tol = this.numericUpDown14.Value;
                 FWHMPeakDetectionMethodConfig.Max_FWHM_Tol = this.numericUpDown15.Value;
                 FWHMPeakDetectionMethodConfig.Ch_Concat = (int)this.numericUpDown16.Value;
+                FWHMPeakDetectionMethodConfig.PeakType = peakTypecomboBox.SelectedIndex;
+                FWHMPeakDetectionMethodConfig.ExpGaussExpLeftTail = (double)leftSkewnumericUpDown.Value;
+                FWHMPeakDetectionMethodConfig.ExpGaussExpRightTail = (double)rightSkewnumericUpDown.Value;
                 config.BackgroundSpectrumPathname = this.textBox17.Text;
             }
             catch (Exception)
@@ -2279,6 +2297,31 @@ namespace BecquerelMonitor
             tableModel4.Rows.Clear();
             this.SetActiveDeviceConfigDirty();
             this.EvaluateButtonEstimateDRState();
+        }
+
+        private void peakTypecomboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            this.SetActiveDeviceConfigDirty();
+            if (peakTypecomboBox.SelectedIndex == 0)
+            {
+                leftSkewnumericUpDown.Enabled = false;
+                rightSkewnumericUpDown.Enabled = false;
+            } else
+            {
+                leftSkewnumericUpDown.Enabled = true;
+                rightSkewnumericUpDown.Enabled = true;
+            }
+
+        }
+
+        private void leftSkewnumericUpDown_ValueChanged(object sender, EventArgs e)
+        {
+            this.SetActiveDeviceConfigDirty();
+        }
+
+        private void rightSkewnumericUpDown_ValueChanged(object sender, EventArgs e)
+        {
+            this.SetActiveDeviceConfigDirty();
         }
     }
 }

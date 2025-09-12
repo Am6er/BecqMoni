@@ -684,9 +684,10 @@ namespace BecquerelMonitor
                 this.peakEnergySpectrum.Clear();
                 if (this.activeResultData.DetectedPeaks.Count > 0)
                 {
+                    FWHMPeakDetectionMethodConfig fwhmcfg = (FWHMPeakDetectionMethodConfig)this.activeResultData.DeviceConfig.PeakDetectionMethodConfig;
                     for (int i = 0; i < this.activeResultData.DetectedPeaks.Count; i++)
                     {
-                        (int[] peakSpectrum, int min_ch, int max_ch, Color peakColor) = sa.GetPeak(this.activeResultData.DetectedPeaks[i], this.continuumEnergySpectrum, true);
+                        (int[] peakSpectrum, int min_ch, int max_ch, Color peakColor) = sa.GetPeak(this.activeResultData.DetectedPeaks[i], this.continuumEnergySpectrum, true, fwhmcfg);
                         this.peakEnergySpectrum.Add((peakSpectrum, min_ch, max_ch, peakColor));
                     }
                 }
