@@ -246,6 +246,7 @@ namespace BecquerelMonitor
             this.deadTimetextBox.Name = "deadTimetextBox";
             this.deadTimetextBox.ReadOnly = true;
             this.deadTimetextBox.TabStop = false;
+            this.toolTip1.SetToolTip(this.deadTimetextBox, resources.GetString("deadTimeLbl.ToolTip"));
             // 
             // realTimeLbl
             // 
