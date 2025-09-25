@@ -322,7 +322,7 @@ namespace BecquerelMonitor
                 }
                 if (resultData2.EnergySpectrum.TotalPulseCount == 0)
                 {
-                    resultData2.EnergySpectrum.TotalPulseCount = resultData2.EnergySpectrum.Spectrum.Sum();
+                    resultData2.EnergySpectrum.TotalPulseCount = resultData2.EnergySpectrum.Spectrum.Sum(x => (long)x);
                     resultData2.EnergySpectrum.ValidPulseCount = resultData2.EnergySpectrum.TotalPulseCount;
                 }
                 resultDataStatus.TimeInSamples = resultData2.EnergySpectrum.NumberOfSamples;
@@ -395,7 +395,7 @@ namespace BecquerelMonitor
                 }
                 if (resultData2.EnergySpectrum.TotalPulseCount == 0)
                 {
-                    resultData2.EnergySpectrum.TotalPulseCount = resultData2.EnergySpectrum.Spectrum.Sum();
+                    resultData2.EnergySpectrum.TotalPulseCount = resultData2.EnergySpectrum.Spectrum.Sum(x => (long)x);
                     resultData2.EnergySpectrum.ValidPulseCount = resultData2.EnergySpectrum.TotalPulseCount;
                 }
                 resultDataStatus.TimeInSamples = resultData2.EnergySpectrum.NumberOfSamples;
@@ -608,7 +608,7 @@ namespace BecquerelMonitor
                         fileheader = streamReader.ReadLine();
                     }
 
-                    int TotalPulseCount = XmlConvert.ToInt32(streamReader.ReadLine().Trim());
+                    long TotalPulseCount = XmlConvert.ToInt64(streamReader.ReadLine().Trim());
                     energySpectrum.TotalPulseCount = TotalPulseCount;
                     energySpectrum.ValidPulseCount = TotalPulseCount;
 
@@ -699,7 +699,7 @@ namespace BecquerelMonitor
                     else
                     {
                         string SpectrumSummaryText = streamReader.ReadLine();
-                        int TotalPulseCount = int.Parse(SpectrumSummaryText.Split(new string[] { "," }, StringSplitOptions.None)[0].Split(new string[] { "Counts: " }, StringSplitOptions.None)[1]);
+                        long TotalPulseCount = long.Parse(SpectrumSummaryText.Split(new string[] { "," }, StringSplitOptions.None)[0].Split(new string[] { "Counts: " }, StringSplitOptions.None)[1]);
 
                         energySpectrum.TotalPulseCount = TotalPulseCount;
                         energySpectrum.ValidPulseCount = TotalPulseCount;
@@ -1100,7 +1100,7 @@ namespace BecquerelMonitor
                 }
                 if (resultDataFile.ResultDataList[0].EnergySpectrum.TotalPulseCount == 0)
                 {
-                    resultDataFile.ResultDataList[0].EnergySpectrum.TotalPulseCount = resultDataFile.ResultDataList[0].EnergySpectrum.Spectrum.Sum();
+                    resultDataFile.ResultDataList[0].EnergySpectrum.TotalPulseCount = resultDataFile.ResultDataList[0].EnergySpectrum.Spectrum.Sum(x => (long)x);
                     resultDataFile.ResultDataList[0].EnergySpectrum.ValidPulseCount = resultDataFile.ResultDataList[0].EnergySpectrum.TotalPulseCount;
                 }
                 resultData.BackgroundEnergySpectrum = resultDataFile.ResultDataList[0].EnergySpectrum;
@@ -1229,7 +1229,7 @@ namespace BecquerelMonitor
         public void ImportCsvToDocument(DocEnergySpectrum doc, int presetTime, string fileName)
         {
             List<int> list = new List<int>();
-            int num = 0;
+            long totalpulsecount = 0;
             try
             {
                 using (StreamReader streamReader = new StreamReader(fileName, Encoding.GetEncoding(65001)))
@@ -1240,9 +1240,9 @@ namespace BecquerelMonitor
                         if (array.Length >= 2)
                         {
                             int.Parse(array[0]);
-                            int num2 = int.Parse(array[1]);
-                            list.Add(num2);
-                            num += num2;
+                            int count = int.Parse(array[1]);
+                            list.Add(count);
+                            totalpulsecount += count;
                         }
                     }
                 }
@@ -1267,18 +1267,18 @@ namespace BecquerelMonitor
 
             EnergySpectrum energySpectrum = doc.ActiveResultData.EnergySpectrum;
             energySpectrum.Initialize();
-            int num3 = 0;
+            long validpulsecount = 0;
             for (int i = 0; i < list.Count; i++)
             {
                 if (i < energySpectrum.NumberOfChannels)
                 {
                     energySpectrum.Spectrum[i] = list[i];
-                    num3 += list[i];
+                    validpulsecount += list[i];
                 }
             }
             energySpectrum.MeasurementTime = (double)presetTime;
-            energySpectrum.TotalPulseCount = num;
-            energySpectrum.ValidPulseCount = num3;
+            energySpectrum.TotalPulseCount = totalpulsecount;
+            energySpectrum.ValidPulseCount = validpulsecount;
             ResultDataStatus resultDataStatus = doc.ActiveResultData.ResultDataStatus;
             resultDataStatus.TotalTime = TimeSpan.FromSeconds((double)presetTime);
             resultDataStatus.ElapsedTime = TimeSpan.FromSeconds((double)presetTime);

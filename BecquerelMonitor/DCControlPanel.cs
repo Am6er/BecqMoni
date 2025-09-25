@@ -358,8 +358,8 @@ namespace BecquerelMonitor
             double totalSeconds = resultDataStatus.ElapsedTime.TotalSeconds;
             this.totalCntTextBox.Text = activeResultData.EnergySpectrum.TotalPulseCount.ToString();
             this.validCntTextBox.Text = activeResultData.EnergySpectrum.ValidPulseCount.ToString();
-            int num = activeResultData.EnergySpectrum.TotalPulseCount - activeResultData.EnergySpectrum.ValidPulseCount;
-            this.invalidCountsTextBox.Text = num.ToString(); //invalid pulses
+            long invalidPulseCount = activeResultData.EnergySpectrum.TotalPulseCount - activeResultData.EnergySpectrum.ValidPulseCount;
+            this.invalidCountsTextBox.Text = invalidPulseCount.ToString(); //invalid pulses
             this.liveTimetextBox.Text = activeResultData.EnergySpectrum.LiveTime.ToString("f2");
             double cps = 0.0;
             double deadTime = 0.0;

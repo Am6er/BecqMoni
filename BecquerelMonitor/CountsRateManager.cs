@@ -7,7 +7,7 @@
         public void AppendResultData(ResultData resultData)
         {
             if (!resultData.ResultDataStatus.Recording) return;
-            int new_counts = resultData.EnergySpectrum.TotalPulseCount;
+            long new_counts = resultData.EnergySpectrum.TotalPulseCount;
             double new_time = resultData.ResultDataStatus.ElapsedTime.TotalMilliseconds;
 
             if (new_time == 0) return;
