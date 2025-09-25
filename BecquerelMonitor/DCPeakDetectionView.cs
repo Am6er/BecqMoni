@@ -47,9 +47,9 @@ namespace BecquerelMonitor
                     }
                 }
                 deviceConfigInfo = lastConfigInfo;
-                activeResultData.DeviceConfig.PeakDetectionMethodConfig = deviceConfigInfo.PeakDetectionMethodConfig;
+                if (deviceConfigInfo != null) activeResultData.DeviceConfig.PeakDetectionMethodConfig = deviceConfigInfo.PeakDetectionMethodConfig;
             }
-            activeResultData.PeakDetectionMethodConfig = deviceConfigInfo.PeakDetectionMethodConfig;
+            if (deviceConfigInfo != null) activeResultData.PeakDetectionMethodConfig = deviceConfigInfo.PeakDetectionMethodConfig;
             FWHMPeakDetectionMethodConfig fwhmPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)activeResultData.PeakDetectionMethodConfig;
             this.numericUpDown1.Minimum = 1;
             this.numericUpDown1.Maximum = 10000;
