@@ -245,10 +245,10 @@ namespace BecquerelMonitor.N42
                 resultData.EnergySpectrum.TotalPulseCount = 0;
                 if (radMeasurement.GrossCounts != null)
                 {
-                    resultData.EnergySpectrum.TotalPulseCount = int.Parse(radMeasurement.GrossCounts[0].TotalCounts);
+                    resultData.EnergySpectrum.TotalPulseCount = long.Parse(radMeasurement.GrossCounts[0].TotalCounts);
                 } else
                 {
-                    resultData.EnergySpectrum.TotalPulseCount = resultData.EnergySpectrum.Spectrum.Sum();
+                    resultData.EnergySpectrum.TotalPulseCount = resultData.EnergySpectrum.Spectrum.Sum(x => (long)x);
                 }
                 resultData.EnergySpectrum.ValidPulseCount = resultData.EnergySpectrum.TotalPulseCount;
 

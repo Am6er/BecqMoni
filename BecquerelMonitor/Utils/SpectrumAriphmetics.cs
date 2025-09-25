@@ -177,7 +177,7 @@ namespace BecquerelMonitor.Utils
                         substractedEnergySpectrum.Spectrum[i] = 0;
                     }
                 });
-                substractedEnergySpectrum.TotalPulseCount = substractedEnergySpectrum.Spectrum.Sum();
+                substractedEnergySpectrum.TotalPulseCount = substractedEnergySpectrum.Spectrum.Sum(x => (long)x);
                 substractedEnergySpectrum.ValidPulseCount = substractedEnergySpectrum.TotalPulseCount;
             } else
             {
@@ -194,7 +194,7 @@ namespace BecquerelMonitor.Utils
                         }
                     }
                 });
-                substractedEnergySpectrum.TotalPulseCount = substractedEnergySpectrum.Spectrum.Sum();
+                substractedEnergySpectrum.TotalPulseCount = substractedEnergySpectrum.Spectrum.Sum(x => (long)x);
                 substractedEnergySpectrum.ValidPulseCount = substractedEnergySpectrum.TotalPulseCount;
             }
             return substractedEnergySpectrum;
@@ -248,11 +248,11 @@ namespace BecquerelMonitor.Utils
 
             try 
             {
-                normalizedSpectrum.TotalPulseCount = normalizedSpectrum.Spectrum.Sum();
+                normalizedSpectrum.TotalPulseCount = normalizedSpectrum.Spectrum.Sum(x => (long)x);
             }
             catch (OverflowException)
             {
-                normalizedSpectrum.TotalPulseCount = int.MaxValue;
+                normalizedSpectrum.TotalPulseCount = long.MaxValue;
             }
             
             normalizedSpectrum.ValidPulseCount = normalizedSpectrum.TotalPulseCount;
@@ -495,7 +495,7 @@ namespace BecquerelMonitor.Utils
             Array.Copy(energySpectrum.Spectrum, newSpectrum.Spectrum, newChan);
             newSpectrum.MeasurementTime = energySpectrum.MeasurementTime;
             newSpectrum.LiveTime = energySpectrum.LiveTime;
-            newSpectrum.TotalPulseCount = newSpectrum.Spectrum.Sum();
+            newSpectrum.TotalPulseCount = newSpectrum.Spectrum.Sum(x => (long)x);
             newSpectrum.ValidPulseCount = newSpectrum.TotalPulseCount;
             newSpectrum.NumberOfSamples = energySpectrum.NumberOfSamples;
             return newSpectrum;
@@ -535,9 +535,9 @@ namespace BecquerelMonitor.Utils
             newSpectrum.Spectrum = ConcatArray(energySpectrum.Spectrum, newChan);
             newSpectrum.MeasurementTime = energySpectrum.MeasurementTime;
             newSpectrum.LiveTime = energySpectrum.LiveTime;
-            newSpectrum.TotalPulseCount = newSpectrum.Spectrum.Sum();
+            newSpectrum.TotalPulseCount = newSpectrum.Spectrum.Sum(x => (long)x);
             double newValidPulseCount = (double)newSpectrum.TotalPulseCount * (double)energySpectrum.ValidPulseCount / (double)energySpectrum.TotalPulseCount;
-            newSpectrum.ValidPulseCount = Convert.ToInt32(newValidPulseCount);
+            newSpectrum.ValidPulseCount = (long)newValidPulseCount;
             newSpectrum.NumberOfSamples = energySpectrum.NumberOfSamples;
             return newSpectrum;
         }
@@ -556,9 +556,9 @@ namespace BecquerelMonitor.Utils
             newSpectrum.Spectrum = RestoreArray(energySpectrum.Spectrum, newChan);
             newSpectrum.MeasurementTime = energySpectrum.MeasurementTime;
             newSpectrum.LiveTime = energySpectrum.LiveTime;
-            newSpectrum.TotalPulseCount = newSpectrum.Spectrum.Sum();
+            newSpectrum.TotalPulseCount = newSpectrum.Spectrum.Sum(x => (long)x);
             double newValidPulseCount = (double)newSpectrum.TotalPulseCount * (double)energySpectrum.ValidPulseCount / (double)energySpectrum.TotalPulseCount;
-            newSpectrum.ValidPulseCount = Convert.ToInt32(newValidPulseCount);
+            newSpectrum.ValidPulseCount = (long)newValidPulseCount;
             newSpectrum.NumberOfSamples = energySpectrum.NumberOfSamples;
             return newSpectrum;
         }

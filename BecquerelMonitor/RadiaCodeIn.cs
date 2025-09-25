@@ -720,14 +720,14 @@ namespace BecquerelMonitor
     {
         private int[] hystogram;
         private int elapsed_time;
-        private int sum;
+        private long sum;
 
         public int[] Hystogram
         {
             get { return hystogram; }
         }
 
-        public int SUM
+        public long SUM
         {
             get { return sum; }
         }
@@ -737,7 +737,7 @@ namespace BecquerelMonitor
             get { return elapsed_time; }
         }
 
-        public RadiaCodeInDataReadyArgs(int[] hyst, int elapsed_time, int sum)
+        public RadiaCodeInDataReadyArgs(int[] hyst, int elapsed_time, long sum)
         {
             this.hystogram = hyst;
             this.elapsed_time = elapsed_time;

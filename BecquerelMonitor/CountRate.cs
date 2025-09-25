@@ -2,14 +2,14 @@
 {
     public class CountRate
     {
-        public CountRate(int counts_, int invalidcounts_, double elapsedtime_)
+        public CountRate(long counts_, long invalidcounts_, double elapsedtime_)
         {
             this.counts = counts_;
             this.elapsedtime = elapsedtime_;
             this.invalidcounts = invalidcounts_;
         }
 
-        public int Counts
+        public long Counts
         {
             get
             {
@@ -33,7 +33,7 @@
             }
         }
 
-        public int InvalidCounts
+        public long InvalidCounts
         {
             get
             {
@@ -45,8 +45,8 @@
             }
         }
 
-        int counts;
+        long counts;
         double elapsedtime;
-        int invalidcounts;
+        long invalidcounts;
     }
 }

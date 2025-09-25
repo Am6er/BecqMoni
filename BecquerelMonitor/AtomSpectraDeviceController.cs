@@ -265,7 +265,7 @@ namespace BecquerelMonitor
                     return;
                 }
                 e.Hystogram.CopyTo(this.pulseDetector.EnergySpectrum.Spectrum, 0);
-                int sum = e.Hystogram.Sum();
+                long sum = e.Hystogram.Sum(x => (long)x);
                 this.pulseDetector.EnergySpectrum.TotalPulseCount = sum + e.InvalidPulses;
                 this.pulseDetector.EnergySpectrum.ValidPulseCount = sum;
                 this.pulseDetector.EnergySpectrum.ChannelPitch = 1;
