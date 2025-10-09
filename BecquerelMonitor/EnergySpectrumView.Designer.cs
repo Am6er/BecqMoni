@@ -3377,7 +3377,7 @@ namespace BecquerelMonitor
                         : this.energySpectrum.Spectrum[end_channel];
                     double continuum = SpectrumAriphmetics.getY(i, start_channel, end_channel, continuumFrom, continuumTo);
 
-                    if (bg_time > 0 && this.backgroundMode != BackgroundMode.Substract)
+                    if (bg_time > 0)
                     {
                         double adj_bg_counts_in_channel = 0.0;
                         int bg_channel = i;
@@ -3399,7 +3399,7 @@ namespace BecquerelMonitor
                             adj_bg_counts_in_channel *= fg_time / bg_time;
                         }
                         // if bg counts > linear continuum, continuum rises.
-                        continuum = Math.Max(adj_bg_counts_in_channel, continuum);
+                        if (this.backgroundMode != BackgroundMode.Substract) continuum = Math.Max(adj_bg_counts_in_channel, continuum);
                     }
                     
                     // if fg counts below continuum, peak counts in this channel = 0
