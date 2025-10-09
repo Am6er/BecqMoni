@@ -3398,8 +3398,7 @@ namespace BecquerelMonitor
                                 : (double)this.backgroundEnergySpectrum.Spectrum[bg_channel];
                             adj_bg_counts_in_channel *= fg_time / bg_time;
                         }
-                        // if bg counts > linear continuum, continuum rises.
-                        if (this.backgroundMode != BackgroundMode.Substract) continuum = Math.Max(adj_bg_counts_in_channel, continuum);
+                        continuum = Math.Max(adj_bg_counts_in_channel, continuum);
                     }
                     
                     // if fg counts below continuum, peak counts in this channel = 0
