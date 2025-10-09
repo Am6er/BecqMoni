@@ -3369,9 +3369,17 @@ namespace BecquerelMonitor
                         ? this.normByEffEnergySpectrum.Spectrum[i]
                         : this.energySpectrum.Spectrum[i];
 
-                    double adj_bg_counts_in_channel = 0.0;
-                    if (bg_time > 0)
+                    int continuumFrom = normalizeByEfficiency
+                        ? this.normByEffEnergySpectrum.Spectrum[start_channel]
+                        : this.energySpectrum.Spectrum[start_channel];
+                    int continuumTo = normalizeByEfficiency
+                        ? this.normByEffEnergySpectrum.Spectrum[end_channel]
+                        : this.energySpectrum.Spectrum[end_channel];
+                    double continuum = SpectrumAriphmetics.getY(i, start_channel, end_channel, continuumFrom, continuumTo);
+
+                    if (bg_time > 0 && this.backgroundMode != BackgroundMode.Substract)
                     {
+                        double adj_bg_counts_in_channel = 0.0;
                         int bg_channel = i;
                         if (!this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
                         {
@@ -3390,17 +3398,12 @@ namespace BecquerelMonitor
                                 : (double)this.backgroundEnergySpectrum.Spectrum[bg_channel];
                             adj_bg_counts_in_channel *= fg_time / bg_time;
                         }
+                        // if bg counts > linear continuum, continuum rises.
+                        continuum = Math.Max(adj_bg_counts_in_channel, continuum);
                     }
-
-                    int continuumFrom = normalizeByEfficiency
-                        ? this.normByEffEnergySpectrum.Spectrum[start_channel]
-                        : this.energySpectrum.Spectrum[start_channel];
-                    int continuumTo = normalizeByEfficiency
-                        ? this.normByEffEnergySpectrum.Spectrum[end_channel]
-                        : this.energySpectrum.Spectrum[end_channel];
-                    double continuum = SpectrumAriphmetics.getY(i, start_channel, end_channel, continuumFrom, continuumTo);
-                    continuum = Math.Max(adj_bg_counts_in_channel, continuum);
-                    peakcounts += (fg_counts_in_channel - continuum);
+                    
+                    // if fg counts below continuum, peak counts in this channel = 0
+                    if (fg_counts_in_channel > continuum) peakcounts += (fg_counts_in_channel - continuum);
                 }
 
                 gross_counts = normalizeByEfficiency
