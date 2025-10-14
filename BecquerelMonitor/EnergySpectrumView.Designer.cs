@@ -3357,27 +3357,28 @@ namespace BecquerelMonitor
                 double activityByVolume = 0.0;
                 double activityByVolumeError = 0.0;
                 double activityByVolumeUpperLimit = 0.0;
-                
+
+                int[] sourceSpectrum = normalizeByEfficiency
+                    ? this.normByEffEnergySpectrum.Spectrum
+                    : (BackgroundMode == BackgroundMode.Substract)
+                        ? this.substractedEnergySpectrum.Spectrum
+                        : this.energySpectrum.Spectrum;
+
+
                 for (int i = start_channel; i <= end_channel; i++)
                 {
-                    fg_counts += this.energySpectrum.Spectrum[i];
+                    fg_counts += sourceSpectrum[i];
                     if (normalizeByEfficiency)
                     {
                         fg_eff_norm_counts += (double)this.normByEffEnergySpectrum.Spectrum[i];
                     }
-                    int fg_counts_in_channel = normalizeByEfficiency
-                        ? this.normByEffEnergySpectrum.Spectrum[i]
-                        : this.energySpectrum.Spectrum[i];
+                    int fg_counts_in_channel = sourceSpectrum[i];
 
-                    int continuumFrom = normalizeByEfficiency
-                        ? this.normByEffEnergySpectrum.Spectrum[start_channel]
-                        : this.energySpectrum.Spectrum[start_channel];
-                    int continuumTo = normalizeByEfficiency
-                        ? this.normByEffEnergySpectrum.Spectrum[end_channel]
-                        : this.energySpectrum.Spectrum[end_channel];
+                    int continuumFrom = sourceSpectrum[start_channel];
+                    int continuumTo = sourceSpectrum[end_channel];
                     double continuum = SpectrumAriphmetics.getY(i, start_channel, end_channel, continuumFrom, continuumTo);
 
-                    if (bg_time > 0)
+                    if (bg_time > 0 && BackgroundMode != BackgroundMode.Substract)
                     {
                         double adj_bg_counts_in_channel = 0.0;
                         int bg_channel = i;
