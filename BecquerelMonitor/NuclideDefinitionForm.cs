@@ -214,6 +214,11 @@ namespace BecquerelMonitor
             return true;
         }
 
+        void FormNuclideDefinitionForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            this.ConfirmSaveNuclide();
+        }
+
         // Token: 0x060000CD RID: 205 RVA: 0x00004280 File Offset: 0x00002480
         void button6_Click(object sender, EventArgs e)
         {
