@@ -176,7 +176,8 @@
 			base.Controls.Add(this.table1);
 			base.Name = "NuclideDefinitionForm";
 			base.Load += new System.EventHandler(this.NuclideDefinitionForm_Load);
-			((System.ComponentModel.ISupportInitialize)this.table1).EndInit();
+            base.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FormNuclideDefinitionForm_FormClosing);
+            ((System.ComponentModel.ISupportInitialize)this.table1).EndInit();
 			this.tabControl1.ResumeLayout(false);
 			this.tabPage1.ResumeLayout(false);
 			this.tabPage1.PerformLayout();
