@@ -13,6 +13,7 @@ namespace BecquerelMonitor
         public NuclideDefinitionForm()
         {
             this.InitializeComponent();
+            this.Icon = Resources.becqmoni;
             this.button6.Enabled = false;
             this.DisableForm();
         }
@@ -139,6 +140,19 @@ namespace BecquerelMonitor
         void DisableForm()
         {
             this.tabControl1.Enabled = false;
+        }
+
+        void table1_EditingStopped(object sender, CellEditEventArgs e)
+        {
+            if (this.activeNuclide == null) return;
+            this.SetActiveNuclideDirty();
+            switch (e.CellPos.Column)
+            {
+                case 0: this.activeNuclide.Name = e.Cell.Text; break;
+                case 1: this.activeNuclide.Energy = (double)(decimal)e.Cell.Data; break;
+                case 2: this.activeNuclide.HalfLife = (double)(decimal)e.Cell.Data; break;
+            }
+            this.LoadFormContents(this.activeNuclide);
         }
 
         // Token: 0x060000CB RID: 203 RVA: 0x00004130 File Offset: 0x00002330
