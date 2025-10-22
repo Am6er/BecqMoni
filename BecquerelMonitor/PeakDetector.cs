@@ -123,8 +123,8 @@ namespace BecquerelMonitor
                             bestNuclide = nuclideDefinition;
                             minDelta = delta;
                         }
-                        peak.Nuclide = bestNuclide;
                     }
+                    peak.Nuclide = bestNuclide;
                     if (peak.Nuclide == null && nuclideSet?.HideUnknownPeaks == true) continue;
                     bool hidepeaks = false;
                     if (nuclideSet != null) hidepeaks = nuclideSet.HideUnknownPeaks;
