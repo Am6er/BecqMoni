@@ -30,6 +30,7 @@ namespace BecquerelMonitor
             this.table1.SuspendLayout();
             this.tableModel1.Rows.Clear();
             this.tableModel1.Selections.Clear();
+            if (definitionsDirty) this.manager.LoadDefinitionFile(forceReload: true);
             this.manager.NuclideDefinitions.Sort();
             foreach (NuclideDefinition nuclideDefinition in this.manager.NuclideDefinitions)
             {
@@ -145,13 +146,14 @@ namespace BecquerelMonitor
         void table1_EditingStopped(object sender, CellEditEventArgs e)
         {
             if (this.activeNuclide == null) return;
-            this.SetActiveNuclideDirty();
             switch (e.CellPos.Column)
             {
                 case 0: this.activeNuclide.Name = e.Cell.Text; break;
                 case 1: this.activeNuclide.Energy = (double)(decimal)e.Cell.Data; break;
                 case 2: this.activeNuclide.HalfLife = (double)(decimal)e.Cell.Data; break;
             }
+            this.SetActiveNuclideDirty();
+            this.definitionsDirty = true;
             this.LoadFormContents(this.activeNuclide);
         }
 
@@ -170,11 +172,14 @@ namespace BecquerelMonitor
                 nuclideDefinition = (NuclideDefinition)this.table1.SelectedItems[0].Tag;
                 row = this.table1.SelectedItems[0];
             }
-            if (!this.ConfirmSaveNuclide())
+            if (this.activeNuclide != null && nuclideDefinition?.CompareTo(this.activeNuclide) > 0) // Not same nuclide
             {
-                this.ListupNuclideDefinitions();
-                this.reenter = false;
-                return;
+                if (!this.ConfirmSaveNuclide())
+                {
+                    this.ListupNuclideDefinitions();
+                    this.reenter = false;
+                    return;
+                }
             }
             if (nuclideDefinition != null)
             {
@@ -229,6 +234,7 @@ namespace BecquerelMonitor
                 MessageBox.Show(Resources.ERRInvalidInputForm);
                 return;
             }
+            this.definitionsDirty = false;
             this.manager.SaveDefinitionFile();
             this.UpdatePeakDetectionResult();
         }
@@ -325,5 +331,7 @@ namespace BecquerelMonitor
 
         // Token: 0x0400003B RID: 59
         bool reenter;
+
+        bool definitionsDirty = false;
     }
 }
