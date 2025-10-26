@@ -85,7 +85,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
             double f0 = this.fwhm_at_0;
             double f1 = this.ref_fwhm;
             double x1 = this.ref_x;
-            double fwhm_sqr = Math.Pow(f0, 2) + (Math.Pow(f1, 2) - Math.Pow(f0, 2)) * (x / x1);
+            double fwhm_sqr = f0 * f0 + (f1 * f1 - f0 * f0) * ((x * x )/(x1 * x1));
             return Math.Sqrt(fwhm_sqr);
         }
 
@@ -232,7 +232,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
                     peak_plus_bkg[i] += data[j] * _kern_mat_pos[i][j];
                     bkg[i] += data[j] * _kern_mat_neg[i][j];
                     signal[i] += data[j] * kernel_mat[i][j];
-                    noise[i] += data[j] * Math.Pow(kernel_mat[i][j], 2);
+                    noise[i] += data[j] * kernel_mat[i][j] * kernel_mat[i][j];
                 }
                 noise[i] = Math.Sqrt(noise[i]);
                 if (noise[i] > 0)
