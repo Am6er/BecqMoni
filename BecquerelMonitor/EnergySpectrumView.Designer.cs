@@ -769,12 +769,14 @@ namespace BecquerelMonitor
                 this.minChannel = Math.Max((int)CalcChanValue(-this.scrollX) - 5, 0);
                 this.maxChannel = Math.Min((int)(CalcChanValue(-this.scrollX + this.width) - 5), this.numberOfChannels - 1);
             }
+
+            // compute global min/max over all visible spectra (including background if visible)
             this.totalMaxValue = 0.0;
             this.totalMinValue = double.PositiveInfinity;
+
             if (this.IsBackgroundVisible())
             {
-                int i = 0;
-                while (i < this.numberOfChannels - 1)
+                for (int i = 0; i < this.numberOfChannels - 1; i++)
                 {
                     double e = this.energyCalibration.ChannelToEnergy((double)i);
                     int bgChannel;
@@ -784,17 +786,14 @@ namespace BecquerelMonitor
                     }
                     catch (OutofChannelException)
                     {
-                        goto IL_28F;
+                        continue;
                     }
-                    goto IL_1F4;
-                IL_28F:
-                    i++;
-                    continue;
-                IL_1F4:
+
                     if (bgChannel < 0 || bgChannel >= this.backgroundEnergySpectrum.NumberOfChannels)
                     {
-                        goto IL_28F;
+                        continue;
                     }
+
                     double bgChannelValue;
                     if (this.verticalUnit == VerticalUnit.CountsPerSecond)
                     {
@@ -804,6 +803,7 @@ namespace BecquerelMonitor
                     {
                         bgChannelValue = (double)this.backgroundEnergySpectrum.DrawingSpectrum[bgChannel] * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime;
                     }
+
                     if (bgChannelValue > this.totalMaxValue)
                     {
                         this.totalMaxValue = bgChannelValue;
@@ -811,9 +811,7 @@ namespace BecquerelMonitor
                     if (bgChannelValue < this.totalMinValue)
                     {
                         this.totalMinValue = bgChannelValue;
-                        goto IL_28F;
                     }
-                    goto IL_28F;
                 }
             }
 
@@ -837,6 +835,7 @@ namespace BecquerelMonitor
                     }
                 }
             }
+
             if (this.verticalUnit == VerticalUnit.Counts)
             {
                 if (this.totalMaxValue < 1.0)
@@ -848,18 +847,25 @@ namespace BecquerelMonitor
             {
                 this.totalMaxValue = 0.0001;
             }
+
             if (this.totalMinValue == double.PositiveInfinity)
             {
                 this.totalMinValue = 0.0;
             }
+
+            // compute min/max for the visible channel range (or background when fitting requires it)
             this.maxValue = 0.0;
             this.minValue = double.PositiveInfinity;
-            bool flag = false;
-            int k = this.minChannel;
-            while (k < this.maxChannel)
+            bool nonZeroSeen = false;
+
+            for (int k = this.minChannel; k < this.maxChannel; k++)
             {
                 double channelValue;
-                if ((this.fittingMode == VerticalFittingMode.BackgroundMinMax || this.energySpectrum.MeasurementTime == 0.0) && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+
+                bool useBackground = (this.fittingMode == VerticalFittingMode.BackgroundMinMax || this.energySpectrum.MeasurementTime == 0.0)
+                                     && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0;
+
+                if (useBackground)
                 {
                     double e2 = this.energyCalibration.ChannelToEnergy((double)k);
                     int bgChannel;
@@ -869,53 +875,54 @@ namespace BecquerelMonitor
                     }
                     catch (OutofChannelException)
                     {
-                        goto IL_595;
+                        // skip this channel when background mapping is out of range
+                        continue;
                     }
-                    if (bgChannel >= 0 && bgChannel < this.backgroundEnergySpectrum.NumberOfChannels)
+
+                    if (bgChannel < 0 || bgChannel >= this.backgroundEnergySpectrum.NumberOfChannels)
                     {
-                        if (this.verticalUnit == VerticalUnit.CountsPerSecond)
-                        {
-                            channelValue = (double)this.backgroundEnergySpectrum.DrawingSpectrum[bgChannel] / this.backgroundEnergySpectrum.MeasurementTime;
-                            goto IL_53A;
-                        }
+                        continue;
+                    }
+
+                    if (this.verticalUnit == VerticalUnit.CountsPerSecond)
+                    {
+                        channelValue = (double)this.backgroundEnergySpectrum.DrawingSpectrum[bgChannel] / this.backgroundEnergySpectrum.MeasurementTime;
+                    }
+                    else
+                    {
                         channelValue = (double)this.backgroundEnergySpectrum.DrawingSpectrum[bgChannel] * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime;
-                        goto IL_53A;
                     }
                 }
                 else
                 {
                     channelValue = (double)this.energySpectrum.DrawingSpectrum[k];
-
                     if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.MeasurementTime != 0.0)
                     {
                         channelValue /= this.energySpectrum.MeasurementTime;
-                        goto IL_53A;
                     }
-                    goto IL_53A;
                 }
-            IL_595:
-                k++;
-                continue;
-            IL_53A:
-                if (!flag && channelValue != 0.0)
+
+                if (!nonZeroSeen && channelValue != 0.0)
                 {
-                    flag = true;
+                    nonZeroSeen = true;
                 }
+
                 if (channelValue > this.maxValue)
                 {
                     this.maxValue = channelValue;
                 }
-                if (channelValue < this.minValue && (flag || channelValue != 0.0))
+
+                if (channelValue < this.minValue && (nonZeroSeen || channelValue != 0.0))
                 {
                     this.minValue = channelValue;
-                    goto IL_595;
                 }
-                goto IL_595;
             }
+
             if (this.minValue == double.PositiveInfinity)
             {
                 this.minValue = 0.0;
             }
+
             if (this.verticalUnit == VerticalUnit.Counts)
             {
                 if (this.maxValue < 1.0)
@@ -941,6 +948,7 @@ namespace BecquerelMonitor
             {
                 this.maxValue = 0.0001;
             }
+
             double maxYscale = 1.05;
             if (this.verticalScaleType == VerticalScaleType.LogarithmicScale)
             {
@@ -963,7 +971,9 @@ namespace BecquerelMonitor
                 this.maxValue *= maxYscale;
                 this.minValue *= 0.98;
             }
-            if (this.verticalScaleType == VerticalScaleType.LogarithmicScale)
+
+            // Normalize minimums for log/power scales
+            if (this.verticalScaleType == VerticalScaleType.LogarithmicScale || this.verticalScaleType == VerticalScaleType.PowerScale)
             {
                 if (this.totalMinValue == 0.0)
                 {
@@ -980,24 +990,22 @@ namespace BecquerelMonitor
                         if (this.energySpectrum.MeasurementTime != 0.0)
                         {
                             this.totalMinValue = 1.0 / this.energySpectrum.MeasurementTime * 0.7;
-                            using (List<ResultData>.Enumerator enumerator2 = this.resultDataList.GetEnumerator())
+                            foreach (ResultData resultData2 in this.resultDataList)
                             {
-                                while (enumerator2.MoveNext())
+                                double candidate = 1.0 / resultData2.EnergySpectrum.MeasurementTime * 0.7;
+                                if (candidate < this.totalMinValue)
                                 {
-                                    ResultData resultData2 = enumerator2.Current;
-                                    double num6 = 1.0 / resultData2.EnergySpectrum.MeasurementTime * 0.7;
-                                    if (num6 < this.totalMinValue)
-                                    {
-                                        this.totalMinValue = num6;
-                                    }
+                                    this.totalMinValue = candidate;
                                 }
-                                goto IL_8F8;
                             }
                         }
-                        this.totalMinValue = 7E-05;
+                        else
+                        {
+                            this.totalMinValue = 7E-05;
+                        }
                     }
                 }
-            IL_8F8:
+
                 if (this.minValue == 0.0)
                 {
                     if (this.verticalUnit == VerticalUnit.Counts)
@@ -1017,79 +1025,26 @@ namespace BecquerelMonitor
                         this.minValue = 7E-05;
                     }
                 }
+
+                // compute logs/pows used later
                 this.maxValueLog = Log10(this.maxValue);
                 this.minValueLog = Log10(this.minValue);
                 this.totalMaxValueLog = Log10(this.totalMaxValue);
                 this.totalMinValueLog = Log10(this.totalMinValue);
+
                 this.maxValuePow = Pow(this.maxValue);
                 this.minValuePow = Pow(this.minValue);
                 this.totalMaxValuePow = Pow(this.totalMaxValue);
                 this.totalMinValuePow = Pow(this.totalMinValue);
-                this.valueRangeLog = this.totalMaxValueLog - this.totalMinValueLog;
-            }
-            else if (this.verticalScaleType == VerticalScaleType.PowerScale)
-            {
-                if (this.totalMinValue == 0.0)
+
+                if (this.verticalScaleType == VerticalScaleType.LogarithmicScale)
                 {
-                    if (this.verticalUnit == VerticalUnit.Counts)
-                    {
-                        this.totalMinValue = 0.7;
-                    }
-                    else if (this.fittingMode == VerticalFittingMode.BackgroundMinMax && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
-                    {
-                        this.totalMinValue = 1.0 / this.backgroundEnergySpectrum.MeasurementTime * 0.7;
-                    }
-                    else
-                    {
-                        if (this.energySpectrum.MeasurementTime != 0.0)
-                        {
-                            this.totalMinValue = 1.0 / this.energySpectrum.MeasurementTime * 0.7;
-                            using (List<ResultData>.Enumerator enumerator2 = this.resultDataList.GetEnumerator())
-                            {
-                                while (enumerator2.MoveNext())
-                                {
-                                    ResultData resultData2 = enumerator2.Current;
-                                    double num6 = 1.0 / resultData2.EnergySpectrum.MeasurementTime * 0.7;
-                                    if (num6 < this.totalMinValue)
-                                    {
-                                        this.totalMinValue = num6;
-                                    }
-                                }
-                                goto IL_8F81;
-                            }
-                        }
-                        this.totalMinValue = 7E-05;
-                    }
+                    this.valueRangeLog = this.totalMaxValueLog - this.totalMinValueLog;
                 }
-            IL_8F81:
-                if (this.minValue == 0.0)
+                else
                 {
-                    if (this.verticalUnit == VerticalUnit.Counts)
-                    {
-                        this.minValue = 0.7;
-                    }
-                    else if (this.fittingMode == VerticalFittingMode.BackgroundMinMax && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
-                    {
-                        this.minValue = 1.0 / this.backgroundEnergySpectrum.MeasurementTime * 0.7;
-                    }
-                    else if (this.energySpectrum.MeasurementTime != 0.0)
-                    {
-                        this.minValue = 1.0 / this.energySpectrum.MeasurementTime * 0.7;
-                    }
-                    else
-                    {
-                        this.minValue = 7E-05;
-                    }
+                    this.valueRangePow = this.totalMaxValuePow - this.totalMinValuePow;
                 }
-                this.maxValueLog = Log10(this.maxValue);
-                this.minValueLog = Log10(this.minValue);
-                this.totalMaxValueLog = Log10(this.totalMaxValue);
-                this.totalMinValueLog = Log10(this.totalMinValue);
-                this.maxValuePow = Pow(this.maxValue);
-                this.minValuePow = Pow(this.minValue);
-                this.totalMaxValuePow = Pow(this.totalMaxValue);
-                this.totalMinValuePow = Pow(this.totalMinValue);
-                this.valueRangePow = this.totalMaxValuePow - this.totalMinValuePow;
             }
             else
             {
@@ -1103,7 +1058,9 @@ namespace BecquerelMonitor
                 this.totalMaxValuePow = Pow(this.totalMaxValue);
                 this.totalMinValuePow = Pow(this.totalMinValue);
             }
+
             this.scrollY = this.vScrollBar1.Value;
+
             if (this.fittingMode != VerticalFittingMode.None)
             {
                 if (this.verticalScaleType == VerticalScaleType.LogarithmicScale)
@@ -1111,10 +1068,7 @@ namespace BecquerelMonitor
                     if (this.maxValueLog - this.minValueLog != 0.0)
                     {
                         this.verticalScale = this.valueRangeLog / (this.maxValueLog - this.minValueLog);
-                        if (this.verticalScale < 1.0)
-                        {
-                            this.verticalScale = 1.0;
-                        }
+                        if (this.verticalScale < 1.0) this.verticalScale = 1.0;
                     }
                     else
                     {
@@ -1127,10 +1081,7 @@ namespace BecquerelMonitor
                     if (this.maxValuePow - this.minValuePow != 0.0)
                     {
                         this.verticalScale = this.valueRangePow / (this.maxValuePow - this.minValuePow);
-                        if (this.verticalScale < 1.0)
-                        {
-                            this.verticalScale = 1.0;
-                        }
+                        if (this.verticalScale < 1.0) this.verticalScale = 1.0;
                     }
                     else
                     {
@@ -1143,10 +1094,7 @@ namespace BecquerelMonitor
                     if (this.maxValue - this.minValue != 0.0)
                     {
                         this.verticalScale = this.valueRange / (this.maxValue - this.minValue);
-                        if (this.verticalScale < 1.0)
-                        {
-                            this.verticalScale = 1.0;
-                        }
+                        if (this.verticalScale < 1.0) this.verticalScale = 1.0;
                     }
                     else
                     {
@@ -1155,6 +1103,7 @@ namespace BecquerelMonitor
                     this.scrollY = (int)((double)this.height * (this.totalMaxValue - this.maxValue) / this.valueRange * this.verticalScale);
                 }
             }
+
             if (this.verticalScale < 1.0)
             {
                 this.verticalScale = 1.0;
@@ -1288,10 +1237,12 @@ namespace BecquerelMonitor
                 {
                     this.ShowROINetRegion(g, true);
                 }
+
                 if (this.chartType == ChartType.BarChart)
                 {
                     if (colorConfig.SpectrumDrawingOrder == 0)
                     {
+                        // draw background/continuum first, then active spectrum
                         if (this.IsBackgroundVisible())
                         {
                             int alpha = (int)(colorConfig.BackgroundSpectrumColorTransparency * 255m / 100m);
@@ -1303,6 +1254,7 @@ namespace BecquerelMonitor
                                 }
                             }
                         }
+
                         if (this.backgroundMode == BackgroundMode.ShowContinuum && this.continuumEnergySpectrum != null)
                         {
                             int alpha = (int)(colorConfig.BackgroundSpectrumColorTransparency * 255m / 100m);
@@ -1326,75 +1278,78 @@ namespace BecquerelMonitor
                                 }
                             }
                         }
-                        if (this.energySpectrum.MeasurementTime == 0.0)
-                        {
-                            goto IL_438;
-                        }
 
-                        int alpha2 = (int)(colorConfig.ActiveSpectrumColorTransparency * 255m / 100m);
-                        Color color = this.backgroundMode == BackgroundMode.Substract
-                            ? Color.FromArgb(alpha2, colorConfig.BgDiffColor.Color)
-                            : Color.FromArgb(alpha2, colorConfig.ActiveSpectrumColor.Color);
+                        if (this.energySpectrum.MeasurementTime != 0.0)
+                        {
+                            int alpha2 = (int)(colorConfig.ActiveSpectrumColorTransparency * 255m / 100m);
+                            Color color = this.backgroundMode == BackgroundMode.Substract
+                                ? Color.FromArgb(alpha2, colorConfig.BgDiffColor.Color)
+                                : Color.FromArgb(alpha2, colorConfig.ActiveSpectrumColor.Color);
 
-                        using (Brush brush2 = new SolidBrush(color))
-                        {
-                            using (new Pen(Color.FromArgb(alpha2, colorConfig.ActiveSpectrumColor.Color)))
+                            using (Brush brush2 = new SolidBrush(color))
                             {
-                                this.DrawBarChart(g, brush2, this.energySpectrum, this.energyCalibration, false);
-                            }
-                            goto IL_438;
-                        }
-                    }
-                    if (this.energySpectrum.MeasurementTime != 0.0)
-                    {
-                        int alpha3 = (int)(colorConfig.ActiveSpectrumColorTransparency * 255m / 100m);
-                        Color color = this.backgroundMode == BackgroundMode.Substract
-                            ? Color.FromArgb(alpha3, colorConfig.BgDiffColor.Color)
-                            : Color.FromArgb(alpha3, colorConfig.ActiveSpectrumColor.Color);
-
-
-                        using (Brush brush3 = new SolidBrush(color))
-                        {
-                            using (new Pen(Color.FromArgb(alpha3, colorConfig.ActiveSpectrumColor.Color)))
-                            {
-                                this.DrawBarChart(g, brush3, this.energySpectrum, this.energyCalibration, false);
-                            }
-                        }
-                    }
-                    if (this.IsBackgroundVisible())
-                    {
-                        int alpha4 = (int)(colorConfig.BackgroundSpectrumColorTransparency * 255m / 100m);
-                        using (Brush brush4 = new SolidBrush(Color.FromArgb(alpha4, colorConfig.BackgroundSpectrumColor.Color)))
-                        {
-                            using (new Pen(Color.FromArgb(alpha4, colorConfig.BackgroundSpectrumColor.Color)))
-                            {
-                                this.DrawBarChart(g, brush4, this.backgroundEnergySpectrum, this.backgroundEnergyCalibration, true);
-                            }
-                        }
-                    }
-                    if (this.backgroundMode == BackgroundMode.ShowContinuum && this.continuumEnergySpectrum != null)
-                    {
-                        int alpha4 = (int)(colorConfig.BackgroundSpectrumColorTransparency * 255m / 100m);
-                        using (Brush brush4 = new SolidBrush(Color.FromArgb(alpha4, colorConfig.BackgroundSpectrumColor.Color)))
-                        {
-                            using (new Pen(Color.FromArgb(alpha4, colorConfig.BackgroundSpectrumColor.Color)))
-                            {
-                                this.DrawBarChart(g, brush4, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, true);
-                            }
-                        }
-                        for (int i = 0; i < this.peakEnergySpectrum.Count; i++)
-                        {
-                            (int[] peakSpectrum, int min_ch, int max_ch, Color peakColor) = this.peakEnergySpectrum[i];
-                            using (Brush brush = new SolidBrush(Color.FromArgb(alpha4, peakColor)))
-                            {
-                                using (new Pen(Color.FromArgb(alpha4, peakColor)))
+                                using (new Pen(Color.FromArgb(alpha2, colorConfig.ActiveSpectrumColor.Color)))
                                 {
-                                    this.DrawPeakBarChart(g, brush, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, peakSpectrum, min_ch, max_ch);
+                                    this.DrawBarChart(g, brush2, this.energySpectrum, this.energyCalibration, false);
                                 }
                             }
                         }
                     }
-                IL_438:
+                    else
+                    {
+                        // draw active spectrum first, then background/continuum
+                        if (this.energySpectrum.MeasurementTime != 0.0)
+                        {
+                            int alpha3 = (int)(colorConfig.ActiveSpectrumColorTransparency * 255m / 100m);
+                            Color color = this.backgroundMode == BackgroundMode.Substract
+                                ? Color.FromArgb(alpha3, colorConfig.BgDiffColor.Color)
+                                : Color.FromArgb(alpha3, colorConfig.ActiveSpectrumColor.Color);
+
+                            using (Brush brush3 = new SolidBrush(color))
+                            {
+                                using (new Pen(Color.FromArgb(alpha3, colorConfig.ActiveSpectrumColor.Color)))
+                                {
+                                    this.DrawBarChart(g, brush3, this.energySpectrum, this.energyCalibration, false);
+                                }
+                            }
+                        }
+
+                        if (this.IsBackgroundVisible())
+                        {
+                            int alpha4 = (int)(colorConfig.BackgroundSpectrumColorTransparency * 255m / 100m);
+                            using (Brush brush4 = new SolidBrush(Color.FromArgb(alpha4, colorConfig.BackgroundSpectrumColor.Color)))
+                            {
+                                using (new Pen(Color.FromArgb(alpha4, colorConfig.BackgroundSpectrumColor.Color)))
+                                {
+                                    this.DrawBarChart(g, brush4, this.backgroundEnergySpectrum, this.backgroundEnergyCalibration, true);
+                                }
+                            }
+                        }
+
+                        if (this.backgroundMode == BackgroundMode.ShowContinuum && this.continuumEnergySpectrum != null)
+                        {
+                            int alpha4 = (int)(colorConfig.BackgroundSpectrumColorTransparency * 255m / 100m);
+                            using (Brush brush4 = new SolidBrush(Color.FromArgb(alpha4, colorConfig.BackgroundSpectrumColor.Color)))
+                            {
+                                using (new Pen(Color.FromArgb(alpha4, colorConfig.BackgroundSpectrumColor.Color)))
+                                {
+                                    this.DrawBarChart(g, brush4, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, true);
+                                }
+                            }
+                            for (int i = 0; i < this.peakEnergySpectrum.Count; i++)
+                            {
+                                (int[] peakSpectrum, int min_ch, int max_ch, Color peakColor) = this.peakEnergySpectrum[i];
+                                using (Brush brush = new SolidBrush(Color.FromArgb(alpha4, peakColor)))
+                                {
+                                    using (new Pen(Color.FromArgb(alpha4, peakColor)))
+                                    {
+                                        this.DrawPeakBarChart(g, brush, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, peakSpectrum, min_ch, max_ch);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     this.ShowSelectionPart2(g);
                 }
                 else
@@ -1429,16 +1384,14 @@ namespace BecquerelMonitor
                     }
                     if (this.energySpectrum.MeasurementTime != 0.0)
                     {
-                        
-                            Color color = this.backgroundMode == BackgroundMode.Substract
-                                ? colorConfig.BgDiffColor.Color
-                                : colorConfig.ActiveSpectrumColor.Color;
+                        Color color = this.backgroundMode == BackgroundMode.Substract
+                            ? colorConfig.BgDiffColor.Color
+                            : colorConfig.ActiveSpectrumColor.Color;
 
-                            using (Pen pen6 = new Pen(color))
-                            {
-                                this.DrawLineChart(g, pen6, this.energySpectrum, this.energyCalibration, false);
-                            }
-
+                        using (Pen pen6 = new Pen(color))
+                        {
+                            this.DrawLineChart(g, pen6, this.energySpectrum, this.energyCalibration, false);
+                        }
                     }
                     if (this.drawingMode == DrawingMode.HighDefinition)
                     {
@@ -1722,15 +1675,21 @@ namespace BecquerelMonitor
                     {
                         double num2 = (double)(i - this.scrollX - this.left) / this.horizontalScale;
                         num3 = (int)calibration.EnergyToChannel(num2 / this.pixelPerEnergy + this.energyViewOffset, maxChannels: spectrum.NumberOfChannels);
-                        goto IL_B8;
                     }
                     catch (OutofChannelException)
                     {
                         break;
                     }
                 }
-                goto IL_68;
-                IL_B8:
+                else
+                {
+                    num3 = (int)((double)(i - this.scrollX - this.left) / this.horizontalScale);
+                    if (this.backgroundEnergyCalibration != null && isBackground && !this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
+                    {
+                        num3 = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy((double)num3), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
+                    }
+                }
+
                 if (num3 >= 0 && num3 < spectrum.DrawingSpectrum.Length)
                 {
                     double num4 = spectrum.DrawingSpectrum[num3];
@@ -1772,16 +1731,8 @@ namespace BecquerelMonitor
                         }
                     }
                 }
+
                 i++;
-                continue;
-                IL_68:
-                num3 = (int)((double)(i - this.scrollX - this.left) / this.horizontalScale);
-                if (this.backgroundEnergyCalibration != null && isBackground && !this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
-                {
-                    num3 = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy((double)num3), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
-                    goto IL_B8;
-                }
-                goto IL_B8;
             }
         }
 
@@ -1798,15 +1749,17 @@ namespace BecquerelMonitor
                     {
                         double num2 = (double)(i - this.scrollX - this.left) / this.horizontalScale;
                         num3 = (int)calibration.EnergyToChannel(num2 / this.pixelPerEnergy + this.energyViewOffset, maxChannels: spectrum.NumberOfChannels);
-                        goto IL_B8;
                     }
                     catch (OutofChannelException)
                     {
                         break;
                     }
                 }
-                goto IL_68;
-            IL_B8:
+                else
+                {
+                    num3 = (int)((double)(i - this.scrollX - this.left) / this.horizontalScale);
+                }
+
                 if (num3 >= min_ch && num3 < max_ch)
                 {
                     double peakv = spectrum.DrawingSpectrum[num3] + peakSpectrum[num3];
@@ -1845,11 +1798,8 @@ namespace BecquerelMonitor
                         }
                     }
                 }
+
                 i++;
-                continue;
-            IL_68:
-                num3 = (int)((double)(i - this.scrollX - this.left) / this.horizontalScale);
-                goto IL_B8;
             }
         }
 
@@ -2048,42 +1998,45 @@ namespace BecquerelMonitor
             {
                 foreach (ROIDefinitionData roidefinitionData in this.roiConfig.ROIDefinitions)
                 {
-                    if (roidefinitionData.Enabled)
+                    if (!roidefinitionData.Enabled)
                     {
-                        double lowerLimit = roidefinitionData.LowerLimit;
-                        double upperLimit = roidefinitionData.UpperLimit;
-                        float num;
-                        float num2;
-                        if (this.horizontalUnit == HorizontalUnit.Channel)
-                        {
-                            try
-                            {
-                                num = (float)(this.energyCalibration.EnergyToChannel(lowerLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                            }
-                            catch (OutofChannelException)
-                            {
-                                break;
-                            }
-                            try
-                            {
-                                num2 = (float)(this.energyCalibration.EnergyToChannel(upperLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                                goto IL_14D;
-                            }
-                            catch (OutofChannelException)
-                            {
-                                num2 = (float)((double)(this.numberOfChannels - 1) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                                goto IL_14D;
-                            }
-                        }
-                        goto IL_F9;
-                        IL_14D:
-                        g.FillRectangle(brush, num, 0f, num2 - num, (float)(this.height - 1));
                         continue;
-                        IL_F9:
-                        num = (float)((lowerLimit - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                        num2 = (float)((upperLimit - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                        goto IL_14D;
                     }
+
+                    double lowerLimit = roidefinitionData.LowerLimit;
+                    double upperLimit = roidefinitionData.UpperLimit;
+                    float leftX;
+                    float rightX;
+
+                    if (this.horizontalUnit == HorizontalUnit.Channel)
+                    {
+                        try
+                        {
+                            leftX = (float)(this.energyCalibration.EnergyToChannel(lowerLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                        }
+                        catch (OutofChannelException)
+                        {
+                            // original behavior: stop processing further ROIs when lower limit is out of channel range
+                            break;
+                        }
+
+                        try
+                        {
+                            rightX = (float)(this.energyCalibration.EnergyToChannel(upperLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                        }
+                        catch (OutofChannelException)
+                        {
+                            // if upper limit is out of range, clamp to last channel
+                            rightX = (float)((double)(this.numberOfChannels - 1) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                        }
+                    }
+                    else
+                    {
+                        leftX = (float)((lowerLimit - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                        rightX = (float)((upperLimit - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                    }
+
+                    g.FillRectangle(brush, leftX, 0f, rightX - leftX, (float)(this.height - 1));
                 }
             }
         }
@@ -2171,49 +2124,51 @@ namespace BecquerelMonitor
             {
                 foreach (ROIDefinitionData roidefinitionData in this.roiConfig.ROIDefinitions)
                 {
-                    if (roidefinitionData.Enabled)
+                    if (!roidefinitionData.Enabled)
                     {
-                        double lowerLimit = roidefinitionData.LowerLimit;
-                        double upperLimit = roidefinitionData.UpperLimit;
-                        float num;
-                        float num2;
-                        if (this.horizontalUnit == HorizontalUnit.Channel)
-                        {
-                            try
-                            {
-                                num = (float)(this.energyCalibration.EnergyToChannel(lowerLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                            }
-                            catch (OutofChannelException)
-                            {
-                                break;
-                            }
-                            try
-                            {
-                                num2 = (float)(this.energyCalibration.EnergyToChannel(upperLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                                goto IL_14D;
-                            }
-                            catch (OutofChannelException)
-                            {
-                                num2 = (float)((double)(this.numberOfChannels - 1) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                                goto IL_14D;
-                            }
-                        }
-                        goto IL_F9;
-                        IL_14D:
-                        if (num > (float)this.left)
-                        {
-                            g.DrawLine(pen, num, 0f, num, (float)(this.height - 1));
-                        }
-                        if (num2 > (float)this.left)
-                        {
-                            g.DrawLine(pen, num2, 0f, num2, (float)(this.height - 1));
-                            continue;
-                        }
                         continue;
-                        IL_F9:
+                    }
+
+                    double lowerLimit = roidefinitionData.LowerLimit;
+                    double upperLimit = roidefinitionData.UpperLimit;
+                    float num;
+                    float num2;
+
+                    if (this.horizontalUnit == HorizontalUnit.Channel)
+                    {
+                        try
+                        {
+                            num = (float)(this.energyCalibration.EnergyToChannel(lowerLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                        }
+                        catch (OutofChannelException)
+                        {
+                            // lower limit is out of channel range -> stop processing further ROIs (original behavior)
+                            break;
+                        }
+
+                        try
+                        {
+                            num2 = (float)(this.energyCalibration.EnergyToChannel(upperLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                        }
+                        catch (OutofChannelException)
+                        {
+                            // clamp upper limit to last channel when out of range
+                            num2 = (float)((double)(this.numberOfChannels - 1) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                        }
+                    }
+                    else
+                    {
                         num = (float)((lowerLimit - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + (float)this.scrollX + (float)this.left;
                         num2 = (float)((upperLimit - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                        goto IL_14D;
+                    }
+
+                    if (num > (float)this.left)
+                    {
+                        g.DrawLine(pen, num, 0f, num, (float)(this.height - 1));
+                    }
+                    if (num2 > (float)this.left)
+                    {
+                        g.DrawLine(pen, num2, 0f, num2, (float)(this.height - 1));
                     }
                 }
             }
@@ -2227,183 +2182,178 @@ namespace BecquerelMonitor
                 return;
             }
             ColorConfig colorConfig = this.globalConfigManager.GlobalConfig.ColorConfig;
-            Brush brush = new SolidBrush(colorConfig.ROINetColor.Color);
-            foreach (ROIDefinitionData roidefinitionData in this.roiConfig.ROIDefinitions)
+            using (Brush brush = new SolidBrush(colorConfig.ROINetColor.Color))
             {
-                if (roidefinitionData.Enabled)
+                foreach (ROIDefinitionData roidefinitionData in this.roiConfig.ROIDefinitions)
                 {
+                    if (!roidefinitionData.Enabled)
+                    {
+                        continue;
+                    }
+
                     double lowerLimit = roidefinitionData.LowerLimit;
                     double upperLimit = roidefinitionData.UpperLimit;
-                    float num;
-                    float num2;
+                    float leftX;
+                    float rightX;
+
                     if (this.horizontalUnit == HorizontalUnit.Channel)
                     {
                         try
                         {
-                            num = (float)(this.energyCalibration.EnergyToChannel(lowerLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                            leftX = (float)(this.energyCalibration.EnergyToChannel(lowerLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
                         }
                         catch (OutofChannelException)
                         {
+                            // Original behavior returned from method when lower limit is out of range
                             return;
                         }
+
                         try
                         {
-                            num2 = (float)(this.energyCalibration.EnergyToChannel(upperLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                            goto IL_14D;
+                            rightX = (float)(this.energyCalibration.EnergyToChannel(upperLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
                         }
                         catch (OutofChannelException)
                         {
-                            num2 = (float)((double)(this.numberOfChannels - 1) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                            goto IL_14D;
+                            // clamp to last channel when upper limit is out of range
+                            rightX = (float)((double)(this.numberOfChannels - 1) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
                         }
                     }
-                    goto IL_F9;
-                    IL_14D:
-                    int i = (int)num;
-                    while (i <= (int)num2)
+                    else
                     {
-                        double num4;
+                        leftX = (float)((lowerLimit - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                        rightX = (float)((upperLimit - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                    }
+
+                    int startPixel = (int)leftX;
+                    int endPixel = (int)rightX;
+
+                    for (int i = startPixel; i <= endPixel; i++)
+                    {
+                        double channelIndex;
                         if (this.horizontalUnit == HorizontalUnit.Energy)
                         {
-                            double num3 = (double)(i - this.scrollX - this.left) / this.horizontalScale;
+                            double pixelEnergyPos = (double)(i - this.scrollX - this.left) / this.horizontalScale;
                             try
                             {
-                                num4 = this.energyCalibration.EnergyToChannel(num3 / this.pixelPerEnergy + this.energyViewOffset, maxChannels: this.energySpectrum.NumberOfChannels);
-                                goto IL_1C1;
+                                channelIndex = this.energyCalibration.EnergyToChannel(pixelEnergyPos / this.pixelPerEnergy + this.energyViewOffset, maxChannels: this.energySpectrum.NumberOfChannels);
                             }
                             catch (OutofChannelException)
                             {
+                                // when mapping from pixel/energy to channel goes out of range, stop scanning this ROI
                                 break;
                             }
                         }
-                        goto IL_1A5;
-                        IL_1C1:
-                        if ((int)num4 >= 0 && (int)num4 < this.energySpectrum.Spectrum.Length)
+                        else
                         {
-                            double num5 = this.energySpectrum.DrawingSpectrum[(int)num4];
+                            channelIndex = (double)((int)((double)(i - this.scrollX - this.left) / this.horizontalScale));
+                        }
+
+                        int ch = (int)channelIndex;
+                        if (ch >= 0 && ch < this.energySpectrum.Spectrum.Length)
+                        {
+                            double fgValue = this.energySpectrum.DrawingSpectrum[ch];
                             if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.MeasurementTime != 0.0)
                             {
-                                num5 /= this.energySpectrum.MeasurementTime;
+                                fgValue /= this.energySpectrum.MeasurementTime;
                             }
-                            double num6;
-                            if (this.backgroundEnergySpectrum == null || this.backgroundEnergySpectrum.MeasurementTime == 0.0)
+
+                            double bgValue = 0.0;
+                            if (!(this.backgroundEnergySpectrum == null || this.backgroundEnergySpectrum.MeasurementTime == 0.0))
                             {
-                                num6 = 0.0;
-                            }
-                            else
-                            {
-                                int num7 = (int)num4;
+                                int bgCh = ch;
                                 if (!this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
                                 {
-                                    num7 = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy(num4), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
+                                    bgCh = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy(channelIndex), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
                                 }
-                                if (num7 < 0 || num7 >= this.backgroundEnergySpectrum.Spectrum.Length)
+                                if (bgCh < 0 || bgCh >= this.backgroundEnergySpectrum.Spectrum.Length)
                                 {
-                                    goto IL_4B4;
+                                    // skip drawing for this pixel if background mapping is invalid
+                                    continue;
                                 }
                                 if (this.verticalUnit == VerticalUnit.CountsPerSecond)
                                 {
-                                    num6 = this.backgroundEnergySpectrum.DrawingSpectrum[num7] / this.backgroundEnergySpectrum.MeasurementTime;
+                                    bgValue = this.backgroundEnergySpectrum.DrawingSpectrum[bgCh] / this.backgroundEnergySpectrum.MeasurementTime;
                                 }
                                 else
                                 {
-                                    num6 = this.backgroundEnergySpectrum.DrawingSpectrum[num7] * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime;
+                                    bgValue = this.backgroundEnergySpectrum.DrawingSpectrum[bgCh] * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime;
                                 }
                             }
-                            int num8;
-                            int num9;
+
+                            int y1;
+                            int y2;
                             if (this.verticalScaleType == VerticalScaleType.LinearScale)
                             {
-                                num8 = this.height - (int)((num5 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                                num9 = this.height - (int)((num6 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                                y1 = this.height - (int)((fgValue - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                                y2 = this.height - (int)((bgValue - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                             }
                             else if (this.verticalScaleType == VerticalScaleType.PowerScale)
                             {
-                                if (num5 == 0.0)
+                                if (fgValue == 0.0)
                                 {
-                                    num8 = this.height;
+                                    y1 = this.height;
                                 }
                                 else
                                 {
-                                    num8 = this.height - (int)((Pow(num5) - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                                    y1 = this.height - (int)((Pow(fgValue) - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                                 }
-                                if (num8 > this.height)
+                                if (y1 > this.height) y1 = this.height;
+
+                                if (bgValue == 0.0)
                                 {
-                                    num8 = this.height;
-                                }
-                                if (num6 == 0.0)
-                                {
-                                    num9 = this.height;
+                                    y2 = this.height;
                                 }
                                 else
                                 {
-                                    num9 = this.height - (int)((Pow(num6) - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                                    y2 = this.height - (int)((Pow(bgValue) - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                                 }
-                                if (num9 > this.height)
-                                {
-                                    num9 = this.height;
-                                }
+                                if (y2 > this.height) y2 = this.height;
                             }
                             else
                             {
-                                if (num5 == 0.0)
+                                if (fgValue == 0.0)
                                 {
-                                    num8 = this.height;
+                                    y1 = this.height;
                                 }
                                 else
                                 {
-                                    num8 = this.height - (int)((Log10(num5) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                                    y1 = this.height - (int)((Log10(fgValue) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                                 }
-                                if (num8 > this.height)
+                                if (y1 > this.height) y1 = this.height;
+
+                                if (bgValue == 0.0)
                                 {
-                                    num8 = this.height;
-                                }
-                                if (num6 == 0.0)
-                                {
-                                    num9 = this.height;
+                                    y2 = this.height;
                                 }
                                 else
                                 {
-                                    num9 = this.height - (int)((Log10(num6) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                                    y2 = this.height - (int)((Log10(bgValue) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                                 }
-                                if (num9 > this.height)
-                                {
-                                    num9 = this.height;
-                                }
+                                if (y2 > this.height) y2 = this.height;
                             }
-                            if (num8 > num9)
+
+                            if (y1 > y2)
                             {
-                                int num10 = num8;
-                                num8 = num9;
-                                num9 = num10;
+                                int tmp = y1;
+                                y1 = y2;
+                                y2 = tmp;
                             }
+
                             if (i > this.left)
                             {
                                 if (this.chartType == ChartType.BarChart)
                                 {
-                                    g.FillRectangle(brush, i, num8, 1, num9 - num8);
+                                    g.FillRectangle(brush, i, y1, 1, y2 - y1);
                                 }
                                 else
                                 {
-                                    g.FillRectangle(brush, i, num8, 1, num9 - num8 + 1);
+                                    g.FillRectangle(brush, i, y1, 1, y2 - y1 + 1);
                                 }
                             }
                         }
-                        IL_4B4:
-                        i++;
-                        continue;
-                        IL_1A5:
-                        num4 = (double)((int)((double)(i - this.scrollX - this.left) / this.horizontalScale));
-                        goto IL_1C1;
                     }
-                    continue;
-                    IL_F9:
-                    num = (float)((lowerLimit - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                    num2 = (float)((upperLimit - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                    goto IL_14D;
                 }
             }
-            brush.Dispose();
         }
 
         // Token: 0x060004BC RID: 1212 RVA: 0x00019900 File Offset: 0x00017B00
@@ -2497,140 +2447,137 @@ namespace BecquerelMonitor
                 int i = num5;
                 while (i <= num6)
                 {
-                    double num8;
+                    double channelIndex;
                     if (this.horizontalUnit == HorizontalUnit.Energy)
                     {
-                        double num7 = (double)(i - this.scrollX - this.left) / this.horizontalScale;
+                        double pixelEnergyPos = (double)(i - this.scrollX - this.left) / this.horizontalScale;
                         try
                         {
-                            num8 = this.energyCalibration.EnergyToChannel(num7 / this.pixelPerEnergy + this.energyViewOffset, maxChannels: this.energySpectrum.NumberOfChannels);
-                            goto IL_1F4;
+                            channelIndex = this.energyCalibration.EnergyToChannel(pixelEnergyPos / this.pixelPerEnergy + this.energyViewOffset, maxChannels: this.energySpectrum.NumberOfChannels);
                         }
                         catch (OutofChannelException)
                         {
+                            // mapping from pixel to channel went out of range -> stop scanning selection
                             break;
                         }
                     }
-                    goto IL_1D8;
-                    IL_1F4:
-                    if ((int)num8 >= 0 && (int)num8 < this.energySpectrum.Spectrum.Length)
+                    else
                     {
-                        double num9 = this.energySpectrum.DrawingSpectrum[(int)num8];
-                        double num10 = 0.0;
+                        channelIndex = (double)((int)((double)(i - this.scrollX - this.left) / this.horizontalScale));
+                    }
+
+                    int ch = (int)channelIndex;
+                    if (ch >= 0 && ch < this.energySpectrum.Spectrum.Length)
+                    {
+                        double fgValue = this.energySpectrum.DrawingSpectrum[ch];
+                        double bgValue = 0.0;
                         if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.MeasurementTime != 0.0)
                         {
-                            num9 /= this.energySpectrum.MeasurementTime;
+                            fgValue /= this.energySpectrum.MeasurementTime;
                         }
-                        if (!this.IsBackgroundVisible())
+                        if (this.IsBackgroundVisible())
                         {
-                            num10 = 0.0;
-                        }
-                        else
-                        {
-                            int num11 = (int)num8;
+                            int bgCh = ch;
                             if (!this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
                             {
-                                num11 = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy(num8), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
+                                bgCh = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy(channelIndex), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
                             }
-                            if (num11 < 0 || num11 >= this.backgroundEnergySpectrum.Spectrum.Length)
+                            if (bgCh < 0 || bgCh >= this.backgroundEnergySpectrum.Spectrum.Length)
                             {
-                                goto IL_4E9;
+                                // background mapping invalid for this pixel -> skip drawing this pixel
+                                i++;
+                                continue;
                             }
                             if (this.verticalUnit == VerticalUnit.CountsPerSecond)
                             {
-                                num10 = this.backgroundEnergySpectrum.DrawingSpectrum[num11] / this.backgroundEnergySpectrum.MeasurementTime;
+                                bgValue = this.backgroundEnergySpectrum.DrawingSpectrum[bgCh] / this.backgroundEnergySpectrum.MeasurementTime;
                             }
                             else
                             {
-                                num10 = this.backgroundEnergySpectrum.DrawingSpectrum[num11] * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime;
+                                bgValue = this.backgroundEnergySpectrum.DrawingSpectrum[bgCh] * this.energySpectrum.MeasurementTime / this.backgroundEnergySpectrum.MeasurementTime;
                             }
                         }
 
-                        int num12;
-                        int num13;
+                        int y1;
+                        int y2;
                         if (this.verticalScaleType == VerticalScaleType.LinearScale)
                         {
-                            num12 = this.height - (int)((num9 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                            num13 = this.height - (int)((num10 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                            y1 = this.height - (int)((fgValue - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                            y2 = this.height - (int)((bgValue - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                         }
                         else if (this.verticalScaleType == VerticalScaleType.PowerScale)
                         {
-                            if (num9 == 0.0)
+                            if (fgValue == 0.0)
                             {
-                                num12 = this.height;
+                                y1 = this.height;
                             }
                             else
                             {
-                                num12 = this.height - (int)((Pow(num9) - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                                y1 = this.height - (int)((Pow(fgValue) - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                             }
-                            if (num12 > this.height)
+                            if (y1 > this.height)
                             {
-                                num12 = this.height;
+                                y1 = this.height;
                             }
-                            if (num10 == 0.0)
+                            if (bgValue == 0.0)
                             {
-                                num13 = this.height;
+                                y2 = this.height;
                             }
                             else
                             {
-                                num13 = this.height - (int)((Pow(num10) - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                                y2 = this.height - (int)((Pow(bgValue) - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                             }
-                            if (num13 > this.height)
+                            if (y2 > this.height)
                             {
-                                num13 = this.height;
+                                y2 = this.height;
                             }
                         }
                         else
                         {
-                            if (num9 == 0.0)
+                            if (fgValue == 0.0)
                             {
-                                num12 = this.height;
+                                y1 = this.height;
                             }
                             else
                             {
-                                num12 = this.height - (int)((Log10(num9) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                                y1 = this.height - (int)((Log10(fgValue) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                             }
-                            if (num12 > this.height)
+                            if (y1 > this.height)
                             {
-                                num12 = this.height;
+                                y1 = this.height;
                             }
-                            if (num10 == 0.0)
+                            if (bgValue == 0.0)
                             {
-                                num13 = this.height;
+                                y2 = this.height;
                             }
                             else
                             {
-                                num13 = this.height - (int)((Log10(num10) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                                y2 = this.height - (int)((Log10(bgValue) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                             }
-                            if (num13 > this.height)
+                            if (y2 > this.height)
                             {
-                                num13 = this.height;
+                                y2 = this.height;
                             }
                         }
-                        if (num12 > num13)
+                        if (y1 > y2)
                         {
-                            int num14 = num12;
-                            num12 = num13;
-                            num13 = num14;
+                            int tmp = y1;
+                            y1 = y2;
+                            y2 = tmp;
                         }
                         if (i > this.left)
                         {
                             if (this.chartType == ChartType.BarChart)
                             {
-                                g.FillRectangle(brush, i, num12, 1, num13 - num12);
+                                g.FillRectangle(brush, i, y1, 1, y2 - y1);
                             }
                             else
                             {
-                                g.FillRectangle(brush, i, num12, 1, num13 - num12 + 1);
+                                g.FillRectangle(brush, i, y1, 1, y2 - y1 + 1);
                             }
                         }
                     }
-                    IL_4E9:
                     i++;
-                    continue;
-                    IL_1D8:
-                    num8 = (double)((int)((double)(i - this.scrollX - this.left) / this.horizontalScale));
-                    goto IL_1F4;
                 }
             }
         }
@@ -3739,17 +3686,18 @@ namespace BecquerelMonitor
                     try
                     {
                         this.cursorChannel = (int)this.energyCalibration.EnergyToChannel(this.cursorEnergy, maxChannels: this.energySpectrum.NumberOfChannels);
-                        goto IL_CB;
                     }
                     catch (OutofChannelException)
                     {
                         this.cursorChannel = -1;
-                        goto IL_CB;
                     }
                 }
-                this.cursorChannel = (int)((double)(this.cursorX - this.left - this.scrollX) / this.horizontalScale);
-                this.cursorEnergy = this.energyCalibration.ChannelToEnergy((double)this.CursorChannel);
-                IL_CB:
+                else
+                {
+                    this.cursorChannel = (int)((double)(this.cursorX - this.left - this.scrollX) / this.horizontalScale);
+                    this.cursorEnergy = this.energyCalibration.ChannelToEnergy((double)this.CursorChannel);
+                }
+
                 if (this.selectionDragging && this.cursorChannel >= 0 && this.cursorChannel <= this.energySpectrum.NumberOfChannels - 1)
                 {
                     this.selectionEnd = this.cursorChannel;
