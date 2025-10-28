@@ -1,6 +1,7 @@
 ﻿using BecquerelMonitor.Utils;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace BecquerelMonitor
 {
@@ -43,7 +44,7 @@ namespace BecquerelMonitor
 
             FWHMPeakDetector.PeakFinder finder = PeakFinder(energySpectrum, FWHMPeakDetectionMethodConfig);
 
-            peaks = CollectPeaks(finder, energySpectrum, FWHMPeakDetectionMethodConfig.Tolerance, resultData.DetectedPeaks, sa, nuclideSet);
+            peaks = CollectPeaks(finder, energySpectrum, FWHMPeakDetectionMethodConfig.Tolerance, resultData.DetectedPeaks, sa, nuclideSet, FWHMPeakDetectionMethodConfig);
             
             resultData.DetectedPeaks = peaks;
 
@@ -91,17 +92,21 @@ namespace BecquerelMonitor
             return true;
         }
 
-        List<Peak> CollectPeaks(FWHMPeakDetector.PeakFinder finder, EnergySpectrum energySpectrum, double tol, List<Peak> existPeaks, SpectrumAriphmetics sa, NuclideSet nuclideSet)
+        List<Peak> CollectPeaks(FWHMPeakDetector.PeakFinder finder, EnergySpectrum energySpectrum, double tol, List<Peak> existPeaks, SpectrumAriphmetics sa, NuclideSet nuclideSet, FWHMPeakDetectionMethodConfig fWHMPeakDetectionMethodConfig)
         {
             List<Peak> peaks = new List<Peak>();
             if (finder.centroids != null)
             {
+                int mul = energySpectrum.Spectrum.Length / fWHMPeakDetectionMethodConfig.Ch_Concat;
                 for (int i = 0; i < finder.centroids.Length; i++)
                 {
                     double centroid = finder.centroids[i];
                     int snr = (int)finder.snrs[i];
                     double fwhm = finder.fwhms[i];
-                    //centroid = sa.FindCentroid(energySpectrum, Convert.ToInt32(centroid), Convert.ToInt32(centroid - fwhm), Convert.ToInt32(centroid + fwhm));
+                    centroid = sa.FindCentroid2(energySpectrum,
+                        Convert.ToInt32(centroid),
+                        Convert.ToInt32(centroid - mul - 1),
+                        Convert.ToInt32(centroid + mul + 1));
 
                     NuclideDefinition bestNuclide = null;
                     double minDelta = Double.MaxValue;
