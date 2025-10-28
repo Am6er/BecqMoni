@@ -126,11 +126,10 @@ namespace BecquerelMonitor.FWHMPeakDetector
             this.spectrum = spectrum;
             this.kernel = kernel;
             this.snr = new double[this.spectrum.counts.Length];
-            double[] bin_edges = this.spectrum.bin_edges_raw;
 
             // calculate the convolution
             //Console.WriteLine(DateTime.Now.ToString("HH:mm:ss.ff") + " -> Start convolve.");
-            (this.peak_plus_bkg, this.bkg, this.signal, this.noise, this.snr) = this.kernel.convolve(bin_edges, this.spectrum.counts);
+            (this.peak_plus_bkg, this.bkg, this.signal, this.noise, this.snr) = this.kernel.convolve(this.spectrum.bin_edges_raw, this.spectrum.counts);
             this.reset();
         }
 
