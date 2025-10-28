@@ -1,9 +1,6 @@
 ﻿using BecquerelMonitor.Utils;
-using MathNet.Numerics;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 
 namespace BecquerelMonitor
 {
