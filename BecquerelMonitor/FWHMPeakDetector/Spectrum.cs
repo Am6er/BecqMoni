@@ -21,6 +21,8 @@ namespace BecquerelMonitor.FWHMPeakDetector
                 this.counts[i] = Convert.ToDouble(energySpectrum.Spectrum[i]);
                 this.bin_edges_raw[i] = Convert.ToDouble(i);
             });
+
+            // Store spectrum length in last channel
             this.bin_edges_raw[counts.Length] = Convert.ToDouble(counts.Length);
 
             Parallel.For(0, this.bin_centers_raw.Length - 1, i =>
@@ -51,30 +53,24 @@ namespace BecquerelMonitor.FWHMPeakDetector
         */
         public int find_bin_index(double x)
         {
-            (double[] bin_edges, double[] bin_widths, _) = this.get_bin_properties();
-            if (x < bin_edges[0])
+            if (x < bin_edges_raw[0])
             {
                 throw new SpectrumError("requested x is < lowest bin edge");
             }
-            if (x > bin_edges[bin_edges.Length - 1])
+            if (x > bin_edges_raw[bin_edges_raw.Length - 1])
             {
                 throw new SpectrumError("requested x is >= highest bin edge");
             }
             int retval = 0;
-            for (int i = 1; i <= bin_edges.Length; i++)
+            for (int i = 1; i <= bin_edges_raw.Length; i++)
             {
-                if (x >= bin_edges[i - 1] && x < bin_edges[i])
+                if (x >= bin_edges_raw[i - 1] && x < bin_edges_raw[i])
                 {
                     retval = i - 1;
                     break;
                 }
             }
             return retval;
-        }
-
-        public (double[] bin_edges_raw, double[] bin_widths_raw, double[] bin_centers_raw) get_bin_properties()
-        {
-            return (this.bin_edges_raw, this.bin_widths_raw, this.bin_centers_raw);
         }
 
         public void combine_bins(int mul)
