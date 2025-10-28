@@ -32,6 +32,35 @@ namespace BecquerelMonitor.Utils
             this.EnergySpectrum = energySpectrum.Clone();
         }
 
+        public int FindCentroid2(EnergySpectrum energySpectrum, int centroid, int low_boundary, int high_boundary)
+        {
+            if (low_boundary < 0) low_boundary = 0;
+            if (high_boundary >= energySpectrum.NumberOfChannels) high_boundary = energySpectrum.NumberOfChannels - 1;
+            if (high_boundary - low_boundary < 3)
+            {
+                if (energySpectrum.Spectrum[low_boundary] > energySpectrum.Spectrum[high_boundary])
+                {
+                    return low_boundary;
+                }
+                else
+                {
+                    return high_boundary;
+                }
+            }
+
+            int max = low_boundary;
+            int max_counts = energySpectrum.Spectrum[low_boundary];
+            for (int i = low_boundary; i < high_boundary + 1; i++)
+            {
+                if (energySpectrum.Spectrum[i] > max_counts)
+                {
+                    max = i;
+                    max_counts = energySpectrum.Spectrum[i];
+                }
+            }
+            return max;
+        }
+
         public int FindCentroid(EnergySpectrum energySpectrum, int centroid, int low_boundary, int high_boundary)
         {
             if (low_boundary < 0) low_boundary = 0;
