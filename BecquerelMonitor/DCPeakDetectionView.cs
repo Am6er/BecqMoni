@@ -1,7 +1,7 @@
-﻿using BecquerelMonitor.N42;
-using BecquerelMonitor.Properties;
+﻿using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using XPTable.Models;
 
@@ -70,54 +70,67 @@ namespace BecquerelMonitor
             this.UpdatePeakDetectionResult();
         }
 
-        // Token: 0x0600043F RID: 1087 RVA: 0x000142B8 File Offset: 0x000124B8
-        public void UpdatePeakDetectionResult()
+        public async void UpdatePeakDetectionResult()
         {
-            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
-            if (activeDocument == null)
-            {
-                return;
-            }
+            if (isProcessing) return;
+            isProcessing = true;
 
-            FWHMPeakDetectionMethodConfig peakConfig = (FWHMPeakDetectionMethodConfig) activeDocument.ActiveResultData.PeakDetectionMethodConfig;
-            if (!peakConfig.Enabled)
+            try
             {
-                return;
-            }
-            ResultData activeResultData = activeDocument.ActiveResultData;
-            PolynomialEnergyCalibration energyCalibration = (PolynomialEnergyCalibration)activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration;
-            PeakDetector peakDetector = new PeakDetector();
-            List<Peak> list = null;
-            list = peakDetector.DetectPeak(activeResultData, activeDocument.EnergySpectrumView.BackgroundMode, activeDocument.EnergySpectrumView.SmoothingMethod, this.selectedNuclideSet);
-
-            this.tableModel1.Rows.Clear();
-            foreach (Peak peak in list)
-            {
-                Row row = new Row();
-                string text = Resources.UnknownNuclide;
-                string text2 = "";
-                if (peak.Nuclide != null)
+                DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+                if (activeDocument == null)
                 {
-                    text = peak.Nuclide.Name;
-                    double num = peak.Energy - peak.Nuclide.Energy;
-                    double num2 = (peak.Energy - peak.Nuclide.Energy) / peak.Nuclide.Energy * 100.0;
-                    text2 = num.ToString("f2") + " (" + num2.ToString("f2") + "%)";
+                    return;
                 }
-                row.Cells.Add(new Cell(text));
-                row.Cells.Add(new Cell(peak.Energy.ToString("f2"), Math.Round(peak.Energy, 2)));
-                row.Cells.Add(new Cell(text2));
-                row.Cells.Add(new Cell(peak.Channel.ToString(), peak.Channel));
-                row.Cells.Add(new Cell(peak.SNR.ToString(), peak.SNR));
+                ResultData activeResultData = activeDocument.ActiveResultData;
+                PeakDetector peakDetector = new PeakDetector();
+                List<Peak> peaks = null;
+                peaks = await Task.Run(() => peakDetector.DetectPeak(activeResultData,
+                    activeDocument.EnergySpectrumView.BackgroundMode,
+                    activeDocument.EnergySpectrumView.SmoothingMethod,
+                    this.selectedNuclideSet));
 
-                double leftEnergy = energyCalibration.ChannelToEnergy(peak.Channel - peak.FWHM / 2.0);
-                double rightEnergy = energyCalibration.ChannelToEnergy(peak.Channel + peak.FWHM / 2.0);
-                double resolution = 100.0 * (rightEnergy - leftEnergy) / energyCalibration.ChannelToEnergy((double)peak.Channel);
 
-                row.Cells.Add(new Cell(peak.FWHM.ToString("f0") + " " + resolution.ToString("f1") + "%"));
-                this.tableModel1.Rows.Add(row);
+                if (peaks != null)
+                {
+                    // if peaks exist, update table
+                    PolynomialEnergyCalibration energyCalibration = (PolynomialEnergyCalibration)activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration;
+
+                    this.tableModel1.Rows.Clear();
+                    foreach (Peak peak in peaks)
+                    {
+                        Row row = new Row();
+                        string text = Resources.UnknownNuclide;
+                        string text2 = "";
+                        if (peak.Nuclide != null)
+                        {
+                            text = peak.Nuclide.Name;
+                            double num = peak.Energy - peak.Nuclide.Energy;
+                            double num2 = (peak.Energy - peak.Nuclide.Energy) / peak.Nuclide.Energy * 100.0;
+                            text2 = num.ToString("f2") + " (" + num2.ToString("f2") + "%)";
+                        }
+                        row.Cells.Add(new Cell(text));
+                        row.Cells.Add(new Cell(peak.Energy.ToString("f2"), Math.Round(peak.Energy, 2)));
+                        row.Cells.Add(new Cell(text2));
+                        row.Cells.Add(new Cell(peak.Channel.ToString(), peak.Channel));
+                        row.Cells.Add(new Cell(peak.SNR.ToString(), peak.SNR));
+
+                        double leftEnergy = energyCalibration.ChannelToEnergy(peak.Channel - peak.FWHM / 2.0);
+                        double rightEnergy = energyCalibration.ChannelToEnergy(peak.Channel + peak.FWHM / 2.0);
+                        double resolution = 100.0 * (rightEnergy - leftEnergy) / energyCalibration.ChannelToEnergy((double)peak.Channel);
+
+                        row.Cells.Add(new Cell(peak.FWHM.ToString("f0") + " " + resolution.ToString("f1") + "%"));
+                        this.tableModel1.Rows.Add(row);
+                    }
+                    activeDocument.RefreshView();
+                    //this.table1.AutoResizeColumnWidths();
+                }
+
+            } catch (Exception) { }
+            finally
+            {
+                isProcessing = false;
             }
-            activeDocument.RefreshView();
-            //this.table1.AutoResizeColumnWidths();
         }
 
         public void RefreshNuclideSets()
@@ -269,5 +282,7 @@ namespace BecquerelMonitor
         string comboBoxNuclSetAllNuclidesText;
 
         private NuclideSet selectedNuclideSet = null;
+
+        private bool isProcessing = false;
     }
 }
