@@ -85,7 +85,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
             double f0 = this.fwhm_at_0;
             double f1 = this.ref_fwhm;
             double x1 = this.ref_x;
-            double fwhm_sqr = Math.Pow(f0, 2) + (Math.Pow(f1, 2) - Math.Pow(f0, 2)) * (x / x1);
+            double fwhm_sqr = f0 * f0 + (f1 * f1 - f0 * f0) * ((x * x )/(x1 * x1));
             return Math.Sqrt(fwhm_sqr);
         }
 
@@ -126,49 +126,56 @@ namespace BecquerelMonitor.FWHMPeakDetector
         /// </summary>
         /// <param name="edges"></param>
         /// <returns>normalized kernel double[,] matrix</returns>
-        public ConcurrentDictionary<int, double[]> kernel_matrix(double[] edges)
+        /// <summary>
+        /// Build a matrix of the kernel evaluated at each x value.
+        /// Returns a jagged array where row i is the kernel for channel i.
+        /// </summary>
+        public double[][] kernel_matrix(double[] edges)
         {
             int n_channels = edges.Length - 1;
-            double[,] kern_pos = new double[n_channels, n_channels];
-            double[,] kern_neg = new double[n_channels, n_channels];
-            double[] edges_1 = edges.Take(edges.Length - 1).ToArray();
-            //Console.WriteLine(DateTime.Now.ToString("HH:mm:ss.ff") + " -> -> -> Get empty pos and neg. (Parallel)");
-            ConcurrentDictionary<int, double[]> collection_res = new ConcurrentDictionary<int, double[]>();
-            for (int i = 0; i < n_channels; i++)
-            {
-                collection_res[i] = new double[n_channels];
-            }
-            Parallel.For(0, edges_1.Length, i =>
+            double[] edges_1 = new double[n_channels];
+            Array.Copy(edges, 0, edges_1, 0, n_channels);
+
+            double[][] collection_res = new double[n_channels][];
+            for (int i = 0; i < n_channels; i++) collection_res[i] = new double[n_channels];
+
+            Parallel.For(0, n_channels, i =>
             {
                 double kern_pos_sum = 0.0;
                 double kern_neg_sum = 0.0;
                 double[] kernel_for_edge = this.kernel(edges_1[i], edges);
-                double[] _kern_pos = new double[kernel_for_edge.Length];
-                double[] _kern_neg = new double[kernel_for_edge.Length];
-                double[] _kern_res = new double[kernel_for_edge.Length];
-                for (int j = 0; j < kernel_for_edge.Length; j++)
+                int len = kernel_for_edge.Length;
+
+                // local buffers
+                double[] _kern_pos = new double[len];
+                double[] _kern_neg = new double[len];
+
+                for (int j = 0; j < len; j++)
                 {
-                    if (kernel_for_edge[j] >= 0)
+                    double v = kernel_for_edge[j];
+                    if (v >= 0)
                     {
-                        _kern_pos[j] = kernel_for_edge[j];
+                        _kern_pos[j] = v;
                         _kern_neg[j] = 0.0;
                     }
                     else
                     {
                         _kern_pos[j] = 0.0;
-                        _kern_neg[j] = -1.0 * kernel_for_edge[j];
+                        _kern_neg[j] = -v;
                     }
                     kern_pos_sum += _kern_pos[j];
                     kern_neg_sum += _kern_neg[j];
                 }
-                // normalize negative part to be equal to the positive part
-                for (int j = 0; j < kernel_for_edge.Length; j++)
+
+                double scale = 1.0;
+                if (kern_neg_sum > 0.0) scale = kern_pos_sum / kern_neg_sum;
+
+                for (int j = 0; j < len; j++)
                 {
-                    _kern_neg[j] *= kern_pos_sum / kern_neg_sum;
-                    collection_res[j][i] = _kern_pos[j] - _kern_neg[j];
+                    _kern_neg[j] *= scale;
+                    // store row-major: kernel for channel i
+                    collection_res[i][j] = _kern_pos[j] - _kern_neg[j];
                 }
-                kern_pos_sum = 0.0;
-                kern_neg_sum = 0.0;
             });
 
             return collection_res;
@@ -182,72 +189,71 @@ namespace BecquerelMonitor.FWHMPeakDetector
         /// <returns></returns>
         public (double[] peak_plus_bkg, double[] bkg, double[] signal, double[] noise, double[] snr) convolve(double[] edges, double[] data)
         {
-            //Console.WriteLine(DateTime.Now.ToString("HH:mm:ss.ff") + " -> -> Get empty matrix.");
-            ConcurrentDictionary<int, double[]> kernel_mat = this.kernel_matrix(edges);
-            int n_channels = kernel_mat[0].Length;
-            double[,] kern_mat_pos = new double[n_channels, n_channels];
-            double[,] kern_mat_neg = new double[n_channels, n_channels];
+            double[][] kernel_mat = this.kernel_matrix(edges);
+            int n_channels = kernel_mat.Length;
 
-            ConcurrentDictionary<int, double[]> _kern_mat_pos = new ConcurrentDictionary<int, double[]>();
-            ConcurrentDictionary<int, double[]> _kern_mat_neg = new ConcurrentDictionary<int, double[]>();
+            double[][] kern_mat_pos = new double[n_channels][];
+            double[][] kern_mat_neg = new double[n_channels][];
             for (int i = 0; i < n_channels; i++)
             {
-                _kern_mat_pos[i] = new double[n_channels];
-                _kern_mat_neg[i] = new double[n_channels];
+                kern_mat_pos[i] = new double[n_channels];
+                kern_mat_neg[i] = new double[n_channels];
             }
 
-            //Console.WriteLine(DateTime.Now.ToString("HH:mm:ss.ff") + " -> -> Fill matrix pos and neg. (Parallel)");
             Parallel.For(0, n_channels, i =>
-            //for (int i = 0; i < n_channels; i++)
             {
                 for (int j = 0; j < n_channels; j++)
                 {
-                    if (kernel_mat[j][i] >= 0.0)
+                    double v = kernel_mat[i][j];
+                    if (v >= 0.0)
                     {
-                        _kern_mat_pos[j][i] = kernel_mat[j][i];
-                        _kern_mat_neg[j][i] = 0.0;
+                        kern_mat_pos[i][j] = v;
+                        kern_mat_neg[i][j] = 0.0;
                     }
                     else
                     {
-                        _kern_mat_pos[j][i] = 0.0;
-                        _kern_mat_neg[j][i] = -1.0 * kernel_mat[j][i];
+                        kern_mat_pos[i][j] = 0.0;
+                        kern_mat_neg[i][j] = -v;
                     }
                 }
             });
 
-            //Console.WriteLine(DateTime.Now.ToString("HH:mm:ss.ff") + " -> -> Calculate peak_plus_bg, bkg, signal, noise, snr. (Parallel)");
             double[] peak_plus_bkg = new double[n_channels];
             double[] bkg = new double[n_channels];
             double[] signal = new double[n_channels];
             double[] noise = new double[n_channels];
             double[] snr = new double[n_channels];
 
-
-            //TODO Possible thread unsafe. Need to make it safe.
             Parallel.For(0, n_channels, i =>
-            //for (int i = 0; i < n_channels; i++)
             {
+                double peak = 0.0;
+                double b = 0.0;
+                double s = 0.0;
+                double nsum = 0.0;
                 for (int j = 0; j < n_channels; j++)
                 {
-                    peak_plus_bkg[i] += data[j] * _kern_mat_pos[i][j];
-                    bkg[i] += data[j] * _kern_mat_neg[i][j];
-                    signal[i] += data[j] * kernel_mat[i][j];
-                    noise[i] += data[j] * Math.Pow(kernel_mat[i][j], 2);
+                    double d = data[j];
+                    double km = kernel_mat[i][j];
+                    peak += d * kern_mat_pos[i][j];
+                    b += d * kern_mat_neg[i][j];
+                    s += d * km;
+                    nsum += d * km * km;
                 }
-                noise[i] = Math.Sqrt(noise[i]);
+                peak_plus_bkg[i] = peak;
+                bkg[i] = b;
+                signal[i] = s;
+                noise[i] = Math.Sqrt(nsum);
                 if (noise[i] > 0)
                 {
                     snr[i] = signal[i] / noise[i];
-                    if (snr[i] < 0)
-                    {
-                        snr[i] = 0.0;
-                    }
+                    if (snr[i] < 0) snr[i] = 0.0;
                 }
                 else
                 {
                     snr[i] = 0.0;
                 }
             });
+
             return (peak_plus_bkg, bkg, signal, noise, snr);
         }
 
@@ -319,7 +325,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
         public double exp_gauss_exp0(double x, double median, double sigma, double left, double right)
         {
             double t = (x - median) / sigma;
-            if (t > right) return  Math.Exp(0.5 * right * right - right * t);
+            if (t > right) return Math.Exp(0.5 * right * right - right * t);
             if (t > -left) return Math.Exp(-0.5 * t * t);
             return Math.Exp(0.5 * left * left + left * t);
         }

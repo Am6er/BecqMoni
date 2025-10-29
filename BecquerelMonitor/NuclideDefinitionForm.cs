@@ -13,6 +13,7 @@ namespace BecquerelMonitor
         public NuclideDefinitionForm()
         {
             this.InitializeComponent();
+            this.Icon = Resources.becqmoni;
             this.button6.Enabled = false;
             this.DisableForm();
         }
@@ -29,6 +30,7 @@ namespace BecquerelMonitor
             this.table1.SuspendLayout();
             this.tableModel1.Rows.Clear();
             this.tableModel1.Selections.Clear();
+            if (definitionsDirty) this.manager.LoadDefinitionFile(forceReload: true);
             this.manager.NuclideDefinitions.Sort();
             foreach (NuclideDefinition nuclideDefinition in this.manager.NuclideDefinitions)
             {
@@ -141,6 +143,20 @@ namespace BecquerelMonitor
             this.tabControl1.Enabled = false;
         }
 
+        void table1_EditingStopped(object sender, CellEditEventArgs e)
+        {
+            if (this.activeNuclide == null) return;
+            switch (e.CellPos.Column)
+            {
+                case 0: this.activeNuclide.Name = e.Cell.Text; break;
+                case 1: this.activeNuclide.Energy = (double)(decimal)e.Cell.Data; break;
+                case 2: this.activeNuclide.HalfLife = (double)(decimal)e.Cell.Data; break;
+            }
+            this.SetActiveNuclideDirty();
+            this.definitionsDirty = true;
+            this.LoadFormContents(this.activeNuclide);
+        }
+
         // Token: 0x060000CB RID: 203 RVA: 0x00004130 File Offset: 0x00002330
         void table1_SelectionChanged(object sender, SelectionEventArgs e)
         {
@@ -156,11 +172,14 @@ namespace BecquerelMonitor
                 nuclideDefinition = (NuclideDefinition)this.table1.SelectedItems[0].Tag;
                 row = this.table1.SelectedItems[0];
             }
-            if (!this.ConfirmSaveNuclide())
+            if (this.activeNuclide != null && nuclideDefinition?.CompareTo(this.activeNuclide) > 0) // Not same nuclide
             {
-                this.ListupNuclideDefinitions();
-                this.reenter = false;
-                return;
+                if (!this.ConfirmSaveNuclide())
+                {
+                    this.ListupNuclideDefinitions();
+                    this.reenter = false;
+                    return;
+                }
             }
             if (nuclideDefinition != null)
             {
@@ -195,6 +214,11 @@ namespace BecquerelMonitor
             return true;
         }
 
+        void FormNuclideDefinitionForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            this.ConfirmSaveNuclide();
+        }
+
         // Token: 0x060000CD RID: 205 RVA: 0x00004280 File Offset: 0x00002480
         void button6_Click(object sender, EventArgs e)
         {
@@ -215,6 +239,7 @@ namespace BecquerelMonitor
                 MessageBox.Show(Resources.ERRInvalidInputForm);
                 return;
             }
+            this.definitionsDirty = false;
             this.manager.SaveDefinitionFile();
             this.UpdatePeakDetectionResult();
         }
@@ -311,5 +336,7 @@ namespace BecquerelMonitor
 
         // Token: 0x0400003B RID: 59
         bool reenter;
+
+        bool definitionsDirty = false;
     }
 }

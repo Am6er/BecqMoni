@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows.Forms;
 
 namespace BecquerelMonitor.FWHMPeakDetector
 {
@@ -126,12 +125,11 @@ namespace BecquerelMonitor.FWHMPeakDetector
         {
             this.spectrum = spectrum;
             this.kernel = kernel;
-            this.snr = new double[this.spectrum.len()];
-            double[] bin_edges = this.spectrum.bin_edges_raw;
+            this.snr = new double[this.spectrum.counts.Length];
 
             // calculate the convolution
             //Console.WriteLine(DateTime.Now.ToString("HH:mm:ss.ff") + " -> Start convolve.");
-            (this.peak_plus_bkg, this.bkg, this.signal, this.noise, this.snr) = this.kernel.convolve(bin_edges, this.spectrum.counts);
+            (this.peak_plus_bkg, this.bkg, this.signal, this.noise, this.snr) = this.kernel.convolve(this.spectrum.bin_edges_raw, this.spectrum.counts);
             this.reset();
         }
 
@@ -253,41 +251,43 @@ namespace BecquerelMonitor.FWHMPeakDetector
         {
             double[] bin_edges = this.spectrum.bin_edges_raw;
             double[] bin_centers = this.spectrum.bin_centers_raw;
+            double bin_edges_min = bin_edges.Min();
+            double bin_edges_max = bin_edges.Max();
 
             if (xmin == -1)
             {
-                xmin = bin_edges.Min();
+                xmin = bin_edges_min;
             }
 
             if (xmax == -1)
             {
-                xmax = bin_edges.Max();
+                xmax = bin_edges_max;
             }
 
-            if (xmin < bin_edges.Min())
+            if (xmin < bin_edges_min)
             {
-                xmin = bin_edges.Min();
+                xmin = bin_edges_min;
             }
 
-            if (xmax > bin_edges.Max())
+            if (xmax > bin_edges_max)
             {
-                xmax = bin_edges.Max();
+                xmax = bin_edges_max;
             }
 
             //if ( xmin > bin_edges.Max() || xmax < bin_edges.Min() || xmin > xmax)
             //{
             //    throw new PeakFinderError("x-axis range " + xmin + "-" + xmax + " is invalid");
             //}
-
-            if (min_snr < 0 || min_snr > this.snr.Max())
+            double snr_max = this.snr.Max();
+            if (min_snr < 0 || min_snr > snr_max)
             {
-                if (this.snr.Max() > 1)
+                if (snr_max > 1)
                 {
                     return;
                     //BecquerelMonitor.DCPeakDetectionView.Correct_min_snr = true;
                     //BecquerelMonitor.DCPeakDetectionView.Min_snr_value = Math.Truncate(this.snr.Max());
                 }
-                if (this.snr.Max() <= 1)
+                if (snr_max <= 1)
                 {
                     return;
                     //MessageBox.Show("Could not find any peak with snr > 1.0");
