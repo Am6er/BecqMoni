@@ -410,15 +410,6 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Selected Region (normalized by eff.).
-        /// </summary>
-        internal static string ChartHeaderSelectionEffNormalized {
-            get {
-                return ResourceManager.GetString("ChartHeaderSelectionEffNormalized", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Weight:.
         /// </summary>
         internal static string ChartHeaderWeight {
@@ -1392,17 +1383,9 @@ namespace BecquerelMonitor.Properties {
         
         /// <summary>
         ///   Looks up a localized string similar to How to set Peak Detection values:
-        ///
-        ///FWHM at 0 ch - Should be selected according to your fwhm as close to 0 
-        ///keV as possible. Select such a peak with the mouse and enter
-        /// a value slightly less, than &quot;FWHM ch&quot; in this setting.
-        ///
-        ///FWHM peak in ch - Choose peak in the center of the spectrum.
-        ///The K-40 peak should be great. Enter the value of center 
-        ///position in the channels.
-        ///
-        ///FW peak width ch - The width of the peak in channels. Select peak from
-        /// the &quot;FWHM peak in ch&quot; parameter with the mouse and enter t [rest of string was truncated]&quot;;.
+        ///FWHM at 0 ch - Should be selected according to your fwhm as close to 0 keV as possible. Select such a peak with the mouse and enter a value slightly less, than &quot;FWHM ch&quot; in this setting.
+        ///FWHM peak in ch - Choose peak in the center of the spectrum. The K-40 peak should be great. Enter the value of center position in the channels.
+        ///FW peak width ch - The width of the peak in channels. Select peak from the &quot;FWHM peak in ch&quot; parameter with the mouse and enter the value &quot;FWHM  [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string FWHMPeakConfigDescription {
             get {

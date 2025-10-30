@@ -189,9 +189,6 @@
   <data name="ChartHeaderSelection" xml:space="preserve">
     <value>Выбранная область</value>
   </data>
-  <data name="ChartHeaderSelectionEffNormalized" xml:space="preserve">
-    <value>Выбранная область (нормализовано по эфф.)</value>
-  </data>
   <data name="ChartHeaderWeight" xml:space="preserve">
     <value>Вес:</value>
   </data>

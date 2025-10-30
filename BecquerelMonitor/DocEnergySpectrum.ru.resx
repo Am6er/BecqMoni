@@ -754,7 +754,7 @@
     <value>241, 22</value>
   </data>
   <data name="SubstractBgToolStripMenuItem.Text" xml:space="preserve">
-    <value>Вычесть фон</value>
+    <value>Показать спектр за вычетом фона</value>
   </data>
     <data name="&gt;&gt;SubstractBgToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
@@ -778,7 +778,7 @@
     <value>241, 22</value>
   </data>
   <data name="NormByEffToolStripMenuItem.Text" xml:space="preserve">
-    <value>Нормализовать спектр по эффективности</value>
+    <value>Показать нормализованный по эффективности спектр</value>
   </data>
 	<data name="&gt;&gt;NormByEffToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
