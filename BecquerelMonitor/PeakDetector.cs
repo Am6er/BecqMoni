@@ -39,14 +39,9 @@ namespace BecquerelMonitor
             {
                 return peaks;
             }
-            resultData.DetectedPeaks.Clear();
 
             FWHMPeakDetector.PeakFinder finder = PeakFinder(energySpectrum, FWHMPeakDetectionMethodConfig);
-
-            peaks = CollectPeaks(finder, energySpectrum, FWHMPeakDetectionMethodConfig.Tolerance, resultData.DetectedPeaks, sa, nuclideSet, FWHMPeakDetectionMethodConfig);
-            
-            resultData.DetectedPeaks = peaks;
-
+            peaks = CollectPeaks(finder, energySpectrum, FWHMPeakDetectionMethodConfig.Tolerance, sa, nuclideSet, FWHMPeakDetectionMethodConfig);
             //sa.Dispose();
             GC.Collect();
             return peaks;
@@ -91,9 +86,10 @@ namespace BecquerelMonitor
             return true;
         }
 
-        List<Peak> CollectPeaks(FWHMPeakDetector.PeakFinder finder, EnergySpectrum energySpectrum, double tol, List<Peak> existPeaks, SpectrumAriphmetics sa, NuclideSet nuclideSet, FWHMPeakDetectionMethodConfig fWHMPeakDetectionMethodConfig)
+        List<Peak> CollectPeaks(FWHMPeakDetector.PeakFinder finder, EnergySpectrum energySpectrum, double tol, SpectrumAriphmetics sa, NuclideSet nuclideSet, FWHMPeakDetectionMethodConfig fWHMPeakDetectionMethodConfig)
         {
             List<Peak> peaks = new List<Peak>();
+            List<Peak> existPeaks = new List<Peak>();
             if (finder.centroids != null)
             {
                 int mul = energySpectrum.Spectrum.Length / fWHMPeakDetectionMethodConfig.Ch_Concat;

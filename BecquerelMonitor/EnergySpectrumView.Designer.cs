@@ -2870,6 +2870,7 @@ namespace BecquerelMonitor
         // Token: 0x060004C0 RID: 1216 RVA: 0x0001AA58 File Offset: 0x00018C58
         void ShowDetectedPeaks(Graphics g, EnergySpectrum spectrum, EnergyCalibration calibration)
         {
+            List<Peak> detectedPeaks = new List<Peak>(this.activeResultData.DetectedPeaks);
             ColorConfig colorConfig = this.globalConfigManager.GlobalConfig.ColorConfig;
             Pen pen = new Pen(colorConfig.PeakLineColor.Color);
             Pen pen2 = new Pen(colorConfig.PeakFigureColor.Color);
@@ -2878,7 +2879,7 @@ namespace BecquerelMonitor
             Peak peak = null;
             Peak peak2 = null;
             int num = 0;
-            foreach (Peak peak3 in this.activeResultData.DetectedPeaks)
+            foreach (Peak peak3 in detectedPeaks)
             {
                 int channel = peak3.Channel;
                 int num2;
@@ -2902,7 +2903,7 @@ namespace BecquerelMonitor
             {
                 peak = peak2;
             }
-            foreach (Peak peak4 in this.activeResultData.DetectedPeaks)
+            foreach (Peak peak4 in detectedPeaks)
             {
                 int channel2 = peak4.Channel;
                 int num4;
