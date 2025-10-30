@@ -47,13 +47,17 @@ namespace BecquerelMonitor
             return peaks;
         }
 
-        bool isNewPeak(List<Peak> existpeaks, Peak newpeak, bool hidepeaks, List<Peak> peaks)
+        bool isNewPeak(Peak newpeak, bool hidepeaks, List<Peak> peaks)
         {
-            foreach (Peak peak in existpeaks)
+            bool isUnresol = false;
+            foreach (Peak peak in peaks)
             {
-                if (Math.Abs(newpeak.Channel - peak.Channel) <= 4)
+                // Критерий неразрешимости двух пиков delta < 2 * sigma
+                // fwhm = 2 * sqrt(2 * ln(2)) * sigma
+                // delta < 0.85 * fwhm
+                if (!isUnresol && Math.Abs(newpeak.Channel - peak.Channel) <= 0.85 * peak.FWHM)
                 {
-                    return false;
+                    isUnresol = true;
                 }
                 if (newpeak.Nuclide != null && peak.Nuclide != null)
                 {
@@ -69,11 +73,8 @@ namespace BecquerelMonitor
                                 peak.Nuclide = null;
                             } else
                             {
-                                existpeaks.Remove(peak);
                                 peaks.Remove(peak);
                             }
-
-                            //Trace.WriteLine("New peak added, ch=" + newpeak.Channel + " En=" + newpeak.Energy);
                             return true;
                         } else
                         {
@@ -82,14 +83,12 @@ namespace BecquerelMonitor
                     }
                 }
             }
-            //Trace.WriteLine("New peak added, ch=" + newpeak.Channel + " En=" + newpeak.Energy);
-            return true;
+            return !isUnresol;
         }
 
         List<Peak> CollectPeaks(FWHMPeakDetector.PeakFinder finder, EnergySpectrum energySpectrum, double tol, SpectrumAriphmetics sa, NuclideSet nuclideSet, FWHMPeakDetectionMethodConfig fWHMPeakDetectionMethodConfig)
         {
             List<Peak> peaks = new List<Peak>();
-            List<Peak> existPeaks = new List<Peak>();
             if (finder.centroids != null)
             {
                 int mul = energySpectrum.Spectrum.Length / fWHMPeakDetectionMethodConfig.Ch_Concat;
@@ -125,10 +124,9 @@ namespace BecquerelMonitor
                     if (peak.Nuclide == null && nuclideSet?.HideUnknownPeaks == true) continue;
                     bool hidepeaks = false;
                     if (nuclideSet != null) hidepeaks = nuclideSet.HideUnknownPeaks;
-                    if (isNewPeak(existPeaks, peak, hidepeaks, peaks))
+                    if (isNewPeak(peak, hidepeaks, peaks))
                     {
                         peaks.Add(peak);
-                        existPeaks.Add(peak);
                     }
                 }
             }
