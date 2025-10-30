@@ -68,12 +68,12 @@ namespace BecquerelMonitor
                         double oldpeak_delta = Math.Abs(peak.Energy -  peak.Nuclide.Energy);
                         if (newpeak_delta < oldpeak_delta)
                         {
-                            if (!hidepeaks)
-                            {
-                                peak.Nuclide = null;
-                            } else
+                            if (hidepeaks || isUnresol)
                             {
                                 peaks.Remove(peak);
+                            } else
+                            {
+                                peak.Nuclide = null;
                             }
                             return true;
                         } else
