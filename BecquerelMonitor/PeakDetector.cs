@@ -52,6 +52,7 @@ namespace BecquerelMonitor
             bool isUnresol = false;
             foreach (Peak peak in peaks)
             {
+                // Sparrow limit
                 // Критерий неразрешимости двух пиков delta < 2 * sigma
                 // fwhm = 2 * sqrt(2 * ln(2)) * sigma
                 // delta < 0.85 * fwhm
