@@ -28,9 +28,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
     /// </summary>
     public class PeakFilter
     {
-        double ref_x;
-        double ref_fwhm;
-        double fwhm_at_0;
+        FwhmCalibration fwhmCalibration;
         int peak_type;
         double left_skew;
         double right_skew;
@@ -44,49 +42,19 @@ namespace BecquerelMonitor.FWHMPeakDetector
         }
 
         /// <summary>
-        /// Initialize with a reference line position and FWHM in x-values.
+        /// Initialize with fwhm calibration and peak form definition.
         /// </summary>
-        /// <param name="ref_x">Initial reference channel position with given fwhm</param>
-        /// <param name="ref_fwhm">Initial reference fwhm for given ref_x</param>
-        /// <param name="fwhm_at_0">FWHM at Energy = 0keV</param>
-        public PeakFilter(double ref_x, double ref_fwhm, double fwhm_at_0 = 1.0, int peak_type = 0, double left_skew = 1.0, double right_skew = 1.0)
+        public PeakFilter(FwhmCalibration fwhmCalibration, int peak_type = 0, double left_skew = 1.0, double right_skew = 1.0)
         {
-            if (ref_x <= 0.0)
-            {
-                throw new PeakFilterError("Reference x must be positive");
-            }
-            if (ref_fwhm <= 0.0)
-            {
-                throw new PeakFilterError("Reference FWHM must be positive");
-            }
-            if (fwhm_at_0 <= 0.0)
-            {
-                throw new PeakFilterError("FWHM at 0 must be non-negative");
-            }
-            this.ref_x = ref_x;
-            this.ref_fwhm = ref_fwhm;
-            this.fwhm_at_0 = fwhm_at_0;
+            this.fwhmCalibration = fwhmCalibration;
             this.peak_type = peak_type;
             this.left_skew = left_skew;
             this.right_skew = right_skew;
         }
 
-        /// <summary>
-        /// Calculate the expected FWHM at the given x value.<br/>
-        /// f(x)^2 = f0^2 + k x^2<br/>
-        /// f1^2 = f0^2 + k x1^2<br/>
-        /// k = (f1^2 - f0^2) / x1^2<br/>
-        /// f(x)^2 = f0^2 + (f1^2 - f0^2) (x/x1)^2<br/>
-        /// </summary>
-        /// <param name="x">channel</param>
-        /// <returns></returns>
-        public double fwhm(double x)
+        public double fwhm(double channel)
         {
-            double f0 = this.fwhm_at_0;
-            double f1 = this.ref_fwhm;
-            double x1 = this.ref_x;
-            double fwhm_sqr = f0 * f0 + (f1 * f1 - f0 * f0) * ((x * x )/(x1 * x1));
-            return Math.Sqrt(fwhm_sqr);
+            return fwhmCalibration.ChannelToFwhm(channel);
         }
 
         /// <summary>
