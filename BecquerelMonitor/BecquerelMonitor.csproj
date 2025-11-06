@@ -131,6 +131,7 @@
     <Compile Include="AudioVolumeController.cs" />
     <Compile Include="BackgroundMode.cs" />
     <Compile Include="BuiltinThermometerConfig.cs" />
+    <Compile Include="CalibrationPeak.cs" />
     <Compile Include="CalibrationPoint.cs" />
     <Compile Include="CDATA.cs" />
     <Compile Include="ChannelPickupedEventArgs.cs" />
@@ -336,6 +337,7 @@
       <DesignTime>True</DesignTime>
     </Compile>
     <Compile Include="EnergySpectrum_097b.cs" />
+    <Compile Include="FwhmCalibration.cs" />
     <Compile Include="FWHMPeakDetectionConfig.cs" />
     <Compile Include="FWHMPeakDetector\PeakFilter.cs" />
     <Compile Include="FWHMPeakDetector\PeakFilterError.cs" />
@@ -573,6 +575,7 @@
     <Compile Include="SerializableColor.cs" />
     <Compile Include="ShowEnergyCalibrationViewEventArgs.cs" />
     <Compile Include="ShowEnergyCalibrationViewEventHandler.cs" />
+    <Compile Include="SimpleSqrtFwhmCalibration.cs" />
     <Compile Include="SmoothingMethod.cs" />
     <Compile Include="SoundConfig.cs" />
     <Compile Include="SpectrumCutOffDialog.cs">
@@ -581,6 +584,7 @@
     <Compile Include="SpectrumCutOffDialog.Designer.cs">
       <DependentUpon>SpectrumCutOffDialog.cs</DependentUpon>
     </Compile>
+    <Compile Include="SqrtFwhmCalibration.cs" />
     <Compile Include="StabilizerConfig.cs" />
     <Compile Include="StandardPulseRecorder.cs" />
     <Compile Include="StandardPulseView.Designer.cs">

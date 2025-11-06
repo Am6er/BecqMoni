@@ -149,9 +149,7 @@ namespace BecquerelMonitor
                 spec.combine_bins(mul);
             }
             FWHMPeakDetector.PeakFilter kernel = new FWHMPeakDetector.PeakFilter(
-                fWHMPeakDetectionMethodConfig.Ch_Fwhm,
-                fWHMPeakDetectionMethodConfig.Width_Fwhm,
-                fWHMPeakDetectionMethodConfig.FWHM_AT_0,
+                fWHMPeakDetectionMethodConfig.FwhmCalibration,
                 fWHMPeakDetectionMethodConfig.PeakType,
                 fWHMPeakDetectionMethodConfig.ExpGaussExpLeftTail,
                 fWHMPeakDetectionMethodConfig.ExpGaussExpRightTail);

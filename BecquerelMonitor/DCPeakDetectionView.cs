@@ -1,7 +1,6 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using XPTable.Models;
@@ -85,6 +84,11 @@ namespace BecquerelMonitor
                     return;
                 }
                 ResultData activeResultData = activeDocument.ActiveResultData;
+                FWHMPeakDetectionMethodConfig fWHMConfig = (FWHMPeakDetectionMethodConfig)activeResultData.PeakDetectionMethodConfig;
+                if (fWHMConfig.FwhmCalibration == null)
+                {
+                    return;
+                }
                 PeakDetector peakDetector = new PeakDetector();
                 List<Peak> peaks = await Task.Run(() => peakDetector.DetectPeak(activeResultData,
                     activeDocument.EnergySpectrumView.BackgroundMode,

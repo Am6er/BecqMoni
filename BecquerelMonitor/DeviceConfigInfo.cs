@@ -393,6 +393,13 @@ namespace BecquerelMonitor
                 this.stabilizerConfig = info.stabilizerConfig.Clone();
             }
             this.peakDetectionMethodConfig = info.peakDetectionMethodConfig.Clone();
+            if (this.peakDetectionMethodConfig is FWHMPeakDetectionMethodConfig fwhmConfig)
+            {
+                if (fwhmConfig.FwhmCalibration == null)
+                {
+                    fwhmConfig.FwhmCalibration = FwhmCalibration.DefaultCalibration(fwhmConfig, energyCalibration);
+                }
+            }
             this.backgroundSpectrumPathname = string.Copy(info.backgroundSpectrumPathname);
             if (info.efficencyROIGuid != null)
             {
