@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Xml.Serialization;
+using Windows.Management.Deployment.Preview;
 
 namespace BecquerelMonitor
 {

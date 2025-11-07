@@ -344,6 +344,7 @@
     </Compile>
     <Compile Include="EnergySpectrum_097b.cs" />
     <Compile Include="FwhmCalibration.cs" />
+    <Compile Include="FwhmCalibrationCurve.cs" />
     <Compile Include="FWHMPeakDetectionConfig.cs" />
     <Compile Include="FWHMPeakDetector\PeakFilter.cs" />
     <Compile Include="FWHMPeakDetector\PeakFilterError.cs" />
@@ -962,6 +963,7 @@
     </EmbeddedResource>
     <EmbeddedResource Include="DCFwhmCalibrationView.resx">
       <DependentUpon>DCFwhmCalibrationView.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="DCPeakDetectionView.resx">
       <DependentUpon>DCPeakDetectionView.cs</DependentUpon>

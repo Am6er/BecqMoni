@@ -156,9 +156,132 @@
   <data name="&gt;&gt;CollectedPeaksTable.ZOrder" xml:space="preserve">
     <value>4</value>
   </data>
+  <data name="positionColumn.Text" xml:space="preserve">
+    <value>#</value>
+  </data>
+  <data name="positionColumn.Width" type="System.Int32, mscorlib">
+    <value>30</value>
+  </data>
+  <data name="channelColumn.Text" xml:space="preserve">
+    <value>Channel</value>
+  </data>
+  <data name="channelColumn.ToolTipText" xml:space="preserve">
+    <value>Channel number</value>
+  </data>
+  <data name="channelColumn.Width" type="System.Int32, mscorlib">
+    <value>70</value>
+  </data>
+  <data name="energyColumn.Text" xml:space="preserve">
+    <value>Energy</value>
+  </data>
+  <data name="energyColumn.ToolTipText" xml:space="preserve">
+    <value>Energy in keV</value>
+  </data>
+  <data name="energyColumn.Width" type="System.Int32, mscorlib">
+    <value>120</value>
+  </data>
+  <data name="fwhmColumn.Text" xml:space="preserve">
+    <value>FWHM</value>
+  </data>
+  <data name="fwhmColumn.ToolTipText" xml:space="preserve">
+    <value>FWHM in channels</value>
+  </data>
+  <data name="fwhmColumn.Width" type="System.Int32, mscorlib">
+    <value>60</value>
+  </data>
   <metadata name="toolTip1.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
     <value>272, 17</value>
   </metadata>
+  <data name="saveToDeviceCfgButton.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Top, Right</value>
+  </data>
+  <data name="saveToDeviceCfgButton.Location" type="System.Drawing.Point, System.Drawing">
+    <value>205, 36</value>
+  </data>
+  <data name="saveToDeviceCfgButton.Size" type="System.Drawing.Size, System.Drawing">
+    <value>107, 36</value>
+  </data>
+  <data name="saveToDeviceCfgButton.TabIndex" type="System.Int32, mscorlib">
+    <value>1</value>
+  </data>
+  <data name="saveToDeviceCfgButton.Text" xml:space="preserve">
+    <value>Save to device config</value>
+  </data>
+  <data name="saveToDeviceCfgButton.ToolTip" xml:space="preserve">
+    <value>Save calibration to current device configuration</value>
+  </data>
+  <data name="&gt;&gt;saveToDeviceCfgButton.Name" xml:space="preserve">
+    <value>saveToDeviceCfgButton</value>
+  </data>
+  <data name="&gt;&gt;saveToDeviceCfgButton.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;saveToDeviceCfgButton.Parent" xml:space="preserve">
+    <value>calibrationProcessingPanel</value>
+  </data>
+  <data name="&gt;&gt;saveToDeviceCfgButton.ZOrder" xml:space="preserve">
+    <value>5</value>
+  </data>
+  <data name="selectCurveComboBox.Items" xml:space="preserve">
+    <value>Simple Square root</value>
+  </data>
+  <data name="selectCurveComboBox.Items1" xml:space="preserve">
+    <value>Square root polynomial</value>
+  </data>
+  <data name="selectCurveComboBox.Location" type="System.Drawing.Point, System.Drawing">
+    <value>13, 40</value>
+  </data>
+  <data name="selectCurveComboBox.Size" type="System.Drawing.Size, System.Drawing">
+    <value>180, 21</value>
+  </data>
+  <data name="selectCurveComboBox.TabIndex" type="System.Int32, mscorlib">
+    <value>2</value>
+  </data>
+  <data name="selectCurveComboBox.ToolTip" xml:space="preserve">
+    <value>Select calibration curve</value>
+  </data>
+  <data name="&gt;&gt;selectCurveComboBox.Name" xml:space="preserve">
+    <value>selectCurveComboBox</value>
+  </data>
+  <data name="&gt;&gt;selectCurveComboBox.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;selectCurveComboBox.Parent" xml:space="preserve">
+    <value>calibrationProcessingPanel</value>
+  </data>
+  <data name="&gt;&gt;selectCurveComboBox.ZOrder" xml:space="preserve">
+    <value>4</value>
+  </data>
+  <data name="minPeaksRequirementLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="minPeaksRequirementLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>12, 107</value>
+  </data>
+  <data name="minPeaksRequirementLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>150, 13</value>
+  </data>
+  <data name="minPeaksRequirementLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>6</value>
+  </data>
+  <data name="minPeaksRequirementLabel.Text" xml:space="preserve">
+    <value>Minimum peaks requirement: 3</value>
+  </data>
+  <data name="minPeaksRequirementLabel.ToolTip" xml:space="preserve">
+    <value>Minimum peaks required for use this curve for fwhm calibration</value>
+  </data>
+  <data name="&gt;&gt;minPeaksRequirementLabel.Name" xml:space="preserve">
+    <value>minPeaksRequirementLabel</value>
+  </data>
+  <data name="&gt;&gt;minPeaksRequirementLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;minPeaksRequirementLabel.Parent" xml:space="preserve">
+    <value>calibrationProcessingPanel</value>
+  </data>
+  <data name="&gt;&gt;minPeaksRequirementLabel.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
   <data name="label1.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Left, Right</value>
   </data>
@@ -185,49 +308,6 @@
   </data>
   <data name="&gt;&gt;label1.ZOrder" xml:space="preserve">
     <value>3</value>
-  </data>
-  <assembly alias="BecquerelMonitor" name="BecquerelMonitor, Version=2025.10.30.4, Culture=neutral, PublicKeyToken=null" />
-  <data name="channelColumn.Alignment" type="XPTable.Models.ColumnAlignment, BecquerelMonitor">
-    <value>Right</value>
-  </data>
-  <data name="channelColumn.Text" xml:space="preserve">
-    <value>Channel</value>
-  </data>
-  <data name="channelColumn.ToolTipText" xml:space="preserve">
-    <value>Channel number</value>
-  </data>
-  <data name="channelColumn.Width" type="System.Int32, mscorlib">
-    <value>80</value>
-  </data>
-  <data name="positionColumn.Text" xml:space="preserve">
-    <value>#</value>
-  </data>
-  <data name="positionColumn.Width" type="System.Int32, mscorlib">
-    <value>40</value>
-  </data>
-  <data name="energyColumn.Alignment" type="XPTable.Models.ColumnAlignment, BecquerelMonitor">
-    <value>Right</value>
-  </data>
-  <data name="energyColumn.Text" xml:space="preserve">
-    <value>Energy</value>
-  </data>
-  <data name="energyColumn.ToolTipText" xml:space="preserve">
-    <value>Energy in keV</value>
-  </data>
-  <data name="energyColumn.Width" type="System.Int32, mscorlib">
-    <value>80</value>
-  </data>
-  <data name="fwhmColumn.Alignment" type="XPTable.Models.ColumnAlignment, BecquerelMonitor">
-    <value>Right</value>
-  </data>
-  <data name="fwhmColumn.Text" xml:space="preserve">
-    <value>FWHM</value>
-  </data>
-  <data name="fwhmColumn.ToolTipText" xml:space="preserve">
-    <value>FWHM in channels</value>
-  </data>
-  <data name="fwhmColumn.Width" type="System.Int32, mscorlib">
-    <value>80</value>
   </data>
   <data name="addPeakButton.Location" type="System.Drawing.Point, System.Drawing">
     <value>13, 207</value>
@@ -280,34 +360,73 @@
   <data name="calibrationProcessingPanel.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Left, Right</value>
   </data>
-  <data name="minPeaksRequirementLabel.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
+  <data name="&gt;&gt;label3.Name" xml:space="preserve">
+    <value>label3</value>
   </data>
-  <data name="minPeaksRequirementLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>12, 107</value>
-  </data>
-  <data name="minPeaksRequirementLabel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>150, 13</value>
-  </data>
-  <data name="minPeaksRequirementLabel.TabIndex" type="System.Int32, mscorlib">
-    <value>6</value>
-  </data>
-  <data name="minPeaksRequirementLabel.Text" xml:space="preserve">
-    <value>Minimum peaks requirement: 3</value>
-  </data>
-  <data name="minPeaksRequirementLabel.ToolTip" xml:space="preserve">
-    <value>Minimum peaks required for use this curve for fwhm calibration</value>
-  </data>
-  <data name="&gt;&gt;minPeaksRequirementLabel.Name" xml:space="preserve">
-    <value>minPeaksRequirementLabel</value>
-  </data>
-  <data name="&gt;&gt;minPeaksRequirementLabel.Type" xml:space="preserve">
+  <data name="&gt;&gt;label3.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;minPeaksRequirementLabel.Parent" xml:space="preserve">
+  <data name="&gt;&gt;label3.Parent" xml:space="preserve">
     <value>calibrationProcessingPanel</value>
   </data>
-  <data name="&gt;&gt;minPeaksRequirementLabel.ZOrder" xml:space="preserve">
+  <data name="&gt;&gt;label3.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="&gt;&gt;curveFormulaLabel.Name" xml:space="preserve">
+    <value>curveFormulaLabel</value>
+  </data>
+  <data name="&gt;&gt;curveFormulaLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;curveFormulaLabel.Parent" xml:space="preserve">
+    <value>calibrationProcessingPanel</value>
+  </data>
+  <data name="&gt;&gt;curveFormulaLabel.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="&gt;&gt;label2.Name" xml:space="preserve">
+    <value>label2</value>
+  </data>
+  <data name="&gt;&gt;label2.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label2.Parent" xml:space="preserve">
+    <value>calibrationProcessingPanel</value>
+  </data>
+  <data name="&gt;&gt;label2.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <data name="&gt;&gt;executeCalibrationButton.Name" xml:space="preserve">
+    <value>executeCalibrationButton</value>
+  </data>
+  <data name="&gt;&gt;executeCalibrationButton.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;executeCalibrationButton.Parent" xml:space="preserve">
+    <value>calibrationProcessingPanel</value>
+  </data>
+  <data name="&gt;&gt;executeCalibrationButton.ZOrder" xml:space="preserve">
+    <value>6</value>
+  </data>
+  <data name="calibrationProcessingPanel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>16, 237</value>
+  </data>
+  <data name="calibrationProcessingPanel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>315, 130</value>
+  </data>
+  <data name="calibrationProcessingPanel.TabIndex" type="System.Int32, mscorlib">
+    <value>4</value>
+  </data>
+  <data name="&gt;&gt;calibrationProcessingPanel.Name" xml:space="preserve">
+    <value>calibrationProcessingPanel</value>
+  </data>
+  <data name="&gt;&gt;calibrationProcessingPanel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Panel, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;calibrationProcessingPanel.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;calibrationProcessingPanel.ZOrder" xml:space="preserve">
     <value>0</value>
   </data>
   <data name="label3.AutoSize" type="System.Boolean, mscorlib">
@@ -350,7 +469,7 @@
     <value>4</value>
   </data>
   <data name="curveFormulaLabel.Text" xml:space="preserve">
-    <value>FWHM = √(a * ch + b * ch + c)</value>
+    <value>FWHM = √(a * ch² + b * ch + c)</value>
   </data>
   <data name="&gt;&gt;curveFormulaLabel.Name" xml:space="preserve">
     <value>curveFormulaLabel</value>
@@ -391,69 +510,6 @@
   <data name="&gt;&gt;label2.ZOrder" xml:space="preserve">
     <value>3</value>
   </data>
-  <data name="selectCurveComboBox.Items" xml:space="preserve">
-    <value>Simple Square root</value>
-  </data>
-  <data name="selectCurveComboBox.Items1" xml:space="preserve">
-    <value>Square root polynomial</value>
-  </data>
-  <data name="selectCurveComboBox.Location" type="System.Drawing.Point, System.Drawing">
-    <value>13, 40</value>
-  </data>
-  <data name="selectCurveComboBox.Size" type="System.Drawing.Size, System.Drawing">
-    <value>180, 21</value>
-  </data>
-  <data name="selectCurveComboBox.TabIndex" type="System.Int32, mscorlib">
-    <value>2</value>
-  </data>
-  <data name="selectCurveComboBox.Text" xml:space="preserve">
-    <value>Square root polynomial</value>
-  </data>
-  <data name="selectCurveComboBox.ToolTip" xml:space="preserve">
-    <value>Select calibration curve</value>
-  </data>
-  <data name="&gt;&gt;selectCurveComboBox.Name" xml:space="preserve">
-    <value>selectCurveComboBox</value>
-  </data>
-  <data name="&gt;&gt;selectCurveComboBox.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;selectCurveComboBox.Parent" xml:space="preserve">
-    <value>calibrationProcessingPanel</value>
-  </data>
-  <data name="&gt;&gt;selectCurveComboBox.ZOrder" xml:space="preserve">
-    <value>4</value>
-  </data>
-  <data name="saveToDeviceCfgButton.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
-    <value>Top, Right</value>
-  </data>
-  <data name="saveToDeviceCfgButton.Location" type="System.Drawing.Point, System.Drawing">
-    <value>205, 36</value>
-  </data>
-  <data name="saveToDeviceCfgButton.Size" type="System.Drawing.Size, System.Drawing">
-    <value>107, 36</value>
-  </data>
-  <data name="saveToDeviceCfgButton.TabIndex" type="System.Int32, mscorlib">
-    <value>1</value>
-  </data>
-  <data name="saveToDeviceCfgButton.Text" xml:space="preserve">
-    <value>Save to device config</value>
-  </data>
-  <data name="saveToDeviceCfgButton.ToolTip" xml:space="preserve">
-    <value>Save calibration to current device configuration</value>
-  </data>
-  <data name="&gt;&gt;saveToDeviceCfgButton.Name" xml:space="preserve">
-    <value>saveToDeviceCfgButton</value>
-  </data>
-  <data name="&gt;&gt;saveToDeviceCfgButton.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;saveToDeviceCfgButton.Parent" xml:space="preserve">
-    <value>calibrationProcessingPanel</value>
-  </data>
-  <data name="&gt;&gt;saveToDeviceCfgButton.ZOrder" xml:space="preserve">
-    <value>5</value>
-  </data>
   <data name="executeCalibrationButton.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Right</value>
   </data>
@@ -480,27 +536,6 @@
   </data>
   <data name="&gt;&gt;executeCalibrationButton.ZOrder" xml:space="preserve">
     <value>6</value>
-  </data>
-  <data name="calibrationProcessingPanel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>16, 237</value>
-  </data>
-  <data name="calibrationProcessingPanel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>315, 130</value>
-  </data>
-  <data name="calibrationProcessingPanel.TabIndex" type="System.Int32, mscorlib">
-    <value>4</value>
-  </data>
-  <data name="&gt;&gt;calibrationProcessingPanel.Name" xml:space="preserve">
-    <value>calibrationProcessingPanel</value>
-  </data>
-  <data name="&gt;&gt;calibrationProcessingPanel.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Panel, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;calibrationProcessingPanel.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;calibrationProcessingPanel.ZOrder" xml:space="preserve">
-    <value>0</value>
   </data>
   <metadata name="$this.Localizable" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>True</value>
@@ -4792,35 +4827,23 @@
   <data name="$this.Text" xml:space="preserve">
     <value>FWHM Calibration</value>
   </data>
-  <data name="&gt;&gt;tableModel1.Name" xml:space="preserve">
-    <value>tableModel1</value>
-  </data>
-  <data name="&gt;&gt;tableModel1.Type" xml:space="preserve">
-    <value>XPTable.Models.TableModel, BecquerelMonitor, Version=2025.10.30.4, Culture=neutral, PublicKeyToken=null</value>
-  </data>
   <data name="&gt;&gt;columnModel1.Name" xml:space="preserve">
     <value>columnModel1</value>
   </data>
   <data name="&gt;&gt;columnModel1.Type" xml:space="preserve">
     <value>XPTable.Models.ColumnModel, BecquerelMonitor, Version=2025.10.30.4, Culture=neutral, PublicKeyToken=null</value>
   </data>
-  <data name="&gt;&gt;toolTip1.Name" xml:space="preserve">
-    <value>toolTip1</value>
+  <data name="&gt;&gt;positionColumn.Name" xml:space="preserve">
+    <value>positionColumn</value>
   </data>
-  <data name="&gt;&gt;toolTip1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolTip, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  <data name="&gt;&gt;positionColumn.Type" xml:space="preserve">
+    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2025.10.30.4, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;channelColumn.Name" xml:space="preserve">
     <value>channelColumn</value>
   </data>
   <data name="&gt;&gt;channelColumn.Type" xml:space="preserve">
     <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2025.10.30.4, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;positionColumn.Name" xml:space="preserve">
-    <value>positionColumn</value>
-  </data>
-  <data name="&gt;&gt;positionColumn.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2025.10.30.4, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;energyColumn.Name" xml:space="preserve">
     <value>energyColumn</value>
@@ -4833,6 +4856,18 @@
   </data>
   <data name="&gt;&gt;fwhmColumn.Type" xml:space="preserve">
     <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2025.10.30.4, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;tableModel1.Name" xml:space="preserve">
+    <value>tableModel1</value>
+  </data>
+  <data name="&gt;&gt;tableModel1.Type" xml:space="preserve">
+    <value>XPTable.Models.TableModel, BecquerelMonitor, Version=2025.10.30.4, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;toolTip1.Name" xml:space="preserve">
+    <value>toolTip1</value>
+  </data>
+  <data name="&gt;&gt;toolTip1.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolTip, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;$this.Name" xml:space="preserve">
     <value>DCFwhmCalibrationView</value>

@@ -1181,4 +1181,16 @@
   <data name="&gt;&gt;GBSFileToolStripMenuItem.Name" xml:space="preserve">
     <value>GBSFileToolStripMenuItem</value>
   </data>
+  <data name="FWHMCalStripMenuItem.Text" xml:space="preserve">
+    <value>FWHM Calibration</value>
+  </data>
+  <data name="FWHMCalStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+    <value>202, 22</value>
+  </data>
+  <data name="&gt;&gt;FWHMCalStripMenuItem.Name" xml:space="preserve">
+    <value>FWHMCalStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;FWHMCalStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
 </root>
