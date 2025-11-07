@@ -22,6 +22,14 @@ namespace BecquerelMonitor
         {
             return Math.Sqrt(coefficients[0] + coefficients[1] * channel);
         }
+        public override FwhmCalibration Clone()
+        {
+            return new SimpleSqrtFwhmCalibration
+            {
+                CalibrationPeaks = this.CalibrationPeaks,
+                Coefficients = this.Coefficients
+            };
+        }
 
         public override bool PerformCalibration()
         {

@@ -46,5 +46,7 @@ namespace BecquerelMonitor
         public int MaxCoefficients { get => Coefficients.Length; }
 
         public abstract bool PerformCalibration();
+
+        public abstract FwhmCalibration Clone();
     }
 }
