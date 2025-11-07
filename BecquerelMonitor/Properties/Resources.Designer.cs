@@ -1639,6 +1639,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Minimum peaks requirement: {0}.
+        /// </summary>
+        internal static string MinPeaksRequirement {
+            get {
+                return ResourceManager.GetString("MinPeaksRequirement", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
         internal static System.Drawing.Bitmap Minus {

@@ -42081,4 +42081,7 @@ Left/Right skews - 1 = classic Gaussian peak, lower value - the left/right peak 
   <data name="ERRAppAllreadyRunning" xml:space="preserve">
     <value>BecqMoni allready running! To avoid layout config files damage this app start is canceled. Check task manager for running processes BecquerelMonitor.exe!</value>
   </data>
+  <data name="MinPeaksRequirement" xml:space="preserve">
+    <value>Minimum peaks requirement: {0}</value>
+  </data>
 </root>

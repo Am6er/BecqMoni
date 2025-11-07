@@ -33,24 +33,24 @@
             XPTable.Models.DataSourceColumnBinder dataSourceColumnBinder2 = new XPTable.Models.DataSourceColumnBinder();
             XPTable.Renderers.DragDropRenderer dragDropRenderer2 = new XPTable.Renderers.DragDropRenderer();
             this.CollectedPeaksTable = new XPTable.Models.Table();
-            this.tableModel1 = new XPTable.Models.TableModel();
             this.columnModel1 = new XPTable.Models.ColumnModel();
-            this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
-            this.label1 = new System.Windows.Forms.Label();
-            this.channelColumn = new XPTable.Models.NumberColumn();
             this.positionColumn = new XPTable.Models.TextColumn();
+            this.channelColumn = new XPTable.Models.NumberColumn();
             this.energyColumn = new XPTable.Models.NumberColumn();
             this.fwhmColumn = new XPTable.Models.NumberColumn();
+            this.tableModel1 = new XPTable.Models.TableModel();
+            this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
+            this.saveToDeviceCfgButton = new System.Windows.Forms.Button();
+            this.selectCurveComboBox = new System.Windows.Forms.ComboBox();
+            this.minPeaksRequirementLabel = new System.Windows.Forms.Label();
+            this.label1 = new System.Windows.Forms.Label();
             this.addPeakButton = new System.Windows.Forms.Button();
             this.removePeakButton = new System.Windows.Forms.Button();
             this.calibrationProcessingPanel = new System.Windows.Forms.Panel();
-            this.executeCalibrationButton = new System.Windows.Forms.Button();
-            this.saveToDeviceCfgButton = new System.Windows.Forms.Button();
-            this.selectCurveComboBox = new System.Windows.Forms.ComboBox();
-            this.label2 = new System.Windows.Forms.Label();
-            this.curveFormulaLabel = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
-            this.minPeaksRequirementLabel = new System.Windows.Forms.Label();
+            this.curveFormulaLabel = new System.Windows.Forms.Label();
+            this.label2 = new System.Windows.Forms.Label();
+            this.executeCalibrationButton = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.CollectedPeaksTable)).BeginInit();
             this.calibrationProcessingPanel.SuspendLayout();
             this.SuspendLayout();
@@ -80,22 +80,6 @@
             this.energyColumn,
             this.fwhmColumn});
             // 
-            // label1
-            // 
-            resources.ApplyResources(this.label1, "label1");
-            this.label1.Name = "label1";
-            // 
-            // channelColumn
-            // 
-            resources.ApplyResources(this.channelColumn, "channelColumn");
-            this.channelColumn.Editable = false;
-            this.channelColumn.IsTextTrimmed = false;
-            this.channelColumn.Maximum = new decimal(new int[] {
-            65535,
-            0,
-            0,
-            0});
-            // 
             // positionColumn
             // 
             this.positionColumn.Editable = false;
@@ -103,9 +87,19 @@
             this.positionColumn.Sortable = false;
             resources.ApplyResources(this.positionColumn, "positionColumn");
             // 
+            // channelColumn
+            // 
+            this.channelColumn.Editable = false;
+            this.channelColumn.IsTextTrimmed = false;
+            this.channelColumn.Maximum = new decimal(new int[] {
+            65535,
+            0,
+            0,
+            0});
+            resources.ApplyResources(this.channelColumn, "channelColumn");
+            // 
             // energyColumn
             // 
-            resources.ApplyResources(this.energyColumn, "energyColumn");
             this.energyColumn.IsTextTrimmed = false;
             this.energyColumn.Maximum = new decimal(new int[] {
             10000,
@@ -118,10 +112,10 @@
             0,
             -2147483648});
             this.energyColumn.Sortable = false;
+            resources.ApplyResources(this.energyColumn, "energyColumn");
             // 
             // fwhmColumn
             // 
-            resources.ApplyResources(this.fwhmColumn, "fwhmColumn");
             this.fwhmColumn.IsTextTrimmed = false;
             this.fwhmColumn.Maximum = new decimal(new int[] {
             1000,
@@ -129,18 +123,52 @@
             0,
             0});
             this.fwhmColumn.Sortable = false;
+            resources.ApplyResources(this.fwhmColumn, "fwhmColumn");
+            // 
+            // saveToDeviceCfgButton
+            // 
+            resources.ApplyResources(this.saveToDeviceCfgButton, "saveToDeviceCfgButton");
+            this.saveToDeviceCfgButton.Name = "saveToDeviceCfgButton";
+            this.toolTip1.SetToolTip(this.saveToDeviceCfgButton, resources.GetString("saveToDeviceCfgButton.ToolTip"));
+            this.saveToDeviceCfgButton.UseVisualStyleBackColor = true;
+            this.saveToDeviceCfgButton.Click += new System.EventHandler(this.saveToDeviceCfgButton_Click);
+            // 
+            // selectCurveComboBox
+            // 
+            this.selectCurveComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.selectCurveComboBox.FormattingEnabled = true;
+            this.selectCurveComboBox.Items.AddRange(new object[] {
+            resources.GetString("selectCurveComboBox.Items"),
+            resources.GetString("selectCurveComboBox.Items1")});
+            resources.ApplyResources(this.selectCurveComboBox, "selectCurveComboBox");
+            this.selectCurveComboBox.Name = "selectCurveComboBox";
+            this.toolTip1.SetToolTip(this.selectCurveComboBox, resources.GetString("selectCurveComboBox.ToolTip"));
+            this.selectCurveComboBox.SelectedIndexChanged += new System.EventHandler(this.selectCurveComboBox_SelectedIndexChanged);
+            // 
+            // minPeaksRequirementLabel
+            // 
+            resources.ApplyResources(this.minPeaksRequirementLabel, "minPeaksRequirementLabel");
+            this.minPeaksRequirementLabel.Name = "minPeaksRequirementLabel";
+            this.toolTip1.SetToolTip(this.minPeaksRequirementLabel, resources.GetString("minPeaksRequirementLabel.ToolTip"));
+            // 
+            // label1
+            // 
+            resources.ApplyResources(this.label1, "label1");
+            this.label1.Name = "label1";
             // 
             // addPeakButton
             // 
             resources.ApplyResources(this.addPeakButton, "addPeakButton");
             this.addPeakButton.Name = "addPeakButton";
             this.addPeakButton.UseVisualStyleBackColor = true;
+            this.addPeakButton.Click += new System.EventHandler(this.addPeakButton_Click);
             // 
             // removePeakButton
             // 
             resources.ApplyResources(this.removePeakButton, "removePeakButton");
             this.removePeakButton.Name = "removePeakButton";
             this.removePeakButton.UseVisualStyleBackColor = true;
+            this.removePeakButton.Click += new System.EventHandler(this.removePeakButton_Click);
             // 
             // calibrationProcessingPanel
             // 
@@ -154,49 +182,26 @@
             this.calibrationProcessingPanel.Controls.Add(this.executeCalibrationButton);
             this.calibrationProcessingPanel.Name = "calibrationProcessingPanel";
             // 
-            // executeCalibrationButton
+            // label3
             // 
-            resources.ApplyResources(this.executeCalibrationButton, "executeCalibrationButton");
-            this.executeCalibrationButton.Name = "executeCalibrationButton";
-            this.executeCalibrationButton.UseVisualStyleBackColor = true;
-            // 
-            // saveToDeviceCfgButton
-            // 
-            resources.ApplyResources(this.saveToDeviceCfgButton, "saveToDeviceCfgButton");
-            this.saveToDeviceCfgButton.Name = "saveToDeviceCfgButton";
-            this.toolTip1.SetToolTip(this.saveToDeviceCfgButton, resources.GetString("saveToDeviceCfgButton.ToolTip"));
-            this.saveToDeviceCfgButton.UseVisualStyleBackColor = true;
-            // 
-            // selectCurveComboBox
-            // 
-            this.selectCurveComboBox.FormattingEnabled = true;
-            this.selectCurveComboBox.Items.AddRange(new object[] {
-            resources.GetString("selectCurveComboBox.Items"),
-            resources.GetString("selectCurveComboBox.Items1")});
-            resources.ApplyResources(this.selectCurveComboBox, "selectCurveComboBox");
-            this.selectCurveComboBox.Name = "selectCurveComboBox";
-            this.toolTip1.SetToolTip(this.selectCurveComboBox, resources.GetString("selectCurveComboBox.ToolTip"));
-            // 
-            // label2
-            // 
-            resources.ApplyResources(this.label2, "label2");
-            this.label2.Name = "label2";
+            resources.ApplyResources(this.label3, "label3");
+            this.label3.Name = "label3";
             // 
             // curveFormulaLabel
             // 
             resources.ApplyResources(this.curveFormulaLabel, "curveFormulaLabel");
             this.curveFormulaLabel.Name = "curveFormulaLabel";
             // 
-            // label3
+            // label2
             // 
-            resources.ApplyResources(this.label3, "label3");
-            this.label3.Name = "label3";
+            resources.ApplyResources(this.label2, "label2");
+            this.label2.Name = "label2";
             // 
-            // minPeaksRequirementLabel
+            // executeCalibrationButton
             // 
-            resources.ApplyResources(this.minPeaksRequirementLabel, "minPeaksRequirementLabel");
-            this.minPeaksRequirementLabel.Name = "minPeaksRequirementLabel";
-            this.toolTip1.SetToolTip(this.minPeaksRequirementLabel, resources.GetString("minPeaksRequirementLabel.ToolTip"));
+            resources.ApplyResources(this.executeCalibrationButton, "executeCalibrationButton");
+            this.executeCalibrationButton.Name = "executeCalibrationButton";
+            this.executeCalibrationButton.UseVisualStyleBackColor = true;
             // 
             // DCFwhmCalibrationView
             // 
