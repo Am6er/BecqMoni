@@ -243,6 +243,12 @@
     <Compile Include="DCEnergyCalibrationView.Designer.cs">
       <DependentUpon>DCEnergyCalibrationView.cs</DependentUpon>
     </Compile>
+    <Compile Include="DCFwhmCalibrationView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DCFwhmCalibrationView.Designer.cs">
+      <DependentUpon>DCFwhmCalibrationView.cs</DependentUpon>
+    </Compile>
     <Compile Include="DCPeakDetectionView.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -953,6 +959,9 @@
     <EmbeddedResource Include="DCEnergyCalibrationView.ru.resx">
       <DependentUpon>DCEnergyCalibrationView.cs</DependentUpon>
       <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DCFwhmCalibrationView.resx">
+      <DependentUpon>DCFwhmCalibrationView.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="DCPeakDetectionView.resx">
       <DependentUpon>DCPeakDetectionView.cs</DependentUpon>
