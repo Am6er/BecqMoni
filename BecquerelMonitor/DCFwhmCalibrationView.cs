@@ -27,6 +27,8 @@ namespace BecquerelMonitor
 
         public void SetFwhmCalibration(FwhmCalibration fwhmCalibration)
         {
+            // проверить в mainForm на избыточность событий.
+            // Нужны события, когда только калибровка меняется.
             if (fwhmCalibration == null) { return; }
             this.fwhmCalibration = fwhmCalibration;
             UpdateData();
@@ -77,6 +79,7 @@ namespace BecquerelMonitor
                 if (fwhmCalibration is SqrtFwhmCalibration)
                 {
                     selectCurveComboBox.SelectedIndex = (int)FwhmCalibrationCurve.SquareRootPolynomial;
+                    // унести в свой класс
                     curveFormulaLabel.Text = "FWHM = √(a * ch² + b * ch + c)";
                 }
                 else
@@ -91,6 +94,7 @@ namespace BecquerelMonitor
                 if ((FwhmCalibrationCurve)selectCurveComboBox.SelectedIndex == FwhmCalibrationCurve.SquareRootPolynomial)
                 {
                     curveFormulaLabel.Text = "FWHM = √(a * ch² + b * ch + c)";
+                    // вытащить из класса, а не хардкодить
                     minPeaksRequirement = 3;
                 }
                 else
