@@ -8,7 +8,7 @@ namespace BecquerelMonitor
         // Token: 0x17000027 RID: 39
         // (get) Token: 0x0600006B RID: 107 RVA: 0x00002ACC File Offset: 0x00000CCC
         // (set) Token: 0x0600006C RID: 108 RVA: 0x00002AD4 File Offset: 0x00000CD4
-        public string Name
+        public CDATA Name
         {
             get
             {

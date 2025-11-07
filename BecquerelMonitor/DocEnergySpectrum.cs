@@ -4,8 +4,6 @@ using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
 using WeifenLuo.WinFormsUI.Docking;
-using System.Diagnostics;
-using System.Threading;
 
 namespace BecquerelMonitor
 {
@@ -404,9 +402,24 @@ namespace BecquerelMonitor
                 resultData.EnergySpectrum.EnergyCalibration = resultData.DeviceConfig.EnergyCalibration.Clone();
                 resultData.PresetTime = resultData.DeviceConfig.DefaultMeasurementTime;
                 resultData.ResultDataStatus.PresetTime = resultData.PresetTime;
-                resultData.PeakDetectionMethodConfig = resultData.DeviceConfig.PeakDetectionMethodConfig.Clone();
-                FWHMPeakDetectionMethodConfig cfg = (FWHMPeakDetectionMethodConfig)resultData.PeakDetectionMethodConfig;
                 FWHMPeakDetectionMethodConfig devcfg = (FWHMPeakDetectionMethodConfig)resultData.DeviceConfig.PeakDetectionMethodConfig;
+                if (devcfg.FwhmCalibration == null)
+                {
+                    devcfg.FwhmCalibration = FwhmCalibration.DefaultCalibration(devcfg, resultData.EnergySpectrum.EnergyCalibration);
+                }
+                resultData.PeakDetectionMethodConfig = devcfg.Clone();
+                FWHMPeakDetectionMethodConfig cfg = (FWHMPeakDetectionMethodConfig)resultData.PeakDetectionMethodConfig;
+                if (resultData.FwhmCalibration == null)
+                {
+                    // Result data file doesn't contains calibration
+                    // Create it from FWHMPeakDetectionMethodConfig
+                    resultData.FwhmCalibration = cfg.FwhmCalibration.Clone();
+                } else
+                {
+                    // Result data file contains calibration
+                    // Override resultData.PeakDetectionMethodConfig with it
+                    cfg.FwhmCalibration = resultData.FwhmCalibration.Clone();
+                }
                 if (GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.DefaultPeakMode == PeakMode.Visible)
                 {
                     cfg.Enabled = true;

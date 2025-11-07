@@ -208,7 +208,8 @@ namespace BecquerelMonitor
             this.ch_concat = config.ch_concat;
             this.peak_type = config.peak_type;
             this.left_tail = config.left_tail;
-            this.right_tail = config.right_tail;    
+            this.right_tail = config.right_tail;
+            this.fwhmCalibration = config.fwhmCalibration.Clone();
         }
 
         public override PeakDetectionMethodConfig Clone()

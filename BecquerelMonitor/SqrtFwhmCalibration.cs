@@ -7,7 +7,7 @@ namespace BecquerelMonitor
     public class SqrtFwhmCalibration : FwhmCalibration
     {
         // Fwhm [ch]
-        // Fwhm(E) = Sqrt(c + b * ch + a * ch^2)
+        // Fwhm(ch) = Sqrt(c + b * ch + a * ch^2)
         
         List<CalibrationPeak> peaks = new List<CalibrationPeak>();
         double[] coefficients = new double[3];
@@ -21,6 +21,14 @@ namespace BecquerelMonitor
         public override double ChannelToFwhm(double channel)
         {
             return Math.Sqrt(coefficients[0] + coefficients[1] * channel + coefficients[2] * channel * channel);
+        }
+
+        public override FwhmCalibration Clone()
+        {
+            return new SqrtFwhmCalibration {
+                CalibrationPeaks = this.CalibrationPeaks,
+                Coefficients = this.Coefficients
+            };
         }
 
         public override bool PerformCalibration()
