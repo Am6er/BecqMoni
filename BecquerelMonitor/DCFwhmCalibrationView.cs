@@ -243,6 +243,7 @@ namespace BecquerelMonitor
             UpdateFwhmCalibration();
             UpdateCalibrateButtonState();
             mainForm.UpdateDetectedPeakView();
+            mainForm.ActiveDocument.UpdateEnergySpectrum();
         }
 
         private void cancelAddPeakButton_Click(object sender, EventArgs e)
