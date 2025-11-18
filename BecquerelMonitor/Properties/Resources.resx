@@ -42088,6 +42088,6 @@ Left/Right skews - 1 = classic Gaussian peak, lower value - the left/right peak 
     <value>Save FWHM calibration to current device configuration?</value>
   </data>
   <data name="ERRPeakExist" xml:space="preserve">
-    <value>Selected peak data allready exist in calibration peaks table! Try to select other peak. FWHM = {0} ch, Channel = {1} ch</value>
+    <value>Selected peak FWHM allready exist in calibration peaks table! Try to select other peak. FWHM = {0} ch, Channel = {1} ch</value>
   </data>
 </root>

@@ -40,7 +40,7 @@ namespace BecquerelMonitor
                 return peaks;
             }
 
-            FWHMPeakDetector.PeakFinder finder = PeakFinder(energySpectrum, FWHMPeakDetectionMethodConfig);
+            FWHMPeakDetector.PeakFinder finder = PeakFinder(energySpectrum, FWHMPeakDetectionMethodConfig, resultData.FwhmCalibration);
             peaks = CollectPeaks(finder, energySpectrum, FWHMPeakDetectionMethodConfig.Tolerance, sa, nuclideSet, FWHMPeakDetectionMethodConfig);
             //sa.Dispose();
             GC.Collect();
@@ -134,7 +134,7 @@ namespace BecquerelMonitor
             return peaks;
         }
 
-        FWHMPeakDetector.PeakFinder PeakFinder(EnergySpectrum energySpectrum, FWHMPeakDetectionMethodConfig fWHMPeakDetectionMethodConfig)
+        FWHMPeakDetector.PeakFinder PeakFinder(EnergySpectrum energySpectrum, FWHMPeakDetectionMethodConfig fWHMPeakDetectionMethodConfig, FwhmCalibration fwhmCalibration)
         {
             int min_range_ch = Convert.ToInt32(energySpectrum.EnergyCalibration.EnergyToChannel(fWHMPeakDetectionMethodConfig.Min_Range, maxChannels: energySpectrum.NumberOfChannels));
             int max_range_ch = Convert.ToInt32(energySpectrum.EnergyCalibration.EnergyToChannel(fWHMPeakDetectionMethodConfig.Max_Range, maxChannels: energySpectrum.NumberOfChannels));
@@ -149,7 +149,7 @@ namespace BecquerelMonitor
                 spec.combine_bins(mul);
             }
             FWHMPeakDetector.PeakFilter kernel = new FWHMPeakDetector.PeakFilter(
-                fWHMPeakDetectionMethodConfig.FwhmCalibration,
+                fwhmCalibration,
                 fWHMPeakDetectionMethodConfig.PeakType,
                 fWHMPeakDetectionMethodConfig.ExpGaussExpLeftTail,
                 fWHMPeakDetectionMethodConfig.ExpGaussExpRightTail);

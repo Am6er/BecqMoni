@@ -85,9 +85,10 @@ namespace BecquerelMonitor
                 }
                 ResultData activeResultData = activeDocument.ActiveResultData;
                 FWHMPeakDetectionMethodConfig fWHMConfig = (FWHMPeakDetectionMethodConfig)activeResultData.PeakDetectionMethodConfig;
-                if (fWHMConfig.FwhmCalibration == null)
+                if (fWHMConfig.FwhmCalibration == null || activeResultData.FwhmCalibration == null)
                 {
-                    return;
+                    // TODO нужно будет добавить обработку
+                    throw new NotImplementedException();
                 }
                 PeakDetector peakDetector = new PeakDetector();
                 List<Peak> peaks = await Task.Run(() => peakDetector.DetectPeak(activeResultData,
