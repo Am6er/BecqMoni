@@ -1226,7 +1226,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Selected peak data allready exist in calibration peaks table! Try to select other peak. FWHM = {0} ch, Channel = {1} ch.
+        ///   Looks up a localized string similar to Selected peak FWHM allready exist in calibration peaks table! Try to select other peak. FWHM = {0} ch, Channel = {1} ch.
         /// </summary>
         internal static string ERRPeakExist {
             get {
