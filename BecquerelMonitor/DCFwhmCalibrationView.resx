@@ -154,7 +154,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;CollectedPeaksTable.ZOrder" xml:space="preserve">
-    <value>4</value>
+    <value>5</value>
   </data>
   <data name="positionColumn.Text" xml:space="preserve">
     <value>#</value>
@@ -307,7 +307,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;label1.ZOrder" xml:space="preserve">
-    <value>3</value>
+    <value>4</value>
   </data>
   <data name="addPeakButton.Location" type="System.Drawing.Point, System.Drawing">
     <value>13, 207</value>
@@ -331,7 +331,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;addPeakButton.ZOrder" xml:space="preserve">
-    <value>2</value>
+    <value>3</value>
   </data>
   <data name="removePeakButton.Location" type="System.Drawing.Point, System.Drawing">
     <value>94, 207</value>
@@ -355,7 +355,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;removePeakButton.ZOrder" xml:space="preserve">
-    <value>1</value>
+    <value>2</value>
   </data>
   <data name="calibrationProcessingPanel.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Left, Right</value>
@@ -427,7 +427,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;calibrationProcessingPanel.ZOrder" xml:space="preserve">
-    <value>0</value>
+    <value>1</value>
   </data>
   <data name="label3.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -536,6 +536,33 @@
   </data>
   <data name="&gt;&gt;executeCalibrationButton.ZOrder" xml:space="preserve">
     <value>6</value>
+  </data>
+  <data name="cancelAddPeakButton.Enabled" type="System.Boolean, mscorlib">
+    <value>False</value>
+  </data>
+  <data name="cancelAddPeakButton.Location" type="System.Drawing.Point, System.Drawing">
+    <value>194, 207</value>
+  </data>
+  <data name="cancelAddPeakButton.Size" type="System.Drawing.Size, System.Drawing">
+    <value>75, 23</value>
+  </data>
+  <data name="cancelAddPeakButton.TabIndex" type="System.Int32, mscorlib">
+    <value>5</value>
+  </data>
+  <data name="cancelAddPeakButton.Text" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="&gt;&gt;cancelAddPeakButton.Name" xml:space="preserve">
+    <value>cancelAddPeakButton</value>
+  </data>
+  <data name="&gt;&gt;cancelAddPeakButton.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;cancelAddPeakButton.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;cancelAddPeakButton.ZOrder" xml:space="preserve">
+    <value>0</value>
   </data>
   <metadata name="$this.Localizable" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>True</value>

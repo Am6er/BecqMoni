@@ -30,8 +30,8 @@
         {
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(DCFwhmCalibrationView));
-            XPTable.Models.DataSourceColumnBinder dataSourceColumnBinder2 = new XPTable.Models.DataSourceColumnBinder();
-            XPTable.Renderers.DragDropRenderer dragDropRenderer2 = new XPTable.Renderers.DragDropRenderer();
+            XPTable.Models.DataSourceColumnBinder dataSourceColumnBinder1 = new XPTable.Models.DataSourceColumnBinder();
+            XPTable.Renderers.DragDropRenderer dragDropRenderer1 = new XPTable.Renderers.DragDropRenderer();
             this.CollectedPeaksTable = new XPTable.Models.Table();
             this.columnModel1 = new XPTable.Models.ColumnModel();
             this.positionColumn = new XPTable.Models.TextColumn();
@@ -51,6 +51,7 @@
             this.curveFormulaLabel = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.executeCalibrationButton = new System.Windows.Forms.Button();
+            this.cancelAddPeakButton = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.CollectedPeaksTable)).BeginInit();
             this.calibrationProcessingPanel.SuspendLayout();
             this.SuspendLayout();
@@ -61,9 +62,9 @@
             this.CollectedPeaksTable.BorderColor = System.Drawing.Color.Black;
             this.CollectedPeaksTable.ColumnModel = this.columnModel1;
             this.CollectedPeaksTable.DataMember = null;
-            this.CollectedPeaksTable.DataSourceColumnBinder = dataSourceColumnBinder2;
-            dragDropRenderer2.ForeColor = System.Drawing.Color.Red;
-            this.CollectedPeaksTable.DragDropRenderer = dragDropRenderer2;
+            this.CollectedPeaksTable.DataSourceColumnBinder = dataSourceColumnBinder1;
+            dragDropRenderer1.ForeColor = System.Drawing.Color.Red;
+            this.CollectedPeaksTable.DragDropRenderer = dragDropRenderer1;
             this.CollectedPeaksTable.FullRowSelect = true;
             this.CollectedPeaksTable.GridLines = XPTable.Models.GridLines.Both;
             this.CollectedPeaksTable.GridLinesContrainedToData = false;
@@ -202,10 +203,19 @@
             resources.ApplyResources(this.executeCalibrationButton, "executeCalibrationButton");
             this.executeCalibrationButton.Name = "executeCalibrationButton";
             this.executeCalibrationButton.UseVisualStyleBackColor = true;
+            this.executeCalibrationButton.Click += new System.EventHandler(this.executeCalibrationButton_Click);
+            // 
+            // cancelAddPeakButton
+            // 
+            resources.ApplyResources(this.cancelAddPeakButton, "cancelAddPeakButton");
+            this.cancelAddPeakButton.Name = "cancelAddPeakButton";
+            this.cancelAddPeakButton.UseVisualStyleBackColor = true;
+            this.cancelAddPeakButton.Click += new System.EventHandler(this.cancelAddPeakButton_Click);
             // 
             // DCFwhmCalibrationView
             // 
             resources.ApplyResources(this, "$this");
+            this.Controls.Add(this.cancelAddPeakButton);
             this.Controls.Add(this.calibrationProcessingPanel);
             this.Controls.Add(this.removePeakButton);
             this.Controls.Add(this.addPeakButton);
@@ -243,5 +253,6 @@
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Label curveFormulaLabel;
         private System.Windows.Forms.Label minPeaksRequirementLabel;
+        private System.Windows.Forms.Button cancelAddPeakButton;
     }
 }

@@ -585,7 +585,7 @@ http://xptable.sourceforge.net/</value>
     <value>Сохраните конфигурацию устройства перед тем, как записывать изменения в устройство.</value>
   </data>
   <data name="MSGSaveEnergyCalibration" xml:space="preserve">
-    <value>Сохранить параметры калибровки в текущей конфигурации устройства?</value>
+    <value>Сохранить параметры калибровки по энергии в текущей конфигурации устройства?</value>
   </data>
   <data name="MSGSavingNuclideDefinition" xml:space="preserve">
     <value>Библиотека изотопов была изменена. Сохранить?</value>
@@ -748,5 +748,11 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="ERRAppAllreadyRunning" xml:space="preserve">
     <value>Приложение BecqMoni уже запущено! Чтобы избежать проблем с конфигурационными файлами, этот запуск приложения отменяется. Проверьте диспетчер задач на запущенные процессы BecquerelMonitor.exe!</value>
+  </data>
+  <data name="MSGSaveFWHMCalibration" xml:space="preserve">
+    <value>Сохранить параметры калибровки по FWHM в текущей конфигурации устройства?</value>
+  </data>
+  <data name="ERRPeakExist" xml:space="preserve">
+    <value>Данные по выбранному пику уже присутствуют в таблице калибровочных пиков! Попробуйте выбрать другой пик. FWHM = {0} канал, Канал = {1} канал.</value>
   </data>
 </root>
