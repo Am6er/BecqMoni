@@ -631,6 +631,7 @@ namespace BecquerelMonitor
             }
             activeResultData.EnergySpectrum.EnergyCalibration = activeResultData.DeviceConfig.EnergyCalibration.Clone();
             this.mainForm.UpdateEnergyCalibrationView();
+            this.mainForm.UpdateFwhmCalibrationView();
             FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)activeResultData.DeviceConfig.PeakDetectionMethodConfig;
             activeResultData.PeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)FWHMPeakDetectionMethodConfig.Clone();
             string backgroundSpectrumFile = activeResultData.BackgroundSpectrumFile;

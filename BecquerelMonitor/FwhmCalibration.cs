@@ -43,11 +43,17 @@ namespace BecquerelMonitor
         [XmlArrayItem("Coefficient")]
         public abstract double[] Coefficients { get; set; }
 
-        [XmlIgnore]
-        public int MaxCoefficients { get => Coefficients.Length; }
-
         public abstract bool PerformCalibration();
 
         public abstract FwhmCalibration Clone();
+
+        public List<CalibrationPeak> ClonePeaks()
+        {
+            return new List<CalibrationPeak>(CalibrationPeaks);
+        }
+
+        public abstract string GetFormula();
+
+        public abstract int MinPeaksRequirement();
     }
 }

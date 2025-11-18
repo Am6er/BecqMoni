@@ -29,6 +29,7 @@ namespace BecquerelMonitor
         {
             // проверить в mainForm на избыточность событий.
             // Нужны события, когда только калибровка меняется.
+            // Нужно на финальном этапе смотреть
             if (fwhmCalibration == null) { return; }
             this.fwhmCalibration = fwhmCalibration;
             UpdateData();
@@ -79,35 +80,27 @@ namespace BecquerelMonitor
                 if (fwhmCalibration is SqrtFwhmCalibration)
                 {
                     selectCurveComboBox.SelectedIndex = (int)FwhmCalibrationCurve.SquareRootPolynomial;
-                    // унести в свой класс
-                    curveFormulaLabel.Text = "FWHM = √(a * ch² + b * ch + c)";
                 }
                 else
                 {
                     selectCurveComboBox.SelectedIndex = (int)FwhmCalibrationCurve.SimpleSquareRoot;
-                    curveFormulaLabel.Text = "FWHM = √(b + k * ch)";
-                }
-                minPeaksRequirement = fwhmCalibration.MaxCoefficients - 1;
-            }
-            else
-            {
-                if ((FwhmCalibrationCurve)selectCurveComboBox.SelectedIndex == FwhmCalibrationCurve.SquareRootPolynomial)
-                {
-                    curveFormulaLabel.Text = "FWHM = √(a * ch² + b * ch + c)";
-                    // вытащить из класса, а не хардкодить
-                    minPeaksRequirement = 3;
-                }
-                else
-                {
-                    curveFormulaLabel.Text = "FWHM = √(b + k * ch)";
-                    minPeaksRequirement = 2;
                 }
             }
+            curveFormulaLabel.Text = fwhmCalibration.GetFormula();
+            minPeaksRequirement = fwhmCalibration.MinPeaksRequirement();
             minPeaksRequirementLabel.Text = String.Format(Resources.MinPeaksRequirement, minPeaksRequirement);
         }
 
-        void selectCurveComboBox_SelectedIndexChanged(object sender, System.EventArgs e)
+        void selectCurveComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
+            if (selectCurveComboBox.SelectedIndex == -1 || selectCurveComboBox.SelectedIndex == lastSelectedIndex) return;
+            if (selectCurveComboBox.SelectedIndex == (int)FwhmCalibrationCurve.SquareRootPolynomial)
+            {
+                fwhmCalibration = new SqrtFwhmCalibration { CalibrationPeaks = fwhmCalibration.ClonePeaks() };
+            } else
+            {
+                fwhmCalibration = new SimpleSqrtFwhmCalibration { CalibrationPeaks = fwhmCalibration.ClonePeaks() };
+            }
             UpdateSelectedCurveInfo();
             UpdateCommitButtonsState();
             lastSelectedIndex = selectCurveComboBox.SelectedIndex;
@@ -118,7 +111,7 @@ namespace BecquerelMonitor
             if (selectCurveComboBox.SelectedIndex == -1 ||
                 (CollectedPeaksTable.SelectedItems.Length > 0 && CollectedPeaksTable.SelectedItems[0].Index < 0) ||
                 lastSelectedIndex == selectCurveComboBox.SelectedIndex ||
-                minPeaksRequirement < tableModel1.Rows.Count)
+                minPeaksRequirement > tableModel1.Rows.Count)
             {
                 executeCalibrationButton.Enabled = false;
                 saveToDeviceCfgButton.Enabled = false;
