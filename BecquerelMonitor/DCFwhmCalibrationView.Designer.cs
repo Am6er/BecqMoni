@@ -52,6 +52,7 @@
             this.label2 = new System.Windows.Forms.Label();
             this.executeCalibrationButton = new System.Windows.Forms.Button();
             this.cancelAddPeakButton = new System.Windows.Forms.Button();
+            this.viewCalibrationButton = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.CollectedPeaksTable)).BeginInit();
             this.calibrationProcessingPanel.SuspendLayout();
             this.SuspendLayout();
@@ -174,6 +175,7 @@
             // calibrationProcessingPanel
             // 
             resources.ApplyResources(this.calibrationProcessingPanel, "calibrationProcessingPanel");
+            this.calibrationProcessingPanel.Controls.Add(this.viewCalibrationButton);
             this.calibrationProcessingPanel.Controls.Add(this.minPeaksRequirementLabel);
             this.calibrationProcessingPanel.Controls.Add(this.label3);
             this.calibrationProcessingPanel.Controls.Add(this.curveFormulaLabel);
@@ -211,6 +213,12 @@
             this.cancelAddPeakButton.Name = "cancelAddPeakButton";
             this.cancelAddPeakButton.UseVisualStyleBackColor = true;
             this.cancelAddPeakButton.Click += new System.EventHandler(this.cancelAddPeakButton_Click);
+            // 
+            // viewCalibrationButton
+            // 
+            resources.ApplyResources(this.viewCalibrationButton, "viewCalibrationButton");
+            this.viewCalibrationButton.Name = "viewCalibrationButton";
+            this.viewCalibrationButton.UseVisualStyleBackColor = true;
             // 
             // DCFwhmCalibrationView
             // 
@@ -254,5 +262,6 @@
         private System.Windows.Forms.Label curveFormulaLabel;
         private System.Windows.Forms.Label minPeaksRequirementLabel;
         private System.Windows.Forms.Button cancelAddPeakButton;
+        private System.Windows.Forms.Button viewCalibrationButton;
     }
 }

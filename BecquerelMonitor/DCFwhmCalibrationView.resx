@@ -220,7 +220,7 @@
     <value>calibrationProcessingPanel</value>
   </data>
   <data name="&gt;&gt;saveToDeviceCfgButton.ZOrder" xml:space="preserve">
-    <value>5</value>
+    <value>6</value>
   </data>
   <data name="selectCurveComboBox.Items" xml:space="preserve">
     <value>Simple Square root</value>
@@ -250,13 +250,13 @@
     <value>calibrationProcessingPanel</value>
   </data>
   <data name="&gt;&gt;selectCurveComboBox.ZOrder" xml:space="preserve">
-    <value>4</value>
+    <value>5</value>
   </data>
   <data name="minPeaksRequirementLabel.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
   <data name="minPeaksRequirementLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>12, 107</value>
+    <value>12, 143</value>
   </data>
   <data name="minPeaksRequirementLabel.Size" type="System.Drawing.Size, System.Drawing">
     <value>150, 13</value>
@@ -280,7 +280,7 @@
     <value>calibrationProcessingPanel</value>
   </data>
   <data name="&gt;&gt;minPeaksRequirementLabel.ZOrder" xml:space="preserve">
-    <value>0</value>
+    <value>1</value>
   </data>
   <data name="label1.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Left, Right</value>
@@ -360,80 +360,38 @@
   <data name="calibrationProcessingPanel.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Left, Right</value>
   </data>
-  <data name="&gt;&gt;label3.Name" xml:space="preserve">
-    <value>label3</value>
+  <data name="viewCalibrationButton.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Top, Right</value>
   </data>
-  <data name="&gt;&gt;label3.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  <data name="viewCalibrationButton.Location" type="System.Drawing.Point, System.Drawing">
+    <value>205, 78</value>
   </data>
-  <data name="&gt;&gt;label3.Parent" xml:space="preserve">
-    <value>calibrationProcessingPanel</value>
+  <data name="viewCalibrationButton.Size" type="System.Drawing.Size, System.Drawing">
+    <value>107, 23</value>
   </data>
-  <data name="&gt;&gt;label3.ZOrder" xml:space="preserve">
-    <value>1</value>
+  <data name="viewCalibrationButton.TabIndex" type="System.Int32, mscorlib">
+    <value>7</value>
   </data>
-  <data name="&gt;&gt;curveFormulaLabel.Name" xml:space="preserve">
-    <value>curveFormulaLabel</value>
+  <data name="viewCalibrationButton.Text" xml:space="preserve">
+    <value>View ...</value>
   </data>
-  <data name="&gt;&gt;curveFormulaLabel.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  <data name="&gt;&gt;viewCalibrationButton.Name" xml:space="preserve">
+    <value>viewCalibrationButton</value>
   </data>
-  <data name="&gt;&gt;curveFormulaLabel.Parent" xml:space="preserve">
-    <value>calibrationProcessingPanel</value>
-  </data>
-  <data name="&gt;&gt;curveFormulaLabel.ZOrder" xml:space="preserve">
-    <value>2</value>
-  </data>
-  <data name="&gt;&gt;label2.Name" xml:space="preserve">
-    <value>label2</value>
-  </data>
-  <data name="&gt;&gt;label2.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;label2.Parent" xml:space="preserve">
-    <value>calibrationProcessingPanel</value>
-  </data>
-  <data name="&gt;&gt;label2.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
-  <data name="&gt;&gt;executeCalibrationButton.Name" xml:space="preserve">
-    <value>executeCalibrationButton</value>
-  </data>
-  <data name="&gt;&gt;executeCalibrationButton.Type" xml:space="preserve">
+  <data name="&gt;&gt;viewCalibrationButton.Type" xml:space="preserve">
     <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;executeCalibrationButton.Parent" xml:space="preserve">
+  <data name="&gt;&gt;viewCalibrationButton.Parent" xml:space="preserve">
     <value>calibrationProcessingPanel</value>
   </data>
-  <data name="&gt;&gt;executeCalibrationButton.ZOrder" xml:space="preserve">
-    <value>6</value>
-  </data>
-  <data name="calibrationProcessingPanel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>16, 237</value>
-  </data>
-  <data name="calibrationProcessingPanel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>315, 130</value>
-  </data>
-  <data name="calibrationProcessingPanel.TabIndex" type="System.Int32, mscorlib">
-    <value>4</value>
-  </data>
-  <data name="&gt;&gt;calibrationProcessingPanel.Name" xml:space="preserve">
-    <value>calibrationProcessingPanel</value>
-  </data>
-  <data name="&gt;&gt;calibrationProcessingPanel.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Panel, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;calibrationProcessingPanel.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;calibrationProcessingPanel.ZOrder" xml:space="preserve">
-    <value>1</value>
+  <data name="&gt;&gt;viewCalibrationButton.ZOrder" xml:space="preserve">
+    <value>0</value>
   </data>
   <data name="label3.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
   <data name="label3.Location" type="System.Drawing.Point, System.Drawing">
-    <value>12, 75</value>
+    <value>12, 111</value>
   </data>
   <data name="label3.Size" type="System.Drawing.Size, System.Drawing">
     <value>47, 13</value>
@@ -454,13 +412,13 @@
     <value>calibrationProcessingPanel</value>
   </data>
   <data name="&gt;&gt;label3.ZOrder" xml:space="preserve">
-    <value>1</value>
+    <value>2</value>
   </data>
   <data name="curveFormulaLabel.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Left, Right</value>
   </data>
   <data name="curveFormulaLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>65, 75</value>
+    <value>65, 111</value>
   </data>
   <data name="curveFormulaLabel.Size" type="System.Drawing.Size, System.Drawing">
     <value>247, 32</value>
@@ -481,7 +439,7 @@
     <value>calibrationProcessingPanel</value>
   </data>
   <data name="&gt;&gt;curveFormulaLabel.ZOrder" xml:space="preserve">
-    <value>2</value>
+    <value>3</value>
   </data>
   <data name="label2.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -508,7 +466,7 @@
     <value>calibrationProcessingPanel</value>
   </data>
   <data name="&gt;&gt;label2.ZOrder" xml:space="preserve">
-    <value>3</value>
+    <value>4</value>
   </data>
   <data name="executeCalibrationButton.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Right</value>
@@ -535,7 +493,28 @@
     <value>calibrationProcessingPanel</value>
   </data>
   <data name="&gt;&gt;executeCalibrationButton.ZOrder" xml:space="preserve">
-    <value>6</value>
+    <value>7</value>
+  </data>
+  <data name="calibrationProcessingPanel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>16, 237</value>
+  </data>
+  <data name="calibrationProcessingPanel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>315, 162</value>
+  </data>
+  <data name="calibrationProcessingPanel.TabIndex" type="System.Int32, mscorlib">
+    <value>4</value>
+  </data>
+  <data name="&gt;&gt;calibrationProcessingPanel.Name" xml:space="preserve">
+    <value>calibrationProcessingPanel</value>
+  </data>
+  <data name="&gt;&gt;calibrationProcessingPanel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Panel, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;calibrationProcessingPanel.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;calibrationProcessingPanel.ZOrder" xml:space="preserve">
+    <value>1</value>
   </data>
   <data name="cancelAddPeakButton.Enabled" type="System.Boolean, mscorlib">
     <value>False</value>
@@ -574,7 +553,7 @@
     <value>True</value>
   </data>
   <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
-    <value>343, 401</value>
+    <value>343, 411</value>
   </data>
   <data name="$this.Font" type="System.Drawing.Font, System.Drawing">
     <value>Microsoft Sans Serif, 8pt</value>
