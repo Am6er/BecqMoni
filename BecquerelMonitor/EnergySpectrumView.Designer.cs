@@ -182,10 +182,9 @@ namespace BecquerelMonitor
             }
         }
 
-        // Token: 0x14000012 RID: 18
-        // (add) Token: 0x06000493 RID: 1171 RVA: 0x00016324 File Offset: 0x00014524
-        // (remove) Token: 0x06000494 RID: 1172 RVA: 0x00016360 File Offset: 0x00014560
         public event EnergySpectrumView.ChannelPickupedEventHandler ChannelPickuped;
+
+        public event EnergySpectrumView.PeakPickupedEventHandler PeakPickuped;
 
         // Token: 0x17000185 RID: 389
         // (get) Token: 0x06000495 RID: 1173 RVA: 0x0001639C File Offset: 0x0001459C
@@ -3747,6 +3746,10 @@ namespace BecquerelMonitor
             if (e.Button == MouseButtons.Left)
             {
                 this.selectionDragging = false;
+                if (this.PeakPickuped != null && this.selectionFWHM > 0)
+                {
+                    this.PeakPickuped(this, new PeakPickupedEventArgs(this.selectionCentroidCh, this.selectionCentroidkeV, this.selectionFullWidth));
+                }
                 return;
             }
             MouseButtons button = e.Button;
@@ -4218,9 +4221,9 @@ namespace BecquerelMonitor
 
         double pownum = 4;
 
-        // Token: 0x0200021E RID: 542
-        // (Invoke) Token: 0x06001927 RID: 6439
         public delegate void ChannelPickupedEventHandler(object sender, ChannelPickupedEventArgs e);
+
+        public delegate void PeakPickupedEventHandler(object sender, PeakPickupedEventArgs e);
 
         public event EventHandler<EnergySpectrumActionEventArgs> ActionEvent;
     }

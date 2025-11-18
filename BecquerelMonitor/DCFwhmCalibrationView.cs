@@ -15,6 +15,10 @@ namespace BecquerelMonitor
 
         int minPeaksRequirement = 2;
 
+        bool peakPickupProcessing = false;
+
+        bool calibrationDone = true;
+
         public DCFwhmCalibrationView(MainForm mainForm)
         {
             this.mainForm = mainForm;
@@ -25,13 +29,12 @@ namespace BecquerelMonitor
             executeCalibrationButton.Enabled = false;
         }
 
-        public void SetFwhmCalibration(FwhmCalibration fwhmCalibration)
+        public void UpdateFwhmCalibration()
         {
-            // проверить в mainForm на избыточность событий.
+            // TODO проверить в mainForm на избыточность событий.
             // Нужны события, когда только калибровка меняется.
             // Нужно на финальном этапе смотреть
-            if (fwhmCalibration == null) { return; }
-            this.fwhmCalibration = fwhmCalibration;
+            fwhmCalibration = mainForm.ActiveDocument.ActiveResultData.FwhmCalibration;
             UpdateData();
         }
 
@@ -42,7 +45,7 @@ namespace BecquerelMonitor
 
         private void DCFwhmCalibrationView_FormClosing(object sender, FormClosingEventArgs e)
         {
-
+            ClearPeakPickupState();
         }
 
         void UpdateData()
@@ -70,7 +73,7 @@ namespace BecquerelMonitor
             {
                 calibrationProcessingPanel.Hide();
             }
-            UpdateCommitButtonsState();
+            UpdateCalibrateButtonState();
         }
 
         void UpdateSelectedCurveInfo()
@@ -102,22 +105,28 @@ namespace BecquerelMonitor
                 fwhmCalibration = new SimpleSqrtFwhmCalibration { CalibrationPeaks = fwhmCalibration.ClonePeaks() };
             }
             UpdateSelectedCurveInfo();
-            UpdateCommitButtonsState();
+            UpdateCalibrateButtonState();
             lastSelectedIndex = selectCurveComboBox.SelectedIndex;
         }
 
-        void UpdateCommitButtonsState()
+        void UpdateCalibrateButtonState()
         {
             if (selectCurveComboBox.SelectedIndex == -1 ||
                 (CollectedPeaksTable.SelectedItems.Length > 0 && CollectedPeaksTable.SelectedItems[0].Index < 0) ||
-                lastSelectedIndex == selectCurveComboBox.SelectedIndex ||
+                (lastSelectedIndex == selectCurveComboBox.SelectedIndex && calibrationDone) ||
                 minPeaksRequirement > tableModel1.Rows.Count)
             {
                 executeCalibrationButton.Enabled = false;
-                saveToDeviceCfgButton.Enabled = false;
             } else
             {
                 executeCalibrationButton.Enabled = true;
+            }
+            if (minPeaksRequirement > tableModel1.Rows.Count)
+            {
+                saveToDeviceCfgButton.Enabled = false;
+            }
+            else
+            {
                 saveToDeviceCfgButton.Enabled = true;
             }
         }
@@ -128,7 +137,7 @@ namespace BecquerelMonitor
             if (CollectedPeaksTable.SelectedItems.Length >= 1)
             {
                 selectedItemIndex = CollectedPeaksTable.SelectedItems[0].Index;
-                UpdateCommitButtonsState();
+                UpdateCalibrateButtonState();
             }
             else
             {
@@ -136,7 +145,7 @@ namespace BecquerelMonitor
             }
             if (selectedItemIndex < 0 && selectedItemIndex >= fwhmCalibration.CalibrationPeaks.Count)
             {
-                UpdateCommitButtonsState();
+                UpdateCalibrateButtonState();
                 return;
             }
             try
@@ -146,17 +155,99 @@ namespace BecquerelMonitor
             }
             catch { }
             tableModel1.Selections.Clear();
-            UpdateData();
+            UpdateFwhmCalibration();
         }
 
         private void saveToDeviceCfgButton_Click(object sender, EventArgs e)
         {
-
+            if (MessageBox.Show(Resources.MSGSaveFWHMCalibration, Resources.ConfirmationDialogTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation) != DialogResult.Yes)
+            {
+                return;
+            }
+            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+            DeviceConfigInfo deviceConfig = activeDocument.ActiveResultData.DeviceConfig;
+            if (deviceConfig == null || deviceConfig.Guid == null || deviceConfig.Guid == "")
+            {
+                MessageBox.Show(Resources.ERRDeviceConfigNotSelected, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                return;
+            }
+            if (!fwhmCalibration.PerformCalibration())
+            {
+                // TODO нужно будет добавить обработку плохой калибровки
+                throw new NotImplementedException();
+            }
+            FWHMPeakDetectionMethodConfig peakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig) deviceConfig.PeakDetectionMethodConfig;
+            peakDetectionMethodConfig.FwhmCalibration = fwhmCalibration;
+            DeviceConfigManager.GetInstance().SaveConfig(activeDocument.ActiveResultData.DeviceConfig);
+            activeDocument.ActiveResultData.FwhmCalibration = fwhmCalibration;
+            mainForm.UpdateDeviceConfigForm();
         }
 
         private void addPeakButton_Click(object sender, EventArgs e)
         {
+            if (mainForm.ActiveDocument != null)
+            {
+                cancelAddPeakButton.Enabled = true;
+                peakPickupProcessing = true;
+                addPeakButton.Enabled = !peakPickupProcessing;
+                mainForm.ActiveDocument.EnergySpectrumView.PeakPickuped += this.energySpectrumView_PeakPickuped;
+            }
+        }
 
+        void energySpectrumView_PeakPickuped(object sender, PeakPickupedEventArgs e)
+        {
+            if (!peakPickupProcessing)
+            {
+                return;
+            }
+
+            CalibrationPeak newPeak = e.CalibrationPeak;
+            foreach (CalibrationPeak peak in mainForm.ActiveDocument.ActiveResultData.FwhmCalibration.CalibrationPeaks)
+            {
+                if (peak.Channel == newPeak.Channel || peak.FWHM == newPeak.FWHM)
+                {
+                    string PeakExistText = String.Format(Resources.ERRPeakExist, peak.FWHM, peak.Channel);
+                    MessageBox.Show(PeakExistText, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                    return;
+                }
+            }
+            mainForm.ActiveDocument.ActiveResultData.FwhmCalibration.CalibrationPeaks.Add(newPeak);
+            mainForm.ActiveDocument.Dirty = true;
+            calibrationDone = false;
+            ClearPeakPickupState();
+            UpdateFwhmCalibration();
+            UpdateCalibrateButtonState();
+        }
+
+        void ClearPeakPickupState()
+        {
+            if (mainForm.ActiveDocument != null)
+            {
+                mainForm.ActiveDocument.EnergySpectrumView.PeakPickuped -= this.energySpectrumView_PeakPickuped;
+            }
+            peakPickupProcessing = false;
+            addPeakButton.Enabled = !peakPickupProcessing;
+            cancelAddPeakButton.Enabled = peakPickupProcessing;
+            UpdateCalibrateButtonState();
+        }
+
+        private void executeCalibrationButton_Click(object sender, EventArgs e)
+        {
+            if (!fwhmCalibration.PerformCalibration())
+            {
+                // TODO нужно будет добавить обработку плохой калибровки
+                throw new NotImplementedException();
+            }
+            mainForm.ActiveDocument.ActiveResultData.FwhmCalibration = fwhmCalibration;
+            calibrationDone = true;
+            UpdateFwhmCalibration();
+            UpdateCalibrateButtonState();
+            mainForm.UpdateDetectedPeakView();
+        }
+
+        private void cancelAddPeakButton_Click(object sender, EventArgs e)
+        {
+            ClearPeakPickupState();
         }
     }
 }

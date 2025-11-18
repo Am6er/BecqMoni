@@ -878,7 +878,7 @@ namespace BecquerelMonitor
 
         public void UpdateFwhmCalibrationView()
         {
-            this.dcCFwhmCalibrationView.SetFwhmCalibration(this.activeDocument.ActiveResultData.FwhmCalibration);
+            this.dcCFwhmCalibrationView.UpdateFwhmCalibration();
         }
 
 

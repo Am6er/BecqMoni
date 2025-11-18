@@ -453,6 +453,7 @@
     <Compile Include="PeakDetectionMethodConfig.cs" />
     <Compile Include="PeakDetector.cs" />
     <Compile Include="PeakMode.cs" />
+    <Compile Include="PeakPickupedEventArgs.cs" />
     <Compile Include="PeakStabilizer.cs" />
     <Compile Include="PercentageProgressBar.cs">
       <SubType>Component</SubType>
