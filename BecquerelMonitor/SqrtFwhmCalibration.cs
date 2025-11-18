@@ -23,6 +23,11 @@ namespace BecquerelMonitor
             return Math.Sqrt(coefficients[0] + coefficients[1] * channel + coefficients[2] * channel * channel);
         }
 
+        public override string GetFormula()
+        {
+            return "FWHM = √(a * ch² + b * ch + c)";
+        }
+
         public override FwhmCalibration Clone()
         {
             return new SqrtFwhmCalibration {
@@ -36,6 +41,11 @@ namespace BecquerelMonitor
             if (peaks.Count <= 2) return false;
             coefficients = Utils.CalibrationSolver.Solve(peaks, 2);
             return true;
+        }
+
+        public override int MinPeaksRequirement()
+        {
+            return 3;
         }
     }
 }

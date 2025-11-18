@@ -876,6 +876,11 @@ namespace BecquerelMonitor
             }
         }
 
+        public void UpdateFwhmCalibrationView()
+        {
+            this.dcCFwhmCalibrationView.SetFwhmCalibration(this.activeDocument.ActiveResultData.FwhmCalibration);
+        }
+
 
         void toolStripMenuItem5_Click(object sender, EventArgs e)
         {
@@ -1010,7 +1015,7 @@ namespace BecquerelMonitor
                 this.dcSampleInfoView.Enabled = true;
                 this.dcCountRateView.Enabled = true;
                 this.dcCFwhmCalibrationView.Enabled = true;
-                this.dcCFwhmCalibrationView.SetFwhmCalibration(this.activeDocument.ActiveResultData.FwhmCalibration);
+                UpdateFwhmCalibrationView();
                 foreach (DCResultView dcresultView in this.dcResultViewList)
                 {
                     dcresultView.Enabled = true;
@@ -1080,7 +1085,7 @@ namespace BecquerelMonitor
             this.dcControlPanel.Enabled = true;
             this.dcSampleInfoView.Enabled = true;
             this.dcCountRateView.Enabled = true;
-            this.dcCFwhmCalibrationView.SetFwhmCalibration(this.activeDocument.ActiveResultData.FwhmCalibration);
+            UpdateFwhmCalibrationView();
             foreach (DCResultView dcresultView in this.dcResultViewList)
             {
                 dcresultView.Enabled = true;
@@ -1941,7 +1946,7 @@ namespace BecquerelMonitor
                 UpdateEnergyCalibrationView();
                 this.dcEnergyCalibrationView.SetStabilizerState(this.activeDocument.ActiveResultData);
                 this.dcEnergyCalibrationView.Enabled = true;
-                this.dcCFwhmCalibrationView.SetFwhmCalibration(this.activeDocument.ActiveResultData.FwhmCalibration);
+                UpdateFwhmCalibrationView();
                 this.dcCFwhmCalibrationView.Enabled = true;
                 doc.UpdateEnergySpectrum();
                 this.ShowMeasurementResult(true);
@@ -2466,7 +2471,7 @@ namespace BecquerelMonitor
             }
             if (this.dcCFwhmCalibrationView != null) 
             {
-                this.dcCFwhmCalibrationView.SetFwhmCalibration(this.activeDocument.ActiveResultData.FwhmCalibration);
+                UpdateFwhmCalibrationView();
             }
             foreach (DocEnergySpectrum docEnergySpectrum in this.documentManager.DocumentList)
             {

@@ -31,6 +31,16 @@ namespace BecquerelMonitor
             };
         }
 
+        public override string GetFormula()
+        {
+            return "FWHM = √(b + k * ch)";
+        }
+
+        public override int MinPeaksRequirement()
+        {
+            return 2;
+        }
+
         public override bool PerformCalibration()
         {
             if (peaks.Count <= 1) return false;
