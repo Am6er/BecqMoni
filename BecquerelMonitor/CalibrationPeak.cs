@@ -16,5 +16,11 @@ namespace BecquerelMonitor
         {
             return channel.CompareTo(((CalibrationPeak)obj).Channel);
         }
+
+        public bool Equals(CalibrationPeak other)
+        {
+            if (other.fwhm == fwhm && other.channel == channel) return true;
+            return false;
+        }
     }
 }

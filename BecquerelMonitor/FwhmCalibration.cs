@@ -1,11 +1,20 @@
 ﻿using System.Collections.Generic;
 using System.Xml.Serialization;
-using Windows.Management.Deployment.Preview;
 
 namespace BecquerelMonitor
 {
     public abstract class FwhmCalibration
     {
+        // Enum all siblings of abstract class FwhmCalibration
+        public enum FwhmCalibrationCurve
+        {
+            [XmlEnum(Name = "Simple Square root")]
+            SimpleSqrtFwhmCalibration,
+
+            [XmlEnum(Name = "Square root polynomial")]
+            SqrtFwhmCalibration
+        }
+
         public static SimpleSqrtFwhmCalibration DefaultCalibration(FWHMPeakDetectionMethodConfig fwhmCalibration, EnergyCalibration energyCalibration)
         {
             SimpleSqrtFwhmCalibration simpleSqrtFwhmCalibration = new SimpleSqrtFwhmCalibration();

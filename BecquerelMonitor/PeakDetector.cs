@@ -98,6 +98,7 @@ namespace BecquerelMonitor
                     double centroid = finder.centroids[i];
                     int snr = (int)finder.snrs[i];
                     double fwhm = finder.fwhms[i];
+                    double fwhm_delta = finder.fwhm_delta[i];
                     centroid = sa.FindCentroid2(energySpectrum,
                         Convert.ToInt32(centroid),
                         Convert.ToInt32(centroid - mul - 1),
@@ -110,6 +111,7 @@ namespace BecquerelMonitor
                     peak.Energy = energySpectrum.EnergyCalibration.ChannelToEnergy(peak.Channel);
                     peak.SNR = snr;
                     peak.FWHM = fwhm;
+                    peak.FWHM_DELTA = fwhm_delta;
                     foreach (NuclideDefinition nuclideDefinition in this.nuclideManager.NuclideDefinitions)
                     {
                         if (!nuclideDefinition.Visible || nuclideDefinition.Energy == 0.0) continue;

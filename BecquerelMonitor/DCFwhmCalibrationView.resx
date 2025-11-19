@@ -124,41 +124,10 @@
   <metadata name="columnModel1.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
     <value>137, 17</value>
   </metadata>
-  <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
-  <data name="CollectedPeaksTable.Location" type="System.Drawing.Point, System.Drawing">
-    <value>12, 50</value>
-  </data>
-  <data name="CollectedPeaksTable.NoItemsText" xml:space="preserve">
-    <value>There are no calibration peaks</value>
-  </data>
-  <data name="CollectedPeaksTable.Size" type="System.Drawing.Size, System.Drawing">
-    <value>319, 150</value>
-  </data>
-  <assembly alias="mscorlib" name="mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
-  <data name="CollectedPeaksTable.TabIndex" type="System.Int32, mscorlib">
-    <value>0</value>
-  </data>
-  <metadata name="tableModel1.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-    <value>17, 17</value>
-  </metadata>
-  <data name="CollectedPeaksTable.Text" xml:space="preserve">
-    <value>table1</value>
-  </data>
-  <data name="&gt;&gt;CollectedPeaksTable.Name" xml:space="preserve">
-    <value>CollectedPeaksTable</value>
-  </data>
-  <data name="&gt;&gt;CollectedPeaksTable.Type" xml:space="preserve">
-    <value>XPTable.Models.Table, BecquerelMonitor, Version=2025.10.30.4, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;CollectedPeaksTable.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;CollectedPeaksTable.ZOrder" xml:space="preserve">
-    <value>5</value>
-  </data>
   <data name="positionColumn.Text" xml:space="preserve">
     <value>#</value>
   </data>
+  <assembly alias="mscorlib" name="mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
   <data name="positionColumn.Width" type="System.Int32, mscorlib">
     <value>30</value>
   </data>
@@ -188,6 +157,37 @@
   </data>
   <data name="fwhmColumn.Width" type="System.Int32, mscorlib">
     <value>60</value>
+  </data>
+  <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+  <data name="CollectedPeaksTable.Location" type="System.Drawing.Point, System.Drawing">
+    <value>12, 50</value>
+  </data>
+  <data name="CollectedPeaksTable.NoItemsText" xml:space="preserve">
+    <value>There are no calibration peaks</value>
+  </data>
+  <data name="CollectedPeaksTable.Size" type="System.Drawing.Size, System.Drawing">
+    <value>319, 150</value>
+  </data>
+  <data name="CollectedPeaksTable.TabIndex" type="System.Int32, mscorlib">
+    <value>0</value>
+  </data>
+  <metadata name="tableModel1.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <value>17, 17</value>
+  </metadata>
+  <data name="CollectedPeaksTable.Text" xml:space="preserve">
+    <value>table1</value>
+  </data>
+  <data name="&gt;&gt;CollectedPeaksTable.Name" xml:space="preserve">
+    <value>CollectedPeaksTable</value>
+  </data>
+  <data name="&gt;&gt;CollectedPeaksTable.Type" xml:space="preserve">
+    <value>XPTable.Models.Table, BecquerelMonitor, Version=2025.10.30.4, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;CollectedPeaksTable.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;CollectedPeaksTable.ZOrder" xml:space="preserve">
+    <value>6</value>
   </data>
   <metadata name="toolTip1.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
     <value>272, 17</value>
@@ -307,7 +307,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;label1.ZOrder" xml:space="preserve">
-    <value>4</value>
+    <value>5</value>
   </data>
   <data name="addPeakButton.Location" type="System.Drawing.Point, System.Drawing">
     <value>13, 207</value>
@@ -331,13 +331,13 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;addPeakButton.ZOrder" xml:space="preserve">
-    <value>3</value>
+    <value>4</value>
   </data>
   <data name="removePeakButton.Location" type="System.Drawing.Point, System.Drawing">
-    <value>94, 207</value>
+    <value>99, 207</value>
   </data>
   <data name="removePeakButton.Size" type="System.Drawing.Size, System.Drawing">
-    <value>75, 23</value>
+    <value>64, 23</value>
   </data>
   <data name="removePeakButton.TabIndex" type="System.Int32, mscorlib">
     <value>3</value>
@@ -355,7 +355,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;removePeakButton.ZOrder" xml:space="preserve">
-    <value>2</value>
+    <value>3</value>
   </data>
   <data name="calibrationProcessingPanel.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Left, Right</value>
@@ -514,16 +514,16 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;calibrationProcessingPanel.ZOrder" xml:space="preserve">
-    <value>1</value>
+    <value>2</value>
   </data>
   <data name="cancelAddPeakButton.Enabled" type="System.Boolean, mscorlib">
     <value>False</value>
   </data>
   <data name="cancelAddPeakButton.Location" type="System.Drawing.Point, System.Drawing">
-    <value>194, 207</value>
+    <value>176, 207</value>
   </data>
   <data name="cancelAddPeakButton.Size" type="System.Drawing.Size, System.Drawing">
-    <value>75, 23</value>
+    <value>59, 23</value>
   </data>
   <data name="cancelAddPeakButton.TabIndex" type="System.Int32, mscorlib">
     <value>5</value>
@@ -541,6 +541,30 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;cancelAddPeakButton.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="getAllPeaksButton.Location" type="System.Drawing.Point, System.Drawing">
+    <value>249, 207</value>
+  </data>
+  <data name="getAllPeaksButton.Size" type="System.Drawing.Size, System.Drawing">
+    <value>81, 23</value>
+  </data>
+  <data name="getAllPeaksButton.TabIndex" type="System.Int32, mscorlib">
+    <value>6</value>
+  </data>
+  <data name="getAllPeaksButton.Text" xml:space="preserve">
+    <value>Get All peaks</value>
+  </data>
+  <data name="&gt;&gt;getAllPeaksButton.Name" xml:space="preserve">
+    <value>getAllPeaksButton</value>
+  </data>
+  <data name="&gt;&gt;getAllPeaksButton.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;getAllPeaksButton.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;getAllPeaksButton.ZOrder" xml:space="preserve">
     <value>0</value>
   </data>
   <metadata name="$this.Localizable" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">

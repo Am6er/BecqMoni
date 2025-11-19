@@ -344,7 +344,6 @@
     </Compile>
     <Compile Include="EnergySpectrum_097b.cs" />
     <Compile Include="FwhmCalibration.cs" />
-    <Compile Include="FwhmCalibrationCurve.cs" />
     <Compile Include="FWHMPeakDetectionConfig.cs" />
     <Compile Include="FWHMPeakDetector\PeakFilter.cs" />
     <Compile Include="FWHMPeakDetector\PeakFilterError.cs" />

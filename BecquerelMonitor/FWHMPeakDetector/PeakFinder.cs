@@ -24,6 +24,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
         public double[] fwhms;
         public double[] integrals;
         public double[] backgrounds;
+        public double[] fwhm_delta;
         public bool[] peak;
 
 
@@ -57,6 +58,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
             this.fwhms = null;
             this.integrals = null;
             this.backgrounds = null;
+            this.fwhm_delta = null;
             this.calculate(spectrum, kernel);
         }
 
@@ -70,6 +72,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
             this.fwhms = null;
             this.integrals = null;
             this.backgrounds = null;
+            this.fwhm_delta = null;
         }
 
         /// <summary>
@@ -101,6 +104,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
             List<double> _fwhms = new List<double>();
             List<double> _integrals = new List<double>();
             List<double> _backgrounds = new List<double>();
+            List<double> _fwhm_delta = new List<double>();
             foreach (int el in sortedarg)
             {
                 _centroids.Add(this.centroids[el]);
@@ -108,12 +112,14 @@ namespace BecquerelMonitor.FWHMPeakDetector
                 _fwhms.Add(this.fwhms[el]);
                 _integrals.Add(this.integrals[el]);
                 _backgrounds.Add(this.backgrounds[el]);
+                _fwhm_delta.Add(this.fwhm_delta[el]);
             }
             this.centroids = _centroids.ToArray();
             this.snrs = _snrs.ToArray();
             this.fwhms = _fwhms.ToArray();
             this.integrals = _integrals.ToArray();
             this.backgrounds = _backgrounds.ToArray();
+            this.fwhm_delta = _fwhm_delta.ToArray();
         }
 
         /// <summary>
@@ -190,6 +196,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
 
                 d2 *= -1;
                 double fwhm = 2 * Math.Sqrt(2 * this.snr[xbin] / d2);
+                double fwhm_delta = Math.Abs(fwhm - fwhm0);
                 // add the peak if it has a similar FWHM to the kernel's FWHM
                 if (this.fwhm_tol_min * fwhm0 <= fwhm && fwhm <= this.fwhm_tol_max * fwhm0)
                 {
@@ -233,8 +240,17 @@ namespace BecquerelMonitor.FWHMPeakDetector
                     {
                         this.backgrounds = this.backgrounds.Append(this.bkg[xbin]).ToArray();
                     }
-                    // sort the peaks by centroid
-                    this.sort_by(this.centroids);
+
+                    if (this.fwhm_delta == null)
+                    {
+                        this.fwhm_delta = new[] { fwhm_delta };
+                    }
+                    else
+                    {
+                        this.fwhm_delta = this.fwhm_delta.Append(fwhm_delta).ToArray();
+                    }
+                        // sort the peaks by centroid
+                        this.sort_by(this.centroids);
                 }
             }
         }

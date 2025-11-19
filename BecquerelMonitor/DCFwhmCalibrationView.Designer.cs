@@ -47,12 +47,13 @@
             this.addPeakButton = new System.Windows.Forms.Button();
             this.removePeakButton = new System.Windows.Forms.Button();
             this.calibrationProcessingPanel = new System.Windows.Forms.Panel();
+            this.viewCalibrationButton = new System.Windows.Forms.Button();
             this.label3 = new System.Windows.Forms.Label();
             this.curveFormulaLabel = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.executeCalibrationButton = new System.Windows.Forms.Button();
             this.cancelAddPeakButton = new System.Windows.Forms.Button();
-            this.viewCalibrationButton = new System.Windows.Forms.Button();
+            this.getAllPeaksButton = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.CollectedPeaksTable)).BeginInit();
             this.calibrationProcessingPanel.SuspendLayout();
             this.SuspendLayout();
@@ -133,7 +134,7 @@
             this.saveToDeviceCfgButton.Name = "saveToDeviceCfgButton";
             this.toolTip1.SetToolTip(this.saveToDeviceCfgButton, resources.GetString("saveToDeviceCfgButton.ToolTip"));
             this.saveToDeviceCfgButton.UseVisualStyleBackColor = true;
-            this.saveToDeviceCfgButton.Click += new System.EventHandler(this.saveToDeviceCfgButton_Click);
+            this.saveToDeviceCfgButton.Click += new System.EventHandler(this.SaveToDeviceCfgButton_Click);
             // 
             // selectCurveComboBox
             // 
@@ -145,7 +146,7 @@
             resources.ApplyResources(this.selectCurveComboBox, "selectCurveComboBox");
             this.selectCurveComboBox.Name = "selectCurveComboBox";
             this.toolTip1.SetToolTip(this.selectCurveComboBox, resources.GetString("selectCurveComboBox.ToolTip"));
-            this.selectCurveComboBox.SelectedIndexChanged += new System.EventHandler(this.selectCurveComboBox_SelectedIndexChanged);
+            this.selectCurveComboBox.SelectedIndexChanged += new System.EventHandler(this.SelectCurveComboBox_SelectedIndexChanged);
             // 
             // minPeaksRequirementLabel
             // 
@@ -163,14 +164,14 @@
             resources.ApplyResources(this.addPeakButton, "addPeakButton");
             this.addPeakButton.Name = "addPeakButton";
             this.addPeakButton.UseVisualStyleBackColor = true;
-            this.addPeakButton.Click += new System.EventHandler(this.addPeakButton_Click);
+            this.addPeakButton.Click += new System.EventHandler(this.AddPeakButton_Click);
             // 
             // removePeakButton
             // 
             resources.ApplyResources(this.removePeakButton, "removePeakButton");
             this.removePeakButton.Name = "removePeakButton";
             this.removePeakButton.UseVisualStyleBackColor = true;
-            this.removePeakButton.Click += new System.EventHandler(this.removePeakButton_Click);
+            this.removePeakButton.Click += new System.EventHandler(this.RemovePeakButton_Click);
             // 
             // calibrationProcessingPanel
             // 
@@ -184,6 +185,12 @@
             this.calibrationProcessingPanel.Controls.Add(this.saveToDeviceCfgButton);
             this.calibrationProcessingPanel.Controls.Add(this.executeCalibrationButton);
             this.calibrationProcessingPanel.Name = "calibrationProcessingPanel";
+            // 
+            // viewCalibrationButton
+            // 
+            resources.ApplyResources(this.viewCalibrationButton, "viewCalibrationButton");
+            this.viewCalibrationButton.Name = "viewCalibrationButton";
+            this.viewCalibrationButton.UseVisualStyleBackColor = true;
             // 
             // label3
             // 
@@ -205,24 +212,25 @@
             resources.ApplyResources(this.executeCalibrationButton, "executeCalibrationButton");
             this.executeCalibrationButton.Name = "executeCalibrationButton";
             this.executeCalibrationButton.UseVisualStyleBackColor = true;
-            this.executeCalibrationButton.Click += new System.EventHandler(this.executeCalibrationButton_Click);
+            this.executeCalibrationButton.Click += new System.EventHandler(this.ExecuteCalibrationButton_Click);
             // 
             // cancelAddPeakButton
             // 
             resources.ApplyResources(this.cancelAddPeakButton, "cancelAddPeakButton");
             this.cancelAddPeakButton.Name = "cancelAddPeakButton";
             this.cancelAddPeakButton.UseVisualStyleBackColor = true;
-            this.cancelAddPeakButton.Click += new System.EventHandler(this.cancelAddPeakButton_Click);
+            this.cancelAddPeakButton.Click += new System.EventHandler(this.CancelAddPeakButton_Click);
             // 
-            // viewCalibrationButton
+            // getAllPeaksButton
             // 
-            resources.ApplyResources(this.viewCalibrationButton, "viewCalibrationButton");
-            this.viewCalibrationButton.Name = "viewCalibrationButton";
-            this.viewCalibrationButton.UseVisualStyleBackColor = true;
+            resources.ApplyResources(this.getAllPeaksButton, "getAllPeaksButton");
+            this.getAllPeaksButton.Name = "getAllPeaksButton";
+            this.getAllPeaksButton.UseVisualStyleBackColor = true;
             // 
             // DCFwhmCalibrationView
             // 
             resources.ApplyResources(this, "$this");
+            this.Controls.Add(this.getAllPeaksButton);
             this.Controls.Add(this.cancelAddPeakButton);
             this.Controls.Add(this.calibrationProcessingPanel);
             this.Controls.Add(this.removePeakButton);
@@ -263,5 +271,6 @@
         private System.Windows.Forms.Label minPeaksRequirementLabel;
         private System.Windows.Forms.Button cancelAddPeakButton;
         private System.Windows.Forms.Button viewCalibrationButton;
+        private System.Windows.Forms.Button getAllPeaksButton;
     }
 }
