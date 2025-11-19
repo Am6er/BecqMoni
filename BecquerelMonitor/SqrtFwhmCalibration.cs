@@ -8,7 +8,8 @@ namespace BecquerelMonitor
     {
         // Fwhm [ch]
         // Fwhm(ch) = Sqrt(c + b * ch + a * ch^2)
-        
+        string formula = "FWHM = √({2} * ch² + {1} * ch + {0})";
+
         List<CalibrationPeak> peaks = new List<CalibrationPeak>();
         double[] coefficients = new double[3];
 
@@ -20,12 +21,19 @@ namespace BecquerelMonitor
 
         public override double ChannelToFwhm(double channel)
         {
-            return Math.Sqrt(coefficients[0] + coefficients[1] * channel + coefficients[2] * channel * channel);
+            double result = coefficients[0] + coefficients[1] * channel + coefficients[2] * channel * channel;
+            if (result < 0) return 0.0;
+            return Math.Sqrt(result);
+        }
+
+        public override double FwhmToChannel(double fwhm)
+        {
+            return (-coefficients[1] + Math.Sqrt(coefficients[1] * coefficients[1] - 4 * coefficients[2] * (coefficients[0] - fwhm * fwhm))) / (2 * coefficients[2]);
         }
 
         public override string GetFormula()
         {
-            return "FWHM = √(a * ch² + b * ch + c)";
+            return String.Format(formula, "c", "b", "a");
         }
 
         public override FwhmCalibration Clone()
@@ -46,6 +54,16 @@ namespace BecquerelMonitor
         public override int MinPeaksRequirement()
         {
             return 3;
+        }
+
+        public override string ToString()
+        {
+            return String.Format(formula, coefficients[0], coefficients[1], coefficients[2]);
+        }
+
+        public override bool NotCalibrated()
+        {
+            return (coefficients[0] == 0 && coefficients[1] == 0 && coefficients[2] == 0);
         }
     }
 }
