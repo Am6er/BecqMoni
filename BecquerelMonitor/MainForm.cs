@@ -876,9 +876,9 @@ namespace BecquerelMonitor
             }
         }
 
-        public void UpdateFwhmCalibrationView()
+        public void UpdateFwhmCalibrationView(bool reset_state = false)
         {
-            this.dcCFwhmCalibrationView.UpdateFwhmCalibration();
+            this.dcCFwhmCalibrationView.UpdateFwhmCalibration(reset_state);
         }
 
 
@@ -1015,7 +1015,7 @@ namespace BecquerelMonitor
                 this.dcSampleInfoView.Enabled = true;
                 this.dcCountRateView.Enabled = true;
                 this.dcCFwhmCalibrationView.Enabled = true;
-                UpdateFwhmCalibrationView();
+                UpdateFwhmCalibrationView(true);
                 foreach (DCResultView dcresultView in this.dcResultViewList)
                 {
                     dcresultView.Enabled = true;

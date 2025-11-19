@@ -147,6 +147,24 @@ namespace BecquerelMonitor.Utils
             }
         }
 
+        public static double MSE(FwhmCalibration fwhmCalibration, List<CalibrationPeak> points)
+        {
+            try
+            {
+                double retvalue = 0.0;
+                foreach (CalibrationPeak point in points)
+                {
+                    retvalue += Math.Pow(fwhmCalibration.ChannelToFwhm(point.Channel) - (double)point.FWHM, 2);
+                }
+                retvalue /= points.Count;
+                return retvalue;
+            }
+            catch
+            {
+                return -1;
+            }
+        }
+
         public static double WMSE(double[] coefficients, List<CalibrationPoint> points)
         {
             try

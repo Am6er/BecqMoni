@@ -31,11 +31,16 @@ namespace BecquerelMonitor
             executeCalibrationButton.Enabled = false;
         }
 
-        public void UpdateFwhmCalibration()
+        public void UpdateFwhmCalibration(bool reset_state = false)
         {
             // TODO проверить в mainForm на избыточность событий.
             // Нужны события, когда только калибровка меняется.
             // Нужно на финальном этапе смотреть
+            if (reset_state)
+            {
+                calibrationDone = true;
+                ClearPeakPickupState();
+            }
             fwhmCalibration = mainForm.ActiveDocument.ActiveResultData.FwhmCalibration;
             UpdateData();
         }
@@ -91,6 +96,21 @@ namespace BecquerelMonitor
                     selectCurveComboBox.SelectedIndex = (int)FwhmCalibration.FwhmCalibrationCurve.SqrtFwhmCalibration;
                 }
             }
+
+            if (fwhmCalibration is SimpleSqrtFwhmCalibration)
+            {
+                if (selectCurveComboBox.SelectedIndex == -1 ||
+                    selectCurveComboBox.SelectedIndex != (int)FwhmCalibration.FwhmCalibrationCurve.SimpleSqrtFwhmCalibration)
+                        selectCurveComboBox.SelectedIndex = (int)FwhmCalibration.FwhmCalibrationCurve.SimpleSqrtFwhmCalibration;
+            }
+            else
+            {
+                if (selectCurveComboBox.SelectedIndex == -1 ||
+                    selectCurveComboBox.SelectedIndex != (int)FwhmCalibration.FwhmCalibrationCurve.SqrtFwhmCalibration)
+                        selectCurveComboBox.SelectedIndex = (int)FwhmCalibration.FwhmCalibrationCurve.SqrtFwhmCalibration;
+            }
+
+
             curveFormulaLabel.Text = fwhmCalibration.GetFormula();
             minPeaksRequirement = fwhmCalibration.MinPeaksRequirement();
             minPeaksRequirementLabel.Text = String.Format(Resources.MinPeaksRequirement, minPeaksRequirement);
@@ -98,7 +118,11 @@ namespace BecquerelMonitor
 
         void SelectCurveComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (selectCurveComboBox.SelectedIndex == -1 || selectCurveComboBox.SelectedIndex == lastSelectedIndex) return;
+            if (selectCurveComboBox.SelectedIndex == -1 || selectCurveComboBox.SelectedIndex == lastSelectedIndex || lastSelectedIndex == -1)
+            {
+                lastSelectedIndex = selectCurveComboBox.SelectedIndex;
+                return;
+            }
             if (selectCurveComboBox.SelectedIndex == (int)FwhmCalibration.FwhmCalibrationCurve.SimpleSqrtFwhmCalibration)
             {
                 fwhmCalibration = new SimpleSqrtFwhmCalibration { CalibrationPeaks = fwhmCalibration.ClonePeaks() };
@@ -162,10 +186,12 @@ namespace BecquerelMonitor
             {
                 mainForm.ActiveDocument.ActiveResultData.FwhmCalibration.CalibrationPeaks.RemoveAt(selectedItemIndex);
                 mainForm.ActiveDocument.Dirty = true;
+                calibrationDone = false;
             }
             catch { }
             tableModel1.Selections.Clear();
             UpdateFwhmCalibration();
+            UpdateCalibrateButtonState();
         }
 
         private void SaveToDeviceCfgButton_Click(object sender, EventArgs e)
@@ -343,6 +369,13 @@ namespace BecquerelMonitor
                 UpdateFwhmCalibration();
                 UpdateCalibrateButtonState();
             }
+        }
+
+        private void ViewCalibrationButton_Click(object sender, EventArgs e)
+        {
+            Utils.FWHMCalibrationGraph graph = new Utils.FWHMCalibrationGraph(this.mainForm);
+            graph.Init(fwhmCalibration, mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels);
+            graph.ShowDialog();
         }
     }
 }

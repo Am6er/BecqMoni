@@ -652,6 +652,12 @@
       <DependentUpon>CalibrationGraph.cs</DependentUpon>
     </Compile>
     <Compile Include="Utils\CalibrationSolver.cs" />
+    <Compile Include="Utils\FWHMCalibrationGraph.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Utils\FWHMCalibrationGraph.Designer.cs">
+      <DependentUpon>FWHMCalibrationGraph.cs</DependentUpon>
+    </Compile>
     <Compile Include="Utils\LiveTime.cs" />
     <Compile Include="Utils\ROIAriphmetics.cs" />
     <Compile Include="Utils\SpectrumAriphmetics.cs" />
@@ -1179,6 +1185,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Utils\CalibrationGraph.ru.resx">
       <DependentUpon>CalibrationGraph.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Utils\FWHMCalibrationGraph.resx">
+      <DependentUpon>FWHMCalibrationGraph.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="WinMM\Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

@@ -1,15 +1,12 @@
 ﻿using BecquerelMonitor.Properties;
-using MathNet.Numerics.LinearAlgebra;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Runtime.Remoting.Channels;
 using System.Windows.Forms;
 using XPTable.Editors;
 using XPTable.Events;
 using XPTable.Models;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace BecquerelMonitor
 {

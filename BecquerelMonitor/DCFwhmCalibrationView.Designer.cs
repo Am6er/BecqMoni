@@ -74,6 +74,7 @@
             this.CollectedPeaksTable.Name = "CollectedPeaksTable";
             this.CollectedPeaksTable.TableModel = this.tableModel1;
             this.CollectedPeaksTable.UnfocusedBorderColor = System.Drawing.Color.Black;
+            this.CollectedPeaksTable.EditingStopped += new XPTable.Events.CellEditEventHandler(this.CollectedPeaksTable_EditingStopped);
             // 
             // columnModel1
             // 
@@ -191,6 +192,7 @@
             resources.ApplyResources(this.viewCalibrationButton, "viewCalibrationButton");
             this.viewCalibrationButton.Name = "viewCalibrationButton";
             this.viewCalibrationButton.UseVisualStyleBackColor = true;
+            this.viewCalibrationButton.Click += new System.EventHandler(this.ViewCalibrationButton_Click);
             // 
             // label3
             // 
