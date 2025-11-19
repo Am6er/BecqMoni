@@ -141,7 +141,7 @@ namespace BecquerelMonitor
                     double rightEnergy = energyCalibration.ChannelToEnergy(peak.Channel + peak.FWHM / 2.0);
                     double resolution = 100.0 * (rightEnergy - leftEnergy) / energyCalibration.ChannelToEnergy((double)peak.Channel);
 
-                    row.Cells.Add(new Cell(peak.FWHM.ToString("f0") + " " + resolution.ToString("f1") + "%"));
+                    row.Cells.Add(new Cell(peak.FWHM.ToString("f0") + ", " + resolution.ToString("f1") + "% ±" + peak.FWHM_DELTA.ToString("f1")));
                     this.tableModel1.Rows.Add(row);
                 }
                 activeDocument.RefreshView();

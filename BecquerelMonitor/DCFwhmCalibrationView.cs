@@ -1,7 +1,9 @@
-﻿using System;
+﻿using BecquerelMonitor.Properties;
+using System;
+using System.Collections.Generic;
 using System.Windows.Forms;
+using XPTable.Editors;
 using XPTable.Models;
-using BecquerelMonitor.Properties;
 
 namespace BecquerelMonitor
 {
@@ -80,13 +82,13 @@ namespace BecquerelMonitor
         {
             if (selectCurveComboBox.SelectedIndex == -1)
             {
-                if (fwhmCalibration is SqrtFwhmCalibration)
+                if (fwhmCalibration is SimpleSqrtFwhmCalibration)
                 {
-                    selectCurveComboBox.SelectedIndex = (int)FwhmCalibrationCurve.SquareRootPolynomial;
+                    selectCurveComboBox.SelectedIndex = (int)FwhmCalibration.FwhmCalibrationCurve.SimpleSqrtFwhmCalibration;
                 }
                 else
                 {
-                    selectCurveComboBox.SelectedIndex = (int)FwhmCalibrationCurve.SimpleSquareRoot;
+                    selectCurveComboBox.SelectedIndex = (int)FwhmCalibration.FwhmCalibrationCurve.SqrtFwhmCalibration;
                 }
             }
             curveFormulaLabel.Text = fwhmCalibration.GetFormula();
@@ -94,15 +96,15 @@ namespace BecquerelMonitor
             minPeaksRequirementLabel.Text = String.Format(Resources.MinPeaksRequirement, minPeaksRequirement);
         }
 
-        void selectCurveComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        void SelectCurveComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (selectCurveComboBox.SelectedIndex == -1 || selectCurveComboBox.SelectedIndex == lastSelectedIndex) return;
-            if (selectCurveComboBox.SelectedIndex == (int)FwhmCalibrationCurve.SquareRootPolynomial)
-            {
-                fwhmCalibration = new SqrtFwhmCalibration { CalibrationPeaks = fwhmCalibration.ClonePeaks() };
-            } else
+            if (selectCurveComboBox.SelectedIndex == (int)FwhmCalibration.FwhmCalibrationCurve.SimpleSqrtFwhmCalibration)
             {
                 fwhmCalibration = new SimpleSqrtFwhmCalibration { CalibrationPeaks = fwhmCalibration.ClonePeaks() };
+            } else
+            {
+                fwhmCalibration = new SqrtFwhmCalibration { CalibrationPeaks = fwhmCalibration.ClonePeaks() };
             }
             UpdateSelectedCurveInfo();
             UpdateCalibrateButtonState();
@@ -129,9 +131,17 @@ namespace BecquerelMonitor
             {
                 saveToDeviceCfgButton.Enabled = true;
             }
+            if (isCalibrationPeaksExist() > 1)
+            {
+                getAllPeaksButton.Enabled = true;
+            }
+            else
+            {
+                getAllPeaksButton.Enabled = false;
+            }
         }
 
-        private void removePeakButton_Click(object sender, EventArgs e)
+        private void RemovePeakButton_Click(object sender, EventArgs e)
         {
             int selectedItemIndex;
             if (CollectedPeaksTable.SelectedItems.Length >= 1)
@@ -158,7 +168,7 @@ namespace BecquerelMonitor
             UpdateFwhmCalibration();
         }
 
-        private void saveToDeviceCfgButton_Click(object sender, EventArgs e)
+        private void SaveToDeviceCfgButton_Click(object sender, EventArgs e)
         {
             if (MessageBox.Show(Resources.MSGSaveFWHMCalibration, Resources.ConfirmationDialogTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation) != DialogResult.Yes)
             {
@@ -183,18 +193,18 @@ namespace BecquerelMonitor
             mainForm.UpdateDeviceConfigForm();
         }
 
-        private void addPeakButton_Click(object sender, EventArgs e)
+        private void AddPeakButton_Click(object sender, EventArgs e)
         {
             if (mainForm.ActiveDocument != null)
             {
                 cancelAddPeakButton.Enabled = true;
                 peakPickupProcessing = true;
                 addPeakButton.Enabled = !peakPickupProcessing;
-                mainForm.ActiveDocument.EnergySpectrumView.PeakPickuped += this.energySpectrumView_PeakPickuped;
+                mainForm.ActiveDocument.EnergySpectrumView.PeakPickuped += this.EnergySpectrumView_PeakPickuped;
             }
         }
 
-        void energySpectrumView_PeakPickuped(object sender, PeakPickupedEventArgs e)
+        void EnergySpectrumView_PeakPickuped(object sender, PeakPickupedEventArgs e)
         {
             if (!peakPickupProcessing)
             {
@@ -204,7 +214,7 @@ namespace BecquerelMonitor
             CalibrationPeak newPeak = e.CalibrationPeak;
             foreach (CalibrationPeak peak in mainForm.ActiveDocument.ActiveResultData.FwhmCalibration.CalibrationPeaks)
             {
-                if (peak.Channel == newPeak.Channel || peak.FWHM == newPeak.FWHM)
+                if (peak.Equals(newPeak))
                 {
                     string PeakExistText = String.Format(Resources.ERRPeakExist, peak.FWHM, peak.Channel);
                     MessageBox.Show(PeakExistText, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
@@ -223,7 +233,7 @@ namespace BecquerelMonitor
         {
             if (mainForm.ActiveDocument != null)
             {
-                mainForm.ActiveDocument.EnergySpectrumView.PeakPickuped -= this.energySpectrumView_PeakPickuped;
+                mainForm.ActiveDocument.EnergySpectrumView.PeakPickuped -= this.EnergySpectrumView_PeakPickuped;
             }
             peakPickupProcessing = false;
             addPeakButton.Enabled = !peakPickupProcessing;
@@ -231,7 +241,7 @@ namespace BecquerelMonitor
             UpdateCalibrateButtonState();
         }
 
-        private void executeCalibrationButton_Click(object sender, EventArgs e)
+        private void ExecuteCalibrationButton_Click(object sender, EventArgs e)
         {
             if (!fwhmCalibration.PerformCalibration())
             {
@@ -246,9 +256,93 @@ namespace BecquerelMonitor
             mainForm.ActiveDocument.UpdateEnergySpectrum();
         }
 
-        private void cancelAddPeakButton_Click(object sender, EventArgs e)
+        private void CancelAddPeakButton_Click(object sender, EventArgs e)
         {
             ClearPeakPickupState();
+        }
+
+        private void CollectedPeaksTable_EditingStopped(object sender, XPTable.Events.CellEditEventArgs e)
+        {
+            Cell cell = e.Cell;
+            Row row = cell.Row;
+            List<CalibrationPeak> calibrationPeaks = mainForm.ActiveDocument.ActiveResultData.FwhmCalibration.CalibrationPeaks;
+            NumberCellEditor editor = (NumberCellEditor)e.Editor;
+            string textvalue = editor.TextBox.Text;
+
+            if (e.Column == 1)
+            {
+                calibrationPeaks[row.Index].Channel = int.Parse(textvalue);
+            }
+            else if (e.Column == 2)
+            {
+                calibrationPeaks[row.Index].Energy = double.Parse(textvalue);
+            }
+            else if (e.Column == 3)
+            {
+                calibrationPeaks[row.Index].FWHM = double.Parse(textvalue);
+            } else
+            {
+                return;
+            }
+            mainForm.ActiveDocument.Dirty = true;
+            calibrationDone = false;
+            UpdateCalibrateButtonState();
+        }
+
+        private void GetAllPeaksButton_Click(object sender, EventArgs e)
+        {
+            List<CalibrationPeak> peaks = new List<CalibrationPeak>();
+            Dictionary<int, double> peaksDict = new Dictionary<int, double>();
+
+            if (mainForm.DocumentList != null)
+            {
+                foreach (DocEnergySpectrum doc in mainForm.DocumentList)
+                {
+                    foreach (ResultData data in doc.ResultDataFile.ResultDataList)
+                    {
+                        if (data.FwhmCalibration.CalibrationPeaks.Count > 0)
+                        {
+                            peaks.AddRange(data.FwhmCalibration.CalibrationPeaks);
+                        }
+                    }
+                }
+                if (peaks.Count > 0)
+                {
+                    mainForm.ActiveDocument.ActiveResultData.FwhmCalibration.CalibrationPeaks.Clear();
+                }
+                foreach (CalibrationPeak peak in peaks)
+                {
+                    if (peaksDict.ContainsKey(peak.Channel))
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        peaksDict.Add(peak.Channel, peak.FWHM);
+                        mainForm.ActiveDocument.ActiveResultData.FwhmCalibration.CalibrationPeaks.Add(peak);
+                        mainForm.ActiveDocument.Dirty = true;
+                        calibrationDone = false;
+                    }
+                }
+                UpdateFwhmCalibration();
+                UpdateCalibrateButtonState();
+            }
+        }
+
+        int isCalibrationPeaksExist()
+        {
+            int count = 0;
+            if (mainForm.DocumentList != null)
+            {
+                foreach (DocEnergySpectrum doc in mainForm.DocumentList)
+                {
+                    foreach (ResultData data in doc.ResultDataFile.ResultDataList)
+                    {
+                        count += data.FwhmCalibration.CalibrationPeaks.Count;
+                    }
+                }
+            }
+            return count;
         }
     }
 }

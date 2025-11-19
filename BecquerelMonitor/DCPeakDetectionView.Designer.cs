@@ -85,13 +85,14 @@ namespace BecquerelMonitor
 			this.textColumn1.Editable = false;
 			this.textColumn1.IsTextTrimmed = false;
 			this.textColumn1.Sortable = true;
-			this.textColumn1.Width = 70;
+			this.textColumn1.Width = 50;
 			resources.ApplyResources(this.textColumn1, "textColumn1");
 			this.textColumn4.Alignment = global::XPTable.Models.ColumnAlignment.Right;
 			this.textColumn4.Editable = false;
 			this.textColumn4.IsTextTrimmed = false;
 			this.textColumn4.Sortable = true;
-			resources.ApplyResources(this.textColumn4, "textColumn4");
+            this.textColumn4.Width = 50;
+            resources.ApplyResources(this.textColumn4, "textColumn4");
 			this.textColumn2.Alignment = global::XPTable.Models.ColumnAlignment.Right;
 			this.textColumn2.Editable = false;
 			this.textColumn2.IsTextTrimmed = false;
@@ -102,13 +103,13 @@ namespace BecquerelMonitor
 			this.textColumn5.Editable = false;
 			this.textColumn5.IsTextTrimmed = false;
 			this.textColumn5.Sortable = true;
-			this.textColumn5.Width = 40;
+			this.textColumn5.Width = 38;
 			resources.ApplyResources(this.textColumn5, "textColumn5");
 			this.textColumn6.Alignment = global::XPTable.Models.ColumnAlignment.Right;
 			this.textColumn6.Editable = false;
 			this.textColumn6.IsTextTrimmed = false;
 			this.textColumn6.Sortable = true;
-			this.textColumn6.Width = 55;
+			this.textColumn6.Width = 80;
 			resources.ApplyResources(this.textColumn6, "textColumn6");
 
 

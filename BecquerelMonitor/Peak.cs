@@ -42,6 +42,18 @@
             }
         }
 
+        public double FWHM_DELTA
+        {
+            get
+            {
+                return this.fwhm_delta;
+            }
+            set
+            {
+                this.fwhm_delta = value;
+            }
+        }
+
         // Token: 0x170002D9 RID: 729
         // (get) Token: 0x06000AB4 RID: 2740 RVA: 0x0003FDD4 File Offset: 0x0003DFD4
         // (set) Token: 0x06000AB5 RID: 2741 RVA: 0x0003FDDC File Offset: 0x0003DFDC
@@ -138,5 +150,7 @@
         double snr;
 
         double fwhm;
+
+        double fwhm_delta;
     }
 }

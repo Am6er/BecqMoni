@@ -209,7 +209,15 @@ namespace BecquerelMonitor
             this.peak_type = config.peak_type;
             this.left_tail = config.left_tail;
             this.right_tail = config.right_tail;
-            this.fwhmCalibration = config.fwhmCalibration.Clone();
+            if (config.fwhmCalibration != null)
+            {
+                this.fwhmCalibration = config.fwhmCalibration.Clone();
+            }
+            else
+            {
+                this.fwhmCalibration = FwhmCalibration.DefaultCalibration(this, new PolynomialEnergyCalibration());
+            }
+                
         }
 
         public override PeakDetectionMethodConfig Clone()
