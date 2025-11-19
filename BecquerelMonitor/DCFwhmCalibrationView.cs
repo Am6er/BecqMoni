@@ -289,6 +289,22 @@ namespace BecquerelMonitor
             UpdateCalibrateButtonState();
         }
 
+        int isCalibrationPeaksExist()
+        {
+            int count = 0;
+            if (mainForm.DocumentList != null)
+            {
+                foreach (DocEnergySpectrum doc in mainForm.DocumentList)
+                {
+                    foreach (ResultData data in doc.ResultDataFile.ResultDataList)
+                    {
+                        count += data.FwhmCalibration.CalibrationPeaks.Count;
+                    }
+                }
+            }
+            return count;
+        }
+
         private void GetAllPeaksButton_Click(object sender, EventArgs e)
         {
             List<CalibrationPeak> peaks = new List<CalibrationPeak>();
@@ -327,22 +343,6 @@ namespace BecquerelMonitor
                 UpdateFwhmCalibration();
                 UpdateCalibrateButtonState();
             }
-        }
-
-        int isCalibrationPeaksExist()
-        {
-            int count = 0;
-            if (mainForm.DocumentList != null)
-            {
-                foreach (DocEnergySpectrum doc in mainForm.DocumentList)
-                {
-                    foreach (ResultData data in doc.ResultDataFile.ResultDataList)
-                    {
-                        count += data.FwhmCalibration.CalibrationPeaks.Count;
-                    }
-                }
-            }
-            return count;
         }
     }
 }

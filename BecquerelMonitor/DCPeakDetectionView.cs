@@ -85,7 +85,7 @@ namespace BecquerelMonitor
                 }
                 ResultData activeResultData = activeDocument.ActiveResultData;
                 FWHMPeakDetectionMethodConfig fWHMConfig = (FWHMPeakDetectionMethodConfig)activeResultData.PeakDetectionMethodConfig;
-                if (fWHMConfig.FwhmCalibration == null || activeResultData.FwhmCalibration == null)
+                if (activeResultData.FwhmCalibration == null)
                 {
                     // TODO нужно будет добавить обработку
                     throw new NotImplementedException();

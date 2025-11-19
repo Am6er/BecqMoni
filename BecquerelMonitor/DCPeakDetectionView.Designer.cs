@@ -91,7 +91,7 @@ namespace BecquerelMonitor
 			this.textColumn4.Editable = false;
 			this.textColumn4.IsTextTrimmed = false;
 			this.textColumn4.Sortable = true;
-            this.textColumn4.Width = 50;
+            this.textColumn4.Width = 45;
             resources.ApplyResources(this.textColumn4, "textColumn4");
 			this.textColumn2.Alignment = global::XPTable.Models.ColumnAlignment.Right;
 			this.textColumn2.Editable = false;
@@ -109,7 +109,7 @@ namespace BecquerelMonitor
 			this.textColumn6.Editable = false;
 			this.textColumn6.IsTextTrimmed = false;
 			this.textColumn6.Sortable = true;
-			this.textColumn6.Width = 80;
+			this.textColumn6.Width = 90;
 			resources.ApplyResources(this.textColumn6, "textColumn6");
 
 

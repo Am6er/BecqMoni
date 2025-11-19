@@ -226,6 +226,7 @@
             resources.ApplyResources(this.getAllPeaksButton, "getAllPeaksButton");
             this.getAllPeaksButton.Name = "getAllPeaksButton";
             this.getAllPeaksButton.UseVisualStyleBackColor = true;
+            this.getAllPeaksButton.Click += new System.EventHandler(this.GetAllPeaksButton_Click);
             // 
             // DCFwhmCalibrationView
             // 
