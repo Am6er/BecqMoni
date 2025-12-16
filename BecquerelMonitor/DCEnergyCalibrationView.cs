@@ -1,15 +1,12 @@
 ﻿using BecquerelMonitor.Properties;
-using MathNet.Numerics.LinearAlgebra;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Runtime.Remoting.Channels;
 using System.Windows.Forms;
 using XPTable.Editors;
 using XPTable.Events;
 using XPTable.Models;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace BecquerelMonitor
 {
@@ -561,22 +558,22 @@ namespace BecquerelMonitor
         // Token: 0x0600082D RID: 2093 RVA: 0x0002E644 File Offset: 0x0002C844
         void button9_Click(object sender, EventArgs e)
         {
-            int num;
+            int selectedItemIndex;
             if (this.table1.SelectedItems.Length >= 1)
             {
-                num = this.table1.SelectedItems[0].Index;
+                selectedItemIndex = this.table1.SelectedItems[0].Index;
             }
             else
             {
-                num = 0;
+                selectedItemIndex = 0;
             }
-            if (num < 0 && num >= this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints.Count)
+            if (selectedItemIndex < 0 && selectedItemIndex >= this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints.Count)
             {
                 return;
             }
             try
             {
-                this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints.RemoveAt(num);
+                this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints.RemoveAt(selectedItemIndex);
             } catch
             {
 

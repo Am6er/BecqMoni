@@ -1226,6 +1226,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Selected peak FWHM allready exist in calibration peaks table! Try to select other peak. FWHM = {0} ch, Channel = {1} ch.
+        /// </summary>
+        internal static string ERRPeakExist {
+            get {
+                return ResourceManager.GetString("ERRPeakExist", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Couldn&apos;t read device data from Port: {0}.
         /// </summary>
         internal static string ERRReadDataFromPort {
@@ -1639,6 +1648,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Minimum peaks requirement: {0}.
+        /// </summary>
+        internal static string MinPeaksRequirement {
+            get {
+                return ResourceManager.GetString("MinPeaksRequirement", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
         internal static System.Drawing.Bitmap Minus {
@@ -1871,6 +1889,15 @@ namespace BecquerelMonitor.Properties {
         internal static string MSGSaveEnergyCalibration {
             get {
                 return ResourceManager.GetString("MSGSaveEnergyCalibration", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Save FWHM calibration to current device configuration?.
+        /// </summary>
+        internal static string MSGSaveFWHMCalibration {
+            get {
+                return ResourceManager.GetString("MSGSaveFWHMCalibration", resourceCulture);
             }
         }
         

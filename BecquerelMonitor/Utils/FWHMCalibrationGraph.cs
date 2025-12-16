@@ -1,15 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Security.Policy;
 using System.Windows.Forms;
 using BecquerelMonitor.Properties;
 
 namespace BecquerelMonitor.Utils
 {
-    public partial class CalibrationGraph : Form
+    public partial class FWHMCalibrationGraph : Form
     {
-        public CalibrationGraph(MainForm mainForm)
+        public FWHMCalibrationGraph(MainForm mainForm)
         {
             InitializeComponent();
             this.DoubleBuffered = true;
@@ -19,7 +18,6 @@ namespace BecquerelMonitor.Utils
             this.mainForm = mainForm;
             this.Icon = Resources.becqmoni;
             this.Size = new Size(this.mainForm.Width * 3 / 4, this.mainForm.Height * 3 / 4);
-
         }
 
         MainForm mainForm;
@@ -29,38 +27,31 @@ namespace BecquerelMonitor.Utils
         int startwidth = 10;
         int startheight = 10;
         int maxChannels;
-        CalibrationPoint glowPoint;
+        CalibrationPeak glowPoint;
         int mouseX = 0;
         int mouseY = 0;
-        bool recalcPoly = true;
+        bool recalcCurve = true;
         bool polycorrect = false;
         bool formloading = true;
-        double maxEnergy;
-        List<CalibrationPoint> points, originalpoints;
-        PolynomialEnergyCalibration calibration, originalcalibration;
-        int polyorder;
-        bool weights = false;
+        double maxFWHM;
+        List<CalibrationPeak> points, originalpoints;
+        FwhmCalibration fwhmCalibration, originalfwhmCalibration;
 
-        public void SetCalibration(PolynomialEnergyCalibration calibration, int maxchannel, int order, bool useweight)
+        public void Init(FwhmCalibration fwhmCalibration, int maxchannel)
         {
-            this.calibration = (PolynomialEnergyCalibration)calibration.Clone();
             this.maxChannels = maxchannel;
-            this.maxEnergy = 3500.0;
-            this.polyorder = order;
-            this.weights = useweight;
-        }
-
-        public void SetCalibrationPoints(List<CalibrationPoint> pts)
-        {
-            this.points = ClonePoints(pts);
-            this.originalpoints = pts;
+            this.maxFWHM = fwhmCalibration.ChannelToFwhm(maxchannel);
+            this.fwhmCalibration = fwhmCalibration.Clone();
+            if (this.fwhmCalibration.NotCalibrated()) this.fwhmCalibration.PerformCalibration(this.maxChannels);
+            this.points = new List<CalibrationPeak>(fwhmCalibration.CalibrationPeaks);
+            this.originalpoints = new List<CalibrationPeak>(fwhmCalibration.CalibrationPeaks);
         }
 
         void PrepareData()
         {
             this.width = base.ClientSize.Width - startwidth;
             this.height = base.ClientSize.Height - startheight;
-            this.maxEnergy = 3500.0;
+            this.maxFWHM = fwhmCalibration.ChannelToFwhm(this.maxChannels);
         }
 
         void PaintBackground(Graphics g)
@@ -81,10 +72,11 @@ namespace BecquerelMonitor.Utils
 
         void PaintAxis(Graphics g)
         {
-            int ch_step = 500;
-            double en_step = 500.0;
+            int ch_step = this.maxChannels / 6;
+            double fwhm_step = this.maxFWHM / 6;
             int x_points = this.maxChannels / ch_step;
-            int y_points = (int)(this.maxEnergy / en_step);
+            int y_points = (int)(this.maxFWHM / fwhm_step);
+
             Brush brush = new SolidBrush(this.globalConfigManager.GlobalConfig.ColorConfig.AxisFigureColor.Color);
             Pen pen = new Pen(this.globalConfigManager.GlobalConfig.ColorConfig.GridColor1.Color);
             for (int i = 1; i < x_points; i++)
@@ -101,16 +93,16 @@ namespace BecquerelMonitor.Utils
             for (int i = 1; i < y_points; i++)
             {
                 int x_left = this.startwidth;
-                int y_left = this.height - this.EnergyToPx(i * en_step);
+                int y_left = this.height - this.FWHMToPx(i * fwhm_step);
                 int x_right = this.width;
                 int y_right = y_left;
                 g.DrawLine(pen, x_left, y_left, x_right, y_right);
                 Rectangle r = new Rectangle(x_left, y_left - 16, 32, 32);
-                g.DrawString((i * (int)en_step).ToString(), this.Font, brush, r);
+                g.DrawString((i * (int)fwhm_step).ToString(), this.Font, brush, r);
             }
 
             Rectangle rlabel = new Rectangle(this.startwidth, this.startheight, 120, 32);
-            g.DrawString(Resources.ChartHeaderEnergy, this.Font, brush, rlabel);
+            g.DrawString(Resources.ChartHeaderFWHM, this.Font, brush, rlabel);
             rlabel = new Rectangle(this.width - 60, this.height - 32, 120, 32);
             g.DrawString(Resources.ChartHeaderChannel, this.Font, brush, rlabel);
 
@@ -118,29 +110,14 @@ namespace BecquerelMonitor.Utils
 
         void PaintChart(Graphics g)
         {
-            if (this.recalcPoly)
+            if (this.recalcCurve)
             {
-                double[] matrix;
-                if (this.weights)
-                {
-                    matrix = Utils.CalibrationSolver.SolveWeighted(points, this.polyorder);
-                }
-                else
-                {
-                    matrix = Utils.CalibrationSolver.Solve(points, this.polyorder);
-                }
-                if (matrix != null)
-                {
-                    this.calibration.Coefficients = new double[matrix.Length];
-                    this.calibration.PolynomialOrder = matrix.Length - 1;
-                    this.calibration.Coefficients = matrix;
-                    this.polycorrect = this.calibration.CheckCalibration(channels: this.maxChannels);
-                }
-                this.recalcPoly = false;
+                this.polycorrect = fwhmCalibration.PerformCalibration(this.maxChannels);
+                this.recalcCurve = false;
             }
             if (this.formloading)
             {
-                this.originalcalibration = (PolynomialEnergyCalibration)this.calibration.Clone();
+                this.originalfwhmCalibration = this.fwhmCalibration.Clone();
                 this.formloading = false;
             }
             Pen pen = new Pen(this.globalConfigManager.GlobalConfig.ColorConfig.ActiveSpectrumColor.Color);
@@ -150,13 +127,13 @@ namespace BecquerelMonitor.Utils
             }
             for (int i = 0; i < this.maxChannels - 1; i++)
             {
-                if (this.height - EnergyToPx(i + 1) <= this.startheight)
+                if (this.height - FWHMToPx(i + 1) <= this.startheight)
                 {
                     break;
                 }
-                if (EnergyToPx(i) > 0)
+                if (FWHMToPx(i) > 0)
                 {
-                    g.DrawLine(pen, ChanToPx(i), this.height - EnergyToPx(i), ChanToPx(i + 1), this.height - EnergyToPx(i + 1));
+                    g.DrawLine(pen, ChanToPx(i), this.height - FWHMToPx(i), ChanToPx(i + 1), this.height - FWHMToPx(i + 1));
                 }
             }
         }
@@ -167,62 +144,44 @@ namespace BecquerelMonitor.Utils
             Brush glowbrush = new SolidBrush(this.globalConfigManager.GlobalConfig.ColorConfig.ROIBorderColor.Color);
             Brush textbrush = new SolidBrush(this.globalConfigManager.GlobalConfig.ColorConfig.AxisFigureColor.Color);
             int r = 10;
-            foreach (CalibrationPoint point in this.points)
+            foreach (CalibrationPeak point in this.points)
             {
-                if (this.glowPoint != null && this.glowPoint.Channel == point.Channel && this.glowPoint.Energy == point.Energy)
+                if (this.glowPoint != null && this.glowPoint.Channel == point.Channel && this.glowPoint.FWHM == point.FWHM)
                 {
-                    g.FillEllipse(glowbrush, ChanToPx(point.Channel) - r / 2, this.height - EnergyToPx((double)point.Energy) - r / 2, r, r);
+                    g.FillEllipse(glowbrush, ChanToPx(point.Channel) - r / 2, this.height - FWHMToPx((double)point.FWHM) - r / 2, r, r);
                     Rectangle label;
                     if (this.mouseX - 110 < this.startwidth)
                     {
                         label = new Rectangle(this.mouseX + 15, this.mouseY - 48, 120, 48);
-                    } else
+                    }
+                    else
                     {
                         label = new Rectangle(this.mouseX - 120, this.mouseY - 48, 120, 48);
                     }
-                        
-                    string labeltext;
-                    if (!this.weights)
-                    {
-                        labeltext = string.Concat(
-                            Resources.ChartHeaderChannel, 
-                            " ", 
-                            point.Channel, 
-                            "\n", 
-                            Resources.ChartHeaderEnergy, 
-                            " ", 
-                            point.Energy,
-                            "\n",
-                            Resources.Delta,
-                            Resources.ChartHeaderChannel,
-                            " ",
-                            (int)(point.Channel - this.calibration.EnergyToChannel((double)point.Energy, maxCh: this.maxChannels))
-                         );
-                    } else
-                    {
-                        labeltext = string.Concat(
+
+
+                    string labeltext = string.Concat(
                             Resources.ChartHeaderChannel,
                             " ",
                             point.Channel,
                             "\n",
                             Resources.ChartHeaderEnergy,
                             " ",
-                            point.Energy,
+                            point.Energy.ToString("f2"),
                             "\n",
-                            Resources.ChartHeaderWeight,
+                            Resources.ChartHeaderFWHM,
                             " ",
-                            point.Count,
-                            "\n",
+                            point.FWHM,
+                            " ch\n",
                             Resources.Delta,
-                            Resources.ChartHeaderChannel,
+                            Resources.ChartHeaderFWHM,
                             " ",
-                            (int)(point.Channel - this.calibration.EnergyToChannel((double)point.Energy, maxCh: this.maxChannels))
+                            (point.FWHM - this.fwhmCalibration.ChannelToFwhm(point.Channel)).ToString("f1")
                          );
-                    }
                     g.DrawString(labeltext, this.Font, textbrush, label);
                     continue;
                 }
-                g.FillEllipse(brush, ChanToPx(point.Channel) - r / 2, this.height - EnergyToPx((double)point.Energy) - r / 2, r, r);
+                g.FillEllipse(brush, ChanToPx(point.Channel) - r / 2, this.height - FWHMToPx(point.FWHM) - r / 2, r, r);
             }
         }
 
@@ -230,19 +189,10 @@ namespace BecquerelMonitor.Utils
         {
             Brush brush = new SolidBrush(this.globalConfigManager.GlobalConfig.ColorConfig.AxisFigureColor.Color);
             Rectangle label = new Rectangle(100, this.startheight, 1000, 62);
-            string functiontext = this.calibration.ToString();
-            if (!this.weights)
-            {
-                functiontext += "\n" + Resources.MSGMSE + ":" + "\n"
-                    + "\t" + Resources.Default + ": " + Utils.CalibrationSolver.WMSE(this.originalcalibration.Coefficients, this.originalpoints).ToString("f4") + "\n"
-                    + "\t" + Resources.Current + ": " + Utils.CalibrationSolver.WMSE(this.calibration.Coefficients, this.points).ToString("f4");
-
-            } else
-            {
-                functiontext += "\n" + Resources.MSGMSE + ":" + "\n"
-                    + "\t" + Resources.Default + ": " + Utils.CalibrationSolver.MSE(this.originalcalibration.Coefficients, this.originalpoints).ToString("f4") + "\n"
-                    + "\t" + Resources.Current + ": " + Utils.CalibrationSolver.MSE(this.calibration.Coefficients, this.points).ToString("f4");
-            }
+            string functiontext = this.fwhmCalibration.ToString();
+            functiontext += "\n" + Resources.MSGMSE + ":" + "\n"
+            + "\t" + Resources.Default + ": " + Utils.CalibrationSolver.MSE(this.originalfwhmCalibration, this.originalpoints).ToString("f4") + "\n"
+            + "\t" + Resources.Current + ": " + Utils.CalibrationSolver.MSE(this.fwhmCalibration, this.points).ToString("f4");
             if (!this.polycorrect)
             {
                 functiontext += "\n" + Resources.CalibrationFunctionError;
@@ -250,7 +200,7 @@ namespace BecquerelMonitor.Utils
             g.DrawString(functiontext, this.Font, brush, label);
         }
 
-        private void CalibrationGraph_MouseMove(object sender, MouseEventArgs e)
+        private void FWHMCalibrationGraph_MouseMove(object sender, MouseEventArgs e)
         {
             int X = e.X;
             int Y = e.Y;
@@ -261,15 +211,15 @@ namespace BecquerelMonitor.Utils
                 this.glowPoint.Channel = PxToChannel(X);
                 this.mouseX = X;
                 this.mouseY = Y;
-                this.recalcPoly = true;
+                this.recalcCurve = true;
                 base.Invalidate();
                 return;
             }
-            foreach (CalibrationPoint point in this.points)
+            foreach (CalibrationPeak point in this.points)
             {
                 if (X >= ChanToPx(point.Channel) - r / 2 && X <= ChanToPx(point.Channel) + r / 2)
                 {
-                    if (Y >= this.height - EnergyToPx((double)point.Energy) - r / 2 && Y <= this.height - EnergyToPx((double)point.Energy) + r / 2)
+                    if (Y >= this.height - FWHMToPx((double)point.FWHM) - r / 2 && Y <= this.height - FWHMToPx((double)point.FWHM) + r / 2)
                     {
                         this.glowPoint = point;
                         this.mouseX = X;
@@ -299,14 +249,9 @@ namespace BecquerelMonitor.Utils
             return (int)((double)(this.width - this.startwidth) * (double)ch / (double)this.maxChannels + this.startwidth);
         }
 
-        int EnergyToPx(int ch)
+        int FWHMToPx(int ch)
         {
-            return (int)((double)(this.height - this.startheight) * this.calibration.ChannelToEnergy(ch) / (double)this.maxEnergy);
-        }
-
-        double PxToEnergy(int px)
-        {
-            return (double)this.maxEnergy * (double)px / (double)(this.height - this.startheight);
+            return (int)((double)(this.height - this.startheight) * this.fwhmCalibration.ChannelToFwhm(ch) / (double)this.maxFWHM);
         }
 
         int PxToChannel(int px)
@@ -316,20 +261,20 @@ namespace BecquerelMonitor.Utils
 
         private void updateCalibrationPointsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints = this.points;
-            this.originalcalibration = (PolynomialEnergyCalibration)this.calibration.Clone();
-            this.originalpoints = ClonePoints(this.points);
+            this.mainForm.ActiveDocument.ActiveResultData.FwhmCalibration.CalibrationPeaks = this.points;
+            this.originalfwhmCalibration = this.fwhmCalibration.Clone();
+            this.originalpoints = new List<CalibrationPeak>(this.points);
         }
 
         private void resetToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.glowPoint = null;
-            this.points = ClonePoints(this.originalpoints);
-            this.calibration = (PolynomialEnergyCalibration)this.originalcalibration.Clone();
+            this.points = new List<CalibrationPeak>(this.originalpoints);
+            this.fwhmCalibration = this.originalfwhmCalibration.Clone();
             base.Invalidate();
         }
 
-        private void CalibrationGraph_MouseClick(object sender, MouseEventArgs e)
+        private void FWHMCalibrationGraph_MouseClick(object sender, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Right)
             {
@@ -337,20 +282,9 @@ namespace BecquerelMonitor.Utils
             }
         }
 
-        int EnergyToPx(double energy)
+        int FWHMToPx(double fwhm)
         {
-            return (int)((double)(this.height - this.startheight) * energy / (double)this.maxEnergy);
-        }
-
-        List<CalibrationPoint> ClonePoints(List<CalibrationPoint> pts)
-        {
-            List <CalibrationPoint> result = new List<CalibrationPoint>();
-            foreach (CalibrationPoint point in pts)
-            {
-                CalibrationPoint p = new CalibrationPoint(point.Channel, point.Energy, point.Count);
-                result.Add(p);
-            }
-            return result;
+            return (int)((double)(this.height - this.startheight) * fwhm / (double)this.maxFWHM);
         }
     }
 }

@@ -50,6 +50,31 @@ namespace BecquerelMonitor.Utils
             */
         }
 
+        public static double[] Solve(List<CalibrationPeak> peak, int PolynomialOrder)
+        {
+            Matrix<double> matrix;
+            Vector<double> vector;
+            double[,] dense_matrix = new double[peak.Count, PolynomialOrder + 1];
+            double[] dense_vector = new double[peak.Count];
+
+            for (int i = 0; i < peak.Count; i++)
+            {
+                for (int j = PolynomialOrder; j >= 0; j--)
+                {
+                    double val = (double)Math.Pow(peak[i].Channel, j);
+                    dense_matrix[i, j] = val;
+                }
+                dense_vector[i] = peak[i].FWHM * peak[i].FWHM;
+            }
+
+            matrix = Matrix<double>.Build.DenseOfArray(dense_matrix);
+            vector = Vector<double>.Build.Dense(dense_vector);
+
+            double[] retvalue = matrix.Solve(vector).ToArray();
+
+            return retvalue;
+        }
+
         public static double[] SolveWeighted (List<CalibrationPoint> points, int PolynomialOrder)
         {
             Matrix<double> matrix;
@@ -112,6 +137,24 @@ namespace BecquerelMonitor.Utils
                 foreach (CalibrationPoint point in points)
                 {
                     retvalue += Math.Pow(pol.ChannelToEnergy(point.Channel) - (double)point.Energy, 2);
+                }
+                retvalue /= points.Count;
+                return retvalue;
+            }
+            catch
+            {
+                return -1;
+            }
+        }
+
+        public static double MSE(FwhmCalibration fwhmCalibration, List<CalibrationPeak> points)
+        {
+            try
+            {
+                double retvalue = 0.0;
+                foreach (CalibrationPeak point in points)
+                {
+                    retvalue += Math.Pow(fwhmCalibration.ChannelToFwhm(point.Channel) - (double)point.FWHM, 2);
                 }
                 retvalue /= points.Count;
                 return retvalue;
