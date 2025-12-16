@@ -39,12 +39,13 @@ namespace BecquerelMonitor
             simpleSqrtFwhmCalibration.ExpGaussExpLeftTail = fwhmConfig.ExpGaussExpLeftTail;
             simpleSqrtFwhmCalibration.ExpGaussExpRightTail = fwhmConfig.ExpGaussExpRightTail;
 
-            if (simpleSqrtFwhmCalibration.PerformCalibration())
+            if (simpleSqrtFwhmCalibration.PerformCalibration(energyCalibration.MaxChannels()))
             {
                 return simpleSqrtFwhmCalibration;
             }
             else
             {
+                // TODO Может чтобы избежать null нужно тут влепить некую дефолтную кривую по аналогии с y = x? На подумать.
                 return null;
             }
         }
@@ -59,7 +60,7 @@ namespace BecquerelMonitor
         [XmlArrayItem("Coefficient")]
         public abstract double[] Coefficients { get; set; }
 
-        public abstract bool PerformCalibration();
+        public abstract bool PerformCalibration(int maxchannels);
 
         public abstract FwhmCalibration Clone();
 
