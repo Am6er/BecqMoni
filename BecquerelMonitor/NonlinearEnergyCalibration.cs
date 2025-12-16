@@ -43,5 +43,10 @@ namespace BecquerelMonitor
         {
             throw new NotImplementedException();
         }
+
+        public override int MaxChannels()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

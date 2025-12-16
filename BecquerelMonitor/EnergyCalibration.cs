@@ -16,5 +16,7 @@
 
         // Token: 0x06000722 RID: 1826
         public abstract bool Equals(EnergyCalibration calib);
+
+        public abstract int MaxChannels();
     }
 }

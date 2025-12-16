@@ -234,13 +234,14 @@ namespace BecquerelMonitor
             this.dcSpectrumExplorerView = new DCSpectrumExplorerView(this);
             this.dcEnergyCalibrationView = new DCEnergyCalibrationView(this);
             this.dcCountRateView = new DCCountRateView(this);
+            this.dcCFwhmCalibrationView = new DCFwhmCalibrationView(this);
             this.dcControlPanel.Enabled = false;
             this.dcSampleInfoView.Enabled = false;
             this.dcSpectrumListView.Enabled = false;
             this.dcPeakDetectionView.Enabled = false;
             this.dcEnergyCalibrationView.Enabled = false;
             this.dcCountRateView.Enabled = false;
-
+            this.dcCFwhmCalibrationView.Enabled = false;
         }
 
         // Token: 0x06000A4A RID: 2634 RVA: 0x0003CB48 File Offset: 0x0003AD48
@@ -331,6 +332,10 @@ namespace BecquerelMonitor
             if (a == typeof(DCCountRateView).ToString())
             {
                 return this.dcCountRateView;
+            }
+            if (a == typeof(DCFwhmCalibrationView).ToString())
+            {
+                return this.dcCFwhmCalibrationView;
             }
             if (a == typeof(DCResultView).ToString())
             {
@@ -611,6 +616,20 @@ namespace BecquerelMonitor
             }
         }
 
+        public void ShowFwhmCalibration()
+        {
+            if (this.dcCFwhmCalibrationView == null || this.dcCFwhmCalibrationView.IsDisposed)
+            {
+                this.dcCFwhmCalibrationView = new DCFwhmCalibrationView(this);
+            }
+            this.dcCFwhmCalibrationView.Show(this.dockPanel1);
+        }
+
+        void FWHMCalStripMenuItem_Click(object sender, EventArgs e)
+        {
+            ShowFwhmCalibration();
+        }
+
         public void ShowDetectorFeature()
         {
             if (this.activeDocument != null 
@@ -857,7 +876,12 @@ namespace BecquerelMonitor
             }
         }
 
-        
+        public void UpdateFwhmCalibrationView(bool reset_state = false)
+        {
+            this.dcCFwhmCalibrationView.UpdateFwhmCalibration(reset_state);
+        }
+
+
         void toolStripMenuItem5_Click(object sender, EventArgs e)
         {
             if (this.dcCountRateView == null || this.dcCountRateView.IsDisposed)
@@ -990,6 +1014,8 @@ namespace BecquerelMonitor
                 this.dcControlPanel.Enabled = true;
                 this.dcSampleInfoView.Enabled = true;
                 this.dcCountRateView.Enabled = true;
+                this.dcCFwhmCalibrationView.Enabled = true;
+                UpdateFwhmCalibrationView(true);
                 foreach (DCResultView dcresultView in this.dcResultViewList)
                 {
                     dcresultView.Enabled = true;
@@ -1030,6 +1056,7 @@ namespace BecquerelMonitor
                 this.dcSpectrumListView.Enabled = false;
                 this.dcPeakDetectionView.Enabled = false;
                 this.dcEnergyCalibrationView.Enabled = false;
+                this.dcCFwhmCalibrationView.Enabled = false;
             }
             this.UpdateApplicationTitle();
             this.Refresh();
@@ -1058,6 +1085,7 @@ namespace BecquerelMonitor
             this.dcControlPanel.Enabled = true;
             this.dcSampleInfoView.Enabled = true;
             this.dcCountRateView.Enabled = true;
+            UpdateFwhmCalibrationView();
             foreach (DCResultView dcresultView in this.dcResultViewList)
             {
                 dcresultView.Enabled = true;
@@ -1918,6 +1946,8 @@ namespace BecquerelMonitor
                 UpdateEnergyCalibrationView();
                 this.dcEnergyCalibrationView.SetStabilizerState(this.activeDocument.ActiveResultData);
                 this.dcEnergyCalibrationView.Enabled = true;
+                UpdateFwhmCalibrationView();
+                this.dcCFwhmCalibrationView.Enabled = true;
                 doc.UpdateEnergySpectrum();
                 this.ShowMeasurementResult(true);
                 this.dcSpectrumListView.ShowSpectrumList(doc);
@@ -2438,6 +2468,10 @@ namespace BecquerelMonitor
             {
                 this.dcEnergyCalibrationView.UpdateEnergyCalibrationConfig();
                 this.dcEnergyCalibrationView.LoadCalibrationPoints();
+            }
+            if (this.dcCFwhmCalibrationView != null) 
+            {
+                UpdateFwhmCalibrationView();
             }
             foreach (DocEnergySpectrum docEnergySpectrum in this.documentManager.DocumentList)
             {
@@ -2969,6 +3003,8 @@ namespace BecquerelMonitor
 
         // Token: 0x040005DD RID: 1501
         DCCountRateView dcCountRateView;
+
+        DCFwhmCalibrationView dcCFwhmCalibrationView;
 
         NucBase.NucBase nucBaseView;
 

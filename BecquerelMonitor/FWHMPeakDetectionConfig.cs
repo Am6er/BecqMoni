@@ -1,4 +1,6 @@
-﻿namespace BecquerelMonitor
+﻿using System.Xml.Serialization;
+
+namespace BecquerelMonitor
 {
     public class FWHMPeakDetectionMethodConfig : PeakDetectionMethodConfig
     {
@@ -183,6 +185,10 @@
             }
         }
 
+        [XmlElement(typeof(SimpleSqrtFwhmCalibration))]
+        [XmlElement(typeof(SqrtFwhmCalibration))]
+        public FwhmCalibration FwhmCalibration { get => fwhmCalibration; set => fwhmCalibration = value; }
+
         public FWHMPeakDetectionMethodConfig()
         {
         }
@@ -203,6 +209,15 @@
             this.peak_type = config.peak_type;
             this.left_tail = config.left_tail;
             this.right_tail = config.right_tail;
+            if (config.fwhmCalibration != null)
+            {
+                this.fwhmCalibration = config.fwhmCalibration.Clone();
+            }
+            else
+            {
+                this.fwhmCalibration = FwhmCalibration.DefaultCalibration(this, new PolynomialEnergyCalibration());
+            }
+                
         }
 
         public override PeakDetectionMethodConfig Clone()
@@ -239,5 +254,7 @@
         double left_tail = 1.0;
 
         double right_tail = 1.0;
+
+        FwhmCalibration fwhmCalibration = null;
     }
 }

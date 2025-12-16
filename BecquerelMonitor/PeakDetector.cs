@@ -40,7 +40,7 @@ namespace BecquerelMonitor
                 return peaks;
             }
 
-            FWHMPeakDetector.PeakFinder finder = PeakFinder(energySpectrum, FWHMPeakDetectionMethodConfig);
+            FWHMPeakDetector.PeakFinder finder = PeakFinder(energySpectrum, FWHMPeakDetectionMethodConfig, resultData.FwhmCalibration);
             peaks = CollectPeaks(finder, energySpectrum, FWHMPeakDetectionMethodConfig.Tolerance, sa, nuclideSet, FWHMPeakDetectionMethodConfig);
             //sa.Dispose();
             GC.Collect();
@@ -98,6 +98,7 @@ namespace BecquerelMonitor
                     double centroid = finder.centroids[i];
                     int snr = (int)finder.snrs[i];
                     double fwhm = finder.fwhms[i];
+                    double fwhm_delta = finder.fwhm_delta[i];
                     centroid = sa.FindCentroid2(energySpectrum,
                         Convert.ToInt32(centroid),
                         Convert.ToInt32(centroid - mul - 1),
@@ -110,6 +111,7 @@ namespace BecquerelMonitor
                     peak.Energy = energySpectrum.EnergyCalibration.ChannelToEnergy(peak.Channel);
                     peak.SNR = snr;
                     peak.FWHM = fwhm;
+                    peak.FWHM_DELTA = fwhm_delta;
                     foreach (NuclideDefinition nuclideDefinition in this.nuclideManager.NuclideDefinitions)
                     {
                         if (!nuclideDefinition.Visible || nuclideDefinition.Energy == 0.0) continue;
@@ -134,7 +136,7 @@ namespace BecquerelMonitor
             return peaks;
         }
 
-        FWHMPeakDetector.PeakFinder PeakFinder(EnergySpectrum energySpectrum, FWHMPeakDetectionMethodConfig fWHMPeakDetectionMethodConfig)
+        FWHMPeakDetector.PeakFinder PeakFinder(EnergySpectrum energySpectrum, FWHMPeakDetectionMethodConfig fWHMPeakDetectionMethodConfig, FwhmCalibration fwhmCalibration)
         {
             int min_range_ch = Convert.ToInt32(energySpectrum.EnergyCalibration.EnergyToChannel(fWHMPeakDetectionMethodConfig.Min_Range, maxChannels: energySpectrum.NumberOfChannels));
             int max_range_ch = Convert.ToInt32(energySpectrum.EnergyCalibration.EnergyToChannel(fWHMPeakDetectionMethodConfig.Max_Range, maxChannels: energySpectrum.NumberOfChannels));
@@ -149,9 +151,7 @@ namespace BecquerelMonitor
                 spec.combine_bins(mul);
             }
             FWHMPeakDetector.PeakFilter kernel = new FWHMPeakDetector.PeakFilter(
-                fWHMPeakDetectionMethodConfig.Ch_Fwhm,
-                fWHMPeakDetectionMethodConfig.Width_Fwhm,
-                fWHMPeakDetectionMethodConfig.FWHM_AT_0,
+                fwhmCalibration,
                 fWHMPeakDetectionMethodConfig.PeakType,
                 fWHMPeakDetectionMethodConfig.ExpGaussExpLeftTail,
                 fWHMPeakDetectionMethodConfig.ExpGaussExpRightTail);

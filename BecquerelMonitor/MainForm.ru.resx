@@ -789,4 +789,7 @@
   <data name="NuclideSetToolStripMenuItem.Text" xml:space="preserve">
     <value>Редактировать наборы изотопов...</value>
   </data>
+  <data name="FWHMCalStripMenuItem.Text" xml:space="preserve">
+    <value>Калибровка по FWHM</value>
+  </data>
 </root>

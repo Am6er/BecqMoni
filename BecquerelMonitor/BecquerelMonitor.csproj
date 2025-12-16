@@ -63,10 +63,11 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestCertificateThumbprint>90015D81427BDBE22BB0BAB26C0EB18DABF81EC1</ManifestCertificateThumbprint>
+    <ManifestCertificateThumbprint>40C88B5FD82EB1A7E78848B84486B8ECAAD17229</ManifestCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestKeyFile>BecquerelMonitor_1_TemporaryKey.pfx</ManifestKeyFile>
+    <ManifestKeyFile>
+    </ManifestKeyFile>
   </PropertyGroup>
   <PropertyGroup>
     <GenerateManifests>true</GenerateManifests>
@@ -75,7 +76,7 @@
     <TargetZone>LocalIntranet</TargetZone>
   </PropertyGroup>
   <PropertyGroup>
-    <SignManifests>false</SignManifests>
+    <SignManifests>true</SignManifests>
   </PropertyGroup>
   <PropertyGroup>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -131,6 +132,7 @@
     <Compile Include="AudioVolumeController.cs" />
     <Compile Include="BackgroundMode.cs" />
     <Compile Include="BuiltinThermometerConfig.cs" />
+    <Compile Include="CalibrationPeak.cs" />
     <Compile Include="CalibrationPoint.cs" />
     <Compile Include="CDATA.cs" />
     <Compile Include="ChannelPickupedEventArgs.cs" />
@@ -242,6 +244,12 @@
     <Compile Include="DCEnergyCalibrationView.Designer.cs">
       <DependentUpon>DCEnergyCalibrationView.cs</DependentUpon>
     </Compile>
+    <Compile Include="DCFwhmCalibrationView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DCFwhmCalibrationView.Designer.cs">
+      <DependentUpon>DCFwhmCalibrationView.cs</DependentUpon>
+    </Compile>
     <Compile Include="DCPeakDetectionView.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -336,6 +344,7 @@
       <DesignTime>True</DesignTime>
     </Compile>
     <Compile Include="EnergySpectrum_097b.cs" />
+    <Compile Include="FwhmCalibration.cs" />
     <Compile Include="FWHMPeakDetectionConfig.cs" />
     <Compile Include="FWHMPeakDetector\PeakFilter.cs" />
     <Compile Include="FWHMPeakDetector\PeakFilterError.cs" />
@@ -444,6 +453,7 @@
     <Compile Include="PeakDetectionMethodConfig.cs" />
     <Compile Include="PeakDetector.cs" />
     <Compile Include="PeakMode.cs" />
+    <Compile Include="PeakPickupedEventArgs.cs" />
     <Compile Include="PeakStabilizer.cs" />
     <Compile Include="PercentageProgressBar.cs">
       <SubType>Component</SubType>
@@ -573,6 +583,7 @@
     <Compile Include="SerializableColor.cs" />
     <Compile Include="ShowEnergyCalibrationViewEventArgs.cs" />
     <Compile Include="ShowEnergyCalibrationViewEventHandler.cs" />
+    <Compile Include="SimpleSqrtFwhmCalibration.cs" />
     <Compile Include="SmoothingMethod.cs" />
     <Compile Include="SoundConfig.cs" />
     <Compile Include="SpectrumCutOffDialog.cs">
@@ -581,6 +592,7 @@
     <Compile Include="SpectrumCutOffDialog.Designer.cs">
       <DependentUpon>SpectrumCutOffDialog.cs</DependentUpon>
     </Compile>
+    <Compile Include="SqrtFwhmCalibration.cs" />
     <Compile Include="StabilizerConfig.cs" />
     <Compile Include="StandardPulseRecorder.cs" />
     <Compile Include="StandardPulseView.Designer.cs">
@@ -641,6 +653,12 @@
       <DependentUpon>CalibrationGraph.cs</DependentUpon>
     </Compile>
     <Compile Include="Utils\CalibrationSolver.cs" />
+    <Compile Include="Utils\FWHMCalibrationGraph.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Utils\FWHMCalibrationGraph.Designer.cs">
+      <DependentUpon>FWHMCalibrationGraph.cs</DependentUpon>
+    </Compile>
     <Compile Include="Utils\LiveTime.cs" />
     <Compile Include="Utils\ROIAriphmetics.cs" />
     <Compile Include="Utils\SpectrumAriphmetics.cs" />
@@ -950,6 +968,10 @@
       <DependentUpon>DCEnergyCalibrationView.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
+    <EmbeddedResource Include="DCFwhmCalibrationView.resx">
+      <DependentUpon>DCFwhmCalibrationView.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
     <EmbeddedResource Include="DCPeakDetectionView.resx">
       <DependentUpon>DCPeakDetectionView.cs</DependentUpon>
       <SubType>Designer</SubType>
@@ -1164,6 +1186,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Utils\CalibrationGraph.ru.resx">
       <DependentUpon>CalibrationGraph.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Utils\FWHMCalibrationGraph.resx">
+      <DependentUpon>FWHMCalibrationGraph.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="WinMM\Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

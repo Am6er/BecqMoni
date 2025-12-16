@@ -1,7 +1,6 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using XPTable.Models;
@@ -85,6 +84,12 @@ namespace BecquerelMonitor
                     return;
                 }
                 ResultData activeResultData = activeDocument.ActiveResultData;
+                FWHMPeakDetectionMethodConfig fWHMConfig = (FWHMPeakDetectionMethodConfig)activeResultData.PeakDetectionMethodConfig;
+                if (activeResultData.FwhmCalibration == null)
+                {
+                    // TODO нужно будет добавить обработку
+                    throw new NotImplementedException();
+                }
                 PeakDetector peakDetector = new PeakDetector();
                 List<Peak> peaks = await Task.Run(() => peakDetector.DetectPeak(activeResultData,
                     activeDocument.EnergySpectrumView.BackgroundMode,
@@ -136,7 +141,7 @@ namespace BecquerelMonitor
                     double rightEnergy = energyCalibration.ChannelToEnergy(peak.Channel + peak.FWHM / 2.0);
                     double resolution = 100.0 * (rightEnergy - leftEnergy) / energyCalibration.ChannelToEnergy((double)peak.Channel);
 
-                    row.Cells.Add(new Cell(peak.FWHM.ToString("f0") + " " + resolution.ToString("f1") + "%"));
+                    row.Cells.Add(new Cell(peak.FWHM.ToString("f0") + ", " + resolution.ToString("f1") + "% ±" + peak.FWHM_DELTA.ToString("f1")));
                     this.tableModel1.Rows.Add(row);
                 }
                 activeDocument.RefreshView();

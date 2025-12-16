@@ -222,7 +222,12 @@ namespace BecquerelMonitor
                             }
                         }
                     }
-
+                    // Add fwhm calibration if it doesn't exist
+                    if (data.FwhmCalibration == null)
+                    {
+                        FWHMPeakDetectionMethodConfig cfg = (FWHMPeakDetectionMethodConfig)data.PeakDetectionMethodConfig;
+                        data.FwhmCalibration = FwhmCalibration.DefaultCalibration(cfg, data.EnergySpectrum.EnergyCalibration);
+                    }
                 }
             }
             catch (Exception)

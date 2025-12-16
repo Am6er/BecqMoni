@@ -1,5 +1,4 @@
-﻿using BecquerelMonitor.Utils;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Xml.Serialization;
@@ -333,6 +332,10 @@ namespace BecquerelMonitor
             }
         }
 
+        [XmlElement(typeof(SimpleSqrtFwhmCalibration))]
+        [XmlElement(typeof(SqrtFwhmCalibration))]
+        public FwhmCalibration FwhmCalibration { get => fwhmCalibration; set => fwhmCalibration = value; }
+
         public ResultData()
         {
         }
@@ -379,22 +382,23 @@ namespace BecquerelMonitor
 
         public ResultData Clone()
         {
-            ResultData resultData = new ResultData();
-            resultData.SampleInfo = this.SampleInfo.Clone();
-            resultData.DeviceConfig = this.DeviceConfig;
-            resultData.DeviceConfigReference = this.DeviceConfigReference;
-            resultData.ROIConfigReference = this.ROIConfigReference;
-            resultData.ROIConfig = this.ROIConfig;
-            resultData.StartTime = this.StartTime;
-            resultData.EndTime = this.EndTime;
-            resultData.PresetTime = this.PresetTime;
-            resultData.BackgroundEnergySpectrum = this.BackgroundEnergySpectrum.Clone();
-            resultData.BackgroundSpectrumFile = this.BackgroundSpectrumFile;
-            resultData.BackgroundSpectrumPathname = this.BackgroundSpectrumPathname;
-            resultData.EnergySpectrum = this.EnergySpectrum.Clone();
-            resultData.PulseCollection = this.PulseCollection.Clone();
-
-            return resultData;
+            return new ResultData
+            {
+                SampleInfo = this.SampleInfo.Clone(),
+                DeviceConfig = this.DeviceConfig,
+                DeviceConfigReference = this.DeviceConfigReference,
+                ROIConfigReference = this.ROIConfigReference,
+                ROIConfig = this.ROIConfig,
+                StartTime = this.StartTime,
+                EndTime = this.EndTime,
+                PresetTime = this.PresetTime,
+                BackgroundEnergySpectrum = this.BackgroundEnergySpectrum.Clone(),
+                BackgroundSpectrumFile = this.BackgroundSpectrumFile,
+                BackgroundSpectrumPathname = this.BackgroundSpectrumPathname,
+                EnergySpectrum = this.EnergySpectrum.Clone(),
+                PulseCollection = this.PulseCollection.Clone(),
+                FwhmCalibration = this.FwhmCalibration.Clone()
+            };
         }
 
         ResultDataStatus resultDataStatus = new ResultDataStatus();
@@ -444,6 +448,8 @@ namespace BecquerelMonitor
         List<Peak> detectedPeaks = new List<Peak>();
 
         PeakDetectionMethodConfig peakDetectionMethodConfig = new FWHMPeakDetectionMethodConfig();
+
+        FwhmCalibration fwhmCalibration = null;
 
         List<Peak> calibrationPeaks = new List<Peak>();
 
