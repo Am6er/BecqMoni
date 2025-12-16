@@ -210,7 +210,8 @@ namespace BecquerelMonitor
             if (!fwhmCalibration.PerformCalibration(activeDocument.ActiveResultData.EnergySpectrum.Spectrum.Length))
             {
                 // TODO нужно будет добавить обработку плохой калибровки
-                throw new NotImplementedException();
+                MessageBox.Show(Resources.CalibrationFunctionError);
+                return;
             }
             FWHMPeakDetectionMethodConfig peakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig) deviceConfig.PeakDetectionMethodConfig;
             peakDetectionMethodConfig.FwhmCalibration = fwhmCalibration;
@@ -272,7 +273,8 @@ namespace BecquerelMonitor
             if (!fwhmCalibration.PerformCalibration(mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.Spectrum.Length))
             {
                 // TODO нужно будет добавить обработку плохой калибровки
-                throw new NotImplementedException();
+                MessageBox.Show(Resources.CalibrationFunctionError);
+                return;
             }
             mainForm.ActiveDocument.ActiveResultData.FwhmCalibration = fwhmCalibration;
             calibrationDone = true;
