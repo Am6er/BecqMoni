@@ -42,7 +42,7 @@ namespace BecquerelMonitor.Utils
             this.maxChannels = maxchannel;
             this.maxFWHM = fwhmCalibration.ChannelToFwhm(maxchannel);
             this.fwhmCalibration = fwhmCalibration.Clone();
-            if (this.fwhmCalibration.NotCalibrated()) this.fwhmCalibration.PerformCalibration();
+            if (this.fwhmCalibration.NotCalibrated()) this.fwhmCalibration.PerformCalibration(this.maxChannels);
             this.points = new List<CalibrationPeak>(fwhmCalibration.CalibrationPeaks);
             this.originalpoints = new List<CalibrationPeak>(fwhmCalibration.CalibrationPeaks);
         }
@@ -112,8 +112,7 @@ namespace BecquerelMonitor.Utils
         {
             if (this.recalcCurve)
             {
-                bool calibration_result = fwhmCalibration.PerformCalibration();
-                this.polycorrect = (fwhmCalibration != null) && calibration_result;
+                this.polycorrect = fwhmCalibration.PerformCalibration(this.maxChannels);
                 this.recalcCurve = false;
             }
             if (this.formloading)

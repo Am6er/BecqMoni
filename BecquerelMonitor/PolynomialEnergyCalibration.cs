@@ -327,6 +327,11 @@ namespace BecquerelMonitor
             return "y = " + result;
         }
 
+        public override int MaxChannels()
+        {
+            return maxChannels;
+        }
+
         // Token: 0x040003A4 RID: 932
         int polynomialOrder;
 

@@ -51,11 +51,11 @@ namespace BecquerelMonitor
             return 2;
         }
 
-        public override bool PerformCalibration()
+        public override bool PerformCalibration(int maxchannels)
         {
             if (peaks.Count <= 1) return false;
             coefficients = Utils.CalibrationSolver.Solve(peaks, 1);
-            return true;
+            return CheckCalibration(maxchannels);
         }
 
         public override string ToString()
@@ -66,6 +66,15 @@ namespace BecquerelMonitor
         public override bool NotCalibrated()
         {
             return (coefficients[0] == 0 && coefficients[1] == 0);
+        }
+
+        private bool CheckCalibration(int maxchannels)
+        {
+            for (int i = 1; i < maxchannels; i++)
+            {
+                if (ChannelToFwhm(i - 1) > ChannelToFwhm(i)) return false;
+            }
+            return true;
         }
     }
 }

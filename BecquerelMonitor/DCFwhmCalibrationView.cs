@@ -207,7 +207,7 @@ namespace BecquerelMonitor
                 MessageBox.Show(Resources.ERRDeviceConfigNotSelected, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
                 return;
             }
-            if (!fwhmCalibration.PerformCalibration())
+            if (!fwhmCalibration.PerformCalibration(activeDocument.ActiveResultData.EnergySpectrum.Spectrum.Length))
             {
                 // TODO нужно будет добавить обработку плохой калибровки
                 throw new NotImplementedException();
@@ -269,7 +269,7 @@ namespace BecquerelMonitor
 
         private void ExecuteCalibrationButton_Click(object sender, EventArgs e)
         {
-            if (!fwhmCalibration.PerformCalibration())
+            if (!fwhmCalibration.PerformCalibration(mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.Spectrum.Length))
             {
                 // TODO нужно будет добавить обработку плохой калибровки
                 throw new NotImplementedException();
