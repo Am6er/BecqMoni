@@ -134,14 +134,7 @@ namespace BecquerelMonitor.Utils
                     this.calibration.Coefficients = new double[matrix.Length];
                     this.calibration.PolynomialOrder = matrix.Length - 1;
                     this.calibration.Coefficients = matrix;
-                    if (this.calibration.CheckCalibration(channels: this.maxChannels))
-                    {
-                        this.polycorrect = true;
-                    }
-                    else
-                    {
-                        this.polycorrect = false;
-                    }
+                    this.polycorrect = this.calibration.CheckCalibration(channels: this.maxChannels);
                 }
                 this.recalcPoly = false;
             }

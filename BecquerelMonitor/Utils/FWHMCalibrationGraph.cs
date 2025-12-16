@@ -112,8 +112,8 @@ namespace BecquerelMonitor.Utils
         {
             if (this.recalcCurve)
             {
-                fwhmCalibration.PerformCalibration();
-                this.polycorrect = (fwhmCalibration != null);
+                bool calibration_result = fwhmCalibration.PerformCalibration();
+                this.polycorrect = (fwhmCalibration != null) && calibration_result;
                 this.recalcCurve = false;
             }
             if (this.formloading)
