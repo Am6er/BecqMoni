@@ -177,7 +177,7 @@ namespace BecquerelMonitor
             {
                 selectedItemIndex = 0;
             }
-            if (selectedItemIndex < 0 && selectedItemIndex >= fwhmCalibration.CalibrationPeaks.Count)
+            if (selectedItemIndex < 0 || selectedItemIndex >= fwhmCalibration.CalibrationPeaks.Count)
             {
                 UpdateCalibrateButtonState();
                 return;

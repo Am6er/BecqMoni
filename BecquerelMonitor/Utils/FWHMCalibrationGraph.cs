@@ -72,7 +72,7 @@ namespace BecquerelMonitor.Utils
 
         void PaintAxis(Graphics g)
         {
-            int ch_step = 500;
+            int ch_step = this.maxChannels / 6;
             double fwhm_step = this.maxFWHM / 6;
             int x_points = this.maxChannels / ch_step;
             int y_points = (int)(this.maxFWHM / fwhm_step);
