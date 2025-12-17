@@ -208,7 +208,19 @@ namespace BecquerelMonitor.Utils
             if (this.glowPoint != null && e.Button == MouseButtons.Left)
             {
                 if (X <= this.startwidth || X >= this.width) return;
-                this.glowPoint.Channel = PxToChannel(X);
+                if (Y <= this.startheight || Y >= this.height) return;
+                int newChannel = PxToChannel(X);
+                if (newChannel < 0)
+                {
+                    newChannel = 0;
+                    X = ChanToPx(0);
+                }
+                else if (newChannel > this.maxChannels)
+                {
+                    newChannel = this.maxChannels;
+                    X = ChanToPx(this.maxChannels);
+                }
+                this.glowPoint.Channel = newChannel;
                 this.mouseX = X;
                 this.mouseY = Y;
                 this.recalcCurve = true;
