@@ -77,16 +77,10 @@ namespace BecquerelMonitor
 
         public abstract int MinPeaksRequirement();
 
-        public int PeakType { get => peak_type; set => peak_type = value; }
+        public abstract int PeakType { get; set; }
 
-        public double ExpGaussExpLeftTail { get => left_tail; set => left_tail = value; }
+        public abstract double ExpGaussExpLeftTail { get; set; }
 
-        public double ExpGaussExpRightTail { get => right_tail; set => right_tail = value; }
-
-        int peak_type = 0;
-
-        double left_tail = 1.0;
-
-        double right_tail = 1.0;
+        public abstract double ExpGaussExpRightTail { get; set; }
     }
 }

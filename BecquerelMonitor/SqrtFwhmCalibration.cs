@@ -40,7 +40,10 @@ namespace BecquerelMonitor
         {
             return new SqrtFwhmCalibration {
                 CalibrationPeaks = this.CalibrationPeaks,
-                Coefficients = this.Coefficients
+                Coefficients = this.Coefficients,
+                PeakType = this.PeakType,
+                ExpGaussExpLeftTail = this.ExpGaussExpLeftTail,
+                ExpGaussExpRightTail = this.ExpGaussExpRightTail
             };
         }
 
@@ -74,5 +77,17 @@ namespace BecquerelMonitor
             }
             return true;
         }
+
+        public override int PeakType { get => this.peak_type; set => this.peak_type = value; }
+
+        public override double ExpGaussExpLeftTail { get => this.left_tail; set => this.left_tail = value; }
+
+        public override double ExpGaussExpRightTail { get => this.right_tail; set => this.right_tail = value; }
+
+        int peak_type = 0;
+
+        double left_tail = 1.0;
+
+        double right_tail = 1.0;
     }
 }
