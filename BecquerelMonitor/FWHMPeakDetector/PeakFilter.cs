@@ -44,12 +44,12 @@ namespace BecquerelMonitor.FWHMPeakDetector
         /// <summary>
         /// Initialize with fwhm calibration and peak form definition.
         /// </summary>
-        public PeakFilter(FwhmCalibration fwhmCalibration, int peak_type = 0, double left_skew = 1.0, double right_skew = 1.0)
+        public PeakFilter(FwhmCalibration fwhmCalibration)
         {
             this.fwhmCalibration = fwhmCalibration;
-            this.peak_type = peak_type;
-            this.left_skew = left_skew;
-            this.right_skew = right_skew;
+            this.peak_type = fwhmCalibration.PeakType;
+            this.left_skew = fwhmCalibration.ExpGaussExpLeftTail;
+            this.right_skew = fwhmCalibration.ExpGaussExpRightTail;
         }
 
         public double fwhm(double channel)
