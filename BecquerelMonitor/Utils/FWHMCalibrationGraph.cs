@@ -51,7 +51,6 @@ namespace BecquerelMonitor.Utils
         {
             this.width = base.ClientSize.Width - startwidth;
             this.height = base.ClientSize.Height - startheight;
-            this.maxFWHM = fwhmCalibration.ChannelToFwhm(this.maxChannels);
         }
 
         void PaintBackground(Graphics g)
@@ -148,7 +147,7 @@ namespace BecquerelMonitor.Utils
             {
                 if (this.glowPoint != null && this.glowPoint.Channel == point.Channel && this.glowPoint.FWHM == point.FWHM)
                 {
-                    g.FillEllipse(glowbrush, ChanToPx(point.Channel) - r / 2, this.height - FWHMToPx((double)point.FWHM) - r / 2, r, r);
+                    g.FillEllipse(glowbrush, ChanToPx(point.Channel) - r / 2, this.height - FWHMToPx(point.FWHM) - r / 2, r, r);
                     Rectangle label;
                     if (this.mouseX - 110 < this.startwidth)
                     {
@@ -231,7 +230,7 @@ namespace BecquerelMonitor.Utils
             {
                 if (X >= ChanToPx(point.Channel) - r / 2 && X <= ChanToPx(point.Channel) + r / 2)
                 {
-                    if (Y >= this.height - FWHMToPx((double)point.FWHM) - r / 2 && Y <= this.height - FWHMToPx((double)point.FWHM) + r / 2)
+                    if (Y >= this.height - FWHMToPx(point.FWHM) - r / 2 && Y <= this.height - FWHMToPx(point.FWHM) + r / 2)
                     {
                         this.glowPoint = point;
                         this.mouseX = X;
