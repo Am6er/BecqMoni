@@ -378,6 +378,7 @@ namespace BecquerelMonitor
             Utils.FWHMCalibrationGraph graph = new Utils.FWHMCalibrationGraph(this.mainForm);
             graph.Init(fwhmCalibration, mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels);
             graph.ShowDialog();
+            UpdateData();
         }
     }
 }
