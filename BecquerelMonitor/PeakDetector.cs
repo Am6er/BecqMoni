@@ -13,7 +13,7 @@ namespace BecquerelMonitor
             SpectrumAriphmetics sa = new SpectrumAriphmetics();
             if (bgMode == BackgroundMode.Substract && resultData.BackgroundEnergySpectrum != null)
             {
-                sa = new SpectrumAriphmetics(FWHMPeakDetectionMethodConfig, resultData.EnergySpectrum);
+                sa = new SpectrumAriphmetics(resultData.EnergySpectrum);
                 energySpectrum = sa.Substract(resultData.BackgroundEnergySpectrum);
             } else
             {

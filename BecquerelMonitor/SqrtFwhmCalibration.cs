@@ -84,10 +84,14 @@ namespace BecquerelMonitor
 
         public override double ExpGaussExpRightTail { get => this.right_tail; set => this.right_tail = value; }
 
+        public override double Chi2pNdp { get => this.chi2pndp; set => this.chi2pndp = value; }
+
         int peak_type = 0;
 
         double left_tail = 1.0;
 
         double right_tail = 1.0;
+
+        double chi2pndp = -1.0;
     }
 }

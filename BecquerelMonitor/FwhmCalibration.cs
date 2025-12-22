@@ -82,5 +82,7 @@ namespace BecquerelMonitor
         public abstract double ExpGaussExpLeftTail { get; set; }
 
         public abstract double ExpGaussExpRightTail { get; set; }
+
+        public abstract double Chi2pNdp {  get; set; }
     }
 }
