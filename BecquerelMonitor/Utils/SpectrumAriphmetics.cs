@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -26,9 +27,9 @@ namespace BecquerelMonitor.Utils
             this.EnergySpectrum = energySpectrum.Clone();
         }
 
-        public SpectrumAriphmetics(FWHMPeakDetectionMethodConfig fWHMPeakDetectionMethodConfig, EnergySpectrum energySpectrum)
+        public SpectrumAriphmetics(FwhmCalibration fwhmCalibration, EnergySpectrum energySpectrum)
         {
-            this.FWHMPeakDetectionMethodConfig = fWHMPeakDetectionMethodConfig;
+            this.FwhmCalibration = fwhmCalibration;
             this.EnergySpectrum = energySpectrum.Clone();
         }
 
@@ -304,10 +305,10 @@ namespace BecquerelMonitor.Utils
             return continuum;
         }
 
-        public EnergySpectrum SubtractPeak(Peak peak, EnergySpectrum energySpectrum, FWHMPeakDetectionMethodConfig fwhmcfg)
+        public EnergySpectrum SubtractPeak(Peak peak, EnergySpectrum energySpectrum)
         {
             EnergySpectrum result = energySpectrum.Clone();
-            (int[] peakspectrum, int min_val, int max_val, Color peakColor) = GetPeak(peak, result, true, fwhmcfg);
+            (int[] peakspectrum, int min_val, int max_val, Color peakColor) = GetPeak(peak, result, true);
             for (int i = min_val; i <= max_val; i++)
             {
                 result.Spectrum[i] -= peakspectrum[i];
@@ -319,14 +320,94 @@ namespace BecquerelMonitor.Utils
             return result;
         }
 
-        public EnergySpectrum SubtractPeaks(List<Peak> peaks, EnergySpectrum energySpectrum, FWHMPeakDetectionMethodConfig fwhmcfg)
+        public EnergySpectrum SubtractPeaks(List<Peak> peaks, EnergySpectrum energySpectrum)
         {
             EnergySpectrum result = energySpectrum.Clone();
             foreach(Peak peak in peaks)
             {
-                result = SubtractPeak(peak, result, fwhmcfg);
+                result = SubtractPeak(peak, result);
             }
             return result;
+        }
+
+        public CalibrationPeak CalcPeakFitValues(CalibrationPeak Peak, int startCh, int endCh)
+        {
+            double chi2pndp;
+            int peak_type;
+            double left_tail;
+            double right_tail;
+            double fwhm = Peak.FWHM;
+            int median = Peak.Channel;
+            double amplitude = this.EnergySpectrum.Spectrum[median] - 
+                getY(median, startCh, endCh, this.EnergySpectrum.Spectrum[startCh], this.EnergySpectrum.Spectrum[endCh]);
+            int validChannels = 0;
+            int nParameters = 3; //(double)amplitude, (double)fwhm, (double)median
+
+            // TODO Refactor
+            // For Gauss (peak_type == 1)
+            double currentChi2pndp = 0.0;
+            double observedValue, expectedValue;
+            for (int i = startCh; i <= endCh; i++)
+            {
+                observedValue = this.EnergySpectrum.Spectrum[i] - 
+                    getY(i, startCh, endCh, this.EnergySpectrum.Spectrum[startCh], this.EnergySpectrum.Spectrum[endCh]);
+                expectedValue = gauss((double)i, amplitude, fwhm, (double)median);
+                if (expectedValue <= 0 || observedValue <= 0) continue;
+                currentChi2pndp += (expectedValue - observedValue) * (expectedValue - observedValue) / expectedValue;
+                validChannels++;
+            }
+            int degreesOfFreedom = Math.Max(validChannels - nParameters, 1);
+            currentChi2pndp /= degreesOfFreedom;
+
+            // default fitting into gauss
+            chi2pndp = currentChi2pndp;
+            peak_type = 0;
+            left_tail = 1;
+            right_tail = 1;
+
+            // For ExpGaussExp (peak_type == 1)
+            nParameters = 5; //(double)amplitude, (double)median, (double)fwhm, left, right
+            for (double left = 0.1; left <= 5.0; left += 0.1) 
+            {
+                for (double right = 0.1; right <= 5.0; right+= 0.1)
+                {
+                    currentChi2pndp = 0.0;
+                    validChannels = 0;
+                    for (int i = startCh; i <= endCh; i++)
+                    {
+                        observedValue = this.EnergySpectrum.Spectrum[i] - 
+                            getY(i, startCh, endCh, this.EnergySpectrum.Spectrum[startCh], this.EnergySpectrum.Spectrum[endCh]);
+                        expectedValue = exp_gauss_exp((double)i, amplitude, (double)median, fwhm, left, right);
+                        if (expectedValue <= 0 || observedValue <= 0) continue;
+                        currentChi2pndp += (expectedValue - observedValue) * (expectedValue - observedValue) / expectedValue;
+                        validChannels++;
+                    }
+                    degreesOfFreedom = Math.Max(validChannels - nParameters, 1);
+                    currentChi2pndp /= degreesOfFreedom;
+                    if (currentChi2pndp - 1 < chi2pndp - 1)
+                    {
+                        chi2pndp = currentChi2pndp;
+                        peak_type = 1;
+                        left_tail = left;
+                        right_tail = right;
+                    }
+                }
+            }
+
+            Peak.Chi2pNdp = chi2pndp;
+            Peak.PeakType = peak_type;
+            if (Peak.PeakType == 0)
+            {
+                Peak.ExpGaussExpLeftTail = 1.0;
+                Peak.ExpGaussExpRightTail = 1.0;
+            }
+            else
+            {
+                Peak.ExpGaussExpLeftTail = left_tail;
+                Peak.ExpGaussExpRightTail = right_tail;
+            }
+
+            return Peak;
         }
 
         int gauss(double x, double amplitude, double fwhm, double median)
@@ -345,7 +426,7 @@ namespace BecquerelMonitor.Utils
             return Convert.ToInt32(amplitude * Math.Exp(0.5 * left * left + left * t));
         }
 
-        public (int[], int, int, Color) GetPeak(Peak peak, EnergySpectrum continuum, bool smooth, FWHMPeakDetectionMethodConfig fwhmcfg)
+        public (int[], int, int, Color) GetPeak(Peak peak, EnergySpectrum continuum, bool smooth)
         {
             int amplitude;
             int[] SMASpectrum = SMA(this.EnergySpectrum.Spectrum, 3, countlimit: 100);
@@ -375,12 +456,12 @@ namespace BecquerelMonitor.Utils
             bool left_side = true;
             for (int i = min_ch; i <= max_ch; i++)
             {
-                if (fwhmcfg.PeakType == 0)
+                if (FwhmCalibration.PeakType == 0)
                 {
                     retvalue[i] = gauss((double)i, (double)amplitude, (double)fwhm, (double)median);
                 } else
                 {
-                    retvalue[i] = exp_gauss_exp((double)i, (double)amplitude, (double)median, (double)fwhm, fwhmcfg.ExpGaussExpLeftTail, fwhmcfg.ExpGaussExpRightTail);
+                    retvalue[i] = exp_gauss_exp((double)i, (double)amplitude, (double)median, (double)fwhm, FwhmCalibration.ExpGaussExpLeftTail, FwhmCalibration.ExpGaussExpRightTail);
                 }
                 if (retvalue[i] == 0.0)
                 {
@@ -405,13 +486,9 @@ namespace BecquerelMonitor.Utils
             return (retvalue, min_value, max_value, color);
         } 
 
-        public double FWHM(double x, FWHMPeakDetectionMethodConfig cfg)
+        public double FWHM(double x, FwhmCalibration calibration)
         {
-            double f0 = cfg.FWHM_AT_0;
-            double f1 = cfg.Width_Fwhm;
-            double x1 = cfg.Ch_Fwhm;
-            double fwhm_sqr = Math.Pow(f0, 2) + (Math.Pow(f1, 2) - Math.Pow(f0, 2)) * (x / x1);
-            return Math.Sqrt(fwhm_sqr);
+            return calibration.ChannelToFwhm(x);
         }
 
         // https://doi.org/10.1016/j.nima.2017.12.064
@@ -430,7 +507,7 @@ namespace BecquerelMonitor.Utils
 
             //FWHM from config
             double[] r = new double[x.Length];
-            r = r.Select((i, iter) => (baseline[iter] == 0) ? 0 : coeff * (FWHM(iter, this.FWHMPeakDetectionMethodConfig))).ToArray();
+            r = r.Select((i, iter) => (baseline[iter] == 0) ? 0 : coeff * (FWHM(iter, this.FwhmCalibration))).ToArray();
 
             int n = Convert.ToInt32(r.Max());
 
@@ -861,6 +938,6 @@ namespace BecquerelMonitor.Utils
 
         EnergySpectrum EnergySpectrum;
 
-        FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig;
+        FwhmCalibration FwhmCalibration;
     }
 }

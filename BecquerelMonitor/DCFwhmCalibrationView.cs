@@ -1,4 +1,5 @@
 ﻿using BecquerelMonitor.Properties;
+using BecquerelMonitor.Utils;
 using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
@@ -248,6 +249,14 @@ namespace BecquerelMonitor
                     return;
                 }
             }
+            // PeakFit
+            SpectrumAriphmetics sa = new SpectrumAriphmetics(mainForm.ActiveDocument.ActiveResultData.EnergySpectrum);
+            newPeak = sa.CalcPeakFitValues(newPeak,
+                e.PeakStartSelection,
+                e.PeakEndSelection);
+            sa.Dispose();
+
+
             mainForm.ActiveDocument.ActiveResultData.FwhmCalibration.CalibrationPeaks.Add(newPeak);
             mainForm.ActiveDocument.Dirty = true;
             calibrationDone = false;
@@ -276,6 +285,26 @@ namespace BecquerelMonitor
                 MessageBox.Show(Resources.CalibrationFunctionError);
                 return;
             }
+            // Perform calibration for Peak_type, left, right skew
+            CalibrationPeak optimalPeak = null;
+            foreach (CalibrationPeak peak in fwhmCalibration.CalibrationPeaks)
+            {
+                if (peak.Chi2pNdp != -1.0)
+                {
+                    if (optimalPeak == null || optimalPeak.Chi2pNdp - 1 > peak.Chi2pNdp - 1)
+                    {
+                        optimalPeak = peak;
+                    }
+                }
+            }
+            if (optimalPeak != null)
+            {
+                fwhmCalibration.PeakType = optimalPeak.PeakType;
+                fwhmCalibration.ExpGaussExpLeftTail = optimalPeak.ExpGaussExpLeftTail;
+                fwhmCalibration.ExpGaussExpRightTail = optimalPeak.ExpGaussExpRightTail;
+                fwhmCalibration.Chi2pNdp = optimalPeak.Chi2pNdp;
+            }
+
             mainForm.ActiveDocument.ActiveResultData.FwhmCalibration = fwhmCalibration;
             calibrationDone = true;
             UpdateFwhmCalibration();

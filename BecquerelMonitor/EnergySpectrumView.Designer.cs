@@ -677,20 +677,19 @@ namespace BecquerelMonitor
 
             if (this.backgroundMode == BackgroundMode.ShowContinuum)
             {
-                SpectrumAriphmetics sa = new SpectrumAriphmetics((FWHMPeakDetectionMethodConfig)this.activeResultData.PeakDetectionMethodConfig, this.energySpectrum);
+                SpectrumAriphmetics sa = new SpectrumAriphmetics(this.activeResultData.FwhmCalibration, this.energySpectrum);
                 this.continuumEnergySpectrum = sa.Continuum();
 
                 this.peakEnergySpectrum.Clear();
                 if (this.activeResultData.DetectedPeaks.Count > 0)
                 {
                     List<Peak> peaks = new List<Peak>(this.activeResultData.DetectedPeaks);
-                    FWHMPeakDetectionMethodConfig fwhmcfg = (FWHMPeakDetectionMethodConfig)this.activeResultData.DeviceConfig.PeakDetectionMethodConfig;
                     for (int i = 0; i < peaks.Count; i++)
                     {
                         (int[] peakSpectrum,
                             int min_ch,
                             int max_ch,
-                            Color peakColor) = sa.GetPeak(peaks[i], this.continuumEnergySpectrum, true, fwhmcfg);
+                            Color peakColor) = sa.GetPeak(peaks[i], this.continuumEnergySpectrum, true);
                         this.peakEnergySpectrum.Add((peakSpectrum, min_ch, max_ch, peakColor));
                     }
                 }
@@ -3748,7 +3747,11 @@ namespace BecquerelMonitor
                 this.selectionDragging = false;
                 if (this.PeakPickuped != null && this.selectionFWHM > 0)
                 {
-                    this.PeakPickuped(this, new PeakPickupedEventArgs(this.selectionCentroidCh, this.selectionCentroidkeV, this.selectionFullWidth));
+                    this.PeakPickuped(this, new PeakPickupedEventArgs(this.selectionCentroidCh,
+                        this.selectionCentroidkeV,
+                        this.selectionFullWidth,
+                        this.SelectionStart,
+                        this.SelectionEnd));
                 }
                 return;
             }
