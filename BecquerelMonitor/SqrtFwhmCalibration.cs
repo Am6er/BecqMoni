@@ -43,7 +43,8 @@ namespace BecquerelMonitor
                 Coefficients = this.Coefficients,
                 PeakType = this.PeakType,
                 ExpGaussExpLeftTail = this.ExpGaussExpLeftTail,
-                ExpGaussExpRightTail = this.ExpGaussExpRightTail
+                ExpGaussExpRightTail = this.ExpGaussExpRightTail,
+                Chi2pNdp = this.Chi2pNdp
             };
         }
 

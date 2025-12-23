@@ -291,7 +291,7 @@ namespace BecquerelMonitor
             {
                 if (peak.Chi2pNdp != -1.0)
                 {
-                    if (optimalPeak == null || optimalPeak.Chi2pNdp - 1 > peak.Chi2pNdp - 1)
+                    if (optimalPeak == null || optimalPeak.Chi2pNdp > peak.Chi2pNdp)
                     {
                         optimalPeak = peak;
                     }
@@ -407,7 +407,8 @@ namespace BecquerelMonitor
             Utils.FWHMCalibrationGraph graph = new Utils.FWHMCalibrationGraph(this.mainForm);
             graph.Init(fwhmCalibration, mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels);
             graph.ShowDialog();
-            UpdateData();
+            calibrationDone = false;
+            UpdateFwhmCalibration();
         }
     }
 }

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Xml.Serialization;
 
 namespace BecquerelMonitor
@@ -35,9 +34,10 @@ namespace BecquerelMonitor
             };
             simpleSqrtFwhmCalibration.CalibrationPeaks.Add(peak);
 
-            simpleSqrtFwhmCalibration.PeakType = fwhmConfig.PeakType;
-            simpleSqrtFwhmCalibration.ExpGaussExpLeftTail = fwhmConfig.ExpGaussExpLeftTail;
-            simpleSqrtFwhmCalibration.ExpGaussExpRightTail = fwhmConfig.ExpGaussExpRightTail;
+            // set default peak shape as gauss
+            simpleSqrtFwhmCalibration.PeakType = 0;
+            simpleSqrtFwhmCalibration.ExpGaussExpLeftTail = 1.0;
+            simpleSqrtFwhmCalibration.ExpGaussExpRightTail = 1.0;
 
             if (simpleSqrtFwhmCalibration.PerformCalibration(energyCalibration.MaxChannels()))
             {

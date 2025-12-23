@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Xml.Serialization;
 
 namespace BecquerelMonitor
@@ -38,6 +39,26 @@ namespace BecquerelMonitor
         {
             if (other.fwhm == fwhm && other.channel == channel) return true;
             return false;
+        }
+
+        public static List<CalibrationPeak> ClonePeaks(List<CalibrationPeak> pts)
+        {
+            List<CalibrationPeak> result = new List<CalibrationPeak>();
+            foreach (CalibrationPeak point in pts)
+            {
+                CalibrationPeak p = new CalibrationPeak
+                {
+                    Channel = point.Channel,
+                    Energy = point.Energy,
+                    FWHM = point.FWHM,
+                    PeakType = point.PeakType,
+                    ExpGaussExpLeftTail = point.ExpGaussExpLeftTail,
+                    ExpGaussExpRightTail = point.ExpGaussExpRightTail,
+                    Chi2pNdp = point.Chi2pNdp
+                };
+                result.Add(p);
+            }
+            return result;
         }
     }
 }

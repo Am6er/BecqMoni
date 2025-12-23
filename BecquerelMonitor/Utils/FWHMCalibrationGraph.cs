@@ -32,19 +32,26 @@ namespace BecquerelMonitor.Utils
         int mouseY = 0;
         bool recalcCurve = true;
         bool polycorrect = false;
-        bool formloading = true;
         double maxFWHM;
         List<CalibrationPeak> points, originalpoints;
         FwhmCalibration fwhmCalibration, originalfwhmCalibration;
+        PolynomialEnergyCalibration energyCalibration;
 
         public void Init(FwhmCalibration fwhmCalibration, int maxchannel)
         {
+            this.energyCalibration = (PolynomialEnergyCalibration)this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.EnergyCalibration.Clone();
+
             this.maxChannels = maxchannel;
-            this.maxFWHM = fwhmCalibration.ChannelToFwhm(maxchannel);
             this.fwhmCalibration = fwhmCalibration.Clone();
             if (this.fwhmCalibration.NotCalibrated()) this.fwhmCalibration.PerformCalibration(this.maxChannels);
-            this.points = new List<CalibrationPeak>(fwhmCalibration.CalibrationPeaks);
-            this.originalpoints = new List<CalibrationPeak>(fwhmCalibration.CalibrationPeaks);
+            this.points = CalibrationPeak.ClonePeaks(this.fwhmCalibration.CalibrationPeaks);
+            this.maxFWHM = this.fwhmCalibration.ChannelToFwhm(this.maxChannels);
+            // oroginal calibration for reset
+            this.originalfwhmCalibration = this.fwhmCalibration.Clone();
+            this.originalpoints = CalibrationPeak.ClonePeaks(this.points);
+            // do reference (not clone new obj) this.points <- this.fwhmCalibration.CalibrationPeaks
+            // for proper glowpoint movement updates w/o writing into other objects
+            this.fwhmCalibration.CalibrationPeaks = this.points;
         }
 
         void PrepareData()
@@ -113,11 +120,6 @@ namespace BecquerelMonitor.Utils
             {
                 this.polycorrect = fwhmCalibration.PerformCalibration(this.maxChannels);
                 this.recalcCurve = false;
-            }
-            if (this.formloading)
-            {
-                this.originalfwhmCalibration = this.fwhmCalibration.Clone();
-                this.formloading = false;
             }
             Pen pen = new Pen(this.globalConfigManager.GlobalConfig.ColorConfig.ActiveSpectrumColor.Color);
             if (!this.polycorrect)
@@ -220,6 +222,7 @@ namespace BecquerelMonitor.Utils
                     X = ChanToPx(this.maxChannels);
                 }
                 this.glowPoint.Channel = newChannel;
+                this.glowPoint.Energy = this.energyCalibration.ChannelToEnergy(newChannel);
                 this.mouseX = X;
                 this.mouseY = Y;
                 this.recalcCurve = true;
@@ -274,13 +277,13 @@ namespace BecquerelMonitor.Utils
         {
             this.mainForm.ActiveDocument.ActiveResultData.FwhmCalibration.CalibrationPeaks = this.points;
             this.originalfwhmCalibration = this.fwhmCalibration.Clone();
-            this.originalpoints = new List<CalibrationPeak>(this.points);
+            this.originalpoints = CalibrationPeak.ClonePeaks(this.points);
         }
 
         private void resetToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.glowPoint = null;
-            this.points = new List<CalibrationPeak>(this.originalpoints);
+            this.points = CalibrationPeak.ClonePeaks(this.originalpoints);
             this.fwhmCalibration = this.originalfwhmCalibration.Clone();
             base.Invalidate();
         }

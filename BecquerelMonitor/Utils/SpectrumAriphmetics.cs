@@ -342,11 +342,12 @@ namespace BecquerelMonitor.Utils
                 getY(median, startCh, endCh, this.EnergySpectrum.Spectrum[startCh], this.EnergySpectrum.Spectrum[endCh]);
             int validChannels = 0;
             int nParameters = 3; //(double)amplitude, (double)fwhm, (double)median
+            double currentChi2pndp = 0.0;
+            double observedValue;
+            double expectedValue;
 
             // TODO Refactor
             // For Gauss (peak_type == 1)
-            double currentChi2pndp = 0.0;
-            double observedValue, expectedValue;
             for (int i = startCh; i <= endCh; i++)
             {
                 observedValue = this.EnergySpectrum.Spectrum[i] - 
@@ -384,7 +385,7 @@ namespace BecquerelMonitor.Utils
                     }
                     degreesOfFreedom = Math.Max(validChannels - nParameters, 1);
                     currentChi2pndp /= degreesOfFreedom;
-                    if (currentChi2pndp - 1 < chi2pndp - 1)
+                    if (currentChi2pndp < chi2pndp)
                     {
                         chi2pndp = currentChi2pndp;
                         peak_type = 1;
