@@ -34,11 +34,12 @@ namespace BecquerelMonitor
         {
             return new SimpleSqrtFwhmCalibration
             {
-                CalibrationPeaks = this.CalibrationPeaks,
+                CalibrationPeaks = CalibrationPeak.ClonePeaks(this.CalibrationPeaks),
                 Coefficients = this.Coefficients,
                 PeakType = this.PeakType,
                 ExpGaussExpLeftTail = this.ExpGaussExpLeftTail,
-                ExpGaussExpRightTail = this.ExpGaussExpRightTail
+                ExpGaussExpRightTail = this.ExpGaussExpRightTail,
+                Chi2pNdp = this.Chi2pNdp,
             };
         }
 

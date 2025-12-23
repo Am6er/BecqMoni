@@ -548,9 +548,9 @@ namespace BecquerelMonitor
 
             this.label49.Text = Resources.FWHMPeakConfigDescription;
 
-            this.peakTypecomboBox.SelectedIndex = FWHMPeakDetectionMethodConfig.PeakType;
-            this.leftSkewnumericUpDown.Value = (decimal)FWHMPeakDetectionMethodConfig.ExpGaussExpLeftTail;
-            this.rightSkewnumericUpDown.Value = (decimal)FWHMPeakDetectionMethodConfig.ExpGaussExpRightTail;
+            this.peakTypecomboBox.SelectedIndex = FWHMPeakDetectionMethodConfig.FwhmCalibration.PeakType;
+            this.leftSkewnumericUpDown.Value = (decimal)FWHMPeakDetectionMethodConfig.FwhmCalibration.ExpGaussExpLeftTail;
+            this.rightSkewnumericUpDown.Value = (decimal)FWHMPeakDetectionMethodConfig.FwhmCalibration.ExpGaussExpRightTail;
             if (peakTypecomboBox.SelectedIndex == 0)
             {
                 leftSkewnumericUpDown.Enabled = false;
@@ -607,9 +607,9 @@ namespace BecquerelMonitor
             this.numericUpDown15.Value = FWHMPeakDetectionMethodConfig.Max_FWHM_Tol;
             this.numericUpDown16.Value = FWHMPeakDetectionMethodConfig.Ch_Concat;
             this.numericUpDown12.Value = (decimal)FWHMPeakDetectionMethodConfig.Min_Range;
-            this.peakTypecomboBox.SelectedIndex = FWHMPeakDetectionMethodConfig.PeakType;
-            this.leftSkewnumericUpDown.Value = (decimal)FWHMPeakDetectionMethodConfig.ExpGaussExpLeftTail;
-            this.rightSkewnumericUpDown.Value = (decimal)FWHMPeakDetectionMethodConfig.ExpGaussExpRightTail;
+            this.peakTypecomboBox.SelectedIndex = FWHMPeakDetectionMethodConfig.FwhmCalibration.PeakType;
+            this.leftSkewnumericUpDown.Value = (decimal)FWHMPeakDetectionMethodConfig.FwhmCalibration.ExpGaussExpLeftTail;
+            this.rightSkewnumericUpDown.Value = (decimal)FWHMPeakDetectionMethodConfig.FwhmCalibration.ExpGaussExpRightTail;
             this.contentsLoading = false;
 
             /*
@@ -713,9 +713,9 @@ namespace BecquerelMonitor
                 FWHMPeakDetectionMethodConfig.Min_FWHM_Tol = this.numericUpDown14.Value;
                 FWHMPeakDetectionMethodConfig.Max_FWHM_Tol = this.numericUpDown15.Value;
                 FWHMPeakDetectionMethodConfig.Ch_Concat = (int)this.numericUpDown16.Value;
-                FWHMPeakDetectionMethodConfig.PeakType = peakTypecomboBox.SelectedIndex;
-                FWHMPeakDetectionMethodConfig.ExpGaussExpLeftTail = (double)leftSkewnumericUpDown.Value;
-                FWHMPeakDetectionMethodConfig.ExpGaussExpRightTail = (double)rightSkewnumericUpDown.Value;
+                FWHMPeakDetectionMethodConfig.FwhmCalibration.PeakType = peakTypecomboBox.SelectedIndex;
+                FWHMPeakDetectionMethodConfig.FwhmCalibration.ExpGaussExpLeftTail = (double)leftSkewnumericUpDown.Value;
+                FWHMPeakDetectionMethodConfig.FwhmCalibration.ExpGaussExpRightTail = (double)rightSkewnumericUpDown.Value;
                 config.BackgroundSpectrumPathname = this.textBox17.Text;
             }
             catch (Exception)

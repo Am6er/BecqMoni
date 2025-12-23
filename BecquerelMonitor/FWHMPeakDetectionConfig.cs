@@ -149,42 +149,6 @@ namespace BecquerelMonitor
             }
         }
 
-        public int PeakType
-        {
-            get
-            {
-                return this.peak_type;
-            }
-            set
-            {
-                this.peak_type = value;
-            }
-        }
-
-        public double ExpGaussExpLeftTail
-        {
-            get
-            {
-                return this.left_tail;
-            }
-            set
-            {
-                this.left_tail = value;
-            }
-        }
-
-        public double ExpGaussExpRightTail
-        {
-            get
-            {
-                return this.right_tail;
-            }
-            set
-            {
-                this.right_tail = value;
-            }
-        }
-
         [XmlElement(typeof(SimpleSqrtFwhmCalibration))]
         [XmlElement(typeof(SqrtFwhmCalibration))]
         public FwhmCalibration FwhmCalibration { get => fwhmCalibration; set => fwhmCalibration = value; }
@@ -206,9 +170,6 @@ namespace BecquerelMonitor
             this.min_fwhm_tol = config.min_fwhm_tol;
             this.max_fwhm_tol = config.max_fwhm_tol;
             this.ch_concat = config.ch_concat;
-            this.peak_type = config.peak_type;
-            this.left_tail = config.left_tail;
-            this.right_tail = config.right_tail;
             if (config.fwhmCalibration != null)
             {
                 this.fwhmCalibration = config.fwhmCalibration.Clone();
@@ -217,7 +178,6 @@ namespace BecquerelMonitor
             {
                 this.fwhmCalibration = FwhmCalibration.DefaultCalibration(this, new PolynomialEnergyCalibration());
             }
-                
         }
 
         public override PeakDetectionMethodConfig Clone()
@@ -248,12 +208,6 @@ namespace BecquerelMonitor
         int ch_concat = 512;
 
         bool enabled = true;
-
-        int peak_type = 0;
-
-        double left_tail = 1.0;
-
-        double right_tail = 1.0;
 
         FwhmCalibration fwhmCalibration = null;
     }
