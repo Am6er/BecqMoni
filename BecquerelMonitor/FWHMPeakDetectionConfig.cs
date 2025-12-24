@@ -201,9 +201,9 @@ namespace BecquerelMonitor
 
         double max_range_en = 2800; //keV
 
-        decimal min_fwhm_tol = 50;
+        decimal min_fwhm_tol = 1;
 
-        decimal max_fwhm_tol = 150;
+        decimal max_fwhm_tol = 199;
 
         int ch_concat = 512;
 

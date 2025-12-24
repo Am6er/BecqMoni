@@ -44,6 +44,11 @@ namespace BecquerelMonitor
             base.Icon = Resources.becqmoni;
             this.button4.Enabled = false;
             this.DisableForm();
+            // disable FWHMPeakDetectionMethodConfig deprecated settings
+            this.numericUpDown5.Enabled = false;
+            this.numericUpDown10.Enabled = false;
+            this.numericUpDown11.Enabled = false;
+            // disable FWHMPeakDetectionMethodConfig deprecated settings
             this.button3.Enabled = true;
             this.button4.Enabled = false;
             this.button12.Enabled = false;
