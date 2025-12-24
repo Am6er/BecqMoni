@@ -32,10 +32,12 @@ namespace BecquerelMonitor.Utils
         int mouseY = 0;
         bool recalcCurve = true;
         bool polycorrect = false;
+        bool drawInfoPanel = false;
         double maxFWHM;
         List<CalibrationPeak> points, originalpoints;
         FwhmCalibration fwhmCalibration, originalfwhmCalibration;
         PolynomialEnergyCalibration energyCalibration;
+        DialogResult result = DialogResult.No;
 
         public void Init(FwhmCalibration fwhmCalibration, int maxchannel)
         {
@@ -99,7 +101,7 @@ namespace BecquerelMonitor.Utils
             for (int i = 1; i < y_points; i++)
             {
                 int x_left = this.startwidth;
-                int y_left = this.height - this.FWHMToPx(i * fwhm_step);
+                int y_left = this.height - this.FWHMToPy(i * fwhm_step);
                 int x_right = this.width;
                 int y_right = y_left;
                 g.DrawLine(pen, x_left, y_left, x_right, y_right);
@@ -128,13 +130,13 @@ namespace BecquerelMonitor.Utils
             }
             for (int i = 0; i < this.maxChannels - 1; i++)
             {
-                if (this.height - FWHMToPx(i + 1) <= this.startheight)
+                if (this.height - ChanToPy(i + 1) <= this.startheight)
                 {
                     break;
                 }
-                if (FWHMToPx(i) > 0)
+                if (ChanToPy(i) > 0)
                 {
-                    g.DrawLine(pen, ChanToPx(i), this.height - FWHMToPx(i), ChanToPx(i + 1), this.height - FWHMToPx(i + 1));
+                    g.DrawLine(pen, ChanToPx(i), this.height - ChanToPy(i), ChanToPx(i + 1), this.height - ChanToPy(i + 1));
                 }
             }
         }
@@ -149,17 +151,32 @@ namespace BecquerelMonitor.Utils
             {
                 if (this.glowPoint != null && this.glowPoint.Channel == point.Channel && this.glowPoint.FWHM == point.FWHM)
                 {
-                    g.FillEllipse(glowbrush, ChanToPx(point.Channel) - r / 2, this.height - FWHMToPx(point.FWHM) - r / 2, r, r);
+                    g.FillEllipse(glowbrush, ChanToPx(point.Channel) - r / 2, this.height - FWHMToPy(point.FWHM) - r / 2, r, r);
                     Rectangle label;
-                    if (this.mouseX - 110 < this.startwidth)
+                    int panelWidth = 120;
+                    int panelHeight = 48;
+                    if (this.mouseX - (panelWidth - 10) < this.startwidth)
                     {
-                        label = new Rectangle(this.mouseX + 15, this.mouseY - 48, 120, 48);
+                        label = new Rectangle(this.mouseX + 15, this.mouseY - panelHeight, panelWidth, panelHeight);
                     }
                     else
                     {
-                        label = new Rectangle(this.mouseX - 120, this.mouseY - 48, 120, 48);
+                        label = new Rectangle(this.mouseX - panelWidth, this.mouseY - panelHeight, panelWidth, panelHeight);
                     }
 
+                    // draw panel bg
+                    Color bgcolor = this.globalConfigManager.GlobalConfig.ColorConfig.BackgroundColor.Color;
+                    using (Brush brush2 = new SolidBrush(bgcolor))
+                    {
+                        g.FillRectangle(brush2, label.Left, label.Top, panelWidth, panelHeight);
+                        using (Pen pen = new Pen(this.globalConfigManager.GlobalConfig.ColorConfig.GridColor1.Color))
+                        {
+                            g.DrawLine(pen, label.Left, label.Bottom, label.Right, label.Bottom);
+                            g.DrawLine(pen, label.Right, label.Bottom, label.Right, label.Top);
+                            g.DrawLine(pen, label.Right, label.Top, label.Left, label.Top);
+                            g.DrawLine(pen, label.Left, label.Top, label.Left, label.Bottom);
+                        }
+                    }
 
                     string labeltext = string.Concat(
                             Resources.ChartHeaderChannel,
@@ -182,8 +199,61 @@ namespace BecquerelMonitor.Utils
                     g.DrawString(labeltext, this.Font, textbrush, label);
                     continue;
                 }
-                g.FillEllipse(brush, ChanToPx(point.Channel) - r / 2, this.height - FWHMToPx(point.FWHM) - r / 2, r, r);
+                g.FillEllipse(brush, ChanToPx(point.Channel) - r / 2, this.height - FWHMToPy(point.FWHM) - r / 2, r, r);
             }
+        }
+
+        void DrawInfoPanel(Graphics g)
+        {
+            if (!drawInfoPanel) return;
+            Rectangle label;
+            int panelWidth = 120;
+            int panelHeight = 36;
+            if (this.mouseX - (panelWidth - 10) < this.startwidth)
+            {
+                label = new Rectangle(this.mouseX + 15, this.mouseY - panelHeight, panelWidth, panelHeight);
+            }
+            else
+            {
+                label = new Rectangle(this.mouseX - panelWidth, this.mouseY - panelHeight, panelWidth, panelHeight);
+            }
+
+            // draw panel bg
+            Color bgcolor = this.globalConfigManager.GlobalConfig.ColorConfig.BackgroundColor.Color;
+            using (Brush brush = new SolidBrush(bgcolor))
+            {
+                g.FillRectangle(brush, label.Left, label.Top, panelWidth, panelHeight);
+                using (Pen pen = new Pen(this.globalConfigManager.GlobalConfig.ColorConfig.GridColor1.Color))
+                {
+                    g.DrawLine(pen, label.Left, label.Bottom, label.Right, label.Bottom);
+                    g.DrawLine(pen, label.Right, label.Bottom, label.Right, label.Top);
+                    g.DrawLine(pen, label.Right, label.Top, label.Left, label.Top);
+                    g.DrawLine(pen, label.Left, label.Top, label.Left, label.Bottom);
+                }
+            }
+
+            // draw text
+            Brush textbrush = new SolidBrush(this.globalConfigManager.GlobalConfig.ColorConfig.AxisFigureColor.Color);
+
+            int channel = PxToChannel(this.mouseX);
+            double energy = energyCalibration.ChannelToEnergy(channel);
+            int fwhm = ChanToPy(channel);
+
+            string labeltext = string.Concat(
+                    Resources.ChartHeaderChannel,
+                    " ",
+                    channel,
+                    "\n",
+                    Resources.ChartHeaderEnergy,
+                    " ",
+                    energy.ToString("f2"),
+                    "\n",
+                    Resources.ChartHeaderFWHM,
+                    " ",
+                    PyToChan(this.height - this.mouseY),
+                    " ch\n"
+                 );
+            g.DrawString(labeltext, this.Font, textbrush, label);
         }
 
         void WriteCalibration(Graphics g)
@@ -206,10 +276,18 @@ namespace BecquerelMonitor.Utils
             int X = e.X;
             int Y = e.Y;
             int r = 10;
-            if (this.glowPoint != null && e.Button == MouseButtons.Left)
+            if (e.Button == MouseButtons.None)
             {
                 if (X <= this.startwidth || X >= this.width) return;
                 if (Y <= this.startheight || Y >= this.height) return;
+                this.mouseX = X;
+                this.mouseY = Y;
+                drawInfoPanel = true;
+            } else if (this.glowPoint != null && e.Button == MouseButtons.Left)
+            {
+                if (X <= this.startwidth || X >= this.width) return;
+                if (Y <= this.startheight || Y >= this.height) return;
+                drawInfoPanel = false;
                 int newChannel = PxToChannel(X);
                 if (newChannel < 0)
                 {
@@ -233,8 +311,9 @@ namespace BecquerelMonitor.Utils
             {
                 if (X >= ChanToPx(point.Channel) - r / 2 && X <= ChanToPx(point.Channel) + r / 2)
                 {
-                    if (Y >= this.height - FWHMToPx(point.FWHM) - r / 2 && Y <= this.height - FWHMToPx(point.FWHM) + r / 2)
+                    if (Y >= this.height - FWHMToPy(point.FWHM) - r / 2 && Y <= this.height - FWHMToPy(point.FWHM) + r / 2)
                     {
+                        drawInfoPanel = false;
                         this.glowPoint = point;
                         this.mouseX = X;
                         this.mouseY = Y;
@@ -256,21 +335,7 @@ namespace BecquerelMonitor.Utils
             this.PaintChart(graphics);
             this.WriteCalibration(graphics);
             this.PaintPoints(graphics);
-        }
-
-        int ChanToPx(int ch)
-        {
-            return (int)((double)(this.width - this.startwidth) * (double)ch / (double)this.maxChannels + this.startwidth);
-        }
-
-        int FWHMToPx(int ch)
-        {
-            return (int)((double)(this.height - this.startheight) * this.fwhmCalibration.ChannelToFwhm(ch) / (double)this.maxFWHM);
-        }
-
-        int PxToChannel(int px)
-        {
-            return (int)((double)(this.maxChannels * (px - this.startwidth)) / (double)(this.width - this.startwidth));
+            this.DrawInfoPanel(graphics);
         }
 
         private void updateCalibrationPointsToolStripMenuItem_Click(object sender, EventArgs e)
@@ -278,6 +343,7 @@ namespace BecquerelMonitor.Utils
             this.mainForm.ActiveDocument.ActiveResultData.FwhmCalibration.CalibrationPeaks = this.points;
             this.originalfwhmCalibration = this.fwhmCalibration.Clone();
             this.originalpoints = CalibrationPeak.ClonePeaks(this.points);
+            this.result = DialogResult.Yes;
         }
 
         private void resetToolStripMenuItem_Click(object sender, EventArgs e)
@@ -288,6 +354,11 @@ namespace BecquerelMonitor.Utils
             base.Invalidate();
         }
 
+        private void FWHMCalibrationGraph_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            this.DialogResult = result;
+        }
+
         private void FWHMCalibrationGraph_MouseClick(object sender, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Right)
@@ -296,9 +367,29 @@ namespace BecquerelMonitor.Utils
             }
         }
 
-        int FWHMToPx(double fwhm)
+        int ChanToPx(int ch)
         {
-            return (int)((double)(this.height - this.startheight) * fwhm / (double)this.maxFWHM);
+            return (int)((double)(this.width - this.startwidth) * ch / this.maxChannels + this.startwidth);
+        }
+
+        int PxToChannel(int px)
+        {
+            return (int)((double)(this.maxChannels * (px - this.startwidth)) / (this.width - this.startwidth));
+        }
+
+        int ChanToPy(int ch)
+        {
+            return (int)((this.height - this.startheight) * this.fwhmCalibration.ChannelToFwhm(ch) / this.maxFWHM);
+        }
+
+        int PyToChan(int py)
+        {
+            return (int)((double)(this.maxFWHM * py) / (this.height - this.startheight));
+        }
+
+        int FWHMToPy(double fwhm)
+        {
+            return (int)((double)(this.height - this.startheight) * fwhm / this.maxFWHM);
         }
     }
 }

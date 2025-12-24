@@ -62,6 +62,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.MinimizeBox = false;
             this.Name = "FWHMCalibrationGraph";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FWHMCalibrationGraph_FormClosing);
             this.MouseClick += new System.Windows.Forms.MouseEventHandler(this.FWHMCalibrationGraph_MouseClick);
             this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.FWHMCalibrationGraph_MouseMove);
             this.contextMenuStrip1.ResumeLayout(false);
