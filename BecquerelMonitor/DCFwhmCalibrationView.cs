@@ -58,6 +58,20 @@ namespace BecquerelMonitor
 
         void UpdateData()
         {
+            UpdateTable();
+            if (fwhmCalibration.CalibrationPeaks.Count > 0)
+            {
+                calibrationProcessingPanel.Show();
+                UpdateSelectedCurveInfo();
+            } else
+            {
+                calibrationProcessingPanel.Hide();
+            }
+            UpdateCalibrateButtonState();
+        }
+
+        void UpdateTable()
+        {
             CollectedPeaksTable.SuspendLayout();
             tableModel1.Rows.Clear();
             fwhmCalibration.CalibrationPeaks.Sort();
@@ -73,15 +87,6 @@ namespace BecquerelMonitor
                 position++;
             }
             CollectedPeaksTable.ResumeLayout();
-            if (fwhmCalibration.CalibrationPeaks.Count > 0)
-            {
-                calibrationProcessingPanel.Show();
-                UpdateSelectedCurveInfo();
-            } else
-            {
-                calibrationProcessingPanel.Hide();
-            }
-            UpdateCalibrateButtonState();
         }
 
         void UpdateSelectedCurveInfo()
@@ -305,7 +310,8 @@ namespace BecquerelMonitor
                 fwhmCalibration.Chi2pNdp = optimalPeak.Chi2pNdp;
             }
 
-            mainForm.ActiveDocument.ActiveResultData.FwhmCalibration = fwhmCalibration;
+            mainForm.ActiveDocument.ActiveResultData.FwhmCalibration = fwhmCalibration.Clone();
+            mainForm.ActiveDocument.Dirty = true;
             calibrationDone = true;
             UpdateFwhmCalibration();
             UpdateCalibrateButtonState();
@@ -404,11 +410,15 @@ namespace BecquerelMonitor
 
         private void ViewCalibrationButton_Click(object sender, EventArgs e)
         {
-            Utils.FWHMCalibrationGraph graph = new Utils.FWHMCalibrationGraph(this.mainForm);
+            FWHMCalibrationGraph graph = new FWHMCalibrationGraph(this.mainForm);
             graph.Init(fwhmCalibration, mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels);
-            graph.ShowDialog();
-            calibrationDone = false;
-            UpdateFwhmCalibration();
+            DialogResult result = graph.ShowDialog();
+            if (result == DialogResult.Yes)
+            {
+                calibrationDone = false;
+                fwhmCalibration = mainForm.ActiveDocument.ActiveResultData.FwhmCalibration;
+                UpdateTable();
+            }
         }
     }
 }
