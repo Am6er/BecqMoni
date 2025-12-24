@@ -416,8 +416,9 @@ namespace BecquerelMonitor
             if (result == DialogResult.Yes)
             {
                 calibrationDone = false;
-                fwhmCalibration = mainForm.ActiveDocument.ActiveResultData.FwhmCalibration;
+                fwhmCalibration.CalibrationPeaks = CalibrationPeak.ClonePeaks(mainForm.ActiveDocument.ActiveResultData.FwhmCalibration.CalibrationPeaks);
                 UpdateTable();
+                UpdateCalibrateButtonState();
             }
         }
     }
