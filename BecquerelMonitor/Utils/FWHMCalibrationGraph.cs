@@ -377,6 +377,7 @@ namespace BecquerelMonitor.Utils
             this.glowPoint = null;
             this.points = CalibrationPeak.ClonePeaks(this.originalpoints);
             this.fwhmCalibration = this.originalfwhmCalibration.Clone();
+            this.fwhmCalibration.CalibrationPeaks = this.points;
             base.Invalidate();
         }
 
