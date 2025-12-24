@@ -45,7 +45,7 @@ namespace BecquerelMonitor.Utils
 
             this.maxChannels = maxchannel;
             this.fwhmCalibration = fwhmCalibration.Clone();
-            if (this.fwhmCalibration.NotCalibrated()) this.fwhmCalibration.PerformCalibration(this.maxChannels);
+            this.fwhmCalibration.PerformCalibration(this.maxChannels);
             this.points = CalibrationPeak.ClonePeaks(this.fwhmCalibration.CalibrationPeaks);
             this.maxFWHM = this.fwhmCalibration.ChannelToFwhm(this.maxChannels);
             // oroginal calibration for reset
