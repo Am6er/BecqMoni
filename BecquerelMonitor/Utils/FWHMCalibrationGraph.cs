@@ -155,14 +155,27 @@ namespace BecquerelMonitor.Utils
                     Rectangle label;
                     int panelWidth = 120;
                     int panelHeight = 48;
+                    int recX, recY;
+
                     if (this.mouseX - (panelWidth - 10) < this.startwidth)
                     {
-                        label = new Rectangle(this.mouseX + 15, this.mouseY - panelHeight, panelWidth, panelHeight);
+                        recX = this.mouseX;
                     }
                     else
                     {
-                        label = new Rectangle(this.mouseX - panelWidth, this.mouseY - panelHeight, panelWidth, panelHeight);
+                        recX = this.mouseX - panelWidth;
                     }
+
+                    if (this.mouseY - (panelHeight - 10) < this.startheight)
+                    {
+                        recY = this.mouseY;
+                    }
+                    else
+                    {
+                        recY = this.mouseY - panelHeight;
+                    }
+
+                    label = new Rectangle(recX, recY, panelWidth, panelHeight);
 
                     // draw panel bg
                     Color bgcolor = this.globalConfigManager.GlobalConfig.ColorConfig.BackgroundColor.Color;
@@ -209,14 +222,27 @@ namespace BecquerelMonitor.Utils
             Rectangle label;
             int panelWidth = 120;
             int panelHeight = 36;
+            int recX, recY;
+
             if (this.mouseX - (panelWidth - 10) < this.startwidth)
             {
-                label = new Rectangle(this.mouseX + 15, this.mouseY - panelHeight, panelWidth, panelHeight);
+                recX = this.mouseX;
             }
             else
             {
-                label = new Rectangle(this.mouseX - panelWidth, this.mouseY - panelHeight, panelWidth, panelHeight);
+                recX = this.mouseX - panelWidth;
             }
+
+            if (this.mouseY - (panelHeight - 10) < this.startheight)
+            {
+                recY = this.mouseY;
+            }
+            else
+            {
+                recY = this.mouseY - panelHeight;
+            }
+
+            label = new Rectangle(recX, recY, panelWidth, panelHeight);
 
             // draw panel bg
             Color bgcolor = this.globalConfigManager.GlobalConfig.ColorConfig.BackgroundColor.Color;
