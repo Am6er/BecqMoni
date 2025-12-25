@@ -220,9 +220,9 @@ namespace BecquerelMonitor
                 return;
             }
             FWHMPeakDetectionMethodConfig peakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig) deviceConfig.PeakDetectionMethodConfig;
-            peakDetectionMethodConfig.FwhmCalibration = fwhmCalibration;
+            peakDetectionMethodConfig.FwhmCalibration = fwhmCalibration.Clone();
             DeviceConfigManager.GetInstance().SaveConfig(activeDocument.ActiveResultData.DeviceConfig);
-            activeDocument.ActiveResultData.FwhmCalibration = fwhmCalibration;
+            activeDocument.ActiveResultData.FwhmCalibration = fwhmCalibration.Clone();
             mainForm.UpdateDeviceConfigForm();
         }
 

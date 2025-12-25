@@ -155,6 +155,7 @@ namespace BecquerelMonitor
 
         public FWHMPeakDetectionMethodConfig()
         {
+            this.fwhmCalibration = FwhmCalibration.DefaultCalibration(this, new PolynomialEnergyCalibration());
         }
 
         public FWHMPeakDetectionMethodConfig(FWHMPeakDetectionMethodConfig config)
@@ -205,7 +206,7 @@ namespace BecquerelMonitor
 
         decimal max_fwhm_tol = 199;
 
-        int ch_concat = 512;
+        int ch_concat = 1024;
 
         bool enabled = true;
 
