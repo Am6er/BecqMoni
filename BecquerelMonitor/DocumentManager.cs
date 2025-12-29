@@ -704,11 +704,6 @@ namespace BecquerelMonitor
                     else
                     {
                         string SpectrumSummaryText = streamReader.ReadLine();
-                        long TotalPulseCount = long.Parse(SpectrumSummaryText.Split(new string[] { "," }, StringSplitOptions.None)[0].Split(new string[] { "Counts: " }, StringSplitOptions.None)[1]);
-
-                        energySpectrum.TotalPulseCount = TotalPulseCount;
-                        energySpectrum.ValidPulseCount = TotalPulseCount;
-
                         string Time1 = streamReader.ReadLine();
                         string Time2 = streamReader.ReadLine();
                         string Lattitude = streamReader.ReadLine();
@@ -754,10 +749,14 @@ namespace BecquerelMonitor
                             coefficients[i] = XmlConvert.ToDouble(streamReader.ReadLine().Replace(',', '.'));
                         }
 
+                        long TotalPulseCount = 0;
                         for (int i = 0; i < energySpectrum.Spectrum.Length; i++)
                         {
                             energySpectrum.Spectrum[i] = XmlConvert.ToInt32(streamReader.ReadLine());
+                            TotalPulseCount += energySpectrum.Spectrum[i];
                         }
+                        energySpectrum.TotalPulseCount = TotalPulseCount;
+                        energySpectrum.ValidPulseCount = TotalPulseCount;
 
                         streamReader.Close();
 
@@ -894,8 +893,13 @@ namespace BecquerelMonitor
                     writer.WriteLine("0");
                     //Am241
                     writer.WriteLine(doc.Text.Trim(new char[] { '*', ' ' }));
-                    //Empty Line
-                    writer.WriteLine("");
+                    //Device info
+                    string deviceName = "UNKNOWN";
+                    if (doc.ActiveResultData.DeviceConfig != null && !string.IsNullOrWhiteSpace(doc.ActiveResultData.DeviceConfig.Name))
+                    {
+                        deviceName = doc.ActiveResultData.DeviceConfig.Name;
+                    } 
+                    writer.WriteLine("BECQMONI: {0}", deviceName);
                     //180845.000000
                     writer.WriteLine(energySpectrum.MeasurementTime);
                     //8192
@@ -1156,6 +1160,7 @@ namespace BecquerelMonitor
             {
                 using (StreamWriter streamWriter = new StreamWriter(fileName, false, Encoding.GetEncoding(65001)))
                 {
+                    streamWriter.WriteLine(String.Format("Channel,Counts (TotalTime={0:0.0}s)", energySpectrum.MeasurementTime));
                     for (int i = 0; i < energySpectrum.NumberOfChannels; i++)
                     {
                         streamWriter.WriteLine(i + "," + energySpectrum.Spectrum[i]);
@@ -1216,7 +1221,7 @@ namespace BecquerelMonitor
             {
                 using (StreamWriter streamWriter = new StreamWriter(fileName, false, Encoding.GetEncoding(65001)))
                 {
-                    streamWriter.WriteLine("channel, energy, count");
+                    streamWriter.WriteLine(String.Format("Channel,Energy,Counts (TotalTime={0:0.0}s)", energySpectrum.MeasurementTime));
                     for (int i = 0; i < energySpectrum.NumberOfChannels; i++)
                     {
                         streamWriter.WriteLine(i + "," + cal.ChannelToEnergy(i) + "," + dSpectrum[i]);
@@ -1235,17 +1240,47 @@ namespace BecquerelMonitor
         {
             List<int> list = new List<int>();
             long totalpulsecount = 0;
+            double totalTime = 0;
             try
             {
                 using (StreamReader streamReader = new StreamReader(fileName, Encoding.GetEncoding(65001)))
                 {
+                    string[] header = streamReader.ReadLine().Split(new char[] { ',' });
+                    if (header.Length != 2) {
+                        throw new ArgumentException("Wrong header format");
+                    }
+                    string totalTimePrefix = "(TotalTime=";
+                    string totalTimeSuffix = "s)";
+                    int totalTimeStartIndex = header[1].IndexOf(totalTimePrefix);
+                    int totalTimeEndIndex = totalTimeStartIndex != -1
+                        ? header[1].IndexOf(totalTimeSuffix, totalTimeStartIndex + totalTimePrefix.Length) 
+                        : -1;
+                    if (totalTimeStartIndex != -1 && totalTimeEndIndex != -1 && totalTimeEndIndex > totalTimeStartIndex)
+                    {
+                        totalTimeStartIndex += totalTimePrefix.Length;
+                        string totalTimeStr = header[1].Substring(totalTimeStartIndex, totalTimeEndIndex - totalTimeStartIndex);
+                        if (!double.TryParse(totalTimeStr, out totalTime))
+                        {
+                            throw new ArgumentException(string.Format("Wrong total time format: {0}", totalTimeStr));
+                        }
+                    } 
+                    else
+                    {
+                        throw new ArgumentException("Wrong header format");
+                    }
+
                     while (streamReader.Peek() != -1)
                     {
                         string[] array = streamReader.ReadLine().Split(new char[] { ',' });
                         if (array.Length >= 2)
                         {
-                            int.Parse(array[0]);
-                            int count = int.Parse(array[1]);
+                            if (!int.TryParse(array[0], out int channel)) {
+                                throw new ArgumentException(String.Format("Wrong channel format: {0}", array[0]));
+                            }
+                            if (!int.TryParse(array[1], out int count))
+                            {
+                                throw new ArgumentException(String.Format("Wrong count format: {0}", array[1]));
+                            }
                             list.Add(count);
                             totalpulsecount += count;
                         }
@@ -1254,14 +1289,18 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
+                String message = "";
                 if (ex.InnerException != null && ex.InnerException.Message != null)
                 {
-                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, fileName, ex.Message + " " + ex.InnerException.Message));
+                    message = string.Format(Resources.ERRFileOpenFailure, fileName, ex.Message + " " + ex.InnerException.Message);
                 }
                 else
                 {
-                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, fileName, ex.Message));
+                    message = string.Format(Resources.ERRFileOpenFailure, fileName, ex.Message);
                 }
+
+                message += "\n\n---\nExpected format:\nChannel,Counts (TotalTime=3600.3s)\n0,0\n1,324\n2,376\n...\n";
+                MessageBox.Show(message);
             }
             
             bool importWithEmtyConfig = GlobalConfigManager.GetInstance().GlobalConfig.ImportSpectrumWithEmptyConfig;
@@ -1281,12 +1320,12 @@ namespace BecquerelMonitor
                     validpulsecount += list[i];
                 }
             }
-            energySpectrum.MeasurementTime = (double)presetTime;
+            energySpectrum.MeasurementTime = totalTime > 0 ? totalTime : presetTime;
             energySpectrum.TotalPulseCount = totalpulsecount;
             energySpectrum.ValidPulseCount = validpulsecount;
             ResultDataStatus resultDataStatus = doc.ActiveResultData.ResultDataStatus;
-            resultDataStatus.TotalTime = TimeSpan.FromSeconds((double)presetTime);
-            resultDataStatus.ElapsedTime = TimeSpan.FromSeconds((double)presetTime);
+            resultDataStatus.TotalTime = TimeSpan.FromSeconds(energySpectrum.MeasurementTime);
+            resultDataStatus.ElapsedTime = TimeSpan.FromSeconds(energySpectrum.MeasurementTime);
         }
 
         private void ResetSpectrumConfig(ResultData data, int numberOfChannels)
