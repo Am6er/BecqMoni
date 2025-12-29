@@ -211,7 +211,7 @@ namespace BecquerelMonitor
 			this.N42StripMenuItem.Click += new global::System.EventHandler(this.N42StripMenuItem_Click);
 			resources.ApplyResources(this.cSVFileToolStripMenuItem, "cSVFileToolStripMenuItem");
 			this.cSVFileToolStripMenuItem.Name = "cSVFileToolStripMenuItem";
-			this.cSVFileToolStripMenuItem.Click += new global::System.EventHandler(this.cSVファイルCToolStripMenuItem_Click);
+			this.cSVFileToolStripMenuItem.Click += new global::System.EventHandler(this.csvFileImportToolStripMenuItem_Click);
             resources.ApplyResources(this.EffCalcMCFileToolStripMenuItem, "EffCalcMCFileToolStripMenuItem");
             this.EffCalcMCFileToolStripMenuItem.Name = "EffCalcMCFileToolStripMenuItem";
             this.EffCalcMCFileToolStripMenuItem.Click += new global::System.EventHandler(this.EffCalcMCFileToolStripMenuItem_Click);
