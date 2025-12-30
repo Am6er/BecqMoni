@@ -2290,7 +2290,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000A92 RID: 2706 RVA: 0x0003F2C0 File Offset: 0x0003D4C0
-        void cSVファイルCToolStripMenuItem_Click(object sender, EventArgs e)
+        void csvFileImportToolStripMenuItem_Click(object sender, EventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.Title = Resources.CsvImportDialogTitle;
