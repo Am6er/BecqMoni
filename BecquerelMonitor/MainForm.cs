@@ -1631,7 +1631,7 @@ namespace BecquerelMonitor
             this.CombineSpectrasToolStripMenuItem.Enabled = enabled;
             this.ConcatSpectrumsStripMenuItem.Enabled = enabled;
             this.CutoffStripMenuItem.Enabled = enabled;
-            this.NormalizeSpectrumStripMenuItem.Enabled = enabled && this.activeDocument.ActiveResultData.DeviceConfigReference.Guid != null;
+            this.NormalizeSpectrumStripMenuItem.Enabled = enabled && this.activeDocument.ActiveResultData.DeviceConfigReference?.Guid != null;
             this.ApplyDeadTimeCorrectionStripMenuItem.Enabled = enabled &&
                 this.activeDocument.ActiveResultData.EnergySpectrum.MeasurementTime > 0 &&
                 this.activeDocument.ActiveResultData.EnergySpectrum.TotalPulseCount > 0;
