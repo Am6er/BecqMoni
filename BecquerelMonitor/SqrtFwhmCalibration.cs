@@ -39,7 +39,7 @@ namespace BecquerelMonitor
         public override FwhmCalibration Clone()
         {
             return new SqrtFwhmCalibration {
-                CalibrationPeaks = this.CalibrationPeaks,
+                CalibrationPeaks = CalibrationPeak.ClonePeaks(this.CalibrationPeaks),
                 Coefficients = this.Coefficients,
                 PeakType = this.PeakType,
                 ExpGaussExpLeftTail = this.ExpGaussExpLeftTail,

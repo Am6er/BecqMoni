@@ -1362,7 +1362,8 @@ namespace BecquerelMonitor
             this.activeDocument.ActiveResultData.PulseCollection = docEnergySpectrum.ActiveResultData.PulseCollection.Clone();
             this.activeDocument.ActiveResultData.SampleInfo = docEnergySpectrum.ActiveResultData.SampleInfo;
             this.activeDocument.ActiveResultData.StartTime = docEnergySpectrum.ActiveResultData.StartTime;
-
+            FwhmCalibration fwhmCalibration = docEnergySpectrum.ActiveResultData.FwhmCalibration.RecalcWithNewChannelNum(docEnergySpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels, newChan);
+            this.activeDocument.ActiveResultData.FwhmCalibration = fwhmCalibration;
             this.activeDocument.Dirty = true;
             this.UpdateAllView();
         }
@@ -1630,7 +1631,7 @@ namespace BecquerelMonitor
             this.CombineSpectrasToolStripMenuItem.Enabled = enabled;
             this.ConcatSpectrumsStripMenuItem.Enabled = enabled;
             this.CutoffStripMenuItem.Enabled = enabled;
-            this.NormalizeSpectrumStripMenuItem.Enabled = enabled;
+            this.NormalizeSpectrumStripMenuItem.Enabled = enabled && this.activeDocument.ActiveResultData.DeviceConfigReference.Guid != null;
             this.ApplyDeadTimeCorrectionStripMenuItem.Enabled = enabled &&
                 this.activeDocument.ActiveResultData.EnergySpectrum.MeasurementTime > 0 &&
                 this.activeDocument.ActiveResultData.EnergySpectrum.TotalPulseCount > 0;
@@ -2060,6 +2061,7 @@ namespace BecquerelMonitor
             {
                 UpdateDetectedPeakView();
             }
+            this.UpdateFwhmCalibrationView(true);
         }
 
         // Token: 0x06000A90 RID: 2704 RVA: 0x0003EFA0 File Offset: 0x0003D1A0
@@ -2566,7 +2568,7 @@ namespace BecquerelMonitor
 
         void NormalizeSpectrumStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (this.activeDocument == null)
+            if (this.activeDocument == null || this.activeDocument.ActiveResultData.DeviceConfigReference.Guid == null)
             {
                 return;
             }
@@ -2688,6 +2690,7 @@ namespace BecquerelMonitor
             this.activeDocument.ActiveResultData.PulseCollection = docEnergySpectrum.ActiveResultData.PulseCollection.Clone();
             this.activeDocument.ActiveResultData.SampleInfo = docEnergySpectrum.ActiveResultData.SampleInfo;
             this.activeDocument.ActiveResultData.StartTime = docEnergySpectrum.ActiveResultData.StartTime;
+            this.activeDocument.ActiveResultData.FwhmCalibration = docEnergySpectrum.ActiveResultData.FwhmCalibration.Clone(); ;
             this.activeDocument.Dirty = true;
             this.UpdateAllView();
             if (this.activeDocument.EnergySpectrumView.HorizontalMagnification == HorizontalMagnification.Fit)
