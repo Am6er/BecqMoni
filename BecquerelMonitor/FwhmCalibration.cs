@@ -67,11 +67,11 @@ namespace BecquerelMonitor
         public FwhmCalibration RecalcWithNewChannelNum(int oldchannelnum, int newchannelnum)
         {
             FwhmCalibration newFwhmCalibration = Clone();
-            int mul = oldchannelnum / newchannelnum;
+            double mul = (double)oldchannelnum / (double)newchannelnum;
             foreach (CalibrationPeak peak in newFwhmCalibration.CalibrationPeaks)
             {
-                peak.Channel /= mul;
-                peak.FWHM /= mul;
+                peak.Channel = (int)(peak.Channel / mul);
+                peak.FWHM = (int)(peak.FWHM / mul);
             }
             newFwhmCalibration.PerformCalibration(newchannelnum);
             return newFwhmCalibration;
