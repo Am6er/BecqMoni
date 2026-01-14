@@ -387,13 +387,6 @@
     <Compile Include="MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="MaNet\CholeskyDecomposition.cs" />
-    <Compile Include="MaNet\EigenvalueDecomposition.cs" />
-    <Compile Include="MaNet\LUDecomposition.cs" />
-    <Compile Include="MaNet\Maths.cs" />
-    <Compile Include="MaNet\Matrix.cs" />
-    <Compile Include="MaNet\QRDecomposition.cs" />
-    <Compile Include="MaNet\SingularValueDecomposition.cs" />
     <Compile Include="MeasurementConfig.cs" />
     <Compile Include="MeasurementController.cs" />
     <Compile Include="MeasurementResult.cs" />
