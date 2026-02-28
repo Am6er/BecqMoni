@@ -722,11 +722,7 @@ namespace BecquerelMonitor
                         doc.Text = fileName;
                         info.Location = Lattitude + ", " + Longitude;
 
-                        if (streamReader.ReadLine() != "")
-                        {
-                            MessageBox.Show(String.Format(Resources.ERRExpectedLineSeparator, fileformat));
-                            return;
-                        }
+                        string deviceInfo = streamReader.ReadLine();
 
                         int ElapsedTime = (int)XmlConvert.ToDouble(streamReader.ReadLine());
                         energySpectrum.MeasurementTime = ElapsedTime;
