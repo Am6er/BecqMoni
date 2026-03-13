@@ -31,10 +31,10 @@ namespace BecquerelMonitor
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(NuclideSetForm));
+            XPTable.Models.DataSourceColumnBinder dataSourceColumnBinder1 = new XPTable.Models.DataSourceColumnBinder();
+            XPTable.Renderers.DragDropRenderer dragDropRenderer1 = new XPTable.Renderers.DragDropRenderer();
             XPTable.Models.DataSourceColumnBinder dataSourceColumnBinder2 = new XPTable.Models.DataSourceColumnBinder();
             XPTable.Renderers.DragDropRenderer dragDropRenderer2 = new XPTable.Renderers.DragDropRenderer();
-            XPTable.Models.DataSourceColumnBinder dataSourceColumnBinder3 = new XPTable.Models.DataSourceColumnBinder();
-            XPTable.Renderers.DragDropRenderer dragDropRenderer3 = new XPTable.Renderers.DragDropRenderer();
             this.buttonClose = new System.Windows.Forms.Button();
             this.buttonSave = new System.Windows.Forms.Button();
             this.groupBoxEdit = new System.Windows.Forms.GroupBox();
@@ -76,6 +76,7 @@ namespace BecquerelMonitor
             // 
             // groupBoxEdit
             // 
+            resources.ApplyResources(this.groupBoxEdit, "groupBoxEdit");
             this.groupBoxEdit.Controls.Add(this.labelFilter);
             this.groupBoxEdit.Controls.Add(this.textBoxFilter);
             this.groupBoxEdit.Controls.Add(this.tableNuclides);
@@ -84,7 +85,6 @@ namespace BecquerelMonitor
             this.groupBoxEdit.Controls.Add(this.buttonAddSet);
             this.groupBoxEdit.Controls.Add(this.labelSets);
             this.groupBoxEdit.Controls.Add(this.tableSets);
-            resources.ApplyResources(this.groupBoxEdit, "groupBoxEdit");
             this.groupBoxEdit.Name = "groupBoxEdit";
             this.groupBoxEdit.TabStop = false;
             // 
@@ -101,14 +101,14 @@ namespace BecquerelMonitor
             // 
             // tableNuclides
             // 
+            resources.ApplyResources(this.tableNuclides, "tableNuclides");
             this.tableNuclides.BorderColor = System.Drawing.Color.Black;
             this.tableNuclides.ColumnModel = this.columnModelNuclides;
             this.tableNuclides.DataMember = null;
-            this.tableNuclides.DataSourceColumnBinder = dataSourceColumnBinder2;
-            dragDropRenderer2.ForeColor = System.Drawing.Color.Red;
-            this.tableNuclides.DragDropRenderer = dragDropRenderer2;
+            this.tableNuclides.DataSourceColumnBinder = dataSourceColumnBinder1;
+            dragDropRenderer1.ForeColor = System.Drawing.Color.Red;
+            this.tableNuclides.DragDropRenderer = dragDropRenderer1;
             this.tableNuclides.GridLinesContrainedToData = false;
-            resources.ApplyResources(this.tableNuclides, "tableNuclides");
             this.tableNuclides.Name = "tableNuclides";
             this.tableNuclides.TableModel = this.tableModelNuclides;
             this.tableNuclides.UnfocusedBorderColor = System.Drawing.Color.Black;
@@ -172,14 +172,14 @@ namespace BecquerelMonitor
             // 
             // tableSets
             // 
+            resources.ApplyResources(this.tableSets, "tableSets");
             this.tableSets.BorderColor = System.Drawing.Color.Black;
             this.tableSets.ColumnModel = this.columnModelSets;
             this.tableSets.DataMember = null;
-            this.tableSets.DataSourceColumnBinder = dataSourceColumnBinder3;
-            dragDropRenderer3.ForeColor = System.Drawing.Color.Red;
-            this.tableSets.DragDropRenderer = dragDropRenderer3;
+            this.tableSets.DataSourceColumnBinder = dataSourceColumnBinder2;
+            dragDropRenderer2.ForeColor = System.Drawing.Color.Red;
+            this.tableSets.DragDropRenderer = dragDropRenderer2;
             this.tableSets.GridLinesContrainedToData = false;
-            resources.ApplyResources(this.tableSets, "tableSets");
             this.tableSets.Name = "tableSets";
             this.tableSets.TableModel = this.tableModelSets;
             this.tableSets.UnfocusedBorderColor = System.Drawing.Color.Black;
@@ -211,6 +211,8 @@ namespace BecquerelMonitor
             this.Controls.Add(this.groupBoxEdit);
             this.Controls.Add(this.buttonSave);
             this.Controls.Add(this.buttonClose);
+            this.MaximizeBox = false;
+            this.MinimizeBox = false;
             this.Name = "NuclideSetForm";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.NuclideSetForm_FormClosing);
             this.groupBoxEdit.ResumeLayout(false);

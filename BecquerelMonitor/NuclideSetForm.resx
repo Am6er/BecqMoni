@@ -118,12 +118,15 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="buttonClose.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Bottom, Right</value>
+  </data>
   <data name="buttonClose.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
   </data>
   <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
   <data name="buttonClose.Location" type="System.Drawing.Point, System.Drawing">
-    <value>453, 464</value>
+    <value>437, 425</value>
   </data>
   <data name="buttonClose.Size" type="System.Drawing.Size, System.Drawing">
     <value>82, 23</value>
@@ -147,6 +150,9 @@
   <data name="&gt;&gt;buttonClose.ZOrder" xml:space="preserve">
     <value>2</value>
   </data>
+  <data name="buttonSave.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Bottom, Right</value>
+  </data>
   <data name="buttonSave.Enabled" type="System.Boolean, mscorlib">
     <value>False</value>
   </data>
@@ -154,7 +160,7 @@
     <value>NoControl</value>
   </data>
   <data name="buttonSave.Location" type="System.Drawing.Point, System.Drawing">
-    <value>359, 464</value>
+    <value>343, 425</value>
   </data>
   <data name="buttonSave.Size" type="System.Drawing.Size, System.Drawing">
     <value>88, 23</value>
@@ -177,6 +183,12 @@
   <data name="&gt;&gt;buttonSave.ZOrder" xml:space="preserve">
     <value>1</value>
   </data>
+  <data name="groupBoxEdit.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Top, Bottom, Left, Right</value>
+  </data>
+  <data name="labelFilter.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Top, Right</value>
+  </data>
   <data name="labelFilter.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
@@ -184,7 +196,7 @@
     <value>NoControl</value>
   </data>
   <data name="labelFilter.Location" type="System.Drawing.Point, System.Drawing">
-    <value>291, 37</value>
+    <value>275, 37</value>
   </data>
   <data name="labelFilter.Size" type="System.Drawing.Size, System.Drawing">
     <value>32, 13</value>
@@ -207,8 +219,11 @@
   <data name="&gt;&gt;labelFilter.ZOrder" xml:space="preserve">
     <value>0</value>
   </data>
+  <data name="textBoxFilter.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Top, Right</value>
+  </data>
   <data name="textBoxFilter.Location" type="System.Drawing.Point, System.Drawing">
-    <value>342, 34</value>
+    <value>326, 34</value>
   </data>
   <data name="textBoxFilter.Size" type="System.Drawing.Size, System.Drawing">
     <value>169, 20</value>
@@ -228,14 +243,44 @@
   <data name="&gt;&gt;textBoxFilter.ZOrder" xml:space="preserve">
     <value>1</value>
   </data>
+  <data name="tableNuclides.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Top, Bottom, Left, Right</value>
+  </data>
   <metadata name="columnModelNuclides.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
     <value>17, 17</value>
   </metadata>
+  <data name="columnNuclideIncluded.Text" xml:space="preserve">
+    <value />
+  </data>
+  <data name="columnNuclideIncluded.ToolTipText" xml:space="preserve">
+    <value />
+  </data>
+  <data name="columnNuclideIncluded.Width" type="System.Int32, mscorlib">
+    <value>16</value>
+  </data>
+  <data name="columnNuclideName.Text" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="columnNuclideName.ToolTipText" xml:space="preserve">
+    <value />
+  </data>
+  <data name="columnNuclideName.Width" type="System.Int32, mscorlib">
+    <value>110</value>
+  </data>
+  <data name="columnNuclideEnergy.Text" xml:space="preserve">
+    <value>Energy</value>
+  </data>
+  <data name="columnNuclideEnergy.ToolTipText" xml:space="preserve">
+    <value />
+  </data>
+  <data name="columnNuclideEnergy.Width" type="System.Int32, mscorlib">
+    <value>70</value>
+  </data>
   <data name="tableNuclides.Location" type="System.Drawing.Point, System.Drawing">
     <value>293, 59</value>
   </data>
   <data name="tableNuclides.Size" type="System.Drawing.Size, System.Drawing">
-    <value>218, 380</value>
+    <value>202, 341</value>
   </data>
   <data name="tableNuclides.TabIndex" type="System.Int32, mscorlib">
     <value>14</value>
@@ -250,13 +295,16 @@
     <value>tableNuclides</value>
   </data>
   <data name="&gt;&gt;tableNuclides.Type" xml:space="preserve">
-    <value>XPTable.Models.Table, BecquerelMonitor, Version=2024.9.10.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.Table, BecquerelMonitor, Version=2026.2.28.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;tableNuclides.Parent" xml:space="preserve">
     <value>groupBoxEdit</value>
   </data>
   <data name="&gt;&gt;tableNuclides.ZOrder" xml:space="preserve">
     <value>2</value>
+  </data>
+  <data name="buttonDeleteSet.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Bottom, Left</value>
   </data>
   <data name="buttonDeleteSet.Enabled" type="System.Boolean, mscorlib">
     <value>False</value>
@@ -265,7 +313,7 @@
     <value>NoControl</value>
   </data>
   <data name="buttonDeleteSet.Location" type="System.Drawing.Point, System.Drawing">
-    <value>167, 414</value>
+    <value>167, 375</value>
   </data>
   <data name="buttonDeleteSet.Size" type="System.Drawing.Size, System.Drawing">
     <value>105, 23</value>
@@ -288,6 +336,9 @@
   <data name="&gt;&gt;buttonDeleteSet.ZOrder" xml:space="preserve">
     <value>3</value>
   </data>
+  <data name="labelNuclides.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Top, Right</value>
+  </data>
   <data name="labelNuclides.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
@@ -295,7 +346,7 @@
     <value>NoControl</value>
   </data>
   <data name="labelNuclides.Location" type="System.Drawing.Point, System.Drawing">
-    <value>291, 18</value>
+    <value>275, 18</value>
   </data>
   <data name="labelNuclides.Size" type="System.Drawing.Size, System.Drawing">
     <value>144, 13</value>
@@ -318,11 +369,14 @@
   <data name="&gt;&gt;labelNuclides.ZOrder" xml:space="preserve">
     <value>4</value>
   </data>
+  <data name="buttonAddSet.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Bottom, Left</value>
+  </data>
   <data name="buttonAddSet.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
   </data>
   <data name="buttonAddSet.Location" type="System.Drawing.Point, System.Drawing">
-    <value>54, 414</value>
+    <value>54, 375</value>
   </data>
   <data name="buttonAddSet.Size" type="System.Drawing.Size, System.Drawing">
     <value>107, 23</value>
@@ -375,84 +429,12 @@
   <data name="&gt;&gt;labelSets.ZOrder" xml:space="preserve">
     <value>6</value>
   </data>
+  <data name="tableSets.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Top, Bottom, Left</value>
+  </data>
   <metadata name="columnModelSets.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
     <value>352, 17</value>
   </metadata>
-  <data name="tableSets.Location" type="System.Drawing.Point, System.Drawing">
-    <value>6, 34</value>
-  </data>
-  <data name="tableSets.Size" type="System.Drawing.Size, System.Drawing">
-    <value>266, 374</value>
-  </data>
-  <data name="tableSets.TabIndex" type="System.Int32, mscorlib">
-    <value>9</value>
-  </data>
-  <metadata name="tableModelSets.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-    <value>502, 17</value>
-  </metadata>
-  <data name="tableSets.Text" xml:space="preserve">
-    <value>tableSets</value>
-  </data>
-  <data name="&gt;&gt;tableSets.Name" xml:space="preserve">
-    <value>tableSets</value>
-  </data>
-  <data name="&gt;&gt;tableSets.Type" xml:space="preserve">
-    <value>XPTable.Models.Table, BecquerelMonitor, Version=2024.9.10.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;tableSets.Parent" xml:space="preserve">
-    <value>groupBoxEdit</value>
-  </data>
-  <data name="&gt;&gt;tableSets.ZOrder" xml:space="preserve">
-    <value>7</value>
-  </data>
-  <data name="groupBoxEdit.Location" type="System.Drawing.Point, System.Drawing">
-    <value>12, 5</value>
-  </data>
-  <data name="groupBoxEdit.Size" type="System.Drawing.Size, System.Drawing">
-    <value>523, 449</value>
-  </data>
-  <data name="groupBoxEdit.TabIndex" type="System.Int32, mscorlib">
-    <value>10</value>
-  </data>
-  <data name="&gt;&gt;groupBoxEdit.Name" xml:space="preserve">
-    <value>groupBoxEdit</value>
-  </data>
-  <data name="&gt;&gt;groupBoxEdit.Type" xml:space="preserve">
-    <value>System.Windows.Forms.GroupBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;groupBoxEdit.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;groupBoxEdit.ZOrder" xml:space="preserve">
-    <value>0</value>
-  </data>
-  <data name="columnNuclideIncluded.Text" xml:space="preserve">
-    <value />
-  </data>
-  <data name="columnNuclideIncluded.ToolTipText" xml:space="preserve">
-    <value />
-  </data>
-  <data name="columnNuclideIncluded.Width" type="System.Int32, mscorlib">
-    <value>16</value>
-  </data>
-  <data name="columnNuclideName.Text" xml:space="preserve">
-    <value>Name</value>
-  </data>
-  <data name="columnNuclideName.ToolTipText" xml:space="preserve">
-    <value />
-  </data>
-  <data name="columnNuclideName.Width" type="System.Int32, mscorlib">
-    <value>110</value>
-  </data>
-  <data name="columnNuclideEnergy.Text" xml:space="preserve">
-    <value>Energy</value>
-  </data>
-  <data name="columnNuclideEnergy.ToolTipText" xml:space="preserve">
-    <value />
-  </data>
-  <data name="columnNuclideEnergy.Width" type="System.Int32, mscorlib">
-    <value>70</value>
-  </data>
   <data name="columnSetName.Text" xml:space="preserve">
     <value>Name</value>
   </data>
@@ -471,6 +453,54 @@
   <data name="columnSetHideUnknown.Width" type="System.Int32, mscorlib">
     <value>120</value>
   </data>
+  <data name="tableSets.Location" type="System.Drawing.Point, System.Drawing">
+    <value>6, 34</value>
+  </data>
+  <data name="tableSets.Size" type="System.Drawing.Size, System.Drawing">
+    <value>266, 335</value>
+  </data>
+  <data name="tableSets.TabIndex" type="System.Int32, mscorlib">
+    <value>9</value>
+  </data>
+  <metadata name="tableModelSets.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <value>502, 17</value>
+  </metadata>
+  <data name="tableSets.Text" xml:space="preserve">
+    <value>tableSets</value>
+  </data>
+  <data name="&gt;&gt;tableSets.Name" xml:space="preserve">
+    <value>tableSets</value>
+  </data>
+  <data name="&gt;&gt;tableSets.Type" xml:space="preserve">
+    <value>XPTable.Models.Table, BecquerelMonitor, Version=2026.2.28.1, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;tableSets.Parent" xml:space="preserve">
+    <value>groupBoxEdit</value>
+  </data>
+  <data name="&gt;&gt;tableSets.ZOrder" xml:space="preserve">
+    <value>7</value>
+  </data>
+  <data name="groupBoxEdit.Location" type="System.Drawing.Point, System.Drawing">
+    <value>12, 5</value>
+  </data>
+  <data name="groupBoxEdit.Size" type="System.Drawing.Size, System.Drawing">
+    <value>507, 410</value>
+  </data>
+  <data name="groupBoxEdit.TabIndex" type="System.Int32, mscorlib">
+    <value>10</value>
+  </data>
+  <data name="&gt;&gt;groupBoxEdit.Name" xml:space="preserve">
+    <value>groupBoxEdit</value>
+  </data>
+  <data name="&gt;&gt;groupBoxEdit.Type" xml:space="preserve">
+    <value>System.Windows.Forms.GroupBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;groupBoxEdit.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;groupBoxEdit.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
   <metadata name="$this.Localizable" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>True</value>
   </metadata>
@@ -478,6 +508,12 @@
     <value>6, 13</value>
   </data>
   <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
+    <value>531, 457</value>
+  </data>
+  <data name="$this.MaximumSize" type="System.Drawing.Size, System.Drawing">
+    <value>909, 689</value>
+  </data>
+  <data name="$this.MinimumSize" type="System.Drawing.Size, System.Drawing">
     <value>547, 496</value>
   </data>
   <data name="$this.Text" xml:space="preserve">
@@ -487,55 +523,55 @@
     <value>columnModelNuclides</value>
   </data>
   <data name="&gt;&gt;columnModelNuclides.Type" xml:space="preserve">
-    <value>XPTable.Models.ColumnModel, BecquerelMonitor, Version=2024.9.10.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.ColumnModel, BecquerelMonitor, Version=2026.2.28.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;columnNuclideIncluded.Name" xml:space="preserve">
     <value>columnNuclideIncluded</value>
   </data>
   <data name="&gt;&gt;columnNuclideIncluded.Type" xml:space="preserve">
-    <value>XPTable.Models.CheckBoxColumn, BecquerelMonitor, Version=2024.9.10.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.CheckBoxColumn, BecquerelMonitor, Version=2026.2.28.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;columnNuclideName.Name" xml:space="preserve">
     <value>columnNuclideName</value>
   </data>
   <data name="&gt;&gt;columnNuclideName.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2024.9.10.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2026.2.28.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;columnNuclideEnergy.Name" xml:space="preserve">
     <value>columnNuclideEnergy</value>
   </data>
   <data name="&gt;&gt;columnNuclideEnergy.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2024.9.10.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2026.2.28.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;tableModelNuclides.Name" xml:space="preserve">
     <value>tableModelNuclides</value>
   </data>
   <data name="&gt;&gt;tableModelNuclides.Type" xml:space="preserve">
-    <value>XPTable.Models.TableModel, BecquerelMonitor, Version=2024.9.10.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.TableModel, BecquerelMonitor, Version=2026.2.28.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;columnModelSets.Name" xml:space="preserve">
     <value>columnModelSets</value>
   </data>
   <data name="&gt;&gt;columnModelSets.Type" xml:space="preserve">
-    <value>XPTable.Models.ColumnModel, BecquerelMonitor, Version=2024.9.10.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.ColumnModel, BecquerelMonitor, Version=2026.2.28.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;columnSetName.Name" xml:space="preserve">
     <value>columnSetName</value>
   </data>
   <data name="&gt;&gt;columnSetName.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2024.9.10.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2026.2.28.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;columnSetHideUnknown.Name" xml:space="preserve">
     <value>columnSetHideUnknown</value>
   </data>
   <data name="&gt;&gt;columnSetHideUnknown.Type" xml:space="preserve">
-    <value>XPTable.Models.CheckBoxColumn, BecquerelMonitor, Version=2024.9.10.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.CheckBoxColumn, BecquerelMonitor, Version=2026.2.28.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;tableModelSets.Name" xml:space="preserve">
     <value>tableModelSets</value>
   </data>
   <data name="&gt;&gt;tableModelSets.Type" xml:space="preserve">
-    <value>XPTable.Models.TableModel, BecquerelMonitor, Version=2024.9.10.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.TableModel, BecquerelMonitor, Version=2026.2.28.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;$this.Name" xml:space="preserve">
     <value>NuclideSetForm</value>
