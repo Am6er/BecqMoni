@@ -840,7 +840,7 @@
     <value>326, 22</value>
   </data>
   <data name="cSVFileToolStripMenuItem.Text" xml:space="preserve">
-    <value>CSV File</value>
+    <value>CSV (Channel,Counts) File</value>
   </data>
   <data name="&gt;&gt;データを開くToolStripMenuItem.Name" xml:space="preserve">
     <value>データを開くToolStripMenuItem</value>
@@ -1192,5 +1192,17 @@
   </data>
   <data name="&gt;&gt;FWHMCalStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="cSVEnFileToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+    <value>326, 22</value>
+  </data>
+  <data name="cSVEnFileToolStripMenuItem.Text" xml:space="preserve">
+    <value>CSV (Energy,Counts) File</value>
+  </data>
+  <data name="&gt;&gt;cSVEnFileToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;cSVEnFileToolStripMenuItem.Name" xml:space="preserve">
+    <value>cSVEnFileToolStripMenuItem</value>
   </data>
 </root>

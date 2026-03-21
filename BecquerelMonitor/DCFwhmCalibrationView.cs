@@ -42,8 +42,11 @@ namespace BecquerelMonitor
                 calibrationDone = true;
                 ClearPeakPickupState();
             }
-            fwhmCalibration = mainForm.ActiveDocument.ActiveResultData.FwhmCalibration;
-            UpdateData();
+            if (mainForm.ActiveDocument != null)
+            {
+                fwhmCalibration = mainForm.ActiveDocument.ActiveResultData.FwhmCalibration;
+                UpdateData();
+            }
         }
 
         private void DCFwhmCalibrationView_FormLoad(object sender, EventArgs e)
