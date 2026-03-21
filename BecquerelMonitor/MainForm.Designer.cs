@@ -61,7 +61,8 @@ namespace BecquerelMonitor
 			this.N42ExpStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.AtomSpectraExpStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.cSVFileToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.エクスポ\u30FCトEToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.cSVEnFileToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+            this.エクスポ\u30FCトEToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.cSVCToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.EffCalcMCFileToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.GBSFileToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
@@ -196,6 +197,7 @@ namespace BecquerelMonitor
 				this.N42StripMenuItem,
 				this.cSVFileToolStripMenuItem,
 				this.EffCalcMCFileToolStripMenuItem,
+				this.cSVEnFileToolStripMenuItem,
 				this.GBSFileToolStripMenuItem,
                 this.ベクモニ旧形式v093bToolStripMenuItem
 			});
@@ -212,6 +214,9 @@ namespace BecquerelMonitor
 			resources.ApplyResources(this.cSVFileToolStripMenuItem, "cSVFileToolStripMenuItem");
 			this.cSVFileToolStripMenuItem.Name = "cSVFileToolStripMenuItem";
 			this.cSVFileToolStripMenuItem.Click += new global::System.EventHandler(this.csvFileImportToolStripMenuItem_Click);
+            resources.ApplyResources(this.cSVEnFileToolStripMenuItem, "cSVEnFileToolStripMenuItem");
+            this.cSVEnFileToolStripMenuItem.Name = "cSVEnFileToolStripMenuItem";
+            this.cSVEnFileToolStripMenuItem.Click += new global::System.EventHandler(this.csvEnergyFileImportToolStripMenuItem_Click);
             resources.ApplyResources(this.EffCalcMCFileToolStripMenuItem, "EffCalcMCFileToolStripMenuItem");
             this.EffCalcMCFileToolStripMenuItem.Name = "EffCalcMCFileToolStripMenuItem";
             this.EffCalcMCFileToolStripMenuItem.Click += new global::System.EventHandler(this.EffCalcMCFileToolStripMenuItem_Click);
@@ -790,8 +795,10 @@ namespace BecquerelMonitor
         // Token: 0x040005C1 RID: 1473
         global::System.Windows.Forms.ToolStripMenuItem cSVFileToolStripMenuItem;
 
-		// Token: 0x040005C2 RID: 1474
-		global::System.Windows.Forms.ToolStripMenuItem toolStripMenuItem6;
+        global::System.Windows.Forms.ToolStripMenuItem cSVEnFileToolStripMenuItem;
+
+        // Token: 0x040005C2 RID: 1474
+        global::System.Windows.Forms.ToolStripMenuItem toolStripMenuItem6;
 
 		// Token: 0x040005C3 RID: 1475
 		global::System.Windows.Forms.ToolStripMenuItem toolStripMenuItem7;

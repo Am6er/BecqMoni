@@ -2310,6 +2310,25 @@ namespace BecquerelMonitor
             this.UpdateAllView();
         }
 
+        void csvEnergyFileImportToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.Title = Resources.CsvImportDialogTitle;
+            openFileDialog.Filter = Resources.CsvFileFilter;
+            openFileDialog.FilterIndex = 1;
+            openFileDialog.RestoreDirectory = true;
+            if (openFileDialog.ShowDialog() != DialogResult.OK)
+            {
+                return;
+            }
+
+            CreateDocument();
+            int presetTime = this.dcControlPanel.PresetTime;
+            this.documentManager.ImportCsvEnergyToDocument(this.activeDocument, presetTime, openFileDialog.FileName);
+            this.UpdateAllView();
+            this.activeDocument.SetDefaultHorizontalScale();
+        }
+
         // Token: 0x06000A93 RID: 2707 RVA: 0x0003F300 File Offset: 0x0003D500
         void 基本設定BToolStripMenuItem_Click(object sender, EventArgs e)
         {

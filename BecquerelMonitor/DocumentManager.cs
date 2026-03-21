@@ -1324,6 +1324,150 @@ namespace BecquerelMonitor
             resultDataStatus.ElapsedTime = TimeSpan.FromSeconds(energySpectrum.MeasurementTime);
         }
 
+        // csv format energy, channel
+        public void ImportCsvEnergyToDocument(DocEnergySpectrum doc, int presetTime, string fileName)
+        {
+            List<int> listCounts = new List<int>();
+            List<CalibrationPoint> listCalibration = new List<CalibrationPoint>();
+            long totalpulsecount = 0;
+            double totalTime = 0;
+
+            try
+            {
+                using (StreamReader streamReader = new StreamReader(fileName, Encoding.GetEncoding(65001)))
+                {
+                    string[] header = streamReader.ReadLine().Split(new char[] { ',' });
+
+                    // ожидается: Energy,Count #0d6h13m30s
+                    string timePrefix = "#";
+                    int timeStartIndex = header[1].IndexOf(timePrefix);
+
+                    if (timeStartIndex != -1)
+                    {
+                        timeStartIndex += timePrefix.Length;
+                        string timeStr = header[1].Substring(timeStartIndex);
+                        int days = 0;
+                        int hours = 0;
+                        int minutes = 0;
+                        int seconds = 0;
+
+                        int dIndex = timeStr.IndexOf('d');
+                        int hIndex = timeStr.IndexOf('h');
+                        int mIndex = timeStr.IndexOf('m');
+                        int sIndex = timeStr.IndexOf('s');
+
+                        // TODO тут нужно давать внятные объяснения
+                        if (dIndex != -1 && hIndex != -1 && mIndex != -1 && sIndex != -1)
+                        {
+                            if (!int.TryParse(timeStr.Substring(0, dIndex), out days))
+                                throw new ArgumentException(string.Format("Wrong total time format: {0}", timeStr));
+
+                            if (!int.TryParse(timeStr.Substring(dIndex + 1, hIndex - dIndex - 1), out hours))
+                                throw new ArgumentException(string.Format("Wrong total time format: {0}", timeStr));
+
+                            if (!int.TryParse(timeStr.Substring(hIndex + 1, mIndex - hIndex - 1), out minutes))
+                                throw new ArgumentException(string.Format("Wrong total time format: {0}", timeStr));
+
+                            if (!int.TryParse(timeStr.Substring(mIndex + 1, sIndex - mIndex - 1), out seconds))
+                                throw new ArgumentException(string.Format("Wrong total time format: {0}", timeStr));
+
+                            totalTime = new TimeSpan(days, hours, minutes, seconds).TotalSeconds;
+                        }
+                        else
+                        {
+                            throw new ArgumentException("Wrong header format");
+                        }
+                    }
+                    else
+                    {
+                        throw new ArgumentException("Wrong header format");
+                    }
+
+                    int channel = 0;
+
+                    while (streamReader.Peek() != -1)
+                    {
+                        string[] array = streamReader.ReadLine().Split(new char[] { ',' });
+
+                        if (array.Length >= 2)
+                        {
+                            if (!decimal.TryParse(array[0], out decimal energy))
+                            {
+                                throw new ArgumentException(String.Format("Wrong energy format: {0} at line {1}", array[0], channel + 1));
+                            }
+
+                            if (!int.TryParse(array[1], out int count))
+                            {
+                                throw new ArgumentException(String.Format("Wrong count format: {0} at line {1}", array[1], channel + 1));
+                            }
+
+                            CalibrationPoint calibrationPoint = new CalibrationPoint(channel, energy, count);
+                            listCalibration.Add(calibrationPoint);
+                            listCounts.Add(count);
+                            totalpulsecount += count;
+                            channel++;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                String message = "";
+
+                if (ex.InnerException != null && ex.InnerException.Message != null)
+                {
+                    message = string.Format(Resources.ERRFileOpenFailure, fileName, ex.Message + " " + ex.InnerException.Message);
+                }
+                else
+                {
+                    message = string.Format(Resources.ERRFileOpenFailure, fileName, ex.Message);
+                }
+
+                message += "\n\n---\nExpected format:\nEnergy,Count #0d6h13m30s\n5.65,2933\n...\n";
+
+                MessageBox.Show(message);
+            }
+
+            bool importWithEmtyConfig = GlobalConfigManager.GetInstance().GlobalConfig.ImportSpectrumWithEmptyConfig;
+
+            if (importWithEmtyConfig)
+            {
+                this.ResetSpectrumConfig(doc.ActiveResultData, listCounts.Count);
+            }
+
+            EnergySpectrum energySpectrum = doc.ActiveResultData.EnergySpectrum;
+            energySpectrum.Initialize();
+
+            long validpulsecount = 0;
+
+            for (int i = 0; i < listCounts.Count; i++)
+            {
+                if (i < energySpectrum.NumberOfChannels)
+                {
+                    energySpectrum.Spectrum[i] = listCounts[i];
+                    validpulsecount += listCounts[i];
+                }
+            }
+
+            energySpectrum.MeasurementTime = totalTime > 0 ? totalTime : presetTime;
+            energySpectrum.TotalPulseCount = totalpulsecount;
+            energySpectrum.ValidPulseCount = validpulsecount;
+
+            ResultDataStatus resultDataStatus = doc.ActiveResultData.ResultDataStatus;
+
+            resultDataStatus.TotalTime = TimeSpan.FromSeconds(energySpectrum.MeasurementTime);
+            resultDataStatus.ElapsedTime = TimeSpan.FromSeconds(energySpectrum.MeasurementTime);
+
+            // calibration part
+            double[] matrix = Utils.CalibrationSolver.Solve(listCalibration, 4);
+            PolynomialEnergyCalibration calibration = new PolynomialEnergyCalibration();
+            calibration.Coefficients = new double[matrix.Length];
+            calibration.Coefficients = matrix;
+            calibration.PolynomialOrder = matrix.Length - 1;
+
+            energySpectrum.EnergyCalibration = calibration.Clone();
+        }
+
         private void ResetSpectrumConfig(ResultData data, int numberOfChannels)
         {
             data.EnergySpectrum = new EnergySpectrum(1.0, numberOfChannels);

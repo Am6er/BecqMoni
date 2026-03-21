@@ -604,7 +604,7 @@
     <value>Файл &amp;CSV</value>
   </data>
   <data name="cSVFileToolStripMenuItem.Text" xml:space="preserve">
-    <value>Файл CSV</value>
+    <value>CSV (Channel,Counts) Файл</value>
   </data>
   <data name="expertLayoutToolStripMenuItem.Text" xml:space="preserve">
     <value>Экспертный режим</value>
@@ -791,5 +791,8 @@
   </data>
   <data name="FWHMCalStripMenuItem.Text" xml:space="preserve">
     <value>Калибровка по FWHM</value>
+  </data>
+  <data name="cSVEnFileToolStripMenuItem.Text" xml:space="preserve">
+    <value>CSV (Energy,Counts) Файл</value>
   </data>
 </root>
