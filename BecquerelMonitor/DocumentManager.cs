@@ -1380,7 +1380,8 @@ namespace BecquerelMonitor
                     }
                     else
                     {
-                        throw new ArgumentException("Wrong header format");
+                        // нет времени экспозиции
+                        totalTime = 0;
                     }
 
                     int channel = 0;
@@ -1459,13 +1460,17 @@ namespace BecquerelMonitor
             resultDataStatus.ElapsedTime = TimeSpan.FromSeconds(energySpectrum.MeasurementTime);
 
             // calibration part
-            double[] matrix = Utils.CalibrationSolver.Solve(listCalibration, 4);
             PolynomialEnergyCalibration calibration = new PolynomialEnergyCalibration();
-            calibration.Coefficients = new double[matrix.Length];
-            calibration.Coefficients = matrix;
-            calibration.PolynomialOrder = matrix.Length - 1;
+            if (listCalibration.Count >= 5)
+            {
+                double[] matrix = CalibrationSolver.Solve(listCalibration, 4);
+                calibration.Coefficients = new double[matrix.Length];
+                calibration.Coefficients = matrix;
+                calibration.PolynomialOrder = matrix.Length - 1;
+            }
 
             energySpectrum.EnergyCalibration = calibration.Clone();
+            this.CheckDocument(doc.ResultDataFile, doCorrections: true);
         }
 
         private void ResetSpectrumConfig(ResultData data, int numberOfChannels)
