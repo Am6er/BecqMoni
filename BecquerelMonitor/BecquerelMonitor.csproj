@@ -35,8 +35,8 @@
     <MinimumRequiredVersion>2022.07.08.7</MinimumRequiredVersion>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
-    <ApplicationRevision>1</ApplicationRevision>
-    <ApplicationVersion>2026.04.02.1</ApplicationVersion>
+    <ApplicationRevision>2</ApplicationRevision>
+    <ApplicationVersion>2026.04.02.2</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -398,6 +398,7 @@
     <Compile Include="N42\ChannelData.cs" />
     <Compile Include="N42\EnergyCalibration.cs" />
     <Compile Include="N42\GrossCounts.cs" />
+    <Compile Include="N42\N42_2006.cs" />
     <Compile Include="N42\RadDetectorInformation.cs" />
     <Compile Include="N42\RadInstrumentData.cs" />
     <Compile Include="N42\RadInstrumentInformation.cs" />

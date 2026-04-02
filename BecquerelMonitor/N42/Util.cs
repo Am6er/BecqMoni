@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.Remoting.Channels;
 using System.Windows.Forms;
 using System.Xml;
@@ -162,7 +163,7 @@ namespace BecquerelMonitor.N42
 
             if (rad.MeasurementGroup.Measurement.Spectrum.EnergyCalibration.CalibrationEquation != "List")
             {
-                throw new InvalidOperationException($"Unsupported type of calibration. Expected CalibrationEquation = List.");
+                throw new InvalidOperationException("Unsupported type of calibration. Expected CalibrationEquation = List.");
             }
 
             string[] chanEnergy = rad.MeasurementGroup.Measurement.Spectrum.EnergyCalibration.ChannelEnergies.Replace("\n", string.Empty).Split(new string[] { " " }, StringSplitOptions.None);
@@ -172,11 +173,9 @@ namespace BecquerelMonitor.N42
             chanData = Array.FindAll(chanData, isNotN42SpectrumValid);
 
             int NumberOfChanels = rad.MeasurementGroup.Measurement.Spectrum.ChannelData.NumberOfChannels;
-            string manufacturer = rad.MeasurementGroup.Measurement.Spectrum.InstrumentInformation.Manufacturer;
-            string model = rad.MeasurementGroup.Measurement.Spectrum.InstrumentInformation.Model;
-            string serial = rad.MeasurementGroup.Measurement.Spectrum.InstrumentInformation.SerialNumber;
             double lifetime = rad.MeasurementGroup.Measurement.Spectrum.LiveTime;
             string spectrumtype = rad.MeasurementGroup.Measurement.Spectrum.SpectrumType;
+            AH_InstrumentInformation instrument = rad.MeasurementGroup.Measurement.Spectrum.InstrumentInformation;
 
             ResultData resultData = doc.ActiveResultData;
             List<CalibrationPoint> listCalibration = new List<CalibrationPoint>();
@@ -203,7 +202,7 @@ namespace BecquerelMonitor.N42
             resultDataStatus.TotalTime = TimeSpan.FromSeconds(energySpectrum.MeasurementTime);
             resultDataStatus.ElapsedTime = TimeSpan.FromSeconds(energySpectrum.MeasurementTime);
             resultData.SampleInfo.Time = DateTime.Now;
-            resultData.SampleInfo.Note = $"Manufacturer: {manufacturer}, Model: {model}, Serial: {serial}, Spectrum type: {spectrumtype}";
+            resultData.SampleInfo.Note = $"Manufacturer = {instrument.Manufacturer}, Model = {instrument.Model}, SerialNumber = {instrument.SerialNumber}";
 
             // calibration part
             PolynomialEnergyCalibration calibration = new PolynomialEnergyCalibration();
@@ -217,6 +216,118 @@ namespace BecquerelMonitor.N42
 
             energySpectrum.EnergyCalibration = calibration.Clone();
             return doc;
+        }
+
+        public int N42_2006_getChannels(N42InstrumentData rad)
+        {
+            string[] chanData = rad.Measurement.Spectrum.ChannelData.Replace("\n", string.Empty).Split(new string[] { " " }, StringSplitOptions.None);
+            chanData = Array.FindAll(chanData, isNotN42SpectrumValid);
+            return chanData.Length;
+        }
+
+        public DocEnergySpectrum ImportFromN42(N42InstrumentData rad, DocEnergySpectrum doc, string filename)
+        {
+            string SpectrumName = Path.GetFileNameWithoutExtension(filename);
+            doc.Filename = SpectrumName + ".xml";
+            doc.Text = SpectrumName;
+
+            N42_2006_EnergyCalibration calibration = null;
+
+            for(int i = 0; i < rad.Calibration.Length; i++)
+            {
+                if (rad.Calibration[i].Type == "Energy")
+                {
+                    calibration = rad.Calibration[i];
+                    break;
+                }
+            }
+
+            if (calibration == null)
+            {
+                throw new InvalidOperationException("No calibration section found in N42InstrumentData.");
+            }
+
+            string[] enCalibrationCoeff = calibration.Equation.Coefficients.Replace("\n", string.Empty).Split(new string[] { " " }, StringSplitOptions.None);
+            enCalibrationCoeff = Array.FindAll(enCalibrationCoeff, isNotN42SpectrumValid);
+
+            string[] chanData = rad.Measurement.Spectrum.ChannelData.Replace("\n", string.Empty).Split(new string[] { " " }, StringSplitOptions.None);
+            chanData = Array.FindAll(chanData, isNotN42SpectrumValid);
+
+            int NumberOfChanels = chanData.Length;
+            double lifetime = XmlConvert.ToTimeSpan(rad.Measurement.Spectrum.LiveTime).TotalSeconds;
+            double realtime = XmlConvert.ToTimeSpan(rad.Measurement.Spectrum.RealTime).TotalSeconds;
+            string starttime = rad.Measurement.Spectrum.StartTime;
+            N42_2006_InstrumentInformation instrument = rad.Measurement.InstrumentInformation;
+
+            string spectrumtype = rad.Measurement.Spectrum.Type;
+
+            ResultData resultData = doc.ActiveResultData;
+            long totalpulsecount = 0;
+            EnergySpectrum energySpectrum = doc.ActiveResultData.EnergySpectrum;
+            energySpectrum.Initialize();
+
+            for (int i = 0; i < NumberOfChanels; i++)
+            {
+                int count = int.Parse(chanData[i]);
+                energySpectrum.Spectrum[i] = count;
+                totalpulsecount += count;
+            }
+
+            resultData.EnergySpectrum.MeasurementTime = realtime;
+            resultData.EnergySpectrum.LiveTime = lifetime;
+            resultData.ResultDataStatus.TotalTime = TimeSpan.FromSeconds(realtime);
+            resultData.ResultDataStatus.ElapsedTime = TimeSpan.FromSeconds(realtime);
+            resultData.ResultDataStatus.PresetTime = (int)realtime;
+            energySpectrum.TotalPulseCount = totalpulsecount;
+            energySpectrum.ValidPulseCount = totalpulsecount;
+            ResultDataStatus resultDataStatus = doc.ActiveResultData.ResultDataStatus;
+            resultData.SampleInfo.Time = XmlConvert.ToDateTime(starttime, XmlDateTimeSerializationMode.Utc);
+            resultData.SampleInfo.Note = $"InstrumentType = {instrument.InstrumentType}, " +
+                $"Manufacturer = {instrument.Manufacturer}, " +
+                $"InstrumentModel = {instrument.InstrumentModel}, " +
+                $"InstrumentID = {instrument.InstrumentID}, " +
+                $"ProbeType = {instrument.ProbeType}";
+
+
+
+            resultData.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
+            if (enCalibrationCoeff.Length == 0)
+            {
+                //Empty coefficients
+                throw new Exception();
+            }
+            int PolynomialOrder = enCalibrationCoeff.Length - 1;
+
+            if (PolynomialOrder > 5)
+            {
+                throw new Exception("Unsupported calibration points number. Got polynom order = " + PolynomialOrder);
+            }
+
+            double[] coefficients = new double[PolynomialOrder + 1];
+
+            for (int k = 0; k < coefficients.Length; k++)
+            {
+                coefficients[k] = double.Parse(enCalibrationCoeff[k]);
+            }
+
+            PolynomialEnergyCalibration energyCalibration = (PolynomialEnergyCalibration)resultData.EnergySpectrum.EnergyCalibration;
+            energyCalibration.PolynomialOrder = PolynomialOrder;
+            energyCalibration.Coefficients = coefficients;
+
+            if (!energyCalibration.CheckCalibration(channels: resultData.EnergySpectrum.NumberOfChannels))
+            {
+                MessageBox.Show(Resources.CalibrationFunctionError);
+            }
+
+
+            return doc;
+        }
+
+        public int N42_2012_getChannels(RadInstrumentData rad)
+        {
+            string[] n42SpectrumCounts = rad.RadMeasurement[0].Spectrum[0].ChannelData.Value.Replace("\n", string.Empty).Split(new string[] { " " }, StringSplitOptions.None);
+            n42SpectrumCounts = Array.FindAll(n42SpectrumCounts, isNotN42SpectrumValid);
+            return n42SpectrumCounts.Length;
         }
 
         public DocEnergySpectrum ImportFromN42(RadInstrumentData rad, DocEnergySpectrum doc, string filename)
