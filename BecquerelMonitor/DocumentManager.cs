@@ -1,6 +1,7 @@
 ﻿using BecquerelMonitor.N42;
 using BecquerelMonitor.Properties;
 using BecquerelMonitor.Utils;
+using SQLitePCL;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -9,6 +10,7 @@ using System.Text;
 using System.Windows.Forms;
 using System.Xml;
 using System.Xml.Serialization;
+using Windows.Networking;
 
 namespace BecquerelMonitor
 {
@@ -787,6 +789,28 @@ namespace BecquerelMonitor
             }
         }
 
+        public Type GetN42Type(string filename)
+        {
+            FileStream stream = File.OpenRead(filename);
+            XmlReader reader = XmlReader.Create(stream);
+
+            reader.MoveToContent();
+
+            string rootName = reader.LocalName;
+            string ns = reader.NamespaceURI;
+
+            if (rootName == "RadiologicalInstrumentData")
+            {
+                return typeof(RadiologicalInstrumentData);
+            } else if (rootName == "RadInstrumentData")
+            {
+                return typeof(RadInstrumentData);
+            } else
+            {
+                throw new InvalidOperationException($"Unknown root element in N42 format: {rootName}, namespace: {ns}");
+            }
+        }
+
         public void ImportDocumentN42(DocEnergySpectrum doc, string filename)
         {
             GC.Collect();
@@ -795,32 +819,50 @@ namespace BecquerelMonitor
             energySpectrum.Initialize();
 
             bool importWithEmtyConfig = GlobalConfigManager.GetInstance().GlobalConfig.ImportSpectrumWithEmptyConfig;
-            if (importWithEmtyConfig)
-            {
-                this.ResetSpectrumConfig(doc.ActiveResultData, 1024);
-            }
 
             try
             {
                 Cursor.Current = Cursors.WaitCursor;
-                XmlSerializer ser = new XmlSerializer(typeof(RadInstrumentData));
 
-                //Add DHS namespace for Interspec compatibility
-                XmlDocument xmldoc = new XmlDocument();
-                XmlReaderSettings settings = new XmlReaderSettings { NameTable = new NameTable() };
-                XmlNamespaceManager xmlns = new XmlNamespaceManager(settings.NameTable);
-                xmlns.AddNamespace("DHS", "http://www.w3.org/2001/XMLSchema-instance");
-                xmlns.AddNamespace("H3D", "http://hz/XMLSchema-instance");
-                XmlParserContext context = new XmlParserContext(null, xmlns, "", XmlSpace.Default);
-                //Add DHS namespace for Interspec compatibility
-
-                RadInstrumentData radInstrumentData = new RadInstrumentData();
-                using (XmlReader reader = XmlReader.Create(filename, settings, context))
-                {
-                    radInstrumentData = (RadInstrumentData)ser.Deserialize(reader);
-                }
+                Type n42Type = GetN42Type(filename);
+                XmlSerializer ser = new XmlSerializer(n42Type);
                 Util util = new Util();
-                util.ImportFromN42(radInstrumentData, doc, filename);
+
+                if (n42Type == typeof(RadInstrumentData))
+                {
+                    //Add DHS namespace for Interspec compatibility
+                    XmlDocument xmldoc = new XmlDocument();
+                    XmlReaderSettings settings = new XmlReaderSettings { NameTable = new NameTable() };
+                    XmlNamespaceManager xmlns = new XmlNamespaceManager(settings.NameTable);
+                    xmlns.AddNamespace("DHS", "http://www.w3.org/2001/XMLSchema-instance");
+                    xmlns.AddNamespace("H3D", "http://hz/XMLSchema-instance");
+                    XmlParserContext context = new XmlParserContext(null, xmlns, "", XmlSpace.Default);
+                    //Add DHS namespace for Interspec compatibility
+
+                    RadInstrumentData n42object = new RadInstrumentData();
+                    using (XmlReader reader = XmlReader.Create(filename, settings, context))
+                    {
+                        n42object = (RadInstrumentData)ser.Deserialize(reader);
+                    }
+                    if (importWithEmtyConfig)
+                    {
+                        this.ResetSpectrumConfig(doc.ActiveResultData, 1024);
+                    }
+                    util.ImportFromN42(n42object, doc, filename);
+                } else if (n42Type == typeof(RadiologicalInstrumentData))
+                {
+                    RadiologicalInstrumentData n42object = new RadiologicalInstrumentData();
+                    using (XmlReader reader = XmlReader.Create(filename))
+                    {
+                        n42object = (RadiologicalInstrumentData)ser.Deserialize(reader);
+                    }
+                    if (importWithEmtyConfig)
+                    {
+                        this.ResetSpectrumConfig(doc.ActiveResultData, n42object.MeasurementGroup.Measurement.Spectrum.ChannelData.NumberOfChannels);
+                    }
+                    util.ImportFromN42(n42object, doc, filename);
+                }
+
 
                 if (!this.CheckDocument(doc.ResultDataFile))
                 {

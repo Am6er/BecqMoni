@@ -36,7 +36,7 @@
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
     <ApplicationRevision>1</ApplicationRevision>
-    <ApplicationVersion>2026.03.22.1</ApplicationVersion>
+    <ApplicationVersion>2026.04.02.1</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -402,6 +402,7 @@
     <Compile Include="N42\RadInstrumentData.cs" />
     <Compile Include="N42\RadInstrumentInformation.cs" />
     <Compile Include="N42\RadInstrumentVersion.cs" />
+    <Compile Include="N42\RadiologicalInstrumentData.cs" />
     <Compile Include="N42\RadMeasurement.cs" />
     <Compile Include="N42\Spectrum.cs" />
     <Compile Include="N42\Util.cs" />
