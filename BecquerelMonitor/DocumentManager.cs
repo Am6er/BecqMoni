@@ -805,7 +805,13 @@ namespace BecquerelMonitor
             } else if (rootName == "RadInstrumentData")
             {
                 return typeof(RadInstrumentData);
-            } else
+            } else if (rootName == "N42InstrumentData")
+            {
+                return typeof(N42InstrumentData);
+            }
+
+            // Not found
+            else
             {
                 throw new InvalidOperationException($"Unknown root element in N42 format: {rootName}, namespace: {ns}");
             }
@@ -846,7 +852,7 @@ namespace BecquerelMonitor
                     }
                     if (importWithEmtyConfig)
                     {
-                        this.ResetSpectrumConfig(doc.ActiveResultData, 1024);
+                        this.ResetSpectrumConfig(doc.ActiveResultData, util.N42_2012_getChannels(n42object));
                     }
                     util.ImportFromN42(n42object, doc, filename);
                 } else if (n42Type == typeof(RadiologicalInstrumentData))
@@ -859,6 +865,18 @@ namespace BecquerelMonitor
                     if (importWithEmtyConfig)
                     {
                         this.ResetSpectrumConfig(doc.ActiveResultData, n42object.MeasurementGroup.Measurement.Spectrum.ChannelData.NumberOfChannels);
+                    }
+                    util.ImportFromN42(n42object, doc, filename);
+                } else if (n42Type == typeof(N42InstrumentData))
+                {
+                    N42InstrumentData n42object = new N42InstrumentData();
+                    using (XmlReader reader = XmlReader.Create(filename))
+                    {
+                        n42object = (N42InstrumentData)ser.Deserialize(reader);
+                    }
+                    if (importWithEmtyConfig)
+                    {
+                        this.ResetSpectrumConfig(doc.ActiveResultData, util.N42_2006_getChannels(n42object));
                     }
                     util.ImportFromN42(n42object, doc, filename);
                 }

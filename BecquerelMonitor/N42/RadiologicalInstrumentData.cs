@@ -2,37 +2,38 @@
 
 namespace BecquerelMonitor.N42
 {
+    // Alpha Hound
     [XmlRoot("RadiologicalInstrumentData", Namespace = Ns)]
     public class RadiologicalInstrumentData
     {
         public const string Ns = "http://physics.nist.gov/N42/2006/N42";
 
         [XmlElement("MeasurementGroup")]
-        public MeasurementGroup MeasurementGroup { get; set; }
+        public AH_MeasurementGroup MeasurementGroup { get; set; }
     }
 
-    public class MeasurementGroup
+    public class AH_MeasurementGroup
     {
         [XmlElement("Measurement")]
-        public Measurement Measurement { get; set; }
+        public AH_Measurement Measurement { get; set; }
     }
 
-    public class Measurement
+    public class AH_Measurement
     {
         [XmlElement("Spectrum")]
-        public N42Spectrum Spectrum { get; set; }
+        public AH_Spectrum Spectrum { get; set; }
     }
 
-    public partial class N42Spectrum
+    public class AH_Spectrum
     {
         [XmlElement("InstrumentInformation")]
-        public InstrumentInformation InstrumentInformation { get; set; }
+        public AH_InstrumentInformation InstrumentInformation { get; set; }
 
         [XmlElement("EnergyCalibration")]
-        public N42EnergyCalibration EnergyCalibration { get; set; }
+        public AH_EnergyCalibration EnergyCalibration { get; set; }
 
         [XmlElement("ChannelData")]
-        public N42ChannelData ChannelData { get; set; }
+        public AH_ChannelData ChannelData { get; set; }
 
         [XmlElement("LiveTime")]
         public double LiveTime { get; set; }
@@ -41,7 +42,7 @@ namespace BecquerelMonitor.N42
         public string SpectrumType { get; set; }
     }
 
-    public class InstrumentInformation
+    public class AH_InstrumentInformation
     {
         [XmlElement("Manufacturer")]
         public string Manufacturer { get; set; }
@@ -53,7 +54,7 @@ namespace BecquerelMonitor.N42
         public string SerialNumber { get; set; }
     }
 
-    public class N42EnergyCalibration
+    public class AH_EnergyCalibration
     {
         [XmlElement("CalibrationEquation")]
         public string CalibrationEquation { get; set; }
@@ -62,7 +63,7 @@ namespace BecquerelMonitor.N42
         public string ChannelEnergies { get; set; }
     }
 
-    public class N42ChannelData
+    public class AH_ChannelData
     {
         [XmlAttribute("NumberOfChannels")]
         public int NumberOfChannels { get; set; }
