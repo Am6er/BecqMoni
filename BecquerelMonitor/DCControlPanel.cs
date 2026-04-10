@@ -213,6 +213,7 @@ namespace BecquerelMonitor
                 activeDocument.PulseDetector.DoUpdatePulseView = false;
             }
             this.ShowDocumentStatus();
+            if (activeDocument.AutoSave) this.documentManager.SaveDocument(activeDocument);
         }
 
         public void DetachFromDevice()
