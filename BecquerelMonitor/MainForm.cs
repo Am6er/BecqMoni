@@ -2081,6 +2081,7 @@ namespace BecquerelMonitor
             foreach (string pathname in openFileDialog.FileNames)
             {
                 ResultDataFile resultDataFile = this.documentManager.LoadDocument(doc, pathname);
+                if (resultDataFile == null) break;
                 foreach (ResultData resultData in resultDataFile.ResultDataList)
                 {
                     if (doc.ResultDataFile.ResultDataList.Count >= this.globalConfigManager.MaximumSpectrumPerFile)
