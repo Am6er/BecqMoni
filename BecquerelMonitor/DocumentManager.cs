@@ -1,16 +1,17 @@
 ﻿using BecquerelMonitor.N42;
 using BecquerelMonitor.Properties;
 using BecquerelMonitor.Utils;
-using SQLitePCL;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.ComTypes;
+using System.Runtime.Remoting.Channels;
 using System.Text;
 using System.Windows.Forms;
 using System.Xml;
 using System.Xml.Serialization;
-using Windows.Networking;
 
 namespace BecquerelMonitor
 {
@@ -489,6 +490,193 @@ namespace BecquerelMonitor
             docEnergySpectrum2.ResultDataFile.ResultDataList[0].Selected = true;
             docEnergySpectrum2.UpdateEnergySpectrum();
             return docEnergySpectrum2;
+        }
+
+        public void ImportDocumentSpecUtils(DocEnergySpectrum doc, string filepath)
+        {
+            GC.Collect();
+            IntPtr file_h = IntPtr.Zero;
+
+            try
+            {
+                Cursor.Current = Cursors.WaitCursor;
+                string file_ext = Path.GetExtension(filepath);
+                if (file_ext != "") file_ext = file_ext.TrimStart('.').ToLowerInvariant();
+                file_h = SpecUtilsNative.Open(filepath, file_ext);
+                if (file_h == IntPtr.Zero) throw new FileLoadException("Unable to load file using SpecUtils. Unknown file format.");
+
+                string fileName = Path.GetFileNameWithoutExtension(filepath);
+                doc.Filename = fileName + ".xml";
+                doc.Text = fileName;
+
+                int measurements_count = SpecUtilsNative.GetMeasurementsCount(file_h);
+                if (measurements_count == 0) throw new Exception("No measurements found in spectrum file");
+
+                bool importWithEmtyConfig = GlobalConfigManager.GetInstance().GlobalConfig.ImportSpectrumWithEmptyConfig;
+
+                int list_count = 0;
+                for (int m = 0; m < measurements_count; m++)
+                {
+                    // 16 spectrum MAX
+                    if (list_count >= 15) break;
+
+                    int sourcetype = SpecUtilsNative.GetSourceType(file_h, m);
+                    int numberOfChannels = SpecUtilsNative.GetChannelCount(file_h, m);
+
+                    ResultData resultData = doc.ResultDataFile.ResultDataList[list_count];
+                    resultData.SampleInfo.Name = fileName + "(" + list_count + ")";
+                    EnergySpectrum energySpectrum = resultData.EnergySpectrum;
+
+                    switch (sourcetype)
+                    {
+                        // Foreground
+                        // Unknown == Foreground :)
+                        case 3:
+                        case 4:
+                            {
+                                // EnergySpectrum allready done, create new ResultData
+                                if (resultData.EnergySpectrum.TotalPulseCount != 0)
+                                {
+                                    doc.ResultDataFile.ResultDataList.Add(new ResultData());
+                                    list_count++;
+                                    resultData = doc.ResultDataFile.ResultDataList[list_count];
+                                    if (importWithEmtyConfig) resultData.DeviceConfig = new DeviceConfigInfo();
+                                }
+
+                                resultData.EnergySpectrum = new EnergySpectrum(1, numberOfChannels);
+
+                                energySpectrum = resultData.EnergySpectrum;
+                                break;
+                            }
+                        // Background
+                        case 2:
+                            {
+                                // BackgroundEnergySpectrum allready done, create new ResultData
+                                if (resultData.BackgroundEnergySpectrum != null)
+                                {
+                                    doc.ResultDataFile.ResultDataList.Add(new ResultData());
+                                    list_count++;
+                                    resultData = doc.ResultDataFile.ResultDataList[list_count];
+                                    if (importWithEmtyConfig) resultData.DeviceConfig = new DeviceConfigInfo();
+                                }
+
+                                resultData.BackgroundEnergySpectrum = new EnergySpectrum(1, numberOfChannels);
+                                resultData.BackgroundSpectrumFile = "BackgroundEnergySpectrum" + " (" + list_count + ")";
+
+                                energySpectrum = resultData.BackgroundEnergySpectrum;
+                                break;
+                            }
+                        // Skip IntrinsicActivity
+                        // Skip Calibration
+                        case 0:
+                        case 1:
+                            {
+                                continue;
+                            }
+                    }
+
+                    double livetime = SpecUtilsNative.GetLiveTime(file_h, m);
+                    double realtime = SpecUtilsNative.GetRealTime(file_h, m);
+                    long ms = SpecUtilsNative.GetStartTime(file_h, m);
+                    DateTime startTime = DateTimeOffset.FromUnixTimeMilliseconds(ms).DateTime;
+
+                    IntPtr p = SpecUtilsNative.GetSpectrum(file_h, 0, out int spec_size);
+                    float[] data = new float[spec_size];
+                    Marshal.Copy(p, data, 0, spec_size);
+                    int totalPulseCount = (int)SpecUtilsNative.GetTotalCounts(file_h, m);
+                    int validPulseCount = 0;
+                    for (int i = 0; i < spec_size; i++)
+                    {
+                        energySpectrum.Spectrum[i] = (int)data[i];
+                        validPulseCount += energySpectrum.Spectrum[i];
+                    }
+
+                    energySpectrum.TotalPulseCount = totalPulseCount;
+                    energySpectrum.ValidPulseCount = validPulseCount;
+                    energySpectrum.LiveTime = livetime;
+                    energySpectrum.MeasurementTime = realtime;
+                    ResultDataStatus resultDataStatus = resultData.ResultDataStatus;
+                    resultDataStatus.TotalTime = TimeSpan.FromSeconds(energySpectrum.MeasurementTime);
+                    resultDataStatus.ElapsedTime = TimeSpan.FromSeconds(energySpectrum.MeasurementTime);
+                    resultDataStatus.PresetTime = (int)energySpectrum.MeasurementTime;
+                    resultData.StartTime = startTime;
+                    resultData.EndTime = startTime.AddSeconds(energySpectrum.MeasurementTime);
+
+                    // Calibration part
+                    int energyCalType = SpecUtilsNative.GetEnergyCalType(file_h, m);
+
+                    switch (energyCalType)
+                    {
+                        // Polynomial
+                        // UnspecifiedUsingDefaultPolynomial
+                        case 0:
+                        case 3:
+                            {
+                                IntPtr cal_p = SpecUtilsNative.GetEnergyCalibrationCoefficients(file_h, 0, out int cal_size);
+                                if (cal_p == IntPtr.Zero) throw new Exception("Error reading calibration coefficients array.");
+
+                                float[] cal = new float[cal_size];
+                                Marshal.Copy(cal_p, cal, 0, cal_size);
+
+                                PolynomialEnergyCalibration calibration = new PolynomialEnergyCalibration();
+                                calibration.PolynomialOrder = cal_size - 1;
+                                calibration.Coefficients = new double[cal_size];
+                                for (int i = 0; i < cal_size; i++) calibration.Coefficients[i] = (double)cal[i];
+                                energySpectrum.EnergyCalibration = calibration.Clone();
+                                break;
+                            }
+                        // LowerChannelEdge
+                        // FullRangeFraction
+                        // InvalidEquationType
+                        case 1:
+                        case 2:
+                        case 4:
+                            {
+                                IntPtr ch_en_p = SpecUtilsNative.GetEnergyCalibrationChannelEnergies(file_h, 0, out int cal_ch_energy_size);
+                                if (ch_en_p == IntPtr.Zero) throw new Exception("Error reading calibration channel-energies array.");
+
+                                float[] energies = new float[cal_ch_energy_size];
+                                Marshal.Copy(ch_en_p, energies, 0, cal_ch_energy_size);
+
+                                List<CalibrationPoint> listCalibration = new List<CalibrationPoint>();
+                                for (int ch = 0; ch < cal_ch_energy_size; ch++)
+                                {
+                                    CalibrationPoint calibrationPoint = new CalibrationPoint(ch, (decimal)energies[ch], energySpectrum.Spectrum[ch]);
+                                    listCalibration.Add(calibrationPoint);
+                                }
+
+                                PolynomialEnergyCalibration calibration = new PolynomialEnergyCalibration();
+                                if (listCalibration.Count >= 5)
+                                {
+                                    double[] matrix = CalibrationSolver.Solve(listCalibration, 4);
+                                    calibration.Coefficients = new double[matrix.Length];
+                                    calibration.Coefficients = matrix;
+                                    calibration.PolynomialOrder = matrix.Length - 1;
+                                }
+
+                                energySpectrum.EnergyCalibration = calibration.Clone();
+
+                                break;
+                            }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (ex.InnerException != null && ex.InnerException.Message != null)
+                {
+                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filepath, ex.Message + " " + ex.InnerException.Message));
+                }
+                else
+                {
+                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filepath, ex.Message + " " + ex.StackTrace));
+                }
+            }
+            finally
+            {
+                if (file_h != IntPtr.Zero) SpecUtilsNative.Close(file_h);
+            }
+            Cursor.Current = Cursors.Default;
         }
 
         public void ImportDocumentGBS(DocEnergySpectrum doc, string filePath)

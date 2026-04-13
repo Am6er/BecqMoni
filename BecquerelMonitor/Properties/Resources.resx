@@ -42090,4 +42090,10 @@ Left/Right skews - 1 = classic Gaussian peak, lower value - the left/right peak 
   <data name="ERRPeakExist" xml:space="preserve">
     <value>Selected peak FWHM allready exist in calibration peaks table! Try to select other peak. FWHM = {0} ch, Channel = {1} ch</value>
   </data>
+  <data name="ImportSpecUtilsFileDialogTitle" xml:space="preserve">
+    <value>Import using SpecUtils</value>
+  </data>
+  <data name="SpecUtilsFileFilter" xml:space="preserve">
+    <value>N42 2006/2012 (*.n42;*.xml;*.icd1;*.icd)|*.n42;*.xml;*.icd1;*.icd|ASCII or binary (both integer based and float based) SPC formats (*.spc)|*.spc|Exploranium GR-130, GR-135 v1 or v2 binary formats (*.gr130;*.gr135;*.dat)|*.gr130;*.gr135;*.dat|GADRAS PCF binary format (*.pcf)|*.pcf|ORTEC binary CHN file (*.chn)|*.chn|The IAEA SPE ascii format (*.spe)|*.spe|CSV, TSV, TXT and similar variants (*.txt;*.csv;*.tsv)|*.txt;*.csv;*.tsv|Canberra binary CNF format (*.cnf)|*.cnf|Tracs MPS binary format (*.mps)|*.mps|Aram TXT and XML hybrid format (*.gam;*.neu)|*.gam;*.neu|Spectroscopic Portal Monitor Daily File (*.txt)|*.txt|Amptek MCA text-ish based format (*.mca)|*.mca|Microraider XML based format (*.xml)|*.xml|RadiaCode/BecqMoni XML format (*.xml)|*.xml|ORTEC list mode (*.lis)|*.lis|LSRM text based format (*.spe;*.txt)|*.spe;*.txt|TKA text based format (*.tka;*.jac)|*.tka;*.jac|MultiAct binary format (*.spm)|*.spm|PHD text based format (*.phd)|*.phd|LabZY XML based files (*.lzs;*.xml)|*.lzs;*.xml|Scan Data XML (*.xml)|*.xml|Bridgeport MCA-3000 JSON files (*.json)|*.json|CAEN Hexagon MCA gxml format (*.gxml)|*.gxml|All files (*.*)|*.*</value>
+  </data>
 </root>

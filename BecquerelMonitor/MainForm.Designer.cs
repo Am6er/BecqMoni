@@ -66,6 +66,7 @@ namespace BecquerelMonitor
 			this.cSVCToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.EffCalcMCFileToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.GBSFileToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+            this.SpecUtilsToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
             this.ECSVToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.fWHM用ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSeparator1 = new global::System.Windows.Forms.ToolStripSeparator();
@@ -199,6 +200,7 @@ namespace BecquerelMonitor
 				this.EffCalcMCFileToolStripMenuItem,
 				this.cSVEnFileToolStripMenuItem,
 				this.GBSFileToolStripMenuItem,
+				this.SpecUtilsToolStripMenuItem,
                 this.ベクモニ旧形式v093bToolStripMenuItem
 			});
 			this.インポ\u30FCトIToolStripMenuItem.Name = "インポートIToolStripMenuItem";
@@ -223,6 +225,9 @@ namespace BecquerelMonitor
             resources.ApplyResources(this.GBSFileToolStripMenuItem, "GBSFileToolStripMenuItem");
             this.GBSFileToolStripMenuItem.Name = "GBSFileToolStripMenuItem";
             this.GBSFileToolStripMenuItem.Click += new global::System.EventHandler(this.GBSFileToolStripMenuItem_Click);
+            resources.ApplyResources(this.SpecUtilsToolStripMenuItem, "SpecUtilsToolStripMenuItem");
+            this.SpecUtilsToolStripMenuItem.Name = "SpecUtilsToolStripMenuItem";
+            this.SpecUtilsToolStripMenuItem.Click += new global::System.EventHandler(this.SpecUtilsToolStripMenuItem_Click);
             resources.ApplyResources(this.エクスポ\u30FCトEToolStripMenuItem, "エクスポートEToolStripMenuItem");
 			this.エクスポ\u30FCトEToolStripMenuItem.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
@@ -722,6 +727,8 @@ namespace BecquerelMonitor
 		global::System.Windows.Forms.ToolStripMenuItem EffCalcMCFileToolStripMenuItem;
 
         global::System.Windows.Forms.ToolStripMenuItem GBSFileToolStripMenuItem;
+
+        global::System.Windows.Forms.ToolStripMenuItem SpecUtilsToolStripMenuItem;
 
         // Token: 0x040005B0 RID: 1456
         global::System.Windows.Forms.ToolStripMenuItem デ\u30FCタ消去CToolStripMenuItem;

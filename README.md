@@ -14,3 +14,6 @@ Russian:
 Youtube канал, где можно посмотреть нововведения https://www.youtube.com/@Am6er
 
 Конфигурационные файлы сохраняются в пользовательском профиле %AppData%\BecqMoni
+
+Using [SpecUtils binding for C#](https://github.com/Am6er/SpecUtilsCS)
+For original [SpecUtils](https://github.com/sandialabs/SpecUtils) big thanks SandiaLabs!
