@@ -755,4 +755,7 @@ http://xptable.sourceforge.net/</value>
   <data name="ERRPeakExist" xml:space="preserve">
     <value>FWHM выбранного пика уже присутствуют в таблице калибровочных пиков! Попробуйте выбрать другой пик. FWHM = {0} канал, Канал = {1} канал.</value>
   </data>
+  <data name="ImportSpecUtilsFileDialogTitle" xml:space="preserve">
+    <value>Импорт при помощи SpecUtils</value>
+  </data>
 </root>

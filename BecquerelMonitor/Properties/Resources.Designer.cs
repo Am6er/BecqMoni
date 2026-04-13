@@ -1487,6 +1487,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Import using SpecUtils.
+        /// </summary>
+        internal static string ImportSpecUtilsFileDialogTitle {
+            get {
+                return ResourceManager.GetString("ImportSpecUtilsFileDialogTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Initializing...
         ///.
         /// </summary>
@@ -2463,6 +2472,15 @@ namespace BecquerelMonitor.Properties {
         internal static string SpectrumFileFilter {
             get {
                 return ResourceManager.GetString("SpectrumFileFilter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to N42 2006/2012 (*.n42;*.xml;*.icd1;*.icd)|*.n42;*.xml;*.icd1;*.icd|ASCII or binary (both integer based and float based) SPC formats (*.spc)|*.spc|Exploranium GR-130, GR-135 v1 or v2 binary formats (*.gr130;*.gr135;*.dat)|*.gr130;*.gr135;*.dat|GADRAS PCF binary format (*.pcf)|*.pcf|ORTEC binary CHN file (*.chn)|*.chn|The IAEA SPE ascii format (*.spe)|*.spe|CSV, TSV, TXT and similar variants (*.txt;*.csv;*.tsv)|*.txt;*.csv;*.tsv|Canberra binary CNF format (*.cnf)|*.cnf|Tracs MPS binary format (*.mps)|*.mps|Ara [rest of string was truncated]&quot;;.
+        /// </summary>
+        internal static string SpecUtilsFileFilter {
+            get {
+                return ResourceManager.GetString("SpecUtilsFileFilter", resourceCulture);
             }
         }
         

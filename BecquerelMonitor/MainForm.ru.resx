@@ -795,4 +795,7 @@
   <data name="cSVEnFileToolStripMenuItem.Text" xml:space="preserve">
     <value>CSV (Energy,Counts) Файл</value>
   </data>
+  <data name="SpecUtilsToolStripMenuItem.Text" xml:space="preserve">
+    <value>Импорт при помощи SpectUtils..</value>
+  </data>
 </root>
