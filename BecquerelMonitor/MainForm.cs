@@ -2289,6 +2289,10 @@ namespace BecquerelMonitor
                 this.documentManager.ImportDocumentGBS(this.activeDocument, filePath);
                 this.activeDocument.Dirty = true;
                 this.UpdateAllView();
+                if (this.activeDocument.EnergySpectrumView.HorizontalMagnification == HorizontalMagnification.Fit)
+                {
+                    this.activeDocument.EnergySpectrumView.FitHorizontalScale();
+                }
             }
         }
 
@@ -2310,11 +2314,11 @@ namespace BecquerelMonitor
                 CreateDocument();
                 this.documentManager.ImportDocumentSpecUtils(this.activeDocument, filePath);
                 this.activeDocument.Dirty = true;
+                this.UpdateAllView();
                 if (this.activeDocument.EnergySpectrumView.HorizontalMagnification == HorizontalMagnification.Fit)
                 {
                     this.activeDocument.EnergySpectrumView.FitHorizontalScale();
                 }
-                this.UpdateAllView();
             }
         }
 
