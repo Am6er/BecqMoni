@@ -2312,7 +2312,8 @@ namespace BecquerelMonitor
             foreach (string filePath in openFileDialog.FileNames)
             {
                 CreateDocument();
-                this.documentManager.ImportDocumentSpecUtils(this.activeDocument, filePath);
+                int presetTime = this.dcControlPanel.PresetTime;
+                this.documentManager.ImportDocumentSpecUtils(this.activeDocument, filePath, presetTime);
                 this.activeDocument.Dirty = true;
                 this.UpdateAllView();
                 if (this.activeDocument.EnergySpectrumView.HorizontalMagnification == HorizontalMagnification.Fit)

@@ -492,7 +492,7 @@ namespace BecquerelMonitor
             return docEnergySpectrum2;
         }
 
-        public void ImportDocumentSpecUtils(DocEnergySpectrum doc, string filepath)
+        public void ImportDocumentSpecUtils(DocEnergySpectrum doc, string filepath, int presettime)
         {
             GC.Collect();
             IntPtr file_h = IntPtr.Zero;
@@ -543,8 +543,9 @@ namespace BecquerelMonitor
                                     list_count++;
                                     resultData = doc.ResultDataFile.ResultDataList[list_count];
                                     if (importWithEmtyConfig) resultData.DeviceConfig = new DeviceConfigInfo();
+                                    resultData.SampleInfo.Name = fileName + "(" + list_count + ")";
                                 }
-                                resultData.SampleInfo.Name = fileName + "(" + list_count + ")";
+                                
                                 resultData.EnergySpectrum = new EnergySpectrum(1, numberOfChannels);
                                 resultData.FwhmCalibration = fwhmCalibration.Clone();
                                 resultData.MeasurementController = measurementController;
@@ -584,6 +585,9 @@ namespace BecquerelMonitor
                     double livetime = SpecUtilsNative.GetLiveTime(file_h, m);
                     double realtime = SpecUtilsNative.GetRealTime(file_h, m);
                     long ms = SpecUtilsNative.GetStartTime(file_h, m);
+                    livetime = (livetime == 0 ) ? presettime : livetime;
+                    realtime = (realtime == 0) ? presettime : realtime;
+                    ms = (ms == 0) ? 3600 : ms;
                     DateTime startTime = DateTimeOffset.FromUnixTimeMilliseconds(ms).DateTime;
 
                     IntPtr p = SpecUtilsNative.GetSpectrum(file_h, 0, out int spec_size);
@@ -625,9 +629,14 @@ namespace BecquerelMonitor
                                 Marshal.Copy(cal_p, cal, 0, cal_size);
 
                                 PolynomialEnergyCalibration calibration = new PolynomialEnergyCalibration();
-                                calibration.PolynomialOrder = cal_size - 1;
-                                calibration.Coefficients = new double[cal_size];
-                                for (int i = 0; i < cal_size; i++) calibration.Coefficients[i] = (double)cal[i];
+
+                                if (cal.Sum() != 0)
+                                {
+                                    calibration.PolynomialOrder = cal_size - 1;
+                                    calibration.Coefficients = new double[cal_size];
+                                    for (int i = 0; i < cal_size; i++) calibration.Coefficients[i] = (double)cal[i];
+                                }
+
                                 energySpectrum.EnergyCalibration = calibration.Clone();
                                 break;
                             }
@@ -644,24 +653,27 @@ namespace BecquerelMonitor
                                 float[] energies = new float[cal_ch_energy_size];
                                 Marshal.Copy(ch_en_p, energies, 0, cal_ch_energy_size);
 
-                                List<CalibrationPoint> listCalibration = new List<CalibrationPoint>();
-                                for (int ch = 0; ch < cal_ch_energy_size; ch++)
-                                {
-                                    CalibrationPoint calibrationPoint = new CalibrationPoint(ch, (decimal)energies[ch], energySpectrum.Spectrum[ch]);
-                                    listCalibration.Add(calibrationPoint);
-                                }
-
                                 PolynomialEnergyCalibration calibration = new PolynomialEnergyCalibration();
-                                if (listCalibration.Count >= 5)
+
+                                if (energies.Sum() != 0)
                                 {
-                                    double[] matrix = CalibrationSolver.Solve(listCalibration, 4);
-                                    calibration.Coefficients = new double[matrix.Length];
-                                    calibration.Coefficients = matrix;
-                                    calibration.PolynomialOrder = matrix.Length - 1;
+                                    List<CalibrationPoint> listCalibration = new List<CalibrationPoint>();
+                                    for (int ch = 0; ch < cal_ch_energy_size - 1; ch++)
+                                    {
+                                        CalibrationPoint calibrationPoint = new CalibrationPoint(ch, (decimal)energies[ch], energySpectrum.Spectrum[ch]);
+                                        listCalibration.Add(calibrationPoint);
+                                    }
+
+                                    if (listCalibration.Count >= 5)
+                                    {
+                                        double[] matrix = CalibrationSolver.Solve(listCalibration, 4);
+                                        calibration.Coefficients = new double[matrix.Length];
+                                        calibration.Coefficients = matrix;
+                                        calibration.PolynomialOrder = matrix.Length - 1;
+                                    }
                                 }
 
                                 energySpectrum.EnergyCalibration = calibration.Clone();
-
                                 break;
                             }
                     }
