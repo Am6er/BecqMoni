@@ -513,6 +513,8 @@ namespace BecquerelMonitor
                 if (measurements_count == 0) throw new Exception("No measurements found in spectrum file");
 
                 bool importWithEmtyConfig = GlobalConfigManager.GetInstance().GlobalConfig.ImportSpectrumWithEmptyConfig;
+                FwhmCalibration fwhmCalibration = doc.ActiveResultData.FwhmCalibration.Clone();
+                MeasurementController measurementController = doc.ActiveResultData.MeasurementController;
 
                 int list_count = 0;
                 for (int m = 0; m < measurements_count; m++)
@@ -542,8 +544,10 @@ namespace BecquerelMonitor
                                     resultData = doc.ResultDataFile.ResultDataList[list_count];
                                     if (importWithEmtyConfig) resultData.DeviceConfig = new DeviceConfigInfo();
                                 }
-
+                                resultData.SampleInfo.Name = fileName + "(" + list_count + ")";
                                 resultData.EnergySpectrum = new EnergySpectrum(1, numberOfChannels);
+                                resultData.FwhmCalibration = fwhmCalibration.Clone();
+                                resultData.MeasurementController = measurementController;
 
                                 energySpectrum = resultData.EnergySpectrum;
                                 break;
@@ -562,6 +566,8 @@ namespace BecquerelMonitor
 
                                 resultData.BackgroundEnergySpectrum = new EnergySpectrum(1, numberOfChannels);
                                 resultData.BackgroundSpectrumFile = "BackgroundEnergySpectrum" + " (" + list_count + ")";
+                                resultData.FwhmCalibration = fwhmCalibration.Clone();
+                                resultData.MeasurementController = measurementController;
 
                                 energySpectrum = resultData.BackgroundEnergySpectrum;
                                 break;
