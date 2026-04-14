@@ -527,6 +527,11 @@ namespace BecquerelMonitor
 
                     ResultData resultData = doc.ResultDataFile.ResultDataList[list_count];
                     resultData.SampleInfo.Name = fileName + "(" + list_count + ")";
+                    if (importWithEmtyConfig)
+                    {
+                        resultData.DeviceConfig = new DeviceConfigInfo();
+                        resultData.ROIConfig = null;
+                    }
                     EnergySpectrum energySpectrum = resultData.EnergySpectrum;
 
                     switch (sourcetype)
@@ -542,7 +547,11 @@ namespace BecquerelMonitor
                                     doc.ResultDataFile.ResultDataList.Add(new ResultData());
                                     list_count++;
                                     resultData = doc.ResultDataFile.ResultDataList[list_count];
-                                    if (importWithEmtyConfig) resultData.DeviceConfig = new DeviceConfigInfo();
+                                    if (importWithEmtyConfig)
+                                    {
+                                        resultData.DeviceConfig = new DeviceConfigInfo();
+                                        resultData.ROIConfig = null;
+                                    }
                                     resultData.SampleInfo.Name = fileName + "(" + list_count + ")";
                                 }
                                 
@@ -562,7 +571,11 @@ namespace BecquerelMonitor
                                     doc.ResultDataFile.ResultDataList.Add(new ResultData());
                                     list_count++;
                                     resultData = doc.ResultDataFile.ResultDataList[list_count];
-                                    if (importWithEmtyConfig) resultData.DeviceConfig = new DeviceConfigInfo();
+                                    if (importWithEmtyConfig)
+                                    {
+                                        resultData.DeviceConfig = new DeviceConfigInfo();
+                                        resultData.ROIConfig = null;
+                                    }
                                 }
 
                                 resultData.BackgroundEnergySpectrum = new EnergySpectrum(1, numberOfChannels);
