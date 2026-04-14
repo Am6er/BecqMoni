@@ -515,6 +515,10 @@ namespace BecquerelMonitor
                 bool importWithEmtyConfig = GlobalConfigManager.GetInstance().GlobalConfig.ImportSpectrumWithEmptyConfig;
                 FwhmCalibration fwhmCalibration = doc.ActiveResultData.FwhmCalibration.Clone();
                 MeasurementController measurementController = doc.ActiveResultData.MeasurementController;
+                doc.ActiveResultData.BackgroundEnergySpectrum = null;
+                doc.ActiveResultData.BackgroundSpectrumPathname = null;
+                doc.ActiveResultData.BackgroundSpectrumFile = null;
+
 
                 int list_count = 0;
                 for (int m = 0; m < measurements_count; m++)
