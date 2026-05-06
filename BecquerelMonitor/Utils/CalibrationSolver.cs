@@ -50,6 +50,16 @@ namespace BecquerelMonitor.Utils
             */
         }
 
+        public static decimal getEnergyFromNthPoly(float[] coeff_vector, int channel)
+        {
+            decimal energy = 0;
+            for (int i = 0; i < coeff_vector.Length; i++)
+            {
+                energy += (decimal)coeff_vector[i] * (decimal)Math.Pow(channel, i);
+            }
+            return energy;
+        }
+
         public static double[] Solve(List<CalibrationPeak> peak, int PolynomialOrder)
         {
             Matrix<double> matrix;

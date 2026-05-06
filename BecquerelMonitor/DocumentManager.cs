@@ -647,11 +647,32 @@ namespace BecquerelMonitor
 
                                 PolynomialEnergyCalibration calibration = new PolynomialEnergyCalibration();
 
-                                if (cal.Sum() != 0)
+                                // if callibration order > 4th poly
+                                if (cal_size > 5)
                                 {
-                                    calibration.PolynomialOrder = cal_size - 1;
-                                    calibration.Coefficients = new double[cal_size];
-                                    for (int i = 0; i < cal_size; i++) calibration.Coefficients[i] = (double)cal[i];
+                                    List<CalibrationPoint> listCalibration = new List<CalibrationPoint>();
+
+                                    for (int ch = 0; ch < spec_size; ch++)
+                                    {
+                                        CalibrationPoint calibrationPoint = new CalibrationPoint(ch, CalibrationSolver.getEnergyFromNthPoly(cal, ch), energySpectrum.Spectrum[ch]);
+                                        listCalibration.Add(calibrationPoint);
+                                    }
+
+                                    if (listCalibration.Count >= 5)
+                                    {
+                                        double[] matrix = CalibrationSolver.Solve(listCalibration, 4);
+                                        calibration.Coefficients = new double[matrix.Length];
+                                        calibration.Coefficients = matrix;
+                                        calibration.PolynomialOrder = matrix.Length - 1;
+                                    }
+                                } else
+                                {
+                                    if (cal.Sum() != 0)
+                                    {
+                                        calibration.PolynomialOrder = cal_size - 1;
+                                        calibration.Coefficients = new double[cal_size];
+                                        for (int i = 0; i < cal_size; i++) calibration.Coefficients[i] = (double)cal[i];
+                                    }
                                 }
 
                                 energySpectrum.EnergyCalibration = calibration.Clone();
