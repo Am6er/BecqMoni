@@ -1,15 +1,15 @@
-name: Current Release
+name: Version Release
 
 on:
   push:
     tags:
-      - Current
+      - '*.*.*.*'
 
 permissions:
   contents: write
 
 concurrency:
-  group: current-release
+  group: version-release-${{ github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -21,6 +21,19 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Validate release tag
+        id: validate
+        shell: pwsh
+        run: |
+          $tag = '${{ github.ref_name }}'
+          if ($tag -notmatch '^\d{4}\.\d{1,2}\.\d{1,2}\.\d+$') {
+            throw "Tag '$tag' does not match the supported release format year.month.day.number."
+          }
+
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "title=BecqMoni $tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "asset_name=BecqMoni-$tag.zip" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
@@ -34,9 +47,10 @@ jobs:
         id: package
         shell: pwsh
         run: |
-          $stageDir = Join-Path $env:RUNNER_TEMP 'BecqMoni-Current'
+          $tag = '${{ steps.validate.outputs.tag }}'
+          $stageDir = Join-Path $env:RUNNER_TEMP "BecqMoni-$tag"
           $stageConfigDir = Join-Path $stageDir 'config'
-          $zipPath = Join-Path $env:RUNNER_TEMP 'BecqMoni-Current.zip'
+          $zipPath = Join-Path $env:RUNNER_TEMP '${{ steps.validate.outputs.asset_name }}'
 
           if (Test-Path $stageDir) {
             Remove-Item -LiteralPath $stageDir -Recurse -Force
@@ -60,10 +74,10 @@ jobs:
         id: notes
         shell: pwsh
         run: |
-          $notesPath = Join-Path $env:RUNNER_TEMP 'current-release-notes.md'
+          $notesPath = Join-Path $env:RUNNER_TEMP 'version-release-notes.md'
           .\.github\scripts\Get-ReleaseNotes.ps1 `
-            -Mode Current `
-            -TagName 'Current' `
+            -Mode Version `
+            -TagName '${{ steps.validate.outputs.tag }}' `
             -BeforeSha '${{ github.event.before }}' `
             -AfterSha '${{ github.sha }}' `
             -RunUrl '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}' `
@@ -71,24 +85,36 @@ jobs:
 
           "notes_path=$notesPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
-
-      - name: Create or update Current prerelease
+      - name: Create or update release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
-          $tag = 'Current'
-          $title = 'Current version'
+          $tag = '${{ steps.validate.outputs.tag }}'
+          $title = '${{ steps.validate.outputs.title }}'
           $asset = '${{ steps.package.outputs.zip_path }}'
+          $assetName = '${{ steps.validate.outputs.asset_name }}'
           $notesFile = '${{ steps.notes.outputs.notes_path }}'
+          $payloadPath = Join-Path $env:RUNNER_TEMP 'version-release-payload.json'
+          $notes = Get-Content -Path $notesFile -Raw
 
-          gh release view $tag *> $null
+          $payload = @{
+            tag_name = $tag
+            name = $title
+            body = $notes
+            draft = $false
+            prerelease = $false
+          }
+
+          $payload | ConvertTo-Json -Depth 5 | Set-Content -Path $payloadPath -Encoding utf8
+
+          $releaseJson = gh api "repos/${{ github.repository }}/releases/tags/$tag" 2>$null
           if ($LASTEXITCODE -eq 0) {
-            gh release edit $tag --title $title --prerelease --notes-file $notesFile
+            $releaseId = ($releaseJson | ConvertFrom-Json).id
+            gh api "repos/${{ github.repository }}/releases/$releaseId" --method PATCH --input $payloadPath | Out-Null
           }
           else {
-            gh release create $tag $asset --title $title --prerelease --notes-file $notesFile
-            exit $LASTEXITCODE
+            gh api "repos/${{ github.repository }}/releases" --method POST --input $payloadPath | Out-Null
           }
 
-          gh release upload $tag "$asset#BecqMoni-Current.zip" --clobber
+          gh release upload $tag "$asset#$assetName" --clobber
