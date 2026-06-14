@@ -33,15 +33,15 @@ namespace BecquerelMonitor
 			this.高精細表示ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.通常表示ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSplitButton3 = new global::System.Windows.Forms.ToolStripSplitButton();
-			this.バ\u30FCグラフToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.バーグラフToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.折れ線グラフToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSplitButton6 = new global::System.Windows.Forms.ToolStripSplitButton();
-			this.スム\u30FCジングなしToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.スムージングなしToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.単純移動平均ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.加重移動平均ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSplitButton9 = new global::System.Windows.Forms.ToolStripSplitButton();
-			this.ピ\u30FCク表示ありToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.ピ\u30FCク表示なしToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.ピーク表示ありToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.ピーク表示なしToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStrip1 = new global::BecquerelMonitor.ToolStripEx();
 			this.toolStripLabel1 = new global::System.Windows.Forms.ToolStripLabel();
 			this.toolStripSplitButton1 = new global::System.Windows.Forms.ToolStripSplitButton();
@@ -67,14 +67,14 @@ namespace BecquerelMonitor
             this.toolStripLabel4 = new global::System.Windows.Forms.ToolStripLabel();
             this.toolStripSplitButton4 = new global::System.Windows.Forms.ToolStripSplitButton();
 			this.チャネル表示ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.エネルギ\u30FC表示ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.エネルギー表示ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripButton2 = new global::System.Windows.Forms.ToolStripButton();
 			this.toolStripButton1 = new global::System.Windows.Forms.ToolStripButton();
             this.toolStripButton3 = new global::System.Windows.Forms.ToolStripButton();
             this.toolStripSplitButton10 = new global::System.Windows.Forms.ToolStripSplitButton();
 			this.showEnergyCalibrationToolToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.hideEnergyCalibrationToolToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.energySpectrumView1 = new global::BecquerelMonitor.EnergySpectrumView();
+			this.energySpectrumView1 = new global::System.Windows.Forms.Panel();
 			this.contextMenuStrip1 = new global::System.Windows.Forms.ContextMenuStrip(this.components);
 			this.toolStripMenuItem1 = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.全チャネルを表示AToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
@@ -195,16 +195,16 @@ namespace BecquerelMonitor
 			this.toolStripSplitButton3.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
 			this.toolStripSplitButton3.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
-				this.バ\u30FCグラフToolStripMenuItem,
+				this.バーグラフToolStripMenuItem,
 				this.折れ線グラフToolStripMenuItem
 			});
 			this.toolStripSplitButton3.Image = global::BecquerelMonitor.Properties.Resources.line;
 			this.toolStripSplitButton3.Name = "toolStripSplitButton3";
 			this.toolStripSplitButton3.ButtonClick += new global::System.EventHandler(this.toolStripSplitButton3_ButtonClick);
 			this.toolStripSplitButton3.DropDownOpening += new global::System.EventHandler(this.toolStripSplitButton3_DropDownOpening);
-			resources.ApplyResources(this.バ\u30FCグラフToolStripMenuItem, "バーグラフToolStripMenuItem");
-			this.バ\u30FCグラフToolStripMenuItem.Name = "バーグラフToolStripMenuItem";
-			this.バ\u30FCグラフToolStripMenuItem.Click += new global::System.EventHandler(this.バ\u30FCグラフToolStripMenuItem_Click);
+			resources.ApplyResources(this.バーグラフToolStripMenuItem, "バーグラフToolStripMenuItem");
+			this.バーグラフToolStripMenuItem.Name = "バーグラフToolStripMenuItem";
+			this.バーグラフToolStripMenuItem.Click += new global::System.EventHandler(this.バーグラフToolStripMenuItem_Click);
 			resources.ApplyResources(this.折れ線グラフToolStripMenuItem, "折れ線グラフToolStripMenuItem");
 			this.折れ線グラフToolStripMenuItem.Name = "折れ線グラフToolStripMenuItem";
 			this.折れ線グラフToolStripMenuItem.Click += new global::System.EventHandler(this.折れ線グラフToolStripMenuItem_Click);
@@ -212,7 +212,7 @@ namespace BecquerelMonitor
 			this.toolStripSplitButton6.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
 			this.toolStripSplitButton6.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
-				this.スム\u30FCジングなしToolStripMenuItem,
+				this.スムージングなしToolStripMenuItem,
 				this.単純移動平均ToolStripMenuItem,
 				this.加重移動平均ToolStripMenuItem
 			});
@@ -220,9 +220,9 @@ namespace BecquerelMonitor
 			this.toolStripSplitButton6.Name = "toolStripSplitButton6";
 			this.toolStripSplitButton6.ButtonClick += new global::System.EventHandler(this.toolStripSplitButton6_ButtonClick);
 			this.toolStripSplitButton6.DropDownOpening += new global::System.EventHandler(this.toolStripSplitButton6_DropDownOpening);
-			resources.ApplyResources(this.スム\u30FCジングなしToolStripMenuItem, "スムージングなしToolStripMenuItem");
-			this.スム\u30FCジングなしToolStripMenuItem.Name = "スムージングなしToolStripMenuItem";
-			this.スム\u30FCジングなしToolStripMenuItem.Click += new global::System.EventHandler(this.スム\u30FCジングなしToolStripMenuItem_Click);
+			resources.ApplyResources(this.スムージングなしToolStripMenuItem, "スムージングなしToolStripMenuItem");
+			this.スムージングなしToolStripMenuItem.Name = "スムージングなしToolStripMenuItem";
+			this.スムージングなしToolStripMenuItem.Click += new global::System.EventHandler(this.スムージングなしToolStripMenuItem_Click);
 			resources.ApplyResources(this.単純移動平均ToolStripMenuItem, "単純移動平均ToolStripMenuItem");
 			this.単純移動平均ToolStripMenuItem.Name = "単純移動平均ToolStripMenuItem";
 			this.単純移動平均ToolStripMenuItem.Click += new global::System.EventHandler(this.単純移動平均ToolStripMenuItem_Click);
@@ -233,8 +233,8 @@ namespace BecquerelMonitor
 			this.toolStripSplitButton9.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
 			this.toolStripSplitButton9.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
-				this.ピ\u30FCク表示ありToolStripMenuItem,
-				this.ピ\u30FCク表示なしToolStripMenuItem
+				this.ピーク表示ありToolStripMenuItem,
+				this.ピーク表示なしToolStripMenuItem
 			});
 			this.toolStripSplitButton9.Image = global::BecquerelMonitor.Properties.Resources.peak;
 			this.toolStripSplitButton9.Name = "toolStripSplitButton9";
@@ -260,12 +260,12 @@ namespace BecquerelMonitor
             this.toolStripSplitButton.Image = global::BecquerelMonitor.Properties.Resources.split;
             this.toolStripSplitButton.Name = "toolStripSplitButton";
             this.toolStripSplitButton.Click += new global::System.EventHandler(this.toolStripSplitButton_Click);
-            resources.ApplyResources(this.ピ\u30FCク表示ありToolStripMenuItem, "ピーク表示ありToolStripMenuItem");
-			this.ピ\u30FCク表示ありToolStripMenuItem.Name = "ピーク表示ありToolStripMenuItem";
-			this.ピ\u30FCク表示ありToolStripMenuItem.Click += new global::System.EventHandler(this.ピ\u30FCク表示ありToolStripMenuItem_Click);
-			resources.ApplyResources(this.ピ\u30FCク表示なしToolStripMenuItem, "ピーク表示なしToolStripMenuItem");
-			this.ピ\u30FCク表示なしToolStripMenuItem.Name = "ピーク表示なしToolStripMenuItem";
-			this.ピ\u30FCク表示なしToolStripMenuItem.Click += new global::System.EventHandler(this.ピ\u30FCク表示なしToolStripMenuItem_Click);
+            resources.ApplyResources(this.ピーク表示ありToolStripMenuItem, "ピーク表示ありToolStripMenuItem");
+			this.ピーク表示ありToolStripMenuItem.Name = "ピーク表示ありToolStripMenuItem";
+			this.ピーク表示ありToolStripMenuItem.Click += new global::System.EventHandler(this.ピーク表示ありToolStripMenuItem_Click);
+			resources.ApplyResources(this.ピーク表示なしToolStripMenuItem, "ピーク表示なしToolStripMenuItem");
+			this.ピーク表示なしToolStripMenuItem.Name = "ピーク表示なしToolStripMenuItem";
+			this.ピーク表示なしToolStripMenuItem.Click += new global::System.EventHandler(this.ピーク表示なしToolStripMenuItem_Click);
 			resources.ApplyResources(this.toolStrip1, "toolStrip1");
 			this.toolStrip1.ClickThrough = true;
 			this.toolStrip1.ImageScalingSize = new global::System.Drawing.Size(18, 18);
@@ -382,7 +382,7 @@ namespace BecquerelMonitor
 			this.toolStripSplitButton4.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
 				this.チャネル表示ToolStripMenuItem,
-				this.エネルギ\u30FC表示ToolStripMenuItem
+				this.エネルギー表示ToolStripMenuItem
 			});
 			this.toolStripSplitButton4.Image = global::BecquerelMonitor.Properties.Resources.ene;
 			this.toolStripSplitButton4.Name = "toolStripSplitButton4";
@@ -391,9 +391,9 @@ namespace BecquerelMonitor
 			resources.ApplyResources(this.チャネル表示ToolStripMenuItem, "チャネル表示ToolStripMenuItem");
 			this.チャネル表示ToolStripMenuItem.Name = "チャネル表示ToolStripMenuItem";
 			this.チャネル表示ToolStripMenuItem.Click += new global::System.EventHandler(this.チャネル表示ToolStripMenuItem_Click);
-			resources.ApplyResources(this.エネルギ\u30FC表示ToolStripMenuItem, "エネルギー表示ToolStripMenuItem");
-			this.エネルギ\u30FC表示ToolStripMenuItem.Name = "エネルギー表示ToolStripMenuItem";
-			this.エネルギ\u30FC表示ToolStripMenuItem.Click += new global::System.EventHandler(this.エネルギ\u30FC表示ToolStripMenuItem_Click);
+			resources.ApplyResources(this.エネルギー表示ToolStripMenuItem, "エネルギー表示ToolStripMenuItem");
+			this.エネルギー表示ToolStripMenuItem.Name = "エネルギー表示ToolStripMenuItem";
+			this.エネルギー表示ToolStripMenuItem.Click += new global::System.EventHandler(this.エネルギー表示ToolStripMenuItem_Click);
 			resources.ApplyResources(this.toolStripButton2, "toolStripButton2");
 			this.toolStripButton2.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
 			this.toolStripButton2.Image = global::BecquerelMonitor.Properties.Resources.ZoominSelection;
@@ -407,7 +407,7 @@ namespace BecquerelMonitor
             resources.ApplyResources(this.toolStripButton3, "toolStripButton3");
             this.toolStripButton3.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.toolStripButton3.Image = global::BecquerelMonitor.Properties.Resources.scale;
-            this.toolStripButton3.Name = "toolStripButton1";
+            this.toolStripButton3.Name = "toolStripButton3";
             this.toolStripButton3.Click += new global::System.EventHandler(this.toolStripButton3_Click);
             resources.ApplyResources(this.toolStripSplitButton10, "toolStripSplitButton10");
 			this.toolStripSplitButton10.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
@@ -427,26 +427,9 @@ namespace BecquerelMonitor
 			this.hideEnergyCalibrationToolToolStripMenuItem.Name = "hideEnergyCalibrationToolToolStripMenuItem";
 			this.hideEnergyCalibrationToolToolStripMenuItem.Click += new global::System.EventHandler(this.hideEnergyCalibrationToolToolStripMenuItem_Click);
 			resources.ApplyResources(this.energySpectrumView1, "energySpectrumView1");
-			this.energySpectrumView1.ActiveResultDataIndex = 0;
 			this.energySpectrumView1.BackColor = global::System.Drawing.Color.White;
-			this.energySpectrumView1.BackgroundMode = global::BecquerelMonitor.BackgroundMode.Visible;
-			this.energySpectrumView1.ChartType = global::BecquerelMonitor.ChartType.LineChart;
-			this.energySpectrumView1.CursorChannel = 0;
-			this.energySpectrumView1.CursorX = -1;
-			this.energySpectrumView1.DrawingMode = global::BecquerelMonitor.DrawingMode.Normal;
-			this.energySpectrumView1.HorizontalScale = 1.0;
-			this.energySpectrumView1.HorizontalUnit = global::BecquerelMonitor.HorizontalUnit.Energy;
 			this.energySpectrumView1.Name = "energySpectrumView1";
-			this.energySpectrumView1.PeakMode = global::BecquerelMonitor.PeakMode.Visible;
-			this.energySpectrumView1.ResultDataList = null;
-			this.energySpectrumView1.SelectionEnd = -1;
-			this.energySpectrumView1.SelectionStart = -1;
-			this.energySpectrumView1.SmoothingMethod = global::BecquerelMonitor.SmoothingMethod.None;
 			this.toolTip1.SetToolTip(this.energySpectrumView1, resources.GetString("energySpectrumView1.ToolTip"));
-			this.energySpectrumView1.VerticalFittingMode = global::BecquerelMonitor.VerticalFittingMode.MinMax;
-			this.energySpectrumView1.VerticalScale = 1.0;
-			this.energySpectrumView1.VerticalScaleType = global::BecquerelMonitor.VerticalScaleType.LogarithmicScale;
-			this.energySpectrumView1.VerticalUnit = global::BecquerelMonitor.VerticalUnit.Counts;
 			resources.ApplyResources(this.contextMenuStrip1, "contextMenuStrip1");
 			this.contextMenuStrip1.Items.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
@@ -534,7 +517,7 @@ namespace BecquerelMonitor
         global::System.ComponentModel.IContainer components;
 
 		// Token: 0x04000112 RID: 274
-		global::BecquerelMonitor.EnergySpectrumView energySpectrumView1;
+		global::System.Windows.Forms.Panel energySpectrumView1;
 
 		// Token: 0x04000113 RID: 275
 		global::System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
@@ -621,7 +604,7 @@ namespace BecquerelMonitor
         global::System.Windows.Forms.ToolStripSplitButton toolStripSplitButton4;
 
 		// Token: 0x04000129 RID: 297
-		global::System.Windows.Forms.ToolStripMenuItem エネルギ\u30FC表示ToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem エネルギー表示ToolStripMenuItem;
 
 		// Token: 0x0400012A RID: 298
 		global::System.Windows.Forms.ToolStripMenuItem チャネル表示ToolStripMenuItem;
@@ -659,7 +642,7 @@ namespace BecquerelMonitor
 		global::System.Windows.Forms.ToolStripSplitButton toolStripSplitButton3;
 
 		// Token: 0x04000135 RID: 309
-		global::System.Windows.Forms.ToolStripMenuItem バ\u30FCグラフToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem バーグラフToolStripMenuItem;
 
 		// Token: 0x04000136 RID: 310
 		global::System.Windows.Forms.ToolStripMenuItem 折れ線グラフToolStripMenuItem;
@@ -668,7 +651,7 @@ namespace BecquerelMonitor
 		global::System.Windows.Forms.ToolStripSplitButton toolStripSplitButton6;
 
 		// Token: 0x04000138 RID: 312
-		global::System.Windows.Forms.ToolStripMenuItem スム\u30FCジングなしToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem スムージングなしToolStripMenuItem;
 
 		// Token: 0x04000139 RID: 313
 		global::System.Windows.Forms.ToolStripMenuItem 単純移動平均ToolStripMenuItem;
@@ -710,10 +693,10 @@ namespace BecquerelMonitor
 		global::System.Windows.Forms.ToolStripSplitButton toolStripSplitButton9;
 
 		// Token: 0x04000144 RID: 324
-		global::System.Windows.Forms.ToolStripMenuItem ピ\u30FCク表示ありToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem ピーク表示ありToolStripMenuItem;
 
 		// Token: 0x04000145 RID: 325
-		global::System.Windows.Forms.ToolStripMenuItem ピ\u30FCク表示なしToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem ピーク表示なしToolStripMenuItem;
 
 		// Token: 0x04000146 RID: 326
 		global::System.Windows.Forms.ToolStripSplitButton toolStripSplitButton10;

@@ -25,6 +25,11 @@ namespace BecquerelMonitor
 
         public static SynchronizationContext originalContext;
 
+        public MainForm()
+        {
+            this.InitializeComponent();
+        }
+
         // Token: 0x170002D4 RID: 724
         // (get) Token: 0x06000A40 RID: 2624 RVA: 0x0003C540 File Offset: 0x0003A740
         // (set) Token: 0x06000A41 RID: 2625 RVA: 0x0003C548 File Offset: 0x0003A748

@@ -340,10 +340,11 @@
     <Compile Include="EnergyResolutionCalculator.cs" />
     <Compile Include="EnergyResolutionResult.cs" />
     <Compile Include="EnergySpectrum.cs" />
+    <Compile Include="EnergySpectrumView.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="EnergySpectrumView.Designer.cs">
-      <DependentUpon>EnergySpectrumView.resx</DependentUpon>
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
+      <DependentUpon>EnergySpectrumView.cs</DependentUpon>
     </Compile>
     <Compile Include="EnergySpectrum_097b.cs" />
     <Compile Include="FwhmCalibration.cs" />
@@ -472,10 +473,11 @@
     <Compile Include="Pulse.cs" />
     <Compile Include="PulseCollection.cs" />
     <Compile Include="PulseData.cs" />
+    <Compile Include="PulseDecayView.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="PulseDecayView.Designer.cs">
-      <DependentUpon>PulseDecayView.resx</DependentUpon>
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
+      <DependentUpon>PulseDecayView.cs</DependentUpon>
     </Compile>
     <Compile Include="PulseDetectionMethodConfig.cs" />
     <Compile Include="PulseDetector.cs" />
@@ -1037,8 +1039,8 @@
       <DependentUpon>EffCalcMCDialog.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="EnergySpectrumView.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>EnergySpectrumView.Designer.cs</LastGenOutput>
+      <DependentUpon>EnergySpectrumView.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="GlobalConfigForm.resx">
       <DependentUpon>GlobalConfigForm.cs</DependentUpon>
@@ -1089,8 +1091,8 @@
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="PulseDecayView.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>PulseDecayView.Designer.cs</LastGenOutput>
+      <DependentUpon>PulseDecayView.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="PulseView.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>

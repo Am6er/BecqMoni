@@ -21,8 +21,8 @@
             this.Font = new global::System.Drawing.Font("Microsoft Sans Serif", 8);
 
             this.checkBox1 = new global::System.Windows.Forms.CheckBox();
-			this.pulseView2 = new global::BecquerelMonitor.PulseView();
-			this.pulseView1 = new global::BecquerelMonitor.PulseView();
+			this.pulseView2 = new global::System.Windows.Forms.Panel();
+			this.pulseView1 = new global::System.Windows.Forms.Panel();
 			this.label1 = new global::System.Windows.Forms.Label();
 			this.label2 = new global::System.Windows.Forms.Label();
 			this.checkBox2 = new global::System.Windows.Forms.CheckBox();
@@ -34,23 +34,11 @@
 			this.checkBox1.UseVisualStyleBackColor = true;
 			this.checkBox1.CheckedChanged += new global::System.EventHandler(this.checkBox1_CheckedChanged);
 			resources.ApplyResources(this.pulseView2, "pulseView2");
-			this.pulseView2.AntiAliasing = false;
 			this.pulseView2.BackColor = global::System.Drawing.Color.Black;
-			this.pulseView2.IsValidPulse = true;
 			this.pulseView2.Name = "pulseView2";
-			this.pulseView2.PeakIndex = 0;
-			this.pulseView2.PulseHeight = 0.0;
-			this.pulseView2.PulseShape = null;
-			this.pulseView2.PulseShapeSize = 0;
 			resources.ApplyResources(this.pulseView1, "pulseView1");
-			this.pulseView1.AntiAliasing = false;
 			this.pulseView1.BackColor = global::System.Drawing.Color.Black;
-			this.pulseView1.IsValidPulse = true;
 			this.pulseView1.Name = "pulseView1";
-			this.pulseView1.PeakIndex = 0;
-			this.pulseView1.PulseHeight = 0.0;
-			this.pulseView1.PulseShape = null;
-			this.pulseView1.PulseShapeSize = 0;
 			resources.ApplyResources(this.label1, "label1");
 			this.label1.Name = "label1";
 			resources.ApplyResources(this.label2, "label2");
@@ -82,10 +70,10 @@
 		global::System.Windows.Forms.CheckBox checkBox1;
 
 		// Token: 0x04000530 RID: 1328
-		global::BecquerelMonitor.PulseView pulseView2;
+		global::System.Windows.Forms.Panel pulseView2;
 
 		// Token: 0x04000531 RID: 1329
-		global::BecquerelMonitor.PulseView pulseView1;
+		global::System.Windows.Forms.Panel pulseView1;
 
 		// Token: 0x04000532 RID: 1330
 		global::System.Windows.Forms.Label label1;

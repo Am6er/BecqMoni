@@ -8,15 +8,31 @@ namespace BecquerelMonitor
     // Token: 0x020000D3 RID: 211
     public partial class GlobalConfigForm : Form
     {
+        public GlobalConfigForm()
+        {
+            this.InitializeComponent();
+            this.InitializeProgressiveSmoothTooltip();
+        }
+
         // Token: 0x06000AC4 RID: 2756 RVA: 0x0003FE50 File Offset: 0x0003E050
         public GlobalConfigForm(MainForm mainForm)
         {
             this.InitializeComponent();
+            this.InitializeProgressiveSmoothTooltip();
             this.mainForm = mainForm;
             base.Icon = Resources.becqmoni;
             this.UpdateDeviceConfigList();
             this.UpdateROIConfigList();
             this.tabControl1.TabPages.RemoveAt(2);
+        }
+
+        void InitializeProgressiveSmoothTooltip()
+        {
+            string progressiveSmoothTooltipText = this.progressiveSmoothCheckbox.Tag as string;
+            if (!string.IsNullOrEmpty(progressiveSmoothTooltipText))
+            {
+                this.progressiveSmoothTooltip.SetToolTip(this.progressiveSmoothCheckbox, progressiveSmoothTooltipText);
+            }
         }
 
         // Token: 0x06000AC5 RID: 2757 RVA: 0x0003FEB4 File Offset: 0x0003E0B4

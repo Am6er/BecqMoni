@@ -20,13 +20,10 @@
 
             this.Font = new global::System.Drawing.Font("Microsoft Sans Serif", 8);
             
-            this.statusMessage1 = new global::BecquerelMonitor.Controls.StatusMessage();
+            this.statusMessage1 = new global::System.Windows.Forms.Panel();
 			base.SuspendLayout();
 			this.statusMessage1.BackColor = global::System.Drawing.Color.Black;
 			resources.ApplyResources(this.statusMessage1, "statusMessage1");
-			this.statusMessage1.ForeColor = global::System.Drawing.Color.White;
-            this.statusMessage1.Message = "The sample is being measured.";
-			this.statusMessage1.MessageColor = global::System.Drawing.Color.Red;
 			this.statusMessage1.Name = "statusMessage1";
 			resources.ApplyResources(this, "$this");
 			base.Controls.Add(this.statusMessage1);
@@ -40,6 +37,6 @@
 		global::System.ComponentModel.IContainer components;
 
 		// Token: 0x040000A4 RID: 164
-		global::BecquerelMonitor.Controls.StatusMessage statusMessage1;
+		global::System.Windows.Forms.Panel statusMessage1;
 	}
 }

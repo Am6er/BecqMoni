@@ -17,6 +17,11 @@ namespace BecquerelMonitor
         NuclideDefinitionManager nuclideManager = NuclideDefinitionManager.GetInstance();
         MainForm mainForm;
 
+        public NuclideSetForm()
+        {
+            InitializeComponent();
+        }
+
         public NuclideSetForm(MainForm mainForm)
         {
             InitializeComponent();
