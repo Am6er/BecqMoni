@@ -697,7 +697,7 @@
     <value>&amp;Закрыть</value>
   </data>
   <data name="データを閉じるCToolStripMenuItem.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
-    <value>Ctrl+W</value>
+    <value>Control, W</value>
   </data>
   <data name="データを開くToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Открыть...</value>

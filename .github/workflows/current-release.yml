@@ -1,0 +1,110 @@
+name: Current Release
+
+on:
+  push:
+    tags:
+      - Current
+
+permissions:
+  contents: write
+
+concurrency:
+  group: current-release
+  cancel-in-progress: true
+
+jobs:
+  build-and-release:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build release
+        shell: pwsh
+        run: |
+          msbuild BecquerelMonitor.sln /restore /t:Rebuild /p:Configuration=Release /p:Platform="Any CPU" /p:GenerateManifests=false /p:SignManifests=false
+
+      - name: Prepare zip package
+        id: package
+        shell: pwsh
+        run: |
+          $stageDir = Join-Path $env:RUNNER_TEMP 'BecqMoni-Current'
+          $stageConfigDir = Join-Path $stageDir 'config'
+          $zipPath = Join-Path $env:RUNNER_TEMP 'BecqMoni-Current.zip'
+
+          if (Test-Path $stageDir) {
+            Remove-Item -LiteralPath $stageDir -Recurse -Force
+          }
+
+          if (Test-Path $zipPath) {
+            Remove-Item -LiteralPath $zipPath -Force
+          }
+
+          New-Item -ItemType Directory -Path $stageDir | Out-Null
+          Copy-Item -Path 'BecquerelMonitor\bin\Release\*' -Destination $stageDir -Recurse -Force
+
+          New-Item -ItemType Directory -Path $stageConfigDir -Force | Out-Null
+          Copy-Item -Path 'BecquerelMonitor\config\*' -Destination $stageConfigDir -Recurse -Force
+
+          Compress-Archive -Path (Join-Path $stageDir '*') -DestinationPath $zipPath -CompressionLevel Optimal
+
+          "zip_path=$zipPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Generate release notes
+        id: notes
+        shell: pwsh
+        run: |
+          $before = '${{ github.event.before }}'
+          $after = '${{ github.sha }}'
+          $zeroSha = '0000000000000000000000000000000000000000'
+          $notesPath = Join-Path $env:RUNNER_TEMP 'current-release-notes.md'
+
+          $header = @(
+            'Automated prerelease build for tag Current.',
+            '',
+            "Commit: $after",
+            "Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+            '',
+            'Changes since previous Current tag:'
+          )
+
+          if ($before -and $before -ne $zeroSha) {
+            $commitLines = git log "${before}..${after}" --pretty=format:"- %h %s"
+          }
+          else {
+            $commitLines = git log -1 --pretty=format:"- %h %s" $after
+          }
+
+          if (-not $commitLines) {
+            $commitLines = '- No commit messages found.'
+          }
+
+          ($header + '' + $commitLines) | Set-Content -Path $notesPath -Encoding utf8
+          "notes_path=$notesPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Create or update Current prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $tag = 'Current'
+          $title = 'Current version'
+          $asset = '${{ steps.package.outputs.zip_path }}'
+          $notesFile = '${{ steps.notes.outputs.notes_path }}'
+
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release edit $tag --title $title --prerelease --notes-file $notesFile
+          }
+          else {
+            gh release create $tag $asset --title $title --prerelease --notes-file $notesFile
+            exit $LASTEXITCODE
+          }
+
+          gh release upload $tag "$asset#BecqMoni-Current.zip" --clobber
