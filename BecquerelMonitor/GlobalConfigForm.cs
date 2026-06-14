@@ -346,7 +346,7 @@ namespace BecquerelMonitor
         {
             GlobalConfigInfo globalConfig = GlobalConfigManager.GetInstance().GlobalConfig;
             FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog();
-            folderBrowserDialog.Description = "スペクトル保存フォルダを指定してください";
+            folderBrowserDialog.Description = "Please select a spectrum save folder.";
             folderBrowserDialog.RootFolder = Environment.SpecialFolder.Desktop;
             folderBrowserDialog.SelectedPath = globalConfig.EasyControlConfig.SpectraFolder;
             folderBrowserDialog.ShowNewFolderButton = true;
@@ -361,9 +361,9 @@ namespace BecquerelMonitor
         {
             GlobalConfigInfo globalConfig = GlobalConfigManager.GetInstance().GlobalConfig;
             OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Filter = "WAVファイル(*.wav)|*.wav|すべてのファイル(*.*)|*.*";
+            openFileDialog.Filter = "WAV Files (*.wav)|*.wav|All Files (*.*)|*.*";
             openFileDialog.FilterIndex = 1;
-            openFileDialog.Title = "サウンドファイルを選択してください";
+            openFileDialog.Title = "Please select a sound file.";
             openFileDialog.RestoreDirectory = true;
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {

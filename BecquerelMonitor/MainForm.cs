@@ -148,7 +148,7 @@ namespace BecquerelMonitor
             this.toolStripSeparator9.Visible = false;
             this.toolStripMenuItem2.Visible = false;
             this.toolStripSeparator4.Visible = false;
-            this.fWHM用ToolStripMenuItem.Visible = false;
+            this.forFwhmToolStripMenuItem.Visible = false;
             this.startupForm = new StartupForm();
             this.startupForm.MessageText = BecquerelMonitor.Properties.Resources.InitializingMessage;
             this.startupForm.Show();
@@ -719,13 +719,13 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000A53 RID: 2643 RVA: 0x0003D4D4 File Offset: 0x0003B6D4
-        void 終了XToolStripMenuItem_Click(object sender, EventArgs e)
+        void exitXToolStripMenuItem_Click(object sender, EventArgs e)
         {
             base.Close();
         }
 
         // Token: 0x06000A54 RID: 2644 RVA: 0x0003D4DC File Offset: 0x0003B6DC
-        void コントロ\u30FCルパネルCToolStripMenuItem_Click(object sender, EventArgs e)
+        void controlPanelCToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (this.dcControlPanel.IsDisposed)
             {
@@ -739,7 +739,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000A55 RID: 2645 RVA: 0x0003D530 File Offset: 0x0003B730
-        void パルス表示PToolStripMenuItem_Click(object sender, EventArgs e)
+        void pulseViewPToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (this.dcPulseView.IsDisposed)
             {
@@ -769,13 +769,13 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000A57 RID: 2647 RVA: 0x0003D62C File Offset: 0x0003B82C
-        void 試料情報SToolStripMenuItem_Click(object sender, EventArgs e)
+        void sampleInfoSToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.ShowSampleInfoView();
         }
 
         // Token: 0x06000A58 RID: 2648 RVA: 0x0003D634 File Offset: 0x0003B834
-        void スペクトル一覧LToolStripMenuItem_Click(object sender, EventArgs e)
+        void spectrumListLToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (this.dcSpectrumListView.IsDisposed)
             {
@@ -794,7 +794,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000A5A RID: 2650 RVA: 0x0003D694 File Offset: 0x0003B894
-        void スペクトルエクスプロ\u30FCラEToolStripMenuItem1_Click(object sender, EventArgs e)
+        void spectrumExplorerEToolStripMenuItem1_Click(object sender, EventArgs e)
         {
             if (this.dcSpectrumExplorerView.IsDisposed)
             {
@@ -804,7 +804,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000A5B RID: 2651 RVA: 0x0003D6C4 File Offset: 0x0003B8C4
-        void デバッグ用パネルToolStripMenuItem_Click(object sender, EventArgs e)
+        void debugPanelToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (this.dcDebugPanel.IsDisposed)
             {
@@ -814,7 +814,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000A5C RID: 2652 RVA: 0x0003D6F4 File Offset: 0x0003B8F4
-        void ピ\u30FCク検出DToolStripMenuItem_Click(object sender, EventArgs e)
+        void peakDetectionDToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (this.dcPeakDetectionView.IsDisposed)
             {
@@ -899,7 +899,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000A62 RID: 2658 RVA: 0x0003D8C8 File Offset: 0x0003BAC8
-        void 測定結果表示RToolStripMenuItem_Click(object sender, EventArgs e)
+        void measurementResultsRToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (this.dcResultViewList.Count >= 4)
             {
@@ -916,13 +916,13 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000A63 RID: 2659 RVA: 0x0003D924 File Offset: 0x0003BB24
-        void デバイス構成定義DToolStripMenuItem_Click(object sender, EventArgs e)
+        void editDeviceConfigurationDToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.ShowDeviceConfigForm(null);
         }
 
         // Token: 0x06000A64 RID: 2660 RVA: 0x0003D930 File Offset: 0x0003BB30
-        void 新規スペクトルNToolStripMenuItem_Click(object sender, EventArgs e)
+        void newSpectrumNToolStripMenuItem_Click(object sender, EventArgs e)
         {
             DocEnergySpectrum docEnergySpectrum = this.documentManager.CreateDocument();
             if (docEnergySpectrum != null)
@@ -951,7 +951,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000A66 RID: 2662 RVA: 0x0003D9CC File Offset: 0x0003BBCC
-        void デ\u30FCタを開くToolStripMenuItem_Click(object sender, EventArgs e)
+        void openDataToolStripMenuItem_Click(object sender, EventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.Title = Resources.OpenFileDialogTitle;
@@ -1167,7 +1167,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000A6F RID: 2671 RVA: 0x0003E0E0 File Offset: 0x0003C2E0
-        void rOI定義RToolStripMenuItem_Click(object sender, EventArgs e)
+        void roiDefinitionRToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.ShowROIConfigForm(null);
         }
@@ -1296,7 +1296,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000A74 RID: 2676 RVA: 0x0003E3E0 File Offset: 0x0003C5E0
-        void デ\u30FCタを閉じるCToolStripMenuItem_Click(object sender, EventArgs e)
+        void closeDataCToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.CloseActiveDocument();
         }
@@ -1533,7 +1533,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000A79 RID: 2681 RVA: 0x0003E5A8 File Offset: 0x0003C7A8
-        void デ\u30FCタを保存SToolStripMenuItem_Click(object sender, EventArgs e)
+        void saveDataSToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.SaveActiveDocument();
         }
@@ -1582,7 +1582,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000A7C RID: 2684 RVA: 0x0003E660 File Offset: 0x0003C860
-        void デ\u30FCタを名前を付けて保存RToolStripMenuItem_Click(object sender, EventArgs e)
+        void saveDataAsRToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.SaveDocumentWithName();
         }
@@ -1599,27 +1599,27 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000A7E RID: 2686 RVA: 0x0003E698 File Offset: 0x0003C898
-        void ファイルFToolStripMenuItem_DropDownOpening(object sender, EventArgs e)
+        void fileFToolStripMenuItem_DropDownOpening(object sender, EventArgs e)
         {
             bool enabled = this.activeDocument != null && this.activeDocument.Dirty;
-            this.デ\u30FCタを保存SToolStripMenuItem.Enabled = enabled;
-            this.デ\u30FCタを名前を付けて保存RToolStripMenuItem.Enabled = (this.activeDocument != null);
-            this.デ\u30FCタを閉じるCToolStripMenuItem.Enabled = (this.activeDocument != null);
+            this.saveDataSToolStripMenuItem.Enabled = enabled;
+            this.saveDataAsRToolStripMenuItem.Enabled = (this.activeDocument != null);
+            this.closeDataCToolStripMenuItem.Enabled = (this.activeDocument != null);
             this.CloseAllToolStripMenuItem.Enabled = (this.activeDocument != null);
             this.CombineSpectrasToolStripMenuItem.Enabled = (this.activeDocument != null);
         }
 
         // Token: 0x06000A7F RID: 2687 RVA: 0x0003E700 File Offset: 0x0003C900
-        void スペクトルSToolStripMenuItem_DropDownOpening(object sender, EventArgs e)
+        void spectrumSToolStripMenuItem_DropDownOpening(object sender, EventArgs e)
         {
             if (this.activeDocument == null)
             {
-                this.新規スペクトルNToolStripMenuItem1.Enabled = false;
-                this.削除DToolStripMenuItem.Enabled = false;
-                this.既存ファイルから追加FToolStripMenuItem.Enabled = false;
-                this.測定開始SToolStripMenuItem.Enabled = false;
-                this.測定停止TToolStripMenuItem.Enabled = false;
-                this.デ\u30FCタ消去CToolStripMenuItem.Enabled = false;
+                this.newSpectrumNToolStripMenuItem1.Enabled = false;
+                this.deleteDToolStripMenuItem.Enabled = false;
+                this.addFromExistingFileFToolStripMenuItem.Enabled = false;
+                this.startMeasurementSToolStripMenuItem.Enabled = false;
+                this.stopMeasurementTToolStripMenuItem.Enabled = false;
+                this.clearDataCToolStripMenuItem.Enabled = false;
                 this.ConcatSpectrumsStripMenuItem.Enabled = false;
                 this.CutoffStripMenuItem.Enabled = false;
                 this.NormalizeSpectrumStripMenuItem.Enabled = false;
@@ -1631,8 +1631,8 @@ namespace BecquerelMonitor
                 return;
             }
             bool enabled = this.activeDocument.ResultDataFile.ResultDataList.Count < this.globalConfigManager.MaximumSpectrumPerFile;
-            this.新規スペクトルNToolStripMenuItem1.Enabled = enabled;
-            this.既存ファイルから追加FToolStripMenuItem.Enabled = enabled;
+            this.newSpectrumNToolStripMenuItem1.Enabled = enabled;
+            this.addFromExistingFileFToolStripMenuItem.Enabled = enabled;
             this.CombineSpectrasToolStripMenuItem.Enabled = enabled;
             this.ConcatSpectrumsStripMenuItem.Enabled = enabled;
             this.CutoffStripMenuItem.Enabled = enabled;
@@ -1645,12 +1645,12 @@ namespace BecquerelMonitor
             this.toolStripMenuItem1.Enabled = enabled;
             this.exportBgToolStripMenuItem.Enabled = this.activeDocument.ActiveResultData.BackgroundEnergySpectrum != null;
             this.hardSubtractToolStripMenuItem.Enabled = this.activeDocument.ActiveResultData.BackgroundEnergySpectrum != null;
-            this.測定開始SToolStripMenuItem.Enabled = !this.activeDocument.ActiveResultData.ResultDataStatus.Recording;
-            this.測定停止TToolStripMenuItem.Enabled = this.activeDocument.ActiveResultData.ResultDataStatus.Recording;
+            this.startMeasurementSToolStripMenuItem.Enabled = !this.activeDocument.ActiveResultData.ResultDataStatus.Recording;
+            this.stopMeasurementTToolStripMenuItem.Enabled = this.activeDocument.ActiveResultData.ResultDataStatus.Recording;
         }
 
         // Token: 0x06000A80 RID: 2688 RVA: 0x0003E7E4 File Offset: 0x0003C9E4
-        void バ\u30FCジョン情報AToolStripMenuItem_Click(object sender, EventArgs e)
+        void versionInfoAToolStripMenuItem_Click(object sender, EventArgs e)
         {
             new AboutForm
             {
@@ -2367,7 +2367,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000A93 RID: 2707 RVA: 0x0003F300 File Offset: 0x0003D500
-        void 基本設定BToolStripMenuItem_Click(object sender, EventArgs e)
+        void basicSettingsBToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (this.globalConfigForm == null || this.globalConfigForm.IsDisposed)
             {
@@ -2421,7 +2421,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000A96 RID: 2710 RVA: 0x0003F560 File Offset: 0x0003D760
-        void ベクモニ旧形式v093bToolStripMenuItem_Click(object sender, EventArgs e)
+        void legacyFormatV093bToolStripMenuItem_Click(object sender, EventArgs e)
         {
             DocEnergySpectrum docEnergySpectrum = this.documentManager.ImportDocument093b();
             if (docEnergySpectrum != null)
@@ -2583,25 +2583,25 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000A9C RID: 2716 RVA: 0x0003F754 File Offset: 0x0003D954
-        void マニュアルMToolStripMenuItem_Click(object sender, EventArgs e)
+        void manualMToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Process.Start("https://t.me/software_kbradar");
         }
 
         // Token: 0x06000A9D RID: 2717 RVA: 0x0003F764 File Offset: 0x0003D964
-        void 新規スペクトルNToolStripMenuItem1_Click(object sender, EventArgs e)
+        void newSpectrumNToolStripMenuItem1_Click(object sender, EventArgs e)
         {
             this.AddNewSpectrum(this.activeDocument);
         }
 
         // Token: 0x06000A9E RID: 2718 RVA: 0x0003F774 File Offset: 0x0003D974
-        void 削除DToolStripMenuItem_Click(object sender, EventArgs e)
+        void deleteDToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.DeleteActiveSpectrum(this.activeDocument);
         }
 
         // Token: 0x06000A9F RID: 2719 RVA: 0x0003F784 File Offset: 0x0003D984
-        void ファイルからスペクトルを追加FToolStripMenuItem_Click(object sender, EventArgs e)
+        void addSpectrumFromFileFToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.LoadSpectrumFromFile(this.activeDocument);
         }
@@ -2756,25 +2756,25 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000AA1 RID: 2721 RVA: 0x0003F7A4 File Offset: 0x0003D9A4
-        void 測定開始SToolStripMenuItem_Click(object sender, EventArgs e)
+        void startMeasurementSToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.dcControlPanel.StartMeasurement();
         }
 
         // Token: 0x06000AA2 RID: 2722 RVA: 0x0003F7B4 File Offset: 0x0003D9B4
-        void 測定停止TToolStripMenuItem_Click(object sender, EventArgs e)
+        void stopMeasurementTToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.dcControlPanel.StopMeasurement();
         }
 
         // Token: 0x06000AA3 RID: 2723 RVA: 0x0003F7C4 File Offset: 0x0003D9C4
-        void デ\u30FCタ消去CToolStripMenuItem_Click(object sender, EventArgs e)
+        void clearDataCToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.dcControlPanel.ClearMeasurementResult();
         }
 
         // Token: 0x06000AA4 RID: 2724 RVA: 0x0003F7D4 File Offset: 0x0003D9D4
-        void fWHM用ToolStripMenuItem_Click(object sender, EventArgs e)
+        void forFwhmToolStripMenuItem_Click(object sender, EventArgs e)
         {
             ResultData activeResultData = this.activeDocument.ActiveResultData;
             EnergySpectrum energySpectrum = activeResultData.EnergySpectrum;

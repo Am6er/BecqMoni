@@ -991,7 +991,7 @@
     <value>Имя</value>
   </data>
   <data name="comboBox1.Items" xml:space="preserve">
-    <value>単純BG差分</value>
+    <value>Simple BG Difference</value>
   </data>
   <data name="groupBox1.Text" xml:space="preserve">
     <value>Опред. ROI</value>
