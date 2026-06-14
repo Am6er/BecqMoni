@@ -22,6 +22,17 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Validate master branch
+        shell: pwsh
+        run: |
+          git fetch origin master --force
+          $tagCommit = (git rev-parse '${{ github.sha }}').Trim()
+          $masterCommit = (git rev-parse 'origin/master').Trim()
+
+          if ($tagCommit -ne $masterCommit) {
+            throw "Release tag '${{ github.ref_name }}' must point to the current origin/master HEAD. Tag commit: $tagCommit. origin/master: $masterCommit."
+          }
+
       - name: Validate release tag
         id: validate
         shell: pwsh
