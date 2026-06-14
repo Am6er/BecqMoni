@@ -184,7 +184,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;pulseView1.Type" xml:space="preserve">
-    <value>BecquerelMonitor.PulseView, BecquerelMonitorPlus, Version=1.0.16.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>System.Windows.Forms.Panel, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;pulseView1.ZOrder" xml:space="preserve">
     <value>5</value>
@@ -196,7 +196,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;pulseView2.Type" xml:space="preserve">
-    <value>BecquerelMonitor.PulseView, BecquerelMonitorPlus, Version=1.0.16.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>System.Windows.Forms.Panel, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;pulseView2.ZOrder" xml:space="preserve">
     <value>4</value>

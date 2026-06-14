@@ -9,6 +9,15 @@ namespace BecquerelMonitor.Utils
 {
     public partial class CalibrationGraph : Form
     {
+        public CalibrationGraph()
+        {
+            InitializeComponent();
+            this.DoubleBuffered = true;
+            SetStyle(ControlStyles.AllPaintingInWmPaint, true);
+            SetStyle(ControlStyles.UserPaint, true);
+            SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
+        }
+
         public CalibrationGraph(MainForm mainForm)
         {
             InitializeComponent();

@@ -1,4 +1,6 @@
-﻿using BecquerelMonitor.Properties;
+using BecquerelMonitor.Properties;
+using System.ComponentModel;
+using System.Drawing;
 using System.Globalization;
 using System.Threading;
 using System.Windows.Forms;
@@ -12,6 +14,11 @@ namespace BecquerelMonitor
         public StartupForm()
         {
             this.InitializeComponent();
+            if (LicenseManager.UsageMode == LicenseUsageMode.Designtime)
+            {
+                return;
+            }
+            this.InitializeRuntimeIconPanel();
             base.Icon = Resources.becqmoni;
             CultureInfo currentUICulture = Thread.CurrentThread.CurrentUICulture;
             this.textBox1.HideSelection = false;
@@ -39,6 +46,19 @@ namespace BecquerelMonitor
         {
             this.textBox1.AppendText(message + "\r\n");
             this.Refresh();
+        }
+
+        void InitializeRuntimeIconPanel()
+        {
+            if (this.iconPanel1 == null)
+            {
+                return;
+            }
+            this.iconPanel1.Controls.Clear();
+            IconPanel iconPanel = new IconPanel();
+            iconPanel.Dock = DockStyle.Fill;
+            iconPanel.BackColor = Color.Transparent;
+            this.iconPanel1.Controls.Add(iconPanel);
         }
     }
 }

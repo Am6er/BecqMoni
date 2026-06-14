@@ -21,6 +21,11 @@ namespace BecquerelMonitor.NucBase
         private const int HalfLifeColumnIdx = 7;
         private string SearchedIsotope;
 
+        public NucBase()
+        {
+            InitializeComponent();
+        }
+
         public NucBase(Form mainForm)
         {
             InitializeComponent();

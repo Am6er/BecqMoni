@@ -133,7 +133,7 @@
     <value>panel1</value>
   </data>
   <data name="&gt;&gt;iconPanel1.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IconPanel, BecquerelMonitor, Version=0.9.9.8, Culture=neutral, PublicKeyToken=null</value>
+    <value>System.Windows.Forms.Panel, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;iconPanel1.ZOrder" xml:space="preserve">
     <value>1</value>

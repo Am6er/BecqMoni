@@ -8,6 +8,12 @@ namespace BecquerelMonitor
     // Token: 0x02000142 RID: 322
     public partial class AudioInputDeviceForm : InputDeviceForm
     {
+        public AudioInputDeviceForm()
+        {
+            this.InitializeComponent();
+            base.DeviceTypeString = Resources.DeviceTypeAudioInput;
+        }
+
         // Token: 0x17000451 RID: 1105
         // (get) Token: 0x0600103D RID: 4157 RVA: 0x00059B94 File Offset: 0x00057D94
         public override TextBox UpperThresholdTextBox

@@ -22,7 +22,12 @@ namespace BecquerelMonitor
         private int BaudRate = 600000;
         bool formLoading = false;
         private double deadTime = 0;
-        AutoCompleteStringCollection autoComplete = new AutoCompleteStringCollection();
+
+        public AtomSpectraVCPDeviceForm()
+        {
+            this.InitializeComponent();
+            base.DeviceTypeString = Resources.DeviceTypeAtomSpectraVCP;
+        }
 
         void InitializeComponent()
         {
@@ -88,7 +93,7 @@ namespace BecquerelMonitor
             // 
             this.CommandLineIn.AutoCompleteMode = System.Windows.Forms.AutoCompleteMode.SuggestAppend;
             this.CommandLineIn.AutoCompleteSource = System.Windows.Forms.AutoCompleteSource.CustomSource;
-            this.CommandLineIn.AutoCompleteCustomSource = autoComplete;
+            this.CommandLineIn.AutoCompleteCustomSource = new System.Windows.Forms.AutoCompleteStringCollection();
             this.CommandLineIn.Location = new System.Drawing.Point(20, 145);
             this.CommandLineIn.Name = "CommandLineIn";
             this.CommandLineIn.Size = new System.Drawing.Size(428, 20);
@@ -142,14 +147,14 @@ namespace BecquerelMonitor
             this.Controls.Add(this.label3);
             this.Controls.Add(this.deadTimeLbl);
             this.Controls.Add(this.deadTimeBtn);
-            deadTimeBtn.Click += deadTimeBtn_Click;
+            this.deadTimeBtn.Click += this.deadTimeBtn_Click;
             this.Controls.Add(this.button1);
-            button1.Click += Button1_Click;
+            this.button1.Click += this.Button1_Click;
             this.Controls.Add(this.comPortsBox);
             this.Controls.Add(this.baudratesBox);
             this.Name = "AtomSpectraVCPDeviceForm";
-            comPortsBox.SelectedIndexChanged += ComPortsBox_SelectedIndexChanged;
-            baudratesBox.SelectedIndexChanged += BaudratesBox_SelectedIndexChanged;
+            this.comPortsBox.SelectedIndexChanged += this.ComPortsBox_SelectedIndexChanged;
+            this.baudratesBox.SelectedIndexChanged += this.BaudratesBox_SelectedIndexChanged;
             this.Controls.SetChildIndex(this.comPortsBox, 0);
             this.Controls.SetChildIndex(this.baudratesBox, 0);
             this.Controls.SetChildIndex(this.label1, 0);
@@ -375,7 +380,7 @@ namespace BecquerelMonitor
             {
                 try
                 {
-                    autoComplete.Add(this.CommandLineIn.Text);
+                    this.CommandLineIn.AutoCompleteCustomSource.Add(this.CommandLineIn.Text);
                     List<AtomSpectraVCPIn> instances = AtomSpectraVCPIn.getAllInstances();
                     AtomSpectraVCPIn device = null;
                     bool runexist = false;
