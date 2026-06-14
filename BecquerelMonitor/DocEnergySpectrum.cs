@@ -508,13 +508,13 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000327 RID: 807 RVA: 0x0000FCEC File Offset: 0x0000DEEC
-        void 保存SToolStripMenuItem_Click(object sender, EventArgs e)
+        void saveSToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.SaveDocument(this, new EventArgs());
         }
 
         // Token: 0x06000328 RID: 808 RVA: 0x0000FD00 File Offset: 0x0000DF00
-        void 閉じるCToolStripMenuItem_Click(object sender, EventArgs e)
+        void closeCToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.CloseDocument(this, new EventArgs());
         }
@@ -522,11 +522,11 @@ namespace BecquerelMonitor
         // Token: 0x06000329 RID: 809 RVA: 0x0000FD14 File Offset: 0x0000DF14
         void contextMenuStrip1_Opening(object sender, CancelEventArgs e)
         {
-            this.保存SToolStripMenuItem.Enabled = this.Dirty;
-            this.選択領域からROI定義作成SToolStripMenuItem.Enabled = (this.view.SelectionStart != -1);
+            this.saveSToolStripMenuItem.Enabled = this.Dirty;
+            this.createRoiDefinitionFromSelectionSToolStripMenuItem.Enabled = (this.view.SelectionStart != -1);
             bool enabled = this.view.CursorX != -1 && this.view.CursorChannel > 0 && this.view.CursorChannel < this.ActiveResultData.EnergySpectrum.NumberOfChannels;
-            this.下限閾値に設定LToolStripMenuItem.Enabled = enabled;
-            this.上限閾値に設定HToolStripMenuItem.Enabled = enabled;
+            this.setLowerThresholdLToolStripMenuItem.Enabled = enabled;
+            this.setUpperThresholdHToolStripMenuItem.Enabled = enabled;
         }
 
         // Token: 0x0600032A RID: 810 RVA: 0x0000FDB0 File Offset: 0x0000DFB0
@@ -757,15 +757,15 @@ namespace BecquerelMonitor
         // Token: 0x06000332 RID: 818 RVA: 0x00010118 File Offset: 0x0000E318
         void toolStripSplitButton7_DropDownOpening(object sender, EventArgs e)
         {
-            this.バックグラウンド表示ありToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.Visible);
-            this.バックグラウンド表示なしToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.Invisible);
+            this.showBackgroundToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.Visible);
+            this.hideBackgroundToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.Invisible);
             this.SubstractBgToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.Substract);
             this.ShowConToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.ShowContinuum);
             this.NormByEffToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.NormalizeByEfficiency);
         }
 
         // Token: 0x06000333 RID: 819 RVA: 0x0001015C File Offset: 0x0000E35C
-        void バックグラウンド表示ありToolStripMenuItem_Click(object sender, EventArgs e)
+        void showBackgroundToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.BackgroundMode = BackgroundMode.Visible;
             this.toolStripSplitButtonBgMode.Image = Properties.Resources.BG;
@@ -775,7 +775,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000334 RID: 820 RVA: 0x00010180 File Offset: 0x0000E380
-        void バックグラウンド表示なしToolStripMenuItem_Click(object sender, EventArgs e)
+        void hideBackgroundToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.BackgroundMode = BackgroundMode.Invisible;
             this.toolStripSplitButtonBgMode.Image = Properties.Resources.NOBG;
@@ -835,12 +835,12 @@ namespace BecquerelMonitor
         // Token: 0x06000336 RID: 822 RVA: 0x00010210 File Offset: 0x0000E410
         void toolStripSplitButton8_DropDownOpening(object sender, EventArgs e)
         {
-            this.高精細表示ToolStripMenuItem.Checked = (this.view.DrawingMode == DrawingMode.HighDefinition);
-            this.通常表示ToolStripMenuItem.Checked = (this.view.DrawingMode == DrawingMode.Normal);
+            this.highDefinitionViewToolStripMenuItem.Checked = (this.view.DrawingMode == DrawingMode.HighDefinition);
+            this.normalViewToolStripMenuItem.Checked = (this.view.DrawingMode == DrawingMode.Normal);
         }
 
         // Token: 0x06000337 RID: 823 RVA: 0x00010254 File Offset: 0x0000E454
-        void 高精細表示ToolStripMenuItem_Click(object sender, EventArgs e)
+        void highDefinitionViewToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.DrawingMode = DrawingMode.HighDefinition;
             this.toolStripSplitButton8.Image = Properties.Resources.HD;
@@ -848,7 +848,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000338 RID: 824 RVA: 0x00010278 File Offset: 0x0000E478
-        void 通常表示ToolStripMenuItem_Click(object sender, EventArgs e)
+        void normalViewToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.DrawingMode = DrawingMode.Normal;
             this.toolStripSplitButton8.Image = Properties.Resources.HD1;
@@ -877,7 +877,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x0600033A RID: 826 RVA: 0x00010308 File Offset: 0x0000E508
-        void cps表示ToolStripMenuItem_Click(object sender, EventArgs e)
+        void cpsViewToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.VerticalUnit = VerticalUnit.CountsPerSecond;
             this.toolStripSplitButton1.Image = Properties.Resources.cps;
@@ -885,7 +885,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x0600033B RID: 827 RVA: 0x0001032C File Offset: 0x0000E52C
-        void カウント表示ToolStripMenuItem_Click(object sender, EventArgs e)
+        void countsViewToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.VerticalUnit = VerticalUnit.Counts;
             this.toolStripSplitButton1.Image = Properties.Resources.cnt;
@@ -895,8 +895,8 @@ namespace BecquerelMonitor
         // Token: 0x0600033C RID: 828 RVA: 0x00010350 File Offset: 0x0000E550
         void toolStripSplitButton1_DropDownOpening(object sender, EventArgs e)
         {
-            this.cps表示ToolStripMenuItem.Checked = (this.view.VerticalUnit == VerticalUnit.CountsPerSecond);
-            this.カウント表示ToolStripMenuItem.Checked = (this.view.VerticalUnit == VerticalUnit.Counts);
+            this.cpsViewToolStripMenuItem.Checked = (this.view.VerticalUnit == VerticalUnit.CountsPerSecond);
+            this.countsViewToolStripMenuItem.Checked = (this.view.VerticalUnit == VerticalUnit.Counts);
         }
 
         void toolStripNumericUpdown_ValueChanged(object sender, EventArgs e)
@@ -945,7 +945,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x0600033E RID: 830 RVA: 0x00010400 File Offset: 0x0000E600
-        void 対数表示ToolStripMenuItem_Click(object sender, EventArgs e)
+        void logarithmicViewToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.VerticalScaleType = VerticalScaleType.LogarithmicScale;
             this.toolStripSplitButton2.Image = Properties.Resources.log;
@@ -962,7 +962,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x0600033F RID: 831 RVA: 0x00010424 File Offset: 0x0000E624
-        void リニア表示ToolStripMenuItem_Click(object sender, EventArgs e)
+        void linearViewToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.VerticalScaleType = VerticalScaleType.LinearScale;
             this.toolStripSplitButton2.Image = Properties.Resources.linear;
@@ -973,8 +973,8 @@ namespace BecquerelMonitor
         // Token: 0x06000340 RID: 832 RVA: 0x00010448 File Offset: 0x0000E648
         void toolStripSplitButton2_DropDownOpening(object sender, EventArgs e)
         {
-            this.対数表示ToolStripMenuItem.Checked = (this.view.VerticalScaleType == VerticalScaleType.LogarithmicScale);
-            this.リニア表示ToolStripMenuItem.Checked = (this.view.VerticalScaleType == VerticalScaleType.LinearScale);
+            this.logarithmicViewToolStripMenuItem.Checked = (this.view.VerticalScaleType == VerticalScaleType.LogarithmicScale);
+            this.linearViewToolStripMenuItem.Checked = (this.view.VerticalScaleType == VerticalScaleType.LinearScale);
             this.powToolStripMenuItem.Checked = (this.view.VerticalScaleType == VerticalScaleType.PowerScale);
         }
 
@@ -1000,7 +1000,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000342 RID: 834 RVA: 0x000104F8 File Offset: 0x0000E6F8
-        void 折れ線グラフToolStripMenuItem_Click(object sender, EventArgs e)
+        void lineGraphToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.ChartType = ChartType.LineChart;
             this.toolStripSplitButton3.Image = Properties.Resources.line;
@@ -1008,7 +1008,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000343 RID: 835 RVA: 0x0001051C File Offset: 0x0000E71C
-        void バーグラフToolStripMenuItem_Click(object sender, EventArgs e)
+        void barGraphToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.ChartType = ChartType.BarChart;
             this.toolStripSplitButton3.Image = Properties.Resources.bar;
@@ -1018,8 +1018,8 @@ namespace BecquerelMonitor
         // Token: 0x06000344 RID: 836 RVA: 0x00010540 File Offset: 0x0000E740
         void toolStripSplitButton3_DropDownOpening(object sender, EventArgs e)
         {
-            this.折れ線グラフToolStripMenuItem.Checked = (this.view.ChartType == ChartType.LineChart);
-            this.バーグラフToolStripMenuItem.Checked = (this.view.ChartType == ChartType.BarChart);
+            this.lineGraphToolStripMenuItem.Checked = (this.view.ChartType == ChartType.LineChart);
+            this.barGraphToolStripMenuItem.Checked = (this.view.ChartType == ChartType.BarChart);
         }
 
         // Token: 0x06000345 RID: 837 RVA: 0x00010584 File Offset: 0x0000E784
@@ -1048,7 +1048,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000346 RID: 838 RVA: 0x00010600 File Offset: 0x0000E800
-        void 自動フィットToolStripMenuItem_Click(object sender, EventArgs e)
+        void autoFitToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.VerticalFittingMode = VerticalFittingMode.MinMax;
             this.toolStripSplitButton5.Image = Properties.Resources.fit1;
@@ -1056,7 +1056,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000347 RID: 839 RVA: 0x00010624 File Offset: 0x0000E824
-        void 自動フィットBGToolStripMenuItem_Click(object sender, EventArgs e)
+        void autoFitBgToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.VerticalFittingMode = VerticalFittingMode.BackgroundMinMax;
             this.toolStripSplitButton5.Image = Properties.Resources.bgfit;
@@ -1064,7 +1064,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000348 RID: 840 RVA: 0x00010648 File Offset: 0x0000E848
-        void なしToolStripMenuItem_Click(object sender, EventArgs e)
+        void noneToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.VerticalFittingMode = VerticalFittingMode.None;
             this.toolStripSplitButton5.Image = Properties.Resources.None;
@@ -1074,9 +1074,9 @@ namespace BecquerelMonitor
         // Token: 0x06000349 RID: 841 RVA: 0x00010674 File Offset: 0x0000E874
         void toolStripSplitButton5_DropDownOpening(object sender, EventArgs e)
         {
-            this.自動フィットToolStripMenuItem.Checked = (this.view.VerticalFittingMode == VerticalFittingMode.MinMax);
-            this.自動フィットBGToolStripMenuItem.Checked = (this.view.VerticalFittingMode == VerticalFittingMode.BackgroundMinMax);
-            this.なしToolStripMenuItem.Checked = (this.view.VerticalFittingMode == VerticalFittingMode.None);
+            this.autoFitToolStripMenuItem.Checked = (this.view.VerticalFittingMode == VerticalFittingMode.MinMax);
+            this.autoFitBgToolStripMenuItem.Checked = (this.view.VerticalFittingMode == VerticalFittingMode.BackgroundMinMax);
+            this.noneToolStripMenuItem.Checked = (this.view.VerticalFittingMode == VerticalFittingMode.None);
         }
 
         // Token: 0x0600034A RID: 842 RVA: 0x000106D0 File Offset: 0x0000E8D0
@@ -1106,7 +1106,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x0600034B RID: 843 RVA: 0x0001074C File Offset: 0x0000E94C
-        void スムージングなしToolStripMenuItem_Click(object sender, EventArgs e)
+        void noSmoothingToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.SmoothingMethod = SmoothingMethod.None;
             this.toolStripSplitButton6.Image = Properties.Resources.NoSmooth;
@@ -1115,7 +1115,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x0600034C RID: 844 RVA: 0x00010770 File Offset: 0x0000E970
-        void 単純移動平均ToolStripMenuItem_Click(object sender, EventArgs e)
+        void simpleMovingAverageToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.SmoothingMethod = SmoothingMethod.SimpleMovingAverage;
             this.toolStripSplitButton6.Image = Properties.Resources.SMA;
@@ -1124,7 +1124,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x0600034D RID: 845 RVA: 0x00010794 File Offset: 0x0000E994
-        void 加重移動平均ToolStripMenuItem_Click(object sender, EventArgs e)
+        void weightedMovingAverageToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.SmoothingMethod = SmoothingMethod.WeightedMovingAverage;
             this.toolStripSplitButton6.Image = Properties.Resources.WMA;
@@ -1135,9 +1135,9 @@ namespace BecquerelMonitor
         // Token: 0x0600034E RID: 846 RVA: 0x000107B8 File Offset: 0x0000E9B8
         void toolStripSplitButton6_DropDownOpening(object sender, EventArgs e)
         {
-            this.スムージングなしToolStripMenuItem.Checked = (this.view.SmoothingMethod == SmoothingMethod.None);
-            this.単純移動平均ToolStripMenuItem.Checked = (this.view.SmoothingMethod == SmoothingMethod.SimpleMovingAverage);
-            this.加重移動平均ToolStripMenuItem.Checked = (this.view.SmoothingMethod == SmoothingMethod.WeightedMovingAverage);
+            this.noSmoothingToolStripMenuItem.Checked = (this.view.SmoothingMethod == SmoothingMethod.None);
+            this.simpleMovingAverageToolStripMenuItem.Checked = (this.view.SmoothingMethod == SmoothingMethod.SimpleMovingAverage);
+            this.weightedMovingAverageToolStripMenuItem.Checked = (this.view.SmoothingMethod == SmoothingMethod.WeightedMovingAverage);
         }
 
         // Token: 0x0600034F RID: 847 RVA: 0x00010814 File Offset: 0x0000EA14
@@ -1162,7 +1162,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000350 RID: 848 RVA: 0x00010880 File Offset: 0x0000EA80
-        void エネルギー表示ToolStripMenuItem_Click(object sender, EventArgs e)
+        void energyViewToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.HorizontalUnit = HorizontalUnit.Energy;
             this.toolStripSplitButton4.Image = Properties.Resources.ene;
@@ -1170,7 +1170,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000351 RID: 849 RVA: 0x000108A4 File Offset: 0x0000EAA4
-        void チャネル表示ToolStripMenuItem_Click(object sender, EventArgs e)
+        void channelViewToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.HorizontalUnit = HorizontalUnit.Channel;
             this.toolStripSplitButton4.Image = Properties.Resources.channel;
@@ -1180,8 +1180,8 @@ namespace BecquerelMonitor
         // Token: 0x06000352 RID: 850 RVA: 0x000108C8 File Offset: 0x0000EAC8
         void toolStripSplitButton4_DropDownOpening(object sender, EventArgs e)
         {
-            this.エネルギー表示ToolStripMenuItem.Checked = (this.view.HorizontalUnit == HorizontalUnit.Energy);
-            this.チャネル表示ToolStripMenuItem.Checked = (this.view.HorizontalUnit == HorizontalUnit.Channel);
+            this.energyViewToolStripMenuItem.Checked = (this.view.HorizontalUnit == HorizontalUnit.Energy);
+            this.channelViewToolStripMenuItem.Checked = (this.view.HorizontalUnit == HorizontalUnit.Channel);
         }
 
         // Token: 0x06000353 RID: 851 RVA: 0x0001090C File Offset: 0x0000EB0C
@@ -1218,12 +1218,12 @@ namespace BecquerelMonitor
         // Token: 0x06000354 RID: 852 RVA: 0x00010978 File Offset: 0x0000EB78
         void toolStripSplitButton9_DropDownOpening(object sender, EventArgs e)
         {
-            this.ピーク表示ありToolStripMenuItem.Checked = (this.view.PeakMode == PeakMode.Visible);
-            this.ピーク表示なしToolStripMenuItem.Checked = (this.view.PeakMode == PeakMode.Invisible);
+            this.showPeaksToolStripMenuItem.Checked = (this.view.PeakMode == PeakMode.Visible);
+            this.hidePeaksToolStripMenuItem.Checked = (this.view.PeakMode == PeakMode.Invisible);
         }
 
         // Token: 0x06000355 RID: 853 RVA: 0x000109BC File Offset: 0x0000EBBC
-        void ピーク表示ありToolStripMenuItem_Click(object sender, EventArgs e)
+        void showPeaksToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.PeakMode = PeakMode.Visible;
             this.toolStripSplitButton9.Image = Properties.Resources.peak;
@@ -1234,7 +1234,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000356 RID: 854 RVA: 0x000109E0 File Offset: 0x0000EBE0
-        void ピーク表示なしToolStripMenuItem_Click(object sender, EventArgs e)
+        void hidePeaksToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.PeakMode = PeakMode.Invisible;
             this.toolStripSplitButton9.Image = Properties.Resources.nopeak;
@@ -1330,7 +1330,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000365 RID: 869 RVA: 0x00010C1C File Offset: 0x0000EE1C
-        void 全チャネルを表示AToolStripMenuItem_Click(object sender, EventArgs e)
+        void showAllChannelsAToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.view.FitHorizontalScale();
         }
@@ -1348,7 +1348,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000368 RID: 872 RVA: 0x00010C4C File Offset: 0x0000EE4C
-        void 選択領域からROI定義作成SToolStripMenuItem_Click(object sender, EventArgs e)
+        void createRoiDefinitionFromSelectionSToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (this.CreateNewROI != null)
             {
@@ -1357,7 +1357,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000369 RID: 873 RVA: 0x00010C6C File Offset: 0x0000EE6C
-        void 下限閾値に設定LToolStripMenuItem_Click(object sender, EventArgs e)
+        void setLowerThresholdLToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (this.SetLowerThreshold != null)
             {
@@ -1434,7 +1434,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x0600036A RID: 874 RVA: 0x00010C8C File Offset: 0x0000EE8C
-        void 上限閾値に設定HToolStripMenuItem_Click(object sender, EventArgs e)
+        void setUpperThresholdHToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (this.SetUpperThreshold != null)
             {

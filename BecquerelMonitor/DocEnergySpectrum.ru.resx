@@ -132,10 +132,10 @@
   <data name="&gt;&gt;contextMenuStrip1.Type" xml:space="preserve">
     <value>System.Windows.Forms.ContextMenuStrip, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;cps表示ToolStripMenuItem.Name" xml:space="preserve">
-    <value>cps表示ToolStripMenuItem</value>
+  <data name="&gt;&gt;cpsViewToolStripMenuItem.Name" xml:space="preserve">
+    <value>cpsViewToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;cps表示ToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;cpsViewToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;energySpectrumView1.Name" xml:space="preserve">
@@ -390,160 +390,160 @@
   <data name="&gt;&gt;toolTip1.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolTip, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;なしToolStripMenuItem.Name" xml:space="preserve">
-    <value>なしToolStripMenuItem</value>
+  <data name="&gt;&gt;noneToolStripMenuItem.Name" xml:space="preserve">
+    <value>noneToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;なしToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;noneToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;エネルギー表示ToolStripMenuItem.Name" xml:space="preserve">
-    <value>エネルギー表示ToolStripMenuItem</value>
+  <data name="&gt;&gt;energyViewToolStripMenuItem.Name" xml:space="preserve">
+    <value>energyViewToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;エネルギー表示ToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;energyViewToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;カウント表示ToolStripMenuItem.Name" xml:space="preserve">
-    <value>カウント表示ToolStripMenuItem</value>
+  <data name="&gt;&gt;countsViewToolStripMenuItem.Name" xml:space="preserve">
+    <value>countsViewToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;カウント表示ToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;countsViewToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;スムージングなしToolStripMenuItem.Name" xml:space="preserve">
-    <value>スムージングなしToolStripMenuItem</value>
+  <data name="&gt;&gt;noSmoothingToolStripMenuItem.Name" xml:space="preserve">
+    <value>noSmoothingToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;スムージングなしToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;noSmoothingToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;チャネル表示ToolStripMenuItem.Name" xml:space="preserve">
-    <value>チャネル表示ToolStripMenuItem</value>
+  <data name="&gt;&gt;channelViewToolStripMenuItem.Name" xml:space="preserve">
+    <value>channelViewToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;チャネル表示ToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;channelViewToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;バックグラウンド表示ありToolStripMenuItem.Name" xml:space="preserve">
-    <value>バックグラウンド表示ありToolStripMenuItem</value>
+  <data name="&gt;&gt;showBackgroundToolStripMenuItem.Name" xml:space="preserve">
+    <value>showBackgroundToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;バックグラウンド表示ありToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;showBackgroundToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;バックグラウンド表示なしToolStripMenuItem.Name" xml:space="preserve">
-    <value>バックグラウンド表示なしToolStripMenuItem</value>
+  <data name="&gt;&gt;hideBackgroundToolStripMenuItem.Name" xml:space="preserve">
+    <value>hideBackgroundToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;バックグラウンド表示なしToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;hideBackgroundToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;バーグラフToolStripMenuItem.Name" xml:space="preserve">
-    <value>バーグラフToolStripMenuItem</value>
+  <data name="&gt;&gt;barGraphToolStripMenuItem.Name" xml:space="preserve">
+    <value>barGraphToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;バーグラフToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;barGraphToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;ピーク表示ありToolStripMenuItem.Name" xml:space="preserve">
-    <value>ピーク表示ありToolStripMenuItem</value>
+  <data name="&gt;&gt;showPeaksToolStripMenuItem.Name" xml:space="preserve">
+    <value>showPeaksToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;ピーク表示ありToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;showPeaksToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;ピーク表示なしToolStripMenuItem.Name" xml:space="preserve">
-    <value>ピーク表示なしToolStripMenuItem</value>
+  <data name="&gt;&gt;hidePeaksToolStripMenuItem.Name" xml:space="preserve">
+    <value>hidePeaksToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;ピーク表示なしToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;hidePeaksToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;リニア表示ToolStripMenuItem.Name" xml:space="preserve">
-    <value>リニア表示ToolStripMenuItem</value>
+  <data name="&gt;&gt;linearViewToolStripMenuItem.Name" xml:space="preserve">
+    <value>linearViewToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;リニア表示ToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;linearViewToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;上限閾値に設定HToolStripMenuItem.Name" xml:space="preserve">
-    <value>上限閾値に設定HToolStripMenuItem</value>
+  <data name="&gt;&gt;setUpperThresholdHToolStripMenuItem.Name" xml:space="preserve">
+    <value>setUpperThresholdHToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;上限閾値に設定HToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;setUpperThresholdHToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;下限閾値に設定LToolStripMenuItem.Name" xml:space="preserve">
-    <value>下限閾値に設定LToolStripMenuItem</value>
+  <data name="&gt;&gt;setLowerThresholdLToolStripMenuItem.Name" xml:space="preserve">
+    <value>setLowerThresholdLToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;下限閾値に設定LToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;setLowerThresholdLToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;保存SToolStripMenuItem.Name" xml:space="preserve">
-    <value>保存SToolStripMenuItem</value>
+  <data name="&gt;&gt;saveSToolStripMenuItem.Name" xml:space="preserve">
+    <value>saveSToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;保存SToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;saveSToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;全チャネルを表示AToolStripMenuItem.Name" xml:space="preserve">
-    <value>全チャネルを表示AToolStripMenuItem</value>
+  <data name="&gt;&gt;showAllChannelsAToolStripMenuItem.Name" xml:space="preserve">
+    <value>showAllChannelsAToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;全チャネルを表示AToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;showAllChannelsAToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;加重移動平均ToolStripMenuItem.Name" xml:space="preserve">
-    <value>加重移動平均ToolStripMenuItem</value>
+  <data name="&gt;&gt;weightedMovingAverageToolStripMenuItem.Name" xml:space="preserve">
+    <value>weightedMovingAverageToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;加重移動平均ToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;weightedMovingAverageToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;単純移動平均ToolStripMenuItem.Name" xml:space="preserve">
-    <value>単純移動平均ToolStripMenuItem</value>
+  <data name="&gt;&gt;simpleMovingAverageToolStripMenuItem.Name" xml:space="preserve">
+    <value>simpleMovingAverageToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;単純移動平均ToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;simpleMovingAverageToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;対数表示ToolStripMenuItem.Name" xml:space="preserve">
-    <value>対数表示ToolStripMenuItem</value>
+  <data name="&gt;&gt;logarithmicViewToolStripMenuItem.Name" xml:space="preserve">
+    <value>logarithmicViewToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;対数表示ToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;logarithmicViewToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;折れ線グラフToolStripMenuItem.Name" xml:space="preserve">
-    <value>折れ線グラフToolStripMenuItem</value>
+  <data name="&gt;&gt;lineGraphToolStripMenuItem.Name" xml:space="preserve">
+    <value>lineGraphToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;折れ線グラフToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;lineGraphToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;自動フィットBGToolStripMenuItem.Name" xml:space="preserve">
-    <value>自動フィットBGToolStripMenuItem</value>
+  <data name="&gt;&gt;autoFitBgToolStripMenuItem.Name" xml:space="preserve">
+    <value>autoFitBgToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;自動フィットBGToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;autoFitBgToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;自動フィットToolStripMenuItem.Name" xml:space="preserve">
-    <value>自動フィットToolStripMenuItem</value>
+  <data name="&gt;&gt;autoFitToolStripMenuItem.Name" xml:space="preserve">
+    <value>autoFitToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;自動フィットToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;autoFitToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;通常表示ToolStripMenuItem.Name" xml:space="preserve">
-    <value>通常表示ToolStripMenuItem</value>
+  <data name="&gt;&gt;normalViewToolStripMenuItem.Name" xml:space="preserve">
+    <value>normalViewToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;通常表示ToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;normalViewToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;選択領域からROI定義作成SToolStripMenuItem.Name" xml:space="preserve">
-    <value>選択領域からROI定義作成SToolStripMenuItem</value>
+  <data name="&gt;&gt;createRoiDefinitionFromSelectionSToolStripMenuItem.Name" xml:space="preserve">
+    <value>createRoiDefinitionFromSelectionSToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;選択領域からROI定義作成SToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;createRoiDefinitionFromSelectionSToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;閉じるCToolStripMenuItem.Name" xml:space="preserve">
-    <value>閉じるCToolStripMenuItem</value>
+  <data name="&gt;&gt;closeCToolStripMenuItem.Name" xml:space="preserve">
+    <value>closeCToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;閉じるCToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;closeCToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;高精細表示ToolStripMenuItem.Name" xml:space="preserve">
-    <value>高精細表示ToolStripMenuItem</value>
+  <data name="&gt;&gt;highDefinitionViewToolStripMenuItem.Name" xml:space="preserve">
+    <value>highDefinitionViewToolStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;高精細表示ToolStripMenuItem.Type" xml:space="preserve">
+  <data name="&gt;&gt;highDefinitionViewToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="contextMenuStrip1.ToolTip" xml:space="preserve">
     <value />
   </data>
-  <data name="cps表示ToolStripMenuItem.Text" xml:space="preserve">
+  <data name="cpsViewToolStripMenuItem.Text" xml:space="preserve">
     <value>Имп. в сек. (CPS)</value>
   </data>
   <data name="energySpectrumView1.ToolTip" xml:space="preserve">
@@ -672,82 +672,82 @@
   <data name="toolStripSplitButton9.ToolTipText" xml:space="preserve">
     <value>Выбрать отображение обнаруженных пиков</value>
   </data>
-  <data name="なしToolStripMenuItem.Text" xml:space="preserve">
+  <data name="noneToolStripMenuItem.Text" xml:space="preserve">
     <value>Без авто масштабирования</value>
   </data>
-  <data name="エネルギー表示ToolStripMenuItem.Text" xml:space="preserve">
+  <data name="energyViewToolStripMenuItem.Text" xml:space="preserve">
     <value>Энергия (keV)</value>
   </data>
-  <data name="カウント表示ToolStripMenuItem.Text" xml:space="preserve">
+  <data name="countsViewToolStripMenuItem.Text" xml:space="preserve">
     <value>Имп.</value>
   </data>
-  <data name="スムージングなしToolStripMenuItem.Text" xml:space="preserve">
+  <data name="noSmoothingToolStripMenuItem.Text" xml:space="preserve">
     <value>Нет</value>
   </data>
-  <data name="チャネル表示ToolStripMenuItem.Text" xml:space="preserve">
+  <data name="channelViewToolStripMenuItem.Text" xml:space="preserve">
     <value>Канал</value>
   </data>
-  <data name="バックグラウンド表示ありToolStripMenuItem.Text" xml:space="preserve">
+  <data name="showBackgroundToolStripMenuItem.Text" xml:space="preserve">
     <value>Показать фоновый спектр</value>
   </data>
-  <data name="バックグラウンド表示なしToolStripMenuItem.Text" xml:space="preserve">
+  <data name="hideBackgroundToolStripMenuItem.Text" xml:space="preserve">
     <value>Скрыть фоновый спектр</value>
   </data>
-  <data name="バーグラフToolStripMenuItem.Text" xml:space="preserve">
+  <data name="barGraphToolStripMenuItem.Text" xml:space="preserve">
     <value>Столбцы</value>
   </data>
-  <data name="ピーク表示ありToolStripMenuItem.Text" xml:space="preserve">
+  <data name="showPeaksToolStripMenuItem.Text" xml:space="preserve">
     <value>Показать обнаруженные пики</value>
   </data>
-  <data name="ピーク表示なしToolStripMenuItem.Text" xml:space="preserve">
+  <data name="hidePeaksToolStripMenuItem.Text" xml:space="preserve">
     <value>Скрыть обнаруженные пики</value>
   </data>
-  <data name="リニア表示ToolStripMenuItem.Text" xml:space="preserve">
+  <data name="linearViewToolStripMenuItem.Text" xml:space="preserve">
     <value>Линейный Y</value>
   </data>
     <data name="powToolStripMenuItem.Text" xml:space="preserve">
     <value>Степень Y</value>
   </data>
-  <data name="上限閾値に設定HToolStripMenuItem.Text" xml:space="preserve">
+  <data name="setUpperThresholdHToolStripMenuItem.Text" xml:space="preserve">
     <value>Установить верхний порог спектра по курсору (&amp;Н)</value>
   </data>
-  <data name="下限閾値に設定LToolStripMenuItem.Text" xml:space="preserve">
+  <data name="setLowerThresholdLToolStripMenuItem.Text" xml:space="preserve">
     <value>Установить нижний порог спектра по курсору (&amp;L)</value>
   </data>
-  <data name="保存SToolStripMenuItem.Text" xml:space="preserve">
+  <data name="saveSToolStripMenuItem.Text" xml:space="preserve">
     <value>Сохранить (&amp;S)</value>
   </data>
-  <data name="全チャネルを表示AToolStripMenuItem.Text" xml:space="preserve">
+  <data name="showAllChannelsAToolStripMenuItem.Text" xml:space="preserve">
     <value>Показать все каналы (&amp;A)</value>
   </data>
-  <data name="加重移動平均ToolStripMenuItem.Text" xml:space="preserve">
+  <data name="weightedMovingAverageToolStripMenuItem.Text" xml:space="preserve">
     <value>Скользящее среднее с весом</value>
   </data>
-  <data name="単純移動平均ToolStripMenuItem.Text" xml:space="preserve">
+  <data name="simpleMovingAverageToolStripMenuItem.Text" xml:space="preserve">
     <value>Скользящее среднее</value>
   </data>
-  <data name="対数表示ToolStripMenuItem.Text" xml:space="preserve">
+  <data name="logarithmicViewToolStripMenuItem.Text" xml:space="preserve">
     <value>Логарифм. Y</value>
   </data>
-  <data name="折れ線グラフToolStripMenuItem.Text" xml:space="preserve">
+  <data name="lineGraphToolStripMenuItem.Text" xml:space="preserve">
     <value>Линии</value>
   </data>
-  <data name="自動フィットBGToolStripMenuItem.Text" xml:space="preserve">
+  <data name="autoFitBgToolStripMenuItem.Text" xml:space="preserve">
     <value>Авто масштаб по фону</value>
   </data>
-  <data name="自動フィットToolStripMenuItem.Text" xml:space="preserve">
+  <data name="autoFitToolStripMenuItem.Text" xml:space="preserve">
     <value>Авто масштаб</value>
   </data>
-  <data name="通常表示ToolStripMenuItem.Text" xml:space="preserve">
+  <data name="normalViewToolStripMenuItem.Text" xml:space="preserve">
     <value>Обычное отображение</value>
   </data>
-  <data name="選択領域からROI定義作成SToolStripMenuItem.Text" xml:space="preserve">
+  <data name="createRoiDefinitionFromSelectionSToolStripMenuItem.Text" xml:space="preserve">
     <value>Создать ROI из выбранного диапазона (&amp;S)</value>
   </data>
-  <data name="閉じるCToolStripMenuItem.Text" xml:space="preserve">
+  <data name="closeCToolStripMenuItem.Text" xml:space="preserve">
     <value>Закрыть(&amp;C)</value>
   </data>
-  <data name="高精細表示ToolStripMenuItem.Text" xml:space="preserve">
+  <data name="highDefinitionViewToolStripMenuItem.Text" xml:space="preserve">
     <value>Сглаживание</value>
   </data>
   <data name="SubstractBgToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
