@@ -412,7 +412,7 @@
   </data>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
   <data name="データを保存SToolStripMenuItem.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
-    <value>Ctrl+S</value>
+    <value>Control, S</value>
   </data>
   <data name="&gt;&gt;ベクモニ旧形式v093bToolStripMenuItem.Name" xml:space="preserve">
     <value>ベクモニ旧形式v093bToolStripMenuItem</value>
@@ -451,10 +451,10 @@
     <value>&amp;Start Measurement</value>
   </data>
   <data name="測定開始SToolStripMenuItem.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
-    <value>Ctrl+M</value>
+    <value>Control, M</value>
   </data>
   <data name="測定停止TToolStripMenuItem.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
-    <value>Ctrl+P</value>
+    <value>Control, P</value>
   </data>
   <data name="測定開始SToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>190, 22</value>
@@ -616,7 +616,7 @@
     <value>&amp;Close</value>
   </data>
   <data name="データを閉じるCToolStripMenuItem.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
-    <value>Ctrl+W</value>
+    <value>Control, W</value>
   </data>
   <data name="データを閉じるCToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>171, 22</value>
@@ -685,7 +685,7 @@
     <value>199, 6</value>
   </data>
   <data name="データを開くToolStripMenuItem.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
-    <value>Ctrl+O</value>
+    <value>Control, O</value>
   </data>
   <data name="menuStrip1.Text" xml:space="preserve">
     <value>menuStrip1</value>
@@ -888,7 +888,7 @@
     <value>False</value>
   </data>
   <data name="新規スペクトルNToolStripMenuItem.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
-    <value>Ctrl+N</value>
+    <value>Control, N</value>
   </data>
   <data name="toolStripMenuItem4.Text" xml:space="preserve">
     <value>&amp;Energy Calibration</value>
