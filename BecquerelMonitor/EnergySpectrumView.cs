@@ -27,6 +27,7 @@ namespace BecquerelMonitor
             set
             {
                 this.resultDataList = value;
+                this.InvalidatePreparedViewData();
             }
         }
 
@@ -46,6 +47,7 @@ namespace BecquerelMonitor
                 {
                     this.activeResultData = this.resultDataList[this.activeResultDataIndex];
                 }
+                this.InvalidatePreparedViewData();
             }
         }
 
@@ -61,6 +63,7 @@ namespace BecquerelMonitor
             set
             {
                 this.selectionStart = value;
+                this.InvalidateSelectionAnalytics();
             }
         }
 
@@ -76,6 +79,7 @@ namespace BecquerelMonitor
             set
             {
                 this.selectionEnd = value;
+                this.InvalidateSelectionAnalytics();
             }
         }
 
@@ -124,7 +128,12 @@ namespace BecquerelMonitor
             }
             set
             {
+                if (this.backgroundMode == value)
+                {
+                    return;
+                }
                 this.backgroundMode = value;
+                this.InvalidatePreparedViewData();
             }
         }
 
@@ -154,7 +163,12 @@ namespace BecquerelMonitor
             }
             set
             {
+                if (this.horizontalUnit == value)
+                {
+                    return;
+                }
                 this.horizontalUnit = value;
+                this.InvalidateViewportData();
             }
         }
 
@@ -169,7 +183,12 @@ namespace BecquerelMonitor
             }
             set
             {
+                if (this.verticalUnit == value)
+                {
+                    return;
+                }
                 this.verticalUnit = value;
+                this.InvalidateViewportData();
             }
         }
 
@@ -184,7 +203,12 @@ namespace BecquerelMonitor
             }
             set
             {
+                if (this.chartType == value)
+                {
+                    return;
+                }
                 this.chartType = value;
+                this.InvalidateViewportData();
             }
         }
 
@@ -199,7 +223,12 @@ namespace BecquerelMonitor
             }
             set
             {
+                if (this.verticalScaleType == value)
+                {
+                    return;
+                }
                 this.verticalScaleType = value;
+                this.InvalidateViewportData();
             }
         }
 
@@ -215,8 +244,11 @@ namespace BecquerelMonitor
             set
             {
                 this.fittingMode = value;
-                this.PrepareViewData();
-                this.RecalcScrollBar();
+                this.InvalidateViewportData();
+                if (this.resultDataList != null)
+                {
+                    this.RecalcScrollBar();
+                }
             }
         }
 
@@ -231,7 +263,12 @@ namespace BecquerelMonitor
             }
             set
             {
+                if (this.smoothingMethod == value)
+                {
+                    return;
+                }
                 this.smoothingMethod = value;
+                this.InvalidatePreparedViewData();
             }
         }
 
@@ -246,7 +283,13 @@ namespace BecquerelMonitor
             }
             set
             {
+                if (this.peakMode == value)
+                {
+                    return;
+                }
                 this.peakMode = value;
+                this.InvalidateSelectionAnalytics();
+                this.InvalidateViewportData();
             }
         }
 
@@ -262,6 +305,7 @@ namespace BecquerelMonitor
             set
             {
                 this.horizontalScale = value;
+                this.InvalidateViewportData();
                 if (this.resultDataList != null)
                 {
                     this.RecalcScrollBar();
@@ -293,6 +337,7 @@ namespace BecquerelMonitor
             set
             {
                 this.verticalScale = value;
+                this.InvalidateViewportData();
                 if (this.resultDataList != null)
                 {
                     this.RecalcScrollBar();
@@ -421,6 +466,413 @@ namespace BecquerelMonitor
             }
             catch
             {
+            }
+        }
+
+        void InvalidatePreparedViewData()
+        {
+            this.preparedViewDataDirty = true;
+            this.InvalidateSelectionAnalytics();
+            this.InvalidateViewportData();
+        }
+
+        void InvalidateSelectionAnalytics()
+        {
+            this.selectionAnalyticsDirty = true;
+            this.selectionAnalytics = null;
+            this.selectionFWHM = -1.0;
+            this.selectionFullWidth = 0;
+            this.selectionCentroidCh = 0;
+            this.selectionCentroidkeV = 0.0;
+            this.selectionFWHMinkev = 0.0;
+        }
+
+        void InvalidateViewportData()
+        {
+            this.viewportDataDirty = true;
+            this.nuclideCursorPeakDirty = true;
+        }
+
+        void RefreshViewportData()
+        {
+            if (this.resultDataList == null || this.activeResultData == null || this.energySpectrum == null)
+            {
+                return;
+            }
+            this.CalculateDrawingDataBoundaries();
+            if (this.fittingMode != VerticalFittingMode.None)
+            {
+                this.RecalcScrollBar();
+            }
+            this.viewportDataDirty = false;
+        }
+
+        void EnsureViewData()
+        {
+            if (this.resultDataList == null)
+            {
+                return;
+            }
+            if (this.preparedViewDataDirty || this.activeResultData == null || this.energySpectrum == null)
+            {
+                this.PrepareViewData();
+                return;
+            }
+            if (this.viewportDataDirty)
+            {
+                this.RefreshViewportData();
+            }
+        }
+
+        bool TryGetSelectionBounds(out int startChannel, out int endChannel)
+        {
+            startChannel = -1;
+            endChannel = -1;
+
+            if (this.energySpectrum == null || this.selectionStart < 0 || this.selectionEnd < 0)
+            {
+                return false;
+            }
+
+            startChannel = Math.Min(this.selectionStart, this.selectionEnd);
+            endChannel = Math.Max(this.selectionStart, this.selectionEnd);
+
+            if (endChannel >= this.energySpectrum.NumberOfChannels)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        void EnsureSelectionAnalytics()
+        {
+            if (!this.selectionAnalyticsDirty)
+            {
+                return;
+            }
+
+            this.selectionAnalytics = new SelectionAnalytics();
+            if (!this.TryGetSelectionBounds(out int startChannel, out int endChannel))
+            {
+                this.selectionAnalyticsDirty = false;
+                return;
+            }
+
+            SelectionAnalytics analytics = this.selectionAnalytics;
+            analytics.HasSelection = true;
+            analytics.StartChannel = startChannel;
+            analytics.EndChannel = endChannel;
+            analytics.StartEnergy = this.energyCalibration.ChannelToEnergy((double)startChannel);
+            analytics.EndEnergy = this.energyCalibration.ChannelToEnergy((double)endChannel);
+
+            if (startChannel != endChannel)
+            {
+                EnergySpectrum fwhmSpectrum = this.energySpectrum;
+                if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.substractedEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
+                {
+                    fwhmSpectrum = this.substractedEnergySpectrum;
+                }
+                else if (this.backgroundMode == BackgroundMode.NormalizeByEfficiency)
+                {
+                    fwhmSpectrum = this.normByEffEnergySpectrum;
+                }
+
+                analytics.FwhmResult = EnergyResolutionCalculator.CalculateFWHM(fwhmSpectrum, startChannel, endChannel);
+                if (analytics.FwhmResult != null)
+                {
+                    this.selectionFWHM = analytics.FwhmResult.Resolution;
+                    this.selectionFullWidth = (int)(analytics.FwhmResult.RightChannel - analytics.FwhmResult.LeftChannel);
+                    this.selectionFWHMinkev = analytics.FwhmResult.ResolutionInkeV;
+                    this.selectionCentroidCh = (int)analytics.FwhmResult.MaxChannel;
+                    this.selectionCentroidkeV = this.energyCalibration.ChannelToEnergy(this.selectionCentroidCh);
+                }
+            }
+
+            analytics.SelectionFWHM = this.selectionFWHM;
+            analytics.SelectionFullWidth = this.selectionFullWidth;
+            analytics.SelectionCentroidCh = this.selectionCentroidCh;
+            analytics.SelectionCentroidkeV = this.selectionCentroidkeV;
+            analytics.SelectionFWHMinkev = this.selectionFWHMinkev;
+
+            double fgTime = this.activeResultData.EnergySpectrum.MeasurementTime;
+            double bgTime = this.activeResultData.BackgroundEnergySpectrum != null
+                ? this.activeResultData.BackgroundEnergySpectrum.MeasurementTime
+                : 0.0;
+            int[] fgSpectrum = this.energySpectrum.Spectrum;
+            int[] bgSpectrum = this.backgroundEnergySpectrum != null
+                ? this.backgroundEnergySpectrum.Spectrum
+                : null;
+
+            double fgCounts = 0.0;
+            double bgCounts = 0.0;
+            double peakCounts = 0.0;
+
+            for (int i = startChannel; i <= endChannel; i++)
+            {
+                int fgCountsInChannel = fgSpectrum[i];
+                fgCounts += fgCountsInChannel;
+
+                double adjBgCountsInChannel = 0.0;
+                if (bgTime > 0)
+                {
+                    int bgChannel = i;
+                    if (!this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
+                    {
+                        bgChannel = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy((double)i), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
+                    }
+                    if (bgChannel >= 0 && bgChannel < this.backgroundNumberOfChannels)
+                    {
+                        int bgCountsInChannel = bgSpectrum[bgChannel];
+                        bgCounts += bgCountsInChannel;
+                        adjBgCountsInChannel = bgCountsInChannel * fgTime / bgTime;
+                    }
+                }
+
+                bool isSubtract = this.backgroundMode == BackgroundMode.Substract;
+                int[] peakSpectrum = isSubtract
+                    ? this.substractedEnergySpectrum.Spectrum
+                    : fgSpectrum;
+                int continuumFrom = peakSpectrum[startChannel];
+                int continuumTo = peakSpectrum[endChannel];
+                double continuum = SpectrumAriphmetics.getY(i, startChannel, endChannel, continuumFrom, continuumTo);
+                if (!isSubtract)
+                {
+                    continuum = Math.Max(adjBgCountsInChannel, continuum);
+                }
+                if (fgCountsInChannel > continuum)
+                {
+                    peakCounts += peakSpectrum[i] - continuum;
+                }
+            }
+
+            analytics.GrossCounts = fgCounts;
+            analytics.FgCounts = fgCounts;
+            analytics.BgCounts = bgCounts;
+            analytics.PeakCounts = peakCounts;
+            if (bgTime > 0)
+            {
+                analytics.AdjBgCounts = bgCounts * fgTime / bgTime;
+            }
+
+            if (fgTime > 0)
+            {
+                double detectionLevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.DetectionLevel;
+                double errorLevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.ErrorLevel;
+                double limitsConfidenceLevel = (double)this.globalConfigManager.GlobalConfig.ChartViewConfig.ConfidenceLevel;
+
+                if (bgTime > 0)
+                {
+                    analytics.NetCounts = ROIAriphmetics.CalculateNetCount(fgCounts, fgTime, bgCounts, bgTime);
+                    analytics.NetCountsErr = ROIAriphmetics.CalculateNetCountError(fgCounts, fgTime, bgCounts, bgTime, errorLevel);
+
+                    if (analytics.NetCounts > 0)
+                    {
+                        analytics.Lc = ROIAriphmetics.CalculateLc(bgCounts, bgTime, fgTime, limitsConfidenceLevel);
+                        analytics.Lu = ROIAriphmetics.CalculateLu(fgCounts, fgTime, bgCounts, bgTime, limitsConfidenceLevel);
+                        analytics.Ld = ROIAriphmetics.CalculateLd(bgCounts, bgTime, fgTime, limitsConfidenceLevel);
+                        analytics.Mda = ROIAriphmetics.CalculateMDACounts(bgCounts, bgTime, fgTime, detectionLevel);
+
+                        if (this.peakMode == PeakMode.Visible && analytics.SelectionFWHM > 0.0 &&
+                            this.activeResultData.Visible &&
+                            this.roiConfig != null &&
+                            this.roiConfig.HasEfficiency)
+                        {
+                            int numberOfPeaks = 0;
+                            Peak detectedPeak = null;
+                            foreach (Peak peak in this.activeResultData.DetectedPeaks)
+                            {
+                                if (analytics.StartEnergy < peak.Energy && analytics.EndEnergy > peak.Energy)
+                                {
+                                    numberOfPeaks++;
+                                    detectedPeak = peak;
+                                }
+                            }
+                            if (numberOfPeaks == 1 && detectedPeak != null && detectedPeak.Nuclide != null && detectedPeak.Nuclide.Intencity > 0)
+                            {
+                                ROIAriphmetics roiAriphmetics = new ROIAriphmetics(this.roiConfig);
+                                ROIEfficiencyData effData = roiAriphmetics.CalculateEfficiency(detectedPeak.Energy);
+                                if (effData != null && effData.Efficiency > 0)
+                                {
+                                    double bqCoeff = (1 / effData.Efficiency) / (detectedPeak.Nuclide.Intencity / 100.0);
+                                    double bqCoeffError = effData.ErrorPercent > 0
+                                        ? bqCoeff * (effData.ErrorPercent / 100)
+                                        : 0;
+
+                                    analytics.Activity = ROIAriphmetics.CalculateActivity(bqCoeff, fgCounts, fgTime, bgCounts, bgTime);
+                                    analytics.ActivityError = ROIAriphmetics.CalculateActivityError(bqCoeff, bqCoeffError, fgCounts, fgTime, bgCounts, bgTime, errorLevel);
+                                    analytics.ActivityUpperLimit = ROIAriphmetics.CalculateActivityUpperLimit(bqCoeff, bqCoeffError, fgCounts, fgTime, bgCounts, bgTime, limitsConfidenceLevel);
+                                    if (this.activeResultData.SampleInfo.Weight > 0)
+                                    {
+                                        analytics.ActivityByMass = analytics.Activity / this.activeResultData.SampleInfo.Weight;
+                                        analytics.ActivityByMassError = analytics.ActivityError / this.activeResultData.SampleInfo.Weight;
+                                        analytics.ActivityByMassUpperLimit = analytics.ActivityUpperLimit / this.activeResultData.SampleInfo.Weight;
+                                    }
+
+                                    if (this.activeResultData.SampleInfo.Volume > 0)
+                                    {
+                                        analytics.ActivityByVolume = analytics.Activity / this.activeResultData.SampleInfo.Volume;
+                                        analytics.ActivityByVolumeError = analytics.ActivityError / this.activeResultData.SampleInfo.Volume;
+                                        analytics.ActivityByVolumeUpperLimit = analytics.ActivityUpperLimit / this.activeResultData.SampleInfo.Volume;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    analytics.NetCounts = ROIAriphmetics.CalculateNetCount(fgCounts, fgTime, 0, 0);
+                    analytics.NetCountsErr = ROIAriphmetics.CalculateNetCountError(fgCounts, fgTime, 0, 0, errorLevel);
+                }
+
+                analytics.NetCps = analytics.NetCounts / fgTime;
+                analytics.NetCpsErr = analytics.NetCountsErr / fgTime;
+            }
+
+            this.selectionAnalyticsDirty = false;
+        }
+
+        int VisibleLeftPixel
+        {
+            get
+            {
+                return this.left + 1;
+            }
+        }
+
+        int VisibleRightPixel
+        {
+            get
+            {
+                return this.left + this.width;
+            }
+        }
+
+        bool TryMapPixelToChannel(int pixelX, EnergySpectrum spectrum, EnergyCalibration calibration, bool isBackground, out int channel)
+        {
+            channel = 0;
+            if (spectrum == null || calibration == null || spectrum.NumberOfChannels <= 0)
+            {
+                return false;
+            }
+
+            try
+            {
+                if (this.horizontalUnit == HorizontalUnit.Energy)
+                {
+                    double energy = (double)(pixelX - this.scrollX - this.left) / this.horizontalScale / this.pixelPerEnergy + this.energyViewOffset;
+                    channel = (int)calibration.EnergyToChannel(energy, maxChannels: spectrum.NumberOfChannels);
+                }
+                else if (isBackground && this.backgroundEnergyCalibration != null && !this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
+                {
+                    double baseChannel = (double)(pixelX - this.scrollX - this.left) / this.horizontalScale;
+                    double energy = this.baseEnergyCalibration.ChannelToEnergy(baseChannel);
+                    channel = (int)this.backgroundEnergyCalibration.EnergyToChannel(energy, maxChannels: spectrum.NumberOfChannels);
+                }
+                else
+                {
+                    channel = (int)((double)(pixelX - this.scrollX - this.left) / this.horizontalScale);
+                }
+            }
+            catch (OutofChannelException)
+            {
+                return false;
+            }
+
+            if (channel < 0)
+            {
+                channel = 0;
+            }
+            else if (channel >= spectrum.NumberOfChannels)
+            {
+                channel = spectrum.NumberOfChannels - 1;
+            }
+
+            return true;
+        }
+
+        bool TryGetVisibleChannelRange(EnergySpectrum spectrum, EnergyCalibration calibration, bool isBackground, out int startChannel, out int endChannel)
+        {
+            startChannel = 0;
+            endChannel = -1;
+
+            if (spectrum == null || spectrum.NumberOfChannels <= 0 || calibration == null)
+            {
+                return false;
+            }
+
+            int margin = 2;
+            bool hasStart = this.TryMapPixelToChannel(this.VisibleLeftPixel, spectrum, calibration, isBackground, out startChannel);
+            bool hasEnd = this.TryMapPixelToChannel(this.VisibleRightPixel, spectrum, calibration, isBackground, out endChannel);
+
+            if (!hasStart)
+            {
+                startChannel = 0;
+            }
+            if (!hasEnd)
+            {
+                endChannel = spectrum.NumberOfChannels - 1;
+            }
+
+            if (startChannel > endChannel)
+            {
+                int tmp = startChannel;
+                startChannel = endChannel;
+                endChannel = tmp;
+            }
+
+            startChannel = Math.Max(0, startChannel - margin);
+            endChannel = Math.Min(spectrum.NumberOfChannels - 1, endChannel + margin);
+            return endChannel >= startChannel;
+        }
+
+        void EnsureCursorNuclidePeak()
+        {
+            if (!this.nuclideCursorPeakDirty)
+            {
+                return;
+            }
+
+            this.nuclideCursorPeak = null;
+            this.nuclideCursorPeakDirty = false;
+
+            if (!this.validCursor || this.cursorChannel < 0 || this.nuclideManager == null || this.nuclideManager.NuclideDefinitions == null)
+            {
+                return;
+            }
+
+            int percent = (int)this.globalConfigManager.GlobalConfig.ChartViewConfig.EnergyPercent;
+            int pitch = (int)this.globalConfigManager.GlobalConfig.ChartViewConfig.EnergyPitch;
+            double bestEnergy = 0.0;
+            NuclideDefinition bestNuclide = null;
+
+            foreach (NuclideDefinition nuclideDefinition in this.nuclideManager.NuclideDefinitions)
+            {
+                if (!nuclideDefinition.Visible)
+                {
+                    continue;
+                }
+
+                double delta = (double)pitch + nuclideDefinition.Energy * (double)percent / 100.0;
+                if (this.cursorEnergy < nuclideDefinition.Energy - delta || this.cursorEnergy > nuclideDefinition.Energy + delta)
+                {
+                    continue;
+                }
+
+                if (bestNuclide == null || Math.Abs(this.cursorEnergy - bestEnergy) > Math.Abs(this.cursorEnergy - nuclideDefinition.Energy))
+                {
+                    bestEnergy = nuclideDefinition.Energy;
+                    bestNuclide = nuclideDefinition;
+                }
+            }
+
+            if (bestNuclide != null)
+            {
+                Peak peak = new Peak();
+                peak.Energy = bestEnergy;
+                peak.Nuclide = bestNuclide;
+                this.nuclideCursorPeak = peak;
             }
         }
 
@@ -554,6 +1006,7 @@ namespace BecquerelMonitor
             {
                 return;
             }
+            this.EnsureViewData();
             if (this.CtrlKeyPressed)
             {
                 // Change Horizontal Scale
@@ -576,8 +1029,7 @@ namespace BecquerelMonitor
                 if (newValue > this.hScrollBar1.Maximum) {  newValue = this.hScrollBar1.Maximum; }
                 this.hScrollBar1.Value = newValue;
 
-                this.PrepareViewData();
-                this.RecalcScrollBar();
+                this.RefreshViewportData();
                 base.Invalidate();
             } else
             {
@@ -651,6 +1103,7 @@ namespace BecquerelMonitor
             {
                 return;
             }
+            this.EnsureViewData();
             this.DrawChart(graphics);
         }
 
@@ -681,6 +1134,9 @@ namespace BecquerelMonitor
             this.SetupDrawingData();
             this.CalculateDrawingDataBoundaries();
             this.ApplySmoothingToDrawingData();
+            this.preparedViewDataDirty = false;
+            this.viewportDataDirty = false;
+            this.nuclideCursorPeakDirty = true;
         }
 
         private void CalculateDataForSpecificModes()
@@ -1479,50 +1935,16 @@ namespace BecquerelMonitor
         // Token: 0x060004B6 RID: 1206 RVA: 0x00018404 File Offset: 0x00016604
         void DrawFWHM(Graphics g)
         {
-            if (this.selectionStart < 0)
+            this.EnsureSelectionAnalytics();
+            if (this.selectionAnalytics == null || !this.selectionAnalytics.HasSelection)
             {
                 return;
             }
-            int selStart;
-            int selEnd;
-            if (this.selectionStart < this.selectionEnd)
-            {
-                selStart = this.selectionStart;
-                selEnd = this.selectionEnd;
-            }
-            else
-            {
-                selStart = this.selectionEnd;
-                selEnd = this.selectionStart;
-            }
-            this.selectionFWHM = -1.0;
-            if (selStart == selEnd)
-            {
-                return;
-            }
-
-            EnergyResolutionResult energyResolutionResult;
-            if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.substractedEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
-            {
-                energyResolutionResult = EnergyResolutionCalculator.CalculateFWHM(this.substractedEnergySpectrum, selStart, selEnd);
-            }
-            else if (this.backgroundMode == BackgroundMode.NormalizeByEfficiency)
-            {
-                energyResolutionResult = EnergyResolutionCalculator.CalculateFWHM(this.normByEffEnergySpectrum, selStart, selEnd);
-            }
-            else
-            {
-                energyResolutionResult = EnergyResolutionCalculator.CalculateFWHM(this.energySpectrum, selStart, selEnd);
-            }
+            EnergyResolutionResult energyResolutionResult = this.selectionAnalytics.FwhmResult;
             if (energyResolutionResult == null)
             {
                 return;
             }
-            this.selectionFWHM = energyResolutionResult.Resolution;
-            this.selectionFullWidth = (int)(energyResolutionResult.RightChannel - energyResolutionResult.LeftChannel);
-            this.selectionFWHMinkev = energyResolutionResult.ResolutionInkeV;
-            this.selectionCentroidCh = (int)energyResolutionResult.MaxChannel;
-            this.selectionCentroidkeV = energyCalibration.ChannelToEnergy(this.selectionCentroidCh);
             int num3 = -1;
             int y = -1;
             int num8;
@@ -1692,8 +2114,13 @@ namespace BecquerelMonitor
         void DrawBarChart(Graphics g, Brush brush, EnergySpectrum spectrum, EnergyCalibration calibration, bool isBackground)
         {
             int num = this.CalcMaximumXValue() + this.scrollX + this.left;
-            int i = this.left;
-            while (i < num)
+            int i = Math.Max(this.VisibleLeftPixel, this.left);
+            int maxPixel = Math.Min(this.VisibleRightPixel, num - 1);
+            if (i > maxPixel)
+            {
+                return;
+            }
+            while (i <= maxPixel)
             {
                 int num3;
                 if (this.horizontalUnit == HorizontalUnit.Energy)
@@ -1766,8 +2193,13 @@ namespace BecquerelMonitor
         void DrawPeakBarChart(Graphics g, Brush brush, EnergySpectrum spectrum, EnergyCalibration calibration, int[] peakSpectrum, int min_ch, int max_ch)
         {
             int num = this.CalcMaximumXValue() + this.scrollX + this.left;
-            int i = this.left;
-            while (i < num)
+            int i = Math.Max(this.VisibleLeftPixel, this.left);
+            int maxPixel = Math.Min(this.VisibleRightPixel, num - 1);
+            if (i > maxPixel)
+            {
+                return;
+            }
+            while (i <= maxPixel)
             {
                 int num3;
                 if (this.horizontalUnit == HorizontalUnit.Energy)
@@ -1835,8 +2267,13 @@ namespace BecquerelMonitor
         {
             int y = this.height;
             int x = 0;
+            bool hasPreviousPoint = false;
             if (spectrum.DrawingSpectrum == null) return;
-            for (int i = 0; i < spectrum.DrawingSpectrum.Length; i++)
+            if (!this.TryGetVisibleChannelRange(spectrum, calibration, isBackground, out int startChannel, out int endChannel))
+            {
+                return;
+            }
+            for (int i = startChannel; i <= endChannel; i++)
             {
                 double num = spectrum.DrawingSpectrum[i];
                 if (isBackground)
@@ -1887,7 +2324,7 @@ namespace BecquerelMonitor
                 else if (this.verticalScaleType == VerticalScaleType.PowerScale)
                 {
                     double num6 = Pow(num);
-                    if (num == 0.0)
+                    if (num <= 0.0)
                     {
                         num5 = this.height + 100;
                     }
@@ -1899,7 +2336,7 @@ namespace BecquerelMonitor
                 else
                 {
                     double num6 = Log10(num);
-                    if (num == 0.0)
+                    if (num <= 0.0)
                     {
                         num5 = this.height + 100;
                     }
@@ -1910,6 +2347,13 @@ namespace BecquerelMonitor
                 }
                 if (num3 > this.left)
                 {
+                    if (!hasPreviousPoint)
+                    {
+                        x = num3;
+                        y = num5;
+                        hasPreviousPoint = true;
+                        continue;
+                    }
                     try
                     {
                         g.DrawLine(pen, x, y, num3, num5);
@@ -1928,7 +2372,17 @@ namespace BecquerelMonitor
         {
             int y = this.height;
             int x = 0;
-            for (int i = min_ch; i < max_ch; i++)
+            if (!this.TryGetVisibleChannelRange(spectrum, calibration, false, out int visibleStartChannel, out int visibleEndChannel))
+            {
+                return;
+            }
+            int startChannel = Math.Max(min_ch, visibleStartChannel);
+            int endChannel = Math.Min(max_ch - 1, visibleEndChannel);
+            if (startChannel > endChannel)
+            {
+                return;
+            }
+            for (int i = startChannel; i <= endChannel; i++)
             {
                 double peakv = spectrum.DrawingSpectrum[i] + peakSpectrum[i];
                 double num = spectrum.DrawingSpectrum[i];
@@ -1966,7 +2420,7 @@ namespace BecquerelMonitor
                 {
                     double num6 = Pow(num);
                     double peaklog = Pow(peakv);
-                    if (num == 0.0 || peakv == 0.0)
+                    if (num <= 0.0 || peakv <= 0.0)
                     {
                         num5 = this.height + 100;
                         peak = this.height + 100;
@@ -1981,7 +2435,7 @@ namespace BecquerelMonitor
                 {
                     double num6 = Log10(num);
                     double peaklog = Log10(peakv);
-                    if (num == 0.0 || peakv == 0.0)
+                    if (num <= 0.0 || peakv <= 0.0)
                     {
                         num5 = this.height + 100;
                         peak = this.height + 100;
@@ -1996,7 +2450,7 @@ namespace BecquerelMonitor
                 {
                     try
                     {
-                        if (i == min_ch)
+                        if (i == startChannel)
                         {
                             x = num3;
                             y = peak;
@@ -2255,6 +2709,12 @@ namespace BecquerelMonitor
 
                     int startPixel = (int)leftX;
                     int endPixel = (int)rightX;
+                    startPixel = Math.Max(startPixel, this.VisibleLeftPixel);
+                    endPixel = Math.Min(endPixel, this.VisibleRightPixel);
+                    if (startPixel > endPixel)
+                    {
+                        continue;
+                    }
 
                     for (int i = startPixel; i <= endPixel; i++)
                     {
@@ -2318,7 +2778,7 @@ namespace BecquerelMonitor
                             }
                             else if (this.verticalScaleType == VerticalScaleType.PowerScale)
                             {
-                                if (fgValue == 0.0)
+                                if (fgValue <= 0.0)
                                 {
                                     y1 = this.height;
                                 }
@@ -2328,7 +2788,7 @@ namespace BecquerelMonitor
                                 }
                                 if (y1 > this.height) y1 = this.height;
 
-                                if (bgValue == 0.0)
+                                if (bgValue <= 0.0)
                                 {
                                     y2 = this.height;
                                 }
@@ -2340,7 +2800,7 @@ namespace BecquerelMonitor
                             }
                             else
                             {
-                                if (fgValue == 0.0)
+                                if (fgValue <= 0.0)
                                 {
                                     y1 = this.height;
                                 }
@@ -2350,7 +2810,7 @@ namespace BecquerelMonitor
                                 }
                                 if (y1 > this.height) y1 = this.height;
 
-                                if (bgValue == 0.0)
+                                if (bgValue <= 0.0)
                                 {
                                     y2 = this.height;
                                 }
@@ -2473,8 +2933,9 @@ namespace BecquerelMonitor
             }
             using (Brush brush = new SolidBrush(colorConfig.SelectionNetColor.Color))
             {
-                int i = num5;
-                while (i <= num6)
+                int i = Math.Max(num5, this.VisibleLeftPixel);
+                int maxPixel = Math.Min(num6, this.VisibleRightPixel);
+                while (i <= maxPixel)
                 {
                     double channelIndex;
                     if (this.horizontalUnit == HorizontalUnit.Energy)
@@ -2536,7 +2997,7 @@ namespace BecquerelMonitor
                         }
                         else if (this.verticalScaleType == VerticalScaleType.PowerScale)
                         {
-                            if (fgValue == 0.0)
+                            if (fgValue <= 0.0)
                             {
                                 y1 = this.height;
                             }
@@ -2548,7 +3009,7 @@ namespace BecquerelMonitor
                             {
                                 y1 = this.height;
                             }
-                            if (bgValue == 0.0)
+                            if (bgValue <= 0.0)
                             {
                                 y2 = this.height;
                             }
@@ -2563,7 +3024,7 @@ namespace BecquerelMonitor
                         }
                         else
                         {
-                            if (fgValue == 0.0)
+                            if (fgValue <= 0.0)
                             {
                                 y1 = this.height;
                             }
@@ -2575,7 +3036,7 @@ namespace BecquerelMonitor
                             {
                                 y1 = this.height;
                             }
-                            if (bgValue == 0.0)
+                            if (bgValue <= 0.0)
                             {
                                 y2 = this.height;
                             }
@@ -2842,8 +3303,23 @@ namespace BecquerelMonitor
                             }
                             double num3 = this.energyCalibration.ChannelToEnergy(0.0);
                             double num4 = this.energyCalibration.ChannelToEnergy((double)this.numberOfChannels);
+                            double visibleStartEnergy = (double)(this.VisibleLeftPixel - this.scrollX - this.left) / this.horizontalScale / this.pixelPerEnergy + this.energyViewOffset;
+                            double visibleEndEnergy = (double)(this.VisibleRightPixel - this.scrollX - this.left) / this.horizontalScale / this.pixelPerEnergy + this.energyViewOffset;
+                            double visibleMinEnergy = Math.Max(num3, Math.Min(visibleStartEnergy, visibleEndEnergy) - num2);
+                            double visibleMaxEnergy = Math.Min(num4, Math.Max(visibleStartEnergy, visibleEndEnergy) + num2);
+                            if (visibleMinEnergy > visibleMaxEnergy)
+                            {
+                                double tmp = visibleMinEnergy;
+                                visibleMinEnergy = visibleMaxEnergy;
+                                visibleMaxEnergy = tmp;
+                            }
+                            double firstTick = Math.Floor(visibleMinEnergy / num2) * num2;
+                            if (firstTick < num3)
+                            {
+                                firstTick = num3;
+                            }
                             double num7;
-                            for (double num5 = num3; num5 < num4; num5 = num7)
+                            for (double num5 = firstTick; num5 <= visibleMaxEnergy; num5 = num7)
                             {
                                 int num6 = (int)((num5 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
                                 g.DrawLine(pen, num6, this.height, num6, base.ClientSize.Height);
@@ -2879,7 +3355,13 @@ namespace BecquerelMonitor
                             {
                                 num9 = 5;
                             }
-                            for (int i = 0; i < this.totalMaxChannel; i += num9)
+                            int visibleStartChannel = (int)Math.Floor((double)(this.VisibleLeftPixel - this.scrollX - this.left) / this.horizontalScale);
+                            int visibleEndChannel = (int)Math.Ceiling((double)(this.VisibleRightPixel - this.scrollX - this.left) / this.horizontalScale);
+                            int firstChannelTick = visibleStartChannel > 0
+                                ? visibleStartChannel / num9 * num9
+                                : 0;
+                            int lastChannelTick = Math.Min(this.totalMaxChannel, visibleEndChannel + num9);
+                            for (int i = firstChannelTick; i < lastChannelTick; i += num9)
                             {
                                 int num10 = (int)((double)i * this.horizontalScale) + this.scrollX + this.left;
                                 g.DrawLine(pen, num10, this.height, num10, base.ClientSize.Height);
@@ -2973,7 +3455,7 @@ namespace BecquerelMonitor
                 else if (this.verticalScaleType == VerticalScaleType.PowerScale)
                 {
                     double num7 = Pow(num6);
-                    if (num6 == 0.0)
+                    if (num6 <= 0.0)
                     {
                         y = this.height + 100;
                     }
@@ -2985,7 +3467,7 @@ namespace BecquerelMonitor
                 else
                 {
                     double num7 = Log10(num6);
-                    if (num6 == 0.0)
+                    if (num6 <= 0.0)
                     {
                         y = this.height + 100;
                     }
@@ -3091,7 +3573,7 @@ namespace BecquerelMonitor
                 else if (this.verticalScaleType == VerticalScaleType.PowerScale)
                 {
                     double num4 = Pow(num3);
-                    if (num3 == 0.0)
+                    if (num3 <= 0.0)
                     {
                         y = this.height + 100;
                     }
@@ -3103,7 +3585,7 @@ namespace BecquerelMonitor
                 else
                 {
                     double num4 = Log10(num3);
-                    if (num3 == 0.0)
+                    if (num3 <= 0.0)
                     {
                         y = this.height + 100;
                     }
@@ -3195,39 +3677,15 @@ namespace BecquerelMonitor
                         num4 = (int)(((num5 - this.energyViewOffset) * this.pixelPerEnergy + 0.5) * this.horizontalScale) + this.scrollX + this.left;
                     }
                     g.DrawLine(pen, num4, 0, num4, this.height);
-                    int percent = (int)this.globalConfigManager.GlobalConfig.ChartViewConfig.EnergyPercent;
-                    int pitch = (int)this.globalConfigManager.GlobalConfig.ChartViewConfig.EnergyPitch;
-                    double best_Energy = 0;
-                    NuclideDefinition best_Nuclide = new NuclideDefinition();
-                    foreach (NuclideDefinition nuclideDefinition in this.nuclideManager.NuclideDefinitions)
+                    this.EnsureCursorNuclidePeak();
+                    if (this.nuclideCursorPeak != null)
                     {
-                        if (!nuclideDefinition.Visible) continue;
-                        if (this.cursorEnergy >= nuclideDefinition.Energy - ((double)pitch + nuclideDefinition.Energy * (double)percent / 100.0) &&
-                            this.cursorEnergy <= nuclideDefinition.Energy + ((double)pitch + nuclideDefinition.Energy * (double)percent / 100.0))
+                        using (Pen pen2 = new Pen(colorConfig.PeakFigureColor.Color))
+                        using (Brush brush = new SolidBrush(colorConfig.PeakFigureColor.Color))
+                        using (Brush brush2 = new SolidBrush(colorConfig.PeakBackgroundColor.Color))
                         {
-                            if (best_Energy == 0)
-                            {
-                                best_Energy = nuclideDefinition.Energy;
-                                best_Nuclide = nuclideDefinition;
-                            } else
-                            {
-                                if (Math.Abs(this.cursorEnergy - best_Energy) > Math.Abs(this.cursorEnergy - nuclideDefinition.Energy))
-                                {
-                                    best_Energy = nuclideDefinition.Energy;
-                                    best_Nuclide = nuclideDefinition;
-                                }
-                            }
+                            this.DrawPeakFlag(g, this.nuclideCursorPeak, this.cursorX, 2, pen2, brush, brush2);
                         }
-                    }
-                    if (best_Energy != 0)
-                    {
-                        Peak peak = new Peak();
-                        peak.Energy = best_Energy;
-                        peak.Nuclide = best_Nuclide;
-                        Pen pen2 = new Pen(colorConfig.PeakFigureColor.Color);
-                        Brush brush = new SolidBrush(colorConfig.PeakFigureColor.Color);
-                        Brush brush2 = new SolidBrush(colorConfig.PeakBackgroundColor.Color);
-                        this.DrawPeakFlag(g, peak, this.cursorX, 2, pen2, brush, brush2);
                     }
                 }
                 int table_heigth = 62;
@@ -3284,170 +3742,37 @@ namespace BecquerelMonitor
             }
             if (this.selectionStart != -1 && this.energySpectrum.NumberOfChannels > Math.Max(this.selectionStart, this.selectionEnd))
             {
-                // ROI tooltip
-                int start_channel;
-                int end_channel;
-                if (this.selectionStart < this.selectionEnd)
+                this.EnsureSelectionAnalytics();
+                SelectionAnalytics selection = this.selectionAnalytics;
+                if (selection == null || !selection.HasSelection)
                 {
-                    start_channel = this.selectionStart;
-                    end_channel = this.selectionEnd;
-                }
-                else
-                {
-                    start_channel = this.selectionEnd;
-                    end_channel = this.selectionStart;
-                }
-                double start_energy = this.energyCalibration.ChannelToEnergy((double)start_channel);
-                double end_energy = this.energyCalibration.ChannelToEnergy((double)end_channel);
-
-                // display data
-                double fg_counts = 0.0;
-                double bg_counts = 0.0;
-                double adj_bg_counts = 0.0;
-                double gross_counts = 0.0;
-                double peak_counts = 0.0;
-                double net_counts = 0.0;
-                double net_counts_err = 0.0;
-                double net_cps = 0.0;
-                double net_cps_err = 0.0;
-                double Lc = 0.0;
-                double Lu = 0.0;
-                double Ld = 0.0;
-                double mda = 0.0;
-                double activity = 0.0;
-                double activityError = 0.0;
-                double activityUpperLimit = 0.0;
-                double activityByMass = 0.0;
-                double activityByMassError = 0.0;
-                double activityByMassUpperLimit = 0.0;
-                double activityByVolume = 0.0;
-                double activityByVolumeError = 0.0;
-                double activityByVolumeUpperLimit = 0.0;
-
-                for (int i = start_channel; i <= end_channel; i++)
-                {
-                    // calculate ROI data
-                    // 1. foreground counts
-                    int fg_counts_in_channel = fg_spectrum[i];
-                    fg_counts += fg_counts_in_channel;
-
-                    // 2. background counts
-                    double adj_bg_counts_in_channel = 0.0;
-                    if (bg_time > 0)
-                    {
-                        int bg_channel = i;
-                        if (!this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
-                        {
-                            bg_channel = (int)this.backgroundEnergyCalibration.EnergyToChannel(this.baseEnergyCalibration.ChannelToEnergy((double)i), maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
-                        }
-                        if (bg_channel >= 0 && bg_channel < this.backgroundNumberOfChannels)
-                        {
-                            int bg_counts_in_channel = bg_spectrum[bg_channel];
-                            bg_counts += bg_counts_in_channel;
-                            adj_bg_counts_in_channel = bg_counts_in_channel * fg_time / bg_time;
-                        }
-                    }
-
-                    // 3. peak counts
-                    // in background subtract mode peak counts are calculated based on subtracted spectrum
-                    bool isSubtract = this.backgroundMode == BackgroundMode.Substract;
-                    int[] peak_spectrum = isSubtract
-                        ? this.substractedEnergySpectrum.Spectrum
-                        : fg_spectrum;
-                    int continuumFrom = peak_spectrum[start_channel];
-                    int continuumTo = peak_spectrum[end_channel];
-                    double continuum = SpectrumAriphmetics.getY(i, start_channel, end_channel, continuumFrom, continuumTo);
-                    if (!isSubtract)
-                    {   
-                        continuum = Math.Max(adj_bg_counts_in_channel, continuum);
-                    }
-                    if (fg_counts_in_channel > continuum)
-                    {
-                        peak_counts += peak_spectrum[i] - continuum;
-                    }
+                    return;
                 }
 
-                gross_counts = fg_counts;
-                if (bg_time > 0)
-                {
-                    adj_bg_counts = bg_counts * fg_time / bg_time;
-                }
-
-                if (fg_time > 0)
-                {
-                    double detectionLevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.DetectionLevel;
-                    double errorLevel = (double)this.globalConfigManager.GlobalConfig.MeasurementConfig.ErrorLevel;
-                    double limitsConfidenceLevel = (double)this.globalConfigManager.GlobalConfig.ChartViewConfig.ConfidenceLevel;
-
-                    if (bg_time > 0)
-                    {
-                        net_counts = ROIAriphmetics.CalculateNetCount(fg_counts, fg_time, bg_counts, bg_time);
-                        net_counts_err = ROIAriphmetics.CalculateNetCountError(fg_counts, fg_time, bg_counts, bg_time, errorLevel);
-
-                        if (net_counts > 0)
-                        {
-                            Lc = ROIAriphmetics.CalculateLc(bg_counts, bg_time, fg_time, limitsConfidenceLevel);
-                            Lu = ROIAriphmetics.CalculateLu(fg_counts, fg_time, bg_counts, bg_time, limitsConfidenceLevel);
-                            Ld = ROIAriphmetics.CalculateLd(bg_counts, bg_time, fg_time, limitsConfidenceLevel);
-                            mda = ROIAriphmetics.CalculateMDACounts(bg_counts, bg_time, fg_time, detectionLevel);
-
-                            // calc activity
-                            if (this.peakMode == PeakMode.Visible && this.selectionFWHM > 0.0 &&
-                                this.activeResultData.Visible &&
-                                this.roiConfig != null && 
-                                this.roiConfig.HasEfficiency)
-                            {
-                                int number_of_peaks = 0;
-                                Peak detected_peak = null;
-                                foreach (Peak peak in this.activeResultData.DetectedPeaks)
-                                {
-                                    if (start_energy < peak.Energy && end_energy > peak.Energy)
-                                    {
-                                        number_of_peaks++;
-                                        detected_peak = peak;
-                                    }
-                                }
-                                if (number_of_peaks == 1 && detected_peak != null && detected_peak.Nuclide != null && detected_peak.Nuclide.Intencity > 0)
-                                {
-                                    ROIAriphmetics roiAriphmetics = new ROIAriphmetics(this.roiConfig);
-                                    ROIEfficiencyData effData = roiAriphmetics.CalculateEfficiency(detected_peak.Energy);
-                                    if (effData != null && effData.Efficiency > 0)
-                                    {
-                                        double bqCoeff = (1 / effData.Efficiency) / (detected_peak.Nuclide.Intencity / 100.0);
-                                        double bqCoeffError = effData.ErrorPercent > 0
-                                            ? bqCoeff * (effData.ErrorPercent / 100)
-                                            : 0;
-
-                                        activity = ROIAriphmetics.CalculateActivity(bqCoeff, fg_counts, fg_time, bg_counts, bg_time);
-                                        activityError = ROIAriphmetics.CalculateActivityError(bqCoeff, bqCoeffError, fg_counts, fg_time, bg_counts, bg_time, errorLevel);
-                                        activityUpperLimit = ROIAriphmetics.CalculateActivityUpperLimit(bqCoeff, bqCoeffError, fg_counts, fg_time, bg_counts, bg_time, limitsConfidenceLevel);
-                                        if (this.activeResultData.SampleInfo.Weight > 0)
-                                        {
-                                            activityByMass = activity / this.activeResultData.SampleInfo.Weight;
-                                            activityByMassError = activityError / this.activeResultData.SampleInfo.Weight;
-                                            activityByMassUpperLimit = activityUpperLimit / this.activeResultData.SampleInfo.Weight;
-                                        }
-
-                                        if (this.activeResultData.SampleInfo.Volume > 0)
-                                        {
-                                            activityByVolume = activity / this.activeResultData.SampleInfo.Volume;
-                                            activityByVolumeError = activityError / this.activeResultData.SampleInfo.Volume;
-                                            activityByVolumeUpperLimit = activityUpperLimit / this.activeResultData.SampleInfo.Volume;
-                                        }
-                                    }
-                                } 
-                            }
-                        }
-                    }
-                    else
-                    {
-                        net_counts = ROIAriphmetics.CalculateNetCount(fg_counts, fg_time, 0, 0);
-                        net_counts_err = ROIAriphmetics.CalculateNetCountError(fg_counts, fg_time, 0, 0, errorLevel);
-                    }
-
-                    net_cps = net_counts / fg_time;
-                    net_cps_err = net_counts_err / fg_time;
-                }
+                int start_channel = selection.StartChannel;
+                int end_channel = selection.EndChannel;
+                double start_energy = selection.StartEnergy;
+                double end_energy = selection.EndEnergy;
+                double gross_counts = selection.GrossCounts;
+                double adj_bg_counts = selection.AdjBgCounts;
+                double peak_counts = selection.PeakCounts;
+                double net_counts = selection.NetCounts;
+                double net_counts_err = selection.NetCountsErr;
+                double net_cps = selection.NetCps;
+                double net_cps_err = selection.NetCpsErr;
+                double Lc = selection.Lc;
+                double Lu = selection.Lu;
+                double Ld = selection.Ld;
+                double mda = selection.Mda;
+                double activity = selection.Activity;
+                double activityError = selection.ActivityError;
+                double activityUpperLimit = selection.ActivityUpperLimit;
+                double activityByMass = selection.ActivityByMass;
+                double activityByMassError = selection.ActivityByMassError;
+                double activityByMassUpperLimit = selection.ActivityByMassUpperLimit;
+                double activityByVolume = selection.ActivityByVolume;
+                double activityByVolumeError = selection.ActivityByVolumeError;
+                double activityByVolumeUpperLimit = selection.ActivityByVolumeUpperLimit;
 
                 int infopanel_height = 104;
                 if (this.selectionFWHM > 0.0)
@@ -3619,21 +3944,26 @@ namespace BecquerelMonitor
 
         double Log10(double x)
         {
-            if (x < 1) return 0.0;
+            if (x <= 0.0) return 0.0;
             return Math.Log10(x);
         }
 
         double Pow(double x)
         {
-            if (x < 1) return 0.0;
-            return Math.Pow(x, 1 / pownum);
+            if (x <= 0.0) return 0.0;
+            return Math.Pow(x, 1.0 / pownum);
         }
 
         // Token: 0x060004C4 RID: 1220 RVA: 0x0001BD50 File Offset: 0x00019F50
         void EnergySpectrumView_SizeChanged(object sender, EventArgs e)
         {
+            if (this.resultDataList == null)
+            {
+                return;
+            }
             this.RecalcChartParameters();
-            this.PrepareViewData();
+            this.EnsureViewData();
+            this.RefreshViewportData();
             this.RecalcScrollBar();
             base.Invalidate();
         }
@@ -3652,8 +3982,7 @@ namespace BecquerelMonitor
         // Token: 0x060004C6 RID: 1222 RVA: 0x0001BDBC File Offset: 0x00019FBC
         void hScrollBar1_ValueChanged(object sender, EventArgs e)
         {
-            this.PrepareViewData();
-            this.RecalcScrollBar();
+            this.RefreshViewportData();
             base.Invalidate();
         }
 
@@ -3695,9 +4024,11 @@ namespace BecquerelMonitor
                 {
                     this.selectionEnd = this.cursorChannel;
                     this.selectionEndEnergy = this.cursorEnergy;
+                    this.InvalidateSelectionAnalytics();
                 }
                 if (num != this.cursorChannel)
                 {
+                    this.nuclideCursorPeakDirty = true;
                     base.Invalidate();
                 }
             }
@@ -3713,6 +4044,7 @@ namespace BecquerelMonitor
             else
             {
                 this.cursorX = -1;
+                this.nuclideCursorPeakDirty = true;
             }
             base.Invalidate();
         }
@@ -3721,6 +4053,7 @@ namespace BecquerelMonitor
         public void ShowLastCursorPosition()
         {
             this.cursorX = this.lastCursorX;
+            this.nuclideCursorPeakDirty = true;
             this.Refresh();
         }
 
@@ -3738,6 +4071,7 @@ namespace BecquerelMonitor
                     {
                         this.selectionEnd = num2;
                         this.selectionEndEnergy = num;
+                        this.InvalidateSelectionAnalytics();
                     }
                     else
                     {
@@ -3745,6 +4079,7 @@ namespace BecquerelMonitor
                         this.selectionEnd = num2;
                         this.selectionStartEnergy = num;
                         this.selectionEndEnergy = num;
+                        this.InvalidateSelectionAnalytics();
                     }
                     this.selectionDragging = true;
                     base.Invalidate();
@@ -3757,6 +4092,7 @@ namespace BecquerelMonitor
                 else
                 {
                     this.selectionStart = -1;
+                    this.InvalidateSelectionAnalytics();
                     base.Invalidate();
                 }
             }
@@ -3772,6 +4108,7 @@ namespace BecquerelMonitor
             if (e.Button == MouseButtons.Left)
             {
                 this.selectionDragging = false;
+                this.EnsureSelectionAnalytics();
                 if (this.PeakPickuped != null && this.selectionFWHM > 0)
                 {
                     this.PeakPickuped(this, new PeakPickupedEventArgs(this.selectionCentroidCh,
@@ -3838,11 +4175,14 @@ namespace BecquerelMonitor
 
         public void zoom(decimal zoomvalue)
         {
+            if (this.resultDataList == null)
+            {
+                return;
+            }
+            this.EnsureViewData();
             double num = this.horizontalScale;
             int value = this.hScrollBar1.Value;
             this.horizontalScale = (double)zoomvalue;
-            this.PrepareViewData();
-            this.RecalcScrollBar();
             int num3 = value;
             int num4 = base.Width - this.left - this.vScrollBar1.Width;
             switch (this.globalConfigManager.GlobalConfig.ChartViewConfig.MagnificationReference)
@@ -3878,6 +4218,7 @@ namespace BecquerelMonitor
                 num3 = this.hScrollBar1.Maximum;
             }
             this.hScrollBar1.Value = num3;
+            this.RefreshViewportData();
             base.Invalidate();
         }
 
@@ -3914,6 +4255,7 @@ namespace BecquerelMonitor
             {
                 return;
             }
+            this.EnsureViewData();
             int startRegion;
             int endRegion;
             if (this.selectionStart < this.selectionEnd)
@@ -3944,22 +4286,25 @@ namespace BecquerelMonitor
                 currPos = maxPos;
             }
             this.hScrollBar1.Value = currPos;
-            this.PrepareViewData();
-            this.RecalcScrollBar();
+            this.RefreshViewportData();
             base.Invalidate();
         }
 
         // Token: 0x060004D4 RID: 1236 RVA: 0x0001C788 File Offset: 0x0001A988
         public void FitHorizontalScale()
         {
+            if (this.resultDataList == null)
+            {
+                return;
+            }
+            this.EnsureViewData();
             int num = base.Width - this.left - this.vScrollBar1.Width - 4;
             this.horizontalScale = (double)num / (this.energyCalibration.ChannelToEnergy((double)this.numberOfChannels) * this.pixelPerEnergy + 20.0);
             if (ActionEvent != null) ActionEvent(this, new EnergySpectrumActionEventArgs(true, (decimal)this.horizontalScale));
             int maximum = this.CalcMaximumXValue() + 5;
             this.hScrollBar1.Maximum = maximum;
             this.hScrollBar1.Value = 0;
-            this.PrepareViewData();
-            this.RecalcScrollBar();
+            this.RefreshViewportData();
             base.Invalidate();
         }
 
@@ -3971,20 +4316,29 @@ namespace BecquerelMonitor
 
         public void SetScale11()
         {
+            if (this.resultDataList == null)
+            {
+                return;
+            }
+            this.EnsureViewData();
             int num = base.Width - this.left - this.vScrollBar1.Width;
             this.horizontalScale = 1.0;
             if (ActionEvent != null) ActionEvent(this, new EnergySpectrumActionEventArgs(true, (decimal)this.horizontalScale));
             int maximum = this.CalcMaximumXValue() + 5;
             this.hScrollBar1.Maximum = maximum;
             this.hScrollBar1.Value = 0;
-            this.PrepareViewData();
-            this.RecalcScrollBar();
+            this.RefreshViewportData();
             base.Invalidate();
         }
 
         // Token: 0x060004D5 RID: 1237 RVA: 0x0001C828 File Offset: 0x0001AA28
         public void SetDefaultHorizontalScale()
         {
+            if (this.resultDataList == null)
+            {
+                return;
+            }
+            this.EnsureViewData();
             int num = base.Width - this.left - this.vScrollBar1.Width - 4;
 
             if (this.globalConfigManager.GlobalConfig.ChartViewConfig.DefaultHorizontalMagnification == HorizontalMagnification.Equal)
@@ -3999,8 +4353,7 @@ namespace BecquerelMonitor
                 this.hScrollBar1.Value = 0;
             }
             if (ActionEvent != null) ActionEvent(this, new EnergySpectrumActionEventArgs(true, (decimal)this.horizontalScale));
-            this.PrepareViewData();
-            this.RecalcScrollBar();
+            this.RefreshViewportData();
             base.Invalidate();
         }
 
@@ -4157,6 +4510,75 @@ namespace BecquerelMonitor
             public Color PeakColor { get; private set; }
         }
 
+        class SelectionAnalytics
+        {
+            public bool HasSelection { get; set; }
+
+            public int StartChannel { get; set; }
+
+            public int EndChannel { get; set; }
+
+            public double StartEnergy { get; set; }
+
+            public double EndEnergy { get; set; }
+
+            public EnergyResolutionResult FwhmResult { get; set; }
+
+            public double SelectionFWHM { get; set; } = -1.0;
+
+            public int SelectionFullWidth { get; set; }
+
+            public int SelectionCentroidCh { get; set; }
+
+            public double SelectionCentroidkeV { get; set; }
+
+            public double SelectionFWHMinkev { get; set; }
+
+            public double FgCounts { get; set; }
+
+            public double BgCounts { get; set; }
+
+            public double AdjBgCounts { get; set; }
+
+            public double GrossCounts { get; set; }
+
+            public double PeakCounts { get; set; }
+
+            public double NetCounts { get; set; }
+
+            public double NetCountsErr { get; set; }
+
+            public double NetCps { get; set; }
+
+            public double NetCpsErr { get; set; }
+
+            public double Lc { get; set; }
+
+            public double Lu { get; set; }
+
+            public double Ld { get; set; }
+
+            public double Mda { get; set; }
+
+            public double Activity { get; set; }
+
+            public double ActivityError { get; set; }
+
+            public double ActivityUpperLimit { get; set; }
+
+            public double ActivityByMass { get; set; }
+
+            public double ActivityByMassError { get; set; }
+
+            public double ActivityByMassUpperLimit { get; set; }
+
+            public double ActivityByVolume { get; set; }
+
+            public double ActivityByVolumeError { get; set; }
+
+            public double ActivityByVolumeUpperLimit { get; set; }
+        }
+
         // Token: 0x0400021A RID: 538
         int numberOfChannels;
 
@@ -4248,6 +4670,18 @@ namespace BecquerelMonitor
         bool selectionDragging;
 
         double pownum = 4;
+
+        bool preparedViewDataDirty = true;
+
+        bool viewportDataDirty = true;
+
+        bool nuclideCursorPeakDirty = true;
+
+        Peak nuclideCursorPeak;
+
+        bool selectionAnalyticsDirty = true;
+
+        SelectionAnalytics selectionAnalytics;
 
         public delegate void ChannelPickupedEventHandler(object sender, ChannelPickupedEventArgs e);
 
