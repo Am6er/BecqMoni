@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Windows.Forms;
 
@@ -23,16 +23,16 @@ namespace BecquerelMonitor
         // Token: 0x06000AEA RID: 2794 RVA: 0x00045524 File Offset: 0x00043724
         void InitializeComponent()
 		{
-			ComponentResourceManager componentResourceManager = new ComponentResourceManager(typeof(InputDeviceForm));
+			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(InputDeviceForm));
 			this.textBox1 = new TextBox();
 			this.label4 = new Label();
 			base.SuspendLayout();
-			componentResourceManager.ApplyResources(this.textBox1, "textBox1");
+			resources.ApplyResources(this.textBox1, "textBox1");
 			this.textBox1.Name = "textBox1";
 			this.textBox1.ReadOnly = true;
-			componentResourceManager.ApplyResources(this.label4, "label4");
+			resources.ApplyResources(this.label4, "label4");
 			this.label4.Name = "label4";
-			componentResourceManager.ApplyResources(this, "$this");
+			resources.ApplyResources(this, "$this");
 			base.AutoScaleMode = AutoScaleMode.Font;
 			base.Controls.Add(this.textBox1);
 			base.Controls.Add(this.label4);

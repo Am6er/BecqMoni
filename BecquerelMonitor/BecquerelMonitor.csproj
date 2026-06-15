@@ -146,10 +146,11 @@
     <Compile Include="ChartViewConfig.cs" />
     <Compile Include="ColorComboBox\ColorChangeArgs.cs" />
     <Compile Include="ColorComboBox\ColorChangedHandler.cs" />
+    <Compile Include="ColorComboBox\ColorComboBox.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="ColorComboBox\ColorComboBox.Designer.cs">
-      <DependentUpon>ColorComboBox.resx</DependentUpon>
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
+      <DependentUpon>ColorComboBox.cs</DependentUpon>
     </Compile>
     <Compile Include="ColorConfig.cs" />
     <Compile Include="ConfidenceLevel.cs" />
@@ -159,10 +160,11 @@
     <Compile Include="ContextMenuForm.Designer.cs">
       <DependentUpon>ContextMenuForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="Controls\StatusMessage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="Controls\StatusMessage.Designer.cs">
-      <DependentUpon>StatusMessage.resx</DependentUpon>
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
+      <DependentUpon>StatusMessage.cs</DependentUpon>
     </Compile>
     <Compile Include="CoreAudioApi\AudioEndpointVolume.cs" />
     <Compile Include="CoreAudioApi\AudioEndpointVolumeCallback.cs" />
@@ -920,15 +922,15 @@
       <DependentUpon>ChanNumberChangeDialog.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="ColorComboBox\ColorComboBox.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>ColorComboBox.Designer.cs</LastGenOutput>
+      <DependentUpon>ColorComboBox.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="ContextMenuForm.resx">
       <DependentUpon>ContextMenuForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Controls\StatusMessage.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>StatusMessage.Designer.cs</LastGenOutput>
+      <DependentUpon>StatusMessage.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="CoreAudioTestForm.resx">
       <DependentUpon>CoreAudioTestForm.cs</DependentUpon>

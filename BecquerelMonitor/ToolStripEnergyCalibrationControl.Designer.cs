@@ -38,7 +38,7 @@ namespace BecquerelMonitor
 
         void InitializeComponent()
         {
-            ComponentResourceManager componentResourceManager = new ComponentResourceManager(typeof(ToolStripEnergyCalibrationControl));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ToolStripEnergyCalibrationControl));
             this.numericUpDown1 = new NumericUpDown();
             this.numericUpDown2 = new NumericUpDown();
             this.label1 = new Label();
@@ -53,7 +53,7 @@ namespace BecquerelMonitor
             ((ISupportInitialize)this.numericUpDown2).BeginInit();
             ((ISupportInitialize)this.numericUpDown3).BeginInit();
             this.SuspendLayout();
-            componentResourceManager.ApplyResources(this.numericUpDown1, "numericUpDown1");
+            resources.ApplyResources(this.numericUpDown1, "numericUpDown1");
             this.numericUpDown1.DecimalPlaces = 7;
             this.numericUpDown1.Increment = new decimal(new int[]
             {
@@ -76,7 +76,7 @@ namespace BecquerelMonitor
             this.numericUpDown1.Name = "numericUpDown1";
             this.numericUpDown1.ValueChanged += this.numericUpDown1_ValueChanged;
             this.numericUpDown1.KeyDown += this.numericUpDown1_KeyDown;
-            componentResourceManager.ApplyResources(this.numericUpDown2, "numericUpDown2");
+            resources.ApplyResources(this.numericUpDown2, "numericUpDown2");
             this.numericUpDown2.DecimalPlaces = 4;
             this.numericUpDown2.Increment = new decimal(new int[]
             {
@@ -106,21 +106,21 @@ namespace BecquerelMonitor
             });
             this.numericUpDown2.ValueChanged += this.numericUpDown2_ValueChanged;
             this.numericUpDown2.KeyDown += this.numericUpDown2_KeyDown;
-            componentResourceManager.ApplyResources(this.label1, "label1");
+            resources.ApplyResources(this.label1, "label1");
             this.label1.Name = "label1";
-            componentResourceManager.ApplyResources(this.label2, "label2");
+            resources.ApplyResources(this.label2, "label2");
             this.label2.Name = "label2";
-            componentResourceManager.ApplyResources(this.label3, "label3");
+            resources.ApplyResources(this.label3, "label3");
             this.label3.Name = "label3";
-            componentResourceManager.ApplyResources(this.button1, "button1");
+            resources.ApplyResources(this.button1, "button1");
             this.button1.Name = "button1";
             this.button1.UseVisualStyleBackColor = true;
             this.button1.Click += this.button1_Click;
-            componentResourceManager.ApplyResources(this.button2, "button2");
+            resources.ApplyResources(this.button2, "button2");
             this.button2.Name = "button2";
             this.button2.UseVisualStyleBackColor = true;
             this.button2.Click += this.button2_Click;
-            componentResourceManager.ApplyResources(this.numericUpDown3, "numericUpDown3");
+            resources.ApplyResources(this.numericUpDown3, "numericUpDown3");
             this.numericUpDown3.DecimalPlaces = 4;
             this.numericUpDown3.Increment = new decimal(new int[]
             {
@@ -143,13 +143,13 @@ namespace BecquerelMonitor
             this.numericUpDown3.Name = "numericUpDown3";
             this.numericUpDown3.ValueChanged += this.numericUpDown3_ValueChanged;
             this.numericUpDown3.KeyDown += this.numericUpDown3_KeyDown;
-            componentResourceManager.ApplyResources(this.button3, "button3");
+            resources.ApplyResources(this.button3, "button3");
             this.button3.Name = "button3";
             this.button3.UseVisualStyleBackColor = true;
             this.button3.Click += this.button3_Click;
-            componentResourceManager.ApplyResources(this.label4, "label4");
+            resources.ApplyResources(this.label4, "label4");
             this.label4.Name = "label4";
-            componentResourceManager.ApplyResources(this, "$this");
+            resources.ApplyResources(this, "$this");
             this.AutoScaleMode = AutoScaleMode.Font;
             this.BorderStyle = BorderStyle.FixedSingle;
             this.Controls.Add(this.label4);

@@ -123,120 +123,6 @@
   <data name="$this.Text" xml:space="preserve">
     <value>Список спектров</value>
   </data>
-  <data name="&gt;&gt;$this.Name" xml:space="preserve">
-    <value>DCSpectrumListView</value>
-  </data>
-  <data name="&gt;&gt;$this.Type" xml:space="preserve">
-    <value>BecquerelMonitor.ToolWindow, BecquerelMonitorPlus, Version=1.0.16.0, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;button1.Name" xml:space="preserve">
-    <value>button1</value>
-  </data>
-  <data name="&gt;&gt;button1.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;button1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;button1.ZOrder" xml:space="preserve">
-    <value>4</value>
-  </data>
-  <data name="&gt;&gt;button2.Name" xml:space="preserve">
-    <value>button2</value>
-  </data>
-  <data name="&gt;&gt;button2.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;button2.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;button2.ZOrder" xml:space="preserve">
-    <value>5</value>
-  </data>
-  <data name="&gt;&gt;button3.Name" xml:space="preserve">
-    <value>button3</value>
-  </data>
-  <data name="&gt;&gt;button3.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;button3.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;button3.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
-  <data name="&gt;&gt;button4.Name" xml:space="preserve">
-    <value>button4</value>
-  </data>
-  <data name="&gt;&gt;button4.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;button4.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;button4.ZOrder" xml:space="preserve">
-    <value>2</value>
-  </data>
-  <data name="&gt;&gt;button5.Name" xml:space="preserve">
-    <value>button5</value>
-  </data>
-  <data name="&gt;&gt;button5.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;button5.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;button5.ZOrder" xml:space="preserve">
-    <value>1</value>
-  </data>
-  <data name="&gt;&gt;button6.Name" xml:space="preserve">
-    <value>button6</value>
-  </data>
-  <data name="&gt;&gt;button6.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;button6.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;button6.ZOrder" xml:space="preserve">
-    <value>0</value>
-  </data>
-  <data name="&gt;&gt;checkBoxColumn1.Name" xml:space="preserve">
-    <value>checkBoxColumn1</value>
-  </data>
-  <data name="&gt;&gt;checkBoxColumn1.Type" xml:space="preserve">
-    <value>XPTable.Models.CheckBoxColumn, BecquerelMonitorPlus, Version=1.0.16.0, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;columnModel1.Name" xml:space="preserve">
-    <value>columnModel1</value>
-  </data>
-  <data name="&gt;&gt;columnModel1.Type" xml:space="preserve">
-    <value>XPTable.Models.ColumnModel, BecquerelMonitorPlus, Version=1.0.16.0, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;table1.Name" xml:space="preserve">
-    <value>table1</value>
-  </data>
-  <data name="&gt;&gt;table1.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;table1.Type" xml:space="preserve">
-    <value>XPTable.Models.Table, BecquerelMonitorPlus, Version=1.0.16.0, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;table1.ZOrder" xml:space="preserve">
-    <value>6</value>
-  </data>
-  <data name="&gt;&gt;tableModel1.Name" xml:space="preserve">
-    <value>tableModel1</value>
-  </data>
-  <data name="&gt;&gt;tableModel1.Type" xml:space="preserve">
-    <value>XPTable.Models.TableModel, BecquerelMonitorPlus, Version=1.0.16.0, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;textColumn2.Name" xml:space="preserve">
-    <value>textColumn2</value>
-  </data>
-  <data name="&gt;&gt;textColumn2.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitorPlus, Version=1.0.16.0, Culture=neutral, PublicKeyToken=null</value>
-  </data>
   <data name="button1.Text" xml:space="preserve">
     <value>Новый</value>
   </data>
@@ -251,12 +137,6 @@
   </data>
   <data name="checkBoxColumn1.Text" xml:space="preserve">
     <value>Легенда</value>
-  </data>
-  <data name="table1.NoItemsText" xml:space="preserve">
-    <value />
-  </data>
-  <data name="table1.Text" xml:space="preserve">
-    <value>table1</value>
   </data>
   <data name="textColumn2.Text" xml:space="preserve">
     <value>Имя</value>
