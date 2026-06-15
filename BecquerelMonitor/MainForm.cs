@@ -203,7 +203,7 @@ namespace BecquerelMonitor
                 this.UpdateLanguageCheckState();
             }
             this.dockPanel1.SuspendLayout(true);
-            string text = this.LayoutConfigFile(this.layoutMode);
+            string text = this.LayoutConfigFile();
             if (File.Exists(text))
             {
                 this.dockPanel1.LoadFromXml(text, this.m_deserializeDockContent);
@@ -256,7 +256,8 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            foreach (DocEnergySpectrum docEnergySpectrum in this.documentManager.DocumentList)
+            this.mainFormClosing = true;
+            foreach (DocEnergySpectrum docEnergySpectrum in this.documentManager.DocumentList.ToList())
             {
                 DeviceController dc = docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController;
                 if (dc is AtomSpectraDeviceController)
@@ -274,8 +275,7 @@ namespace BecquerelMonitor
                     docEnergySpectrum.Close();
                 }
             }
-            this.mainFormClosing = true;
-            string fileName = this.LayoutConfigFile(this.layoutMode);
+            string fileName = this.LayoutConfigFile();
             try
             {
                 this.dockPanel1.SaveAsXml(fileName);
@@ -1927,6 +1927,7 @@ namespace BecquerelMonitor
                     }
                     docEnergySpectrum.ResultDataFile.ResultDataList.Add(resultData);
                     resultData.MeasurementController = new MeasurementController(docEnergySpectrum, resultData);
+                    resultData.MeasurementController.MeasurementTerminated += this.activeDocument_MeasurementTerminated;
                 }
             }
             if (docEnergySpectrum == this.activeDocument)
@@ -2095,9 +2096,9 @@ namespace BecquerelMonitor
                         break;
                     }
                     doc.ResultDataFile.ResultDataList.Add(resultData);
-                    resultData.MeasurementController.MeasurementTerminated += this.activeDocument_MeasurementTerminated;
                     doc.Dirty = true;
                     resultData.MeasurementController = new MeasurementController(doc, resultData);
+                    resultData.MeasurementController.MeasurementTerminated += this.activeDocument_MeasurementTerminated;
                 }
                 if (flag)
                 {
@@ -2113,12 +2114,18 @@ namespace BecquerelMonitor
 
         public void SaveHardSubtractSpectrumToFile()
         {
+            EnergySpectrum backgroundSpectrum = this.activeDocument.ActiveResultData.BackgroundEnergySpectrum;
+            if (backgroundSpectrum == null)
+            {
+                MessageBox.Show("Background spectrum is not available for the active spectrum.", Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
+            }
             SaveFileDialog saveFileDialog = new SaveFileDialog();
             saveFileDialog.Title = Resources.ExportSpectraToFileDialogTitle;
             saveFileDialog.Filter = Resources.SpectrumFileFilter;
             saveFileDialog.FilterIndex = 1;
             saveFileDialog.RestoreDirectory = true;
-            if (this.activeDocument.ActiveResultData.BackgroundSpectrumFile != null || this.activeDocument.ActiveResultData.BackgroundSpectrumFile != "")
+            if (!string.IsNullOrEmpty(this.activeDocument.ActiveResultData.BackgroundSpectrumFile))
             {
                 saveFileDialog.FileName = this.activeDocument.Text + " - subtract" + ".xml";
             }
@@ -2130,7 +2137,7 @@ namespace BecquerelMonitor
             SpectrumAriphmetics sa = new SpectrumAriphmetics(this.activeDocument.ActiveResultData.EnergySpectrum);
             ResultDataFile resultDataFile = new ResultDataFile();
             ResultData resultData = this.activeDocument.ActiveResultData.Clone();
-            resultData.EnergySpectrum = sa.Substract(this.activeDocument.ActiveResultData.BackgroundEnergySpectrum);
+            resultData.EnergySpectrum = sa.Substract(backgroundSpectrum);
             resultData.SampleInfo.Name = Path.GetFileNameWithoutExtension(fileName);
             resultData.BackgroundEnergySpectrum = null;
             resultData.BackgroundSpectrumFile = null;
@@ -2156,12 +2163,18 @@ namespace BecquerelMonitor
 
         public void SaveBGSpectrumToFile()
         {
+            EnergySpectrum backgroundSpectrum = this.activeDocument.ActiveResultData.BackgroundEnergySpectrum;
+            if (backgroundSpectrum == null)
+            {
+                MessageBox.Show("Background spectrum is not available for the active spectrum.", Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
+            }
             SaveFileDialog saveFileDialog = new SaveFileDialog();
             saveFileDialog.Title = Resources.ExportSpectraToFileDialogTitle;
             saveFileDialog.Filter = Resources.SpectrumFileFilter;
             saveFileDialog.FilterIndex = 1;
             saveFileDialog.RestoreDirectory = true;
-            if (this.activeDocument.ActiveResultData.BackgroundSpectrumFile != null || this.activeDocument.ActiveResultData.BackgroundSpectrumFile != "")
+            if (!string.IsNullOrEmpty(this.activeDocument.ActiveResultData.BackgroundSpectrumFile))
             {
                 saveFileDialog.FileName = this.activeDocument.ActiveResultData.BackgroundSpectrumFile;
             }
@@ -2172,7 +2185,7 @@ namespace BecquerelMonitor
             string fileName = saveFileDialog.FileName;
             ResultDataFile resultDataFile = new ResultDataFile();
             ResultData resultData = this.activeDocument.ActiveResultData.Clone();
-            resultData.EnergySpectrum = resultData.BackgroundEnergySpectrum.Clone(); ;
+            resultData.EnergySpectrum = backgroundSpectrum.Clone();
             resultData.SampleInfo.Name = Path.GetFileNameWithoutExtension(fileName);
             resultData.BackgroundEnergySpectrum = null;
             resultData.BackgroundSpectrumFile = null;
@@ -2575,8 +2588,9 @@ namespace BecquerelMonitor
                 }
                 if (array.Length > 1)
                 {
-                    foreach (string text in array)
+                    foreach (string filename in array)
                     {
+                        this.OpenExistingDocument(filename);
                     }
                 }
             }
@@ -2907,7 +2921,7 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            string text = this.LayoutConfigFile(this.layoutMode);
+            string text = this.LayoutConfigFile();
             try
             {
                 this.dockPanel1.SaveAsXml(text);
@@ -2917,7 +2931,7 @@ namespace BecquerelMonitor
             }
             this.layoutMode = LayoutMode.UserMode;
             this.UpdateLayoutCheckState();
-            text = this.LayoutConfigFile(this.layoutMode);
+            text = this.LayoutConfigFile();
             this.dockPanel1.SuspendLayout(true);
             this.CloseAllDocuments();
             this.InitializeToolViews();
@@ -2935,7 +2949,7 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            string text = this.LayoutConfigFile(this.layoutMode);
+            string text = this.LayoutConfigFile();
             try
             {
                 this.dockPanel1.SaveAsXml(text);
@@ -2945,7 +2959,7 @@ namespace BecquerelMonitor
             }
             this.layoutMode = LayoutMode.ExpertMode;
             this.UpdateLayoutCheckState();
-            text = this.LayoutConfigFile(this.layoutMode);
+            text = this.LayoutConfigFile();
             this.dockPanel1.SuspendLayout(true);
             this.CloseAllDocuments();
             this.InitializeToolViews();
@@ -2957,10 +2971,9 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000AB0 RID: 2736 RVA: 0x0003FCF8 File Offset: 0x0003DEF8
-        string LayoutConfigFile(LayoutMode mode)
+        string LayoutConfigFile()
         {
-            string str = "ExpertMode.xml";
-            return userDirectoryLayout + str;
+            return userDirectoryLayout + "ExpertMode.xml";
         }
 
         // Token: 0x06000AB1 RID: 2737 RVA: 0x0003FD20 File Offset: 0x0003DF20
