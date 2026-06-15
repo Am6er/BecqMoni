@@ -145,7 +145,7 @@
     <value>statusMessage1</value>
   </data>
   <data name="&gt;&gt;statusMessage1.Type" xml:space="preserve">
-    <value>BecquerelMonitor.Controls.StatusMessage, BecquerelMonitorPlus, Version=1.0.19.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>System.Windows.Forms.Panel, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;$this.Name" xml:space="preserve">
     <value>DCStatusMessageView</value>

@@ -24,8 +24,20 @@ namespace BecquerelMonitor
         {
             this.FormLoading = true;
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+            if (activeDocument == null || activeDocument.ActiveResultData == null)
+            {
+                this.tableModel1.Rows.Clear();
+                this.FormLoading = false;
+                return;
+            }
             ResultData activeResultData = activeDocument.ActiveResultData;
             DeviceConfigInfo deviceConfigInfo = activeResultData.DeviceConfig;
+            if (deviceConfigInfo == null)
+            {
+                this.tableModel1.Rows.Clear();
+                this.FormLoading = false;
+                return;
+            }
             if (deviceConfigInfo.Guid == null)
             {
                 List<DeviceConfigInfo> deviceConfigInfos = DeviceConfigManager.GetInstance().DeviceConfigList;
@@ -50,7 +62,12 @@ namespace BecquerelMonitor
                 if (deviceConfigInfo != null) activeResultData.DeviceConfig.PeakDetectionMethodConfig = deviceConfigInfo.PeakDetectionMethodConfig;
             }
             if (deviceConfigInfo != null) activeResultData.PeakDetectionMethodConfig = deviceConfigInfo.PeakDetectionMethodConfig;
-            FWHMPeakDetectionMethodConfig fwhmPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)activeResultData.PeakDetectionMethodConfig;
+            if (!(activeResultData.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig fwhmPeakDetectionMethodConfig))
+            {
+                this.tableModel1.Rows.Clear();
+                this.FormLoading = false;
+                return;
+            }
             this.numericUpDown1.Minimum = 1;
             this.numericUpDown1.Maximum = 10000;
             this.numericUpDown1.Increment = 1;
@@ -107,16 +124,27 @@ namespace BecquerelMonitor
         public void RefreshTable()
         {
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
-            ResultData activeResultData = activeDocument.ActiveResultData;
-            List<Peak> peaks = new List<Peak>(activeResultData.DetectedPeaks);
-            if (activeDocument == null)
+            if (activeDocument == null || activeDocument.ActiveResultData == null)
             {
+                this.tableModel1.Rows.Clear();
                 return;
             }
+            ResultData activeResultData = activeDocument.ActiveResultData;
+            if (activeResultData.DetectedPeaks == null)
+            {
+                this.tableModel1.Rows.Clear();
+                return;
+            }
+            List<Peak> peaks = new List<Peak>(activeResultData.DetectedPeaks);
             if (peaks != null)
             {
                 // if peaks exist, update table
-                PolynomialEnergyCalibration energyCalibration = (PolynomialEnergyCalibration)activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration;
+                PolynomialEnergyCalibration energyCalibration = activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration as PolynomialEnergyCalibration;
+                if (energyCalibration == null)
+                {
+                    this.tableModel1.Rows.Clear();
+                    return;
+                }
 
                 this.tableModel1.Rows.Clear();
                 foreach (Peak peak in peaks)

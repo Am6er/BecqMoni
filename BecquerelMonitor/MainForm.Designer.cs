@@ -41,17 +41,17 @@ namespace BecquerelMonitor
 			global::WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient6 = new global::WeifenLuo.WinFormsUI.Docking.TabGradient();
 			global::WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient7 = new global::WeifenLuo.WinFormsUI.Docking.TabGradient();
 			this.menuStrip1 = new global::BecquerelMonitor.MenuStripEx();
-			this.ファイルFToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.新規スペクトルNToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.デ\u30FCタを開くToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.デ\u30FCタを保存SToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.デ\u30FCタを名前を付けて保存RToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.デ\u30FCタを閉じるCToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.fileFToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.newSpectrumNToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.openDataToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.saveDataSToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.saveDataAsRToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.closeDataCToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSeparator6 = new global::System.Windows.Forms.ToolStripSeparator();
 			this.toolStripMenuItem2 = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSeparator4 = new global::System.Windows.Forms.ToolStripSeparator();
-			this.インポ\u30FCトIToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.ベクモニ旧形式v093bToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.importIToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.legacyFormatV093bToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.AtomSpectraStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.ConcatSpectrumsStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.CutoffStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
@@ -62,42 +62,42 @@ namespace BecquerelMonitor
 			this.AtomSpectraExpStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.cSVFileToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.cSVEnFileToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-            this.エクスポ\u30FCトEToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+            this.exportEToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.cSVCToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.EffCalcMCFileToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.GBSFileToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
             this.SpecUtilsToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
             this.ECSVToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.fWHM用ToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.forFwhmToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSeparator1 = new global::System.Windows.Forms.ToolStripSeparator();
-			this.終了XToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.スペクトルSToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.新規スペクトルNToolStripMenuItem1 = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.削除DToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.既存ファイルから追加FToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.exitXToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.spectrumSToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.newSpectrumNToolStripMenuItem1 = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.deleteDToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.addFromExistingFileFToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripMenuItem1 = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.exportBgToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.hardSubtractToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator7 = new global::System.Windows.Forms.ToolStripSeparator();
-			this.測定開始SToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.測定停止TToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.デ\u30FCタ消去CToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.startMeasurementSToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.stopMeasurementTToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.clearDataCToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.CloseAllToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.AutoSaveStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
             this.CombineSpectrasToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-            this.表示TToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+            this.viewTToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripMenuItem6 = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.コントロ\u30FCルパネルCToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.試料情報SToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.スペクトル一覧LToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.controlPanelCToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.sampleInfoSToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.spectrumListLToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripMenuItem4 = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.ピ\u30FCク検出DToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.パルス表示PToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.peakDetectionDToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.pulseViewPToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripMenuItem5 = new global::System.Windows.Forms.ToolStripMenuItem();
             this.FWHMCalStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem3 = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSeparator2 = new global::System.Windows.Forms.ToolStripSeparator();
-			this.測定結果表示RToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.measurementResultsRToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSeparator8 = new global::System.Windows.Forms.ToolStripSeparator();
 			this.toolStripMenuItem7 = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.userLayoutToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
@@ -107,19 +107,19 @@ namespace BecquerelMonitor
 			this.oSDefaultToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.neutralToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.jaJPToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.ツ\u30FCルTToolStripMenuItem1 = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.デバイス構成の編集DToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.rOI定義RToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.toolsTToolStripMenuItem1 = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.editDeviceConfigurationDToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.roiDefinitionRToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.NuclideDefinitionToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.NuclideSetToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.OpenConfigNToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.NucDB = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSeparator5 = new global::System.Windows.Forms.ToolStripSeparator();
-			this.基本設定BToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.ヘルプHToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.マニュアルMToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.basicSettingsBToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.helpHToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.manualMToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSeparator3 = new global::System.Windows.Forms.ToolStripSeparator();
-			this.バ\u30FCジョン情報AToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
+			this.versionInfoAToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.UpdatesAToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
 			this.statusStrip1 = new global::System.Windows.Forms.StatusStrip();
 			this.toolStripStatusLabel1 = new global::System.Windows.Forms.ToolStripStatusLabel();
@@ -134,49 +134,49 @@ namespace BecquerelMonitor
 			this.menuStrip1.ClickThrough = true;
 			this.menuStrip1.Items.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
-				this.ファイルFToolStripMenuItem,
-				this.スペクトルSToolStripMenuItem,
-				this.表示TToolStripMenuItem,
-				this.ツ\u30FCルTToolStripMenuItem1,
-				this.ヘルプHToolStripMenuItem
+				this.fileFToolStripMenuItem,
+				this.spectrumSToolStripMenuItem,
+				this.viewTToolStripMenuItem,
+				this.toolsTToolStripMenuItem1,
+				this.helpHToolStripMenuItem
 			});
 			this.menuStrip1.Name = "menuStrip1";
 			this.menuStrip1.SuppressHighlighting = false;
-			resources.ApplyResources(this.ファイルFToolStripMenuItem, "ファイルFToolStripMenuItem");
-			this.ファイルFToolStripMenuItem.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
+			resources.ApplyResources(this.fileFToolStripMenuItem, "fileFToolStripMenuItem");
+			this.fileFToolStripMenuItem.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
-				this.新規スペクトルNToolStripMenuItem,
-				this.デ\u30FCタを開くToolStripMenuItem,
-				this.デ\u30FCタを保存SToolStripMenuItem,
-				this.デ\u30FCタを名前を付けて保存RToolStripMenuItem,
-				this.デ\u30FCタを閉じるCToolStripMenuItem,
+				this.newSpectrumNToolStripMenuItem,
+				this.openDataToolStripMenuItem,
+				this.saveDataSToolStripMenuItem,
+				this.saveDataAsRToolStripMenuItem,
+				this.closeDataCToolStripMenuItem,
                 this.CombineSpectrasToolStripMenuItem,
                 this.CloseAllToolStripMenuItem,
 				this.toolStripSeparator6,
 				this.toolStripMenuItem2,
 				this.toolStripSeparator4,
-				this.インポ\u30FCトIToolStripMenuItem,
-				this.エクスポ\u30FCトEToolStripMenuItem,
+				this.importIToolStripMenuItem,
+				this.exportEToolStripMenuItem,
                 this.toolStripSeparator1,
-				this.終了XToolStripMenuItem
+				this.exitXToolStripMenuItem
 			});
-			this.ファイルFToolStripMenuItem.Name = "ファイルFToolStripMenuItem";
-			this.ファイルFToolStripMenuItem.DropDownOpening += new global::System.EventHandler(this.ファイルFToolStripMenuItem_DropDownOpening);
-			resources.ApplyResources(this.新規スペクトルNToolStripMenuItem, "新規スペクトルNToolStripMenuItem");
-			this.新規スペクトルNToolStripMenuItem.Name = "新規スペクトルNToolStripMenuItem";
-			this.新規スペクトルNToolStripMenuItem.Click += new global::System.EventHandler(this.新規スペクトルNToolStripMenuItem_Click);
-			resources.ApplyResources(this.デ\u30FCタを開くToolStripMenuItem, "データを開くToolStripMenuItem");
-			this.デ\u30FCタを開くToolStripMenuItem.Name = "データを開くToolStripMenuItem";
-			this.デ\u30FCタを開くToolStripMenuItem.Click += new global::System.EventHandler(this.デ\u30FCタを開くToolStripMenuItem_Click);
-			resources.ApplyResources(this.デ\u30FCタを保存SToolStripMenuItem, "データを保存SToolStripMenuItem");
-			this.デ\u30FCタを保存SToolStripMenuItem.Name = "データを保存SToolStripMenuItem";
-            this.デ\u30FCタを保存SToolStripMenuItem.Click += new global::System.EventHandler(this.デ\u30FCタを保存SToolStripMenuItem_Click);
-            resources.ApplyResources(this.デ\u30FCタを名前を付けて保存RToolStripMenuItem, "データを名前を付けて保存RToolStripMenuItem");
-			this.デ\u30FCタを名前を付けて保存RToolStripMenuItem.Name = "データを名前を付けて保存RToolStripMenuItem";
-			this.デ\u30FCタを名前を付けて保存RToolStripMenuItem.Click += new global::System.EventHandler(this.デ\u30FCタを名前を付けて保存RToolStripMenuItem_Click);
-			resources.ApplyResources(this.デ\u30FCタを閉じるCToolStripMenuItem, "データを閉じるCToolStripMenuItem");
-			this.デ\u30FCタを閉じるCToolStripMenuItem.Name = "データを閉じるCToolStripMenuItem";
-			this.デ\u30FCタを閉じるCToolStripMenuItem.Click += new global::System.EventHandler(this.デ\u30FCタを閉じるCToolStripMenuItem_Click);
+			this.fileFToolStripMenuItem.Name = "fileFToolStripMenuItem";
+			this.fileFToolStripMenuItem.DropDownOpening += new global::System.EventHandler(this.fileFToolStripMenuItem_DropDownOpening);
+			resources.ApplyResources(this.newSpectrumNToolStripMenuItem, "newSpectrumNToolStripMenuItem");
+			this.newSpectrumNToolStripMenuItem.Name = "newSpectrumNToolStripMenuItem";
+			this.newSpectrumNToolStripMenuItem.Click += new global::System.EventHandler(this.newSpectrumNToolStripMenuItem_Click);
+			resources.ApplyResources(this.openDataToolStripMenuItem, "openDataToolStripMenuItem");
+			this.openDataToolStripMenuItem.Name = "openDataToolStripMenuItem";
+			this.openDataToolStripMenuItem.Click += new global::System.EventHandler(this.openDataToolStripMenuItem_Click);
+			resources.ApplyResources(this.saveDataSToolStripMenuItem, "saveDataSToolStripMenuItem");
+			this.saveDataSToolStripMenuItem.Name = "saveDataSToolStripMenuItem";
+            this.saveDataSToolStripMenuItem.Click += new global::System.EventHandler(this.saveDataSToolStripMenuItem_Click);
+            resources.ApplyResources(this.saveDataAsRToolStripMenuItem, "saveDataAsRToolStripMenuItem");
+			this.saveDataAsRToolStripMenuItem.Name = "saveDataAsRToolStripMenuItem";
+			this.saveDataAsRToolStripMenuItem.Click += new global::System.EventHandler(this.saveDataAsRToolStripMenuItem_Click);
+			resources.ApplyResources(this.closeDataCToolStripMenuItem, "closeDataCToolStripMenuItem");
+			this.closeDataCToolStripMenuItem.Name = "closeDataCToolStripMenuItem";
+			this.closeDataCToolStripMenuItem.Click += new global::System.EventHandler(this.closeDataCToolStripMenuItem_Click);
 			resources.ApplyResources(this.CloseAllToolStripMenuItem, "CloseAllToolStripMenuItem");
 			this.CloseAllToolStripMenuItem.Name = "CloseAllToolStripMenuItem";
 			this.CloseAllToolStripMenuItem.Click += new global::System.EventHandler(this.CloseAllToolStripMenuItem_Click);
@@ -191,8 +191,8 @@ namespace BecquerelMonitor
 			this.toolStripMenuItem2.Click += new global::System.EventHandler(this.toolStripMenuItem2_Click);
 			resources.ApplyResources(this.toolStripSeparator4, "toolStripSeparator4");
 			this.toolStripSeparator4.Name = "toolStripSeparator4";
-			resources.ApplyResources(this.インポ\u30FCトIToolStripMenuItem, "インポートIToolStripMenuItem");
-			this.インポ\u30FCトIToolStripMenuItem.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
+			resources.ApplyResources(this.importIToolStripMenuItem, "importIToolStripMenuItem");
+			this.importIToolStripMenuItem.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
 				this.AtomSpectraStripMenuItem,
 				this.N42StripMenuItem,
@@ -201,14 +201,14 @@ namespace BecquerelMonitor
 				this.cSVEnFileToolStripMenuItem,
 				this.GBSFileToolStripMenuItem,
 				this.SpecUtilsToolStripMenuItem,
-                this.ベクモニ旧形式v093bToolStripMenuItem
+                this.legacyFormatV093bToolStripMenuItem
 			});
-			this.インポ\u30FCトIToolStripMenuItem.Name = "インポートIToolStripMenuItem";
-			resources.ApplyResources(this.ベクモニ旧形式v093bToolStripMenuItem, "ベクモニ旧形式v093bToolStripMenuItem");
+			this.importIToolStripMenuItem.Name = "importIToolStripMenuItem";
+			resources.ApplyResources(this.legacyFormatV093bToolStripMenuItem, "legacyFormatV093bToolStripMenuItem");
 			resources.ApplyResources(this.AtomSpectraStripMenuItem, "AtomSpectraStripMenuItem");
 			resources.ApplyResources(this.N42StripMenuItem, "N42StripMenuItem");
-			this.ベクモニ旧形式v093bToolStripMenuItem.Name = "ベクモニ旧形式v093bToolStripMenuItem";
-			this.ベクモニ旧形式v093bToolStripMenuItem.Click += new global::System.EventHandler(this.ベクモニ旧形式v093bToolStripMenuItem_Click);
+			this.legacyFormatV093bToolStripMenuItem.Name = "legacyFormatV093bToolStripMenuItem";
+			this.legacyFormatV093bToolStripMenuItem.Click += new global::System.EventHandler(this.legacyFormatV093bToolStripMenuItem_Click);
 			this.AtomSpectraStripMenuItem.Name = "AtomSpectraStripMenuItem";
 			this.AtomSpectraStripMenuItem.Click += new global::System.EventHandler(this.AtomSpectraStripMenuItem_Click);
 			this.N42StripMenuItem.Name = "N42StripMenuItem";
@@ -228,16 +228,16 @@ namespace BecquerelMonitor
             resources.ApplyResources(this.SpecUtilsToolStripMenuItem, "SpecUtilsToolStripMenuItem");
             this.SpecUtilsToolStripMenuItem.Name = "SpecUtilsToolStripMenuItem";
             this.SpecUtilsToolStripMenuItem.Click += new global::System.EventHandler(this.SpecUtilsToolStripMenuItem_Click);
-            resources.ApplyResources(this.エクスポ\u30FCトEToolStripMenuItem, "エクスポートEToolStripMenuItem");
-			this.エクスポ\u30FCトEToolStripMenuItem.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
+            resources.ApplyResources(this.exportEToolStripMenuItem, "exportEToolStripMenuItem");
+			this.exportEToolStripMenuItem.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
 				this.N42ExpStripMenuItem,
 				this.AtomSpectraExpStripMenuItem,
 				this.cSVCToolStripMenuItem,
 				this.ECSVToolStripMenuItem,
-				this.fWHM用ToolStripMenuItem
+				this.forFwhmToolStripMenuItem
 			});
-			this.エクスポ\u30FCトEToolStripMenuItem.Name = "エクスポートEToolStripMenuItem";
+			this.exportEToolStripMenuItem.Name = "exportEToolStripMenuItem";
 			resources.ApplyResources(this.N42ExpStripMenuItem, "N42ExpStripMenuItem");
 			this.N42ExpStripMenuItem.Name = "N42ExpStripMenuItem";
 			this.N42ExpStripMenuItem.Click += new global::System.EventHandler(this.N42ExpStripMenuItem_Click);
@@ -250,20 +250,20 @@ namespace BecquerelMonitor
 			resources.ApplyResources(this.ECSVToolStripMenuItem, "ECSVToolStripMenuItem");
 			this.ECSVToolStripMenuItem.Name = "ECSVToolStripMenuItem";
 			this.ECSVToolStripMenuItem.Click += new global::System.EventHandler(this.ECSVToolStripMenuItem_Click);
-			resources.ApplyResources(this.fWHM用ToolStripMenuItem, "fWHM用ToolStripMenuItem");
-			this.fWHM用ToolStripMenuItem.Name = "fWHM用ToolStripMenuItem";
-			this.fWHM用ToolStripMenuItem.Click += new global::System.EventHandler(this.fWHM用ToolStripMenuItem_Click);
+			resources.ApplyResources(this.forFwhmToolStripMenuItem, "forFwhmToolStripMenuItem");
+			this.forFwhmToolStripMenuItem.Name = "forFwhmToolStripMenuItem";
+			this.forFwhmToolStripMenuItem.Click += new global::System.EventHandler(this.forFwhmToolStripMenuItem_Click);
 			resources.ApplyResources(this.toolStripSeparator1, "toolStripSeparator1");
 			this.toolStripSeparator1.Name = "toolStripSeparator1";
-			resources.ApplyResources(this.終了XToolStripMenuItem, "終了XToolStripMenuItem");
-			this.終了XToolStripMenuItem.Name = "終了XToolStripMenuItem";
-			this.終了XToolStripMenuItem.Click += new global::System.EventHandler(this.終了XToolStripMenuItem_Click);
-			resources.ApplyResources(this.スペクトルSToolStripMenuItem, "スペクトルSToolStripMenuItem");
-			this.スペクトルSToolStripMenuItem.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
+			resources.ApplyResources(this.exitXToolStripMenuItem, "exitXToolStripMenuItem");
+			this.exitXToolStripMenuItem.Name = "exitXToolStripMenuItem";
+			this.exitXToolStripMenuItem.Click += new global::System.EventHandler(this.exitXToolStripMenuItem_Click);
+			resources.ApplyResources(this.spectrumSToolStripMenuItem, "spectrumSToolStripMenuItem");
+			this.spectrumSToolStripMenuItem.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
-				this.新規スペクトルNToolStripMenuItem1,
-				this.削除DToolStripMenuItem,
-				this.既存ファイルから追加FToolStripMenuItem,
+				this.newSpectrumNToolStripMenuItem1,
+				this.deleteDToolStripMenuItem,
+				this.addFromExistingFileFToolStripMenuItem,
 				this.toolStripMenuItem1,
 				this.exportBgToolStripMenuItem,
 				this.hardSubtractToolStripMenuItem,
@@ -273,21 +273,21 @@ namespace BecquerelMonitor
 				this.ApplyDeadTimeCorrectionStripMenuItem,
                 this.AutoSaveStripMenuItem,
                 this.toolStripSeparator7,
-				this.測定開始SToolStripMenuItem,
-				this.測定停止TToolStripMenuItem,
-				this.デ\u30FCタ消去CToolStripMenuItem
+				this.startMeasurementSToolStripMenuItem,
+				this.stopMeasurementTToolStripMenuItem,
+				this.clearDataCToolStripMenuItem
 			});
-			this.スペクトルSToolStripMenuItem.Name = "スペクトルSToolStripMenuItem";
-			this.スペクトルSToolStripMenuItem.DropDownOpening += new global::System.EventHandler(this.スペクトルSToolStripMenuItem_DropDownOpening);
-			resources.ApplyResources(this.新規スペクトルNToolStripMenuItem1, "新規スペクトルNToolStripMenuItem1");
-			this.新規スペクトルNToolStripMenuItem1.Name = "新規スペクトルNToolStripMenuItem1";
-			this.新規スペクトルNToolStripMenuItem1.Click += new global::System.EventHandler(this.新規スペクトルNToolStripMenuItem1_Click);
-			resources.ApplyResources(this.削除DToolStripMenuItem, "削除DToolStripMenuItem");
-			this.削除DToolStripMenuItem.Name = "削除DToolStripMenuItem";
-			this.削除DToolStripMenuItem.Click += new global::System.EventHandler(this.削除DToolStripMenuItem_Click);
-			resources.ApplyResources(this.既存ファイルから追加FToolStripMenuItem, "既存ファイルから追加FToolStripMenuItem");
-			this.既存ファイルから追加FToolStripMenuItem.Name = "既存ファイルから追加FToolStripMenuItem";
-			this.既存ファイルから追加FToolStripMenuItem.Click += new global::System.EventHandler(this.ファイルからスペクトルを追加FToolStripMenuItem_Click);
+			this.spectrumSToolStripMenuItem.Name = "spectrumSToolStripMenuItem";
+			this.spectrumSToolStripMenuItem.DropDownOpening += new global::System.EventHandler(this.spectrumSToolStripMenuItem_DropDownOpening);
+			resources.ApplyResources(this.newSpectrumNToolStripMenuItem1, "newSpectrumNToolStripMenuItem1");
+			this.newSpectrumNToolStripMenuItem1.Name = "newSpectrumNToolStripMenuItem1";
+			this.newSpectrumNToolStripMenuItem1.Click += new global::System.EventHandler(this.newSpectrumNToolStripMenuItem1_Click);
+			resources.ApplyResources(this.deleteDToolStripMenuItem, "deleteDToolStripMenuItem");
+			this.deleteDToolStripMenuItem.Name = "deleteDToolStripMenuItem";
+			this.deleteDToolStripMenuItem.Click += new global::System.EventHandler(this.deleteDToolStripMenuItem_Click);
+			resources.ApplyResources(this.addFromExistingFileFToolStripMenuItem, "addFromExistingFileFToolStripMenuItem");
+			this.addFromExistingFileFToolStripMenuItem.Name = "addFromExistingFileFToolStripMenuItem";
+			this.addFromExistingFileFToolStripMenuItem.Click += new global::System.EventHandler(this.addSpectrumFromFileFToolStripMenuItem_Click);
 			resources.ApplyResources(this.toolStripMenuItem1, "toolStripMenuItem1");
 			this.toolStripMenuItem1.Name = "toolStripMenuItem1";
 			this.toolStripMenuItem1.Click += new global::System.EventHandler(this.toolStripMenuItem1_Click);
@@ -315,60 +315,60 @@ namespace BecquerelMonitor
             this.AutoSaveStripMenuItem.CheckOnClick = true;
             resources.ApplyResources(this.toolStripSeparator7, "toolStripSeparator7");
 			this.toolStripSeparator7.Name = "toolStripSeparator7";
-			resources.ApplyResources(this.測定開始SToolStripMenuItem, "測定開始SToolStripMenuItem");
-			this.測定開始SToolStripMenuItem.Image = global::BecquerelMonitor.Properties.Resources.start;
-			this.測定開始SToolStripMenuItem.Name = "測定開始SToolStripMenuItem";
-			this.測定開始SToolStripMenuItem.Click += new global::System.EventHandler(this.測定開始SToolStripMenuItem_Click);
-			resources.ApplyResources(this.測定停止TToolStripMenuItem, "測定停止TToolStripMenuItem");
-			this.測定停止TToolStripMenuItem.Image = global::BecquerelMonitor.Properties.Resources.stop;
-			this.測定停止TToolStripMenuItem.Name = "測定停止TToolStripMenuItem";
-			this.測定停止TToolStripMenuItem.Click += new global::System.EventHandler(this.測定停止TToolStripMenuItem_Click);
-			resources.ApplyResources(this.デ\u30FCタ消去CToolStripMenuItem, "データ消去CToolStripMenuItem");
-			this.デ\u30FCタ消去CToolStripMenuItem.Image = global::BecquerelMonitor.Properties.Resources.clear;
-			this.デ\u30FCタ消去CToolStripMenuItem.Name = "データ消去CToolStripMenuItem";
-			this.デ\u30FCタ消去CToolStripMenuItem.Click += new global::System.EventHandler(this.デ\u30FCタ消去CToolStripMenuItem_Click);
-			resources.ApplyResources(this.表示TToolStripMenuItem, "表示TToolStripMenuItem");
-			this.表示TToolStripMenuItem.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
+			resources.ApplyResources(this.startMeasurementSToolStripMenuItem, "startMeasurementSToolStripMenuItem");
+			this.startMeasurementSToolStripMenuItem.Image = global::BecquerelMonitor.Properties.Resources.start;
+			this.startMeasurementSToolStripMenuItem.Name = "startMeasurementSToolStripMenuItem";
+			this.startMeasurementSToolStripMenuItem.Click += new global::System.EventHandler(this.startMeasurementSToolStripMenuItem_Click);
+			resources.ApplyResources(this.stopMeasurementTToolStripMenuItem, "stopMeasurementTToolStripMenuItem");
+			this.stopMeasurementTToolStripMenuItem.Image = global::BecquerelMonitor.Properties.Resources.stop;
+			this.stopMeasurementTToolStripMenuItem.Name = "stopMeasurementTToolStripMenuItem";
+			this.stopMeasurementTToolStripMenuItem.Click += new global::System.EventHandler(this.stopMeasurementTToolStripMenuItem_Click);
+			resources.ApplyResources(this.clearDataCToolStripMenuItem, "clearDataCToolStripMenuItem");
+			this.clearDataCToolStripMenuItem.Image = global::BecquerelMonitor.Properties.Resources.clear;
+			this.clearDataCToolStripMenuItem.Name = "clearDataCToolStripMenuItem";
+			this.clearDataCToolStripMenuItem.Click += new global::System.EventHandler(this.clearDataCToolStripMenuItem_Click);
+			resources.ApplyResources(this.viewTToolStripMenuItem, "viewTToolStripMenuItem");
+			this.viewTToolStripMenuItem.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
 				this.toolStripMenuItem6,
-				this.コントロ\u30FCルパネルCToolStripMenuItem,
-				this.試料情報SToolStripMenuItem,
-				this.スペクトル一覧LToolStripMenuItem,
+				this.controlPanelCToolStripMenuItem,
+				this.sampleInfoSToolStripMenuItem,
+				this.spectrumListLToolStripMenuItem,
 				this.toolStripMenuItem4,
-				this.ピ\u30FCク検出DToolStripMenuItem,
-				this.パルス表示PToolStripMenuItem,
+				this.peakDetectionDToolStripMenuItem,
+				this.pulseViewPToolStripMenuItem,
 				this.toolStripMenuItem5,
 				this.FWHMCalStripMenuItem,
 				this.toolStripMenuItem3,
 				this.toolStripSeparator2,
-				this.測定結果表示RToolStripMenuItem,
+				this.measurementResultsRToolStripMenuItem,
 				this.toolStripSeparator8,
 				this.toolStripMenuItem7,
 				this.toolStripSeparator9,
 				this.languageToolStripMenuItem
 			});
-			this.表示TToolStripMenuItem.Name = "表示TToolStripMenuItem";
+			this.viewTToolStripMenuItem.Name = "viewTToolStripMenuItem";
 			resources.ApplyResources(this.toolStripMenuItem6, "toolStripMenuItem6");
 			this.toolStripMenuItem6.Name = "toolStripMenuItem6";
 			this.toolStripMenuItem6.Click += new global::System.EventHandler(this.toolStripMenuItem6_Click);
-			resources.ApplyResources(this.コントロ\u30FCルパネルCToolStripMenuItem, "コントロールパネルCToolStripMenuItem");
-			this.コントロ\u30FCルパネルCToolStripMenuItem.Name = "コントロールパネルCToolStripMenuItem";
-			this.コントロ\u30FCルパネルCToolStripMenuItem.Click += new global::System.EventHandler(this.コントロ\u30FCルパネルCToolStripMenuItem_Click);
-			resources.ApplyResources(this.試料情報SToolStripMenuItem, "試料情報SToolStripMenuItem");
-			this.試料情報SToolStripMenuItem.Name = "試料情報SToolStripMenuItem";
-			this.試料情報SToolStripMenuItem.Click += new global::System.EventHandler(this.試料情報SToolStripMenuItem_Click);
-			resources.ApplyResources(this.スペクトル一覧LToolStripMenuItem, "スペクトル一覧LToolStripMenuItem");
-			this.スペクトル一覧LToolStripMenuItem.Name = "スペクトル一覧LToolStripMenuItem";
-			this.スペクトル一覧LToolStripMenuItem.Click += new global::System.EventHandler(this.スペクトル一覧LToolStripMenuItem_Click);
+			resources.ApplyResources(this.controlPanelCToolStripMenuItem, "controlPanelCToolStripMenuItem");
+			this.controlPanelCToolStripMenuItem.Name = "controlPanelCToolStripMenuItem";
+			this.controlPanelCToolStripMenuItem.Click += new global::System.EventHandler(this.controlPanelCToolStripMenuItem_Click);
+			resources.ApplyResources(this.sampleInfoSToolStripMenuItem, "sampleInfoSToolStripMenuItem");
+			this.sampleInfoSToolStripMenuItem.Name = "sampleInfoSToolStripMenuItem";
+			this.sampleInfoSToolStripMenuItem.Click += new global::System.EventHandler(this.sampleInfoSToolStripMenuItem_Click);
+			resources.ApplyResources(this.spectrumListLToolStripMenuItem, "spectrumListLToolStripMenuItem");
+			this.spectrumListLToolStripMenuItem.Name = "spectrumListLToolStripMenuItem";
+			this.spectrumListLToolStripMenuItem.Click += new global::System.EventHandler(this.spectrumListLToolStripMenuItem_Click);
 			resources.ApplyResources(this.toolStripMenuItem4, "toolStripMenuItem4");
 			this.toolStripMenuItem4.Name = "toolStripMenuItem4";
 			this.toolStripMenuItem4.Click += new global::System.EventHandler(this.toolStripMenuItem4_Click);
-			resources.ApplyResources(this.ピ\u30FCク検出DToolStripMenuItem, "ピーク検出DToolStripMenuItem");
-			this.ピ\u30FCク検出DToolStripMenuItem.Name = "ピーク検出DToolStripMenuItem";
-			this.ピ\u30FCク検出DToolStripMenuItem.Click += new global::System.EventHandler(this.ピ\u30FCク検出DToolStripMenuItem_Click);
-			resources.ApplyResources(this.パルス表示PToolStripMenuItem, "パルス表示PToolStripMenuItem");
-			this.パルス表示PToolStripMenuItem.Name = "パルス表示PToolStripMenuItem";
-			this.パルス表示PToolStripMenuItem.Click += new global::System.EventHandler(this.パルス表示PToolStripMenuItem_Click);
+			resources.ApplyResources(this.peakDetectionDToolStripMenuItem, "peakDetectionDToolStripMenuItem");
+			this.peakDetectionDToolStripMenuItem.Name = "peakDetectionDToolStripMenuItem";
+			this.peakDetectionDToolStripMenuItem.Click += new global::System.EventHandler(this.peakDetectionDToolStripMenuItem_Click);
+			resources.ApplyResources(this.pulseViewPToolStripMenuItem, "pulseViewPToolStripMenuItem");
+			this.pulseViewPToolStripMenuItem.Name = "pulseViewPToolStripMenuItem";
+			this.pulseViewPToolStripMenuItem.Click += new global::System.EventHandler(this.pulseViewPToolStripMenuItem_Click);
 			resources.ApplyResources(this.toolStripMenuItem5, "toolStripMenuItem5");
 			this.toolStripMenuItem5.Name = "toolStripMenuItem5";
 			this.toolStripMenuItem5.Click += new global::System.EventHandler(this.toolStripMenuItem5_Click);
@@ -380,9 +380,9 @@ namespace BecquerelMonitor
 			this.toolStripMenuItem3.Click += new global::System.EventHandler(this.toolStripMenuItem3_Click);
 			resources.ApplyResources(this.toolStripSeparator2, "toolStripSeparator2");
 			this.toolStripSeparator2.Name = "toolStripSeparator2";
-			resources.ApplyResources(this.測定結果表示RToolStripMenuItem, "測定結果表示RToolStripMenuItem");
-			this.測定結果表示RToolStripMenuItem.Name = "測定結果表示RToolStripMenuItem";
-			this.測定結果表示RToolStripMenuItem.Click += new global::System.EventHandler(this.測定結果表示RToolStripMenuItem_Click);
+			resources.ApplyResources(this.measurementResultsRToolStripMenuItem, "measurementResultsRToolStripMenuItem");
+			this.measurementResultsRToolStripMenuItem.Name = "measurementResultsRToolStripMenuItem";
+			this.measurementResultsRToolStripMenuItem.Click += new global::System.EventHandler(this.measurementResultsRToolStripMenuItem_Click);
 			resources.ApplyResources(this.toolStripSeparator8, "toolStripSeparator8");
 			this.toolStripSeparator8.Name = "toolStripSeparator8";
 			resources.ApplyResources(this.toolStripMenuItem7, "toolStripMenuItem7");
@@ -417,25 +417,25 @@ namespace BecquerelMonitor
 			resources.ApplyResources(this.jaJPToolStripMenuItem, "jaJPToolStripMenuItem");
 			this.jaJPToolStripMenuItem.Name = "jaJPToolStripMenuItem";
 			this.jaJPToolStripMenuItem.Click += new global::System.EventHandler(this.jaJPToolStripMenuItem_Click);
-			resources.ApplyResources(this.ツ\u30FCルTToolStripMenuItem1, "ツールTToolStripMenuItem1");
-			this.ツ\u30FCルTToolStripMenuItem1.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
+			resources.ApplyResources(this.toolsTToolStripMenuItem1, "toolsTToolStripMenuItem1");
+			this.toolsTToolStripMenuItem1.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
-				this.デバイス構成の編集DToolStripMenuItem,
-				this.rOI定義RToolStripMenuItem,
+				this.editDeviceConfigurationDToolStripMenuItem,
+				this.roiDefinitionRToolStripMenuItem,
 				this.NuclideDefinitionToolStripMenuItem,
 				this.NuclideSetToolStripMenuItem,
 				this.NucDB,
 				this.OpenConfigNToolStripMenuItem,
 				this.toolStripSeparator5,
-				this.基本設定BToolStripMenuItem
+				this.basicSettingsBToolStripMenuItem
 			});
-			this.ツ\u30FCルTToolStripMenuItem1.Name = "ツールTToolStripMenuItem1";
-			resources.ApplyResources(this.デバイス構成の編集DToolStripMenuItem, "デバイス構成の編集DToolStripMenuItem");
-			this.デバイス構成の編集DToolStripMenuItem.Name = "デバイス構成の編集DToolStripMenuItem";
-			this.デバイス構成の編集DToolStripMenuItem.Click += new global::System.EventHandler(this.デバイス構成定義DToolStripMenuItem_Click);
-			resources.ApplyResources(this.rOI定義RToolStripMenuItem, "rOI定義RToolStripMenuItem");
-			this.rOI定義RToolStripMenuItem.Name = "rOI定義RToolStripMenuItem";
-			this.rOI定義RToolStripMenuItem.Click += new global::System.EventHandler(this.rOI定義RToolStripMenuItem_Click);
+			this.toolsTToolStripMenuItem1.Name = "toolsTToolStripMenuItem1";
+			resources.ApplyResources(this.editDeviceConfigurationDToolStripMenuItem, "editDeviceConfigurationDToolStripMenuItem");
+			this.editDeviceConfigurationDToolStripMenuItem.Name = "editDeviceConfigurationDToolStripMenuItem";
+			this.editDeviceConfigurationDToolStripMenuItem.Click += new global::System.EventHandler(this.editDeviceConfigurationDToolStripMenuItem_Click);
+			resources.ApplyResources(this.roiDefinitionRToolStripMenuItem, "roiDefinitionRToolStripMenuItem");
+			this.roiDefinitionRToolStripMenuItem.Name = "roiDefinitionRToolStripMenuItem";
+			this.roiDefinitionRToolStripMenuItem.Click += new global::System.EventHandler(this.roiDefinitionRToolStripMenuItem_Click);
 			resources.ApplyResources(this.NuclideDefinitionToolStripMenuItem, "NuclideDefinitionToolStripMenuItem");
 			this.NuclideDefinitionToolStripMenuItem.Name = "NuclideDefinitionToolStripMenuItem";
 			this.NuclideDefinitionToolStripMenuItem.Click += new global::System.EventHandler(this.NuclideDefinitionToolStripMenuItem_Click);
@@ -450,26 +450,26 @@ namespace BecquerelMonitor
 			this.NucDB.Click += new global::System.EventHandler(this.NucDB_Click);
 			resources.ApplyResources(this.toolStripSeparator5, "toolStripSeparator5");
 			this.toolStripSeparator5.Name = "toolStripSeparator5";
-			resources.ApplyResources(this.基本設定BToolStripMenuItem, "基本設定BToolStripMenuItem");
-			this.基本設定BToolStripMenuItem.Name = "基本設定BToolStripMenuItem";
-			this.基本設定BToolStripMenuItem.Click += new global::System.EventHandler(this.基本設定BToolStripMenuItem_Click);
-			resources.ApplyResources(this.ヘルプHToolStripMenuItem, "ヘルプHToolStripMenuItem");
-			this.ヘルプHToolStripMenuItem.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
+			resources.ApplyResources(this.basicSettingsBToolStripMenuItem, "basicSettingsBToolStripMenuItem");
+			this.basicSettingsBToolStripMenuItem.Name = "basicSettingsBToolStripMenuItem";
+			this.basicSettingsBToolStripMenuItem.Click += new global::System.EventHandler(this.basicSettingsBToolStripMenuItem_Click);
+			resources.ApplyResources(this.helpHToolStripMenuItem, "helpHToolStripMenuItem");
+			this.helpHToolStripMenuItem.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
 			{
-				this.マニュアルMToolStripMenuItem,
+				this.manualMToolStripMenuItem,
 				this.toolStripSeparator3,
 				this.UpdatesAToolStripMenuItem,
-				this.バ\u30FCジョン情報AToolStripMenuItem
+				this.versionInfoAToolStripMenuItem
 			});
-			this.ヘルプHToolStripMenuItem.Name = "ヘルプHToolStripMenuItem";
-			resources.ApplyResources(this.マニュアルMToolStripMenuItem, "マニュアルMToolStripMenuItem");
-			this.マニュアルMToolStripMenuItem.Name = "マニュアルMToolStripMenuItem";
-			this.マニュアルMToolStripMenuItem.Click += new global::System.EventHandler(this.マニュアルMToolStripMenuItem_Click);
+			this.helpHToolStripMenuItem.Name = "helpHToolStripMenuItem";
+			resources.ApplyResources(this.manualMToolStripMenuItem, "manualMToolStripMenuItem");
+			this.manualMToolStripMenuItem.Name = "manualMToolStripMenuItem";
+			this.manualMToolStripMenuItem.Click += new global::System.EventHandler(this.manualMToolStripMenuItem_Click);
 			resources.ApplyResources(this.toolStripSeparator3, "toolStripSeparator3");
 			this.toolStripSeparator3.Name = "toolStripSeparator3";
-			resources.ApplyResources(this.バ\u30FCジョン情報AToolStripMenuItem, "バージョン情報AToolStripMenuItem");
-			this.バ\u30FCジョン情報AToolStripMenuItem.Name = "バージョン情報AToolStripMenuItem";
-			this.バ\u30FCジョン情報AToolStripMenuItem.Click += new global::System.EventHandler(this.バ\u30FCジョン情報AToolStripMenuItem_Click);
+			resources.ApplyResources(this.versionInfoAToolStripMenuItem, "versionInfoAToolStripMenuItem");
+			this.versionInfoAToolStripMenuItem.Name = "versionInfoAToolStripMenuItem";
+			this.versionInfoAToolStripMenuItem.Click += new global::System.EventHandler(this.versionInfoAToolStripMenuItem_Click);
 
 			resources.ApplyResources(this.UpdatesAToolStripMenuItem, "UpdatesAToolStripMenuItem");
 			this.UpdatesAToolStripMenuItem.Name = "UpdatesAToolStripMenuItem";
@@ -522,7 +522,7 @@ namespace BecquerelMonitor
 			tabGradient3.TextColor = global::System.Drawing.SystemColors.ControlText;
 			dockPaneStripGradient.InactiveTabGradient = tabGradient3;
 			dockPaneStripSkin.DocumentGradient = dockPaneStripGradient;
-            dockPaneStripSkin.TextFont = new global::System.Drawing.Font("Microsoft Sans Serif", 8f);//("メイリオ", 9f);
+            dockPaneStripSkin.TextFont = new global::System.Drawing.Font("Microsoft Sans Serif", 8f);
 			tabGradient4.EndColor = global::System.Drawing.SystemColors.ActiveCaption;
 			tabGradient4.LinearGradientMode = global::System.Drawing.Drawing2D.LinearGradientMode.Vertical;
 			tabGradient4.StartColor = global::System.Drawing.SystemColors.GradientActiveCaption;
@@ -583,10 +583,10 @@ namespace BecquerelMonitor
 		global::System.ComponentModel.IContainer components;
 
 		// Token: 0x04000588 RID: 1416
-		global::System.Windows.Forms.ToolStripMenuItem ファイルFToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem fileFToolStripMenuItem;
 
 		// Token: 0x04000589 RID: 1417
-		global::System.Windows.Forms.ToolStripMenuItem 終了XToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem exitXToolStripMenuItem;
 
 		// Token: 0x0400058A RID: 1418
 		global::System.Windows.Forms.StatusStrip statusStrip1;
@@ -600,58 +600,58 @@ namespace BecquerelMonitor
         global::System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel3;
 
         // Token: 0x0400058D RID: 1421
-        global::System.Windows.Forms.ToolStripMenuItem 表示TToolStripMenuItem;
+        global::System.Windows.Forms.ToolStripMenuItem viewTToolStripMenuItem;
 
 		// Token: 0x0400058E RID: 1422
-		global::System.Windows.Forms.ToolStripMenuItem コントロ\u30FCルパネルCToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem controlPanelCToolStripMenuItem;
 
 		// Token: 0x0400058F RID: 1423
-		global::System.Windows.Forms.ToolStripMenuItem パルス表示PToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem pulseViewPToolStripMenuItem;
 
 		// Token: 0x04000590 RID: 1424
-		global::System.Windows.Forms.ToolStripMenuItem 新規スペクトルNToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem newSpectrumNToolStripMenuItem;
 
 		// Token: 0x04000591 RID: 1425
-		global::System.Windows.Forms.ToolStripMenuItem デ\u30FCタを開くToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem openDataToolStripMenuItem;
 
 		// Token: 0x04000592 RID: 1426
 		global::System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
 
 		// Token: 0x04000593 RID: 1427
-		global::System.Windows.Forms.ToolStripMenuItem 測定結果表示RToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem measurementResultsRToolStripMenuItem;
 
 		// Token: 0x04000594 RID: 1428
-		global::System.Windows.Forms.ToolStripMenuItem ツ\u30FCルTToolStripMenuItem1;
+		global::System.Windows.Forms.ToolStripMenuItem toolsTToolStripMenuItem1;
 
 		// Token: 0x04000595 RID: 1429
-		global::System.Windows.Forms.ToolStripMenuItem デバイス構成の編集DToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem editDeviceConfigurationDToolStripMenuItem;
 
 		// Token: 0x04000596 RID: 1430
 		global::System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
 
 		// Token: 0x04000597 RID: 1431
-		global::System.Windows.Forms.ToolStripMenuItem デ\u30FCタを閉じるCToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem closeDataCToolStripMenuItem;
 
 		// Token: 0x04000598 RID: 1432
-		global::System.Windows.Forms.ToolStripMenuItem デ\u30FCタを保存SToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem saveDataSToolStripMenuItem;
 
 		// Token: 0x04000599 RID: 1433
-		global::System.Windows.Forms.ToolStripMenuItem デ\u30FCタを名前を付けて保存RToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem saveDataAsRToolStripMenuItem;
 
 		// Token: 0x0400059A RID: 1434
-		global::System.Windows.Forms.ToolStripMenuItem rOI定義RToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem roiDefinitionRToolStripMenuItem;
 
 		// Token: 0x0400059B RID: 1435
-		global::System.Windows.Forms.ToolStripMenuItem ヘルプHToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem helpHToolStripMenuItem;
 
 		// Token: 0x0400059C RID: 1436
-		global::System.Windows.Forms.ToolStripMenuItem マニュアルMToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem manualMToolStripMenuItem;
 
 		// Token: 0x0400059D RID: 1437
 		global::System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
 
 		// Token: 0x0400059E RID: 1438
-		global::System.Windows.Forms.ToolStripMenuItem バ\u30FCジョン情報AToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem versionInfoAToolStripMenuItem;
 
 		global::System.Windows.Forms.ToolStripMenuItem UpdatesAToolStripMenuItem;
 
@@ -659,10 +659,10 @@ namespace BecquerelMonitor
 		global::System.Windows.Forms.ToolStripSeparator toolStripSeparator4;
 
 		// Token: 0x040005A0 RID: 1440
-		global::System.Windows.Forms.ToolStripMenuItem インポ\u30FCトIToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem importIToolStripMenuItem;
 
 		// Token: 0x040005A1 RID: 1441
-		global::System.Windows.Forms.ToolStripMenuItem エクスポ\u30FCトEToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem exportEToolStripMenuItem;
 
 		// Token: 0x040005A2 RID: 1442
 		global::System.Windows.Forms.ToolStripMenuItem cSVCToolStripMenuItem;
@@ -673,16 +673,16 @@ namespace BecquerelMonitor
 		global::System.Windows.Forms.ToolStripSeparator toolStripSeparator5;
 
 		// Token: 0x040005A4 RID: 1444
-		global::System.Windows.Forms.ToolStripMenuItem 基本設定BToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem basicSettingsBToolStripMenuItem;
 
 		// Token: 0x040005A5 RID: 1445
 		global::WeifenLuo.WinFormsUI.Docking.DockPanel dockPanel1;
 
 		// Token: 0x040005A6 RID: 1446
-		global::System.Windows.Forms.ToolStripMenuItem 試料情報SToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem sampleInfoSToolStripMenuItem;
 
 		// Token: 0x040005A7 RID: 1447
-		global::System.Windows.Forms.ToolStripMenuItem ベクモニ旧形式v093bToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem legacyFormatV093bToolStripMenuItem;
 
 		global::System.Windows.Forms.ToolStripMenuItem AtomSpectraStripMenuItem;
 
@@ -701,28 +701,28 @@ namespace BecquerelMonitor
         global::System.Windows.Forms.ToolStripMenuItem ApplyDeadTimeCorrectionStripMenuItem;
 
         // Token: 0x040005A8 RID: 1448
-        global::System.Windows.Forms.ToolStripMenuItem スペクトル一覧LToolStripMenuItem;
+        global::System.Windows.Forms.ToolStripMenuItem spectrumListLToolStripMenuItem;
 
 		// Token: 0x040005A9 RID: 1449
-		global::System.Windows.Forms.ToolStripMenuItem スペクトルSToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem spectrumSToolStripMenuItem;
 
 		// Token: 0x040005AA RID: 1450
-		global::System.Windows.Forms.ToolStripMenuItem 新規スペクトルNToolStripMenuItem1;
+		global::System.Windows.Forms.ToolStripMenuItem newSpectrumNToolStripMenuItem1;
 
 		// Token: 0x040005AB RID: 1451
-		global::System.Windows.Forms.ToolStripMenuItem 削除DToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem deleteDToolStripMenuItem;
 
 		// Token: 0x040005AC RID: 1452
-		global::System.Windows.Forms.ToolStripMenuItem 既存ファイルから追加FToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem addFromExistingFileFToolStripMenuItem;
 
 		// Token: 0x040005AD RID: 1453
 		global::System.Windows.Forms.ToolStripSeparator toolStripSeparator7;
 
 		// Token: 0x040005AE RID: 1454
-		global::System.Windows.Forms.ToolStripMenuItem 測定開始SToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem startMeasurementSToolStripMenuItem;
 
 		// Token: 0x040005AF RID: 1455
-		global::System.Windows.Forms.ToolStripMenuItem 測定停止TToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem stopMeasurementTToolStripMenuItem;
 
 		global::System.Windows.Forms.ToolStripMenuItem EffCalcMCFileToolStripMenuItem;
 
@@ -731,7 +731,7 @@ namespace BecquerelMonitor
         global::System.Windows.Forms.ToolStripMenuItem SpecUtilsToolStripMenuItem;
 
         // Token: 0x040005B0 RID: 1456
-        global::System.Windows.Forms.ToolStripMenuItem デ\u30FCタ消去CToolStripMenuItem;
+        global::System.Windows.Forms.ToolStripMenuItem clearDataCToolStripMenuItem;
 
 		// Token: 0x040005B1 RID: 1457
 		global::System.Windows.Forms.ImageList imageList1;
@@ -740,7 +740,7 @@ namespace BecquerelMonitor
 		global::BecquerelMonitor.MenuStripEx menuStrip1;
 
 		// Token: 0x040005B3 RID: 1459
-		global::System.Windows.Forms.ToolStripMenuItem ピ\u30FCク検出DToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem peakDetectionDToolStripMenuItem;
 
         global::System.Windows.Forms.ToolStripMenuItem AutoSaveStripMenuItem;
 
@@ -754,7 +754,7 @@ namespace BecquerelMonitor
 		global::System.Windows.Forms.ToolStripMenuItem NucDB;
 
 		// Token: 0x040005B5 RID: 1461
-		global::System.Windows.Forms.ToolStripMenuItem fWHM用ToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem forFwhmToolStripMenuItem;
 
 		// Token: 0x040005B6 RID: 1462
 		global::System.Windows.Forms.ToolStripMenuItem toolStripMenuItem1;

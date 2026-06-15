@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Drawing;
+using BecquerelMonitor.Controls;
 
 namespace BecquerelMonitor
 {
@@ -13,11 +14,12 @@ namespace BecquerelMonitor
         {
             get
             {
-                return this.statusMessage1.Message;
+                return this.statusMessageControl == null ? string.Empty : this.statusMessageControl.Message;
             }
             set
             {
-                this.statusMessage1.Message = value;
+                this.EnsureRuntimeStatusMessage();
+                this.statusMessageControl.Message = value;
             }
         }
 
@@ -28,11 +30,12 @@ namespace BecquerelMonitor
         {
             get
             {
-                return this.statusMessage1.MessageColor;
+                return this.statusMessageControl == null ? Color.Red : this.statusMessageControl.MessageColor;
             }
             set
             {
-                this.statusMessage1.MessageColor = value;
+                this.EnsureRuntimeStatusMessage();
+                this.statusMessageControl.MessageColor = value;
             }
         }
 
@@ -43,19 +46,26 @@ namespace BecquerelMonitor
         {
             get
             {
-                return this.statusMessage1.DoScroll;
+                return this.statusMessageControl != null && this.statusMessageControl.DoScroll;
             }
             set
             {
-                this.statusMessage1.DoScroll = value;
+                this.EnsureRuntimeStatusMessage();
+                this.statusMessageControl.DoScroll = value;
             }
+        }
+
+        public DCStatusMessageView()
+        {
+            this.InitializeComponent();
         }
 
         // Token: 0x06000232 RID: 562 RVA: 0x00008DB0 File Offset: 0x00006FB0
         public DCStatusMessageView(MainForm mainForm)
+            : this()
         {
             this.mainForm = mainForm;
-            this.InitializeComponent();
+            this.EnsureRuntimeStatusMessage();
         }
 
         // Token: 0x06000233 RID: 563 RVA: 0x00008DD0 File Offset: 0x00006FD0
@@ -63,10 +73,24 @@ namespace BecquerelMonitor
         {
         }
 
-        // Token: 0x040000A1 RID: 161
-        GlobalConfigManager globalConfigManager = GlobalConfigManager.GetInstance();
+        void EnsureRuntimeStatusMessage()
+        {
+            if (this.statusMessageControl != null || this.statusMessage1 == null)
+            {
+                return;
+            }
+            this.statusMessageControl = new StatusMessage();
+            this.statusMessageControl.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.statusMessageControl.BackColor = Color.Black;
+            this.statusMessageControl.ForeColor = Color.White;
+            this.statusMessageControl.Message = "The sample is being measured.";
+            this.statusMessageControl.MessageColor = Color.Red;
+            this.statusMessage1.Controls.Add(this.statusMessageControl);
+        }
 
         // Token: 0x040000A2 RID: 162
         MainForm mainForm;
+
+        StatusMessage statusMessageControl;
     }
 }

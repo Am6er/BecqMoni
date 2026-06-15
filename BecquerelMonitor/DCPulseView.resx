@@ -254,7 +254,7 @@
     <value>pulseView2</value>
   </data>
   <data name="&gt;&gt;pulseView2.Type" xml:space="preserve">
-    <value>BecquerelMonitor.PulseView, BecquerelMonitorPlus, Version=1.0.16.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>System.Windows.Forms.Panel, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;label1.Parent" xml:space="preserve">
     <value>$this</value>
@@ -269,7 +269,7 @@
     <value>pulseView1</value>
   </data>
   <data name="&gt;&gt;pulseView1.Type" xml:space="preserve">
-    <value>BecquerelMonitor.PulseView, BecquerelMonitorPlus, Version=1.0.16.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>System.Windows.Forms.Panel, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="pulseView1.TabIndex" type="System.Int32, mscorlib">
     <value>29</value>

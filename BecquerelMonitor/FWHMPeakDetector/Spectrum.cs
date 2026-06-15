@@ -57,12 +57,12 @@ namespace BecquerelMonitor.FWHMPeakDetector
             {
                 throw new SpectrumError("requested x is < lowest bin edge");
             }
-            if (x > bin_edges_raw[bin_edges_raw.Length - 1])
+            if (x >= bin_edges_raw[bin_edges_raw.Length - 1])
             {
                 throw new SpectrumError("requested x is >= highest bin edge");
             }
             int retval = 0;
-            for (int i = 1; i <= bin_edges_raw.Length; i++)
+            for (int i = 1; i < bin_edges_raw.Length; i++)
             {
                 if (x >= bin_edges_raw[i - 1] && x < bin_edges_raw[i])
                 {

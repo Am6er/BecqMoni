@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Windows.Forms;
 
 namespace BecquerelMonitor
 {
@@ -12,11 +13,12 @@ namespace BecquerelMonitor
         {
             get
             {
-                return this.pulseView1;
+                this.EnsureRuntimePulseViews();
+                return this.pulseView1Control;
             }
             set
             {
-                this.pulseView1 = value;
+                this.SetHostedPulseView(this.pulseView1, ref this.pulseView1Control, value);
             }
         }
 
@@ -27,11 +29,12 @@ namespace BecquerelMonitor
         {
             get
             {
-                return this.pulseView2;
+                this.EnsureRuntimePulseViews();
+                return this.pulseView2Control;
             }
             set
             {
-                this.pulseView2 = value;
+                this.SetHostedPulseView(this.pulseView2, ref this.pulseView2Control, value);
             }
         }
 
@@ -65,11 +68,18 @@ namespace BecquerelMonitor
             }
         }
 
+        public DCPulseView()
+        {
+            this.InitializeComponent();
+            this.RecalcPosition();
+        }
+
         // Token: 0x0600095E RID: 2398 RVA: 0x00036994 File Offset: 0x00034B94
         public DCPulseView(MainForm mainForm)
+            : this()
         {
             this.mainForm = mainForm;
-            this.InitializeComponent();
+            this.EnsureRuntimePulseViews();
             this.checkBox1.Checked = mainForm.DoUpdatePulseView;
             GlobalConfigInfo globalConfig = GlobalConfigManager.GetInstance().GlobalConfig;
             bool flag = false;
@@ -78,15 +88,18 @@ namespace BecquerelMonitor
                 flag = globalConfig.AntiAliasingPulseView;
             }
             this.checkBox2.Checked = flag;
-            this.pulseView1.AntiAliasing = flag;
-            this.pulseView2.AntiAliasing = flag;
+            this.pulseView1Control.AntiAliasing = flag;
+            this.pulseView2Control.AntiAliasing = flag;
             this.RecalcPosition();
         }
 
         // Token: 0x0600095F RID: 2399 RVA: 0x00036A10 File Offset: 0x00034C10
         void checkBox1_CheckedChanged(object sender, EventArgs e)
         {
-            this.mainForm.DoUpdatePulseView = this.checkBox1.Checked;
+            if (this.mainForm != null)
+            {
+                this.mainForm.DoUpdatePulseView = this.checkBox1.Checked;
+            }
         }
 
         // Token: 0x06000960 RID: 2400 RVA: 0x00036A28 File Offset: 0x00034C28
@@ -117,11 +130,60 @@ namespace BecquerelMonitor
             {
                 globalConfig.AntiAliasingPulseView = @checked;
             }
-            this.pulseView1.AntiAliasing = @checked;
-            this.pulseView2.AntiAliasing = @checked;
+            if (this.pulseView1Control != null)
+            {
+                this.pulseView1Control.AntiAliasing = @checked;
+            }
+            if (this.pulseView2Control != null)
+            {
+                this.pulseView2Control.AntiAliasing = @checked;
+            }
+        }
+
+        void EnsureRuntimePulseViews()
+        {
+            if (this.pulseView1Control == null)
+            {
+                this.SetHostedPulseView(this.pulseView1, ref this.pulseView1Control, new PulseView());
+            }
+            if (this.pulseView2Control == null)
+            {
+                this.SetHostedPulseView(this.pulseView2, ref this.pulseView2Control, new PulseView());
+            }
+        }
+
+        void SetHostedPulseView(Panel host, ref PulseView currentView, PulseView value)
+        {
+            if (host == null || currentView == value)
+            {
+                currentView = value;
+                return;
+            }
+            if (currentView != null && currentView.Parent == host)
+            {
+                host.Controls.Remove(currentView);
+            }
+            currentView = value;
+            if (currentView == null)
+            {
+                return;
+            }
+            if (currentView.Parent is Control parent && parent != host)
+            {
+                parent.Controls.Remove(currentView);
+            }
+            currentView.Dock = DockStyle.Fill;
+            if (!host.Controls.Contains(currentView))
+            {
+                host.Controls.Add(currentView);
+            }
         }
 
         // Token: 0x0400052D RID: 1325
         MainForm mainForm;
+
+        PulseView pulseView1Control;
+
+        PulseView pulseView2Control;
     }
 }

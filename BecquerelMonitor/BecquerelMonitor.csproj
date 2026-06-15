@@ -127,9 +127,7 @@
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="AudioInputDeviceForm.Designer.cs">
-      <DependentUpon>AudioInputDeviceForm.resx</DependentUpon>
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
+      <DependentUpon>AudioInputDeviceForm.cs</DependentUpon>
     </Compile>
     <Compile Include="AudioVolumeController.cs" />
     <Compile Include="BackgroundMode.cs" />
@@ -148,10 +146,11 @@
     <Compile Include="ChartViewConfig.cs" />
     <Compile Include="ColorComboBox\ColorChangeArgs.cs" />
     <Compile Include="ColorComboBox\ColorChangedHandler.cs" />
+    <Compile Include="ColorComboBox\ColorComboBox.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="ColorComboBox\ColorComboBox.Designer.cs">
-      <DependentUpon>ColorComboBox.resx</DependentUpon>
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
+      <DependentUpon>ColorComboBox.cs</DependentUpon>
     </Compile>
     <Compile Include="ColorConfig.cs" />
     <Compile Include="ConfidenceLevel.cs" />
@@ -161,10 +160,11 @@
     <Compile Include="ContextMenuForm.Designer.cs">
       <DependentUpon>ContextMenuForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="Controls\StatusMessage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="Controls\StatusMessage.Designer.cs">
-      <DependentUpon>StatusMessage.resx</DependentUpon>
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
+      <DependentUpon>StatusMessage.cs</DependentUpon>
     </Compile>
     <Compile Include="CoreAudioApi\AudioEndpointVolume.cs" />
     <Compile Include="CoreAudioApi\AudioEndpointVolumeCallback.cs" />
@@ -340,10 +340,11 @@
     <Compile Include="EnergyResolutionCalculator.cs" />
     <Compile Include="EnergyResolutionResult.cs" />
     <Compile Include="EnergySpectrum.cs" />
+    <Compile Include="EnergySpectrumView.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="EnergySpectrumView.Designer.cs">
-      <DependentUpon>EnergySpectrumView.resx</DependentUpon>
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
+      <DependentUpon>EnergySpectrumView.cs</DependentUpon>
     </Compile>
     <Compile Include="EnergySpectrum_097b.cs" />
     <Compile Include="FwhmCalibration.cs" />
@@ -472,17 +473,19 @@
     <Compile Include="Pulse.cs" />
     <Compile Include="PulseCollection.cs" />
     <Compile Include="PulseData.cs" />
+    <Compile Include="PulseDecayView.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="PulseDecayView.Designer.cs">
-      <DependentUpon>PulseDecayView.resx</DependentUpon>
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
+      <DependentUpon>PulseDecayView.cs</DependentUpon>
     </Compile>
     <Compile Include="PulseDetectionMethodConfig.cs" />
     <Compile Include="PulseDetector.cs" />
+    <Compile Include="PulseView.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="PulseView.Designer.cs">
-      <DependentUpon>PulseView.resx</DependentUpon>
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
+      <DependentUpon>PulseView.cs</DependentUpon>
     </Compile>
     <Compile Include="RadiaCodeDeviceConfig.cs" />
     <Compile Include="RadiaCodeDeviceController.cs" />
@@ -514,15 +517,11 @@
     </Compile>
     <Compile Include="ROIConfigManager.cs" />
     <Compile Include="ROIConfigReference.cs" />
-    <Compile Include="ROICovellMethodControl.Designer.cs">
-      <DependentUpon>ROICovellMethodControl.resx</DependentUpon>
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
+    <Compile Include="ROICovellMethodControl.cs">
+      <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="ROICovellMethodControl.ru.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>ROICovellMethodControl.ru.resx</DependentUpon>
+    <Compile Include="ROICovellMethodControl.Designer.cs">
+      <DependentUpon>ROICovellMethodControl.cs</DependentUpon>
     </Compile>
     <Compile Include="ROICovellMethodData.cs" />
     <Compile Include="ROIEditEfficiencyDialog.cs">
@@ -533,34 +532,27 @@
     </Compile>
     <Compile Include="ROIEfficiencyData.cs" />
     <Compile Include="ROIDefinitionData.cs" />
+    <Compile Include="ROIPrimitiveControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="ROIPrimitiveControl.Designer.cs">
-      <DependentUpon>ROIPrimitiveControl.resx</DependentUpon>
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
+      <DependentUpon>ROIPrimitiveControl.cs</DependentUpon>
     </Compile>
     <Compile Include="ROIPrimitiveData.cs" />
     <Compile Include="ROIPrimitiveDefinition.cs" />
     <Compile Include="ROIPrimitiveOperation.cs" />
-    <Compile Include="ROIReferenceControl.Designer.cs">
-      <DependentUpon>ROIReferenceControl.resx</DependentUpon>
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
+    <Compile Include="ROIReferenceControl.cs">
+      <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="ROIReferenceControl.ru.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>ROIReferenceControl.ru.resx</DependentUpon>
+    <Compile Include="ROIReferenceControl.Designer.cs">
+      <DependentUpon>ROIReferenceControl.cs</DependentUpon>
     </Compile>
     <Compile Include="ROIReferenceData.cs" />
-    <Compile Include="ROISimpleDifferenceControl.Designer.cs">
-      <DependentUpon>ROISimpleDifferenceControl.resx</DependentUpon>
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
+    <Compile Include="ROISimpleDifferenceControl.cs">
+      <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="ROISimpleDifferenceControl.ru.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>ROISimpleDifferenceControl.ru.resx</DependentUpon>
+    <Compile Include="ROISimpleDifferenceControl.Designer.cs">
+      <DependentUpon>ROISimpleDifferenceControl.cs</DependentUpon>
     </Compile>
     <Compile Include="ROISimpleDifferenceData.cs" />
     <Compile Include="SampleInfoData.cs" />
@@ -593,10 +585,11 @@
     <Compile Include="SqrtFwhmCalibration.cs" />
     <Compile Include="StabilizerConfig.cs" />
     <Compile Include="StandardPulseRecorder.cs" />
+    <Compile Include="StandardPulseView.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="StandardPulseView.Designer.cs">
-      <DependentUpon>StandardPulseView.resx</DependentUpon>
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
+      <DependentUpon>StandardPulseView.cs</DependentUpon>
     </Compile>
     <Compile Include="StartupForm.cs">
       <SubType>Form</SubType>
@@ -607,10 +600,11 @@
     <Compile Include="TargetPeak.cs" />
     <Compile Include="ThermometerConfig.cs" />
     <Compile Include="ThermometerController.cs" />
+    <Compile Include="ThermometerForm.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="ThermometerForm.Designer.cs">
-      <DependentUpon>ThermometerForm.resx</DependentUpon>
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
+      <DependentUpon>ThermometerForm.cs</DependentUpon>
     </Compile>
     <Compile Include="ThermometerType.cs" />
     <Compile Include="ToolStripCheckBox.cs">
@@ -622,10 +616,11 @@
     <Compile Include="ToolStripEnergyCalibrationButton.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="ToolStripEnergyCalibrationControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="ToolStripEnergyCalibrationControl.Designer.cs">
-      <DependentUpon>ToolStripEnergyCalibrationControl.resx</DependentUpon>
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
+      <DependentUpon>ToolStripEnergyCalibrationControl.cs</DependentUpon>
     </Compile>
     <Compile Include="ToolStripEx.cs">
       <SubType>Component</SubType>
@@ -915,8 +910,7 @@
       <DependentUpon>AtomSpectraVCPDeviceForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="AudioInputDeviceForm.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>AudioInputDeviceForm.Designer.cs</LastGenOutput>
+      <DependentUpon>AudioInputDeviceForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="AudioInputDeviceForm.ru.resx">
       <DependentUpon>AudioInputDeviceForm.cs</DependentUpon>
@@ -928,15 +922,15 @@
       <DependentUpon>ChanNumberChangeDialog.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="ColorComboBox\ColorComboBox.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>ColorComboBox.Designer.cs</LastGenOutput>
+      <DependentUpon>ColorComboBox.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="ContextMenuForm.resx">
       <DependentUpon>ContextMenuForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Controls\StatusMessage.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>StatusMessage.Designer.cs</LastGenOutput>
+      <DependentUpon>StatusMessage.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="CoreAudioTestForm.resx">
       <DependentUpon>CoreAudioTestForm.cs</DependentUpon>
@@ -1037,8 +1031,8 @@
       <DependentUpon>EffCalcMCDialog.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="EnergySpectrumView.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>EnergySpectrumView.Designer.cs</LastGenOutput>
+      <DependentUpon>EnergySpectrumView.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="GlobalConfigForm.resx">
       <DependentUpon>GlobalConfigForm.cs</DependentUpon>
@@ -1089,12 +1083,12 @@
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="PulseDecayView.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>PulseDecayView.Designer.cs</LastGenOutput>
+      <DependentUpon>PulseDecayView.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="PulseView.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>PulseView.Designer.cs</LastGenOutput>
+      <DependentUpon>PulseView.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="RadiaCodeDeviceForm.resx">
       <DependentUpon>RadiaCodeDeviceForm.cs</DependentUpon>
@@ -1106,12 +1100,11 @@
       <DependentUpon>ROIConfigForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="ROICovellMethodControl.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>ROICovellMethodControl.Designer.cs</LastGenOutput>
+      <DependentUpon>ROICovellMethodControl.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="ROICovellMethodControl.ru.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>ROICovellMethodControl.ru.Designer.cs</LastGenOutput>
+      <DependentUpon>ROICovellMethodControl.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="ROIEditEfficiencyDialog.resx">
       <DependentUpon>ROIEditEfficiencyDialog.cs</DependentUpon>
@@ -1121,24 +1114,22 @@
       <DependentUpon>ROIEditEfficiencyDialog.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="ROIPrimitiveControl.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>ROIPrimitiveControl.Designer.cs</LastGenOutput>
+      <DependentUpon>ROIPrimitiveControl.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="ROIReferenceControl.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>ROIReferenceControl.Designer.cs</LastGenOutput>
+      <DependentUpon>ROIReferenceControl.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="ROIReferenceControl.ru.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>ROIReferenceControl.ru.Designer.cs</LastGenOutput>
+      <DependentUpon>ROIReferenceControl.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="ROISimpleDifferenceControl.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>ROISimpleDifferenceControl.Designer.cs</LastGenOutput>
+      <DependentUpon>ROISimpleDifferenceControl.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="ROISimpleDifferenceControl.ru.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>ROISimpleDifferenceControl.ru.Designer.cs</LastGenOutput>
+      <DependentUpon>ROISimpleDifferenceControl.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="SelectDeviceDialog.resx">
       <DependentUpon>SelectDeviceDialog.cs</DependentUpon>
@@ -1159,8 +1150,8 @@
       <DependentUpon>SpectrumCutOffDialog.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="StandardPulseView.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>StandardPulseView.Designer.cs</LastGenOutput>
+      <DependentUpon>StandardPulseView.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="StartupForm.resx">
       <DependentUpon>StartupForm.cs</DependentUpon>
@@ -1169,12 +1160,12 @@
       <DependentUpon>StartupForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="ThermometerForm.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>ThermometerForm.Designer.cs</LastGenOutput>
+      <DependentUpon>ThermometerForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="ToolStripEnergyCalibrationControl.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>ToolStripEnergyCalibrationControl.Designer.cs</LastGenOutput>
+      <DependentUpon>ToolStripEnergyCalibrationControl.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="ToolWindow.resx">
       <DependentUpon>ToolWindow.cs</DependentUpon>
