@@ -44,7 +44,8 @@ namespace BecquerelMonitor
         private Timer timer;
         private Object Lock = new Object();
 
-        private static List<AtomSpectraVCPIn> instances = new List<AtomSpectraVCPIn>();
+        private static readonly List<AtomSpectraVCPIn> instances = new List<AtomSpectraVCPIn>();
+        private static readonly object instancesLock = new object();
 
         public string COMPort
         {
@@ -64,48 +65,100 @@ namespace BecquerelMonitor
 
         public static void cleanUp(string guid)
         {
-            foreach (AtomSpectraVCPIn s in instances)
+            AtomSpectraVCPIn instance = null;
+            lock (instancesLock)
             {
-                if (s.GUID.Equals(guid))
+                for (int i = 0; i < instances.Count; i++)
                 {
-                    instances.Remove(s);
-                    s.Dispose();
-                    Trace.WriteLine("Instance " + guid + " removed!");
-                    return;
+                    AtomSpectraVCPIn candidate = instances[i];
+                    if (candidate.GUID.Equals(guid))
+                    {
+                        instance = candidate;
+                        instances.RemoveAt(i);
+                        break;
+                    }
                 }
             }
+            if (instance == null) return;
+
+            instance.Dispose();
+            Trace.WriteLine("Instance " + guid + " removed!");
         }
 
         public static List<AtomSpectraVCPIn> getAllInstances()
         {
-            return instances;
+            lock (instancesLock)
+            {
+                return new List<AtomSpectraVCPIn>(instances);
+            }
+        }
+
+        public static AtomSpectraVCPIn tryGetInstance(string guid)
+        {
+            lock (instancesLock)
+            {
+                foreach (AtomSpectraVCPIn s in instances)
+                {
+                    if (s == null) continue;
+                    if (guid.Equals(s.GUID))
+                    {
+                        return s;
+                    }
+                }
+            }
+            return null;
+        }
+
+        public static AtomSpectraVCPIn findByPort(string comPort)
+        {
+            lock (instancesLock)
+            {
+                foreach (AtomSpectraVCPIn s in instances)
+                {
+                    if (s == null) continue;
+                    if (comPort.Equals(s.COMPort))
+                    {
+                        return s;
+                    }
+                }
+            }
+            return null;
         }
 
         public static AtomSpectraVCPIn getInstance(string guid)
         {
-            foreach (AtomSpectraVCPIn s in instances)
+            lock (instancesLock)
             {
-                if (s == null) continue;
-                if (guid.Equals(s.GUID))
+                foreach (AtomSpectraVCPIn s in instances)
                 {
-                    return s;
+                    if (s == null) continue;
+                    if (guid.Equals(s.GUID))
+                    {
+                        return s;
+                    }
                 }
+
+                AtomSpectraVCPIn instance = new AtomSpectraVCPIn(guid);
+                instances.Add(instance);
+                return instance;
             }
-            AtomSpectraVCPIn instance = new AtomSpectraVCPIn(guid);
-            instances.Add(instance);
-            return instance;
         }
 
         public static void finishAll()
         {
-            foreach (AtomSpectraVCPIn s in instances)
+            List<AtomSpectraVCPIn> snapshot;
+            lock (instancesLock)
+            {
+                snapshot = new List<AtomSpectraVCPIn>(instances);
+                instances.Clear();
+            }
+            foreach (AtomSpectraVCPIn s in snapshot)
             {
                 if (s != null) s.Dispose();
             }
-            instances.Clear();
         }
 
-        public AtomSpectraVCPIn(string guid)
+        private AtomSpectraVCPIn(string guid)
         {
             this.guid = guid;
             Trace.WriteLine("AtomSpectraVCPIn instance created " + guid);
@@ -465,6 +518,10 @@ namespace BecquerelMonitor
 
         public void Dispose()
         {
+            lock (instancesLock)
+            {
+                instances.Remove(this);
+            }
             if (timer != null) timer.Dispose();
             if (readerThread != null)
             {
