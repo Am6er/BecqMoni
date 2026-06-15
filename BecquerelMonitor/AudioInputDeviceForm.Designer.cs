@@ -26,7 +26,7 @@ namespace BecquerelMonitor
 		// Token: 0x0600103C RID: 4156 RVA: 0x00058B20 File Offset: 0x00056D20
 		void InitializeComponent()
 		{
-			ComponentResourceManager componentResourceManager = new ComponentResourceManager(typeof(AudioInputDeviceForm));
+			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(AudioInputDeviceForm));
 			this.label37 = new Label();
 			this.checkBox2 = new CheckBox();
 			this.checkBox1 = new CheckBox();
@@ -73,160 +73,172 @@ namespace BecquerelMonitor
 			((ISupportInitialize)this.trackBar2).BeginInit();
 			this.panel1.SuspendLayout();
 			base.SuspendLayout();
-			componentResourceManager.ApplyResources(this.label37, "label37");
+			resources.ApplyResources(this.label37, "label37");
 			this.label37.Name = "label37";
-			componentResourceManager.ApplyResources(this.checkBox2, "checkBox2");
+			resources.ApplyResources(this.checkBox2, "checkBox2");
 			this.checkBox2.Name = "checkBox2";
 			this.checkBox2.UseVisualStyleBackColor = true;
 			this.checkBox2.CheckedChanged += this.checkBox2_CheckedChanged;
-			componentResourceManager.ApplyResources(this.checkBox1, "checkBox1");
+			resources.ApplyResources(this.checkBox1, "checkBox1");
 			this.checkBox1.Name = "checkBox1";
 			this.checkBox1.UseVisualStyleBackColor = true;
 			this.checkBox1.CheckedChanged += this.checkBox1_CheckedChanged;
-			componentResourceManager.ApplyResources(this.label15, "label15");
+			resources.ApplyResources(this.label15, "label15");
 			this.label15.Name = "label15";
-			componentResourceManager.ApplyResources(this.maskedTextBox1, "maskedTextBox1");
+			resources.ApplyResources(this.maskedTextBox1, "maskedTextBox1");
 			this.maskedTextBox1.Name = "maskedTextBox1";
 			this.maskedTextBox1.TextChanged += this.maskedTextBox1_TextChanged;
-			componentResourceManager.ApplyResources(this.label29, "label29");
+			resources.ApplyResources(this.label29, "label29");
 			this.label29.Name = "label29";
-			componentResourceManager.ApplyResources(this.comboBox1, "comboBox1");
+			resources.ApplyResources(this.comboBox1, "comboBox1");
 			this.comboBox1.DropDownStyle = ComboBoxStyle.DropDownList;
 			this.comboBox1.FormattingEnabled = true;
 			this.comboBox1.Name = "comboBox1";
 			this.comboBox1.SelectedIndexChanged += this.comboBox1_SelectedIndexChanged;
-			componentResourceManager.ApplyResources(this.comboBox2, "comboBox2");
+			resources.ApplyResources(this.comboBox2, "comboBox2");
 			this.comboBox2.DropDownStyle = ComboBoxStyle.DropDownList;
 			this.comboBox2.FormattingEnabled = true;
 			this.comboBox2.Items.AddRange(new object[]
 			{
-				componentResourceManager.GetString("comboBox2.Items"),
-				componentResourceManager.GetString("comboBox2.Items1"),
-				componentResourceManager.GetString("comboBox2.Items2"),
-				componentResourceManager.GetString("comboBox2.Items3"),
-                componentResourceManager.GetString("comboBox2.Items4")
+				resources.GetString("comboBox2.Items"),
+				resources.GetString("comboBox2.Items1"),
+				resources.GetString("comboBox2.Items2"),
+				resources.GetString("comboBox2.Items3"),
+                resources.GetString("comboBox2.Items4")
             });
 			this.comboBox2.Name = "comboBox2";
 			this.comboBox2.SelectedIndexChanged += this.comboBox2_SelectedIndexChanged;
-			componentResourceManager.ApplyResources(this.comboBox3, "comboBox3");
+			resources.ApplyResources(this.comboBox3, "comboBox3");
 			this.comboBox3.DropDownStyle = ComboBoxStyle.DropDownList;
 			this.comboBox3.FormattingEnabled = true;
 			this.comboBox3.Items.AddRange(new object[]
 			{
-				componentResourceManager.GetString("comboBox3.Items"),
-				componentResourceManager.GetString("comboBox3.Items1"),
-                componentResourceManager.GetString("comboBox3.Items2")
+				resources.GetString("comboBox3.Items"),
+				resources.GetString("comboBox3.Items1"),
+                resources.GetString("comboBox3.Items2")
             });
 			this.comboBox3.Name = "comboBox3";
 			this.comboBox3.SelectedIndexChanged += this.comboBox3_SelectedIndexChanged;
-			componentResourceManager.ApplyResources(this.label1, "label1");
+			resources.ApplyResources(this.label1, "label1");
 			this.label1.Name = "label1";
-			componentResourceManager.ApplyResources(this.label2, "label2");
+			resources.ApplyResources(this.label2, "label2");
 			this.label2.Name = "label2";
-			componentResourceManager.ApplyResources(this.label3, "label3");
+			resources.ApplyResources(this.label3, "label3");
 			this.label3.Name = "label3";
-			componentResourceManager.ApplyResources(this.trackBar1, "trackBar1");
+			resources.ApplyResources(this.trackBar1, "trackBar1");
 			this.trackBar1.LargeChange = 10;
 			this.trackBar1.Maximum = 100;
 			this.trackBar1.Name = "trackBar1";
 			this.trackBar1.TickFrequency = 10;
 			this.trackBar1.Scroll += this.trackBar1_Scroll;
-			componentResourceManager.ApplyResources(this.label11, "label11");
+			resources.ApplyResources(this.label11, "label11");
 			this.label11.Name = "label11";
-			componentResourceManager.ApplyResources(this.label30, "label30");
+			resources.ApplyResources(this.label30, "label30");
 			this.label30.Name = "label30";
-			componentResourceManager.ApplyResources(this.maskedTextBox2, "maskedTextBox2");
+			resources.ApplyResources(this.maskedTextBox2, "maskedTextBox2");
 			this.maskedTextBox2.Name = "maskedTextBox2";
 			this.maskedTextBox2.TextChanged += this.maskedTextBox2_TextChanged;
-			componentResourceManager.ApplyResources(this.doubleTextBox4, "doubleTextBox4");
+			resources.ApplyResources(this.doubleTextBox4, "doubleTextBox4");
 			this.doubleTextBox4.Name = "doubleTextBox4";
 			this.doubleTextBox4.TextChanged += this.doubleTextBox4_TextChanged;
-			componentResourceManager.ApplyResources(this.doubleTextBox3, "doubleTextBox3");
+			resources.ApplyResources(this.doubleTextBox3, "doubleTextBox3");
 			this.doubleTextBox3.Name = "doubleTextBox3";
 			this.doubleTextBox3.TextChanged += this.doubleTextBox3_TextChanged;
-			componentResourceManager.ApplyResources(this.textBox7, "textBox7");
+			resources.ApplyResources(this.textBox7, "textBox7");
 			this.textBox7.BackColor = Color.LightGray;
 			this.textBox7.BorderStyle = BorderStyle.None;
 			this.textBox7.Name = "textBox7";
 			this.textBox7.ReadOnly = true;
 			this.textBox7.TabStop = false;
-			componentResourceManager.ApplyResources(this.label6, "label6");
+			resources.ApplyResources(this.label6, "label6");
 			this.label6.Name = "label6";
-			componentResourceManager.ApplyResources(this.label9, "label9");
+			resources.ApplyResources(this.label9, "label9");
 			this.label9.Name = "label9";
-			componentResourceManager.ApplyResources(this.label8, "label8");
+			resources.ApplyResources(this.label8, "label8");
 			this.label8.Name = "label8";
-			componentResourceManager.ApplyResources(this.numericUpDown2, "numericUpDown2");
-			NumericUpDown numericUpDown = this.numericUpDown2;
-			int[] array = new int[4];
-			array[0] = 63;
-			numericUpDown.Maximum = new decimal(array);
+			resources.ApplyResources(this.numericUpDown2, "numericUpDown2");
+			this.numericUpDown2.Maximum = new decimal(new int[]
+			{
+				63,
+				0,
+				0,
+				0
+			});
 			this.numericUpDown2.Name = "numericUpDown2";
 			this.numericUpDown2.ValueChanged += this.numericUpDown2_ValueChanged;
-			componentResourceManager.ApplyResources(this.label7, "label7");
+			resources.ApplyResources(this.label7, "label7");
 			this.label7.Name = "label7";
-			componentResourceManager.ApplyResources(this.textBox11, "textBox11");
+			resources.ApplyResources(this.textBox11, "textBox11");
 			this.textBox11.BackColor = Color.LightGray;
 			this.textBox11.BorderStyle = BorderStyle.None;
 			this.textBox11.Name = "textBox11";
 			this.textBox11.ReadOnly = true;
 			this.textBox11.TabStop = false;
-			componentResourceManager.ApplyResources(this.numericUpDown1, "numericUpDown1");
-			NumericUpDown numericUpDown2 = this.numericUpDown1;
-			int[] array2 = new int[4];
-			array2[0] = 256;
-			numericUpDown2.Maximum = new decimal(array2);
-			NumericUpDown numericUpDown3 = this.numericUpDown1;
-			int[] array3 = new int[4];
-			array3[0] = 8;
-			numericUpDown3.Minimum = new decimal(array3);
+			resources.ApplyResources(this.numericUpDown1, "numericUpDown1");
+			this.numericUpDown1.Maximum = new decimal(new int[]
+			{
+				256,
+				0,
+				0,
+				0
+			});
+			this.numericUpDown1.Minimum = new decimal(new int[]
+			{
+				8,
+				0,
+				0,
+				0
+			});
 			this.numericUpDown1.Name = "numericUpDown1";
-			NumericUpDown numericUpDown4 = this.numericUpDown1;
-			int[] array4 = new int[4];
-			array4[0] = 8;
-			numericUpDown4.Value = new decimal(array4);
+			this.numericUpDown1.Value = new decimal(new int[]
+			{
+				8,
+				0,
+				0,
+				0
+			});
 			this.numericUpDown1.ValueChanged += this.numericUpDown1_ValueChanged;
-			componentResourceManager.ApplyResources(this.label17, "label17");
+			resources.ApplyResources(this.label17, "label17");
 			this.label17.Name = "label17";
-			componentResourceManager.ApplyResources(this.standardPulseView1, "standardPulseView1");
+			resources.ApplyResources(this.standardPulseView1, "standardPulseView1");
 			this.standardPulseView1.BackColor = Color.Black;
 			this.standardPulseView1.Name = "standardPulseView1";
 			this.standardPulseView1.PeakIndex = 0;
 			this.standardPulseView1.PulseShape = null;
 			this.standardPulseView1.PulseShapeSize = 0;
-			componentResourceManager.ApplyResources(this.button1, "button1");
+			resources.ApplyResources(this.button1, "button1");
 			this.button1.Name = "button1";
 			this.button1.UseVisualStyleBackColor = true;
 			this.button1.Click += this.button1_Click;
-			componentResourceManager.ApplyResources(this.textBox4, "textBox4");
+			resources.ApplyResources(this.textBox4, "textBox4");
 			this.textBox4.Name = "textBox4";
 			this.textBox4.ReadOnly = true;
 			this.textBox4.TabStop = false;
-			componentResourceManager.ApplyResources(this.button2, "button2");
+			resources.ApplyResources(this.button2, "button2");
 			this.button2.Name = "button2";
 			this.button2.UseVisualStyleBackColor = true;
 			this.button2.Click += this.button2_Click;
-			componentResourceManager.ApplyResources(this.label10, "label10");
+			resources.ApplyResources(this.label10, "label10");
 			this.label10.Name = "label10";
-			componentResourceManager.ApplyResources(this.trackBar2, "trackBar2");
+			resources.ApplyResources(this.trackBar2, "trackBar2");
 			this.trackBar2.LargeChange = 10;
 			this.trackBar2.Maximum = 100;
 			this.trackBar2.Name = "trackBar2";
 			this.trackBar2.TickFrequency = 10;
 			this.trackBar2.Scroll += this.trackBar2_Scroll;
-			componentResourceManager.ApplyResources(this.label14, "label14");
+			resources.ApplyResources(this.label14, "label14");
 			this.label14.Name = "label14";
-			componentResourceManager.ApplyResources(this.label12, "label12");
+			resources.ApplyResources(this.label12, "label12");
 			this.label12.Name = "label12";
-			componentResourceManager.ApplyResources(this.label13, "label13");
+			resources.ApplyResources(this.label13, "label13");
 			this.label13.Name = "label13";
-			componentResourceManager.ApplyResources(this.doubleTextBox2, "doubleTextBox2");
+			resources.ApplyResources(this.doubleTextBox2, "doubleTextBox2");
 			this.doubleTextBox2.Name = "doubleTextBox2";
 			this.doubleTextBox2.TextChanged += this.doubleTextBox2_TextChanged;
-			componentResourceManager.ApplyResources(this.doubleTextBox1, "doubleTextBox1");
+			resources.ApplyResources(this.doubleTextBox1, "doubleTextBox1");
 			this.doubleTextBox1.Name = "doubleTextBox1";
 			this.doubleTextBox1.TextChanged += this.doubleTextBox1_TextChanged;
-			componentResourceManager.ApplyResources(this.panel1, "panel1");
+			resources.ApplyResources(this.panel1, "panel1");
 			this.panel1.BackColor = Color.LightGray;
 			this.panel1.BorderStyle = BorderStyle.FixedSingle;
 			this.panel1.Controls.Add(this.doubleTextBox4);
@@ -246,9 +258,9 @@ namespace BecquerelMonitor
 			this.panel1.Controls.Add(this.numericUpDown1);
 			this.panel1.Controls.Add(this.textBox11);
 			this.panel1.Name = "panel1";
-			componentResourceManager.ApplyResources(this.label5, "label5");
+			resources.ApplyResources(this.label5, "label5");
 			this.label5.Name = "label5";
-			componentResourceManager.ApplyResources(this, "$this");
+			resources.ApplyResources(this, "$this");
 			base.AutoScaleMode = AutoScaleMode.Font;
 			base.Controls.Add(this.label5);
 			base.Controls.Add(this.panel1);

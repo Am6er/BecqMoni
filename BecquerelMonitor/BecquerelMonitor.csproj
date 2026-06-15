@@ -127,9 +127,7 @@
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="AudioInputDeviceForm.Designer.cs">
-      <DependentUpon>AudioInputDeviceForm.resx</DependentUpon>
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
+      <DependentUpon>AudioInputDeviceForm.cs</DependentUpon>
     </Compile>
     <Compile Include="AudioVolumeController.cs" />
     <Compile Include="BackgroundMode.cs" />
@@ -910,8 +908,7 @@
       <DependentUpon>AtomSpectraVCPDeviceForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="AudioInputDeviceForm.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>AudioInputDeviceForm.Designer.cs</LastGenOutput>
+      <DependentUpon>AudioInputDeviceForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="AudioInputDeviceForm.ru.resx">
       <DependentUpon>AudioInputDeviceForm.cs</DependentUpon>
