@@ -1266,7 +1266,6 @@ namespace BecquerelMonitor
             this.documentList.Remove(doc);
             doc.Close();
             doc.Dispose();
-            GC.Collect();
         }
 
         // Token: 0x06000273 RID: 627 RVA: 0x00009FF4 File Offset: 0x000081F4

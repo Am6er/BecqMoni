@@ -422,158 +422,162 @@ namespace BecquerelMonitor
         // Token: 0x06000A4C RID: 2636 RVA: 0x0003CFA4 File Offset: 0x0003B1A4
         void OnTimer(object sender, EventArgs e)
         {
-            foreach (DocEnergySpectrum docEnergySpectrum in this.documentManager.DocumentList)
+            if (this.timerBusy)
             {
-                foreach (ResultData resultData in docEnergySpectrum.ResultDataFile.ResultDataList)
-                {
-                    resultData.MeasurementController.OnTimer(sender, e);
-                }
+                return;
             }
-            this.count2000 += 100;
-            if (this.count2000 >= 2000)
+            this.timerBusy = true;
+            try
             {
-                this.count2000 = 0;
-                if (this.activeDocument != null && (this.activeDocument.UpdateSpectrum || this.activeDocument.UpdateMeasurementResult))
+                List<DocEnergySpectrum> documents = this.documentManager.DocumentList.ToList();
+                DocEnergySpectrum activeDocument = this.activeDocument;
+                foreach (DocEnergySpectrum docEnergySpectrum in documents)
                 {
-                    this.dcPeakDetectionView.ShowPeakDetectionResult();
-                }
-                if (this.activeDocument != null && this.activeDocument.UpdateDetectedPeaks)
-                {
-                    this.dcPeakDetectionView.ShowPeakDetectionResult();
-                    this.activeDocument.UpdateDetectedPeaks = false;
-                }
-            }
-            this.count1000 += 100;
-            if (this.count1000 >= 1000)
-            {
-                this.count1000 = 0;
-                if (this.activeDocument != null && (this.activeDocument.UpdateSpectrum || this.activeDocument.UpdateMeasurementResult))
-                {
-                    this.UpdateCalibrationPeak();
-                    this.countsRateManager.AppendResultData(this.activeDocument.ActiveResultData);
-                    this.ShowCountsRate();
-                    this.ShowDetectorFeature();
-                }
-            }
-            this.count500 += 100;
-            if (this.count500 >= 500)
-            {
-                this.count500 = 0;
-                if (this.activeDocument != null && (this.activeDocument.UpdateSpectrum || this.activeDocument.UpdateMeasurementResult))
-                {
-                    this.ShowMeasurementResult(false);
-                    this.activeDocument.UpdateMeasurementResult = false;
-                }
-                if (this.activeDocument != null && this.activeDocument.UpdateSpectrumList)
-                {
-                    this.UpdateSpectrumListView();
-                    this.UpdateSampleInfo();
-                    this.activeDocument.UpdateSpectrumList = false;
-                }
-            }
-            this.count200 += 100;
-            if (this.count200 >= 200)
-            {
-                this.count200 = 0;
-                if (this.activeDocument != null && (this.activeDocument.UpdateSpectrum || this.activeDocument.UpdateMeasurementResult))
-                {
-                    this.ShowDoseRate();
-                }
-                if (this.activeDocument != null && this.activeDocument.UpdateDoseRate)
-                {
-                    this.ShowDoseRate();
-                    this.activeDocument.UpdateDoseRate = false;
-                }
-                foreach (DocEnergySpectrum docEnergySpectrum in this.documentManager.DocumentList)
-                {
-                    if (docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController is RadiaCodeDeviceController)
+                    foreach (ResultData resultData in docEnergySpectrum.ResultDataFile.ResultDataList)
                     {
-                        if (this.activeDocument != null && this.activeDocument.Equals(docEnergySpectrum))
+                        if (!resultData.ResultDataStatus.Recording)
                         {
-                            SetStatusTextCenter($"Radiacode BLE status: {docEnergySpectrum.ActiveResultData.DetectorFeature}", false);
-                            break;
+                            continue;
+                        }
+                        resultData.MeasurementController.OnTimer(sender, e);
+                    }
+                }
+                this.count2000 += 100;
+                if (this.count2000 >= 2000)
+                {
+                    this.count2000 = 0;
+                    if (activeDocument != null && (activeDocument.UpdateSpectrum || activeDocument.UpdateMeasurementResult))
+                    {
+                        this.dcPeakDetectionView.ShowPeakDetectionResult();
+                    }
+                    if (activeDocument != null && activeDocument.UpdateDetectedPeaks)
+                    {
+                        this.dcPeakDetectionView.ShowPeakDetectionResult();
+                        activeDocument.UpdateDetectedPeaks = false;
+                    }
+                }
+                this.count1000 += 100;
+                if (this.count1000 >= 1000)
+                {
+                    this.count1000 = 0;
+                    foreach (DocEnergySpectrum docEnergySpectrum in documents)
+                    {
+                        ResultData docActiveResultData = docEnergySpectrum.ActiveResultData;
+                        if (docActiveResultData.ResultDataStatus.Recording)
+                        {
+                            this.countsRateManager.AppendResultData(docActiveResultData);
                         }
                     }
-                }
-                    
-            }
-            this.countChart += 100;
-            if (this.countChart >= this.globalConfigManager.GlobalConfig.ChartViewConfig.ChartRefreshCycle)
-            {
-                foreach (DocEnergySpectrum docEnergySpectrum2 in this.documentManager.DocumentList)
-                {
-                    if (docEnergySpectrum2.UpdateSpectrum)
+                    if (activeDocument != null && (activeDocument.UpdateSpectrum || activeDocument.UpdateMeasurementResult))
                     {
-                        ResultData activeResultData = docEnergySpectrum2.ActiveResultData;
-                        activeResultData.EndTime = DateTime.Now;
-                        docEnergySpectrum2.EnergySpectrumView.RecalcChartParameters();
-                        docEnergySpectrum2.EnergySpectrumView.PrepareViewData();
-                        docEnergySpectrum2.EnergySpectrumView.RecalcScrollBar();
-                        docEnergySpectrum2.EnergySpectrumView.Invalidate();
+                        this.UpdateCalibrationPeak();
+                        this.ShowCountsRate();
+                        this.ShowDetectorFeature();
                     }
                 }
-                if (this.activeDocument != null)
+                this.count500 += 100;
+                if (this.count500 >= 500)
                 {
-                    ResultData activeResultData2 = this.activeDocument.ActiveResultData;
-                    bool testing = activeResultData2.ResultDataStatus.Testing;
-                }
-                this.countChart = 0;
-            }
-            this.countAutoSave += 100;
-            if (this.countAutoSave >= this.globalConfigManager.GlobalConfig.AutosavePeriod * 60 * 1000)
-            {
-                this.countAutoSave = 0;
-                foreach (DocEnergySpectrum docEnergySpectrum in this.documentManager.DocumentList)
-                {
-                    if ((docEnergySpectrum.Dirty || docEnergySpectrum.UpdateSpectrum) && docEnergySpectrum.AutoSave)
+                    this.count500 = 0;
+                    if (activeDocument != null && (activeDocument.UpdateSpectrum || activeDocument.UpdateMeasurementResult))
                     {
-                        foreach (ResultData resultData in docEnergySpectrum.ResultDataFile.ResultDataList)
+                        this.ShowMeasurementResult(false);
+                        activeDocument.UpdateMeasurementResult = false;
+                    }
+                    if (activeDocument != null && activeDocument.UpdateSpectrumList)
+                    {
+                        this.UpdateSpectrumListView();
+                        this.UpdateSampleInfo();
+                        activeDocument.UpdateSpectrumList = false;
+                    }
+                }
+                this.count200 += 100;
+                if (this.count200 >= 200)
+                {
+                    this.count200 = 0;
+                    if (activeDocument != null && (activeDocument.UpdateSpectrum || activeDocument.UpdateMeasurementResult))
+                    {
+                        this.ShowDoseRate();
+                    }
+                    if (activeDocument != null && activeDocument.UpdateDoseRate)
+                    {
+                        this.ShowDoseRate();
+                        activeDocument.UpdateDoseRate = false;
+                    }
+                    if (activeDocument != null && activeDocument.ActiveResultData.MeasurementController.DeviceController is RadiaCodeDeviceController)
+                    {
+                        SetStatusTextCenter($"Radiacode BLE status: {activeDocument.ActiveResultData.DetectorFeature}", false);
+                    }
+                }
+                this.countChart += 100;
+                if (this.countChart >= this.globalConfigManager.GlobalConfig.ChartViewConfig.ChartRefreshCycle)
+                {
+                    if (activeDocument != null && activeDocument.UpdateSpectrum)
+                    {
+                        activeDocument.ActiveResultData.EndTime = DateTime.Now;
+                        this.RefreshDocumentChart(activeDocument);
+                    }
+                    this.countChart = 0;
+                }
+                this.countAutoSave += 100;
+                if (this.countAutoSave >= this.globalConfigManager.GlobalConfig.AutosavePeriod * 60 * 1000)
+                {
+                    this.countAutoSave = 0;
+                    foreach (DocEnergySpectrum docEnergySpectrum in documents)
+                    {
+                        if ((docEnergySpectrum.Dirty || docEnergySpectrum.UpdateSpectrum) && docEnergySpectrum.AutoSave)
                         {
-                            if (resultData.ResultDataStatus.Recording)
+                            foreach (ResultData resultData in docEnergySpectrum.ResultDataFile.ResultDataList)
                             {
-                                SaveDocument(docEnergySpectrum);
-                                DateTime dt = DateTime.Now;
-                                SetStatusTextLeft(String.Format(Resources.AutosaveText, dt.ToString()));
-                                break;
+                                if (resultData.ResultDataStatus.Recording)
+                                {
+                                    SaveDocument(docEnergySpectrum);
+                                    DateTime dt = DateTime.Now;
+                                    SetStatusTextLeft(String.Format(Resources.AutosaveText, dt.ToString()));
+                                    break;
+                                }
                             }
                         }
                     }
                 }
-            }
-
-            this.countTemp += 100;
-            if (this.countTemp >= 60 * 1000)
-            {
-                this.countTemp = 0;
-                foreach (DocEnergySpectrum docEnergySpectrum in this.documentManager.DocumentList)
+                this.countTemp += 100;
+                if (this.countTemp >= 60 * 1000)
                 {
-                    if (docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController is AtomSpectraDeviceController && docEnergySpectrum.ActiveResultData.ResultDataStatus.Recording)
+                    this.countTemp = 0;
+                    foreach (DocEnergySpectrum docEnergySpectrum in documents)
                     {
-                        AtomSpectraDeviceController dc = (AtomSpectraDeviceController)docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController;
-                        docEnergySpectrum.ActiveResultData.DetectorFeature = dc.getTemp();
-                        if (this.activeDocument.Equals(docEnergySpectrum))
+                        if (docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController is AtomSpectraDeviceController && docEnergySpectrum.ActiveResultData.ResultDataStatus.Recording)
                         {
-                            SetStatusTextCenter(String.Format(Resources.TemperatureStr, docEnergySpectrum.ActiveResultData.DetectorFeature), true);
+                            AtomSpectraDeviceController dc = (AtomSpectraDeviceController)docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController;
+                            docEnergySpectrum.ActiveResultData.DetectorFeature = dc.getTemp();
+                            if (activeDocument == docEnergySpectrum)
+                            {
+                                SetStatusTextCenter(String.Format(Resources.TemperatureStr, docEnergySpectrum.ActiveResultData.DetectorFeature), true);
+                            }
                         }
                     }
                 }
-            }
-            if (this.activeDocument != null)
-            {
-                ResultData activeResultData3 = this.activeDocument.ActiveResultData;
-                if (activeResultData3.ResultDataStatus.Recording)
+                if (activeDocument != null)
                 {
-                    this.dcControlPanel.ShowRecordingStatus();
+                    ResultData activeResultData = activeDocument.ActiveResultData;
+                    if (activeResultData.ResultDataStatus.Recording)
+                    {
+                        this.dcControlPanel.ShowRecordingStatus();
+                    }
+                }
+                if (this.doUpdatePulseView && activeDocument != null)
+                {
+                    ResultData activeResultData = activeDocument.ActiveResultData;
+                    if (activeResultData.ResultDataStatus.Recording)
+                    {
+                        this.dcPulseView.PulseView.Invalidate();
+                        this.dcPulseView.NGPulseView.Invalidate();
+                    }
                 }
             }
-            if (this.doUpdatePulseView && this.activeDocument != null)
+            finally
             {
-                ResultData activeResultData4 = this.activeDocument.ActiveResultData;
-                if (activeResultData4.ResultDataStatus.Recording)
-                {
-                    this.dcPulseView.PulseView.Invalidate();
-                    this.dcPulseView.NGPulseView.Invalidate();
-                }
+                this.timerBusy = false;
             }
         }
 
@@ -994,11 +998,16 @@ namespace BecquerelMonitor
         // Token: 0x06000A68 RID: 2664 RVA: 0x0003DA64 File Offset: 0x0003BC64
         void dockPanel1_ActiveDocumentChanged(object sender, EventArgs e)
         {
-            if (this.activeDocument != null && this.activeDocument.PulseDetector != null)
+            DocEnergySpectrum previousDocument = this.activeDocument;
+            if (previousDocument != null && previousDocument.PulseDetector != null)
             {
-                this.activeDocument.PulseDetector.PulseView = null;
-                this.activeDocument.PulseDetector.NGPulseView = null;
-                this.activeDocument.PulseDetector.DoUpdatePulseView = false;
+                previousDocument.PulseDetector.PulseView = null;
+                previousDocument.PulseDetector.NGPulseView = null;
+                previousDocument.PulseDetector.DoUpdatePulseView = false;
+            }
+            if (previousDocument != null)
+            {
+                previousDocument.ActiveEnergyCalibration = false;
             }
             this.activeDocument = (DocEnergySpectrum)this.dockPanel1.ActiveDocument;
             this.dcPulseView.PulseView.PulseShape = null;
@@ -1012,7 +1021,6 @@ namespace BecquerelMonitor
                 this.dcSampleInfoView.LoadFormContents();
                 this.ShowMeasurementResult(true);
                 this.ShowDoseRate();
-                this.countsRateManager.AppendResultData(this.activeDocument.ActiveResultData);
                 this.ShowCountsRate();
                 this.ShowDetectorFeature();
                 this.dcPeakDetectionView.ShowPeakDetectionResult();
@@ -1029,18 +1037,9 @@ namespace BecquerelMonitor
                 this.dcSpectrumListView.ShowSpectrumList(this.activeDocument);
                 this.dcPeakDetectionView.Enabled = true;
                 UpdateEnergyCalibrationView();
-
-
                 this.dcEnergyCalibrationView.SetStabilizerState(this.activeDocument.ActiveResultData);
                 this.dcEnergyCalibrationView.Enabled = true;
                 this.activeDocument.ActiveEnergyCalibration = this.dcEnergyCalibrationView.Visible;
-                foreach (DocEnergySpectrum docEnergySpectrum in this.documentManager.DocumentList)
-                {
-                    if (docEnergySpectrum != this.activeDocument)
-                    {
-                        docEnergySpectrum.ActiveEnergyCalibration = false;
-                    }
-                }
                 if (this.activeDocument.PulseDetector != null)
                 {
                     this.activeDocument.PulseDetector.PulseView = this.dcPulseView.PulseView;
@@ -1048,6 +1047,7 @@ namespace BecquerelMonitor
                     this.activeDocument.PulseDetector.DoUpdatePulseView = this.doUpdatePulseView;
                 }
                 this.AutoSaveStripMenuItem.Checked = this.activeDocument.AutoSave;
+                this.RefreshDocumentChart(this.activeDocument);
             }
             else
             {
@@ -1064,7 +1064,6 @@ namespace BecquerelMonitor
                 this.dcCFwhmCalibrationView.Enabled = false;
             }
             this.UpdateApplicationTitle();
-            this.Refresh();
         }
 
         // Token: 0x06000A69 RID: 2665 RVA: 0x0003DDA4 File Offset: 0x0003BFA4
@@ -1080,7 +1079,6 @@ namespace BecquerelMonitor
             this.dcSampleInfoView.LoadFormContents();
             this.ShowMeasurementResult(true);
             this.ShowDoseRate();
-            this.countsRateManager.AppendResultData(this.activeDocument.ActiveResultData);
             this.ShowCountsRate();
             this.ShowDetectorFeature();
             this.dcPeakDetectionView.ShowPeakDetectionResult();
@@ -1097,7 +1095,7 @@ namespace BecquerelMonitor
             }
             this.dcSpectrumListView.Enabled = true;
             this.UpdateApplicationTitle();
-            this.Refresh();
+            this.RefreshDocumentChart(this.activeDocument);
         }
 
         // Token: 0x06000A6A RID: 2666 RVA: 0x0003DF18 File Offset: 0x0003C118
@@ -1121,7 +1119,20 @@ namespace BecquerelMonitor
         // Token: 0x06000A6C RID: 2668 RVA: 0x0003DF68 File Offset: 0x0003C168
         void activeDocument_MeasurementTerminated(object sender, EventArgs e)
         {
-            this.RefreshAllView();
+            MeasurementController measurementController = sender as MeasurementController;
+            DocEnergySpectrum docEnergySpectrum = measurementController?.Document;
+            if (docEnergySpectrum != null)
+            {
+                docEnergySpectrum.UpdateEnergySpectrum();
+                if (docEnergySpectrum == this.activeDocument)
+                {
+                    this.UpdateAllView();
+                }
+                else
+                {
+                    this.RefreshDocumentChart(docEnergySpectrum);
+                }
+            }
             this.dcControlPanel.ShowDocumentStatus();
         }
 
@@ -1431,8 +1442,6 @@ namespace BecquerelMonitor
                     this.documentManager.CloseDocument(this.activeDocument);
                 }
             }
-
-            GC.Collect();
         }
 
         // Token: 0x06000A76 RID: 2678 RVA: 0x0003E440 File Offset: 0x0003C640
@@ -1885,7 +1894,6 @@ namespace BecquerelMonitor
             {
                 //this.dockPanel1.DocumentStyle = 
                 this.documentManager.DocumentList.Remove(docEnergySpectrum);
-                GC.Collect();
             }
             docEnergySpectrum.FormClosed -= this.DocEnergySpectrum_FormClosed;
         }
@@ -2068,6 +2076,19 @@ namespace BecquerelMonitor
                 UpdateDetectedPeakView();
             }
             this.UpdateFwhmCalibrationView(true);
+            this.RefreshDocumentChart(docEnergySpectrum);
+        }
+
+        void RefreshDocumentChart(DocEnergySpectrum docEnergySpectrum)
+        {
+            if (docEnergySpectrum == null)
+            {
+                return;
+            }
+            docEnergySpectrum.EnergySpectrumView.RecalcChartParameters();
+            docEnergySpectrum.EnergySpectrumView.PrepareViewData();
+            docEnergySpectrum.EnergySpectrumView.RecalcScrollBar();
+            docEnergySpectrum.EnergySpectrumView.Invalidate();
         }
 
         // Token: 0x06000A90 RID: 2704 RVA: 0x0003EFA0 File Offset: 0x0003D1A0
@@ -3088,6 +3109,9 @@ namespace BecquerelMonitor
 
         // Token: 0x040005E0 RID: 1504
         System.Windows.Forms.Timer timer;
+
+        // Token: 0x040005E1 RID: 1505
+        bool timerBusy;
 
         // Token: 0x040005E1 RID: 1505
         bool doUpdatePulseView = true;
