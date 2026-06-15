@@ -117,437 +117,8 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="$this.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="&gt;&gt;$this.Name" xml:space="preserve">
-    <value>DocEnergySpectrum</value>
-  </data>
-  <data name="&gt;&gt;$this.Type" xml:space="preserve">
-    <value>WeifenLuo.WinFormsUI.Docking.DockContent, WeifenLuo.WinFormsUI.Docking, Version=2.7.0.0, Culture=neutral, PublicKeyToken=5cded1a1a0a7b481</value>
-  </data>
-  <data name="&gt;&gt;contextMenuStrip1.Name" xml:space="preserve">
-    <value>contextMenuStrip1</value>
-  </data>
-  <data name="&gt;&gt;contextMenuStrip1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ContextMenuStrip, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;cpsViewToolStripMenuItem.Name" xml:space="preserve">
-    <value>cpsViewToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;cpsViewToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;energySpectrumView1.Name" xml:space="preserve">
-    <value>energySpectrumView1</value>
-  </data>
-  <data name="&gt;&gt;energySpectrumView1.Parent" xml:space="preserve">
-    <value>toolStripContainer1.ContentPanel</value>
-  </data>
-  <data name="&gt;&gt;energySpectrumView1.Type" xml:space="preserve">
-    <value>BecquerelMonitor.EnergySpectrumView, BecquerelMonitorPlus, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;energySpectrumView1.ZOrder" xml:space="preserve">
-    <value>0</value>
-  </data>
-  <data name="&gt;&gt;hideEnergyCalibrationToolToolStripMenuItem.Name" xml:space="preserve">
-    <value>hideEnergyCalibrationToolToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;hideEnergyCalibrationToolToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;showEnergyCalibrationToolToolStripMenuItem.Name" xml:space="preserve">
-    <value>showEnergyCalibrationToolToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;showEnergyCalibrationToolToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStrip1.Name" xml:space="preserve">
-    <value>toolStrip1</value>
-  </data>
-  <data name="&gt;&gt;toolStrip1.Parent" xml:space="preserve">
-    <value>toolStripContainer1.BottomToolStripPanel</value>
-  </data>
-  <data name="&gt;&gt;toolStrip1.Type" xml:space="preserve">
-    <value>BecquerelMonitor.ToolStripEx, BecquerelMonitorPlus, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;toolStrip1.ZOrder" xml:space="preserve">
-    <value>1</value>
-  </data>
-  <data name="&gt;&gt;toolStrip2.Name" xml:space="preserve">
-    <value>toolStrip2</value>
-  </data>
-  <data name="&gt;&gt;toolStrip2.Parent" xml:space="preserve">
-    <value>toolStripContainer1.BottomToolStripPanel</value>
-  </data>
-  <data name="&gt;&gt;toolStrip2.Type" xml:space="preserve">
-    <value>BecquerelMonitor.ToolStripEx, BecquerelMonitorPlus, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;toolStrip2.ZOrder" xml:space="preserve">
-    <value>0</value>
-  </data>
-  <data name="&gt;&gt;toolStripButton1.Name" xml:space="preserve">
-    <value>toolStripButton1</value>
-  </data>
-  <data name="&gt;&gt;toolStripButton1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripButton, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripButton2.Name" xml:space="preserve">
-    <value>toolStripButton2</value>
-  </data>
-  <data name="&gt;&gt;toolStripButton2.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripButton, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripContainer1.BottomToolStripPanel.Name" xml:space="preserve">
-    <value>toolStripContainer1.BottomToolStripPanel</value>
-  </data>
-  <data name="&gt;&gt;toolStripContainer1.BottomToolStripPanel.Parent" xml:space="preserve">
-    <value>toolStripContainer1</value>
-  </data>
-  <data name="&gt;&gt;toolStripContainer1.BottomToolStripPanel.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripPanel, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripContainer1.BottomToolStripPanel.ZOrder" xml:space="preserve">
-    <value>4</value>
-  </data>
-  <data name="&gt;&gt;toolStripContainer1.ContentPanel.Name" xml:space="preserve">
-    <value>toolStripContainer1.ContentPanel</value>
-  </data>
-  <data name="&gt;&gt;toolStripContainer1.ContentPanel.Parent" xml:space="preserve">
-    <value>toolStripContainer1</value>
-  </data>
-  <data name="&gt;&gt;toolStripContainer1.ContentPanel.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripContentPanel, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripContainer1.ContentPanel.ZOrder" xml:space="preserve">
-    <value>0</value>
-  </data>
-  <data name="&gt;&gt;toolStripContainer1.LeftToolStripPanel.Name" xml:space="preserve">
-    <value>toolStripContainer1.LeftToolStripPanel</value>
-  </data>
-  <data name="&gt;&gt;toolStripContainer1.LeftToolStripPanel.Parent" xml:space="preserve">
-    <value>toolStripContainer1</value>
-  </data>
-  <data name="&gt;&gt;toolStripContainer1.LeftToolStripPanel.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripPanel, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripContainer1.LeftToolStripPanel.ZOrder" xml:space="preserve">
-    <value>1</value>
-  </data>
-  <data name="&gt;&gt;toolStripContainer1.Name" xml:space="preserve">
-    <value>toolStripContainer1</value>
-  </data>
-  <data name="&gt;&gt;toolStripContainer1.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;toolStripContainer1.RightToolStripPanel.Name" xml:space="preserve">
-    <value>toolStripContainer1.RightToolStripPanel</value>
-  </data>
-  <data name="&gt;&gt;toolStripContainer1.RightToolStripPanel.Parent" xml:space="preserve">
-    <value>toolStripContainer1</value>
-  </data>
-  <data name="&gt;&gt;toolStripContainer1.RightToolStripPanel.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripPanel, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripContainer1.RightToolStripPanel.ZOrder" xml:space="preserve">
-    <value>2</value>
-  </data>
-  <data name="&gt;&gt;toolStripContainer1.TopToolStripPanel.Name" xml:space="preserve">
-    <value>toolStripContainer1.TopToolStripPanel</value>
-  </data>
-  <data name="&gt;&gt;toolStripContainer1.TopToolStripPanel.Parent" xml:space="preserve">
-    <value>toolStripContainer1</value>
-  </data>
-  <data name="&gt;&gt;toolStripContainer1.TopToolStripPanel.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripPanel, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripContainer1.TopToolStripPanel.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
-  <data name="&gt;&gt;toolStripContainer1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripContainer, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripContainer1.ZOrder" xml:space="preserve">
-    <value>1</value>
-  </data>
-  <data name="&gt;&gt;toolStripLabel1.Name" xml:space="preserve">
-    <value>toolStripLabel1</value>
-  </data>
-  <data name="&gt;&gt;toolStripLabel1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripLabel, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripLabel2.Name" xml:space="preserve">
-    <value>toolStripLabel2</value>
-  </data>
-  <data name="&gt;&gt;toolStripLabel2.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripLabel, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripLabel3.Name" xml:space="preserve">
-    <value>toolStripLabel3</value>
-  </data>
-  <data name="&gt;&gt;toolStripLabel3.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripLabel, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripMenuItem1.Name" xml:space="preserve">
-    <value>toolStripMenuItem1</value>
-  </data>
-  <data name="&gt;&gt;toolStripMenuItem1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripMenuItem2.Name" xml:space="preserve">
-    <value>toolStripMenuItem2</value>
-  </data>
-  <data name="&gt;&gt;toolStripMenuItem2.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripMenuItem3.Name" xml:space="preserve">
-    <value>toolStripMenuItem3</value>
-  </data>
-  <data name="&gt;&gt;toolStripMenuItem3.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripSeparator1.Name" xml:space="preserve">
-    <value>toolStripSeparator1</value>
-  </data>
-  <data name="&gt;&gt;toolStripSeparator1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripSeparator, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripSeparator2.Name" xml:space="preserve">
-    <value>toolStripSeparator2</value>
-  </data>
-  <data name="&gt;&gt;toolStripSeparator2.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripSeparator, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripSeparator3.Name" xml:space="preserve">
-    <value>toolStripSeparator3</value>
-  </data>
-  <data name="&gt;&gt;toolStripSeparator3.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripSeparator, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripSplitButton1.Name" xml:space="preserve">
-    <value>toolStripSplitButton1</value>
-  </data>
-  <data name="&gt;&gt;toolStripSplitButton1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripSplitButton, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripSplitButton10.Name" xml:space="preserve">
-    <value>toolStripSplitButton10</value>
-  </data>
-  <data name="&gt;&gt;toolStripSplitButton10.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripSplitButton, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripSplitButton2.Name" xml:space="preserve">
-    <value>toolStripSplitButton2</value>
-  </data>
-  <data name="&gt;&gt;toolStripSplitButton2.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripSplitButton, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripSplitButton3.Name" xml:space="preserve">
-    <value>toolStripSplitButton3</value>
-  </data>
-  <data name="&gt;&gt;toolStripSplitButton3.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripSplitButton, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripSplitButton4.Name" xml:space="preserve">
-    <value>toolStripSplitButton4</value>
-  </data>
-  <data name="&gt;&gt;toolStripSplitButton4.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripSplitButton, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripSplitButton5.Name" xml:space="preserve">
-    <value>toolStripSplitButton5</value>
-  </data>
-  <data name="&gt;&gt;toolStripSplitButton5.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripSplitButton, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripSplitButton6.Name" xml:space="preserve">
-    <value>toolStripSplitButton6</value>
-  </data>
-  <data name="&gt;&gt;toolStripSplitButton6.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripSplitButton, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripSplitButton7.Name" xml:space="preserve">
-    <value>toolStripSplitButton7</value>
-  </data>
-  <data name="&gt;&gt;toolStripSplitButton7.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripSplitButton, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripSplitButton8.Name" xml:space="preserve">
-    <value>toolStripSplitButton8</value>
-  </data>
-  <data name="&gt;&gt;toolStripSplitButton8.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripSplitButton, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripSplitButton9.Name" xml:space="preserve">
-    <value>toolStripSplitButton9</value>
-  </data>
-  <data name="&gt;&gt;toolStripSplitButton9.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripSplitButton, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolTip1.Name" xml:space="preserve">
-    <value>toolTip1</value>
-  </data>
-  <data name="&gt;&gt;toolTip1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolTip, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;noneToolStripMenuItem.Name" xml:space="preserve">
-    <value>noneToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;noneToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;energyViewToolStripMenuItem.Name" xml:space="preserve">
-    <value>energyViewToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;energyViewToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;countsViewToolStripMenuItem.Name" xml:space="preserve">
-    <value>countsViewToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;countsViewToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;noSmoothingToolStripMenuItem.Name" xml:space="preserve">
-    <value>noSmoothingToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;noSmoothingToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;channelViewToolStripMenuItem.Name" xml:space="preserve">
-    <value>channelViewToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;channelViewToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;showBackgroundToolStripMenuItem.Name" xml:space="preserve">
-    <value>showBackgroundToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;showBackgroundToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;hideBackgroundToolStripMenuItem.Name" xml:space="preserve">
-    <value>hideBackgroundToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;hideBackgroundToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;barGraphToolStripMenuItem.Name" xml:space="preserve">
-    <value>barGraphToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;barGraphToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;showPeaksToolStripMenuItem.Name" xml:space="preserve">
-    <value>showPeaksToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;showPeaksToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;hidePeaksToolStripMenuItem.Name" xml:space="preserve">
-    <value>hidePeaksToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;hidePeaksToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;linearViewToolStripMenuItem.Name" xml:space="preserve">
-    <value>linearViewToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;linearViewToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;setUpperThresholdHToolStripMenuItem.Name" xml:space="preserve">
-    <value>setUpperThresholdHToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;setUpperThresholdHToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;setLowerThresholdLToolStripMenuItem.Name" xml:space="preserve">
-    <value>setLowerThresholdLToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;setLowerThresholdLToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;saveSToolStripMenuItem.Name" xml:space="preserve">
-    <value>saveSToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;saveSToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;showAllChannelsAToolStripMenuItem.Name" xml:space="preserve">
-    <value>showAllChannelsAToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;showAllChannelsAToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;weightedMovingAverageToolStripMenuItem.Name" xml:space="preserve">
-    <value>weightedMovingAverageToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;weightedMovingAverageToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;simpleMovingAverageToolStripMenuItem.Name" xml:space="preserve">
-    <value>simpleMovingAverageToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;simpleMovingAverageToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;logarithmicViewToolStripMenuItem.Name" xml:space="preserve">
-    <value>logarithmicViewToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;logarithmicViewToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;lineGraphToolStripMenuItem.Name" xml:space="preserve">
-    <value>lineGraphToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;lineGraphToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;autoFitBgToolStripMenuItem.Name" xml:space="preserve">
-    <value>autoFitBgToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;autoFitBgToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;autoFitToolStripMenuItem.Name" xml:space="preserve">
-    <value>autoFitToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;autoFitToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;normalViewToolStripMenuItem.Name" xml:space="preserve">
-    <value>normalViewToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;normalViewToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;createRoiDefinitionFromSelectionSToolStripMenuItem.Name" xml:space="preserve">
-    <value>createRoiDefinitionFromSelectionSToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;createRoiDefinitionFromSelectionSToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;closeCToolStripMenuItem.Name" xml:space="preserve">
-    <value>closeCToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;closeCToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;highDefinitionViewToolStripMenuItem.Name" xml:space="preserve">
-    <value>highDefinitionViewToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;highDefinitionViewToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="contextMenuStrip1.ToolTip" xml:space="preserve">
-    <value />
-  </data>
   <data name="cpsViewToolStripMenuItem.Text" xml:space="preserve">
     <value>Имп. в сек. (CPS)</value>
-  </data>
-  <data name="energySpectrumView1.ToolTip" xml:space="preserve">
-    <value />
   </data>
   <data name="hideEnergyCalibrationToolToolStripMenuItem.Text" xml:space="preserve">
     <value>Выкл. калибровку по энергиям</value>
@@ -555,47 +126,11 @@
   <data name="showEnergyCalibrationToolToolStripMenuItem.Text" xml:space="preserve">
     <value>Включить калибровку по энергиям</value>
   </data>
-  <data name="toolStrip1.Text" xml:space="preserve">
-    <value>toolStrip1</value>
-  </data>
-  <data name="toolStrip1.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="toolStrip2.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="toolStripButton1.Text" xml:space="preserve">
-    <value>toolStripButton1</value>
-  </data>
   <data name="toolStripButton1.ToolTipText" xml:space="preserve">
     <value>Показать все каналы</value>
   </data>
-  <data name="toolStripButton2.Text" xml:space="preserve">
-    <value>toolStripButton2</value>
-  </data>
   <data name="toolStripButton2.ToolTipText" xml:space="preserve">
     <value>Увеличение масштаба</value>
-  </data>
-  <data name="toolStripContainer1.BottomToolStripPanel.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="toolStripContainer1.ContentPanel.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="toolStripContainer1.LeftToolStripPanel.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="toolStripContainer1.RightToolStripPanel.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="toolStripContainer1.Text" xml:space="preserve">
-    <value>toolStripContainer1</value>
-  </data>
-  <data name="toolStripContainer1.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="toolStripContainer1.TopToolStripPanel.ToolTip" xml:space="preserve">
-    <value />
   </data>
   <data name="toolStripLabel1.Text" xml:space="preserve">
     <value>Ось Y:</value>
@@ -618,56 +153,29 @@
   <data name="toolStripSplitButton1.ToolTipText" xml:space="preserve">
     <value>Выбрать вертикальную единицу</value>
   </data>
-  <data name="toolStripSplitButton10.Text" xml:space="preserve">
-    <value>toolStripSplitButton10</value>
-  </data>
   <data name="toolStripSplitButton10.ToolTipText" xml:space="preserve">
     <value>Вкл/Выкл калибровку по энергиям</value>
-  </data>
-  <data name="toolStripSplitButton2.Text" xml:space="preserve">
-    <value>toolStripSplitButton2</value>
   </data>
   <data name="toolStripSplitButton2.ToolTipText" xml:space="preserve">
     <value>Выбрать вертикальный масштаб</value>
   </data>
-  <data name="toolStripSplitButton3.Text" xml:space="preserve">
-    <value>toolStripSplitButton3</value>
-  </data>
   <data name="toolStripSplitButton3.ToolTipText" xml:space="preserve">
     <value>Выбрать тип отображения спектра</value>
-  </data>
-  <data name="toolStripSplitButton4.Text" xml:space="preserve">
-    <value>toolStripSplitButton4</value>
   </data>
   <data name="toolStripSplitButton4.ToolTipText" xml:space="preserve">
     <value>Выбрать горизонтальную единицу</value>
   </data>
-  <data name="toolStripSplitButton5.Text" xml:space="preserve">
-    <value>toolStripSplitButton5</value>
-  </data>
   <data name="toolStripSplitButton5.ToolTipText" xml:space="preserve">
     <value>Выбрать режим автомасштаба</value>
-  </data>
-  <data name="toolStripSplitButton6.Text" xml:space="preserve">
-    <value>toolStripSplitButton6</value>
   </data>
   <data name="toolStripSplitButton6.ToolTipText" xml:space="preserve">
     <value>Выбрать режим сглаживания</value>
   </data>
-  <data name="toolStripSplitButton7.Text" xml:space="preserve">
-    <value>toolStripSplitButton7</value>
-  </data>
   <data name="toolStripSplitButton7.ToolTipText" xml:space="preserve">
     <value>Выбрать отображение фона</value>
   </data>
-  <data name="toolStripSplitButton8.Text" xml:space="preserve">
-    <value>toolStripSplitButton8</value>
-  </data>
   <data name="toolStripSplitButton8.ToolTipText" xml:space="preserve">
     <value>Выбрать режим отрисовки</value>
-  </data>
-  <data name="toolStripSplitButton9.Text" xml:space="preserve">
-    <value>toolStripSplitButton9</value>
   </data>
   <data name="toolStripSplitButton9.ToolTipText" xml:space="preserve">
     <value>Выбрать отображение обнаруженных пиков</value>
@@ -750,41 +258,14 @@
   <data name="highDefinitionViewToolStripMenuItem.Text" xml:space="preserve">
     <value>Сглаживание</value>
   </data>
-  <data name="SubstractBgToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>241, 22</value>
-  </data>
   <data name="SubstractBgToolStripMenuItem.Text" xml:space="preserve">
     <value>Показать спектр за вычетом фона</value>
-  </data>
-    <data name="&gt;&gt;SubstractBgToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;SubstractBgToolStripMenuItem.Name" xml:space="preserve">
-    <value>SubstractBgToolStripMenuItem</value>
-  </data>
-  <data name="ShowConToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>241, 22</value>
   </data>
   <data name="ShowConToolStripMenuItem.Text" xml:space="preserve">
     <value>Показать континуум с пиками</value>
   </data>
-    <data name="&gt;&gt;ShowConToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;ShowConToolStripMenuItem.Name" xml:space="preserve">
-    <value>ShowConToolStripMenuItem</value>
-  </data>
-  <data name="NormByEffToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>241, 22</value>
-  </data>
   <data name="NormByEffToolStripMenuItem.Text" xml:space="preserve">
     <value>Показать нормализованный по эффективности спектр</value>
-  </data>
-	<data name="&gt;&gt;NormByEffToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-	<data name="&gt;&gt;NormByEffToolStripMenuItem.Name" xml:space="preserve">
-    <value>NormByEffToolStripMenuItem</value>
   </data>
   <data name="toolStripButton3.ToolTipText" xml:space="preserve">
     <value>Масштаб 1:1</value>

@@ -9,12 +9,10 @@ using System.Diagnostics;
 using System.Windows.Forms;
 using System.Threading.Tasks;
 using Windows.Devices.Radios;
-using System.Management.Instrumentation;
-using System.Xml;
 
 namespace BecquerelMonitor
 {
-    public partial class RadiaCodeDeviceForm : BecquerelMonitor.InputDeviceForm
+    public partial class RadiaCodeDeviceForm : InputDeviceForm
     {
         private List<String> adressBLE = new List<String>();
         private Dictionary<ulong, BluetoothLEDevice> devices;
@@ -24,7 +22,6 @@ namespace BecquerelMonitor
         private string DeviceSerial;
         private int currentBLEindex = -1;
         bool formLoading = false;
-        DeviceConfigForm deviceConfigForm;
         private RadiaCodeDeviceConfig config;
         private string tshootText = "";
 

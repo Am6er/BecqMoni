@@ -132,9 +132,6 @@
   <data name="energyradioButton.Text" xml:space="preserve">
     <value>Ограничить энергию</value>
   </data>
-  <data name="label1.Text" xml:space="preserve">
-    <value>keV</value>
-  </data>
   <data name="label2.Text" xml:space="preserve">
     <value>канал</value>
   </data>

@@ -123,22 +123,4 @@
   <data name="$this.Text" xml:space="preserve">
     <value>Просмотр спектра</value>
   </data>
-  <data name="&gt;&gt;$this.Name" xml:space="preserve">
-    <value>DCSpectrumView</value>
-  </data>
-  <data name="&gt;&gt;$this.Type" xml:space="preserve">
-    <value>BecquerelMonitor.ToolWindow, BecquerelMonitor, Version=0.9.9.0, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;energySpectrumView1.Name" xml:space="preserve">
-    <value>energySpectrumView1</value>
-  </data>
-  <data name="&gt;&gt;energySpectrumView1.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;energySpectrumView1.Type" xml:space="preserve">
-    <value>BecquerelMonitor.EnergySpectrumView, BecquerelMonitor, Version=0.9.9.0, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;energySpectrumView1.ZOrder" xml:space="preserve">
-    <value>0</value>
-  </data>
 </root>

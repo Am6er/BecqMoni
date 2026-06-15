@@ -120,9 +120,6 @@
   <data name="Activity" xml:space="preserve">
     <value>Активность</value>
   </data>
-  <data name="ApplicationTitle" xml:space="preserve">
-    <value>BecqMoni Nuclear Edition</value>
-  </data>
   <data name="AtomSpectraExportDialogTitle" xml:space="preserve">
     <value>Экспорт файла Atom Spectra v3</value>
   </data>
@@ -156,9 +153,6 @@
   <data name="Centroid" xml:space="preserve">
     <value>Центр</value>
   </data>
-  <data name="ChartChannelShort" xml:space="preserve">
-    <value>ch</value>
-  </data>
   <data name="ChartHeaderBGCounts" xml:space="preserve">
     <value>Фоновых имп:</value>
   </data>
@@ -170,9 +164,6 @@
   </data>
   <data name="ChartHeaderEnergy" xml:space="preserve">
     <value>Энергия[keV]:</value>
-  </data>
-  <data name="ChartHeaderFWHM" xml:space="preserve">
-    <value>FWHM:</value>
   </data>
   <data name="ChartHeaderGrossCounts" xml:space="preserve">
     <value>Всего импульсов:</value>
@@ -236,15 +227,6 @@
   </data>
   <data name="DetectedWithUncertain" xml:space="preserve">
     <value>Неопределённость</value>
-  </data>
-  <data name="DeviceTypeAtomSpectraVCP" xml:space="preserve">
-    <value>AtomSpectraVCP</value>
-  </data>
-  <data name="DeviceTypeAudioInput" xml:space="preserve">
-    <value>Audio Input Device</value>
-  </data>
-  <data name="DeviceTypeLEMCA" xml:space="preserve">
-    <value>LEMCA USB Adaptor</value>
   </data>
   <data name="DoseRate" xml:space="preserve">
     <value>Мощность дозы:</value>
@@ -480,22 +462,6 @@ FW пика в каналах - Ширина пика в каналах. Выб�
   <data name="LabelVCPSpectraInfo" xml:space="preserve">
     <value>Статус: {0}</value>
   </data>
-  <data name="LibraryLicensesMessage" xml:space="preserve">
-    <value>BecqMoni icons from Maks Vasilev
-https://github.com/MaksVasilev/BecqMoniResources
-
-based on pulse shape discrimination algorithm of PRA for audio input devices
-https://gammaspectacular.com/marek/pra/index.html
-
-using DockPanel Suite library
-http://sourceforge.net/projects/dockpanelsuite/
-
-using WinMM.Net library
-http://winmm.codeplex.com/
-
-using XPTable library
-http://xptable.sourceforge.net/</value>
-  </data>
   <data name="LoadDefaultPeakFinderSettingsQuestion" xml:space="preserve">
     <value>Загрузить настройки поиска пиков, оптимизированные для устройства серии {0}?</value>
   </data>
@@ -641,17 +607,8 @@ http://xptable.sourceforge.net/</value>
   <data name="OpenFileDialogTitle" xml:space="preserve">
     <value>Открыть файл спектра</value>
   </data>
-  <data name="PercentCharacter" xml:space="preserve">
-    <value>%</value>
-  </data>
-  <data name="PlusMinus" xml:space="preserve">
-    <value>±</value>
-  </data>
   <data name="ProgressDateFmt" xml:space="preserve">
     <value>d\д\ hh\:mm\:ss</value>
-  </data>
-  <data name="ProgressString" xml:space="preserve">
-    <value> ({0}%)</value>
   </data>
   <data name="ResetCalibrationQuestion" xml:space="preserve">
     <value>Вопрос по сбросу калибровки</value>
