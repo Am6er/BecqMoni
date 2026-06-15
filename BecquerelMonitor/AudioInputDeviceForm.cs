@@ -73,7 +73,7 @@ namespace BecquerelMonitor
         // Token: 0x06001042 RID: 4162 RVA: 0x00059CDC File Offset: 0x00057EDC
         void OnTimer(object sender, EventArgs e)
         {
-            if (this.deviceConfigForm.ActiveDeviceConfig != null && this.pulseRecorder.Recording)
+            if (this.deviceConfigForm != null && this.deviceConfigForm.ActiveDeviceConfig != null && this.pulseRecorder.Recording)
             {
                 this.textBox4.Text = this.pulseRecorder.NumberOfPulses.ToString();
                 this.standardPulseView1.Invalidate();
@@ -353,7 +353,7 @@ namespace BecquerelMonitor
         // Token: 0x06001056 RID: 4182 RVA: 0x0005A608 File Offset: 0x00058808
         void button1_Click(object sender, EventArgs e)
         {
-            if (this.deviceConfigForm.ActiveDeviceConfig == null)
+            if (this.deviceConfigForm == null || this.deviceConfigForm.ActiveDeviceConfig == null)
             {
                 return;
             }
@@ -363,7 +363,7 @@ namespace BecquerelMonitor
         // Token: 0x06001057 RID: 4183 RVA: 0x0005A624 File Offset: 0x00058824
         void button2_Click(object sender, EventArgs e)
         {
-            if (this.deviceConfigForm.ActiveDeviceConfig == null)
+            if (this.deviceConfigForm == null || this.deviceConfigForm.ActiveDeviceConfig == null)
             {
                 return;
             }
@@ -373,7 +373,10 @@ namespace BecquerelMonitor
         // Token: 0x06001058 RID: 4184 RVA: 0x0005A640 File Offset: 0x00058840
         void SetActiveDeviceConfigDirty()
         {
-            this.deviceConfigForm.SetActiveDeviceConfigDirty();
+            if (this.deviceConfigForm != null)
+            {
+                this.deviceConfigForm.SetActiveDeviceConfigDirty();
+            }
         }
 
     }
