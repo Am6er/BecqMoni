@@ -103,10 +103,6 @@ namespace BecquerelMonitor
 
                 previous_guid = resultData.DeviceConfig.Guid;
                 bool commands_accepted = true;
-                if (new_document_created)
-                {
-                    RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).sendCommand("Start");
-                }
                 RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).sendCommand("Start");
                 RadiaCodeDeviceConfig devconfig = (RadiaCodeDeviceConfig)resultData.DeviceConfig.InputDeviceConfig;
                 //TODO add check
