@@ -74,6 +74,7 @@ namespace BecquerelMonitor
 
             this.energyCalibration = (PolynomialEnergyCalibration)energyCalibration.Clone();
             this.defaultEnergyCalibration = (PolynomialEnergyCalibration)defaultEnergyCalibration.Clone();
+            this.SyncRcEnergyCalibration();
             this.formLoading = true;
             this.numericUpDown3.Text = this.energyCalibration.Coefficients[0].ToString();
             this.numericUpDown2.Text = this.energyCalibration.Coefficients[1].ToString();
@@ -109,6 +110,7 @@ namespace BecquerelMonitor
         void button1_Click(object sender, EventArgs e)
         {
             this.energyCalibration = (PolynomialEnergyCalibration) this.defaultEnergyCalibration.Clone();
+            this.SyncRcEnergyCalibration();
 
             this.numericUpDown1.Text = "0";
             this.numericUpDown2.Text = "0";
@@ -246,10 +248,15 @@ namespace BecquerelMonitor
                 RadiaCodeDeviceConfig rc_deviceConfig = (RadiaCodeDeviceConfig)deviceConfig.InputDeviceConfig;
                 if (this.energyCalibration.PolynomialOrder == 2)
                 {
-                    rc_deviceConfig.RC_EnergyCalibration = this.energyCalibration;
-                } else if (this.energyCalibration.PolynomialOrder > 2 && this.rc_EnergyCalibration != null)
+                    rc_deviceConfig.RC_EnergyCalibration = (PolynomialEnergyCalibration)this.energyCalibration.Clone();
+                }
+                else if (this.energyCalibration.PolynomialOrder > 2 && this.rc_EnergyCalibration != null)
                 {
-                    rc_deviceConfig.RC_EnergyCalibration = this.rc_EnergyCalibration;
+                    rc_deviceConfig.RC_EnergyCalibration = (PolynomialEnergyCalibration)this.rc_EnergyCalibration.Clone();
+                }
+                else
+                {
+                    rc_deviceConfig.RC_EnergyCalibration = null;
                 }
             }
             DeviceConfigManager.GetInstance().SaveConfig(activeDocument.ActiveResultData.DeviceConfig);
@@ -334,6 +341,7 @@ namespace BecquerelMonitor
                 }
                 
                 t.ForeColor = Color.Black;
+                this.SyncRcEnergyCalibration();
                 this.UpdateEnergyCalibration();
             }
             catch
@@ -762,6 +770,7 @@ namespace BecquerelMonitor
             this.energyCalibration.Coefficients = new double[matrix.Length];
             this.energyCalibration.PolynomialOrder = matrix.Length - 1;
             this.energyCalibration.Coefficients = matrix;
+            this.SyncRcEnergyCalibration();
 
             if (!this.energyCalibration.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
             {
@@ -855,6 +864,18 @@ namespace BecquerelMonitor
             }
             //System.Windows.Forms.MessageBox.Show("Error while converting text to double: " + str);
             throw new Exception();
+        }
+
+        void SyncRcEnergyCalibration()
+        {
+            if (this.energyCalibration != null && this.energyCalibration.PolynomialOrder == 2)
+            {
+                this.rc_EnergyCalibration = (PolynomialEnergyCalibration)this.energyCalibration.Clone();
+            }
+            else
+            {
+                this.rc_EnergyCalibration = null;
+            }
         }
 
         // Token: 0x06000832 RID: 2098 RVA: 0x0002ED00 File Offset: 0x0002CF00
