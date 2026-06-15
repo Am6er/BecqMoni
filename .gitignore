@@ -2,3 +2,4 @@
 BecquerelMonitor/.vs/*
 BecquerelMonitor/bin/*
 BecquerelMonitor/obj/*
+*.csproj.user
