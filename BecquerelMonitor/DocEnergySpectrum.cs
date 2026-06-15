@@ -297,6 +297,7 @@ namespace BecquerelMonitor
             set
             {
                 this.dirty = value;
+                this.SetupSaveDocumentButton();
                 DocumentTextWithDirtyFlag();
             }
         }
@@ -1315,7 +1316,7 @@ namespace BecquerelMonitor
             activeResultData.EnergySpectrum.EnergyCalibration = e.EnergyCalibration;
             this.RefreshView();
             this.updateMeasurementResult = true;
-            this.dirty = true;
+            this.Dirty = true;
         }
 
         // Token: 0x06000364 RID: 868 RVA: 0x00010C0C File Offset: 0x0000EE0C
@@ -1472,7 +1473,7 @@ namespace BecquerelMonitor
                 if (this.AddSpectrumToDocument != null)
                 {
                     this.AddSpectrumToDocument(this, new AddSpectrumToDocumentEventArgs(pathnames));
-                    this.dirty = true;
+                    this.Dirty = true;
                 }
             }
         }
