@@ -1023,24 +1023,12 @@ namespace BecquerelMonitor
             if (this.activeDeviceConfig.DeviceType == "AtomSpectraVCP")
             {
                 AtomSpectraDeviceConfig deviceconfig = (AtomSpectraDeviceConfig)this.activeDeviceConfig.InputDeviceConfig;
-                AtomSpectraVCPIn device = null;
-                List<AtomSpectraVCPIn> instances = AtomSpectraVCPIn.getAllInstances();
-                bool runexist = false;
-                if (instances.Count > 0)
+                string guid = this.activeDeviceConfig.Guid;
+                AtomSpectraVCPIn device = AtomSpectraVCPIn.tryGetInstance(guid);
+                bool createdInstance = device == null;
+                if (createdInstance)
                 {
-                    foreach (AtomSpectraVCPIn instance in instances)
-                    {
-                        if (instance.GUID == this.activeDeviceConfig.Guid)
-                        {
-                            device = instance;
-                            runexist = true;
-                            break;
-                        }
-                    }
-                }
-                if(!runexist)
-                {
-                    device = new AtomSpectraVCPIn(this.activeDeviceConfig.Guid);
+                    device = AtomSpectraVCPIn.getInstance(guid);
                     device.setPort(deviceconfig.ComPortName, deviceconfig.BaudRate);
                 }
 
@@ -1097,7 +1085,10 @@ namespace BecquerelMonitor
                         if (coeff_list.Count < 2)
                         {
                             MessageBox.Show(Resources.ERREmptyCoefficients);
-                            device.Dispose();
+                            if (createdInstance)
+                            {
+                                AtomSpectraVCPIn.cleanUp(guid);
+                            }
                             return;
                         }
                         this.numericUpDown1.Text = "0";
@@ -1129,9 +1120,9 @@ namespace BecquerelMonitor
                     {
                         MessageBox.Show(String.Format(Resources.ERRReadDataFromPort, deviceconfig.ComPortName));
                     }
-                    if (!runexist)
+                    if (createdInstance)
                     {
-                        device.Dispose();
+                        AtomSpectraVCPIn.cleanUp(guid);
                     }
                     SetActiveDeviceConfigDirty();
                 }
@@ -1266,24 +1257,12 @@ namespace BecquerelMonitor
                         bool commands_accepted = true;
                         System.Diagnostics.Trace.WriteLine("commands_accepted = " + commands_accepted);
                         AtomSpectraDeviceConfig deviceconfig = (AtomSpectraDeviceConfig)this.activeDeviceConfig.InputDeviceConfig;
-                        AtomSpectraVCPIn device = null;
-                        List<AtomSpectraVCPIn> instances = AtomSpectraVCPIn.getAllInstances();
-                        bool runexist = false;
-                        if (instances.Count > 0)
+                        string guid = this.activeDeviceConfig.Guid;
+                        AtomSpectraVCPIn device = AtomSpectraVCPIn.tryGetInstance(guid);
+                        bool createdInstance = device == null;
+                        if (createdInstance)
                         {
-                            foreach (AtomSpectraVCPIn instance in instances)
-                            {
-                                if (instance.GUID == this.activeDeviceConfig.Guid)
-                                {
-                                    device = instance;
-                                    runexist = true;
-                                    break;
-                                }
-                            }
-                        }
-                        if (!runexist)
-                        {
-                            device = new AtomSpectraVCPIn(this.activeDeviceConfig.Guid);
+                            device = AtomSpectraVCPIn.getInstance(guid);
                             device.setPort(deviceconfig.ComPortName, deviceconfig.BaudRate);
                         }
                         string status_msg = "";
@@ -1314,15 +1293,18 @@ namespace BecquerelMonitor
                                 if (result_list[i] != result_arr[i])
                                 {
                                     MessageBox.Show(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + status_msg);
-                                    if (!runexist) { device.Dispose(); }
+                                    if (createdInstance)
+                                    {
+                                        AtomSpectraVCPIn.cleanUp(guid);
+                                    }
                                     return;
                                 }
                             }
                             MessageBox.Show(Resources.MSGCoefficientsUploadedSuccesfull);
                         }
-                        if (!runexist)
+                        if (createdInstance)
                         {
-                            device.Dispose();
+                            AtomSpectraVCPIn.cleanUp(guid);
                         }
                     }
                     catch (Exception ex)

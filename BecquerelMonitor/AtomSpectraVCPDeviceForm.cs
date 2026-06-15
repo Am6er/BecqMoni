@@ -180,26 +180,16 @@ namespace BecquerelMonitor
         {
             try
             {
-                List<AtomSpectraVCPIn> instances = AtomSpectraVCPIn.getAllInstances();
                 AtomSpectraVCPIn device = null;
-                bool runexist = false;
+                string temporaryGuid = null;
                 string comPort = comPortsBox.SelectedItem.ToString();
                 int baudRate = int.Parse(baudratesBox.SelectedItem.ToString());
-                if (instances.Count > 0)
+
+                device = AtomSpectraVCPIn.findByPort(comPort);
+                if (device == null)
                 {
-                    foreach (AtomSpectraVCPIn instance in instances)
-                    {
-                        if (instance.COMPort == comPort)
-                        {
-                            device = instance;
-                            runexist = true;
-                            break;
-                        }
-                    }
-                }
-                if (!runexist)
-                {
-                    device = new AtomSpectraVCPIn(this.deviceConfigForm.ActiveDeviceConfig.Guid);
+                    temporaryGuid = Guid.NewGuid().ToString();
+                    device = AtomSpectraVCPIn.getInstance(temporaryGuid);
                     device.setPort(comPort, baudRate);
                 }
                 device.sendCommand("-inf");
@@ -210,9 +200,9 @@ namespace BecquerelMonitor
                 this.deadTime = ((double)rise + (double)fall + 1.0) / f;
                 this.deadTimeLbl.Text = String.Format(Resources.DeadTimeLblText, this.deadTime * 1.0E+06);
                 SetActiveDeviceConfigDirty();
-                if (!runexist)
+                if (temporaryGuid != null)
                 {
-                    device.Dispose();
+                    AtomSpectraVCPIn.cleanUp(temporaryGuid);
                 }
             }
             catch
@@ -381,34 +371,24 @@ namespace BecquerelMonitor
                 try
                 {
                     this.CommandLineIn.AutoCompleteCustomSource.Add(this.CommandLineIn.Text);
-                    List<AtomSpectraVCPIn> instances = AtomSpectraVCPIn.getAllInstances();
                     AtomSpectraVCPIn device = null;
-                    bool runexist = false;
+                    string temporaryGuid = null;
                     string comPort = comPortsBox.SelectedItem.ToString();
                     int baudRate = int.Parse(baudratesBox.SelectedItem.ToString());
-                    if (instances.Count > 0)
+
+                    device = AtomSpectraVCPIn.findByPort(comPort);
+                    if (device == null)
                     {
-                        foreach (AtomSpectraVCPIn instance in instances)
-                        {
-                            if (instance.COMPort == comPort)
-                            {
-                                device = instance;
-                                runexist = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (!runexist)
-                    {
-                        device = new AtomSpectraVCPIn(this.deviceConfigForm.ActiveDeviceConfig.Guid);
+                        temporaryGuid = Guid.NewGuid().ToString();
+                        device = AtomSpectraVCPIn.getInstance(temporaryGuid);
                         device.setPort(comPort, baudRate);
                     }
                     device.sendCommand(this.CommandLineIn.Text);
                     this.CommandLineOut.Text = ">> " + this.CommandLineIn.Text + Environment.NewLine
                         + device.getCommandOutput(2000) + Environment.NewLine + this.CommandLineOut.Text;
-                    if (!runexist)
+                    if (temporaryGuid != null)
                     {
-                        device.Dispose();
+                        AtomSpectraVCPIn.cleanUp(temporaryGuid);
                     }
                 }
                 catch
@@ -423,34 +403,21 @@ namespace BecquerelMonitor
         {
             string returnvalue = null;
             int returnstatus = -1;
-            List<AtomSpectraVCPIn> instances = AtomSpectraVCPIn.getAllInstances();
             AtomSpectraVCPIn device = null;
+            string temporaryGuid = null;
             try
             {
-                bool runexist = false;
-                if (instances.Count > 0)
+                device = AtomSpectraVCPIn.findByPort(comPort);
+                if (device != null && device.BaudRate != baudRate)
                 {
-                    foreach (AtomSpectraVCPIn instance in instances)
-                    {
-                        if (instance.COMPort == comPort)
-                        {
-                            if (instance.BaudRate != baudRate)
-                            {
-                                returnstatus = 1;
-                                returnvalue = instance.BaudRate.ToString();
-                                return (returnstatus, returnvalue);
-                            } else
-                            {
-                                device = instance;
-                                runexist = true;
-                                break;
-                            }
-                        }
-                    }
+                    returnstatus = 1;
+                    returnvalue = device.BaudRate.ToString();
+                    return (returnstatus, returnvalue);
                 }
-                if (!runexist)
+                if (device == null)
                 {
-                    device = new AtomSpectraVCPIn(this.deviceConfigForm.ActiveDeviceConfig.Guid);
+                    temporaryGuid = Guid.NewGuid().ToString();
+                    device = AtomSpectraVCPIn.getInstance(temporaryGuid);
                     device.setPort(comPort, baudRate);
                 }
                 device.sendCommand("-cal");
@@ -464,9 +431,9 @@ namespace BecquerelMonitor
                     returnstatus = 0;
                     Trace.WriteLine("Serial number: " + returnvalue);
                 }
-                if (!runexist)
+                if (temporaryGuid != null)
                 {
-                    device.Dispose();
+                    AtomSpectraVCPIn.cleanUp(temporaryGuid);
                 }
             }
             catch (Exception ex)
