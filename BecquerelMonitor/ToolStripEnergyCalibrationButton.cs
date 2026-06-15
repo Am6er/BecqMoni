@@ -66,28 +66,29 @@ namespace BecquerelMonitor
             {
                 case ToolStripDropDownDirection.AboveLeft:
                     screenLocation = new Point(r.Right - this.dropDown.Width, r.Top - this.dropDown.Height);
-                    goto IL_185;
+                    break;
                 case ToolStripDropDownDirection.AboveRight:
                     screenLocation = new Point(r.Left, r.Top - this.dropDown.Height);
-                    goto IL_185;
+                    break;
                 case ToolStripDropDownDirection.BelowLeft:
                     screenLocation = new Point(r.Right - this.dropDown.Width, r.Bottom);
-                    goto IL_185;
+                    break;
                 case ToolStripDropDownDirection.BelowRight:
                     screenLocation = new Point(r.Left, r.Bottom);
-                    goto IL_185;
+                    break;
                 case ToolStripDropDownDirection.Left:
                     screenLocation = new Point(r.Left - this.dropDown.Width, r.Top);
-                    goto IL_185;
+                    break;
                 case ToolStripDropDownDirection.Right:
                     screenLocation = new Point(r.Right, r.Top);
-                    goto IL_185;
+                    break;
                 case ToolStripDropDownDirection.Default:
                     screenLocation = new Point(r.Left, r.Bottom);
-                    goto IL_185;
+                    break;
+                default:
+                    screenLocation = new Point(r.Left, r.Bottom);
+                    break;
             }
-            screenLocation = new Point(r.Left, r.Bottom);
-        IL_185:
             this.dropDown.Show(screenLocation);
         }
 

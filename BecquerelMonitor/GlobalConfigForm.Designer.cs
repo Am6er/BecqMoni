@@ -378,7 +378,6 @@
             resources.ApplyResources(this.progressiveSmoothTooltip, "progressiveSmoothTooltip");
             this.progressiveSmoothTooltip.IsBalloon = true;
             this.progressiveSmoothTooltip.InitialDelay = 0;
-            this.progressiveSmoothTooltip.SetToolTip(this.progressiveSmoothCheckbox, this.progressiveSmoothCheckbox.Tag as string);
             resources.ApplyResources(this.label90, "label90");
             this.label90.Name = "label90";
             resources.ApplyResources(this.label28, "label28");

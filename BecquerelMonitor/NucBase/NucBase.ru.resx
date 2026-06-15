@@ -117,50 +117,11 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="HalfLifeUOMComboBox.Items" xml:space="preserve">
-    <value>ns</value>
-  </data>
-  <data name="HalfLifeUOMComboBox.Items1" xml:space="preserve">
-    <value>us</value>
-  </data>
-  <data name="HalfLifeUOMComboBox.Items2" xml:space="preserve">
-    <value>ms</value>
-  </data>
-  <data name="HalfLifeUOMComboBox.Items3" xml:space="preserve">
-    <value>s</value>
-  </data>
-  <data name="HalfLifeUOMComboBox.Items4" xml:space="preserve">
-    <value>m</value>
-  </data>
-  <data name="HalfLifeUOMComboBox.Items5" xml:space="preserve">
-    <value>h</value>
-  </data>
-  <data name="HalfLifeUOMComboBox.Items6" xml:space="preserve">
-    <value>d</value>
-  </data>
-  <data name="HalfLifeUOMComboBox.Items7" xml:space="preserve">
-    <value>Y</value>
-  </data>
-  <data name="label12.Text" xml:space="preserve">
-    <value>λ &gt;</value>
-  </data>
-  <data name="label11.Text" xml:space="preserve">
-    <value>keV</value>
-  </data>
-  <data name="HighEnrgTextBox.Text" xml:space="preserve">
-    <value>3000</value>
-  </data>
   <data name="label10.Text" xml:space="preserve">
     <value>keV и</value>
   </data>
-  <data name="LowEnrgTextBox.Text" xml:space="preserve">
-    <value>0</value>
-  </data>
   <data name="label9.Text" xml:space="preserve">
     <value>Энергия между:</value>
-  </data>
-  <data name="IntencityTextBox.Text" xml:space="preserve">
-    <value>6</value>
   </data>
   <data name="IncludeDecayChainCheckBox.Text" xml:space="preserve">
     <value>Добавить ДПР</value>
@@ -186,9 +147,6 @@
   <data name="TypeColumn1.HeaderText" xml:space="preserve">
     <value>Тип</value>
   </data>
-  <data name="PercentColumn1.HeaderText" xml:space="preserve">
-    <value>%</value>
-  </data>
   <data name="label6.Text" xml:space="preserve">
     <value>Родительские изотопы:</value>
   </data>
@@ -198,17 +156,8 @@
   <data name="TypeColumn.HeaderText" xml:space="preserve">
     <value>Тип</value>
   </data>
-  <data name="PercentColum.HeaderText" xml:space="preserve">
-    <value>%</value>
-  </data>
   <data name="label5.Text" xml:space="preserve">
     <value>λ:</value>
-  </data>
-  <data name="label4.Text" xml:space="preserve">
-    <value>N:</value>
-  </data>
-  <data name="label3.Text" xml:space="preserve">
-    <value>Z:</value>
   </data>
   <data name="label2.Text" xml:space="preserve">
     <value>Имя:</value>
@@ -227,9 +176,6 @@
   </data>
   <data name="IntensityColumn.HeaderText" xml:space="preserve">
     <value>Интенс, %</value>
-  </data>
-  <data name="XRayTypeColumn.HeaderText" xml:space="preserve">
-    <value>X-Ray</value>
   </data>
   <data name="DecaModeColumn.HeaderText" xml:space="preserve">
     <value>Распад</value>

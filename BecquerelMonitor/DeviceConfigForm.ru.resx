@@ -239,9 +239,6 @@
   <data name="label41.Text" xml:space="preserve">
     <value>Допуск</value>
   </data>
-  <data name="label42.Text" xml:space="preserve">
-    <value>%</value>
-  </data>
   <data name="label43.Text" xml:space="preserve">
     <value>4 коэф.(a)</value>
   </data>
@@ -290,20 +287,11 @@
   <data name="table1.NoItemsText" xml:space="preserve">
     <value>Нет конфигурации</value>
   </data>
-  <data name="table1.Text" xml:space="preserve">
-    <value>table1</value>
-  </data>
   <data name="table2.NoItemsText" xml:space="preserve">
     <value>Нет точек калибровки</value>
   </data>
-  <data name="table2.Text" xml:space="preserve">
-    <value>table2</value>
-  </data>
   <data name="table3.NoItemsText" xml:space="preserve">
     <value>Нет настроек</value>
-  </data>
-  <data name="table3.Text" xml:space="preserve">
-    <value>table3</value>
   </data>
   <data name="tabPage1.Text" xml:space="preserve">
     <value>Основное</value>
@@ -349,9 +337,6 @@
   </data>
   <data name="numberColumn6.Text" xml:space="preserve">
     <value>Конец, keV</value>
-  </data>
-  <data name="numberColumn7.Text" xml:space="preserve">
-    <value>CPS</value>
   </data>
   <data name="numberColumn8.Text" xml:space="preserve">
     <value>Эталон МЭД, μSv/h</value>

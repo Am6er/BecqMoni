@@ -282,25 +282,14 @@ namespace WinMM
                             Monitor.Wait(this.bufferingLock);
                         }
                     }
-                    for (; ; )
+                    while (this.bufferQueueCount < this.bufferQueueSize && this.buffering)
                     {
-                        if (!(this.bufferQueueCount < this.bufferQueueSize))
-                        {
-                            break;
-                        }
-                        if (!this.buffering)
-                        {
-                            break;
-                        }
                         this.AddBuffer();
                     }
-                IL_A4:
                     while (this.bufferReleaseQueue.Count > 0)
                     {
                         this.ProcessDone();
                     }
-                    continue;
-                    goto IL_A4;
                 }
                 while (this.bufferReleaseQueue.Count > 0 || this.bufferQueueCount > 0)
                 {
@@ -311,17 +300,13 @@ namespace WinMM
                             Monitor.Wait(this.bufferingLock, 1000);
                         }
                     }
-                    for (; ; )
+                    while (this.bufferReleaseQueue.Count > 0)
                     {
-                        if (this.bufferReleaseQueue.Count <= 0)
-                        {
-                            break;
-                        }
                         this.ProcessDone();
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 DCControlPanel.exept_flag = true;
                 MessageBox.Show("Device disconnected from audio port!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Hand);

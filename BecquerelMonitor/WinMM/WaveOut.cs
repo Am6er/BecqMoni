@@ -388,17 +388,11 @@ namespace WinMM
                         {
                             Monitor.Wait(this.bufferingLock, 1000);
                         }
-                        goto IL_5B;
                     }
-                    goto IL_55;
-                IL_5B:
-                    if (this.bufferReleaseQueue.Count <= 0)
+                    while (this.bufferReleaseQueue.Count > 0)
                     {
-                        continue;
+                        this.ProcessDone();
                     }
-                IL_55:
-                    this.ProcessDone();
-                    goto IL_5B;
                 }
             }
             catch (ThreadAbortException)
