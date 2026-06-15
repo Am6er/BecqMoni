@@ -171,6 +171,7 @@ namespace BecquerelMonitor
             Trace.WriteLine("Run discovery, to awaiken device");
             if (watcher == null) watcher = new BluetoothLEAdvertisementWatcher();
             watcher.ScanningMode = BluetoothLEScanningMode.Active;
+            watcher.Received -= Watcher_Recived;
             watcher.Received += Watcher_Recived;
             try
             {
@@ -183,6 +184,7 @@ namespace BecquerelMonitor
             } finally
             {
                 watcher.Stop();
+                watcher.Received -= Watcher_Recived;
             }
         }
 
