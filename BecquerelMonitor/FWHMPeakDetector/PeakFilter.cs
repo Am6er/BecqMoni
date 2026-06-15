@@ -101,8 +101,11 @@ namespace BecquerelMonitor.FWHMPeakDetector
         public double[][] kernel_matrix(double[] edges)
         {
             int n_channels = edges.Length - 1;
-            double[] edges_1 = new double[n_channels];
-            Array.Copy(edges, 0, edges_1, 0, n_channels);
+            double[] bin_centers = new double[n_channels];
+            for (int i = 0; i < n_channels; i++)
+            {
+                bin_centers[i] = (edges[i] + edges[i + 1]) / 2.0;
+            }
 
             double[][] collection_res = new double[n_channels][];
             for (int i = 0; i < n_channels; i++) collection_res[i] = new double[n_channels];
@@ -111,7 +114,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
             {
                 double kern_pos_sum = 0.0;
                 double kern_neg_sum = 0.0;
-                double[] kernel_for_edge = this.kernel(edges_1[i], edges);
+                double[] kernel_for_edge = this.kernel(bin_centers[i], edges);
                 int len = kernel_for_edge.Length;
 
                 // local buffers

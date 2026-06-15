@@ -81,9 +81,12 @@ namespace BecquerelMonitor.FWHMPeakDetector
         /// </summary>
         /// <param name="arr"></param>
         /// <returns></returns>
-        private int[] argsort(double[] arr)
+        private int[] argsort(double[] arr, bool descending = false)
         {
-            var sorted = arr.Select((x, i) => new KeyValuePair<double, int>(x, (int)i)).OrderBy(x => x.Key).ToArray();
+            var indexed = arr.Select((x, i) => new KeyValuePair<double, int>(x, (int)i));
+            var sorted = descending
+                ? indexed.OrderByDescending(x => x.Key).ToArray()
+                : indexed.OrderBy(x => x.Key).ToArray();
             return sorted.Select(x => x.Value).ToArray();
         }
 
@@ -92,13 +95,13 @@ namespace BecquerelMonitor.FWHMPeakDetector
         /// </summary>
         /// <param name="arr"></param>
         /// <exception cref="PeakFinderError"></exception>
-        public void sort_by(double[] arr)
+        public void sort_by(double[] arr, bool descending = false)
         {
             if (arr.Length != this.centroids.Length)
             {
                 throw new PeakFinderError(String.Format("Sorting array has length " + arr.Length + "  but must have length " + this.centroids.Length));
             }
-            int[] sortedarg = this.argsort(arr);
+            int[] sortedarg = this.argsort(arr, descending);
             List<double> _centroids = new List<double>();
             List<double> _snrs = new List<double>();
             List<double> _fwhms = new List<double>();
@@ -328,7 +331,7 @@ namespace BecquerelMonitor.FWHMPeakDetector
             bool[] new_peak = new bool[peak.Length + 2];
             new_peak[0] = false;
             new_peak[new_peak.Length - 1] = false;
-            for (int i = 0; i < peak.Length - 2; i++)
+            for (int i = 0; i < peak.Length; i++)
             {
                 new_peak[i + 1] = peak[i];
             }
@@ -354,12 +357,13 @@ namespace BecquerelMonitor.FWHMPeakDetector
             {
                 return;
             }
-            this.sort_by(this.snrs);
+            this.sort_by(this.snrs, descending: true);
             this.centroids = this.centroids.Take(max_num).ToArray();
             this.snrs = this.snrs.Take(max_num).ToArray();
             this.fwhms = this.fwhms.Take(max_num).ToArray();
             this.integrals = this.integrals.Take(max_num).ToArray();
             this.backgrounds = this.backgrounds.Take(max_num).ToArray();
+            this.fwhm_delta = this.fwhm_delta.Take(max_num).ToArray();
             //sort by centroid
             this.sort_by(this.centroids);
             this.peak = peak;
