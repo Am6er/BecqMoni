@@ -2128,8 +2128,10 @@ namespace BecquerelMonitor
                         {
                             break;
                         }
+                    } else
+                    {
+                        num = (float)((referencepeak - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + (float)this.scrollX + (float)this.left;
                     }
-                    num = (float)((referencepeak - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + (float)this.scrollX + (float)this.left;
                     if (num > (float)this.left)
                     {
                         Pen pen = new Pen(roidefinitionData.Color.Color, 2);
@@ -3617,13 +3619,13 @@ namespace BecquerelMonitor
 
         double Log10(double x)
         {
-            //if (x < 1) return 0.0;
+            if (x < 1) return 0.0;
             return Math.Log10(x);
         }
 
         double Pow(double x)
         {
-            //if (x < 1) return 0.0;
+            if (x < 1) return 0.0;
             return Math.Pow(x, 1 / pownum);
         }
 
@@ -3746,16 +3748,16 @@ namespace BecquerelMonitor
                     }
                     this.selectionDragging = true;
                     base.Invalidate();
+                    if (this.ChannelPickuped != null)
+                    {
+                        this.ChannelPickuped(this, new ChannelPickupedEventArgs(num2, this.energySpectrum.Spectrum[num2]));
+                        return;
+                    }
                 }
                 else
                 {
                     this.selectionStart = -1;
                     base.Invalidate();
-                }
-                if (this.ChannelPickuped != null)
-                {
-                    this.ChannelPickuped(this, new ChannelPickupedEventArgs(num2, this.energySpectrum.Spectrum[num2]));
-                    return;
                 }
             }
             else if (e.Button == MouseButtons.Right)
