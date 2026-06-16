@@ -994,10 +994,15 @@ namespace BecquerelMonitor
 
         private void buttonEfficiency_Click(object sender, EventArgs e)
         {
+            if (this.activeROIConfig == null)
+            {
+                return;
+            }
+
             using (ROIEditEfficiencyDialog dialog = new ROIEditEfficiencyDialog(this))
             {
                 dialog.ShowDialog();
-                if (activeROIConfig.Dirty)
+                if (this.activeROIConfig.Dirty)
                 {
                     this.buttonSave.Enabled = true;
                 }
