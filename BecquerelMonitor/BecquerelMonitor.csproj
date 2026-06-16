@@ -598,6 +598,12 @@
       <DependentUpon>StartupForm.cs</DependentUpon>
     </Compile>
     <Compile Include="TargetPeak.cs" />
+    <Compile Include="TestForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="TestForm.Designer.cs">
+      <DependentUpon>TestForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="ThermometerConfig.cs" />
     <Compile Include="ThermometerController.cs" />
     <Compile Include="ThermometerForm.cs">
@@ -911,6 +917,7 @@
     </EmbeddedResource>
     <EmbeddedResource Include="AudioInputDeviceForm.resx">
       <DependentUpon>AudioInputDeviceForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="AudioInputDeviceForm.ru.resx">
       <DependentUpon>AudioInputDeviceForm.cs</DependentUpon>
@@ -977,18 +984,21 @@
     </EmbeddedResource>
     <EmbeddedResource Include="DCPulseView.resx">
       <DependentUpon>DCPulseView.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="DCPulseView.ru.resx">
       <DependentUpon>DCPulseView.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="DCResultView.resx">
       <DependentUpon>DCResultView.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="DCResultView.ru.resx">
       <DependentUpon>DCResultView.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="DCSampleInfoView.resx">
       <DependentUpon>DCSampleInfoView.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="DCSampleInfoView.ru.resx">
       <DependentUpon>DCSampleInfoView.cs</DependentUpon>
@@ -998,6 +1008,7 @@
     </EmbeddedResource>
     <EmbeddedResource Include="DCSpectrumListView.resx">
       <DependentUpon>DCSpectrumListView.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="DCSpectrumListView.ru.resx">
       <DependentUpon>DCSpectrumListView.cs</DependentUpon>
@@ -1010,6 +1021,7 @@
     </EmbeddedResource>
     <EmbeddedResource Include="DCStatusMessageView.resx">
       <DependentUpon>DCStatusMessageView.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="DeviceConfigForm.resx">
       <DependentUpon>DeviceConfigForm.cs</DependentUpon>
@@ -1029,6 +1041,7 @@
     </EmbeddedResource>
     <EmbeddedResource Include="EffCalcMCDialog.resx">
       <DependentUpon>EffCalcMCDialog.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="EffCalcMCDialog.ru.resx">
       <DependentUpon>EffCalcMCDialog.cs</DependentUpon>
@@ -1039,6 +1052,7 @@
     </EmbeddedResource>
     <EmbeddedResource Include="GlobalConfigForm.resx">
       <DependentUpon>GlobalConfigForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="GlobalConfigForm.ru.resx">
       <DependentUpon>GlobalConfigForm.cs</DependentUpon>
@@ -1098,6 +1112,7 @@
     </EmbeddedResource>
     <EmbeddedResource Include="ROIConfigForm.resx">
       <DependentUpon>ROIConfigForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="ROIConfigForm.ru.resx">
       <DependentUpon>ROIConfigForm.cs</DependentUpon>
@@ -1161,6 +1176,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="StartupForm.ru.resx">
       <DependentUpon>StartupForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="TestForm.resx">
+      <DependentUpon>TestForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="ThermometerForm.resx">
       <DependentUpon>ThermometerForm.cs</DependentUpon>

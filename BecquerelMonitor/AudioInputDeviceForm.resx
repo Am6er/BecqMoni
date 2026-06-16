@@ -222,7 +222,7 @@
     <value>doubleTextBox2</value>
   </data>
   <data name="&gt;&gt;doubleTextBox2.Type" xml:space="preserve">
-    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitorPlus, Version=1.0.13.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitor, Version=1.0.13.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="label14.Text" xml:space="preserve">
     <value>Shape Threshold</value>
@@ -250,7 +250,7 @@
     <value>doubleTextBox1</value>
   </data>
   <data name="&gt;&gt;doubleTextBox1.Type" xml:space="preserve">
-    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitorPlus, Version=1.0.13.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitor, Version=1.0.13.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="label17.Size" type="System.Drawing.Size, System.Drawing">
     <value>68, 12</value>
@@ -268,7 +268,7 @@
     <value>doubleTextBox4</value>
   </data>
   <data name="&gt;&gt;doubleTextBox4.Type" xml:space="preserve">
-    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitorPlus, Version=1.0.13.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitor, Version=1.0.13.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;label12.Parent" xml:space="preserve">
     <value>$this</value>
@@ -283,7 +283,7 @@
     <value>doubleTextBox3</value>
   </data>
   <data name="&gt;&gt;doubleTextBox3.Type" xml:space="preserve">
-    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitorPlus, Version=1.0.13.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitor, Version=1.0.13.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="label15.Text" xml:space="preserve">
     <value>Device Polarity</value>
@@ -928,7 +928,7 @@
     <value>AudioInputDeviceForm</value>
   </data>
   <data name="&gt;&gt;$this.Type" xml:space="preserve">
-    <value>BecquerelMonitor.InputDeviceForm, BecquerelMonitorPlus, Version=1.0.13.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.InputDeviceForm, BecquerelMonitor, Version=1.0.13.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="maskedTextBox1.PromptChar" type="System.Char, mscorlib" xml:space="preserve">
     <value> </value>
@@ -1108,7 +1108,7 @@
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;standardPulseView1.Type" xml:space="preserve">
-    <value>BecquerelMonitor.StandardPulseView, BecquerelMonitorPlus, Version=1.0.13.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.StandardPulseView, BecquerelMonitor, Version=1.0.13.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;standardPulseView1.Name" xml:space="preserve">
     <value>standardPulseView1</value>

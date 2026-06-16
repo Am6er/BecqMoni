@@ -203,7 +203,7 @@
     <value>columnModel1</value>
   </data>
   <data name="&gt;&gt;columnModel1.Type" xml:space="preserve">
-    <value>XPTable.Models.ColumnModel, BecquerelMonitorPlus, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.ColumnModel, BecquerelMonitor, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="textColumn2.Width" type="System.Int32, mscorlib">
     <value>80</value>
@@ -230,7 +230,7 @@
     <value>tableModel1</value>
   </data>
   <data name="&gt;&gt;tableModel1.Type" xml:space="preserve">
-    <value>XPTable.Models.TableModel, BecquerelMonitorPlus, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.TableModel, BecquerelMonitor, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="button1.Location" type="System.Drawing.Point, System.Drawing">
     <value>290, 4</value>
@@ -257,7 +257,7 @@
     <value>table1</value>
   </data>
   <data name="&gt;&gt;table1.Type" xml:space="preserve">
-    <value>XPTable.Models.Table, BecquerelMonitorPlus, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.Table, BecquerelMonitor, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="comboBox1.Items4" xml:space="preserve">
     <value>Bq/l</value>
@@ -284,7 +284,7 @@
     <value>DCResultView</value>
   </data>
   <data name="&gt;&gt;$this.Type" xml:space="preserve">
-    <value>BecquerelMonitor.ToolWindow, BecquerelMonitorPlus, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.ToolWindow, BecquerelMonitor, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="comboBox2.Location" type="System.Drawing.Point, System.Drawing">
     <value>92, 6</value>
@@ -299,13 +299,13 @@
     <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;textColumn4.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitorPlus, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;textColumn4.Name" xml:space="preserve">
     <value>textColumn4</value>
   </data>
   <data name="&gt;&gt;textColumn3.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitorPlus, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;textColumn3.Name" xml:space="preserve">
     <value>textColumn3</value>
@@ -317,7 +317,7 @@
     <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;textColumn2.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitorPlus, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;textColumn2.Name" xml:space="preserve">
     <value>textColumn2</value>
@@ -329,7 +329,7 @@
     <value>75, 23</value>
   </data>
   <data name="&gt;&gt;textColumn1.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitorPlus, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;textColumn1.Name" xml:space="preserve">
     <value>textColumn1</value>

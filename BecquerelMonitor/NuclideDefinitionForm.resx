@@ -697,7 +697,7 @@
     <value>100, 101</value>
   </data>
   <data name="&gt;&gt;colorComboBox1.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;colorComboBox1.Name" xml:space="preserve">
     <value>colorComboBox1</value>

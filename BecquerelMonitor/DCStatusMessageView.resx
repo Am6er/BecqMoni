@@ -151,7 +151,7 @@
     <value>DCStatusMessageView</value>
   </data>
   <data name="&gt;&gt;$this.Type" xml:space="preserve">
-    <value>BecquerelMonitor.ToolWindow, BecquerelMonitorPlus, Version=1.0.19.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.ToolWindow, BecquerelMonitor, Version=1.0.19.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="statusMessage1.Location" type="System.Drawing.Point, System.Drawing">
     <value>0, 0</value>

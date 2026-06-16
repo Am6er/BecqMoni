@@ -457,7 +457,7 @@
     <value>numberColumn1</value>
   </data>
   <data name="&gt;&gt;numberColumn1.Type" xml:space="preserve">
-    <value>XPTable.Models.NumberColumn, BecquerelMonitorPlus, Version=1.0.23.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=1.0.23.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="button1.ToolTip" xml:space="preserve">
     <value>Reset calibration</value>
@@ -571,7 +571,7 @@
     <value>numberColumn2</value>
   </data>
   <data name="&gt;&gt;numberColumn2.Type" xml:space="preserve">
-    <value>XPTable.Models.NumberColumn, BecquerelMonitorPlus, Version=1.0.23.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=1.0.23.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="button1.TabIndex" type="System.Int32, mscorlib">
     <value>2</value>
@@ -589,7 +589,7 @@
     <value>columnModel1</value>
   </data>
   <data name="&gt;&gt;columnModel1.Type" xml:space="preserve">
-    <value>XPTable.Models.ColumnModel, BecquerelMonitorPlus, Version=1.0.23.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.ColumnModel, BecquerelMonitor, Version=1.0.23.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="button7.TabIndex" type="System.Int32, mscorlib">
     <value>11</value>
@@ -682,7 +682,7 @@
     <value>tableModel1</value>
   </data>
   <data name="&gt;&gt;tableModel1.Type" xml:space="preserve">
-    <value>XPTable.Models.TableModel, BecquerelMonitorPlus, Version=1.0.23.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.TableModel, BecquerelMonitor, Version=1.0.23.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="button1.Location" type="System.Drawing.Point, System.Drawing">
     <value>235, 68</value>
@@ -745,7 +745,7 @@
     <value>table1</value>
   </data>
   <data name="&gt;&gt;table1.Type" xml:space="preserve">
-    <value>XPTable.Models.Table, BecquerelMonitorPlus, Version=1.0.23.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.Table, BecquerelMonitor, Version=1.0.23.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="label5.TabIndex" type="System.Int32, mscorlib">
     <value>34</value>
@@ -796,7 +796,7 @@
     <value>DCEnergyCalibrationView</value>
   </data>
   <data name="&gt;&gt;$this.Type" xml:space="preserve">
-    <value>BecquerelMonitor.ToolWindow, BecquerelMonitorPlus, Version=1.0.23.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.ToolWindow, BecquerelMonitor, Version=1.0.23.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;label1.Parent" xml:space="preserve">
     <value>groupBox1</value>
@@ -856,7 +856,7 @@
     <value>label4</value>
   </data>
   <data name="&gt;&gt;textColumn1.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitorPlus, Version=1.0.23.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=1.0.23.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;textColumn1.Name" xml:space="preserve">
     <value>textColumn1</value>
@@ -1048,7 +1048,7 @@
     <value>numberColumn2</value>
   </data>
   <data name="&gt;&gt;numberColumn3.Type" xml:space="preserve">
-    <value>XPTable.Models.NumberColumn, BecquerelMonitorPlus, Version=1.0.23.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=1.0.23.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;button15.ZOrder" xml:space="preserve">
     <value>0</value>

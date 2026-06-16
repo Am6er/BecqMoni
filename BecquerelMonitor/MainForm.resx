@@ -186,7 +186,7 @@
     <value>menuStrip1</value>
   </data>
   <data name="&gt;&gt;menuStrip1.Type" xml:space="preserve">
-    <value>BecquerelMonitor.MenuStripEx, BecquerelMonitorPlus, Version=1.0.20.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.MenuStripEx, BecquerelMonitor, Version=1.0.20.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="roiDefinitionRToolStripMenuItem.Text" xml:space="preserve">
     <value>Edit &amp;ROI Configurations...</value>
