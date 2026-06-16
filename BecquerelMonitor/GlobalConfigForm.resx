@@ -373,7 +373,7 @@
     <value>colorComboBox32</value>
   </data>
   <data name="&gt;&gt;colorComboBox32.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;tabPage2.Parent" xml:space="preserve">
     <value>tabControl1</value>
@@ -448,7 +448,7 @@
     <value>colorComboBox30</value>
   </data>
   <data name="&gt;&gt;colorComboBox30.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="label79.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -496,7 +496,7 @@
     <value>colorComboBox33</value>
   </data>
   <data name="&gt;&gt;colorComboBox33.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="label49.Text" xml:space="preserve">
     <value>σ</value>
@@ -574,7 +574,7 @@
     <value>colorComboBox31</value>
   </data>
   <data name="&gt;&gt;colorComboBox31.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;integerTextBox5.ZOrder" xml:space="preserve">
     <value>0</value>
@@ -625,7 +625,7 @@
     <value>colorComboBox34</value>
   </data>
   <data name="&gt;&gt;colorComboBox34.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;integerTextBox9.Parent" xml:space="preserve">
     <value>groupBox9</value>
@@ -688,7 +688,7 @@
     <value>doubleTextBox2</value>
   </data>
   <data name="&gt;&gt;doubleTextBox2.Type" xml:space="preserve">
-    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="label14.Text" xml:space="preserve">
     <value>Axis</value>
@@ -745,7 +745,7 @@
     <value>doubleTextBox1</value>
   </data>
   <data name="&gt;&gt;doubleTextBox1.Type" xml:space="preserve">
-    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="colorComboBox5.Location" type="System.Drawing.Point, System.Drawing">
     <value>131, 72</value>
@@ -766,7 +766,7 @@
     <value>17</value>
   </data>
   <data name="&gt;&gt;colorComboBox35.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;integerTextBox10.ZOrder" xml:space="preserve">
     <value>5</value>
@@ -865,7 +865,7 @@
     <value>doubleTextBox3</value>
   </data>
   <data name="&gt;&gt;doubleTextBox3.Type" xml:space="preserve">
-    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="label15.Text" xml:space="preserve">
     <value>Number</value>
@@ -1330,7 +1330,7 @@
     <value>label79</value>
   </data>
   <data name="&gt;&gt;integerTextBox12.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;label79.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
@@ -1429,7 +1429,7 @@
     <value>integerTextBox10</value>
   </data>
   <data name="&gt;&gt;integerTextBox10.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="numericUpDown7.Location" type="System.Drawing.Point, System.Drawing">
     <value>247, 43</value>
@@ -1498,7 +1498,7 @@
     <value>integerTextBox13</value>
   </data>
   <data name="&gt;&gt;integerTextBox13.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="groupBox9.Text" xml:space="preserve">
     <value>Sample Measurement Time</value>
@@ -1633,7 +1633,7 @@
     <value>12, 54</value>
   </data>
   <data name="&gt;&gt;integerTextBox11.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="groupBox7.Text" xml:space="preserve">
     <value>Energy Calibration Adjustment Unit</value>
@@ -1825,7 +1825,7 @@
     <value>groupBox4</value>
   </data>
   <data name="&gt;&gt;colorComboBox36.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;colorComboBox36.Name" xml:space="preserve">
     <value>colorComboBox36</value>
@@ -2608,7 +2608,7 @@
     <value>colorComboBox10</value>
   </data>
   <data name="&gt;&gt;colorComboBox10.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="label68.Size" type="System.Drawing.Size, System.Drawing">
     <value>58, 12</value>
@@ -2698,7 +2698,7 @@
     <value>2, 2, 2, 2</value>
   </data>
   <data name="&gt;&gt;colorComboBox12.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;colorComboBox17.ZOrder" xml:space="preserve">
     <value>33</value>
@@ -2752,7 +2752,7 @@
     <value>colorComboBox11</value>
   </data>
   <data name="&gt;&gt;colorComboBox11.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="label6.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -2794,7 +2794,7 @@
     <value>colorComboBox14</value>
   </data>
   <data name="&gt;&gt;colorComboBox14.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="integerTextBox12.Size" type="System.Drawing.Size, System.Drawing">
     <value>100, 19</value>
@@ -2830,7 +2830,7 @@
     <value>colorComboBox13</value>
   </data>
   <data name="&gt;&gt;colorComboBox13.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="label79.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
@@ -2863,7 +2863,7 @@
     <value>colorComboBox16</value>
   </data>
   <data name="&gt;&gt;colorComboBox16.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="label53.TabIndex" type="System.Int32, mscorlib">
     <value>27</value>
@@ -2935,7 +2935,7 @@
     <value>colorComboBox15</value>
   </data>
   <data name="&gt;&gt;colorComboBox15.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="integerTextBox13.Size" type="System.Drawing.Size, System.Drawing">
     <value>100, 19</value>
@@ -2974,7 +2974,7 @@
     <value>colorComboBox18</value>
   </data>
   <data name="&gt;&gt;colorComboBox18.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="label22.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -3016,7 +3016,7 @@
     <value>colorComboBox17</value>
   </data>
   <data name="&gt;&gt;colorComboBox17.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="textBox4.TabIndex" type="System.Int32, mscorlib">
     <value>8</value>
@@ -3133,7 +3133,7 @@
     <value>2, 2, 2, 2</value>
   </data>
   <data name="&gt;&gt;colorComboBox19.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;label20.ZOrder" xml:space="preserve">
     <value>28</value>
@@ -4141,7 +4141,7 @@
     <value>50</value>
   </data>
   <data name="&gt;&gt;colorComboBox22.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;label51.Name" xml:space="preserve">
     <value>label51</value>
@@ -4171,7 +4171,7 @@
     <value>colorComboBox23</value>
   </data>
   <data name="&gt;&gt;colorComboBox23.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;label1.ZOrder" xml:space="preserve">
     <value>19</value>
@@ -4225,7 +4225,7 @@
     <value>colorComboBox20</value>
   </data>
   <data name="&gt;&gt;colorComboBox20.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="comboBox4.TabIndex" type="System.Int32, mscorlib">
     <value>10</value>
@@ -4282,7 +4282,7 @@
     <value>colorComboBox21</value>
   </data>
   <data name="&gt;&gt;colorComboBox21.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="label82.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
@@ -4321,7 +4321,7 @@
     <value>label2</value>
   </data>
   <data name="&gt;&gt;colorComboBox26.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="label72.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
@@ -4381,7 +4381,7 @@
     <value>label3</value>
   </data>
   <data name="&gt;&gt;colorComboBox27.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="colorComboBox28.Margin" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>2, 2, 2, 2</value>
@@ -4423,7 +4423,7 @@
     <value>colorComboBox24</value>
   </data>
   <data name="&gt;&gt;colorComboBox24.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;comboBox3.Parent" xml:space="preserve">
     <value>groupBox1</value>
@@ -4465,7 +4465,7 @@
     <value>label1</value>
   </data>
   <data name="&gt;&gt;colorComboBox25.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="groupBox10.Location" type="System.Drawing.Point, System.Drawing">
     <value>19, 377</value>
@@ -4639,7 +4639,7 @@
     <value>colorComboBox28</value>
   </data>
   <data name="&gt;&gt;colorComboBox28.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;label4.Name" xml:space="preserve">
     <value>label4</value>
@@ -4669,7 +4669,7 @@
     <value>12</value>
   </data>
   <data name="&gt;&gt;integerTextBox8.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;integerTextBox8.Name" xml:space="preserve">
     <value>integerTextBox8</value>
@@ -4705,7 +4705,7 @@
     <value>colorComboBox29</value>
   </data>
   <data name="&gt;&gt;colorComboBox29.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;label5.Name" xml:space="preserve">
     <value>label5</value>
@@ -4723,7 +4723,7 @@
     <value>19, 53</value>
   </data>
   <data name="&gt;&gt;integerTextBox9.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="button7.Size" type="System.Drawing.Size, System.Drawing">
     <value>75, 23</value>
@@ -4903,7 +4903,7 @@
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;integerTextBox2.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;integerTextBox2.Name" xml:space="preserve">
     <value>integerTextBox2</value>
@@ -4936,7 +4936,7 @@
     <value>True</value>
   </data>
   <data name="&gt;&gt;colorComboBox1.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;colorComboBox1.Name" xml:space="preserve">
     <value>colorComboBox1</value>
@@ -4948,7 +4948,7 @@
     <value>groupBox5</value>
   </data>
   <data name="&gt;&gt;integerTextBox3.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;integerTextBox3.Name" xml:space="preserve">
     <value>integerTextBox3</value>
@@ -4963,7 +4963,7 @@
     <value>406, 146</value>
   </data>
   <data name="&gt;&gt;colorComboBox2.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;colorComboBox2.Name" xml:space="preserve">
     <value>colorComboBox2</value>
@@ -5002,7 +5002,7 @@
     <value>49</value>
   </data>
   <data name="&gt;&gt;colorComboBox3.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="label13.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -5020,7 +5020,7 @@
     <value>12</value>
   </data>
   <data name="&gt;&gt;integerTextBox1.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="label31.TabIndex" type="System.Int32, mscorlib">
     <value>54</value>
@@ -5056,7 +5056,7 @@
     <value>19, 94</value>
   </data>
   <data name="&gt;&gt;colorComboBox4.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;colorComboBox4.Name" xml:space="preserve">
     <value>colorComboBox4</value>
@@ -5065,7 +5065,7 @@
     <value>groupBox5</value>
   </data>
   <data name="&gt;&gt;integerTextBox6.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;integerTextBox6.Name" xml:space="preserve">
     <value>integerTextBox6</value>
@@ -5092,7 +5092,7 @@
     <value>131, 46</value>
   </data>
   <data name="&gt;&gt;colorComboBox5.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;colorComboBox5.Name" xml:space="preserve">
     <value>colorComboBox5</value>
@@ -5101,7 +5101,7 @@
     <value>614, 68</value>
   </data>
   <data name="&gt;&gt;integerTextBox7.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;integerTextBox7.Name" xml:space="preserve">
     <value>integerTextBox7</value>
@@ -5173,13 +5173,13 @@
     <value>76</value>
   </data>
   <data name="&gt;&gt;colorComboBox6.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;colorComboBox6.Name" xml:space="preserve">
     <value>colorComboBox6</value>
   </data>
   <data name="&gt;&gt;integerTextBox4.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;integerTextBox4.Name" xml:space="preserve">
     <value>integerTextBox4</value>
@@ -5224,7 +5224,7 @@
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;colorComboBox7.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;colorComboBox7.Name" xml:space="preserve">
     <value>colorComboBox7</value>
@@ -5233,7 +5233,7 @@
     <value>6</value>
   </data>
   <data name="&gt;&gt;integerTextBox5.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;integerTextBox5.Name" xml:space="preserve">
     <value>integerTextBox5</value>
@@ -5287,7 +5287,7 @@
     <value>groupBox3</value>
   </data>
   <data name="&gt;&gt;colorComboBox8.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;colorComboBox8.Name" xml:space="preserve">
     <value>colorComboBox8</value>
@@ -5341,7 +5341,7 @@
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;colorComboBox9.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;colorComboBox9.Name" xml:space="preserve">
     <value>colorComboBox9</value>
@@ -5521,7 +5521,7 @@
     <value>colorComboBox37</value>
   </data>
   <data name="&gt;&gt;colorComboBox37.Type" xml:space="preserve">
-    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitorPlus, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>ColorComboTestApp.ColorComboBox, BecquerelMonitor, Version=1.0.24.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;colorComboBox37.ZOrder" xml:space="preserve">
     <value>16</value>

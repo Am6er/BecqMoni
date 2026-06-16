@@ -80,7 +80,7 @@ namespace BecquerelMonitor
 
             this.numericUpDown3.Minimum = 0;
             this.numericUpDown3.Maximum = 100;
-            this.numericUpDown3.Increment = 1;
+            this.numericUpDown3.Increment = 0.1m;
             this.numericUpDown3.Value = (decimal)fwhmPeakDetectionMethodConfig.Tolerance;
 
             this.FormLoading = false;
@@ -180,7 +180,13 @@ namespace BecquerelMonitor
         public void RefreshNuclideSets()
         {
             this.comboBoxNuclSet.Items.Clear();
-            this.comboBoxNuclSet.Items.Add(comboBoxNuclSetAllNuclidesText);
+            string allNuclidesText = this.comboBoxNuclSetAllNuclidesText;
+            if (string.IsNullOrEmpty(allNuclidesText))
+            {
+                allNuclidesText = "--- All Nuclides ---";
+            }
+
+            this.comboBoxNuclSet.Items.Add(allNuclidesText);
             foreach (NuclideSet set in this.nuclideManager.NuclideSets)
             {
                 this.comboBoxNuclSet.Items.Add(set.Name);
@@ -231,7 +237,7 @@ namespace BecquerelMonitor
                 DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
                 ResultData activeResultData = activeDocument.ActiveResultData;
                 FWHMPeakDetectionMethodConfig fwhmPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)activeResultData.PeakDetectionMethodConfig;
-                fwhmPeakDetectionMethodConfig.Tolerance = (double)((int)this.numericUpDown3.Value);
+                fwhmPeakDetectionMethodConfig.Tolerance = (double)this.numericUpDown3.Value;
                 this.UpdatePeakDetectionResult();
                 activeDocument.EnergySpectrumView.Invalidate();
             }
@@ -276,7 +282,7 @@ namespace BecquerelMonitor
             this.mainForm.CallNucBaseSearch(energy);
         }
 
-        void ToolStripMenuItem1_Opening(object sender, EventArgs e)
+        void ToolStripMenuItem1_Opening(object sender, System.ComponentModel.CancelEventArgs e)
         {
             if (this.table1.SelectedItems.Length == 0)
             {

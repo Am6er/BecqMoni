@@ -307,7 +307,7 @@
     <value>energySpectrumView1</value>
   </data>
   <data name="&gt;&gt;energySpectrumView1.Type" xml:space="preserve">
-    <value>BecquerelMonitor.EnergySpectrumView, BecquerelMonitorPlus, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.EnergySpectrumView, BecquerelMonitor, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="toolStripSplitButton5.ImageTransparentColor" type="System.Drawing.Color, System.Drawing">
     <value>White</value>
@@ -887,7 +887,7 @@
     <value>toolStrip1</value>
   </data>
   <data name="&gt;&gt;toolStrip1.Type" xml:space="preserve">
-    <value>BecquerelMonitor.ToolStripEx, BecquerelMonitorPlus, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.ToolStripEx, BecquerelMonitor, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="toolStrip2.Location" type="System.Drawing.Point, System.Drawing">
     <value>3, 0</value>
@@ -926,7 +926,7 @@
     <value>toolStrip2</value>
   </data>
   <data name="&gt;&gt;toolStrip2.Type" xml:space="preserve">
-    <value>BecquerelMonitor.ToolStripEx, BecquerelMonitorPlus, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.ToolStripEx, BecquerelMonitor, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="setUpperThresholdHToolStripMenuItem.Text" xml:space="preserve">
     <value>Set the upper threshold limit from the position of the cursor on the spectrum(&amp;Н)</value>

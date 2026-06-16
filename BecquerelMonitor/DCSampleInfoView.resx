@@ -461,7 +461,7 @@
     <value>DCSampleInfoView</value>
   </data>
   <data name="&gt;&gt;$this.Type" xml:space="preserve">
-    <value>BecquerelMonitor.ToolWindow, BecquerelMonitorPlus, Version=1.0.20.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.ToolWindow, BecquerelMonitor, Version=1.0.20.0, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;label1.Parent" xml:space="preserve">
     <value>$this</value>

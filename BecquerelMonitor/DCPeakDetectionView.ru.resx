@@ -157,6 +157,12 @@
   <data name="textColumn4.Text" xml:space="preserve">
     <value>Ошибка</value>
   </data>
+  <data name="textColumn5.Text" xml:space="preserve">
+    <value>SNR</value>
+  </data>
+  <data name="textColumn6.Text" xml:space="preserve">
+    <value>FWHM</value>
+  </data>
   <data name="labelSetName.Text" xml:space="preserve">
     <value>Набор:</value>
   </data>
