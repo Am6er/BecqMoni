@@ -575,7 +575,7 @@ namespace BecquerelMonitor
             {
                 selectedItemIndex = 0;
             }
-            if (selectedItemIndex < 0 && selectedItemIndex >= this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints.Count)
+            if (selectedItemIndex < 0 || selectedItemIndex >= this.mainForm.ActiveDocument.ActiveResultData.CalibrationPoints.Count)
             {
                 return;
             }
@@ -610,14 +610,7 @@ namespace BecquerelMonitor
                 this.tableModel1.Rows.Add(row);
                 num++;
             }
-            if (num <= 5 && num >= 2)
-            {
-                this.numericUpDown6.Value = num-2;
-            } else
-            {
-                if (num == 1) this.numericUpDown6.Value = 0;
-                this.numericUpDown6.Value = 4;
-            }
+            this.numericUpDown6.Value = Math.Min(4, Math.Max(0, num - 2));
             this.table1.ResumeLayout();
         }
 
@@ -780,7 +773,7 @@ namespace BecquerelMonitor
 
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
             DeviceConfigInfo deviceConfig = activeDocument.ActiveResultData.DeviceConfig;
-            if (deviceConfig != null || deviceConfig.Guid != null || deviceConfig.Guid != "")
+            if (deviceConfig != null && !string.IsNullOrEmpty(deviceConfig.Guid))
             {
                 if (deviceConfig.InputDeviceConfig is RadiaCodeDeviceConfig && PolynomOrder >= 2)
                 {
