@@ -215,7 +215,7 @@ namespace BecquerelMonitor.Utils
                 {
                     double enrg = this.EnergySpectrum.EnergyCalibration.ChannelToEnergy(i);
                     int bgchan = Convert.ToInt32(bgenergySpectrum.EnergyCalibration.EnergyToChannel(enrg, maxChannels: substractedEnergySpectrum.NumberOfChannels));
-                    if (bgchan > 0 && bgchan < bgenergySpectrum.NumberOfChannels)
+                    if (bgchan >= 0 && bgchan < bgenergySpectrum.NumberOfChannels)
                     {
                         substractedEnergySpectrum.Spectrum[i] = Convert.ToInt32(this.EnergySpectrum.Spectrum[i] - norm_coeff * bgenergySpectrum.Spectrum[bgchan]);
                         if (substractedEnergySpectrum.Spectrum[i] < 0)
@@ -352,7 +352,7 @@ namespace BecquerelMonitor.Utils
             {
                 observedValue = this.EnergySpectrum.Spectrum[i] - 
                     getY(i, startCh, endCh, this.EnergySpectrum.Spectrum[startCh], this.EnergySpectrum.Spectrum[endCh]);
-                expectedValue = gauss((double)i, amplitude, fwhm, (double)median);
+                expectedValue = gauss_value((double)i, amplitude, fwhm, (double)median);
                 if (expectedValue <= 0 || observedValue <= 0) continue;
                 currentChi2pndp += (expectedValue - observedValue) * (expectedValue - observedValue) / expectedValue;
                 validChannels++;
@@ -378,7 +378,7 @@ namespace BecquerelMonitor.Utils
                     {
                         observedValue = this.EnergySpectrum.Spectrum[i] - 
                             getY(i, startCh, endCh, this.EnergySpectrum.Spectrum[startCh], this.EnergySpectrum.Spectrum[endCh]);
-                        expectedValue = exp_gauss_exp((double)i, amplitude, (double)median, fwhm, left, right);
+                        expectedValue = exp_gauss_exp_value((double)i, amplitude, (double)median, fwhm, left, right);
                         if (expectedValue <= 0 || observedValue <= 0) continue;
                         currentChi2pndp += (expectedValue - observedValue) * (expectedValue - observedValue) / expectedValue;
                         validChannels++;
@@ -411,20 +411,38 @@ namespace BecquerelMonitor.Utils
             return Peak;
         }
 
-        int gauss(double x, double amplitude, double fwhm, double median)
+        double gauss_value(double x, double amplitude, double fwhm, double median)
         {
+            if (fwhm <= 0)
+            {
+                return 0.0;
+            }
             double sigma = fwhm / 2.35482;
             double t = (x - median) / sigma;
-            return Convert.ToInt32(amplitude * Math.Exp(-0.5 * t * t));
+            return amplitude * Math.Exp(-0.5 * t * t);
+        }
+
+        int gauss(double x, double amplitude, double fwhm, double median)
+        {
+            return Convert.ToInt32(gauss_value(x, amplitude, fwhm, median));
+        }
+
+        double exp_gauss_exp_value(double x, double amplitude, double median, double fwhm, double left, double right)
+        {
+            if (fwhm <= 0)
+            {
+                return 0.0;
+            }
+            double sigma = fwhm / 2.35482;
+            double t = (x - median) / sigma;
+            if (t > right) return amplitude * Math.Exp(0.5 * right * right - right * t);
+            if (t > -left) return amplitude * Math.Exp(-0.5 * t * t);
+            return amplitude * Math.Exp(0.5 * left * left + left * t);
         }
 
         int exp_gauss_exp(double x, double amplitude, double median, double fwhm, double left, double right)
         {
-            double sigma = fwhm / 2.35482;
-            double t = (x - median) / sigma;
-            if (t > right) return Convert.ToInt32(amplitude * Math.Exp(0.5 * right * right - right * t));
-            if (t > -left) return Convert.ToInt32(amplitude * Math.Exp(-0.5 * t * t));
-            return Convert.ToInt32(amplitude * Math.Exp(0.5 * left * left + left * t));
+            return Convert.ToInt32(exp_gauss_exp_value(x, amplitude, median, fwhm, left, right));
         }
 
         public (int[], int, int, Color) GetPeak(Peak peak, EnergySpectrum continuum, bool smooth)
@@ -512,43 +530,42 @@ namespace BecquerelMonitor.Utils
 
             int n = Convert.ToInt32(r.Max());
 
-            int[] seq = new int[n];
-            if (decreasing)
+            if (n <= 0)
             {
-                seq = seq.Select((i, iter) => n - iter).ToArray();
+                if (useLLS)
+                {
+                    baseline = baseline.Select(i => iLLS(i)).ToArray();
+                }
             }
             else
             {
-                seq = seq.Select((i, iter) => iter).ToArray();
-            }
+                int start = decreasing ? n : 1;
+                int end = decreasing ? 1 : n;
+                int step = decreasing ? -1 : 1;
 
-            double[] tmp = baseline;
-
-            foreach (int p in seq)
-            {
-                Parallel.For(p, x.Length - p, i =>
+                for (int p = start; decreasing ? p >= end : p <= end; p += step)
                 {
-                    double b = 0;
-                    if (p <= r[i])
+                    double[] next = (double[])baseline.Clone();
+                    Parallel.For(p, x.Length - p, i =>
                     {
-                        b = (baseline[i - p] + baseline[i + p]) / 2;
-                        tmp[i] = Math.Min(baseline[i], b);
-                    }
-                    else
-                    {
-                        tmp[i] = baseline[i];
-                    }
-                });
-                baseline = tmp;
-            }
+                        if (p <= r[i])
+                        {
+                            double b = (baseline[i - p] + baseline[i + p]) / 2;
+                            next[i] = Math.Min(baseline[i], b);
+                        }
+                    });
+                    baseline = next;
+                }
 
-            if (useLLS)
-            {
-                baseline = baseline.Select(i => iLLS(i)).ToArray();
+                if (useLLS)
+                {
+                    baseline = baseline.Select(i => iLLS(i)).ToArray();
+                }
             }
 
             int[] baseline_arr = baseline.Select(i => Convert.ToInt32(i)).ToArray();
 
+            /*
             int baseline_max = 0;
             int baseline_max_i = 0;
             for(int i = 1; i < baseline_arr.Length/2; i++)
@@ -564,7 +581,7 @@ namespace BecquerelMonitor.Utils
             {
                 baseline_arr[i] = baseline_max;
             }
-
+            */
             return baseline_arr;
         }
 
