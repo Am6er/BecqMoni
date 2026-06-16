@@ -117,17 +117,17 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="$this.TabText" xml:space="preserve">
-    <value>Список спектров</value>
+  <data name="checkBoxColumn1.Text" xml:space="preserve">
+    <value>Легенда</value>
   </data>
-  <data name="$this.Text" xml:space="preserve">
-    <value>Список спектров</value>
+  <data name="textColumn2.Text" xml:space="preserve">
+    <value>Имя</value>
+  </data>
+  <data name="button2.Text" xml:space="preserve">
+    <value>Удалить</value>
   </data>
   <data name="button1.Text" xml:space="preserve">
     <value>Новый</value>
-  </data>
-  <data name="button2.Text" xml:space="preserve">
-    <value>Удал.</value>
   </data>
   <data name="button3.Text" xml:space="preserve">
     <value>Импорт...</value>
@@ -135,10 +135,10 @@
   <data name="button4.Text" xml:space="preserve">
     <value>Экспорт...</value>
   </data>
-  <data name="checkBoxColumn1.Text" xml:space="preserve">
-    <value>Легенда</value>
+  <data name="$this.TabText" xml:space="preserve">
+    <value>Список спектров</value>
   </data>
-  <data name="textColumn2.Text" xml:space="preserve">
-    <value>Имя</value>
+  <data name="$this.Text" xml:space="preserve">
+    <value>Список спектров</value>
   </data>
 </root>
