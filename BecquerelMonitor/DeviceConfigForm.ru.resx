@@ -144,7 +144,7 @@
     <value>Дубль</value>
   </data>
   <data name="button13.Text" xml:space="preserve">
-    <value>Читать с утройства</value>
+    <value>Читать с устройства</value>
   </data>
   <data name="button14.Text" xml:space="preserve">
     <value>Записать в устройство</value>
@@ -239,6 +239,9 @@
   <data name="label41.Text" xml:space="preserve">
     <value>Допуск</value>
   </data>
+  <data name="label42.Text" xml:space="preserve">
+    <value>%</value>
+  </data>
   <data name="label43.Text" xml:space="preserve">
     <value>4 коэф.(a)</value>
   </data>
@@ -320,6 +323,9 @@
   <data name="textColumn2.Text" xml:space="preserve">
     <value>Обновлён</value>
   </data>
+  <data name="textColumn3.Text" xml:space="preserve">
+    <value>#</value>
+  </data>
   <data name="textColumn4.Text" xml:space="preserve">
     <value>Нуклид</value>
   </data>
@@ -337,6 +343,9 @@
   </data>
   <data name="numberColumn6.Text" xml:space="preserve">
     <value>Конец, keV</value>
+  </data>
+  <data name="numberColumn7.Text" xml:space="preserve">
+    <value>CPS</value>
   </data>
   <data name="numberColumn8.Text" xml:space="preserve">
     <value>Эталон МЭД, μSv/h</value>
@@ -388,5 +397,11 @@
   </data>
   <data name="rightSkewlabel.Text" xml:space="preserve">
     <value>Правый перекос</value>
+  </data>
+  <data name="peakTypecomboBox.Items" xml:space="preserve">
+    <value>Gaussian</value>
+  </data>
+  <data name="peakTypecomboBox.Items1" xml:space="preserve">
+    <value>Exp-Gaussian-Exp</value>
   </data>
 </root>
