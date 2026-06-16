@@ -79,6 +79,7 @@ namespace BecquerelMonitor
         {
             if (resultCollection == null || resultCollection.ResultList == null)
             {
+                this.table1.BeginUpdate();
                 this.tableModel1.Rows.Clear();
                 this.table1.EndUpdate();
                 this.previousCollection = null;
@@ -88,6 +89,10 @@ namespace BecquerelMonitor
             decimal errorLevel = globalConfig.MeasurementConfig.ErrorLevel;
             bool showValuesForNDResult = globalConfig.MeasurementConfig.ShowValuesForNDResult;
             if (this.previousCollection == null || this.previousCollection.ROIConfig.Guid != resultCollection.ROIConfig.Guid)
+            {
+                refresh = true;
+            }
+            if (this.tableModel1.Rows.Count != resultCollection.ResultList.Count)
             {
                 refresh = true;
             }
@@ -213,7 +218,10 @@ namespace BecquerelMonitor
                     {
                         row2.Cells[1].Text = Resources.ErrorString;
                         row2.Cells[1].Tag = false;
+                        row2.Cells[1].Data = null;
+                        row2.Cells[2].Text = string.Empty;
                         row2.Cells[2].Data = 0.0;
+                        row2.Cells[3].Text = string.Empty;
                         row2.Cells[3].Data = 0.0;
                     }
                 }

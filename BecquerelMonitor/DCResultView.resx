@@ -112,24 +112,178 @@
     <value>2.0</value>
   </resheader>
   <resheader name="reader">
-    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <resheader name="writer">
-    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
-  <data name="table1.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
-    <value>Top, Bottom, Left, Right</value>
+  <data name="comboBox2.Items" xml:space="preserve">
+    <value>No Correction</value>
   </data>
-  <data name="table1.Text" xml:space="preserve">
-    <value>table1</value>
+  <data name="comboBox2.Items1" xml:space="preserve">
+    <value>Half Lifetime Correction</value>
   </data>
-  <assembly alias="System.Drawing" name="System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
-  <data name="table1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>370, 190</value>
+  <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+  <data name="comboBox2.Location" type="System.Drawing.Point, System.Drawing">
+    <value>92, 6</value>
+  </data>
+  <data name="comboBox2.Size" type="System.Drawing.Size, System.Drawing">
+    <value>153, 21</value>
+  </data>
+  <assembly alias="mscorlib" name="mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="comboBox2.TabIndex" type="System.Int32, mscorlib">
+    <value>3</value>
+  </data>
+  <data name="&gt;&gt;comboBox2.Name" xml:space="preserve">
+    <value>comboBox2</value>
+  </data>
+  <data name="&gt;&gt;comboBox2.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;comboBox2.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;comboBox2.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="button1.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Top, Right</value>
+  </data>
+  <data name="button1.Location" type="System.Drawing.Point, System.Drawing">
+    <value>290, 4</value>
+  </data>
+  <data name="button1.Size" type="System.Drawing.Size, System.Drawing">
+    <value>75, 23</value>
+  </data>
+  <data name="button1.TabIndex" type="System.Int32, mscorlib">
+    <value>1</value>
+  </data>
+  <data name="button1.Text" xml:space="preserve">
+    <value>Edit ROI...</value>
+  </data>
+  <data name="&gt;&gt;button1.Name" xml:space="preserve">
+    <value>button1</value>
+  </data>
+  <data name="&gt;&gt;button1.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;button1.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;button1.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="comboBox1.Items" xml:space="preserve">
+    <value>Counts</value>
+  </data>
+  <data name="comboBox1.Items1" xml:space="preserve">
+    <value>cps</value>
+  </data>
+  <data name="comboBox1.Items2" xml:space="preserve">
+    <value>Bq</value>
+  </data>
+  <data name="comboBox1.Items3" xml:space="preserve">
+    <value>Bq/kg</value>
+  </data>
+  <data name="comboBox1.Items4" xml:space="preserve">
+    <value>Bq/l</value>
   </data>
   <data name="comboBox1.Location" type="System.Drawing.Point, System.Drawing">
     <value>4, 6</value>
+  </data>
+  <data name="comboBox1.Size" type="System.Drawing.Size, System.Drawing">
+    <value>82, 21</value>
+  </data>
+  <data name="comboBox1.TabIndex" type="System.Int32, mscorlib">
+    <value>2</value>
+  </data>
+  <data name="&gt;&gt;comboBox1.Name" xml:space="preserve">
+    <value>comboBox1</value>
+  </data>
+  <data name="&gt;&gt;comboBox1.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;comboBox1.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;comboBox1.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="table1.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Top, Bottom, Left, Right</value>
+  </data>
+  <metadata name="columnModel1.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <value>17, 17</value>
+  </metadata>
+  <data name="textColumn1.Text" xml:space="preserve">
+    <value>ROI</value>
+  </data>
+  <data name="textColumn1.Width" type="System.Int32, mscorlib">
+    <value>90</value>
+  </data>
+  <data name="textColumn2.Text" xml:space="preserve">
+    <value>Result</value>
+  </data>
+  <data name="textColumn2.Width" type="System.Int32, mscorlib">
+    <value>80</value>
+  </data>
+  <data name="textColumn3.Text" xml:space="preserve">
+    <value>Uncertain</value>
+  </data>
+  <data name="textColumn3.Width" type="System.Int32, mscorlib">
+    <value>116</value>
+  </data>
+  <data name="textColumn4.Text" xml:space="preserve">
+    <value>MDA</value>
+  </data>
+  <data name="table1.Location" type="System.Drawing.Point, System.Drawing">
+    <value>0, 30</value>
+  </data>
+  <data name="table1.NoItemsText" xml:space="preserve">
+    <value />
+  </data>
+  <data name="table1.Size" type="System.Drawing.Size, System.Drawing">
+    <value>370, 190</value>
+  </data>
+  <data name="table1.TabIndex" type="System.Int32, mscorlib">
+    <value>0</value>
+  </data>
+  <metadata name="tableModel1.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <value>152, 17</value>
+  </metadata>
+  <data name="table1.Text" xml:space="preserve">
+    <value>table1</value>
+  </data>
+  <data name="&gt;&gt;table1.Name" xml:space="preserve">
+    <value>table1</value>
+  </data>
+  <data name="&gt;&gt;table1.Type" xml:space="preserve">
+    <value>XPTable.Models.Table, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;table1.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;table1.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <metadata name="$this.Localizable" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>True</value>
+  </metadata>
+  <data name="$this.AutoScaleDimensions" type="System.Drawing.SizeF, System.Drawing">
+    <value>6, 13</value>
+  </data>
+  <data name="$this.AutoScroll" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="$this.AutoScrollMinSize" type="System.Drawing.Size, System.Drawing">
+    <value>330, 80</value>
+  </data>
+  <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
+    <value>370, 238</value>
+  </data>
+  <data name="$this.Font" type="System.Drawing.Font, System.Drawing">
+    <value>Microsoft Sans Serif, 8pt</value>
   </data>
   <data name="$this.Icon" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
@@ -150,191 +304,52 @@
         AADAAQAAwAEAAMABAADAAQAAwAEAAMABAADAAQAAwAEAAMABAADAAQAAwAMAAMAHAAD//wAA
 </value>
   </data>
-  <data name="$this.Text" xml:space="preserve">
-    <value>Measurement Result</value>
-  </data>
-  <data name="&gt;&gt;comboBox2.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
   <data name="$this.TabText" xml:space="preserve">
     <value>Measurement Result</value>
   </data>
-  <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
-    <value>370, 220</value>
-  </data>
-  <data name="&gt;&gt;comboBox1.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;comboBox1.ZOrder" xml:space="preserve">
-    <value>1</value>
-  </data>
-  <data name="&gt;&gt;comboBox2.ZOrder" xml:space="preserve">
-    <value>0</value>
-  </data>
-  <data name="comboBox1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>82, 20</value>
-  </data>
-  <data name="&gt;&gt;table1.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="comboBox2.Size" type="System.Drawing.Size, System.Drawing">
-    <value>153, 20</value>
-  </data>
-  <data name="&gt;&gt;table1.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
-  <data name="&gt;&gt;button1.ZOrder" xml:space="preserve">
-    <value>2</value>
-  </data>
-  <data name="button1.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
-    <value>Top, Right</value>
-  </data>
-  <assembly alias="mscorlib" name="mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
-  <data name="comboBox2.TabIndex" type="System.Int32, mscorlib">
-    <value>3</value>
-  </data>
-  <data name="&gt;&gt;button1.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="button1.TabIndex" type="System.Int32, mscorlib">
-    <value>1</value>
+  <data name="$this.Text" xml:space="preserve">
+    <value>Measurement Result</value>
   </data>
   <data name="&gt;&gt;columnModel1.Name" xml:space="preserve">
     <value>columnModel1</value>
   </data>
   <data name="&gt;&gt;columnModel1.Type" xml:space="preserve">
-    <value>XPTable.Models.ColumnModel, BecquerelMonitor, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.ColumnModel, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
-  <data name="textColumn2.Width" type="System.Int32, mscorlib">
-    <value>80</value>
+  <data name="&gt;&gt;textColumn1.Name" xml:space="preserve">
+    <value>textColumn1</value>
   </data>
-  <data name="&gt;&gt;button1.Name" xml:space="preserve">
-    <value>button1</value>
+  <data name="&gt;&gt;textColumn1.Type" xml:space="preserve">
+    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
-  <data name="&gt;&gt;button1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  <data name="&gt;&gt;textColumn2.Name" xml:space="preserve">
+    <value>textColumn2</value>
   </data>
-  <data name="comboBox2.Items" xml:space="preserve">
-    <value>No Correction</value>
+  <data name="&gt;&gt;textColumn2.Type" xml:space="preserve">
+    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
-  <data name="table1.TabIndex" type="System.Int32, mscorlib">
-    <value>0</value>
+  <data name="&gt;&gt;textColumn3.Name" xml:space="preserve">
+    <value>textColumn3</value>
   </data>
-  <data name="comboBox1.TabIndex" type="System.Int32, mscorlib">
-    <value>2</value>
+  <data name="&gt;&gt;textColumn3.Type" xml:space="preserve">
+    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
-  <data name="table1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>0, 30</value>
+  <data name="&gt;&gt;textColumn4.Name" xml:space="preserve">
+    <value>textColumn4</value>
+  </data>
+  <data name="&gt;&gt;textColumn4.Type" xml:space="preserve">
+    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;tableModel1.Name" xml:space="preserve">
     <value>tableModel1</value>
   </data>
   <data name="&gt;&gt;tableModel1.Type" xml:space="preserve">
-    <value>XPTable.Models.TableModel, BecquerelMonitor, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="button1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>290, 4</value>
-  </data>
-  <data name="comboBox1.Items" xml:space="preserve">
-    <value>Counts</value>
-  </data>
-  <data name="textColumn4.Text" xml:space="preserve">
-    <value>MDA</value>
-  </data>
-  <data name="textColumn3.Text" xml:space="preserve">
-    <value>Uncertain</value>
-  </data>
-  <data name="textColumn2.Text" xml:space="preserve">
-    <value>Result</value>
-  </data>
-  <data name="$this.AutoScroll" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="textColumn1.Text" xml:space="preserve">
-    <value>ROI</value>
-  </data>
-  <data name="&gt;&gt;table1.Name" xml:space="preserve">
-    <value>table1</value>
-  </data>
-  <data name="&gt;&gt;table1.Type" xml:space="preserve">
-    <value>XPTable.Models.Table, BecquerelMonitor, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="comboBox1.Items4" xml:space="preserve">
-    <value>Bq/l</value>
-  </data>
-  <data name="comboBox1.Items1" xml:space="preserve">
-    <value>cps</value>
-  </data>
-  <data name="comboBox1.Items3" xml:space="preserve">
-    <value>Bq/kg</value>
-  </data>
-  <data name="comboBox1.Items2" xml:space="preserve">
-    <value>Bq</value>
-  </data>
-  <data name="comboBox2.Items1" xml:space="preserve">
-    <value>Half Lifetime Correction</value>
-  </data>
-  <data name="table1.NoItemsText" xml:space="preserve">
-    <value />
-  </data>
-  <data name="textColumn1.Width" type="System.Int32, mscorlib">
-    <value>90</value>
+    <value>XPTable.Models.TableModel, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;$this.Name" xml:space="preserve">
     <value>DCResultView</value>
   </data>
   <data name="&gt;&gt;$this.Type" xml:space="preserve">
-    <value>BecquerelMonitor.ToolWindow, BecquerelMonitor, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="comboBox2.Location" type="System.Drawing.Point, System.Drawing">
-    <value>92, 6</value>
-  </data>
-  <data name="$this.AutoScrollMinSize" type="System.Drawing.Size, System.Drawing">
-    <value>330, 80</value>
-  </data>
-  <data name="&gt;&gt;comboBox1.Name" xml:space="preserve">
-    <value>comboBox1</value>
-  </data>
-  <data name="&gt;&gt;comboBox1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;textColumn4.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;textColumn4.Name" xml:space="preserve">
-    <value>textColumn4</value>
-  </data>
-  <data name="&gt;&gt;textColumn3.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;textColumn3.Name" xml:space="preserve">
-    <value>textColumn3</value>
-  </data>
-  <data name="&gt;&gt;comboBox2.Name" xml:space="preserve">
-    <value>comboBox2</value>
-  </data>
-  <data name="&gt;&gt;comboBox2.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;textColumn2.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;textColumn2.Name" xml:space="preserve">
-    <value>textColumn2</value>
-  </data>
-  <data name="button1.Text" xml:space="preserve">
-    <value>Edit ROI...</value>
-  </data>
-  <data name="button1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>75, 23</value>
-  </data>
-  <data name="&gt;&gt;textColumn1.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=1.0.10.0, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;textColumn1.Name" xml:space="preserve">
-    <value>textColumn1</value>
-  </data>
-  <data name="$this.AutoScaleDimensions" type="System.Drawing.SizeF, System.Drawing">
-    <value>6, 12</value>
+    <value>BecquerelMonitor.ToolWindow, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
 </root>
