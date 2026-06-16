@@ -117,471 +117,67 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
-  <data name="CollectedPeaksTable.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
-    <value>Top, Left, Right</value>
-  </data>
-  <metadata name="columnModel1.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-    <value>137, 17</value>
-  </metadata>
-  <data name="positionColumn.Text" xml:space="preserve">
-    <value>#</value>
-  </data>
-  <assembly alias="mscorlib" name="mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
-  <data name="positionColumn.Width" type="System.Int32, mscorlib">
-    <value>30</value>
-  </data>
-  <data name="channelColumn.Text" xml:space="preserve">
-    <value>Channel</value>
-  </data>
-  <data name="channelColumn.ToolTipText" xml:space="preserve">
-    <value>Channel number</value>
-  </data>
-  <data name="channelColumn.Width" type="System.Int32, mscorlib">
-    <value>70</value>
-  </data>
-  <data name="energyColumn.Text" xml:space="preserve">
-    <value>Energy</value>
-  </data>
-  <data name="energyColumn.ToolTipText" xml:space="preserve">
-    <value>Energy in keV</value>
-  </data>
-  <data name="energyColumn.Width" type="System.Int32, mscorlib">
-    <value>120</value>
-  </data>
-  <data name="fwhmColumn.Text" xml:space="preserve">
-    <value>FWHM</value>
-  </data>
-  <data name="fwhmColumn.ToolTipText" xml:space="preserve">
-    <value>FWHM in channels</value>
-  </data>
-  <data name="fwhmColumn.Width" type="System.Int32, mscorlib">
-    <value>60</value>
-  </data>
-  <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
-  <data name="CollectedPeaksTable.Location" type="System.Drawing.Point, System.Drawing">
-    <value>12, 50</value>
-  </data>
-  <data name="CollectedPeaksTable.NoItemsText" xml:space="preserve">
-    <value>There are no calibration peaks</value>
-  </data>
-  <data name="CollectedPeaksTable.Size" type="System.Drawing.Size, System.Drawing">
-    <value>319, 150</value>
-  </data>
-  <data name="CollectedPeaksTable.TabIndex" type="System.Int32, mscorlib">
-    <value>0</value>
-  </data>
-  <metadata name="tableModel1.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-    <value>17, 17</value>
-  </metadata>
-  <data name="CollectedPeaksTable.Text" xml:space="preserve">
-    <value>table1</value>
-  </data>
-  <data name="&gt;&gt;CollectedPeaksTable.Name" xml:space="preserve">
-    <value>CollectedPeaksTable</value>
-  </data>
-  <data name="&gt;&gt;CollectedPeaksTable.Type" xml:space="preserve">
-    <value>XPTable.Models.Table, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;CollectedPeaksTable.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;CollectedPeaksTable.ZOrder" xml:space="preserve">
-    <value>6</value>
-  </data>
-  <metadata name="toolTip1.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-    <value>272, 17</value>
-  </metadata>
-  <data name="saveToDeviceCfgButton.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
-    <value>Top, Right</value>
-  </data>
-  <data name="saveToDeviceCfgButton.Location" type="System.Drawing.Point, System.Drawing">
-    <value>205, 36</value>
-  </data>
-  <data name="saveToDeviceCfgButton.Size" type="System.Drawing.Size, System.Drawing">
-    <value>107, 36</value>
-  </data>
-  <data name="saveToDeviceCfgButton.TabIndex" type="System.Int32, mscorlib">
-    <value>1</value>
-  </data>
-  <data name="saveToDeviceCfgButton.Text" xml:space="preserve">
-    <value>Save to device config</value>
-  </data>
-  <data name="saveToDeviceCfgButton.ToolTip" xml:space="preserve">
-    <value>Save calibration to current device configuration</value>
-  </data>
-  <data name="&gt;&gt;saveToDeviceCfgButton.Name" xml:space="preserve">
-    <value>saveToDeviceCfgButton</value>
-  </data>
-  <data name="&gt;&gt;saveToDeviceCfgButton.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;saveToDeviceCfgButton.Parent" xml:space="preserve">
-    <value>calibrationProcessingPanel</value>
-  </data>
-  <data name="&gt;&gt;saveToDeviceCfgButton.ZOrder" xml:space="preserve">
-    <value>6</value>
-  </data>
-  <data name="selectCurveComboBox.Items" xml:space="preserve">
-    <value>Simple Square root</value>
-  </data>
-  <data name="selectCurveComboBox.Items1" xml:space="preserve">
-    <value>Square root polynomial</value>
-  </data>
-  <data name="selectCurveComboBox.Location" type="System.Drawing.Point, System.Drawing">
-    <value>13, 40</value>
-  </data>
-  <data name="selectCurveComboBox.Size" type="System.Drawing.Size, System.Drawing">
-    <value>180, 21</value>
-  </data>
-  <data name="selectCurveComboBox.TabIndex" type="System.Int32, mscorlib">
-    <value>2</value>
-  </data>
   <data name="selectCurveComboBox.ToolTip" xml:space="preserve">
-    <value>Select calibration curve</value>
-  </data>
-  <data name="&gt;&gt;selectCurveComboBox.Name" xml:space="preserve">
-    <value>selectCurveComboBox</value>
-  </data>
-  <data name="&gt;&gt;selectCurveComboBox.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;selectCurveComboBox.Parent" xml:space="preserve">
-    <value>calibrationProcessingPanel</value>
-  </data>
-  <data name="&gt;&gt;selectCurveComboBox.ZOrder" xml:space="preserve">
-    <value>5</value>
-  </data>
-  <data name="minPeaksRequirementLabel.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="minPeaksRequirementLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>8, 143</value>
-  </data>
-  <data name="minPeaksRequirementLabel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>150, 13</value>
-  </data>
-  <data name="minPeaksRequirementLabel.TabIndex" type="System.Int32, mscorlib">
-    <value>6</value>
-  </data>
-  <data name="minPeaksRequirementLabel.Text" xml:space="preserve">
-    <value>Minimum peaks requirement: 3</value>
+    <value>Выбрать кривую калибровки</value>
   </data>
   <data name="minPeaksRequirementLabel.ToolTip" xml:space="preserve">
-    <value>Minimum peaks required for use this curve for FWHM calibration</value>
+    <value>Мин. количество пиков для использования этой кривой в FWHM калибровке</value>
   </data>
-  <data name="&gt;&gt;minPeaksRequirementLabel.Name" xml:space="preserve">
-    <value>minPeaksRequirementLabel</value>
+  <data name="calibrationProcessingPanel.ToolTip" xml:space="preserve">
+    <value />
   </data>
-  <data name="&gt;&gt;minPeaksRequirementLabel.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;minPeaksRequirementLabel.Parent" xml:space="preserve">
-    <value>calibrationProcessingPanel</value>
-  </data>
-  <data name="&gt;&gt;minPeaksRequirementLabel.ZOrder" xml:space="preserve">
-    <value>1</value>
-  </data>
-  <data name="label1.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
-    <value>Top, Left, Right</value>
-  </data>
-  <data name="label1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>13, 13</value>
-  </data>
-  <data name="label1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>318, 26</value>
-  </data>
-  <data name="label1.TabIndex" type="System.Int32, mscorlib">
-    <value>1</value>
+  <data name="curveFormulaLabel.ToolTip" xml:space="preserve">
+    <value />
   </data>
   <data name="label1.Text" xml:space="preserve">
-    <value>Determine FWHM calibration peaks by selecting them into ROI</value>
+    <value>Укажите пик для калибровки...</value>
   </data>
-  <data name="&gt;&gt;label1.Name" xml:space="preserve">
-    <value>label1</value>
+  <data name="addPeakButton.ToolTip" xml:space="preserve">
+    <value />
   </data>
-  <data name="&gt;&gt;label1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  <data name="channelColumn.Text" xml:space="preserve">
+    <value>Канал</value>
   </data>
-  <data name="&gt;&gt;label1.Parent" xml:space="preserve">
-    <value>$this</value>
+  <data name="CollectedPeaksTable.ToolTip" xml:space="preserve">
+    <value />
   </data>
-  <data name="&gt;&gt;label1.ZOrder" xml:space="preserve">
-    <value>5</value>
-  </data>
-  <data name="addPeakButton.Location" type="System.Drawing.Point, System.Drawing">
-    <value>13, 207</value>
-  </data>
-  <data name="addPeakButton.Size" type="System.Drawing.Size, System.Drawing">
-    <value>75, 23</value>
-  </data>
-  <data name="addPeakButton.TabIndex" type="System.Int32, mscorlib">
-    <value>2</value>
-  </data>
-  <data name="addPeakButton.Text" xml:space="preserve">
-    <value>Add peak</value>
-  </data>
-  <data name="&gt;&gt;addPeakButton.Name" xml:space="preserve">
-    <value>addPeakButton</value>
-  </data>
-  <data name="&gt;&gt;addPeakButton.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;addPeakButton.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;addPeakButton.ZOrder" xml:space="preserve">
-    <value>4</value>
-  </data>
-  <data name="removePeakButton.Location" type="System.Drawing.Point, System.Drawing">
-    <value>99, 207</value>
-  </data>
-  <data name="removePeakButton.Size" type="System.Drawing.Size, System.Drawing">
-    <value>64, 23</value>
-  </data>
-  <data name="removePeakButton.TabIndex" type="System.Int32, mscorlib">
-    <value>3</value>
+  <data name="label1.ToolTip" xml:space="preserve">
+    <value />
   </data>
   <data name="removePeakButton.Text" xml:space="preserve">
-    <value>Remove</value>
-  </data>
-  <data name="&gt;&gt;removePeakButton.Name" xml:space="preserve">
-    <value>removePeakButton</value>
-  </data>
-  <data name="&gt;&gt;removePeakButton.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;removePeakButton.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;removePeakButton.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
-  <data name="calibrationProcessingPanel.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
-    <value>Top, Left, Right</value>
-  </data>
-  <data name="viewCalibrationButton.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
-    <value>Top, Right</value>
-  </data>
-  <data name="viewCalibrationButton.Location" type="System.Drawing.Point, System.Drawing">
-    <value>205, 78</value>
-  </data>
-  <data name="viewCalibrationButton.Size" type="System.Drawing.Size, System.Drawing">
-    <value>107, 23</value>
-  </data>
-  <data name="viewCalibrationButton.TabIndex" type="System.Int32, mscorlib">
-    <value>7</value>
-  </data>
-  <data name="viewCalibrationButton.Text" xml:space="preserve">
-    <value>View ...</value>
-  </data>
-  <data name="&gt;&gt;viewCalibrationButton.Name" xml:space="preserve">
-    <value>viewCalibrationButton</value>
-  </data>
-  <data name="&gt;&gt;viewCalibrationButton.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;viewCalibrationButton.Parent" xml:space="preserve">
-    <value>calibrationProcessingPanel</value>
-  </data>
-  <data name="&gt;&gt;viewCalibrationButton.ZOrder" xml:space="preserve">
-    <value>0</value>
-  </data>
-  <data name="label3.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="label3.Location" type="System.Drawing.Point, System.Drawing">
-    <value>8, 111</value>
-  </data>
-  <data name="label3.Size" type="System.Drawing.Size, System.Drawing">
-    <value>47, 13</value>
-  </data>
-  <data name="label3.TabIndex" type="System.Int32, mscorlib">
-    <value>5</value>
-  </data>
-  <data name="label3.Text" xml:space="preserve">
-    <value>Formula:</value>
-  </data>
-  <data name="&gt;&gt;label3.Name" xml:space="preserve">
-    <value>label3</value>
-  </data>
-  <data name="&gt;&gt;label3.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;label3.Parent" xml:space="preserve">
-    <value>calibrationProcessingPanel</value>
-  </data>
-  <data name="&gt;&gt;label3.ZOrder" xml:space="preserve">
-    <value>2</value>
-  </data>
-  <data name="curveFormulaLabel.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
-    <value>Top, Left, Right</value>
-  </data>
-  <data name="curveFormulaLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>65, 111</value>
-  </data>
-  <data name="curveFormulaLabel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>247, 32</value>
-  </data>
-  <data name="curveFormulaLabel.TabIndex" type="System.Int32, mscorlib">
-    <value>4</value>
-  </data>
-  <data name="curveFormulaLabel.Text" xml:space="preserve">
-    <value>FWHM = √(a * ch² + b * ch + c)</value>
-  </data>
-  <data name="&gt;&gt;curveFormulaLabel.Name" xml:space="preserve">
-    <value>curveFormulaLabel</value>
-  </data>
-  <data name="&gt;&gt;curveFormulaLabel.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;curveFormulaLabel.Parent" xml:space="preserve">
-    <value>calibrationProcessingPanel</value>
-  </data>
-  <data name="&gt;&gt;curveFormulaLabel.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
-  <data name="label2.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="label2.Location" type="System.Drawing.Point, System.Drawing">
-    <value>12, 15</value>
-  </data>
-  <data name="label2.Size" type="System.Drawing.Size, System.Drawing">
-    <value>187, 13</value>
-  </data>
-  <data name="label2.TabIndex" type="System.Int32, mscorlib">
-    <value>3</value>
-  </data>
-  <data name="label2.Text" xml:space="preserve">
-    <value>Select calibration curve from list below</value>
-  </data>
-  <data name="&gt;&gt;label2.Name" xml:space="preserve">
-    <value>label2</value>
-  </data>
-  <data name="&gt;&gt;label2.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;label2.Parent" xml:space="preserve">
-    <value>calibrationProcessingPanel</value>
-  </data>
-  <data name="&gt;&gt;label2.ZOrder" xml:space="preserve">
-    <value>4</value>
-  </data>
-  <data name="executeCalibrationButton.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
-    <value>Top, Right</value>
-  </data>
-  <data name="executeCalibrationButton.Location" type="System.Drawing.Point, System.Drawing">
-    <value>205, 9</value>
-  </data>
-  <data name="executeCalibrationButton.Size" type="System.Drawing.Size, System.Drawing">
-    <value>107, 23</value>
-  </data>
-  <data name="executeCalibrationButton.TabIndex" type="System.Int32, mscorlib">
-    <value>0</value>
-  </data>
-  <data name="executeCalibrationButton.Text" xml:space="preserve">
-    <value>Execute calibration</value>
-  </data>
-  <data name="&gt;&gt;executeCalibrationButton.Name" xml:space="preserve">
-    <value>executeCalibrationButton</value>
-  </data>
-  <data name="&gt;&gt;executeCalibrationButton.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;executeCalibrationButton.Parent" xml:space="preserve">
-    <value>calibrationProcessingPanel</value>
-  </data>
-  <data name="&gt;&gt;executeCalibrationButton.ZOrder" xml:space="preserve">
-    <value>7</value>
-  </data>
-  <data name="calibrationProcessingPanel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>16, 237</value>
-  </data>
-  <data name="calibrationProcessingPanel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>315, 162</value>
-  </data>
-  <data name="calibrationProcessingPanel.TabIndex" type="System.Int32, mscorlib">
-    <value>4</value>
-  </data>
-  <data name="&gt;&gt;calibrationProcessingPanel.Name" xml:space="preserve">
-    <value>calibrationProcessingPanel</value>
-  </data>
-  <data name="&gt;&gt;calibrationProcessingPanel.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Panel, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;calibrationProcessingPanel.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;calibrationProcessingPanel.ZOrder" xml:space="preserve">
-    <value>2</value>
-  </data>
-  <data name="cancelAddPeakButton.Enabled" type="System.Boolean, mscorlib">
-    <value>False</value>
-  </data>
-  <data name="cancelAddPeakButton.Location" type="System.Drawing.Point, System.Drawing">
-    <value>176, 207</value>
-  </data>
-  <data name="cancelAddPeakButton.Size" type="System.Drawing.Size, System.Drawing">
-    <value>59, 23</value>
-  </data>
-  <data name="cancelAddPeakButton.TabIndex" type="System.Int32, mscorlib">
-    <value>5</value>
-  </data>
-  <data name="cancelAddPeakButton.Text" xml:space="preserve">
-    <value>Cancel</value>
-  </data>
-  <data name="&gt;&gt;cancelAddPeakButton.Name" xml:space="preserve">
-    <value>cancelAddPeakButton</value>
-  </data>
-  <data name="&gt;&gt;cancelAddPeakButton.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;cancelAddPeakButton.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;cancelAddPeakButton.ZOrder" xml:space="preserve">
-    <value>1</value>
-  </data>
-  <data name="getAllPeaksButton.Location" type="System.Drawing.Point, System.Drawing">
-    <value>249, 207</value>
-  </data>
-  <data name="getAllPeaksButton.Size" type="System.Drawing.Size, System.Drawing">
-    <value>81, 23</value>
-  </data>
-  <data name="getAllPeaksButton.TabIndex" type="System.Int32, mscorlib">
-    <value>6</value>
+    <value>Удалить</value>
   </data>
   <data name="getAllPeaksButton.Text" xml:space="preserve">
-    <value>Get All peaks</value>
+    <value>Получить все пики</value>
   </data>
-  <data name="&gt;&gt;getAllPeaksButton.Name" xml:space="preserve">
-    <value>getAllPeaksButton</value>
+  <data name="$this.Text" xml:space="preserve">
+    <value>FWHM Калибровка</value>
   </data>
-  <data name="&gt;&gt;getAllPeaksButton.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  <data name="saveToDeviceCfgButton.Text" xml:space="preserve">
+    <value>Сохранить в конфиг устройства</value>
   </data>
-  <data name="&gt;&gt;getAllPeaksButton.Parent" xml:space="preserve">
-    <value>$this</value>
+  <data name="executeCalibrationButton.ToolTip" xml:space="preserve">
+    <value />
   </data>
-  <data name="&gt;&gt;getAllPeaksButton.ZOrder" xml:space="preserve">
-    <value>0</value>
+  <data name="saveToDeviceCfgButton.ToolTip" xml:space="preserve">
+    <value>Сохранить калибровку в конфиг устройства</value>
   </data>
-  <metadata name="$this.Localizable" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>True</value>
-  </metadata>
-  <data name="$this.AutoScaleDimensions" type="System.Drawing.SizeF, System.Drawing">
-    <value>6, 13</value>
+  <data name="$this.ToolTip" xml:space="preserve">
+    <value />
   </data>
-  <data name="$this.AutoScroll" type="System.Boolean, mscorlib">
-    <value>True</value>
+  <data name="minPeaksRequirementLabel.Text" xml:space="preserve">
+    <value>Мин. количество пиков: 3</value>
   </data>
-  <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
-    <value>343, 411</value>
+  <data name="executeCalibrationButton.Text" xml:space="preserve">
+    <value>Калибровать</value>
   </data>
-  <data name="$this.Font" type="System.Drawing.Font, System.Drawing">
-    <value>Microsoft Sans Serif, 8pt</value>
+  <data name="viewCalibrationButton.ToolTip" xml:space="preserve">
+    <value />
   </data>
+  <data name="removePeakButton.ToolTip" xml:space="preserve">
+    <value />
+  </data>
+  <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
   <data name="$this.Icon" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         AAABAAsAEBAAAAEAIABoBAAAtgAAABgYAAABACAAiAkAAB4FAAAgIAAAAQAgAKgQAACmDgAAKCgAAAEA
@@ -4851,58 +4447,55 @@
         nR7OG23/P+lc/Y4dBvlpAAAAAElFTkSuQmCC
 </value>
   </data>
+  <data name="CollectedPeaksTable.NoItemsText" xml:space="preserve">
+    <value>Нет пиков для калибровки</value>
+  </data>
+  <data name="channelColumn.ToolTipText" xml:space="preserve">
+    <value>Номер канала</value>
+  </data>
   <data name="$this.TabText" xml:space="preserve">
-    <value>FWHM Calibration</value>
+    <value>FWHM Калибровка</value>
   </data>
-  <data name="$this.Text" xml:space="preserve">
-    <value>FWHM Calibration</value>
+  <data name="selectCurveComboBox.Items1" xml:space="preserve">
+    <value>Квадратный корень полинома</value>
   </data>
-  <data name="&gt;&gt;columnModel1.Name" xml:space="preserve">
-    <value>columnModel1</value>
+  <data name="fwhmColumn.ToolTipText" xml:space="preserve">
+    <value>FWHM в каналах</value>
   </data>
-  <data name="&gt;&gt;columnModel1.Type" xml:space="preserve">
-    <value>XPTable.Models.ColumnModel, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+  <data name="selectCurveComboBox.Items" xml:space="preserve">
+    <value>Простой корень квадратный</value>
   </data>
-  <data name="&gt;&gt;positionColumn.Name" xml:space="preserve">
-    <value>positionColumn</value>
+  <data name="energyColumn.Text" xml:space="preserve">
+    <value>Энергия</value>
   </data>
-  <data name="&gt;&gt;positionColumn.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+  <data name="label2.Text" xml:space="preserve">
+    <value>Выберите кривую калибровки из списка ниже</value>
   </data>
-  <data name="&gt;&gt;channelColumn.Name" xml:space="preserve">
-    <value>channelColumn</value>
+  <data name="addPeakButton.Text" xml:space="preserve">
+    <value>Добавить пик</value>
   </data>
-  <data name="&gt;&gt;channelColumn.Type" xml:space="preserve">
-    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+  <data name="cancelAddPeakButton.ToolTip" xml:space="preserve">
+    <value />
   </data>
-  <data name="&gt;&gt;energyColumn.Name" xml:space="preserve">
-    <value>energyColumn</value>
+  <data name="label3.ToolTip" xml:space="preserve">
+    <value />
   </data>
-  <data name="&gt;&gt;energyColumn.Type" xml:space="preserve">
-    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+  <data name="label3.Text" xml:space="preserve">
+    <value>Формула:</value>
   </data>
-  <data name="&gt;&gt;fwhmColumn.Name" xml:space="preserve">
-    <value>fwhmColumn</value>
+  <data name="getAllPeaksButton.ToolTip" xml:space="preserve">
+    <value />
   </data>
-  <data name="&gt;&gt;fwhmColumn.Type" xml:space="preserve">
-    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+  <data name="label2.ToolTip" xml:space="preserve">
+    <value />
   </data>
-  <data name="&gt;&gt;tableModel1.Name" xml:space="preserve">
-    <value>tableModel1</value>
+  <data name="energyColumn.ToolTipText" xml:space="preserve">
+    <value>Энергия в keV</value>
   </data>
-  <data name="&gt;&gt;tableModel1.Type" xml:space="preserve">
-    <value>XPTable.Models.TableModel, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+  <data name="viewCalibrationButton.Text" xml:space="preserve">
+    <value>Просмотр ...</value>
   </data>
-  <data name="&gt;&gt;toolTip1.Name" xml:space="preserve">
-    <value>toolTip1</value>
-  </data>
-  <data name="&gt;&gt;toolTip1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolTip, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;$this.Name" xml:space="preserve">
-    <value>DCFwhmCalibrationView</value>
-  </data>
-  <data name="&gt;&gt;$this.Type" xml:space="preserve">
-    <value>BecquerelMonitor.ToolWindow, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+  <data name="cancelAddPeakButton.Text" xml:space="preserve">
+    <value>Отмена</value>
   </data>
 </root>
