@@ -607,7 +607,7 @@ namespace BecquerelMonitor
                     ms = (ms == 0) ? 3600 : ms;
                     DateTime startTime = DateTimeOffset.FromUnixTimeMilliseconds(ms).DateTime;
 
-                    IntPtr p = SpecUtilsNative.GetSpectrum(file_h, 0, out int spec_size);
+                    IntPtr p = SpecUtilsNative.GetSpectrum(file_h, m, out int spec_size);
                     float[] data = new float[spec_size];
                     Marshal.Copy(p, data, 0, spec_size);
                     int totalPulseCount = (int)SpecUtilsNative.GetTotalCounts(file_h, m);
@@ -639,7 +639,7 @@ namespace BecquerelMonitor
                         case 0:
                         case 3:
                             {
-                                IntPtr cal_p = SpecUtilsNative.GetEnergyCalibrationCoefficients(file_h, 0, out int cal_size);
+                                IntPtr cal_p = SpecUtilsNative.GetEnergyCalibrationCoefficients(file_h, m, out int cal_size);
                                 if (cal_p == IntPtr.Zero) throw new Exception("Error reading calibration coefficients array.");
 
                                 float[] cal = new float[cal_size];
@@ -685,7 +685,7 @@ namespace BecquerelMonitor
                         case 2:
                         case 4:
                             {
-                                IntPtr ch_en_p = SpecUtilsNative.GetEnergyCalibrationChannelEnergies(file_h, 0, out int cal_ch_energy_size);
+                                IntPtr ch_en_p = SpecUtilsNative.GetEnergyCalibrationChannelEnergies(file_h, m, out int cal_ch_energy_size);
                                 if (ch_en_p == IntPtr.Zero) throw new Exception("Error reading calibration channel-energies array.");
 
                                 float[] energies = new float[cal_ch_energy_size];
@@ -763,12 +763,7 @@ namespace BecquerelMonitor
                     info.Note = SpectrumSummaryText;
 
                     // $DATE_MEA:
-                    fileheader = streamReader.ReadLine();
-                    while (true)
-                    {
-                        if (fileheader == "$DATE_MEA:") break;
-                        fileheader = streamReader.ReadLine();
-                    }
+                    fileheader = this.ReadUntilSection(streamReader, "$DATE_MEA:");
 
                     // 11/30/2024 21:02:07
                     string Time1 = streamReader.ReadLine();
@@ -776,22 +771,12 @@ namespace BecquerelMonitor
                     doc.ActiveResultData.StartTime = info.Time;
 
                     // $MEAS_TIM:
-                    fileheader = streamReader.ReadLine();
-                    while (true)
-                    {
-                        if (fileheader == "$MEAS_TIM:") break;
-                        fileheader = streamReader.ReadLine();
-                    }
+                    fileheader = this.ReadUntilSection(streamReader, "$MEAS_TIM:");
 
                     string LiveTimeRealTime = streamReader.ReadLine();
 
                     // $DATA:
-                    fileheader = streamReader.ReadLine();
-                    while (true)
-                    {
-                        if (fileheader == "$DATA:") break;
-                        fileheader = streamReader.ReadLine();
-                    }
+                    fileheader = this.ReadUntilSection(streamReader, "$DATA:");
 
                     int numberOfChannels = XmlConvert.ToInt32(streamReader.ReadLine().Split(new string[] { " " }, StringSplitOptions.RemoveEmptyEntries)[1].Trim()) + 1;
 
@@ -819,12 +804,7 @@ namespace BecquerelMonitor
                     }
 
                     // $ENER_DATA:
-                    fileheader = streamReader.ReadLine();
-                    while (true)
-                    {
-                        if (fileheader == "$ENER_DATA_X:") break;
-                        fileheader = streamReader.ReadLine();
-                    }
+                    fileheader = this.ReadUntilSection(streamReader, "$ENER_DATA_X:");
 
                     int numpoints = XmlConvert.ToInt32(streamReader.ReadLine().Trim());
 
@@ -852,12 +832,7 @@ namespace BecquerelMonitor
                     }
 
                     // $COUNTS:
-                    fileheader = streamReader.ReadLine();
-                    while (true)
-                    {
-                        if (fileheader == "$COUNTS:") break;
-                        fileheader = streamReader.ReadLine();
-                    }
+                    fileheader = this.ReadUntilSection(streamReader, "$COUNTS:");
 
                     long TotalPulseCount = XmlConvert.ToInt64(streamReader.ReadLine().Trim());
                     energySpectrum.TotalPulseCount = TotalPulseCount;
@@ -1323,12 +1298,15 @@ namespace BecquerelMonitor
                     return false;
                 }
             }
+            string originalFilename = doc.Filename;
             doc.Filename = fileName;
             if (this.SaveDocument(doc))
             {
                 doc.IsNamed = true;
+                return true;
             }
-            return true;
+            doc.Filename = originalFilename;
+            return false;
         }
 
         // Token: 0x06000275 RID: 629 RVA: 0x0000A19C File Offset: 0x0000839C
@@ -1786,6 +1764,19 @@ namespace BecquerelMonitor
             data.ROIConfig = null;
             data.ROIConfigReference = null;
             data.DeviceConfig = new DeviceConfigInfo();
+        }
+
+        string ReadUntilSection(StreamReader streamReader, string sectionHeader)
+        {
+            string line;
+            while ((line = streamReader.ReadLine()) != null)
+            {
+                if (line == sectionHeader)
+                {
+                    return line;
+                }
+            }
+            throw new InvalidDataException(string.Format("Section '{0}' was not found in the GBS file.", sectionHeader));
         }
 
         // Token: 0x040000B9 RID: 185
