@@ -27,10 +27,23 @@ namespace BecquerelMonitor.Utils
             this.EnergySpectrum = energySpectrum.Clone();
         }
 
-        public SpectrumAriphmetics(FwhmCalibration fwhmCalibration, EnergySpectrum energySpectrum)
+        public SpectrumAriphmetics(FwhmCalibration fwhmCalibration, EnergySpectrum energySpectrum, SmoothingMethod smoothingMethod)
         {
             this.FwhmCalibration = fwhmCalibration;
             this.EnergySpectrum = energySpectrum.Clone();
+            int countlimit = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.CountLimit;
+            bool progressiveSmooth = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.ProgresiveSmooth;
+            switch (smoothingMethod)
+            {
+                case SmoothingMethod.SimpleMovingAverage:
+                    int points = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.NumberOfSMADataPoints;
+                    this.EnergySpectrum.Spectrum = SMA(this.EnergySpectrum.Spectrum, points, countlimit: countlimit, progressive: progressiveSmooth);
+                    break;
+                case SmoothingMethod.WeightedMovingAverage:
+                    points = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.NumberOfWMADataPoints;
+                    this.EnergySpectrum.Spectrum = WMA(this.EnergySpectrum.Spectrum, points, countlimit: countlimit, progressive: progressiveSmooth);
+                    break;
+            }
         }
 
         public int FindCentroid2(EnergySpectrum energySpectrum, int centroid, int low_boundary, int high_boundary)
@@ -293,7 +306,7 @@ namespace BecquerelMonitor.Utils
         public EnergySpectrum Continuum()
         {
             EnergySpectrum continuum = this.EnergySpectrum.Clone();
-            continuum.Spectrum = SASNIP(SMA(this.EnergySpectrum.Spectrum, 8, countlimit: 1000000), coeff: 0.8, useLLS: true, decreasing: false);
+            continuum.Spectrum = SASNIP(this.EnergySpectrum.Spectrum, coeff: 1.0, useLLS: true, decreasing: true);
             Parallel.For(0, continuum.NumberOfChannels, i =>
             {
                 if (continuum.Spectrum[i] > this.EnergySpectrum.Spectrum[i])
@@ -308,7 +321,7 @@ namespace BecquerelMonitor.Utils
         public EnergySpectrum SubtractPeak(Peak peak, EnergySpectrum energySpectrum)
         {
             EnergySpectrum result = energySpectrum.Clone();
-            (int[] peakspectrum, int min_val, int max_val, Color peakColor) = GetPeak(peak, result, true);
+            (int[] peakspectrum, int min_val, int max_val, Color peakColor) = GetPeak(peak, result);
             for (int i = min_val; i <= max_val; i++)
             {
                 result.Spectrum[i] -= peakspectrum[i];
@@ -445,17 +458,9 @@ namespace BecquerelMonitor.Utils
             return Convert.ToInt32(exp_gauss_exp_value(x, amplitude, median, fwhm, left, right));
         }
 
-        public (int[], int, int, Color) GetPeak(Peak peak, EnergySpectrum continuum, bool smooth)
+        public (int[], int, int, Color) GetPeak(Peak peak, EnergySpectrum continuum)
         {
-            int amplitude;
-            int[] SMASpectrum = SMA(this.EnergySpectrum.Spectrum, 3, countlimit: 100);
-            if (smooth && SMASpectrum[peak.Channel] < this.EnergySpectrum.Spectrum[peak.Channel])
-            {
-                amplitude = SMASpectrum[peak.Channel] - continuum.Spectrum[peak.Channel];
-            } else
-            {
-                amplitude = this.EnergySpectrum.Spectrum[peak.Channel] - continuum.Spectrum[peak.Channel];
-            }
+            int amplitude = this.EnergySpectrum.Spectrum[peak.Channel] - continuum.Spectrum[peak.Channel];
             int fwhm = Convert.ToInt32(peak.FWHM);
             int median = peak.Channel;
             int interval = 3 * fwhm;
@@ -564,24 +569,6 @@ namespace BecquerelMonitor.Utils
             }
 
             int[] baseline_arr = baseline.Select(i => Convert.ToInt32(i)).ToArray();
-
-            /*
-            int baseline_max = 0;
-            int baseline_max_i = 0;
-            for(int i = 1; i < baseline_arr.Length/2; i++)
-            {
-                if (baseline_arr[i] > baseline_max)
-                {
-                    baseline_max = baseline_arr[i];
-                    baseline_max_i = i;
-                }
-            }
-
-            for (int i = 0; i < baseline_max_i; i++)
-            {
-                baseline_arr[i] = baseline_max;
-            }
-            */
             return baseline_arr;
         }
 
