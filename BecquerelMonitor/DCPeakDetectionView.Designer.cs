@@ -85,7 +85,7 @@ namespace BecquerelMonitor
 			this.textColumn1.Editable = false;
 			this.textColumn1.IsTextTrimmed = false;
 			this.textColumn1.Sortable = true;
-			this.textColumn1.Width = 50;
+			this.textColumn1.Width = 55;
 			resources.ApplyResources(this.textColumn1, "textColumn1");
 			this.textColumn4.Alignment = global::XPTable.Models.ColumnAlignment.Right;
 			this.textColumn4.Editable = false;
