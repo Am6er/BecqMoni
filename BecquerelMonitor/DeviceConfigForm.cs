@@ -400,18 +400,23 @@ namespace BecquerelMonitor
             this.doubleTextBox6.Text = config.ChannelPitch.ToString();
             this.textBox19.Text = config.Note;
             this.deviceFormLoading = true;
-            DeviceType type;
+            DeviceType type = null;
             DeviceType.DeviceTypeMap.TryGetValue(config.DeviceType, out type);
             try
             {
                 this.PrepareDeviceForm(type);
-            } catch (Exception)
+            }
+            catch (Exception)
             {
                 MessageBox.Show(Resources.ERRBTNotSupportedByOS);
+                this.PrepareDeviceForm(null);
                 this.DisableForm();
             }
-            
-            this.inputDeviceForm.LoadFormContents(config.InputDeviceConfig);
+
+            if (this.inputDeviceForm != null)
+            {
+                this.inputDeviceForm.LoadFormContents(config.InputDeviceConfig);
+            }
             ThermometerType type2 = null;
             ThermometerType.ThermometerTypeMap.TryGetValue(config.ThermometerType, out type2);
             this.PrepareThermometerForm(type2);
@@ -448,7 +453,8 @@ namespace BecquerelMonitor
             this.ShowCalibrationPoints();
             this.UpdateMultipointButtonState();
             this.tableModel3.Rows.Clear();
-            if (type.Name == "RadiaCode")
+            this.textBox16.Text = string.Empty;
+            if (type != null && type.Name == "RadiaCode")
             {
                 RadiaCodeDeviceConfig rc_config = (RadiaCodeDeviceConfig)config.InputDeviceConfig;
                 if (rc_config.RC_EnergyCalibration != null)
@@ -456,11 +462,11 @@ namespace BecquerelMonitor
                     this.textBox16.Text = rc_config.RC_EnergyCalibration.ToString();
                     this.button14.Enabled = true;
                     this.button14.Visible = true;
-                } else
+                }
+                else
                 {
                     this.button14.Enabled = false;
                     this.button14.Visible = true;
-                    this.textBox16.Text = "";
                 }
             }
 
