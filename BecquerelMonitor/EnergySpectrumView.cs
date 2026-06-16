@@ -1157,7 +1157,7 @@ namespace BecquerelMonitor
 
             if (this.backgroundMode == BackgroundMode.ShowContinuum)
             {
-                SpectrumAriphmetics sa = new SpectrumAriphmetics(this.activeResultData.FwhmCalibration, this.energySpectrum);
+                SpectrumAriphmetics sa = new SpectrumAriphmetics(this.activeResultData.FwhmCalibration, this.energySpectrum, this.smoothingMethod);
                 this.continuumEnergySpectrum = sa.Continuum();
 
                 this.peakEnergySpectrum.Clear();
@@ -1166,7 +1166,7 @@ namespace BecquerelMonitor
                     List<Peak> peaks = new List<Peak>(this.activeResultData.DetectedPeaks);
                     for (int i = 0; i < peaks.Count; i++)
                     {
-                        var peakInfoTuple = sa.GetPeak(peaks[i], this.continuumEnergySpectrum, true);
+                        var peakInfoTuple = sa.GetPeak(peaks[i], this.continuumEnergySpectrum);
                         this.peakEnergySpectrum.Add(new PeakEnergySpectrumInfo(
                             peakInfoTuple.Item1,
                             peakInfoTuple.Item2,
