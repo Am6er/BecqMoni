@@ -105,6 +105,7 @@ namespace BecquerelMonitor
             // 
             // textColumn4
             // 
+            this.textColumn4.Alignment = XPTable.Models.ColumnAlignment.Right;
             this.textColumn4.Editable = false;
             this.textColumn4.IsTextTrimmed = false;
             resources.ApplyResources(this.textColumn4, "textColumn4");
@@ -123,6 +124,7 @@ namespace BecquerelMonitor
             // 
             // textColumn6
             // 
+            this.textColumn6.Alignment = XPTable.Models.ColumnAlignment.Right;
             this.textColumn6.Editable = false;
             this.textColumn6.IsTextTrimmed = false;
             resources.ApplyResources(this.textColumn6, "textColumn6");

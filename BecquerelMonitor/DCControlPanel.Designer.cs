@@ -41,10 +41,10 @@ namespace BecquerelMonitor
             this.percentageProgressBar1 = new BecquerelMonitor.PercentageProgressBar();
             this.liveTimeLbl = new System.Windows.Forms.Label();
             this.deadTimeLbl = new System.Windows.Forms.Label();
+            this.deadTimetextBox = new System.Windows.Forms.TextBox();
             this.saveWhenFinishedCheckBox = new System.Windows.Forms.CheckBox();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.liveTimetextBox = new System.Windows.Forms.TextBox();
-            this.deadTimetextBox = new System.Windows.Forms.TextBox();
             this.realTimeLbl = new System.Windows.Forms.Label();
             this.invalidCntLbl = new System.Windows.Forms.Label();
             this.totalCntTextBox = new System.Windows.Forms.TextBox();
@@ -201,6 +201,14 @@ namespace BecquerelMonitor
             this.deadTimeLbl.Name = "deadTimeLbl";
             this.toolTip1.SetToolTip(this.deadTimeLbl, resources.GetString("deadTimeLbl.ToolTip"));
             // 
+            // deadTimetextBox
+            // 
+            resources.ApplyResources(this.deadTimetextBox, "deadTimetextBox");
+            this.deadTimetextBox.Name = "deadTimetextBox";
+            this.deadTimetextBox.ReadOnly = true;
+            this.deadTimetextBox.TabStop = false;
+            this.toolTip1.SetToolTip(this.deadTimetextBox, resources.GetString("deadTimetextBox.ToolTip"));
+            // 
             // saveWhenFinishedCheckBox
             // 
             resources.ApplyResources(this.saveWhenFinishedCheckBox, "saveWhenFinishedCheckBox");
@@ -239,14 +247,6 @@ namespace BecquerelMonitor
             this.liveTimetextBox.Name = "liveTimetextBox";
             this.liveTimetextBox.ReadOnly = true;
             this.liveTimetextBox.TabStop = false;
-            // 
-            // deadTimetextBox
-            // 
-            resources.ApplyResources(this.deadTimetextBox, "deadTimetextBox");
-            this.deadTimetextBox.Name = "deadTimetextBox";
-            this.deadTimetextBox.ReadOnly = true;
-            this.deadTimetextBox.TabStop = false;
-            this.toolTip1.SetToolTip(this.deadTimetextBox, resources.GetString("deadTimeLbl.ToolTip"));
             // 
             // realTimeLbl
             // 

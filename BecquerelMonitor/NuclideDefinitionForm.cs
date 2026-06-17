@@ -106,6 +106,11 @@ namespace BecquerelMonitor
 
         void checkBox1_CheckStateChanged(object sender, EventArgs e)
         {
+            if (this.contentsLoading || this.activeNuclide == null)
+            {
+                return;
+            }
+
             this.activeNuclide.Visible = this.checkBox1.Checked;
             this.SetActiveNuclideDirty();
         }
@@ -214,7 +219,7 @@ namespace BecquerelMonitor
             return true;
         }
 
-        void FormNuclideDefinitionForm_FormClosing(object sender, FormClosingEventArgs e)
+        void NuclideDefinitionForm_FormClosing(object sender, FormClosingEventArgs e)
         {
             this.ConfirmSaveNuclide();
         }

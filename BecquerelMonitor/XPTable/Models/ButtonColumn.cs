@@ -1,5 +1,5 @@
 /*
- * Copyright © 2005, Mathew Hall
+ * Copyright ï¿½ 2005, Mathew Hall
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, 
@@ -183,7 +183,8 @@ namespace XPTable.Models
         /// </summary>
         [Category("Appearance"),
         DefaultValue(ColumnAlignment.Center),
-        Description("The horizontal alignment of the column's cell contents.")]
+        Description("The horizontal alignment of the column's cell contents."),
+        Localizable(false)]
         public override ColumnAlignment Alignment
         {
             get { return base.Alignment; }
