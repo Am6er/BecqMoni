@@ -22,7 +22,7 @@ namespace BecquerelMonitor.Properties {
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class Resources {
+    public class Resources {
         
         private static global::System.Resources.ResourceManager resourceMan;
         
@@ -36,7 +36,7 @@ namespace BecquerelMonitor.Properties {
         ///   Returns the cached ResourceManager instance used by this class.
         /// </summary>
         [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Advanced)]
-        internal static global::System.Resources.ResourceManager ResourceManager {
+        public static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
                     global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("BecquerelMonitor.Properties.Resources", typeof(Resources).Assembly);
@@ -51,7 +51,7 @@ namespace BecquerelMonitor.Properties {
         ///   resource lookups using this strongly typed resource class.
         /// </summary>
         [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Advanced)]
-        internal static global::System.Globalization.CultureInfo Culture {
+        public static global::System.Globalization.CultureInfo Culture {
             get {
                 return resourceCulture;
             }
@@ -63,7 +63,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to 2σ.
         /// </summary>
-        internal static string _2Sigma {
+        public static string _2Sigma {
             get {
                 return ResourceManager.GetString("2Sigma", resourceCulture);
             }
@@ -72,7 +72,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Activity.
         /// </summary>
-        internal static string Activity {
+        public static string Activity {
             get {
                 return ResourceManager.GetString("Activity", resourceCulture);
             }
@@ -81,7 +81,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to BecqMoni Nuclear Edition.
         /// </summary>
-        internal static string ApplicationTitle {
+        public static string ApplicationTitle {
             get {
                 return ResourceManager.GetString("ApplicationTitle", resourceCulture);
             }
@@ -90,7 +90,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Export Atom Spectra v3 file.
         /// </summary>
-        internal static string AtomSpectraExportDialogTitle {
+        public static string AtomSpectraExportDialogTitle {
             get {
                 return ResourceManager.GetString("AtomSpectraExportDialogTitle", resourceCulture);
             }
@@ -99,7 +99,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Atom Spectra Files (*.txt)|*.txt|All Files (*.*)|*.*.
         /// </summary>
-        internal static string AtomSpectraFileFilter {
+        public static string AtomSpectraFileFilter {
             get {
                 return ResourceManager.GetString("AtomSpectraFileFilter", resourceCulture);
             }
@@ -108,7 +108,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap attach {
+        public static System.Drawing.Bitmap attach {
             get {
                 object obj = ResourceManager.GetObject("attach", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -118,7 +118,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Attach.
         /// </summary>
-        internal static string Attach_BTN {
+        public static string Attach_BTN {
             get {
                 return ResourceManager.GetString("Attach.BTN", resourceCulture);
             }
@@ -127,7 +127,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to You just canceled save unnamed spectrum file, while autosave feature is turned ON globally by default in settings! This file WILL NOT have autosaving feature!.
         /// </summary>
-        internal static string AutoSaveExclamationText {
+        public static string AutoSaveExclamationText {
             get {
                 return ResourceManager.GetString("AutoSaveExclamationText", resourceCulture);
             }
@@ -136,7 +136,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Autosave disabled on this file!.
         /// </summary>
-        internal static string AutoSaveExclamationTitle {
+        public static string AutoSaveExclamationTitle {
             get {
                 return ResourceManager.GetString("AutoSaveExclamationTitle", resourceCulture);
             }
@@ -145,7 +145,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to {0} Autosaving documents.
         /// </summary>
-        internal static string AutosaveText {
+        public static string AutosaveText {
             get {
                 return ResourceManager.GetString("AutosaveText", resourceCulture);
             }
@@ -154,7 +154,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Choose background spectrum file.
         /// </summary>
-        internal static string BackgroundSelectionDialogTitle {
+        public static string BackgroundSelectionDialogTitle {
             get {
                 return ResourceManager.GetString("BackgroundSelectionDialogTitle", resourceCulture);
             }
@@ -163,7 +163,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap bar {
+        public static System.Drawing.Bitmap bar {
             get {
                 object obj = ResourceManager.GetObject("bar", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -173,7 +173,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
         /// </summary>
-        internal static System.Drawing.Icon becqmoni {
+        public static System.Drawing.Icon becqmoni {
             get {
                 object obj = ResourceManager.GetObject("becqmoni", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
@@ -183,7 +183,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap BecqMoniLogo {
+        public static System.Drawing.Bitmap BecqMoniLogo {
             get {
                 object obj = ResourceManager.GetObject("BecqMoniLogo", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -193,7 +193,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to (Beta program expires at {0}).
         /// </summary>
-        internal static string BetaProgramExpirationDateString {
+        public static string BetaProgramExpirationDateString {
             get {
                 return ResourceManager.GetString("BetaProgramExpirationDateString", resourceCulture);
             }
@@ -202,7 +202,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap BG {
+        public static System.Drawing.Bitmap BG {
             get {
                 object obj = ResourceManager.GetObject("BG", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -212,7 +212,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap bgfit {
+        public static System.Drawing.Bitmap bgfit {
             get {
                 object obj = ResourceManager.GetObject("bgfit", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -222,7 +222,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Bq/g.
         /// </summary>
-        internal static string Bkg {
+        public static string Bkg {
             get {
                 return ResourceManager.GetString("Bkg", resourceCulture);
             }
@@ -231,7 +231,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Bq.
         /// </summary>
-        internal static string Bq {
+        public static string Bq {
             get {
                 return ResourceManager.GetString("Bq", resourceCulture);
             }
@@ -240,7 +240,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Bq/kg.
         /// </summary>
-        internal static string Bqkg {
+        public static string Bqkg {
             get {
                 return ResourceManager.GetString("Bqkg", resourceCulture);
             }
@@ -249,7 +249,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Bq/l.
         /// </summary>
-        internal static string Bql {
+        public static string Bql {
             get {
                 return ResourceManager.GetString("Bql", resourceCulture);
             }
@@ -258,7 +258,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Refresh.
         /// </summary>
-        internal static string ButtonRefresh {
+        public static string ButtonRefresh {
             get {
                 return ResourceManager.GetString("ButtonRefresh", resourceCulture);
             }
@@ -267,7 +267,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Do you want to reset spectrum to default calibration y = x? Otherwise spectrum will not be loaded..
         /// </summary>
-        internal static string CalcResetQuestion {
+        public static string CalcResetQuestion {
             get {
                 return ResourceManager.GetString("CalcResetQuestion", resourceCulture);
             }
@@ -276,7 +276,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to The calibration function should be monotonically increasing at channel &gt; 0. Re-check Calibration points!.
         /// </summary>
-        internal static string CalibrationFunctionError {
+        public static string CalibrationFunctionError {
             get {
                 return ResourceManager.GetString("CalibrationFunctionError", resourceCulture);
             }
@@ -285,7 +285,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Centroid.
         /// </summary>
-        internal static string Centroid {
+        public static string Centroid {
             get {
                 return ResourceManager.GetString("Centroid", resourceCulture);
             }
@@ -294,7 +294,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap channel {
+        public static System.Drawing.Bitmap channel {
             get {
                 object obj = ResourceManager.GetObject("channel", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -304,7 +304,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to ch.
         /// </summary>
-        internal static string ChartChannelShort {
+        public static string ChartChannelShort {
             get {
                 return ResourceManager.GetString("ChartChannelShort", resourceCulture);
             }
@@ -313,7 +313,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Background Counts:.
         /// </summary>
-        internal static string ChartHeaderBGCounts {
+        public static string ChartHeaderBGCounts {
             get {
                 return ResourceManager.GetString("ChartHeaderBGCounts", resourceCulture);
             }
@@ -322,7 +322,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Channel:.
         /// </summary>
-        internal static string ChartHeaderChannel {
+        public static string ChartHeaderChannel {
             get {
                 return ResourceManager.GetString("ChartHeaderChannel", resourceCulture);
             }
@@ -331,7 +331,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to BG Ratio:.
         /// </summary>
-        internal static string ChartHeaderCountBGRatio {
+        public static string ChartHeaderCountBGRatio {
             get {
                 return ResourceManager.GetString("ChartHeaderCountBGRatio", resourceCulture);
             }
@@ -340,7 +340,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to CPS:.
         /// </summary>
-        internal static string ChartHeaderCPS {
+        public static string ChartHeaderCPS {
             get {
                 return ResourceManager.GetString("ChartHeaderCPS", resourceCulture);
             }
@@ -349,7 +349,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Energy[keV]:.
         /// </summary>
-        internal static string ChartHeaderEnergy {
+        public static string ChartHeaderEnergy {
             get {
                 return ResourceManager.GetString("ChartHeaderEnergy", resourceCulture);
             }
@@ -358,7 +358,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to FWHM:.
         /// </summary>
-        internal static string ChartHeaderFWHM {
+        public static string ChartHeaderFWHM {
             get {
                 return ResourceManager.GetString("ChartHeaderFWHM", resourceCulture);
             }
@@ -367,7 +367,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Gross Counts:.
         /// </summary>
-        internal static string ChartHeaderGrossCounts {
+        public static string ChartHeaderGrossCounts {
             get {
                 return ResourceManager.GetString("ChartHeaderGrossCounts", resourceCulture);
             }
@@ -376,7 +376,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Net Counts:.
         /// </summary>
-        internal static string ChartHeaderNetCounts {
+        public static string ChartHeaderNetCounts {
             get {
                 return ResourceManager.GetString("ChartHeaderNetCounts", resourceCulture);
             }
@@ -385,7 +385,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Net CPS:.
         /// </summary>
-        internal static string ChartHeaderNetCps {
+        public static string ChartHeaderNetCps {
             get {
                 return ResourceManager.GetString("ChartHeaderNetCps", resourceCulture);
             }
@@ -394,7 +394,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Peak Counts:.
         /// </summary>
-        internal static string ChartHeaderPeakCounts {
+        public static string ChartHeaderPeakCounts {
             get {
                 return ResourceManager.GetString("ChartHeaderPeakCounts", resourceCulture);
             }
@@ -403,7 +403,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Selected Region.
         /// </summary>
-        internal static string ChartHeaderSelection {
+        public static string ChartHeaderSelection {
             get {
                 return ResourceManager.GetString("ChartHeaderSelection", resourceCulture);
             }
@@ -412,7 +412,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Weight:.
         /// </summary>
-        internal static string ChartHeaderWeight {
+        public static string ChartHeaderWeight {
             get {
                 return ResourceManager.GetString("ChartHeaderWeight", resourceCulture);
             }
@@ -421,7 +421,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap clear {
+        public static System.Drawing.Bitmap clear {
             get {
                 object obj = ResourceManager.GetObject("clear", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -431,7 +431,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Click to refresh status.
         /// </summary>
-        internal static string ClickToRefresh {
+        public static string ClickToRefresh {
             get {
                 return ResourceManager.GetString("ClickToRefresh", resourceCulture);
             }
@@ -440,7 +440,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap cnt {
+        public static System.Drawing.Bitmap cnt {
             get {
                 object obj = ResourceManager.GetObject("cnt", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -450,7 +450,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Other color....
         /// </summary>
-        internal static string ColorBTN {
+        public static string ColorBTN {
             get {
                 return ResourceManager.GetString("ColorBTN", resourceCulture);
             }
@@ -459,7 +459,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Open spectrum first, then select Combine menu to another spectrum file..
         /// </summary>
-        internal static string CombineEmptySpectrum {
+        public static string CombineEmptySpectrum {
             get {
                 return ResourceManager.GetString("CombineEmptySpectrum", resourceCulture);
             }
@@ -468,7 +468,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Different number of channels in combined spectrums! Select proper spectrum file..
         /// </summary>
-        internal static string CombineIncorrectChannels {
+        public static string CombineIncorrectChannels {
             get {
                 return ResourceManager.GetString("CombineIncorrectChannels", resourceCulture);
             }
@@ -477,7 +477,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Confirmation.
         /// </summary>
-        internal static string ConfirmationDialogTitle {
+        public static string ConfirmationDialogTitle {
             get {
                 return ResourceManager.GetString("ConfirmationDialogTitle", resourceCulture);
             }
@@ -486,7 +486,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap CONT {
+        public static System.Drawing.Bitmap CONT {
             get {
                 object obj = ResourceManager.GetObject("CONT", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -496,7 +496,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to  (Copy).
         /// </summary>
-        internal static string CopyPostfix {
+        public static string CopyPostfix {
             get {
                 return ResourceManager.GetString("CopyPostfix", resourceCulture);
             }
@@ -505,7 +505,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap cps {
+        public static System.Drawing.Bitmap cps {
             get {
                 object obj = ResourceManager.GetObject("cps", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -515,7 +515,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap cps1 {
+        public static System.Drawing.Bitmap cps1 {
             get {
                 object obj = ResourceManager.GetObject("cps1", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -525,7 +525,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap cps2 {
+        public static System.Drawing.Bitmap cps2 {
             get {
                 object obj = ResourceManager.GetObject("cps2", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -535,7 +535,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Export to CSV File.
         /// </summary>
-        internal static string CsvExportDialogTitle {
+        public static string CsvExportDialogTitle {
             get {
                 return ResourceManager.GetString("CsvExportDialogTitle", resourceCulture);
             }
@@ -544,7 +544,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to CSV Files (*.csv)|*.csv|All Files (*.*)|*.*.
         /// </summary>
-        internal static string CsvFileFilter {
+        public static string CsvFileFilter {
             get {
                 return ResourceManager.GetString("CsvFileFilter", resourceCulture);
             }
@@ -553,7 +553,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Import from CSV File.
         /// </summary>
-        internal static string CsvImportDialogTitle {
+        public static string CsvImportDialogTitle {
             get {
                 return ResourceManager.GetString("CsvImportDialogTitle", resourceCulture);
             }
@@ -562,7 +562,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Current.
         /// </summary>
-        internal static string Current {
+        public static string Current {
             get {
                 return ResourceManager.GetString("Current", resourceCulture);
             }
@@ -571,7 +571,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Dead Time: {0} μs.
         /// </summary>
-        internal static string DeadTimeLblText {
+        public static string DeadTimeLblText {
             get {
                 return ResourceManager.GetString("DeadTimeLblText", resourceCulture);
             }
@@ -580,7 +580,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Default.
         /// </summary>
-        internal static string Default {
+        public static string Default {
             get {
                 return ResourceManager.GetString("Default", resourceCulture);
             }
@@ -589,7 +589,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Delete spectrum &quot;{0}&quot;?.
         /// </summary>
-        internal static string DeleteSpectrumMessage {
+        public static string DeleteSpectrumMessage {
             get {
                 return ResourceManager.GetString("DeleteSpectrumMessage", resourceCulture);
             }
@@ -598,7 +598,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Delete unnamed spectrum?.
         /// </summary>
-        internal static string DeleteUnnamedSpectrumMessage {
+        public static string DeleteUnnamedSpectrumMessage {
             get {
                 return ResourceManager.GetString("DeleteUnnamedSpectrumMessage", resourceCulture);
             }
@@ -607,7 +607,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Δ.
         /// </summary>
-        internal static string Delta {
+        public static string Delta {
             get {
                 return ResourceManager.GetString("Delta", resourceCulture);
             }
@@ -616,7 +616,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Detach.
         /// </summary>
-        internal static string Detach_BTN {
+        public static string Detach_BTN {
             get {
                 return ResourceManager.GetString("Detach.BTN", resourceCulture);
             }
@@ -625,7 +625,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Detected.
         /// </summary>
-        internal static string Detected {
+        public static string Detected {
             get {
                 return ResourceManager.GetString("Detected", resourceCulture);
             }
@@ -634,7 +634,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Uncertain.
         /// </summary>
-        internal static string DetectedWithUncertain {
+        public static string DetectedWithUncertain {
             get {
                 return ResourceManager.GetString("DetectedWithUncertain", resourceCulture);
             }
@@ -643,7 +643,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to AtomSpectraVCP.
         /// </summary>
-        internal static string DeviceTypeAtomSpectraVCP {
+        public static string DeviceTypeAtomSpectraVCP {
             get {
                 return ResourceManager.GetString("DeviceTypeAtomSpectraVCP", resourceCulture);
             }
@@ -652,7 +652,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Audio Input Device.
         /// </summary>
-        internal static string DeviceTypeAudioInput {
+        public static string DeviceTypeAudioInput {
             get {
                 return ResourceManager.GetString("DeviceTypeAudioInput", resourceCulture);
             }
@@ -661,7 +661,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to LEMCA USB Adaptor.
         /// </summary>
-        internal static string DeviceTypeLEMCA {
+        public static string DeviceTypeLEMCA {
             get {
                 return ResourceManager.GetString("DeviceTypeLEMCA", resourceCulture);
             }
@@ -670,7 +670,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to RadiaCode.
         /// </summary>
-        internal static string DeviceTypeRadiaCode {
+        public static string DeviceTypeRadiaCode {
             get {
                 return ResourceManager.GetString("DeviceTypeRadiaCode", resourceCulture);
             }
@@ -679,7 +679,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Dose rate:.
         /// </summary>
-        internal static string DoseRate {
+        public static string DoseRate {
             get {
                 return ResourceManager.GetString("DoseRate", resourceCulture);
             }
@@ -688,7 +688,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap Down {
+        public static System.Drawing.Bitmap Down {
             get {
                 object obj = ResourceManager.GetObject("Down", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -698,7 +698,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to EffCalcMC.txt|EffCalcMC.txt|*.txt|*.txt.
         /// </summary>
-        internal static string EffCalcMCFileFilter {
+        public static string EffCalcMCFileFilter {
             get {
                 return ResourceManager.GetString("EffCalcMCFileFilter", resourceCulture);
             }
@@ -707,7 +707,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to LSRM EffCalcMC.txt -&gt; ROI.
         /// </summary>
-        internal static string EffCalcMCImportDialogTitle {
+        public static string EffCalcMCImportDialogTitle {
             get {
                 return ResourceManager.GetString("EffCalcMCImportDialogTitle", resourceCulture);
             }
@@ -716,7 +716,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Empty device list! You should add new device first!.
         /// </summary>
-        internal static string EmptyDeviceList {
+        public static string EmptyDeviceList {
             get {
                 return ResourceManager.GetString("EmptyDeviceList", resourceCulture);
             }
@@ -725,7 +725,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap ene {
+        public static System.Drawing.Bitmap ene {
             get {
                 object obj = ResourceManager.GetObject("ene", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -735,7 +735,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap EnergyCalibration {
+        public static System.Drawing.Bitmap EnergyCalibration {
             get {
                 object obj = ResourceManager.GetObject("EnergyCalibration", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -745,7 +745,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap EnergyCalibration2 {
+        public static System.Drawing.Bitmap EnergyCalibration2 {
             get {
                 object obj = ResourceManager.GetObject("EnergyCalibration2", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -755,7 +755,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Error while adding channel {0}. Error message: {1}.
         /// </summary>
-        internal static string ERRAddCalibrationPoints {
+        public static string ERRAddCalibrationPoints {
             get {
                 return ResourceManager.GetString("ERRAddCalibrationPoints", resourceCulture);
             }
@@ -764,7 +764,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Specified file is already open..
         /// </summary>
-        internal static string ERRAlreadyOpen {
+        public static string ERRAlreadyOpen {
             get {
                 return ResourceManager.GetString("ERRAlreadyOpen", resourceCulture);
             }
@@ -773,7 +773,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to BecqMoni allready running! To avoid layout config files damage this app start is canceled. Check task manager for running processes BecquerelMonitor.exe!.
         /// </summary>
-        internal static string ERRAppAllreadyRunning {
+        public static string ERRAppAllreadyRunning {
             get {
                 return ResourceManager.GetString("ERRAppAllreadyRunning", resourceCulture);
             }
@@ -782,7 +782,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Specified audio device is not found..
         /// </summary>
-        internal static string ERRAudioDeviceNotFound {
+        public static string ERRAudioDeviceNotFound {
             get {
                 return ResourceManager.GetString("ERRAudioDeviceNotFound", resourceCulture);
             }
@@ -791,7 +791,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Failed to load background spectrum &quot;{0}&quot; Messsage: {1}..
         /// </summary>
-        internal static string ERRBackgroundLoadFailure {
+        public static string ERRBackgroundLoadFailure {
             get {
                 return ResourceManager.GetString("ERRBackgroundLoadFailure", resourceCulture);
             }
@@ -800,7 +800,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Bluetooth device not found. BecqMoni should connect to RadiaCode via Bluetooth Low Energy..
         /// </summary>
-        internal static string ERRBLENotFound {
+        public static string ERRBLENotFound {
             get {
                 return ResourceManager.GetString("ERRBLENotFound", resourceCulture);
             }
@@ -809,7 +809,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Bluetooth doesn&apos;t supported by this OS. Could not find Windows Runtime type Windows.Devices.Bluetooth.BluetoothLEDevice..
         /// </summary>
-        internal static string ERRBTNotSupportedByOS {
+        public static string ERRBTNotSupportedByOS {
             get {
                 return ResourceManager.GetString("ERRBTNotSupportedByOS", resourceCulture);
             }
@@ -818,7 +818,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to The selected channel exceeds the size of the spectrum.
         /// </summary>
-        internal static string ERRCalibrationChannelExceed {
+        public static string ERRCalibrationChannelExceed {
             get {
                 return ResourceManager.GetString("ERRCalibrationChannelExceed", resourceCulture);
             }
@@ -827,7 +827,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Unable to connect device. Check cable connection and power of the device..
         /// </summary>
-        internal static string ERRCannotConnectDevice {
+        public static string ERRCannotConnectDevice {
             get {
                 return ResourceManager.GetString("ERRCannotConnectDevice", resourceCulture);
             }
@@ -836,7 +836,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Can&apos;t delete spectrum. at least one spectrum per file is needed..
         /// </summary>
-        internal static string ERRCannotDeleteSpectrum {
+        public static string ERRCannotDeleteSpectrum {
             get {
                 return ResourceManager.GetString("ERRCannotDeleteSpectrum", resourceCulture);
             }
@@ -845,7 +845,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Can&apos;t open WAV file..
         /// </summary>
-        internal static string ERRCannotOpenWavFile {
+        public static string ERRCannotOpenWavFile {
             get {
                 return ResourceManager.GetString("ERRCannotOpenWavFile", resourceCulture);
             }
@@ -854,7 +854,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Can&apos;t overwrite any opened file.
         /// </summary>
-        internal static string ERRCannotOverwrite {
+        public static string ERRCannotOverwrite {
             get {
                 return ResourceManager.GetString("ERRCannotOverwrite", resourceCulture);
             }
@@ -864,7 +864,7 @@ namespace BecquerelMonitor.Properties {
         ///   Looks up a localized string similar to Unable to retreive device data. (prohibited while measurement processing)
         ///.
         /// </summary>
-        internal static string ERRCannotRetreiveDeviceData {
+        public static string ERRCannotRetreiveDeviceData {
             get {
                 return ResourceManager.GetString("ERRCannotRetreiveDeviceData", resourceCulture);
             }
@@ -873,7 +873,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Incorrect number of channels or energy..
         /// </summary>
-        internal static string ERRChanNumber {
+        public static string ERRChanNumber {
             get {
                 return ResourceManager.GetString("ERRChanNumber", resourceCulture);
             }
@@ -882,7 +882,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Combined spectra {0} has incorrect calibration, so channel by channel combine method will be used..
         /// </summary>
-        internal static string ERRCombineBadCalibratedSpectra {
+        public static string ERRCombineBadCalibratedSpectra {
             get {
                 return ResourceManager.GetString("ERRCombineBadCalibratedSpectra", resourceCulture);
             }
@@ -892,7 +892,7 @@ namespace BecquerelMonitor.Properties {
         ///   Looks up a localized string similar to Error detected while communicating with device.
         ///.
         /// </summary>
-        internal static string ERRDetectedErrorWhileCommunication {
+        public static string ERRDetectedErrorWhileCommunication {
             get {
                 return ResourceManager.GetString("ERRDetectedErrorWhileCommunication", resourceCulture);
             }
@@ -901,7 +901,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Device configuration is not selected..
         /// </summary>
-        internal static string ERRDeviceConfigNotSelected {
+        public static string ERRDeviceConfigNotSelected {
             get {
                 return ResourceManager.GetString("ERRDeviceConfigNotSelected", resourceCulture);
             }
@@ -910,7 +910,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Missmatched device configuration: to solve this create new file and use Audio Input device..
         /// </summary>
-        internal static string ERRDeviceMismatchConfiguration {
+        public static string ERRDeviceMismatchConfiguration {
             get {
                 return ResourceManager.GetString("ERRDeviceMismatchConfiguration", resourceCulture);
             }
@@ -919,7 +919,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Duplicate or invalid configuration name..
         /// </summary>
-        internal static string ERRDuplicateConfigName {
+        public static string ERRDuplicateConfigName {
             get {
                 return ResourceManager.GetString("ERRDuplicateConfigName", resourceCulture);
             }
@@ -928,7 +928,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Duplicate GUID for deivce configuration &quot;{0}&quot;.
         /// </summary>
-        internal static string ERRDuplicateDeviceConfigGUID {
+        public static string ERRDuplicateDeviceConfigGUID {
             get {
                 return ResourceManager.GetString("ERRDuplicateDeviceConfigGUID", resourceCulture);
             }
@@ -937,7 +937,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Duplicate GUID for ROI configuration &quot;{0}&quot;.
         /// </summary>
-        internal static string ERRDuplicateROIConfigGUID {
+        public static string ERRDuplicateROIConfigGUID {
             get {
                 return ResourceManager.GetString("ERRDuplicateROIConfigGUID", resourceCulture);
             }
@@ -946,7 +946,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to This device doesn&apos;t contain calibration coefficients. Write them first..
         /// </summary>
-        internal static string ERREmptyCoefficients {
+        public static string ERREmptyCoefficients {
             get {
                 return ResourceManager.GetString("ERREmptyCoefficients", resourceCulture);
             }
@@ -955,7 +955,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Empty port name.
         /// </summary>
-        internal static string ERREmptyPortName {
+        public static string ERREmptyPortName {
             get {
                 return ResourceManager.GetString("ERREmptyPortName", resourceCulture);
             }
@@ -964,7 +964,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Empty RadiaCode address, nothing to test. Hit &quot;Scan BLE&quot; button, get your device in combobox and save config..
         /// </summary>
-        internal static string ERREmptyRadiaCodeData {
+        public static string ERREmptyRadiaCodeData {
             get {
                 return ResourceManager.GetString("ERREmptyRadiaCodeData", resourceCulture);
             }
@@ -973,7 +973,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Empty ROI config name.
         /// </summary>
-        internal static string ERREmptyROIConfigName {
+        public static string ERREmptyROIConfigName {
             get {
                 return ResourceManager.GetString("ERREmptyROIConfigName", resourceCulture);
             }
@@ -982,7 +982,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Excel may not be installed.
         /// </summary>
-        internal static string ERRExcelNotInstalled {
+        public static string ERRExcelNotInstalled {
             get {
                 return ResourceManager.GetString("ERRExcelNotInstalled", resourceCulture);
             }
@@ -991,7 +991,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Error. Expected empty line separator, got: {0}.
         /// </summary>
-        internal static string ERRExpectedLineSeparator {
+        public static string ERRExpectedLineSeparator {
             get {
                 return ResourceManager.GetString("ERRExpectedLineSeparator", resourceCulture);
             }
@@ -1001,7 +1001,7 @@ namespace BecquerelMonitor.Properties {
         ///   Looks up a localized string similar to File &quot;{0}&quot; couldn&apos;t be opened.
         ///({1}).
         /// </summary>
-        internal static string ERRFileOpenFailure {
+        public static string ERRFileOpenFailure {
             get {
                 return ResourceManager.GetString("ERRFileOpenFailure", resourceCulture);
             }
@@ -1011,7 +1011,7 @@ namespace BecquerelMonitor.Properties {
         ///   Looks up a localized string similar to File &quot;{0}&quot; couldn&apos;t be saved.
         ///({1}).
         /// </summary>
-        internal static string ERRFileSaveFailure {
+        public static string ERRFileSaveFailure {
             get {
                 return ResourceManager.GetString("ERRFileSaveFailure", resourceCulture);
             }
@@ -1020,7 +1020,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to The firmware must be updated to the latest version..
         /// </summary>
-        internal static string ERRFirmwareMustBeUpdated {
+        public static string ERRFirmwareMustBeUpdated {
             get {
                 return ResourceManager.GetString("ERRFirmwareMustBeUpdated", resourceCulture);
             }
@@ -1030,7 +1030,7 @@ namespace BecquerelMonitor.Properties {
         ///   Looks up a localized string similar to Channel mismatch between device and imported spectra file.
         ///Device channels: {0}, spectrum files channels: {1}.
         /// </summary>
-        internal static string ERRImportAtomSpectra {
+        public static string ERRImportAtomSpectra {
             get {
                 return ResourceManager.GetString("ERRImportAtomSpectra", resourceCulture);
             }
@@ -1039,7 +1039,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Incompatible channel parameters..
         /// </summary>
-        internal static string ERRIncompatibleChannelParameters {
+        public static string ERRIncompatibleChannelParameters {
             get {
                 return ResourceManager.GetString("ERRIncompatibleChannelParameters", resourceCulture);
             }
@@ -1048,7 +1048,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Incrorrect Crc32 checksum! Possible borken coefficients. Try to upload them again..
         /// </summary>
-        internal static string ERRIncorrectCRC {
+        public static string ERRIncorrectCRC {
             get {
                 return ResourceManager.GetString("ERRIncorrectCRC", resourceCulture);
             }
@@ -1057,7 +1057,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Input device is not set..
         /// </summary>
-        internal static string ERRInputDeviceNotSet {
+        public static string ERRInputDeviceNotSet {
             get {
                 return ResourceManager.GetString("ERRInputDeviceNotSet", resourceCulture);
             }
@@ -1066,7 +1066,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Input an integer..
         /// </summary>
-        internal static string ERRInputInteger {
+        public static string ERRInputInteger {
             get {
                 return ResourceManager.GetString("ERRInputInteger", resourceCulture);
             }
@@ -1075,7 +1075,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Input a number..
         /// </summary>
-        internal static string ERRInputNumber {
+        public static string ERRInputNumber {
             get {
                 return ResourceManager.GetString("ERRInputNumber", resourceCulture);
             }
@@ -1084,7 +1084,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Invalid channel or energy values.
         /// </summary>
-        internal static string ERRInvalidChannelOrEnergyValues {
+        public static string ERRInvalidChannelOrEnergyValues {
             get {
                 return ResourceManager.GetString("ERRInvalidChannelOrEnergyValues", resourceCulture);
             }
@@ -1093,7 +1093,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Invalid device type.
         /// </summary>
-        internal static string ERRInvalidDeviceType {
+        public static string ERRInvalidDeviceType {
             get {
                 return ResourceManager.GetString("ERRInvalidDeviceType", resourceCulture);
             }
@@ -1102,7 +1102,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Invalid input form..
         /// </summary>
-        internal static string ERRInvalidInputForm {
+        public static string ERRInvalidInputForm {
             get {
                 return ResourceManager.GetString("ERRInvalidInputForm", resourceCulture);
             }
@@ -1111,7 +1111,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Invalid preset time..
         /// </summary>
-        internal static string ERRInvalidPresetTime {
+        public static string ERRInvalidPresetTime {
             get {
                 return ResourceManager.GetString("ERRInvalidPresetTime", resourceCulture);
             }
@@ -1120,7 +1120,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Invalid ROI primitive..
         /// </summary>
-        internal static string ERRInvalidROIPrimitive {
+        public static string ERRInvalidROIPrimitive {
             get {
                 return ResourceManager.GetString("ERRInvalidROIPrimitive", resourceCulture);
             }
@@ -1129,7 +1129,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Invalid ROI primitive operation..
         /// </summary>
-        internal static string ERRInvalidROIPrimitiveOperation {
+        public static string ERRInvalidROIPrimitiveOperation {
             get {
                 return ResourceManager.GetString("ERRInvalidROIPrimitiveOperation", resourceCulture);
             }
@@ -1138,7 +1138,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Failed to load device configuration file(s)..
         /// </summary>
-        internal static string ERRLoadingDeviceConfigFailed {
+        public static string ERRLoadingDeviceConfigFailed {
             get {
                 return ResourceManager.GetString("ERRLoadingDeviceConfigFailed", resourceCulture);
             }
@@ -1147,7 +1147,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Failed to load application configuration file..
         /// </summary>
-        internal static string ERRLoadingGlobalConfigFailed {
+        public static string ERRLoadingGlobalConfigFailed {
             get {
                 return ResourceManager.GetString("ERRLoadingGlobalConfigFailed", resourceCulture);
             }
@@ -1156,7 +1156,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Failed to load nuclide definition file..
         /// </summary>
-        internal static string ERRLoadingNuclideDefinitionFile {
+        public static string ERRLoadingNuclideDefinitionFile {
             get {
                 return ResourceManager.GetString("ERRLoadingNuclideDefinitionFile", resourceCulture);
             }
@@ -1165,7 +1165,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Failed to load ROI configuration file(s)..
         /// </summary>
-        internal static string ERRLoadingROIConfigFailed {
+        public static string ERRLoadingROIConfigFailed {
             get {
                 return ResourceManager.GetString("ERRLoadingROIConfigFailed", resourceCulture);
             }
@@ -1174,7 +1174,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Specified WAV format is not supported by the audio device..
         /// </summary>
-        internal static string ERRNotSupportedWavFormat {
+        public static string ERRNotSupportedWavFormat {
             get {
                 return ResourceManager.GetString("ERRNotSupportedWavFormat", resourceCulture);
             }
@@ -1183,7 +1183,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Error. Can not open this file. Expected format 3, got: {0}.
         /// </summary>
-        internal static string ERROpenAtomSpectraFormat {
+        public static string ERROpenAtomSpectraFormat {
             get {
                 return ResourceManager.GetString("ERROpenAtomSpectraFormat", resourceCulture);
             }
@@ -1192,7 +1192,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Error. Can not open this file. Expected $SPEC_ID file header, got: {0}.
         /// </summary>
-        internal static string ERROpenGBSFormat {
+        public static string ERROpenGBSFormat {
             get {
                 return ResourceManager.GetString("ERROpenGBSFormat", resourceCulture);
             }
@@ -1201,7 +1201,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Error.
         /// </summary>
-        internal static string ErrorDialogTitle {
+        public static string ErrorDialogTitle {
             get {
                 return ResourceManager.GetString("ErrorDialogTitle", resourceCulture);
             }
@@ -1210,7 +1210,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Error!.
         /// </summary>
-        internal static string ErrorExclamation {
+        public static string ErrorExclamation {
             get {
                 return ResourceManager.GetString("ErrorExclamation", resourceCulture);
             }
@@ -1219,7 +1219,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Error.
         /// </summary>
-        internal static string ErrorString {
+        public static string ErrorString {
             get {
                 return ResourceManager.GetString("ErrorString", resourceCulture);
             }
@@ -1228,7 +1228,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Selected peak FWHM allready exist in calibration peaks table! Try to select other peak. FWHM = {0} ch, Channel = {1} ch.
         /// </summary>
-        internal static string ERRPeakExist {
+        public static string ERRPeakExist {
             get {
                 return ResourceManager.GetString("ERRPeakExist", resourceCulture);
             }
@@ -1237,7 +1237,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Couldn&apos;t read device data from Port: {0}.
         /// </summary>
-        internal static string ERRReadDataFromPort {
+        public static string ERRReadDataFromPort {
             get {
                 return ResourceManager.GetString("ERRReadDataFromPort", resourceCulture);
             }
@@ -1246,7 +1246,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Couldn&apos;t read device data from Port!.
         /// </summary>
-        internal static string ERRReadDataFromPort_Empty {
+        public static string ERRReadDataFromPort_Empty {
             get {
                 return ResourceManager.GetString("ERRReadDataFromPort_Empty", resourceCulture);
             }
@@ -1255,7 +1255,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Failed to save device configuration file..
         /// </summary>
-        internal static string ERRSavingDeviceConfigFailed {
+        public static string ERRSavingDeviceConfigFailed {
             get {
                 return ResourceManager.GetString("ERRSavingDeviceConfigFailed", resourceCulture);
             }
@@ -1264,7 +1264,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Failed to save application configuration file..
         /// </summary>
-        internal static string ERRSavingGlobalConfigFailed {
+        public static string ERRSavingGlobalConfigFailed {
             get {
                 return ResourceManager.GetString("ERRSavingGlobalConfigFailed", resourceCulture);
             }
@@ -1273,7 +1273,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Failed to save nuclide definition file..
         /// </summary>
-        internal static string ERRSavingNuclideDefinitionFile {
+        public static string ERRSavingNuclideDefinitionFile {
             get {
                 return ResourceManager.GetString("ERRSavingNuclideDefinitionFile", resourceCulture);
             }
@@ -1282,7 +1282,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Failed to save ROI configuration file..
         /// </summary>
-        internal static string ERRSavingROIConfigFailed {
+        public static string ERRSavingROIConfigFailed {
             get {
                 return ResourceManager.GetString("ERRSavingROIConfigFailed", resourceCulture);
             }
@@ -1291,7 +1291,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Error while check document content: calibration, spectrum, channels.
         /// </summary>
-        internal static string ERRSpectrumCheck {
+        public static string ERRSpectrumCheck {
             get {
                 return ResourceManager.GetString("ERRSpectrumCheck", resourceCulture);
             }
@@ -1300,7 +1300,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to N42 EnergyBoundaryValues not supported. Using current calibration..
         /// </summary>
-        internal static string ERRUnsuportedEnergyBoundaryN42 {
+        public static string ERRUnsuportedEnergyBoundaryN42 {
             get {
                 return ResourceManager.GetString("ERRUnsuportedEnergyBoundaryN42", resourceCulture);
             }
@@ -1309,7 +1309,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Unsupported calibration method polynom order {0}. Only 2,3,4,5 points exist..
         /// </summary>
-        internal static string ERRUnsupportedCalibrationMethod {
+        public static string ERRUnsupportedCalibrationMethod {
             get {
                 return ResourceManager.GetString("ERRUnsupportedCalibrationMethod", resourceCulture);
             }
@@ -1318,7 +1318,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Unsupported calibration points number. Got polynom order = {0}.
         /// </summary>
-        internal static string ERRUnsupportedCalibrationOrder {
+        public static string ERRUnsupportedCalibrationOrder {
             get {
                 return ResourceManager.GetString("ERRUnsupportedCalibrationOrder", resourceCulture);
             }
@@ -1327,7 +1327,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to This application works in standalone mode. If you want to use update re-install it..
         /// </summary>
-        internal static string ERRUpdateApp {
+        public static string ERRUpdateApp {
             get {
                 return ResourceManager.GetString("ERRUpdateApp", resourceCulture);
             }
@@ -1337,7 +1337,7 @@ namespace BecquerelMonitor.Properties {
         ///   Looks up a localized string similar to Cann&apos;t install the latest version. Error happens.
         ///{0}.
         /// </summary>
-        internal static string ERRUpdateExc {
+        public static string ERRUpdateExc {
             get {
                 return ResourceManager.GetString("ERRUpdateExc", resourceCulture);
             }
@@ -1346,7 +1346,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Error! Сoefficients uploaded with error! Check connection and reupload it again..
         /// </summary>
-        internal static string ERRUploadCoefficeintsToDevice {
+        public static string ERRUploadCoefficeintsToDevice {
             get {
                 return ResourceManager.GetString("ERRUploadCoefficeintsToDevice", resourceCulture);
             }
@@ -1355,7 +1355,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Error while look ANY COM port in OS. OS returns emtpy list. Now program sets port from device config file, but you shuld check what&apos;s happend with your USB system hub..
         /// </summary>
-        internal static string ERRVCPComPortsNumeration {
+        public static string ERRVCPComPortsNumeration {
             get {
                 return ResourceManager.GetString("ERRVCPComPortsNumeration", resourceCulture);
             }
@@ -1364,7 +1364,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Export Selected Spectra To File.
         /// </summary>
-        internal static string ExportSpectraToFileDialogTitle {
+        public static string ExportSpectraToFileDialogTitle {
             get {
                 return ResourceManager.GetString("ExportSpectraToFileDialogTitle", resourceCulture);
             }
@@ -1373,7 +1373,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap fit1 {
+        public static System.Drawing.Bitmap fit1 {
             get {
                 object obj = ResourceManager.GetObject("fit1", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -1383,7 +1383,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap fit2 {
+        public static System.Drawing.Bitmap fit2 {
             get {
                 object obj = ResourceManager.GetObject("fit2", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -1396,7 +1396,7 @@ namespace BecquerelMonitor.Properties {
         ///FWHM peak in ch - Choose peak in the center of the spectrum. The K-40 peak should be great. Enter the value of center position in the channels.
         ///FW peak width ch - The width of the peak in channels. Select peak from the &quot;FWHM peak in ch&quot; parameter with the mouse and enter the value &quot;FWHM  [rest of string was truncated]&quot;;.
         /// </summary>
-        internal static string FWHMPeakConfigDescription {
+        public static string FWHMPeakConfigDescription {
             get {
                 return ResourceManager.GetString("FWHMPeakConfigDescription", resourceCulture);
             }
@@ -1405,7 +1405,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Spectraline GBS Spectra Files (*.spe)|*.spe|All Files (*.*)|*.*.
         /// </summary>
-        internal static string GBSFileFilter {
+        public static string GBSFileFilter {
             get {
                 return ResourceManager.GetString("GBSFileFilter", resourceCulture);
             }
@@ -1414,7 +1414,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap HD {
+        public static System.Drawing.Bitmap HD {
             get {
                 object obj = ResourceManager.GetObject("HD", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -1424,7 +1424,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap HD1 {
+        public static System.Drawing.Bitmap HD1 {
             get {
                 object obj = ResourceManager.GetObject("HD1", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -1434,7 +1434,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap icon256 {
+        public static System.Drawing.Bitmap icon256 {
             get {
                 object obj = ResourceManager.GetObject("icon256", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -1444,7 +1444,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Import Atom Spectra Spectrum File.
         /// </summary>
-        internal static string ImportAtomSpectraFileDialogTitle {
+        public static string ImportAtomSpectraFileDialogTitle {
             get {
                 return ResourceManager.GetString("ImportAtomSpectraFileDialogTitle", resourceCulture);
             }
@@ -1453,7 +1453,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Import SpectraLine GBS Spectrum File.
         /// </summary>
-        internal static string ImportGBSFileDialogTitle {
+        public static string ImportGBSFileDialogTitle {
             get {
                 return ResourceManager.GetString("ImportGBSFileDialogTitle", resourceCulture);
             }
@@ -1462,7 +1462,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Import N42 Spectrum File.
         /// </summary>
-        internal static string ImportN42FileDialogTitle {
+        public static string ImportN42FileDialogTitle {
             get {
                 return ResourceManager.GetString("ImportN42FileDialogTitle", resourceCulture);
             }
@@ -1471,7 +1471,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Import Old Format (0.93Beta or earlier) Spectrum File.
         /// </summary>
-        internal static string ImportOldFormatFileDialogTitle {
+        public static string ImportOldFormatFileDialogTitle {
             get {
                 return ResourceManager.GetString("ImportOldFormatFileDialogTitle", resourceCulture);
             }
@@ -1480,7 +1480,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Import Spectra From File.
         /// </summary>
-        internal static string ImportSpectraFromFileDialogTitle {
+        public static string ImportSpectraFromFileDialogTitle {
             get {
                 return ResourceManager.GetString("ImportSpectraFromFileDialogTitle", resourceCulture);
             }
@@ -1489,7 +1489,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Import using SpecUtils.
         /// </summary>
-        internal static string ImportSpecUtilsFileDialogTitle {
+        public static string ImportSpecUtilsFileDialogTitle {
             get {
                 return ResourceManager.GetString("ImportSpecUtilsFileDialogTitle", resourceCulture);
             }
@@ -1499,7 +1499,7 @@ namespace BecquerelMonitor.Properties {
         ///   Looks up a localized string similar to Initializing...
         ///.
         /// </summary>
-        internal static string InitializingMessage {
+        public static string InitializingMessage {
             get {
                 return ResourceManager.GetString("InitializingMessage", resourceCulture);
             }
@@ -1508,7 +1508,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Invalid Input Value.
         /// </summary>
-        internal static string InvalidValueDialogTitle {
+        public static string InvalidValueDialogTitle {
             get {
                 return ResourceManager.GetString("InvalidValueDialogTitle", resourceCulture);
             }
@@ -1517,7 +1517,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to keV.
         /// </summary>
-        internal static string kev {
+        public static string kev {
             get {
                 return ResourceManager.GetString("kev", resourceCulture);
             }
@@ -1526,7 +1526,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Status: {0}.
         /// </summary>
-        internal static string LabelVCPSpectraInfo {
+        public static string LabelVCPSpectraInfo {
             get {
                 return ResourceManager.GetString("LabelVCPSpectraInfo", resourceCulture);
             }
@@ -1535,7 +1535,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Lc Counts:.
         /// </summary>
-        internal static string Lc_counts {
+        public static string Lc_counts {
             get {
                 return ResourceManager.GetString("Lc_counts", resourceCulture);
             }
@@ -1544,7 +1544,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Ld Counts:.
         /// </summary>
-        internal static string Ld_counts {
+        public static string Ld_counts {
             get {
                 return ResourceManager.GetString("Ld_counts", resourceCulture);
             }
@@ -1566,7 +1566,7 @@ namespace BecquerelMonitor.Properties {
         ///using XPTable library
         ///http://xptable.sourceforge.net/.
         /// </summary>
-        internal static string LibraryLicensesMessage {
+        public static string LibraryLicensesMessage {
             get {
                 return ResourceManager.GetString("LibraryLicensesMessage", resourceCulture);
             }
@@ -1575,7 +1575,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap line {
+        public static System.Drawing.Bitmap line {
             get {
                 object obj = ResourceManager.GetObject("line", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -1585,7 +1585,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap linear {
+        public static System.Drawing.Bitmap linear {
             get {
                 object obj = ResourceManager.GetObject("linear", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -1595,7 +1595,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Load default peak search settings optimised for device series {0}?.
         /// </summary>
-        internal static string LoadDefaultPeakFinderSettingsQuestion {
+        public static string LoadDefaultPeakFinderSettingsQuestion {
             get {
                 return ResourceManager.GetString("LoadDefaultPeakFinderSettingsQuestion", resourceCulture);
             }
@@ -1604,7 +1604,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Load peak search preset question.
         /// </summary>
-        internal static string LoadDefaultPeakFinderSettingsQuestionTitle {
+        public static string LoadDefaultPeakFinderSettingsQuestionTitle {
             get {
                 return ResourceManager.GetString("LoadDefaultPeakFinderSettingsQuestionTitle", resourceCulture);
             }
@@ -1613,7 +1613,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Loading File ( {0} )....
         /// </summary>
-        internal static string LoadingFileMessage {
+        public static string LoadingFileMessage {
             get {
                 return ResourceManager.GetString("LoadingFileMessage", resourceCulture);
             }
@@ -1622,7 +1622,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap log {
+        public static System.Drawing.Bitmap log {
             get {
                 object obj = ResourceManager.GetObject("log", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -1632,7 +1632,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Lu Counts:.
         /// </summary>
-        internal static string Lu_counts {
+        public static string Lu_counts {
             get {
                 return ResourceManager.GetString("Lu_counts", resourceCulture);
             }
@@ -1641,7 +1641,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to MDA Counts:.
         /// </summary>
-        internal static string MDA_cnts {
+        public static string MDA_cnts {
             get {
                 return ResourceManager.GetString("MDA_cnts", resourceCulture);
             }
@@ -1650,7 +1650,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Remove device configuration &quot;{0}&quot;?.
         /// </summary>
-        internal static string MessageRemoveDeviceConfig {
+        public static string MessageRemoveDeviceConfig {
             get {
                 return ResourceManager.GetString("MessageRemoveDeviceConfig", resourceCulture);
             }
@@ -1659,7 +1659,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Minimum peaks requirement: {0}.
         /// </summary>
-        internal static string MinPeaksRequirement {
+        public static string MinPeaksRequirement {
             get {
                 return ResourceManager.GetString("MinPeaksRequirement", resourceCulture);
             }
@@ -1668,7 +1668,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap Minus {
+        public static System.Drawing.Bitmap Minus {
             get {
                 object obj = ResourceManager.GetObject("Minus", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -1679,7 +1679,7 @@ namespace BecquerelMonitor.Properties {
         ///   Looks up a localized string similar to Type command and press Enter. Some commands ARE HAZARDOUS!
         ///You must be completely sure, what you are doing..
         /// </summary>
-        internal static string MSGAtomSpectraWarning {
+        public static string MSGAtomSpectraWarning {
             get {
                 return ResourceManager.GetString("MSGAtomSpectraWarning", resourceCulture);
             }
@@ -1688,7 +1688,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Energy calibration is done..
         /// </summary>
-        internal static string MSGCalibrationDone {
+        public static string MSGCalibrationDone {
             get {
                 return ResourceManager.GetString("MSGCalibrationDone", resourceCulture);
             }
@@ -1697,7 +1697,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Clear spectrum?.
         /// </summary>
-        internal static string MSGClearSpectrum {
+        public static string MSGClearSpectrum {
             get {
                 return ResourceManager.GetString("MSGClearSpectrum", resourceCulture);
             }
@@ -1706,7 +1706,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Coefficients uploaded to device successfully..
         /// </summary>
-        internal static string MSGCoefficientsUploadedSuccesfull {
+        public static string MSGCoefficientsUploadedSuccesfull {
             get {
                 return ResourceManager.GetString("MSGCoefficientsUploadedSuccesfull", resourceCulture);
             }
@@ -1715,7 +1715,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to COM Port:.
         /// </summary>
-        internal static string MSGComPort {
+        public static string MSGComPort {
             get {
                 return ResourceManager.GetString("MSGComPort", resourceCulture);
             }
@@ -1724,7 +1724,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Configuration has been modified. Save?.
         /// </summary>
-        internal static string MSGConfirmSaveConfig {
+        public static string MSGConfirmSaveConfig {
             get {
                 return ResourceManager.GetString("MSGConfirmSaveConfig", resourceCulture);
             }
@@ -1733,7 +1733,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Delete nuclide definition &quot;{0}&quot;?.
         /// </summary>
-        internal static string MSGDeleteNuclideDefinition {
+        public static string MSGDeleteNuclideDefinition {
             get {
                 return ResourceManager.GetString("MSGDeleteNuclideDefinition", resourceCulture);
             }
@@ -1742,7 +1742,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Remove ROI configuration &quot;{0}&quot;?.
         /// </summary>
-        internal static string MSGDeleteROIConfig {
+        public static string MSGDeleteROIConfig {
             get {
                 return ResourceManager.GetString("MSGDeleteROIConfig", resourceCulture);
             }
@@ -1751,7 +1751,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Remove ROI definition &quot;{0}&quot;?.
         /// </summary>
-        internal static string MSGDeleteROIDefinition {
+        public static string MSGDeleteROIDefinition {
             get {
                 return ResourceManager.GetString("MSGDeleteROIDefinition", resourceCulture);
             }
@@ -1760,7 +1760,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Remove ROI primitive?.
         /// </summary>
-        internal static string MSGDeleteROIPrimitive {
+        public static string MSGDeleteROIPrimitive {
             get {
                 return ResourceManager.GetString("MSGDeleteROIPrimitive", resourceCulture);
             }
@@ -1769,7 +1769,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Changing device type causes initialization of input fields. OK?.
         /// </summary>
-        internal static string MSGDeviceTypeChanging {
+        public static string MSGDeviceTypeChanging {
             get {
                 return ResourceManager.GetString("MSGDeviceTypeChanging", resourceCulture);
             }
@@ -1778,7 +1778,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Spectrum File &quot;{0}&quot; was modified. Save changes?.
         /// </summary>
-        internal static string MSGFileOverwriteConfirmation {
+        public static string MSGFileOverwriteConfirmation {
             get {
                 return ResourceManager.GetString("MSGFileOverwriteConfirmation", resourceCulture);
             }
@@ -1787,7 +1787,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Initialize all color settings?.
         /// </summary>
-        internal static string MSGInitializeAllColorSetting {
+        public static string MSGInitializeAllColorSetting {
             get {
                 return ResourceManager.GetString("MSGInitializeAllColorSetting", resourceCulture);
             }
@@ -1796,7 +1796,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Spectrum will be ERASED due to incompatible parameters (number of channels and channel pitch) and no pulse data..
         /// </summary>
-        internal static string MSGInitializingSpectrum {
+        public static string MSGInitializingSpectrum {
             get {
                 return ResourceManager.GetString("MSGInitializingSpectrum", resourceCulture);
             }
@@ -1805,7 +1805,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Mean Squared Error.
         /// </summary>
-        internal static string MSGMSE {
+        public static string MSGMSE {
             get {
                 return ResourceManager.GetString("MSGMSE", resourceCulture);
             }
@@ -1814,7 +1814,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to New nuclide definition file has been created..
         /// </summary>
-        internal static string MSGNewNuclideDefinitionFileCreated {
+        public static string MSGNewNuclideDefinitionFileCreated {
             get {
                 return ResourceManager.GetString("MSGNewNuclideDefinitionFileCreated", resourceCulture);
             }
@@ -1823,7 +1823,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to No new version avalable. Current version: {0}.
         /// </summary>
-        internal static string MSGNoNewVersion {
+        public static string MSGNoNewVersion {
             get {
                 return ResourceManager.GetString("MSGNoNewVersion", resourceCulture);
             }
@@ -1832,7 +1832,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Pick up calibration point from spectrum chart..
         /// </summary>
-        internal static string MSGPickUpCalibrationPoint {
+        public static string MSGPickUpCalibrationPoint {
             get {
                 return ResourceManager.GetString("MSGPickUpCalibrationPoint", resourceCulture);
             }
@@ -1841,7 +1841,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Pick up channel #1 from spectrum chart..
         /// </summary>
-        internal static string MSGPickUpChannel1 {
+        public static string MSGPickUpChannel1 {
             get {
                 return ResourceManager.GetString("MSGPickUpChannel1", resourceCulture);
             }
@@ -1850,7 +1850,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Pick up channel #2 from spectrum chart..
         /// </summary>
-        internal static string MSGPickUpChannel2 {
+        public static string MSGPickUpChannel2 {
             get {
                 return ResourceManager.GetString("MSGPickUpChannel2", resourceCulture);
             }
@@ -1859,7 +1859,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Pick up channel #3 from spectrum chart..
         /// </summary>
-        internal static string MSGPickUpChannel3 {
+        public static string MSGPickUpChannel3 {
             get {
                 return ResourceManager.GetString("MSGPickUpChannel3", resourceCulture);
             }
@@ -1868,7 +1868,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Modify values and push execution button..
         /// </summary>
-        internal static string MSGProceedCalibration {
+        public static string MSGProceedCalibration {
             get {
                 return ResourceManager.GetString("MSGProceedCalibration", resourceCulture);
             }
@@ -1877,7 +1877,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Update finished. Application WILL RESTART..
         /// </summary>
-        internal static string MSGRestartNeeded {
+        public static string MSGRestartNeeded {
             get {
                 return ResourceManager.GetString("MSGRestartNeeded", resourceCulture);
             }
@@ -1886,7 +1886,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Save configuration before writing config to device..
         /// </summary>
-        internal static string MSGSaveBeforeWritingData {
+        public static string MSGSaveBeforeWritingData {
             get {
                 return ResourceManager.GetString("MSGSaveBeforeWritingData", resourceCulture);
             }
@@ -1895,7 +1895,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Save energy calibration parmeters to current device configuration?.
         /// </summary>
-        internal static string MSGSaveEnergyCalibration {
+        public static string MSGSaveEnergyCalibration {
             get {
                 return ResourceManager.GetString("MSGSaveEnergyCalibration", resourceCulture);
             }
@@ -1904,7 +1904,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Save FWHM calibration to current device configuration?.
         /// </summary>
-        internal static string MSGSaveFWHMCalibration {
+        public static string MSGSaveFWHMCalibration {
             get {
                 return ResourceManager.GetString("MSGSaveFWHMCalibration", resourceCulture);
             }
@@ -1913,7 +1913,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Nuclide definition has been modified. Save?.
         /// </summary>
-        internal static string MSGSavingNuclideDefinition {
+        public static string MSGSavingNuclideDefinition {
             get {
                 return ResourceManager.GetString("MSGSavingNuclideDefinition", resourceCulture);
             }
@@ -1922,7 +1922,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Nuclide set(s) has been modified. Save?.
         /// </summary>
-        internal static string MSGSavingNuclideSet {
+        public static string MSGSavingNuclideSet {
             get {
                 return ResourceManager.GetString("MSGSavingNuclideSet", resourceCulture);
             }
@@ -1931,7 +1931,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Changing thermometer type causes initialization of input fields. OK?.
         /// </summary>
-        internal static string MSGThermometerTypeChanging {
+        public static string MSGThermometerTypeChanging {
             get {
                 return ResourceManager.GetString("MSGThermometerTypeChanging", resourceCulture);
             }
@@ -1942,7 +1942,7 @@ namespace BecquerelMonitor.Properties {
         ///Before updating save all unsaved data. Application WILL RESTART!
         ///Install update?.
         /// </summary>
-        internal static string MSGUpdateLong {
+        public static string MSGUpdateLong {
             get {
                 return ResourceManager.GetString("MSGUpdateLong", resourceCulture);
             }
@@ -1951,7 +1951,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Update avalable.
         /// </summary>
-        internal static string MSGUpdateShort {
+        public static string MSGUpdateShort {
             get {
                 return ResourceManager.GetString("MSGUpdateShort", resourceCulture);
             }
@@ -1960,7 +1960,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Multipoint Calibration.
         /// </summary>
-        internal static string MultipointCalibrationString {
+        public static string MultipointCalibrationString {
             get {
                 return ResourceManager.GetString("MultipointCalibrationString", resourceCulture);
             }
@@ -1969,7 +1969,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Export N42 file.
         /// </summary>
-        internal static string N42ExportDialogTitle {
+        public static string N42ExportDialogTitle {
             get {
                 return ResourceManager.GetString("N42ExportDialogTitle", resourceCulture);
             }
@@ -1978,7 +1978,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to N42 Files (*.N42)|*.N42|All Files (*.*)|*.*.
         /// </summary>
-        internal static string N42FileFilter {
+        public static string N42FileFilter {
             get {
                 return ResourceManager.GetString("N42FileFilter", resourceCulture);
             }
@@ -1987,7 +1987,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap NDBitmap {
+        public static System.Drawing.Bitmap NDBitmap {
             get {
                 object obj = ResourceManager.GetObject("NDBitmap", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -1997,7 +1997,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to New Device Configuration.
         /// </summary>
-        internal static string NewDeviceConfigPrefix {
+        public static string NewDeviceConfigPrefix {
             get {
                 return ResourceManager.GetString("NewDeviceConfigPrefix", resourceCulture);
             }
@@ -2006,7 +2006,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to New File.
         /// </summary>
-        internal static string NewFilePrefix {
+        public static string NewFilePrefix {
             get {
                 return ResourceManager.GetString("NewFilePrefix", resourceCulture);
             }
@@ -2015,7 +2015,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to New ROI Configuration.
         /// </summary>
-        internal static string NewROIConfigPrefix {
+        public static string NewROIConfigPrefix {
             get {
                 return ResourceManager.GetString("NewROIConfigPrefix", resourceCulture);
             }
@@ -2024,7 +2024,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap NOBG {
+        public static System.Drawing.Bitmap NOBG {
             get {
                 object obj = ResourceManager.GetObject("NOBG", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -2034,7 +2034,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap None {
+        public static System.Drawing.Bitmap None {
             get {
                 object obj = ResourceManager.GetObject("None", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -2044,7 +2044,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap nopeak {
+        public static System.Drawing.Bitmap nopeak {
             get {
                 object obj = ResourceManager.GetObject("nopeak", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -2054,7 +2054,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap NORM {
+        public static System.Drawing.Bitmap NORM {
             get {
                 object obj = ResourceManager.GetObject("NORM", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -2064,7 +2064,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap NoSmooth {
+        public static System.Drawing.Bitmap NoSmooth {
             get {
                 object obj = ResourceManager.GetObject("NoSmooth", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -2074,7 +2074,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Not detected.
         /// </summary>
-        internal static string NotDetected {
+        public static string NotDetected {
             get {
                 return ResourceManager.GetString("NotDetected", resourceCulture);
             }
@@ -2083,7 +2083,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Message.
         /// </summary>
-        internal static string NotificationDialogTitle {
+        public static string NotificationDialogTitle {
             get {
                 return ResourceManager.GetString("NotificationDialogTitle", resourceCulture);
             }
@@ -2092,7 +2092,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to α.
         /// </summary>
-        internal static string NucBase_Alpha_Label {
+        public static string NucBase_Alpha_Label {
             get {
                 return ResourceManager.GetString("NucBase.Alpha.Label", resourceCulture);
             }
@@ -2101,7 +2101,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to decay_rads.
         /// </summary>
-        internal static string NucBase_API_Data_Method {
+        public static string NucBase_API_Data_Method {
             get {
                 return ResourceManager.GetString("NucBase.API.Data.Method", resourceCulture);
             }
@@ -2110,7 +2110,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to https://www-nds.iaea.org/relnsd/v0/data?fields={0}&amp;nuclides={1}&amp;rad_types={2}.
         /// </summary>
-        internal static string NucBase_API_IAEA {
+        public static string NucBase_API_IAEA {
             get {
                 return ResourceManager.GetString("NucBase.API.IAEA", resourceCulture);
             }
@@ -2119,7 +2119,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to β-.
         /// </summary>
-        internal static string NucBase_BettaMinus_Label {
+        public static string NucBase_BettaMinus_Label {
             get {
                 return ResourceManager.GetString("NucBase.BettaMinus.Label", resourceCulture);
             }
@@ -2128,7 +2128,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to β+.
         /// </summary>
-        internal static string NucBase_BettaPlus_Label {
+        public static string NucBase_BettaPlus_Label {
             get {
                 return ResourceManager.GetString("NucBase.BettaPlus.Label", resourceCulture);
             }
@@ -2137,7 +2137,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Not all daughters fetched for isotope {0}. Message: {1}.
         /// </summary>
-        internal static string NucBase_DaughtersFetchError {
+        public static string NucBase_DaughtersFetchError {
             get {
                 return ResourceManager.GetString("NucBase.DaughtersFetchError", resourceCulture);
             }
@@ -2146,7 +2146,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Failed to fetch decay radiation. SQL string: {0}. Message: {1}.
         /// </summary>
-        internal static string NucBase_DecayRadsFetchError {
+        public static string NucBase_DecayRadsFetchError {
             get {
                 return ResourceManager.GetString("NucBase.DecayRadsFetchError", resourceCulture);
             }
@@ -2155,7 +2155,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to EC.
         /// </summary>
-        internal static string NucBase_EC {
+        public static string NucBase_EC {
             get {
                 return ResourceManager.GetString("NucBase.EC", resourceCulture);
             }
@@ -2164,7 +2164,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to g.
         /// </summary>
-        internal static string NucBase_Gamma {
+        public static string NucBase_Gamma {
             get {
                 return ResourceManager.GetString("NucBase.Gamma", resourceCulture);
             }
@@ -2173,7 +2173,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to γ.
         /// </summary>
-        internal static string NucBase_Gamma_Label {
+        public static string NucBase_Gamma_Label {
             get {
                 return ResourceManager.GetString("NucBase.Gamma.Label", resourceCulture);
             }
@@ -2182,7 +2182,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Failed to fetch Isotope: {0}. {1}.
         /// </summary>
-        internal static string NucBase_IsotopeFetchError {
+        public static string NucBase_IsotopeFetchError {
             get {
                 return ResourceManager.GetString("NucBase.IsotopeFetchError", resourceCulture);
             }
@@ -2191,7 +2191,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Example: AM-241, AM241, 241AM. Isomer: PA234m1, 234PAm1, PA-234m1.
         /// </summary>
-        internal static string NucBase_IsotopeTextBoxTooltip1 {
+        public static string NucBase_IsotopeTextBoxTooltip1 {
             get {
                 return ResourceManager.GetString("NucBase.IsotopeTextBoxTooltip1", resourceCulture);
             }
@@ -2200,7 +2200,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to IT.
         /// </summary>
-        internal static string NucBase_IT {
+        public static string NucBase_IT {
             get {
                 return ResourceManager.GetString("NucBase.IT", resourceCulture);
             }
@@ -2209,7 +2209,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:77.0) Gecko/20100101 Firefox/77.0.
         /// </summary>
-        internal static string NucBase_User_Agent {
+        public static string NucBase_User_Agent {
             get {
                 return ResourceManager.GetString("NucBase.User-Agent", resourceCulture);
             }
@@ -2218,7 +2218,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to x.
         /// </summary>
-        internal static string NucBase_X_Ray {
+        public static string NucBase_X_Ray {
             get {
                 return ResourceManager.GetString("NucBase.X-Ray", resourceCulture);
             }
@@ -2227,7 +2227,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Import failed - {0}.
         /// </summary>
-        internal static string NuclideDefImportError {
+        public static string NuclideDefImportError {
             get {
                 return ResourceManager.GetString("NuclideDefImportError", resourceCulture);
             }
@@ -2236,7 +2236,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Import successful. Added - {0} item(s), updated - {1} item(s)..
         /// </summary>
-        internal static string NuclideDefImportSuccess {
+        public static string NuclideDefImportSuccess {
             get {
                 return ResourceManager.GetString("NuclideDefImportSuccess", resourceCulture);
             }
@@ -2245,7 +2245,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Open Spectrum File.
         /// </summary>
-        internal static string OpenFileDialogTitle {
+        public static string OpenFileDialogTitle {
             get {
                 return ResourceManager.GetString("OpenFileDialogTitle", resourceCulture);
             }
@@ -2254,7 +2254,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap peak {
+        public static System.Drawing.Bitmap peak {
             get {
                 object obj = ResourceManager.GetObject("peak", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -2264,7 +2264,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to %.
         /// </summary>
-        internal static string PercentCharacter {
+        public static string PercentCharacter {
             get {
                 return ResourceManager.GetString("PercentCharacter", resourceCulture);
             }
@@ -2273,7 +2273,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap Plus {
+        public static System.Drawing.Bitmap Plus {
             get {
                 object obj = ResourceManager.GetObject("Plus", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -2283,7 +2283,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to ±.
         /// </summary>
-        internal static string PlusMinus {
+        public static string PlusMinus {
             get {
                 return ResourceManager.GetString("PlusMinus", resourceCulture);
             }
@@ -2292,7 +2292,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap pow {
+        public static System.Drawing.Bitmap pow {
             get {
                 object obj = ResourceManager.GetObject("pow", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -2302,7 +2302,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to d\d\ hh\:mm\:ss.
         /// </summary>
-        internal static string ProgressDateFmt {
+        public static string ProgressDateFmt {
             get {
                 return ResourceManager.GetString("ProgressDateFmt", resourceCulture);
             }
@@ -2311,7 +2311,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to  ({0}%).
         /// </summary>
-        internal static string ProgressString {
+        public static string ProgressString {
             get {
                 return ResourceManager.GetString("ProgressString", resourceCulture);
             }
@@ -2320,7 +2320,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap RefreshBG {
+        public static System.Drawing.Bitmap RefreshBG {
             get {
                 object obj = ResourceManager.GetObject("RefreshBG", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -2330,7 +2330,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Reset calibration question.
         /// </summary>
-        internal static string ResetCalibrationQuestion {
+        public static string ResetCalibrationQuestion {
             get {
                 return ResourceManager.GetString("ResetCalibrationQuestion", resourceCulture);
             }
@@ -2339,7 +2339,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Device calibration is polynom order {0}. Spectrum calibration is polynom order {1}. Do you want to reset whole calibration points to device calibration?.
         /// </summary>
-        internal static string ResetCalibrationToDeviceSettingsConflict {
+        public static string ResetCalibrationToDeviceSettingsConflict {
             get {
                 return ResourceManager.GetString("ResetCalibrationToDeviceSettingsConflict", resourceCulture);
             }
@@ -2348,7 +2348,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Restart application to apply settings..
         /// </summary>
-        internal static string RestartRequiredMessage {
+        public static string RestartRequiredMessage {
             get {
                 return ResourceManager.GetString("RestartRequiredMessage", resourceCulture);
             }
@@ -2357,7 +2357,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to ROI efficiency curve imported successfully.
         /// </summary>
-        internal static string ROICreationSucces {
+        public static string ROICreationSucces {
             get {
                 return ResourceManager.GetString("ROICreationSucces", resourceCulture);
             }
@@ -2366,7 +2366,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Addition.
         /// </summary>
-        internal static string ROIPrimitiveOperationTypeAddition {
+        public static string ROIPrimitiveOperationTypeAddition {
             get {
                 return ResourceManager.GetString("ROIPrimitiveOperationTypeAddition", resourceCulture);
             }
@@ -2375,7 +2375,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Subtraction.
         /// </summary>
-        internal static string ROIPrimitiveOperationTypeSubtraction {
+        public static string ROIPrimitiveOperationTypeSubtraction {
             get {
                 return ResourceManager.GetString("ROIPrimitiveOperationTypeSubtraction", resourceCulture);
             }
@@ -2384,7 +2384,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to BG Difference.
         /// </summary>
-        internal static string ROIPrimitiveTypeBGDifference {
+        public static string ROIPrimitiveTypeBGDifference {
             get {
                 return ResourceManager.GetString("ROIPrimitiveTypeBGDifference", resourceCulture);
             }
@@ -2393,7 +2393,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Covell Method.
         /// </summary>
-        internal static string ROIPrimitiveTypeCovellMethod {
+        public static string ROIPrimitiveTypeCovellMethod {
             get {
                 return ResourceManager.GetString("ROIPrimitiveTypeCovellMethod", resourceCulture);
             }
@@ -2402,7 +2402,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to ROI Reference.
         /// </summary>
-        internal static string ROIPrimitiveTypeROIReference {
+        public static string ROIPrimitiveTypeROIReference {
             get {
                 return ResourceManager.GetString("ROIPrimitiveTypeROIReference", resourceCulture);
             }
@@ -2411,7 +2411,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap save {
+        public static System.Drawing.Bitmap save {
             get {
                 object obj = ResourceManager.GetObject("save", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -2421,7 +2421,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Save Spectrum File As.
         /// </summary>
-        internal static string SaveFileDialogTitle {
+        public static string SaveFileDialogTitle {
             get {
                 return ResourceManager.GetString("SaveFileDialogTitle", resourceCulture);
             }
@@ -2430,7 +2430,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap scale {
+        public static System.Drawing.Bitmap scale {
             get {
                 object obj = ResourceManager.GetObject("scale", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -2440,7 +2440,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap screenshot {
+        public static System.Drawing.Bitmap screenshot {
             get {
                 object obj = ResourceManager.GetObject("screenshot", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -2450,7 +2450,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to σ.
         /// </summary>
-        internal static string Sigma {
+        public static string Sigma {
             get {
                 return ResourceManager.GetString("Sigma", resourceCulture);
             }
@@ -2459,7 +2459,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap SMA {
+        public static System.Drawing.Bitmap SMA {
             get {
                 object obj = ResourceManager.GetObject("SMA", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -2469,7 +2469,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Spectrum Files (*.xml)|*.xml|All Files (*.*)|*.*.
         /// </summary>
-        internal static string SpectrumFileFilter {
+        public static string SpectrumFileFilter {
             get {
                 return ResourceManager.GetString("SpectrumFileFilter", resourceCulture);
             }
@@ -2478,7 +2478,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to N42 2006/2012 (*.n42;*.xml;*.icd1;*.icd)|*.n42;*.xml;*.icd1;*.icd|ASCII or binary (both integer based and float based) SPC formats (*.spc)|*.spc|Exploranium GR-130, GR-135 v1 or v2 binary formats (*.gr130;*.gr135;*.dat)|*.gr130;*.gr135;*.dat|GADRAS PCF binary format (*.pcf)|*.pcf|ORTEC binary CHN file (*.chn)|*.chn|The IAEA SPE ascii format (*.spe)|*.spe|CSV, TSV, TXT and similar variants (*.txt;*.csv;*.tsv)|*.txt;*.csv;*.tsv|Canberra binary CNF format (*.cnf)|*.cnf|Tracs MPS binary format (*.mps)|*.mps|Ara [rest of string was truncated]&quot;;.
         /// </summary>
-        internal static string SpecUtilsFileFilter {
+        public static string SpecUtilsFileFilter {
             get {
                 return ResourceManager.GetString("SpecUtilsFileFilter", resourceCulture);
             }
@@ -2487,7 +2487,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap split {
+        public static System.Drawing.Bitmap split {
             get {
                 object obj = ResourceManager.GetObject("split", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -2497,7 +2497,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap start {
+        public static System.Drawing.Bitmap start {
             get {
                 object obj = ResourceManager.GetObject("start", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -2507,7 +2507,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap stop {
+        public static System.Drawing.Bitmap stop {
             get {
                 object obj = ResourceManager.GetObject("stop", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -2517,7 +2517,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap SUB {
+        public static System.Drawing.Bitmap SUB {
             get {
                 object obj = ResourceManager.GetObject("SUB", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -2527,7 +2527,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Detector temperature: {0}°C.
         /// </summary>
-        internal static string TemperatureStr {
+        public static string TemperatureStr {
             get {
                 return ResourceManager.GetString("TemperatureStr", resourceCulture);
             }
@@ -2536,7 +2536,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to None.
         /// </summary>
-        internal static string ThermometerTypeNone {
+        public static string ThermometerTypeNone {
             get {
                 return ResourceManager.GetString("ThermometerTypeNone", resourceCulture);
             }
@@ -2545,7 +2545,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Uncertain.
         /// </summary>
-        internal static string Uncertain {
+        public static string Uncertain {
             get {
                 return ResourceManager.GetString("Uncertain", resourceCulture);
             }
@@ -2554,7 +2554,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to (unknown).
         /// </summary>
-        internal static string UnknownNuclide {
+        public static string UnknownNuclide {
             get {
                 return ResourceManager.GetString("UnknownNuclide", resourceCulture);
             }
@@ -2563,7 +2563,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to (unnamed).
         /// </summary>
-        internal static string UnnamedSpectrumName {
+        public static string UnnamedSpectrumName {
             get {
                 return ResourceManager.GetString("UnnamedSpectrumName", resourceCulture);
             }
@@ -2572,7 +2572,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap Up {
+        public static System.Drawing.Bitmap Up {
             get {
                 object obj = ResourceManager.GetObject("Up", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -2582,7 +2582,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Update Dead Time.
         /// </summary>
-        internal static string UpdateDeadTime {
+        public static string UpdateDeadTime {
             get {
                 return ResourceManager.GetString("UpdateDeadTime", resourceCulture);
             }
@@ -2591,7 +2591,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Busy.
         /// </summary>
-        internal static string VCPDeviceStatusBusy {
+        public static string VCPDeviceStatusBusy {
             get {
                 return ResourceManager.GetString("VCPDeviceStatusBusy", resourceCulture);
             }
@@ -2600,7 +2600,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Connected.
         /// </summary>
-        internal static string VCPDeviceStatusConnected {
+        public static string VCPDeviceStatusConnected {
             get {
                 return ResourceManager.GetString("VCPDeviceStatusConnected", resourceCulture);
             }
@@ -2609,7 +2609,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Testing....
         /// </summary>
-        internal static string VCPDeviceStatusTesting {
+        public static string VCPDeviceStatusTesting {
             get {
                 return ResourceManager.GetString("VCPDeviceStatusTesting", resourceCulture);
             }
@@ -2618,7 +2618,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Unknown.
         /// </summary>
-        internal static string VCPDeviceStatusUnknown {
+        public static string VCPDeviceStatusUnknown {
             get {
                 return ResourceManager.GetString("VCPDeviceStatusUnknown", resourceCulture);
             }
@@ -2627,7 +2627,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to version {0}.
         /// </summary>
-        internal static string VersionString {
+        public static string VersionString {
             get {
                 return ResourceManager.GetString("VersionString", resourceCulture);
             }
@@ -2636,7 +2636,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Warning.
         /// </summary>
-        internal static string Warning {
+        public static string Warning {
             get {
                 return ResourceManager.GetString("Warning", resourceCulture);
             }
@@ -2645,7 +2645,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap WMA {
+        public static System.Drawing.Bitmap WMA {
             get {
                 object obj = ResourceManager.GetObject("WMA", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -2655,7 +2655,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Write calibration coefficients to device. Progress: {0}%.
         /// </summary>
-        internal static string WriteCalibrationToAtomProProgress {
+        public static string WriteCalibrationToAtomProProgress {
             get {
                 return ResourceManager.GetString("WriteCalibrationToAtomProProgress", resourceCulture);
             }
@@ -2664,7 +2664,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap Zoomin {
+        public static System.Drawing.Bitmap Zoomin {
             get {
                 object obj = ResourceManager.GetObject("Zoomin", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -2674,7 +2674,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap ZoominSelection {
+        public static System.Drawing.Bitmap ZoominSelection {
             get {
                 object obj = ResourceManager.GetObject("ZoominSelection", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
@@ -2684,7 +2684,7 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap Zoomout {
+        public static System.Drawing.Bitmap Zoomout {
             get {
                 object obj = ResourceManager.GetObject("Zoomout", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));

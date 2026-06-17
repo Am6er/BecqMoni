@@ -31,10 +31,10 @@ namespace BecquerelMonitor
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(NuclideSetForm));
+            XPTable.Models.DataSourceColumnBinder dataSourceColumnBinder3 = new XPTable.Models.DataSourceColumnBinder();
+            XPTable.Renderers.DragDropRenderer dragDropRenderer3 = new XPTable.Renderers.DragDropRenderer();
             XPTable.Models.DataSourceColumnBinder dataSourceColumnBinder1 = new XPTable.Models.DataSourceColumnBinder();
             XPTable.Renderers.DragDropRenderer dragDropRenderer1 = new XPTable.Renderers.DragDropRenderer();
-            XPTable.Models.DataSourceColumnBinder dataSourceColumnBinder2 = new XPTable.Models.DataSourceColumnBinder();
-            XPTable.Renderers.DragDropRenderer dragDropRenderer2 = new XPTable.Renderers.DragDropRenderer();
             this.buttonClose = new System.Windows.Forms.Button();
             this.buttonSave = new System.Windows.Forms.Button();
             this.groupBoxEdit = new System.Windows.Forms.GroupBox();
@@ -105,9 +105,9 @@ namespace BecquerelMonitor
             this.tableNuclides.BorderColor = System.Drawing.Color.Black;
             this.tableNuclides.ColumnModel = this.columnModelNuclides;
             this.tableNuclides.DataMember = null;
-            this.tableNuclides.DataSourceColumnBinder = dataSourceColumnBinder1;
-            dragDropRenderer1.ForeColor = System.Drawing.Color.Red;
-            this.tableNuclides.DragDropRenderer = dragDropRenderer1;
+            this.tableNuclides.DataSourceColumnBinder = dataSourceColumnBinder3;
+            dragDropRenderer3.ForeColor = System.Drawing.Color.Red;
+            this.tableNuclides.DragDropRenderer = dragDropRenderer3;
             this.tableNuclides.GridLinesContrainedToData = false;
             this.tableNuclides.Name = "tableNuclides";
             this.tableNuclides.TableModel = this.tableModelNuclides;
@@ -118,9 +118,9 @@ namespace BecquerelMonitor
             // columnModelNuclides
             // 
             this.columnModelNuclides.Columns.AddRange(new XPTable.Models.Column[] {
-            ((XPTable.Models.Column)(this.columnNuclideIncluded)),
-            ((XPTable.Models.Column)(this.columnNuclideName)),
-            ((XPTable.Models.Column)(this.columnNuclideEnergy))});
+            this.columnNuclideIncluded,
+            this.columnNuclideName,
+            this.columnNuclideEnergy});
             // 
             // columnNuclideIncluded
             // 
@@ -176,9 +176,9 @@ namespace BecquerelMonitor
             this.tableSets.BorderColor = System.Drawing.Color.Black;
             this.tableSets.ColumnModel = this.columnModelSets;
             this.tableSets.DataMember = null;
-            this.tableSets.DataSourceColumnBinder = dataSourceColumnBinder2;
-            dragDropRenderer2.ForeColor = System.Drawing.Color.Red;
-            this.tableSets.DragDropRenderer = dragDropRenderer2;
+            this.tableSets.DataSourceColumnBinder = dataSourceColumnBinder1;
+            dragDropRenderer1.ForeColor = System.Drawing.Color.Red;
+            this.tableSets.DragDropRenderer = dragDropRenderer1;
             this.tableSets.GridLinesContrainedToData = false;
             this.tableSets.Name = "tableSets";
             this.tableSets.TableModel = this.tableModelSets;
@@ -190,8 +190,8 @@ namespace BecquerelMonitor
             // columnModelSets
             // 
             this.columnModelSets.Columns.AddRange(new XPTable.Models.Column[] {
-            ((XPTable.Models.Column)(this.columnSetName)),
-            ((XPTable.Models.Column)(this.columnSetHideUnknown))});
+            this.columnSetName,
+            this.columnSetHideUnknown});
             // 
             // columnSetName
             // 
@@ -201,6 +201,8 @@ namespace BecquerelMonitor
             // 
             // columnSetHideUnknown
             // 
+            this.columnSetHideUnknown.Alignment = XPTable.Models.ColumnAlignment.Center;
+            this.columnSetHideUnknown.DrawText = false;
             this.columnSetHideUnknown.IsTextTrimmed = false;
             resources.ApplyResources(this.columnSetHideUnknown, "columnSetHideUnknown");
             // 

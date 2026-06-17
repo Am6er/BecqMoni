@@ -1,5 +1,5 @@
 /*
- * Copyright © 2005, Mathew Hall
+ * Copyright ï¿½ 2005, Mathew Hall
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, 
@@ -162,6 +162,7 @@ namespace XPTable.Models
         private void Init()
         {
             this.Format = "G";
+            this.Alignment = ColumnAlignment.Right;
 
             this.maximum = (decimal)100;
             this.minimum = (decimal)0;
@@ -222,6 +223,18 @@ namespace XPTable.Models
 
         #region Properties
 
+        /// <summary>
+        /// Gets or sets the horizontal alignment of the Column's Cell contents
+        /// </summary>
+        [Category("Appearance"),
+        DefaultValue(ColumnAlignment.Right),
+        Description("The horizontal alignment of the column's cell contents."),
+        Localizable(false)]
+        public override ColumnAlignment Alignment
+        {
+            get { return base.Alignment; }
+            set { base.Alignment = value; }
+        }
         /// <summary>
         /// Gets or sets the maximum value for Column's Cells
         /// </summary>

@@ -543,11 +543,11 @@
             // columnModel2
             // 
             this.columnModel2.Columns.AddRange(new XPTable.Models.Column[] {
-            ((XPTable.Models.Column)(this.textColumn13)),
-            ((XPTable.Models.Column)(this.textColumn8)),
-            ((XPTable.Models.Column)(this.imageColumn1)),
-            ((XPTable.Models.Column)(this.textColumn10)),
-            ((XPTable.Models.Column)(this.textColumn11))});
+            this.textColumn13,
+            this.textColumn8,
+            this.imageColumn1,
+            this.textColumn10,
+            this.textColumn11});
             // 
             // textColumn13
             // 
@@ -600,9 +600,9 @@
             // columnModel1
             // 
             this.columnModel1.Columns.AddRange(new XPTable.Models.Column[] {
-            ((XPTable.Models.Column)(this.checkBoxColumn2)),
-            ((XPTable.Models.Column)(this.textColumn2)),
-            ((XPTable.Models.Column)(this.textColumn3))});
+            this.checkBoxColumn2,
+            this.textColumn2,
+            this.textColumn3});
             // 
             // checkBoxColumn2
             // 
@@ -674,9 +674,9 @@
             // columnModel3
             // 
             this.columnModel3.Columns.AddRange(new XPTable.Models.Column[] {
-            ((XPTable.Models.Column)(this.textColumn1)),
-            ((XPTable.Models.Column)(this.textColumn12)),
-            ((XPTable.Models.Column)(this.checkBoxColumnEff))});
+            this.textColumn1,
+            this.textColumn12,
+            this.checkBoxColumnEff});
             // 
             // textColumn1
             // 
@@ -692,6 +692,8 @@
             // 
             // checkBoxColumnEff
             // 
+            this.checkBoxColumnEff.Alignment = XPTable.Models.ColumnAlignment.Center;
+            this.checkBoxColumnEff.DrawText = false;
             this.checkBoxColumnEff.Editable = false;
             this.checkBoxColumnEff.IsTextTrimmed = false;
             resources.ApplyResources(this.checkBoxColumnEff, "checkBoxColumnEff");

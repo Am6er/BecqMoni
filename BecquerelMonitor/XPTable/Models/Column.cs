@@ -1,5 +1,5 @@
 /*
- * Copyright © 2005, Mathew Hall
+ * Copyright ï¿½ 2005, Mathew Hall
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, 
@@ -405,7 +405,7 @@ namespace XPTable.Models
         [Category("Appearance"),
         DefaultValue(ColumnAlignment.Left),
         Description("The horizontal alignment of the column's cell contents."),
-        Localizable(true)]
+        Localizable(false)]
         public virtual ColumnAlignment Alignment
         {
             get { return this.alignment; }
@@ -429,7 +429,7 @@ namespace XPTable.Models
         [Category("Appearance"),
         DefaultValue(ColumnAutoResizeMode.Any),
         Description("Specifies how the column behaves when it is auto-resized."),
-        Localizable(true)]
+        Localizable(false)]
         public virtual ColumnAutoResizeMode AutoResizeMode
         {
             get { return this.resizeMode; }

@@ -104,6 +104,7 @@
             // 
             // textColumn3
             // 
+            this.textColumn3.Alignment = XPTable.Models.ColumnAlignment.Right;
             this.textColumn3.Editable = false;
             this.textColumn3.IsTextTrimmed = false;
             resources.ApplyResources(this.textColumn3, "textColumn3");
