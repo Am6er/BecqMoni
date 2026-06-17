@@ -319,6 +319,9 @@
     <Compile Include="DocEnergySpectrum.Designer.cs">
       <DependentUpon>DocEnergySpectrum.cs</DependentUpon>
     </Compile>
+    <Compile Include="ToolStripControlHostDesignerSafe.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="DocumentManager.cs" />
     <Compile Include="DoseRate.cs" />
     <Compile Include="DoseRateCalibrationPoint.cs" />

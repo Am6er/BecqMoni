@@ -1,18 +1,28 @@
-﻿using System;
+using System;
+using System.ComponentModel;
 using System.Windows.Forms;
 using System.Windows.Forms.Design;
 
 namespace BecquerelMonitor
 {
-    // Token: 0x02000104 RID: 260
     [ToolStripItemDesignerAvailability(ToolStripItemDesignerAvailability.ToolStrip | ToolStripItemDesignerAvailability.StatusStrip)]
-    public class ToolStripNumericUpdown : ToolStripControlHost
+    public class ToolStripNumericUpdown : ToolStripControlHostDesignerSafe
     {
-        // Token: 0x06000E43 RID: 3651 RVA: 0x00054214 File Offset: 0x00052414
-        public ToolStripNumericUpdown() : base(new NumericUpDown())
+        ToolTip hostedControlToolTip;
+
+        public ToolStripNumericUpdown()
+            : base(CreateControlInstance())
         {
+            hostedControlToolTip = new ToolTip();
         }
 
+        static Control CreateControlInstance()
+        {
+            return new NumericUpDown();
+        }
+
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public NumericUpDown NumericUpDownControl
         {
             get
@@ -21,6 +31,59 @@ namespace BecquerelMonitor
             }
         }
 
+        [Category("Behavior")]
+        public int DecimalPlaces
+        {
+            get
+            {
+                return NumericUpDownControl.DecimalPlaces;
+            }
+            set
+            {
+                NumericUpDownControl.DecimalPlaces = value;
+            }
+        }
+
+        [Category("Behavior")]
+        public decimal Increment
+        {
+            get
+            {
+                return NumericUpDownControl.Increment;
+            }
+            set
+            {
+                NumericUpDownControl.Increment = value;
+            }
+        }
+
+        [Category("Behavior")]
+        public decimal Maximum
+        {
+            get
+            {
+                return NumericUpDownControl.Maximum;
+            }
+            set
+            {
+                NumericUpDownControl.Maximum = value;
+            }
+        }
+
+        [Category("Behavior")]
+        public decimal Minimum
+        {
+            get
+            {
+                return NumericUpDownControl.Minimum;
+            }
+            set
+            {
+                NumericUpDownControl.Minimum = value;
+            }
+        }
+
+        [Category("Behavior")]
         public decimal Value
         {
             get
@@ -29,29 +92,76 @@ namespace BecquerelMonitor
             }
             set
             {
-                value = NumericUpDownControl.Value;
+                NumericUpDownControl.Value = value;
+            }
+        }
+
+        [Browsable(true)]
+        [Category("Appearance")]
+        [Localizable(true)]
+        [DefaultValue("")]
+        public new string ToolTipText
+        {
+            get
+            {
+                return base.ToolTipText;
+            }
+            set
+            {
+                base.ToolTipText = value;
+                UpdateHostedControlToolTip();
             }
         }
 
         protected override void OnSubscribeControlEvents(Control c)
         {
             base.OnSubscribeControlEvents(c);
-            NumericUpDown mumControl = (NumericUpDown)c;
-            mumControl.ValueChanged += new EventHandler(OnValueChanged);
+            NumericUpDown numControl = (NumericUpDown)c;
+            numControl.ValueChanged += new EventHandler(OnValueChanged);
+            UpdateHostedControlToolTip();
         }
 
         protected override void OnUnsubscribeControlEvents(Control c)
         {
             base.OnUnsubscribeControlEvents(c);
-            NumericUpDown mumControl = (NumericUpDown)c;
-            mumControl.ValueChanged -= new EventHandler(OnValueChanged);
+            NumericUpDown numControl = (NumericUpDown)c;
+            numControl.ValueChanged -= new EventHandler(OnValueChanged);
         }
 
         public event EventHandler ValueChanged;
 
-        private void OnValueChanged(object sender, EventArgs e)
+        void OnValueChanged(object sender, EventArgs e)
         {
-            if (ValueChanged != null) ValueChanged(this, e);
+            if (ValueChanged != null)
+            {
+                ValueChanged(this, e);
+            }
+        }
+
+        void UpdateHostedControlToolTip()
+        {
+            NumericUpDown control = NumericUpDownControl;
+            if (control == null || control.IsDisposed)
+            {
+                return;
+            }
+
+            if (hostedControlToolTip == null)
+            {
+                hostedControlToolTip = new ToolTip();
+            }
+
+            hostedControlToolTip.SetToolTip(control, base.ToolTipText ?? string.Empty);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                hostedControlToolTip.Dispose();
+            }
+
+            base.Dispose(disposing);
         }
     }
 }
