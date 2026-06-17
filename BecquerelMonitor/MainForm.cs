@@ -16,6 +16,7 @@ using System.Windows.Forms.VisualStyles;
 using System.Xml;
 using System.Xml.Serialization;
 using WeifenLuo.WinFormsUI.Docking;
+using WeifenLuo.WinFormsUI.ThemeVS2015;
 
 namespace BecquerelMonitor
 {
@@ -28,6 +29,7 @@ namespace BecquerelMonitor
         public MainForm()
         {
             this.InitializeComponent();
+            this.InitializeDockPanelTheme();
         }
 
         // Token: 0x170002D4 RID: 724
@@ -141,6 +143,7 @@ namespace BecquerelMonitor
             this.doseRateManager = new DoseRateManager(this.globalConfigManager);
             this.countsRateManager = new CountsRateManager();
             this.InitializeComponent();
+            this.InitializeDockPanelTheme();
             base.Icon = BecquerelMonitor.Properties.Resources.becqmoni;
             this.toolStripMenuItem6.Visible = false;
             this.toolStripMenuItem3.Visible = false;
@@ -162,6 +165,7 @@ namespace BecquerelMonitor
         // Token: 0x06000A48 RID: 2632 RVA: 0x0003C778 File Offset: 0x0003A978
         void MainForm_Load(object sender, EventArgs e)
         {
+            this.InitializeDockPanelTheme();
             this.InitializeToolViews();
             this.m_deserializeDockContent = new DeserializeDockContent(this.GetContentFromPersistString);
             this.dcPulseView.MainForm = this;
@@ -224,6 +228,22 @@ namespace BecquerelMonitor
             if (OpenFileName != null)
             {
                 this.OpenExistingDocument(this.OpenFileName);
+            }
+        }
+
+        void InitializeDockPanelTheme()
+        {
+            if (this.dockPanel1 == null)
+            {
+                return;
+            }
+
+            // DockPanelSuite theme serialization is not stable in WinForms Designer.
+            this.dockPanel1.ShowDocumentIcon = false;
+            this.dockPanel1.ShowAutoHideContentOnHover = true;
+            if (!(this.dockPanel1.Theme is VS2015BlueTheme))
+            {
+                this.dockPanel1.Theme = new VS2015BlueTheme();
             }
         }
 
@@ -974,6 +994,7 @@ namespace BecquerelMonitor
                 {
                     docEnergySpectrum.DockAreas = DockAreas.Document;
                     this.SubscribeDocumentEvent(docEnergySpectrum);
+                    this.InitializeDockPanelTheme();
                     docEnergySpectrum.Show(this.dockPanel1);
                     docEnergySpectrum.SetDefaultHorizontalScale();
                     this.ShowMeasurementResult(true);
