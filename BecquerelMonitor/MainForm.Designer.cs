@@ -18,565 +18,731 @@ namespace BecquerelMonitor
 		// Token: 0x06000A3F RID: 2623 RVA: 0x0003AD98 File Offset: 0x00038F98
 		void InitializeComponent()
 		{
-
-
-			this.components = new global::System.ComponentModel.Container();
-
-            
-
-			global::System.ComponentModel.ComponentResourceManager resources = new global::System.ComponentModel.ComponentResourceManager(typeof(global::BecquerelMonitor.MainForm));
-			global::WeifenLuo.WinFormsUI.Docking.DockPanelSkin dockPanelSkin = new global::WeifenLuo.WinFormsUI.Docking.DockPanelSkin();
-			global::WeifenLuo.WinFormsUI.Docking.AutoHideStripSkin autoHideStripSkin = new global::WeifenLuo.WinFormsUI.Docking.AutoHideStripSkin();
-			global::WeifenLuo.WinFormsUI.Docking.DockPanelGradient dockPanelGradient = new global::WeifenLuo.WinFormsUI.Docking.DockPanelGradient();
-			global::WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient = new global::WeifenLuo.WinFormsUI.Docking.TabGradient();
-			global::WeifenLuo.WinFormsUI.Docking.DockPaneStripSkin dockPaneStripSkin = new global::WeifenLuo.WinFormsUI.Docking.DockPaneStripSkin();
-			global::WeifenLuo.WinFormsUI.Docking.DockPaneStripGradient dockPaneStripGradient = new global::WeifenLuo.WinFormsUI.Docking.DockPaneStripGradient();
-			global::WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient2 = new global::WeifenLuo.WinFormsUI.Docking.TabGradient();
-			global::WeifenLuo.WinFormsUI.Docking.DockPanelGradient dockPanelGradient2 = new global::WeifenLuo.WinFormsUI.Docking.DockPanelGradient();
-			global::WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient3 = new global::WeifenLuo.WinFormsUI.Docking.TabGradient();
-			global::WeifenLuo.WinFormsUI.Docking.DockPaneStripToolWindowGradient dockPaneStripToolWindowGradient = new global::WeifenLuo.WinFormsUI.Docking.DockPaneStripToolWindowGradient();
-			global::WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient4 = new global::WeifenLuo.WinFormsUI.Docking.TabGradient();
-			global::WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient5 = new global::WeifenLuo.WinFormsUI.Docking.TabGradient();
-			global::WeifenLuo.WinFormsUI.Docking.DockPanelGradient dockPanelGradient3 = new global::WeifenLuo.WinFormsUI.Docking.DockPanelGradient();
-			global::WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient6 = new global::WeifenLuo.WinFormsUI.Docking.TabGradient();
-			global::WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient7 = new global::WeifenLuo.WinFormsUI.Docking.TabGradient();
-			this.menuStrip1 = new global::BecquerelMonitor.MenuStripEx();
-			this.fileFToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.newSpectrumNToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.openDataToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.saveDataSToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.saveDataAsRToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.closeDataCToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolStripSeparator6 = new global::System.Windows.Forms.ToolStripSeparator();
-			this.toolStripMenuItem2 = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolStripSeparator4 = new global::System.Windows.Forms.ToolStripSeparator();
-			this.importIToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.legacyFormatV093bToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.AtomSpectraStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.ConcatSpectrumsStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.CutoffStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-            this.NormalizeSpectrumStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.ApplyDeadTimeCorrectionStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-            this.N42StripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.N42ExpStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.AtomSpectraExpStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.cSVFileToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.cSVEnFileToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-            this.exportEToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.cSVCToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.EffCalcMCFileToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.GBSFileToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-            this.SpecUtilsToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-            this.ECSVToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.forFwhmToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolStripSeparator1 = new global::System.Windows.Forms.ToolStripSeparator();
-			this.exitXToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.spectrumSToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.newSpectrumNToolStripMenuItem1 = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.deleteDToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.addFromExistingFileFToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolStripMenuItem1 = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.exportBgToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.hardSubtractToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripSeparator7 = new global::System.Windows.Forms.ToolStripSeparator();
-			this.startMeasurementSToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.stopMeasurementTToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.clearDataCToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.CloseAllToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.AutoSaveStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-            this.CombineSpectrasToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-            this.viewTToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolStripMenuItem6 = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.controlPanelCToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.sampleInfoSToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.spectrumListLToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolStripMenuItem4 = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.peakDetectionDToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.pulseViewPToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolStripMenuItem5 = new global::System.Windows.Forms.ToolStripMenuItem();
-            this.FWHMCalStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripMenuItem3 = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolStripSeparator2 = new global::System.Windows.Forms.ToolStripSeparator();
-			this.measurementResultsRToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolStripSeparator8 = new global::System.Windows.Forms.ToolStripSeparator();
-			this.toolStripMenuItem7 = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.userLayoutToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.expertLayoutToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolStripSeparator9 = new global::System.Windows.Forms.ToolStripSeparator();
-			this.languageToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.oSDefaultToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.neutralToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.jaJPToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolsTToolStripMenuItem1 = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.editDeviceConfigurationDToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.roiDefinitionRToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.NuclideDefinitionToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.NuclideSetToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.OpenConfigNToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.NucDB = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolStripSeparator5 = new global::System.Windows.Forms.ToolStripSeparator();
-			this.basicSettingsBToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.helpHToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.manualMToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolStripSeparator3 = new global::System.Windows.Forms.ToolStripSeparator();
-			this.versionInfoAToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.UpdatesAToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.statusStrip1 = new global::System.Windows.Forms.StatusStrip();
-			this.toolStripStatusLabel1 = new global::System.Windows.Forms.ToolStripStatusLabel();
-			this.toolStripStatusLabel2 = new global::System.Windows.Forms.ToolStripStatusLabel();
-            this.toolStripStatusLabel3 = new global::System.Windows.Forms.ToolStripStatusLabel();
-            this.dockPanel1 = new global::WeifenLuo.WinFormsUI.Docking.DockPanel();
-			this.imageList1 = new global::System.Windows.Forms.ImageList(this.components);
-			this.menuStrip1.SuspendLayout();
-			this.statusStrip1.SuspendLayout();
-			base.SuspendLayout();
-			resources.ApplyResources(this.menuStrip1, "menuStrip1");
-			this.menuStrip1.ClickThrough = true;
-			this.menuStrip1.Items.AddRange(new global::System.Windows.Forms.ToolStripItem[]
-			{
-				this.fileFToolStripMenuItem,
-				this.spectrumSToolStripMenuItem,
-				this.viewTToolStripMenuItem,
-				this.toolsTToolStripMenuItem1,
-				this.helpHToolStripMenuItem
-			});
-			this.menuStrip1.Name = "menuStrip1";
-			this.menuStrip1.SuppressHighlighting = false;
-			resources.ApplyResources(this.fileFToolStripMenuItem, "fileFToolStripMenuItem");
-			this.fileFToolStripMenuItem.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
-			{
-				this.newSpectrumNToolStripMenuItem,
-				this.openDataToolStripMenuItem,
-				this.saveDataSToolStripMenuItem,
-				this.saveDataAsRToolStripMenuItem,
-				this.closeDataCToolStripMenuItem,
-                this.CombineSpectrasToolStripMenuItem,
-                this.CloseAllToolStripMenuItem,
-				this.toolStripSeparator6,
-				this.toolStripMenuItem2,
-				this.toolStripSeparator4,
-				this.importIToolStripMenuItem,
-				this.exportEToolStripMenuItem,
-                this.toolStripSeparator1,
-				this.exitXToolStripMenuItem
-			});
-			this.fileFToolStripMenuItem.Name = "fileFToolStripMenuItem";
-			this.fileFToolStripMenuItem.DropDownOpening += new global::System.EventHandler(this.fileFToolStripMenuItem_DropDownOpening);
-			resources.ApplyResources(this.newSpectrumNToolStripMenuItem, "newSpectrumNToolStripMenuItem");
-			this.newSpectrumNToolStripMenuItem.Name = "newSpectrumNToolStripMenuItem";
-			this.newSpectrumNToolStripMenuItem.Click += new global::System.EventHandler(this.newSpectrumNToolStripMenuItem_Click);
-			resources.ApplyResources(this.openDataToolStripMenuItem, "openDataToolStripMenuItem");
-			this.openDataToolStripMenuItem.Name = "openDataToolStripMenuItem";
-			this.openDataToolStripMenuItem.Click += new global::System.EventHandler(this.openDataToolStripMenuItem_Click);
-			resources.ApplyResources(this.saveDataSToolStripMenuItem, "saveDataSToolStripMenuItem");
-			this.saveDataSToolStripMenuItem.Name = "saveDataSToolStripMenuItem";
-            this.saveDataSToolStripMenuItem.Click += new global::System.EventHandler(this.saveDataSToolStripMenuItem_Click);
+            this.components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
+            this.menuStrip1 = new BecquerelMonitor.MenuStripEx();
+            this.fileFToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.newSpectrumNToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.openDataToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.saveDataSToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.saveDataAsRToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.closeDataCToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.CombineSpectrasToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.CloseAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator6 = new System.Windows.Forms.ToolStripSeparator();
+            this.toolStripMenuItem2 = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
+            this.importIToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.AtomSpectraStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.N42StripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.cSVFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.EffCalcMCFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.cSVEnFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.GBSFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.SpecUtilsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.legacyFormatV093bToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.exportEToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.N42ExpStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.AtomSpectraExpStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.cSVCToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.ECSVToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.forFwhmToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            this.exitXToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.spectrumSToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.newSpectrumNToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
+            this.deleteDToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.addFromExistingFileFToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
+            this.exportBgToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.hardSubtractToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.ConcatSpectrumsStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.CutoffStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.NormalizeSpectrumStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.ApplyDeadTimeCorrectionStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.AutoSaveStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator7 = new System.Windows.Forms.ToolStripSeparator();
+            this.startMeasurementSToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.stopMeasurementTToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.clearDataCToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.viewTToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripMenuItem6 = new System.Windows.Forms.ToolStripMenuItem();
+            this.controlPanelCToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.sampleInfoSToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.spectrumListLToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripMenuItem4 = new System.Windows.Forms.ToolStripMenuItem();
+            this.peakDetectionDToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.pulseViewPToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripMenuItem5 = new System.Windows.Forms.ToolStripMenuItem();
+            this.FWHMCalStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripMenuItem3 = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
+            this.measurementResultsRToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator8 = new System.Windows.Forms.ToolStripSeparator();
+            this.toolStripMenuItem7 = new System.Windows.Forms.ToolStripMenuItem();
+            this.userLayoutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.expertLayoutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator9 = new System.Windows.Forms.ToolStripSeparator();
+            this.languageToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.oSDefaultToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.neutralToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.jaJPToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolsTToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
+            this.editDeviceConfigurationDToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.roiDefinitionRToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.NuclideDefinitionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.NuclideSetToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.NucDB = new System.Windows.Forms.ToolStripMenuItem();
+            this.OpenConfigNToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator5 = new System.Windows.Forms.ToolStripSeparator();
+            this.basicSettingsBToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.helpHToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.manualMToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
+            this.UpdatesAToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.versionInfoAToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.statusStrip1 = new System.Windows.Forms.StatusStrip();
+            this.toolStripStatusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
+            this.toolStripStatusLabel2 = new System.Windows.Forms.ToolStripStatusLabel();
+            this.toolStripStatusLabel3 = new System.Windows.Forms.ToolStripStatusLabel();
+            this.dockPanel1 = new WeifenLuo.WinFormsUI.Docking.DockPanel();
+            this.imageList1 = new System.Windows.Forms.ImageList(this.components);
+            this.menuStrip1.SuspendLayout();
+            this.statusStrip1.SuspendLayout();
+            this.SuspendLayout();
+            // 
+            // menuStrip1
+            // 
+            this.menuStrip1.ClickThrough = true;
+            this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.fileFToolStripMenuItem,
+            this.spectrumSToolStripMenuItem,
+            this.viewTToolStripMenuItem,
+            this.toolsTToolStripMenuItem1,
+            this.helpHToolStripMenuItem});
+            resources.ApplyResources(this.menuStrip1, "menuStrip1");
+            this.menuStrip1.Name = "menuStrip1";
+            this.menuStrip1.SuppressHighlighting = false;
+            // 
+            // fileFToolStripMenuItem
+            // 
+            this.fileFToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.newSpectrumNToolStripMenuItem,
+            this.openDataToolStripMenuItem,
+            this.saveDataSToolStripMenuItem,
+            this.saveDataAsRToolStripMenuItem,
+            this.closeDataCToolStripMenuItem,
+            this.CombineSpectrasToolStripMenuItem,
+            this.CloseAllToolStripMenuItem,
+            this.toolStripSeparator6,
+            this.toolStripMenuItem2,
+            this.toolStripSeparator4,
+            this.importIToolStripMenuItem,
+            this.exportEToolStripMenuItem,
+            this.toolStripSeparator1,
+            this.exitXToolStripMenuItem});
+            this.fileFToolStripMenuItem.Name = "fileFToolStripMenuItem";
+            resources.ApplyResources(this.fileFToolStripMenuItem, "fileFToolStripMenuItem");
+            this.fileFToolStripMenuItem.DropDownOpening += new System.EventHandler(this.fileFToolStripMenuItem_DropDownOpening);
+            // 
+            // newSpectrumNToolStripMenuItem
+            // 
+            this.newSpectrumNToolStripMenuItem.Name = "newSpectrumNToolStripMenuItem";
+            resources.ApplyResources(this.newSpectrumNToolStripMenuItem, "newSpectrumNToolStripMenuItem");
+            this.newSpectrumNToolStripMenuItem.Click += new System.EventHandler(this.newSpectrumNToolStripMenuItem_Click);
+            // 
+            // openDataToolStripMenuItem
+            // 
+            this.openDataToolStripMenuItem.Name = "openDataToolStripMenuItem";
+            resources.ApplyResources(this.openDataToolStripMenuItem, "openDataToolStripMenuItem");
+            this.openDataToolStripMenuItem.Click += new System.EventHandler(this.openDataToolStripMenuItem_Click);
+            // 
+            // saveDataSToolStripMenuItem
+            // 
+            this.saveDataSToolStripMenuItem.Name = "saveDataSToolStripMenuItem";
+            resources.ApplyResources(this.saveDataSToolStripMenuItem, "saveDataSToolStripMenuItem");
+            this.saveDataSToolStripMenuItem.Click += new System.EventHandler(this.saveDataSToolStripMenuItem_Click);
+            // 
+            // saveDataAsRToolStripMenuItem
+            // 
+            this.saveDataAsRToolStripMenuItem.Name = "saveDataAsRToolStripMenuItem";
             resources.ApplyResources(this.saveDataAsRToolStripMenuItem, "saveDataAsRToolStripMenuItem");
-			this.saveDataAsRToolStripMenuItem.Name = "saveDataAsRToolStripMenuItem";
-			this.saveDataAsRToolStripMenuItem.Click += new global::System.EventHandler(this.saveDataAsRToolStripMenuItem_Click);
-			resources.ApplyResources(this.closeDataCToolStripMenuItem, "closeDataCToolStripMenuItem");
-			this.closeDataCToolStripMenuItem.Name = "closeDataCToolStripMenuItem";
-			this.closeDataCToolStripMenuItem.Click += new global::System.EventHandler(this.closeDataCToolStripMenuItem_Click);
-			resources.ApplyResources(this.CloseAllToolStripMenuItem, "CloseAllToolStripMenuItem");
-			this.CloseAllToolStripMenuItem.Name = "CloseAllToolStripMenuItem";
-			this.CloseAllToolStripMenuItem.Click += new global::System.EventHandler(this.CloseAllToolStripMenuItem_Click);
-
-            resources.ApplyResources(this.CombineSpectrasToolStripMenuItem, "CombineSpectrasToolStripMenuItem");
+            this.saveDataAsRToolStripMenuItem.Click += new System.EventHandler(this.saveDataAsRToolStripMenuItem_Click);
+            // 
+            // closeDataCToolStripMenuItem
+            // 
+            this.closeDataCToolStripMenuItem.Name = "closeDataCToolStripMenuItem";
+            resources.ApplyResources(this.closeDataCToolStripMenuItem, "closeDataCToolStripMenuItem");
+            this.closeDataCToolStripMenuItem.Click += new System.EventHandler(this.closeDataCToolStripMenuItem_Click);
+            // 
+            // CombineSpectrasToolStripMenuItem
+            // 
             this.CombineSpectrasToolStripMenuItem.Name = "CombineSpectrasToolStripMenuItem";
-            this.CombineSpectrasToolStripMenuItem.Click += new global::System.EventHandler(this.CombineSpectrasToolStripMenuItem_Click);
+            resources.ApplyResources(this.CombineSpectrasToolStripMenuItem, "CombineSpectrasToolStripMenuItem");
+            this.CombineSpectrasToolStripMenuItem.Click += new System.EventHandler(this.CombineSpectrasToolStripMenuItem_Click);
+            // 
+            // CloseAllToolStripMenuItem
+            // 
+            this.CloseAllToolStripMenuItem.Name = "CloseAllToolStripMenuItem";
+            resources.ApplyResources(this.CloseAllToolStripMenuItem, "CloseAllToolStripMenuItem");
+            this.CloseAllToolStripMenuItem.Click += new System.EventHandler(this.CloseAllToolStripMenuItem_Click);
+            // 
+            // toolStripSeparator6
+            // 
+            this.toolStripSeparator6.Name = "toolStripSeparator6";
             resources.ApplyResources(this.toolStripSeparator6, "toolStripSeparator6");
-			this.toolStripSeparator6.Name = "toolStripSeparator6";
-			resources.ApplyResources(this.toolStripMenuItem2, "toolStripMenuItem2");
-			this.toolStripMenuItem2.Name = "toolStripMenuItem2";
-			this.toolStripMenuItem2.Click += new global::System.EventHandler(this.toolStripMenuItem2_Click);
-			resources.ApplyResources(this.toolStripSeparator4, "toolStripSeparator4");
-			this.toolStripSeparator4.Name = "toolStripSeparator4";
-			resources.ApplyResources(this.importIToolStripMenuItem, "importIToolStripMenuItem");
-			this.importIToolStripMenuItem.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
-			{
-				this.AtomSpectraStripMenuItem,
-				this.N42StripMenuItem,
-				this.cSVFileToolStripMenuItem,
-				this.EffCalcMCFileToolStripMenuItem,
-				this.cSVEnFileToolStripMenuItem,
-				this.GBSFileToolStripMenuItem,
-				this.SpecUtilsToolStripMenuItem,
-                this.legacyFormatV093bToolStripMenuItem
-			});
-			this.importIToolStripMenuItem.Name = "importIToolStripMenuItem";
-			resources.ApplyResources(this.legacyFormatV093bToolStripMenuItem, "legacyFormatV093bToolStripMenuItem");
-			resources.ApplyResources(this.AtomSpectraStripMenuItem, "AtomSpectraStripMenuItem");
-			resources.ApplyResources(this.N42StripMenuItem, "N42StripMenuItem");
-			this.legacyFormatV093bToolStripMenuItem.Name = "legacyFormatV093bToolStripMenuItem";
-			this.legacyFormatV093bToolStripMenuItem.Click += new global::System.EventHandler(this.legacyFormatV093bToolStripMenuItem_Click);
-			this.AtomSpectraStripMenuItem.Name = "AtomSpectraStripMenuItem";
-			this.AtomSpectraStripMenuItem.Click += new global::System.EventHandler(this.AtomSpectraStripMenuItem_Click);
-			this.N42StripMenuItem.Name = "N42StripMenuItem";
-			this.N42StripMenuItem.Click += new global::System.EventHandler(this.N42StripMenuItem_Click);
-			resources.ApplyResources(this.cSVFileToolStripMenuItem, "cSVFileToolStripMenuItem");
-			this.cSVFileToolStripMenuItem.Name = "cSVFileToolStripMenuItem";
-			this.cSVFileToolStripMenuItem.Click += new global::System.EventHandler(this.csvFileImportToolStripMenuItem_Click);
-            resources.ApplyResources(this.cSVEnFileToolStripMenuItem, "cSVEnFileToolStripMenuItem");
-            this.cSVEnFileToolStripMenuItem.Name = "cSVEnFileToolStripMenuItem";
-            this.cSVEnFileToolStripMenuItem.Click += new global::System.EventHandler(this.csvEnergyFileImportToolStripMenuItem_Click);
-            resources.ApplyResources(this.EffCalcMCFileToolStripMenuItem, "EffCalcMCFileToolStripMenuItem");
+            // 
+            // toolStripMenuItem2
+            // 
+            this.toolStripMenuItem2.Name = "toolStripMenuItem2";
+            resources.ApplyResources(this.toolStripMenuItem2, "toolStripMenuItem2");
+            this.toolStripMenuItem2.Click += new System.EventHandler(this.toolStripMenuItem2_Click);
+            // 
+            // toolStripSeparator4
+            // 
+            this.toolStripSeparator4.Name = "toolStripSeparator4";
+            resources.ApplyResources(this.toolStripSeparator4, "toolStripSeparator4");
+            // 
+            // importIToolStripMenuItem
+            // 
+            this.importIToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.AtomSpectraStripMenuItem,
+            this.N42StripMenuItem,
+            this.cSVFileToolStripMenuItem,
+            this.EffCalcMCFileToolStripMenuItem,
+            this.cSVEnFileToolStripMenuItem,
+            this.GBSFileToolStripMenuItem,
+            this.SpecUtilsToolStripMenuItem,
+            this.legacyFormatV093bToolStripMenuItem});
+            this.importIToolStripMenuItem.Name = "importIToolStripMenuItem";
+            resources.ApplyResources(this.importIToolStripMenuItem, "importIToolStripMenuItem");
+            // 
+            // AtomSpectraStripMenuItem
+            // 
+            this.AtomSpectraStripMenuItem.Name = "AtomSpectraStripMenuItem";
+            resources.ApplyResources(this.AtomSpectraStripMenuItem, "AtomSpectraStripMenuItem");
+            this.AtomSpectraStripMenuItem.Click += new System.EventHandler(this.AtomSpectraStripMenuItem_Click);
+            // 
+            // N42StripMenuItem
+            // 
+            this.N42StripMenuItem.Name = "N42StripMenuItem";
+            resources.ApplyResources(this.N42StripMenuItem, "N42StripMenuItem");
+            this.N42StripMenuItem.Click += new System.EventHandler(this.N42StripMenuItem_Click);
+            // 
+            // cSVFileToolStripMenuItem
+            // 
+            this.cSVFileToolStripMenuItem.Name = "cSVFileToolStripMenuItem";
+            resources.ApplyResources(this.cSVFileToolStripMenuItem, "cSVFileToolStripMenuItem");
+            this.cSVFileToolStripMenuItem.Click += new System.EventHandler(this.csvFileImportToolStripMenuItem_Click);
+            // 
+            // EffCalcMCFileToolStripMenuItem
+            // 
             this.EffCalcMCFileToolStripMenuItem.Name = "EffCalcMCFileToolStripMenuItem";
-            this.EffCalcMCFileToolStripMenuItem.Click += new global::System.EventHandler(this.EffCalcMCFileToolStripMenuItem_Click);
-            resources.ApplyResources(this.GBSFileToolStripMenuItem, "GBSFileToolStripMenuItem");
+            resources.ApplyResources(this.EffCalcMCFileToolStripMenuItem, "EffCalcMCFileToolStripMenuItem");
+            this.EffCalcMCFileToolStripMenuItem.Click += new System.EventHandler(this.EffCalcMCFileToolStripMenuItem_Click);
+            // 
+            // cSVEnFileToolStripMenuItem
+            // 
+            this.cSVEnFileToolStripMenuItem.Name = "cSVEnFileToolStripMenuItem";
+            resources.ApplyResources(this.cSVEnFileToolStripMenuItem, "cSVEnFileToolStripMenuItem");
+            this.cSVEnFileToolStripMenuItem.Click += new System.EventHandler(this.csvEnergyFileImportToolStripMenuItem_Click);
+            // 
+            // GBSFileToolStripMenuItem
+            // 
             this.GBSFileToolStripMenuItem.Name = "GBSFileToolStripMenuItem";
-            this.GBSFileToolStripMenuItem.Click += new global::System.EventHandler(this.GBSFileToolStripMenuItem_Click);
-            resources.ApplyResources(this.SpecUtilsToolStripMenuItem, "SpecUtilsToolStripMenuItem");
+            resources.ApplyResources(this.GBSFileToolStripMenuItem, "GBSFileToolStripMenuItem");
+            this.GBSFileToolStripMenuItem.Click += new System.EventHandler(this.GBSFileToolStripMenuItem_Click);
+            // 
+            // SpecUtilsToolStripMenuItem
+            // 
             this.SpecUtilsToolStripMenuItem.Name = "SpecUtilsToolStripMenuItem";
-            this.SpecUtilsToolStripMenuItem.Click += new global::System.EventHandler(this.SpecUtilsToolStripMenuItem_Click);
+            resources.ApplyResources(this.SpecUtilsToolStripMenuItem, "SpecUtilsToolStripMenuItem");
+            this.SpecUtilsToolStripMenuItem.Click += new System.EventHandler(this.SpecUtilsToolStripMenuItem_Click);
+            // 
+            // legacyFormatV093bToolStripMenuItem
+            // 
+            this.legacyFormatV093bToolStripMenuItem.Name = "legacyFormatV093bToolStripMenuItem";
+            resources.ApplyResources(this.legacyFormatV093bToolStripMenuItem, "legacyFormatV093bToolStripMenuItem");
+            this.legacyFormatV093bToolStripMenuItem.Click += new System.EventHandler(this.legacyFormatV093bToolStripMenuItem_Click);
+            // 
+            // exportEToolStripMenuItem
+            // 
+            this.exportEToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.N42ExpStripMenuItem,
+            this.AtomSpectraExpStripMenuItem,
+            this.cSVCToolStripMenuItem,
+            this.ECSVToolStripMenuItem,
+            this.forFwhmToolStripMenuItem});
+            this.exportEToolStripMenuItem.Name = "exportEToolStripMenuItem";
             resources.ApplyResources(this.exportEToolStripMenuItem, "exportEToolStripMenuItem");
-			this.exportEToolStripMenuItem.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
-			{
-				this.N42ExpStripMenuItem,
-				this.AtomSpectraExpStripMenuItem,
-				this.cSVCToolStripMenuItem,
-				this.ECSVToolStripMenuItem,
-				this.forFwhmToolStripMenuItem
-			});
-			this.exportEToolStripMenuItem.Name = "exportEToolStripMenuItem";
-			resources.ApplyResources(this.N42ExpStripMenuItem, "N42ExpStripMenuItem");
-			this.N42ExpStripMenuItem.Name = "N42ExpStripMenuItem";
-			this.N42ExpStripMenuItem.Click += new global::System.EventHandler(this.N42ExpStripMenuItem_Click);
-			resources.ApplyResources(this.AtomSpectraExpStripMenuItem, "AtomSpectraExpStripMenuItem");
-			this.AtomSpectraExpStripMenuItem.Name = "AtomSpectraExpStripMenuItem";
-			this.AtomSpectraExpStripMenuItem.Click += new global::System.EventHandler(this.AtomSpectraExpStripMenuItem_Click);
-			resources.ApplyResources(this.cSVCToolStripMenuItem, "cSVCToolStripMenuItem");
-			this.cSVCToolStripMenuItem.Name = "cSVCToolStripMenuItem";
-			this.cSVCToolStripMenuItem.Click += new global::System.EventHandler(this.cSVCToolStripMenuItem_Click);
-			resources.ApplyResources(this.ECSVToolStripMenuItem, "ECSVToolStripMenuItem");
-			this.ECSVToolStripMenuItem.Name = "ECSVToolStripMenuItem";
-			this.ECSVToolStripMenuItem.Click += new global::System.EventHandler(this.ECSVToolStripMenuItem_Click);
-			resources.ApplyResources(this.forFwhmToolStripMenuItem, "forFwhmToolStripMenuItem");
-			this.forFwhmToolStripMenuItem.Name = "forFwhmToolStripMenuItem";
-			this.forFwhmToolStripMenuItem.Click += new global::System.EventHandler(this.forFwhmToolStripMenuItem_Click);
-			resources.ApplyResources(this.toolStripSeparator1, "toolStripSeparator1");
-			this.toolStripSeparator1.Name = "toolStripSeparator1";
-			resources.ApplyResources(this.exitXToolStripMenuItem, "exitXToolStripMenuItem");
-			this.exitXToolStripMenuItem.Name = "exitXToolStripMenuItem";
-			this.exitXToolStripMenuItem.Click += new global::System.EventHandler(this.exitXToolStripMenuItem_Click);
-			resources.ApplyResources(this.spectrumSToolStripMenuItem, "spectrumSToolStripMenuItem");
-			this.spectrumSToolStripMenuItem.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
-			{
-				this.newSpectrumNToolStripMenuItem1,
-				this.deleteDToolStripMenuItem,
-				this.addFromExistingFileFToolStripMenuItem,
-				this.toolStripMenuItem1,
-				this.exportBgToolStripMenuItem,
-				this.hardSubtractToolStripMenuItem,
-                this.ConcatSpectrumsStripMenuItem,
-				this.CutoffStripMenuItem,
-                this.NormalizeSpectrumStripMenuItem,
-				this.ApplyDeadTimeCorrectionStripMenuItem,
-                this.AutoSaveStripMenuItem,
-                this.toolStripSeparator7,
-				this.startMeasurementSToolStripMenuItem,
-				this.stopMeasurementTToolStripMenuItem,
-				this.clearDataCToolStripMenuItem
-			});
-			this.spectrumSToolStripMenuItem.Name = "spectrumSToolStripMenuItem";
-			this.spectrumSToolStripMenuItem.DropDownOpening += new global::System.EventHandler(this.spectrumSToolStripMenuItem_DropDownOpening);
-			resources.ApplyResources(this.newSpectrumNToolStripMenuItem1, "newSpectrumNToolStripMenuItem1");
-			this.newSpectrumNToolStripMenuItem1.Name = "newSpectrumNToolStripMenuItem1";
-			this.newSpectrumNToolStripMenuItem1.Click += new global::System.EventHandler(this.newSpectrumNToolStripMenuItem1_Click);
-			resources.ApplyResources(this.deleteDToolStripMenuItem, "deleteDToolStripMenuItem");
-			this.deleteDToolStripMenuItem.Name = "deleteDToolStripMenuItem";
-			this.deleteDToolStripMenuItem.Click += new global::System.EventHandler(this.deleteDToolStripMenuItem_Click);
-			resources.ApplyResources(this.addFromExistingFileFToolStripMenuItem, "addFromExistingFileFToolStripMenuItem");
-			this.addFromExistingFileFToolStripMenuItem.Name = "addFromExistingFileFToolStripMenuItem";
-			this.addFromExistingFileFToolStripMenuItem.Click += new global::System.EventHandler(this.addSpectrumFromFileFToolStripMenuItem_Click);
-			resources.ApplyResources(this.toolStripMenuItem1, "toolStripMenuItem1");
-			this.toolStripMenuItem1.Name = "toolStripMenuItem1";
-			this.toolStripMenuItem1.Click += new global::System.EventHandler(this.toolStripMenuItem1_Click);
-            resources.ApplyResources(this.exportBgToolStripMenuItem, "exportBgToolStripMenuItem");
+            // 
+            // N42ExpStripMenuItem
+            // 
+            this.N42ExpStripMenuItem.Name = "N42ExpStripMenuItem";
+            resources.ApplyResources(this.N42ExpStripMenuItem, "N42ExpStripMenuItem");
+            this.N42ExpStripMenuItem.Click += new System.EventHandler(this.N42ExpStripMenuItem_Click);
+            // 
+            // AtomSpectraExpStripMenuItem
+            // 
+            this.AtomSpectraExpStripMenuItem.Name = "AtomSpectraExpStripMenuItem";
+            resources.ApplyResources(this.AtomSpectraExpStripMenuItem, "AtomSpectraExpStripMenuItem");
+            this.AtomSpectraExpStripMenuItem.Click += new System.EventHandler(this.AtomSpectraExpStripMenuItem_Click);
+            // 
+            // cSVCToolStripMenuItem
+            // 
+            this.cSVCToolStripMenuItem.Name = "cSVCToolStripMenuItem";
+            resources.ApplyResources(this.cSVCToolStripMenuItem, "cSVCToolStripMenuItem");
+            this.cSVCToolStripMenuItem.Click += new System.EventHandler(this.cSVCToolStripMenuItem_Click);
+            // 
+            // ECSVToolStripMenuItem
+            // 
+            this.ECSVToolStripMenuItem.Name = "ECSVToolStripMenuItem";
+            resources.ApplyResources(this.ECSVToolStripMenuItem, "ECSVToolStripMenuItem");
+            this.ECSVToolStripMenuItem.Click += new System.EventHandler(this.ECSVToolStripMenuItem_Click);
+            // 
+            // forFwhmToolStripMenuItem
+            // 
+            this.forFwhmToolStripMenuItem.Name = "forFwhmToolStripMenuItem";
+            resources.ApplyResources(this.forFwhmToolStripMenuItem, "forFwhmToolStripMenuItem");
+            this.forFwhmToolStripMenuItem.Click += new System.EventHandler(this.forFwhmToolStripMenuItem_Click);
+            // 
+            // toolStripSeparator1
+            // 
+            this.toolStripSeparator1.Name = "toolStripSeparator1";
+            resources.ApplyResources(this.toolStripSeparator1, "toolStripSeparator1");
+            // 
+            // exitXToolStripMenuItem
+            // 
+            this.exitXToolStripMenuItem.Name = "exitXToolStripMenuItem";
+            resources.ApplyResources(this.exitXToolStripMenuItem, "exitXToolStripMenuItem");
+            this.exitXToolStripMenuItem.Click += new System.EventHandler(this.exitXToolStripMenuItem_Click);
+            // 
+            // spectrumSToolStripMenuItem
+            // 
+            this.spectrumSToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.newSpectrumNToolStripMenuItem1,
+            this.deleteDToolStripMenuItem,
+            this.addFromExistingFileFToolStripMenuItem,
+            this.toolStripMenuItem1,
+            this.exportBgToolStripMenuItem,
+            this.hardSubtractToolStripMenuItem,
+            this.ConcatSpectrumsStripMenuItem,
+            this.CutoffStripMenuItem,
+            this.NormalizeSpectrumStripMenuItem,
+            this.ApplyDeadTimeCorrectionStripMenuItem,
+            this.AutoSaveStripMenuItem,
+            this.toolStripSeparator7,
+            this.startMeasurementSToolStripMenuItem,
+            this.stopMeasurementTToolStripMenuItem,
+            this.clearDataCToolStripMenuItem});
+            this.spectrumSToolStripMenuItem.Name = "spectrumSToolStripMenuItem";
+            resources.ApplyResources(this.spectrumSToolStripMenuItem, "spectrumSToolStripMenuItem");
+            this.spectrumSToolStripMenuItem.DropDownOpening += new System.EventHandler(this.spectrumSToolStripMenuItem_DropDownOpening);
+            // 
+            // newSpectrumNToolStripMenuItem1
+            // 
+            this.newSpectrumNToolStripMenuItem1.Name = "newSpectrumNToolStripMenuItem1";
+            resources.ApplyResources(this.newSpectrumNToolStripMenuItem1, "newSpectrumNToolStripMenuItem1");
+            this.newSpectrumNToolStripMenuItem1.Click += new System.EventHandler(this.newSpectrumNToolStripMenuItem1_Click);
+            // 
+            // deleteDToolStripMenuItem
+            // 
+            this.deleteDToolStripMenuItem.Name = "deleteDToolStripMenuItem";
+            resources.ApplyResources(this.deleteDToolStripMenuItem, "deleteDToolStripMenuItem");
+            this.deleteDToolStripMenuItem.Click += new System.EventHandler(this.deleteDToolStripMenuItem_Click);
+            // 
+            // addFromExistingFileFToolStripMenuItem
+            // 
+            this.addFromExistingFileFToolStripMenuItem.Name = "addFromExistingFileFToolStripMenuItem";
+            resources.ApplyResources(this.addFromExistingFileFToolStripMenuItem, "addFromExistingFileFToolStripMenuItem");
+            this.addFromExistingFileFToolStripMenuItem.Click += new System.EventHandler(this.addSpectrumFromFileFToolStripMenuItem_Click);
+            // 
+            // toolStripMenuItem1
+            // 
+            this.toolStripMenuItem1.Name = "toolStripMenuItem1";
+            resources.ApplyResources(this.toolStripMenuItem1, "toolStripMenuItem1");
+            this.toolStripMenuItem1.Click += new System.EventHandler(this.toolStripMenuItem1_Click);
+            // 
+            // exportBgToolStripMenuItem
+            // 
             this.exportBgToolStripMenuItem.Name = "exportBgToolStripMenuItem";
-            this.exportBgToolStripMenuItem.Click += new global::System.EventHandler(this.exportBgToolStripMenuItem_Click);
-            resources.ApplyResources(this.hardSubtractToolStripMenuItem, "hardSubtractToolStripMenuItem");
+            resources.ApplyResources(this.exportBgToolStripMenuItem, "exportBgToolStripMenuItem");
+            this.exportBgToolStripMenuItem.Click += new System.EventHandler(this.exportBgToolStripMenuItem_Click);
+            // 
+            // hardSubtractToolStripMenuItem
+            // 
             this.hardSubtractToolStripMenuItem.Name = "hardSubtractToolStripMenuItem";
-			this.hardSubtractToolStripMenuItem.Click += new global::System.EventHandler(this.hardSubtractToolStripMenuItem_Click);
+            resources.ApplyResources(this.hardSubtractToolStripMenuItem, "hardSubtractToolStripMenuItem");
+            this.hardSubtractToolStripMenuItem.Click += new System.EventHandler(this.hardSubtractToolStripMenuItem_Click);
+            // 
+            // ConcatSpectrumsStripMenuItem
+            // 
+            this.ConcatSpectrumsStripMenuItem.Name = "ConcatSpectrumsStripMenuItem";
             resources.ApplyResources(this.ConcatSpectrumsStripMenuItem, "ConcatSpectrumsStripMenuItem");
-			this.ConcatSpectrumsStripMenuItem.Name = "ConcatSpectrumsStripMenuItem";
-			this.ConcatSpectrumsStripMenuItem.Click += new global::System.EventHandler(this.ConcatSpectrumsStripMenuItem_Click);
-			resources.ApplyResources(this.CutoffStripMenuItem, "CutoffStripMenuItem");
-			this.CutoffStripMenuItem.Name = "CutoffStripMenuItem";
-			this.CutoffStripMenuItem.Click += new global::System.EventHandler(this.CutoffStripMenuItem_Click);
-            resources.ApplyResources(this.NormalizeSpectrumStripMenuItem, "NormalizeSpectrumStripMenuItem");
+            this.ConcatSpectrumsStripMenuItem.Click += new System.EventHandler(this.ConcatSpectrumsStripMenuItem_Click);
+            // 
+            // CutoffStripMenuItem
+            // 
+            this.CutoffStripMenuItem.Name = "CutoffStripMenuItem";
+            resources.ApplyResources(this.CutoffStripMenuItem, "CutoffStripMenuItem");
+            this.CutoffStripMenuItem.Click += new System.EventHandler(this.CutoffStripMenuItem_Click);
+            // 
+            // NormalizeSpectrumStripMenuItem
+            // 
             this.NormalizeSpectrumStripMenuItem.Name = "NormalizeSpectrumStripMenuItem";
-            this.NormalizeSpectrumStripMenuItem.Click += new global::System.EventHandler(this.NormalizeSpectrumStripMenuItem_Click);
-            resources.ApplyResources(this.ApplyDeadTimeCorrectionStripMenuItem, "ApplyDeadTimeCorrectionStripMenuItem");
+            resources.ApplyResources(this.NormalizeSpectrumStripMenuItem, "NormalizeSpectrumStripMenuItem");
+            this.NormalizeSpectrumStripMenuItem.Click += new System.EventHandler(this.NormalizeSpectrumStripMenuItem_Click);
+            // 
+            // ApplyDeadTimeCorrectionStripMenuItem
+            // 
             this.ApplyDeadTimeCorrectionStripMenuItem.Name = "ApplyDeadTimeCorrectionStripMenuItem";
-            this.ApplyDeadTimeCorrectionStripMenuItem.Click += new global::System.EventHandler(this.ApplyDeadTimeCorrectionStripMenuItem_Click);
-            resources.ApplyResources(this.AutoSaveStripMenuItem, "AutoSaveStripMenuItem");
-            this.AutoSaveStripMenuItem.Name = "AutoSaveStripMenuItem";
-            this.AutoSaveStripMenuItem.Click += new global::System.EventHandler(this.AutoSaveStripMenuItem_Click);
+            resources.ApplyResources(this.ApplyDeadTimeCorrectionStripMenuItem, "ApplyDeadTimeCorrectionStripMenuItem");
+            this.ApplyDeadTimeCorrectionStripMenuItem.Click += new System.EventHandler(this.ApplyDeadTimeCorrectionStripMenuItem_Click);
+            // 
+            // AutoSaveStripMenuItem
+            // 
             this.AutoSaveStripMenuItem.CheckOnClick = true;
+            this.AutoSaveStripMenuItem.Name = "AutoSaveStripMenuItem";
+            resources.ApplyResources(this.AutoSaveStripMenuItem, "AutoSaveStripMenuItem");
+            this.AutoSaveStripMenuItem.Click += new System.EventHandler(this.AutoSaveStripMenuItem_Click);
+            // 
+            // toolStripSeparator7
+            // 
+            this.toolStripSeparator7.Name = "toolStripSeparator7";
             resources.ApplyResources(this.toolStripSeparator7, "toolStripSeparator7");
-			this.toolStripSeparator7.Name = "toolStripSeparator7";
-			resources.ApplyResources(this.startMeasurementSToolStripMenuItem, "startMeasurementSToolStripMenuItem");
-			this.startMeasurementSToolStripMenuItem.Image = global::BecquerelMonitor.Properties.Resources.start;
-			this.startMeasurementSToolStripMenuItem.Name = "startMeasurementSToolStripMenuItem";
-			this.startMeasurementSToolStripMenuItem.Click += new global::System.EventHandler(this.startMeasurementSToolStripMenuItem_Click);
-			resources.ApplyResources(this.stopMeasurementTToolStripMenuItem, "stopMeasurementTToolStripMenuItem");
-			this.stopMeasurementTToolStripMenuItem.Image = global::BecquerelMonitor.Properties.Resources.stop;
-			this.stopMeasurementTToolStripMenuItem.Name = "stopMeasurementTToolStripMenuItem";
-			this.stopMeasurementTToolStripMenuItem.Click += new global::System.EventHandler(this.stopMeasurementTToolStripMenuItem_Click);
-			resources.ApplyResources(this.clearDataCToolStripMenuItem, "clearDataCToolStripMenuItem");
-			this.clearDataCToolStripMenuItem.Image = global::BecquerelMonitor.Properties.Resources.clear;
-			this.clearDataCToolStripMenuItem.Name = "clearDataCToolStripMenuItem";
-			this.clearDataCToolStripMenuItem.Click += new global::System.EventHandler(this.clearDataCToolStripMenuItem_Click);
-			resources.ApplyResources(this.viewTToolStripMenuItem, "viewTToolStripMenuItem");
-			this.viewTToolStripMenuItem.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
-			{
-				this.toolStripMenuItem6,
-				this.controlPanelCToolStripMenuItem,
-				this.sampleInfoSToolStripMenuItem,
-				this.spectrumListLToolStripMenuItem,
-				this.toolStripMenuItem4,
-				this.peakDetectionDToolStripMenuItem,
-				this.pulseViewPToolStripMenuItem,
-				this.toolStripMenuItem5,
-				this.FWHMCalStripMenuItem,
-				this.toolStripMenuItem3,
-				this.toolStripSeparator2,
-				this.measurementResultsRToolStripMenuItem,
-				this.toolStripSeparator8,
-				this.toolStripMenuItem7,
-				this.toolStripSeparator9,
-				this.languageToolStripMenuItem
-			});
-			this.viewTToolStripMenuItem.Name = "viewTToolStripMenuItem";
-			resources.ApplyResources(this.toolStripMenuItem6, "toolStripMenuItem6");
-			this.toolStripMenuItem6.Name = "toolStripMenuItem6";
-			this.toolStripMenuItem6.Click += new global::System.EventHandler(this.toolStripMenuItem6_Click);
-			resources.ApplyResources(this.controlPanelCToolStripMenuItem, "controlPanelCToolStripMenuItem");
-			this.controlPanelCToolStripMenuItem.Name = "controlPanelCToolStripMenuItem";
-			this.controlPanelCToolStripMenuItem.Click += new global::System.EventHandler(this.controlPanelCToolStripMenuItem_Click);
-			resources.ApplyResources(this.sampleInfoSToolStripMenuItem, "sampleInfoSToolStripMenuItem");
-			this.sampleInfoSToolStripMenuItem.Name = "sampleInfoSToolStripMenuItem";
-			this.sampleInfoSToolStripMenuItem.Click += new global::System.EventHandler(this.sampleInfoSToolStripMenuItem_Click);
-			resources.ApplyResources(this.spectrumListLToolStripMenuItem, "spectrumListLToolStripMenuItem");
-			this.spectrumListLToolStripMenuItem.Name = "spectrumListLToolStripMenuItem";
-			this.spectrumListLToolStripMenuItem.Click += new global::System.EventHandler(this.spectrumListLToolStripMenuItem_Click);
-			resources.ApplyResources(this.toolStripMenuItem4, "toolStripMenuItem4");
-			this.toolStripMenuItem4.Name = "toolStripMenuItem4";
-			this.toolStripMenuItem4.Click += new global::System.EventHandler(this.toolStripMenuItem4_Click);
-			resources.ApplyResources(this.peakDetectionDToolStripMenuItem, "peakDetectionDToolStripMenuItem");
-			this.peakDetectionDToolStripMenuItem.Name = "peakDetectionDToolStripMenuItem";
-			this.peakDetectionDToolStripMenuItem.Click += new global::System.EventHandler(this.peakDetectionDToolStripMenuItem_Click);
-			resources.ApplyResources(this.pulseViewPToolStripMenuItem, "pulseViewPToolStripMenuItem");
-			this.pulseViewPToolStripMenuItem.Name = "pulseViewPToolStripMenuItem";
-			this.pulseViewPToolStripMenuItem.Click += new global::System.EventHandler(this.pulseViewPToolStripMenuItem_Click);
-			resources.ApplyResources(this.toolStripMenuItem5, "toolStripMenuItem5");
-			this.toolStripMenuItem5.Name = "toolStripMenuItem5";
-			this.toolStripMenuItem5.Click += new global::System.EventHandler(this.toolStripMenuItem5_Click);
-            resources.ApplyResources(this.FWHMCalStripMenuItem, "FWHMCalStripMenuItem");
+            // 
+            // startMeasurementSToolStripMenuItem
+            // 
+            this.startMeasurementSToolStripMenuItem.Image = global::BecquerelMonitor.Properties.Resources.start;
+            this.startMeasurementSToolStripMenuItem.Name = "startMeasurementSToolStripMenuItem";
+            resources.ApplyResources(this.startMeasurementSToolStripMenuItem, "startMeasurementSToolStripMenuItem");
+            this.startMeasurementSToolStripMenuItem.Click += new System.EventHandler(this.startMeasurementSToolStripMenuItem_Click);
+            // 
+            // stopMeasurementTToolStripMenuItem
+            // 
+            this.stopMeasurementTToolStripMenuItem.Image = global::BecquerelMonitor.Properties.Resources.stop;
+            this.stopMeasurementTToolStripMenuItem.Name = "stopMeasurementTToolStripMenuItem";
+            resources.ApplyResources(this.stopMeasurementTToolStripMenuItem, "stopMeasurementTToolStripMenuItem");
+            this.stopMeasurementTToolStripMenuItem.Click += new System.EventHandler(this.stopMeasurementTToolStripMenuItem_Click);
+            // 
+            // clearDataCToolStripMenuItem
+            // 
+            this.clearDataCToolStripMenuItem.Image = global::BecquerelMonitor.Properties.Resources.clear;
+            this.clearDataCToolStripMenuItem.Name = "clearDataCToolStripMenuItem";
+            resources.ApplyResources(this.clearDataCToolStripMenuItem, "clearDataCToolStripMenuItem");
+            this.clearDataCToolStripMenuItem.Click += new System.EventHandler(this.clearDataCToolStripMenuItem_Click);
+            // 
+            // viewTToolStripMenuItem
+            // 
+            this.viewTToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.toolStripMenuItem6,
+            this.controlPanelCToolStripMenuItem,
+            this.sampleInfoSToolStripMenuItem,
+            this.spectrumListLToolStripMenuItem,
+            this.toolStripMenuItem4,
+            this.peakDetectionDToolStripMenuItem,
+            this.pulseViewPToolStripMenuItem,
+            this.toolStripMenuItem5,
+            this.FWHMCalStripMenuItem,
+            this.toolStripMenuItem3,
+            this.toolStripSeparator2,
+            this.measurementResultsRToolStripMenuItem,
+            this.toolStripSeparator8,
+            this.toolStripMenuItem7,
+            this.toolStripSeparator9,
+            this.languageToolStripMenuItem});
+            this.viewTToolStripMenuItem.Name = "viewTToolStripMenuItem";
+            resources.ApplyResources(this.viewTToolStripMenuItem, "viewTToolStripMenuItem");
+            // 
+            // toolStripMenuItem6
+            // 
+            this.toolStripMenuItem6.Name = "toolStripMenuItem6";
+            resources.ApplyResources(this.toolStripMenuItem6, "toolStripMenuItem6");
+            this.toolStripMenuItem6.Click += new System.EventHandler(this.toolStripMenuItem6_Click);
+            // 
+            // controlPanelCToolStripMenuItem
+            // 
+            this.controlPanelCToolStripMenuItem.Name = "controlPanelCToolStripMenuItem";
+            resources.ApplyResources(this.controlPanelCToolStripMenuItem, "controlPanelCToolStripMenuItem");
+            this.controlPanelCToolStripMenuItem.Click += new System.EventHandler(this.controlPanelCToolStripMenuItem_Click);
+            // 
+            // sampleInfoSToolStripMenuItem
+            // 
+            this.sampleInfoSToolStripMenuItem.Name = "sampleInfoSToolStripMenuItem";
+            resources.ApplyResources(this.sampleInfoSToolStripMenuItem, "sampleInfoSToolStripMenuItem");
+            this.sampleInfoSToolStripMenuItem.Click += new System.EventHandler(this.sampleInfoSToolStripMenuItem_Click);
+            // 
+            // spectrumListLToolStripMenuItem
+            // 
+            this.spectrumListLToolStripMenuItem.Name = "spectrumListLToolStripMenuItem";
+            resources.ApplyResources(this.spectrumListLToolStripMenuItem, "spectrumListLToolStripMenuItem");
+            this.spectrumListLToolStripMenuItem.Click += new System.EventHandler(this.spectrumListLToolStripMenuItem_Click);
+            // 
+            // toolStripMenuItem4
+            // 
+            this.toolStripMenuItem4.Name = "toolStripMenuItem4";
+            resources.ApplyResources(this.toolStripMenuItem4, "toolStripMenuItem4");
+            this.toolStripMenuItem4.Click += new System.EventHandler(this.toolStripMenuItem4_Click);
+            // 
+            // peakDetectionDToolStripMenuItem
+            // 
+            this.peakDetectionDToolStripMenuItem.Name = "peakDetectionDToolStripMenuItem";
+            resources.ApplyResources(this.peakDetectionDToolStripMenuItem, "peakDetectionDToolStripMenuItem");
+            this.peakDetectionDToolStripMenuItem.Click += new System.EventHandler(this.peakDetectionDToolStripMenuItem_Click);
+            // 
+            // pulseViewPToolStripMenuItem
+            // 
+            this.pulseViewPToolStripMenuItem.Name = "pulseViewPToolStripMenuItem";
+            resources.ApplyResources(this.pulseViewPToolStripMenuItem, "pulseViewPToolStripMenuItem");
+            this.pulseViewPToolStripMenuItem.Click += new System.EventHandler(this.pulseViewPToolStripMenuItem_Click);
+            // 
+            // toolStripMenuItem5
+            // 
+            this.toolStripMenuItem5.Name = "toolStripMenuItem5";
+            resources.ApplyResources(this.toolStripMenuItem5, "toolStripMenuItem5");
+            this.toolStripMenuItem5.Click += new System.EventHandler(this.toolStripMenuItem5_Click);
+            // 
+            // FWHMCalStripMenuItem
+            // 
             this.FWHMCalStripMenuItem.Name = "FWHMCalStripMenuItem";
-            this.FWHMCalStripMenuItem.Click += new global::System.EventHandler(this.FWHMCalStripMenuItem_Click);
+            resources.ApplyResources(this.FWHMCalStripMenuItem, "FWHMCalStripMenuItem");
+            this.FWHMCalStripMenuItem.Click += new System.EventHandler(this.FWHMCalStripMenuItem_Click);
+            // 
+            // toolStripMenuItem3
+            // 
+            this.toolStripMenuItem3.Name = "toolStripMenuItem3";
             resources.ApplyResources(this.toolStripMenuItem3, "toolStripMenuItem3");
-			this.toolStripMenuItem3.Name = "toolStripMenuItem3";
-			this.toolStripMenuItem3.Click += new global::System.EventHandler(this.toolStripMenuItem3_Click);
-			resources.ApplyResources(this.toolStripSeparator2, "toolStripSeparator2");
-			this.toolStripSeparator2.Name = "toolStripSeparator2";
-			resources.ApplyResources(this.measurementResultsRToolStripMenuItem, "measurementResultsRToolStripMenuItem");
-			this.measurementResultsRToolStripMenuItem.Name = "measurementResultsRToolStripMenuItem";
-			this.measurementResultsRToolStripMenuItem.Click += new global::System.EventHandler(this.measurementResultsRToolStripMenuItem_Click);
-			resources.ApplyResources(this.toolStripSeparator8, "toolStripSeparator8");
-			this.toolStripSeparator8.Name = "toolStripSeparator8";
-			resources.ApplyResources(this.toolStripMenuItem7, "toolStripMenuItem7");
-			this.toolStripMenuItem7.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
-			{
-				this.userLayoutToolStripMenuItem,
-				this.expertLayoutToolStripMenuItem
-			});
-			this.toolStripMenuItem7.Name = "toolStripMenuItem7";
-			resources.ApplyResources(this.userLayoutToolStripMenuItem, "userLayoutToolStripMenuItem");
-			this.userLayoutToolStripMenuItem.Name = "userLayoutToolStripMenuItem";
-			this.userLayoutToolStripMenuItem.Click += new global::System.EventHandler(this.userLayoutToolStripMenuItem_Click);
-			resources.ApplyResources(this.expertLayoutToolStripMenuItem, "expertLayoutToolStripMenuItem");
-			this.expertLayoutToolStripMenuItem.Name = "expertLayoutToolStripMenuItem";
-			this.expertLayoutToolStripMenuItem.Click += new global::System.EventHandler(this.expertLayoutToolStripMenuItem_Click);
-			resources.ApplyResources(this.toolStripSeparator9, "toolStripSeparator9");
-			this.toolStripSeparator9.Name = "toolStripSeparator9";
-			resources.ApplyResources(this.languageToolStripMenuItem, "languageToolStripMenuItem");
-			this.languageToolStripMenuItem.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
-			{
-				this.oSDefaultToolStripMenuItem,
-				this.neutralToolStripMenuItem,
-				this.jaJPToolStripMenuItem
-			});
-			this.languageToolStripMenuItem.Name = "languageToolStripMenuItem";
-			resources.ApplyResources(this.oSDefaultToolStripMenuItem, "oSDefaultToolStripMenuItem");
-			this.oSDefaultToolStripMenuItem.Name = "oSDefaultToolStripMenuItem";
-			this.oSDefaultToolStripMenuItem.Click += new global::System.EventHandler(this.oSDefaultToolStripMenuItem_Click);
-			resources.ApplyResources(this.neutralToolStripMenuItem, "neutralToolStripMenuItem");
-			this.neutralToolStripMenuItem.Name = "neutralToolStripMenuItem";
-			this.neutralToolStripMenuItem.Click += new global::System.EventHandler(this.neutralToolStripMenuItem_Click);
-			resources.ApplyResources(this.jaJPToolStripMenuItem, "jaJPToolStripMenuItem");
-			this.jaJPToolStripMenuItem.Name = "jaJPToolStripMenuItem";
-			this.jaJPToolStripMenuItem.Click += new global::System.EventHandler(this.jaJPToolStripMenuItem_Click);
-			resources.ApplyResources(this.toolsTToolStripMenuItem1, "toolsTToolStripMenuItem1");
-			this.toolsTToolStripMenuItem1.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
-			{
-				this.editDeviceConfigurationDToolStripMenuItem,
-				this.roiDefinitionRToolStripMenuItem,
-				this.NuclideDefinitionToolStripMenuItem,
-				this.NuclideSetToolStripMenuItem,
-				this.NucDB,
-				this.OpenConfigNToolStripMenuItem,
-				this.toolStripSeparator5,
-				this.basicSettingsBToolStripMenuItem
-			});
-			this.toolsTToolStripMenuItem1.Name = "toolsTToolStripMenuItem1";
-			resources.ApplyResources(this.editDeviceConfigurationDToolStripMenuItem, "editDeviceConfigurationDToolStripMenuItem");
-			this.editDeviceConfigurationDToolStripMenuItem.Name = "editDeviceConfigurationDToolStripMenuItem";
-			this.editDeviceConfigurationDToolStripMenuItem.Click += new global::System.EventHandler(this.editDeviceConfigurationDToolStripMenuItem_Click);
-			resources.ApplyResources(this.roiDefinitionRToolStripMenuItem, "roiDefinitionRToolStripMenuItem");
-			this.roiDefinitionRToolStripMenuItem.Name = "roiDefinitionRToolStripMenuItem";
-			this.roiDefinitionRToolStripMenuItem.Click += new global::System.EventHandler(this.roiDefinitionRToolStripMenuItem_Click);
-			resources.ApplyResources(this.NuclideDefinitionToolStripMenuItem, "NuclideDefinitionToolStripMenuItem");
-			this.NuclideDefinitionToolStripMenuItem.Name = "NuclideDefinitionToolStripMenuItem";
-			this.NuclideDefinitionToolStripMenuItem.Click += new global::System.EventHandler(this.NuclideDefinitionToolStripMenuItem_Click);
-			resources.ApplyResources(this.NuclideSetToolStripMenuItem, "NuclideSetToolStripMenuItem");
-			this.NuclideSetToolStripMenuItem.Name = "NuclideSetToolStripMenuItem";
-			this.NuclideSetToolStripMenuItem.Click += new global::System.EventHandler(this.NuclideSetToolStripMenuItem_Click);
-			resources.ApplyResources(this.OpenConfigNToolStripMenuItem, "OpenConfigNToolStripMenuItem");
-			this.OpenConfigNToolStripMenuItem.Name = "OpenConfigNToolStripMenuItem";
-			this.OpenConfigNToolStripMenuItem.Click += new global::System.EventHandler(this.OpenConfigNToolStripMenuItem_Click);
-			resources.ApplyResources(this.NucDB, "NucDB");
-			this.NucDB.Name = "NucDB";
-			this.NucDB.Click += new global::System.EventHandler(this.NucDB_Click);
-			resources.ApplyResources(this.toolStripSeparator5, "toolStripSeparator5");
-			this.toolStripSeparator5.Name = "toolStripSeparator5";
-			resources.ApplyResources(this.basicSettingsBToolStripMenuItem, "basicSettingsBToolStripMenuItem");
-			this.basicSettingsBToolStripMenuItem.Name = "basicSettingsBToolStripMenuItem";
-			this.basicSettingsBToolStripMenuItem.Click += new global::System.EventHandler(this.basicSettingsBToolStripMenuItem_Click);
-			resources.ApplyResources(this.helpHToolStripMenuItem, "helpHToolStripMenuItem");
-			this.helpHToolStripMenuItem.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
-			{
-				this.manualMToolStripMenuItem,
-				this.toolStripSeparator3,
-				this.UpdatesAToolStripMenuItem,
-				this.versionInfoAToolStripMenuItem
-			});
-			this.helpHToolStripMenuItem.Name = "helpHToolStripMenuItem";
-			resources.ApplyResources(this.manualMToolStripMenuItem, "manualMToolStripMenuItem");
-			this.manualMToolStripMenuItem.Name = "manualMToolStripMenuItem";
-			this.manualMToolStripMenuItem.Click += new global::System.EventHandler(this.manualMToolStripMenuItem_Click);
-			resources.ApplyResources(this.toolStripSeparator3, "toolStripSeparator3");
-			this.toolStripSeparator3.Name = "toolStripSeparator3";
-			resources.ApplyResources(this.versionInfoAToolStripMenuItem, "versionInfoAToolStripMenuItem");
-			this.versionInfoAToolStripMenuItem.Name = "versionInfoAToolStripMenuItem";
-			this.versionInfoAToolStripMenuItem.Click += new global::System.EventHandler(this.versionInfoAToolStripMenuItem_Click);
-
-			resources.ApplyResources(this.UpdatesAToolStripMenuItem, "UpdatesAToolStripMenuItem");
-			this.UpdatesAToolStripMenuItem.Name = "UpdatesAToolStripMenuItem";
-			this.UpdatesAToolStripMenuItem.Click += new global::System.EventHandler(this.UpdatesAToolStripMenuItem_Click);
-
-			resources.ApplyResources(this.statusStrip1, "statusStrip1");
-			this.statusStrip1.Items.AddRange(new global::System.Windows.Forms.ToolStripItem[]
-			{
-				this.toolStripStatusLabel1,
-				this.toolStripStatusLabel2,
-                this.toolStripStatusLabel3,
-            });
-			this.statusStrip1.Name = "statusStrip1";
-			resources.ApplyResources(this.toolStripStatusLabel1, "toolStripStatusLabel1");
-			this.toolStripStatusLabel1.Name = "toolStripStatusLabel1";
-			this.toolStripStatusLabel1.AutoSize = true;
-			resources.ApplyResources(this.toolStripStatusLabel2, "toolStripStatusLabel2");
-			this.toolStripStatusLabel2.Name = "toolStripStatusLabel2";
-			this.toolStripStatusLabel2.Spring = true;
-            this.toolStripStatusLabel2.Click += ToolStripStatusLabel2_Click;
-			this.toolStripStatusLabel2.DoubleClick += ToolStripStatusLabel2_Click;
-            resources.ApplyResources(this.toolStripStatusLabel3, "toolStripStatusLabel3");
+            this.toolStripMenuItem3.Click += new System.EventHandler(this.toolStripMenuItem3_Click);
+            // 
+            // toolStripSeparator2
+            // 
+            this.toolStripSeparator2.Name = "toolStripSeparator2";
+            resources.ApplyResources(this.toolStripSeparator2, "toolStripSeparator2");
+            // 
+            // measurementResultsRToolStripMenuItem
+            // 
+            this.measurementResultsRToolStripMenuItem.Name = "measurementResultsRToolStripMenuItem";
+            resources.ApplyResources(this.measurementResultsRToolStripMenuItem, "measurementResultsRToolStripMenuItem");
+            this.measurementResultsRToolStripMenuItem.Click += new System.EventHandler(this.measurementResultsRToolStripMenuItem_Click);
+            // 
+            // toolStripSeparator8
+            // 
+            this.toolStripSeparator8.Name = "toolStripSeparator8";
+            resources.ApplyResources(this.toolStripSeparator8, "toolStripSeparator8");
+            // 
+            // toolStripMenuItem7
+            // 
+            this.toolStripMenuItem7.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.userLayoutToolStripMenuItem,
+            this.expertLayoutToolStripMenuItem});
+            this.toolStripMenuItem7.Name = "toolStripMenuItem7";
+            resources.ApplyResources(this.toolStripMenuItem7, "toolStripMenuItem7");
+            // 
+            // userLayoutToolStripMenuItem
+            // 
+            this.userLayoutToolStripMenuItem.Name = "userLayoutToolStripMenuItem";
+            resources.ApplyResources(this.userLayoutToolStripMenuItem, "userLayoutToolStripMenuItem");
+            this.userLayoutToolStripMenuItem.Click += new System.EventHandler(this.userLayoutToolStripMenuItem_Click);
+            // 
+            // expertLayoutToolStripMenuItem
+            // 
+            this.expertLayoutToolStripMenuItem.Name = "expertLayoutToolStripMenuItem";
+            resources.ApplyResources(this.expertLayoutToolStripMenuItem, "expertLayoutToolStripMenuItem");
+            this.expertLayoutToolStripMenuItem.Click += new System.EventHandler(this.expertLayoutToolStripMenuItem_Click);
+            // 
+            // toolStripSeparator9
+            // 
+            this.toolStripSeparator9.Name = "toolStripSeparator9";
+            resources.ApplyResources(this.toolStripSeparator9, "toolStripSeparator9");
+            // 
+            // languageToolStripMenuItem
+            // 
+            this.languageToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.oSDefaultToolStripMenuItem,
+            this.neutralToolStripMenuItem,
+            this.jaJPToolStripMenuItem});
+            this.languageToolStripMenuItem.Name = "languageToolStripMenuItem";
+            resources.ApplyResources(this.languageToolStripMenuItem, "languageToolStripMenuItem");
+            // 
+            // oSDefaultToolStripMenuItem
+            // 
+            this.oSDefaultToolStripMenuItem.Name = "oSDefaultToolStripMenuItem";
+            resources.ApplyResources(this.oSDefaultToolStripMenuItem, "oSDefaultToolStripMenuItem");
+            this.oSDefaultToolStripMenuItem.Click += new System.EventHandler(this.oSDefaultToolStripMenuItem_Click);
+            // 
+            // neutralToolStripMenuItem
+            // 
+            this.neutralToolStripMenuItem.Name = "neutralToolStripMenuItem";
+            resources.ApplyResources(this.neutralToolStripMenuItem, "neutralToolStripMenuItem");
+            this.neutralToolStripMenuItem.Click += new System.EventHandler(this.neutralToolStripMenuItem_Click);
+            // 
+            // jaJPToolStripMenuItem
+            // 
+            this.jaJPToolStripMenuItem.Name = "jaJPToolStripMenuItem";
+            resources.ApplyResources(this.jaJPToolStripMenuItem, "jaJPToolStripMenuItem");
+            this.jaJPToolStripMenuItem.Click += new System.EventHandler(this.jaJPToolStripMenuItem_Click);
+            // 
+            // toolsTToolStripMenuItem1
+            // 
+            this.toolsTToolStripMenuItem1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.editDeviceConfigurationDToolStripMenuItem,
+            this.roiDefinitionRToolStripMenuItem,
+            this.NuclideDefinitionToolStripMenuItem,
+            this.NuclideSetToolStripMenuItem,
+            this.NucDB,
+            this.OpenConfigNToolStripMenuItem,
+            this.toolStripSeparator5,
+            this.basicSettingsBToolStripMenuItem});
+            this.toolsTToolStripMenuItem1.Name = "toolsTToolStripMenuItem1";
+            resources.ApplyResources(this.toolsTToolStripMenuItem1, "toolsTToolStripMenuItem1");
+            // 
+            // editDeviceConfigurationDToolStripMenuItem
+            // 
+            this.editDeviceConfigurationDToolStripMenuItem.Name = "editDeviceConfigurationDToolStripMenuItem";
+            resources.ApplyResources(this.editDeviceConfigurationDToolStripMenuItem, "editDeviceConfigurationDToolStripMenuItem");
+            this.editDeviceConfigurationDToolStripMenuItem.Click += new System.EventHandler(this.editDeviceConfigurationDToolStripMenuItem_Click);
+            // 
+            // roiDefinitionRToolStripMenuItem
+            // 
+            this.roiDefinitionRToolStripMenuItem.Name = "roiDefinitionRToolStripMenuItem";
+            resources.ApplyResources(this.roiDefinitionRToolStripMenuItem, "roiDefinitionRToolStripMenuItem");
+            this.roiDefinitionRToolStripMenuItem.Click += new System.EventHandler(this.roiDefinitionRToolStripMenuItem_Click);
+            // 
+            // NuclideDefinitionToolStripMenuItem
+            // 
+            this.NuclideDefinitionToolStripMenuItem.Name = "NuclideDefinitionToolStripMenuItem";
+            resources.ApplyResources(this.NuclideDefinitionToolStripMenuItem, "NuclideDefinitionToolStripMenuItem");
+            this.NuclideDefinitionToolStripMenuItem.Click += new System.EventHandler(this.NuclideDefinitionToolStripMenuItem_Click);
+            // 
+            // NuclideSetToolStripMenuItem
+            // 
+            this.NuclideSetToolStripMenuItem.Name = "NuclideSetToolStripMenuItem";
+            resources.ApplyResources(this.NuclideSetToolStripMenuItem, "NuclideSetToolStripMenuItem");
+            this.NuclideSetToolStripMenuItem.Click += new System.EventHandler(this.NuclideSetToolStripMenuItem_Click);
+            // 
+            // NucDB
+            // 
+            this.NucDB.Name = "NucDB";
+            resources.ApplyResources(this.NucDB, "NucDB");
+            this.NucDB.Click += new System.EventHandler(this.NucDB_Click);
+            // 
+            // OpenConfigNToolStripMenuItem
+            // 
+            this.OpenConfigNToolStripMenuItem.Name = "OpenConfigNToolStripMenuItem";
+            resources.ApplyResources(this.OpenConfigNToolStripMenuItem, "OpenConfigNToolStripMenuItem");
+            this.OpenConfigNToolStripMenuItem.Click += new System.EventHandler(this.OpenConfigNToolStripMenuItem_Click);
+            // 
+            // toolStripSeparator5
+            // 
+            this.toolStripSeparator5.Name = "toolStripSeparator5";
+            resources.ApplyResources(this.toolStripSeparator5, "toolStripSeparator5");
+            // 
+            // basicSettingsBToolStripMenuItem
+            // 
+            this.basicSettingsBToolStripMenuItem.Name = "basicSettingsBToolStripMenuItem";
+            resources.ApplyResources(this.basicSettingsBToolStripMenuItem, "basicSettingsBToolStripMenuItem");
+            this.basicSettingsBToolStripMenuItem.Click += new System.EventHandler(this.basicSettingsBToolStripMenuItem_Click);
+            // 
+            // helpHToolStripMenuItem
+            // 
+            this.helpHToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.manualMToolStripMenuItem,
+            this.toolStripSeparator3,
+            this.UpdatesAToolStripMenuItem,
+            this.versionInfoAToolStripMenuItem});
+            this.helpHToolStripMenuItem.Name = "helpHToolStripMenuItem";
+            resources.ApplyResources(this.helpHToolStripMenuItem, "helpHToolStripMenuItem");
+            // 
+            // manualMToolStripMenuItem
+            // 
+            this.manualMToolStripMenuItem.Name = "manualMToolStripMenuItem";
+            resources.ApplyResources(this.manualMToolStripMenuItem, "manualMToolStripMenuItem");
+            this.manualMToolStripMenuItem.Click += new System.EventHandler(this.manualMToolStripMenuItem_Click);
+            // 
+            // toolStripSeparator3
+            // 
+            this.toolStripSeparator3.Name = "toolStripSeparator3";
+            resources.ApplyResources(this.toolStripSeparator3, "toolStripSeparator3");
+            // 
+            // UpdatesAToolStripMenuItem
+            // 
+            this.UpdatesAToolStripMenuItem.Name = "UpdatesAToolStripMenuItem";
+            resources.ApplyResources(this.UpdatesAToolStripMenuItem, "UpdatesAToolStripMenuItem");
+            this.UpdatesAToolStripMenuItem.Click += new System.EventHandler(this.UpdatesAToolStripMenuItem_Click);
+            // 
+            // versionInfoAToolStripMenuItem
+            // 
+            this.versionInfoAToolStripMenuItem.Name = "versionInfoAToolStripMenuItem";
+            resources.ApplyResources(this.versionInfoAToolStripMenuItem, "versionInfoAToolStripMenuItem");
+            this.versionInfoAToolStripMenuItem.Click += new System.EventHandler(this.versionInfoAToolStripMenuItem_Click);
+            // 
+            // statusStrip1
+            // 
+            this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.toolStripStatusLabel1,
+            this.toolStripStatusLabel2,
+            this.toolStripStatusLabel3});
+            resources.ApplyResources(this.statusStrip1, "statusStrip1");
+            this.statusStrip1.Name = "statusStrip1";
+            // 
+            // toolStripStatusLabel1
+            // 
+            this.toolStripStatusLabel1.Name = "toolStripStatusLabel1";
+            resources.ApplyResources(this.toolStripStatusLabel1, "toolStripStatusLabel1");
+            // 
+            // toolStripStatusLabel2
+            // 
+            resources.ApplyResources(this.toolStripStatusLabel2, "toolStripStatusLabel2");
+            this.toolStripStatusLabel2.Name = "toolStripStatusLabel2";
+            this.toolStripStatusLabel2.Spring = true;
+            // 
+            // toolStripStatusLabel3
+            // 
             this.toolStripStatusLabel3.Name = "toolStripStatusLabel3";
-            this.toolStripStatusLabel3.AutoSize = true;
+            resources.ApplyResources(this.toolStripStatusLabel3, "toolStripStatusLabel3");
+            // 
+            // dockPanel1
+            // 
+            this.dockPanel1.BackColor = System.Drawing.SystemColors.Control;
+            this.dockPanel1.DefaultFloatWindowSize = new System.Drawing.Size(400, 300);
             resources.ApplyResources(this.dockPanel1, "dockPanel1");
-			this.dockPanel1.BackColor = global::System.Drawing.SystemColors.Control;
-			this.dockPanel1.DefaultFloatWindowSize = new global::System.Drawing.Size(400, 300);
-			this.dockPanel1.DockBackColor = global::System.Drawing.SystemColors.ControlDark;
-			this.dockPanel1.Name = "dockPanel1";
-			this.dockPanel1.ShowDocumentIcon = false;
-			this.dockPanel1.Theme = new VS2015BlueTheme();
-            dockPanelGradient.EndColor = global::System.Drawing.SystemColors.ControlLight;
-			dockPanelGradient.StartColor = global::System.Drawing.SystemColors.ControlLight;
-			autoHideStripSkin.DockStripGradient = dockPanelGradient;
-			tabGradient.EndColor = global::System.Drawing.SystemColors.Control;
-			tabGradient.StartColor = global::System.Drawing.SystemColors.Control;
-			tabGradient.TextColor = global::System.Drawing.SystemColors.ControlDarkDark;
-			autoHideStripSkin.TabGradient = tabGradient;
-            autoHideStripSkin.TextFont = new global::System.Drawing.Font("Microsoft Sans Serif", 8f);
-			dockPanelSkin.AutoHideStripSkin = autoHideStripSkin;
-			tabGradient2.EndColor = global::System.Drawing.SystemColors.ControlLightLight;
-			tabGradient2.StartColor = global::System.Drawing.SystemColors.ControlLightLight;
-			tabGradient2.TextColor = global::System.Drawing.SystemColors.ControlText;
-			dockPaneStripGradient.ActiveTabGradient = tabGradient2;
-			dockPanelGradient2.EndColor = global::System.Drawing.SystemColors.Control;
-			dockPanelGradient2.StartColor = global::System.Drawing.SystemColors.Control;
-			dockPaneStripGradient.DockStripGradient = dockPanelGradient2;
-			tabGradient3.EndColor = global::System.Drawing.SystemColors.ControlLight;
-			tabGradient3.StartColor = global::System.Drawing.SystemColors.ControlLight;
-			tabGradient3.TextColor = global::System.Drawing.SystemColors.ControlText;
-			dockPaneStripGradient.InactiveTabGradient = tabGradient3;
-			dockPaneStripSkin.DocumentGradient = dockPaneStripGradient;
-            dockPaneStripSkin.TextFont = new global::System.Drawing.Font("Microsoft Sans Serif", 8f);
-			tabGradient4.EndColor = global::System.Drawing.SystemColors.ActiveCaption;
-			tabGradient4.LinearGradientMode = global::System.Drawing.Drawing2D.LinearGradientMode.Vertical;
-			tabGradient4.StartColor = global::System.Drawing.SystemColors.GradientActiveCaption;
-			tabGradient4.TextColor = global::System.Drawing.SystemColors.ActiveCaptionText;
-			dockPaneStripToolWindowGradient.ActiveCaptionGradient = tabGradient4;
-			tabGradient5.EndColor = global::System.Drawing.SystemColors.Control;
-			tabGradient5.StartColor = global::System.Drawing.SystemColors.Control;
-			tabGradient5.TextColor = global::System.Drawing.SystemColors.ControlText;
-			dockPaneStripToolWindowGradient.ActiveTabGradient = tabGradient5;
-			dockPanelGradient3.EndColor = global::System.Drawing.SystemColors.ControlLight;
-			dockPanelGradient3.StartColor = global::System.Drawing.SystemColors.ControlLight;
-			dockPaneStripToolWindowGradient.DockStripGradient = dockPanelGradient3;
-			tabGradient6.EndColor = global::System.Drawing.SystemColors.GradientInactiveCaption;
-			tabGradient6.LinearGradientMode = global::System.Drawing.Drawing2D.LinearGradientMode.Vertical;
-			tabGradient6.StartColor = global::System.Drawing.SystemColors.GradientInactiveCaption;
-			tabGradient6.TextColor = global::System.Drawing.SystemColors.ControlText;
-			dockPaneStripToolWindowGradient.InactiveCaptionGradient = tabGradient6;
-			tabGradient7.EndColor = global::System.Drawing.Color.Transparent;
-			tabGradient7.StartColor = global::System.Drawing.Color.Transparent;
-			tabGradient7.TextColor = global::System.Drawing.SystemColors.ControlDarkDark;
-			dockPaneStripToolWindowGradient.InactiveTabGradient = tabGradient7;
-			dockPaneStripSkin.ToolWindowGradient = dockPaneStripToolWindowGradient;
-			dockPanelSkin.DockPaneStripSkin = dockPaneStripSkin;
-			//this.dockPanel1.Skin = dockPanelSkin;
-			this.dockPanel1.ActiveDocumentChanged += new global::System.EventHandler(this.dockPanel1_ActiveDocumentChanged);
-			this.dockPanel1.DocumentStyle = DocumentStyle.DockingMdi;
-			this.dockPanel1.ShowAutoHideContentOnHover = true;
-			this.dockPanel1.ContentRemoved += new global::System.EventHandler<global::WeifenLuo.WinFormsUI.Docking.DockContentEventArgs>(this.dockPanel1_ContentRemoved);
-			this.imageList1.ImageStream = (global::System.Windows.Forms.ImageListStreamer)resources.GetObject("imageList1.ImageStream");
-			this.imageList1.TransparentColor = global::System.Drawing.Color.Transparent;
-			this.imageList1.Images.SetKeyName(0, "start.ico");
-			this.imageList1.Images.SetKeyName(1, "stop.ico");
-			this.imageList1.Images.SetKeyName(2, "clear.ico");
-			this.imageList1.Images.SetKeyName(3, "reload.ico");
-			resources.ApplyResources(this, "$this");
-			this.AllowDrop = true;
-			base.AutoScaleMode = global::System.Windows.Forms.AutoScaleMode.Font;
-			base.Controls.Add(this.dockPanel1);
-			base.Controls.Add(this.statusStrip1);
-			base.Controls.Add(this.menuStrip1);
-			base.IsMdiContainer = true;
-			base.MainMenuStrip = this.menuStrip1;
-			base.Name = "MainForm";
-			base.FormClosing += new global::System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
-			base.Load += new global::System.EventHandler(this.MainForm_Load);
-			base.DragDrop += new global::System.Windows.Forms.DragEventHandler(this.MainForm_DragDrop);
-			base.DragEnter += new global::System.Windows.Forms.DragEventHandler(this.MainForm_DragEnter);
-			this.menuStrip1.ResumeLayout(false);
-			this.menuStrip1.PerformLayout();
-			this.statusStrip1.ResumeLayout(false);
-			this.statusStrip1.PerformLayout();
+            this.dockPanel1.DockBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(41)))), ((int)(((byte)(57)))), ((int)(((byte)(85)))));
+            this.dockPanel1.DocumentStyle = WeifenLuo.WinFormsUI.Docking.DocumentStyle.DockingMdi;
+            this.dockPanel1.Name = "dockPanel1";
+            this.dockPanel1.ContentRemoved += new System.EventHandler<WeifenLuo.WinFormsUI.Docking.DockContentEventArgs>(this.dockPanel1_ContentRemoved);
+            this.dockPanel1.ActiveDocumentChanged += new System.EventHandler(this.dockPanel1_ActiveDocumentChanged);
+            // 
+            // imageList1
+            // 
+            this.imageList1.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("imageList1.ImageStream")));
+            this.imageList1.TransparentColor = System.Drawing.Color.Transparent;
+            this.imageList1.Images.SetKeyName(0, "start.ico");
+            this.imageList1.Images.SetKeyName(1, "stop.ico");
+            this.imageList1.Images.SetKeyName(2, "clear.ico");
+            this.imageList1.Images.SetKeyName(3, "reload.ico");
+            // 
+            // MainForm
+            // 
+            this.AllowDrop = true;
+            resources.ApplyResources(this, "$this");
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.Controls.Add(this.dockPanel1);
+            this.Controls.Add(this.statusStrip1);
+            this.Controls.Add(this.menuStrip1);
+            this.IsMdiContainer = true;
+            this.MainMenuStrip = this.menuStrip1;
+            this.Name = "MainForm";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
+            this.Load += new System.EventHandler(this.MainForm_Load);
+            this.DragDrop += new System.Windows.Forms.DragEventHandler(this.MainForm_DragDrop);
+            this.DragEnter += new System.Windows.Forms.DragEventHandler(this.MainForm_DragEnter);
+            this.menuStrip1.ResumeLayout(false);
+            this.menuStrip1.PerformLayout();
+            this.statusStrip1.ResumeLayout(false);
+            this.statusStrip1.PerformLayout();
+            this.ResumeLayout(false);
+            this.PerformLayout();
 
-			base.ResumeLayout(false);
-			base.PerformLayout();
 		}
 
 		// Token: 0x04000587 RID: 1415
