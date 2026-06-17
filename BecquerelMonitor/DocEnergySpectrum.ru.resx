@@ -117,146 +117,86 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="cpsViewToolStripMenuItem.Text" xml:space="preserve">
-    <value>Имп. в сек. (CPS)</value>
-  </data>
-  <data name="hideEnergyCalibrationToolToolStripMenuItem.Text" xml:space="preserve">
-    <value>Выкл. калибровку по энергиям</value>
-  </data>
-  <data name="showEnergyCalibrationToolToolStripMenuItem.Text" xml:space="preserve">
-    <value>Включить калибровку по энергиям</value>
-  </data>
-  <data name="toolStripButton1.ToolTipText" xml:space="preserve">
-    <value>Показать все каналы</value>
-  </data>
-  <data name="toolStripButton2.ToolTipText" xml:space="preserve">
-    <value>Увеличение масштаба</value>
-  </data>
   <data name="toolStripLabel1.Text" xml:space="preserve">
     <value>Ось Y:</value>
-  </data>
-  <data name="toolStripLabel2.Text" xml:space="preserve">
-    <value>Просмотр:</value>
-  </data>
-  <data name="toolStripLabel3.Text" xml:space="preserve">
-    <value>Ось X:</value>
-  </data>
-  <data name="toolStripMenuItem1.Text" xml:space="preserve">
-    <value>Увеличить масштаб (&amp;M)</value>
-  </data>
-  <data name="toolStripMenuItem2.Text" xml:space="preserve">
-    <value>Конфигурация устройства (&amp;D)</value>
-  </data>
-  <data name="toolStripMenuItem3.Text" xml:space="preserve">
-    <value>Конфигурация ROI (&amp;R)</value>
-  </data>
-  <data name="toolStripSplitButton1.ToolTipText" xml:space="preserve">
-    <value>Выбрать вертикальную единицу</value>
-  </data>
-  <data name="toolStripSplitButton10.ToolTipText" xml:space="preserve">
-    <value>Вкл/Выкл калибровку по энергиям</value>
-  </data>
-  <data name="toolStripSplitButton2.ToolTipText" xml:space="preserve">
-    <value>Выбрать вертикальный масштаб</value>
-  </data>
-  <data name="toolStripSplitButton3.ToolTipText" xml:space="preserve">
-    <value>Выбрать тип отображения спектра</value>
-  </data>
-  <data name="toolStripSplitButton4.ToolTipText" xml:space="preserve">
-    <value>Выбрать горизонтальную единицу</value>
-  </data>
-  <data name="toolStripSplitButton5.ToolTipText" xml:space="preserve">
-    <value>Выбрать режим автомасштаба</value>
-  </data>
-  <data name="toolStripSplitButton6.ToolTipText" xml:space="preserve">
-    <value>Выбрать режим сглаживания</value>
-  </data>
-  <data name="toolStripSplitButton7.ToolTipText" xml:space="preserve">
-    <value>Выбрать отображение фона</value>
-  </data>
-  <data name="toolStripSplitButton8.ToolTipText" xml:space="preserve">
-    <value>Выбрать режим отрисовки</value>
-  </data>
-  <data name="toolStripSplitButton9.ToolTipText" xml:space="preserve">
-    <value>Выбрать отображение обнаруженных пиков</value>
-  </data>
-  <data name="noneToolStripMenuItem.Text" xml:space="preserve">
-    <value>Без авто масштабирования</value>
-  </data>
-  <data name="energyViewToolStripMenuItem.Text" xml:space="preserve">
-    <value>Энергия (keV)</value>
   </data>
   <data name="countsViewToolStripMenuItem.Text" xml:space="preserve">
     <value>Имп.</value>
   </data>
-  <data name="noSmoothingToolStripMenuItem.Text" xml:space="preserve">
-    <value>Нет</value>
+  <data name="cpsViewToolStripMenuItem.Text" xml:space="preserve">
+    <value>Имп. в сек. (CPS)</value>
+  </data>
+  <data name="toolStripSplitButton1.ToolTipText" xml:space="preserve">
+    <value>Выбрать вертикальную единицу</value>
+  </data>
+  <data name="linearViewToolStripMenuItem.Text" xml:space="preserve">
+    <value>Линейный Y</value>
+  </data>
+  <data name="powToolStripMenuItem.Text" xml:space="preserve">
+    <value>Степень Y</value>
+  </data>
+  <data name="logarithmicViewToolStripMenuItem.Text" xml:space="preserve">
+    <value>Логарифм. Y</value>
+  </data>
+  <data name="toolStripSplitButton2.ToolTipText" xml:space="preserve">
+    <value>Выбрать вертикальный масштаб</value>
+  </data>
+  <data name="toolStripNumericUpdown.ToolTipText" xml:space="preserve">
+    <value>Степень корня POW. Нажмите кнопку е для вовода константы Эйлера.</value>
+  </data>
+  <data name="noneToolStripMenuItem.Text" xml:space="preserve">
+    <value>Без авто масштабирования</value>
+  </data>
+  <data name="autoFitToolStripMenuItem.Text" xml:space="preserve">
+    <value>Авто масштаб</value>
+  </data>
+  <data name="autoFitBgToolStripMenuItem.Text" xml:space="preserve">
+    <value>Авто масштаб по фону</value>
+  </data>
+  <data name="toolStripSplitButton5.ToolTipText" xml:space="preserve">
+    <value>Выбрать режим автомасштаба</value>
+  </data>
+  <data name="toolStripLabel3.Text" xml:space="preserve">
+    <value>Ось X:</value>
   </data>
   <data name="channelViewToolStripMenuItem.Text" xml:space="preserve">
     <value>Канал</value>
+  </data>
+  <data name="energyViewToolStripMenuItem.Text" xml:space="preserve">
+    <value>Энергия (keV)</value>
+  </data>
+  <data name="toolStripSplitButton4.ToolTipText" xml:space="preserve">
+    <value>Выбрать горизонтальную единицу</value>
+  </data>
+  <data name="toolStripButton2.ToolTipText" xml:space="preserve">
+    <value>Увеличение масштаба</value>
+  </data>
+  <data name="toolStripButton1.ToolTipText" xml:space="preserve">
+    <value>Показать все каналы</value>
+  </data>
+  <data name="toolStripButton3.ToolTipText" xml:space="preserve">
+    <value>Масштаб 1:1</value>
+  </data>
+  <data name="toolStripNumUpDownScale.ToolTipText" xml:space="preserve">
+    <value>Изменить масштаб по оси X</value>
+  </data>
+  <data name="showEnergyCalibrationToolToolStripMenuItem.Text" xml:space="preserve">
+    <value>Включить калибровку по энергиям</value>
+  </data>
+  <data name="hideEnergyCalibrationToolToolStripMenuItem.Text" xml:space="preserve">
+    <value>Выкл. калибровку по энергиям</value>
+  </data>
+  <data name="toolStripSplitButton10.ToolTipText" xml:space="preserve">
+    <value>Вкл/Выкл калибровку по энергиям</value>
+  </data>
+  <data name="toolStripLabel2.Text" xml:space="preserve">
+    <value>Просмотр:</value>
   </data>
   <data name="showBackgroundToolStripMenuItem.Text" xml:space="preserve">
     <value>Показать фоновый спектр</value>
   </data>
   <data name="hideBackgroundToolStripMenuItem.Text" xml:space="preserve">
     <value>Скрыть фоновый спектр</value>
-  </data>
-  <data name="barGraphToolStripMenuItem.Text" xml:space="preserve">
-    <value>Столбцы</value>
-  </data>
-  <data name="showPeaksToolStripMenuItem.Text" xml:space="preserve">
-    <value>Показать обнаруженные пики</value>
-  </data>
-  <data name="hidePeaksToolStripMenuItem.Text" xml:space="preserve">
-    <value>Скрыть обнаруженные пики</value>
-  </data>
-  <data name="linearViewToolStripMenuItem.Text" xml:space="preserve">
-    <value>Линейный Y</value>
-  </data>
-    <data name="powToolStripMenuItem.Text" xml:space="preserve">
-    <value>Степень Y</value>
-  </data>
-  <data name="setUpperThresholdHToolStripMenuItem.Text" xml:space="preserve">
-    <value>Установить верхний порог спектра по курсору (&amp;Н)</value>
-  </data>
-  <data name="setLowerThresholdLToolStripMenuItem.Text" xml:space="preserve">
-    <value>Установить нижний порог спектра по курсору (&amp;L)</value>
-  </data>
-  <data name="saveSToolStripMenuItem.Text" xml:space="preserve">
-    <value>Сохранить (&amp;S)</value>
-  </data>
-  <data name="showAllChannelsAToolStripMenuItem.Text" xml:space="preserve">
-    <value>Показать все каналы (&amp;A)</value>
-  </data>
-  <data name="weightedMovingAverageToolStripMenuItem.Text" xml:space="preserve">
-    <value>Скользящее среднее с весом</value>
-  </data>
-  <data name="simpleMovingAverageToolStripMenuItem.Text" xml:space="preserve">
-    <value>Скользящее среднее</value>
-  </data>
-  <data name="logarithmicViewToolStripMenuItem.Text" xml:space="preserve">
-    <value>Логарифм. Y</value>
-  </data>
-  <data name="lineGraphToolStripMenuItem.Text" xml:space="preserve">
-    <value>Линии</value>
-  </data>
-  <data name="autoFitBgToolStripMenuItem.Text" xml:space="preserve">
-    <value>Авто масштаб по фону</value>
-  </data>
-  <data name="autoFitToolStripMenuItem.Text" xml:space="preserve">
-    <value>Авто масштаб</value>
-  </data>
-  <data name="normalViewToolStripMenuItem.Text" xml:space="preserve">
-    <value>Обычное отображение</value>
-  </data>
-  <data name="createRoiDefinitionFromSelectionSToolStripMenuItem.Text" xml:space="preserve">
-    <value>Создать ROI из выбранного диапазона (&amp;S)</value>
-  </data>
-  <data name="closeCToolStripMenuItem.Text" xml:space="preserve">
-    <value>Закрыть(&amp;C)</value>
-  </data>
-  <data name="highDefinitionViewToolStripMenuItem.Text" xml:space="preserve">
-    <value>Сглаживание</value>
   </data>
   <data name="SubstractBgToolStripMenuItem.Text" xml:space="preserve">
     <value>Показать спектр за вычетом фона</value>
@@ -267,28 +207,91 @@
   <data name="NormByEffToolStripMenuItem.Text" xml:space="preserve">
     <value>Показать нормализованный по эффективности спектр</value>
   </data>
-  <data name="toolStripButton3.ToolTipText" xml:space="preserve">
-    <value>Масштаб 1:1</value>
+  <data name="toolStripSplitButtonBgMode.ToolTipText" xml:space="preserve">
+    <value>Выбрать режим отображения</value>
   </data>
-  <data name="toolStripNumericUpdown.ToolTipText" xml:space="preserve">
-    <value>Степень корня POW. Нажмите кнопку е для вовода константы Эйлера.</value>
+  <data name="highDefinitionViewToolStripMenuItem.Text" xml:space="preserve">
+    <value>Сглаживание</value>
   </data>
-    <data name="toolStripScreenShotButton.ToolTipText" xml:space="preserve">
+  <data name="normalViewToolStripMenuItem.Text" xml:space="preserve">
+    <value>Обычное отображение</value>
+  </data>
+  <data name="toolStripSplitButton8.ToolTipText" xml:space="preserve">
+    <value>Выбрать режим отрисовки</value>
+  </data>
+  <data name="barGraphToolStripMenuItem.Text" xml:space="preserve">
+    <value>Столбцы</value>
+  </data>
+  <data name="lineGraphToolStripMenuItem.Text" xml:space="preserve">
+    <value>Линии</value>
+  </data>
+  <data name="toolStripSplitButton3.ToolTipText" xml:space="preserve">
+    <value>Выбрать тип отображения спектра</value>
+  </data>
+  <data name="noSmoothingToolStripMenuItem.Text" xml:space="preserve">
+    <value>Нет</value>
+  </data>
+  <data name="simpleMovingAverageToolStripMenuItem.Text" xml:space="preserve">
+    <value>Скользящее среднее</value>
+  </data>
+  <data name="weightedMovingAverageToolStripMenuItem.Text" xml:space="preserve">
+    <value>Скользящее среднее с весом</value>
+  </data>
+  <data name="toolStripSplitButton6.ToolTipText" xml:space="preserve">
+    <value>Выбрать режим сглаживания</value>
+  </data>
+  <data name="showPeaksToolStripMenuItem.Text" xml:space="preserve">
+    <value>Показать обнаруженные пики</value>
+  </data>
+  <data name="hidePeaksToolStripMenuItem.Text" xml:space="preserve">
+    <value>Скрыть обнаруженные пики</value>
+  </data>
+  <data name="toolStripSplitButton9.ToolTipText" xml:space="preserve">
+    <value>Выбрать отображение обнаруженных пиков</value>
+  </data>
+  <data name="toolStripScreenShotButton.ToolTipText" xml:space="preserve">
     <value>Снять скрин спектра в файл</value>
-  </data>
-  <data name="toolStripNumUpDownScale.ToolTipText" xml:space="preserve">
-    <value>Изменить масштаб по оси X</value>
   </data>
   <data name="toolStripLabel4.Text" xml:space="preserve">
     <value>Изменить:</value>
   </data>
-  <data name="toolStripRefreshBgButton.ToolTipText" xml:space="preserve">
-    <value>Перезагрузить фон из файла</value>
-  </data>
   <data name="toolStripSaveButton.ToolTipText" xml:space="preserve">
     <value>Сохранить текущий документ</value>
   </data>
+  <data name="toolStripRefreshBgButton.ToolTipText" xml:space="preserve">
+    <value>Перезагрузить фон из файла</value>
+  </data>
   <data name="toolStripSplitButton.ToolTipText" xml:space="preserve">
     <value>Отделить фон от спектра и представить в виде списка спектров</value>
+  </data>
+  <data name="toolStripMenuItem1.Text" xml:space="preserve">
+    <value>Увеличить масштаб (&amp;M)</value>
+  </data>
+  <data name="showAllChannelsAToolStripMenuItem.Text" xml:space="preserve">
+    <value>Показать все каналы (&amp;A)</value>
+  </data>
+  <data name="setLowerThresholdLToolStripMenuItem.Text" xml:space="preserve">
+    <value>Установить нижний порог спектра по курсору (&amp;L)</value>
+  </data>
+  <data name="setUpperThresholdHToolStripMenuItem.Text" xml:space="preserve">
+    <value>Установить верхний порог спектра по курсору (&amp;Н)</value>
+  </data>
+  <data name="toolStripMenuItem2.Text" xml:space="preserve">
+    <value>Конфигурация устройства (&amp;D)</value>
+  </data>
+  <data name="createRoiDefinitionFromSelectionSToolStripMenuItem.Text" xml:space="preserve">
+    <value>Создать ROI из выбранного диапазона (&amp;S)</value>
+  </data>
+  <data name="toolStripMenuItem3.Text" xml:space="preserve">
+    <value>Конфигурация ROI (&amp;R)</value>
+  </data>
+  <data name="saveSToolStripMenuItem.Text" xml:space="preserve">
+    <value>Сохранить (&amp;S)</value>
+  </data>
+  <data name="closeCToolStripMenuItem.Text" xml:space="preserve">
+    <value>Закрыть(&amp;C)</value>
+  </data>
+  <data name="toolStripSplitButton7.ToolTipText" xml:space="preserve">
+    <value>Выбрать отображение фона</value>
   </data>
 </root>

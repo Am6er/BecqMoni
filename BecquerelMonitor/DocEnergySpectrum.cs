@@ -902,9 +902,18 @@ namespace BecquerelMonitor
 
         void toolStripNumericUpdown_ValueChanged(object sender, EventArgs e)
         {
-            this.view.PowNum = (double)this.toolStripNumericUpdown.NumericUpDownControl.Value;
+            double value = (double)this.toolStripNumericUpdown.NumericUpDownControl.Value;
+            if (value > 10.0)
+            {
+                value = 10.0;
+            }
+            else if (value < 0.1)
+            {
+                value = 0.1;
+            }
+            this.view.PowNum = value;
             GlobalConfigInfo globalConfig = GlobalConfigManager.GetInstance().GlobalConfig;
-            globalConfig.ChartViewConfig.PowNum = this.view.PowNum;
+            globalConfig.ChartViewConfig.PowNum = value;
             this.RefreshView();
         }
 

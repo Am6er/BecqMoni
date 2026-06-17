@@ -18,499 +18,695 @@ namespace BecquerelMonitor
 		// Token: 0x060002F9 RID: 761 RVA: 0x0000DA3C File Offset: 0x0000BC3C
 		void InitializeComponent()
 		{
-			this.components = new global::System.ComponentModel.Container();
-			global::System.ComponentModel.ComponentResourceManager resources = new global::System.ComponentModel.ComponentResourceManager(typeof(global::BecquerelMonitor.DocEnergySpectrum));
-			this.toolStripContainer1 = new global::System.Windows.Forms.ToolStripContainer();
-			this.toolStrip2 = new global::BecquerelMonitor.ToolStripEx();
-			this.toolStripLabel2 = new global::System.Windows.Forms.ToolStripLabel();
-			this.toolStripSplitButtonBgMode = new global::System.Windows.Forms.ToolStripSplitButton();
-			this.showBackgroundToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-            this.SubstractBgToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-            this.ShowConToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-            this.NormByEffToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-            this.hideBackgroundToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolStripSplitButton8 = new global::System.Windows.Forms.ToolStripSplitButton();
-			this.highDefinitionViewToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.normalViewToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolStripSplitButton3 = new global::System.Windows.Forms.ToolStripSplitButton();
-			this.barGraphToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.lineGraphToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolStripSplitButton6 = new global::System.Windows.Forms.ToolStripSplitButton();
-			this.noSmoothingToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.simpleMovingAverageToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.weightedMovingAverageToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolStripSplitButton9 = new global::System.Windows.Forms.ToolStripSplitButton();
-			this.showPeaksToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.hidePeaksToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolStrip1 = new global::BecquerelMonitor.ToolStripEx();
-			this.toolStripLabel1 = new global::System.Windows.Forms.ToolStripLabel();
-			this.toolStripSplitButton1 = new global::System.Windows.Forms.ToolStripSplitButton();
-			this.countsViewToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.cpsViewToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolStripSplitButton2 = new global::System.Windows.Forms.ToolStripSplitButton();
-			this.toolStripNumericUpdown = new ToolStripNumericUpdown();
-			this.toolStripScreenShotButton = new ToolStripButton();
-			this.toolStripRefreshBgButton = new ToolStripButton();
-			this.toolStripSaveButton = new ToolStripButton();
-			this.toolStripSplitButton = new ToolStripButton();
-            this.toolStripNumUpDownScale = new ToolStripNumericUpdown();
-            this.linearViewToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.powToolStripMenuItem = new global::System.Windows.Forms .ToolStripMenuItem();
-			this.logarithmicViewToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolStripSplitButton5 = new global::System.Windows.Forms.ToolStripSplitButton();
-			this.noneToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.autoFitToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.autoFitBgToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolStripSeparator3 = new global::System.Windows.Forms.ToolStripSeparator();
-            this.toolStripSeparator4 = new global::System.Windows.Forms.ToolStripSeparator();
-            this.toolStripLabel3 = new global::System.Windows.Forms.ToolStripLabel();
-            this.toolStripLabel4 = new global::System.Windows.Forms.ToolStripLabel();
-            this.toolStripSplitButton4 = new global::System.Windows.Forms.ToolStripSplitButton();
-			this.channelViewToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.energyViewToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolStripButton2 = new global::System.Windows.Forms.ToolStripButton();
-			this.toolStripButton1 = new global::System.Windows.Forms.ToolStripButton();
-            this.toolStripButton3 = new global::System.Windows.Forms.ToolStripButton();
-            this.toolStripSplitButton10 = new global::System.Windows.Forms.ToolStripSplitButton();
-			this.showEnergyCalibrationToolToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.hideEnergyCalibrationToolToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.energySpectrumView1 = new global::System.Windows.Forms.Panel();
-			this.contextMenuStrip1 = new global::System.Windows.Forms.ContextMenuStrip(this.components);
-			this.toolStripMenuItem1 = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.showAllChannelsAToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolStripSeparator2 = new global::System.Windows.Forms.ToolStripSeparator();
-			this.toolStripMenuItem2 = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.setLowerThresholdLToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.setUpperThresholdHToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolStripMenuItem3 = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.createRoiDefinitionFromSelectionSToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolStripSeparator1 = new global::System.Windows.Forms.ToolStripSeparator();
-			this.saveSToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.closeCToolStripMenuItem = new global::System.Windows.Forms.ToolStripMenuItem();
-			this.toolTip1 = new global::System.Windows.Forms.ToolTip(this.components);
-			this.toolStripContainer1.BottomToolStripPanel.SuspendLayout();
-			this.toolStripContainer1.ContentPanel.SuspendLayout();
-			this.toolStripContainer1.SuspendLayout();
-			this.toolStrip2.SuspendLayout();
-			this.toolStrip1.SuspendLayout();
-			this.contextMenuStrip1.SuspendLayout();
-			base.SuspendLayout();
-			resources.ApplyResources(this.toolStripContainer1, "toolStripContainer1");
-			resources.ApplyResources(this.toolStripContainer1.BottomToolStripPanel, "toolStripContainer1.BottomToolStripPanel");
-			this.toolStripContainer1.BottomToolStripPanel.Controls.Add(this.toolStrip2);
-			this.toolStripContainer1.BottomToolStripPanel.Controls.Add(this.toolStrip1);
-			this.toolTip1.SetToolTip(this.toolStripContainer1.BottomToolStripPanel, resources.GetString("toolStripContainer1.BottomToolStripPanel.ToolTip"));
-			this.toolStripContainer1.BottomToolStripPanel.Click += new global::System.EventHandler(this.toolStripContainer1_BottomToolStripPanel_Click);
-			resources.ApplyResources(this.toolStripContainer1.ContentPanel, "toolStripContainer1.ContentPanel");
-			this.toolStripContainer1.ContentPanel.Controls.Add(this.energySpectrumView1);
-			this.toolTip1.SetToolTip(this.toolStripContainer1.ContentPanel, resources.GetString("toolStripContainer1.ContentPanel.ToolTip"));
-			resources.ApplyResources(this.toolStripContainer1.LeftToolStripPanel, "toolStripContainer1.LeftToolStripPanel");
-			this.toolTip1.SetToolTip(this.toolStripContainer1.LeftToolStripPanel, resources.GetString("toolStripContainer1.LeftToolStripPanel.ToolTip"));
-			this.toolStripContainer1.LeftToolStripPanel.Click += new global::System.EventHandler(this.toolStripContainer1_LeftToolStripPanel_Click);
-			this.toolStripContainer1.Name = "toolStripContainer1";
-			resources.ApplyResources(this.toolStripContainer1.RightToolStripPanel, "toolStripContainer1.RightToolStripPanel");
-			this.toolTip1.SetToolTip(this.toolStripContainer1.RightToolStripPanel, resources.GetString("toolStripContainer1.RightToolStripPanel.ToolTip"));
-			this.toolStripContainer1.RightToolStripPanel.Click += new global::System.EventHandler(this.toolStripContainer1_RightToolStripPanel_Click);
-			this.toolTip1.SetToolTip(this.toolStripContainer1, resources.GetString("toolStripContainer1.ToolTip"));
-			resources.ApplyResources(this.toolStripContainer1.TopToolStripPanel, "toolStripContainer1.TopToolStripPanel");
-			this.toolTip1.SetToolTip(this.toolStripContainer1.TopToolStripPanel, resources.GetString("toolStripContainer1.TopToolStripPanel.ToolTip"));
-			this.toolStripContainer1.TopToolStripPanel.Click += new global::System.EventHandler(this.toolStripContainer1_TopToolStripPanel_Click);
-			resources.ApplyResources(this.toolStrip2, "toolStrip2");
-			this.toolStrip2.ClickThrough = true;
-			this.toolStrip2.Items.AddRange(new global::System.Windows.Forms.ToolStripItem[]
-			{
-				this.toolStripLabel2,
-				this.toolStripSplitButtonBgMode,
-				this.toolStripSplitButton8,
-				this.toolStripSplitButton3,
-				this.toolStripSplitButton6,
-				this.toolStripSplitButton9,
-				this.toolStripScreenShotButton,
-                this.toolStripSeparator4,
-				this.toolStripLabel4,
-                this.toolStripSaveButton,
-                this.toolStripRefreshBgButton,
-				this.toolStripSplitButton
-            });
-			this.toolStrip2.Name = "toolStrip2";
-			this.toolStrip2.SuppressHighlighting = false;
-			this.toolTip1.SetToolTip(this.toolStrip2, resources.GetString("toolStrip2.ToolTip"));
-			resources.ApplyResources(this.toolStripLabel2, "toolStripLabel2");
-			this.toolStripLabel2.Name = "toolStripLabel2";
-			resources.ApplyResources(this.toolStripSplitButtonBgMode, "toolStripSplitButton7");
-            resources.ApplyResources(this.toolStripSeparator4, "toolStripSeparator4");
-            this.toolStripSeparator4.Name = "toolStripSeparator4";
-            resources.ApplyResources(this.toolStripLabel4, "toolStripLabel4");
-            this.toolStripLabel4.Name = "toolStripLabel4";
-            this.toolStripSplitButtonBgMode.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-			this.toolStripSplitButtonBgMode.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
-			{
-				this.showBackgroundToolStripMenuItem,
-				this.hideBackgroundToolStripMenuItem,
-				this.SubstractBgToolStripMenuItem,
-				this.ShowConToolStripMenuItem,
-				this.NormByEffToolStripMenuItem
-			});
-			this.toolStripSplitButtonBgMode.Image = global::BecquerelMonitor.Properties.Resources.BG;
-			this.toolStripSplitButtonBgMode.Name = "toolStripSplitButton7";
-			this.toolStripSplitButtonBgMode.ButtonClick += new global::System.EventHandler(this.toolStripSplitButton7_ButtonClick);
-			this.toolStripSplitButtonBgMode.DropDownOpening += new global::System.EventHandler(this.toolStripSplitButton7_DropDownOpening);
-			resources.ApplyResources(this.showBackgroundToolStripMenuItem, "showBackgroundToolStripMenuItem");
-			this.showBackgroundToolStripMenuItem.Name = "showBackgroundToolStripMenuItem";
-			this.showBackgroundToolStripMenuItem.Click += new global::System.EventHandler(this.showBackgroundToolStripMenuItem_Click);
-            resources.ApplyResources(this.SubstractBgToolStripMenuItem, "SubstractBgToolStripMenuItem");
+            this.components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(DocEnergySpectrum));
+            this.toolStripContainer1 = new System.Windows.Forms.ToolStripContainer();
+            this.toolStrip1 = new BecquerelMonitor.ToolStripEx();
+            this.toolStripLabel1 = new System.Windows.Forms.ToolStripLabel();
+            this.toolStripSplitButton1 = new System.Windows.Forms.ToolStripSplitButton();
+            this.countsViewToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.cpsViewToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSplitButton2 = new System.Windows.Forms.ToolStripSplitButton();
+            this.linearViewToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.powToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.logarithmicViewToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripNumericUpdown = new BecquerelMonitor.ToolStripNumericUpdown();
+            this.toolStripSplitButton5 = new System.Windows.Forms.ToolStripSplitButton();
+            this.noneToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.autoFitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.autoFitBgToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
+            this.toolStripLabel3 = new System.Windows.Forms.ToolStripLabel();
+            this.toolStripSplitButton4 = new System.Windows.Forms.ToolStripSplitButton();
+            this.channelViewToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.energyViewToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripButton2 = new System.Windows.Forms.ToolStripButton();
+            this.toolStripButton1 = new System.Windows.Forms.ToolStripButton();
+            this.toolStripButton3 = new System.Windows.Forms.ToolStripButton();
+            this.toolStripNumUpDownScale = new BecquerelMonitor.ToolStripNumericUpdown();
+            this.toolStripSplitButton10 = new System.Windows.Forms.ToolStripSplitButton();
+            this.showEnergyCalibrationToolToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.hideEnergyCalibrationToolToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStrip2 = new BecquerelMonitor.ToolStripEx();
+            this.toolStripLabel2 = new System.Windows.Forms.ToolStripLabel();
+            this.toolStripSplitButtonBgMode = new System.Windows.Forms.ToolStripSplitButton();
+            this.showBackgroundToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.hideBackgroundToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.SubstractBgToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.ShowConToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.NormByEffToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSplitButton8 = new System.Windows.Forms.ToolStripSplitButton();
+            this.highDefinitionViewToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.normalViewToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSplitButton3 = new System.Windows.Forms.ToolStripSplitButton();
+            this.barGraphToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.lineGraphToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSplitButton6 = new System.Windows.Forms.ToolStripSplitButton();
+            this.noSmoothingToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.simpleMovingAverageToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.weightedMovingAverageToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSplitButton9 = new System.Windows.Forms.ToolStripSplitButton();
+            this.showPeaksToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.hidePeaksToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripScreenShotButton = new System.Windows.Forms.ToolStripButton();
+            this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
+            this.toolStripLabel4 = new System.Windows.Forms.ToolStripLabel();
+            this.toolStripSaveButton = new System.Windows.Forms.ToolStripButton();
+            this.toolStripRefreshBgButton = new System.Windows.Forms.ToolStripButton();
+            this.toolStripSplitButton = new System.Windows.Forms.ToolStripButton();
+            this.energySpectrumView1 = new System.Windows.Forms.Panel();
+            this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
+            this.showAllChannelsAToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
+            this.toolStripMenuItem2 = new System.Windows.Forms.ToolStripMenuItem();
+            this.setLowerThresholdLToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.setUpperThresholdHToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripMenuItem3 = new System.Windows.Forms.ToolStripMenuItem();
+            this.createRoiDefinitionFromSelectionSToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            this.saveSToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.closeCToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
+            this.toolStripContainer1.BottomToolStripPanel.SuspendLayout();
+            this.toolStripContainer1.ContentPanel.SuspendLayout();
+            this.toolStripContainer1.SuspendLayout();
+            this.toolStrip1.SuspendLayout();
+            this.toolStrip2.SuspendLayout();
+            this.contextMenuStrip1.SuspendLayout();
+            this.SuspendLayout();
+            // 
+            // toolStripContainer1
+            // 
+            // 
+            // toolStripContainer1.BottomToolStripPanel
+            // 
+            this.toolStripContainer1.BottomToolStripPanel.Controls.Add(this.toolStrip1);
+            this.toolStripContainer1.BottomToolStripPanel.Controls.Add(this.toolStrip2);
+            this.toolStripContainer1.BottomToolStripPanel.Click += new System.EventHandler(this.toolStripContainer1_BottomToolStripPanel_Click);
+            // 
+            // toolStripContainer1.ContentPanel
+            // 
+            this.toolStripContainer1.ContentPanel.Controls.Add(this.energySpectrumView1);
+            resources.ApplyResources(this.toolStripContainer1.ContentPanel, "toolStripContainer1.ContentPanel");
+            resources.ApplyResources(this.toolStripContainer1, "toolStripContainer1");
+            // 
+            // toolStripContainer1.LeftToolStripPanel
+            // 
+            this.toolStripContainer1.LeftToolStripPanel.Click += new System.EventHandler(this.toolStripContainer1_LeftToolStripPanel_Click);
+            this.toolStripContainer1.Name = "toolStripContainer1";
+            // 
+            // toolStripContainer1.RightToolStripPanel
+            // 
+            this.toolStripContainer1.RightToolStripPanel.Click += new System.EventHandler(this.toolStripContainer1_RightToolStripPanel_Click);
+            // 
+            // toolStripContainer1.TopToolStripPanel
+            // 
+            this.toolStripContainer1.TopToolStripPanel.Click += new System.EventHandler(this.toolStripContainer1_TopToolStripPanel_Click);
+            // 
+            // toolStrip1
+            // 
+            this.toolStrip1.ClickThrough = true;
+            resources.ApplyResources(this.toolStrip1, "toolStrip1");
+            this.toolStrip1.ImageScalingSize = new System.Drawing.Size(18, 18);
+            this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.toolStripLabel1,
+            this.toolStripSplitButton1,
+            this.toolStripSplitButton2,
+            this.toolStripNumericUpdown,
+            this.toolStripSplitButton5,
+            this.toolStripSeparator3,
+            this.toolStripLabel3,
+            this.toolStripSplitButton4,
+            this.toolStripButton2,
+            this.toolStripButton1,
+            this.toolStripButton3,
+            this.toolStripNumUpDownScale,
+            this.toolStripSplitButton10});
+            this.toolStrip1.Name = "toolStrip1";
+            this.toolStrip1.SuppressHighlighting = false;
+            // 
+            // toolStripLabel1
+            // 
+            this.toolStripLabel1.Name = "toolStripLabel1";
+            resources.ApplyResources(this.toolStripLabel1, "toolStripLabel1");
+            // 
+            // toolStripSplitButton1
+            // 
+            this.toolStripSplitButton1.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripSplitButton1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.countsViewToolStripMenuItem,
+            this.cpsViewToolStripMenuItem});
+            this.toolStripSplitButton1.Image = global::BecquerelMonitor.Properties.Resources.cps;
+            resources.ApplyResources(this.toolStripSplitButton1, "toolStripSplitButton1");
+            this.toolStripSplitButton1.Name = "toolStripSplitButton1";
+            this.toolStripSplitButton1.ButtonClick += new System.EventHandler(this.toolStripSplitButton1_ButtonClick);
+            this.toolStripSplitButton1.DropDownOpening += new System.EventHandler(this.toolStripSplitButton1_DropDownOpening);
+            // 
+            // countsViewToolStripMenuItem
+            // 
+            this.countsViewToolStripMenuItem.Name = "countsViewToolStripMenuItem";
+            resources.ApplyResources(this.countsViewToolStripMenuItem, "countsViewToolStripMenuItem");
+            this.countsViewToolStripMenuItem.Click += new System.EventHandler(this.countsViewToolStripMenuItem_Click);
+            // 
+            // cpsViewToolStripMenuItem
+            // 
+            this.cpsViewToolStripMenuItem.Name = "cpsViewToolStripMenuItem";
+            resources.ApplyResources(this.cpsViewToolStripMenuItem, "cpsViewToolStripMenuItem");
+            this.cpsViewToolStripMenuItem.Click += new System.EventHandler(this.cpsViewToolStripMenuItem_Click);
+            // 
+            // toolStripSplitButton2
+            // 
+            this.toolStripSplitButton2.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripSplitButton2.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.linearViewToolStripMenuItem,
+            this.powToolStripMenuItem,
+            this.logarithmicViewToolStripMenuItem});
+            this.toolStripSplitButton2.Image = global::BecquerelMonitor.Properties.Resources.log;
+            resources.ApplyResources(this.toolStripSplitButton2, "toolStripSplitButton2");
+            this.toolStripSplitButton2.Name = "toolStripSplitButton2";
+            this.toolStripSplitButton2.ButtonClick += new System.EventHandler(this.toolStripSplitButton2_ButtonClick);
+            this.toolStripSplitButton2.DropDownOpening += new System.EventHandler(this.toolStripSplitButton2_DropDownOpening);
+            // 
+            // linearViewToolStripMenuItem
+            // 
+            this.linearViewToolStripMenuItem.Name = "linearViewToolStripMenuItem";
+            resources.ApplyResources(this.linearViewToolStripMenuItem, "linearViewToolStripMenuItem");
+            this.linearViewToolStripMenuItem.Click += new System.EventHandler(this.linearViewToolStripMenuItem_Click);
+            // 
+            // powToolStripMenuItem
+            // 
+            this.powToolStripMenuItem.Name = "powToolStripMenuItem";
+            resources.ApplyResources(this.powToolStripMenuItem, "powToolStripMenuItem");
+            this.powToolStripMenuItem.Click += new System.EventHandler(this.powToolStripMenuItem_Click);
+            // 
+            // logarithmicViewToolStripMenuItem
+            // 
+            this.logarithmicViewToolStripMenuItem.Name = "logarithmicViewToolStripMenuItem";
+            resources.ApplyResources(this.logarithmicViewToolStripMenuItem, "logarithmicViewToolStripMenuItem");
+            this.logarithmicViewToolStripMenuItem.Click += new System.EventHandler(this.logarithmicViewToolStripMenuItem_Click);
+            // 
+            // toolStripNumericUpdown
+            // 
+            this.toolStripNumericUpdown.DecimalPlaces = 3;
+            resources.ApplyResources(this.toolStripNumericUpdown, "toolStripNumericUpdown");
+            this.toolStripNumericUpdown.Increment = new decimal(new int[] {
+            5,
+            0,
+            0,
+            65536});
+            this.toolStripNumericUpdown.Maximum = new decimal(new int[] {
+            10,
+            0,
+            0,
+            0});
+            this.toolStripNumericUpdown.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.toolStripNumericUpdown.Name = "toolStripNumericUpdown";
+            this.toolStripNumericUpdown.Value = new decimal(new int[] {
+            4000,
+            0,
+            0,
+            196608});
+            this.toolStripNumericUpdown.ValueChanged += new System.EventHandler(this.toolStripNumericUpdown_ValueChanged);
+            this.toolStripNumericUpdown.KeyDown += new System.Windows.Forms.KeyEventHandler(this.ToolStripNumericUpdown_KeyDown);
+            // 
+            // toolStripSplitButton5
+            // 
+            this.toolStripSplitButton5.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripSplitButton5.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.noneToolStripMenuItem,
+            this.autoFitToolStripMenuItem,
+            this.autoFitBgToolStripMenuItem});
+            this.toolStripSplitButton5.Image = global::BecquerelMonitor.Properties.Resources.fit1;
+            resources.ApplyResources(this.toolStripSplitButton5, "toolStripSplitButton5");
+            this.toolStripSplitButton5.Name = "toolStripSplitButton5";
+            this.toolStripSplitButton5.ButtonClick += new System.EventHandler(this.toolStripSplitButton5_ButtonClick);
+            this.toolStripSplitButton5.DropDownOpening += new System.EventHandler(this.toolStripSplitButton5_DropDownOpening);
+            // 
+            // noneToolStripMenuItem
+            // 
+            this.noneToolStripMenuItem.Name = "noneToolStripMenuItem";
+            resources.ApplyResources(this.noneToolStripMenuItem, "noneToolStripMenuItem");
+            this.noneToolStripMenuItem.Click += new System.EventHandler(this.noneToolStripMenuItem_Click);
+            // 
+            // autoFitToolStripMenuItem
+            // 
+            this.autoFitToolStripMenuItem.Name = "autoFitToolStripMenuItem";
+            resources.ApplyResources(this.autoFitToolStripMenuItem, "autoFitToolStripMenuItem");
+            this.autoFitToolStripMenuItem.Click += new System.EventHandler(this.autoFitToolStripMenuItem_Click);
+            // 
+            // autoFitBgToolStripMenuItem
+            // 
+            this.autoFitBgToolStripMenuItem.Name = "autoFitBgToolStripMenuItem";
+            resources.ApplyResources(this.autoFitBgToolStripMenuItem, "autoFitBgToolStripMenuItem");
+            this.autoFitBgToolStripMenuItem.Click += new System.EventHandler(this.autoFitBgToolStripMenuItem_Click);
+            // 
+            // toolStripSeparator3
+            // 
+            this.toolStripSeparator3.Name = "toolStripSeparator3";
+            resources.ApplyResources(this.toolStripSeparator3, "toolStripSeparator3");
+            // 
+            // toolStripLabel3
+            // 
+            this.toolStripLabel3.Name = "toolStripLabel3";
+            resources.ApplyResources(this.toolStripLabel3, "toolStripLabel3");
+            // 
+            // toolStripSplitButton4
+            // 
+            this.toolStripSplitButton4.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripSplitButton4.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.channelViewToolStripMenuItem,
+            this.energyViewToolStripMenuItem});
+            this.toolStripSplitButton4.Image = global::BecquerelMonitor.Properties.Resources.ene;
+            resources.ApplyResources(this.toolStripSplitButton4, "toolStripSplitButton4");
+            this.toolStripSplitButton4.Name = "toolStripSplitButton4";
+            this.toolStripSplitButton4.ButtonClick += new System.EventHandler(this.toolStripSplitButton4_ButtonClick);
+            this.toolStripSplitButton4.DropDownOpening += new System.EventHandler(this.toolStripSplitButton4_DropDownOpening);
+            // 
+            // channelViewToolStripMenuItem
+            // 
+            this.channelViewToolStripMenuItem.Name = "channelViewToolStripMenuItem";
+            resources.ApplyResources(this.channelViewToolStripMenuItem, "channelViewToolStripMenuItem");
+            this.channelViewToolStripMenuItem.Click += new System.EventHandler(this.channelViewToolStripMenuItem_Click);
+            // 
+            // energyViewToolStripMenuItem
+            // 
+            this.energyViewToolStripMenuItem.Name = "energyViewToolStripMenuItem";
+            resources.ApplyResources(this.energyViewToolStripMenuItem, "energyViewToolStripMenuItem");
+            this.energyViewToolStripMenuItem.Click += new System.EventHandler(this.energyViewToolStripMenuItem_Click);
+            // 
+            // toolStripButton2
+            // 
+            this.toolStripButton2.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripButton2.Image = global::BecquerelMonitor.Properties.Resources.ZoominSelection;
+            resources.ApplyResources(this.toolStripButton2, "toolStripButton2");
+            this.toolStripButton2.Name = "toolStripButton2";
+            this.toolStripButton2.Click += new System.EventHandler(this.toolStripButton2_Click);
+            // 
+            // toolStripButton1
+            // 
+            this.toolStripButton1.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripButton1.Image = global::BecquerelMonitor.Properties.Resources.fit2;
+            resources.ApplyResources(this.toolStripButton1, "toolStripButton1");
+            this.toolStripButton1.Name = "toolStripButton1";
+            this.toolStripButton1.Click += new System.EventHandler(this.toolStripButton1_Click);
+            // 
+            // toolStripButton3
+            // 
+            this.toolStripButton3.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripButton3.Image = global::BecquerelMonitor.Properties.Resources.scale;
+            resources.ApplyResources(this.toolStripButton3, "toolStripButton3");
+            this.toolStripButton3.Name = "toolStripButton3";
+            this.toolStripButton3.Click += new System.EventHandler(this.toolStripButton3_Click);
+            // 
+            // toolStripNumUpDownScale
+            // 
+            this.toolStripNumUpDownScale.DecimalPlaces = 3;
+            this.toolStripNumUpDownScale.Increment = new decimal(new int[] {
+            1,
+            0,
+            0,
+            65536});
+            this.toolStripNumUpDownScale.Maximum = new decimal(new int[] {
+            10,
+            0,
+            0,
+            0});
+            this.toolStripNumUpDownScale.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            65536});
+            this.toolStripNumUpDownScale.Name = "toolStripNumUpDownScale";
+            resources.ApplyResources(this.toolStripNumUpDownScale, "toolStripNumUpDownScale");
+            this.toolStripNumUpDownScale.Value = new decimal(new int[] {
+            1000,
+            0,
+            0,
+            196608});
+            this.toolStripNumUpDownScale.ValueChanged += new System.EventHandler(this.toolStripNumUpDownScale_ValueChanged);
+            this.toolStripNumUpDownScale.KeyDown += new System.Windows.Forms.KeyEventHandler(this.toolStripNumUpDownScale_KeyDown);
+            // 
+            // toolStripSplitButton10
+            // 
+            this.toolStripSplitButton10.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripSplitButton10.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.showEnergyCalibrationToolToolStripMenuItem,
+            this.hideEnergyCalibrationToolToolStripMenuItem});
+            this.toolStripSplitButton10.Image = global::BecquerelMonitor.Properties.Resources.EnergyCalibration;
+            resources.ApplyResources(this.toolStripSplitButton10, "toolStripSplitButton10");
+            this.toolStripSplitButton10.Name = "toolStripSplitButton10";
+            this.toolStripSplitButton10.ButtonClick += new System.EventHandler(this.toolStripSplitButton10_ButtonClick);
+            this.toolStripSplitButton10.DropDownOpening += new System.EventHandler(this.toolStripSplitButton10_DropDownOpening);
+            // 
+            // showEnergyCalibrationToolToolStripMenuItem
+            // 
+            this.showEnergyCalibrationToolToolStripMenuItem.Name = "showEnergyCalibrationToolToolStripMenuItem";
+            resources.ApplyResources(this.showEnergyCalibrationToolToolStripMenuItem, "showEnergyCalibrationToolToolStripMenuItem");
+            this.showEnergyCalibrationToolToolStripMenuItem.Click += new System.EventHandler(this.showEnergyCalibrationToolToolStripMenuItem_Click);
+            // 
+            // hideEnergyCalibrationToolToolStripMenuItem
+            // 
+            this.hideEnergyCalibrationToolToolStripMenuItem.Name = "hideEnergyCalibrationToolToolStripMenuItem";
+            resources.ApplyResources(this.hideEnergyCalibrationToolToolStripMenuItem, "hideEnergyCalibrationToolToolStripMenuItem");
+            this.hideEnergyCalibrationToolToolStripMenuItem.Click += new System.EventHandler(this.hideEnergyCalibrationToolToolStripMenuItem_Click);
+            // 
+            // toolStrip2
+            // 
+            this.toolStrip2.ClickThrough = true;
+            resources.ApplyResources(this.toolStrip2, "toolStrip2");
+            this.toolStrip2.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.toolStripLabel2,
+            this.toolStripSplitButtonBgMode,
+            this.toolStripSplitButton8,
+            this.toolStripSplitButton3,
+            this.toolStripSplitButton6,
+            this.toolStripSplitButton9,
+            this.toolStripScreenShotButton,
+            this.toolStripSeparator4,
+            this.toolStripLabel4,
+            this.toolStripSaveButton,
+            this.toolStripRefreshBgButton,
+            this.toolStripSplitButton});
+            this.toolStrip2.Name = "toolStrip2";
+            this.toolStrip2.SuppressHighlighting = false;
+            // 
+            // toolStripLabel2
+            // 
+            this.toolStripLabel2.Name = "toolStripLabel2";
+            resources.ApplyResources(this.toolStripLabel2, "toolStripLabel2");
+            // 
+            // toolStripSplitButtonBgMode
+            // 
+            this.toolStripSplitButtonBgMode.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripSplitButtonBgMode.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.showBackgroundToolStripMenuItem,
+            this.hideBackgroundToolStripMenuItem,
+            this.SubstractBgToolStripMenuItem,
+            this.ShowConToolStripMenuItem,
+            this.NormByEffToolStripMenuItem});
+            this.toolStripSplitButtonBgMode.Image = global::BecquerelMonitor.Properties.Resources.BG;
+            resources.ApplyResources(this.toolStripSplitButtonBgMode, "toolStripSplitButtonBgMode");
+            this.toolStripSplitButtonBgMode.Name = "toolStripSplitButtonBgMode";
+            this.toolStripSplitButtonBgMode.ButtonClick += new System.EventHandler(this.toolStripSplitButton7_ButtonClick);
+            this.toolStripSplitButtonBgMode.DropDownOpening += new System.EventHandler(this.toolStripSplitButton7_DropDownOpening);
+            // 
+            // showBackgroundToolStripMenuItem
+            // 
+            this.showBackgroundToolStripMenuItem.Name = "showBackgroundToolStripMenuItem";
+            resources.ApplyResources(this.showBackgroundToolStripMenuItem, "showBackgroundToolStripMenuItem");
+            this.showBackgroundToolStripMenuItem.Click += new System.EventHandler(this.showBackgroundToolStripMenuItem_Click);
+            // 
+            // hideBackgroundToolStripMenuItem
+            // 
+            this.hideBackgroundToolStripMenuItem.Name = "hideBackgroundToolStripMenuItem";
+            resources.ApplyResources(this.hideBackgroundToolStripMenuItem, "hideBackgroundToolStripMenuItem");
+            this.hideBackgroundToolStripMenuItem.Click += new System.EventHandler(this.hideBackgroundToolStripMenuItem_Click);
+            // 
+            // SubstractBgToolStripMenuItem
+            // 
             this.SubstractBgToolStripMenuItem.Name = "SubstractBgToolStripMenuItem";
-            this.SubstractBgToolStripMenuItem.Click += new global::System.EventHandler(this.SubstractBgToolStripMenuItem_Click);
-
-            resources.ApplyResources(this.ShowConToolStripMenuItem, "ShowConToolStripMenuItem");
+            resources.ApplyResources(this.SubstractBgToolStripMenuItem, "SubstractBgToolStripMenuItem");
+            this.SubstractBgToolStripMenuItem.Click += new System.EventHandler(this.SubstractBgToolStripMenuItem_Click);
+            // 
+            // ShowConToolStripMenuItem
+            // 
             this.ShowConToolStripMenuItem.Name = "ShowConToolStripMenuItem";
-            this.ShowConToolStripMenuItem.Click += new global::System.EventHandler(this.ShowConToolStripMenuItem_Click);
-
+            resources.ApplyResources(this.ShowConToolStripMenuItem, "ShowConToolStripMenuItem");
+            this.ShowConToolStripMenuItem.Click += new System.EventHandler(this.ShowConToolStripMenuItem_Click);
+            // 
+            // NormByEffToolStripMenuItem
+            // 
             resources.ApplyResources(this.NormByEffToolStripMenuItem, "NormByEffToolStripMenuItem");
             this.NormByEffToolStripMenuItem.Name = "NormByEffToolStripMenuItem";
-            this.NormByEffToolStripMenuItem.Click += new global::System.EventHandler(this.NormByEffToolStripMenuItem_Click);
-			this.NormByEffToolStripMenuItem.Enabled = false;
-
-            resources.ApplyResources(this.hideBackgroundToolStripMenuItem, "hideBackgroundToolStripMenuItem");
-			this.hideBackgroundToolStripMenuItem.Name = "hideBackgroundToolStripMenuItem";
-			this.hideBackgroundToolStripMenuItem.Click += new global::System.EventHandler(this.hideBackgroundToolStripMenuItem_Click);
-			resources.ApplyResources(this.toolStripSplitButton8, "toolStripSplitButton8");
-			this.toolStripSplitButton8.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-			this.toolStripSplitButton8.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
-			{
-				this.highDefinitionViewToolStripMenuItem,
-				this.normalViewToolStripMenuItem
-			});
-			this.toolStripSplitButton8.Image = global::BecquerelMonitor.Properties.Resources.HD;
-			this.toolStripSplitButton8.Name = "toolStripSplitButton8";
-			this.toolStripSplitButton8.ButtonClick += new global::System.EventHandler(this.toolStripSplitButton8_ButtonClick);
-			this.toolStripSplitButton8.DropDownOpening += new global::System.EventHandler(this.toolStripSplitButton8_DropDownOpening);
-			resources.ApplyResources(this.highDefinitionViewToolStripMenuItem, "highDefinitionViewToolStripMenuItem");
-			this.highDefinitionViewToolStripMenuItem.Name = "highDefinitionViewToolStripMenuItem";
-			this.highDefinitionViewToolStripMenuItem.Click += new global::System.EventHandler(this.highDefinitionViewToolStripMenuItem_Click);
-			resources.ApplyResources(this.normalViewToolStripMenuItem, "normalViewToolStripMenuItem");
-			this.normalViewToolStripMenuItem.Name = "normalViewToolStripMenuItem";
-			this.normalViewToolStripMenuItem.Click += new global::System.EventHandler(this.normalViewToolStripMenuItem_Click);
-			resources.ApplyResources(this.toolStripSplitButton3, "toolStripSplitButton3");
-			this.toolStripSplitButton3.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-			this.toolStripSplitButton3.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
-			{
-				this.barGraphToolStripMenuItem,
-				this.lineGraphToolStripMenuItem
-			});
-			this.toolStripSplitButton3.Image = global::BecquerelMonitor.Properties.Resources.line;
-			this.toolStripSplitButton3.Name = "toolStripSplitButton3";
-			this.toolStripSplitButton3.ButtonClick += new global::System.EventHandler(this.toolStripSplitButton3_ButtonClick);
-			this.toolStripSplitButton3.DropDownOpening += new global::System.EventHandler(this.toolStripSplitButton3_DropDownOpening);
-			resources.ApplyResources(this.barGraphToolStripMenuItem, "barGraphToolStripMenuItem");
-			this.barGraphToolStripMenuItem.Name = "barGraphToolStripMenuItem";
-			this.barGraphToolStripMenuItem.Click += new global::System.EventHandler(this.barGraphToolStripMenuItem_Click);
-			resources.ApplyResources(this.lineGraphToolStripMenuItem, "lineGraphToolStripMenuItem");
-			this.lineGraphToolStripMenuItem.Name = "lineGraphToolStripMenuItem";
-			this.lineGraphToolStripMenuItem.Click += new global::System.EventHandler(this.lineGraphToolStripMenuItem_Click);
-			resources.ApplyResources(this.toolStripSplitButton6, "toolStripSplitButton6");
-			this.toolStripSplitButton6.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-			this.toolStripSplitButton6.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
-			{
-				this.noSmoothingToolStripMenuItem,
-				this.simpleMovingAverageToolStripMenuItem,
-				this.weightedMovingAverageToolStripMenuItem
-			});
-			this.toolStripSplitButton6.Image = global::BecquerelMonitor.Properties.Resources.NoSmooth;
-			this.toolStripSplitButton6.Name = "toolStripSplitButton6";
-			this.toolStripSplitButton6.ButtonClick += new global::System.EventHandler(this.toolStripSplitButton6_ButtonClick);
-			this.toolStripSplitButton6.DropDownOpening += new global::System.EventHandler(this.toolStripSplitButton6_DropDownOpening);
-			resources.ApplyResources(this.noSmoothingToolStripMenuItem, "noSmoothingToolStripMenuItem");
-			this.noSmoothingToolStripMenuItem.Name = "noSmoothingToolStripMenuItem";
-			this.noSmoothingToolStripMenuItem.Click += new global::System.EventHandler(this.noSmoothingToolStripMenuItem_Click);
-			resources.ApplyResources(this.simpleMovingAverageToolStripMenuItem, "simpleMovingAverageToolStripMenuItem");
-			this.simpleMovingAverageToolStripMenuItem.Name = "simpleMovingAverageToolStripMenuItem";
-			this.simpleMovingAverageToolStripMenuItem.Click += new global::System.EventHandler(this.simpleMovingAverageToolStripMenuItem_Click);
-			resources.ApplyResources(this.weightedMovingAverageToolStripMenuItem, "weightedMovingAverageToolStripMenuItem");
-			this.weightedMovingAverageToolStripMenuItem.Name = "weightedMovingAverageToolStripMenuItem";
-			this.weightedMovingAverageToolStripMenuItem.Click += new global::System.EventHandler(this.weightedMovingAverageToolStripMenuItem_Click);
-			resources.ApplyResources(this.toolStripSplitButton9, "toolStripSplitButton9");
-			this.toolStripSplitButton9.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-			this.toolStripSplitButton9.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
-			{
-				this.showPeaksToolStripMenuItem,
-				this.hidePeaksToolStripMenuItem
-			});
-			this.toolStripSplitButton9.Image = global::BecquerelMonitor.Properties.Resources.peak;
-			this.toolStripSplitButton9.Name = "toolStripSplitButton9";
-            this.toolStripSplitButton9.ButtonClick += new global::System.EventHandler(this.toolStripSplitButton9_ButtonClick);
-			this.toolStripSplitButton9.DropDownOpening += new global::System.EventHandler(this.toolStripSplitButton9_DropDownOpening);
-            resources.ApplyResources(this.toolStripScreenShotButton, "toolStripScreenShotButton");
-            this.toolStripScreenShotButton.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.NormByEffToolStripMenuItem.Click += new System.EventHandler(this.NormByEffToolStripMenuItem_Click);
+            // 
+            // toolStripSplitButton8
+            // 
+            this.toolStripSplitButton8.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripSplitButton8.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.highDefinitionViewToolStripMenuItem,
+            this.normalViewToolStripMenuItem});
+            this.toolStripSplitButton8.Image = global::BecquerelMonitor.Properties.Resources.HD;
+            resources.ApplyResources(this.toolStripSplitButton8, "toolStripSplitButton8");
+            this.toolStripSplitButton8.Name = "toolStripSplitButton8";
+            this.toolStripSplitButton8.ButtonClick += new System.EventHandler(this.toolStripSplitButton8_ButtonClick);
+            this.toolStripSplitButton8.DropDownOpening += new System.EventHandler(this.toolStripSplitButton8_DropDownOpening);
+            // 
+            // highDefinitionViewToolStripMenuItem
+            // 
+            this.highDefinitionViewToolStripMenuItem.Name = "highDefinitionViewToolStripMenuItem";
+            resources.ApplyResources(this.highDefinitionViewToolStripMenuItem, "highDefinitionViewToolStripMenuItem");
+            this.highDefinitionViewToolStripMenuItem.Click += new System.EventHandler(this.highDefinitionViewToolStripMenuItem_Click);
+            // 
+            // normalViewToolStripMenuItem
+            // 
+            this.normalViewToolStripMenuItem.Name = "normalViewToolStripMenuItem";
+            resources.ApplyResources(this.normalViewToolStripMenuItem, "normalViewToolStripMenuItem");
+            this.normalViewToolStripMenuItem.Click += new System.EventHandler(this.normalViewToolStripMenuItem_Click);
+            // 
+            // toolStripSplitButton3
+            // 
+            this.toolStripSplitButton3.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripSplitButton3.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.barGraphToolStripMenuItem,
+            this.lineGraphToolStripMenuItem});
+            this.toolStripSplitButton3.Image = global::BecquerelMonitor.Properties.Resources.line;
+            resources.ApplyResources(this.toolStripSplitButton3, "toolStripSplitButton3");
+            this.toolStripSplitButton3.Name = "toolStripSplitButton3";
+            this.toolStripSplitButton3.ButtonClick += new System.EventHandler(this.toolStripSplitButton3_ButtonClick);
+            this.toolStripSplitButton3.DropDownOpening += new System.EventHandler(this.toolStripSplitButton3_DropDownOpening);
+            // 
+            // barGraphToolStripMenuItem
+            // 
+            this.barGraphToolStripMenuItem.Name = "barGraphToolStripMenuItem";
+            resources.ApplyResources(this.barGraphToolStripMenuItem, "barGraphToolStripMenuItem");
+            this.barGraphToolStripMenuItem.Click += new System.EventHandler(this.barGraphToolStripMenuItem_Click);
+            // 
+            // lineGraphToolStripMenuItem
+            // 
+            this.lineGraphToolStripMenuItem.Name = "lineGraphToolStripMenuItem";
+            resources.ApplyResources(this.lineGraphToolStripMenuItem, "lineGraphToolStripMenuItem");
+            this.lineGraphToolStripMenuItem.Click += new System.EventHandler(this.lineGraphToolStripMenuItem_Click);
+            // 
+            // toolStripSplitButton6
+            // 
+            this.toolStripSplitButton6.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripSplitButton6.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.noSmoothingToolStripMenuItem,
+            this.simpleMovingAverageToolStripMenuItem,
+            this.weightedMovingAverageToolStripMenuItem});
+            this.toolStripSplitButton6.Image = global::BecquerelMonitor.Properties.Resources.NoSmooth;
+            resources.ApplyResources(this.toolStripSplitButton6, "toolStripSplitButton6");
+            this.toolStripSplitButton6.Name = "toolStripSplitButton6";
+            this.toolStripSplitButton6.ButtonClick += new System.EventHandler(this.toolStripSplitButton6_ButtonClick);
+            this.toolStripSplitButton6.DropDownOpening += new System.EventHandler(this.toolStripSplitButton6_DropDownOpening);
+            // 
+            // noSmoothingToolStripMenuItem
+            // 
+            this.noSmoothingToolStripMenuItem.Name = "noSmoothingToolStripMenuItem";
+            resources.ApplyResources(this.noSmoothingToolStripMenuItem, "noSmoothingToolStripMenuItem");
+            this.noSmoothingToolStripMenuItem.Click += new System.EventHandler(this.noSmoothingToolStripMenuItem_Click);
+            // 
+            // simpleMovingAverageToolStripMenuItem
+            // 
+            this.simpleMovingAverageToolStripMenuItem.Name = "simpleMovingAverageToolStripMenuItem";
+            resources.ApplyResources(this.simpleMovingAverageToolStripMenuItem, "simpleMovingAverageToolStripMenuItem");
+            this.simpleMovingAverageToolStripMenuItem.Click += new System.EventHandler(this.simpleMovingAverageToolStripMenuItem_Click);
+            // 
+            // weightedMovingAverageToolStripMenuItem
+            // 
+            this.weightedMovingAverageToolStripMenuItem.Name = "weightedMovingAverageToolStripMenuItem";
+            resources.ApplyResources(this.weightedMovingAverageToolStripMenuItem, "weightedMovingAverageToolStripMenuItem");
+            this.weightedMovingAverageToolStripMenuItem.Click += new System.EventHandler(this.weightedMovingAverageToolStripMenuItem_Click);
+            // 
+            // toolStripSplitButton9
+            // 
+            this.toolStripSplitButton9.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripSplitButton9.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.showPeaksToolStripMenuItem,
+            this.hidePeaksToolStripMenuItem});
+            this.toolStripSplitButton9.Image = global::BecquerelMonitor.Properties.Resources.peak;
+            resources.ApplyResources(this.toolStripSplitButton9, "toolStripSplitButton9");
+            this.toolStripSplitButton9.Name = "toolStripSplitButton9";
+            this.toolStripSplitButton9.ButtonClick += new System.EventHandler(this.toolStripSplitButton9_ButtonClick);
+            this.toolStripSplitButton9.DropDownOpening += new System.EventHandler(this.toolStripSplitButton9_DropDownOpening);
+            // 
+            // showPeaksToolStripMenuItem
+            // 
+            this.showPeaksToolStripMenuItem.Name = "showPeaksToolStripMenuItem";
+            resources.ApplyResources(this.showPeaksToolStripMenuItem, "showPeaksToolStripMenuItem");
+            this.showPeaksToolStripMenuItem.Click += new System.EventHandler(this.showPeaksToolStripMenuItem_Click);
+            // 
+            // hidePeaksToolStripMenuItem
+            // 
+            this.hidePeaksToolStripMenuItem.Name = "hidePeaksToolStripMenuItem";
+            resources.ApplyResources(this.hidePeaksToolStripMenuItem, "hidePeaksToolStripMenuItem");
+            this.hidePeaksToolStripMenuItem.Click += new System.EventHandler(this.hidePeaksToolStripMenuItem_Click);
+            // 
+            // toolStripScreenShotButton
+            // 
+            this.toolStripScreenShotButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.toolStripScreenShotButton.Image = global::BecquerelMonitor.Properties.Resources.screenshot;
             this.toolStripScreenShotButton.Name = "toolStripScreenShotButton";
-            this.toolStripScreenShotButton.Click += new global::System.EventHandler(this.toolStripScreenShotButton_Click);
-            resources.ApplyResources(this.toolStripRefreshBgButton, "toolStripRefreshBgButton");
-            this.toolStripRefreshBgButton.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.toolStripRefreshBgButton.Image = global::BecquerelMonitor.Properties.Resources.RefreshBG;
-            this.toolStripRefreshBgButton.Name = "toolStripRefreshBgButton";
-            this.toolStripRefreshBgButton.Click += new global::System.EventHandler(this.toolStripRefreshBgButton_Click);
-            resources.ApplyResources(this.toolStripSaveButton, "toolStripSaveButton");
-            this.toolStripSaveButton.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            resources.ApplyResources(this.toolStripScreenShotButton, "toolStripScreenShotButton");
+            this.toolStripScreenShotButton.Click += new System.EventHandler(this.toolStripScreenShotButton_Click);
+            // 
+            // toolStripSeparator4
+            // 
+            this.toolStripSeparator4.Name = "toolStripSeparator4";
+            resources.ApplyResources(this.toolStripSeparator4, "toolStripSeparator4");
+            // 
+            // toolStripLabel4
+            // 
+            this.toolStripLabel4.Name = "toolStripLabel4";
+            resources.ApplyResources(this.toolStripLabel4, "toolStripLabel4");
+            // 
+            // toolStripSaveButton
+            // 
+            this.toolStripSaveButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.toolStripSaveButton.Image = global::BecquerelMonitor.Properties.Resources.save;
             this.toolStripSaveButton.Name = "toolStripSaveButton";
-            this.toolStripSaveButton.Click += new global::System.EventHandler(this.toolStripSaveButton_Click);
-            resources.ApplyResources(this.toolStripSplitButton, "toolStripSplitButton");
-            this.toolStripSplitButton.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            resources.ApplyResources(this.toolStripSaveButton, "toolStripSaveButton");
+            this.toolStripSaveButton.Click += new System.EventHandler(this.toolStripSaveButton_Click);
+            // 
+            // toolStripRefreshBgButton
+            // 
+            this.toolStripRefreshBgButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripRefreshBgButton.Image = global::BecquerelMonitor.Properties.Resources.RefreshBG;
+            this.toolStripRefreshBgButton.Name = "toolStripRefreshBgButton";
+            resources.ApplyResources(this.toolStripRefreshBgButton, "toolStripRefreshBgButton");
+            this.toolStripRefreshBgButton.Click += new System.EventHandler(this.toolStripRefreshBgButton_Click);
+            // 
+            // toolStripSplitButton
+            // 
+            this.toolStripSplitButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.toolStripSplitButton.Image = global::BecquerelMonitor.Properties.Resources.split;
             this.toolStripSplitButton.Name = "toolStripSplitButton";
-            this.toolStripSplitButton.Click += new global::System.EventHandler(this.toolStripSplitButton_Click);
-            resources.ApplyResources(this.showPeaksToolStripMenuItem, "showPeaksToolStripMenuItem");
-			this.showPeaksToolStripMenuItem.Name = "showPeaksToolStripMenuItem";
-			this.showPeaksToolStripMenuItem.Click += new global::System.EventHandler(this.showPeaksToolStripMenuItem_Click);
-			resources.ApplyResources(this.hidePeaksToolStripMenuItem, "hidePeaksToolStripMenuItem");
-			this.hidePeaksToolStripMenuItem.Name = "hidePeaksToolStripMenuItem";
-			this.hidePeaksToolStripMenuItem.Click += new global::System.EventHandler(this.hidePeaksToolStripMenuItem_Click);
-			resources.ApplyResources(this.toolStrip1, "toolStrip1");
-			this.toolStrip1.ClickThrough = true;
-			this.toolStrip1.ImageScalingSize = new global::System.Drawing.Size(18, 18);
-			this.toolStrip1.Items.AddRange(new global::System.Windows.Forms.ToolStripItem[]
-			{
-				this.toolStripLabel1,
-				this.toolStripSplitButton1,
-				this.toolStripSplitButton2,
-				this.toolStripNumericUpdown,
-                this.toolStripSplitButton5,
-				this.toolStripSeparator3,
-				this.toolStripLabel3,
-				this.toolStripSplitButton4,
-				this.toolStripButton2,
-				this.toolStripButton1,
-				this.toolStripButton3,
-				this.toolStripNumUpDownScale,
-				this.toolStripSplitButton10
-			});
-			this.toolStrip1.Name = "toolStrip1";
-			this.toolStrip1.SuppressHighlighting = false;
-			this.toolTip1.SetToolTip(this.toolStrip1, resources.GetString("toolStrip1.ToolTip"));
-			resources.ApplyResources(this.toolStripLabel1, "toolStripLabel1");
-			this.toolStripLabel1.Name = "toolStripLabel1";
-			resources.ApplyResources(this.toolStripSplitButton1, "toolStripSplitButton1");
-			this.toolStripSplitButton1.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-			this.toolStripSplitButton1.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
-			{
-				this.countsViewToolStripMenuItem,
-				this.cpsViewToolStripMenuItem
-			});
-			this.toolStripSplitButton1.Image = global::BecquerelMonitor.Properties.Resources.cps;
-			this.toolStripSplitButton1.Name = "toolStripSplitButton1";
-			this.toolStripSplitButton1.ButtonClick += new global::System.EventHandler(this.toolStripSplitButton1_ButtonClick);
-			this.toolStripSplitButton1.DropDownOpening += new global::System.EventHandler(this.toolStripSplitButton1_DropDownOpening);
-			resources.ApplyResources(this.countsViewToolStripMenuItem, "countsViewToolStripMenuItem");
-			this.countsViewToolStripMenuItem.Name = "countsViewToolStripMenuItem";
-			this.countsViewToolStripMenuItem.Click += new global::System.EventHandler(this.countsViewToolStripMenuItem_Click);
-			resources.ApplyResources(this.cpsViewToolStripMenuItem, "cpsViewToolStripMenuItem");
-			this.cpsViewToolStripMenuItem.Name = "cpsViewToolStripMenuItem";
-			this.cpsViewToolStripMenuItem.Click += new global::System.EventHandler(this.cpsViewToolStripMenuItem_Click);
-			resources.ApplyResources(this.toolStripSplitButton2, "toolStripSplitButton2");
-			this.toolStripSplitButton2.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-			this.toolStripSplitButton2.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
-			{
-				this.linearViewToolStripMenuItem,
-                this.powToolStripMenuItem,
-                this.logarithmicViewToolStripMenuItem
-			});
-			this.toolStripSplitButton2.Image = global::BecquerelMonitor.Properties.Resources.log;
-			this.toolStripSplitButton2.Name = "toolStripSplitButton2";
-			this.toolStripSplitButton2.ButtonClick += new global::System.EventHandler(this.toolStripSplitButton2_ButtonClick);
-			this.toolStripSplitButton2.DropDownOpening += new global::System.EventHandler(this.toolStripSplitButton2_DropDownOpening);
+            resources.ApplyResources(this.toolStripSplitButton, "toolStripSplitButton");
+            this.toolStripSplitButton.Click += new System.EventHandler(this.toolStripSplitButton_Click);
+            // 
+            // energySpectrumView1
+            // 
+            this.energySpectrumView1.BackColor = System.Drawing.Color.White;
+            resources.ApplyResources(this.energySpectrumView1, "energySpectrumView1");
+            this.energySpectrumView1.Name = "energySpectrumView1";
+            // 
+            // contextMenuStrip1
+            // 
+            this.contextMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.toolStripMenuItem1,
+            this.showAllChannelsAToolStripMenuItem,
+            this.toolStripSeparator2,
+            this.toolStripMenuItem2,
+            this.toolStripMenuItem3,
+            this.toolStripSeparator1,
+            this.saveSToolStripMenuItem,
+            this.closeCToolStripMenuItem});
+            this.contextMenuStrip1.Name = "contextMenuStrip1";
+            resources.ApplyResources(this.contextMenuStrip1, "contextMenuStrip1");
+            this.contextMenuStrip1.Closed += new System.Windows.Forms.ToolStripDropDownClosedEventHandler(this.contextMenuStrip1_Closed);
+            this.contextMenuStrip1.Opening += new System.ComponentModel.CancelEventHandler(this.contextMenuStrip1_Opening);
+            // 
+            // toolStripMenuItem1
+            // 
+            this.toolStripMenuItem1.Name = "toolStripMenuItem1";
+            resources.ApplyResources(this.toolStripMenuItem1, "toolStripMenuItem1");
+            this.toolStripMenuItem1.Click += new System.EventHandler(this.toolStripMenuItem1_Click);
+            // 
+            // showAllChannelsAToolStripMenuItem
+            // 
+            this.showAllChannelsAToolStripMenuItem.Name = "showAllChannelsAToolStripMenuItem";
+            resources.ApplyResources(this.showAllChannelsAToolStripMenuItem, "showAllChannelsAToolStripMenuItem");
+            this.showAllChannelsAToolStripMenuItem.Click += new System.EventHandler(this.showAllChannelsAToolStripMenuItem_Click);
+            // 
+            // toolStripSeparator2
+            // 
+            this.toolStripSeparator2.Name = "toolStripSeparator2";
+            resources.ApplyResources(this.toolStripSeparator2, "toolStripSeparator2");
+            // 
+            // toolStripMenuItem2
+            // 
+            this.toolStripMenuItem2.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.setLowerThresholdLToolStripMenuItem,
+            this.setUpperThresholdHToolStripMenuItem});
+            this.toolStripMenuItem2.Name = "toolStripMenuItem2";
+            resources.ApplyResources(this.toolStripMenuItem2, "toolStripMenuItem2");
+            // 
+            // setLowerThresholdLToolStripMenuItem
+            // 
+            this.setLowerThresholdLToolStripMenuItem.Name = "setLowerThresholdLToolStripMenuItem";
+            resources.ApplyResources(this.setLowerThresholdLToolStripMenuItem, "setLowerThresholdLToolStripMenuItem");
+            this.setLowerThresholdLToolStripMenuItem.Click += new System.EventHandler(this.setLowerThresholdLToolStripMenuItem_Click);
+            // 
+            // setUpperThresholdHToolStripMenuItem
+            // 
+            this.setUpperThresholdHToolStripMenuItem.Name = "setUpperThresholdHToolStripMenuItem";
+            resources.ApplyResources(this.setUpperThresholdHToolStripMenuItem, "setUpperThresholdHToolStripMenuItem");
+            this.setUpperThresholdHToolStripMenuItem.Click += new System.EventHandler(this.setUpperThresholdHToolStripMenuItem_Click);
+            // 
+            // toolStripMenuItem3
+            // 
+            this.toolStripMenuItem3.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.createRoiDefinitionFromSelectionSToolStripMenuItem});
+            this.toolStripMenuItem3.Name = "toolStripMenuItem3";
+            resources.ApplyResources(this.toolStripMenuItem3, "toolStripMenuItem3");
+            // 
+            // createRoiDefinitionFromSelectionSToolStripMenuItem
+            // 
+            this.createRoiDefinitionFromSelectionSToolStripMenuItem.Name = "createRoiDefinitionFromSelectionSToolStripMenuItem";
+            resources.ApplyResources(this.createRoiDefinitionFromSelectionSToolStripMenuItem, "createRoiDefinitionFromSelectionSToolStripMenuItem");
+            this.createRoiDefinitionFromSelectionSToolStripMenuItem.Click += new System.EventHandler(this.createRoiDefinitionFromSelectionSToolStripMenuItem_Click);
+            // 
+            // toolStripSeparator1
+            // 
+            this.toolStripSeparator1.Name = "toolStripSeparator1";
+            resources.ApplyResources(this.toolStripSeparator1, "toolStripSeparator1");
+            // 
+            // saveSToolStripMenuItem
+            // 
+            this.saveSToolStripMenuItem.Name = "saveSToolStripMenuItem";
+            resources.ApplyResources(this.saveSToolStripMenuItem, "saveSToolStripMenuItem");
+            this.saveSToolStripMenuItem.Click += new System.EventHandler(this.saveSToolStripMenuItem_Click);
+            // 
+            // closeCToolStripMenuItem
+            // 
+            this.closeCToolStripMenuItem.Name = "closeCToolStripMenuItem";
+            resources.ApplyResources(this.closeCToolStripMenuItem, "closeCToolStripMenuItem");
+            this.closeCToolStripMenuItem.Click += new System.EventHandler(this.closeCToolStripMenuItem_Click);
+            // 
+            // DocEnergySpectrum
+            // 
+            this.AllowDrop = true;
+            resources.ApplyResources(this, "$this");
+            this.ContextMenuStrip = this.contextMenuStrip1;
+            this.Controls.Add(this.toolStripContainer1);
+            this.DockAreas = ((WeifenLuo.WinFormsUI.Docking.DockAreas)((WeifenLuo.WinFormsUI.Docking.DockAreas.Float | WeifenLuo.WinFormsUI.Docking.DockAreas.Document)));
+            this.Name = "DocEnergySpectrum";
+            this.Activated += new System.EventHandler(this.DocEnergySpectrum_Activated);
+            this.Load += new System.EventHandler(this.DocEnergySpectrum_Load);
+            this.SizeChanged += new System.EventHandler(this.DocEnergySpectrum_SizeChanged);
+            this.Click += new System.EventHandler(this.DocEnergySpectrum_Click);
+            this.DragDrop += new System.Windows.Forms.DragEventHandler(this.DocEnergySpectrum_DragDrop);
+            this.DragEnter += new System.Windows.Forms.DragEventHandler(this.DocEnergySpectrum_DragEnter);
+            this.MouseDown += new System.Windows.Forms.MouseEventHandler(this.DocEnergySpectrum_MouseDown);
+            this.MouseUp += new System.Windows.Forms.MouseEventHandler(this.DocEnergySpectrum_MouseUp);
+            this.toolStripContainer1.BottomToolStripPanel.ResumeLayout(false);
+            this.toolStripContainer1.BottomToolStripPanel.PerformLayout();
+            this.toolStripContainer1.ContentPanel.ResumeLayout(false);
+            this.toolStripContainer1.ResumeLayout(false);
+            this.toolStripContainer1.PerformLayout();
+            this.toolStrip1.ResumeLayout(false);
+            this.toolStrip1.PerformLayout();
+            this.toolStrip2.ResumeLayout(false);
+            this.toolStrip2.PerformLayout();
+            this.contextMenuStrip1.ResumeLayout(false);
+            this.ResumeLayout(false);
 
-            resources.ApplyResources(this.toolStripNumericUpdown, "toolStripNumericUpdown");
-            this.toolStripNumericUpdown.Name = "toolStripNumericUpdown";
-			this.toolStripNumericUpdown.NumericUpDownControl.DecimalPlaces = 3;
-			this.toolStripNumericUpdown.NumericUpDownControl.Value = 4.0M;
-			this.toolStripNumericUpdown.NumericUpDownControl.Maximum = 10.0M;
-			this.toolStripNumericUpdown.NumericUpDownControl.Minimum = 1.0M;
-			this.toolStripNumericUpdown.NumericUpDownControl.Increment = 0.5M;
-            this.toolStripNumericUpdown.ValueChanged += new System.EventHandler(this.toolStripNumericUpdown_ValueChanged);
-            this.toolStripNumericUpdown.KeyDown += this.ToolStripNumericUpdown_KeyDown;
-            this.toolStripNumericUpdown.Enabled = false;
-            this.toolTip1.SetToolTip(this.toolStripNumericUpdown.Control, resources.GetString("toolStripNumericUpdown.ToolTipText"));
-
-            resources.ApplyResources(this.toolStripNumUpDownScale, "toolStripNumUpDownScale");
-            this.toolStripNumUpDownScale.Name = "toolStripNumUpDownScale";
-            this.toolStripNumUpDownScale.NumericUpDownControl.DecimalPlaces = 3;
-            this.toolStripNumUpDownScale.NumericUpDownControl.Value = 4.0M;
-            this.toolStripNumUpDownScale.NumericUpDownControl.Maximum = 10.0M;
-            this.toolStripNumUpDownScale.NumericUpDownControl.Minimum = 0.1M;
-            this.toolStripNumUpDownScale.NumericUpDownControl.Increment = 0.1M;
-            this.toolStripNumUpDownScale.ValueChanged += new System.EventHandler(this.toolStripNumUpDownScale_ValueChanged);
-            this.toolStripNumUpDownScale.KeyDown += this.toolStripNumUpDownScale_KeyDown;
-            this.toolTip1.SetToolTip(this.toolStripNumUpDownScale.Control, resources.GetString("toolStripNumUpDownScale.ToolTipText"));
-
-            resources.ApplyResources(this.linearViewToolStripMenuItem, "linearViewToolStripMenuItem");
-			this.linearViewToolStripMenuItem.Name = "linearViewToolStripMenuItem";
-			this.linearViewToolStripMenuItem.Click += new global::System.EventHandler(this.linearViewToolStripMenuItem_Click);
-            resources.ApplyResources(this.powToolStripMenuItem, "powToolStripMenuItem");
-            this.powToolStripMenuItem.Name = "powToolStripMenuItem";
-            this.powToolStripMenuItem.Click += new global::System.EventHandler(this.powToolStripMenuItem_Click);
-            resources.ApplyResources(this.logarithmicViewToolStripMenuItem, "logarithmicViewToolStripMenuItem");
-			this.logarithmicViewToolStripMenuItem.Name = "logarithmicViewToolStripMenuItem";
-			this.logarithmicViewToolStripMenuItem.Click += new global::System.EventHandler(this.logarithmicViewToolStripMenuItem_Click);
-			resources.ApplyResources(this.toolStripSplitButton5, "toolStripSplitButton5");
-			this.toolStripSplitButton5.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-			this.toolStripSplitButton5.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
-			{
-				this.noneToolStripMenuItem,
-				this.autoFitToolStripMenuItem,
-				this.autoFitBgToolStripMenuItem
-			});
-			this.toolStripSplitButton5.Image = global::BecquerelMonitor.Properties.Resources.fit1;
-			this.toolStripSplitButton5.Name = "toolStripSplitButton5";
-			this.toolStripSplitButton5.ButtonClick += new global::System.EventHandler(this.toolStripSplitButton5_ButtonClick);
-			this.toolStripSplitButton5.DropDownOpening += new global::System.EventHandler(this.toolStripSplitButton5_DropDownOpening);
-			resources.ApplyResources(this.noneToolStripMenuItem, "noneToolStripMenuItem");
-			this.noneToolStripMenuItem.Name = "noneToolStripMenuItem";
-			this.noneToolStripMenuItem.Click += new global::System.EventHandler(this.noneToolStripMenuItem_Click);
-			resources.ApplyResources(this.autoFitToolStripMenuItem, "autoFitToolStripMenuItem");
-			this.autoFitToolStripMenuItem.Name = "autoFitToolStripMenuItem";
-			this.autoFitToolStripMenuItem.Click += new global::System.EventHandler(this.autoFitToolStripMenuItem_Click);
-			resources.ApplyResources(this.autoFitBgToolStripMenuItem, "autoFitBgToolStripMenuItem");
-			this.autoFitBgToolStripMenuItem.Name = "autoFitBgToolStripMenuItem";
-			this.autoFitBgToolStripMenuItem.Click += new global::System.EventHandler(this.autoFitBgToolStripMenuItem_Click);
-			resources.ApplyResources(this.toolStripSeparator3, "toolStripSeparator3");
-			this.toolStripSeparator3.Name = "toolStripSeparator3";
-			resources.ApplyResources(this.toolStripLabel3, "toolStripLabel3");
-			this.toolStripLabel3.Name = "toolStripLabel3";
-			resources.ApplyResources(this.toolStripSplitButton4, "toolStripSplitButton4");
-			this.toolStripSplitButton4.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-			this.toolStripSplitButton4.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
-			{
-				this.channelViewToolStripMenuItem,
-				this.energyViewToolStripMenuItem
-			});
-			this.toolStripSplitButton4.Image = global::BecquerelMonitor.Properties.Resources.ene;
-			this.toolStripSplitButton4.Name = "toolStripSplitButton4";
-			this.toolStripSplitButton4.ButtonClick += new global::System.EventHandler(this.toolStripSplitButton4_ButtonClick);
-			this.toolStripSplitButton4.DropDownOpening += new global::System.EventHandler(this.toolStripSplitButton4_DropDownOpening);
-			resources.ApplyResources(this.channelViewToolStripMenuItem, "channelViewToolStripMenuItem");
-			this.channelViewToolStripMenuItem.Name = "channelViewToolStripMenuItem";
-			this.channelViewToolStripMenuItem.Click += new global::System.EventHandler(this.channelViewToolStripMenuItem_Click);
-			resources.ApplyResources(this.energyViewToolStripMenuItem, "energyViewToolStripMenuItem");
-			this.energyViewToolStripMenuItem.Name = "energyViewToolStripMenuItem";
-			this.energyViewToolStripMenuItem.Click += new global::System.EventHandler(this.energyViewToolStripMenuItem_Click);
-			resources.ApplyResources(this.toolStripButton2, "toolStripButton2");
-			this.toolStripButton2.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-			this.toolStripButton2.Image = global::BecquerelMonitor.Properties.Resources.ZoominSelection;
-			this.toolStripButton2.Name = "toolStripButton2";
-			this.toolStripButton2.Click += new global::System.EventHandler(this.toolStripButton2_Click);
-			resources.ApplyResources(this.toolStripButton1, "toolStripButton1");
-			this.toolStripButton1.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-			this.toolStripButton1.Image = global::BecquerelMonitor.Properties.Resources.fit2;
-			this.toolStripButton1.Name = "toolStripButton1";
-			this.toolStripButton1.Click += new global::System.EventHandler(this.toolStripButton1_Click);
-            resources.ApplyResources(this.toolStripButton3, "toolStripButton3");
-            this.toolStripButton3.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.toolStripButton3.Image = global::BecquerelMonitor.Properties.Resources.scale;
-            this.toolStripButton3.Name = "toolStripButton3";
-            this.toolStripButton3.Click += new global::System.EventHandler(this.toolStripButton3_Click);
-            resources.ApplyResources(this.toolStripSplitButton10, "toolStripSplitButton10");
-			this.toolStripSplitButton10.DisplayStyle = global::System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-			this.toolStripSplitButton10.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
-			{
-				this.showEnergyCalibrationToolToolStripMenuItem,
-				this.hideEnergyCalibrationToolToolStripMenuItem
-			});
-			this.toolStripSplitButton10.Image = global::BecquerelMonitor.Properties.Resources.EnergyCalibration;
-			this.toolStripSplitButton10.Name = "toolStripSplitButton10";
-			this.toolStripSplitButton10.ButtonClick += new global::System.EventHandler(this.toolStripSplitButton10_ButtonClick);
-			this.toolStripSplitButton10.DropDownOpening += new global::System.EventHandler(this.toolStripSplitButton10_DropDownOpening);
-			resources.ApplyResources(this.showEnergyCalibrationToolToolStripMenuItem, "showEnergyCalibrationToolToolStripMenuItem");
-			this.showEnergyCalibrationToolToolStripMenuItem.Name = "showEnergyCalibrationToolToolStripMenuItem";
-			this.showEnergyCalibrationToolToolStripMenuItem.Click += new global::System.EventHandler(this.showEnergyCalibrationToolToolStripMenuItem_Click);
-			resources.ApplyResources(this.hideEnergyCalibrationToolToolStripMenuItem, "hideEnergyCalibrationToolToolStripMenuItem");
-			this.hideEnergyCalibrationToolToolStripMenuItem.Name = "hideEnergyCalibrationToolToolStripMenuItem";
-			this.hideEnergyCalibrationToolToolStripMenuItem.Click += new global::System.EventHandler(this.hideEnergyCalibrationToolToolStripMenuItem_Click);
-			resources.ApplyResources(this.energySpectrumView1, "energySpectrumView1");
-			this.energySpectrumView1.BackColor = global::System.Drawing.Color.White;
-			this.energySpectrumView1.Name = "energySpectrumView1";
-			this.toolTip1.SetToolTip(this.energySpectrumView1, resources.GetString("energySpectrumView1.ToolTip"));
-			resources.ApplyResources(this.contextMenuStrip1, "contextMenuStrip1");
-			this.contextMenuStrip1.Items.AddRange(new global::System.Windows.Forms.ToolStripItem[]
-			{
-				this.toolStripMenuItem1,
-				this.showAllChannelsAToolStripMenuItem,
-				this.toolStripSeparator2,
-				this.toolStripMenuItem2,
-				this.toolStripMenuItem3,
-				this.toolStripSeparator1,
-				this.saveSToolStripMenuItem,
-				this.closeCToolStripMenuItem
-			});
-			this.contextMenuStrip1.Name = "contextMenuStrip1";
-			this.toolTip1.SetToolTip(this.contextMenuStrip1, resources.GetString("contextMenuStrip1.ToolTip"));
-			this.contextMenuStrip1.Closed += new global::System.Windows.Forms.ToolStripDropDownClosedEventHandler(this.contextMenuStrip1_Closed);
-			this.contextMenuStrip1.Opening += new global::System.ComponentModel.CancelEventHandler(this.contextMenuStrip1_Opening);
-			resources.ApplyResources(this.toolStripMenuItem1, "toolStripMenuItem1");
-			this.toolStripMenuItem1.Name = "toolStripMenuItem1";
-			this.toolStripMenuItem1.Click += new global::System.EventHandler(this.toolStripMenuItem1_Click);
-			resources.ApplyResources(this.showAllChannelsAToolStripMenuItem, "showAllChannelsAToolStripMenuItem");
-			this.showAllChannelsAToolStripMenuItem.Name = "showAllChannelsAToolStripMenuItem";
-			this.showAllChannelsAToolStripMenuItem.Click += new global::System.EventHandler(this.showAllChannelsAToolStripMenuItem_Click);
-			resources.ApplyResources(this.toolStripSeparator2, "toolStripSeparator2");
-			this.toolStripSeparator2.Name = "toolStripSeparator2";
-			resources.ApplyResources(this.toolStripMenuItem2, "toolStripMenuItem2");
-			this.toolStripMenuItem2.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
-			{
-				this.setLowerThresholdLToolStripMenuItem,
-				this.setUpperThresholdHToolStripMenuItem
-			});
-			this.toolStripMenuItem2.Name = "toolStripMenuItem2";
-			resources.ApplyResources(this.setLowerThresholdLToolStripMenuItem, "setLowerThresholdLToolStripMenuItem");
-			this.setLowerThresholdLToolStripMenuItem.Name = "setLowerThresholdLToolStripMenuItem";
-			this.setLowerThresholdLToolStripMenuItem.Click += new global::System.EventHandler(this.setLowerThresholdLToolStripMenuItem_Click);
-			resources.ApplyResources(this.setUpperThresholdHToolStripMenuItem, "setUpperThresholdHToolStripMenuItem");
-			this.setUpperThresholdHToolStripMenuItem.Name = "setUpperThresholdHToolStripMenuItem";
-			this.setUpperThresholdHToolStripMenuItem.Click += new global::System.EventHandler(this.setUpperThresholdHToolStripMenuItem_Click);
-			resources.ApplyResources(this.toolStripMenuItem3, "toolStripMenuItem3");
-			this.toolStripMenuItem3.DropDownItems.AddRange(new global::System.Windows.Forms.ToolStripItem[]
-			{
-				this.createRoiDefinitionFromSelectionSToolStripMenuItem
-			});
-			this.toolStripMenuItem3.Name = "toolStripMenuItem3";
-			resources.ApplyResources(this.createRoiDefinitionFromSelectionSToolStripMenuItem, "createRoiDefinitionFromSelectionSToolStripMenuItem");
-			this.createRoiDefinitionFromSelectionSToolStripMenuItem.Name = "createRoiDefinitionFromSelectionSToolStripMenuItem";
-			this.createRoiDefinitionFromSelectionSToolStripMenuItem.Click += new global::System.EventHandler(this.createRoiDefinitionFromSelectionSToolStripMenuItem_Click);
-			resources.ApplyResources(this.toolStripSeparator1, "toolStripSeparator1");
-			this.toolStripSeparator1.Name = "toolStripSeparator1";
-			resources.ApplyResources(this.saveSToolStripMenuItem, "saveSToolStripMenuItem");
-			this.saveSToolStripMenuItem.Name = "saveSToolStripMenuItem";
-			this.saveSToolStripMenuItem.Click += new global::System.EventHandler(this.saveSToolStripMenuItem_Click);
-			resources.ApplyResources(this.closeCToolStripMenuItem, "closeCToolStripMenuItem");
-			this.closeCToolStripMenuItem.Name = "closeCToolStripMenuItem";
-			this.closeCToolStripMenuItem.Click += new global::System.EventHandler(this.closeCToolStripMenuItem_Click);
-			resources.ApplyResources(this, "$this");
-			this.AllowDrop = true;
-			base.CloseButtonVisible = true;
-			this.ContextMenuStrip = this.contextMenuStrip1;
-			base.Controls.Add(this.toolStripContainer1);
-			base.DockAreas = (global::WeifenLuo.WinFormsUI.Docking.DockAreas.Float | global::WeifenLuo.WinFormsUI.Docking.DockAreas.Document);
-			base.Name = "DocEnergySpectrum";
-			this.toolTip1.SetToolTip(this, resources.GetString("$this.ToolTip"));
-			base.Activated += new global::System.EventHandler(this.DocEnergySpectrum_Activated);
-			base.Load += new global::System.EventHandler(this.DocEnergySpectrum_Load);
-			base.SizeChanged += new global::System.EventHandler(this.DocEnergySpectrum_SizeChanged);
-			base.Click += new global::System.EventHandler(this.DocEnergySpectrum_Click);
-			base.DragDrop += new global::System.Windows.Forms.DragEventHandler(this.DocEnergySpectrum_DragDrop);
-			base.DragEnter += new global::System.Windows.Forms.DragEventHandler(this.DocEnergySpectrum_DragEnter);
-			base.MouseDown += new global::System.Windows.Forms.MouseEventHandler(this.DocEnergySpectrum_MouseDown);
-			base.MouseUp += new global::System.Windows.Forms.MouseEventHandler(this.DocEnergySpectrum_MouseUp);
-			this.toolStripContainer1.BottomToolStripPanel.ResumeLayout(false);
-			this.toolStripContainer1.BottomToolStripPanel.PerformLayout();
-			this.toolStripContainer1.ContentPanel.ResumeLayout(false);
-			this.toolStripContainer1.ResumeLayout(false);
-			this.toolStripContainer1.PerformLayout();
-			this.toolStrip2.ResumeLayout(false);
-			this.toolStrip2.PerformLayout();
-			this.toolStrip1.ResumeLayout(false);
-			this.toolStrip1.PerformLayout();
-			this.contextMenuStrip1.ResumeLayout(false);
-			base.ResumeLayout(false);
 		}
 
         // Token: 0x04000111 RID: 273
