@@ -152,7 +152,7 @@
 
         #endregion
 
-        System.ComponentModel.IContainer components;
+        System.ComponentModel.IContainer components = null;
 		System.Windows.Forms.Label timeConstantLbl;
         System.Windows.Forms.Label countsRateLbl;
 		System.Windows.Forms.Label cpslabel;

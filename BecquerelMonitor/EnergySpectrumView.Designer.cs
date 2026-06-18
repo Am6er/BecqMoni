@@ -75,7 +75,7 @@ namespace BecquerelMonitor
             this.ResumeLayout(false);
         }
 
-        IContainer components;
+        IContainer components = null;
         HScrollBar hScrollBar1;
         VScrollBar vScrollBar1;
         Panel panel2;

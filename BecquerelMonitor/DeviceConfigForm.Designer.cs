@@ -1311,7 +1311,7 @@ namespace BecquerelMonitor
         #endregion
 
         // Token: 0x0400025D RID: 605
-        System.ComponentModel.IContainer components;
+        System.ComponentModel.IContainer components = null;
 
 		// Token: 0x0400025E RID: 606
 		System.Windows.Forms.Label label4;

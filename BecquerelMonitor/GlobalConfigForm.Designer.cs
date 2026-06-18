@@ -2136,7 +2136,7 @@
 		}
 
         // Token: 0x040005F5 RID: 1525
-        global::System.ComponentModel.IContainer components;
+        global::System.ComponentModel.IContainer components = null;
 
 		// Token: 0x040005F6 RID: 1526
 		global::System.Windows.Forms.CheckBox checkBox1;

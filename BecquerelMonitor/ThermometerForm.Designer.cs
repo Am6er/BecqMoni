@@ -6,7 +6,7 @@ namespace BecquerelMonitor
 {
     partial class ThermometerForm
     {
-        IContainer components;
+        IContainer components = null;
 
         TextBox textBox1;
 

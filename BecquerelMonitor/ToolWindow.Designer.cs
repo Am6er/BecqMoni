@@ -64,7 +64,7 @@
 		}
 
 		// Token: 0x04000054 RID: 84
-		global::System.ComponentModel.IContainer components;
+		global::System.ComponentModel.IContainer components = null;
 
 		// Token: 0x04000055 RID: 85
 		global::System.Windows.Forms.ContextMenuStrip contextMenuStrip1;

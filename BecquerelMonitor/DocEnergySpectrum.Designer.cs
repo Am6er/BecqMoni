@@ -710,7 +710,7 @@ namespace BecquerelMonitor
 		}
 
         // Token: 0x04000111 RID: 273
-        global::System.ComponentModel.IContainer components;
+        global::System.ComponentModel.IContainer components = null;
 
 		// Token: 0x04000112 RID: 274
 		global::System.Windows.Forms.Panel energySpectrumView1;

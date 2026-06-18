@@ -47,7 +47,7 @@ namespace BecquerelMonitor
         protected DeviceConfigForm deviceConfigForm;
 
 		// Token: 0x040006B9 RID: 1721
-		IContainer components;
+		IContainer components = null;
 
 		// Token: 0x040006BA RID: 1722
 		TextBox textBox1;

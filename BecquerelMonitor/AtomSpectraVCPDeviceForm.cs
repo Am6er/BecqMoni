@@ -13,11 +13,11 @@ namespace BecquerelMonitor
 {
     public partial class AtomSpectraVCPDeviceForm : InputDeviceForm
     {
-        TextBox doubleTextBox2;
+        TextBox doubleTextBox2 = null;
         private ComboBox comPortsBox;
         private ComboBox baudratesBox;
         private Label label1;
-        TextBox doubleTextBox1;
+        TextBox doubleTextBox1 = null;
         private string ComPort = "-------";
         private int BaudRate = 600000;
         bool formLoading = false;

@@ -5,7 +5,7 @@ namespace BecquerelMonitor
 {
     partial class StandardPulseView
     {
-        IContainer components;
+        IContainer components = null;
 
         protected override void Dispose(bool disposing)
         {

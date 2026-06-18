@@ -49,7 +49,7 @@
 		}
 
 		// Token: 0x04000059 RID: 89
-		global::System.ComponentModel.IContainer components;
+		global::System.ComponentModel.IContainer components = null;
 
 		// Token: 0x0400005A RID: 90
 		global::BecquerelMonitor.EnergySpectrumView energySpectrumView1;

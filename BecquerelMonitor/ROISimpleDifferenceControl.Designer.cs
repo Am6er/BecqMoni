@@ -5,7 +5,7 @@ namespace BecquerelMonitor
 {
     partial class ROISimpleDifferenceControl
     {
-        IContainer components;
+        IContainer components = null;
 
         ComboBox comboBox1;
 

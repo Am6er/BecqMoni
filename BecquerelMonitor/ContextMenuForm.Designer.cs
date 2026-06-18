@@ -45,7 +45,7 @@
 		}
 
 		// Token: 0x040001C8 RID: 456
-		global::System.ComponentModel.IContainer components;
+		global::System.ComponentModel.IContainer components = null;
 
 		// Token: 0x040001C9 RID: 457
 		global::System.Windows.Forms.Panel panelMain;

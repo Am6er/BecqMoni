@@ -76,7 +76,7 @@
 		}
 
 		// Token: 0x0400015D RID: 349
-		global::System.ComponentModel.IContainer components;
+		global::System.ComponentModel.IContainer components = null;
 
 		// Token: 0x0400015E RID: 350
 		global::System.Windows.Forms.TextBox textBox9;

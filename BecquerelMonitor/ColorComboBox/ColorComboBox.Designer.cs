@@ -6,7 +6,7 @@ namespace ColorComboBox
 {
 	partial class ColorComboBox
 	{
-		IContainer components;
+		IContainer components = null;
 
 		ColorComboButton button;
 

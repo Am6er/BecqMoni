@@ -4655,7 +4655,7 @@ namespace BecquerelMonitor
         double valueRangePow;
 
         // Token: 0x0400022F RID: 559
-        bool measureDrawingTime;
+        bool measureDrawingTime = false;
 
         // Token: 0x04000230 RID: 560
         Stopwatch stopwatch = new Stopwatch();

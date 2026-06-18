@@ -31,6 +31,6 @@ namespace BecquerelMonitor
 		}
 
 		// Token: 0x04000752 RID: 1874
-		IContainer components;
+		IContainer components = null;
 	}
 }

@@ -139,7 +139,7 @@ namespace BecquerelMonitor
 
         #endregion
 
-        System.ComponentModel.IContainer components;
+        System.ComponentModel.IContainer components = null;
 		System.Windows.Forms.Label label1;
 		System.Windows.Forms.Label label2;
 		System.Windows.Forms.Label label3;
