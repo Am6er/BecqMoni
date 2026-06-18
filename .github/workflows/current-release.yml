@@ -2,8 +2,8 @@ name: Current Release
 
 on:
   push:
-    tags:
-      - Current
+    branches:
+      - master
 
 permissions:
   contents: write
@@ -22,16 +22,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Validate master branch
+      - name: Update Current tag
         shell: pwsh
         run: |
-          git fetch origin master --force
-          $tagCommit = (git rev-parse '${{ github.sha }}').Trim()
-          $masterCommit = (git rev-parse 'origin/master').Trim()
-
-          if ($tagCommit -ne $masterCommit) {
-            throw "Tag Current must point to the current origin/master HEAD. Tag commit: $tagCommit. origin/master: $masterCommit."
-          }
+          git tag -f Current '${{ github.sha }}'
+          git push origin refs/tags/Current --force
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
@@ -72,10 +67,7 @@ jobs:
         shell: pwsh
         run: |
           $notesPath = Join-Path $env:RUNNER_TEMP 'current-release-notes.md'
-          .\.github\scripts\Get-ReleaseNotes.ps1 `
-            -Mode Current `
-            -TagName 'Current' `
-            -BeforeSha '${{ github.event.before }}' `
+          .\.github\scripts\Get-CurrentReleaseNotes.ps1 `
             -AfterSha '${{ github.sha }}' `
             -RunUrl '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}' `
             -OutputPath $notesPath
