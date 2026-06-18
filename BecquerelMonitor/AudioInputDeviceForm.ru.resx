@@ -117,73 +117,131 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+  <data name="label37.Size" type="System.Drawing.Size, System.Drawing">
+    <value>110, 13</value>
+  </data>
+  <data name="label37.Text" xml:space="preserve">
+    <value>(не для Windows XP)</value>
+  </data>
+  <data name="checkBox2.Size" type="System.Drawing.Size, System.Drawing">
+    <value>133, 17</value>
+  </data>
+  <data name="checkBox2.Text" xml:space="preserve">
+    <value>Изменить в Windows</value>
+  </data>
+  <data name="checkBox1.Size" type="System.Drawing.Size, System.Drawing">
+    <value>104, 17</value>
+  </data>
+  <data name="checkBox1.Text" xml:space="preserve">
+    <value>Отрицательная</value>
+  </data>
+  <data name="label15.Size" type="System.Drawing.Size, System.Drawing">
+    <value>68, 13</value>
+  </data>
+  <data name="label15.Text" xml:space="preserve">
+    <value>Полярность</value>
+  </data>
+  <data name="label29.Size" type="System.Drawing.Size, System.Drawing">
+    <value>19, 13</value>
+  </data>
+  <data name="label29.Text" xml:space="preserve">
+    <value>Гц</value>
+  </data>
+  <data name="label1.Size" type="System.Drawing.Size, System.Drawing">
+    <value>97, 13</value>
+  </data>
+  <data name="label1.Text" xml:space="preserve">
+    <value>Аудио устройство</value>
+  </data>
+  <data name="label2.Size" type="System.Drawing.Size, System.Drawing">
+    <value>101, 13</value>
+  </data>
+  <data name="label2.Text" xml:space="preserve">
+    <value>Частота импульса</value>
+  </data>
+  <data name="label3.Size" type="System.Drawing.Size, System.Drawing">
+    <value>93, 13</value>
+  </data>
+  <data name="label3.Text" xml:space="preserve">
+    <value>Разрядность бит</value>
+  </data>
+  <data name="label11.Size" type="System.Drawing.Size, System.Drawing">
+    <value>95, 13</value>
+  </data>
+  <data name="label11.Text" xml:space="preserve">
+    <value>Уровень сигнала</value>
+  </data>
+  <data name="textBox7.Text" xml:space="preserve">
+    <value>- Значение НПП должно быть выше уровня шума.</value>
+  </data>
+  <data name="label6.Size" type="System.Drawing.Size, System.Drawing">
+    <value>102, 13</value>
+  </data>
+  <data name="label6.Text" xml:space="preserve">
+    <value>Ширина имп. (8-64)</value>
+  </data>
+  <data name="label9.Size" type="System.Drawing.Size, System.Drawing">
+    <value>90, 13</value>
+  </data>
+  <data name="label9.Text" xml:space="preserve">
+    <value>ВПП (0.0 - 100.0)</value>
+  </data>
+  <data name="label8.Size" type="System.Drawing.Size, System.Drawing">
+    <value>91, 13</value>
+  </data>
+  <data name="label8.Text" xml:space="preserve">
+    <value>НПП (0.0 - 100.0)</value>
+  </data>
+  <data name="label7.Size" type="System.Drawing.Size, System.Drawing">
+    <value>78, 13</value>
+  </data>
+  <data name="label7.Text" xml:space="preserve">
+    <value>Позиция пика</value>
+  </data>
+  <data name="textBox11.Text" xml:space="preserve">
+    <value>- Настройте так, чтобы импульс находился в пределах графика.</value>
+  </data>
+  <data name="label17.Size" type="System.Drawing.Size, System.Drawing">
+    <value>96, 13</value>
+  </data>
+  <data name="label17.Text" xml:space="preserve">
+    <value>Форма импульса</value>
+  </data>
   <data name="button1.Text" xml:space="preserve">
     <value>Старт</value>
   </data>
   <data name="button2.Text" xml:space="preserve">
     <value>Стоп</value>
   </data>
-  <data name="checkBox1.Text" xml:space="preserve">
-    <value>Отрицательная</value>
-  </data>
-  <data name="checkBox2.Text" xml:space="preserve">
-    <value>Изменить в Windows</value>
-  </data>
-  <data name="label1.Text" xml:space="preserve">
-    <value>Аудио устройство</value>
+  <data name="label10.Size" type="System.Drawing.Size, System.Drawing">
+    <value>32, 13</value>
   </data>
   <data name="label10.Text" xml:space="preserve">
     <value>Имп.</value>
   </data>
-  <data name="label11.Text" xml:space="preserve">
-    <value>Уровень сигнала</value>
-  </data>
-  <data name="label12.Text" xml:space="preserve">
-    <value>ВПП (0.0 - 100.0)</value>
-  </data>
-  <data name="label13.Text" xml:space="preserve">
-    <value>НПП (0.0 - 100.0)</value>
+  <data name="label14.Size" type="System.Drawing.Size, System.Drawing">
+    <value>103, 13</value>
   </data>
   <data name="label14.Text" xml:space="preserve">
     <value>Порог формы имп.</value>
   </data>
-  <data name="label15.Text" xml:space="preserve">
-    <value>Полярность</value>
+  <data name="label12.Size" type="System.Drawing.Size, System.Drawing">
+    <value>90, 13</value>
   </data>
-  <data name="label17.Text" xml:space="preserve">
-    <value>Форма импульса</value>
+  <data name="label12.Text" xml:space="preserve">
+    <value>ВПП (0.0 - 100.0)</value>
   </data>
-  <data name="label2.Text" xml:space="preserve">
-    <value>Частота импульса</value>
+  <data name="label13.Size" type="System.Drawing.Size, System.Drawing">
+    <value>91, 13</value>
   </data>
-  <data name="label29.Text" xml:space="preserve">
-    <value>Гц</value>
+  <data name="label13.Text" xml:space="preserve">
+    <value>НПП (0.0 - 100.0)</value>
   </data>
-  <data name="label3.Text" xml:space="preserve">
-    <value>Разрядность бит</value>
-  </data>
-  <data name="label37.Text" xml:space="preserve">
-    <value>(не для Windows XP)</value>
+  <data name="label5.Size" type="System.Drawing.Size, System.Drawing">
+    <value>216, 13</value>
   </data>
   <data name="label5.Text" xml:space="preserve">
     <value>Настройка образцовой формы импульса</value>
-  </data>
-  <data name="label6.Text" xml:space="preserve">
-    <value>Ширина имп. (8-64)</value>
-  </data>
-  <data name="label7.Text" xml:space="preserve">
-    <value>Позиция пика</value>
-  </data>
-  <data name="label8.Text" xml:space="preserve">
-    <value>НПП (0.0 - 100.0)</value>
-  </data>
-  <data name="label9.Text" xml:space="preserve">
-    <value>ВПП (0.0 - 100.0)</value>
-  </data>
-  <data name="textBox11.Text" xml:space="preserve">
-    <value>- Настройте так, чтобы импульс находился в пределах графика.</value>
-  </data>
-  <data name="textBox7.Text" xml:space="preserve">
-    <value>- Значение НПП должно быть выше уровня шума.</value>
   </data>
 </root>

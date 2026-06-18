@@ -1,5 +1,6 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
+using System.Collections.ObjectModel;
 using System.Windows.Forms;
 using WinMM;
 
@@ -8,6 +9,13 @@ namespace BecquerelMonitor
     // Token: 0x02000142 RID: 322
     public partial class AudioInputDeviceForm : InputDeviceForm
     {
+        private ReadOnlyCollection<WaveInDeviceCaps> waveDeviceList;
+        private StandardPulseRecorder pulseRecorder = new StandardPulseRecorder();
+        private AudioVolumeController audioVolumeController;
+        private float previousVolume;
+        private Timer timer;
+        private AudioInputDeviceConfig tempConfig;
+
         public AudioInputDeviceForm()
         {
             this.InitializeComponent();
