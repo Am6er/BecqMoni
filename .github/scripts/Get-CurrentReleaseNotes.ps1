@@ -12,6 +12,7 @@ param(
 )
 
 $releaseBody = @()
+$generatedAtUtc = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss 'UTC'")
 
 function Get-CommitLines {
     param(
@@ -111,6 +112,7 @@ $releaseBody += "Commit: $AfterSha"
 if ($RunUrl) {
     $releaseBody += "Workflow run: $RunUrl"
 }
+$releaseBody += "Last updated: $generatedAtUtc"
 $releaseBody += ''
 
 $nearestPublishedReleaseTag = Get-NearestPublishedReleaseTag -Repo $Repository -Commit $AfterSha -Token $GitHubToken
