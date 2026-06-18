@@ -86,8 +86,7 @@ jobs:
         shell: pwsh
         run: |
           $notesPath = Join-Path $env:RUNNER_TEMP 'version-release-notes.md'
-          .\.github\scripts\Get-ReleaseNotes.ps1 `
-            -Mode Version `
+          .\.github\scripts\Get-VersionReleaseNotes.ps1 `
             -TagName '${{ steps.validate.outputs.tag }}' `
             -BeforeSha '${{ github.event.before }}' `
             -AfterSha '${{ github.sha }}' `

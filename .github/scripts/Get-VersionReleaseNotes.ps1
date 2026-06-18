@@ -1,10 +1,6 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Current', 'Version')]
-    [string]$Mode,
-
-    [Parameter(Mandatory = $true)]
     [string]$TagName,
 
     [Parameter(Mandatory = $true)]
@@ -60,50 +56,30 @@ function Get-PreviousVersionTag {
         Select-Object -First 1
 }
 
-if ($Mode -eq 'Current') {
-    $releaseBody += 'Automated prerelease build for tag Current.'
-    $releaseBody += ''
-    $releaseBody += "Commit: $AfterSha"
-    if ($RunUrl) {
-        $releaseBody += "Workflow run: $RunUrl"
-    }
-    $releaseBody += ''
-    $releaseBody += 'Changes since previous Current tag:'
-    $releaseBody += ''
+$releaseBody += "Release build for tag $TagName."
+$releaseBody += ''
+$releaseBody += "Commit: $AfterSha"
+if ($RunUrl) {
+    $releaseBody += "Workflow run: $RunUrl"
+}
+$releaseBody += ''
 
-    if ($BeforeSha -and $BeforeSha -ne $zeroSha) {
-        $commitLines = Get-CommitLines -RevisionRange "${BeforeSha}..${AfterSha}"
-    }
-    else {
-        $commitLines = Get-CommitLines -RevisionRange $AfterSha
-    }
+if ($BeforeSha -and $BeforeSha -ne $zeroSha) {
+    $releaseBody += "Changes since previous update of tag ${TagName}:"
+    $releaseBody += ''
+    $commitLines = Get-CommitLines -RevisionRange "${BeforeSha}..${AfterSha}"
 }
 else {
-    $releaseBody += "Release build for tag $TagName."
-    $releaseBody += ''
-    $releaseBody += "Commit: $AfterSha"
-    if ($RunUrl) {
-        $releaseBody += "Workflow run: $RunUrl"
-    }
-    $releaseBody += ''
-
-    if ($BeforeSha -and $BeforeSha -ne $zeroSha) {
-        $releaseBody += "Changes since previous update of tag ${TagName}:"
+    $previousTag = Get-PreviousVersionTag -CurrentTag $TagName
+    if ($previousTag) {
+        $releaseBody += "Changes since previous release tag ${previousTag}:"
         $releaseBody += ''
-        $commitLines = Get-CommitLines -RevisionRange "${BeforeSha}..${AfterSha}"
+        $commitLines = Get-CommitLines -RevisionRange "${previousTag}..${AfterSha}"
     }
     else {
-        $previousTag = Get-PreviousVersionTag -CurrentTag $TagName
-        if ($previousTag) {
-            $releaseBody += "Changes since previous release tag ${previousTag}:"
-            $releaseBody += ''
-            $commitLines = Get-CommitLines -RevisionRange "${previousTag}..${AfterSha}"
-        }
-        else {
-            $releaseBody += 'Changes in this release:'
-            $releaseBody += ''
-            $commitLines = Get-CommitLines -RevisionRange $AfterSha
-        }
+        $releaseBody += 'Changes in this release:'
+        $releaseBody += ''
+        $commitLines = Get-CommitLines -RevisionRange $AfterSha
     }
 }
 
