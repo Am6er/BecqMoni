@@ -83,7 +83,7 @@
 		}
 
 		// Token: 0x0400052E RID: 1326
-		global::System.ComponentModel.IContainer components;
+		global::System.ComponentModel.IContainer components = null;
 
 		// Token: 0x0400052F RID: 1327
 		global::System.Windows.Forms.CheckBox checkBox1;

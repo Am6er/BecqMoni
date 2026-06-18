@@ -746,7 +746,7 @@ namespace BecquerelMonitor
 		}
 
 		// Token: 0x04000587 RID: 1415
-		global::System.ComponentModel.IContainer components;
+		global::System.ComponentModel.IContainer components = null;
 
 		// Token: 0x04000588 RID: 1416
 		global::System.Windows.Forms.ToolStripMenuItem fileFToolStripMenuItem;

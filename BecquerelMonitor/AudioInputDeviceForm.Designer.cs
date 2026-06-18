@@ -324,7 +324,7 @@ namespace BecquerelMonitor
 		#endregion
 
 		// Token: 0x0400096A RID: 2410
-		IContainer components;
+		IContainer components = null;
 
 		// Token: 0x0400096B RID: 2411
 		Label label37;

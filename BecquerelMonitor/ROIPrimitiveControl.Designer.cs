@@ -6,7 +6,7 @@ namespace BecquerelMonitor
 {
     partial class ROIPrimitiveControl
     {
-        IContainer components;
+        IContainer components = null;
 
         protected override void Dispose(bool disposing)
         {

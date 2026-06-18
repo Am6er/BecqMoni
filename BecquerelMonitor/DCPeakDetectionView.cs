@@ -329,7 +329,7 @@ namespace BecquerelMonitor
 
         bool FormLoading = false;
 
-        string comboBoxNuclSetAllNuclidesText;
+        string comboBoxNuclSetAllNuclidesText = null;
 
         private NuclideSet selectedNuclideSet = null;
 

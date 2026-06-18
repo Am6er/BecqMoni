@@ -14,7 +14,7 @@ namespace BecquerelMonitor
 
         ToolStripEnergyCalibration dropDown;
         ToolStripEnergyCalibrationControl control;
-        IContainer components;
+        IContainer components = null;
         EnergyCalibration energyCalibration;
         EnergyCalibration defaultEnergyCalibration;
 

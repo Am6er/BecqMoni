@@ -34,7 +34,7 @@
 		}
 
 		// Token: 0x040000A3 RID: 163
-		global::System.ComponentModel.IContainer components;
+		global::System.ComponentModel.IContainer components = null;
 
 		// Token: 0x040000A4 RID: 164
 		global::System.Windows.Forms.Panel statusMessage1;

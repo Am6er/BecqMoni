@@ -92,7 +92,7 @@
 		}
 
 		// Token: 0x0400005C RID: 92
-		global::System.ComponentModel.IContainer components;
+		global::System.ComponentModel.IContainer components = null;
 
 		// Token: 0x0400005D RID: 93
 		global::System.Windows.Forms.SplitContainer splitContainer1;

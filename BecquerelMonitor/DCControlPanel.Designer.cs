@@ -388,7 +388,7 @@ namespace BecquerelMonitor
 
         #endregion
 
-        System.ComponentModel.IContainer components;
+        System.ComponentModel.IContainer components = null;
 		System.Windows.Forms.Button clearBtn;
 		System.Windows.Forms.Label realTimeLbl;
 		System.Windows.Forms.Label invalidCntLbl;

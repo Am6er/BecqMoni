@@ -83,7 +83,7 @@
 		}
 
 		// Token: 0x04000538 RID: 1336
-		global::System.ComponentModel.IContainer components;
+		global::System.ComponentModel.IContainer components = null;
 
 		// Token: 0x04000539 RID: 1337
 		global::XPTable.Models.Table table1;

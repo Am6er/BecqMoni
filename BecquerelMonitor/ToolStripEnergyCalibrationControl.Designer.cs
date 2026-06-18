@@ -5,7 +5,7 @@ namespace BecquerelMonitor
 {
     partial class ToolStripEnergyCalibrationControl
     {
-        IContainer components;
+        IContainer components = null;
 
         NumericUpDown numericUpDown1;
 

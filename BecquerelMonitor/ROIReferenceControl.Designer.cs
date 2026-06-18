@@ -5,7 +5,7 @@ namespace BecquerelMonitor
 {
     partial class ROIReferenceControl
     {
-        IContainer components;
+        IContainer components = null;
 
         ComboBox comboBox1;
 

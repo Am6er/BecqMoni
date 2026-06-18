@@ -167,7 +167,7 @@
 		}
 
 		// Token: 0x04000519 RID: 1305
-		global::System.ComponentModel.IContainer components;
+		global::System.ComponentModel.IContainer components = null;
 
 		// Token: 0x0400051A RID: 1306
 		global::System.Windows.Forms.DateTimePicker dateTimePickerSampleTime;
