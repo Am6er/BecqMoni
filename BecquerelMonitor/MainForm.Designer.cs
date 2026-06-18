@@ -148,18 +148,21 @@ namespace BecquerelMonitor
             // newSpectrumNToolStripMenuItem
             // 
             this.newSpectrumNToolStripMenuItem.Name = "newSpectrumNToolStripMenuItem";
+            this.newSpectrumNToolStripMenuItem.ShortcutKeys = (global::System.Windows.Forms.Keys.Control | global::System.Windows.Forms.Keys.N);
             resources.ApplyResources(this.newSpectrumNToolStripMenuItem, "newSpectrumNToolStripMenuItem");
             this.newSpectrumNToolStripMenuItem.Click += new System.EventHandler(this.newSpectrumNToolStripMenuItem_Click);
             // 
             // openDataToolStripMenuItem
             // 
             this.openDataToolStripMenuItem.Name = "openDataToolStripMenuItem";
+            this.openDataToolStripMenuItem.ShortcutKeys = (global::System.Windows.Forms.Keys.Control | global::System.Windows.Forms.Keys.O);
             resources.ApplyResources(this.openDataToolStripMenuItem, "openDataToolStripMenuItem");
             this.openDataToolStripMenuItem.Click += new System.EventHandler(this.openDataToolStripMenuItem_Click);
             // 
             // saveDataSToolStripMenuItem
             // 
             this.saveDataSToolStripMenuItem.Name = "saveDataSToolStripMenuItem";
+            this.saveDataSToolStripMenuItem.ShortcutKeys = (global::System.Windows.Forms.Keys.Control | global::System.Windows.Forms.Keys.S);
             resources.ApplyResources(this.saveDataSToolStripMenuItem, "saveDataSToolStripMenuItem");
             this.saveDataSToolStripMenuItem.Click += new System.EventHandler(this.saveDataSToolStripMenuItem_Click);
             // 
@@ -172,6 +175,7 @@ namespace BecquerelMonitor
             // closeDataCToolStripMenuItem
             // 
             this.closeDataCToolStripMenuItem.Name = "closeDataCToolStripMenuItem";
+            this.closeDataCToolStripMenuItem.ShortcutKeys = (global::System.Windows.Forms.Keys.Control | global::System.Windows.Forms.Keys.W);
             resources.ApplyResources(this.closeDataCToolStripMenuItem, "closeDataCToolStripMenuItem");
             this.closeDataCToolStripMenuItem.Click += new System.EventHandler(this.closeDataCToolStripMenuItem_Click);
             // 
@@ -415,6 +419,7 @@ namespace BecquerelMonitor
             // 
             this.startMeasurementSToolStripMenuItem.Image = global::BecquerelMonitor.Properties.Resources.start;
             this.startMeasurementSToolStripMenuItem.Name = "startMeasurementSToolStripMenuItem";
+            this.startMeasurementSToolStripMenuItem.ShortcutKeys = (global::System.Windows.Forms.Keys.Control | global::System.Windows.Forms.Keys.M);
             resources.ApplyResources(this.startMeasurementSToolStripMenuItem, "startMeasurementSToolStripMenuItem");
             this.startMeasurementSToolStripMenuItem.Click += new System.EventHandler(this.startMeasurementSToolStripMenuItem_Click);
             // 
@@ -422,6 +427,7 @@ namespace BecquerelMonitor
             // 
             this.stopMeasurementTToolStripMenuItem.Image = global::BecquerelMonitor.Properties.Resources.stop;
             this.stopMeasurementTToolStripMenuItem.Name = "stopMeasurementTToolStripMenuItem";
+            this.stopMeasurementTToolStripMenuItem.ShortcutKeys = (global::System.Windows.Forms.Keys.Control | global::System.Windows.Forms.Keys.P);
             resources.ApplyResources(this.stopMeasurementTToolStripMenuItem, "stopMeasurementTToolStripMenuItem");
             this.stopMeasurementTToolStripMenuItem.Click += new System.EventHandler(this.stopMeasurementTToolStripMenuItem_Click);
             // 
