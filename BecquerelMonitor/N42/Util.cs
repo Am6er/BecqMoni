@@ -366,7 +366,7 @@ namespace BecquerelMonitor.N42
                 {
                     if (radMeasurement.StartDateTime != null && radMeasurement.StartDateTime != "")
                     {
-                        resultData.SampleInfo.Time = XmlConvert.ToDateTime(radMeasurement.StartDateTime); //"10/13/2021 07:14:57"
+                        resultData.SampleInfo.Time = ParseMeasurementStartDateTime(radMeasurement.StartDateTime);
                     }
                 }
                 catch { }
@@ -490,6 +490,29 @@ namespace BecquerelMonitor.N42
             else
             {
                 return true;
+            }
+        }
+
+        private static DateTime ParseMeasurementStartDateTime(string startDateTime)
+        {
+            try
+            {
+                return XmlConvert.ToDateTime(startDateTime, XmlDateTimeSerializationMode.RoundtripKind);
+            }
+            catch (FormatException)
+            {
+                DateTime parsedDateTime;
+                if (DateTime.TryParse(startDateTime, CultureInfo.CurrentCulture, DateTimeStyles.None, out parsedDateTime))
+                {
+                    return parsedDateTime;
+                }
+
+                if (DateTime.TryParse(startDateTime, CultureInfo.InvariantCulture, DateTimeStyles.None, out parsedDateTime))
+                {
+                    return parsedDateTime;
+                }
+
+                throw;
             }
         }
 
