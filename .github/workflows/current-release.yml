@@ -64,6 +64,8 @@ jobs:
 
       - name: Generate release notes
         id: notes
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
           $notesPath = Join-Path $env:RUNNER_TEMP 'current-release-notes.md'
