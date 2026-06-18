@@ -199,8 +199,6 @@ namespace BecquerelMonitor
             set
             {
                 this.energySpectrum = value;
-                this.continuum_refresh = true;
-                this.subtract_refresh = true;
             }
         }
 
@@ -213,7 +211,6 @@ namespace BecquerelMonitor
             set
             {
                 this.backgroundEnergySpectrum = value;
-                this.subtract_refresh = true;
             }
         }
 
@@ -438,10 +435,6 @@ namespace BecquerelMonitor
         bool visible = true;
 
         bool selected;
-
-        bool continuum_refresh = false;
-
-        bool subtract_refresh = false;
 
         string detectorFeature;
 

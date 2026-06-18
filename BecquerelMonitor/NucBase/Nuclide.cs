@@ -122,7 +122,6 @@ namespace BecquerelMonitor.NucBase
         int n;
         string half_life;
         string half_life_unit;
-        double activity;
         double half_life_sec = 0.0;
         double abundance;
         List<Decay> parents = new List<Decay>();

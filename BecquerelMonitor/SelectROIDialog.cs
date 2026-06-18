@@ -19,9 +19,6 @@ namespace BecquerelMonitor
         readonly ROIConfigManager ROIConfigManager;
         readonly List<ROIConfigData> ROIConfigDatas;
         DeviceConfigManager deviceConfigManager;
-        bool formLoading = false;
-
-
         public SelectROIDialog()
         {
             InitializeComponent();
@@ -36,8 +33,6 @@ namespace BecquerelMonitor
             this.ROIConfigManager = ROIConfigManager.GetInstance();
             this.ROIConfigDatas = this.ROIConfigManager.ROIConfigList;
             base.SuspendLayout();
-            this.formLoading = true;
-
             // if ROI selected for that spectrum in Control panel, use it by default
             if (this.mainForm.ActiveDocument.ActiveResultData.ROIConfigReference != null &&
                 this.mainForm.ActiveDocument.ActiveResultData.ROIConfigReference.Guid != null &&
@@ -63,7 +58,6 @@ namespace BecquerelMonitor
             }
 
             FillROIConfigs();
-            this.formLoading = false;
             base.ResumeLayout();
         }
 
