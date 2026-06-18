@@ -6,6 +6,8 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$OutputPath,
 
+    [string]$Repository = $env:GITHUB_REPOSITORY,
+    [string]$GitHubToken = $env:GITHUB_TOKEN,
     [string]$RunUrl
 )
 
@@ -33,15 +35,74 @@ function Get-CommitLines {
     return @($lines | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
 }
 
-function Get-LatestVersionTag {
-    $versionTags = @(git tag --list | Where-Object { $_ -match '^\d{4}\.\d{1,2}\.\d{1,2}\.\d+$' })
-    if ($LASTEXITCODE -ne 0) {
-        throw 'Failed to enumerate git tags.'
+function Get-PublishedReleaseTags {
+    param(
+        [string]$Repo,
+        [string]$Token
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Repo)) {
+        throw 'Repository is required to resolve published releases.'
     }
 
-    return $versionTags |
-        Sort-Object { [version]$_ } -Descending |
-        Select-Object -First 1
+    $headers = @{
+        'Accept' = 'application/vnd.github+json'
+        'User-Agent' = 'BecqMoni-CurrentReleaseNotes'
+        'X-GitHub-Api-Version' = '2022-11-28'
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($Token)) {
+        $headers['Authorization'] = "Bearer $Token"
+    }
+
+    $page = 1
+    $maxPages = 10
+    $tags = [System.Collections.Generic.List[string]]::new()
+
+    while ($page -le $maxPages) {
+        $uri = "https://api.github.com/repos/$Repo/releases?per_page=100&page=$page"
+        $releases = Invoke-RestMethod -Headers $headers -Uri $uri
+        if ($releases.Count -eq 0) {
+            break
+        }
+
+        foreach ($release in $releases) {
+            if (-not $release.draft -and -not $release.prerelease -and -not [string]::IsNullOrWhiteSpace($release.tag_name)) {
+                $tags.Add([string]$release.tag_name)
+            }
+        }
+
+        $page++
+    }
+
+    return $tags
+}
+
+function Get-NearestPublishedReleaseTag {
+    param(
+        [string]$Repo,
+        [string]$Commit,
+        [string]$Token
+    )
+
+    $publishedTags = @(Get-PublishedReleaseTags -Repo $Repo -Token $Token)
+    if ($publishedTags.Count -eq 0) {
+        return $null
+    }
+
+    foreach ($tagName in $publishedTags) {
+        $tagCommit = (git rev-list -n 1 $tagName).Trim()
+        if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($tagCommit)) {
+            continue
+        }
+
+        git merge-base --is-ancestor $tagCommit $Commit | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            return $tagName
+        }
+    }
+
+    return $null
 }
 
 $releaseBody += 'Automated prerelease build for tag Current.'
@@ -52,11 +113,11 @@ if ($RunUrl) {
 }
 $releaseBody += ''
 
-$latestVersionTag = Get-LatestVersionTag
-if ($latestVersionTag) {
-    $releaseBody += "Changes since latest release tag ${latestVersionTag}:"
+$nearestPublishedReleaseTag = Get-NearestPublishedReleaseTag -Repo $Repository -Commit $AfterSha -Token $GitHubToken
+if ($nearestPublishedReleaseTag) {
+    $releaseBody += "Changes since published release tag ${nearestPublishedReleaseTag}:"
     $releaseBody += ''
-    $commitLines = Get-CommitLines -RevisionRange "${latestVersionTag}..${AfterSha}"
+    $commitLines = Get-CommitLines -RevisionRange "${nearestPublishedReleaseTag}..${AfterSha}"
 }
 else {
     $releaseBody += 'Changes in this prerelease:'
