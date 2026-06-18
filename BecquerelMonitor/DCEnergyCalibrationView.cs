@@ -75,7 +75,6 @@ namespace BecquerelMonitor
             this.energyCalibration = (PolynomialEnergyCalibration)energyCalibration.Clone();
             this.defaultEnergyCalibration = (PolynomialEnergyCalibration)defaultEnergyCalibration.Clone();
             this.SyncRcEnergyCalibration();
-            this.formLoading = true;
             this.numericUpDown3.Text = this.energyCalibration.Coefficients[0].ToString();
             this.numericUpDown2.Text = this.energyCalibration.Coefficients[1].ToString();
 
@@ -92,7 +91,6 @@ namespace BecquerelMonitor
             {
                 this.numericUpDown4.Text = this.energyCalibration.Coefficients[4].ToString();
             }
-            this.formLoading = false;
             //this.calibrationPoints.Clear();
             this.ShowCalibrationPoints();
             this.UpdateMultipointButtonState();
@@ -898,9 +896,6 @@ namespace BecquerelMonitor
 
         // Token: 0x04000419 RID: 1049
         bool enableMultipointCalibration;
-
-        // Token: 0x0400041A RID: 1050
-        bool formLoading;
 
         // Token: 0x0400041B RID: 1051
         bool channelPickupProcessing;

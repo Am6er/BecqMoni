@@ -16,8 +16,6 @@ namespace BecquerelMonitor
         MainForm mainForm;
         string returnGUID = null;
         DeviceConfigManager deviceConfigManager;
-        bool formLoading = false;
-
         public SelectDeviceDialog()
         {
             InitializeComponent();
@@ -30,8 +28,6 @@ namespace BecquerelMonitor
             this.Icon = Resources.becqmoni;
             this.deviceConfigManager = DeviceConfigManager.GetInstance();
             base.SuspendLayout();
-            this.formLoading = true;
-
             // if spectrum have live device config, chose it
             if (this.mainForm.ActiveDocument.ActiveResultData.DeviceConfigReference != null &&
                 this.mainForm.ActiveDocument.ActiveResultData.DeviceConfigReference.Guid != null &&
@@ -42,7 +38,6 @@ namespace BecquerelMonitor
             }
 
             FillDeviceConfigs();
-            this.formLoading = false;
             base.ResumeLayout();
         }
 

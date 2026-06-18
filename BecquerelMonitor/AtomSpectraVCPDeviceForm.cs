@@ -361,9 +361,6 @@ namespace BecquerelMonitor
             this.deviceConfigForm.SetActiveDeviceConfigDirty();
         }
 
-        // Token: 0x04000998 RID: 2456
-        AtomSpectraDeviceConfig tempConfig;
-
         private void CommandLineIn_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Return)
