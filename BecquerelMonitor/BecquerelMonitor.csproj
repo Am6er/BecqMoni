@@ -546,12 +546,6 @@
     <Compile Include="StandardPulseView.Designer.cs">
       <DependentUpon>StandardPulseView.cs</DependentUpon>
     </Compile>
-    <Compile Include="StartupForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="StartupForm.Designer.cs">
-      <DependentUpon>StartupForm.cs</DependentUpon>
-    </Compile>
     <Compile Include="TargetPeak.cs" />
     <Compile Include="ThermometerConfig.cs" />
     <Compile Include="ThermometerController.cs" />
@@ -1093,12 +1087,6 @@
     <EmbeddedResource Include="StandardPulseView.resx">
       <DependentUpon>StandardPulseView.cs</DependentUpon>
       <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="StartupForm.resx">
-      <DependentUpon>StartupForm.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="StartupForm.ru.resx">
-      <DependentUpon>StartupForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="ThermometerForm.resx">
       <DependentUpon>ThermometerForm.cs</DependentUpon>
