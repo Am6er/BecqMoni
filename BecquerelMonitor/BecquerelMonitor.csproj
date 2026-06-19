@@ -154,18 +154,6 @@
     </Compile>
     <Compile Include="ColorConfig.cs" />
     <Compile Include="ConfidenceLevel.cs" />
-    <Compile Include="ContextMenuForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="ContextMenuForm.Designer.cs">
-      <DependentUpon>ContextMenuForm.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Controls\StatusMessage.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="Controls\StatusMessage.Designer.cs">
-      <DependentUpon>StatusMessage.cs</DependentUpon>
-    </Compile>
     <Compile Include="CoreAudioApi\AudioEndpointVolume.cs" />
     <Compile Include="CoreAudioApi\AudioEndpointVolumeCallback.cs" />
     <Compile Include="CoreAudioApi\AudioEndpointVolumeChannel.cs" />
@@ -213,12 +201,6 @@
     <Compile Include="CoreAudioApi\SessionCollection.cs" />
     <Compile Include="CoreAudioApi\SimpleAudioVolume.cs" />
     <Compile Include="CoreAudioApi\_MMDeviceEnumerator.cs" />
-    <Compile Include="CoreAudioTestForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="CoreAudioTestForm.Designer.cs">
-      <DependentUpon>CoreAudioTestForm.cs</DependentUpon>
-    </Compile>
     <Compile Include="CorrelativePulseDetector.cs" />
     <Compile Include="CountRate.cs" />
     <Compile Include="CountsRateManager.cs" />
@@ -227,12 +209,6 @@
     </Compile>
     <Compile Include="DCControlPanel.Designer.cs">
       <DependentUpon>DCControlPanel.cs</DependentUpon>
-    </Compile>
-    <Compile Include="DCDebugPanel.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="DCDebugPanel.Designer.cs">
-      <DependentUpon>DCDebugPanel.cs</DependentUpon>
     </Compile>
     <Compile Include="DCCountRateView.cs">
       <SubType>Form</SubType>
@@ -276,29 +252,11 @@
     <Compile Include="DCSampleInfoView.Designer.cs">
       <DependentUpon>DCSampleInfoView.cs</DependentUpon>
     </Compile>
-    <Compile Include="DCSpectrumExplorerView.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="DCSpectrumExplorerView.Designer.cs">
-      <DependentUpon>DCSpectrumExplorerView.cs</DependentUpon>
-    </Compile>
     <Compile Include="DCSpectrumListView.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="DCSpectrumListView.Designer.cs">
       <DependentUpon>DCSpectrumListView.cs</DependentUpon>
-    </Compile>
-    <Compile Include="DCSpectrumView.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="DCSpectrumView.Designer.cs">
-      <DependentUpon>DCSpectrumView.cs</DependentUpon>
-    </Compile>
-    <Compile Include="DCStatusMessageView.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="DCStatusMessageView.Designer.cs">
-      <DependentUpon>DCStatusMessageView.cs</DependentUpon>
     </Compile>
     <Compile Include="DeviceConfigChangedEventArgs.cs" />
     <Compile Include="DeviceConfigForm.cs">
@@ -476,12 +434,6 @@
     <Compile Include="Pulse.cs" />
     <Compile Include="PulseCollection.cs" />
     <Compile Include="PulseData.cs" />
-    <Compile Include="PulseDecayView.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="PulseDecayView.Designer.cs">
-      <DependentUpon>PulseDecayView.cs</DependentUpon>
-    </Compile>
     <Compile Include="PulseDetectionMethodConfig.cs" />
     <Compile Include="PulseDetector.cs" />
     <Compile Include="PulseView.cs">
@@ -601,12 +553,6 @@
       <DependentUpon>StartupForm.cs</DependentUpon>
     </Compile>
     <Compile Include="TargetPeak.cs" />
-    <Compile Include="TestForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="TestForm.Designer.cs">
-      <DependentUpon>TestForm.cs</DependentUpon>
-    </Compile>
     <Compile Include="ThermometerConfig.cs" />
     <Compile Include="ThermometerController.cs" />
     <Compile Include="ThermometerForm.cs">
@@ -935,16 +881,6 @@
       <DependentUpon>ColorComboBox.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
-    <EmbeddedResource Include="ContextMenuForm.resx">
-      <DependentUpon>ContextMenuForm.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Controls\StatusMessage.resx">
-      <DependentUpon>StatusMessage.cs</DependentUpon>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="CoreAudioTestForm.resx">
-      <DependentUpon>CoreAudioTestForm.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="DCControlPanel.resx">
       <DependentUpon>DCControlPanel.cs</DependentUpon>
       <SubType>Designer</SubType>
@@ -954,9 +890,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="DCCountRateView.ru.resx">
       <DependentUpon>DCCountRateView.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="DCDebugPanel.resx">
-      <DependentUpon>DCDebugPanel.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="DCCountRateView.resx">
       <DependentUpon>DCCountRateView.cs</DependentUpon>
@@ -1006,25 +939,12 @@
     <EmbeddedResource Include="DCSampleInfoView.ru.resx">
       <DependentUpon>DCSampleInfoView.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="DCSpectrumExplorerView.resx">
-      <DependentUpon>DCSpectrumExplorerView.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="DCSpectrumListView.resx">
       <DependentUpon>DCSpectrumListView.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="DCSpectrumListView.ru.resx">
       <DependentUpon>DCSpectrumListView.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="DCSpectrumView.resx">
-      <DependentUpon>DCSpectrumView.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="DCSpectrumView.ru.resx">
-      <DependentUpon>DCSpectrumView.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="DCStatusMessageView.resx">
-      <DependentUpon>DCStatusMessageView.cs</DependentUpon>
-      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="DeviceConfigForm.resx">
       <DependentUpon>DeviceConfigForm.cs</DependentUpon>
@@ -1100,10 +1020,6 @@
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.ru.resx">
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="PulseDecayView.resx">
-      <DependentUpon>PulseDecayView.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="PulseView.resx">
@@ -1183,9 +1099,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="StartupForm.ru.resx">
       <DependentUpon>StartupForm.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="TestForm.resx">
-      <DependentUpon>TestForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="ThermometerForm.resx">
       <DependentUpon>ThermometerForm.cs</DependentUpon>

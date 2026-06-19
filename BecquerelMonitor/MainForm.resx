@@ -121,60 +121,63 @@
     <value>17, 17</value>
   </metadata>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="newSpectrumNToolStripMenuItem.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
+    <value>Ctrl+N</value>
+  </data>
   <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
   <data name="newSpectrumNToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>170, 22</value>
+    <value>180, 22</value>
   </data>
   <data name="newSpectrumNToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;New</value>
   </data>
+  <data name="openDataToolStripMenuItem.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
+    <value>Ctrl+O</value>
+  </data>
   <data name="openDataToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>170, 22</value>
+    <value>180, 22</value>
   </data>
   <data name="openDataToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Open...</value>
   </data>
+  <data name="saveDataSToolStripMenuItem.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
+    <value>Ctrl+S</value>
+  </data>
   <data name="saveDataSToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>170, 22</value>
+    <value>180, 22</value>
   </data>
   <data name="saveDataSToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Save</value>
   </data>
   <data name="saveDataAsRToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>170, 22</value>
+    <value>180, 22</value>
   </data>
   <data name="saveDataAsRToolStripMenuItem.Text" xml:space="preserve">
     <value>Save &amp;As...</value>
   </data>
+  <data name="closeDataCToolStripMenuItem.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
+    <value>Ctrl+W</value>
+  </data>
   <data name="closeDataCToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>170, 22</value>
+    <value>180, 22</value>
   </data>
   <data name="closeDataCToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Close</value>
   </data>
   <data name="CombineSpectrasToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>170, 22</value>
+    <value>180, 22</value>
   </data>
   <data name="CombineSpectrasToolStripMenuItem.Text" xml:space="preserve">
     <value>Co&amp;mbine Spectras</value>
   </data>
   <data name="CloseAllToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>170, 22</value>
+    <value>180, 22</value>
   </data>
   <data name="CloseAllToolStripMenuItem.Text" xml:space="preserve">
     <value>Close &amp;All</value>
   </data>
   <data name="toolStripSeparator6.Size" type="System.Drawing.Size, System.Drawing">
-    <value>167, 6</value>
-  </data>
-  <data name="toolStripMenuItem2.Size" type="System.Drawing.Size, System.Drawing">
-    <value>170, 22</value>
-  </data>
-  <data name="toolStripMenuItem2.Text" xml:space="preserve">
-    <value>Output Report...</value>
-  </data>
-  <data name="toolStripSeparator4.Size" type="System.Drawing.Size, System.Drawing">
-    <value>167, 6</value>
+    <value>177, 6</value>
   </data>
   <data name="AtomSpectraStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>297, 22</value>
@@ -225,7 +228,7 @@
     <value>BecqMoni old format (v0.93Beta or earlier)</value>
   </data>
   <data name="importIToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>170, 22</value>
+    <value>180, 22</value>
   </data>
   <data name="importIToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Import</value>
@@ -261,16 +264,16 @@
     <value>for FWHM</value>
   </data>
   <data name="exportEToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>170, 22</value>
+    <value>180, 22</value>
   </data>
   <data name="exportEToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Export</value>
   </data>
   <data name="toolStripSeparator1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>167, 6</value>
+    <value>177, 6</value>
   </data>
   <data name="exitXToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>170, 22</value>
+    <value>180, 22</value>
   </data>
   <data name="exitXToolStripMenuItem.Text" xml:space="preserve">
     <value>E&amp;xit</value>
@@ -299,10 +302,10 @@
   <data name="addFromExistingFileFToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Import from File</value>
   </data>
-  <data name="toolStripMenuItem1.Size" type="System.Drawing.Size, System.Drawing">
+  <data name="exportToFileStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>263, 22</value>
   </data>
-  <data name="toolStripMenuItem1.Text" xml:space="preserve">
+  <data name="exportToFileStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Export Spectrum to File</value>
   </data>
   <data name="exportBgToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
@@ -350,11 +353,17 @@
   <data name="toolStripSeparator7.Size" type="System.Drawing.Size, System.Drawing">
     <value>260, 6</value>
   </data>
+  <data name="startMeasurementSToolStripMenuItem.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
+    <value>Ctrl+M</value>
+  </data>
   <data name="startMeasurementSToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>263, 22</value>
   </data>
   <data name="startMeasurementSToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Start Measurement</value>
+  </data>
+  <data name="stopMeasurementTToolStripMenuItem.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
+    <value>Ctrl+P</value>
   </data>
   <data name="stopMeasurementTToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>263, 22</value>
@@ -374,9 +383,6 @@
   <data name="spectrumSToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Spectrum</value>
   </data>
-  <data name="toolStripMenuItem6.Size" type="System.Drawing.Size, System.Drawing">
-    <value>190, 22</value>
-  </data>
   <data name="controlPanelCToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>190, 22</value>
   </data>
@@ -395,10 +401,10 @@
   <data name="spectrumListLToolStripMenuItem.Text" xml:space="preserve">
     <value>Spectrum &amp;List</value>
   </data>
-  <data name="toolStripMenuItem4.Size" type="System.Drawing.Size, System.Drawing">
+  <data name="energyCalibrationStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>190, 22</value>
   </data>
-  <data name="toolStripMenuItem4.Text" xml:space="preserve">
+  <data name="energyCalibrationStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Energy Calibration</value>
   </data>
   <data name="peakDetectionDToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
@@ -413,10 +419,10 @@
   <data name="pulseViewPToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Pulse Monitor</value>
   </data>
-  <data name="toolStripMenuItem5.Size" type="System.Drawing.Size, System.Drawing">
+  <data name="countsRateStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>190, 22</value>
   </data>
-  <data name="toolStripMenuItem5.Text" xml:space="preserve">
+  <data name="countsRateStripMenuItem.Text" xml:space="preserve">
     <value>Counts R&amp;ate</value>
   </data>
   <data name="FWHMCalStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
@@ -424,15 +430,6 @@
   </data>
   <data name="FWHMCalStripMenuItem.Text" xml:space="preserve">
     <value>FWHM Calibration</value>
-  </data>
-  <data name="toolStripMenuItem3.Size" type="System.Drawing.Size, System.Drawing">
-    <value>190, 22</value>
-  </data>
-  <data name="toolStripMenuItem3.Text" xml:space="preserve">
-    <value>Measurement S&amp;tatus</value>
-  </data>
-  <data name="toolStripSeparator2.Size" type="System.Drawing.Size, System.Drawing">
-    <value>187, 6</value>
   </data>
   <data name="measurementResultsRToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>190, 22</value>
@@ -589,7 +586,7 @@
     <value>menuStrip1</value>
   </data>
   <data name="&gt;&gt;menuStrip1.Type" xml:space="preserve">
-    <value>BecquerelMonitor.MenuStripEx, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.MenuStripEx, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;menuStrip1.Parent" xml:space="preserve">
     <value>$this</value>
@@ -668,7 +665,7 @@
         AAEAAAD/////AQAAAAAAAAAMAgAAAFdTeXN0ZW0uV2luZG93cy5Gb3JtcywgVmVyc2lvbj00LjAuMC4w
         LCBDdWx0dXJlPW5ldXRyYWwsIFB1YmxpY0tleVRva2VuPWI3N2E1YzU2MTkzNGUwODkFAQAAACZTeXN0
         ZW0uV2luZG93cy5Gb3Jtcy5JbWFnZUxpc3RTdHJlYW1lcgEAAAAERGF0YQcCAgAAAAkDAAAADwMAAADI
-        BwAAAk1TRnQBSQFMAgEBBAEAAYwBAQGMAQEBEAEAARABAAT/AQkBAAj/AUIBTQE2AQQGAAE2AQQCAAEo
+        BwAAAk1TRnQBSQFMAgEBBAEAAawBAQGsAQEBEAEAARABAAT/AQkBAAj/AUIBTQE2AQQGAAE2AQQCAAEo
         AwABQAMAASADAAEBAQABCAYAAQgYAAGAAgABgAMAAoABAAGAAwABgAEAAYABAAKAAgADwAEAAcAB3AHA
         AQAB8AHKAaYBAAEzBQABMwEAATMBAAEzAQACMwIAAxYBAAMcAQADIgEAAykBAANVAQADTQEAA0IBAAM5
         AQABgAF8Af8BAAJQAf8BAAGTAQAB1gEAAf8B7AHMAQABxgHWAe8BAAHWAucBAAGQAakBrQIAAf8BMwMA
@@ -5039,18 +5036,6 @@
   <data name="&gt;&gt;toolStripSeparator6.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripSeparator, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;toolStripMenuItem2.Name" xml:space="preserve">
-    <value>toolStripMenuItem2</value>
-  </data>
-  <data name="&gt;&gt;toolStripMenuItem2.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripSeparator4.Name" xml:space="preserve">
-    <value>toolStripSeparator4</value>
-  </data>
-  <data name="&gt;&gt;toolStripSeparator4.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripSeparator, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
   <data name="&gt;&gt;importIToolStripMenuItem.Name" xml:space="preserve">
     <value>importIToolStripMenuItem</value>
   </data>
@@ -5177,10 +5162,10 @@
   <data name="&gt;&gt;addFromExistingFileFToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;toolStripMenuItem1.Name" xml:space="preserve">
-    <value>toolStripMenuItem1</value>
+  <data name="&gt;&gt;exportToFileStripMenuItem.Name" xml:space="preserve">
+    <value>exportToFileStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;toolStripMenuItem1.Type" xml:space="preserve">
+  <data name="&gt;&gt;exportToFileStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;exportBgToolStripMenuItem.Name" xml:space="preserve">
@@ -5255,12 +5240,6 @@
   <data name="&gt;&gt;viewTToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;toolStripMenuItem6.Name" xml:space="preserve">
-    <value>toolStripMenuItem6</value>
-  </data>
-  <data name="&gt;&gt;toolStripMenuItem6.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
   <data name="&gt;&gt;controlPanelCToolStripMenuItem.Name" xml:space="preserve">
     <value>controlPanelCToolStripMenuItem</value>
   </data>
@@ -5279,10 +5258,10 @@
   <data name="&gt;&gt;spectrumListLToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;toolStripMenuItem4.Name" xml:space="preserve">
-    <value>toolStripMenuItem4</value>
+  <data name="&gt;&gt;energyCalibrationStripMenuItem.Name" xml:space="preserve">
+    <value>energyCalibrationStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;toolStripMenuItem4.Type" xml:space="preserve">
+  <data name="&gt;&gt;energyCalibrationStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;peakDetectionDToolStripMenuItem.Name" xml:space="preserve">
@@ -5297,10 +5276,10 @@
   <data name="&gt;&gt;pulseViewPToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;toolStripMenuItem5.Name" xml:space="preserve">
-    <value>toolStripMenuItem5</value>
+  <data name="&gt;&gt;countsRateStripMenuItem.Name" xml:space="preserve">
+    <value>countsRateStripMenuItem</value>
   </data>
-  <data name="&gt;&gt;toolStripMenuItem5.Type" xml:space="preserve">
+  <data name="&gt;&gt;countsRateStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;FWHMCalStripMenuItem.Name" xml:space="preserve">
@@ -5308,18 +5287,6 @@
   </data>
   <data name="&gt;&gt;FWHMCalStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripMenuItem3.Name" xml:space="preserve">
-    <value>toolStripMenuItem3</value>
-  </data>
-  <data name="&gt;&gt;toolStripMenuItem3.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;toolStripSeparator2.Name" xml:space="preserve">
-    <value>toolStripSeparator2</value>
-  </data>
-  <data name="&gt;&gt;toolStripSeparator2.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripSeparator, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;measurementResultsRToolStripMenuItem.Name" xml:space="preserve">
     <value>measurementResultsRToolStripMenuItem</value>

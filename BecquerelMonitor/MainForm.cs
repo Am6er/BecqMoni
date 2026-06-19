@@ -145,12 +145,8 @@ namespace BecquerelMonitor
             this.InitializeComponent();
             this.InitializeDockPanelTheme();
             base.Icon = BecquerelMonitor.Properties.Resources.becqmoni;
-            this.toolStripMenuItem6.Visible = false;
-            this.toolStripMenuItem3.Visible = false;
             this.toolStripMenuItem7.Visible = false;
             this.toolStripSeparator9.Visible = false;
-            this.toolStripMenuItem2.Visible = false;
-            this.toolStripSeparator4.Visible = false;
             this.forFwhmToolStripMenuItem.Visible = false;
             this.startupForm = new StartupForm();
             this.startupForm.MessageText = BecquerelMonitor.Properties.Resources.InitializingMessage;
@@ -251,12 +247,10 @@ namespace BecquerelMonitor
         void InitializeToolViews()
         {
             this.dcControlPanel = new DCControlPanel(this);
-            this.dcDebugPanel = new DCDebugPanel(this);
             this.dcPulseView = new DCPulseView(this);
             this.dcSampleInfoView = new DCSampleInfoView(this);
             this.dcSpectrumListView = new DCSpectrumListView(this);
             this.dcPeakDetectionView = new DCPeakDetectionView(this);
-            this.dcSpectrumExplorerView = new DCSpectrumExplorerView(this);
             this.dcEnergyCalibrationView = new DCEnergyCalibrationView(this);
             this.dcCountRateView = new DCCountRateView(this);
             this.dcCFwhmCalibrationView = new DCFwhmCalibrationView(this);
@@ -346,10 +340,6 @@ namespace BecquerelMonitor
             {
                 return this.dcControlPanel;
             }
-            if (a == typeof(DCDebugPanel).ToString())
-            {
-                return this.dcDebugPanel;
-            }
             if (a == typeof(DCPulseView).ToString())
             {
                 return this.dcPulseView;
@@ -407,10 +397,6 @@ namespace BecquerelMonitor
             if (a == typeof(DCPeakDetectionView).ToString())
             {
                 return this.dcPeakDetectionView;
-            }
-            if (a == typeof(DCSpectrumExplorerView).ToString())
-            {
-                return this.dcSpectrumExplorerView;
             }
             if (a == typeof(DCEnergyCalibrationView).ToString())
             {
@@ -702,18 +688,6 @@ namespace BecquerelMonitor
             }
         }
 
-        // Token: 0x06000A50 RID: 2640 RVA: 0x0003D400 File Offset: 0x0003B600
-        public void SetStatusMessage(string message, Color color, bool doScroll)
-        {
-            if (this.dcStatusMessageView == null)
-            {
-                return;
-            }
-            this.dcStatusMessageView.Message = message;
-            this.dcStatusMessageView.MessageColor = color;
-            this.dcStatusMessageView.DoScroll = doScroll;
-        }
-
         // Token: 0x06000A51 RID: 2641 RVA: 0x0003D434 File Offset: 0x0003B634
         public void UpdateDetectedPeakView()
         {
@@ -812,31 +786,6 @@ namespace BecquerelMonitor
             }
         }
 
-        // Token: 0x06000A59 RID: 2649 RVA: 0x0003D690 File Offset: 0x0003B890
-        void toolStripMenuItem6_Click(object sender, EventArgs e)
-        {
-        }
-
-        // Token: 0x06000A5A RID: 2650 RVA: 0x0003D694 File Offset: 0x0003B894
-        void spectrumExplorerEToolStripMenuItem1_Click(object sender, EventArgs e)
-        {
-            if (this.dcSpectrumExplorerView.IsDisposed)
-            {
-                this.dcSpectrumExplorerView = new DCSpectrumExplorerView(this);
-            }
-            this.dcSpectrumExplorerView.Show(this.dockPanel1);
-        }
-
-        // Token: 0x06000A5B RID: 2651 RVA: 0x0003D6C4 File Offset: 0x0003B8C4
-        void debugPanelToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            if (this.dcDebugPanel.IsDisposed)
-            {
-                this.dcDebugPanel = new DCDebugPanel(this);
-            }
-            this.dcDebugPanel.Show(this.dockPanel1);
-        }
-
         // Token: 0x06000A5C RID: 2652 RVA: 0x0003D6F4 File Offset: 0x0003B8F4
         void peakDetectionDToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -845,16 +794,6 @@ namespace BecquerelMonitor
                 this.dcPeakDetectionView = new DCPeakDetectionView(this);
             }
             this.dcPeakDetectionView.Show(this.dockPanel1);
-        }
-
-        // Token: 0x06000A5D RID: 2653 RVA: 0x0003D724 File Offset: 0x0003B924
-        void toolStripMenuItem3_Click(object sender, EventArgs e)
-        {
-            if (this.dcStatusMessageView == null || this.dcStatusMessageView.IsDisposed)
-            {
-                this.dcStatusMessageView = new DCStatusMessageView(this);
-            }
-            this.dcStatusMessageView.Show(this.dockPanel1);
         }
 
         // Token: 0x06000A5E RID: 2654 RVA: 0x0003D754 File Offset: 0x0003B954
@@ -1655,7 +1594,7 @@ namespace BecquerelMonitor
                 this.NormalizeSpectrumStripMenuItem.Enabled = false;
                 this.ApplyDeadTimeCorrectionStripMenuItem.Enabled = false;
                 this.AutoSaveStripMenuItem.Enabled = false;
-                this.toolStripMenuItem1.Enabled = false;
+                this.exportToFileStripMenuItem.Enabled = false;
                 this.exportBgToolStripMenuItem.Enabled = false;
                 this.hardSubtractToolStripMenuItem.Enabled = false;
                 return;
@@ -1672,7 +1611,7 @@ namespace BecquerelMonitor
                 this.activeDocument.ActiveResultData.EnergySpectrum.TotalPulseCount > 0;
             this.AutoSaveStripMenuItem.Enabled = enabled;
             this.AutoSaveStripMenuItem.Checked = this.activeDocument.AutoSave;
-            this.toolStripMenuItem1.Enabled = enabled;
+            this.exportToFileStripMenuItem.Enabled = enabled;
             this.exportBgToolStripMenuItem.Enabled = this.activeDocument.ActiveResultData.BackgroundEnergySpectrum != null;
             this.hardSubtractToolStripMenuItem.Enabled = this.activeDocument.ActiveResultData.BackgroundEnergySpectrum != null;
             this.startMeasurementSToolStripMenuItem.Enabled = !this.activeDocument.ActiveResultData.ResultDataStatus.Recording;
@@ -2861,16 +2800,6 @@ namespace BecquerelMonitor
             }
         }
 
-        // Token: 0x06000AA5 RID: 2725 RVA: 0x0003F960 File Offset: 0x0003DB60
-        void toolStripMenuItem2_Click(object sender, EventArgs e)
-        {
-            this.OutputAnalysisReport();
-        }
-
-        // Token: 0x06000AA6 RID: 2726 RVA: 0x0003F968 File Offset: 0x0003DB68
-        public void OutputAnalysisReport()
-        {
-        }
 
         // Token: 0x06000AA7 RID: 2727 RVA: 0x0003F96C File Offset: 0x0003DB6C
         void dockPanel1_ContentRemoved(object sender, DockContentEventArgs e)
@@ -3091,9 +3020,6 @@ namespace BecquerelMonitor
         // Token: 0x040005D4 RID: 1492
         DCControlPanel dcControlPanel;
 
-        // Token: 0x040005D5 RID: 1493
-        DCDebugPanel dcDebugPanel;
-
         // Token: 0x040005D6 RID: 1494
         DCPulseView dcPulseView;
 
@@ -3103,14 +3029,8 @@ namespace BecquerelMonitor
         // Token: 0x040005D8 RID: 1496
         DCSpectrumListView dcSpectrumListView;
 
-        // Token: 0x040005D9 RID: 1497
-        DCSpectrumExplorerView dcSpectrumExplorerView;
-
         // Token: 0x040005DA RID: 1498
         DCPeakDetectionView dcPeakDetectionView;
-
-        // Token: 0x040005DB RID: 1499
-        DCStatusMessageView dcStatusMessageView;
 
         // Token: 0x040005DC RID: 1500
         DCEnergyCalibrationView dcEnergyCalibrationView;
