@@ -208,9 +208,6 @@
   <data name="UnnamedSpectrumName" xml:space="preserve">
     <value>(безымянный)</value>
   </data>
-  <data name="VersionString" xml:space="preserve">
-    <value>версия {0}</value>
-  </data>
   <data name="ChartHeaderNetCounts" xml:space="preserve">
     <value>Имп. над фоном:</value>
   </data>
@@ -235,14 +232,8 @@
   <data name="ImportAtomSpectraFileDialogTitle" xml:space="preserve">
     <value>Импорт файла Atom Spectra</value>
   </data>
-  <data name="InitializingMessage" xml:space="preserve">
-    <value>Загрузка...</value>
-  </data>
   <data name="DeleteSpectrumMessage" xml:space="preserve">
     <value>Удалить спектр "{0}"?</value>
-  </data>
-  <data name="LoadingFileMessage" xml:space="preserve">
-    <value>Загружается файл ( {0} )...</value>
   </data>
   <data name="MSGConfirmSaveConfig" xml:space="preserve">
     <value>Конфигурационный файл был изменён. Сохранить?</value>

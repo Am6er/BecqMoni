@@ -404,7 +404,6 @@ namespace BecquerelMonitor
             {
                 return null;
             }
-            Application.DoEvents();
             DocEnergySpectrum docEnergySpectrum = this.documentManager.OpenDocument(array[1]);
             this.SubscribeDocumentEvent(docEnergySpectrum);
             if (docEnergySpectrum == null)
