@@ -5,6 +5,17 @@ namespace BecquerelMonitor
 {
     public abstract class FwhmCalibration
     {
+        public const int GaussianPeakType = 0;
+        public const int ExpGaussExpPeakType = 1;
+        public const int VoigtPeakType = 2;
+
+        public static bool IsSupportedPeakType(int peakType)
+        {
+            return peakType == GaussianPeakType ||
+                peakType == ExpGaussExpPeakType ||
+                peakType == VoigtPeakType;
+        }
+
         // Enum all siblings of abstract class FwhmCalibration
         public enum FwhmCalibrationCurve
         {
@@ -35,9 +46,11 @@ namespace BecquerelMonitor
             simpleSqrtFwhmCalibration.CalibrationPeaks.Add(peak);
 
             // set default peak shape as gauss
-            simpleSqrtFwhmCalibration.PeakType = 0;
+            simpleSqrtFwhmCalibration.PeakType = GaussianPeakType;
             simpleSqrtFwhmCalibration.ExpGaussExpLeftTail = 1.0;
             simpleSqrtFwhmCalibration.ExpGaussExpRightTail = 1.0;
+            simpleSqrtFwhmCalibration.VoigtSigma = 1.0;
+            simpleSqrtFwhmCalibration.VoigtGamma = 1.0;
 
             if (simpleSqrtFwhmCalibration.PerformCalibration(energyCalibration.MaxChannels()))
             {
@@ -95,6 +108,16 @@ namespace BecquerelMonitor
         public abstract double ExpGaussExpLeftTail { get; set; }
 
         public abstract double ExpGaussExpRightTail { get; set; }
+
+        public abstract double VoigtSigma { get; set; }
+
+        public abstract double VoigtGamma { get; set; }
+
+        public abstract double GaussianChi2Total { get; set; }
+
+        public abstract double ExpGaussExpChi2Total { get; set; }
+
+        public abstract double VoigtChi2Total { get; set; }
 
         public abstract double Chi2pNdp {  get; set; }
     }

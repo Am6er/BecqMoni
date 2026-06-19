@@ -743,6 +743,11 @@ namespace BecquerelMonitor
             0,
             0,
             65536});
+            this.rightSkewnumericUpDown.Maximum = new decimal(new int[] {
+            5,
+            0,
+            0,
+            0});
             this.rightSkewnumericUpDown.Name = "rightSkewnumericUpDown";
             this.rightSkewnumericUpDown.Value = new decimal(new int[] {
             1,
@@ -770,6 +775,11 @@ namespace BecquerelMonitor
             0,
             0,
             65536});
+            this.leftSkewnumericUpDown.Maximum = new decimal(new int[] {
+            5,
+            0,
+            0,
+            0});
             this.leftSkewnumericUpDown.Name = "leftSkewnumericUpDown";
             this.leftSkewnumericUpDown.Value = new decimal(new int[] {
             1,
@@ -789,7 +799,8 @@ namespace BecquerelMonitor
             this.peakTypecomboBox.FormattingEnabled = true;
             this.peakTypecomboBox.Items.AddRange(new object[] {
             resources.GetString("peakTypecomboBox.Items"),
-            resources.GetString("peakTypecomboBox.Items1")});
+            resources.GetString("peakTypecomboBox.Items1"),
+            resources.GetString("peakTypecomboBox.Items2")});
             resources.ApplyResources(this.peakTypecomboBox, "peakTypecomboBox");
             this.peakTypecomboBox.Name = "peakTypecomboBox";
             this.peakTypecomboBox.SelectedIndexChanged += new System.EventHandler(this.peakTypecomboBox_SelectedIndexChanged);

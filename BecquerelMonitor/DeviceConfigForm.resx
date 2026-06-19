@@ -1902,6 +1902,9 @@
   <data name="peakTypecomboBox.Items1" xml:space="preserve">
     <value>Exp-Gaussian-Exp</value>
   </data>
+  <data name="peakTypecomboBox.Items2" xml:space="preserve">
+    <value>Voigt</value>
+  </data>
   <data name="peakTypecomboBox.Location" type="System.Drawing.Point, System.Drawing">
     <value>68, 17</value>
   </data>

@@ -22,6 +22,9 @@ namespace BecquerelMonitor
 
         bool calibrationDone = true;
 
+        string expGaussExpLeftParameterLabelText;
+        string expGaussExpRightParameterLabelText;
+
         public DCFwhmCalibrationView(MainForm mainForm)
         {
             this.mainForm = mainForm;
@@ -30,6 +33,8 @@ namespace BecquerelMonitor
             energyColumn.Alignment = ColumnAlignment.Right;
             fwhmColumn.Alignment = ColumnAlignment.Right;
             executeCalibrationButton.Enabled = false;
+            expGaussExpLeftParameterLabelText = peakShapeFirstParameterLabel.Text;
+            expGaussExpRightParameterLabelText = peakShapeSecondParameterLabel.Text;
         }
 
         public void UpdateFwhmCalibration(bool reset_state = false)
@@ -123,6 +128,54 @@ namespace BecquerelMonitor
             curveFormulaLabel.Text = fwhmCalibration.GetFormula();
             minPeaksRequirement = fwhmCalibration.MinPeaksRequirement();
             minPeaksRequirementLabel.Text = String.Format(Resources.MinPeaksRequirement, minPeaksRequirement);
+            UpdatePeakShapeInfo();
+        }
+
+        void UpdatePeakShapeInfo()
+        {
+            int peakType = FwhmCalibration.IsSupportedPeakType(fwhmCalibration.PeakType)
+                ? fwhmCalibration.PeakType
+                : FwhmCalibration.GaussianPeakType;
+            bool showParameters = peakType != FwhmCalibration.GaussianPeakType;
+
+            peakShapeTypeValueLabel.Text = GetPeakShapeName(peakType);
+            peakShapeFirstParameterLabel.Visible = showParameters;
+            peakShapeFirstParameterValueLabel.Visible = showParameters;
+            peakShapeSecondParameterLabel.Visible = showParameters;
+            peakShapeSecondParameterValueLabel.Visible = showParameters;
+
+            if (!showParameters)
+            {
+                return;
+            }
+
+            if (peakType == FwhmCalibration.ExpGaussExpPeakType)
+            {
+                peakShapeFirstParameterLabel.Text = expGaussExpLeftParameterLabelText;
+                peakShapeSecondParameterLabel.Text = expGaussExpRightParameterLabelText;
+                peakShapeFirstParameterValueLabel.Text = fwhmCalibration.ExpGaussExpLeftTail.ToString("0.0");
+                peakShapeSecondParameterValueLabel.Text = fwhmCalibration.ExpGaussExpRightTail.ToString("0.0");
+            }
+            else
+            {
+                peakShapeFirstParameterLabel.Text = Resources.ResourceManager.GetString("VoigtRelativeSigmaLabel");
+                peakShapeSecondParameterLabel.Text = Resources.ResourceManager.GetString("VoigtRelativeGammaLabel");
+                peakShapeFirstParameterValueLabel.Text = fwhmCalibration.VoigtSigma.ToString("0.0");
+                peakShapeSecondParameterValueLabel.Text = fwhmCalibration.VoigtGamma.ToString("0.0");
+            }
+        }
+
+        static string GetPeakShapeName(int peakType)
+        {
+            switch (peakType)
+            {
+                case FwhmCalibration.ExpGaussExpPeakType:
+                    return Resources.ResourceManager.GetString("PeakShapeExpGaussExp");
+                case FwhmCalibration.VoigtPeakType:
+                    return Resources.ResourceManager.GetString("PeakShapeVoigt");
+                default:
+                    return Resources.ResourceManager.GetString("PeakShapeGaussian");
+            }
         }
 
         void SelectCurveComboBox_SelectedIndexChanged(object sender, EventArgs e)
@@ -293,25 +346,7 @@ namespace BecquerelMonitor
                 MessageBox.Show(Resources.CalibrationFunctionError);
                 return;
             }
-            // Perform calibration for Peak_type, left, right skew
-            CalibrationPeak optimalPeak = null;
-            foreach (CalibrationPeak peak in fwhmCalibration.CalibrationPeaks)
-            {
-                if (peak.Chi2pNdp != -1.0)
-                {
-                    if (optimalPeak == null || optimalPeak.Chi2pNdp > peak.Chi2pNdp)
-                    {
-                        optimalPeak = peak;
-                    }
-                }
-            }
-            if (optimalPeak != null)
-            {
-                fwhmCalibration.PeakType = optimalPeak.PeakType;
-                fwhmCalibration.ExpGaussExpLeftTail = optimalPeak.ExpGaussExpLeftTail;
-                fwhmCalibration.ExpGaussExpRightTail = optimalPeak.ExpGaussExpRightTail;
-                fwhmCalibration.Chi2pNdp = optimalPeak.Chi2pNdp;
-            }
+            SelectGlobalPeakShape(fwhmCalibration.CalibrationPeaks);
 
             mainForm.ActiveDocument.ActiveResultData.FwhmCalibration = fwhmCalibration.Clone();
             mainForm.ActiveDocument.Dirty = true;
@@ -320,6 +355,146 @@ namespace BecquerelMonitor
             UpdateCalibrateButtonState();
             mainForm.UpdateDetectedPeakView();
             mainForm.ActiveDocument.UpdateEnergySpectrum();
+        }
+
+        void SelectGlobalPeakShape(List<CalibrationPeak> peaks)
+        {
+            const int TailSteps = 50;
+            int peakCount = peaks.Count;
+            double gaussianChi2 = 0.0;
+            int gaussianNdp = 0;
+            bool hasGaussian = peakCount > 0;
+
+            foreach (CalibrationPeak peak in peaks)
+            {
+                if (!IsValidFitStatistic(peak.GaussianChi2, peak.GaussianNdp))
+                {
+                    hasGaussian = false;
+                    break;
+                }
+
+                gaussianChi2 += peak.GaussianChi2;
+                gaussianNdp += peak.GaussianNdp;
+            }
+
+            double expGaussExpChi2 = Double.PositiveInfinity;
+            int expGaussExpNdp = 0;
+            int bestExpGaussExpCandidate = -1;
+            double voigtChi2 = Double.PositiveInfinity;
+            int voigtNdp = 0;
+            int bestVoigtCandidate = -1;
+
+            for (int candidateIndex = 0; candidateIndex < TailSteps * TailSteps; candidateIndex++)
+            {
+                double candidateChi2 = 0.0;
+                int candidateNdp = 0;
+                bool hasCandidateForEveryPeak = peakCount > 0;
+                foreach (CalibrationPeak peak in peaks)
+                {
+                    if (peak.ExpGaussExpCandidateChi2 == null || peak.ExpGaussExpCandidateNdp == null ||
+                        candidateIndex >= peak.ExpGaussExpCandidateChi2.Length ||
+                        candidateIndex >= peak.ExpGaussExpCandidateNdp.Length ||
+                        !IsValidFitStatistic(peak.GaussianChi2, peak.GaussianNdp) ||
+                        !IsValidFitStatistic(peak.ExpGaussExpCandidateChi2[candidateIndex], peak.ExpGaussExpCandidateNdp[candidateIndex]) ||
+                        !DoesNotWorsenGaussianFit(peak.ExpGaussExpCandidateChi2[candidateIndex], peak.GaussianChi2))
+                    {
+                        hasCandidateForEveryPeak = false;
+                        break;
+                    }
+
+                    candidateChi2 += peak.ExpGaussExpCandidateChi2[candidateIndex];
+                    candidateNdp += peak.ExpGaussExpCandidateNdp[candidateIndex];
+                }
+
+                if (hasCandidateForEveryPeak && candidateChi2 < expGaussExpChi2)
+                {
+                    expGaussExpChi2 = candidateChi2;
+                    // The two tail parameters are shared by all peaks and are
+                    // therefore subtracted once, not once per calibration peak.
+                    expGaussExpNdp = candidateNdp + 2 * (peakCount - 1);
+                    bestExpGaussExpCandidate = candidateIndex;
+                }
+
+                candidateChi2 = 0.0;
+                candidateNdp = 0;
+                hasCandidateForEveryPeak = peakCount > 0;
+                foreach (CalibrationPeak peak in peaks)
+                {
+                    if (peak.VoigtCandidateChi2 == null || peak.VoigtCandidateNdp == null ||
+                        candidateIndex >= peak.VoigtCandidateChi2.Length ||
+                        candidateIndex >= peak.VoigtCandidateNdp.Length ||
+                        !IsValidFitStatistic(peak.GaussianChi2, peak.GaussianNdp) ||
+                        !IsValidFitStatistic(peak.VoigtCandidateChi2[candidateIndex], peak.VoigtCandidateNdp[candidateIndex]) ||
+                        !DoesNotWorsenGaussianFit(peak.VoigtCandidateChi2[candidateIndex], peak.GaussianChi2))
+                    {
+                        hasCandidateForEveryPeak = false;
+                        break;
+                    }
+
+                    candidateChi2 += peak.VoigtCandidateChi2[candidateIndex];
+                    candidateNdp += peak.VoigtCandidateNdp[candidateIndex];
+                }
+
+                if (hasCandidateForEveryPeak && candidateChi2 < voigtChi2)
+                {
+                    voigtChi2 = candidateChi2;
+                    // Sigma and gamma are also global shape parameters.
+                    voigtNdp = candidateNdp + 2 * (peakCount - 1);
+                    bestVoigtCandidate = candidateIndex;
+                }
+            }
+
+            int peakType = FwhmCalibration.GaussianPeakType;
+            double selectedChi2 = hasGaussian ? gaussianChi2 : Double.PositiveInfinity;
+            int selectedNdp = hasGaussian ? gaussianNdp : 0;
+            if (bestExpGaussExpCandidate >= 0 && expGaussExpChi2 < selectedChi2)
+            {
+                peakType = FwhmCalibration.ExpGaussExpPeakType;
+                selectedChi2 = expGaussExpChi2;
+                selectedNdp = expGaussExpNdp;
+            }
+            if (bestVoigtCandidate >= 0 && voigtChi2 < selectedChi2)
+            {
+                peakType = FwhmCalibration.VoigtPeakType;
+                selectedChi2 = voigtChi2;
+                selectedNdp = voigtNdp;
+            }
+
+            fwhmCalibration.PeakType = peakType;
+            fwhmCalibration.ExpGaussExpLeftTail = 1.0;
+            fwhmCalibration.ExpGaussExpRightTail = 1.0;
+            fwhmCalibration.VoigtSigma = 1.0;
+            fwhmCalibration.VoigtGamma = 1.0;
+            fwhmCalibration.GaussianChi2Total = hasGaussian ? gaussianChi2 : -1.0;
+            fwhmCalibration.ExpGaussExpChi2Total = bestExpGaussExpCandidate >= 0 ? expGaussExpChi2 : -1.0;
+            fwhmCalibration.VoigtChi2Total = bestVoigtCandidate >= 0 ? voigtChi2 : -1.0;
+            fwhmCalibration.Chi2pNdp = selectedNdp > 0 && !Double.IsInfinity(selectedChi2)
+                ? selectedChi2 / selectedNdp
+                : 0.0;
+
+            if (peakType == FwhmCalibration.ExpGaussExpPeakType)
+            {
+                fwhmCalibration.ExpGaussExpLeftTail = (bestExpGaussExpCandidate / TailSteps + 1) * 0.1;
+                fwhmCalibration.ExpGaussExpRightTail = (bestExpGaussExpCandidate % TailSteps + 1) * 0.1;
+            }
+            else if (peakType == FwhmCalibration.VoigtPeakType)
+            {
+                fwhmCalibration.VoigtSigma = (bestVoigtCandidate / TailSteps + 1) * 0.1;
+                fwhmCalibration.VoigtGamma = (bestVoigtCandidate % TailSteps + 1) * 0.1;
+            }
+
+        }
+
+        static bool IsValidFitStatistic(double chi2, int ndp)
+        {
+            return chi2 >= 0.0 && ndp > 0 && !Double.IsNaN(chi2) && !Double.IsInfinity(chi2);
+        }
+
+        static bool DoesNotWorsenGaussianFit(double candidateChi2, double gaussianChi2)
+        {
+            // A global shape is accepted only when it is no worse for every selected peak.
+            double tolerance = Math.Max(1e-9, Math.Abs(gaussianChi2) * 1e-12);
+            return candidateChi2 <= gaussianChi2 + tolerance;
         }
 
         private void CancelAddPeakButton_Click(object sender, EventArgs e)

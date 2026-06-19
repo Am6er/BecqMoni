@@ -52,10 +52,18 @@
             this.curveFormulaLabel = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.executeCalibrationButton = new System.Windows.Forms.Button();
+            this.peakShapeInfoGroupBox = new System.Windows.Forms.GroupBox();
+            this.peakShapeSecondParameterValueLabel = new System.Windows.Forms.Label();
+            this.peakShapeFirstParameterValueLabel = new System.Windows.Forms.Label();
+            this.peakShapeSecondParameterLabel = new System.Windows.Forms.Label();
+            this.peakShapeFirstParameterLabel = new System.Windows.Forms.Label();
+            this.peakShapeTypeValueLabel = new System.Windows.Forms.Label();
+            this.peakShapeTypeLabel = new System.Windows.Forms.Label();
             this.cancelAddPeakButton = new System.Windows.Forms.Button();
             this.getAllPeaksButton = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.CollectedPeaksTable)).BeginInit();
             this.calibrationProcessingPanel.SuspendLayout();
+            this.peakShapeInfoGroupBox.SuspendLayout();
             this.SuspendLayout();
             // 
             // CollectedPeaksTable
@@ -185,6 +193,7 @@
             this.calibrationProcessingPanel.Controls.Add(this.selectCurveComboBox);
             this.calibrationProcessingPanel.Controls.Add(this.saveToDeviceCfgButton);
             this.calibrationProcessingPanel.Controls.Add(this.executeCalibrationButton);
+            this.calibrationProcessingPanel.Controls.Add(this.peakShapeInfoGroupBox);
             this.calibrationProcessingPanel.Name = "calibrationProcessingPanel";
             // 
             // viewCalibrationButton
@@ -215,6 +224,34 @@
             this.executeCalibrationButton.Name = "executeCalibrationButton";
             this.executeCalibrationButton.UseVisualStyleBackColor = true;
             this.executeCalibrationButton.Click += new System.EventHandler(this.ExecuteCalibrationButton_Click);
+            // peakShapeInfoGroupBox
+            this.peakShapeInfoGroupBox.Controls.Add(this.peakShapeSecondParameterValueLabel);
+            this.peakShapeInfoGroupBox.Controls.Add(this.peakShapeFirstParameterValueLabel);
+            this.peakShapeInfoGroupBox.Controls.Add(this.peakShapeSecondParameterLabel);
+            this.peakShapeInfoGroupBox.Controls.Add(this.peakShapeFirstParameterLabel);
+            this.peakShapeInfoGroupBox.Controls.Add(this.peakShapeTypeValueLabel);
+            this.peakShapeInfoGroupBox.Controls.Add(this.peakShapeTypeLabel);
+            resources.ApplyResources(this.peakShapeInfoGroupBox, "peakShapeInfoGroupBox");
+            this.peakShapeInfoGroupBox.Name = "peakShapeInfoGroupBox";
+            this.peakShapeInfoGroupBox.TabStop = false;
+            // peakShapeSecondParameterValueLabel
+            resources.ApplyResources(this.peakShapeSecondParameterValueLabel, "peakShapeSecondParameterValueLabel");
+            this.peakShapeSecondParameterValueLabel.Name = "peakShapeSecondParameterValueLabel";
+            // peakShapeFirstParameterValueLabel
+            resources.ApplyResources(this.peakShapeFirstParameterValueLabel, "peakShapeFirstParameterValueLabel");
+            this.peakShapeFirstParameterValueLabel.Name = "peakShapeFirstParameterValueLabel";
+            // peakShapeSecondParameterLabel
+            resources.ApplyResources(this.peakShapeSecondParameterLabel, "peakShapeSecondParameterLabel");
+            this.peakShapeSecondParameterLabel.Name = "peakShapeSecondParameterLabel";
+            // peakShapeFirstParameterLabel
+            resources.ApplyResources(this.peakShapeFirstParameterLabel, "peakShapeFirstParameterLabel");
+            this.peakShapeFirstParameterLabel.Name = "peakShapeFirstParameterLabel";
+            // peakShapeTypeValueLabel
+            resources.ApplyResources(this.peakShapeTypeValueLabel, "peakShapeTypeValueLabel");
+            this.peakShapeTypeValueLabel.Name = "peakShapeTypeValueLabel";
+            // peakShapeTypeLabel
+            resources.ApplyResources(this.peakShapeTypeLabel, "peakShapeTypeLabel");
+            this.peakShapeTypeLabel.Name = "peakShapeTypeLabel";
             // 
             // cancelAddPeakButton
             // 
@@ -247,6 +284,8 @@
             ((System.ComponentModel.ISupportInitialize)(this.CollectedPeaksTable)).EndInit();
             this.calibrationProcessingPanel.ResumeLayout(false);
             this.calibrationProcessingPanel.PerformLayout();
+            this.peakShapeInfoGroupBox.ResumeLayout(false);
+            this.peakShapeInfoGroupBox.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -272,6 +311,13 @@
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Label curveFormulaLabel;
         private System.Windows.Forms.Label minPeaksRequirementLabel;
+        private System.Windows.Forms.GroupBox peakShapeInfoGroupBox;
+        private System.Windows.Forms.Label peakShapeTypeLabel;
+        private System.Windows.Forms.Label peakShapeTypeValueLabel;
+        private System.Windows.Forms.Label peakShapeFirstParameterLabel;
+        private System.Windows.Forms.Label peakShapeFirstParameterValueLabel;
+        private System.Windows.Forms.Label peakShapeSecondParameterLabel;
+        private System.Windows.Forms.Label peakShapeSecondParameterValueLabel;
         private System.Windows.Forms.Button cancelAddPeakButton;
         private System.Windows.Forms.Button viewCalibrationButton;
         private System.Windows.Forms.Button getAllPeaksButton;
