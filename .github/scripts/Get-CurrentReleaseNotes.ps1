@@ -92,8 +92,13 @@ function Get-NearestPublishedReleaseTag {
     }
 
     foreach ($tagName in $publishedTags) {
-        $tagCommit = (git rev-list -n 1 $tagName).Trim()
-        if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($tagCommit)) {
+        $tagCommitOutput = @(git rev-list -n 1 $tagName 2>$null)
+        if ($LASTEXITCODE -ne 0 -or $tagCommitOutput.Count -eq 0) {
+            continue
+        }
+
+        $tagCommit = $tagCommitOutput[0].ToString().Trim()
+        if ([string]::IsNullOrWhiteSpace($tagCommit)) {
             continue
         }
 
