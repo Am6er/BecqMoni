@@ -46,8 +46,8 @@
     <Tolerance>10</Tolerance>
     <Min_Range>10</Min_Range>
     <Max_Range>2800</Max_Range>
-    <Min_FWHM_Tol>10</Min_FWHM_Tol>
-    <Max_FWHM_Tol>190</Max_FWHM_Tol>
+    <Min_FWHM_Tol>1</Min_FWHM_Tol>
+    <Max_FWHM_Tol>199</Max_FWHM_Tol>
     <Enabled>true</Enabled>
     <Ch_Concat>1024</Ch_Concat>
   </PeakDetectionMethodConfig>
