@@ -306,6 +306,12 @@
   <data name="FWHMCalStripMenuItem.Text" xml:space="preserve">
     <value>Калибровка по FWHM</value>
   </data>
+  <data name="energyCalibrationStripMenuItem.Text" xml:space="preserve">
+    <value>Калибровка энергии</value>
+  </data>
+  <data name="countsRateStripMenuItem.Text" xml:space="preserve">
+    <value>Скорость счёта</value>
+  </data>
   <data name="cSVEnFileToolStripMenuItem.Text" xml:space="preserve">
     <value>CSV (Energy,Counts) Файл</value>
   </data>

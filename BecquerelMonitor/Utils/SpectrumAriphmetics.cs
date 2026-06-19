@@ -873,22 +873,6 @@ namespace BecquerelMonitor.Utils
             return Convert.ToInt32(exp_gauss_exp_value(x, amplitude, median, fwhm, left, right));
         }
 
-        double voigt_value(double x, double amplitude, double median, double fwhm, double sigmaScale, double gammaScale)
-        {
-            PseudoVoigtParameters parameters;
-            if (!PseudoVoigtProfile.TryCreate(fwhm, sigmaScale, gammaScale, out parameters))
-            {
-                return 0.0;
-            }
-
-            return amplitude * PseudoVoigtProfile.RelativeValue(x - median, parameters);
-        }
-
-        int voigt(double x, double amplitude, double median, double fwhm, double sigmaScale, double gammaScale)
-        {
-            return Convert.ToInt32(voigt_value(x, amplitude, median, fwhm, sigmaScale, gammaScale));
-        }
-
         public (int[], int, int, Color) GetPeak(Peak peak, EnergySpectrum continuum)
         {
             int amplitude = this.EnergySpectrum.Spectrum[peak.Channel] - continuum.Spectrum[peak.Channel];
