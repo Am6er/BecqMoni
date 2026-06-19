@@ -30,8 +30,6 @@ namespace BecquerelMonitor
             this.CombineSpectrasToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.CloseAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator6 = new System.Windows.Forms.ToolStripSeparator();
-            this.toolStripMenuItem2 = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
             this.importIToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.AtomSpectraStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.N42StripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -53,7 +51,7 @@ namespace BecquerelMonitor
             this.newSpectrumNToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.deleteDToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.addFromExistingFileFToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
+            this.exportToFileStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportBgToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.hardSubtractToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.ConcatSpectrumsStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -66,17 +64,14 @@ namespace BecquerelMonitor
             this.stopMeasurementTToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.clearDataCToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.viewTToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripMenuItem6 = new System.Windows.Forms.ToolStripMenuItem();
             this.controlPanelCToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.sampleInfoSToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.spectrumListLToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripMenuItem4 = new System.Windows.Forms.ToolStripMenuItem();
+            this.energyCalibrationStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.peakDetectionDToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.pulseViewPToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripMenuItem5 = new System.Windows.Forms.ToolStripMenuItem();
+            this.countsRateStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.FWHMCalStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripMenuItem3 = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.measurementResultsRToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator8 = new System.Windows.Forms.ToolStripSeparator();
             this.toolStripMenuItem7 = new System.Windows.Forms.ToolStripMenuItem();
@@ -135,8 +130,6 @@ namespace BecquerelMonitor
             this.CombineSpectrasToolStripMenuItem,
             this.CloseAllToolStripMenuItem,
             this.toolStripSeparator6,
-            this.toolStripMenuItem2,
-            this.toolStripSeparator4,
             this.importIToolStripMenuItem,
             this.exportEToolStripMenuItem,
             this.toolStripSeparator1,
@@ -148,21 +141,18 @@ namespace BecquerelMonitor
             // newSpectrumNToolStripMenuItem
             // 
             this.newSpectrumNToolStripMenuItem.Name = "newSpectrumNToolStripMenuItem";
-            this.newSpectrumNToolStripMenuItem.ShortcutKeys = (global::System.Windows.Forms.Keys.Control | global::System.Windows.Forms.Keys.N);
             resources.ApplyResources(this.newSpectrumNToolStripMenuItem, "newSpectrumNToolStripMenuItem");
             this.newSpectrumNToolStripMenuItem.Click += new System.EventHandler(this.newSpectrumNToolStripMenuItem_Click);
             // 
             // openDataToolStripMenuItem
             // 
             this.openDataToolStripMenuItem.Name = "openDataToolStripMenuItem";
-            this.openDataToolStripMenuItem.ShortcutKeys = (global::System.Windows.Forms.Keys.Control | global::System.Windows.Forms.Keys.O);
             resources.ApplyResources(this.openDataToolStripMenuItem, "openDataToolStripMenuItem");
             this.openDataToolStripMenuItem.Click += new System.EventHandler(this.openDataToolStripMenuItem_Click);
             // 
             // saveDataSToolStripMenuItem
             // 
             this.saveDataSToolStripMenuItem.Name = "saveDataSToolStripMenuItem";
-            this.saveDataSToolStripMenuItem.ShortcutKeys = (global::System.Windows.Forms.Keys.Control | global::System.Windows.Forms.Keys.S);
             resources.ApplyResources(this.saveDataSToolStripMenuItem, "saveDataSToolStripMenuItem");
             this.saveDataSToolStripMenuItem.Click += new System.EventHandler(this.saveDataSToolStripMenuItem_Click);
             // 
@@ -175,7 +165,6 @@ namespace BecquerelMonitor
             // closeDataCToolStripMenuItem
             // 
             this.closeDataCToolStripMenuItem.Name = "closeDataCToolStripMenuItem";
-            this.closeDataCToolStripMenuItem.ShortcutKeys = (global::System.Windows.Forms.Keys.Control | global::System.Windows.Forms.Keys.W);
             resources.ApplyResources(this.closeDataCToolStripMenuItem, "closeDataCToolStripMenuItem");
             this.closeDataCToolStripMenuItem.Click += new System.EventHandler(this.closeDataCToolStripMenuItem_Click);
             // 
@@ -195,17 +184,6 @@ namespace BecquerelMonitor
             // 
             this.toolStripSeparator6.Name = "toolStripSeparator6";
             resources.ApplyResources(this.toolStripSeparator6, "toolStripSeparator6");
-            // 
-            // toolStripMenuItem2
-            // 
-            this.toolStripMenuItem2.Name = "toolStripMenuItem2";
-            resources.ApplyResources(this.toolStripMenuItem2, "toolStripMenuItem2");
-            this.toolStripMenuItem2.Click += new System.EventHandler(this.toolStripMenuItem2_Click);
-            // 
-            // toolStripSeparator4
-            // 
-            this.toolStripSeparator4.Name = "toolStripSeparator4";
-            resources.ApplyResources(this.toolStripSeparator4, "toolStripSeparator4");
             // 
             // importIToolStripMenuItem
             // 
@@ -327,7 +305,7 @@ namespace BecquerelMonitor
             this.newSpectrumNToolStripMenuItem1,
             this.deleteDToolStripMenuItem,
             this.addFromExistingFileFToolStripMenuItem,
-            this.toolStripMenuItem1,
+            this.exportToFileStripMenuItem,
             this.exportBgToolStripMenuItem,
             this.hardSubtractToolStripMenuItem,
             this.ConcatSpectrumsStripMenuItem,
@@ -361,11 +339,11 @@ namespace BecquerelMonitor
             resources.ApplyResources(this.addFromExistingFileFToolStripMenuItem, "addFromExistingFileFToolStripMenuItem");
             this.addFromExistingFileFToolStripMenuItem.Click += new System.EventHandler(this.addSpectrumFromFileFToolStripMenuItem_Click);
             // 
-            // toolStripMenuItem1
+            // exportToFileStripMenuItem
             // 
-            this.toolStripMenuItem1.Name = "toolStripMenuItem1";
-            resources.ApplyResources(this.toolStripMenuItem1, "toolStripMenuItem1");
-            this.toolStripMenuItem1.Click += new System.EventHandler(this.toolStripMenuItem1_Click);
+            this.exportToFileStripMenuItem.Name = "exportToFileStripMenuItem";
+            resources.ApplyResources(this.exportToFileStripMenuItem, "exportToFileStripMenuItem");
+            this.exportToFileStripMenuItem.Click += new System.EventHandler(this.toolStripMenuItem1_Click);
             // 
             // exportBgToolStripMenuItem
             // 
@@ -419,7 +397,6 @@ namespace BecquerelMonitor
             // 
             this.startMeasurementSToolStripMenuItem.Image = global::BecquerelMonitor.Properties.Resources.start;
             this.startMeasurementSToolStripMenuItem.Name = "startMeasurementSToolStripMenuItem";
-            this.startMeasurementSToolStripMenuItem.ShortcutKeys = (global::System.Windows.Forms.Keys.Control | global::System.Windows.Forms.Keys.M);
             resources.ApplyResources(this.startMeasurementSToolStripMenuItem, "startMeasurementSToolStripMenuItem");
             this.startMeasurementSToolStripMenuItem.Click += new System.EventHandler(this.startMeasurementSToolStripMenuItem_Click);
             // 
@@ -427,7 +404,6 @@ namespace BecquerelMonitor
             // 
             this.stopMeasurementTToolStripMenuItem.Image = global::BecquerelMonitor.Properties.Resources.stop;
             this.stopMeasurementTToolStripMenuItem.Name = "stopMeasurementTToolStripMenuItem";
-            this.stopMeasurementTToolStripMenuItem.ShortcutKeys = (global::System.Windows.Forms.Keys.Control | global::System.Windows.Forms.Keys.P);
             resources.ApplyResources(this.stopMeasurementTToolStripMenuItem, "stopMeasurementTToolStripMenuItem");
             this.stopMeasurementTToolStripMenuItem.Click += new System.EventHandler(this.stopMeasurementTToolStripMenuItem_Click);
             // 
@@ -441,17 +417,14 @@ namespace BecquerelMonitor
             // viewTToolStripMenuItem
             // 
             this.viewTToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.toolStripMenuItem6,
             this.controlPanelCToolStripMenuItem,
             this.sampleInfoSToolStripMenuItem,
             this.spectrumListLToolStripMenuItem,
-            this.toolStripMenuItem4,
+            this.energyCalibrationStripMenuItem,
             this.peakDetectionDToolStripMenuItem,
             this.pulseViewPToolStripMenuItem,
-            this.toolStripMenuItem5,
+            this.countsRateStripMenuItem,
             this.FWHMCalStripMenuItem,
-            this.toolStripMenuItem3,
-            this.toolStripSeparator2,
             this.measurementResultsRToolStripMenuItem,
             this.toolStripSeparator8,
             this.toolStripMenuItem7,
@@ -459,12 +432,6 @@ namespace BecquerelMonitor
             this.languageToolStripMenuItem});
             this.viewTToolStripMenuItem.Name = "viewTToolStripMenuItem";
             resources.ApplyResources(this.viewTToolStripMenuItem, "viewTToolStripMenuItem");
-            // 
-            // toolStripMenuItem6
-            // 
-            this.toolStripMenuItem6.Name = "toolStripMenuItem6";
-            resources.ApplyResources(this.toolStripMenuItem6, "toolStripMenuItem6");
-            this.toolStripMenuItem6.Click += new System.EventHandler(this.toolStripMenuItem6_Click);
             // 
             // controlPanelCToolStripMenuItem
             // 
@@ -484,11 +451,11 @@ namespace BecquerelMonitor
             resources.ApplyResources(this.spectrumListLToolStripMenuItem, "spectrumListLToolStripMenuItem");
             this.spectrumListLToolStripMenuItem.Click += new System.EventHandler(this.spectrumListLToolStripMenuItem_Click);
             // 
-            // toolStripMenuItem4
+            // energyCalibrationStripMenuItem
             // 
-            this.toolStripMenuItem4.Name = "toolStripMenuItem4";
-            resources.ApplyResources(this.toolStripMenuItem4, "toolStripMenuItem4");
-            this.toolStripMenuItem4.Click += new System.EventHandler(this.toolStripMenuItem4_Click);
+            this.energyCalibrationStripMenuItem.Name = "energyCalibrationStripMenuItem";
+            resources.ApplyResources(this.energyCalibrationStripMenuItem, "energyCalibrationStripMenuItem");
+            this.energyCalibrationStripMenuItem.Click += new System.EventHandler(this.toolStripMenuItem4_Click);
             // 
             // peakDetectionDToolStripMenuItem
             // 
@@ -502,28 +469,17 @@ namespace BecquerelMonitor
             resources.ApplyResources(this.pulseViewPToolStripMenuItem, "pulseViewPToolStripMenuItem");
             this.pulseViewPToolStripMenuItem.Click += new System.EventHandler(this.pulseViewPToolStripMenuItem_Click);
             // 
-            // toolStripMenuItem5
+            // countsRateStripMenuItem
             // 
-            this.toolStripMenuItem5.Name = "toolStripMenuItem5";
-            resources.ApplyResources(this.toolStripMenuItem5, "toolStripMenuItem5");
-            this.toolStripMenuItem5.Click += new System.EventHandler(this.toolStripMenuItem5_Click);
+            this.countsRateStripMenuItem.Name = "countsRateStripMenuItem";
+            resources.ApplyResources(this.countsRateStripMenuItem, "countsRateStripMenuItem");
+            this.countsRateStripMenuItem.Click += new System.EventHandler(this.toolStripMenuItem5_Click);
             // 
             // FWHMCalStripMenuItem
             // 
             this.FWHMCalStripMenuItem.Name = "FWHMCalStripMenuItem";
             resources.ApplyResources(this.FWHMCalStripMenuItem, "FWHMCalStripMenuItem");
             this.FWHMCalStripMenuItem.Click += new System.EventHandler(this.FWHMCalStripMenuItem_Click);
-            // 
-            // toolStripMenuItem3
-            // 
-            this.toolStripMenuItem3.Name = "toolStripMenuItem3";
-            resources.ApplyResources(this.toolStripMenuItem3, "toolStripMenuItem3");
-            this.toolStripMenuItem3.Click += new System.EventHandler(this.toolStripMenuItem3_Click);
-            // 
-            // toolStripSeparator2
-            // 
-            this.toolStripSeparator2.Name = "toolStripSeparator2";
-            resources.ApplyResources(this.toolStripSeparator2, "toolStripSeparator2");
             // 
             // measurementResultsRToolStripMenuItem
             // 
@@ -798,9 +754,6 @@ namespace BecquerelMonitor
 		// Token: 0x04000595 RID: 1429
 		global::System.Windows.Forms.ToolStripMenuItem editDeviceConfigurationDToolStripMenuItem;
 
-		// Token: 0x04000596 RID: 1430
-		global::System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
-
 		// Token: 0x04000597 RID: 1431
 		global::System.Windows.Forms.ToolStripMenuItem closeDataCToolStripMenuItem;
 
@@ -826,9 +779,6 @@ namespace BecquerelMonitor
 		global::System.Windows.Forms.ToolStripMenuItem versionInfoAToolStripMenuItem;
 
 		global::System.Windows.Forms.ToolStripMenuItem UpdatesAToolStripMenuItem;
-
-		// Token: 0x0400059F RID: 1439
-		global::System.Windows.Forms.ToolStripSeparator toolStripSeparator4;
 
 		// Token: 0x040005A0 RID: 1440
 		global::System.Windows.Forms.ToolStripMenuItem importIToolStripMenuItem;
@@ -929,14 +879,11 @@ namespace BecquerelMonitor
 		global::System.Windows.Forms.ToolStripMenuItem forFwhmToolStripMenuItem;
 
 		// Token: 0x040005B6 RID: 1462
-		global::System.Windows.Forms.ToolStripMenuItem toolStripMenuItem1;
+		global::System.Windows.Forms.ToolStripMenuItem exportToFileStripMenuItem;
 
 		global::System.Windows.Forms.ToolStripMenuItem exportBgToolStripMenuItem;
 
         global::System.Windows.Forms.ToolStripMenuItem hardSubtractToolStripMenuItem;
-
-        // Token: 0x040005B7 RID: 1463
-        global::System.Windows.Forms.ToolStripMenuItem toolStripMenuItem2;
 
 		global::System.Windows.Forms.ToolStripMenuItem CloseAllToolStripMenuItem;
 
@@ -960,14 +907,11 @@ namespace BecquerelMonitor
 		// Token: 0x040005BD RID: 1469
 		global::System.Windows.Forms.ToolStripMenuItem oSDefaultToolStripMenuItem;
 
-		// Token: 0x040005BE RID: 1470
-		global::System.Windows.Forms.ToolStripMenuItem toolStripMenuItem3;
-
 		// Token: 0x040005BF RID: 1471
-		global::System.Windows.Forms.ToolStripMenuItem toolStripMenuItem4;
+		global::System.Windows.Forms.ToolStripMenuItem energyCalibrationStripMenuItem;
 
 		// Token: 0x040005C0 RID: 1472
-		global::System.Windows.Forms.ToolStripMenuItem toolStripMenuItem5;
+		global::System.Windows.Forms.ToolStripMenuItem countsRateStripMenuItem;
 
         global::System.Windows.Forms.ToolStripMenuItem FWHMCalStripMenuItem;
 
@@ -975,9 +919,6 @@ namespace BecquerelMonitor
         global::System.Windows.Forms.ToolStripMenuItem cSVFileToolStripMenuItem;
 
         global::System.Windows.Forms.ToolStripMenuItem cSVEnFileToolStripMenuItem;
-
-        // Token: 0x040005C2 RID: 1474
-        global::System.Windows.Forms.ToolStripMenuItem toolStripMenuItem6;
 
 		// Token: 0x040005C3 RID: 1475
 		global::System.Windows.Forms.ToolStripMenuItem toolStripMenuItem7;
