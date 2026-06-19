@@ -42,13 +42,9 @@ namespace BecquerelMonitor
         {
             this.InitializeComponent();
             base.Icon = Resources.becqmoni;
+            this.HideTempcoTabPage();
             this.button4.Enabled = false;
             this.DisableForm();
-            // disable FWHMPeakDetectionMethodConfig deprecated settings
-            this.numericUpDown5.Enabled = false;
-            this.numericUpDown10.Enabled = false;
-            this.numericUpDown11.Enabled = false;
-            // disable FWHMPeakDetectionMethodConfig deprecated settings
             this.button3.Enabled = true;
             this.button4.Enabled = false;
             this.button12.Enabled = false;
@@ -71,6 +67,14 @@ namespace BecquerelMonitor
                 this.columnModel1.Columns[i].Width = ((deviceConfigListColumnSizes[i] > 32) ? deviceConfigListColumnSizes[i] : 32);
             }
             this.groupBox2.Top = 24;
+        }
+
+        void HideTempcoTabPage()
+        {
+            if (this.tabControl1.TabPages.Contains(this.tabPage6))
+            {
+                this.tabControl1.TabPages.Remove(this.tabPage6);
+            }
         }
 
         // Token: 0x06000514 RID: 1300 RVA: 0x0002067C File Offset: 0x0001E87C
@@ -295,8 +299,8 @@ namespace BecquerelMonitor
                     {
                         this
                     });
-                    this.tabControl1.TabPages[1].Controls.Clear();
-                    this.tabControl1.TabPages[1].Controls.Add(this.inputDeviceForm);
+                    this.tabPage3.Controls.Clear();
+                    this.tabPage3.Controls.Add(this.inputDeviceForm);
                     switch (type.Name)
                     {
                         case "AtomSpectraVCP":
@@ -352,8 +356,8 @@ namespace BecquerelMonitor
                 this.inputDeviceForm = new InputDeviceForm();
                 this.comboBox4.SelectedItem = null;
                 this.selectedDeviceIndex = -1;
-                this.tabControl1.TabPages[1].Controls.Clear();
-                this.tabControl1.TabPages[1].Controls.Add(this.inputDeviceForm);
+                this.tabPage3.Controls.Clear();
+                this.tabPage3.Controls.Add(this.inputDeviceForm);
             }
         }
 
@@ -372,8 +376,8 @@ namespace BecquerelMonitor
                     {
                         this
                     });
-                    this.tabControl1.TabPages[2].Controls.Clear();
-                    this.tabControl1.TabPages[2].Controls.Add(this.thermometerForm);
+                    this.tabPage6.Controls.Clear();
+                    this.tabPage6.Controls.Add(this.thermometerForm);
                     this.thermometerForm.Initialize();
                     this.comboBox1.SelectedItem = type;
                     this.selectedThermometerIndex = this.comboBox1.SelectedIndex;
@@ -385,8 +389,8 @@ namespace BecquerelMonitor
                 this.thermometerForm = new ThermometerForm();
                 this.comboBox1.SelectedItem = null;
                 this.selectedThermometerIndex = -1;
-                this.tabControl1.TabPages[2].Controls.Clear();
-                this.tabControl1.TabPages[2].Controls.Add(this.thermometerForm);
+                this.tabPage6.Controls.Clear();
+                this.tabPage6.Controls.Add(this.thermometerForm);
             }
         }
 
@@ -506,25 +510,10 @@ namespace BecquerelMonitor
             this.numericUpDown3.Increment = 1;
             this.numericUpDown3.Value = FWHMPeakDetectionMethodConfig.Max_Items;
 
-            this.numericUpDown5.Minimum = 1;
-            this.numericUpDown5.Maximum = 1000;
-            this.numericUpDown5.Increment = 1;
-            this.numericUpDown5.Value = (decimal)FWHMPeakDetectionMethodConfig.FWHM_AT_0;
-
             this.numericUpDown6.Minimum = 0;
             this.numericUpDown6.Maximum = 100;
             this.numericUpDown6.Increment = 1;
             this.numericUpDown6.Value = (decimal)FWHMPeakDetectionMethodConfig.Tolerance;
-
-            this.numericUpDown10.Minimum = 1;
-            this.numericUpDown10.Maximum = 100000;
-            this.numericUpDown10.Increment = 1;
-            this.numericUpDown10.Value = (decimal)FWHMPeakDetectionMethodConfig.Ch_Fwhm;
-
-            this.numericUpDown11.Minimum = 1;
-            this.numericUpDown11.Maximum = 1000;
-            this.numericUpDown11.Increment = 1;
-            this.numericUpDown11.Value = (decimal)FWHMPeakDetectionMethodConfig.Width_Fwhm;
 
             this.numericUpDown12.Minimum = 1;
             this.numericUpDown12.Maximum = 10000;
@@ -556,8 +545,6 @@ namespace BecquerelMonitor
             {
                 this.numericUpDown16.Value = (decimal)config.NumberOfChannels;
             }
-
-            this.label49.Text = Resources.FWHMPeakConfigDescription;
 
             this.peakTypecomboBox.SelectedIndex = FWHMPeakDetectionMethodConfig.FwhmCalibration.PeakType;
             this.leftSkewnumericUpDown.Value = (decimal)FWHMPeakDetectionMethodConfig.FwhmCalibration.ExpGaussExpLeftTail;
@@ -611,9 +598,6 @@ namespace BecquerelMonitor
         {
             this.contentsLoading = true;
             FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)config.PeakDetectionMethodConfig;
-            this.numericUpDown5.Value = (decimal)FWHMPeakDetectionMethodConfig.FWHM_AT_0;
-            this.numericUpDown10.Value = (decimal)FWHMPeakDetectionMethodConfig.Ch_Fwhm;
-            this.numericUpDown11.Value = (decimal)FWHMPeakDetectionMethodConfig.Width_Fwhm;
             this.numericUpDown14.Value = FWHMPeakDetectionMethodConfig.Min_FWHM_Tol;
             this.numericUpDown15.Value = FWHMPeakDetectionMethodConfig.Max_FWHM_Tol;
             this.numericUpDown16.Value = FWHMPeakDetectionMethodConfig.Ch_Concat;
@@ -622,21 +606,6 @@ namespace BecquerelMonitor
             this.leftSkewnumericUpDown.Value = (decimal)FWHMPeakDetectionMethodConfig.FwhmCalibration.ExpGaussExpLeftTail;
             this.rightSkewnumericUpDown.Value = (decimal)FWHMPeakDetectionMethodConfig.FwhmCalibration.ExpGaussExpRightTail;
             this.contentsLoading = false;
-
-            /*
-            FWHMPeakDetectionMethodConfig.Min_SNR = (double)this.numericUpDown4.Value;
-            FWHMPeakDetectionMethodConfig.Max_Items = (int)this.numericUpDown3.Value;
-            FWHMPeakDetectionMethodConfig.FWHM_AT_0 = (double)this.numericUpDown5.Value;
-            FWHMPeakDetectionMethodConfig.Tolerance = (double)this.numericUpDown6.Value;
-            FWHMPeakDetectionMethodConfig.Ch_Fwhm = (double)this.numericUpDown10.Value;
-            FWHMPeakDetectionMethodConfig.Width_Fwhm = (double)this.numericUpDown11.Value;
-            FWHMPeakDetectionMethodConfig.Min_Range = (double)this.numericUpDown12.Value;
-            FWHMPeakDetectionMethodConfig.Max_Range = (double)this.numericUpDown13.Value;
-            FWHMPeakDetectionMethodConfig.Min_FWHM_Tol = this.numericUpDown14.Value;
-            FWHMPeakDetectionMethodConfig.Max_FWHM_Tol = this.numericUpDown15.Value;
-            FWHMPeakDetectionMethodConfig.Ch_Concat = (int)this.numericUpDown16.Value;
-            */
-
         }
 
         // Token: 0x06000523 RID: 1315 RVA: 0x000212F0 File Offset: 0x0001F4F0
@@ -715,10 +684,7 @@ namespace BecquerelMonitor
                 FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)config.PeakDetectionMethodConfig;
                 FWHMPeakDetectionMethodConfig.Min_SNR = (double)this.numericUpDown4.Value;
                 FWHMPeakDetectionMethodConfig.Max_Items = (int)this.numericUpDown3.Value;
-                FWHMPeakDetectionMethodConfig.FWHM_AT_0 = (double)this.numericUpDown5.Value;
                 FWHMPeakDetectionMethodConfig.Tolerance = (double)this.numericUpDown6.Value;
-                FWHMPeakDetectionMethodConfig.Ch_Fwhm = (double)this.numericUpDown10.Value;
-                FWHMPeakDetectionMethodConfig.Width_Fwhm = (double)this.numericUpDown11.Value;
                 FWHMPeakDetectionMethodConfig.Min_Range = (double)this.numericUpDown12.Value;
                 FWHMPeakDetectionMethodConfig.Max_Range = (double)this.numericUpDown13.Value;
                 FWHMPeakDetectionMethodConfig.Min_FWHM_Tol = this.numericUpDown14.Value;
@@ -1217,7 +1183,7 @@ namespace BecquerelMonitor
                 {
                     if (this.button6.Enabled)
                     {
-                        MessageBox.Show(Resources.MSGSaveBeforeWritingData);
+                        ShowOwnedMessageBox(Resources.MSGSaveBeforeWritingData);
                         return;
                     }
                     try
@@ -1285,7 +1251,7 @@ namespace BecquerelMonitor
                         Cursor.Current = Cursors.Default;
                         if (commands_accepted)
                         {
-                            MessageBox.Show(Resources.MSGCoefficientsUploadedSuccesfull);
+                            ShowOwnedMessageBox(Resources.MSGCoefficientsUploadedSuccesfull);
                         }
                         else
                         {
@@ -1298,7 +1264,7 @@ namespace BecquerelMonitor
                             {
                                 if (result_list[i] != result_arr[i])
                                 {
-                                    MessageBox.Show(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + status_msg);
+                                    ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + status_msg);
                                     if (createdInstance)
                                     {
                                         AtomSpectraVCPIn.cleanUp(guid);
@@ -1306,7 +1272,7 @@ namespace BecquerelMonitor
                                     return;
                                 }
                             }
-                            MessageBox.Show(Resources.MSGCoefficientsUploadedSuccesfull);
+                            ShowOwnedMessageBox(Resources.MSGCoefficientsUploadedSuccesfull);
                         }
                         if (createdInstance)
                         {
@@ -1315,13 +1281,13 @@ namespace BecquerelMonitor
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + ex.Message);
+                        ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + ex.Message);
                     }
                 } else if (this.activeDeviceConfig.DeviceType == "RadiaCode")
                 {
                     if (this.button6.Enabled)
                     {
-                        MessageBox.Show(Resources.MSGSaveBeforeWritingData);
+                        ShowOwnedMessageBox(Resources.MSGSaveBeforeWritingData);
                         return;
                     }
                     try
@@ -1332,7 +1298,7 @@ namespace BecquerelMonitor
                         PolynomialEnergyCalibration polynomialEnergyCalibration = rc_config.RC_EnergyCalibration;
                         if (polynomialEnergyCalibration == null)
                         {
-                            MessageBox.Show(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + "Empty calibration");
+                            ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + "Empty calibration");
                             return;
                         }
 
@@ -1389,16 +1355,16 @@ namespace BecquerelMonitor
                         Cursor.Current = Cursors.Default;
                         if (commands_accepted)
                         {
-                            MessageBox.Show(Resources.MSGCoefficientsUploadedSuccesfull);
+                            ShowOwnedMessageBox(Resources.MSGCoefficientsUploadedSuccesfull);
                         }
                         else
                         {
-                            MessageBox.Show(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + status_msg);
+                            ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + status_msg);
                         }
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + ex.Message);
+                        ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + ex.Message);
                     }
                 }
 
@@ -1748,7 +1714,7 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            this.tabControl1.SelectedIndex = 1;
+            this.tabControl1.SelectedTab = this.tabPage3;
             TextBox lowerThresholdTextBox = this.inputDeviceForm.LowerThresholdTextBox;
             if (lowerThresholdTextBox != null)
             {
@@ -1778,7 +1744,7 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            this.tabControl1.SelectedIndex = 1;
+            this.tabControl1.SelectedTab = this.tabPage3;
             TextBox upperThresholdTextBox = this.inputDeviceForm.UpperThresholdTextBox;
             if (upperThresholdTextBox != null)
             {
@@ -1808,7 +1774,7 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            this.tabControl1.SelectedIndex = 3;
+            this.tabControl1.SelectedTab = this.tabPage2;
         }
 
         // Token: 0x06000541 RID: 1345 RVA: 0x00022514 File Offset: 0x00020714
@@ -1823,24 +1789,8 @@ namespace BecquerelMonitor
             this.SetActiveDeviceConfigDirty();
         }
 
-        // Token: 0x06000543 RID: 1347 RVA: 0x000225FC File Offset: 0x000207FC
-        void numericUpDown5_ValueChanged(object sender, EventArgs e)
-        {
-            this.SetActiveDeviceConfigDirty();
-        }
-
         // Token: 0x06000544 RID: 1348 RVA: 0x00022604 File Offset: 0x00020804
         void numericUpDown6_ValueChanged(object sender, EventArgs e)
-        {
-            this.SetActiveDeviceConfigDirty();
-        }
-
-        void numericUpDown10_ValueChanged(object sender, EventArgs e)
-        {
-            this.SetActiveDeviceConfigDirty();
-        }
-
-        void numericUpDown11_ValueChanged(object sender, EventArgs e)
         {
             this.SetActiveDeviceConfigDirty();
         }
@@ -1971,6 +1921,23 @@ namespace BecquerelMonitor
             }
             //System.Windows.Forms.MessageBox.Show("Error while converting text to double: " + str);
             throw new Exception();
+        }
+
+        void ShowOwnedMessageBox(string message)
+        {
+            if (this.IsDisposed)
+            {
+                return;
+            }
+            if (this.InvokeRequired)
+            {
+                this.Invoke((MethodInvoker)delegate
+                {
+                    ShowOwnedMessageBox(message);
+                });
+                return;
+            }
+            MessageBox.Show(this, message);
         }
 
         // Token: 0x0600054A RID: 1354 RVA: 0x000227F0 File Offset: 0x000209F0

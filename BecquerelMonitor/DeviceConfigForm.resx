@@ -537,6 +537,9 @@
   <data name="label1.Text" xml:space="preserve">
     <value>Thermometer Type</value>
   </data>
+  <data name="label1.Visible" type="System.Boolean, mscorlib">
+    <value>False</value>
+  </data>
   <data name="&gt;&gt;label1.Name" xml:space="preserve">
     <value>label1</value>
   </data>
@@ -557,6 +560,9 @@
   </data>
   <data name="comboBox1.TabIndex" type="System.Int32, mscorlib">
     <value>91</value>
+  </data>
+  <data name="comboBox1.Visible" type="System.Boolean, mscorlib">
+    <value>False</value>
   </data>
   <data name="&gt;&gt;comboBox1.Name" xml:space="preserve">
     <value>comboBox1</value>
@@ -616,7 +622,7 @@
     <value>doubleTextBox6</value>
   </data>
   <data name="&gt;&gt;doubleTextBox6.Type" xml:space="preserve">
-    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;doubleTextBox6.Parent" xml:space="preserve">
     <value>tabPage1</value>
@@ -640,7 +646,7 @@
     <value>integerTextBox1</value>
   </data>
   <data name="&gt;&gt;integerTextBox1.Type" xml:space="preserve">
-    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.IntegerTextBox, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;integerTextBox1.Parent" xml:space="preserve">
     <value>tabPage1</value>
@@ -664,7 +670,7 @@
     <value>doubleTextBox5</value>
   </data>
   <data name="&gt;&gt;doubleTextBox5.Type" xml:space="preserve">
-    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.DoubleTextBox, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;doubleTextBox5.Parent" xml:space="preserve">
     <value>tabPage1</value>
@@ -895,7 +901,7 @@
     <value>3, 3, 3, 3</value>
   </data>
   <data name="tabPage1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>471, 599</value>
+    <value>490, 599</value>
   </data>
   <data name="tabPage1.TabIndex" type="System.Int32, mscorlib">
     <value>0</value>
@@ -922,7 +928,7 @@
     <value>3, 3, 3, 3</value>
   </data>
   <data name="tabPage3.Size" type="System.Drawing.Size, System.Drawing">
-    <value>471, 599</value>
+    <value>490, 599</value>
   </data>
   <data name="tabPage3.TabIndex" type="System.Int32, mscorlib">
     <value>2</value>
@@ -949,7 +955,7 @@
     <value>3, 3, 3, 3</value>
   </data>
   <data name="tabPage6.Size" type="System.Drawing.Size, System.Drawing">
-    <value>471, 599</value>
+    <value>490, 599</value>
   </data>
   <data name="tabPage6.TabIndex" type="System.Int32, mscorlib">
     <value>5</value>
@@ -1066,7 +1072,7 @@
     <value>table3</value>
   </data>
   <data name="&gt;&gt;table3.Type" xml:space="preserve">
-    <value>XPTable.Models.Table, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.Table, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;table3.Parent" xml:space="preserve">
     <value>panel2</value>
@@ -1210,7 +1216,7 @@
     <value>table2</value>
   </data>
   <data name="&gt;&gt;table2.Type" xml:space="preserve">
-    <value>XPTable.Models.Table, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.Table, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;table2.Parent" xml:space="preserve">
     <value>panel1</value>
@@ -1948,7 +1954,7 @@
     <value>5</value>
   </data>
   <data name="peakSpecgroupBox.Location" type="System.Drawing.Point, System.Drawing">
-    <value>17, 222</value>
+    <value>17, 189</value>
   </data>
   <data name="peakSpecgroupBox.Size" type="System.Drawing.Size, System.Drawing">
     <value>440, 94</value>
@@ -2011,7 +2017,7 @@
     <value>NoControl</value>
   </data>
   <data name="label42.Location" type="System.Drawing.Point, System.Drawing">
-    <value>192, 116</value>
+    <value>192, 90</value>
   </data>
   <data name="label42.Size" type="System.Drawing.Size, System.Drawing">
     <value>15, 13</value>
@@ -2059,7 +2065,7 @@
     <value>2</value>
   </data>
   <data name="numericUpDown6.Location" type="System.Drawing.Point, System.Drawing">
-    <value>118, 114</value>
+    <value>118, 87</value>
   </data>
   <data name="numericUpDown6.Size" type="System.Drawing.Size, System.Drawing">
     <value>73, 20</value>
@@ -2113,7 +2119,7 @@
     <value>NoControl</value>
   </data>
   <data name="label41.Location" type="System.Drawing.Point, System.Drawing">
-    <value>18, 116</value>
+    <value>18, 89</value>
   </data>
   <data name="label41.Size" type="System.Drawing.Size, System.Drawing">
     <value>55, 13</value>
@@ -2166,120 +2172,6 @@
   <data name="&gt;&gt;label39.ZOrder" xml:space="preserve">
     <value>6</value>
   </data>
-  <data name="numericUpDown5.Location" type="System.Drawing.Point, System.Drawing">
-    <value>118, 87</value>
-  </data>
-  <data name="numericUpDown5.Size" type="System.Drawing.Size, System.Drawing">
-    <value>73, 20</value>
-  </data>
-  <data name="numericUpDown5.TabIndex" type="System.Int32, mscorlib">
-    <value>14</value>
-  </data>
-  <data name="numericUpDown5.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
-  </data>
-  <data name="&gt;&gt;numericUpDown5.Name" xml:space="preserve">
-    <value>numericUpDown5</value>
-  </data>
-  <data name="&gt;&gt;numericUpDown5.Type" xml:space="preserve">
-    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;numericUpDown5.Parent" xml:space="preserve">
-    <value>groupBox2</value>
-  </data>
-  <data name="&gt;&gt;numericUpDown5.ZOrder" xml:space="preserve">
-    <value>7</value>
-  </data>
-  <data name="label38.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="label38.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="label38.Location" type="System.Drawing.Point, System.Drawing">
-    <value>18, 89</value>
-  </data>
-  <data name="label38.Size" type="System.Drawing.Size, System.Drawing">
-    <value>77, 13</value>
-  </data>
-  <data name="label38.TabIndex" type="System.Int32, mscorlib">
-    <value>12</value>
-  </data>
-  <data name="label38.Text" xml:space="preserve">
-    <value>FWHM at 0 ch</value>
-  </data>
-  <data name="&gt;&gt;label38.Name" xml:space="preserve">
-    <value>label38</value>
-  </data>
-  <data name="&gt;&gt;label38.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;label38.Parent" xml:space="preserve">
-    <value>groupBox2</value>
-  </data>
-  <data name="&gt;&gt;label38.ZOrder" xml:space="preserve">
-    <value>8</value>
-  </data>
-  <data name="label45.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="label45.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="label45.Location" type="System.Drawing.Point, System.Drawing">
-    <value>208, 35</value>
-  </data>
-  <data name="label45.Size" type="System.Drawing.Size, System.Drawing">
-    <value>94, 13</value>
-  </data>
-  <data name="label45.TabIndex" type="System.Int32, mscorlib">
-    <value>10</value>
-  </data>
-  <data name="label45.Text" xml:space="preserve">
-    <value>FWHM peak in ch</value>
-  </data>
-  <data name="&gt;&gt;label45.Name" xml:space="preserve">
-    <value>label45</value>
-  </data>
-  <data name="&gt;&gt;label45.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;label45.Parent" xml:space="preserve">
-    <value>groupBox2</value>
-  </data>
-  <data name="&gt;&gt;label45.ZOrder" xml:space="preserve">
-    <value>9</value>
-  </data>
-  <data name="label46.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="label46.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="label46.Location" type="System.Drawing.Point, System.Drawing">
-    <value>208, 62</value>
-  </data>
-  <data name="label46.Size" type="System.Drawing.Size, System.Drawing">
-    <value>94, 13</value>
-  </data>
-  <data name="label46.TabIndex" type="System.Int32, mscorlib">
-    <value>10</value>
-  </data>
-  <data name="label46.Text" xml:space="preserve">
-    <value>FW peak width ch</value>
-  </data>
-  <data name="&gt;&gt;label46.Name" xml:space="preserve">
-    <value>label46</value>
-  </data>
-  <data name="&gt;&gt;label46.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;label46.Parent" xml:space="preserve">
-    <value>groupBox2</value>
-  </data>
-  <data name="&gt;&gt;label46.ZOrder" xml:space="preserve">
-    <value>10</value>
-  </data>
   <data name="label47.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
@@ -2287,7 +2179,7 @@
     <value>NoControl</value>
   </data>
   <data name="label47.Location" type="System.Drawing.Point, System.Drawing">
-    <value>208, 89</value>
+    <value>225, 36</value>
   </data>
   <data name="label47.Size" type="System.Drawing.Size, System.Drawing">
     <value>76, 13</value>
@@ -2308,7 +2200,7 @@
     <value>groupBox2</value>
   </data>
   <data name="&gt;&gt;label47.ZOrder" xml:space="preserve">
-    <value>11</value>
+    <value>7</value>
   </data>
   <data name="label48.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -2317,7 +2209,7 @@
     <value>NoControl</value>
   </data>
   <data name="label48.Location" type="System.Drawing.Point, System.Drawing">
-    <value>208, 116</value>
+    <value>225, 63</value>
   </data>
   <data name="label48.Size" type="System.Drawing.Size, System.Drawing">
     <value>79, 13</value>
@@ -2338,7 +2230,7 @@
     <value>groupBox2</value>
   </data>
   <data name="&gt;&gt;label48.ZOrder" xml:space="preserve">
-    <value>12</value>
+    <value>8</value>
   </data>
   <data name="label50.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -2347,7 +2239,7 @@
     <value>NoControl</value>
   </data>
   <data name="label50.Location" type="System.Drawing.Point, System.Drawing">
-    <value>18, 142</value>
+    <value>18, 115</value>
   </data>
   <data name="label50.Size" type="System.Drawing.Size, System.Drawing">
     <value>82, 13</value>
@@ -2368,7 +2260,7 @@
     <value>groupBox2</value>
   </data>
   <data name="&gt;&gt;label50.ZOrder" xml:space="preserve">
-    <value>13</value>
+    <value>9</value>
   </data>
   <data name="label51.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -2377,7 +2269,7 @@
     <value>NoControl</value>
   </data>
   <data name="label51.Location" type="System.Drawing.Point, System.Drawing">
-    <value>18, 168</value>
+    <value>18, 141</value>
   </data>
   <data name="label51.Size" type="System.Drawing.Size, System.Drawing">
     <value>85, 13</value>
@@ -2398,7 +2290,7 @@
     <value>groupBox2</value>
   </data>
   <data name="&gt;&gt;label51.ZOrder" xml:space="preserve">
-    <value>14</value>
+    <value>10</value>
   </data>
   <data name="label52.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -2407,7 +2299,7 @@
     <value>NoControl</value>
   </data>
   <data name="label52.Location" type="System.Drawing.Point, System.Drawing">
-    <value>208, 143</value>
+    <value>225, 90</value>
   </data>
   <data name="label52.Size" type="System.Drawing.Size, System.Drawing">
     <value>105, 13</value>
@@ -2428,58 +2320,10 @@
     <value>groupBox2</value>
   </data>
   <data name="&gt;&gt;label52.ZOrder" xml:space="preserve">
-    <value>15</value>
-  </data>
-  <data name="numericUpDown10.Location" type="System.Drawing.Point, System.Drawing">
-    <value>330, 32</value>
-  </data>
-  <data name="numericUpDown10.Size" type="System.Drawing.Size, System.Drawing">
-    <value>73, 20</value>
-  </data>
-  <data name="numericUpDown10.TabIndex" type="System.Int32, mscorlib">
-    <value>7</value>
-  </data>
-  <data name="numericUpDown10.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
-  </data>
-  <data name="&gt;&gt;numericUpDown10.Name" xml:space="preserve">
-    <value>numericUpDown10</value>
-  </data>
-  <data name="&gt;&gt;numericUpDown10.Type" xml:space="preserve">
-    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;numericUpDown10.Parent" xml:space="preserve">
-    <value>groupBox2</value>
-  </data>
-  <data name="&gt;&gt;numericUpDown10.ZOrder" xml:space="preserve">
-    <value>16</value>
-  </data>
-  <data name="numericUpDown11.Location" type="System.Drawing.Point, System.Drawing">
-    <value>330, 60</value>
-  </data>
-  <data name="numericUpDown11.Size" type="System.Drawing.Size, System.Drawing">
-    <value>73, 20</value>
-  </data>
-  <data name="numericUpDown11.TabIndex" type="System.Int32, mscorlib">
-    <value>7</value>
-  </data>
-  <data name="numericUpDown11.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
-  </data>
-  <data name="&gt;&gt;numericUpDown11.Name" xml:space="preserve">
-    <value>numericUpDown11</value>
-  </data>
-  <data name="&gt;&gt;numericUpDown11.Type" xml:space="preserve">
-    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;numericUpDown11.Parent" xml:space="preserve">
-    <value>groupBox2</value>
-  </data>
-  <data name="&gt;&gt;numericUpDown11.ZOrder" xml:space="preserve">
-    <value>17</value>
+    <value>11</value>
   </data>
   <data name="numericUpDown12.Location" type="System.Drawing.Point, System.Drawing">
-    <value>330, 87</value>
+    <value>347, 34</value>
   </data>
   <data name="numericUpDown12.Size" type="System.Drawing.Size, System.Drawing">
     <value>73, 20</value>
@@ -2500,10 +2344,10 @@
     <value>groupBox2</value>
   </data>
   <data name="&gt;&gt;numericUpDown12.ZOrder" xml:space="preserve">
-    <value>18</value>
+    <value>12</value>
   </data>
   <data name="numericUpDown13.Location" type="System.Drawing.Point, System.Drawing">
-    <value>330, 114</value>
+    <value>347, 61</value>
   </data>
   <data name="numericUpDown13.Size" type="System.Drawing.Size, System.Drawing">
     <value>73, 20</value>
@@ -2524,10 +2368,10 @@
     <value>groupBox2</value>
   </data>
   <data name="&gt;&gt;numericUpDown13.ZOrder" xml:space="preserve">
-    <value>19</value>
+    <value>13</value>
   </data>
   <data name="numericUpDown14.Location" type="System.Drawing.Point, System.Drawing">
-    <value>118, 141</value>
+    <value>118, 114</value>
   </data>
   <data name="numericUpDown14.Size" type="System.Drawing.Size, System.Drawing">
     <value>73, 20</value>
@@ -2548,10 +2392,10 @@
     <value>groupBox2</value>
   </data>
   <data name="&gt;&gt;numericUpDown14.ZOrder" xml:space="preserve">
-    <value>20</value>
+    <value>14</value>
   </data>
   <data name="numericUpDown15.Location" type="System.Drawing.Point, System.Drawing">
-    <value>118, 168</value>
+    <value>118, 141</value>
   </data>
   <data name="numericUpDown15.Size" type="System.Drawing.Size, System.Drawing">
     <value>73, 20</value>
@@ -2572,10 +2416,10 @@
     <value>groupBox2</value>
   </data>
   <data name="&gt;&gt;numericUpDown15.ZOrder" xml:space="preserve">
-    <value>21</value>
+    <value>15</value>
   </data>
   <data name="numericUpDown16.Location" type="System.Drawing.Point, System.Drawing">
-    <value>330, 141</value>
+    <value>347, 88</value>
   </data>
   <data name="numericUpDown16.Size" type="System.Drawing.Size, System.Drawing">
     <value>73, 20</value>
@@ -2596,13 +2440,13 @@
     <value>groupBox2</value>
   </data>
   <data name="&gt;&gt;numericUpDown16.ZOrder" xml:space="preserve">
-    <value>22</value>
+    <value>16</value>
   </data>
   <data name="groupBox2.Location" type="System.Drawing.Point, System.Drawing">
     <value>17, 10</value>
   </data>
   <data name="groupBox2.Size" type="System.Drawing.Size, System.Drawing">
-    <value>441, 206</value>
+    <value>441, 175</value>
   </data>
   <data name="groupBox2.TabIndex" type="System.Int32, mscorlib">
     <value>19</value>
@@ -2622,51 +2466,6 @@
   <data name="&gt;&gt;groupBox2.ZOrder" xml:space="preserve">
     <value>1</value>
   </data>
-  <data name="label49.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
-    <value>Top, Left, Right</value>
-  </data>
-  <data name="label49.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="label49.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="label49.Location" type="System.Drawing.Point, System.Drawing">
-    <value>14, 330</value>
-  </data>
-  <data name="label49.MaximumSize" type="System.Drawing.Size, System.Drawing">
-    <value>440, 0</value>
-  </data>
-  <data name="label49.Size" type="System.Drawing.Size, System.Drawing">
-    <value>440, 221</value>
-  </data>
-  <data name="label49.TabIndex" type="System.Int32, mscorlib">
-    <value>10</value>
-  </data>
-  <data name="label49.Text" xml:space="preserve">
-    <value>How to set Peak Detection values:
-
-FWHM at 0 ch - Should be selected according to your fwhm as close to 0 keV as possible. Select such a peak with the mouse and enter a value slightly less, than "FWHM ch" in this setting.
-
-FWHM peak in ch - Choose peak in the center of the spectrum. The K-40 peak should be great. Enter the value of center position in the channels.
-
-FW peak width ch - The width of the peak in channels. Select peak from the "FWHM peak in ch" parameter with the mouse and enter the
- value "FWHM ch" here.
-
-Concat channels ch - how many channels in spectrum will be used during peak detection. Value should be between 256 and maxumum channels for this particular device. WARNING! Incresing channel number DRAMATICALLY slows your performance! Recommended values 512 or 1024.</value>
-  </data>
-  <data name="&gt;&gt;label49.Name" xml:space="preserve">
-    <value>label49</value>
-  </data>
-  <data name="&gt;&gt;label49.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;label49.Parent" xml:space="preserve">
-    <value>tabPage5</value>
-  </data>
-  <data name="&gt;&gt;label49.ZOrder" xml:space="preserve">
-    <value>2</value>
-  </data>
   <data name="tabPage5.Location" type="System.Drawing.Point, System.Drawing">
     <value>4, 22</value>
   </data>
@@ -2674,7 +2473,7 @@ Concat channels ch - how many channels in spectrum will be used during peak dete
     <value>3, 3, 3, 3</value>
   </data>
   <data name="tabPage5.Size" type="System.Drawing.Size, System.Drawing">
-    <value>471, 599</value>
+    <value>490, 599</value>
   </data>
   <data name="tabPage5.TabIndex" type="System.Int32, mscorlib">
     <value>4</value>
@@ -2917,7 +2716,7 @@ Concat channels ch - how many channels in spectrum will be used during peak dete
     <value>3, 3, 3, 3</value>
   </data>
   <data name="tabPage4.Size" type="System.Drawing.Size, System.Drawing">
-    <value>471, 599</value>
+    <value>490, 599</value>
   </data>
   <data name="tabPage4.TabIndex" type="System.Int32, mscorlib">
     <value>3</value>
@@ -2998,7 +2797,7 @@ Concat channels ch - how many channels in spectrum will be used during peak dete
     <value>table4</value>
   </data>
   <data name="&gt;&gt;table4.Type" xml:space="preserve">
-    <value>XPTable.Models.Table, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.Table, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;table4.Parent" xml:space="preserve">
     <value>groupBox3</value>
@@ -3289,7 +3088,7 @@ Concat channels ch - how many channels in spectrum will be used during peak dete
     <value>3, 3, 3, 3</value>
   </data>
   <data name="tabPage7.Size" type="System.Drawing.Size, System.Drawing">
-    <value>471, 599</value>
+    <value>490, 599</value>
   </data>
   <data name="tabPage7.TabIndex" type="System.Int32, mscorlib">
     <value>5</value>
@@ -3406,7 +3205,7 @@ Concat channels ch - how many channels in spectrum will be used during peak dete
     <value>table1</value>
   </data>
   <data name="&gt;&gt;table1.Type" xml:space="preserve">
-    <value>XPTable.Models.Table, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.Table, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;table1.Parent" xml:space="preserve">
     <value>$this</value>
@@ -7695,9 +7494,6 @@ Concat channels ch - how many channels in spectrum will be used during peak dete
         nR7OG23/P+lc/Y4dBvlpAAAAAElFTkSuQmCC
 </value>
   </data>
-  <data name="$this.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
   <data name="$this.MinimumSize" type="System.Drawing.Size, System.Drawing">
     <value>640, 690</value>
   </data>
@@ -7708,121 +7504,121 @@ Concat channels ch - how many channels in spectrum will be used during peak dete
     <value>columnModel3</value>
   </data>
   <data name="&gt;&gt;columnModel3.Type" xml:space="preserve">
-    <value>XPTable.Models.ColumnModel, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.ColumnModel, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;textColumn4.Name" xml:space="preserve">
     <value>textColumn4</value>
   </data>
   <data name="&gt;&gt;textColumn4.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;numberColumn3.Name" xml:space="preserve">
     <value>numberColumn3</value>
   </data>
   <data name="&gt;&gt;numberColumn3.Type" xml:space="preserve">
-    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;numberColumn4.Name" xml:space="preserve">
     <value>numberColumn4</value>
   </data>
   <data name="&gt;&gt;numberColumn4.Type" xml:space="preserve">
-    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;tableModel3.Name" xml:space="preserve">
     <value>tableModel3</value>
   </data>
   <data name="&gt;&gt;tableModel3.Type" xml:space="preserve">
-    <value>XPTable.Models.TableModel, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.TableModel, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;columnModel2.Name" xml:space="preserve">
     <value>columnModel2</value>
   </data>
   <data name="&gt;&gt;columnModel2.Type" xml:space="preserve">
-    <value>XPTable.Models.ColumnModel, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.ColumnModel, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;textColumn3.Name" xml:space="preserve">
     <value>textColumn3</value>
   </data>
   <data name="&gt;&gt;textColumn3.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;numberColumn2.Name" xml:space="preserve">
     <value>numberColumn2</value>
   </data>
   <data name="&gt;&gt;numberColumn2.Type" xml:space="preserve">
-    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;numberColumn1.Name" xml:space="preserve">
     <value>numberColumn1</value>
   </data>
   <data name="&gt;&gt;numberColumn1.Type" xml:space="preserve">
-    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;tableModel2.Name" xml:space="preserve">
     <value>tableModel2</value>
   </data>
   <data name="&gt;&gt;tableModel2.Type" xml:space="preserve">
-    <value>XPTable.Models.TableModel, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.TableModel, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;columnModel4.Name" xml:space="preserve">
     <value>columnModel4</value>
   </data>
   <data name="&gt;&gt;columnModel4.Type" xml:space="preserve">
-    <value>XPTable.Models.ColumnModel, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.ColumnModel, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;numberColumn5.Name" xml:space="preserve">
     <value>numberColumn5</value>
   </data>
   <data name="&gt;&gt;numberColumn5.Type" xml:space="preserve">
-    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;numberColumn6.Name" xml:space="preserve">
     <value>numberColumn6</value>
   </data>
   <data name="&gt;&gt;numberColumn6.Type" xml:space="preserve">
-    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;numberColumn7.Name" xml:space="preserve">
     <value>numberColumn7</value>
   </data>
   <data name="&gt;&gt;numberColumn7.Type" xml:space="preserve">
-    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;numberColumn8.Name" xml:space="preserve">
     <value>numberColumn8</value>
   </data>
   <data name="&gt;&gt;numberColumn8.Type" xml:space="preserve">
-    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;tableModel4.Name" xml:space="preserve">
     <value>tableModel4</value>
   </data>
   <data name="&gt;&gt;tableModel4.Type" xml:space="preserve">
-    <value>XPTable.Models.TableModel, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.TableModel, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;columnModel1.Name" xml:space="preserve">
     <value>columnModel1</value>
   </data>
   <data name="&gt;&gt;columnModel1.Type" xml:space="preserve">
-    <value>XPTable.Models.ColumnModel, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.ColumnModel, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;textColumn1.Name" xml:space="preserve">
     <value>textColumn1</value>
   </data>
   <data name="&gt;&gt;textColumn1.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;textColumn2.Name" xml:space="preserve">
     <value>textColumn2</value>
   </data>
   <data name="&gt;&gt;textColumn2.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;tableModel1.Name" xml:space="preserve">
     <value>tableModel1</value>
   </data>
   <data name="&gt;&gt;tableModel1.Type" xml:space="preserve">
-    <value>XPTable.Models.TableModel, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.TableModel, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;$this.Name" xml:space="preserve">
     <value>DeviceConfigForm</value>

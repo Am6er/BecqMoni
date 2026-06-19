@@ -52,6 +52,9 @@ namespace BecquerelMonitor
             this.label1 = new System.Windows.Forms.Label();
             this.comboBox1 = new System.Windows.Forms.ComboBox();
             this.label21 = new System.Windows.Forms.Label();
+            this.doubleTextBox6 = new BecquerelMonitor.DoubleTextBox();
+            this.integerTextBox1 = new BecquerelMonitor.IntegerTextBox();
+            this.doubleTextBox5 = new BecquerelMonitor.DoubleTextBox();
             this.label28 = new System.Windows.Forms.Label();
             this.label27 = new System.Windows.Forms.Label();
             this.label26 = new System.Windows.Forms.Label();
@@ -66,9 +69,21 @@ namespace BecquerelMonitor
             this.panel2 = new System.Windows.Forms.Panel();
             this.button10 = new System.Windows.Forms.Button();
             this.button2 = new System.Windows.Forms.Button();
+            this.table3 = new XPTable.Models.Table();
+            this.columnModel3 = new XPTable.Models.ColumnModel();
+            this.textColumn4 = new XPTable.Models.TextColumn();
+            this.numberColumn3 = new XPTable.Models.NumberColumn();
+            this.numberColumn4 = new XPTable.Models.NumberColumn();
+            this.tableModel3 = new XPTable.Models.TableModel();
             this.label19 = new System.Windows.Forms.Label();
             this.label9 = new System.Windows.Forms.Label();
             this.panel1 = new System.Windows.Forms.Panel();
+            this.table2 = new XPTable.Models.Table();
+            this.columnModel2 = new XPTable.Models.ColumnModel();
+            this.textColumn3 = new XPTable.Models.TextColumn();
+            this.numberColumn2 = new XPTable.Models.NumberColumn();
+            this.numberColumn1 = new XPTable.Models.NumberColumn();
+            this.tableModel2 = new XPTable.Models.TableModel();
             this.button9 = new System.Windows.Forms.Button();
             this.button8 = new System.Windows.Forms.Button();
             this.button1 = new System.Windows.Forms.Button();
@@ -104,23 +119,16 @@ namespace BecquerelMonitor
             this.numericUpDown3 = new System.Windows.Forms.NumericUpDown();
             this.label41 = new System.Windows.Forms.Label();
             this.label39 = new System.Windows.Forms.Label();
-            this.numericUpDown5 = new System.Windows.Forms.NumericUpDown();
-            this.label38 = new System.Windows.Forms.Label();
-            this.label45 = new System.Windows.Forms.Label();
-            this.label46 = new System.Windows.Forms.Label();
             this.label47 = new System.Windows.Forms.Label();
             this.label48 = new System.Windows.Forms.Label();
             this.label50 = new System.Windows.Forms.Label();
             this.label51 = new System.Windows.Forms.Label();
             this.label52 = new System.Windows.Forms.Label();
-            this.numericUpDown10 = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDown11 = new System.Windows.Forms.NumericUpDown();
             this.numericUpDown12 = new System.Windows.Forms.NumericUpDown();
             this.numericUpDown13 = new System.Windows.Forms.NumericUpDown();
             this.numericUpDown14 = new System.Windows.Forms.NumericUpDown();
             this.numericUpDown15 = new System.Windows.Forms.NumericUpDown();
             this.numericUpDown16 = new System.Windows.Forms.NumericUpDown();
-            this.label49 = new System.Windows.Forms.Label();
             this.tabPage4 = new System.Windows.Forms.TabPage();
             this.label31 = new System.Windows.Forms.Label();
             this.label16 = new System.Windows.Forms.Label();
@@ -132,6 +140,13 @@ namespace BecquerelMonitor
             this.clearEffROI = new System.Windows.Forms.Button();
             this.tabPage7 = new System.Windows.Forms.TabPage();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
+            this.table4 = new XPTable.Models.Table();
+            this.columnModel4 = new XPTable.Models.ColumnModel();
+            this.numberColumn5 = new XPTable.Models.NumberColumn();
+            this.numberColumn6 = new XPTable.Models.NumberColumn();
+            this.numberColumn7 = new XPTable.Models.NumberColumn();
+            this.numberColumn8 = new XPTable.Models.NumberColumn();
+            this.tableModel4 = new XPTable.Models.TableModel();
             this.labelDREstimateTitle = new System.Windows.Forms.Label();
             this.textBoxEffFile = new System.Windows.Forms.TextBox();
             this.textBoxDoseRateSpectrumFile = new System.Windows.Forms.TextBox();
@@ -143,28 +158,6 @@ namespace BecquerelMonitor
             this.labelSpectrumNote = new System.Windows.Forms.Label();
             this.buttonLoadDoseRateSpectrum = new System.Windows.Forms.Button();
             this.button12 = new System.Windows.Forms.Button();
-            this.doubleTextBox6 = new BecquerelMonitor.DoubleTextBox();
-            this.integerTextBox1 = new BecquerelMonitor.IntegerTextBox();
-            this.doubleTextBox5 = new BecquerelMonitor.DoubleTextBox();
-            this.table3 = new XPTable.Models.Table();
-            this.columnModel3 = new XPTable.Models.ColumnModel();
-            this.textColumn4 = new XPTable.Models.TextColumn();
-            this.numberColumn3 = new XPTable.Models.NumberColumn();
-            this.numberColumn4 = new XPTable.Models.NumberColumn();
-            this.tableModel3 = new XPTable.Models.TableModel();
-            this.table2 = new XPTable.Models.Table();
-            this.columnModel2 = new XPTable.Models.ColumnModel();
-            this.textColumn3 = new XPTable.Models.TextColumn();
-            this.numberColumn2 = new XPTable.Models.NumberColumn();
-            this.numberColumn1 = new XPTable.Models.NumberColumn();
-            this.tableModel2 = new XPTable.Models.TableModel();
-            this.table4 = new XPTable.Models.Table();
-            this.columnModel4 = new XPTable.Models.ColumnModel();
-            this.numberColumn5 = new XPTable.Models.NumberColumn();
-            this.numberColumn6 = new XPTable.Models.NumberColumn();
-            this.numberColumn7 = new XPTable.Models.NumberColumn();
-            this.numberColumn8 = new XPTable.Models.NumberColumn();
-            this.tableModel4 = new XPTable.Models.TableModel();
             this.table1 = new XPTable.Models.Table();
             this.columnModel1 = new XPTable.Models.ColumnModel();
             this.textColumn1 = new XPTable.Models.TextColumn();
@@ -174,7 +167,9 @@ namespace BecquerelMonitor
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
             this.panel2.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.table3)).BeginInit();
             this.panel1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.table2)).BeginInit();
             this.groupBox1.SuspendLayout();
             this.tabPage5.SuspendLayout();
             this.peakSpecgroupBox.SuspendLayout();
@@ -184,9 +179,6 @@ namespace BecquerelMonitor
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown4)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown6)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown3)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown5)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown10)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown11)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown12)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown13)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown14)).BeginInit();
@@ -195,10 +187,8 @@ namespace BecquerelMonitor
             this.tabPage4.SuspendLayout();
             this.tabPage7.SuspendLayout();
             this.groupBox3.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.upDownDoseRateValue)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.table3)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.table2)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.table4)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.upDownDoseRateValue)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.table1)).BeginInit();
             this.SuspendLayout();
             // 
@@ -347,6 +337,24 @@ namespace BecquerelMonitor
             resources.ApplyResources(this.label21, "label21");
             this.label21.Name = "label21";
             // 
+            // doubleTextBox6
+            // 
+            resources.ApplyResources(this.doubleTextBox6, "doubleTextBox6");
+            this.doubleTextBox6.Name = "doubleTextBox6";
+            this.doubleTextBox6.TextChanged += new System.EventHandler(this.doubleTextBox6_TextChanged);
+            // 
+            // integerTextBox1
+            // 
+            resources.ApplyResources(this.integerTextBox1, "integerTextBox1");
+            this.integerTextBox1.Name = "integerTextBox1";
+            this.integerTextBox1.TextChanged += new System.EventHandler(this.integerTextBox1_TextChanged);
+            // 
+            // doubleTextBox5
+            // 
+            resources.ApplyResources(this.doubleTextBox5, "doubleTextBox5");
+            this.doubleTextBox5.Name = "doubleTextBox5";
+            this.doubleTextBox5.TextChanged += new System.EventHandler(this.doubleTextBox5_TextChanged);
+            // 
             // label28
             // 
             resources.ApplyResources(this.label28, "label28");
@@ -442,6 +450,54 @@ namespace BecquerelMonitor
             this.button2.UseVisualStyleBackColor = true;
             this.button2.Click += new System.EventHandler(this.button2_Click);
             // 
+            // table3
+            // 
+            this.table3.BorderColor = System.Drawing.Color.Black;
+            this.table3.ColumnModel = this.columnModel3;
+            this.table3.DataMember = null;
+            this.table3.DataSourceColumnBinder = dataSourceColumnBinder1;
+            dragDropRenderer1.ForeColor = System.Drawing.Color.Red;
+            this.table3.DragDropRenderer = dragDropRenderer1;
+            this.table3.FullRowSelect = true;
+            this.table3.GridLines = XPTable.Models.GridLines.Both;
+            this.table3.GridLinesContrainedToData = false;
+            this.table3.HeaderFont = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            resources.ApplyResources(this.table3, "table3");
+            this.table3.Name = "table3";
+            this.table3.TableModel = this.tableModel3;
+            this.table3.UnfocusedBorderColor = System.Drawing.Color.Black;
+            this.table3.EditingStopped += new XPTable.Events.CellEditEventHandler(this.table3_EditingStopped);
+            // 
+            // columnModel3
+            // 
+            this.columnModel3.Columns.AddRange(new XPTable.Models.Column[] {
+            ((XPTable.Models.Column)(this.textColumn4)),
+            ((XPTable.Models.Column)(this.numberColumn3)),
+            ((XPTable.Models.Column)(this.numberColumn4))});
+            // 
+            // textColumn4
+            // 
+            this.textColumn4.IsTextTrimmed = false;
+            this.textColumn4.Sortable = false;
+            resources.ApplyResources(this.textColumn4, "textColumn4");
+            // 
+            // numberColumn3
+            // 
+            this.numberColumn3.IsTextTrimmed = false;
+            this.numberColumn3.Maximum = new decimal(new int[] {
+            10000,
+            0,
+            0,
+            0});
+            this.numberColumn3.Sortable = false;
+            resources.ApplyResources(this.numberColumn3, "numberColumn3");
+            // 
+            // numberColumn4
+            // 
+            this.numberColumn4.IsTextTrimmed = false;
+            this.numberColumn4.Sortable = false;
+            resources.ApplyResources(this.numberColumn4, "numberColumn4");
+            // 
             // label19
             // 
             resources.ApplyResources(this.label19, "label19");
@@ -463,6 +519,61 @@ namespace BecquerelMonitor
             this.panel1.Controls.Add(this.button11);
             this.panel1.Controls.Add(this.label36);
             this.panel1.Name = "panel1";
+            // 
+            // table2
+            // 
+            this.table2.BorderColor = System.Drawing.Color.Black;
+            this.table2.ColumnModel = this.columnModel2;
+            this.table2.DataMember = null;
+            this.table2.DataSourceColumnBinder = dataSourceColumnBinder2;
+            dragDropRenderer2.ForeColor = System.Drawing.Color.Red;
+            this.table2.DragDropRenderer = dragDropRenderer2;
+            this.table2.FullRowSelect = true;
+            this.table2.GridLines = XPTable.Models.GridLines.Both;
+            this.table2.GridLinesContrainedToData = false;
+            this.table2.HeaderFont = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            resources.ApplyResources(this.table2, "table2");
+            this.table2.Name = "table2";
+            this.table2.TableModel = this.tableModel2;
+            this.table2.UnfocusedBorderColor = System.Drawing.Color.Black;
+            this.table2.EditingStopped += new XPTable.Events.CellEditEventHandler(this.table2_EditingStopped);
+            this.table2.SelectionChanged += new XPTable.Events.SelectionEventHandler(this.table2_SelectionChanged);
+            // 
+            // columnModel2
+            // 
+            this.columnModel2.Columns.AddRange(new XPTable.Models.Column[] {
+            ((XPTable.Models.Column)(this.textColumn3)),
+            ((XPTable.Models.Column)(this.numberColumn2)),
+            ((XPTable.Models.Column)(this.numberColumn1))});
+            // 
+            // textColumn3
+            // 
+            this.textColumn3.Editable = false;
+            this.textColumn3.IsTextTrimmed = false;
+            this.textColumn3.Sortable = false;
+            resources.ApplyResources(this.textColumn3, "textColumn3");
+            // 
+            // numberColumn2
+            // 
+            this.numberColumn2.IsTextTrimmed = false;
+            this.numberColumn2.Maximum = new decimal(new int[] {
+            65535,
+            0,
+            0,
+            0});
+            this.numberColumn2.Sortable = false;
+            resources.ApplyResources(this.numberColumn2, "numberColumn2");
+            // 
+            // numberColumn1
+            // 
+            this.numberColumn1.IsTextTrimmed = false;
+            this.numberColumn1.Minimum = new decimal(new int[] {
+            10000,
+            0,
+            0,
+            -2147483648});
+            this.numberColumn1.Sortable = false;
+            resources.ApplyResources(this.numberColumn1, "numberColumn1");
             // 
             // button9
             // 
@@ -603,7 +714,6 @@ namespace BecquerelMonitor
             this.tabPage5.BackColor = System.Drawing.SystemColors.Control;
             this.tabPage5.Controls.Add(this.peakSpecgroupBox);
             this.tabPage5.Controls.Add(this.groupBox2);
-            this.tabPage5.Controls.Add(this.label49);
             resources.ApplyResources(this.tabPage5, "tabPage5");
             this.tabPage5.Name = "tabPage5";
             // 
@@ -699,17 +809,11 @@ namespace BecquerelMonitor
             this.groupBox2.Controls.Add(this.numericUpDown3);
             this.groupBox2.Controls.Add(this.label41);
             this.groupBox2.Controls.Add(this.label39);
-            this.groupBox2.Controls.Add(this.numericUpDown5);
-            this.groupBox2.Controls.Add(this.label38);
-            this.groupBox2.Controls.Add(this.label45);
-            this.groupBox2.Controls.Add(this.label46);
             this.groupBox2.Controls.Add(this.label47);
             this.groupBox2.Controls.Add(this.label48);
             this.groupBox2.Controls.Add(this.label50);
             this.groupBox2.Controls.Add(this.label51);
             this.groupBox2.Controls.Add(this.label52);
-            this.groupBox2.Controls.Add(this.numericUpDown10);
-            this.groupBox2.Controls.Add(this.numericUpDown11);
             this.groupBox2.Controls.Add(this.numericUpDown12);
             this.groupBox2.Controls.Add(this.numericUpDown13);
             this.groupBox2.Controls.Add(this.numericUpDown14);
@@ -757,27 +861,6 @@ namespace BecquerelMonitor
             resources.ApplyResources(this.label39, "label39");
             this.label39.Name = "label39";
             // 
-            // numericUpDown5
-            // 
-            resources.ApplyResources(this.numericUpDown5, "numericUpDown5");
-            this.numericUpDown5.Name = "numericUpDown5";
-            this.numericUpDown5.ValueChanged += new System.EventHandler(this.numericUpDown5_ValueChanged);
-            // 
-            // label38
-            // 
-            resources.ApplyResources(this.label38, "label38");
-            this.label38.Name = "label38";
-            // 
-            // label45
-            // 
-            resources.ApplyResources(this.label45, "label45");
-            this.label45.Name = "label45";
-            // 
-            // label46
-            // 
-            resources.ApplyResources(this.label46, "label46");
-            this.label46.Name = "label46";
-            // 
             // label47
             // 
             resources.ApplyResources(this.label47, "label47");
@@ -802,18 +885,6 @@ namespace BecquerelMonitor
             // 
             resources.ApplyResources(this.label52, "label52");
             this.label52.Name = "label52";
-            // 
-            // numericUpDown10
-            // 
-            resources.ApplyResources(this.numericUpDown10, "numericUpDown10");
-            this.numericUpDown10.Name = "numericUpDown10";
-            this.numericUpDown10.ValueChanged += new System.EventHandler(this.numericUpDown10_ValueChanged);
-            // 
-            // numericUpDown11
-            // 
-            resources.ApplyResources(this.numericUpDown11, "numericUpDown11");
-            this.numericUpDown11.Name = "numericUpDown11";
-            this.numericUpDown11.ValueChanged += new System.EventHandler(this.numericUpDown11_ValueChanged);
             // 
             // numericUpDown12
             // 
@@ -844,11 +915,6 @@ namespace BecquerelMonitor
             resources.ApplyResources(this.numericUpDown16, "numericUpDown16");
             this.numericUpDown16.Name = "numericUpDown16";
             this.numericUpDown16.ValueChanged += new System.EventHandler(this.numericUpDown16_ValueChanged);
-            // 
-            // label49
-            // 
-            resources.ApplyResources(this.label49, "label49");
-            this.label49.Name = "label49";
             // 
             // tabPage4
             // 
@@ -939,6 +1005,80 @@ namespace BecquerelMonitor
             this.groupBox3.Name = "groupBox3";
             this.groupBox3.TabStop = false;
             // 
+            // table4
+            // 
+            this.table4.BorderColor = System.Drawing.Color.Black;
+            this.table4.ColumnModel = this.columnModel4;
+            this.table4.DataMember = null;
+            this.table4.DataSourceColumnBinder = dataSourceColumnBinder1;
+            this.table4.DragDropRenderer = dragDropRenderer1;
+            this.table4.FullRowSelect = true;
+            this.table4.GridLines = XPTable.Models.GridLines.Both;
+            this.table4.GridLinesContrainedToData = false;
+            this.table4.HeaderFont = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            resources.ApplyResources(this.table4, "table4");
+            this.table4.Name = "table4";
+            this.table4.TableModel = this.tableModel4;
+            this.table4.UnfocusedBorderColor = System.Drawing.Color.Black;
+            this.table4.EditingStopped += new XPTable.Events.CellEditEventHandler(this.table4_EditingStopped);
+            // 
+            // columnModel4
+            // 
+            this.columnModel4.Columns.AddRange(new XPTable.Models.Column[] {
+            ((XPTable.Models.Column)(this.numberColumn5)),
+            ((XPTable.Models.Column)(this.numberColumn6)),
+            ((XPTable.Models.Column)(this.numberColumn7)),
+            ((XPTable.Models.Column)(this.numberColumn8))});
+            // 
+            // numberColumn5
+            // 
+            this.numberColumn5.IsTextTrimmed = false;
+            this.numberColumn5.Maximum = new decimal(new int[] {
+            2999,
+            0,
+            0,
+            0});
+            this.numberColumn5.Sortable = false;
+            resources.ApplyResources(this.numberColumn5, "numberColumn5");
+            // 
+            // numberColumn6
+            // 
+            this.numberColumn6.IsTextTrimmed = false;
+            this.numberColumn6.Maximum = new decimal(new int[] {
+            3000,
+            0,
+            0,
+            0});
+            this.numberColumn6.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.numberColumn6.Sortable = false;
+            resources.ApplyResources(this.numberColumn6, "numberColumn6");
+            // 
+            // numberColumn7
+            // 
+            this.numberColumn7.IsTextTrimmed = false;
+            this.numberColumn7.Maximum = new decimal(new int[] {
+            100000,
+            0,
+            0,
+            0});
+            this.numberColumn7.Sortable = false;
+            resources.ApplyResources(this.numberColumn7, "numberColumn7");
+            // 
+            // numberColumn8
+            // 
+            this.numberColumn8.IsTextTrimmed = false;
+            this.numberColumn8.Maximum = new decimal(new int[] {
+            100000,
+            0,
+            0,
+            0});
+            this.numberColumn8.Sortable = false;
+            resources.ApplyResources(this.numberColumn8, "numberColumn8");
+            // 
             // labelDREstimateTitle
             // 
             resources.ApplyResources(this.labelDREstimateTitle, "labelDREstimateTitle");
@@ -1015,201 +1155,6 @@ namespace BecquerelMonitor
             this.button12.UseVisualStyleBackColor = true;
             this.button12.Click += new System.EventHandler(this.button12_Click);
             // 
-            // doubleTextBox6
-            // 
-            resources.ApplyResources(this.doubleTextBox6, "doubleTextBox6");
-            this.doubleTextBox6.Name = "doubleTextBox6";
-            this.doubleTextBox6.TextChanged += new System.EventHandler(this.doubleTextBox6_TextChanged);
-            // 
-            // integerTextBox1
-            // 
-            resources.ApplyResources(this.integerTextBox1, "integerTextBox1");
-            this.integerTextBox1.Name = "integerTextBox1";
-            this.integerTextBox1.TextChanged += new System.EventHandler(this.integerTextBox1_TextChanged);
-            // 
-            // doubleTextBox5
-            // 
-            resources.ApplyResources(this.doubleTextBox5, "doubleTextBox5");
-            this.doubleTextBox5.Name = "doubleTextBox5";
-            this.doubleTextBox5.TextChanged += new System.EventHandler(this.doubleTextBox5_TextChanged);
-            // 
-            // table3
-            // 
-            this.table3.BorderColor = System.Drawing.Color.Black;
-            this.table3.ColumnModel = this.columnModel3;
-            this.table3.DataMember = null;
-            this.table3.DataSourceColumnBinder = dataSourceColumnBinder1;
-            dragDropRenderer1.ForeColor = System.Drawing.Color.Red;
-            this.table3.DragDropRenderer = dragDropRenderer1;
-            this.table3.FullRowSelect = true;
-            this.table3.GridLines = XPTable.Models.GridLines.Both;
-            this.table3.GridLinesContrainedToData = false;
-            this.table3.HeaderFont = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            resources.ApplyResources(this.table3, "table3");
-            this.table3.Name = "table3";
-            this.table3.TableModel = this.tableModel3;
-            this.table3.UnfocusedBorderColor = System.Drawing.Color.Black;
-            this.table3.EditingStopped += new XPTable.Events.CellEditEventHandler(this.table3_EditingStopped);
-            // 
-            // columnModel3
-            // 
-            this.columnModel3.Columns.AddRange(new XPTable.Models.Column[] {
-            this.textColumn4,
-            this.numberColumn3,
-            this.numberColumn4});
-            // 
-            // textColumn4
-            // 
-            this.textColumn4.IsTextTrimmed = false;
-            this.textColumn4.Sortable = false;
-            resources.ApplyResources(this.textColumn4, "textColumn4");
-            // 
-            // numberColumn3
-            // 
-            this.numberColumn3.IsTextTrimmed = false;
-            this.numberColumn3.Maximum = new decimal(new int[] {
-            10000,
-            0,
-            0,
-            0});
-            this.numberColumn3.Sortable = false;
-            resources.ApplyResources(this.numberColumn3, "numberColumn3");
-            // 
-            // numberColumn4
-            // 
-            this.numberColumn4.IsTextTrimmed = false;
-            this.numberColumn4.Sortable = false;
-            resources.ApplyResources(this.numberColumn4, "numberColumn4");
-            // 
-            // table2
-            // 
-            this.table2.BorderColor = System.Drawing.Color.Black;
-            this.table2.ColumnModel = this.columnModel2;
-            this.table2.DataMember = null;
-            this.table2.DataSourceColumnBinder = dataSourceColumnBinder2;
-            dragDropRenderer2.ForeColor = System.Drawing.Color.Red;
-            this.table2.DragDropRenderer = dragDropRenderer2;
-            this.table2.FullRowSelect = true;
-            this.table2.GridLines = XPTable.Models.GridLines.Both;
-            this.table2.GridLinesContrainedToData = false;
-            this.table2.HeaderFont = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            resources.ApplyResources(this.table2, "table2");
-            this.table2.Name = "table2";
-            this.table2.TableModel = this.tableModel2;
-            this.table2.UnfocusedBorderColor = System.Drawing.Color.Black;
-            this.table2.EditingStopped += new XPTable.Events.CellEditEventHandler(this.table2_EditingStopped);
-            this.table2.SelectionChanged += new XPTable.Events.SelectionEventHandler(this.table2_SelectionChanged);
-            // 
-            // columnModel2
-            // 
-            this.columnModel2.Columns.AddRange(new XPTable.Models.Column[] {
-            this.textColumn3,
-            this.numberColumn2,
-            this.numberColumn1});
-            // 
-            // textColumn3
-            // 
-            this.textColumn3.Editable = false;
-            this.textColumn3.IsTextTrimmed = false;
-            this.textColumn3.Sortable = false;
-            resources.ApplyResources(this.textColumn3, "textColumn3");
-            // 
-            // numberColumn2
-            // 
-            this.numberColumn2.IsTextTrimmed = false;
-            this.numberColumn2.Maximum = new decimal(new int[] {
-            65535,
-            0,
-            0,
-            0});
-            this.numberColumn2.Sortable = false;
-            resources.ApplyResources(this.numberColumn2, "numberColumn2");
-            // 
-            // numberColumn1
-            // 
-            this.numberColumn1.IsTextTrimmed = false;
-            this.numberColumn1.Minimum = new decimal(new int[] {
-            10000,
-            0,
-            0,
-            -2147483648});
-            this.numberColumn1.Sortable = false;
-            resources.ApplyResources(this.numberColumn1, "numberColumn1");
-            // 
-            // table4
-            // 
-            this.table4.BorderColor = System.Drawing.Color.Black;
-            this.table4.ColumnModel = this.columnModel4;
-            this.table4.DataMember = null;
-            this.table4.DataSourceColumnBinder = dataSourceColumnBinder1;
-            this.table4.DragDropRenderer = dragDropRenderer1;
-            this.table4.FullRowSelect = true;
-            this.table4.GridLines = XPTable.Models.GridLines.Both;
-            this.table4.GridLinesContrainedToData = false;
-            this.table4.HeaderFont = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            resources.ApplyResources(this.table4, "table4");
-            this.table4.Name = "table4";
-            this.table4.TableModel = this.tableModel4;
-            this.table4.UnfocusedBorderColor = System.Drawing.Color.Black;
-            this.table4.EditingStopped += new XPTable.Events.CellEditEventHandler(this.table4_EditingStopped);
-            // 
-            // columnModel4
-            // 
-            this.columnModel4.Columns.AddRange(new XPTable.Models.Column[] {
-            this.numberColumn5,
-            this.numberColumn6,
-            this.numberColumn7,
-            this.numberColumn8});
-            // 
-            // numberColumn5
-            // 
-            this.numberColumn5.IsTextTrimmed = false;
-            this.numberColumn5.Maximum = new decimal(new int[] {
-            2999,
-            0,
-            0,
-            0});
-            this.numberColumn5.Sortable = false;
-            resources.ApplyResources(this.numberColumn5, "numberColumn5");
-            // 
-            // numberColumn6
-            // 
-            this.numberColumn6.IsTextTrimmed = false;
-            this.numberColumn6.Maximum = new decimal(new int[] {
-            3000,
-            0,
-            0,
-            0});
-            this.numberColumn6.Minimum = new decimal(new int[] {
-            1,
-            0,
-            0,
-            0});
-            this.numberColumn6.Sortable = false;
-            resources.ApplyResources(this.numberColumn6, "numberColumn6");
-            // 
-            // numberColumn7
-            // 
-            this.numberColumn7.IsTextTrimmed = false;
-            this.numberColumn7.Maximum = new decimal(new int[] {
-            100000,
-            0,
-            0,
-            0});
-            this.numberColumn7.Sortable = false;
-            resources.ApplyResources(this.numberColumn7, "numberColumn7");
-            // 
-            // numberColumn8
-            // 
-            this.numberColumn8.IsTextTrimmed = false;
-            this.numberColumn8.Maximum = new decimal(new int[] {
-            100000,
-            0,
-            0,
-            0});
-            this.numberColumn8.Sortable = false;
-            resources.ApplyResources(this.numberColumn8, "numberColumn8");
-            // 
             // table1
             // 
             resources.ApplyResources(this.table1, "table1");
@@ -1232,8 +1177,8 @@ namespace BecquerelMonitor
             // columnModel1
             // 
             this.columnModel1.Columns.AddRange(new XPTable.Models.Column[] {
-            this.textColumn1,
-            this.textColumn2});
+            ((XPTable.Models.Column)(this.textColumn1)),
+            ((XPTable.Models.Column)(this.textColumn2))});
             // 
             // textColumn1
             // 
@@ -1270,12 +1215,13 @@ namespace BecquerelMonitor
             this.tabPage2.ResumeLayout(false);
             this.tabPage2.PerformLayout();
             this.panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.table3)).EndInit();
             this.panel1.ResumeLayout(false);
             this.panel1.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.table2)).EndInit();
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             this.tabPage5.ResumeLayout(false);
-            this.tabPage5.PerformLayout();
             this.peakSpecgroupBox.ResumeLayout(false);
             this.peakSpecgroupBox.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.rightSkewnumericUpDown)).EndInit();
@@ -1285,9 +1231,6 @@ namespace BecquerelMonitor
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown4)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown6)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown3)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown5)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown10)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown11)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown12)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown13)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown14)).EndInit();
@@ -1298,10 +1241,8 @@ namespace BecquerelMonitor
             this.tabPage7.ResumeLayout(false);
             this.tabPage7.PerformLayout();
             this.groupBox3.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.upDownDoseRateValue)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.table3)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.table2)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.table4)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.upDownDoseRateValue)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.table1)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -1423,9 +1364,6 @@ namespace BecquerelMonitor
 		// Token: 0x0400027F RID: 639
 		System.Windows.Forms.TabPage tabPage5;
 
-		// Token: 0x04000280 RID: 640
-		System.Windows.Forms.Label label38;
-
 		// Token: 0x04000281 RID: 641
 		System.Windows.Forms.Label label39;
 
@@ -1438,10 +1376,6 @@ namespace BecquerelMonitor
 		// Token: 0x04000284 RID: 644
 		System.Windows.Forms.NumericUpDown numericUpDown4;
 
-		System.Windows.Forms.NumericUpDown numericUpDown10;
-
-		System.Windows.Forms.NumericUpDown numericUpDown11;
-
 		System.Windows.Forms.NumericUpDown numericUpDown12;
 
 		System.Windows.Forms.NumericUpDown numericUpDown13;
@@ -1451,9 +1385,6 @@ namespace BecquerelMonitor
 		System.Windows.Forms.NumericUpDown numericUpDown15;
 
         System.Windows.Forms.NumericUpDown numericUpDown16;
-
-        // Token: 0x04000285 RID: 645
-        System.Windows.Forms.NumericUpDown numericUpDown5;
 
 		// Token: 0x04000286 RID: 646
 		System.Windows.Forms.Label label42;
@@ -1566,8 +1497,6 @@ namespace BecquerelMonitor
 		// Token: 0x040002A6 RID: 678
 		//System.Windows.Forms.Label label15;
 
-		System.Windows.Forms.Label label49;
-
 		System.Windows.Forms.Label label50;
 
 		System.Windows.Forms.Label label51;
@@ -1606,10 +1535,6 @@ namespace BecquerelMonitor
 
         // Token: 0x040002B5 RID: 693
         System.Windows.Forms.Label label19;
-
-		System.Windows.Forms.Label label45;
-
-		System.Windows.Forms.Label label46;
 
 		System.Windows.Forms.Label label47;
 

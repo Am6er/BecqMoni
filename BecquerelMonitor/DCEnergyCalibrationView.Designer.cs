@@ -81,21 +81,25 @@ namespace BecquerelMonitor
             // 
             resources.ApplyResources(this.label4, "label4");
             this.label4.Name = "label4";
+            this.toolTip1.SetToolTip(this.label4, resources.GetString("label4.ToolTip"));
             // 
             // label6
             // 
             resources.ApplyResources(this.label6, "label6");
             this.label6.Name = "label6";
+            this.toolTip1.SetToolTip(this.label6, resources.GetString("label6.ToolTip"));
             // 
             // label7
             // 
             resources.ApplyResources(this.label7, "label7");
             this.label7.Name = "label7";
+            this.toolTip1.SetToolTip(this.label7, resources.GetString("label7.ToolTip"));
             // 
             // label37
             // 
             resources.ApplyResources(this.label37, "label37");
             this.label37.Name = "label37";
+            this.toolTip1.SetToolTip(this.label37, resources.GetString("label37.ToolTip"));
             // 
             // button1
             // 
@@ -109,16 +113,19 @@ namespace BecquerelMonitor
             // 
             resources.ApplyResources(this.label2, "label2");
             this.label2.Name = "label2";
+            this.toolTip1.SetToolTip(this.label2, resources.GetString("label2.ToolTip"));
             // 
             // label1
             // 
             resources.ApplyResources(this.label1, "label1");
             this.label1.Name = "label1";
+            this.toolTip1.SetToolTip(this.label1, resources.GetString("label1.ToolTip"));
             // 
             // numericUpDown2
             // 
             resources.ApplyResources(this.numericUpDown2, "numericUpDown2");
             this.numericUpDown2.Name = "numericUpDown2";
+            this.toolTip1.SetToolTip(this.numericUpDown2, resources.GetString("numericUpDown2.ToolTip"));
             this.numericUpDown2.KeyDown += new System.Windows.Forms.KeyEventHandler(this.numericUpDown2_KeyDown);
             this.numericUpDown2.Leave += new System.EventHandler(this.numericUpDown2_Leave);
             // 
@@ -126,6 +133,7 @@ namespace BecquerelMonitor
             // 
             resources.ApplyResources(this.numericUpDown1, "numericUpDown1");
             this.numericUpDown1.Name = "numericUpDown1";
+            this.toolTip1.SetToolTip(this.numericUpDown1, resources.GetString("numericUpDown1.ToolTip"));
             this.numericUpDown1.KeyDown += new System.Windows.Forms.KeyEventHandler(this.numericUpDown1_KeyDown);
             this.numericUpDown1.Leave += new System.EventHandler(this.numericUpDown1_Leave);
             // 
@@ -133,6 +141,7 @@ namespace BecquerelMonitor
             // 
             resources.ApplyResources(this.numericUpDown4, "numericUpDown4");
             this.numericUpDown4.Name = "numericUpDown4";
+            this.toolTip1.SetToolTip(this.numericUpDown4, resources.GetString("numericUpDown4.ToolTip"));
             this.numericUpDown4.KeyDown += new System.Windows.Forms.KeyEventHandler(this.numericUpDown4_KeyDown);
             this.numericUpDown4.Leave += new System.EventHandler(this.numericUpDown4_Leave);
             // 
@@ -140,6 +149,7 @@ namespace BecquerelMonitor
             // 
             resources.ApplyResources(this.numericUpDown5, "numericUpDown5");
             this.numericUpDown5.Name = "numericUpDown5";
+            this.toolTip1.SetToolTip(this.numericUpDown5, resources.GetString("numericUpDown5.ToolTip"));
             this.numericUpDown5.KeyDown += new System.Windows.Forms.KeyEventHandler(this.numericUpDown5_KeyDown);
             this.numericUpDown5.Leave += new System.EventHandler(this.numericUpDown5_Leave);
             // 
@@ -152,11 +162,13 @@ namespace BecquerelMonitor
             0,
             0});
             this.numericUpDown6.Name = "numericUpDown6";
+            this.toolTip1.SetToolTip(this.numericUpDown6, resources.GetString("numericUpDown6.ToolTip"));
             // 
             // numericUpDown3
             // 
             resources.ApplyResources(this.numericUpDown3, "numericUpDown3");
             this.numericUpDown3.Name = "numericUpDown3";
+            this.toolTip1.SetToolTip(this.numericUpDown3, resources.GetString("numericUpDown3.ToolTip"));
             this.numericUpDown3.KeyDown += new System.Windows.Forms.KeyEventHandler(this.numericUpDown3_KeyDown);
             this.numericUpDown3.Leave += new System.EventHandler(this.numericUpDown3_Leave);
             // 
@@ -184,6 +196,7 @@ namespace BecquerelMonitor
             this.textBox15.Name = "textBox15";
             this.textBox15.ReadOnly = true;
             this.textBox15.TabStop = false;
+            this.toolTip1.SetToolTip(this.textBox15, resources.GetString("textBox15.ToolTip"));
             // 
             // button6
             // 
@@ -217,6 +230,7 @@ namespace BecquerelMonitor
             // 
             resources.ApplyResources(this.label5, "label5");
             this.label5.Name = "label5";
+            this.toolTip1.SetToolTip(this.label5, resources.GetString("label5.ToolTip"));
             // 
             // groupBox1
             // 
@@ -234,6 +248,7 @@ namespace BecquerelMonitor
             this.groupBox1.Controls.Add(this.numericUpDown5);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.TabStop = false;
+            this.toolTip1.SetToolTip(this.groupBox1, resources.GetString("groupBox1.ToolTip"));
             // 
             // button14
             // 
@@ -255,6 +270,7 @@ namespace BecquerelMonitor
             // 
             resources.ApplyResources(this.button7, "button7");
             this.button7.Name = "button7";
+            this.toolTip1.SetToolTip(this.button7, resources.GetString("button7.ToolTip"));
             this.button7.UseVisualStyleBackColor = true;
             this.button7.Click += new System.EventHandler(this.button7_Click);
             // 
@@ -262,6 +278,7 @@ namespace BecquerelMonitor
             // 
             resources.ApplyResources(this.button11, "button11");
             this.button11.Name = "button11";
+            this.toolTip1.SetToolTip(this.button11, resources.GetString("button11.ToolTip"));
             this.button11.UseVisualStyleBackColor = true;
             this.button11.Click += new System.EventHandler(this.button11_Click);
             // 
@@ -269,6 +286,7 @@ namespace BecquerelMonitor
             // 
             resources.ApplyResources(this.label36, "label36");
             this.label36.Name = "label36";
+            this.toolTip1.SetToolTip(this.label36, resources.GetString("label36.ToolTip"));
             // 
             // panel1
             // 
@@ -286,6 +304,7 @@ namespace BecquerelMonitor
             this.panel1.Controls.Add(this.button8);
             this.panel1.Controls.Add(this.button9);
             this.panel1.Name = "panel1";
+            this.toolTip1.SetToolTip(this.panel1, resources.GetString("panel1.ToolTip"));
             // 
             // table1
             // 
@@ -302,6 +321,7 @@ namespace BecquerelMonitor
             this.table1.HeaderFont = new System.Drawing.Font("Microsoft Sans Serif", 9F);
             this.table1.Name = "table1";
             this.table1.TableModel = this.tableModel1;
+            this.toolTip1.SetToolTip(this.table1, resources.GetString("table1.ToolTip"));
             this.table1.UnfocusedBorderColor = System.Drawing.Color.Black;
             this.table1.EditingStopped += new XPTable.Events.CellEditEventHandler(this.table1_EditingStopped);
             this.table1.SelectionChanged += new XPTable.Events.SelectionEventHandler(this.table1_SelectionChanged);
@@ -317,12 +337,13 @@ namespace BecquerelMonitor
             // textColumn1
             // 
             this.textColumn1.Editable = false;
+            resources.ApplyResources(this.textColumn1, "textColumn1");
             this.textColumn1.IsTextTrimmed = false;
             this.textColumn1.Sortable = false;
-            resources.ApplyResources(this.textColumn1, "textColumn1");
             // 
             // numberColumn2
             // 
+            resources.ApplyResources(this.numberColumn2, "numberColumn2");
             this.numberColumn2.IsTextTrimmed = false;
             this.numberColumn2.Maximum = new decimal(new int[] {
             65535,
@@ -330,10 +351,10 @@ namespace BecquerelMonitor
             0,
             0});
             this.numberColumn2.Sortable = false;
-            resources.ApplyResources(this.numberColumn2, "numberColumn2");
             // 
             // numberColumn1
             // 
+            resources.ApplyResources(this.numberColumn1, "numberColumn1");
             this.numberColumn1.IsTextTrimmed = false;
             this.numberColumn1.Maximum = new decimal(new int[] {
             10000,
@@ -346,10 +367,10 @@ namespace BecquerelMonitor
             0,
             -2147483648});
             this.numberColumn1.Sortable = false;
-            resources.ApplyResources(this.numberColumn1, "numberColumn1");
             // 
             // numberColumn3
             // 
+            resources.ApplyResources(this.numberColumn3, "numberColumn3");
             this.numberColumn3.IsTextTrimmed = false;
             this.numberColumn3.Maximum = new decimal(new int[] {
             10000000,
@@ -357,12 +378,12 @@ namespace BecquerelMonitor
             0,
             0});
             this.numberColumn3.Sortable = false;
-            resources.ApplyResources(this.numberColumn3, "numberColumn3");
             // 
             // button8
             // 
             resources.ApplyResources(this.button8, "button8");
             this.button8.Name = "button8";
+            this.toolTip1.SetToolTip(this.button8, resources.GetString("button8.ToolTip"));
             this.button8.UseVisualStyleBackColor = true;
             this.button8.Click += new System.EventHandler(this.button8_Click);
             // 
@@ -370,6 +391,7 @@ namespace BecquerelMonitor
             // 
             resources.ApplyResources(this.button9, "button9");
             this.button9.Name = "button9";
+            this.toolTip1.SetToolTip(this.button9, resources.GetString("button9.ToolTip"));
             this.button9.UseVisualStyleBackColor = true;
             this.button9.Click += new System.EventHandler(this.button9_Click);
             // 
@@ -386,6 +408,7 @@ namespace BecquerelMonitor
             this.Controls.Add(this.button4);
             this.HideOnClose = true;
             this.Name = "DCEnergyCalibrationView";
+            this.toolTip1.SetToolTip(this, resources.GetString("$this.ToolTip"));
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.DCEnergyCalibrationView_FormClosing);
             this.Load += new System.EventHandler(this.DCEnergyCalibrationView_Load);
             this.SizeChanged += new System.EventHandler(this.DCEnergyCalibrationView_SizeChanged);
