@@ -1496,16 +1496,6 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Initializing...
-        ///.
-        /// </summary>
-        public static string InitializingMessage {
-            get {
-                return ResourceManager.GetString("InitializingMessage", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Invalid Input Value.
         /// </summary>
         public static string InvalidValueDialogTitle {
@@ -1607,15 +1597,6 @@ namespace BecquerelMonitor.Properties {
         public static string LoadDefaultPeakFinderSettingsQuestionTitle {
             get {
                 return ResourceManager.GetString("LoadDefaultPeakFinderSettingsQuestionTitle", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Loading File ( {0} )....
-        /// </summary>
-        public static string LoadingFileMessage {
-            get {
-                return ResourceManager.GetString("LoadingFileMessage", resourceCulture);
             }
         }
         
@@ -2621,15 +2602,6 @@ namespace BecquerelMonitor.Properties {
         public static string VCPDeviceStatusUnknown {
             get {
                 return ResourceManager.GetString("VCPDeviceStatusUnknown", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to version {0}.
-        /// </summary>
-        public static string VersionString {
-            get {
-                return ResourceManager.GetString("VersionString", resourceCulture);
             }
         }
         

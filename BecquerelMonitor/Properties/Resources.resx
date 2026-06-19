@@ -3801,9 +3801,6 @@
   <data name="UnnamedSpectrumName" xml:space="preserve">
     <value>(unnamed)</value>
   </data>
-  <data name="VersionString" xml:space="preserve">
-    <value>version {0}</value>
-  </data>
   <data name="ChartHeaderNetCounts" xml:space="preserve">
     <value>Net Counts:</value>
   </data>
@@ -3880,15 +3877,8 @@ http://xptable.sourceforge.net/</value>
         DSItLS0tLS0AAC0tLS0tLQ0NLS0tLS0tAAAtLS0tLS0tLS0tLS0tLQAA
 </value>
   </data>
-  <data name="InitializingMessage" xml:space="preserve">
-    <value>Initializing...
-</value>
-  </data>
   <data name="DeleteSpectrumMessage" xml:space="preserve">
     <value>Delete spectrum "{0}"?</value>
-  </data>
-  <data name="LoadingFileMessage" xml:space="preserve">
-    <value>Loading File ( {0} )...</value>
   </data>
   <data name="becqmoni" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
