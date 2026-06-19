@@ -181,7 +181,7 @@
     <value>CollectedPeaksTable</value>
   </data>
   <data name="&gt;&gt;CollectedPeaksTable.Type" xml:space="preserve">
-    <value>XPTable.Models.Table, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.Table, BecquerelMonitor, Version=2026.6.19.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;CollectedPeaksTable.Parent" xml:space="preserve">
     <value>$this</value>
@@ -495,11 +495,197 @@
   <data name="&gt;&gt;executeCalibrationButton.ZOrder" xml:space="preserve">
     <value>7</value>
   </data>
+  <data name="peakShapeSecondParameterValueLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="peakShapeSecondParameterValueLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>250, 42</value>
+  </data>
+  <data name="peakShapeSecondParameterValueLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>22, 13</value>
+  </data>
+  <data name="peakShapeSecondParameterValueLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>5</value>
+  </data>
+  <data name="peakShapeSecondParameterValueLabel.Text" xml:space="preserve">
+    <value>1.0</value>
+  </data>
+  <data name="&gt;&gt;peakShapeSecondParameterValueLabel.Name" xml:space="preserve">
+    <value>peakShapeSecondParameterValueLabel</value>
+  </data>
+  <data name="&gt;&gt;peakShapeSecondParameterValueLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;peakShapeSecondParameterValueLabel.Parent" xml:space="preserve">
+    <value>peakShapeInfoGroupBox</value>
+  </data>
+  <data name="&gt;&gt;peakShapeSecondParameterValueLabel.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="peakShapeFirstParameterValueLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="peakShapeFirstParameterValueLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>96, 42</value>
+  </data>
+  <data name="peakShapeFirstParameterValueLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>22, 13</value>
+  </data>
+  <data name="peakShapeFirstParameterValueLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>3</value>
+  </data>
+  <data name="peakShapeFirstParameterValueLabel.Text" xml:space="preserve">
+    <value>1.0</value>
+  </data>
+  <data name="&gt;&gt;peakShapeFirstParameterValueLabel.Name" xml:space="preserve">
+    <value>peakShapeFirstParameterValueLabel</value>
+  </data>
+  <data name="&gt;&gt;peakShapeFirstParameterValueLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;peakShapeFirstParameterValueLabel.Parent" xml:space="preserve">
+    <value>peakShapeInfoGroupBox</value>
+  </data>
+  <data name="&gt;&gt;peakShapeFirstParameterValueLabel.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="peakShapeSecondParameterLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="peakShapeSecondParameterLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>155, 42</value>
+  </data>
+  <data name="peakShapeSecondParameterLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>60, 13</value>
+  </data>
+  <data name="peakShapeSecondParameterLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>4</value>
+  </data>
+  <data name="peakShapeSecondParameterLabel.Text" xml:space="preserve">
+    <value>Right skew</value>
+  </data>
+  <data name="&gt;&gt;peakShapeSecondParameterLabel.Name" xml:space="preserve">
+    <value>peakShapeSecondParameterLabel</value>
+  </data>
+  <data name="&gt;&gt;peakShapeSecondParameterLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;peakShapeSecondParameterLabel.Parent" xml:space="preserve">
+    <value>peakShapeInfoGroupBox</value>
+  </data>
+  <data name="&gt;&gt;peakShapeSecondParameterLabel.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="peakShapeFirstParameterLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="peakShapeFirstParameterLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>8, 42</value>
+  </data>
+  <data name="peakShapeFirstParameterLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>53, 13</value>
+  </data>
+  <data name="peakShapeFirstParameterLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>2</value>
+  </data>
+  <data name="peakShapeFirstParameterLabel.Text" xml:space="preserve">
+    <value>Left skew</value>
+  </data>
+  <data name="&gt;&gt;peakShapeFirstParameterLabel.Name" xml:space="preserve">
+    <value>peakShapeFirstParameterLabel</value>
+  </data>
+  <data name="&gt;&gt;peakShapeFirstParameterLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;peakShapeFirstParameterLabel.Parent" xml:space="preserve">
+    <value>peakShapeInfoGroupBox</value>
+  </data>
+  <data name="&gt;&gt;peakShapeFirstParameterLabel.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <data name="peakShapeTypeValueLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="peakShapeTypeValueLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>72, 20</value>
+  </data>
+  <data name="peakShapeTypeValueLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>51, 13</value>
+  </data>
+  <data name="peakShapeTypeValueLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>1</value>
+  </data>
+  <data name="peakShapeTypeValueLabel.Text" xml:space="preserve">
+    <value>Gaussian</value>
+  </data>
+  <data name="&gt;&gt;peakShapeTypeValueLabel.Name" xml:space="preserve">
+    <value>peakShapeTypeValueLabel</value>
+  </data>
+  <data name="&gt;&gt;peakShapeTypeValueLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;peakShapeTypeValueLabel.Parent" xml:space="preserve">
+    <value>peakShapeInfoGroupBox</value>
+  </data>
+  <data name="&gt;&gt;peakShapeTypeValueLabel.ZOrder" xml:space="preserve">
+    <value>4</value>
+  </data>
+  <data name="peakShapeTypeLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="peakShapeTypeLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>8, 20</value>
+  </data>
+  <data name="peakShapeTypeLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>55, 13</value>
+  </data>
+  <data name="peakShapeTypeLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>0</value>
+  </data>
+  <data name="peakShapeTypeLabel.Text" xml:space="preserve">
+    <value>Peak type</value>
+  </data>
+  <data name="&gt;&gt;peakShapeTypeLabel.Name" xml:space="preserve">
+    <value>peakShapeTypeLabel</value>
+  </data>
+  <data name="&gt;&gt;peakShapeTypeLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;peakShapeTypeLabel.Parent" xml:space="preserve">
+    <value>peakShapeInfoGroupBox</value>
+  </data>
+  <data name="&gt;&gt;peakShapeTypeLabel.ZOrder" xml:space="preserve">
+    <value>5</value>
+  </data>
+  <data name="peakShapeInfoGroupBox.Location" type="System.Drawing.Point, System.Drawing">
+    <value>8, 168</value>
+  </data>
+  <data name="peakShapeInfoGroupBox.Size" type="System.Drawing.Size, System.Drawing">
+    <value>304, 64</value>
+  </data>
+  <data name="peakShapeInfoGroupBox.TabIndex" type="System.Int32, mscorlib">
+    <value>8</value>
+  </data>
+  <data name="peakShapeInfoGroupBox.Text" xml:space="preserve">
+    <value>Selected peak function</value>
+  </data>
+  <data name="&gt;&gt;peakShapeInfoGroupBox.Name" xml:space="preserve">
+    <value>peakShapeInfoGroupBox</value>
+  </data>
+  <data name="&gt;&gt;peakShapeInfoGroupBox.Type" xml:space="preserve">
+    <value>System.Windows.Forms.GroupBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;peakShapeInfoGroupBox.Parent" xml:space="preserve">
+    <value>calibrationProcessingPanel</value>
+  </data>
+  <data name="&gt;&gt;peakShapeInfoGroupBox.ZOrder" xml:space="preserve">
+    <value>8</value>
+  </data>
   <data name="calibrationProcessingPanel.Location" type="System.Drawing.Point, System.Drawing">
     <value>16, 237</value>
   </data>
   <data name="calibrationProcessingPanel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>315, 162</value>
+    <value>315, 235</value>
   </data>
   <data name="calibrationProcessingPanel.TabIndex" type="System.Int32, mscorlib">
     <value>4</value>
@@ -577,7 +763,7 @@
     <value>True</value>
   </data>
   <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
-    <value>343, 411</value>
+    <value>343, 496</value>
   </data>
   <data name="$this.Font" type="System.Drawing.Font, System.Drawing">
     <value>Microsoft Sans Serif, 8pt</value>
@@ -4861,37 +5047,37 @@
     <value>columnModel1</value>
   </data>
   <data name="&gt;&gt;columnModel1.Type" xml:space="preserve">
-    <value>XPTable.Models.ColumnModel, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.ColumnModel, BecquerelMonitor, Version=2026.6.19.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;positionColumn.Name" xml:space="preserve">
     <value>positionColumn</value>
   </data>
   <data name="&gt;&gt;positionColumn.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2026.6.19.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;channelColumn.Name" xml:space="preserve">
     <value>channelColumn</value>
   </data>
   <data name="&gt;&gt;channelColumn.Type" xml:space="preserve">
-    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.19.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;energyColumn.Name" xml:space="preserve">
     <value>energyColumn</value>
   </data>
   <data name="&gt;&gt;energyColumn.Type" xml:space="preserve">
-    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.19.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;fwhmColumn.Name" xml:space="preserve">
     <value>fwhmColumn</value>
   </data>
   <data name="&gt;&gt;fwhmColumn.Type" xml:space="preserve">
-    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.6.19.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;tableModel1.Name" xml:space="preserve">
     <value>tableModel1</value>
   </data>
   <data name="&gt;&gt;tableModel1.Type" xml:space="preserve">
-    <value>XPTable.Models.TableModel, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>XPTable.Models.TableModel, BecquerelMonitor, Version=2026.6.19.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;toolTip1.Name" xml:space="preserve">
     <value>toolTip1</value>
@@ -4903,6 +5089,6 @@
     <value>DCFwhmCalibrationView</value>
   </data>
   <data name="&gt;&gt;$this.Type" xml:space="preserve">
-    <value>BecquerelMonitor.ToolWindow, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+    <value>BecquerelMonitor.ToolWindow, BecquerelMonitor, Version=2026.6.19.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
 </root>

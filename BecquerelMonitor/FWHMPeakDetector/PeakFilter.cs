@@ -1,6 +1,7 @@
 using System;
 using System.Buffers;
 using System.Threading.Tasks;
+using BecquerelMonitor.Utils;
 
 namespace BecquerelMonitor.FWHMPeakDetector
 {
@@ -34,6 +35,8 @@ namespace BecquerelMonitor.FWHMPeakDetector
         int peak_type;
         double left_skew;
         double right_skew;
+        double voigt_sigma;
+        double voigt_gamma;
 
         /// <summary>
         /// Empty constructor
@@ -52,6 +55,16 @@ namespace BecquerelMonitor.FWHMPeakDetector
             this.peak_type = fwhmCalibration.PeakType;
             this.left_skew = fwhmCalibration.ExpGaussExpLeftTail;
             this.right_skew = fwhmCalibration.ExpGaussExpRightTail;
+            this.voigt_sigma = fwhmCalibration.VoigtSigma;
+            this.voigt_gamma = fwhmCalibration.VoigtGamma;
+            if (!FwhmCalibration.IsSupportedPeakType(this.peak_type) ||
+                (this.peak_type == FwhmCalibration.VoigtPeakType &&
+                 (this.voigt_sigma <= 0.0 || this.voigt_gamma <= 0.0 ||
+                  Double.IsNaN(this.voigt_sigma) || Double.IsNaN(this.voigt_gamma) ||
+                  Double.IsInfinity(this.voigt_sigma) || Double.IsInfinity(this.voigt_gamma))))
+            {
+                this.peak_type = FwhmCalibration.GaussianPeakType;
+            }
         }
 
         public double fwhm(double channel)
@@ -66,6 +79,22 @@ namespace BecquerelMonitor.FWHMPeakDetector
                 return GaussianSigmaWindow;
             }
             return Math.Max(GaussianSigmaWindow, (TailAmplitudeCutoffLog + 0.5 * skew * skew) / skew);
+        }
+
+        double voigt_support(double fwhm, double sigmaScale, double gammaScale)
+        {
+            if (sigmaScale <= 0.0 || gammaScale <= 0.0 ||
+                Double.IsNaN(sigmaScale) || Double.IsNaN(gammaScale) ||
+                Double.IsInfinity(sigmaScale) || Double.IsInfinity(gammaScale))
+            {
+                return GaussianSigmaWindow * fwhm / PseudoVoigtProfile.FwhmToSigma;
+            }
+
+            return PseudoVoigtProfile.HalfWidthAtRelativeHeight(
+                fwhm,
+                sigmaScale,
+                gammaScale,
+                Math.Exp(-TailAmplitudeCutoffLog));
         }
 
         int first_intersecting_bin(double[] edges, double x, int nChannels)
@@ -109,28 +138,41 @@ namespace BecquerelMonitor.FWHMPeakDetector
         void get_kernel_window(double center, double sigma, double[] edges, out int leftIndex, out int rightIndex)
         {
             int nChannels = edges.Length - 1;
-            double leftSupport = GaussianSigmaWindow;
-            double rightSupport = GaussianSigmaWindow;
+            double leftHalfWidth = GaussianSigmaWindow * sigma;
+            double rightHalfWidth = GaussianSigmaWindow * sigma;
 
-            if (peak_type != 0)
+            if (peak_type == FwhmCalibration.ExpGaussExpPeakType)
             {
-                leftSupport = tail_support(left_skew);
-                rightSupport = tail_support(right_skew);
+                leftHalfWidth = tail_support(left_skew) * sigma;
+                rightHalfWidth = tail_support(right_skew) * sigma;
+            }
+            else if (peak_type == FwhmCalibration.VoigtPeakType)
+            {
+                leftHalfWidth = voigt_support(PseudoVoigtProfile.FwhmToSigma * sigma, voigt_sigma, voigt_gamma);
+                rightHalfWidth = leftHalfWidth;
             }
 
-            double leftX = center - leftSupport * sigma;
-            double rightX = center + rightSupport * sigma;
+            double leftX = center - leftHalfWidth;
+            double rightX = center + rightHalfWidth;
             leftIndex = first_intersecting_bin(edges, leftX, nChannels);
             rightIndex = last_intersecting_bin(edges, rightX, nChannels);
         }
 
-        double kernel_derivative(double edge, double center, double sigma)
+        double kernel_derivative(double edge, double center, double sigma, PseudoVoigtParameters voigtParameters)
         {
-            if (peak_type == 0)
+            if (peak_type == FwhmCalibration.GaussianPeakType)
             {
                 return gaussian1(edge, center, sigma);
             }
-            return exp_gauss_exp1(edge, center, sigma, left_skew, right_skew);
+            if (peak_type == FwhmCalibration.ExpGaussExpPeakType)
+            {
+                return exp_gauss_exp1(edge, center, sigma, left_skew, right_skew);
+            }
+            if (peak_type == FwhmCalibration.VoigtPeakType)
+            {
+                return PseudoVoigtProfile.Derivative(edge - center, voigtParameters);
+            }
+            return gaussian1(edge, center, sigma);
         }
 
         bool try_build_kernel_row(double center, double[] edges, double[] kernelRow, out int leftIndex, out int rightIndex, out double negScale)
@@ -146,6 +188,13 @@ namespace BecquerelMonitor.FWHMPeakDetector
                 return false;
             }
 
+            PseudoVoigtParameters voigtParameters = new PseudoVoigtParameters();
+            if (peak_type == FwhmCalibration.VoigtPeakType &&
+                !PseudoVoigtProfile.TryCreate(PseudoVoigtProfile.FwhmToSigma * sigma, voigt_sigma, voigt_gamma, out voigtParameters))
+            {
+                return false;
+            }
+
             get_kernel_window(center, sigma, edges, out leftIndex, out rightIndex);
             if (leftIndex > rightIndex || leftIndex >= nChannels || rightIndex < 0)
             {
@@ -156,7 +205,8 @@ namespace BecquerelMonitor.FWHMPeakDetector
             double kernNegSum = 0.0;
             for (int i = leftIndex; i <= rightIndex; i++)
             {
-                double value = kernel_derivative(edges[i], center, sigma) - kernel_derivative(edges[i + 1], center, sigma);
+                double value = kernel_derivative(edges[i], center, sigma, voigtParameters) -
+                    kernel_derivative(edges[i + 1], center, sigma, voigtParameters);
                 kernelRow[i] = value;
                 if (value >= 0.0)
                 {
@@ -389,6 +439,28 @@ namespace BecquerelMonitor.FWHMPeakDetector
             }
 
             return result;
+        }
+
+        public double voigt0(double x, double median, double sigma, double sigmaScale, double gammaScale)
+        {
+            PseudoVoigtParameters parameters;
+            if (!PseudoVoigtProfile.TryCreate(PseudoVoigtProfile.FwhmToSigma * sigma, sigmaScale, gammaScale, out parameters))
+            {
+                return 0.0;
+            }
+
+            return PseudoVoigtProfile.Value(x - median, parameters);
+        }
+
+        public double voigt1(double x, double median, double sigma, double sigmaScale, double gammaScale)
+        {
+            PseudoVoigtParameters parameters;
+            if (!PseudoVoigtProfile.TryCreate(PseudoVoigtProfile.FwhmToSigma * sigma, sigmaScale, gammaScale, out parameters))
+            {
+                return 0.0;
+            }
+
+            return PseudoVoigtProfile.Derivative(x - median, parameters);
         }
 
     }

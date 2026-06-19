@@ -42,6 +42,8 @@ namespace BecquerelMonitor
         {
             this.InitializeComponent();
             base.Icon = Resources.becqmoni;
+            this.expGaussExpLeftLabelText = this.leftSkewlabel.Text;
+            this.expGaussExpRightLabelText = this.rightSkewlabel.Text;
             this.HideTempcoTabPage();
             this.button4.Enabled = false;
             this.DisableForm();
@@ -546,19 +548,7 @@ namespace BecquerelMonitor
                 this.numericUpDown16.Value = (decimal)config.NumberOfChannels;
             }
 
-            this.peakTypecomboBox.SelectedIndex = FWHMPeakDetectionMethodConfig.FwhmCalibration.PeakType;
-            this.leftSkewnumericUpDown.Value = (decimal)FWHMPeakDetectionMethodConfig.FwhmCalibration.ExpGaussExpLeftTail;
-            this.rightSkewnumericUpDown.Value = (decimal)FWHMPeakDetectionMethodConfig.FwhmCalibration.ExpGaussExpRightTail;
-            if (peakTypecomboBox.SelectedIndex == 0)
-            {
-                leftSkewnumericUpDown.Enabled = false;
-                rightSkewnumericUpDown.Enabled = false;
-            }
-            else
-            {
-                leftSkewnumericUpDown.Enabled = true;
-                rightSkewnumericUpDown.Enabled = true;
-            }
+            LoadPeakShapeControls(FWHMPeakDetectionMethodConfig.FwhmCalibration);
 
 
             this.textBox17.Text = config.BackgroundSpectrumPathname;
@@ -602,10 +592,93 @@ namespace BecquerelMonitor
             this.numericUpDown15.Value = FWHMPeakDetectionMethodConfig.Max_FWHM_Tol;
             this.numericUpDown16.Value = FWHMPeakDetectionMethodConfig.Ch_Concat;
             this.numericUpDown12.Value = (decimal)FWHMPeakDetectionMethodConfig.Min_Range;
-            this.peakTypecomboBox.SelectedIndex = FWHMPeakDetectionMethodConfig.FwhmCalibration.PeakType;
-            this.leftSkewnumericUpDown.Value = (decimal)FWHMPeakDetectionMethodConfig.FwhmCalibration.ExpGaussExpLeftTail;
-            this.rightSkewnumericUpDown.Value = (decimal)FWHMPeakDetectionMethodConfig.FwhmCalibration.ExpGaussExpRightTail;
+            LoadPeakShapeControls(FWHMPeakDetectionMethodConfig.FwhmCalibration);
             this.contentsLoading = false;
+        }
+
+        private static decimal ClampPeakShapeParameter(double value)
+        {
+            if (Double.IsNaN(value) || Double.IsInfinity(value))
+            {
+                return 1.0m;
+            }
+
+            if (value <= 0.1)
+            {
+                return 0.1m;
+            }
+            if (value >= 5.0)
+            {
+                return 5.0m;
+            }
+
+            return (decimal)value;
+        }
+
+        void LoadPeakShapeControls(FwhmCalibration fwhmCalibration)
+        {
+            expGaussExpLeftValue = ClampPeakShapeParameter(fwhmCalibration.ExpGaussExpLeftTail);
+            expGaussExpRightValue = ClampPeakShapeParameter(fwhmCalibration.ExpGaussExpRightTail);
+            voigtSigmaValue = ClampPeakShapeParameter(fwhmCalibration.VoigtSigma);
+            voigtGammaValue = ClampPeakShapeParameter(fwhmCalibration.VoigtGamma);
+
+            int peakType = fwhmCalibration.PeakType;
+            if (!FwhmCalibration.IsSupportedPeakType(peakType))
+            {
+                peakType = FwhmCalibration.GaussianPeakType;
+                fwhmCalibration.PeakType = peakType;
+            }
+
+            this.peakTypecomboBox.SelectedIndex = peakType;
+            UpdatePeakShapeControlState();
+        }
+
+        void StoreCurrentPeakShapeParameters()
+        {
+            if (this.contentsLoading)
+            {
+                return;
+            }
+
+            if (this.peakTypecomboBox.SelectedIndex == FwhmCalibration.ExpGaussExpPeakType)
+            {
+                expGaussExpLeftValue = leftSkewnumericUpDown.Value;
+                expGaussExpRightValue = rightSkewnumericUpDown.Value;
+            }
+            else if (this.peakTypecomboBox.SelectedIndex == FwhmCalibration.VoigtPeakType)
+            {
+                voigtSigmaValue = leftSkewnumericUpDown.Value;
+                voigtGammaValue = rightSkewnumericUpDown.Value;
+            }
+        }
+
+        void UpdatePeakShapeControlState()
+        {
+            bool showParameters = this.peakTypecomboBox.SelectedIndex != FwhmCalibration.GaussianPeakType;
+            this.leftSkewlabel.Visible = showParameters;
+            this.leftSkewnumericUpDown.Visible = showParameters;
+            this.rightSkewlabel.Visible = showParameters;
+            this.rightSkewnumericUpDown.Visible = showParameters;
+
+            if (!showParameters)
+            {
+                return;
+            }
+
+            if (this.peakTypecomboBox.SelectedIndex == FwhmCalibration.ExpGaussExpPeakType)
+            {
+                this.leftSkewlabel.Text = expGaussExpLeftLabelText;
+                this.rightSkewlabel.Text = expGaussExpRightLabelText;
+                this.leftSkewnumericUpDown.Value = expGaussExpLeftValue;
+                this.rightSkewnumericUpDown.Value = expGaussExpRightValue;
+            }
+            else
+            {
+                this.leftSkewlabel.Text = Resources.ResourceManager.GetString("VoigtRelativeSigmaLabel");
+                this.rightSkewlabel.Text = Resources.ResourceManager.GetString("VoigtRelativeGammaLabel");
+                this.leftSkewnumericUpDown.Value = voigtSigmaValue;
+                this.rightSkewnumericUpDown.Value = voigtGammaValue;
+            }
         }
 
         // Token: 0x06000523 RID: 1315 RVA: 0x000212F0 File Offset: 0x0001F4F0
@@ -690,9 +763,12 @@ namespace BecquerelMonitor
                 FWHMPeakDetectionMethodConfig.Min_FWHM_Tol = this.numericUpDown14.Value;
                 FWHMPeakDetectionMethodConfig.Max_FWHM_Tol = this.numericUpDown15.Value;
                 FWHMPeakDetectionMethodConfig.Ch_Concat = (int)this.numericUpDown16.Value;
+                StoreCurrentPeakShapeParameters();
                 FWHMPeakDetectionMethodConfig.FwhmCalibration.PeakType = peakTypecomboBox.SelectedIndex;
-                FWHMPeakDetectionMethodConfig.FwhmCalibration.ExpGaussExpLeftTail = (double)leftSkewnumericUpDown.Value;
-                FWHMPeakDetectionMethodConfig.FwhmCalibration.ExpGaussExpRightTail = (double)rightSkewnumericUpDown.Value;
+                FWHMPeakDetectionMethodConfig.FwhmCalibration.ExpGaussExpLeftTail = (double)expGaussExpLeftValue;
+                FWHMPeakDetectionMethodConfig.FwhmCalibration.ExpGaussExpRightTail = (double)expGaussExpRightValue;
+                FWHMPeakDetectionMethodConfig.FwhmCalibration.VoigtSigma = (double)voigtSigmaValue;
+                FWHMPeakDetectionMethodConfig.FwhmCalibration.VoigtGamma = (double)voigtGammaValue;
                 config.BackgroundSpectrumPathname = this.textBox17.Text;
             }
             catch (Exception)
@@ -2047,6 +2123,18 @@ namespace BecquerelMonitor
         // Token: 0x040002BE RID: 702
         bool contentsLoading;
 
+        decimal expGaussExpLeftValue = 1.0m;
+
+        decimal expGaussExpRightValue = 1.0m;
+
+        decimal voigtSigmaValue = 1.0m;
+
+        decimal voigtGammaValue = 1.0m;
+
+        string expGaussExpLeftLabelText;
+
+        string expGaussExpRightLabelText;
+
         // Token: 0x040002BF RID: 703
         bool channelPickupProcessing;
 
@@ -2261,26 +2349,19 @@ namespace BecquerelMonitor
 
         private void peakTypecomboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
+            UpdatePeakShapeControlState();
             this.SetActiveDeviceConfigDirty();
-            if (peakTypecomboBox.SelectedIndex == 0)
-            {
-                leftSkewnumericUpDown.Enabled = false;
-                rightSkewnumericUpDown.Enabled = false;
-            } else
-            {
-                leftSkewnumericUpDown.Enabled = true;
-                rightSkewnumericUpDown.Enabled = true;
-            }
-
         }
 
         private void leftSkewnumericUpDown_ValueChanged(object sender, EventArgs e)
         {
+            StoreCurrentPeakShapeParameters();
             this.SetActiveDeviceConfigDirty();
         }
 
         private void rightSkewnumericUpDown_ValueChanged(object sender, EventArgs e)
         {
+            StoreCurrentPeakShapeParameters();
             this.SetActiveDeviceConfigDirty();
         }
     }

@@ -701,4 +701,10 @@
   <data name="SPEFileFilter" xml:space="preserve">
     <value>Файлы SpectraLine SPE (*.spe)|*.spe|Все файлы (*.*)|*.*</value>
   </data>
+  <data name="VoigtRelativeSigmaLabel" xml:space="preserve">
+    <value>отн. σ</value>
+  </data>
+  <data name="VoigtRelativeGammaLabel" xml:space="preserve">
+    <value>отн. γ</value>
+  </data>
 </root>

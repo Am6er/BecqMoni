@@ -39,6 +39,11 @@ namespace BecquerelMonitor
                 PeakType = this.PeakType,
                 ExpGaussExpLeftTail = this.ExpGaussExpLeftTail,
                 ExpGaussExpRightTail = this.ExpGaussExpRightTail,
+                VoigtSigma = this.VoigtSigma,
+                VoigtGamma = this.VoigtGamma,
+                GaussianChi2Total = this.GaussianChi2Total,
+                ExpGaussExpChi2Total = this.ExpGaussExpChi2Total,
+                VoigtChi2Total = this.VoigtChi2Total,
                 Chi2pNdp = this.Chi2pNdp,
             };
         }
@@ -89,11 +94,31 @@ namespace BecquerelMonitor
 
         public override double Chi2pNdp { get => this.chi2pndp; set => this.chi2pndp = value; }
 
+        public override double VoigtSigma { get => this.voigt_sigma; set => this.voigt_sigma = value; }
+
+        public override double VoigtGamma { get => this.voigt_gamma; set => this.voigt_gamma = value; }
+
+        public override double GaussianChi2Total { get => this.gaussian_chi2_total; set => this.gaussian_chi2_total = value; }
+
+        public override double ExpGaussExpChi2Total { get => this.exp_gauss_exp_chi2_total; set => this.exp_gauss_exp_chi2_total = value; }
+
+        public override double VoigtChi2Total { get => this.voigt_chi2_total; set => this.voigt_chi2_total = value; }
+
         int peak_type = 0;
 
         double left_tail = 1.0;
 
         double right_tail = 1.0;
+
+        double voigt_sigma = 1.0;
+
+        double voigt_gamma = 1.0;
+
+        double gaussian_chi2_total = -1.0;
+
+        double exp_gauss_exp_chi2_total = -1.0;
+
+        double voigt_chi2_total = -1.0;
 
         double chi2pndp = -1.0;
     }
