@@ -148,10 +148,6 @@ namespace BecquerelMonitor
             this.toolStripMenuItem7.Visible = false;
             this.toolStripSeparator9.Visible = false;
             this.forFwhmToolStripMenuItem.Visible = false;
-            this.startupForm = new StartupForm();
-            this.startupForm.MessageText = BecquerelMonitor.Properties.Resources.InitializingMessage;
-            this.startupForm.Show();
-            this.startupForm.Refresh();
             if (args != null && args.Length == 1)
             {
                 this.OpenFileName = args[0];
@@ -214,8 +210,6 @@ namespace BecquerelMonitor
             this.timer.Interval = 100;
             this.timer.Tick += this.OnTimer;
             this.timer.Start();
-            this.startupForm.Close();
-            this.startupForm = null;
             foreach (DocEnergySpectrum docEnergySpectrum in this.documentManager.DocumentList)
             {
                 docEnergySpectrum.SetDefaultHorizontalScale();
@@ -410,11 +404,7 @@ namespace BecquerelMonitor
             {
                 return null;
             }
-            if (this.startupForm != null)
-            {
-                this.startupForm.AppendMessage(string.Format(BecquerelMonitor.Properties.Resources.LoadingFileMessage, Path.GetFileName(array[1])));
-                Application.DoEvents();
-            }
+            Application.DoEvents();
             DocEnergySpectrum docEnergySpectrum = this.documentManager.OpenDocument(array[1]);
             this.SubscribeDocumentEvent(docEnergySpectrum);
             if (docEnergySpectrum == null)
@@ -3001,9 +2991,6 @@ namespace BecquerelMonitor
 
         // Token: 0x040005CE RID: 1486
         GlobalConfigManager globalConfigManager;
-
-        // Token: 0x040005CF RID: 1487
-        StartupForm startupForm;
 
         // Token: 0x040005D0 RID: 1488
         DeviceConfigForm deviceConfigForm;
