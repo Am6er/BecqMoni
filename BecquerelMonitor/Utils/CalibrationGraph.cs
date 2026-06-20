@@ -305,22 +305,46 @@ namespace BecquerelMonitor.Utils
 
         int ChanToPx(int ch)
         {
-            return (int)((double)(this.width - this.startwidth) * (double)ch / (double)this.maxChannels + this.startwidth);
+            int plotWidth = this.width - this.startwidth;
+            if (this.maxChannels <= 0 || plotWidth <= 0)
+            {
+                return this.startwidth;
+            }
+
+            double ratio = (double)ch / this.maxChannels;
+            if (ratio <= 0.0) return this.startwidth;
+            if (ratio >= 1.0) return this.width;
+            return this.startwidth + (int)(plotWidth * ratio);
         }
 
         int EnergyToPx(int ch)
         {
-            return (int)((double)(this.height - this.startheight) * this.calibration.ChannelToEnergy(ch) / (double)this.maxEnergy);
+            return this.EnergyToPx(this.calibration.ChannelToEnergy(ch));
         }
 
         double PxToEnergy(int px)
         {
-            return (double)this.maxEnergy * (double)px / (double)(this.height - this.startheight);
+            int plotHeight = this.height - this.startheight;
+            if (plotHeight <= 0 || !IsFinitePositive(this.maxEnergy))
+            {
+                return 0.0;
+            }
+
+            return this.maxEnergy * px / plotHeight;
         }
 
         int PxToChannel(int px)
         {
-            return (int)((double)(this.maxChannels * (px - this.startwidth)) / (double)(this.width - this.startwidth));
+            int plotWidth = this.width - this.startwidth;
+            if (this.maxChannels <= 0 || plotWidth <= 0)
+            {
+                return 0;
+            }
+
+            double ratio = (double)(px - this.startwidth) / plotWidth;
+            if (ratio <= 0.0) return 0;
+            if (ratio >= 1.0) return this.maxChannels;
+            return (int)(this.maxChannels * ratio);
         }
 
         private void updateCalibrationPointsToolStripMenuItem_Click(object sender, EventArgs e)
@@ -335,6 +359,7 @@ namespace BecquerelMonitor.Utils
             this.glowPoint = null;
             this.points = ClonePoints(this.originalpoints);
             this.calibration = (PolynomialEnergyCalibration)this.originalcalibration.Clone();
+            this.recalcPoly = true;
             base.Invalidate();
         }
 
@@ -348,7 +373,21 @@ namespace BecquerelMonitor.Utils
 
         int EnergyToPx(double energy)
         {
-            return (int)((double)(this.height - this.startheight) * energy / (double)this.maxEnergy);
+            int plotHeight = this.height - this.startheight;
+            if (plotHeight <= 0 || !IsFinitePositive(energy) || !IsFinitePositive(this.maxEnergy))
+            {
+                return 0;
+            }
+
+            double ratio = energy / this.maxEnergy;
+            if (ratio <= 0.0) return 0;
+            if (ratio >= 1.0) return plotHeight;
+            return (int)(plotHeight * ratio);
+        }
+
+        private static bool IsFinitePositive(double value)
+        {
+            return value > 0.0 && !double.IsNaN(value) && !double.IsInfinity(value);
         }
 
         List<CalibrationPoint> ClonePoints(List<CalibrationPoint> pts)
