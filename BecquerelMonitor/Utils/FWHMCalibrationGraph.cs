@@ -54,15 +54,12 @@ namespace BecquerelMonitor.Utils
 
             this.maxChannels = maxchannel;
             this.fwhmCalibration = fwhmCalibration.Clone();
-            this.fwhmCalibration.PerformCalibration(this.maxChannels);
             this.points = CalibrationPeak.ClonePeaks(this.fwhmCalibration.CalibrationPeaks);
-            this.maxFWHM = 1.1 * this.fwhmCalibration.ChannelToFwhm(this.maxChannels);
+            this.fwhmCalibration.CalibrationPeaks = this.points;
+            this.RecalculateCalibration();
             // oroginal calibration for reset
             this.originalfwhmCalibration = this.fwhmCalibration.Clone();
             this.originalpoints = CalibrationPeak.ClonePeaks(this.points);
-            // do reference (not clone new obj) this.points <- this.fwhmCalibration.CalibrationPeaks
-            // for proper glowpoint movement updates w/o writing into other objects
-            this.fwhmCalibration.CalibrationPeaks = this.points;
         }
 
         void PrepareData()
@@ -89,9 +86,9 @@ namespace BecquerelMonitor.Utils
 
         void PaintAxis(Graphics g)
         {
-            int ch_step = this.maxChannels / 6;
+            int ch_step = Math.Max(1, this.maxChannels / 6);
             double fwhm_step = this.maxFWHM / 6;
-            int x_points = this.maxChannels / ch_step;
+            int x_points = this.maxChannels > 0 ? this.maxChannels / ch_step : 0;
             int y_points = (int)(this.maxFWHM / fwhm_step);
 
             Brush brush = new SolidBrush(this.globalConfigManager.GlobalConfig.ColorConfig.AxisFigureColor.Color);
@@ -127,11 +124,6 @@ namespace BecquerelMonitor.Utils
 
         void PaintChart(Graphics g)
         {
-            if (this.recalcCurve)
-            {
-                this.polycorrect = fwhmCalibration.PerformCalibration(this.maxChannels);
-                this.recalcCurve = false;
-            }
             Pen pen = new Pen(this.globalConfigManager.GlobalConfig.ColorConfig.ActiveSpectrumColor.Color);
             if (!this.polycorrect)
             {
@@ -365,6 +357,10 @@ namespace BecquerelMonitor.Utils
         {
             Graphics graphics = g.Graphics;
             this.PrepareData();
+            if (this.recalcCurve)
+            {
+                this.RecalculateCalibration();
+            }
             this.PaintBackground(graphics);
             this.PaintAxis(graphics);
             this.PaintChart(graphics);
@@ -387,6 +383,7 @@ namespace BecquerelMonitor.Utils
             this.points = CalibrationPeak.ClonePeaks(this.originalpoints);
             this.fwhmCalibration = this.originalfwhmCalibration.Clone();
             this.fwhmCalibration.CalibrationPeaks = this.points;
+            this.recalcCurve = true;
             base.Invalidate();
         }
 
@@ -405,27 +402,108 @@ namespace BecquerelMonitor.Utils
 
         int ChanToPx(int ch)
         {
-            return (int)((double)(this.width - this.startwidth) * ch / this.maxChannels + this.startwidth);
+            int plotWidth = this.width - this.startwidth;
+            if (this.maxChannels <= 0 || plotWidth <= 0)
+            {
+                return this.startwidth;
+            }
+
+            double ratio = (double)ch / this.maxChannels;
+            if (ratio <= 0.0) return this.startwidth;
+            if (ratio >= 1.0) return this.width;
+            return this.startwidth + (int)(plotWidth * ratio);
         }
 
         int PxToChannel(int px)
         {
-            return (int)((double)(this.maxChannels * (px - this.startwidth)) / (this.width - this.startwidth));
+            int plotWidth = this.width - this.startwidth;
+            if (this.maxChannels <= 0 || plotWidth <= 0)
+            {
+                return 0;
+            }
+
+            double ratio = (double)(px - this.startwidth) / plotWidth;
+            if (ratio <= 0.0) return 0;
+            if (ratio >= 1.0) return this.maxChannels;
+            return (int)(this.maxChannels * ratio);
         }
 
         int ChanToPy(int ch)
         {
-            return (int)((this.height - this.startheight) * this.fwhmCalibration.ChannelToFwhm(ch) / this.maxFWHM);
+            return this.FWHMToPy(this.fwhmCalibration.ChannelToFwhm(ch));
         }
 
         int PyToChan(int py)
         {
-            return (int)((double)(this.maxFWHM * py) / (this.height - this.startheight));
+            int plotHeight = this.height - this.startheight;
+            if (plotHeight <= 0 || this.maxFWHM <= 0.0)
+            {
+                return 0;
+            }
+
+            return ToInt32((this.maxFWHM * py) / plotHeight);
         }
 
         int FWHMToPy(double fwhm)
         {
-            return (int)((double)(this.height - this.startheight) * fwhm / this.maxFWHM);
+            int plotHeight = this.height - this.startheight;
+            if (plotHeight <= 0 || !IsFinitePositive(fwhm) || !IsFinitePositive(this.maxFWHM))
+            {
+                return 0;
+            }
+
+            double ratio = fwhm / this.maxFWHM;
+            if (ratio <= 0.0) return 0;
+            if (ratio >= 1.0) return plotHeight;
+            return (int)(plotHeight * ratio);
+        }
+
+        private void RecalculateCalibration()
+        {
+            this.polycorrect = this.fwhmCalibration.PerformCalibration(this.maxChannels);
+            this.maxFWHM = this.GetMaxFwhm();
+            this.recalcCurve = false;
+        }
+
+        private double GetMaxFwhm()
+        {
+            double maximum = 0.0;
+
+            foreach (CalibrationPeak point in this.points)
+            {
+                if (IsFinitePositive(point.FWHM))
+                {
+                    maximum = Math.Max(maximum, point.FWHM);
+                }
+            }
+
+            for (int channel = 0; channel <= this.maxChannels; channel++)
+            {
+                double fwhm = this.fwhmCalibration.ChannelToFwhm(channel);
+                if (IsFinitePositive(fwhm))
+                {
+                    maximum = Math.Max(maximum, fwhm);
+                }
+            }
+
+            if (maximum <= 0.0)
+            {
+                return 1.0;
+            }
+
+            return maximum <= double.MaxValue / 1.1 ? maximum * 1.1 : maximum;
+        }
+
+        private static bool IsFinitePositive(double value)
+        {
+            return value > 0.0 && !double.IsNaN(value) && !double.IsInfinity(value);
+        }
+
+        private static int ToInt32(double value)
+        {
+            if (double.IsNaN(value) || value <= int.MinValue) return int.MinValue;
+            if (double.IsInfinity(value) || value >= int.MaxValue) return int.MaxValue;
+            return (int)value;
         }
     }
 }
