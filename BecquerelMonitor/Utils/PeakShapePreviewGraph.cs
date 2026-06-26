@@ -32,6 +32,7 @@ namespace BecquerelMonitor.Utils
         double normalizedRightBound = 8.0;
         double gaussianReferenceSigma = 1.0 / PseudoVoigtProfile.FwhmToSigma;
         double currentCurveSigma = 1.0 / PseudoVoigtProfile.FwhmToSigma;
+        double voigtScaleFactor = 1.0;
         PseudoVoigtParameters voigtParameters;
 
         public PeakShapePreviewGraph(MainForm mainForm)
@@ -39,7 +40,7 @@ namespace BecquerelMonitor.Utils
             this.mainForm = mainForm;
             this.DoubleBuffered = true;
             this.StartPosition = FormStartPosition.CenterParent;
-            this.MinimumSize = new Size(520, 320);
+            this.MinimumSize = new Size(640, 480);
             this.Icon = Resources.becqmoni;
 
             SetStyle(ControlStyles.AllPaintingInWmPaint, true);
@@ -92,6 +93,7 @@ namespace BecquerelMonitor.Utils
             this.normalizedLeftBound = -SigmaRange;
             this.normalizedRightBound = SigmaRange;
             this.currentCurveSigma = this.gaussianReferenceSigma;
+            this.voigtScaleFactor = 1.0;
 
             if (this.calibration == null)
             {
@@ -115,6 +117,7 @@ namespace BecquerelMonitor.Utils
                 else if (IsFinitePositive(this.voigtParameters.GaussianSigma))
                 {
                     this.currentCurveSigma = this.voigtParameters.GaussianSigma;
+                    this.voigtScaleFactor = this.voigtParameters.GaussianSigma / this.calibration.VoigtSigma;
                 }
             }
         }
@@ -450,11 +453,28 @@ namespace BecquerelMonitor.Utils
                                 Sup(Txt("γ"), "2"),
                                 Txt(")")))),
                     Row(
+                        Txt("k = "),
+                        Txt(this.voigtScaleFactor.ToString("0.####"))),
+                    Row(
                         Txt("σ = "),
-                        Txt(this.voigtParameters.GaussianSigma.ToString("0.###")),
-                        Txt(",  γ = "),
-                        Txt(this.voigtParameters.LorentzGamma.ToString("0.###")),
-                        Txt(",  η = "),
+                        Script(Txt("σ"), "rel", null),
+                        Txt("·k = "),
+                        Txt(this.calibration.VoigtSigma.ToString("0.###")),
+                        Txt("·"),
+                        Txt(this.voigtScaleFactor.ToString("0.####")),
+                        Txt(" = "),
+                        Txt(this.voigtParameters.GaussianSigma.ToString("0.###"))),
+                    Row(
+                        Txt("γ = "),
+                        Script(Txt("γ"), "rel", null),
+                        Txt("·k = "),
+                        Txt(this.calibration.VoigtGamma.ToString("0.###")),
+                        Txt("·"),
+                        Txt(this.voigtScaleFactor.ToString("0.####")),
+                        Txt(" = "),
+                        Txt(this.voigtParameters.LorentzGamma.ToString("0.###"))),
+                    Row(
+                        Txt("η = "),
                         Txt(this.voigtParameters.Eta.ToString("0.###")))
                 };
             }
