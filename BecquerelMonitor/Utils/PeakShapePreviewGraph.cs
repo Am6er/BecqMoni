@@ -161,6 +161,7 @@ namespace BecquerelMonitor.Utils
             Color backgroundColor = this.globalConfigManager.GlobalConfig.ColorConfig.BackgroundColor.Color;
             using (Brush brush = new SolidBrush(backgroundColor))
             {
+                graphics.FillRectangle(brush, ClientRectangle);
                 graphics.FillRectangle(brush, plotBounds);
             }
 
