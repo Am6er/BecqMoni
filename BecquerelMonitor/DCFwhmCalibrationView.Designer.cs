@@ -59,6 +59,7 @@
             this.peakShapeFirstParameterLabel = new System.Windows.Forms.Label();
             this.peakShapeTypeValueLabel = new System.Windows.Forms.Label();
             this.peakShapeTypeLabel = new System.Windows.Forms.Label();
+            this.viewPeakShapeButton = new System.Windows.Forms.Button();
             this.cancelAddPeakButton = new System.Windows.Forms.Button();
             this.getAllPeaksButton = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.CollectedPeaksTable)).BeginInit();
@@ -225,6 +226,7 @@
             this.executeCalibrationButton.UseVisualStyleBackColor = true;
             this.executeCalibrationButton.Click += new System.EventHandler(this.ExecuteCalibrationButton_Click);
             // peakShapeInfoGroupBox
+            this.peakShapeInfoGroupBox.Controls.Add(this.viewPeakShapeButton);
             this.peakShapeInfoGroupBox.Controls.Add(this.peakShapeSecondParameterValueLabel);
             this.peakShapeInfoGroupBox.Controls.Add(this.peakShapeFirstParameterValueLabel);
             this.peakShapeInfoGroupBox.Controls.Add(this.peakShapeSecondParameterLabel);
@@ -252,6 +254,12 @@
             // peakShapeTypeLabel
             resources.ApplyResources(this.peakShapeTypeLabel, "peakShapeTypeLabel");
             this.peakShapeTypeLabel.Name = "peakShapeTypeLabel";
+            // viewPeakShapeButton
+            this.viewPeakShapeButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            resources.ApplyResources(this.viewPeakShapeButton, "viewPeakShapeButton");
+            this.viewPeakShapeButton.Name = "viewPeakShapeButton";
+            this.viewPeakShapeButton.UseVisualStyleBackColor = true;
+            this.viewPeakShapeButton.Click += new System.EventHandler(this.ViewPeakShapeButton_Click);
             // 
             // cancelAddPeakButton
             // 
@@ -318,6 +326,7 @@
         private System.Windows.Forms.Label peakShapeFirstParameterValueLabel;
         private System.Windows.Forms.Label peakShapeSecondParameterLabel;
         private System.Windows.Forms.Label peakShapeSecondParameterValueLabel;
+        private System.Windows.Forms.Button viewPeakShapeButton;
         private System.Windows.Forms.Button cancelAddPeakButton;
         private System.Windows.Forms.Button viewCalibrationButton;
         private System.Windows.Forms.Button getAllPeaksButton;

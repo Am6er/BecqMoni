@@ -21,6 +21,7 @@ namespace BecquerelMonitor
         bool peakPickupProcessing = false;
 
         bool calibrationDone = true;
+        bool updatingCurveSelection;
 
         string expGaussExpLeftParameterLabelText;
         string expGaussExpRightParameterLabelText;
@@ -99,35 +100,27 @@ namespace BecquerelMonitor
 
         void UpdateSelectedCurveInfo()
         {
-            if (selectCurveComboBox.SelectedIndex == -1)
-            {
-                if (fwhmCalibration is SimpleSqrtFwhmCalibration)
-                {
-                    selectCurveComboBox.SelectedIndex = (int)FwhmCalibration.FwhmCalibrationCurve.SimpleSqrtFwhmCalibration;
-                }
-                else
-                {
-                    selectCurveComboBox.SelectedIndex = (int)FwhmCalibration.FwhmCalibrationCurve.SqrtFwhmCalibration;
-                }
-            }
+            int targetSelectedIndex = fwhmCalibration is SimpleSqrtFwhmCalibration
+                ? (int)FwhmCalibration.FwhmCalibrationCurve.SimpleSqrtFwhmCalibration
+                : (int)FwhmCalibration.FwhmCalibrationCurve.SqrtFwhmCalibration;
 
-            if (fwhmCalibration is SimpleSqrtFwhmCalibration)
+            if (selectCurveComboBox.SelectedIndex != targetSelectedIndex)
             {
-                if (selectCurveComboBox.SelectedIndex == -1 ||
-                    selectCurveComboBox.SelectedIndex != (int)FwhmCalibration.FwhmCalibrationCurve.SimpleSqrtFwhmCalibration)
-                        selectCurveComboBox.SelectedIndex = (int)FwhmCalibration.FwhmCalibrationCurve.SimpleSqrtFwhmCalibration;
+                updatingCurveSelection = true;
+                try
+                {
+                    selectCurveComboBox.SelectedIndex = targetSelectedIndex;
+                }
+                finally
+                {
+                    updatingCurveSelection = false;
+                }
             }
-            else
-            {
-                if (selectCurveComboBox.SelectedIndex == -1 ||
-                    selectCurveComboBox.SelectedIndex != (int)FwhmCalibration.FwhmCalibrationCurve.SqrtFwhmCalibration)
-                        selectCurveComboBox.SelectedIndex = (int)FwhmCalibration.FwhmCalibrationCurve.SqrtFwhmCalibration;
-            }
-
 
             curveFormulaLabel.Text = fwhmCalibration.GetFormula();
             minPeaksRequirement = fwhmCalibration.MinPeaksRequirement();
             minPeaksRequirementLabel.Text = String.Format(Resources.MinPeaksRequirement, minPeaksRequirement);
+            lastSelectedIndex = selectCurveComboBox.SelectedIndex;
             UpdatePeakShapeInfo();
         }
 
@@ -165,7 +158,7 @@ namespace BecquerelMonitor
             }
         }
 
-        static string GetPeakShapeName(int peakType)
+        internal static string GetPeakShapeName(int peakType)
         {
             switch (peakType)
             {
@@ -180,11 +173,13 @@ namespace BecquerelMonitor
 
         void SelectCurveComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (selectCurveComboBox.SelectedIndex == -1 || selectCurveComboBox.SelectedIndex == lastSelectedIndex || lastSelectedIndex == -1)
+            if (updatingCurveSelection || selectCurveComboBox.SelectedIndex == -1 || selectCurveComboBox.SelectedIndex == lastSelectedIndex || lastSelectedIndex == -1)
             {
                 lastSelectedIndex = selectCurveComboBox.SelectedIndex;
                 return;
             }
+
+            FwhmCalibration previousCalibration = fwhmCalibration;
             if (selectCurveComboBox.SelectedIndex == (int)FwhmCalibration.FwhmCalibrationCurve.SimpleSqrtFwhmCalibration)
             {
                 fwhmCalibration = new SimpleSqrtFwhmCalibration { CalibrationPeaks = fwhmCalibration.ClonePeaks() };
@@ -192,9 +187,25 @@ namespace BecquerelMonitor
             {
                 fwhmCalibration = new SqrtFwhmCalibration { CalibrationPeaks = fwhmCalibration.ClonePeaks() };
             }
+
+            CopyPeakShapeSettings(previousCalibration, fwhmCalibration);
             UpdateSelectedCurveInfo();
             UpdateCalibrateButtonState();
             lastSelectedIndex = selectCurveComboBox.SelectedIndex;
+        }
+
+        static void CopyPeakShapeSettings(FwhmCalibration source, FwhmCalibration target)
+        {
+            if (source == null || target == null)
+            {
+                return;
+            }
+
+            target.PeakType = source.PeakType;
+            target.ExpGaussExpLeftTail = source.ExpGaussExpLeftTail;
+            target.ExpGaussExpRightTail = source.ExpGaussExpRightTail;
+            target.VoigtSigma = source.VoigtSigma;
+            target.VoigtGamma = source.VoigtGamma;
         }
 
         void UpdateCalibrateButtonState()
@@ -598,6 +609,18 @@ namespace BecquerelMonitor
                 UpdateTable();
                 UpdateCalibrateButtonState();
             }
+        }
+
+        private void ViewPeakShapeButton_Click(object sender, EventArgs e)
+        {
+            if (fwhmCalibration == null)
+            {
+                return;
+            }
+
+            PeakShapePreviewGraph graph = new PeakShapePreviewGraph(this.mainForm);
+            graph.Init(fwhmCalibration, this.peakShapeInfoGroupBox.Text);
+            graph.ShowDialog(this);
         }
     }
 }

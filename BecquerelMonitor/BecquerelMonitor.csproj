@@ -601,6 +601,9 @@
     <Compile Include="Utils\FWHMCalibrationGraph.Designer.cs">
       <DependentUpon>FWHMCalibrationGraph.cs</DependentUpon>
     </Compile>
+    <Compile Include="Utils\PeakShapePreviewGraph.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Utils\LiveTime.cs" />
     <Compile Include="Utils\ROIAriphmetics.cs" />
     <Compile Include="Utils\PseudoVoigtProfile.cs" />
