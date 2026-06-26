@@ -4504,6 +4504,9 @@
   <data name="peakShapeTypeLabel.Text" xml:space="preserve">
     <value>Тип пика</value>
   </data>
+  <data name="viewPeakShapeButton.Text" xml:space="preserve">
+    <value>Просмотр</value>
+  </data>
   <data name="peakShapeFirstParameterLabel.Size" type="System.Drawing.Size, System.Drawing">
     <value>86, 13</value>
   </data>

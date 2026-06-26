@@ -657,6 +657,30 @@
   <data name="&gt;&gt;peakShapeTypeLabel.ZOrder" xml:space="preserve">
     <value>5</value>
   </data>
+  <data name="viewPeakShapeButton.Location" type="System.Drawing.Point, System.Drawing">
+    <value>221, 16</value>
+  </data>
+  <data name="viewPeakShapeButton.Size" type="System.Drawing.Size, System.Drawing">
+    <value>75, 23</value>
+  </data>
+  <data name="viewPeakShapeButton.TabIndex" type="System.Int32, mscorlib">
+    <value>6</value>
+  </data>
+  <data name="viewPeakShapeButton.Text" xml:space="preserve">
+    <value>View</value>
+  </data>
+  <data name="&gt;&gt;viewPeakShapeButton.Name" xml:space="preserve">
+    <value>viewPeakShapeButton</value>
+  </data>
+  <data name="&gt;&gt;viewPeakShapeButton.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;viewPeakShapeButton.Parent" xml:space="preserve">
+    <value>peakShapeInfoGroupBox</value>
+  </data>
+  <data name="&gt;&gt;viewPeakShapeButton.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
   <data name="peakShapeInfoGroupBox.Location" type="System.Drawing.Point, System.Drawing">
     <value>8, 168</value>
   </data>
