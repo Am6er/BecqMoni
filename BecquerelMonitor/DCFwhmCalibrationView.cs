@@ -2,6 +2,8 @@
 using BecquerelMonitor.Utils;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Text;
 using System.Windows.Forms;
 using XPTable.Editors;
 using XPTable.Models;
@@ -357,7 +359,10 @@ namespace BecquerelMonitor
                 MessageBox.Show(Resources.CalibrationFunctionError);
                 return;
             }
-            SelectGlobalPeakShape(fwhmCalibration.CalibrationPeaks);
+            if (HasPeakShapeComparisonData(fwhmCalibration.CalibrationPeaks))
+            {
+                SelectGlobalPeakShape(fwhmCalibration.CalibrationPeaks);
+            }
 
             mainForm.ActiveDocument.ActiveResultData.FwhmCalibration = fwhmCalibration.Clone();
             mainForm.ActiveDocument.Dirty = true;
@@ -494,6 +499,16 @@ namespace BecquerelMonitor
                 fwhmCalibration.VoigtGamma = (bestVoigtCandidate % TailSteps + 1) * 0.1;
             }
 
+            ShowGlobalPeakFitComparisonTable(
+                peakType,
+                hasGaussian ? gaussianChi2 : -1.0,
+                hasGaussian ? gaussianNdp : -1,
+                bestExpGaussExpCandidate >= 0 ? expGaussExpChi2 : -1.0,
+                bestExpGaussExpCandidate >= 0 ? expGaussExpNdp : -1,
+                bestExpGaussExpCandidate >= 0 ? GetExpGaussExpParametersText(bestExpGaussExpCandidate, TailSteps) : GetResourceText("PeakFitChiTableUnavailable", "n/a"),
+                bestVoigtCandidate >= 0 ? voigtChi2 : -1.0,
+                bestVoigtCandidate >= 0 ? voigtNdp : -1,
+                bestVoigtCandidate >= 0 ? GetVoigtParametersText(bestVoigtCandidate, TailSteps) : GetResourceText("PeakFitChiTableUnavailable", "n/a"));
         }
 
         static bool IsValidFitStatistic(double chi2, int ndp)
@@ -506,6 +521,187 @@ namespace BecquerelMonitor
             // A global shape is accepted only when it is no worse for every selected peak.
             double tolerance = Math.Max(1e-9, Math.Abs(gaussianChi2) * 1e-12);
             return candidateChi2 <= gaussianChi2 + tolerance;
+        }
+
+        static bool HasPeakShapeComparisonData(List<CalibrationPeak> peaks)
+        {
+            if (peaks == null || peaks.Count == 0)
+            {
+                return false;
+            }
+
+            foreach (CalibrationPeak peak in peaks)
+            {
+                if (!IsValidFitStatistic(peak.GaussianChi2, peak.GaussianNdp) ||
+                    peak.ExpGaussExpCandidateChi2 == null || peak.ExpGaussExpCandidateNdp == null ||
+                    peak.VoigtCandidateChi2 == null || peak.VoigtCandidateNdp == null)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        void ShowGlobalPeakFitComparisonTable(
+            int selectedPeakType,
+            double gaussianChi2,
+            int gaussianNdp,
+            double expGaussExpChi2,
+            int expGaussExpNdp,
+            string expGaussExpParameters,
+            double voigtChi2,
+            int voigtNdp,
+            string voigtParameters)
+        {
+            List<PeakFitComparisonItem> items = new List<PeakFitComparisonItem>
+            {
+                new PeakFitComparisonItem(GetPeakShapeName(FwhmCalibration.GaussianPeakType), gaussianChi2, gaussianNdp, "-"),
+                new PeakFitComparisonItem(GetPeakShapeName(FwhmCalibration.ExpGaussExpPeakType), expGaussExpChi2, expGaussExpNdp, expGaussExpParameters),
+                new PeakFitComparisonItem(GetPeakShapeName(FwhmCalibration.VoigtPeakType), voigtChi2, voigtNdp, voigtParameters)
+            };
+
+            items.Sort(delegate (PeakFitComparisonItem left, PeakFitComparisonItem right)
+            {
+                bool leftValid = IsValidFitStatistic(left.Chi2, left.Ndp);
+                bool rightValid = IsValidFitStatistic(right.Chi2, right.Ndp);
+                if (leftValid && rightValid)
+                {
+                    return (left.Chi2 / left.Ndp).CompareTo(right.Chi2 / right.Ndp);
+                }
+                if (leftValid)
+                {
+                    return -1;
+                }
+                if (rightValid)
+                {
+                    return 1;
+                }
+                return String.Compare(left.CurveName, right.CurveName, StringComparison.CurrentCulture);
+            });
+
+            StringBuilder messageBuilder = new StringBuilder();
+            messageBuilder.AppendFormat(
+                GetResourceText("PeakFitChiTablePeakSummary", "Selected shape: {0}."),
+                GetPeakShapeName(selectedPeakType));
+            messageBuilder.AppendLine();
+            messageBuilder.AppendLine();
+
+            foreach (PeakFitComparisonItem item in items)
+            {
+                messageBuilder.AppendFormat(
+                    "{0}: {1} = {2}; {3}: {4}",
+                    item.CurveName,
+                    GetResourceText("PeakFitChiTableChi2PerNdpColumn", "chi2/ndp"),
+                    FormatPeakFitRatio(item.Chi2, item.Ndp),
+                    GetResourceText("PeakFitChiTableParametersColumn", "Parameters"),
+                    item.Parameters);
+                messageBuilder.AppendLine();
+            }
+
+            ShowWideMessage(
+                GetResourceText("PeakFitChiTableTitle", "Peak fit comparison"),
+                messageBuilder.ToString().TrimEnd());
+        }
+
+        string GetExpGaussExpParametersText(int candidateIndex, int tailSteps)
+        {
+            return String.Format(
+                "{0}={1:0.0}; {2}={3:0.0}",
+                expGaussExpLeftParameterLabelText,
+                (candidateIndex / tailSteps + 1) * 0.1,
+                expGaussExpRightParameterLabelText,
+                (candidateIndex % tailSteps + 1) * 0.1);
+        }
+
+        string GetVoigtParametersText(int candidateIndex, int tailSteps)
+        {
+            return String.Format(
+                "{0}={1:0.0}; {2}={3:0.0}",
+                Resources.ResourceManager.GetString("VoigtRelativeSigmaLabel"),
+                (candidateIndex / tailSteps + 1) * 0.1,
+                Resources.ResourceManager.GetString("VoigtRelativeGammaLabel"),
+                (candidateIndex % tailSteps + 1) * 0.1);
+        }
+
+        string FormatPeakFitRatio(double chi2, int ndp)
+        {
+            return IsValidFitStatistic(chi2, ndp)
+                ? (chi2 / ndp).ToString("0.#####")
+                : GetResourceText("PeakFitChiTableUnavailable", "n/a");
+        }
+
+        static string GetResourceText(string resourceName, string fallback)
+        {
+            string value = Resources.ResourceManager.GetString(resourceName);
+            return String.IsNullOrEmpty(value) ? fallback : value;
+        }
+
+        void ShowWideMessage(string title, string message)
+        {
+            using (Form dialog = new Form())
+            {
+                dialog.Text = title;
+                dialog.StartPosition = FormStartPosition.CenterParent;
+                dialog.FormBorderStyle = FormBorderStyle.FixedDialog;
+                dialog.MinimizeBox = false;
+                dialog.MaximizeBox = false;
+                dialog.ShowInTaskbar = false;
+                dialog.ClientSize = new Size(490, 120);
+                dialog.Font = this.Font;
+
+                TextBox messageTextBox = new TextBox();
+                messageTextBox.Dock = DockStyle.Fill;
+                messageTextBox.Multiline = true;
+                messageTextBox.ReadOnly = true;
+                messageTextBox.BorderStyle = BorderStyle.None;
+                messageTextBox.BackColor = SystemColors.Window;
+                messageTextBox.WordWrap = true;
+                messageTextBox.ScrollBars = ScrollBars.None;
+                messageTextBox.TabStop = false;
+                messageTextBox.Text = message;
+
+                Panel contentPanel = new Panel();
+                contentPanel.Dock = DockStyle.Top;
+                contentPanel.Height = 76;
+                contentPanel.Padding = new Padding(12, 10, 12, 0);
+                contentPanel.Controls.Add(messageTextBox);
+
+                FlowLayoutPanel buttonPanel = new FlowLayoutPanel();
+                buttonPanel.Dock = DockStyle.Bottom;
+                buttonPanel.Height = 36;
+                buttonPanel.FlowDirection = FlowDirection.RightToLeft;
+                buttonPanel.Padding = new Padding(0, 6, 12, 6);
+                buttonPanel.WrapContents = false;
+
+                Button okButton = new Button();
+                okButton.Text = GetResourceText("PeakFitChiTableCloseButton", "Close");
+                okButton.DialogResult = DialogResult.OK;
+                okButton.Size = new Size(90, 24);
+                buttonPanel.Controls.Add(okButton);
+
+                dialog.AcceptButton = okButton;
+                dialog.CancelButton = okButton;
+                dialog.Controls.Add(buttonPanel);
+                dialog.Controls.Add(contentPanel);
+                dialog.ShowDialog(this);
+            }
+        }
+
+        sealed class PeakFitComparisonItem
+        {
+            public PeakFitComparisonItem(string curveName, double chi2, int ndp, string parameters)
+            {
+                CurveName = curveName;
+                Chi2 = chi2;
+                Ndp = ndp;
+                Parameters = parameters;
+            }
+
+            public string CurveName { get; private set; }
+            public double Chi2 { get; private set; }
+            public int Ndp { get; private set; }
+            public string Parameters { get; private set; }
         }
 
         private void CancelAddPeakButton_Click(object sender, EventArgs e)
