@@ -42093,4 +42093,34 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="PeakShapeVoigt" xml:space="preserve">
     <value>Voigt</value>
   </data>
+  <data name="PeakFitChiTableTitle" xml:space="preserve">
+    <value>Peak shape chi2/ndp comparison</value>
+  </data>
+  <data name="PeakFitChiTablePeakSummary" xml:space="preserve">
+    <value>Selected shape: {0}.</value>
+  </data>
+  <data name="PeakFitChiTableBestColumn" xml:space="preserve">
+    <value>Best</value>
+  </data>
+  <data name="PeakFitChiTableCurveColumn" xml:space="preserve">
+    <value>Curve</value>
+  </data>
+  <data name="PeakFitChiTableChi2Column" xml:space="preserve">
+    <value>chi2</value>
+  </data>
+  <data name="PeakFitChiTableNdpColumn" xml:space="preserve">
+    <value>ndp</value>
+  </data>
+  <data name="PeakFitChiTableChi2PerNdpColumn" xml:space="preserve">
+    <value>chi2/ndp</value>
+  </data>
+  <data name="PeakFitChiTableParametersColumn" xml:space="preserve">
+    <value>Parameters</value>
+  </data>
+  <data name="PeakFitChiTableUnavailable" xml:space="preserve">
+    <value>n/a</value>
+  </data>
+  <data name="PeakFitChiTableCloseButton" xml:space="preserve">
+    <value>Close</value>
+  </data>
 </root>

@@ -707,4 +707,34 @@
   <data name="VoigtRelativeGammaLabel" xml:space="preserve">
     <value>отн. γ</value>
   </data>
+  <data name="PeakFitChiTableTitle" xml:space="preserve">
+    <value>Сравнение chi2/ndp для формы пика</value>
+  </data>
+  <data name="PeakFitChiTablePeakSummary" xml:space="preserve">
+    <value>Выбранная форма: {0}.</value>
+  </data>
+  <data name="PeakFitChiTableBestColumn" xml:space="preserve">
+    <value>Лучшая</value>
+  </data>
+  <data name="PeakFitChiTableCurveColumn" xml:space="preserve">
+    <value>Кривая</value>
+  </data>
+  <data name="PeakFitChiTableChi2Column" xml:space="preserve">
+    <value>chi2</value>
+  </data>
+  <data name="PeakFitChiTableNdpColumn" xml:space="preserve">
+    <value>ndp</value>
+  </data>
+  <data name="PeakFitChiTableChi2PerNdpColumn" xml:space="preserve">
+    <value>chi2/ndp</value>
+  </data>
+  <data name="PeakFitChiTableParametersColumn" xml:space="preserve">
+    <value>Параметры</value>
+  </data>
+  <data name="PeakFitChiTableUnavailable" xml:space="preserve">
+    <value>н/д</value>
+  </data>
+  <data name="PeakFitChiTableCloseButton" xml:space="preserve">
+    <value>Закрыть</value>
+  </data>
 </root>
