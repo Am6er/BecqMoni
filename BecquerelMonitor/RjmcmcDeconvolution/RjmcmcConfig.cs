@@ -15,6 +15,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         public double RoiRadiusFwhm { get; private set; }
         public double CenterUpdateSigmaFwhm { get; private set; }
         public double BackgroundUpdateFraction { get; private set; }
+        public double TargetSnr { get; private set; }
         public double MinDevianceImprovement { get; private set; }
         public double ExtraPeakPenalty { get; private set; }
         public double MinimumCandidateAmplitude { get; private set; }
@@ -40,6 +41,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 RoiRadiusFwhm = 6.0,
                 CenterUpdateSigmaFwhm = 0.2,
                 BackgroundUpdateFraction = 0.08,
+                TargetSnr = 10.0,
                 MinDevianceImprovement = 2.0,
                 ExtraPeakPenalty = 0.35,
                 MinimumCandidateAmplitude = 2.0,
@@ -66,9 +68,25 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             config.MaxRois = Math.Max(1, peakConfig.MaxRois);
             config.MaxExtraPeaksPerRoi = Math.Max(0, peakConfig.MaxExtraPeaksPerRoi);
             config.RoiRadiusFwhm = Math.Max(1.0, peakConfig.RoiRadiusFwhm);
-            config.MinDevianceImprovement = Math.Max(0.0, peakConfig.MinDevianceImprovement);
-            config.MinimumCandidateAmplitude = Math.Max(0.0, peakConfig.MinimumCandidateAmplitude);
+            config.TargetSnr = NormalizeTargetSnr(peakConfig.Min_SNR);
+            config.MinDevianceImprovement = CalculateMinimumDevianceImprovement(config.TargetSnr);
+            config.MinimumCandidateAmplitude = 0.0;
             return config;
+        }
+
+        static double NormalizeTargetSnr(double minSnr)
+        {
+            if (Double.IsNaN(minSnr) || Double.IsInfinity(minSnr))
+            {
+                return 1.0;
+            }
+
+            return Math.Max(1.0, minSnr);
+        }
+
+        static double CalculateMinimumDevianceImprovement(double targetSnr)
+        {
+            return Math.Max(1.0, targetSnr * targetSnr);
         }
     }
 }

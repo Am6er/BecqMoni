@@ -2778,108 +2778,6 @@
   <data name="&gt;&gt;deconvolutionRoiRadiusFwhmNumericUpDown.ZOrder" xml:space="preserve">
     <value>11</value>
   </data>
-  <data name="deconvolutionMinDevianceImprovementLabel.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="deconvolutionMinDevianceImprovementLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>225, 79</value>
-  </data>
-  <data name="deconvolutionMinDevianceImprovementLabel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>72, 13</value>
-  </data>
-  <data name="deconvolutionMinDevianceImprovementLabel.TabIndex" type="System.Int32, mscorlib">
-    <value>12</value>
-  </data>
-  <data name="deconvolutionMinDevianceImprovementLabel.Text" xml:space="preserve">
-    <value>Min deviance</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMinDevianceImprovementLabel.Name" xml:space="preserve">
-    <value>deconvolutionMinDevianceImprovementLabel</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMinDevianceImprovementLabel.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMinDevianceImprovementLabel.Parent" xml:space="preserve">
-    <value>deconvolutionGroupBox</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMinDevianceImprovementLabel.ZOrder" xml:space="preserve">
-    <value>12</value>
-  </data>
-  <data name="deconvolutionMinDevianceImprovementNumericUpDown.Location" type="System.Drawing.Point, System.Drawing">
-    <value>347, 76</value>
-  </data>
-  <data name="deconvolutionMinDevianceImprovementNumericUpDown.Size" type="System.Drawing.Size, System.Drawing">
-    <value>73, 20</value>
-  </data>
-  <data name="deconvolutionMinDevianceImprovementNumericUpDown.TabIndex" type="System.Int32, mscorlib">
-    <value>13</value>
-  </data>
-  <data name="deconvolutionMinDevianceImprovementNumericUpDown.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMinDevianceImprovementNumericUpDown.Name" xml:space="preserve">
-    <value>deconvolutionMinDevianceImprovementNumericUpDown</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMinDevianceImprovementNumericUpDown.Type" xml:space="preserve">
-    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMinDevianceImprovementNumericUpDown.Parent" xml:space="preserve">
-    <value>deconvolutionGroupBox</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMinDevianceImprovementNumericUpDown.ZOrder" xml:space="preserve">
-    <value>13</value>
-  </data>
-  <data name="deconvolutionMinimumCandidateAmplitudeLabel.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="deconvolutionMinimumCandidateAmplitudeLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>225, 106</value>
-  </data>
-  <data name="deconvolutionMinimumCandidateAmplitudeLabel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>75, 13</value>
-  </data>
-  <data name="deconvolutionMinimumCandidateAmplitudeLabel.TabIndex" type="System.Int32, mscorlib">
-    <value>14</value>
-  </data>
-  <data name="deconvolutionMinimumCandidateAmplitudeLabel.Text" xml:space="preserve">
-    <value>Min amplitude</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMinimumCandidateAmplitudeLabel.Name" xml:space="preserve">
-    <value>deconvolutionMinimumCandidateAmplitudeLabel</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMinimumCandidateAmplitudeLabel.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMinimumCandidateAmplitudeLabel.Parent" xml:space="preserve">
-    <value>deconvolutionGroupBox</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMinimumCandidateAmplitudeLabel.ZOrder" xml:space="preserve">
-    <value>14</value>
-  </data>
-  <data name="deconvolutionMinimumCandidateAmplitudeNumericUpDown.Location" type="System.Drawing.Point, System.Drawing">
-    <value>347, 103</value>
-  </data>
-  <data name="deconvolutionMinimumCandidateAmplitudeNumericUpDown.Size" type="System.Drawing.Size, System.Drawing">
-    <value>73, 20</value>
-  </data>
-  <data name="deconvolutionMinimumCandidateAmplitudeNumericUpDown.TabIndex" type="System.Int32, mscorlib">
-    <value>15</value>
-  </data>
-  <data name="deconvolutionMinimumCandidateAmplitudeNumericUpDown.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMinimumCandidateAmplitudeNumericUpDown.Name" xml:space="preserve">
-    <value>deconvolutionMinimumCandidateAmplitudeNumericUpDown</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMinimumCandidateAmplitudeNumericUpDown.Type" xml:space="preserve">
-    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMinimumCandidateAmplitudeNumericUpDown.Parent" xml:space="preserve">
-    <value>deconvolutionGroupBox</value>
-  </data>
-  <data name="&gt;&gt;deconvolutionMinimumCandidateAmplitudeNumericUpDown.ZOrder" xml:space="preserve">
-    <value>15</value>
-  </data>
   <data name="deconvolutionGroupBox.Location" type="System.Drawing.Point, System.Drawing">
     <value>17, 289</value>
   </data>
@@ -2921,12 +2819,6 @@
   </data>
   <data name="deconvolutionRoiRadiusFwhm.ToolTip" xml:space="preserve">
     <value>ROI half-width around each deterministic peak, expressed in FWHM units.</value>
-  </data>
-  <data name="deconvolutionMinDevianceImprovement.ToolTip" xml:space="preserve">
-    <value>Minimum deviance improvement required to accept an extra RJMCMC peak candidate.</value>
-  </data>
-  <data name="deconvolutionMinimumCandidateAmplitude.ToolTip" xml:space="preserve">
-    <value>Minimum fitted candidate amplitude required before an RJMCMC peak can be returned.</value>
   </data>
   <data name="tabPage5.Location" type="System.Drawing.Point, System.Drawing">
     <value>4, 22</value>
