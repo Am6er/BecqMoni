@@ -609,8 +609,6 @@ namespace BecquerelMonitor
             this.deconvolutionMaxRoisNumericUpDown.Value = ClampNumericValue(this.deconvolutionMaxRoisNumericUpDown, config.MaxRois);
             this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Value = ClampNumericValue(this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown, config.MaxExtraPeaksPerRoi);
             this.deconvolutionRoiRadiusFwhmNumericUpDown.Value = ClampNumericValue(this.deconvolutionRoiRadiusFwhmNumericUpDown, (decimal)config.RoiRadiusFwhm);
-            this.deconvolutionMinDevianceImprovementNumericUpDown.Value = ClampNumericValue(this.deconvolutionMinDevianceImprovementNumericUpDown, (decimal)config.MinDevianceImprovement);
-            this.deconvolutionMinimumCandidateAmplitudeNumericUpDown.Value = ClampNumericValue(this.deconvolutionMinimumCandidateAmplitudeNumericUpDown, (decimal)config.MinimumCandidateAmplitude);
         }
 
         void ConfigureDeconvolutionControls()
@@ -634,14 +632,6 @@ namespace BecquerelMonitor
             this.deconvolutionRoiRadiusFwhmNumericUpDown.Minimum = 1;
             this.deconvolutionRoiRadiusFwhmNumericUpDown.Maximum = 100;
             this.deconvolutionRoiRadiusFwhmNumericUpDown.Increment = 0.5m;
-
-            this.deconvolutionMinDevianceImprovementNumericUpDown.Minimum = 0;
-            this.deconvolutionMinDevianceImprovementNumericUpDown.Maximum = 1000;
-            this.deconvolutionMinDevianceImprovementNumericUpDown.Increment = 0.1m;
-
-            this.deconvolutionMinimumCandidateAmplitudeNumericUpDown.Minimum = 0;
-            this.deconvolutionMinimumCandidateAmplitudeNumericUpDown.Maximum = 100000;
-            this.deconvolutionMinimumCandidateAmplitudeNumericUpDown.Increment = 0.1m;
         }
 
         static decimal ClampNumericValue(NumericUpDown numericUpDown, decimal value)
@@ -822,8 +812,6 @@ namespace BecquerelMonitor
                 FWHMPeakDetectionMethodConfig.MaxRois = (int)this.deconvolutionMaxRoisNumericUpDown.Value;
                 FWHMPeakDetectionMethodConfig.MaxExtraPeaksPerRoi = (int)this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Value;
                 FWHMPeakDetectionMethodConfig.RoiRadiusFwhm = (double)this.deconvolutionRoiRadiusFwhmNumericUpDown.Value;
-                FWHMPeakDetectionMethodConfig.MinDevianceImprovement = (double)this.deconvolutionMinDevianceImprovementNumericUpDown.Value;
-                FWHMPeakDetectionMethodConfig.MinimumCandidateAmplitude = (double)this.deconvolutionMinimumCandidateAmplitudeNumericUpDown.Value;
                 StoreCurrentPeakShapeParameters();
                 FWHMPeakDetectionMethodConfig.FwhmCalibration.PeakType = peakTypecomboBox.SelectedIndex;
                 FWHMPeakDetectionMethodConfig.FwhmCalibration.ExpGaussExpLeftTail = (double)expGaussExpLeftValue;

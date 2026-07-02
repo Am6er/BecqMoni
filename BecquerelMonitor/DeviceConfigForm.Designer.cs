@@ -143,10 +143,6 @@ namespace BecquerelMonitor
             this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown = new System.Windows.Forms.NumericUpDown();
             this.deconvolutionRoiRadiusFwhmLabel = new System.Windows.Forms.Label();
             this.deconvolutionRoiRadiusFwhmNumericUpDown = new System.Windows.Forms.NumericUpDown();
-            this.deconvolutionMinDevianceImprovementLabel = new System.Windows.Forms.Label();
-            this.deconvolutionMinDevianceImprovementNumericUpDown = new System.Windows.Forms.NumericUpDown();
-            this.deconvolutionMinimumCandidateAmplitudeLabel = new System.Windows.Forms.Label();
-            this.deconvolutionMinimumCandidateAmplitudeNumericUpDown = new System.Windows.Forms.NumericUpDown();
             this.deconvolutionToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.tabPage4 = new System.Windows.Forms.TabPage();
             this.label31 = new System.Windows.Forms.Label();
@@ -209,8 +205,6 @@ namespace BecquerelMonitor
             ((System.ComponentModel.ISupportInitialize)(this.deconvolutionMaxRoisNumericUpDown)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.deconvolutionRoiRadiusFwhmNumericUpDown)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.deconvolutionMinDevianceImprovementNumericUpDown)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.deconvolutionMinimumCandidateAmplitudeNumericUpDown)).BeginInit();
             this.tabPage4.SuspendLayout();
             this.tabPage7.SuspendLayout();
             this.groupBox3.SuspendLayout();
@@ -970,10 +964,6 @@ namespace BecquerelMonitor
             this.deconvolutionGroupBox.Controls.Add(this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown);
             this.deconvolutionGroupBox.Controls.Add(this.deconvolutionRoiRadiusFwhmLabel);
             this.deconvolutionGroupBox.Controls.Add(this.deconvolutionRoiRadiusFwhmNumericUpDown);
-            this.deconvolutionGroupBox.Controls.Add(this.deconvolutionMinDevianceImprovementLabel);
-            this.deconvolutionGroupBox.Controls.Add(this.deconvolutionMinDevianceImprovementNumericUpDown);
-            this.deconvolutionGroupBox.Controls.Add(this.deconvolutionMinimumCandidateAmplitudeLabel);
-            this.deconvolutionGroupBox.Controls.Add(this.deconvolutionMinimumCandidateAmplitudeNumericUpDown);
             this.deconvolutionGroupBox.Name = "deconvolutionGroupBox";
             this.deconvolutionGroupBox.TabStop = false;
             // 
@@ -1056,34 +1046,6 @@ namespace BecquerelMonitor
             this.deconvolutionRoiRadiusFwhmNumericUpDown.Name = "deconvolutionRoiRadiusFwhmNumericUpDown";
             this.deconvolutionToolTip.SetToolTip(this.deconvolutionRoiRadiusFwhmNumericUpDown, resources.GetString("deconvolutionRoiRadiusFwhm.ToolTip"));
             this.deconvolutionRoiRadiusFwhmNumericUpDown.ValueChanged += new System.EventHandler(this.deconvolutionConfig_ValueChanged);
-            // 
-            // deconvolutionMinDevianceImprovementLabel
-            // 
-            resources.ApplyResources(this.deconvolutionMinDevianceImprovementLabel, "deconvolutionMinDevianceImprovementLabel");
-            this.deconvolutionMinDevianceImprovementLabel.Name = "deconvolutionMinDevianceImprovementLabel";
-            this.deconvolutionToolTip.SetToolTip(this.deconvolutionMinDevianceImprovementLabel, resources.GetString("deconvolutionMinDevianceImprovement.ToolTip"));
-            // 
-            // deconvolutionMinDevianceImprovementNumericUpDown
-            // 
-            this.deconvolutionMinDevianceImprovementNumericUpDown.DecimalPlaces = 1;
-            resources.ApplyResources(this.deconvolutionMinDevianceImprovementNumericUpDown, "deconvolutionMinDevianceImprovementNumericUpDown");
-            this.deconvolutionMinDevianceImprovementNumericUpDown.Name = "deconvolutionMinDevianceImprovementNumericUpDown";
-            this.deconvolutionToolTip.SetToolTip(this.deconvolutionMinDevianceImprovementNumericUpDown, resources.GetString("deconvolutionMinDevianceImprovement.ToolTip"));
-            this.deconvolutionMinDevianceImprovementNumericUpDown.ValueChanged += new System.EventHandler(this.deconvolutionConfig_ValueChanged);
-            // 
-            // deconvolutionMinimumCandidateAmplitudeLabel
-            // 
-            resources.ApplyResources(this.deconvolutionMinimumCandidateAmplitudeLabel, "deconvolutionMinimumCandidateAmplitudeLabel");
-            this.deconvolutionMinimumCandidateAmplitudeLabel.Name = "deconvolutionMinimumCandidateAmplitudeLabel";
-            this.deconvolutionToolTip.SetToolTip(this.deconvolutionMinimumCandidateAmplitudeLabel, resources.GetString("deconvolutionMinimumCandidateAmplitude.ToolTip"));
-            // 
-            // deconvolutionMinimumCandidateAmplitudeNumericUpDown
-            // 
-            this.deconvolutionMinimumCandidateAmplitudeNumericUpDown.DecimalPlaces = 1;
-            resources.ApplyResources(this.deconvolutionMinimumCandidateAmplitudeNumericUpDown, "deconvolutionMinimumCandidateAmplitudeNumericUpDown");
-            this.deconvolutionMinimumCandidateAmplitudeNumericUpDown.Name = "deconvolutionMinimumCandidateAmplitudeNumericUpDown";
-            this.deconvolutionToolTip.SetToolTip(this.deconvolutionMinimumCandidateAmplitudeNumericUpDown, resources.GetString("deconvolutionMinimumCandidateAmplitude.ToolTip"));
-            this.deconvolutionMinimumCandidateAmplitudeNumericUpDown.ValueChanged += new System.EventHandler(this.deconvolutionConfig_ValueChanged);
             // 
             // tabPage4
             // 
@@ -1412,8 +1374,6 @@ namespace BecquerelMonitor
             ((System.ComponentModel.ISupportInitialize)(this.deconvolutionMaxRoisNumericUpDown)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.deconvolutionRoiRadiusFwhmNumericUpDown)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.deconvolutionMinDevianceImprovementNumericUpDown)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.deconvolutionMinimumCandidateAmplitudeNumericUpDown)).EndInit();
             this.tabPage4.ResumeLayout(false);
             this.tabPage4.PerformLayout();
             this.tabPage7.ResumeLayout(false);
@@ -1775,10 +1735,6 @@ namespace BecquerelMonitor
         private NumericUpDown deconvolutionMaxExtraPeaksPerRoiNumericUpDown;
         private Label deconvolutionRoiRadiusFwhmLabel;
         private NumericUpDown deconvolutionRoiRadiusFwhmNumericUpDown;
-        private Label deconvolutionMinDevianceImprovementLabel;
-        private NumericUpDown deconvolutionMinDevianceImprovementNumericUpDown;
-        private Label deconvolutionMinimumCandidateAmplitudeLabel;
-        private NumericUpDown deconvolutionMinimumCandidateAmplitudeNumericUpDown;
         private ToolTip deconvolutionToolTip;
     }
 }
