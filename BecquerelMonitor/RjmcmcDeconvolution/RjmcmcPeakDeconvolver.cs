@@ -40,10 +40,13 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             public RjmcmcRoi Roi;
             public int[] Observed;
             public double[] FixedBackground;
+            public bool[] AnchorForbiddenChannels;
+            public int AvailableNonAnchorChannelCount;
             public RjmcmcComponentProfile[] Profiles;
             public double MeanObserved;
             public double AmplitudeScale;
             public double LogAmplitudeScale;
+            public int FixedCenterSigmaChannels;
             public bool IsUsable;
 
             public int Length
@@ -404,18 +407,74 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
 
             double amplitudeScale = EstimateAmplitudeScale(maxResidual);
             bool isUsable = observed.Length >= 5 && maxObserved > 0 && config.MaxExtraPeaksPerRoi > 0;
+            bool[] anchorForbiddenChannels = BuildAnchorForbiddenChannels(roi, fwhmCalibration);
             RjmcmcRoiWorkspace workspace = new RjmcmcRoiWorkspace
             {
                 Roi = roi,
                 Observed = observed,
                 FixedBackground = fixedBackground,
+                AnchorForbiddenChannels = anchorForbiddenChannels,
+                AvailableNonAnchorChannelCount = CountAvailableNonAnchorChannels(anchorForbiddenChannels),
                 Profiles = isUsable ? BuildComponentProfiles(roi, fwhmCalibration) : new RjmcmcComponentProfile[0],
                 MeanObserved = observed.Length > 0 ? sumResidual / observed.Length : 0.0,
                 AmplitudeScale = amplitudeScale,
                 LogAmplitudeScale = Math.Log(amplitudeScale),
+                FixedCenterSigmaChannels = EstimateFixedCenterSigmaChannels(roi, fwhmCalibration, config),
                 IsUsable = isUsable
             };
             return workspace;
+        }
+
+        static int EstimateFixedCenterSigmaChannels(
+            RjmcmcRoi roi,
+            FwhmCalibration fwhmCalibration,
+            RjmcmcConfig config)
+        {
+            int centerChannel = roi.StartChannel + (roi.Width - 1) / 2;
+            double fwhm = fwhmCalibration.ChannelToFwhm(centerChannel);
+            if (!PeakShapeModel.IsFinite(fwhm) || fwhm <= 0.0)
+            {
+                fwhm = 1.0;
+            }
+
+            return Math.Max(1, Convert.ToInt32(Math.Round(config.CenterUpdateSigmaFwhm * fwhm)));
+        }
+
+        static bool[] BuildAnchorForbiddenChannels(RjmcmcRoi roi, FwhmCalibration fwhmCalibration)
+        {
+            bool[] forbidden = new bool[roi.Width];
+            foreach (int anchorChannel in roi.AnchorChannels)
+            {
+                double fwhm = fwhmCalibration.ChannelToFwhm(anchorChannel);
+                if (!PeakShapeModel.IsFinite(fwhm) || fwhm <= 0.0)
+                {
+                    fwhm = 1.0;
+                }
+
+                int radius = Math.Max(1, Convert.ToInt32(Math.Floor(AnchorExclusionDistance(fwhm))));
+                int start = Math.Max(roi.StartChannel, anchorChannel - radius);
+                int end = Math.Min(roi.EndChannel, anchorChannel + radius);
+                for (int channel = start; channel <= end; channel++)
+                {
+                    forbidden[channel - roi.StartChannel] = true;
+                }
+            }
+
+            return forbidden;
+        }
+
+        static int CountAvailableNonAnchorChannels(bool[] anchorForbiddenChannels)
+        {
+            int count = 0;
+            for (int i = 0; i < anchorForbiddenChannels.Length; i++)
+            {
+                if (!anchorForbiddenChannels[i])
+                {
+                    count++;
+                }
+            }
+
+            return count;
         }
 
         /// <summary>
@@ -712,7 +771,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 return false;
             }
 
-            if (!AreExtraCentersAllowed(state))
+            if (!AreExtraCentersAllowed(state, workspace))
             {
                 return false;
             }
@@ -785,15 +844,32 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             int length = workspace.Length;
             double intercept = state.BackgroundIntercept;
             double slope = state.BackgroundSlope;
-            for (int i = 0; i < length; i++)
+            double[] fixedBackground = workspace.FixedBackground;
+            if (fixedBackground == null)
             {
-                double background = FixedBackgroundAt(workspace.FixedBackground, i) + intercept + slope * i;
-                if (!PeakShapeModel.IsFinite(background))
+                for (int i = 0; i < length; i++)
                 {
-                    return false;
-                }
+                    double background = intercept + slope * i;
+                    if (!PeakShapeModel.IsFinite(background))
+                    {
+                        return false;
+                    }
 
-                lambda[i] = Math.Max(1E-6, background);
+                    lambda[i] = Math.Max(1E-6, background);
+                }
+            }
+            else
+            {
+                for (int i = 0; i < length; i++)
+                {
+                    double background = fixedBackground[i] + intercept + slope * i;
+                    if (!PeakShapeModel.IsFinite(background))
+                    {
+                        return false;
+                    }
+
+                    lambda[i] = Math.Max(1E-6, background);
+                }
             }
 
             foreach (RjmcmcPeakComponent anchor in state.Anchors)
@@ -1060,14 +1136,14 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             int index = random.Next(current.Extras.Count);
             RjmcmcState proposal = current.Clone();
             RjmcmcPeakComponent component = proposal.Extras[index];
-            int channelStep = Convert.ToInt32(Math.Round(SampleNormal(random) * config.CenterUpdateSigmaFwhm * component.Fwhm));
+            int channelStep = Convert.ToInt32(Math.Round(SampleNormal(random) * workspace.FixedCenterSigmaChannels));
             double amplitudeStep = SampleNormal(random) * workspace.AmplitudeScale * 0.10;
             int newChannel = component.Channel + channelStep;
             double newAmplitude = component.Amplitude + amplitudeStep;
             if (newChannel < workspace.Roi.StartChannel ||
                 newChannel > workspace.Roi.EndChannel ||
                 newAmplitude <= 0.0 ||
-                !IsExtraCenterAllowed(proposal, newChannel, component))
+                !IsExtraCenterAllowed(proposal, workspace, newChannel, component))
             {
                 return null;
             }
@@ -1232,8 +1308,13 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             double[] lambda,
             int localIndex)
         {
+            if (workspace.AnchorForbiddenChannels[localIndex])
+            {
+                return 0.0;
+            }
+
             int channel = workspace.Roi.StartChannel + localIndex;
-            if (!IsExtraCenterAllowed(state, channel, null))
+            if (IsExtraChannelOccupied(state, channel, null))
             {
                 return 0.0;
             }
@@ -1242,11 +1323,11 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             return 0.05 + Math.Max(0.0, residual);
         }
 
-        static bool AreExtraCentersAllowed(RjmcmcState state)
+        static bool AreExtraCentersAllowed(RjmcmcState state, RjmcmcRoiWorkspace workspace)
         {
             foreach (RjmcmcPeakComponent extra in state.Extras)
             {
-                if (!IsExtraCenterAllowed(state, extra.Channel, extra))
+                if (!IsExtraCenterAllowed(state, workspace, extra.Channel, extra))
                 {
                     return false;
                 }
@@ -1255,16 +1336,25 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             return true;
         }
 
-        static bool IsExtraCenterAllowed(RjmcmcState state, int channel, RjmcmcPeakComponent ignoredExtra)
+        static bool IsExtraCenterAllowed(
+            RjmcmcState state,
+            RjmcmcRoiWorkspace workspace,
+            int channel,
+            RjmcmcPeakComponent ignoredExtra)
         {
-            foreach (RjmcmcPeakComponent anchor in state.Anchors)
+            int localIndex = channel - workspace.Roi.StartChannel;
+            if (localIndex < 0 ||
+                localIndex >= workspace.AnchorForbiddenChannels.Length ||
+                workspace.AnchorForbiddenChannels[localIndex])
             {
-                if (Math.Abs(anchor.Channel - channel) <= AnchorExclusionDistance(anchor.Fwhm))
-                {
-                    return false;
-                }
+                return false;
             }
 
+            return !IsExtraChannelOccupied(state, channel, ignoredExtra);
+        }
+
+        static bool IsExtraChannelOccupied(RjmcmcState state, int channel, RjmcmcPeakComponent ignoredExtra)
+        {
             foreach (RjmcmcPeakComponent extra in state.Extras)
             {
                 if (Object.ReferenceEquals(extra, ignoredExtra))
@@ -1274,11 +1364,11 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
 
                 if (extra.Channel == channel)
                 {
-                    return false;
+                    return true;
                 }
             }
 
-            return true;
+            return false;
         }
 
         static double AnchorExclusionDistance(double fwhm)
@@ -1297,8 +1387,13 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             int selected = random.Next(availableCount);
             for (int i = 0; i < workspace.Length; i++)
             {
+                if (workspace.AnchorForbiddenChannels[i])
+                {
+                    continue;
+                }
+
                 int channel = workspace.Roi.StartChannel + i;
-                if (!IsExtraCenterAllowed(state, channel, null))
+                if (IsExtraChannelOccupied(state, channel, null))
                 {
                     continue;
                 }
@@ -1320,7 +1415,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
 
         static double UniformBirthProbabilityForChannel(RjmcmcState state, RjmcmcRoiWorkspace workspace, int channel)
         {
-            if (!IsExtraCenterAllowed(state, channel, null))
+            if (!IsExtraCenterAllowed(state, workspace, channel, null))
             {
                 return 0.0;
             }
@@ -1331,16 +1426,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
 
         static int CountAvailableBirthChannels(RjmcmcState state, RjmcmcRoiWorkspace workspace)
         {
-            int count = 0;
-            for (int i = 0; i < workspace.Length; i++)
-            {
-                if (IsExtraCenterAllowed(state, workspace.Roi.StartChannel + i, null))
-                {
-                    count++;
-                }
-            }
-
-            return count;
+            return Math.Max(0, workspace.AvailableNonAnchorChannelCount - state.Extras.Count);
         }
 
         static double FixedBackgroundAt(double[] fixedBackground, int localIndex)
