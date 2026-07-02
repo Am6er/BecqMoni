@@ -60,6 +60,13 @@ namespace BecquerelMonitor
                 fwhmPeakDetectionMethodConfig.Min_SNR,
                 fwhmPeakDetectionMethodConfig.Tolerance,
                 nuclideSet);
+            peaks.Sort((left, right) =>
+            {
+                int energyComparison = left.Energy.CompareTo(right.Energy);
+                return energyComparison != 0
+                    ? energyComparison
+                    : left.Channel.CompareTo(right.Channel);
+            });
             GC.Collect();
             return peaks;
         }
