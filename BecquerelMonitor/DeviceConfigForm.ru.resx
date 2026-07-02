@@ -394,6 +394,57 @@
   <data name="label52.Text" xml:space="preserve">
     <value>Сжатие каналов, ch</value>
   </data>
+  <data name="deconvolutionGroupBox.Text" xml:space="preserve">
+    <value>Деконволюция</value>
+  </data>
+  <data name="deconvolutionEnabledLabel.Text" xml:space="preserve">
+    <value>Включено</value>
+  </data>
+  <data name="deconvolutionBurnInLabel.Text" xml:space="preserve">
+    <value>Прогрев</value>
+  </data>
+  <data name="deconvolutionSamplesLabel.Text" xml:space="preserve">
+    <value>Сэмплы</value>
+  </data>
+  <data name="deconvolutionMaxRoisLabel.Text" xml:space="preserve">
+    <value>Макс ROI</value>
+  </data>
+  <data name="deconvolutionMaxExtraPeaksPerRoiLabel.Text" xml:space="preserve">
+    <value>Макс доп.</value>
+  </data>
+  <data name="deconvolutionRoiRadiusFwhmLabel.Text" xml:space="preserve">
+    <value>Радиус ROI</value>
+  </data>
+  <data name="deconvolutionMinDevianceImprovementLabel.Text" xml:space="preserve">
+    <value>Мин. выигрыш</value>
+  </data>
+  <data name="deconvolutionMinimumCandidateAmplitudeLabel.Text" xml:space="preserve">
+    <value>Мин. амплитуда</value>
+  </data>
+  <data name="deconvolutionEnabled.ToolTip" xml:space="preserve">
+    <value>Включает RJMCMC-деконволюцию после детерминированного FWHM-поиска пиков для текущего конфига устройства.</value>
+  </data>
+  <data name="deconvolutionBurnIn.ToolTip" xml:space="preserve">
+    <value>Число начальных итераций RJMCMC, которые отбрасываются перед сбором кандидатов.</value>
+  </data>
+  <data name="deconvolutionSamples.ToolTip" xml:space="preserve">
+    <value>Число итераций RJMCMC для сбора кандидатов пиков после прогрева.</value>
+  </data>
+  <data name="deconvolutionMaxRois.ToolTip" xml:space="preserve">
+    <value>Максимальное число ROI-областей, обрабатываемых деконволюцией.</value>
+  </data>
+  <data name="deconvolutionMaxExtraPeaksPerRoi.ToolTip" xml:space="preserve">
+    <value>Максимальное число дополнительных неразрешённых пиков, которые RJMCMC может добавить внутри одного ROI.</value>
+  </data>
+  <data name="deconvolutionRoiRadiusFwhm.ToolTip" xml:space="preserve">
+    <value>Полуширина ROI вокруг детерминированного пика, выраженная в единицах FWHM.</value>
+  </data>
+  <data name="deconvolutionMinDevianceImprovement.ToolTip" xml:space="preserve">
+    <value>Минимальное улучшение deviance, необходимое для принятия дополнительного RJMCMC-кандидата.</value>
+  </data>
+  <data name="deconvolutionMinimumCandidateAmplitude.ToolTip" xml:space="preserve">
+    <value>Минимальная подогнанная амплитуда кандидата, ниже которой RJMCMC-пик не возвращается.</value>
+  </data>
   <data name="tabPage4.Text" xml:space="preserve">
     <value>Ссылки</value>
   </data>

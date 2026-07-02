@@ -137,7 +137,7 @@
     <value>Мин SNR</value>
   </data>
   <data name="checkBoxDeconvolution.Text" xml:space="preserve">
-    <value>Deconvolution</value>
+    <value>Деконволюция</value>
   </data>
   <data name="label3.Text" xml:space="preserve">
     <value>Допуск</value>

@@ -45,7 +45,7 @@ namespace BecquerelMonitor
             }
 
             FWHMPeakDetector.PeakFinder finder = PeakFinder(searchSpectrum, fwhmPeakDetectionMethodConfig, resultData.FwhmCalibration);
-            bool useDeconvolution = GlobalConfigManager.GetInstance().GlobalConfig.UseDeconvolution;
+            bool useDeconvolution = fwhmPeakDetectionMethodConfig.UseDeconvolution;
             RjmcmcResult deconvolution = null;
             if (useDeconvolution)
             {

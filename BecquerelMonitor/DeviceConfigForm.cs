@@ -69,6 +69,8 @@ namespace BecquerelMonitor
                 this.columnModel1.Columns[i].Width = ((deviceConfigListColumnSizes[i] > 32) ? deviceConfigListColumnSizes[i] : 32);
             }
             this.groupBox2.Top = 24;
+            this.peakSpecgroupBox.Top = this.groupBox2.Bottom + 6;
+            this.deconvolutionGroupBox.Top = this.peakSpecgroupBox.Bottom + 6;
         }
 
         void HideTempcoTabPage()
@@ -548,6 +550,7 @@ namespace BecquerelMonitor
                 this.numericUpDown16.Value = (decimal)config.NumberOfChannels;
             }
 
+            LoadDeconvolutionControls(FWHMPeakDetectionMethodConfig);
             LoadPeakShapeControls(FWHMPeakDetectionMethodConfig.FwhmCalibration);
 
 
@@ -592,8 +595,58 @@ namespace BecquerelMonitor
             this.numericUpDown15.Value = FWHMPeakDetectionMethodConfig.Max_FWHM_Tol;
             this.numericUpDown16.Value = FWHMPeakDetectionMethodConfig.Ch_Concat;
             this.numericUpDown12.Value = (decimal)FWHMPeakDetectionMethodConfig.Min_Range;
+            LoadDeconvolutionControls(FWHMPeakDetectionMethodConfig);
             LoadPeakShapeControls(FWHMPeakDetectionMethodConfig.FwhmCalibration);
             this.contentsLoading = false;
+        }
+
+        void LoadDeconvolutionControls(FWHMPeakDetectionMethodConfig config)
+        {
+            ConfigureDeconvolutionControls();
+            this.deconvolutionEnabledCheckBox.Checked = config.UseDeconvolution;
+            this.deconvolutionBurnInNumericUpDown.Value = ClampNumericValue(this.deconvolutionBurnInNumericUpDown, config.BurnIn);
+            this.deconvolutionSamplesNumericUpDown.Value = ClampNumericValue(this.deconvolutionSamplesNumericUpDown, config.Samples);
+            this.deconvolutionMaxRoisNumericUpDown.Value = ClampNumericValue(this.deconvolutionMaxRoisNumericUpDown, config.MaxRois);
+            this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Value = ClampNumericValue(this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown, config.MaxExtraPeaksPerRoi);
+            this.deconvolutionRoiRadiusFwhmNumericUpDown.Value = ClampNumericValue(this.deconvolutionRoiRadiusFwhmNumericUpDown, (decimal)config.RoiRadiusFwhm);
+            this.deconvolutionMinDevianceImprovementNumericUpDown.Value = ClampNumericValue(this.deconvolutionMinDevianceImprovementNumericUpDown, (decimal)config.MinDevianceImprovement);
+            this.deconvolutionMinimumCandidateAmplitudeNumericUpDown.Value = ClampNumericValue(this.deconvolutionMinimumCandidateAmplitudeNumericUpDown, (decimal)config.MinimumCandidateAmplitude);
+        }
+
+        void ConfigureDeconvolutionControls()
+        {
+            this.deconvolutionBurnInNumericUpDown.Minimum = 0;
+            this.deconvolutionBurnInNumericUpDown.Maximum = 100000;
+            this.deconvolutionBurnInNumericUpDown.Increment = 100;
+
+            this.deconvolutionSamplesNumericUpDown.Minimum = 1;
+            this.deconvolutionSamplesNumericUpDown.Maximum = 100000;
+            this.deconvolutionSamplesNumericUpDown.Increment = 100;
+
+            this.deconvolutionMaxRoisNumericUpDown.Minimum = 1;
+            this.deconvolutionMaxRoisNumericUpDown.Maximum = 1000;
+            this.deconvolutionMaxRoisNumericUpDown.Increment = 1;
+
+            this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Minimum = 0;
+            this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Maximum = 100;
+            this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Increment = 1;
+
+            this.deconvolutionRoiRadiusFwhmNumericUpDown.Minimum = 1;
+            this.deconvolutionRoiRadiusFwhmNumericUpDown.Maximum = 100;
+            this.deconvolutionRoiRadiusFwhmNumericUpDown.Increment = 0.5m;
+
+            this.deconvolutionMinDevianceImprovementNumericUpDown.Minimum = 0;
+            this.deconvolutionMinDevianceImprovementNumericUpDown.Maximum = 1000;
+            this.deconvolutionMinDevianceImprovementNumericUpDown.Increment = 0.1m;
+
+            this.deconvolutionMinimumCandidateAmplitudeNumericUpDown.Minimum = 0;
+            this.deconvolutionMinimumCandidateAmplitudeNumericUpDown.Maximum = 100000;
+            this.deconvolutionMinimumCandidateAmplitudeNumericUpDown.Increment = 0.1m;
+        }
+
+        static decimal ClampNumericValue(NumericUpDown numericUpDown, decimal value)
+        {
+            return Math.Min(numericUpDown.Maximum, Math.Max(numericUpDown.Minimum, value));
         }
 
         private static decimal ClampPeakShapeParameter(double value)
@@ -763,6 +816,14 @@ namespace BecquerelMonitor
                 FWHMPeakDetectionMethodConfig.Min_FWHM_Tol = this.numericUpDown14.Value;
                 FWHMPeakDetectionMethodConfig.Max_FWHM_Tol = this.numericUpDown15.Value;
                 FWHMPeakDetectionMethodConfig.Ch_Concat = (int)this.numericUpDown16.Value;
+                FWHMPeakDetectionMethodConfig.UseDeconvolution = this.deconvolutionEnabledCheckBox.Checked;
+                FWHMPeakDetectionMethodConfig.BurnIn = (int)this.deconvolutionBurnInNumericUpDown.Value;
+                FWHMPeakDetectionMethodConfig.Samples = (int)this.deconvolutionSamplesNumericUpDown.Value;
+                FWHMPeakDetectionMethodConfig.MaxRois = (int)this.deconvolutionMaxRoisNumericUpDown.Value;
+                FWHMPeakDetectionMethodConfig.MaxExtraPeaksPerRoi = (int)this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Value;
+                FWHMPeakDetectionMethodConfig.RoiRadiusFwhm = (double)this.deconvolutionRoiRadiusFwhmNumericUpDown.Value;
+                FWHMPeakDetectionMethodConfig.MinDevianceImprovement = (double)this.deconvolutionMinDevianceImprovementNumericUpDown.Value;
+                FWHMPeakDetectionMethodConfig.MinimumCandidateAmplitude = (double)this.deconvolutionMinimumCandidateAmplitudeNumericUpDown.Value;
                 StoreCurrentPeakShapeParameters();
                 FWHMPeakDetectionMethodConfig.FwhmCalibration.PeakType = peakTypecomboBox.SelectedIndex;
                 FWHMPeakDetectionMethodConfig.FwhmCalibration.ExpGaussExpLeftTail = (double)expGaussExpLeftValue;
@@ -1900,6 +1961,11 @@ namespace BecquerelMonitor
         }
 
         void numericUpDown16_ValueChanged(object sender, EventArgs e)
+        {
+            this.SetActiveDeviceConfigDirty();
+        }
+
+        void deconvolutionConfig_ValueChanged(object sender, EventArgs e)
         {
             this.SetActiveDeviceConfigDirty();
         }
