@@ -23,6 +23,7 @@ namespace BecquerelMonitor
         public void ShowPeakDetectionResult()
         {
             this.FormLoading = true;
+            this.checkBoxDeconvolution.Checked = this.globalConfigManager.GlobalConfig.UseDeconvolution;
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
             if (activeDocument == null || activeDocument.ActiveResultData == null)
             {
@@ -72,11 +73,6 @@ namespace BecquerelMonitor
             this.numericUpDown1.Maximum = 10000;
             this.numericUpDown1.Increment = 1;
             this.numericUpDown1.Value = (decimal)fwhmPeakDetectionMethodConfig.Min_SNR;
-
-            this.numericUpDown2.Minimum = 1;
-            this.numericUpDown2.Maximum = 1000;
-            this.numericUpDown2.Increment = 1;
-            this.numericUpDown2.Value = fwhmPeakDetectionMethodConfig.Max_Items;
 
             this.numericUpDown3.Minimum = 0;
             this.numericUpDown3.Maximum = 100;
@@ -221,16 +217,19 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000441 RID: 1089 RVA: 0x00014500 File Offset: 0x00012700
-        void numericUpDown2_ValueChanged(object sender, EventArgs e)
+        void checkBoxDeconvolution_CheckedChanged(object sender, EventArgs e)
         {
             if (this.FormLoading == false)
             {
+                this.globalConfigManager.GlobalConfig.UseDeconvolution = this.checkBoxDeconvolution.Checked;
+                this.globalConfigManager.SaveConfigFile();
+
                 DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
-                ResultData activeResultData = activeDocument.ActiveResultData;
-                FWHMPeakDetectionMethodConfig fwhmPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)activeResultData.PeakDetectionMethodConfig;
-                fwhmPeakDetectionMethodConfig.Max_Items = (int)this.numericUpDown2.Value;
                 this.UpdatePeakDetectionResult();
-                activeDocument.EnergySpectrumView.Invalidate();
+                if (activeDocument != null && activeDocument.EnergySpectrumView != null)
+                {
+                    activeDocument.EnergySpectrumView.Invalidate();
+                }
             }
         }
 

@@ -43,9 +43,8 @@ namespace BecquerelMonitor
             this.textColumn6 = new XPTable.Models.TextColumn();
             this.tableModel1 = new XPTable.Models.TableModel();
             this.numericUpDown1 = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDown2 = new System.Windows.Forms.NumericUpDown();
+            this.checkBoxDeconvolution = new System.Windows.Forms.CheckBox();
             this.label1 = new System.Windows.Forms.Label();
-            this.label2 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
@@ -57,7 +56,6 @@ namespace BecquerelMonitor
             this.labelSetName = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.table1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown2)).BeginInit();
             this.contextMenuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown3)).BeginInit();
             this.SuspendLayout();
@@ -135,21 +133,17 @@ namespace BecquerelMonitor
             this.numericUpDown1.Name = "numericUpDown1";
             this.numericUpDown1.ValueChanged += new System.EventHandler(this.numericUpDown1_ValueChanged);
             // 
-            // numericUpDown2
+            // checkBoxDeconvolution
             // 
-            resources.ApplyResources(this.numericUpDown2, "numericUpDown2");
-            this.numericUpDown2.Name = "numericUpDown2";
-            this.numericUpDown2.ValueChanged += new System.EventHandler(this.numericUpDown2_ValueChanged);
+            resources.ApplyResources(this.checkBoxDeconvolution, "checkBoxDeconvolution");
+            this.checkBoxDeconvolution.Name = "checkBoxDeconvolution";
+            this.checkBoxDeconvolution.UseVisualStyleBackColor = true;
+            this.checkBoxDeconvolution.CheckedChanged += new System.EventHandler(this.checkBoxDeconvolution_CheckedChanged);
             // 
             // label1
             // 
             resources.ApplyResources(this.label1, "label1");
             this.label1.Name = "label1";
-            // 
-            // label2
-            // 
-            resources.ApplyResources(this.label2, "label2");
-            this.label2.Name = "label2";
             // 
             // label3
             // 
@@ -225,16 +219,14 @@ namespace BecquerelMonitor
             this.Controls.Add(this.button1);
             this.Controls.Add(this.numericUpDown3);
             this.Controls.Add(this.label3);
-            this.Controls.Add(this.label2);
+            this.Controls.Add(this.checkBoxDeconvolution);
             this.Controls.Add(this.label1);
-            this.Controls.Add(this.numericUpDown2);
             this.Controls.Add(this.numericUpDown1);
             this.Controls.Add(this.table1);
             this.HideOnClose = true;
             this.Name = "DCPeakDetectionView";
             ((System.ComponentModel.ISupportInitialize)(this.table1)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown2)).EndInit();
             this.contextMenuStrip1.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown3)).EndInit();
             this.ResumeLayout(false);
@@ -253,9 +245,8 @@ namespace BecquerelMonitor
         private XPTable.Models.NumberColumn textColumn5;
         private XPTable.Models.TextColumn textColumn6;
         private System.Windows.Forms.NumericUpDown numericUpDown1;
-        private System.Windows.Forms.NumericUpDown numericUpDown2;
+        private System.Windows.Forms.CheckBox checkBoxDeconvolution;
         private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.NumericUpDown numericUpDown3;
         private XPTable.Models.TextColumn textColumn4;
