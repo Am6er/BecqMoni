@@ -79,6 +79,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         {
             public double BackgroundIntercept;
             public double BackgroundSlope;
+            public double BackgroundQuadratic;
             public List<RjmcmcPeakComponent> Anchors;
             public List<RjmcmcPeakComponent> Extras;
             public double LogLikelihood;
@@ -90,6 +91,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 {
                     BackgroundIntercept = BackgroundIntercept,
                     BackgroundSlope = BackgroundSlope,
+                    BackgroundQuadratic = BackgroundQuadratic,
                     LogLikelihood = LogLikelihood,
                     LogPosterior = LogPosterior,
                     Anchors = new List<RjmcmcPeakComponent>(Anchors.Count),
@@ -120,6 +122,105 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         {
             public List<RjmcmcPeakCandidate> RawCandidates;
             public double LogPosterior;
+        }
+
+        sealed class ProfileDevianceResult
+        {
+            public double Improvement;
+            public double ResidualSnr;
+            public double ResidualCorrelation;
+        }
+
+        sealed class RjmcmcOccupancyTracker
+        {
+            readonly int[] centerCounts;
+
+            public int SampleCount { get; private set; }
+
+            public RjmcmcOccupancyTracker(int length)
+            {
+                centerCounts = new int[Math.Max(0, length)];
+            }
+
+            public void Record(RjmcmcState state, RjmcmcRoiWorkspace workspace)
+            {
+                SampleCount++;
+                if (state?.Extras == null || workspace == null)
+                {
+                    return;
+                }
+
+                foreach (RjmcmcPeakComponent extra in state.Extras)
+                {
+                    int localIndex = extra.Channel - workspace.Roi.StartChannel;
+                    if (localIndex >= 0 && localIndex < centerCounts.Length)
+                    {
+                        centerCounts[localIndex]++;
+                    }
+                }
+            }
+
+            public double FractionNear(int channel, RjmcmcRoiWorkspace workspace, int tolerance)
+            {
+                if (SampleCount <= 0 || workspace == null)
+                {
+                    return 0.0;
+                }
+
+                int count = CountNear(channel, workspace, tolerance);
+                return Math.Min(1.0, count / (double)SampleCount);
+            }
+
+            public double CenterStdDevNear(int channel, RjmcmcRoiWorkspace workspace, int tolerance)
+            {
+                if (SampleCount <= 0 || workspace == null)
+                {
+                    return Double.PositiveInfinity;
+                }
+
+                int centerLocal = channel - workspace.Roi.StartChannel;
+                int start = Math.Max(0, centerLocal - tolerance);
+                int end = Math.Min(centerCounts.Length - 1, centerLocal + tolerance);
+                int count = 0;
+                double sum = 0.0;
+                double sumSquares = 0.0;
+                for (int localIndex = start; localIndex <= end; localIndex++)
+                {
+                    int binCount = centerCounts[localIndex];
+                    if (binCount <= 0)
+                    {
+                        continue;
+                    }
+
+                    double absoluteChannel = workspace.Roi.StartChannel + localIndex;
+                    count += binCount;
+                    sum += binCount * absoluteChannel;
+                    sumSquares += binCount * absoluteChannel * absoluteChannel;
+                }
+
+                if (count <= 0)
+                {
+                    return Double.PositiveInfinity;
+                }
+
+                double mean = sum / count;
+                double variance = Math.Max(0.0, sumSquares / count - mean * mean);
+                return Math.Sqrt(variance);
+            }
+
+            int CountNear(int channel, RjmcmcRoiWorkspace workspace, int tolerance)
+            {
+                int centerLocal = channel - workspace.Roi.StartChannel;
+                int start = Math.Max(0, centerLocal - tolerance);
+                int end = Math.Min(centerCounts.Length - 1, centerLocal + tolerance);
+                int count = 0;
+                for (int localIndex = start; localIndex <= end; localIndex++)
+                {
+                    count += centerCounts[localIndex];
+                }
+
+                return count;
+            }
         }
 
         /// <summary>
@@ -154,7 +255,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         }
 
         /// <summary>
-        /// Applies the ROI budget to the FWHM-anchored search regions before the expensive sampler runs.
+        /// Applies cheap structural checks to the FWHM-anchored search regions before workspace-level residual gating.
         /// References: Deep research report, sections "Bayesian variable-dimensional models" and "Implementation priorities",
         /// recommending RJMCMC only for small ambiguous ROIs rather than the whole spectrum; Gulam Razul et al. (2003),
         /// NIM A 497, 492-510.
@@ -164,11 +265,6 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             List<RjmcmcRoi> selected = new List<RjmcmcRoi>();
             foreach (RjmcmcRoi roi in rois)
             {
-                if (selected.Count >= config.MaxRois)
-                {
-                    break;
-                }
-
                 if (roi == null || roi.Width < 5)
                 {
                     continue;
@@ -339,16 +435,35 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 return candidates;
             }
 
-            int chainCount = Math.Max(1, config.ChainCount);
-            RjmcmcRoiWorkspace[] workspaces = new RjmcmcRoiWorkspace[rois.Count];
-            RjmcmcChainResult[][] chainResults = new RjmcmcChainResult[rois.Count][];
-            for (int roiIndex = 0; roiIndex < rois.Count; roiIndex++)
+            List<RjmcmcRoiWorkspace> usableWorkspaces = new List<RjmcmcRoiWorkspace>();
+            foreach (RjmcmcRoi roi in rois)
             {
-                workspaces[roiIndex] = CreateWorkspace(foregroundSpectrum, fixedBackgroundSpectrum, fwhmCalibration, rois[roiIndex], config);
+                if (usableWorkspaces.Count >= config.MaxRois)
+                {
+                    break;
+                }
+
+                RjmcmcRoiWorkspace workspace = CreateWorkspace(foregroundSpectrum, fixedBackgroundSpectrum, fwhmCalibration, roi, config);
+                if (workspace.IsUsable)
+                {
+                    usableWorkspaces.Add(workspace);
+                }
+            }
+
+            if (usableWorkspaces.Count == 0)
+            {
+                return candidates;
+            }
+
+            int chainCount = Math.Max(1, config.ChainCount);
+            RjmcmcRoiWorkspace[] workspaces = usableWorkspaces.ToArray();
+            RjmcmcChainResult[][] chainResults = new RjmcmcChainResult[workspaces.Length][];
+            for (int roiIndex = 0; roiIndex < workspaces.Length; roiIndex++)
+            {
                 chainResults[roiIndex] = new RjmcmcChainResult[chainCount];
             }
 
-            int totalJobs = rois.Count * chainCount;
+            int totalJobs = workspaces.Length * chainCount;
             Parallel.For(
                 0,
                 totalJobs,
@@ -363,7 +478,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                         : CreateEmptyChainResult();
                 });
 
-            for (int roiIndex = 0; roiIndex < rois.Count; roiIndex++)
+            for (int roiIndex = 0; roiIndex < workspaces.Length; roiIndex++)
             {
                 candidates.AddRange(SelectBestChainCandidates(chainResults[roiIndex], config));
             }
@@ -422,7 +537,52 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 FixedCenterSigmaChannels = EstimateFixedCenterSigmaChannels(roi, fwhmCalibration, config),
                 IsUsable = isUsable
             };
+            workspace.IsUsable = isUsable && HasAnchorOnlyResidualCandidate(workspace, config);
             return workspace;
+        }
+
+        static bool HasAnchorOnlyResidualCandidate(RjmcmcRoiWorkspace workspace, RjmcmcConfig config)
+        {
+            if (workspace == null ||
+                workspace.AvailableNonAnchorChannelCount <= 0 ||
+                workspace.Profiles == null ||
+                workspace.Profiles.Length == 0)
+            {
+                return false;
+            }
+
+            RjmcmcState anchorOnly = CreateInitialState(workspace);
+            if (!OptimizeProfileLikelihoodState(anchorOnly, workspace, config))
+            {
+                return false;
+            }
+
+            double[] lambda = new double[workspace.Length];
+            if (!TryBuildLambdaArray(anchorOnly, workspace, lambda))
+            {
+                return false;
+            }
+
+            double minimumResidualSnr = Math.Max(1.0, config.TargetSnr * config.PreselectionSnrFraction);
+            for (int localIndex = 0; localIndex < workspace.Length; localIndex++)
+            {
+                if (workspace.AnchorForbiddenChannels[localIndex] ||
+                    !IsLocalPositiveResidualMaximum(workspace, lambda, localIndex))
+                {
+                    continue;
+                }
+
+                int channel = workspace.Roi.StartChannel + localIndex;
+                RjmcmcComponentProfile profile = GetProfile(workspace, channel);
+                if (TryCalculateResidualProfileScore(workspace, lambda, profile, out double residualSnr, out double residualCorrelation) &&
+                    residualSnr >= minimumResidualSnr &&
+                    residualCorrelation >= config.MinimumResidualProfileCorrelation)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         static int EstimateFixedCenterSigmaChannels(
@@ -554,6 +714,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             }
 
             RjmcmcState best = current.Clone();
+            RjmcmcOccupancyTracker occupancy = new RjmcmcOccupancyTracker(workspace.Length);
             int iterations = config.BurnIn + config.Samples;
             for (int iteration = 0; iteration < iterations; iteration++)
             {
@@ -591,15 +752,19 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                     current = proposal;
                 }
 
-                if (iteration >= config.BurnIn && current.LogPosterior > best.LogPosterior)
+                if (iteration >= config.BurnIn)
                 {
-                    best = current.Clone();
+                    occupancy.Record(current, workspace);
+                    if (current.LogPosterior > best.LogPosterior)
+                    {
+                        best = current.Clone();
+                    }
                 }
             }
 
             return new RjmcmcChainResult
             {
-                RawCandidates = CollectRawCandidates(best, workspace, lambda, config),
+                RawCandidates = CollectRawCandidates(best, workspace, lambda, occupancy, config),
                 LogPosterior = best.LogPosterior
             };
         }
@@ -681,6 +846,16 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             double fwhm = candidate != null && PeakShapeModel.IsFinite(candidate.Fwhm) && candidate.Fwhm > 0.0
                 ? candidate.Fwhm
                 : 1.0;
+            return CenterToleranceForFwhm(fwhm, config);
+        }
+
+        static int CenterToleranceForFwhm(double fwhm, RjmcmcConfig config)
+        {
+            if (!PeakShapeModel.IsFinite(fwhm) || fwhm <= 0.0)
+            {
+                fwhm = 1.0;
+            }
+
             int tolerance = Convert.ToInt32(Math.Ceiling(config.SupportCenterToleranceFwhm * fwhm));
             tolerance = Math.Max(2, tolerance);
             return Math.Min(config.SupportCenterToleranceMaxChannels, tolerance);
@@ -773,6 +948,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             int width = Math.Max(1, observed.Length - 1);
             state.BackgroundIntercept = Math.Max(0.1, leftMean);
             state.BackgroundSlope = (rightMean - leftMean) / width;
+            state.BackgroundQuadratic = 0.0;
 
             foreach (int anchorChannel in roi.AnchorChannels)
             {
@@ -829,9 +1005,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 return false;
             }
 
-            double leftBackground = BackgroundAt(state, 0);
-            double rightBackground = BackgroundAt(state, workspace.Length - 1);
-            if (leftBackground < 0.0 || rightBackground < 0.0)
+            if (!IsBackgroundNonNegative(state, workspace.Length))
             {
                 return false;
             }
@@ -897,12 +1071,13 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             int length = workspace.Length;
             double intercept = state.BackgroundIntercept;
             double slope = state.BackgroundSlope;
+            double quadratic = state.BackgroundQuadratic;
             double[] fixedBackground = workspace.FixedBackground;
             if (fixedBackground == null)
             {
                 for (int i = 0; i < length; i++)
                 {
-                    double background = intercept + slope * i;
+                    double background = intercept + slope * i + quadratic * i * i;
                     if (!PeakShapeModel.IsFinite(background))
                     {
                         return false;
@@ -915,7 +1090,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             {
                 for (int i = 0; i < length; i++)
                 {
-                    double background = fixedBackground[i] + intercept + slope * i;
+                    double background = fixedBackground[i] + intercept + slope * i + quadratic * i * i;
                     if (!PeakShapeModel.IsFinite(background))
                     {
                         return false;
@@ -995,7 +1170,23 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
 
         static double BackgroundAt(RjmcmcState state, int localIndex)
         {
-            return state.BackgroundIntercept + state.BackgroundSlope * localIndex;
+            return state.BackgroundIntercept +
+                state.BackgroundSlope * localIndex +
+                state.BackgroundQuadratic * localIndex * localIndex;
+        }
+
+        static bool IsBackgroundNonNegative(RjmcmcState state, int length)
+        {
+            for (int i = 0; i < length; i++)
+            {
+                double background = BackgroundAt(state, i);
+                if (!PeakShapeModel.IsFinite(background) || background < 0.0)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         static double EstimateAmplitudeScale(double maxObserved)
@@ -1250,7 +1441,8 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             double backgroundStep = Math.Max(1.0, workspace.MeanObserved * config.BackgroundUpdateFraction);
             proposal.BackgroundIntercept += SampleNormal(random) * backgroundStep;
             proposal.BackgroundSlope += SampleNormal(random) * backgroundStep / width;
-            if (BackgroundAt(proposal, 0) < 0.0 || BackgroundAt(proposal, workspace.Roi.Width - 1) < 0.0)
+            proposal.BackgroundQuadratic += SampleNormal(random) * backgroundStep / (width * width);
+            if (!IsBackgroundNonNegative(proposal, workspace.Roi.Width))
             {
                 return null;
             }
@@ -1497,37 +1689,51 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             RjmcmcState best,
             RjmcmcRoiWorkspace workspace,
             double[] lambda,
+            RjmcmcOccupancyTracker occupancy,
             RjmcmcConfig config)
         {
             List<RjmcmcPeakCandidate> candidates = new List<RjmcmcPeakCandidate>();
-            if (best.Extras.Count == 0)
+            if (best?.Extras == null || best.Extras.Count == 0)
             {
                 return candidates;
             }
 
             foreach (RjmcmcPeakComponent extra in best.Extras.OrderBy(component => component.Channel))
             {
-                double improvement = ComputeDevianceImprovement(best, extra, workspace, lambda, config);
-                if (!PeakShapeModel.IsFinite(improvement) && !Double.IsPositiveInfinity(improvement))
+                int tolerance = CenterToleranceForFwhm(extra.Fwhm, config);
+                double posteriorOccupancy = occupancy?.FractionNear(extra.Channel, workspace, tolerance) ?? 0.0;
+                if (posteriorOccupancy < config.MinimumPosteriorOccupancy)
                 {
                     continue;
                 }
 
-                if (improvement <= 0.0)
+                double centerStdDev = occupancy?.CenterStdDevNear(extra.Channel, workspace, tolerance) ?? Double.PositiveInfinity;
+                double maxCenterStdDev = Math.Max(1.0, config.MaximumPosteriorCenterStdDevFwhm * Math.Max(1.0, extra.Fwhm));
+                if (!PeakShapeModel.IsFinite(centerStdDev) || centerStdDev > maxCenterStdDev)
                 {
                     continue;
                 }
 
-                double snr = Double.IsPositiveInfinity(improvement)
-                    ? Double.MaxValue
-                    : Math.Sqrt(improvement);
+                ProfileDevianceResult profile = ComputeProfileDevianceImprovement(best, extra, workspace, lambda, config);
+                if (profile == null ||
+                    !PeakShapeModel.IsFinite(profile.Improvement) ||
+                    profile.Improvement <= 0.0)
+                {
+                    continue;
+                }
+
+                double snr = Math.Sqrt(profile.Improvement);
                 candidates.Add(new RjmcmcPeakCandidate
                 {
                     Channel = extra.Channel,
                     Fwhm = extra.Fwhm,
                     Amplitude = extra.Amplitude,
                     Snr = snr,
-                    DevianceImprovement = improvement
+                    DevianceImprovement = profile.Improvement,
+                    PosteriorOccupancy = posteriorOccupancy,
+                    CenterStdDev = centerStdDev,
+                    ResidualSnr = profile.ResidualSnr,
+                    ResidualCorrelation = profile.ResidualCorrelation
                 });
             }
 
@@ -1539,30 +1745,381 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         /// References: Deep research report, section "Validation and quality criteria", for Poisson deviance and
         /// likelihood-based residual checks; Gulam Razul et al. (2003), NIM A 497, 492-510.
         /// </summary>
-        static double ComputeDevianceImprovement(
+        static ProfileDevianceResult ComputeProfileDevianceImprovement(
             RjmcmcState best,
             RjmcmcPeakComponent extra,
             RjmcmcRoiWorkspace workspace,
             double[] lambda,
             RjmcmcConfig config)
         {
-            RjmcmcState reduced = best.Clone();
-            for (int i = 0; i < reduced.Extras.Count; i++)
+            RjmcmcState full = best.Clone();
+            if (!OptimizeProfileLikelihoodState(full, workspace, config))
             {
-                if (reduced.Extras[i].Channel == extra.Channel &&
-                    Math.Abs(reduced.Extras[i].Amplitude - extra.Amplitude) < 1E-6)
+                return null;
+            }
+
+            RjmcmcState reduced = full.Clone();
+            if (!RemoveMatchingExtra(reduced, extra))
+            {
+                return null;
+            }
+
+            if (!OptimizeProfileLikelihoodState(reduced, workspace, config))
+            {
+                return null;
+            }
+
+            if (!PassesResidualShapeGate(extra, reduced, workspace, lambda, config, out double residualSnr, out double residualCorrelation))
+            {
+                return null;
+            }
+
+            double improvement = 2.0 * (full.LogLikelihood - reduced.LogLikelihood);
+            if (!PeakShapeModel.IsFinite(improvement) || improvement <= 0.0)
+            {
+                return null;
+            }
+
+            return new ProfileDevianceResult
+            {
+                Improvement = improvement,
+                ResidualSnr = residualSnr,
+                ResidualCorrelation = residualCorrelation
+            };
+        }
+
+        static bool RemoveMatchingExtra(RjmcmcState state, RjmcmcPeakComponent extra)
+        {
+            if (state?.Extras == null || extra == null || state.Extras.Count == 0)
+            {
+                return false;
+            }
+
+            int bestIndex = -1;
+            double bestDistance = Double.PositiveInfinity;
+            for (int i = 0; i < state.Extras.Count; i++)
+            {
+                RjmcmcPeakComponent candidate = state.Extras[i];
+                double distance = Math.Abs(candidate.Channel - extra.Channel);
+                if (candidate.Channel == extra.Channel &&
+                    Math.Abs(candidate.Amplitude - extra.Amplitude) < 1E-6)
                 {
-                    reduced.Extras.RemoveAt(i);
+                    bestIndex = i;
                     break;
                 }
+
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    bestIndex = i;
+                }
+            }
+
+            if (bestIndex < 0)
+            {
+                return false;
+            }
+
+            state.Extras.RemoveAt(bestIndex);
+            return true;
+        }
+
+        static bool OptimizeProfileLikelihoodState(
+            RjmcmcState state,
+            RjmcmcRoiWorkspace workspace,
+            RjmcmcConfig config)
+        {
+            if (state == null || workspace == null)
+            {
+                return false;
+            }
+
+            double[] localLambda = new double[workspace.Length];
+            if (!EvaluateState(state, workspace, localLambda, config))
+            {
+                return false;
+            }
+
+            int iterations = Math.Max(0, config.ProfileOptimizationIterations);
+            double stepScale = 1.0;
+            double width = Math.Max(1.0, workspace.Roi.Width - 1);
+            for (int iteration = 0; iteration < iterations; iteration++)
+            {
+                bool improved = false;
+                foreach (RjmcmcPeakComponent anchor in state.Anchors)
+                {
+                    double step = Math.Max(1.0, anchor.Amplitude * 0.10 * stepScale);
+                    improved |= TryImproveComponentAmplitude(state, anchor, workspace, localLambda, config, step);
+                }
+
+                foreach (RjmcmcPeakComponent extra in state.Extras)
+                {
+                    double step = Math.Max(1.0, extra.Amplitude * 0.10 * stepScale);
+                    improved |= TryImproveComponentAmplitude(state, extra, workspace, localLambda, config, step);
+                }
+
+                double backgroundStep = Math.Max(1.0, workspace.MeanObserved * config.BackgroundUpdateFraction * stepScale);
+                improved |= TryImproveBackgroundParameter(state, 0, workspace, localLambda, config, backgroundStep);
+                improved |= TryImproveBackgroundParameter(state, 1, workspace, localLambda, config, backgroundStep / width);
+                improved |= TryImproveBackgroundParameter(state, 2, workspace, localLambda, config, backgroundStep / (width * width));
+
+                if (improved)
+                {
+                    stepScale = Math.Min(1.0, stepScale * 1.20);
+                }
+                else
+                {
+                    stepScale *= 0.50;
+                    if (stepScale < 1E-3)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            return EvaluateState(state, workspace, localLambda, config);
+        }
+
+        static bool TryImproveComponentAmplitude(
+            RjmcmcState state,
+            RjmcmcPeakComponent component,
+            RjmcmcRoiWorkspace workspace,
+            double[] lambda,
+            RjmcmcConfig config,
+            double step)
+        {
+            double originalValue = component.Amplitude;
+            double bestValue = originalValue;
+            double bestLogLikelihood = state.LogLikelihood;
+            bool improved = false;
+
+            for (int direction = -1; direction <= 1; direction += 2)
+            {
+                double trialValue = originalValue + direction * step;
+                if (trialValue <= 1E-6 || !PeakShapeModel.IsFinite(trialValue))
+                {
+                    continue;
+                }
+
+                component.Amplitude = trialValue;
+                if (EvaluateState(state, workspace, lambda, config) &&
+                    state.LogLikelihood > bestLogLikelihood + 1E-9)
+                {
+                    bestLogLikelihood = state.LogLikelihood;
+                    bestValue = trialValue;
+                    improved = true;
+                }
+            }
+
+            component.Amplitude = bestValue;
+            EvaluateState(state, workspace, lambda, config);
+            return improved;
+        }
+
+        static bool TryImproveBackgroundParameter(
+            RjmcmcState state,
+            int parameterIndex,
+            RjmcmcRoiWorkspace workspace,
+            double[] lambda,
+            RjmcmcConfig config,
+            double step)
+        {
+            double originalValue = GetBackgroundParameter(state, parameterIndex);
+            double bestValue = originalValue;
+            double bestLogLikelihood = state.LogLikelihood;
+            bool improved = false;
+
+            for (int direction = -1; direction <= 1; direction += 2)
+            {
+                double trialValue = originalValue + direction * step;
+                if (!PeakShapeModel.IsFinite(trialValue))
+                {
+                    continue;
+                }
+
+                SetBackgroundParameter(state, parameterIndex, trialValue);
+                if (EvaluateState(state, workspace, lambda, config) &&
+                    state.LogLikelihood > bestLogLikelihood + 1E-9)
+                {
+                    bestLogLikelihood = state.LogLikelihood;
+                    bestValue = trialValue;
+                    improved = true;
+                }
+            }
+
+            SetBackgroundParameter(state, parameterIndex, bestValue);
+            EvaluateState(state, workspace, lambda, config);
+            return improved;
+        }
+
+        static double GetBackgroundParameter(RjmcmcState state, int parameterIndex)
+        {
+            switch (parameterIndex)
+            {
+                case 0:
+                    return state.BackgroundIntercept;
+                case 1:
+                    return state.BackgroundSlope;
+                default:
+                    return state.BackgroundQuadratic;
+            }
+        }
+
+        static void SetBackgroundParameter(RjmcmcState state, int parameterIndex, double value)
+        {
+            switch (parameterIndex)
+            {
+                case 0:
+                    state.BackgroundIntercept = value;
+                    break;
+                case 1:
+                    state.BackgroundSlope = value;
+                    break;
+                default:
+                    state.BackgroundQuadratic = value;
+                    break;
+            }
+        }
+
+        static bool PassesResidualShapeGate(
+            RjmcmcPeakComponent extra,
+            RjmcmcState reduced,
+            RjmcmcRoiWorkspace workspace,
+            double[] lambda,
+            RjmcmcConfig config,
+            out double residualSnr,
+            out double residualCorrelation)
+        {
+            residualSnr = 0.0;
+            residualCorrelation = 0.0;
+            if (extra == null || reduced == null || workspace == null)
+            {
+                return false;
             }
 
             if (!EvaluateState(reduced, workspace, lambda, config))
             {
-                return Double.PositiveInfinity;
+                return false;
             }
 
-            return 2.0 * (best.LogLikelihood - reduced.LogLikelihood);
+            int centerLocal = extra.Channel - workspace.Roi.StartChannel;
+            if (centerLocal < 0 || centerLocal >= workspace.Length)
+            {
+                return false;
+            }
+
+            int tolerance = CenterToleranceForFwhm(extra.Fwhm, config);
+            int residualMaxIndex = FindPositiveResidualMaximumNear(workspace, lambda, centerLocal, tolerance);
+            if (residualMaxIndex < 0)
+            {
+                return false;
+            }
+
+            RjmcmcComponentProfile profile = GetProfile(workspace, extra.Channel);
+            if (!TryCalculateResidualProfileScore(workspace, lambda, profile, out residualSnr, out residualCorrelation))
+            {
+                return false;
+            }
+
+            double minimumResidualSnr = Math.Max(1.0, config.TargetSnr * config.ResidualMatchedSnrFraction);
+            return residualSnr >= minimumResidualSnr &&
+                residualCorrelation >= config.MinimumResidualProfileCorrelation;
+        }
+
+        static int FindPositiveResidualMaximumNear(
+            RjmcmcRoiWorkspace workspace,
+            double[] lambda,
+            int centerLocal,
+            int tolerance)
+        {
+            int start = Math.Max(0, centerLocal - tolerance);
+            int end = Math.Min(workspace.Length - 1, centerLocal + tolerance);
+            int bestIndex = -1;
+            double bestResidual = 0.0;
+            for (int localIndex = start; localIndex <= end; localIndex++)
+            {
+                double residual = workspace.Observed[localIndex] - lambda[localIndex];
+                if (residual <= bestResidual)
+                {
+                    continue;
+                }
+
+                if (!IsLocalPositiveResidualMaximum(workspace, lambda, localIndex))
+                {
+                    continue;
+                }
+
+                bestResidual = residual;
+                bestIndex = localIndex;
+            }
+
+            return bestIndex;
+        }
+
+        static bool IsLocalPositiveResidualMaximum(
+            RjmcmcRoiWorkspace workspace,
+            double[] lambda,
+            int localIndex)
+        {
+            double residual = workspace.Observed[localIndex] - lambda[localIndex];
+            if (!PeakShapeModel.IsFinite(residual) || residual <= 0.0)
+            {
+                return false;
+            }
+
+            double leftResidual = localIndex > 0
+                ? workspace.Observed[localIndex - 1] - lambda[localIndex - 1]
+                : Double.NegativeInfinity;
+            double rightResidual = localIndex + 1 < workspace.Length
+                ? workspace.Observed[localIndex + 1] - lambda[localIndex + 1]
+                : Double.NegativeInfinity;
+            return residual >= leftResidual && residual >= rightResidual;
+        }
+
+        static bool TryCalculateResidualProfileScore(
+            RjmcmcRoiWorkspace workspace,
+            double[] lambda,
+            RjmcmcComponentProfile profile,
+            out double residualSnr,
+            out double residualCorrelation)
+        {
+            residualSnr = 0.0;
+            residualCorrelation = 0.0;
+            if (workspace == null ||
+                lambda == null ||
+                profile == null ||
+                !profile.IsValid ||
+                profile.StartIndex > profile.EndIndex)
+            {
+                return false;
+            }
+
+            double numerator = 0.0;
+            double residualEnergy = 0.0;
+            double profileEnergy = 0.0;
+            double noiseProfileEnergy = 0.0;
+            for (int localIndex = profile.StartIndex; localIndex <= profile.EndIndex; localIndex++)
+            {
+                double profileValue = profile.RelativeValues[localIndex - profile.StartIndex];
+                double residual = workspace.Observed[localIndex] - lambda[localIndex];
+                numerator += residual * profileValue;
+                residualEnergy += residual * residual;
+                profileEnergy += profileValue * profileValue;
+                noiseProfileEnergy += Math.Max(1.0, lambda[localIndex]) * profileValue * profileValue;
+            }
+
+            if (numerator <= 0.0 ||
+                residualEnergy <= 0.0 ||
+                profileEnergy <= 0.0 ||
+                noiseProfileEnergy <= 0.0)
+            {
+                return false;
+            }
+
+            residualSnr = numerator / Math.Sqrt(noiseProfileEnergy);
+            residualCorrelation = numerator / Math.Sqrt(residualEnergy * profileEnergy);
+            return PeakShapeModel.IsFinite(residualSnr) &&
+                PeakShapeModel.IsFinite(residualCorrelation);
         }
 
         static double SampleNormal(Random random)
