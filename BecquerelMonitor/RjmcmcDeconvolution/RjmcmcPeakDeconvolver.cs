@@ -118,7 +118,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
 
         sealed class RjmcmcChainResult
         {
-            public List<RjmcmcPeakCandidate> Candidates;
+            public List<RjmcmcPeakCandidate> RawCandidates;
             public double LogPosterior;
         }
 
@@ -365,7 +365,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
 
             for (int roiIndex = 0; roiIndex < rois.Count; roiIndex++)
             {
-                candidates.AddRange(SelectBestChainCandidates(chainResults[roiIndex], config.MaxExtraPeaksPerRoi));
+                candidates.AddRange(SelectBestChainCandidates(chainResults[roiIndex], config));
             }
 
             return candidates;
@@ -599,7 +599,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
 
             return new RjmcmcChainResult
             {
-                Candidates = CollectCandidates(best, workspace, lambda, config),
+                RawCandidates = CollectRawCandidates(best, workspace, lambda, config),
                 LogPosterior = best.LogPosterior
             };
         }
@@ -608,29 +608,82 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         {
             return new RjmcmcChainResult
             {
-                Candidates = new List<RjmcmcPeakCandidate>(),
+                RawCandidates = new List<RjmcmcPeakCandidate>(),
                 LogPosterior = Double.NegativeInfinity
             };
         }
 
         static List<RjmcmcPeakCandidate> SelectBestChainCandidates(
             IEnumerable<RjmcmcChainResult> chainResults,
-            int maxCandidateCount)
+            RjmcmcConfig config)
         {
-            RjmcmcChainResult best = chainResults
+            List<RjmcmcChainResult> results = chainResults
                 .Where(result => result != null)
+                .ToList();
+            RjmcmcChainResult best = results
                 .OrderByDescending(result => result.LogPosterior)
                 .FirstOrDefault();
-            if (best == null || best.Candidates == null || best.Candidates.Count == 0)
+            if (best == null || best.RawCandidates == null || best.RawCandidates.Count == 0)
             {
                 return new List<RjmcmcPeakCandidate>();
             }
 
-            return best.Candidates
+            return best.RawCandidates
+                .Where(candidate => candidate.DevianceImprovement >= config.MinDevianceImprovement)
                 .OrderByDescending(candidate => candidate.DevianceImprovement)
-                .Take(maxCandidateCount)
+                .Where(candidate => HasRequiredChainSupport(candidate, best, results, config))
+                .Take(config.MaxExtraPeaksPerRoi)
                 .OrderBy(candidate => candidate.Channel)
                 .ToList();
+        }
+
+        static bool HasRequiredChainSupport(
+            RjmcmcPeakCandidate candidate,
+            RjmcmcChainResult best,
+            List<RjmcmcChainResult> chainResults,
+            RjmcmcConfig config)
+        {
+            if (candidate == null || chainResults == null || chainResults.Count <= 1)
+            {
+                return true;
+            }
+
+            int requiredSupport = Math.Min(chainResults.Count, Math.Max(1, config.MinimumSupportingChains));
+            int supportCount = 1;
+            int tolerance = CandidateSupportTolerance(candidate, config);
+            foreach (RjmcmcChainResult chainResult in chainResults)
+            {
+                if (Object.ReferenceEquals(chainResult, best) ||
+                    chainResult?.RawCandidates == null ||
+                    chainResult.RawCandidates.Count == 0)
+                {
+                    continue;
+                }
+
+                bool supported = chainResult.RawCandidates.Any(other =>
+                    other.DevianceImprovement >= config.SupportingDevianceImprovement &&
+                    Math.Abs(other.Channel - candidate.Channel) <= tolerance);
+                if (supported)
+                {
+                    supportCount++;
+                    if (supportCount >= requiredSupport)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return supportCount >= requiredSupport;
+        }
+
+        static int CandidateSupportTolerance(RjmcmcPeakCandidate candidate, RjmcmcConfig config)
+        {
+            double fwhm = candidate != null && PeakShapeModel.IsFinite(candidate.Fwhm) && candidate.Fwhm > 0.0
+                ? candidate.Fwhm
+                : 1.0;
+            int tolerance = Convert.ToInt32(Math.Ceiling(config.SupportCenterToleranceFwhm * fwhm));
+            tolerance = Math.Max(2, tolerance);
+            return Math.Min(config.SupportCenterToleranceMaxChannels, tolerance);
         }
 
         static int[] ExtractObserved(EnergySpectrum spectrum, RjmcmcRoi roi)
@@ -1440,7 +1493,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         /// likelihood/deviance-based validation; Gulam Razul et al. (2003), NIM A 497, 492-510, for model selection
         /// and parameter estimation of nuclear emission spectra.
         /// </summary>
-        static List<RjmcmcPeakCandidate> CollectCandidates(
+        static List<RjmcmcPeakCandidate> CollectRawCandidates(
             RjmcmcState best,
             RjmcmcRoiWorkspace workspace,
             double[] lambda,
@@ -1455,12 +1508,19 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             foreach (RjmcmcPeakComponent extra in best.Extras.OrderBy(component => component.Channel))
             {
                 double improvement = ComputeDevianceImprovement(best, extra, workspace, lambda, config);
-                if (improvement < config.MinDevianceImprovement)
+                if (!PeakShapeModel.IsFinite(improvement) && !Double.IsPositiveInfinity(improvement))
                 {
                     continue;
                 }
 
-                double snr = Math.Sqrt(Math.Max(0.0, improvement));
+                if (improvement <= 0.0)
+                {
+                    continue;
+                }
+
+                double snr = Double.IsPositiveInfinity(improvement)
+                    ? Double.MaxValue
+                    : Math.Sqrt(improvement);
                 candidates.Add(new RjmcmcPeakCandidate
                 {
                     Channel = extra.Channel,

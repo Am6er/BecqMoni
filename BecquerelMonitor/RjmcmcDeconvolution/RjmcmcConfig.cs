@@ -16,9 +16,15 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         public double CenterUpdateSigmaFwhm { get; private set; }
         public double BackgroundUpdateFraction { get; private set; }
         public double TargetSnr { get; private set; }
+        public double ExtraSnrMultiplier { get; private set; }
         public double MinDevianceImprovement { get; private set; }
         public double ExtraPeakPenalty { get; private set; }
         public double MinimumCandidateAmplitude { get; private set; }
+        public int MinimumSupportingChains { get; private set; }
+        public double SupportingDevianceImprovement { get; private set; }
+        public double SupportingSnrFraction { get; private set; }
+        public double SupportCenterToleranceFwhm { get; private set; }
+        public int SupportCenterToleranceMaxChannels { get; private set; }
         public int ChainCount { get; private set; }
 
         /// <summary>
@@ -28,6 +34,10 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         /// </summary>
         public static RjmcmcConfig CreateDefault()
         {
+            const double defaultPeakFinderSnr = 10.0;
+            const double defaultExtraSnrMultiplier = 1.5;
+            double defaultTargetSnr = CalculateExtraTargetSnr(defaultPeakFinderSnr, defaultExtraSnrMultiplier);
+
             return new RjmcmcConfig
             {
                 Enabled = true,
@@ -36,15 +46,21 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 Seed = 1337,
                 MaxRois = 20,
                 MaxChannelsPerRoi = 512,
-                MaxExtraPeaksPerRoi = 3,
+                MaxExtraPeaksPerRoi = 1,
                 MaxAnchorsPerRoi = 6,
                 RoiRadiusFwhm = 3.0,
                 CenterUpdateSigmaFwhm = 0.2,
                 BackgroundUpdateFraction = 0.08,
-                TargetSnr = 10.0,
-                MinDevianceImprovement = 100.0,
+                TargetSnr = defaultTargetSnr,
+                ExtraSnrMultiplier = defaultExtraSnrMultiplier,
+                MinDevianceImprovement = CalculateMinimumDevianceImprovement(defaultTargetSnr),
                 ExtraPeakPenalty = 0.35,
                 MinimumCandidateAmplitude = 0.0,
+                MinimumSupportingChains = 3,
+                SupportingDevianceImprovement = CalculateSupportingDevianceImprovement(defaultTargetSnr, 0.75),
+                SupportingSnrFraction = 0.75,
+                SupportCenterToleranceFwhm = 0.10,
+                SupportCenterToleranceMaxChannels = 10,
                 ChainCount = 4
             };
         }
@@ -68,9 +84,11 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             config.MaxRois = Math.Max(1, peakConfig.MaxRois);
             config.MaxExtraPeaksPerRoi = Math.Max(0, peakConfig.MaxExtraPeaksPerRoi);
             config.RoiRadiusFwhm = Math.Max(1.0, peakConfig.RoiRadiusFwhm);
-            config.TargetSnr = NormalizeTargetSnr(peakConfig.Min_SNR);
+            double peakFinderSnr = NormalizeTargetSnr(peakConfig.Min_SNR);
+            config.TargetSnr = CalculateExtraTargetSnr(peakFinderSnr, config.ExtraSnrMultiplier);
             config.MinDevianceImprovement = CalculateMinimumDevianceImprovement(config.TargetSnr);
             config.MinimumCandidateAmplitude = 0.0;
+            config.SupportingDevianceImprovement = CalculateSupportingDevianceImprovement(config.TargetSnr, config.SupportingSnrFraction);
             return config;
         }
 
@@ -84,9 +102,23 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             return Math.Max(1.0, minSnr);
         }
 
+        static double CalculateExtraTargetSnr(double peakFinderSnr, double extraSnrMultiplier)
+        {
+            double multiplier = Double.IsNaN(extraSnrMultiplier) || Double.IsInfinity(extraSnrMultiplier)
+                ? 1.0
+                : Math.Max(1.0, extraSnrMultiplier);
+            return Math.Max(1.0, peakFinderSnr * multiplier);
+        }
+
         static double CalculateMinimumDevianceImprovement(double targetSnr)
         {
             return Math.Max(1.0, targetSnr * targetSnr);
+        }
+
+        static double CalculateSupportingDevianceImprovement(double targetSnr, double supportingSnrFraction)
+        {
+            double supportSnr = Math.Max(1.0, targetSnr * Math.Max(0.0, supportingSnrFraction));
+            return supportSnr * supportSnr;
         }
     }
 }
