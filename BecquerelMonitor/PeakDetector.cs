@@ -45,28 +45,36 @@ namespace BecquerelMonitor
             }
 
             FWHMPeakDetector.PeakFinder finder = PeakFinder(searchSpectrum, fwhmPeakDetectionMethodConfig, resultData.FwhmCalibration);
-            RjmcmcResult deconvolution = RjmcmcPeakDeconvolver.Run(
-                inferenceSpectrum,
-                finder,
-                fwhmPeakDetectionMethodConfig,
-                resultData.FwhmCalibration);
+            bool useDeconvolution = GlobalConfigManager.GetInstance().GlobalConfig.UseDeconvolution;
+            RjmcmcResult deconvolution = null;
+            if (useDeconvolution)
+            {
+                deconvolution = RjmcmcPeakDeconvolver.Run(
+                    inferenceSpectrum,
+                    finder,
+                    fwhmPeakDetectionMethodConfig,
+                    resultData.FwhmCalibration);
+            }
 
             peaks = CollectPeaks(finder, searchSpectrum, fwhmPeakDetectionMethodConfig.Tolerance, sa, nuclideSet, fwhmPeakDetectionMethodConfig);
-            AppendRjmcmcPeaks(
-                peaks,
-                deconvolution,
-                inferenceSpectrum,
-                resultData.FwhmCalibration,
-                fwhmPeakDetectionMethodConfig.Min_SNR,
-                fwhmPeakDetectionMethodConfig.Tolerance,
-                nuclideSet);
-            peaks.Sort((left, right) =>
+            if (useDeconvolution)
             {
-                int energyComparison = left.Energy.CompareTo(right.Energy);
-                return energyComparison != 0
-                    ? energyComparison
-                    : left.Channel.CompareTo(right.Channel);
-            });
+                AppendRjmcmcPeaks(
+                    peaks,
+                    deconvolution,
+                    inferenceSpectrum,
+                    resultData.FwhmCalibration,
+                    fwhmPeakDetectionMethodConfig.Min_SNR,
+                    fwhmPeakDetectionMethodConfig.Tolerance,
+                    nuclideSet);
+                peaks.Sort((left, right) =>
+                {
+                    int energyComparison = left.Energy.CompareTo(right.Energy);
+                    return energyComparison != 0
+                        ? energyComparison
+                        : left.Channel.CompareTo(right.Channel);
+                });
+            }
             GC.Collect();
             return peaks;
         }
