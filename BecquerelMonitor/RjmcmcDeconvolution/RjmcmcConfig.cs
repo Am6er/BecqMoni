@@ -31,6 +31,10 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         public double MinimumResidualProfileCorrelation { get; private set; }
         public double MinimumPosteriorOccupancy { get; private set; }
         public double MaximumPosteriorCenterStdDevFwhm { get; private set; }
+        public double CloseAnchorDistanceFwhm { get; private set; }
+        public int CloseAnchorMinimumSupportingChains { get; private set; }
+        public double CloseAnchorMinimumPosteriorOccupancy { get; private set; }
+        public double CloseAnchorMinimumResidualProfileCorrelation { get; private set; }
         public int ChainCount { get; private set; }
 
         /// <summary>
@@ -67,12 +71,16 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 SupportingSnrFraction = 0.75,
                 SupportCenterToleranceFwhm = 0.10,
                 SupportCenterToleranceMaxChannels = 10,
-                ProfileOptimizationIterations = 25,
+                ProfileOptimizationIterations = 50,
                 PreselectionSnrFraction = 0.50,
                 ResidualMatchedSnrFraction = 0.50,
                 MinimumResidualProfileCorrelation = 0.55,
                 MinimumPosteriorOccupancy = 0.80,
                 MaximumPosteriorCenterStdDevFwhm = 0.10,
+                CloseAnchorDistanceFwhm = 0.60,
+                CloseAnchorMinimumSupportingChains = 4,
+                CloseAnchorMinimumPosteriorOccupancy = 0.95,
+                CloseAnchorMinimumResidualProfileCorrelation = 0.75,
                 ChainCount = 4
             };
         }

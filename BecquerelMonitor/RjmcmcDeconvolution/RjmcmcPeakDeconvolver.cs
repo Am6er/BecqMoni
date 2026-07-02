@@ -1,6 +1,8 @@
 using BecquerelMonitor.Utils;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -793,13 +795,40 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 return new List<RjmcmcPeakCandidate>();
             }
 
-            return best.RawCandidates
+            List<RjmcmcPeakCandidate> accepted = best.RawCandidates
                 .Where(candidate => candidate.DevianceImprovement >= config.MinDevianceImprovement)
                 .OrderByDescending(candidate => candidate.DevianceImprovement)
                 .Where(candidate => HasRequiredChainSupport(candidate, best, results, config))
                 .Take(config.MaxExtraPeaksPerRoi)
                 .OrderBy(candidate => candidate.Channel)
                 .ToList();
+            foreach (RjmcmcPeakCandidate candidate in accepted)
+            {
+                TraceCandidateDiagnostics(candidate);
+            }
+
+            return accepted;
+        }
+
+        static void TraceCandidateDiagnostics(RjmcmcPeakCandidate candidate)
+        {
+            if (candidate == null)
+            {
+                return;
+            }
+
+            Trace.WriteLine(String.Format(
+                CultureInfo.InvariantCulture,
+                "RJMCMC accepted extra: ch={0:F2}; score={1:F2}; deltaD={2:F2}; occupancy={3:F3}; centerStdDev={4:F2}; residualSnr={5:F2}; residualCorr={6:F3}; anchorDistFwhm={7:F3}; supportChains={8}",
+                candidate.Channel,
+                candidate.Snr,
+                candidate.DevianceImprovement,
+                candidate.PosteriorOccupancy,
+                candidate.CenterStdDev,
+                candidate.ResidualSnr,
+                candidate.ResidualCorrelation,
+                candidate.AnchorDistanceFwhm,
+                candidate.SupportingChainCount));
         }
 
         static bool HasRequiredChainSupport(
@@ -810,10 +839,26 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         {
             if (candidate == null || chainResults == null || chainResults.Count <= 1)
             {
+                if (candidate != null)
+                {
+                    candidate.SupportingChainCount = 1;
+                }
+
                 return true;
             }
 
-            int requiredSupport = Math.Min(chainResults.Count, Math.Max(1, config.MinimumSupportingChains));
+            int requiredSupport = RequiredSupportingChainCount(candidate, chainResults.Count, config);
+            int supportCount = CountSupportingChains(candidate, best, chainResults, config);
+            candidate.SupportingChainCount = supportCount;
+            return supportCount >= requiredSupport;
+        }
+
+        static int CountSupportingChains(
+            RjmcmcPeakCandidate candidate,
+            RjmcmcChainResult best,
+            List<RjmcmcChainResult> chainResults,
+            RjmcmcConfig config)
+        {
             int supportCount = 1;
             int tolerance = CandidateSupportTolerance(candidate, config);
             foreach (RjmcmcChainResult chainResult in chainResults)
@@ -831,14 +876,25 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 if (supported)
                 {
                     supportCount++;
-                    if (supportCount >= requiredSupport)
-                    {
-                        return true;
-                    }
                 }
             }
 
-            return supportCount >= requiredSupport;
+            return supportCount;
+        }
+
+        static int RequiredSupportingChainCount(
+            RjmcmcPeakCandidate candidate,
+            int chainCount,
+            RjmcmcConfig config)
+        {
+            int requiredSupport = Math.Min(chainCount, Math.Max(1, config.MinimumSupportingChains));
+            if (IsCloseToAnchor(candidate?.AnchorDistanceFwhm ?? Double.PositiveInfinity, config))
+            {
+                requiredSupport = Math.Max(requiredSupport, Math.Max(1, config.CloseAnchorMinimumSupportingChains));
+                requiredSupport = Math.Min(chainCount, requiredSupport);
+            }
+
+            return requiredSupport;
         }
 
         static int CandidateSupportTolerance(RjmcmcPeakCandidate candidate, RjmcmcConfig config)
@@ -1621,6 +1677,38 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             return Math.Max(1.0, 0.20 * Math.Max(1.0, fwhm));
         }
 
+        static double NearestAnchorDistanceFwhm(RjmcmcPeakComponent extra, RjmcmcRoiWorkspace workspace)
+        {
+            if (extra == null ||
+                workspace?.Roi?.AnchorChannels == null ||
+                workspace.Roi.AnchorChannels.Count == 0)
+            {
+                return Double.PositiveInfinity;
+            }
+
+            double nearest = Double.PositiveInfinity;
+            foreach (int anchorChannel in workspace.Roi.AnchorChannels)
+            {
+                RjmcmcComponentProfile anchorProfile = GetProfile(workspace, anchorChannel);
+                double anchorFwhm = anchorProfile != null && PeakShapeModel.IsFinite(anchorProfile.Fwhm) && anchorProfile.Fwhm > 0.0
+                    ? anchorProfile.Fwhm
+                    : Math.Max(1.0, extra.Fwhm);
+                double distanceFwhm = Math.Abs(extra.Channel - anchorChannel) / anchorFwhm;
+                if (PeakShapeModel.IsFinite(distanceFwhm) && distanceFwhm < nearest)
+                {
+                    nearest = distanceFwhm;
+                }
+            }
+
+            return nearest;
+        }
+
+        static bool IsCloseToAnchor(double anchorDistanceFwhm, RjmcmcConfig config)
+        {
+            return PeakShapeModel.IsFinite(anchorDistanceFwhm) &&
+                anchorDistanceFwhm < config.CloseAnchorDistanceFwhm;
+        }
+
         static BirthProposal DrawUniformBirthChannel(RjmcmcState state, RjmcmcRoiWorkspace workspace, Random random)
         {
             int availableCount = CountAvailableBirthChannels(state, workspace);
@@ -1701,6 +1789,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             foreach (RjmcmcPeakComponent extra in best.Extras.OrderBy(component => component.Channel))
             {
                 int tolerance = CenterToleranceForFwhm(extra.Fwhm, config);
+                double anchorDistanceFwhm = NearestAnchorDistanceFwhm(extra, workspace);
                 double posteriorOccupancy = occupancy?.FractionNear(extra.Channel, workspace, tolerance) ?? 0.0;
                 if (posteriorOccupancy < config.MinimumPosteriorOccupancy)
                 {
@@ -1722,7 +1811,19 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                     continue;
                 }
 
+                if (IsCloseToAnchor(anchorDistanceFwhm, config) &&
+                    posteriorOccupancy < config.CloseAnchorMinimumPosteriorOccupancy)
+                {
+                    continue;
+                }
+
                 double snr = Math.Sqrt(profile.Improvement);
+                if (IsCloseToAnchor(anchorDistanceFwhm, config) &&
+                    profile.ResidualCorrelation < config.CloseAnchorMinimumResidualProfileCorrelation)
+                {
+                    continue;
+                }
+
                 candidates.Add(new RjmcmcPeakCandidate
                 {
                     Channel = extra.Channel,
@@ -1733,7 +1834,8 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                     PosteriorOccupancy = posteriorOccupancy,
                     CenterStdDev = centerStdDev,
                     ResidualSnr = profile.ResidualSnr,
-                    ResidualCorrelation = profile.ResidualCorrelation
+                    ResidualCorrelation = profile.ResidualCorrelation,
+                    AnchorDistanceFwhm = anchorDistanceFwhm
                 });
             }
 

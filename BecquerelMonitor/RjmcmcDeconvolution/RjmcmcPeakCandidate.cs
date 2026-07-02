@@ -11,5 +11,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         public double CenterStdDev { get; set; }
         public double ResidualSnr { get; set; }
         public double ResidualCorrelation { get; set; }
+        public double AnchorDistanceFwhm { get; set; }
+        public int SupportingChainCount { get; set; }
     }
 }
