@@ -1,4 +1,5 @@
 ﻿using System.Xml.Serialization;
+using BecquerelMonitor.RjmcmcDeconvolution;
 
 namespace BecquerelMonitor
 {
@@ -137,6 +138,103 @@ namespace BecquerelMonitor
             }
         }
 
+        [XmlElement("use_deconvolution")]
+        public bool UseDeconvolution
+        {
+            get
+            {
+                return this.use_deconvolution;
+            }
+            set
+            {
+                this.use_deconvolution = value;
+            }
+        }
+
+        public int BurnIn
+        {
+            get
+            {
+                return this.burnIn;
+            }
+            set
+            {
+                this.burnIn = value;
+            }
+        }
+
+        public int Samples
+        {
+            get
+            {
+                return this.samples;
+            }
+            set
+            {
+                this.samples = value;
+            }
+        }
+
+        public int MaxRois
+        {
+            get
+            {
+                return this.maxRois;
+            }
+            set
+            {
+                this.maxRois = value;
+            }
+        }
+
+        public int MaxExtraPeaksPerRoi
+        {
+            get
+            {
+                return this.maxExtraPeaksPerRoi;
+            }
+            set
+            {
+                this.maxExtraPeaksPerRoi = value;
+            }
+        }
+
+        public double RoiRadiusFwhm
+        {
+            get
+            {
+                return this.roiRadiusFwhm;
+            }
+            set
+            {
+                this.roiRadiusFwhm = value;
+            }
+        }
+
+        public double MinDevianceImprovement
+        {
+            get
+            {
+                return this.minDevianceImprovement;
+            }
+            set
+            {
+                this.minDevianceImprovement = value;
+            }
+        }
+
+        public double MinimumCandidateAmplitude
+        {
+            get
+            {
+                return this.minimumCandidateAmplitude;
+            }
+            set
+            {
+                this.minimumCandidateAmplitude = value;
+            }
+        }
+
         public int Ch_Concat
         {
             get
@@ -171,6 +269,14 @@ namespace BecquerelMonitor
             this.min_fwhm_tol = config.min_fwhm_tol;
             this.max_fwhm_tol = config.max_fwhm_tol;
             this.ch_concat = config.ch_concat;
+            this.use_deconvolution = config.use_deconvolution;
+            this.burnIn = config.burnIn;
+            this.samples = config.samples;
+            this.maxRois = config.maxRois;
+            this.maxExtraPeaksPerRoi = config.maxExtraPeaksPerRoi;
+            this.roiRadiusFwhm = config.roiRadiusFwhm;
+            this.minDevianceImprovement = config.minDevianceImprovement;
+            this.minimumCandidateAmplitude = config.minimumCandidateAmplitude;
             if (config.fwhmCalibration != null)
             {
                 this.fwhmCalibration = config.fwhmCalibration.Clone();
@@ -207,6 +313,22 @@ namespace BecquerelMonitor
         decimal max_fwhm_tol = 199;
 
         int ch_concat = 1024;
+
+        bool use_deconvolution = false;
+
+        int burnIn = RjmcmcConfig.CreateDefault().BurnIn;
+
+        int samples = RjmcmcConfig.CreateDefault().Samples;
+
+        int maxRois = RjmcmcConfig.CreateDefault().MaxRois;
+
+        int maxExtraPeaksPerRoi = RjmcmcConfig.CreateDefault().MaxExtraPeaksPerRoi;
+
+        double roiRadiusFwhm = RjmcmcConfig.CreateDefault().RoiRadiusFwhm;
+
+        double minDevianceImprovement = RjmcmcConfig.CreateDefault().MinDevianceImprovement;
+
+        double minimumCandidateAmplitude = RjmcmcConfig.CreateDefault().MinimumCandidateAmplitude;
 
         bool enabled = true;
 

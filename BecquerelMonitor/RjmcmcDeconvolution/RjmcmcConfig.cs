@@ -52,9 +52,22 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         /// References: Gulam Razul et al. (2003), NIM A 497, 492-510; Deep research report, sections
         /// "Bayesian variable-dimensional models" and "Implementation priorities".
         /// </summary>
-        public static RjmcmcConfig CreateForRoiSearch()
+        public static RjmcmcConfig CreateForRoiSearch(FWHMPeakDetectionMethodConfig peakConfig)
         {
             RjmcmcConfig config = CreateDefault();
+            if (peakConfig == null)
+            {
+                return config;
+            }
+
+            config.Enabled = peakConfig.UseDeconvolution;
+            config.BurnIn = Math.Max(0, peakConfig.BurnIn);
+            config.Samples = Math.Max(1, peakConfig.Samples);
+            config.MaxRois = Math.Max(1, peakConfig.MaxRois);
+            config.MaxExtraPeaksPerRoi = Math.Max(0, peakConfig.MaxExtraPeaksPerRoi);
+            config.RoiRadiusFwhm = Math.Max(1.0, peakConfig.RoiRadiusFwhm);
+            config.MinDevianceImprovement = Math.Max(0.0, peakConfig.MinDevianceImprovement);
+            config.MinimumCandidateAmplitude = Math.Max(0.0, peakConfig.MinimumCandidateAmplitude);
             return config;
         }
     }

@@ -2469,6 +2469,465 @@
   <data name="&gt;&gt;groupBox2.ZOrder" xml:space="preserve">
     <value>1</value>
   </data>
+  <data name="deconvolutionGroupBox.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Top, Left, Right</value>
+  </data>
+  <data name="deconvolutionEnabledLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="deconvolutionEnabledLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>18, 25</value>
+  </data>
+  <data name="deconvolutionEnabledLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>46, 13</value>
+  </data>
+  <data name="deconvolutionEnabledLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>0</value>
+  </data>
+  <data name="deconvolutionEnabledLabel.Text" xml:space="preserve">
+    <value>Enabled</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionEnabledLabel.Name" xml:space="preserve">
+    <value>deconvolutionEnabledLabel</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionEnabledLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionEnabledLabel.Parent" xml:space="preserve">
+    <value>deconvolutionGroupBox</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionEnabledLabel.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="deconvolutionEnabledCheckBox.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="deconvolutionEnabledCheckBox.Location" type="System.Drawing.Point, System.Drawing">
+    <value>118, 24</value>
+  </data>
+  <data name="deconvolutionEnabledCheckBox.Size" type="System.Drawing.Size, System.Drawing">
+    <value>15, 14</value>
+  </data>
+  <data name="deconvolutionEnabledCheckBox.TabIndex" type="System.Int32, mscorlib">
+    <value>1</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionEnabledCheckBox.Name" xml:space="preserve">
+    <value>deconvolutionEnabledCheckBox</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionEnabledCheckBox.Type" xml:space="preserve">
+    <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionEnabledCheckBox.Parent" xml:space="preserve">
+    <value>deconvolutionGroupBox</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionEnabledCheckBox.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="deconvolutionBurnInLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="deconvolutionBurnInLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>18, 52</value>
+  </data>
+  <data name="deconvolutionBurnInLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>43, 13</value>
+  </data>
+  <data name="deconvolutionBurnInLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>2</value>
+  </data>
+  <data name="deconvolutionBurnInLabel.Text" xml:space="preserve">
+    <value>Burn-in</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionBurnInLabel.Name" xml:space="preserve">
+    <value>deconvolutionBurnInLabel</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionBurnInLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionBurnInLabel.Parent" xml:space="preserve">
+    <value>deconvolutionGroupBox</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionBurnInLabel.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="deconvolutionBurnInNumericUpDown.Location" type="System.Drawing.Point, System.Drawing">
+    <value>118, 49</value>
+  </data>
+  <data name="deconvolutionBurnInNumericUpDown.Size" type="System.Drawing.Size, System.Drawing">
+    <value>73, 20</value>
+  </data>
+  <data name="deconvolutionBurnInNumericUpDown.TabIndex" type="System.Int32, mscorlib">
+    <value>3</value>
+  </data>
+  <data name="deconvolutionBurnInNumericUpDown.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
+    <value>Right</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionBurnInNumericUpDown.Name" xml:space="preserve">
+    <value>deconvolutionBurnInNumericUpDown</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionBurnInNumericUpDown.Type" xml:space="preserve">
+    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionBurnInNumericUpDown.Parent" xml:space="preserve">
+    <value>deconvolutionGroupBox</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionBurnInNumericUpDown.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <data name="deconvolutionSamplesLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="deconvolutionSamplesLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>18, 79</value>
+  </data>
+  <data name="deconvolutionSamplesLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>47, 13</value>
+  </data>
+  <data name="deconvolutionSamplesLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>4</value>
+  </data>
+  <data name="deconvolutionSamplesLabel.Text" xml:space="preserve">
+    <value>Samples</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionSamplesLabel.Name" xml:space="preserve">
+    <value>deconvolutionSamplesLabel</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionSamplesLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionSamplesLabel.Parent" xml:space="preserve">
+    <value>deconvolutionGroupBox</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionSamplesLabel.ZOrder" xml:space="preserve">
+    <value>4</value>
+  </data>
+  <data name="deconvolutionSamplesNumericUpDown.Location" type="System.Drawing.Point, System.Drawing">
+    <value>118, 76</value>
+  </data>
+  <data name="deconvolutionSamplesNumericUpDown.Size" type="System.Drawing.Size, System.Drawing">
+    <value>73, 20</value>
+  </data>
+  <data name="deconvolutionSamplesNumericUpDown.TabIndex" type="System.Int32, mscorlib">
+    <value>5</value>
+  </data>
+  <data name="deconvolutionSamplesNumericUpDown.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
+    <value>Right</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionSamplesNumericUpDown.Name" xml:space="preserve">
+    <value>deconvolutionSamplesNumericUpDown</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionSamplesNumericUpDown.Type" xml:space="preserve">
+    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionSamplesNumericUpDown.Parent" xml:space="preserve">
+    <value>deconvolutionGroupBox</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionSamplesNumericUpDown.ZOrder" xml:space="preserve">
+    <value>5</value>
+  </data>
+  <data name="deconvolutionMaxRoisLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="deconvolutionMaxRoisLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>18, 106</value>
+  </data>
+  <data name="deconvolutionMaxRoisLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>54, 13</value>
+  </data>
+  <data name="deconvolutionMaxRoisLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>6</value>
+  </data>
+  <data name="deconvolutionMaxRoisLabel.Text" xml:space="preserve">
+    <value>Max ROIs</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMaxRoisLabel.Name" xml:space="preserve">
+    <value>deconvolutionMaxRoisLabel</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMaxRoisLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMaxRoisLabel.Parent" xml:space="preserve">
+    <value>deconvolutionGroupBox</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMaxRoisLabel.ZOrder" xml:space="preserve">
+    <value>6</value>
+  </data>
+  <data name="deconvolutionMaxRoisNumericUpDown.Location" type="System.Drawing.Point, System.Drawing">
+    <value>118, 103</value>
+  </data>
+  <data name="deconvolutionMaxRoisNumericUpDown.Size" type="System.Drawing.Size, System.Drawing">
+    <value>73, 20</value>
+  </data>
+  <data name="deconvolutionMaxRoisNumericUpDown.TabIndex" type="System.Int32, mscorlib">
+    <value>7</value>
+  </data>
+  <data name="deconvolutionMaxRoisNumericUpDown.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
+    <value>Right</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMaxRoisNumericUpDown.Name" xml:space="preserve">
+    <value>deconvolutionMaxRoisNumericUpDown</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMaxRoisNumericUpDown.Type" xml:space="preserve">
+    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMaxRoisNumericUpDown.Parent" xml:space="preserve">
+    <value>deconvolutionGroupBox</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMaxRoisNumericUpDown.ZOrder" xml:space="preserve">
+    <value>7</value>
+  </data>
+  <data name="deconvolutionMaxExtraPeaksPerRoiLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="deconvolutionMaxExtraPeaksPerRoiLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>18, 133</value>
+  </data>
+  <data name="deconvolutionMaxExtraPeaksPerRoiLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>53, 13</value>
+  </data>
+  <data name="deconvolutionMaxExtraPeaksPerRoiLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>8</value>
+  </data>
+  <data name="deconvolutionMaxExtraPeaksPerRoiLabel.Text" xml:space="preserve">
+    <value>Max extra</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMaxExtraPeaksPerRoiLabel.Name" xml:space="preserve">
+    <value>deconvolutionMaxExtraPeaksPerRoiLabel</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMaxExtraPeaksPerRoiLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMaxExtraPeaksPerRoiLabel.Parent" xml:space="preserve">
+    <value>deconvolutionGroupBox</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMaxExtraPeaksPerRoiLabel.ZOrder" xml:space="preserve">
+    <value>8</value>
+  </data>
+  <data name="deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Location" type="System.Drawing.Point, System.Drawing">
+    <value>118, 130</value>
+  </data>
+  <data name="deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Size" type="System.Drawing.Size, System.Drawing">
+    <value>73, 20</value>
+  </data>
+  <data name="deconvolutionMaxExtraPeaksPerRoiNumericUpDown.TabIndex" type="System.Int32, mscorlib">
+    <value>9</value>
+  </data>
+  <data name="deconvolutionMaxExtraPeaksPerRoiNumericUpDown.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
+    <value>Right</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Name" xml:space="preserve">
+    <value>deconvolutionMaxExtraPeaksPerRoiNumericUpDown</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Type" xml:space="preserve">
+    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Parent" xml:space="preserve">
+    <value>deconvolutionGroupBox</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMaxExtraPeaksPerRoiNumericUpDown.ZOrder" xml:space="preserve">
+    <value>9</value>
+  </data>
+  <data name="deconvolutionRoiRadiusFwhmLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="deconvolutionRoiRadiusFwhmLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>225, 52</value>
+  </data>
+  <data name="deconvolutionRoiRadiusFwhmLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>57, 13</value>
+  </data>
+  <data name="deconvolutionRoiRadiusFwhmLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>10</value>
+  </data>
+  <data name="deconvolutionRoiRadiusFwhmLabel.Text" xml:space="preserve">
+    <value>ROI radius</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionRoiRadiusFwhmLabel.Name" xml:space="preserve">
+    <value>deconvolutionRoiRadiusFwhmLabel</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionRoiRadiusFwhmLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionRoiRadiusFwhmLabel.Parent" xml:space="preserve">
+    <value>deconvolutionGroupBox</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionRoiRadiusFwhmLabel.ZOrder" xml:space="preserve">
+    <value>10</value>
+  </data>
+  <data name="deconvolutionRoiRadiusFwhmNumericUpDown.Location" type="System.Drawing.Point, System.Drawing">
+    <value>347, 49</value>
+  </data>
+  <data name="deconvolutionRoiRadiusFwhmNumericUpDown.Size" type="System.Drawing.Size, System.Drawing">
+    <value>73, 20</value>
+  </data>
+  <data name="deconvolutionRoiRadiusFwhmNumericUpDown.TabIndex" type="System.Int32, mscorlib">
+    <value>11</value>
+  </data>
+  <data name="deconvolutionRoiRadiusFwhmNumericUpDown.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
+    <value>Right</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionRoiRadiusFwhmNumericUpDown.Name" xml:space="preserve">
+    <value>deconvolutionRoiRadiusFwhmNumericUpDown</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionRoiRadiusFwhmNumericUpDown.Type" xml:space="preserve">
+    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionRoiRadiusFwhmNumericUpDown.Parent" xml:space="preserve">
+    <value>deconvolutionGroupBox</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionRoiRadiusFwhmNumericUpDown.ZOrder" xml:space="preserve">
+    <value>11</value>
+  </data>
+  <data name="deconvolutionMinDevianceImprovementLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="deconvolutionMinDevianceImprovementLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>225, 79</value>
+  </data>
+  <data name="deconvolutionMinDevianceImprovementLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>72, 13</value>
+  </data>
+  <data name="deconvolutionMinDevianceImprovementLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>12</value>
+  </data>
+  <data name="deconvolutionMinDevianceImprovementLabel.Text" xml:space="preserve">
+    <value>Min deviance</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMinDevianceImprovementLabel.Name" xml:space="preserve">
+    <value>deconvolutionMinDevianceImprovementLabel</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMinDevianceImprovementLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMinDevianceImprovementLabel.Parent" xml:space="preserve">
+    <value>deconvolutionGroupBox</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMinDevianceImprovementLabel.ZOrder" xml:space="preserve">
+    <value>12</value>
+  </data>
+  <data name="deconvolutionMinDevianceImprovementNumericUpDown.Location" type="System.Drawing.Point, System.Drawing">
+    <value>347, 76</value>
+  </data>
+  <data name="deconvolutionMinDevianceImprovementNumericUpDown.Size" type="System.Drawing.Size, System.Drawing">
+    <value>73, 20</value>
+  </data>
+  <data name="deconvolutionMinDevianceImprovementNumericUpDown.TabIndex" type="System.Int32, mscorlib">
+    <value>13</value>
+  </data>
+  <data name="deconvolutionMinDevianceImprovementNumericUpDown.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
+    <value>Right</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMinDevianceImprovementNumericUpDown.Name" xml:space="preserve">
+    <value>deconvolutionMinDevianceImprovementNumericUpDown</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMinDevianceImprovementNumericUpDown.Type" xml:space="preserve">
+    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMinDevianceImprovementNumericUpDown.Parent" xml:space="preserve">
+    <value>deconvolutionGroupBox</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMinDevianceImprovementNumericUpDown.ZOrder" xml:space="preserve">
+    <value>13</value>
+  </data>
+  <data name="deconvolutionMinimumCandidateAmplitudeLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="deconvolutionMinimumCandidateAmplitudeLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>225, 106</value>
+  </data>
+  <data name="deconvolutionMinimumCandidateAmplitudeLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>75, 13</value>
+  </data>
+  <data name="deconvolutionMinimumCandidateAmplitudeLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>14</value>
+  </data>
+  <data name="deconvolutionMinimumCandidateAmplitudeLabel.Text" xml:space="preserve">
+    <value>Min amplitude</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMinimumCandidateAmplitudeLabel.Name" xml:space="preserve">
+    <value>deconvolutionMinimumCandidateAmplitudeLabel</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMinimumCandidateAmplitudeLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMinimumCandidateAmplitudeLabel.Parent" xml:space="preserve">
+    <value>deconvolutionGroupBox</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMinimumCandidateAmplitudeLabel.ZOrder" xml:space="preserve">
+    <value>14</value>
+  </data>
+  <data name="deconvolutionMinimumCandidateAmplitudeNumericUpDown.Location" type="System.Drawing.Point, System.Drawing">
+    <value>347, 103</value>
+  </data>
+  <data name="deconvolutionMinimumCandidateAmplitudeNumericUpDown.Size" type="System.Drawing.Size, System.Drawing">
+    <value>73, 20</value>
+  </data>
+  <data name="deconvolutionMinimumCandidateAmplitudeNumericUpDown.TabIndex" type="System.Int32, mscorlib">
+    <value>15</value>
+  </data>
+  <data name="deconvolutionMinimumCandidateAmplitudeNumericUpDown.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
+    <value>Right</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMinimumCandidateAmplitudeNumericUpDown.Name" xml:space="preserve">
+    <value>deconvolutionMinimumCandidateAmplitudeNumericUpDown</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMinimumCandidateAmplitudeNumericUpDown.Type" xml:space="preserve">
+    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMinimumCandidateAmplitudeNumericUpDown.Parent" xml:space="preserve">
+    <value>deconvolutionGroupBox</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionMinimumCandidateAmplitudeNumericUpDown.ZOrder" xml:space="preserve">
+    <value>15</value>
+  </data>
+  <data name="deconvolutionGroupBox.Location" type="System.Drawing.Point, System.Drawing">
+    <value>17, 289</value>
+  </data>
+  <data name="deconvolutionGroupBox.Size" type="System.Drawing.Size, System.Drawing">
+    <value>440, 165</value>
+  </data>
+  <data name="deconvolutionGroupBox.TabIndex" type="System.Int32, mscorlib">
+    <value>21</value>
+  </data>
+  <data name="deconvolutionGroupBox.Text" xml:space="preserve">
+    <value>Deconvolution</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionGroupBox.Name" xml:space="preserve">
+    <value>deconvolutionGroupBox</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionGroupBox.Type" xml:space="preserve">
+    <value>System.Windows.Forms.GroupBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionGroupBox.Parent" xml:space="preserve">
+    <value>tabPage5</value>
+  </data>
+  <data name="&gt;&gt;deconvolutionGroupBox.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="deconvolutionEnabled.ToolTip" xml:space="preserve">
+    <value>Enables RJMCMC deconvolution after deterministic FWHM peak detection for this device configuration.</value>
+  </data>
+  <data name="deconvolutionBurnIn.ToolTip" xml:space="preserve">
+    <value>Number of initial RJMCMC iterations discarded before collecting candidate samples.</value>
+  </data>
+  <data name="deconvolutionSamples.ToolTip" xml:space="preserve">
+    <value>Number of RJMCMC iterations used to collect candidate peak samples after burn-in.</value>
+  </data>
+  <data name="deconvolutionMaxRois.ToolTip" xml:space="preserve">
+    <value>Maximum number of ROI regions processed by the deconvolution step.</value>
+  </data>
+  <data name="deconvolutionMaxExtraPeaksPerRoi.ToolTip" xml:space="preserve">
+    <value>Maximum number of additional unresolved peaks RJMCMC can add inside one ROI.</value>
+  </data>
+  <data name="deconvolutionRoiRadiusFwhm.ToolTip" xml:space="preserve">
+    <value>ROI half-width around each deterministic peak, expressed in FWHM units.</value>
+  </data>
+  <data name="deconvolutionMinDevianceImprovement.ToolTip" xml:space="preserve">
+    <value>Minimum deviance improvement required to accept an extra RJMCMC peak candidate.</value>
+  </data>
+  <data name="deconvolutionMinimumCandidateAmplitude.ToolTip" xml:space="preserve">
+    <value>Minimum fitted candidate amplitude required before an RJMCMC peak can be returned.</value>
+  </data>
   <data name="tabPage5.Location" type="System.Drawing.Point, System.Drawing">
     <value>4, 22</value>
   </data>

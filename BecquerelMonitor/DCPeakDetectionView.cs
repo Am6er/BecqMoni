@@ -23,7 +23,7 @@ namespace BecquerelMonitor
         public void ShowPeakDetectionResult()
         {
             this.FormLoading = true;
-            this.checkBoxDeconvolution.Checked = this.globalConfigManager.GlobalConfig.UseDeconvolution;
+            this.checkBoxDeconvolution.Checked = false;
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
             if (activeDocument == null || activeDocument.ActiveResultData == null)
             {
@@ -69,6 +69,8 @@ namespace BecquerelMonitor
                 this.FormLoading = false;
                 return;
             }
+            this.checkBoxDeconvolution.Checked = fwhmPeakDetectionMethodConfig.UseDeconvolution;
+
             this.numericUpDown1.Minimum = 1;
             this.numericUpDown1.Maximum = 10000;
             this.numericUpDown1.Increment = 1;
@@ -221,10 +223,23 @@ namespace BecquerelMonitor
         {
             if (this.FormLoading == false)
             {
-                this.globalConfigManager.GlobalConfig.UseDeconvolution = this.checkBoxDeconvolution.Checked;
-                this.globalConfigManager.SaveConfigFile();
-
                 DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+                ResultData activeResultData = activeDocument?.ActiveResultData;
+                DeviceConfigInfo deviceConfig = activeResultData?.DeviceConfig;
+                if (!(deviceConfig?.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig fwhmPeakDetectionMethodConfig))
+                {
+                    return;
+                }
+
+                fwhmPeakDetectionMethodConfig.UseDeconvolution = this.checkBoxDeconvolution.Checked;
+                activeResultData.PeakDetectionMethodConfig = fwhmPeakDetectionMethodConfig;
+
+                DeviceConfigManager deviceConfigManager = DeviceConfigManager.GetInstance();
+                if (!string.IsNullOrEmpty(deviceConfig.Guid) && deviceConfigManager.DeviceConfigMap.ContainsKey(deviceConfig.Guid))
+                {
+                    deviceConfigManager.SaveConfig(deviceConfig);
+                }
+
                 this.UpdatePeakDetectionResult();
                 if (activeDocument != null && activeDocument.EnergySpectrumView != null)
                 {
@@ -325,9 +340,6 @@ namespace BecquerelMonitor
 
         // Token: 0x040001B4 RID: 436
         DocumentManager documentManager = DocumentManager.GetInstance();
-
-        // Token: 0x040001B5 RID: 437
-        GlobalConfigManager globalConfigManager = GlobalConfigManager.GetInstance();
 
         NuclideDefinitionManager nuclideManager = NuclideDefinitionManager.GetInstance();
 

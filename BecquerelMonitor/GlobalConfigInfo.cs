@@ -400,19 +400,6 @@ namespace BecquerelMonitor
             }
         }
 
-        [XmlElement("use_deconvolution")]
-        public bool UseDeconvolution
-        {
-            get
-            {
-                return this.use_deconvolution;
-            }
-            set
-            {
-                this.use_deconvolution = value;
-            }
-        }
-
         // Token: 0x040008AF RID: 2223
         int mainFormTop = 100;
 
@@ -499,7 +486,5 @@ namespace BecquerelMonitor
         SoundConfig soundConfig = new SoundConfig();
 
         bool controlPanelisDateTimeFormat = false;
-
-        bool use_deconvolution = false;
     }
 }

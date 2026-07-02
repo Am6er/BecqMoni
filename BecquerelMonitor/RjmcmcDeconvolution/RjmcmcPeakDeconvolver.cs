@@ -127,7 +127,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             FwhmCalibration fwhmCalibration)
         {
             RjmcmcResult result = new RjmcmcResult();
-            RjmcmcConfig config = RjmcmcConfig.CreateForRoiSearch();
+            RjmcmcConfig config = RjmcmcConfig.CreateForRoiSearch(peakConfig);
             if (!config.Enabled ||
                 inferenceSpectrum == null ||
                 peakConfig == null ||
