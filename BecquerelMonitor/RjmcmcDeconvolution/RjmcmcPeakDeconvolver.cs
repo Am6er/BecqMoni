@@ -1,9 +1,7 @@
 using BecquerelMonitor.Utils;
 using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace BecquerelMonitor.RjmcmcDeconvolution
@@ -19,13 +17,41 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             UpdateBackground
         }
 
-        sealed class MoveProbabilities
+        struct MoveProbabilities
         {
             public double Birth;
             public double Death;
             public double UpdateExtra;
             public double UpdateAnchorAmplitude;
             public double UpdateBackground;
+        }
+
+        sealed class RjmcmcComponentProfile
+        {
+            public double Fwhm;
+            public int StartIndex;
+            public int EndIndex;
+            public double[] RelativeValues;
+            public bool IsValid;
+        }
+
+        sealed class RjmcmcRoiWorkspace
+        {
+            public RjmcmcRoi Roi;
+            public int[] Observed;
+            public RjmcmcComponentProfile[] Profiles;
+            public double MeanObserved;
+            public double AmplitudeScale;
+            public double LogAmplitudeScale;
+            public bool IsUsable;
+
+            public int Length
+            {
+                get
+                {
+                    return Observed.Length;
+                }
+            }
         }
 
         sealed class RjmcmcPeakComponent
@@ -62,8 +88,8 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                     BackgroundSlope = BackgroundSlope,
                     LogLikelihood = LogLikelihood,
                     LogPosterior = LogPosterior,
-                    Anchors = new List<RjmcmcPeakComponent>(),
-                    Extras = new List<RjmcmcPeakComponent>()
+                    Anchors = new List<RjmcmcPeakComponent>(Anchors.Count),
+                    Extras = new List<RjmcmcPeakComponent>(Extras.Count)
                 };
 
                 foreach (RjmcmcPeakComponent anchor in Anchors)
@@ -86,6 +112,14 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             public double Probability;
         }
 
+        /// <summary>
+        /// Runs local trans-dimensional peak deconvolution after deterministic FWHM peak search.
+        /// References: Green (1995), "Reversible jump Markov chain Monte Carlo computation and Bayesian model determination",
+        /// https://doi.org/10.1093/biomet/82.4.711; Gulam Razul, Fitzgerald and Andrieu (2003),
+        /// "Bayesian model selection and parameter estimation of nuclear emission spectra using RJMCMC",
+        /// https://doi.org/10.1016/S0168-9002(02)01807-7; Deep research report, sections "Bayesian variable-dimensional
+        /// models: RJMCMC and exchange Monte Carlo" and "Implementation priorities".
+        /// </summary>
         public static RjmcmcResult Run(
             EnergySpectrum inferenceSpectrum,
             FWHMPeakDetector.PeakFinder finder,
@@ -102,11 +136,24 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 return result;
             }
 
-            List<RjmcmcRoi> rois = BuildRois(inferenceSpectrum, finder, peakConfig, fwhmCalibration, config);
-            int roiSeed = config.Seed;
+            List<RjmcmcRoi> rois = SelectProcessableRois(BuildRois(inferenceSpectrum, finder, peakConfig, fwhmCalibration, config), config);
+            List<RjmcmcPeakCandidate> extraCandidates = ProcessRois(inferenceSpectrum, fwhmCalibration, rois, config);
+            result.ExtraCandidates.AddRange(extraCandidates);
+            return result;
+        }
+
+        /// <summary>
+        /// Applies the ROI budget to the FWHM-anchored search regions before the expensive sampler runs.
+        /// References: Deep research report, sections "Bayesian variable-dimensional models" and "Implementation priorities",
+        /// recommending RJMCMC only for small ambiguous ROIs rather than the whole spectrum; Gulam Razul et al. (2003),
+        /// NIM A 497, 492-510.
+        /// </summary>
+        static List<RjmcmcRoi> SelectProcessableRois(List<RjmcmcRoi> rois, RjmcmcConfig config)
+        {
+            List<RjmcmcRoi> selected = new List<RjmcmcRoi>();
             foreach (RjmcmcRoi roi in rois)
             {
-                if (result.ProcessedRois.Count >= config.MaxRois)
+                if (selected.Count >= config.MaxRois)
                 {
                     break;
                 }
@@ -116,19 +163,17 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                     continue;
                 }
 
-                result.ProcessedRois.Add(roi);
-                List<RjmcmcPeakCandidate> extras = ProcessRoi(
-                    inferenceSpectrum,
-                    fwhmCalibration,
-                    roi,
-                    config,
-                    roiSeed++);
-                result.ExtraCandidates.AddRange(extras);
+                selected.Add(roi);
             }
 
-            return result;
+            return selected;
         }
 
+        /// <summary>
+        /// Builds FWHM-scaled ROIs around deterministic peaks, treating them as anchor components.
+        /// References: Deep research report, sections "Role of FWHM and physical formulation" and "Implementation priorities";
+        /// Gulam Razul et al. (2003), NIM A 497, 492-510, for nuclear spectra with unknown peak/background model order.
+        /// </summary>
         static List<RjmcmcRoi> BuildRois(
             EnergySpectrum spectrum,
             FWHMPeakDetector.PeakFinder finder,
@@ -219,6 +264,11 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             return bounded;
         }
 
+        /// <summary>
+        /// Splits overly wide or crowded ROIs so each sampler instance remains local and bounded.
+        /// References: Deep research report, section "Implementation priorities"; Green (1995), Biometrika 82(4), 711-732,
+        /// for dimension-changing model search where computation grows with local model dimension.
+        /// </summary>
         static IEnumerable<RjmcmcRoi> SplitOrBoundRoi(
             RjmcmcRoi roi,
             int minChannel,
@@ -259,52 +309,169 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             }
         }
 
-        static List<RjmcmcPeakCandidate> ProcessRoi(
+        /// <summary>
+        /// Evaluates all ROI-chain pairs as one parallel job set and merges the per-ROI candidate samples.
+        /// References: Green (1995), https://doi.org/10.1093/biomet/82.4.711; Tiboaca et al. (2014),
+        /// "Bayesian parameter estimation and model selection of a nonlinear dynamical system using reversible jump MCMC",
+        /// ISMA 2014, paper 0239, for RJMCMC as simultaneous parameter estimation and model selection.
+        /// </summary>
+        static List<RjmcmcPeakCandidate> ProcessRois(
             EnergySpectrum inferenceSpectrum,
             FwhmCalibration fwhmCalibration,
-            RjmcmcRoi roi,
-            RjmcmcConfig config,
-            int seed)
+            List<RjmcmcRoi> rois,
+            RjmcmcConfig config)
         {
-            int[] observed = ExtractObserved(inferenceSpectrum, roi);
-            if (observed.Length < 5 || observed.Max() <= 0 || config.MaxExtraPeaksPerRoi <= 0)
+            List<RjmcmcPeakCandidate> candidates = new List<RjmcmcPeakCandidate>();
+            if (rois == null || rois.Count == 0)
             {
-                return new List<RjmcmcPeakCandidate>();
+                return candidates;
             }
 
             int chainCount = Math.Max(1, config.ChainCount);
-            Task<List<RjmcmcPeakCandidate>>[] chainTasks = new Task<List<RjmcmcPeakCandidate>>[chainCount];
-            for (int chainIndex = 0; chainIndex < chainTasks.Length; chainIndex++)
+            RjmcmcRoiWorkspace[] workspaces = new RjmcmcRoiWorkspace[rois.Count];
+            List<RjmcmcPeakCandidate>[][] chainCandidates = new List<RjmcmcPeakCandidate>[rois.Count][];
+            for (int roiIndex = 0; roiIndex < rois.Count; roiIndex++)
             {
-                int currentChainIndex = chainIndex;
-                chainTasks[currentChainIndex] = Task.Factory.StartNew(
-                    () => ProcessRoiChain(
-                        observed,
-                        fwhmCalibration,
-                        roi,
-                        config,
-                        seed + currentChainIndex * 7919),
-                    CancellationToken.None,
-                    TaskCreationOptions.LongRunning,
-                    TaskScheduler.Default);
+                workspaces[roiIndex] = CreateWorkspace(inferenceSpectrum, fwhmCalibration, rois[roiIndex], config);
+                chainCandidates[roiIndex] = new List<RjmcmcPeakCandidate>[chainCount];
             }
 
-            Task.WaitAll(chainTasks);
-            return MergeCandidates(chainTasks.Select(task => task.Result), config.MaxExtraPeaksPerRoi);
+            int totalJobs = rois.Count * chainCount;
+            Parallel.For(
+                0,
+                totalJobs,
+                new ParallelOptions { MaxDegreeOfParallelism = chainCount },
+                jobIndex =>
+                {
+                    int roiIndex = jobIndex / chainCount;
+                    int chainIndex = jobIndex % chainCount;
+                    RjmcmcRoiWorkspace workspace = workspaces[roiIndex];
+                    chainCandidates[roiIndex][chainIndex] = workspace.IsUsable
+                        ? ProcessRoiChain(workspace, config, config.Seed + roiIndex + chainIndex * 7919)
+                        : new List<RjmcmcPeakCandidate>();
+                });
+
+            for (int roiIndex = 0; roiIndex < rois.Count; roiIndex++)
+            {
+                candidates.AddRange(MergeCandidates(chainCandidates[roiIndex], config.MaxExtraPeaksPerRoi));
+            }
+
+            return candidates;
         }
 
-        static List<RjmcmcPeakCandidate> ProcessRoiChain(
-            int[] observed,
+        /// <summary>
+        /// Precomputes ROI observations, amplitude scale and peak-shape profiles used by all chains.
+        /// References: Gulam Razul et al. (2003), NIM A 497, 492-510, for modelling nuclear peaks with known functional
+        /// families and detector response; Deep research report, section "Role of FWHM and physical formulation".
+        /// </summary>
+        static RjmcmcRoiWorkspace CreateWorkspace(
+            EnergySpectrum inferenceSpectrum,
             FwhmCalibration fwhmCalibration,
             RjmcmcRoi roi,
+            RjmcmcConfig config)
+        {
+            int[] observed = ExtractObserved(inferenceSpectrum, roi);
+            int maxObserved = 0;
+            double sumObserved = 0.0;
+            for (int i = 0; i < observed.Length; i++)
+            {
+                int value = observed[i];
+                if (value > maxObserved)
+                {
+                    maxObserved = value;
+                }
+
+                sumObserved += value;
+            }
+
+            double amplitudeScale = EstimateAmplitudeScale(maxObserved);
+            bool isUsable = observed.Length >= 5 && maxObserved > 0 && config.MaxExtraPeaksPerRoi > 0;
+            RjmcmcRoiWorkspace workspace = new RjmcmcRoiWorkspace
+            {
+                Roi = roi,
+                Observed = observed,
+                Profiles = isUsable ? BuildComponentProfiles(roi, fwhmCalibration) : new RjmcmcComponentProfile[0],
+                MeanObserved = observed.Length > 0 ? sumObserved / observed.Length : 0.0,
+                AmplitudeScale = amplitudeScale,
+                LogAmplitudeScale = Math.Log(amplitudeScale),
+                IsUsable = isUsable
+            };
+            return workspace;
+        }
+
+        /// <summary>
+        /// Caches unit-amplitude peak profiles for every candidate center in the ROI.
+        /// References: Gulam Razul et al. (2003), NIM A 497, 492-510, for Gaussian/Lorentz-type peak models and
+        /// deconvolution with detector response; Deep research report, section "Role of FWHM and physical formulation".
+        /// </summary>
+        static RjmcmcComponentProfile[] BuildComponentProfiles(RjmcmcRoi roi, FwhmCalibration fwhmCalibration)
+        {
+            RjmcmcComponentProfile[] profiles = new RjmcmcComponentProfile[roi.Width];
+            for (int localCenter = 0; localCenter < profiles.Length; localCenter++)
+            {
+                int centerChannel = roi.StartChannel + localCenter;
+                double fwhm = Math.Max(1.0, fwhmCalibration.ChannelToFwhm(centerChannel));
+                RjmcmcComponentProfile profile = new RjmcmcComponentProfile
+                {
+                    Fwhm = fwhm,
+                    StartIndex = 0,
+                    EndIndex = -1,
+                    RelativeValues = new double[0],
+                    IsValid = false
+                };
+                profiles[localCenter] = profile;
+
+                if (!PeakShapeModel.IsFinite(fwhm) || fwhm <= 0.0)
+                {
+                    continue;
+                }
+
+                double leftSupport = PeakShapeModel.GetLeftSupport(fwhmCalibration, fwhm);
+                double rightSupport = PeakShapeModel.GetRightSupport(fwhmCalibration, fwhm);
+                if (!PeakShapeModel.IsFinite(leftSupport) || !PeakShapeModel.IsFinite(rightSupport))
+                {
+                    continue;
+                }
+
+                int startChannel = Math.Max(roi.StartChannel, centerChannel - Convert.ToInt32(Math.Ceiling(leftSupport)));
+                int endChannel = Math.Min(roi.EndChannel, centerChannel + Convert.ToInt32(Math.Ceiling(rightSupport)));
+                if (startChannel > endChannel)
+                {
+                    profile.IsValid = true;
+                    continue;
+                }
+
+                profile.StartIndex = startChannel - roi.StartChannel;
+                profile.EndIndex = endChannel - roi.StartChannel;
+                profile.RelativeValues = new double[profile.EndIndex - profile.StartIndex + 1];
+                for (int localIndex = profile.StartIndex; localIndex <= profile.EndIndex; localIndex++)
+                {
+                    int channel = roi.StartChannel + localIndex;
+                    profile.RelativeValues[localIndex - profile.StartIndex] =
+                        PeakShapeModel.RelativeValue(channel - centerChannel, fwhm, fwhmCalibration);
+                }
+
+                profile.IsValid = true;
+            }
+
+            return profiles;
+        }
+
+        /// <summary>
+        /// Runs one Metropolis-Hastings reversible-jump chain for a fixed ROI and returns its best extra components.
+        /// References: Green (1995), Biometrika 82(4), 711-732; Tiboaca et al. (2014), ISMA 2014, paper 0239,
+        /// for RJMCMC moves between parameter spaces of different dimensions.
+        /// </summary>
+        static List<RjmcmcPeakCandidate> ProcessRoiChain(
+            RjmcmcRoiWorkspace workspace,
             RjmcmcConfig config,
             int seed)
         {
             List<RjmcmcPeakCandidate> candidates = new List<RjmcmcPeakCandidate>();
             Random random = new Random(seed);
-            double amplitudeScale = EstimateAmplitudeScale(observed);
-            RjmcmcState current = CreateInitialState(roi, observed, fwhmCalibration);
-            if (!EvaluateState(current, roi, observed, fwhmCalibration, amplitudeScale, config))
+            double[] lambda = new double[workspace.Length];
+            RjmcmcState current = CreateInitialState(workspace);
+            if (!EvaluateState(current, workspace, lambda, config))
             {
                 return candidates;
             }
@@ -320,23 +487,23 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 switch (move)
                 {
                     case MoveKind.Birth:
-                        proposal = ProposeBirth(current, roi, observed, fwhmCalibration, amplitudeScale, config, moveProbabilities, random, out logProposalRatio);
+                        proposal = ProposeBirth(current, workspace, lambda, config, moveProbabilities, random, out logProposalRatio);
                         break;
                     case MoveKind.Death:
-                        proposal = ProposeDeath(current, roi, observed, fwhmCalibration, amplitudeScale, config, moveProbabilities, random, out logProposalRatio);
+                        proposal = ProposeDeath(current, workspace, lambda, config, moveProbabilities, random, out logProposalRatio);
                         break;
                     case MoveKind.UpdateExtra:
-                        proposal = ProposeUpdateExtra(current, roi, fwhmCalibration, amplitudeScale, config, random);
+                        proposal = ProposeUpdateExtra(current, workspace, config, random);
                         break;
                     case MoveKind.UpdateAnchorAmplitude:
-                        proposal = ProposeUpdateAnchorAmplitude(current, amplitudeScale, random);
+                        proposal = ProposeUpdateAnchorAmplitude(current, workspace.AmplitudeScale, random);
                         break;
                     case MoveKind.UpdateBackground:
-                        proposal = ProposeUpdateBackground(current, roi, observed, config, random);
+                        proposal = ProposeUpdateBackground(current, workspace, config, random);
                         break;
                 }
 
-                if (proposal == null || !EvaluateState(proposal, roi, observed, fwhmCalibration, amplitudeScale, config))
+                if (proposal == null || !EvaluateState(proposal, workspace, lambda, config))
                 {
                     continue;
                 }
@@ -353,7 +520,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 }
             }
 
-            candidates.AddRange(CollectCandidates(best, roi, observed, fwhmCalibration, amplitudeScale, config));
+            candidates.AddRange(CollectCandidates(best, workspace, lambda, config));
             return candidates;
         }
 
@@ -401,11 +568,18 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             return observed;
         }
 
-        static RjmcmcState CreateInitialState(RjmcmcRoi roi, int[] observed, FwhmCalibration fwhmCalibration)
+        /// <summary>
+        /// Creates the starting model with fixed FWHM anchors from the deterministic peak finder and a linear background.
+        /// References: Gulam Razul et al. (2003), NIM A 497, 492-510, for joint peak/background modelling; Deep research
+        /// report, sections "Role of FWHM and physical formulation" and "Implementation priorities".
+        /// </summary>
+        static RjmcmcState CreateInitialState(RjmcmcRoiWorkspace workspace)
         {
+            RjmcmcRoi roi = workspace.Roi;
+            int[] observed = workspace.Observed;
             RjmcmcState state = new RjmcmcState
             {
-                Anchors = new List<RjmcmcPeakComponent>(),
+                Anchors = new List<RjmcmcPeakComponent>(roi.AnchorChannels.Count),
                 Extras = new List<RjmcmcPeakComponent>()
             };
 
@@ -423,7 +597,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 state.Anchors.Add(new RjmcmcPeakComponent
                 {
                     Channel = anchorChannel,
-                    Fwhm = Math.Max(1.0, fwhmCalibration.ChannelToFwhm(anchorChannel)),
+                    Fwhm = GetProfile(workspace, anchorChannel)?.Fwhm ?? 1.0,
                     Amplitude = amplitude
                 });
             }
@@ -445,12 +619,16 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             rightMean /= edgeWidth;
         }
 
+        /// <summary>
+        /// Evaluates the Poisson log likelihood plus exponential peak-amplitude priors for the current ROI model.
+        /// References: Gulam Razul et al. (2003), NIM A 497, 492-510, for Bayesian posterior inference in nuclear spectra;
+        /// Deep research report, sections "Role of FWHM and physical formulation" and "Validation and quality criteria",
+        /// recommending likelihood/deviance metrics for count spectra.
+        /// </summary>
         static bool EvaluateState(
             RjmcmcState state,
-            RjmcmcRoi roi,
-            int[] observed,
-            FwhmCalibration fwhmCalibration,
-            double amplitudeScale,
+            RjmcmcRoiWorkspace workspace,
+            double[] lambda,
             RjmcmcConfig config)
         {
             if (state == null)
@@ -459,77 +637,76 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             }
 
             double leftBackground = BackgroundAt(state, 0);
-            double rightBackground = BackgroundAt(state, observed.Length - 1);
+            double rightBackground = BackgroundAt(state, workspace.Length - 1);
             if (leftBackground < 0.0 || rightBackground < 0.0)
             {
                 return false;
             }
 
-            double[] lambda = ArrayPool<double>.Shared.Rent(observed.Length);
-            try
+            if (!TryBuildLambdaArray(state, workspace, lambda))
             {
-                if (!TryBuildLambdaArray(state, roi, observed.Length, fwhmCalibration, lambda))
+                return false;
+            }
+
+            double logLikelihood = 0.0;
+            int[] observed = workspace.Observed;
+            for (int i = 0; i < workspace.Length; i++)
+            {
+                double lambdaValue = lambda[i];
+                if (!PeakShapeModel.IsFinite(lambdaValue) || lambdaValue <= 0.0)
                 {
                     return false;
                 }
 
-                double logLikelihood = 0.0;
-                for (int i = 0; i < observed.Length; i++)
-                {
-                    double lambdaValue = lambda[i];
-                    if (!PeakShapeModel.IsFinite(lambdaValue) || lambdaValue <= 0.0)
-                    {
-                        return false;
-                    }
-
-                    int observedValue = observed[i];
-                    logLikelihood += observedValue > 0
-                        ? observedValue * Math.Log(lambdaValue) - lambdaValue
-                        : -lambdaValue;
-                }
-
-                double logPrior = 0.0;
-                foreach (RjmcmcPeakComponent anchor in state.Anchors)
-                {
-                    if (anchor.Amplitude <= 0.0 || !PeakShapeModel.IsFinite(anchor.Amplitude))
-                    {
-                        return false;
-                    }
-
-                    logPrior += LogExponentialPdf(anchor.Amplitude, amplitudeScale);
-                }
-
-                foreach (RjmcmcPeakComponent extra in state.Extras)
-                {
-                    if (extra.Amplitude <= 0.0 || !PeakShapeModel.IsFinite(extra.Amplitude))
-                    {
-                        return false;
-                    }
-
-                    logPrior += LogExponentialPdf(extra.Amplitude, amplitudeScale);
-                    logPrior -= config.ExtraPeakPenalty;
-                }
-
-                state.LogLikelihood = logLikelihood;
-                state.LogPosterior = logLikelihood + logPrior;
-                return PeakShapeModel.IsFinite(state.LogPosterior);
+                int observedValue = observed[i];
+                logLikelihood += observedValue > 0
+                    ? observedValue * Math.Log(lambdaValue) - lambdaValue
+                    : -lambdaValue;
             }
-            finally
+
+            double logPrior = 0.0;
+            foreach (RjmcmcPeakComponent anchor in state.Anchors)
             {
-                ArrayPool<double>.Shared.Return(lambda);
+                if (anchor.Amplitude <= 0.0 || !PeakShapeModel.IsFinite(anchor.Amplitude))
+                {
+                    return false;
+                }
+
+                logPrior += LogExponentialPdf(anchor.Amplitude, workspace.AmplitudeScale, workspace.LogAmplitudeScale);
             }
+
+            foreach (RjmcmcPeakComponent extra in state.Extras)
+            {
+                if (extra.Amplitude <= 0.0 || !PeakShapeModel.IsFinite(extra.Amplitude))
+                {
+                    return false;
+                }
+
+                logPrior += LogExponentialPdf(extra.Amplitude, workspace.AmplitudeScale, workspace.LogAmplitudeScale);
+                logPrior -= config.ExtraPeakPenalty;
+            }
+
+            state.LogLikelihood = logLikelihood;
+            state.LogPosterior = logLikelihood + logPrior;
+            return PeakShapeModel.IsFinite(state.LogPosterior);
         }
 
+        /// <summary>
+        /// Builds the expected count rate lambda for background, anchor peaks and RJMCMC extra peaks.
+        /// References: Gulam Razul et al. (2003), NIM A 497, 492-510, for additive peak/background spectrum models;
+        /// Deep research report, section "Role of FWHM and physical formulation".
+        /// </summary>
         static bool TryBuildLambdaArray(
             RjmcmcState state,
-            RjmcmcRoi roi,
-            int length,
-            FwhmCalibration fwhmCalibration,
+            RjmcmcRoiWorkspace workspace,
             double[] lambda)
         {
+            int length = workspace.Length;
+            double intercept = state.BackgroundIntercept;
+            double slope = state.BackgroundSlope;
             for (int i = 0; i < length; i++)
             {
-                double background = BackgroundAt(state, i);
+                double background = intercept + slope * i;
                 if (!PeakShapeModel.IsFinite(background))
                 {
                     return false;
@@ -540,7 +717,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
 
             foreach (RjmcmcPeakComponent anchor in state.Anchors)
             {
-                if (!TryAddComponent(lambda, length, roi, anchor, fwhmCalibration))
+                if (!TryAddComponent(lambda, workspace, anchor))
                 {
                     return false;
                 }
@@ -548,7 +725,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
 
             foreach (RjmcmcPeakComponent extra in state.Extras)
             {
-                if (!TryAddComponent(lambda, length, roi, extra, fwhmCalibration))
+                if (!TryAddComponent(lambda, workspace, extra))
                 {
                     return false;
                 }
@@ -557,12 +734,15 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             return true;
         }
 
+        /// <summary>
+        /// Adds one cached peak-shape component into the expected count array.
+        /// References: Gulam Razul et al. (2003), NIM A 497, 492-510; Deep research report, section
+        /// "Role of FWHM and physical formulation", for using FWHM-calibrated peak shapes.
+        /// </summary>
         static bool TryAddComponent(
             double[] lambda,
-            int length,
-            RjmcmcRoi roi,
-            RjmcmcPeakComponent component,
-            FwhmCalibration fwhmCalibration)
+            RjmcmcRoiWorkspace workspace,
+            RjmcmcPeakComponent component)
         {
             if (component == null ||
                 component.Amplitude <= 0.0 ||
@@ -573,35 +753,34 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 return false;
             }
 
-            double leftSupport = PeakShapeModel.GetLeftSupport(fwhmCalibration, component.Fwhm);
-            double rightSupport = PeakShapeModel.GetRightSupport(fwhmCalibration, component.Fwhm);
-            if (!PeakShapeModel.IsFinite(leftSupport) || !PeakShapeModel.IsFinite(rightSupport))
+            RjmcmcComponentProfile profile = GetProfile(workspace, component.Channel);
+            if (profile == null || !profile.IsValid)
             {
                 return false;
             }
 
-            int startChannel = Math.Max(roi.StartChannel, component.Channel - Convert.ToInt32(Math.Ceiling(leftSupport)));
-            int endChannel = Math.Min(roi.EndChannel, component.Channel + Convert.ToInt32(Math.Ceiling(rightSupport)));
-            if (startChannel > endChannel)
+            if (profile.StartIndex > profile.EndIndex)
             {
                 return true;
             }
 
-            for (int channel = startChannel; channel <= endChannel; channel++)
+            for (int localIndex = profile.StartIndex; localIndex <= profile.EndIndex; localIndex++)
             {
-                int localIndex = channel - roi.StartChannel;
-                if (localIndex >= 0 && localIndex < length)
-                {
-                    lambda[localIndex] += PeakShapeModel.Evaluate(
-                        channel,
-                        component.Amplitude,
-                        component.Channel,
-                        component.Fwhm,
-                        fwhmCalibration);
-                }
+                lambda[localIndex] += component.Amplitude * profile.RelativeValues[localIndex - profile.StartIndex];
             }
 
             return true;
+        }
+
+        static RjmcmcComponentProfile GetProfile(RjmcmcRoiWorkspace workspace, int channel)
+        {
+            int localIndex = channel - workspace.Roi.StartChannel;
+            if (localIndex < 0 || localIndex >= workspace.Profiles.Length)
+            {
+                return null;
+            }
+
+            return workspace.Profiles[localIndex];
         }
 
         static double BackgroundAt(RjmcmcState state, int localIndex)
@@ -609,10 +788,9 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             return state.BackgroundIntercept + state.BackgroundSlope * localIndex;
         }
 
-        static double EstimateAmplitudeScale(int[] observed)
+        static double EstimateAmplitudeScale(int maxObserved)
         {
-            double max = observed.Max();
-            return Math.Max(5.0, max * 0.75);
+            return Math.Max(5.0, maxObserved * 0.75);
         }
 
         static MoveProbabilities GetMoveProbabilities(int extraCount, int anchorCount, int maxExtraCount)
@@ -633,11 +811,11 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 probabilities.UpdateAnchorAmplitude = 0.15;
             }
             probabilities.UpdateBackground = 0.10;
-            Normalize(probabilities);
+            Normalize(ref probabilities);
             return probabilities;
         }
 
-        static void Normalize(MoveProbabilities probabilities)
+        static void Normalize(ref MoveProbabilities probabilities)
         {
             double total =
                 probabilities.Birth +
@@ -687,12 +865,15 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             return MoveKind.UpdateBackground;
         }
 
+        /// <summary>
+        /// Proposes a dimension-increasing RJMCMC move by adding one extra peak at a residual-weighted channel.
+        /// References: Green (1995), https://doi.org/10.1093/biomet/82.4.711, for reversible-jump birth/death moves;
+        /// Gulam Razul et al. (2003), NIM A 497, 492-510, for unknown peak count in nuclear spectra.
+        /// </summary>
         static RjmcmcState ProposeBirth(
             RjmcmcState current,
-            RjmcmcRoi roi,
-            int[] observed,
-            FwhmCalibration fwhmCalibration,
-            double amplitudeScale,
+            RjmcmcRoiWorkspace workspace,
+            double[] lambda,
             RjmcmcConfig config,
             MoveProbabilities forwardProbabilities,
             Random random,
@@ -704,23 +885,25 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 return null;
             }
 
-            BirthProposal birthProposal = DrawBirthChannel(current, roi, observed, fwhmCalibration, random);
+            BirthProposal birthProposal = DrawBirthChannel(current, workspace, lambda, random);
             if (birthProposal == null || birthProposal.Probability <= 0.0)
             {
                 return null;
             }
 
-            double amplitude = SampleExponential(random, amplitudeScale);
+            double amplitude = SampleExponential(random, workspace.AmplitudeScale);
             if (amplitude <= 0.0)
             {
                 return null;
             }
 
+            RjmcmcComponentProfile profile = GetProfile(workspace, birthProposal.Channel);
+
             RjmcmcState proposal = current.Clone();
             proposal.Extras.Add(new RjmcmcPeakComponent
             {
                 Channel = birthProposal.Channel,
-                Fwhm = Math.Max(1.0, fwhmCalibration.ChannelToFwhm(birthProposal.Channel)),
+                Fwhm = profile?.Fwhm ?? 1.0,
                 Amplitude = amplitude
             });
 
@@ -731,16 +914,19 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 Math.Log(deathSelectionProbability) -
                 Math.Log(forwardProbabilities.Birth) -
                 Math.Log(birthProposal.Probability) -
-                LogExponentialPdf(amplitude, amplitudeScale);
+                LogExponentialPdf(amplitude, workspace.AmplitudeScale, workspace.LogAmplitudeScale);
             return proposal;
         }
 
+        /// <summary>
+        /// Proposes a dimension-decreasing RJMCMC move by removing one extra peak.
+        /// References: Green (1995), Biometrika 82(4), 711-732; Tiboaca et al. (2014), ISMA 2014, paper 0239,
+        /// for jumps between parameter spaces with different dimensions.
+        /// </summary>
         static RjmcmcState ProposeDeath(
             RjmcmcState current,
-            RjmcmcRoi roi,
-            int[] observed,
-            FwhmCalibration fwhmCalibration,
-            double amplitudeScale,
+            RjmcmcRoiWorkspace workspace,
+            double[] lambda,
             RjmcmcConfig config,
             MoveProbabilities forwardProbabilities,
             Random random,
@@ -758,7 +944,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             proposal.Extras.RemoveAt(index);
 
             MoveProbabilities reverseProbabilities = GetMoveProbabilities(proposal.Extras.Count, proposal.Anchors.Count, config.MaxExtraPeaksPerRoi);
-            BirthProposal reverseBirth = GetBirthProbabilityForChannel(proposal, roi, observed, fwhmCalibration, removed.Channel);
+            BirthProposal reverseBirth = GetBirthProbabilityForChannel(proposal, workspace, lambda, removed.Channel);
             if (reverseBirth == null || reverseBirth.Probability <= 0.0)
             {
                 return null;
@@ -768,17 +954,20 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             logProposalRatio =
                 Math.Log(reverseProbabilities.Birth) +
                 Math.Log(reverseBirth.Probability) +
-                LogExponentialPdf(removed.Amplitude, amplitudeScale) -
+                LogExponentialPdf(removed.Amplitude, workspace.AmplitudeScale, workspace.LogAmplitudeScale) -
                 Math.Log(forwardProbabilities.Death) -
                 Math.Log(deathSelectionProbability);
             return proposal;
         }
 
+        /// <summary>
+        /// Proposes an in-model perturbation of an extra peak center and amplitude.
+        /// References: Green (1995), Biometrika 82(4), 711-732, for Metropolis-Hastings updates inside trans-dimensional
+        /// models; Deep research report, section "Bayesian variable-dimensional models".
+        /// </summary>
         static RjmcmcState ProposeUpdateExtra(
             RjmcmcState current,
-            RjmcmcRoi roi,
-            FwhmCalibration fwhmCalibration,
-            double amplitudeScale,
+            RjmcmcRoiWorkspace workspace,
             RjmcmcConfig config,
             Random random)
         {
@@ -791,20 +980,26 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             RjmcmcState proposal = current.Clone();
             RjmcmcPeakComponent component = proposal.Extras[index];
             int channelStep = Convert.ToInt32(Math.Round(SampleNormal(random) * config.CenterUpdateSigmaFwhm * component.Fwhm));
-            double amplitudeStep = SampleNormal(random) * amplitudeScale * 0.10;
+            double amplitudeStep = SampleNormal(random) * workspace.AmplitudeScale * 0.10;
             int newChannel = component.Channel + channelStep;
             double newAmplitude = component.Amplitude + amplitudeStep;
-            if (newChannel < roi.StartChannel || newChannel > roi.EndChannel || newAmplitude <= 0.0)
+            if (newChannel < workspace.Roi.StartChannel || newChannel > workspace.Roi.EndChannel || newAmplitude <= 0.0)
             {
                 return null;
             }
 
+            RjmcmcComponentProfile profile = GetProfile(workspace, newChannel);
             component.Channel = newChannel;
-            component.Fwhm = Math.Max(1.0, fwhmCalibration.ChannelToFwhm(newChannel));
+            component.Fwhm = profile?.Fwhm ?? 1.0;
             component.Amplitude = newAmplitude;
             return proposal;
         }
 
+        /// <summary>
+        /// Proposes an in-model amplitude perturbation for a deterministic anchor peak.
+        /// References: Gulam Razul et al. (2003), NIM A 497, 492-510, for joint parameter estimation of peak components;
+        /// Green (1995), Biometrika 82(4), 711-732, for Metropolis-Hastings updates in RJMCMC.
+        /// </summary>
         static RjmcmcState ProposeUpdateAnchorAmplitude(RjmcmcState current, double amplitudeScale, Random random)
         {
             if (current.Anchors.Count == 0)
@@ -826,20 +1021,23 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             return proposal;
         }
 
+        /// <summary>
+        /// Proposes an in-model perturbation of the local linear background.
+        /// References: Gulam Razul et al. (2003), NIM A 497, 492-510, for modelling peak parameters and background jointly;
+        /// Deep research report, section "Role of FWHM and physical formulation".
+        /// </summary>
         static RjmcmcState ProposeUpdateBackground(
             RjmcmcState current,
-            RjmcmcRoi roi,
-            int[] observed,
+            RjmcmcRoiWorkspace workspace,
             RjmcmcConfig config,
             Random random)
         {
             RjmcmcState proposal = current.Clone();
-            double meanObserved = observed.Average();
-            double width = Math.Max(1.0, roi.Width - 1);
-            double backgroundStep = Math.Max(1.0, meanObserved * config.BackgroundUpdateFraction);
+            double width = Math.Max(1.0, workspace.Roi.Width - 1);
+            double backgroundStep = Math.Max(1.0, workspace.MeanObserved * config.BackgroundUpdateFraction);
             proposal.BackgroundIntercept += SampleNormal(random) * backgroundStep;
             proposal.BackgroundSlope += SampleNormal(random) * backgroundStep / width;
-            if (BackgroundAt(proposal, 0) < 0.0 || BackgroundAt(proposal, roi.Width - 1) < 0.0)
+            if (BackgroundAt(proposal, 0) < 0.0 || BackgroundAt(proposal, workspace.Roi.Width - 1) < 0.0)
             {
                 return null;
             }
@@ -847,131 +1045,175 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             return proposal;
         }
 
+        /// <summary>
+        /// Draws a birth channel from the positive residual distribution while excluding occupied centers.
+        /// References: Gulam Razul et al. (2003), NIM A 497, 492-510, for stochastic Bayesian exploration of peak models;
+        /// Deep research report, section "Implementation priorities", for candidate-guided difficult-ROI inference.
+        /// </summary>
         static BirthProposal DrawBirthChannel(
             RjmcmcState state,
-            RjmcmcRoi roi,
-            int[] observed,
-            FwhmCalibration fwhmCalibration,
+            RjmcmcRoiWorkspace workspace,
+            double[] lambda,
             Random random)
         {
-            double[] probabilities = BuildBirthProbabilities(state, roi, observed, fwhmCalibration);
+            if (!TryBuildLambdaArray(state, workspace, lambda))
+            {
+                return DrawUniformBirthChannel(workspace, random);
+            }
+
+            double totalWeight = CalculateBirthWeightTotal(state, workspace, lambda);
+            if (totalWeight <= 0.0 || !PeakShapeModel.IsFinite(totalWeight))
+            {
+                return DrawUniformBirthChannel(workspace, random);
+            }
+
             double sample = random.NextDouble();
             double cumulative = 0.0;
-            for (int i = 0; i < probabilities.Length; i++)
+            for (int i = 0; i < workspace.Length; i++)
             {
-                cumulative += probabilities[i];
+                double probability = BirthWeightAt(state, workspace, lambda, i) / totalWeight;
+                cumulative += probability;
                 if (sample <= cumulative)
                 {
                     return new BirthProposal
                     {
-                        Channel = roi.StartChannel + i,
-                        Probability = probabilities[i]
+                        Channel = workspace.Roi.StartChannel + i,
+                        Probability = probability
+                    };
+                }
+            }
+
+            double lastProbability = BirthWeightAt(state, workspace, lambda, workspace.Length - 1) / totalWeight;
+            return new BirthProposal
+            {
+                Channel = workspace.Roi.EndChannel,
+                Probability = lastProbability
+            };
+        }
+
+        /// <summary>
+        /// Computes the reverse birth probability needed by the death proposal ratio.
+        /// References: Green (1995), https://doi.org/10.1093/biomet/82.4.711, for reversible proposal densities;
+        /// Tiboaca et al. (2014), ISMA 2014, paper 0239, for dimension-matching RJMCMC transitions.
+        /// </summary>
+        static BirthProposal GetBirthProbabilityForChannel(
+            RjmcmcState state,
+            RjmcmcRoiWorkspace workspace,
+            double[] lambda,
+            int channel)
+        {
+            int index = channel - workspace.Roi.StartChannel;
+            if (index < 0 || index >= workspace.Length)
+            {
+                return null;
+            }
+
+            if (!TryBuildLambdaArray(state, workspace, lambda))
+            {
+                return new BirthProposal
+                {
+                    Channel = channel,
+                    Probability = 1.0 / workspace.Length
+                };
+            }
+
+            double totalWeight = CalculateBirthWeightTotal(state, workspace, lambda);
+            double probability = totalWeight <= 0.0 || !PeakShapeModel.IsFinite(totalWeight)
+                ? 1.0 / workspace.Length
+                : BirthWeightAt(state, workspace, lambda, index) / totalWeight;
+            return new BirthProposal
+            {
+                Channel = channel,
+                Probability = probability
+            };
+        }
+
+        static double CalculateBirthWeightTotal(
+            RjmcmcState state,
+            RjmcmcRoiWorkspace workspace,
+            double[] lambda)
+        {
+            double total = 0.0;
+            for (int i = 0; i < workspace.Length; i++)
+            {
+                total += BirthWeightAt(state, workspace, lambda, i);
+            }
+
+            return total;
+        }
+
+        static double BirthWeightAt(
+            RjmcmcState state,
+            RjmcmcRoiWorkspace workspace,
+            double[] lambda,
+            int localIndex)
+        {
+            int channel = workspace.Roi.StartChannel + localIndex;
+            if (IsOccupied(state, channel))
+            {
+                return 0.0;
+            }
+
+            double residual = workspace.Observed[localIndex] - lambda[localIndex];
+            return 0.05 + Math.Max(0.0, residual);
+        }
+
+        static bool IsOccupied(RjmcmcState state, int channel)
+        {
+            foreach (RjmcmcPeakComponent anchor in state.Anchors)
+            {
+                if (anchor.Channel == channel)
+                {
+                    return true;
+                }
+            }
+
+            foreach (RjmcmcPeakComponent extra in state.Extras)
+            {
+                if (extra.Channel == channel)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        static BirthProposal DrawUniformBirthChannel(RjmcmcRoiWorkspace workspace, Random random)
+        {
+            double probability = 1.0 / workspace.Length;
+            double sample = random.NextDouble();
+            double cumulative = 0.0;
+            for (int i = 0; i < workspace.Length; i++)
+            {
+                cumulative += probability;
+                if (sample <= cumulative)
+                {
+                    return new BirthProposal
+                    {
+                        Channel = workspace.Roi.StartChannel + i,
+                        Probability = probability
                     };
                 }
             }
 
             return new BirthProposal
             {
-                Channel = roi.EndChannel,
-                Probability = probabilities[probabilities.Length - 1]
+                Channel = workspace.Roi.EndChannel,
+                Probability = probability
             };
         }
 
-        static BirthProposal GetBirthProbabilityForChannel(
-            RjmcmcState state,
-            RjmcmcRoi roi,
-            int[] observed,
-            FwhmCalibration fwhmCalibration,
-            int channel)
-        {
-            int index = channel - roi.StartChannel;
-            if (index < 0 || index >= roi.Width)
-            {
-                return null;
-            }
-
-            double[] probabilities = BuildBirthProbabilities(state, roi, observed, fwhmCalibration);
-            return new BirthProposal
-            {
-                Channel = channel,
-                Probability = probabilities[index]
-            };
-        }
-
-        static double[] BuildBirthProbabilities(
-            RjmcmcState state,
-            RjmcmcRoi roi,
-            int[] observed,
-            FwhmCalibration fwhmCalibration)
-        {
-            double[] weights = new double[roi.Width];
-            double[] lambda = ArrayPool<double>.Shared.Rent(roi.Width);
-            try
-            {
-                if (!TryBuildLambdaArray(state, roi, roi.Width, fwhmCalibration, lambda))
-                {
-                    return UniformBirthProbabilities(weights);
-                }
-
-                HashSet<int> occupiedChannels = new HashSet<int>();
-                foreach (RjmcmcPeakComponent anchor in state.Anchors)
-                {
-                    occupiedChannels.Add(anchor.Channel);
-                }
-                foreach (RjmcmcPeakComponent extra in state.Extras)
-                {
-                    occupiedChannels.Add(extra.Channel);
-                }
-
-                double total = 0.0;
-                for (int i = 0; i < roi.Width; i++)
-                {
-                    double residual = observed[i] - lambda[i];
-                    double weight = 0.05 + Math.Max(0.0, residual);
-                    int channel = roi.StartChannel + i;
-                    if (occupiedChannels.Contains(channel))
-                    {
-                        weight = 0.0;
-                    }
-
-                    weights[i] = weight;
-                    total += weight;
-                }
-
-                if (total <= 0.0)
-                {
-                    return UniformBirthProbabilities(weights);
-                }
-
-                for (int i = 0; i < weights.Length; i++)
-                {
-                    weights[i] /= total;
-                }
-
-                return weights;
-            }
-            finally
-            {
-                ArrayPool<double>.Shared.Return(lambda);
-            }
-        }
-
-        static double[] UniformBirthProbabilities(double[] weights)
-        {
-            double uniform = 1.0 / weights.Length;
-            for (int i = 0; i < weights.Length; i++)
-            {
-                weights[i] = uniform;
-            }
-            return weights;
-        }
-
+        /// <summary>
+        /// Converts the best sampled extra components into reportable candidates after amplitude and deviance filters.
+        /// References: Deep research report, section "Validation and quality criteria", for hit/miss/false-hit and
+        /// likelihood/deviance-based validation; Gulam Razul et al. (2003), NIM A 497, 492-510, for model selection
+        /// and parameter estimation of nuclear emission spectra.
+        /// </summary>
         static List<RjmcmcPeakCandidate> CollectCandidates(
             RjmcmcState best,
-            RjmcmcRoi roi,
-            int[] observed,
-            FwhmCalibration fwhmCalibration,
-            double amplitudeScale,
+            RjmcmcRoiWorkspace workspace,
+            double[] lambda,
             RjmcmcConfig config)
         {
             List<RjmcmcPeakCandidate> candidates = new List<RjmcmcPeakCandidate>();
@@ -982,19 +1224,19 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
 
             foreach (RjmcmcPeakComponent extra in best.Extras.OrderBy(component => component.Channel))
             {
-                if (extra.Amplitude < Math.Max(config.MinimumCandidateAmplitude, amplitudeScale * 0.03))
+                if (extra.Amplitude < Math.Max(config.MinimumCandidateAmplitude, workspace.AmplitudeScale * 0.03))
                 {
                     continue;
                 }
 
-                double improvement = ComputeDevianceImprovement(best, extra, roi, observed, fwhmCalibration, amplitudeScale, config);
+                double improvement = ComputeDevianceImprovement(best, extra, workspace, lambda, config);
                 if (improvement < config.MinDevianceImprovement)
                 {
                     continue;
                 }
 
-                int localIndex = extra.Channel - roi.StartChannel;
-                localIndex = Math.Max(0, Math.Min(observed.Length - 1, localIndex));
+                int localIndex = extra.Channel - workspace.Roi.StartChannel;
+                localIndex = Math.Max(0, Math.Min(workspace.Length - 1, localIndex));
                 double background = Math.Max(1.0, BackgroundAt(best, localIndex));
                 double snr = extra.Amplitude / Math.Sqrt(background + extra.Amplitude);
                 candidates.Add(new RjmcmcPeakCandidate
@@ -1010,13 +1252,16 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             return candidates;
         }
 
+        /// <summary>
+        /// Measures the local likelihood loss caused by removing one extra component from the best model.
+        /// References: Deep research report, section "Validation and quality criteria", for Poisson deviance and
+        /// likelihood-based residual checks; Gulam Razul et al. (2003), NIM A 497, 492-510.
+        /// </summary>
         static double ComputeDevianceImprovement(
             RjmcmcState best,
             RjmcmcPeakComponent extra,
-            RjmcmcRoi roi,
-            int[] observed,
-            FwhmCalibration fwhmCalibration,
-            double amplitudeScale,
+            RjmcmcRoiWorkspace workspace,
+            double[] lambda,
             RjmcmcConfig config)
         {
             RjmcmcState reduced = best.Clone();
@@ -1030,7 +1275,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 }
             }
 
-            if (!EvaluateState(reduced, roi, observed, fwhmCalibration, amplitudeScale, config))
+            if (!EvaluateState(reduced, workspace, lambda, config))
             {
                 return Double.PositiveInfinity;
             }
@@ -1055,14 +1300,14 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             return -scale * Math.Log(Math.Max(Double.Epsilon, 1.0 - random.NextDouble()));
         }
 
-        static double LogExponentialPdf(double value, double scale)
+        static double LogExponentialPdf(double value, double scale, double logScale)
         {
             if (value <= 0.0 || scale <= 0.0)
             {
                 return Double.NegativeInfinity;
             }
 
-            return -Math.Log(scale) - value / scale;
+            return -logScale - value / scale;
         }
     }
 }

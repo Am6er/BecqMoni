@@ -20,6 +20,11 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         public double MinimumCandidateAmplitude { get; private set; }
         public int ChainCount { get; private set; }
 
+        /// <summary>
+        /// Creates the baseline local-RJMCMC settings used for difficult peak-overlap ROIs.
+        /// References: Green (1995), "Reversible jump Markov chain Monte Carlo computation and Bayesian model determination",
+        /// https://doi.org/10.1093/biomet/82.4.711; Deep research report, section "Implementation priorities".
+        /// </summary>
         public static RjmcmcConfig CreateDefault()
         {
             return new RjmcmcConfig
@@ -42,6 +47,11 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             };
         }
 
+        /// <summary>
+        /// Creates the ROI-scoped RJMCMC profile recommended for production use after deterministic candidate search.
+        /// References: Gulam Razul et al. (2003), NIM A 497, 492-510; Deep research report, sections
+        /// "Bayesian variable-dimensional models" and "Implementation priorities".
+        /// </summary>
         public static RjmcmcConfig CreateForRoiSearch()
         {
             RjmcmcConfig config = CreateDefault();
