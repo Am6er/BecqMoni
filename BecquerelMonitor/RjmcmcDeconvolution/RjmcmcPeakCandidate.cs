@@ -7,5 +7,9 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         public double Amplitude { get; set; }
         public double Snr { get; set; }
         public double DevianceImprovement { get; set; }
+        public double PosteriorOccupancy { get; set; }
+        public double CenterStdDev { get; set; }
+        public double ResidualSnr { get; set; }
+        public double ResidualCorrelation { get; set; }
     }
 }
