@@ -417,6 +417,11 @@
     <Compile Include="PercentageProgressBar.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="RjmcmcDeconvolution\RjmcmcConfig.cs" />
+    <Compile Include="RjmcmcDeconvolution\RjmcmcPeakCandidate.cs" />
+    <Compile Include="RjmcmcDeconvolution\RjmcmcPeakDeconvolver.cs" />
+    <Compile Include="RjmcmcDeconvolution\RjmcmcResult.cs" />
+    <Compile Include="RjmcmcDeconvolution\RjmcmcRoi.cs" />
     <Compile Include="PolynomialEnergyCalibration.cs" />
     <Compile Include="PRAHomageMethodConfig.cs" />
     <Compile Include="Program.cs" />
@@ -605,6 +610,7 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Utils\LiveTime.cs" />
+    <Compile Include="Utils\PeakShapeModel.cs" />
     <Compile Include="Utils\ROIAriphmetics.cs" />
     <Compile Include="Utils\PseudoVoigtProfile.cs" />
     <Compile Include="Utils\SpectrumAriphmetics.cs" />

@@ -841,13 +841,7 @@ namespace BecquerelMonitor.Utils
 
         double gauss_value(double x, double amplitude, double fwhm, double median)
         {
-            if (fwhm <= 0)
-            {
-                return 0.0;
-            }
-            double sigma = fwhm / 2.35482;
-            double t = (x - median) / sigma;
-            return amplitude * Math.Exp(-0.5 * t * t);
+            return PeakShapeModel.Evaluate(x, amplitude, median, fwhm, FwhmCalibration);
         }
 
         int gauss(double x, double amplitude, double fwhm, double median)
@@ -895,23 +889,8 @@ namespace BecquerelMonitor.Utils
                 peakType = global::BecquerelMonitor.FwhmCalibration.GaussianPeakType;
             }
 
-            double sigma = fwhm / PseudoVoigtProfile.FwhmToSigma;
-            double leftHalfWidth = 8.0 * sigma;
-            double rightHalfWidth = 8.0 * sigma;
-            if (peakType == global::BecquerelMonitor.FwhmCalibration.ExpGaussExpPeakType)
-            {
-                leftHalfWidth = tail_support(FwhmCalibration.ExpGaussExpLeftTail) * sigma;
-                rightHalfWidth = tail_support(FwhmCalibration.ExpGaussExpRightTail) * sigma;
-            }
-            else if (peakType == global::BecquerelMonitor.FwhmCalibration.VoigtPeakType)
-            {
-                leftHalfWidth = PseudoVoigtProfile.HalfWidthAtRelativeHeight(
-                    fwhm,
-                    FwhmCalibration.VoigtSigma,
-                    FwhmCalibration.VoigtGamma,
-                    Math.Exp(-10.0));
-                rightHalfWidth = leftHalfWidth;
-            }
+            double leftHalfWidth = PeakShapeModel.GetLeftSupport(FwhmCalibration, fwhm);
+            double rightHalfWidth = PeakShapeModel.GetRightSupport(FwhmCalibration, fwhm);
 
             int min_ch = median - (int)Math.Ceiling(leftHalfWidth);
             int max_ch = median + (int)Math.Ceiling(rightHalfWidth);
