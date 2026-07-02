@@ -39,6 +39,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         {
             public RjmcmcRoi Roi;
             public int[] Observed;
+            public double[] FixedBackground;
             public RjmcmcComponentProfile[] Profiles;
             public double MeanObserved;
             public double AmplitudeScale;
@@ -112,6 +113,12 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             public double Probability;
         }
 
+        sealed class RjmcmcChainResult
+        {
+            public List<RjmcmcPeakCandidate> Candidates;
+            public double LogPosterior;
+        }
+
         /// <summary>
         /// Runs local trans-dimensional peak deconvolution after deterministic FWHM peak search.
         /// References: Green (1995), "Reversible jump Markov chain Monte Carlo computation and Bayesian model determination",
@@ -121,7 +128,8 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         /// models: RJMCMC and exchange Monte Carlo" and "Implementation priorities".
         /// </summary>
         public static RjmcmcResult Run(
-            EnergySpectrum inferenceSpectrum,
+            EnergySpectrum foregroundSpectrum,
+            EnergySpectrum fixedBackgroundSpectrum,
             FWHMPeakDetector.PeakFinder finder,
             FWHMPeakDetectionMethodConfig peakConfig,
             FwhmCalibration fwhmCalibration)
@@ -129,15 +137,15 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             RjmcmcResult result = new RjmcmcResult();
             RjmcmcConfig config = RjmcmcConfig.CreateForRoiSearch(peakConfig);
             if (!config.Enabled ||
-                inferenceSpectrum == null ||
+                foregroundSpectrum == null ||
                 peakConfig == null ||
                 fwhmCalibration == null)
             {
                 return result;
             }
 
-            List<RjmcmcRoi> rois = SelectProcessableRois(BuildRois(inferenceSpectrum, finder, peakConfig, fwhmCalibration, config), config);
-            List<RjmcmcPeakCandidate> extraCandidates = ProcessRois(inferenceSpectrum, fwhmCalibration, rois, config);
+            List<RjmcmcRoi> rois = SelectProcessableRois(BuildRois(foregroundSpectrum, finder, peakConfig, fwhmCalibration, config), config);
+            List<RjmcmcPeakCandidate> extraCandidates = ProcessRois(foregroundSpectrum, fixedBackgroundSpectrum, fwhmCalibration, rois, config);
             result.ExtraCandidates.AddRange(extraCandidates);
             return result;
         }
@@ -310,13 +318,14 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         }
 
         /// <summary>
-        /// Evaluates all ROI-chain pairs as one parallel job set and merges the per-ROI candidate samples.
+        /// Evaluates ROI-chain jobs and keeps one internally consistent best chain per ROI.
         /// References: Green (1995), https://doi.org/10.1093/biomet/82.4.711; Tiboaca et al. (2014),
         /// "Bayesian parameter estimation and model selection of a nonlinear dynamical system using reversible jump MCMC",
         /// ISMA 2014, paper 0239, for RJMCMC as simultaneous parameter estimation and model selection.
         /// </summary>
         static List<RjmcmcPeakCandidate> ProcessRois(
-            EnergySpectrum inferenceSpectrum,
+            EnergySpectrum foregroundSpectrum,
+            EnergySpectrum fixedBackgroundSpectrum,
             FwhmCalibration fwhmCalibration,
             List<RjmcmcRoi> rois,
             RjmcmcConfig config)
@@ -329,11 +338,11 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
 
             int chainCount = Math.Max(1, config.ChainCount);
             RjmcmcRoiWorkspace[] workspaces = new RjmcmcRoiWorkspace[rois.Count];
-            List<RjmcmcPeakCandidate>[][] chainCandidates = new List<RjmcmcPeakCandidate>[rois.Count][];
+            RjmcmcChainResult[][] chainResults = new RjmcmcChainResult[rois.Count][];
             for (int roiIndex = 0; roiIndex < rois.Count; roiIndex++)
             {
-                workspaces[roiIndex] = CreateWorkspace(inferenceSpectrum, fwhmCalibration, rois[roiIndex], config);
-                chainCandidates[roiIndex] = new List<RjmcmcPeakCandidate>[chainCount];
+                workspaces[roiIndex] = CreateWorkspace(foregroundSpectrum, fixedBackgroundSpectrum, fwhmCalibration, rois[roiIndex], config);
+                chainResults[roiIndex] = new RjmcmcChainResult[chainCount];
             }
 
             int totalJobs = rois.Count * chainCount;
@@ -346,14 +355,14 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                     int roiIndex = jobIndex / chainCount;
                     int chainIndex = jobIndex % chainCount;
                     RjmcmcRoiWorkspace workspace = workspaces[roiIndex];
-                    chainCandidates[roiIndex][chainIndex] = workspace.IsUsable
+                    chainResults[roiIndex][chainIndex] = workspace.IsUsable
                         ? ProcessRoiChain(workspace, config, config.Seed + roiIndex + chainIndex * 7919)
-                        : new List<RjmcmcPeakCandidate>();
+                        : CreateEmptyChainResult();
                 });
 
             for (int roiIndex = 0; roiIndex < rois.Count; roiIndex++)
             {
-                candidates.AddRange(MergeCandidates(chainCandidates[roiIndex], config.MaxExtraPeaksPerRoi));
+                candidates.AddRange(SelectBestChainCandidates(chainResults[roiIndex], config.MaxExtraPeaksPerRoi));
             }
 
             return candidates;
@@ -365,14 +374,17 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         /// families and detector response; Deep research report, section "Role of FWHM and physical formulation".
         /// </summary>
         static RjmcmcRoiWorkspace CreateWorkspace(
-            EnergySpectrum inferenceSpectrum,
+            EnergySpectrum foregroundSpectrum,
+            EnergySpectrum fixedBackgroundSpectrum,
             FwhmCalibration fwhmCalibration,
             RjmcmcRoi roi,
             RjmcmcConfig config)
         {
-            int[] observed = ExtractObserved(inferenceSpectrum, roi);
+            int[] observed = ExtractObserved(foregroundSpectrum, roi);
+            double[] fixedBackground = ExtractFixedBackground(foregroundSpectrum, fixedBackgroundSpectrum, roi);
             int maxObserved = 0;
-            double sumObserved = 0.0;
+            double maxResidual = 0.0;
+            double sumResidual = 0.0;
             for (int i = 0; i < observed.Length; i++)
             {
                 int value = observed[i];
@@ -381,17 +393,24 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                     maxObserved = value;
                 }
 
-                sumObserved += value;
+                double residual = Math.Max(0.0, value - FixedBackgroundAt(fixedBackground, i));
+                if (residual > maxResidual)
+                {
+                    maxResidual = residual;
+                }
+
+                sumResidual += residual;
             }
 
-            double amplitudeScale = EstimateAmplitudeScale(maxObserved);
+            double amplitudeScale = EstimateAmplitudeScale(maxResidual);
             bool isUsable = observed.Length >= 5 && maxObserved > 0 && config.MaxExtraPeaksPerRoi > 0;
             RjmcmcRoiWorkspace workspace = new RjmcmcRoiWorkspace
             {
                 Roi = roi,
                 Observed = observed,
+                FixedBackground = fixedBackground,
                 Profiles = isUsable ? BuildComponentProfiles(roi, fwhmCalibration) : new RjmcmcComponentProfile[0],
-                MeanObserved = observed.Length > 0 ? sumObserved / observed.Length : 0.0,
+                MeanObserved = observed.Length > 0 ? sumResidual / observed.Length : 0.0,
                 AmplitudeScale = amplitudeScale,
                 LogAmplitudeScale = Math.Log(amplitudeScale),
                 IsUsable = isUsable
@@ -462,18 +481,17 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         /// References: Green (1995), Biometrika 82(4), 711-732; Tiboaca et al. (2014), ISMA 2014, paper 0239,
         /// for RJMCMC moves between parameter spaces of different dimensions.
         /// </summary>
-        static List<RjmcmcPeakCandidate> ProcessRoiChain(
+        static RjmcmcChainResult ProcessRoiChain(
             RjmcmcRoiWorkspace workspace,
             RjmcmcConfig config,
             int seed)
         {
-            List<RjmcmcPeakCandidate> candidates = new List<RjmcmcPeakCandidate>();
             Random random = new Random(seed);
             double[] lambda = new double[workspace.Length];
             RjmcmcState current = CreateInitialState(workspace);
             if (!EvaluateState(current, workspace, lambda, config))
             {
-                return candidates;
+                return CreateEmptyChainResult();
             }
 
             RjmcmcState best = current.Clone();
@@ -520,42 +538,40 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 }
             }
 
-            candidates.AddRange(CollectCandidates(best, workspace, lambda, config));
-            return candidates;
+            return new RjmcmcChainResult
+            {
+                Candidates = CollectCandidates(best, workspace, lambda, config),
+                LogPosterior = best.LogPosterior
+            };
         }
 
-        static List<RjmcmcPeakCandidate> MergeCandidates(
-            IEnumerable<List<RjmcmcPeakCandidate>> chainCandidates,
+        static RjmcmcChainResult CreateEmptyChainResult()
+        {
+            return new RjmcmcChainResult
+            {
+                Candidates = new List<RjmcmcPeakCandidate>(),
+                LogPosterior = Double.NegativeInfinity
+            };
+        }
+
+        static List<RjmcmcPeakCandidate> SelectBestChainCandidates(
+            IEnumerable<RjmcmcChainResult> chainResults,
             int maxCandidateCount)
         {
-            List<RjmcmcPeakCandidate> merged = new List<RjmcmcPeakCandidate>();
-            foreach (RjmcmcPeakCandidate candidate in chainCandidates
-                .Where(list => list != null)
-                .SelectMany(list => list)
-                .OrderByDescending(candidate => candidate.DevianceImprovement))
+            RjmcmcChainResult best = chainResults
+                .Where(result => result != null)
+                .OrderByDescending(result => result.LogPosterior)
+                .FirstOrDefault();
+            if (best == null || best.Candidates == null || best.Candidates.Count == 0)
             {
-                bool duplicate = false;
-                foreach (RjmcmcPeakCandidate existing in merged)
-                {
-                    double duplicateDistance = Math.Max(1.0, 0.20 * Math.Max(existing.Fwhm, candidate.Fwhm));
-                    if (Math.Abs(existing.Channel - candidate.Channel) <= duplicateDistance)
-                    {
-                        duplicate = true;
-                        break;
-                    }
-                }
-
-                if (!duplicate)
-                {
-                    merged.Add(candidate);
-                    if (merged.Count >= maxCandidateCount)
-                    {
-                        break;
-                    }
-                }
+                return new List<RjmcmcPeakCandidate>();
             }
 
-            return merged.OrderBy(candidate => candidate.Channel).ToList();
+            return best.Candidates
+                .OrderByDescending(candidate => candidate.DevianceImprovement)
+                .Take(maxCandidateCount)
+                .OrderBy(candidate => candidate.Channel)
+                .ToList();
         }
 
         static int[] ExtractObserved(EnergySpectrum spectrum, RjmcmcRoi roi)
@@ -566,6 +582,64 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 observed[i] = spectrum.Spectrum[roi.StartChannel + i];
             }
             return observed;
+        }
+
+        static double[] ExtractFixedBackground(
+            EnergySpectrum foregroundSpectrum,
+            EnergySpectrum backgroundSpectrum,
+            RjmcmcRoi roi)
+        {
+            if (foregroundSpectrum == null ||
+                backgroundSpectrum == null ||
+                foregroundSpectrum.Spectrum == null ||
+                backgroundSpectrum.Spectrum == null ||
+                foregroundSpectrum.MeasurementTime <= 0.0 ||
+                backgroundSpectrum.MeasurementTime <= 0.0)
+            {
+                return null;
+            }
+
+            double scale = foregroundSpectrum.MeasurementTime / backgroundSpectrum.MeasurementTime;
+            if (!PeakShapeModel.IsFinite(scale) || scale <= 0.0)
+            {
+                return null;
+            }
+
+            double[] fixedBackground = new double[roi.Width];
+            bool hasBackground = false;
+            bool sameCalibration = foregroundSpectrum.EnergyCalibration != null &&
+                foregroundSpectrum.EnergyCalibration.Equals(backgroundSpectrum.EnergyCalibration);
+            for (int i = 0; i < fixedBackground.Length; i++)
+            {
+                int foregroundChannel = roi.StartChannel + i;
+                int backgroundChannel = foregroundChannel;
+                if (!sameCalibration)
+                {
+                    if (foregroundSpectrum.EnergyCalibration == null || backgroundSpectrum.EnergyCalibration == null)
+                    {
+                        return null;
+                    }
+
+                    double energy = foregroundSpectrum.EnergyCalibration.ChannelToEnergy(foregroundChannel);
+                    backgroundChannel = Convert.ToInt32(backgroundSpectrum.EnergyCalibration.EnergyToChannel(
+                        energy,
+                        maxChannels: backgroundSpectrum.NumberOfChannels));
+                }
+
+                if (backgroundChannel < 0 || backgroundChannel >= backgroundSpectrum.NumberOfChannels)
+                {
+                    continue;
+                }
+
+                double value = scale * backgroundSpectrum.Spectrum[backgroundChannel];
+                if (PeakShapeModel.IsFinite(value) && value > 0.0)
+                {
+                    fixedBackground[i] = value;
+                    hasBackground = true;
+                }
+            }
+
+            return hasBackground ? fixedBackground : null;
         }
 
         /// <summary>
@@ -583,7 +657,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 Extras = new List<RjmcmcPeakComponent>()
             };
 
-            EstimateBackground(observed, out double leftMean, out double rightMean);
+            EstimateBackground(workspace, out double leftMean, out double rightMean);
             int width = Math.Max(1, observed.Length - 1);
             state.BackgroundIntercept = Math.Max(0.1, leftMean);
             state.BackgroundSlope = (rightMean - leftMean) / width;
@@ -592,7 +666,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             {
                 int localIndex = anchorChannel - roi.StartChannel;
                 localIndex = Math.Max(0, Math.Min(observed.Length - 1, localIndex));
-                double background = BackgroundAt(state, localIndex);
+                double background = FixedBackgroundAt(workspace.FixedBackground, localIndex) + BackgroundAt(state, localIndex);
                 double amplitude = Math.Max(1.0, observed[localIndex] - background);
                 state.Anchors.Add(new RjmcmcPeakComponent
                 {
@@ -605,15 +679,17 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             return state;
         }
 
-        static void EstimateBackground(int[] observed, out double leftMean, out double rightMean)
+        static void EstimateBackground(RjmcmcRoiWorkspace workspace, out double leftMean, out double rightMean)
         {
+            int[] observed = workspace.Observed;
             int edgeWidth = Math.Max(2, observed.Length / 8);
             leftMean = 0.0;
             rightMean = 0.0;
             for (int i = 0; i < edgeWidth; i++)
             {
-                leftMean += observed[i];
-                rightMean += observed[observed.Length - 1 - i];
+                leftMean += Math.Max(0.0, observed[i] - FixedBackgroundAt(workspace.FixedBackground, i));
+                int rightIndex = observed.Length - 1 - i;
+                rightMean += Math.Max(0.0, observed[rightIndex] - FixedBackgroundAt(workspace.FixedBackground, rightIndex));
             }
             leftMean /= edgeWidth;
             rightMean /= edgeWidth;
@@ -632,6 +708,11 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             RjmcmcConfig config)
         {
             if (state == null)
+            {
+                return false;
+            }
+
+            if (!AreExtraCentersAllowed(state))
             {
                 return false;
             }
@@ -706,7 +787,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             double slope = state.BackgroundSlope;
             for (int i = 0; i < length; i++)
             {
-                double background = intercept + slope * i;
+                double background = FixedBackgroundAt(workspace.FixedBackground, i) + intercept + slope * i;
                 if (!PeakShapeModel.IsFinite(background))
                 {
                     return false;
@@ -788,7 +869,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             return state.BackgroundIntercept + state.BackgroundSlope * localIndex;
         }
 
-        static double EstimateAmplitudeScale(int maxObserved)
+        static double EstimateAmplitudeScale(double maxObserved)
         {
             return Math.Max(5.0, maxObserved * 0.75);
         }
@@ -983,7 +1064,10 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             double amplitudeStep = SampleNormal(random) * workspace.AmplitudeScale * 0.10;
             int newChannel = component.Channel + channelStep;
             double newAmplitude = component.Amplitude + amplitudeStep;
-            if (newChannel < workspace.Roi.StartChannel || newChannel > workspace.Roi.EndChannel || newAmplitude <= 0.0)
+            if (newChannel < workspace.Roi.StartChannel ||
+                newChannel > workspace.Roi.EndChannel ||
+                newAmplitude <= 0.0 ||
+                !IsExtraCenterAllowed(proposal, newChannel, component))
             {
                 return null;
             }
@@ -1058,13 +1142,13 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         {
             if (!TryBuildLambdaArray(state, workspace, lambda))
             {
-                return DrawUniformBirthChannel(workspace, random);
+                return DrawUniformBirthChannel(state, workspace, random);
             }
 
             double totalWeight = CalculateBirthWeightTotal(state, workspace, lambda);
             if (totalWeight <= 0.0 || !PeakShapeModel.IsFinite(totalWeight))
             {
-                return DrawUniformBirthChannel(workspace, random);
+                return DrawUniformBirthChannel(state, workspace, random);
             }
 
             double sample = random.NextDouble();
@@ -1113,13 +1197,13 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 return new BirthProposal
                 {
                     Channel = channel,
-                    Probability = 1.0 / workspace.Length
+                    Probability = UniformBirthProbabilityForChannel(state, workspace, channel)
                 };
             }
 
             double totalWeight = CalculateBirthWeightTotal(state, workspace, lambda);
             double probability = totalWeight <= 0.0 || !PeakShapeModel.IsFinite(totalWeight)
-                ? 1.0 / workspace.Length
+                ? UniformBirthProbabilityForChannel(state, workspace, channel)
                 : BirthWeightAt(state, workspace, lambda, index) / totalWeight;
             return new BirthProposal
             {
@@ -1149,7 +1233,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             int localIndex)
         {
             int channel = workspace.Roi.StartChannel + localIndex;
-            if (IsOccupied(state, channel))
+            if (!IsExtraCenterAllowed(state, channel, null))
             {
                 return 0.0;
             }
@@ -1158,50 +1242,110 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             return 0.05 + Math.Max(0.0, residual);
         }
 
-        static bool IsOccupied(RjmcmcState state, int channel)
+        static bool AreExtraCentersAllowed(RjmcmcState state)
+        {
+            foreach (RjmcmcPeakComponent extra in state.Extras)
+            {
+                if (!IsExtraCenterAllowed(state, extra.Channel, extra))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        static bool IsExtraCenterAllowed(RjmcmcState state, int channel, RjmcmcPeakComponent ignoredExtra)
         {
             foreach (RjmcmcPeakComponent anchor in state.Anchors)
             {
-                if (anchor.Channel == channel)
+                if (Math.Abs(anchor.Channel - channel) <= AnchorExclusionDistance(anchor.Fwhm))
                 {
-                    return true;
+                    return false;
                 }
             }
 
             foreach (RjmcmcPeakComponent extra in state.Extras)
             {
+                if (Object.ReferenceEquals(extra, ignoredExtra))
+                {
+                    continue;
+                }
+
                 if (extra.Channel == channel)
                 {
-                    return true;
+                    return false;
                 }
             }
 
-            return false;
+            return true;
         }
 
-        static BirthProposal DrawUniformBirthChannel(RjmcmcRoiWorkspace workspace, Random random)
+        static double AnchorExclusionDistance(double fwhm)
         {
-            double probability = 1.0 / workspace.Length;
-            double sample = random.NextDouble();
-            double cumulative = 0.0;
+            return Math.Max(1.0, 0.20 * Math.Max(1.0, fwhm));
+        }
+
+        static BirthProposal DrawUniformBirthChannel(RjmcmcState state, RjmcmcRoiWorkspace workspace, Random random)
+        {
+            int availableCount = CountAvailableBirthChannels(state, workspace);
+            if (availableCount <= 0)
+            {
+                return null;
+            }
+
+            int selected = random.Next(availableCount);
             for (int i = 0; i < workspace.Length; i++)
             {
-                cumulative += probability;
-                if (sample <= cumulative)
+                int channel = workspace.Roi.StartChannel + i;
+                if (!IsExtraCenterAllowed(state, channel, null))
+                {
+                    continue;
+                }
+
+                if (selected == 0)
                 {
                     return new BirthProposal
                     {
-                        Channel = workspace.Roi.StartChannel + i,
-                        Probability = probability
+                        Channel = channel,
+                        Probability = 1.0 / availableCount
                     };
+                }
+
+                selected--;
+            }
+
+            return null;
+        }
+
+        static double UniformBirthProbabilityForChannel(RjmcmcState state, RjmcmcRoiWorkspace workspace, int channel)
+        {
+            if (!IsExtraCenterAllowed(state, channel, null))
+            {
+                return 0.0;
+            }
+
+            int availableCount = CountAvailableBirthChannels(state, workspace);
+            return availableCount > 0 ? 1.0 / availableCount : 0.0;
+        }
+
+        static int CountAvailableBirthChannels(RjmcmcState state, RjmcmcRoiWorkspace workspace)
+        {
+            int count = 0;
+            for (int i = 0; i < workspace.Length; i++)
+            {
+                if (IsExtraCenterAllowed(state, workspace.Roi.StartChannel + i, null))
+                {
+                    count++;
                 }
             }
 
-            return new BirthProposal
-            {
-                Channel = workspace.Roi.EndChannel,
-                Probability = probability
-            };
+            return count;
+        }
+
+        static double FixedBackgroundAt(double[] fixedBackground, int localIndex)
+        {
+            return fixedBackground != null ? fixedBackground[localIndex] : 0.0;
         }
 
         /// <summary>
@@ -1237,7 +1381,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
 
                 int localIndex = extra.Channel - workspace.Roi.StartChannel;
                 localIndex = Math.Max(0, Math.Min(workspace.Length - 1, localIndex));
-                double background = Math.Max(1.0, BackgroundAt(best, localIndex));
+                double background = Math.Max(1.0, FixedBackgroundAt(workspace.FixedBackground, localIndex) + BackgroundAt(best, localIndex));
                 double snr = extra.Amplitude / Math.Sqrt(background + extra.Amplitude);
                 candidates.Add(new RjmcmcPeakCandidate
                 {
