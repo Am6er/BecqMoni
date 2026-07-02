@@ -43,7 +43,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 MinDevianceImprovement = 2.0,
                 ExtraPeakPenalty = 0.35,
                 MinimumCandidateAmplitude = 2.0,
-                ChainCount = Math.Max(1, Environment.ProcessorCount - 1)
+                ChainCount = 4
             };
         }
 
