@@ -50,7 +50,8 @@ namespace BecquerelMonitor
             if (useDeconvolution)
             {
                 deconvolution = RjmcmcPeakDeconvolver.Run(
-                    inferenceSpectrum,
+                    resultData.EnergySpectrum,
+                    bgMode == BackgroundMode.Substract ? resultData.BackgroundEnergySpectrum : null,
                     finder,
                     fwhmPeakDetectionMethodConfig,
                     resultData.FwhmCalibration);
@@ -263,15 +264,7 @@ namespace BecquerelMonitor
                 double duplicateDistance = Math.Max(1.0, 0.20 * Math.Max(existingPeak.FWHM, peak.FWHM));
                 if (Math.Abs(existingPeak.Channel - peak.Channel) <= duplicateDistance)
                 {
-                    if (existingPeak.Nuclide == null || peak.Nuclide == null)
-                    {
-                        return false;
-                    }
-
-                    if (existingPeak.Nuclide.Energy == peak.Nuclide.Energy)
-                    {
-                        return false;
-                    }
+                    return false;
                 }
 
                 if (existingPeak.Nuclide != null &&
