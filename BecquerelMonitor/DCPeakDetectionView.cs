@@ -114,7 +114,8 @@ namespace BecquerelMonitor
                     this.selectedNuclideSet));
                 activeResultData.DetectedPeaks = new List<Peak>(peaks);
                 RefreshTable();
-            } catch (Exception) { }
+            }
+            catch (Exception) { }
             finally
             {
                 isProcessing = false;
@@ -139,7 +140,7 @@ namespace BecquerelMonitor
             if (peaks != null)
             {
                 // if peaks exist, update table
-                PolynomialEnergyCalibration energyCalibration = activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration as PolynomialEnergyCalibration;
+                EnergyCalibration energyCalibration = activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration;
                 if (energyCalibration == null)
                 {
                     this.tableModel1.Rows.Clear();
@@ -155,15 +156,19 @@ namespace BecquerelMonitor
                     if (peak.Nuclide != null)
                     {
                         text = peak.Nuclide.Name;
-                        double num = peak.Energy - peak.Nuclide.Energy;
-                        double num2 = (peak.Energy - peak.Nuclide.Energy) / peak.Nuclide.Energy * 100.0;
-                        text2 = num.ToString("f2") + " (" + num2.ToString("f2") + "%)";
+                        if (peak.Nuclide.Energy > 0.0)
+                        {
+                            double num = peak.Energy - peak.Nuclide.Energy;
+                            double num2 = (peak.Energy - peak.Nuclide.Energy) / peak.Nuclide.Energy * 100.0;
+                            text2 = num.ToString("f2") + " (" + num2.ToString("f2") + "%)";
+                        }
                     }
+                    int snr = (int)peak.SNR;
                     row.Cells.Add(new Cell(text));
                     row.Cells.Add(new Cell(peak.Energy.ToString("f2"), Math.Round(peak.Energy, 2)));
                     row.Cells.Add(new Cell(text2));
                     row.Cells.Add(new Cell(peak.Channel.ToString(), peak.Channel));
-                    row.Cells.Add(new Cell(peak.SNR.ToString(), peak.SNR));
+                    row.Cells.Add(new Cell(snr.ToString(), snr));
 
                     double leftEnergy = energyCalibration.ChannelToEnergy(peak.Channel - peak.FWHM / 2.0);
                     double rightEnergy = energyCalibration.ChannelToEnergy(peak.Channel + peak.FWHM / 2.0);
