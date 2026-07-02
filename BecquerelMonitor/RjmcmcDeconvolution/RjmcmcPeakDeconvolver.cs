@@ -136,12 +136,14 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         sealed class RjmcmcOccupancyTracker
         {
             readonly int[] centerCounts;
+            readonly List<int>[] centerSampleIds;
 
             public int SampleCount { get; private set; }
 
             public RjmcmcOccupancyTracker(int length)
             {
                 centerCounts = new int[Math.Max(0, length)];
+                centerSampleIds = new List<int>[centerCounts.Length];
             }
 
             public void Record(RjmcmcState state, RjmcmcRoiWorkspace workspace)
@@ -158,6 +160,12 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                     if (localIndex >= 0 && localIndex < centerCounts.Length)
                     {
                         centerCounts[localIndex]++;
+                        if (centerSampleIds[localIndex] == null)
+                        {
+                            centerSampleIds[localIndex] = new List<int>();
+                        }
+
+                        centerSampleIds[localIndex].Add(SampleCount);
                     }
                 }
             }
@@ -169,7 +177,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                     return 0.0;
                 }
 
-                int count = CountNear(channel, workspace, tolerance);
+                int count = CountDistinctSamplesNear(channel, workspace, tolerance);
                 return Math.Min(1.0, count / (double)SampleCount);
             }
 
@@ -183,21 +191,33 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 int centerLocal = channel - workspace.Roi.StartChannel;
                 int start = Math.Max(0, centerLocal - tolerance);
                 int end = Math.Min(centerCounts.Length - 1, centerLocal + tolerance);
-                int count = 0;
-                double sum = 0.0;
-                double sumSquares = 0.0;
+                Dictionary<int, int> nearestLocalIndexBySample = new Dictionary<int, int>();
                 for (int localIndex = start; localIndex <= end; localIndex++)
                 {
-                    int binCount = centerCounts[localIndex];
-                    if (binCount <= 0)
+                    List<int> sampleIds = centerSampleIds[localIndex];
+                    if (sampleIds == null || sampleIds.Count == 0)
                     {
                         continue;
                     }
 
+                    foreach (int sampleId in sampleIds)
+                    {
+                        if (!nearestLocalIndexBySample.TryGetValue(sampleId, out int existingLocalIndex) ||
+                            Math.Abs(localIndex - centerLocal) < Math.Abs(existingLocalIndex - centerLocal))
+                        {
+                            nearestLocalIndexBySample[sampleId] = localIndex;
+                        }
+                    }
+                }
+
+                int count = nearestLocalIndexBySample.Count;
+                double sum = 0.0;
+                double sumSquares = 0.0;
+                foreach (int localIndex in nearestLocalIndexBySample.Values)
+                {
                     double absoluteChannel = workspace.Roi.StartChannel + localIndex;
-                    count += binCount;
-                    sum += binCount * absoluteChannel;
-                    sumSquares += binCount * absoluteChannel * absoluteChannel;
+                    sum += absoluteChannel;
+                    sumSquares += absoluteChannel * absoluteChannel;
                 }
 
                 if (count <= 0)
@@ -210,18 +230,27 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 return Math.Sqrt(variance);
             }
 
-            int CountNear(int channel, RjmcmcRoiWorkspace workspace, int tolerance)
+            int CountDistinctSamplesNear(int channel, RjmcmcRoiWorkspace workspace, int tolerance)
             {
                 int centerLocal = channel - workspace.Roi.StartChannel;
                 int start = Math.Max(0, centerLocal - tolerance);
                 int end = Math.Min(centerCounts.Length - 1, centerLocal + tolerance);
-                int count = 0;
+                HashSet<int> sampleIds = new HashSet<int>();
                 for (int localIndex = start; localIndex <= end; localIndex++)
                 {
-                    count += centerCounts[localIndex];
+                    List<int> localSampleIds = centerSampleIds[localIndex];
+                    if (localSampleIds == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (int sampleId in localSampleIds)
+                    {
+                        sampleIds.Add(sampleId);
+                    }
                 }
 
-                return count;
+                return sampleIds.Count;
             }
         }
 
@@ -861,6 +890,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         {
             int supportCount = 1;
             int tolerance = CandidateSupportTolerance(candidate, config);
+            bool candidateIsClose = IsCloseToAnchor(candidate.AnchorDistanceFwhm, config);
             foreach (RjmcmcChainResult chainResult in chainResults)
             {
                 if (Object.ReferenceEquals(chainResult, best) ||
@@ -872,7 +902,10 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
 
                 bool supported = chainResult.RawCandidates.Any(other =>
                     other.DevianceImprovement >= config.SupportingDevianceImprovement &&
-                    Math.Abs(other.Channel - candidate.Channel) <= tolerance);
+                    Math.Abs(other.Channel - candidate.Channel) <= tolerance &&
+                    (!candidateIsClose ||
+                        (other.PosteriorOccupancy >= config.CloseAnchorMinimumPosteriorOccupancy &&
+                         other.ResidualCorrelation >= config.CloseAnchorMinimumResidualProfileCorrelation)));
                 if (supported)
                 {
                     supportCount++;
@@ -1693,7 +1726,11 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 double anchorFwhm = anchorProfile != null && PeakShapeModel.IsFinite(anchorProfile.Fwhm) && anchorProfile.Fwhm > 0.0
                     ? anchorProfile.Fwhm
                     : Math.Max(1.0, extra.Fwhm);
-                double distanceFwhm = Math.Abs(extra.Channel - anchorChannel) / anchorFwhm;
+                double extraFwhm = PeakShapeModel.IsFinite(extra.Fwhm) && extra.Fwhm > 0.0
+                    ? extra.Fwhm
+                    : anchorFwhm;
+                double scaleFwhm = Math.Max(anchorFwhm, extraFwhm);
+                double distanceFwhm = Math.Abs(extra.Channel - anchorChannel) / scaleFwhm;
                 if (PeakShapeModel.IsFinite(distanceFwhm) && distanceFwhm < nearest)
                 {
                     nearest = distanceFwhm;
