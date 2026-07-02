@@ -1454,22 +1454,13 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
 
             foreach (RjmcmcPeakComponent extra in best.Extras.OrderBy(component => component.Channel))
             {
-                int localIndex = extra.Channel - workspace.Roi.StartChannel;
-                localIndex = Math.Max(0, Math.Min(workspace.Length - 1, localIndex));
-                double background = Math.Max(1.0, FixedBackgroundAt(workspace.FixedBackground, localIndex) + BackgroundAt(best, localIndex));
-                double minimumAmplitude = MinimumAmplitudeForSnr(config.TargetSnr, background);
-                if (extra.Amplitude < minimumAmplitude)
-                {
-                    continue;
-                }
-
                 double improvement = ComputeDevianceImprovement(best, extra, workspace, lambda, config);
                 if (improvement < config.MinDevianceImprovement)
                 {
                     continue;
                 }
 
-                double snr = extra.Amplitude / Math.Sqrt(background + extra.Amplitude);
+                double snr = Math.Sqrt(Math.Max(0.0, improvement));
                 candidates.Add(new RjmcmcPeakCandidate
                 {
                     Channel = extra.Channel,
@@ -1481,13 +1472,6 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             }
 
             return candidates;
-        }
-
-        static double MinimumAmplitudeForSnr(double targetSnr, double background)
-        {
-            double snr = Math.Max(1.0, targetSnr);
-            double safeBackground = Math.Max(1.0, background);
-            return 0.5 * (snr * snr + snr * Math.Sqrt(snr * snr + 4.0 * safeBackground));
         }
 
         /// <summary>

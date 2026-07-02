@@ -38,13 +38,13 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 MaxChannelsPerRoi = 512,
                 MaxExtraPeaksPerRoi = 3,
                 MaxAnchorsPerRoi = 6,
-                RoiRadiusFwhm = 6.0,
+                RoiRadiusFwhm = 3.0,
                 CenterUpdateSigmaFwhm = 0.2,
                 BackgroundUpdateFraction = 0.08,
                 TargetSnr = 10.0,
-                MinDevianceImprovement = 2.0,
+                MinDevianceImprovement = 100.0,
                 ExtraPeakPenalty = 0.35,
-                MinimumCandidateAmplitude = 2.0,
+                MinimumCandidateAmplitude = 0.0,
                 ChainCount = 4
             };
         }
