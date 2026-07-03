@@ -15,6 +15,7 @@ namespace BecquerelMonitor
         {
             this.mainForm = mainForm;
             this.InitializeComponent();
+            this.columnModel1.Columns[0].Renderer = new PeakOriginCellRenderer();
 
             this.RefreshNuclideSets();
         }
@@ -162,7 +163,9 @@ namespace BecquerelMonitor
                         }
                     }
                     int snr = (int)peak.SNR;
-                    row.Cells.Add(new Cell(text));
+                    Cell nuclideCell = new Cell(text);
+                    nuclideCell.Tag = peak.PeakSearchOrigin;
+                    row.Cells.Add(nuclideCell);
                     row.Cells.Add(new Cell(peak.Energy.ToString("f2"), Math.Round(peak.Energy, 2)));
                     row.Cells.Add(new Cell(text2));
                     row.Cells.Add(new Cell(peak.Channel.ToString(), peak.Channel));
