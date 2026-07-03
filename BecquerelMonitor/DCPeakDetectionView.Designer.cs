@@ -54,6 +54,7 @@ namespace BecquerelMonitor
             this.label4 = new System.Windows.Forms.Label();
             this.comboBoxNuclSet = new System.Windows.Forms.ComboBox();
             this.labelSetName = new System.Windows.Forms.Label();
+            this.buttonDeconvolutionInfo = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.table1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
             this.contextMenuStrip1.SuspendLayout();
@@ -208,11 +209,19 @@ namespace BecquerelMonitor
             resources.ApplyResources(this.labelSetName, "labelSetName");
             this.labelSetName.Name = "labelSetName";
             // 
+            // buttonDeconvolutionInfo
+            // 
+            resources.ApplyResources(this.buttonDeconvolutionInfo, "buttonDeconvolutionInfo");
+            this.buttonDeconvolutionInfo.Name = "buttonDeconvolutionInfo";
+            this.buttonDeconvolutionInfo.UseVisualStyleBackColor = true;
+            this.buttonDeconvolutionInfo.Click += new System.EventHandler(this.buttonDeconvolutionInfo_Click);
+            // 
             // DCPeakDetectionView
             // 
             resources.ApplyResources(this, "$this");
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ContextMenuStrip = this.contextMenuStrip1;
+            this.Controls.Add(this.buttonDeconvolutionInfo);
             this.Controls.Add(this.comboBoxNuclSet);
             this.Controls.Add(this.labelSetName);
             this.Controls.Add(this.label4);
@@ -257,5 +266,6 @@ namespace BecquerelMonitor
         private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
         private System.Windows.Forms.ComboBox comboBoxNuclSet;
         private System.Windows.Forms.Label labelSetName;
+        private System.Windows.Forms.Button buttonDeconvolutionInfo;
     }
 }

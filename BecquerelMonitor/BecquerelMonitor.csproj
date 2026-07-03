@@ -234,6 +234,12 @@
     <Compile Include="DCPeakDetectionView.Designer.cs">
       <DependentUpon>DCPeakDetectionView.cs</DependentUpon>
     </Compile>
+    <Compile Include="PeakDeconvolutionInfoForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="PeakDeconvolutionInfoForm.Designer.cs">
+      <DependentUpon>PeakDeconvolutionInfoForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="DCPulseView.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -407,12 +413,13 @@
       <DependentUpon>NuclideSetForm.cs</DependentUpon>
     </Compile>
     <Compile Include="OutofChannelException.cs" />
-      <Compile Include="Package.cs" />
-      <Compile Include="Peak.cs" />
-      <Compile Include="PeakDetectionMethodConfig.cs" />
-      <Compile Include="PeakDetector.cs" />
-      <Compile Include="PeakOriginCellRenderer.cs" />
-      <Compile Include="PeakMode.cs" />
+    <Compile Include="Package.cs" />
+    <Compile Include="Peak.cs" />
+    <Compile Include="PeakDeconvolutionInfo.cs" />
+    <Compile Include="PeakDetectionMethodConfig.cs" />
+    <Compile Include="PeakDetector.cs" />
+    <Compile Include="PeakOriginCellRenderer.cs" />
+    <Compile Include="PeakMode.cs" />
     <Compile Include="PeakPickupedEventArgs.cs" />
     <Compile Include="PeakStabilizer.cs" />
     <Compile Include="PercentageProgressBar.cs">
@@ -921,6 +928,14 @@
     </EmbeddedResource>
     <EmbeddedResource Include="DCPeakDetectionView.ru.resx">
       <DependentUpon>DCPeakDetectionView.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="PeakDeconvolutionInfoForm.resx">
+      <DependentUpon>PeakDeconvolutionInfoForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="PeakDeconvolutionInfoForm.ru.resx">
+      <DependentUpon>PeakDeconvolutionInfoForm.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="DCPulseView.resx">

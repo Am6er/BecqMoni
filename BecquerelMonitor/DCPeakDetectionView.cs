@@ -1,6 +1,7 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using XPTable.Models;
@@ -18,6 +19,7 @@ namespace BecquerelMonitor
             this.columnModel1.Columns[0].Renderer = new PeakOriginCellRenderer();
 
             this.RefreshNuclideSets();
+            this.UpdateDeconvolutionInfoButtonState();
         }
 
         // Token: 0x0600043E RID: 1086 RVA: 0x0001423C File Offset: 0x0001243C
@@ -30,6 +32,7 @@ namespace BecquerelMonitor
             {
                 this.tableModel1.Rows.Clear();
                 this.FormLoading = false;
+                this.UpdateDeconvolutionInfoButtonState();
                 return;
             }
             ResultData activeResultData = activeDocument.ActiveResultData;
@@ -38,6 +41,7 @@ namespace BecquerelMonitor
             {
                 this.tableModel1.Rows.Clear();
                 this.FormLoading = false;
+                this.UpdateDeconvolutionInfoButtonState();
                 return;
             }
             if (deviceConfigInfo.Guid == null)
@@ -68,6 +72,7 @@ namespace BecquerelMonitor
             {
                 this.tableModel1.Rows.Clear();
                 this.FormLoading = false;
+                this.UpdateDeconvolutionInfoButtonState();
                 return;
             }
             this.checkBoxDeconvolution.Checked = fwhmPeakDetectionMethodConfig.UseDeconvolution;
@@ -127,12 +132,14 @@ namespace BecquerelMonitor
             if (activeDocument == null || activeDocument.ActiveResultData == null)
             {
                 this.tableModel1.Rows.Clear();
+                this.UpdateDeconvolutionInfoButtonState();
                 return;
             }
             ResultData activeResultData = activeDocument.ActiveResultData;
             if (activeResultData.DetectedPeaks == null)
             {
                 this.tableModel1.Rows.Clear();
+                this.UpdateDeconvolutionInfoButtonState();
                 return;
             }
             List<Peak> peaks = new List<Peak>(activeResultData.DetectedPeaks);
@@ -143,6 +150,7 @@ namespace BecquerelMonitor
                 if (energyCalibration == null)
                 {
                     this.tableModel1.Rows.Clear();
+                    this.UpdateDeconvolutionInfoButtonState();
                     return;
                 }
 
@@ -181,6 +189,8 @@ namespace BecquerelMonitor
                 activeDocument.RefreshView();
                 //this.table1.AutoResizeColumnWidths();
             }
+
+            this.UpdateDeconvolutionInfoButtonState();
         }
 
         public void RefreshNuclideSets()
@@ -336,6 +346,42 @@ namespace BecquerelMonitor
             }
 
             this.UpdatePeakDetectionResult();
+        }
+
+        void buttonDeconvolutionInfo_Click(object sender, EventArgs e)
+        {
+            List<Peak> deconvolvedPeaks = this.GetDetectedDeconvolutionPeaks();
+            if (deconvolvedPeaks.Count == 0)
+            {
+                return;
+            }
+
+            using (PeakDeconvolutionInfoForm dialog = new PeakDeconvolutionInfoForm(deconvolvedPeaks))
+            {
+                dialog.ShowDialog(this);
+            }
+        }
+
+        List<Peak> GetDetectedDeconvolutionPeaks()
+        {
+            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+            ResultData activeResultData = activeDocument != null ? activeDocument.ActiveResultData : null;
+            if (activeResultData == null || activeResultData.DetectedPeaks == null)
+            {
+                return new List<Peak>();
+            }
+
+            return activeResultData.DetectedPeaks
+                .Where(peak => peak != null &&
+                    peak.PeakSearchOrigin == PeakSearchOrigin.RJMCMC &&
+                    peak.Nuclide != null &&
+                    peak.DeconvolutionInfo != null)
+                .ToList();
+        }
+
+        void UpdateDeconvolutionInfoButtonState()
+        {
+            this.buttonDeconvolutionInfo.Enabled = this.checkBoxDeconvolution.Checked && this.GetDetectedDeconvolutionPeaks().Count > 0;
         }
 
         // Token: 0x040001B3 RID: 435
