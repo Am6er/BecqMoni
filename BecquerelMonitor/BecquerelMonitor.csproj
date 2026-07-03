@@ -407,11 +407,12 @@
       <DependentUpon>NuclideSetForm.cs</DependentUpon>
     </Compile>
     <Compile Include="OutofChannelException.cs" />
-    <Compile Include="Package.cs" />
-    <Compile Include="Peak.cs" />
-    <Compile Include="PeakDetectionMethodConfig.cs" />
-    <Compile Include="PeakDetector.cs" />
-    <Compile Include="PeakMode.cs" />
+      <Compile Include="Package.cs" />
+      <Compile Include="Peak.cs" />
+      <Compile Include="PeakDetectionMethodConfig.cs" />
+      <Compile Include="PeakDetector.cs" />
+      <Compile Include="PeakOriginCellRenderer.cs" />
+      <Compile Include="PeakMode.cs" />
     <Compile Include="PeakPickupedEventArgs.cs" />
     <Compile Include="PeakStabilizer.cs" />
     <Compile Include="PercentageProgressBar.cs">

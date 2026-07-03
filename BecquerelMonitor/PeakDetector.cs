@@ -140,6 +140,7 @@ namespace BecquerelMonitor
                     sa,
                     peakConfig,
                     refineCentroid: true);
+                peak.PeakSearchOrigin = PeakSearchOrigin.FWHMPeakFinder;
                 peak.Nuclide = MatchNuclide(peak, tol, nuclideSet);
                 if (peak.Nuclide == null && nuclideSet?.HideUnknownPeaks == true)
                 {
@@ -179,6 +180,7 @@ namespace BecquerelMonitor
                     null,
                     null,
                     refineCentroid: false);
+                peak.PeakSearchOrigin = PeakSearchOrigin.RJMCMC;
                 peak.Nuclide = MatchNuclide(peak, tol, nuclideSet);
                 if (peak.Nuclide == null && nuclideSet?.HideUnknownPeaks == true)
                 {
