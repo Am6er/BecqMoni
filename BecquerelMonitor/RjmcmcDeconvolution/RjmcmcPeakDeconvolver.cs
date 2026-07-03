@@ -495,10 +495,12 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             }
 
             int totalJobs = workspaces.Length * chainCount;
+            int maxParallelism = Math.Min(config.MaxDegreeOfParallelism, totalJobs);
             Parallel.For(
                 0,
                 totalJobs,
-                new ParallelOptions { MaxDegreeOfParallelism = chainCount },
+                new ParallelOptions { MaxDegreeOfParallelism = maxParallelism
+                },
                 jobIndex =>
                 {
                     int roiIndex = jobIndex / chainCount;

@@ -36,6 +36,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         public double CloseAnchorMinimumPosteriorOccupancy { get; private set; }
         public double CloseAnchorMinimumResidualProfileCorrelation { get; private set; }
         public int ChainCount { get; private set; }
+        public int MaxDegreeOfParallelism { get; private set; }
 
         /// <summary>
         /// Creates the baseline local-RJMCMC settings used for difficult peak-overlap ROIs.
@@ -81,7 +82,8 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 CloseAnchorMinimumSupportingChains = 2,
                 CloseAnchorMinimumPosteriorOccupancy = 0.70,
                 CloseAnchorMinimumResidualProfileCorrelation = 0.60,
-                ChainCount = 4
+                ChainCount = 4,
+                MaxDegreeOfParallelism = Math.Max(4, Environment.ProcessorCount - 1)
             };
         }
 
