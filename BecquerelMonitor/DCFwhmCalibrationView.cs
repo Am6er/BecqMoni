@@ -410,9 +410,7 @@ namespace BecquerelMonitor
                     if (peak.ExpGaussExpCandidateChi2 == null || peak.ExpGaussExpCandidateNdp == null ||
                         candidateIndex >= peak.ExpGaussExpCandidateChi2.Length ||
                         candidateIndex >= peak.ExpGaussExpCandidateNdp.Length ||
-                        !IsValidFitStatistic(peak.GaussianChi2, peak.GaussianNdp) ||
-                        !IsValidFitStatistic(peak.ExpGaussExpCandidateChi2[candidateIndex], peak.ExpGaussExpCandidateNdp[candidateIndex]) ||
-                        !DoesNotWorsenGaussianFit(peak.ExpGaussExpCandidateChi2[candidateIndex], peak.GaussianChi2))
+                        !IsValidFitStatistic(peak.ExpGaussExpCandidateChi2[candidateIndex], peak.ExpGaussExpCandidateNdp[candidateIndex]))
                     {
                         hasCandidateForEveryPeak = false;
                         break;
@@ -439,9 +437,7 @@ namespace BecquerelMonitor
                     if (peak.VoigtCandidateChi2 == null || peak.VoigtCandidateNdp == null ||
                         candidateIndex >= peak.VoigtCandidateChi2.Length ||
                         candidateIndex >= peak.VoigtCandidateNdp.Length ||
-                        !IsValidFitStatistic(peak.GaussianChi2, peak.GaussianNdp) ||
-                        !IsValidFitStatistic(peak.VoigtCandidateChi2[candidateIndex], peak.VoigtCandidateNdp[candidateIndex]) ||
-                        !DoesNotWorsenGaussianFit(peak.VoigtCandidateChi2[candidateIndex], peak.GaussianChi2))
+                        !IsValidFitStatistic(peak.VoigtCandidateChi2[candidateIndex], peak.VoigtCandidateNdp[candidateIndex]))
                     {
                         hasCandidateForEveryPeak = false;
                         break;
@@ -463,17 +459,30 @@ namespace BecquerelMonitor
             int peakType = FwhmCalibration.GaussianPeakType;
             double selectedChi2 = hasGaussian ? gaussianChi2 : Double.PositiveInfinity;
             int selectedNdp = hasGaussian ? gaussianNdp : 0;
-            if (bestExpGaussExpCandidate >= 0 && expGaussExpChi2 < selectedChi2)
+            double selectedScore = hasGaussian
+                ? GetPeakShapeAicScore(FwhmCalibration.GaussianPeakType, gaussianChi2)
+                : Double.PositiveInfinity;
+            if (bestExpGaussExpCandidate >= 0)
             {
-                peakType = FwhmCalibration.ExpGaussExpPeakType;
-                selectedChi2 = expGaussExpChi2;
-                selectedNdp = expGaussExpNdp;
+                double expGaussExpScore = GetPeakShapeAicScore(FwhmCalibration.ExpGaussExpPeakType, expGaussExpChi2);
+                if (expGaussExpScore < selectedScore)
+                {
+                    peakType = FwhmCalibration.ExpGaussExpPeakType;
+                    selectedChi2 = expGaussExpChi2;
+                    selectedNdp = expGaussExpNdp;
+                    selectedScore = expGaussExpScore;
+                }
             }
-            if (bestVoigtCandidate >= 0 && voigtChi2 < selectedChi2)
+            if (bestVoigtCandidate >= 0)
             {
-                peakType = FwhmCalibration.VoigtPeakType;
-                selectedChi2 = voigtChi2;
-                selectedNdp = voigtNdp;
+                double voigtScore = GetPeakShapeAicScore(FwhmCalibration.VoigtPeakType, voigtChi2);
+                if (voigtScore < selectedScore)
+                {
+                    peakType = FwhmCalibration.VoigtPeakType;
+                    selectedChi2 = voigtChi2;
+                    selectedNdp = voigtNdp;
+                    selectedScore = voigtScore;
+                }
             }
 
             fwhmCalibration.PeakType = peakType;
@@ -516,11 +525,23 @@ namespace BecquerelMonitor
             return chi2 >= 0.0 && ndp > 0 && !Double.IsNaN(chi2) && !Double.IsInfinity(chi2);
         }
 
-        static bool DoesNotWorsenGaussianFit(double candidateChi2, double gaussianChi2)
+        static double GetPeakShapeAicScore(int peakType, double chi2)
         {
-            // A global shape is accepted only when it is no worse for every selected peak.
-            double tolerance = Math.Max(1e-9, Math.Abs(gaussianChi2) * 1e-12);
-            return candidateChi2 <= gaussianChi2 + tolerance;
+            if (Double.IsNaN(chi2) || Double.IsInfinity(chi2) || chi2 < 0.0)
+            {
+                return Double.PositiveInfinity;
+            }
+
+            // Relative AIC comparison: Gaussian is the baseline, while the other
+            // families add two global shape parameters and therefore pay +4.
+            switch (peakType)
+            {
+                case FwhmCalibration.ExpGaussExpPeakType:
+                case FwhmCalibration.VoigtPeakType:
+                    return chi2 + 4.0;
+                default:
+                    return chi2;
+            }
         }
 
         static bool HasPeakShapeComparisonData(List<CalibrationPeak> peaks)
@@ -556,17 +577,23 @@ namespace BecquerelMonitor
         {
             List<PeakFitComparisonItem> items = new List<PeakFitComparisonItem>
             {
-                new PeakFitComparisonItem(GetPeakShapeName(FwhmCalibration.GaussianPeakType), gaussianChi2, gaussianNdp, "-"),
-                new PeakFitComparisonItem(GetPeakShapeName(FwhmCalibration.ExpGaussExpPeakType), expGaussExpChi2, expGaussExpNdp, expGaussExpParameters),
-                new PeakFitComparisonItem(GetPeakShapeName(FwhmCalibration.VoigtPeakType), voigtChi2, voigtNdp, voigtParameters)
+                new PeakFitComparisonItem(FwhmCalibration.GaussianPeakType, GetPeakShapeName(FwhmCalibration.GaussianPeakType), gaussianChi2, gaussianNdp, "-"),
+                new PeakFitComparisonItem(FwhmCalibration.ExpGaussExpPeakType, GetPeakShapeName(FwhmCalibration.ExpGaussExpPeakType), expGaussExpChi2, expGaussExpNdp, expGaussExpParameters),
+                new PeakFitComparisonItem(FwhmCalibration.VoigtPeakType, GetPeakShapeName(FwhmCalibration.VoigtPeakType), voigtChi2, voigtNdp, voigtParameters)
             };
 
             items.Sort(delegate (PeakFitComparisonItem left, PeakFitComparisonItem right)
             {
-                bool leftValid = IsValidFitStatistic(left.Chi2, left.Ndp);
-                bool rightValid = IsValidFitStatistic(right.Chi2, right.Ndp);
+                bool leftValid = !Double.IsNaN(left.Score) && !Double.IsInfinity(left.Score);
+                bool rightValid = !Double.IsNaN(right.Score) && !Double.IsInfinity(right.Score);
                 if (leftValid && rightValid)
                 {
+                    int scoreComparison = left.Score.CompareTo(right.Score);
+                    if (scoreComparison != 0)
+                    {
+                        return scoreComparison;
+                    }
+
                     return (left.Chi2 / left.Ndp).CompareTo(right.Chi2 / right.Ndp);
                 }
                 if (leftValid)
@@ -590,8 +617,10 @@ namespace BecquerelMonitor
             foreach (PeakFitComparisonItem item in items)
             {
                 messageBuilder.AppendFormat(
-                    "{0}: {1} = {2}; {3}: {4}",
+                    "{0}: {1} = {2}; {3} = {4}; {5}: {6}",
                     item.CurveName,
+                    GetResourceText("PeakFitChiTableScoreColumn", "Score"),
+                    FormatPeakShapeScore(item.Score),
                     GetResourceText("PeakFitChiTableChi2PerNdpColumn", "chi2/ndp"),
                     FormatPeakFitRatio(item.Chi2, item.Ndp),
                     GetResourceText("PeakFitChiTableParametersColumn", "Parameters"),
@@ -631,6 +660,13 @@ namespace BecquerelMonitor
                 : GetResourceText("PeakFitChiTableUnavailable", "n/a");
         }
 
+        string FormatPeakShapeScore(double score)
+        {
+            return !Double.IsNaN(score) && !Double.IsInfinity(score)
+                ? score.ToString("0.#####")
+                : GetResourceText("PeakFitChiTableUnavailable", "n/a");
+        }
+
         static string GetResourceText(string resourceName, string fallback)
         {
             string value = Resources.ResourceManager.GetString(resourceName);
@@ -647,7 +683,7 @@ namespace BecquerelMonitor
                 dialog.MinimizeBox = false;
                 dialog.MaximizeBox = false;
                 dialog.ShowInTaskbar = false;
-                dialog.ClientSize = new Size(490, 120);
+                dialog.ClientSize = new Size(490, 156);
                 dialog.Font = this.Font;
 
                 TextBox messageTextBox = new TextBox();
@@ -663,7 +699,7 @@ namespace BecquerelMonitor
 
                 Panel contentPanel = new Panel();
                 contentPanel.Dock = DockStyle.Top;
-                contentPanel.Height = 76;
+                contentPanel.Height = 112;
                 contentPanel.Padding = new Padding(12, 10, 12, 0);
                 contentPanel.Controls.Add(messageTextBox);
 
@@ -690,18 +726,22 @@ namespace BecquerelMonitor
 
         sealed class PeakFitComparisonItem
         {
-            public PeakFitComparisonItem(string curveName, double chi2, int ndp, string parameters)
+            public PeakFitComparisonItem(int peakType, string curveName, double chi2, int ndp, string parameters)
             {
+                PeakType = peakType;
                 CurveName = curveName;
                 Chi2 = chi2;
                 Ndp = ndp;
                 Parameters = parameters;
+                Score = GetPeakShapeAicScore(peakType, chi2);
             }
 
+            public int PeakType { get; private set; }
             public string CurveName { get; private set; }
             public double Chi2 { get; private set; }
             public int Ndp { get; private set; }
             public string Parameters { get; private set; }
+            public double Score { get; private set; }
         }
 
         private void CancelAddPeakButton_Click(object sender, EventArgs e)
