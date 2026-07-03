@@ -262,7 +262,7 @@ namespace RjmcmcHarness
             {
                 Console.WriteLine(string.Format(
                     CultureInfo.InvariantCulture,
-                    "  ch={0,7:F2}  SNR={1,6:F2}  amp={2,10:F2}  deltaD={3,8:F2}  occ={4,6:F3}  std={5,6:F2}  residSNR={6,6:F2}  corr={7,6:F3}  dist={8,6:F3}  support={9}",
+                    "  ch={0,7:F2}  SNR={1,6:F2}  amp={2,10:F2}  deltaD={3,8:F2}  occ={4,6:F3}  std={5,6:F2}  residSNR={6,6:F2}  corr={7,6:F3}  dist={8,6:F3}  support={9}  roi=[{10}..{11}]  local={12}  halo={13}",
                     GetDoubleProperty(candidate, "Channel"),
                     GetDoubleProperty(candidate, "Snr"),
                     GetDoubleProperty(candidate, "Amplitude"),
@@ -272,7 +272,11 @@ namespace RjmcmcHarness
                     GetDoubleProperty(candidate, "ResidualSnr"),
                     GetDoubleProperty(candidate, "ResidualCorrelation"),
                     GetDoubleProperty(candidate, "AnchorDistanceFwhm"),
-                    GetIntProperty(candidate, "SupportingChainCount")));
+                    GetIntProperty(candidate, "SupportingChainCount"),
+                    GetIntProperty(candidate, "RoiStartChannel"),
+                    GetIntProperty(candidate, "RoiEndChannel"),
+                    JoinInts(GetIntArrayProperty(candidate, "LocalAnchorChannels")),
+                    JoinInts(GetIntArrayProperty(candidate, "HaloAnchorChannels"))));
             }
         }
 
@@ -353,6 +357,16 @@ namespace RjmcmcHarness
         {
             object value = GetPropertyOrField(instance, propertyName);
             return Convert.ToInt32(value, CultureInfo.InvariantCulture);
+        }
+
+        static int[] GetIntArrayProperty(object instance, string propertyName)
+        {
+            return GetPropertyOrField(instance, propertyName) as int[] ?? Array.Empty<int>();
+        }
+
+        static string JoinInts(IEnumerable<int> values)
+        {
+            return "[" + String.Join(",", values ?? Enumerable.Empty<int>()) + "]";
         }
 
         static object GetPropertyOrField(object instance, string name)

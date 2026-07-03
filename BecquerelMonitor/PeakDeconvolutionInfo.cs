@@ -15,6 +15,7 @@ namespace BecquerelMonitor
         public int RoiStartChannel { get; set; }
         public int RoiEndChannel { get; set; }
         public int[] LocalAnchorChannels { get; set; }
+        public int[] HaloAnchorChannels { get; set; }
         public int[] ReferenceAnchorChannels { get; set; }
     }
 }
