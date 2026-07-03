@@ -35,6 +35,7 @@ namespace BecquerelMonitor
             this.residualCorrelationColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.anchorDistanceColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.supportingChainsColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.buttonCopyDiagnostics = new System.Windows.Forms.Button();
             this.buttonClose = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridViewDetails)).BeginInit();
             this.SuspendLayout();
@@ -166,6 +167,13 @@ namespace BecquerelMonitor
             this.supportingChainsColumn.Name = "supportingChainsColumn";
             this.supportingChainsColumn.ReadOnly = true;
             // 
+            // buttonCopyDiagnostics
+            // 
+            resources.ApplyResources(this.buttonCopyDiagnostics, "buttonCopyDiagnostics");
+            this.buttonCopyDiagnostics.Name = "buttonCopyDiagnostics";
+            this.buttonCopyDiagnostics.UseVisualStyleBackColor = true;
+            this.buttonCopyDiagnostics.Click += new System.EventHandler(this.buttonCopyDiagnostics_Click);
+            // 
             // buttonClose
             // 
             resources.ApplyResources(this.buttonClose, "buttonClose");
@@ -180,6 +188,7 @@ namespace BecquerelMonitor
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.buttonClose;
             this.Controls.Add(this.buttonClose);
+            this.Controls.Add(this.buttonCopyDiagnostics);
             this.Controls.Add(this.dataGridViewDetails);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.SizableToolWindow;
             this.MaximizeBox = false;
@@ -194,6 +203,7 @@ namespace BecquerelMonitor
         #endregion
 
         private System.Windows.Forms.DataGridView dataGridViewDetails;
+        private System.Windows.Forms.Button buttonCopyDiagnostics;
         private System.Windows.Forms.Button buttonClose;
         private System.Windows.Forms.DataGridViewTextBoxColumn nuclideColumn;
         private System.Windows.Forms.DataGridViewTextBoxColumn energyColumn;

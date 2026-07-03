@@ -350,13 +350,14 @@ namespace BecquerelMonitor
 
         void buttonDeconvolutionInfo_Click(object sender, EventArgs e)
         {
+            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
             List<Peak> deconvolvedPeaks = this.GetDetectedDeconvolutionPeaks();
-            if (deconvolvedPeaks.Count == 0)
+            if (activeDocument == null || deconvolvedPeaks.Count == 0)
             {
                 return;
             }
 
-            using (PeakDeconvolutionInfoForm dialog = new PeakDeconvolutionInfoForm(deconvolvedPeaks))
+            using (PeakDeconvolutionInfoForm dialog = new PeakDeconvolutionInfoForm(activeDocument, deconvolvedPeaks, this.selectedNuclideSet))
             {
                 dialog.ShowDialog(this);
             }

@@ -192,7 +192,11 @@ namespace BecquerelMonitor
                     AnchorDistanceFwhm = candidate.AnchorDistanceFwhm,
                     SupportingChainCount = candidate.SupportingChainCount,
                     MinimumSnrThreshold = minSnr,
-                    MatchTolerancePercent = tol
+                    MatchTolerancePercent = tol,
+                    RoiStartChannel = candidate.RoiStartChannel,
+                    RoiEndChannel = candidate.RoiEndChannel,
+                    LocalAnchorChannels = candidate.LocalAnchorChannels,
+                    ReferenceAnchorChannels = candidate.ReferenceAnchorChannels
                 };
                 peak.Nuclide = MatchNuclide(peak, tol, nuclideSet);
                 if (peak.Nuclide == null && nuclideSet?.HideUnknownPeaks == true)

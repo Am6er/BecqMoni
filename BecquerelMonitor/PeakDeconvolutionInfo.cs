@@ -12,5 +12,9 @@ namespace BecquerelMonitor
         public int SupportingChainCount { get; set; }
         public double MinimumSnrThreshold { get; set; }
         public double MatchTolerancePercent { get; set; }
+        public int RoiStartChannel { get; set; }
+        public int RoiEndChannel { get; set; }
+        public int[] LocalAnchorChannels { get; set; }
+        public int[] ReferenceAnchorChannels { get; set; }
     }
 }
