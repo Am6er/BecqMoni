@@ -187,19 +187,6 @@ Estimated full width at half maximum for the accepted deconvolved component.</va
   <data name="fwhmColumn.Width" type="System.Int32, mscorlib">
     <value>66</value>
   </data>
-  <metadata name="fwhmDeltaColumn.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>True</value>
-  </metadata>
-  <data name="fwhmDeltaColumn.HeaderText" xml:space="preserve">
-    <value>dFWHM</value>
-  </data>
-  <data name="fwhmDeltaColumn.ToolTipText" xml:space="preserve">
-    <value>FWHM deviation.
-Absolute difference between the candidate FWHM and the FWHM expected from the current calibration.</value>
-  </data>
-  <data name="fwhmDeltaColumn.Width" type="System.Int32, mscorlib">
-    <value>72</value>
-  </data>
   <metadata name="devianceImprovementColumn.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>True</value>
   </metadata>
@@ -4661,12 +4648,6 @@ Number of independent RJMCMC chains that produced a similar candidate within the
     <value>fwhmColumn</value>
   </data>
   <data name="&gt;&gt;fwhmColumn.Type" xml:space="preserve">
-    <value>System.Windows.Forms.DataGridViewTextBoxColumn, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;fwhmDeltaColumn.Name" xml:space="preserve">
-    <value>fwhmDeltaColumn</value>
-  </data>
-  <data name="&gt;&gt;fwhmDeltaColumn.Type" xml:space="preserve">
     <value>System.Windows.Forms.DataGridViewTextBoxColumn, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;devianceImprovementColumn.Name" xml:space="preserve">

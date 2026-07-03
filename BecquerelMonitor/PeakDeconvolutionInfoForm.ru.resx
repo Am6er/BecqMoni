@@ -87,13 +87,6 @@
     <value>Ширина пика.
 Оценка полной ширины на половине высоты для принятого деконволюированного компонента.</value>
   </data>
-  <data name="fwhmDeltaColumn.HeaderText" xml:space="preserve">
-    <value>ΔFWHM</value>
-  </data>
-  <data name="fwhmDeltaColumn.ToolTipText" xml:space="preserve">
-    <value>Отклонение FWHM.
-Абсолютная разница между FWHM кандидата и ожидаемой шириной по текущей калибровке.</value>
-  </data>
   <data name="devianceImprovementColumn.HeaderText" xml:space="preserve">
     <value>ΔDev</value>
   </data>

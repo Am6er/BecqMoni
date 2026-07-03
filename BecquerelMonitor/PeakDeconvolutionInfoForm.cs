@@ -37,7 +37,6 @@ namespace BecquerelMonitor
                     peak.Channel.ToString(),
                     FormatMetric(peak.SNR, "0.0"),
                     FormatMetric(peak.FWHM, "0.0"),
-                    FormatMetric(peak.FWHM_DELTA, "0.0"),
                     FormatMetric(info.DevianceImprovement, "0.###"),
                     FormatMetric(info.PosteriorOccupancy, "0.###"),
                     FormatMetric(info.CenterStdDev, "0.###"),
