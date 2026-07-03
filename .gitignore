@@ -2,5 +2,6 @@
 BecquerelMonitor/.vs/*
 BecquerelMonitor/bin/*
 BecquerelMonitor/obj/*
+tools/RjmcmcHarness/*.exe
 *.csproj.user
 AGENTS.md

@@ -1707,7 +1707,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
 
         static double AnchorExclusionDistance(double fwhm)
         {
-            return Math.Max(1.0, 0.20 * Math.Max(1.0, fwhm));
+            return Math.Max(1.0, 0.04 * Math.Max(1.0, fwhm));
         }
 
         static double NearestAnchorDistanceFwhm(RjmcmcPeakComponent extra, RjmcmcRoiWorkspace workspace)
