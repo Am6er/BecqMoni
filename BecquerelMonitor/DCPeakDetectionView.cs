@@ -374,7 +374,6 @@ namespace BecquerelMonitor
             return activeResultData.DetectedPeaks
                 .Where(peak => peak != null &&
                     peak.PeakSearchOrigin == PeakSearchOrigin.RJMCMC &&
-                    peak.Nuclide != null &&
                     peak.DeconvolutionInfo != null)
                 .ToList();
         }

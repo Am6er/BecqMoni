@@ -26,13 +26,13 @@ namespace BecquerelMonitor
                 }
 
                 PeakDeconvolutionInfo info = peak.DeconvolutionInfo;
-                if (peak.Nuclide == null || info == null)
+                if (info == null)
                 {
                     continue;
                 }
 
                 this.dataGridViewDetails.Rows.Add(
-                    peak.Nuclide.Name,
+                    peak.Nuclide != null ? peak.Nuclide.Name : Resources.UnknownNuclide,
                     FormatMetric(peak.Energy, "0.00"),
                     peak.Channel.ToString(),
                     FormatMetric(peak.SNR, "0.0"),
