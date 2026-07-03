@@ -7,6 +7,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         public int StartChannel { get; set; }
         public int EndChannel { get; set; }
         public List<int> AnchorChannels { get; private set; }
+        public List<int> ReferenceAnchorChannels { get; private set; }
 
         public int Width
         {
@@ -19,6 +20,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         public RjmcmcRoi()
         {
             AnchorChannels = new List<int>();
+            ReferenceAnchorChannels = new List<int>();
         }
     }
 }

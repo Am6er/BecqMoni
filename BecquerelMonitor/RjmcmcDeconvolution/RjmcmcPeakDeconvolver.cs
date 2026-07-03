@@ -352,6 +352,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                     EndChannel = Math.Min(maxChannel, centroid + radius)
                 };
                 roi.AnchorChannels.Add(centroid);
+                roi.ReferenceAnchorChannels.Add(centroid);
                 rawRois.Add(roi);
             }
 
@@ -376,6 +377,14 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                             current.AnchorChannels.Add(anchorChannel);
                         }
                     }
+
+                    foreach (int anchorChannel in roi.ReferenceAnchorChannels)
+                    {
+                        if (!current.ReferenceAnchorChannels.Contains(anchorChannel))
+                        {
+                            current.ReferenceAnchorChannels.Add(anchorChannel);
+                        }
+                    }
                 }
                 else
                 {
@@ -389,10 +398,12 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 foreach (RjmcmcRoi boundedRoi in SplitOrBoundRoi(roi, minChannel, maxChannel, config))
                 {
                     boundedRoi.AnchorChannels.Sort();
+                    boundedRoi.ReferenceAnchorChannels.Sort();
                     if (!bounded.Any(existing =>
                         existing.StartChannel == boundedRoi.StartChannel &&
                         existing.EndChannel == boundedRoi.EndChannel &&
-                        existing.AnchorChannels.SequenceEqual(boundedRoi.AnchorChannels)))
+                        existing.AnchorChannels.SequenceEqual(boundedRoi.AnchorChannels) &&
+                        existing.ReferenceAnchorChannels.SequenceEqual(boundedRoi.ReferenceAnchorChannels)))
                     {
                         bounded.Add(boundedRoi);
                     }
@@ -415,6 +426,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         {
             if (roi.Width <= config.MaxChannelsPerRoi && roi.AnchorChannels.Count <= config.MaxAnchorsPerRoi)
             {
+                CopyReferenceAnchors(roi.ReferenceAnchorChannels, roi.ReferenceAnchorChannels.Count > 0 ? roi.ReferenceAnchorChannels : roi.AnchorChannels, roi.StartChannel, roi.EndChannel);
                 yield return roi;
                 yield break;
             }
@@ -440,10 +452,31 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                     }
                 }
 
+                CopyReferenceAnchors(bounded.ReferenceAnchorChannels, roi.ReferenceAnchorChannels.Count > 0 ? roi.ReferenceAnchorChannels : roi.AnchorChannels, minChannel, maxChannel);
+
                 if (bounded.AnchorChannels.Count > 0 && bounded.AnchorChannels.Count <= config.MaxAnchorsPerRoi)
                 {
                     yield return bounded;
                 }
+            }
+        }
+
+        static void CopyReferenceAnchors(List<int> target, IEnumerable<int> source, int minChannel, int maxChannel)
+        {
+            if (target == null || source == null)
+            {
+                return;
+            }
+
+            target.Clear();
+            foreach (int anchorChannel in source)
+            {
+                if (anchorChannel < minChannel || anchorChannel > maxChannel || target.Contains(anchorChannel))
+                {
+                    continue;
+                }
+
+                target.Add(anchorChannel);
             }
         }
 
@@ -516,7 +549,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 candidates.AddRange(SelectBestChainCandidates(chainResults[roiIndex], config));
             }
 
-            return candidates;
+            return DedupeCandidatesAcrossRois(candidates, config);
         }
 
         /// <summary>
@@ -938,6 +971,52 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 ? candidate.Fwhm
                 : 1.0;
             return CenterToleranceForFwhm(fwhm, config);
+        }
+
+        static List<RjmcmcPeakCandidate> DedupeCandidatesAcrossRois(
+            IEnumerable<RjmcmcPeakCandidate> candidates,
+            RjmcmcConfig config)
+        {
+            if (candidates == null)
+            {
+                return new List<RjmcmcPeakCandidate>();
+            }
+
+            List<RjmcmcPeakCandidate> ordered = candidates
+                .Where(candidate => candidate != null)
+                .OrderByDescending(candidate => candidate.DevianceImprovement)
+                .ThenByDescending(candidate => candidate.SupportingChainCount)
+                .ThenByDescending(candidate => candidate.PosteriorOccupancy)
+                .ThenByDescending(candidate => candidate.ResidualCorrelation)
+                .ToList();
+
+            List<RjmcmcPeakCandidate> deduped = new List<RjmcmcPeakCandidate>();
+            foreach (RjmcmcPeakCandidate candidate in ordered)
+            {
+                if (deduped.Any(existing => AreEquivalentCandidates(existing, candidate, config)))
+                {
+                    continue;
+                }
+
+                deduped.Add(candidate);
+            }
+
+            deduped.Sort((left, right) => left.Channel.CompareTo(right.Channel));
+            return deduped;
+        }
+
+        static bool AreEquivalentCandidates(
+            RjmcmcPeakCandidate left,
+            RjmcmcPeakCandidate right,
+            RjmcmcConfig config)
+        {
+            if (left == null || right == null)
+            {
+                return false;
+            }
+
+            int tolerance = Math.Max(CandidateSupportTolerance(left, config), CandidateSupportTolerance(right, config));
+            return Math.Abs(left.Channel - right.Channel) <= tolerance;
         }
 
         static int CenterToleranceForFwhm(double fwhm, RjmcmcConfig config)
@@ -1715,14 +1794,21 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         static double NearestAnchorDistanceFwhm(RjmcmcPeakComponent extra, RjmcmcRoiWorkspace workspace)
         {
             if (extra == null ||
-                workspace?.Roi?.AnchorChannels == null ||
-                workspace.Roi.AnchorChannels.Count == 0)
+                workspace?.Roi == null)
+            {
+                return Double.PositiveInfinity;
+            }
+
+            List<int> referenceAnchors = workspace.Roi.ReferenceAnchorChannels != null && workspace.Roi.ReferenceAnchorChannels.Count > 0
+                ? workspace.Roi.ReferenceAnchorChannels
+                : workspace.Roi.AnchorChannels;
+            if (referenceAnchors == null || referenceAnchors.Count == 0)
             {
                 return Double.PositiveInfinity;
             }
 
             double nearest = Double.PositiveInfinity;
-            foreach (int anchorChannel in workspace.Roi.AnchorChannels)
+            foreach (int anchorChannel in referenceAnchors)
             {
                 RjmcmcComponentProfile anchorProfile = GetProfile(workspace, anchorChannel);
                 double anchorFwhm = anchorProfile != null && PeakShapeModel.IsFinite(anchorProfile.Fwhm) && anchorProfile.Fwhm > 0.0
@@ -1874,7 +1960,11 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                     CenterStdDev = centerStdDev,
                     ResidualSnr = profile.ResidualSnr,
                     ResidualCorrelation = profile.ResidualCorrelation,
-                    AnchorDistanceFwhm = anchorDistanceFwhm
+                    AnchorDistanceFwhm = anchorDistanceFwhm,
+                    RoiStartChannel = workspace.Roi.StartChannel,
+                    RoiEndChannel = workspace.Roi.EndChannel,
+                    LocalAnchorChannels = workspace.Roi.AnchorChannels.ToArray(),
+                    ReferenceAnchorChannels = workspace.Roi.ReferenceAnchorChannels.ToArray()
                 });
             }
 

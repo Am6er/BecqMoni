@@ -13,5 +13,9 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         public double ResidualCorrelation { get; set; }
         public double AnchorDistanceFwhm { get; set; }
         public int SupportingChainCount { get; set; }
+        public int RoiStartChannel { get; set; }
+        public int RoiEndChannel { get; set; }
+        public int[] LocalAnchorChannels { get; set; }
+        public int[] ReferenceAnchorChannels { get; set; }
     }
 }
