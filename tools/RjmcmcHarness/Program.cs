@@ -16,11 +16,11 @@ namespace RjmcmcHarness
             try
             {
                 Options options = Options.Parse(args);
+                DiagnosticSnapshot diagnostics = DiagnosticSnapshot.Load(options.DiagnosticsPath);
                 Environment.CurrentDirectory = options.WorkingDirectory;
 
                 GlobalConfigManager.GetInstance();
                 DeviceConfigManager.GetInstance();
-                ROIConfigManager.GetInstance();
                 NuclideDefinitionManager.GetInstance();
 
                 List<string> spectrumFiles = ResolveSpectrumFiles(options.InputPath);
@@ -33,9 +33,9 @@ namespace RjmcmcHarness
                 foreach (string spectrumFile in spectrumFiles)
                 {
                     Console.WriteLine("=== {0} ===", spectrumFile);
-                    foreach (double minSnr in options.MinSnrValues)
+                    foreach (double minSnr in ResolveMinSnrValues(options, diagnostics))
                     {
-                        RunScenario(spectrumFile, minSnr, options);
+                        RunScenario(spectrumFile, minSnr, options, diagnostics);
                     }
 
                     Console.WriteLine();
@@ -50,10 +50,11 @@ namespace RjmcmcHarness
             }
         }
 
-        static void RunScenario(string spectrumFile, double minSnr, Options options)
+        static void RunScenario(string spectrumFile, double minSnr, Options options, DiagnosticSnapshot diagnostics)
         {
             ResultData resultData = LoadResultData(spectrumFile);
-            FWHMPeakDetectionMethodConfig peakConfig = PreparePeakConfig(resultData, minSnr, options);
+            FWHMPeakDetectionMethodConfig peakConfig = PreparePeakConfig(resultData, minSnr, options, diagnostics);
+            bool useBackgroundSubtraction = ResolveBackgroundSubtraction(options, diagnostics);
 
             PeakDetector detector = new PeakDetector();
             object finder = InvokePrivateMethod(
@@ -67,14 +68,14 @@ namespace RjmcmcHarness
                 "BecquerelMonitor.RjmcmcDeconvolution.RjmcmcPeakDeconvolver",
                 "Run",
                 resultData.EnergySpectrum,
-                options.UseBackgroundSubtraction ? resultData.BackgroundEnergySpectrum : null,
+                useBackgroundSubtraction ? resultData.BackgroundEnergySpectrum : null,
                 finder,
                 peakConfig,
                 resultData.FwhmCalibration);
 
             List<Peak> peaks = detector.DetectPeak(
                 resultData,
-                options.UseBackgroundSubtraction ? BackgroundMode.Substract : BackgroundMode.Visible,
+                useBackgroundSubtraction ? BackgroundMode.Substract : BackgroundMode.Visible,
                 SmoothingMethod.None,
                 null);
 
@@ -111,15 +112,17 @@ namespace RjmcmcHarness
             }
 
             resultData.DeviceConfig = deviceConfig;
-            resultData.PeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)((FWHMPeakDetectionMethodConfig)deviceConfig.PeakDetectionMethodConfig).Clone();
-            resultData.ROIConfig = ROIConfigManager.GetInstance().ROIConfigList
-                .FirstOrDefault(candidate => candidate.Guid == resultData.ROIConfigReference.Guid);
+            FWHMPeakDetectionMethodConfig peakConfig = resultData.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
+            resultData.PeakDetectionMethodConfig = peakConfig != null
+                ? (FWHMPeakDetectionMethodConfig)peakConfig.Clone()
+                : (FWHMPeakDetectionMethodConfig)((FWHMPeakDetectionMethodConfig)deviceConfig.PeakDetectionMethodConfig).Clone();
+            resultData.ROIConfig = null;
 
             if (resultData.FwhmCalibration == null)
             {
-                FWHMPeakDetectionMethodConfig peakConfig = (FWHMPeakDetectionMethodConfig)resultData.PeakDetectionMethodConfig;
-                resultData.FwhmCalibration = peakConfig.FwhmCalibration?.Clone() ??
-                    FwhmCalibration.DefaultCalibration(peakConfig, resultData.EnergySpectrum.EnergyCalibration);
+                FWHMPeakDetectionMethodConfig fwhmPeakConfig = (FWHMPeakDetectionMethodConfig)resultData.PeakDetectionMethodConfig;
+                resultData.FwhmCalibration = fwhmPeakConfig.FwhmCalibration?.Clone() ??
+                    FwhmCalibration.DefaultCalibration(fwhmPeakConfig, resultData.EnergySpectrum.EnergyCalibration);
             }
 
             return resultData;
@@ -145,20 +148,95 @@ namespace RjmcmcHarness
             }
         }
 
-        static FWHMPeakDetectionMethodConfig PreparePeakConfig(ResultData resultData, double minSnr, Options options)
+        static FWHMPeakDetectionMethodConfig PreparePeakConfig(ResultData resultData, double minSnr, Options options, DiagnosticSnapshot diagnostics)
         {
             FWHMPeakDetectionMethodConfig config =
                 (FWHMPeakDetectionMethodConfig)((FWHMPeakDetectionMethodConfig)resultData.PeakDetectionMethodConfig).Clone();
-            config.UseDeconvolution = true;
             config.Min_SNR = minSnr;
-            config.BurnIn = options.BurnIn;
-            config.Samples = options.Samples;
-            config.MaxRois = options.MaxRois;
-            config.MaxExtraPeaksPerRoi = options.MaxExtraPeaksPerRoi;
-            config.RoiRadiusFwhm = options.RoiRadiusFwhm;
-            config.Max_Items = options.MaxItems;
+
+            ApplyDiagnostics(config, diagnostics);
+
+            config.UseDeconvolution = options.UseDeconvolutionOverride ?? config.UseDeconvolution;
+            config.BurnIn = options.BurnInOverride ?? config.BurnIn;
+            config.Samples = options.SamplesOverride ?? config.Samples;
+            config.MaxRois = options.MaxRoisOverride ?? config.MaxRois;
+            config.MaxExtraPeaksPerRoi = options.MaxExtraPeaksPerRoiOverride ?? config.MaxExtraPeaksPerRoi;
+            config.RoiRadiusFwhm = options.RoiRadiusFwhmOverride ?? config.RoiRadiusFwhm;
+            config.Max_Items = options.MaxItemsOverride ?? config.Max_Items;
+            config.Tolerance = options.ToleranceOverride ?? config.Tolerance;
+            config.Min_Range = options.MinRangeOverride ?? config.Min_Range;
+            config.Max_Range = options.MaxRangeOverride ?? config.Max_Range;
+            config.Min_FWHM_Tol = options.MinFwhmToleranceOverride ?? config.Min_FWHM_Tol;
+            config.Max_FWHM_Tol = options.MaxFwhmToleranceOverride ?? config.Max_FWHM_Tol;
+            config.Ch_Concat = options.ChannelConcatOverride ?? config.Ch_Concat;
+            config.MinDevianceImprovement = options.MinDevianceImprovementOverride ?? config.MinDevianceImprovement;
+            config.MinimumCandidateAmplitude = options.MinimumCandidateAmplitudeOverride ?? config.MinimumCandidateAmplitude;
+
             resultData.PeakDetectionMethodConfig = config;
             return config;
+        }
+
+        static void ApplyDiagnostics(FWHMPeakDetectionMethodConfig config, DiagnosticSnapshot diagnostics)
+        {
+            if (config == null || diagnostics == null)
+            {
+                return;
+            }
+
+            config.Enabled = diagnostics.GetBool("peak_detection_config.enabled") ?? config.Enabled;
+            config.UseDeconvolution = diagnostics.GetBool("peak_detection_config.use_deconvolution") ?? config.UseDeconvolution;
+            config.Max_Items = diagnostics.GetInt("peak_detection_config.max_items") ?? config.Max_Items;
+            config.Tolerance = diagnostics.GetDouble("peak_detection_config.tolerance_percent") ?? config.Tolerance;
+            config.Min_Range = diagnostics.GetDouble("peak_detection_config.min_range_keV") ?? config.Min_Range;
+            config.Max_Range = diagnostics.GetDouble("peak_detection_config.max_range_keV") ?? config.Max_Range;
+            config.Min_FWHM_Tol = diagnostics.GetDecimal("peak_detection_config.min_fwhm_tol_percent") ?? config.Min_FWHM_Tol;
+            config.Max_FWHM_Tol = diagnostics.GetDecimal("peak_detection_config.max_fwhm_tol_percent") ?? config.Max_FWHM_Tol;
+            config.Ch_Concat = diagnostics.GetInt("peak_detection_config.channel_concat") ?? config.Ch_Concat;
+            config.BurnIn = diagnostics.GetInt("peak_detection_config.burn_in") ?? config.BurnIn;
+            config.Samples = diagnostics.GetInt("peak_detection_config.samples") ?? config.Samples;
+            config.MaxRois = diagnostics.GetInt("peak_detection_config.max_rois") ?? config.MaxRois;
+            config.MaxExtraPeaksPerRoi = diagnostics.GetInt("peak_detection_config.max_extra_peaks_per_roi") ?? config.MaxExtraPeaksPerRoi;
+            config.RoiRadiusFwhm = diagnostics.GetDouble("peak_detection_config.roi_radius_fwhm") ?? config.RoiRadiusFwhm;
+            config.MinDevianceImprovement = diagnostics.GetDouble("peak_detection_config.min_deviance_improvement") ?? config.MinDevianceImprovement;
+            config.MinimumCandidateAmplitude = diagnostics.GetDouble("peak_detection_config.minimum_candidate_amplitude") ?? config.MinimumCandidateAmplitude;
+        }
+
+        static IEnumerable<double> ResolveMinSnrValues(Options options, DiagnosticSnapshot diagnostics)
+        {
+            if (options.MinSnrValuesOverride != null && options.MinSnrValuesOverride.Count > 0)
+            {
+                return options.MinSnrValuesOverride;
+            }
+
+            double? minSnr = diagnostics?.GetDouble("peak_detection_config.min_snr");
+            if (minSnr.HasValue)
+            {
+                return new[] { minSnr.Value };
+            }
+
+            return new[] { 4.0, 6.0, 8.0, 10.0 };
+        }
+
+        static bool ResolveBackgroundSubtraction(Options options, DiagnosticSnapshot diagnostics)
+        {
+            if (options.UseBackgroundSubtractionOverride.HasValue)
+            {
+                return options.UseBackgroundSubtractionOverride.Value;
+            }
+
+            string backgroundMode = diagnostics?.GetString("view.background_mode");
+            if (String.Equals(backgroundMode, BackgroundMode.Visible.ToString(), StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            if (String.Equals(backgroundMode, BackgroundMode.Substract.ToString(), StringComparison.OrdinalIgnoreCase) ||
+                String.Equals(backgroundMode, "Subtract", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return true;
         }
 
         static void PrintDetectedPeaks(List<Peak> peaks)
@@ -304,14 +382,24 @@ namespace RjmcmcHarness
         {
             public string InputPath { get; private set; }
             public string WorkingDirectory { get; private set; }
-            public List<double> MinSnrValues { get; private set; }
-            public int BurnIn { get; private set; }
-            public int Samples { get; private set; }
-            public int MaxRois { get; private set; }
-            public int MaxExtraPeaksPerRoi { get; private set; }
-            public double RoiRadiusFwhm { get; private set; }
-            public int MaxItems { get; private set; }
-            public bool UseBackgroundSubtraction { get; private set; }
+            public string DiagnosticsPath { get; private set; }
+            public List<double> MinSnrValuesOverride { get; private set; }
+            public int? BurnInOverride { get; private set; }
+            public int? SamplesOverride { get; private set; }
+            public int? MaxRoisOverride { get; private set; }
+            public int? MaxExtraPeaksPerRoiOverride { get; private set; }
+            public double? RoiRadiusFwhmOverride { get; private set; }
+            public int? MaxItemsOverride { get; private set; }
+            public double? ToleranceOverride { get; private set; }
+            public double? MinRangeOverride { get; private set; }
+            public double? MaxRangeOverride { get; private set; }
+            public decimal? MinFwhmToleranceOverride { get; private set; }
+            public decimal? MaxFwhmToleranceOverride { get; private set; }
+            public int? ChannelConcatOverride { get; private set; }
+            public bool? UseDeconvolutionOverride { get; private set; }
+            public double? MinDevianceImprovementOverride { get; private set; }
+            public double? MinimumCandidateAmplitudeOverride { get; private set; }
+            public bool? UseBackgroundSubtractionOverride { get; private set; }
 
             public static Options Parse(string[] args)
             {
@@ -319,14 +407,7 @@ namespace RjmcmcHarness
                 {
                     InputPath = @"C:\Users\moroz\OneDrive\Desktop\Deconvolve\examples",
                     WorkingDirectory = Directory.GetCurrentDirectory(),
-                    MinSnrValues = new List<double> { 4.0, 6.0, 8.0, 10.0 },
-                    BurnIn = 500,
-                    Samples = 1500,
-                    MaxRois = 20,
-                    MaxExtraPeaksPerRoi = 3,
-                    RoiRadiusFwhm = 3.0,
-                    MaxItems = 40,
-                    UseBackgroundSubtraction = true
+                    MinSnrValuesOverride = null
                 };
 
                 foreach (string arg in args ?? Array.Empty<string>())
@@ -339,48 +420,192 @@ namespace RjmcmcHarness
                     {
                         options.WorkingDirectory = arg.Substring("--workdir=".Length).Trim('"');
                     }
+                    else if (arg.StartsWith("--diagnostics=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        options.DiagnosticsPath = arg.Substring("--diagnostics=".Length).Trim('"');
+                    }
                     else if (arg.StartsWith("--snr=", StringComparison.OrdinalIgnoreCase))
                     {
-                        options.MinSnrValues = arg.Substring("--snr=".Length)
+                        options.MinSnrValuesOverride = arg.Substring("--snr=".Length)
                             .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
                             .Select(value => Double.Parse(value, CultureInfo.InvariantCulture))
                             .ToList();
                     }
                     else if (arg.StartsWith("--burnin=", StringComparison.OrdinalIgnoreCase))
                     {
-                        options.BurnIn = Int32.Parse(arg.Substring("--burnin=".Length), CultureInfo.InvariantCulture);
+                        options.BurnInOverride = Int32.Parse(arg.Substring("--burnin=".Length), CultureInfo.InvariantCulture);
                     }
                     else if (arg.StartsWith("--samples=", StringComparison.OrdinalIgnoreCase))
                     {
-                        options.Samples = Int32.Parse(arg.Substring("--samples=".Length), CultureInfo.InvariantCulture);
+                        options.SamplesOverride = Int32.Parse(arg.Substring("--samples=".Length), CultureInfo.InvariantCulture);
                     }
                     else if (arg.StartsWith("--max-rois=", StringComparison.OrdinalIgnoreCase))
                     {
-                        options.MaxRois = Int32.Parse(arg.Substring("--max-rois=".Length), CultureInfo.InvariantCulture);
+                        options.MaxRoisOverride = Int32.Parse(arg.Substring("--max-rois=".Length), CultureInfo.InvariantCulture);
                     }
                     else if (arg.StartsWith("--max-extra=", StringComparison.OrdinalIgnoreCase))
                     {
-                        options.MaxExtraPeaksPerRoi = Int32.Parse(arg.Substring("--max-extra=".Length), CultureInfo.InvariantCulture);
+                        options.MaxExtraPeaksPerRoiOverride = Int32.Parse(arg.Substring("--max-extra=".Length), CultureInfo.InvariantCulture);
                     }
                     else if (arg.StartsWith("--roi-radius=", StringComparison.OrdinalIgnoreCase))
                     {
-                        options.RoiRadiusFwhm = Double.Parse(arg.Substring("--roi-radius=".Length), CultureInfo.InvariantCulture);
+                        options.RoiRadiusFwhmOverride = Double.Parse(arg.Substring("--roi-radius=".Length), CultureInfo.InvariantCulture);
                     }
                     else if (arg.StartsWith("--max-items=", StringComparison.OrdinalIgnoreCase))
                     {
-                        options.MaxItems = Int32.Parse(arg.Substring("--max-items=".Length), CultureInfo.InvariantCulture);
+                        options.MaxItemsOverride = Int32.Parse(arg.Substring("--max-items=".Length), CultureInfo.InvariantCulture);
+                    }
+                    else if (arg.StartsWith("--tolerance=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        options.ToleranceOverride = Double.Parse(arg.Substring("--tolerance=".Length), CultureInfo.InvariantCulture);
+                    }
+                    else if (arg.StartsWith("--min-range=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        options.MinRangeOverride = Double.Parse(arg.Substring("--min-range=".Length), CultureInfo.InvariantCulture);
+                    }
+                    else if (arg.StartsWith("--max-range=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        options.MaxRangeOverride = Double.Parse(arg.Substring("--max-range=".Length), CultureInfo.InvariantCulture);
+                    }
+                    else if (arg.StartsWith("--min-fwhm-tol=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        options.MinFwhmToleranceOverride = Decimal.Parse(arg.Substring("--min-fwhm-tol=".Length), CultureInfo.InvariantCulture);
+                    }
+                    else if (arg.StartsWith("--max-fwhm-tol=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        options.MaxFwhmToleranceOverride = Decimal.Parse(arg.Substring("--max-fwhm-tol=".Length), CultureInfo.InvariantCulture);
+                    }
+                    else if (arg.StartsWith("--channel-concat=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        options.ChannelConcatOverride = Int32.Parse(arg.Substring("--channel-concat=".Length), CultureInfo.InvariantCulture);
+                    }
+                    else if (arg.StartsWith("--use-deconvolution=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        options.UseDeconvolutionOverride = Boolean.Parse(arg.Substring("--use-deconvolution=".Length));
+                    }
+                    else if (arg.StartsWith("--min-dev=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        options.MinDevianceImprovementOverride = Double.Parse(arg.Substring("--min-dev=".Length), CultureInfo.InvariantCulture);
+                    }
+                    else if (arg.StartsWith("--min-amp=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        options.MinimumCandidateAmplitudeOverride = Double.Parse(arg.Substring("--min-amp=".Length), CultureInfo.InvariantCulture);
                     }
                     else if (String.Equals(arg, "--bg=visible", StringComparison.OrdinalIgnoreCase))
                     {
-                        options.UseBackgroundSubtraction = false;
+                        options.UseBackgroundSubtractionOverride = false;
                     }
                     else if (String.Equals(arg, "--bg=substract", StringComparison.OrdinalIgnoreCase))
                     {
-                        options.UseBackgroundSubtraction = true;
+                        options.UseBackgroundSubtractionOverride = true;
                     }
                 }
 
                 return options;
+            }
+        }
+
+        sealed class DiagnosticSnapshot
+        {
+            readonly Dictionary<string, string> values;
+
+            DiagnosticSnapshot(Dictionary<string, string> values)
+            {
+                this.values = values;
+            }
+
+            public static DiagnosticSnapshot Load(string path)
+            {
+                if (String.IsNullOrWhiteSpace(path) || !File.Exists(path))
+                {
+                    return null;
+                }
+
+                Dictionary<string, string> values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                foreach (string rawLine in File.ReadAllLines(path))
+                {
+                    string line = rawLine?.Trim();
+                    if (String.IsNullOrEmpty(line) || line.StartsWith("#", StringComparison.Ordinal) || (line.StartsWith("[", StringComparison.Ordinal) && line.EndsWith("]", StringComparison.Ordinal)))
+                    {
+                        continue;
+                    }
+
+                    int separatorIndex = line.IndexOf('=');
+                    if (separatorIndex <= 0)
+                    {
+                        continue;
+                    }
+
+                    string key = line.Substring(0, separatorIndex).Trim();
+                    string value = line.Substring(separatorIndex + 1).Trim();
+                    values[key] = value;
+                }
+
+                return new DiagnosticSnapshot(values);
+            }
+
+            public string GetString(string key)
+            {
+                string value;
+                return this.values != null && this.values.TryGetValue(key, out value)
+                    ? value
+                    : null;
+            }
+
+            public bool? GetBool(string key)
+            {
+                string value = GetString(key);
+                if (String.IsNullOrWhiteSpace(value))
+                {
+                    return null;
+                }
+
+                bool parsed;
+                return Boolean.TryParse(value, out parsed)
+                    ? parsed
+                    : (bool?)null;
+            }
+
+            public int? GetInt(string key)
+            {
+                string value = GetString(key);
+                if (String.IsNullOrWhiteSpace(value))
+                {
+                    return null;
+                }
+
+                int parsed;
+                return Int32.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out parsed)
+                    ? parsed
+                    : (int?)null;
+            }
+
+            public double? GetDouble(string key)
+            {
+                string value = GetString(key);
+                if (String.IsNullOrWhiteSpace(value) || String.Equals(value, "n/a", StringComparison.OrdinalIgnoreCase))
+                {
+                    return null;
+                }
+
+                double parsed;
+                return Double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out parsed)
+                    ? parsed
+                    : (double?)null;
+            }
+
+            public decimal? GetDecimal(string key)
+            {
+                string value = GetString(key);
+                if (String.IsNullOrWhiteSpace(value) || String.Equals(value, "n/a", StringComparison.OrdinalIgnoreCase))
+                {
+                    return null;
+                }
+
+                decimal parsed;
+                return Decimal.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out parsed)
+                    ? parsed
+                    : (decimal?)null;
             }
         }
     }
