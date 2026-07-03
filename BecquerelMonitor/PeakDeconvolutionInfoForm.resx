@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -118,361 +118,230 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
-  <data name="table1.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+  <data name="dataGridViewDetails.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Bottom, Left, Right</value>
   </data>
-  <metadata name="columnModel1.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-    <value>17, 17</value>
+  <metadata name="nuclideColumn.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>True</value>
   </metadata>
-  <data name="textColumn3.Text" xml:space="preserve">
+  <data name="nuclideColumn.HeaderText" xml:space="preserve">
     <value>Nuclide</value>
   </data>
-  <assembly alias="mscorlib" name="mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
-  <data name="textColumn3.Width" type="System.Int32, mscorlib">
-    <value>100</value>
+  <data name="nuclideColumn.ToolTipText" xml:space="preserve">
+    <value>Nuclide.
+Name of the nuclide matched to the accepted deconvolved peak.</value>
   </data>
-  <data name="textColumn1.Text" xml:space="preserve">
+  <assembly alias="mscorlib" name="mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="nuclideColumn.Width" type="System.Int32, mscorlib">
+    <value>68</value>
+  </data>
+  <metadata name="energyColumn.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>True</value>
+  </metadata>
+  <data name="energyColumn.HeaderText" xml:space="preserve">
     <value>Energy</value>
   </data>
-  <data name="textColumn1.Width" type="System.Int32, mscorlib">
-    <value>55</value>
+  <data name="energyColumn.ToolTipText" xml:space="preserve">
+    <value>Peak energy.
+Measured energy of the accepted peak after converting its channel with the current calibration.</value>
   </data>
-  <data name="textColumn4.Text" xml:space="preserve">
-    <value>Error</value>
+  <data name="energyColumn.Width" type="System.Int32, mscorlib">
+    <value>65</value>
   </data>
-  <data name="textColumn4.Width" type="System.Int32, mscorlib">
-    <value>90</value>
-  </data>
-  <data name="textColumn2.Text" xml:space="preserve">
+  <metadata name="channelColumn.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>True</value>
+  </metadata>
+  <data name="channelColumn.HeaderText" xml:space="preserve">
     <value>Channel</value>
   </data>
-  <data name="textColumn2.Width" type="System.Int32, mscorlib">
-    <value>50</value>
+  <data name="channelColumn.ToolTipText" xml:space="preserve">
+    <value>Peak channel.
+Discrete spectrum channel selected for the accepted deconvolved peak.</value>
   </data>
-  <data name="textColumn5.Text" xml:space="preserve">
+  <data name="channelColumn.Width" type="System.Int32, mscorlib">
+    <value>71</value>
+  </data>
+  <metadata name="snrColumn.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>True</value>
+  </metadata>
+  <data name="snrColumn.HeaderText" xml:space="preserve">
     <value>SNR</value>
   </data>
-  <data name="textColumn5.Width" type="System.Int32, mscorlib">
-    <value>38</value>
+  <data name="snrColumn.ToolTipText" xml:space="preserve">
+    <value>Signal-to-noise ratio.
+Shows how confidently the candidate peak stands above the local noise background.</value>
   </data>
-  <data name="textColumn6.Text" xml:space="preserve">
+  <data name="snrColumn.Width" type="System.Int32, mscorlib">
+    <value>55</value>
+  </data>
+  <metadata name="fwhmColumn.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>True</value>
+  </metadata>
+  <data name="fwhmColumn.HeaderText" xml:space="preserve">
     <value>FWHM</value>
   </data>
-  <data name="textColumn6.Width" type="System.Int32, mscorlib">
-    <value>90</value>
+  <data name="fwhmColumn.ToolTipText" xml:space="preserve">
+    <value>Peak width.
+Estimated full width at half maximum for the accepted deconvolved component.</value>
+  </data>
+  <data name="fwhmColumn.Width" type="System.Int32, mscorlib">
+    <value>66</value>
+  </data>
+  <metadata name="fwhmDeltaColumn.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>True</value>
+  </metadata>
+  <data name="fwhmDeltaColumn.HeaderText" xml:space="preserve">
+    <value>dFWHM</value>
+  </data>
+  <data name="fwhmDeltaColumn.ToolTipText" xml:space="preserve">
+    <value>FWHM deviation.
+Absolute difference between the candidate FWHM and the FWHM expected from the current calibration.</value>
+  </data>
+  <data name="fwhmDeltaColumn.Width" type="System.Int32, mscorlib">
+    <value>72</value>
+  </data>
+  <metadata name="devianceImprovementColumn.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>True</value>
+  </metadata>
+  <data name="devianceImprovementColumn.HeaderText" xml:space="preserve">
+    <value>dDev</value>
+  </data>
+  <data name="devianceImprovementColumn.ToolTipText" xml:space="preserve">
+    <value>Deviance improvement.
+Shows how much the fit quality improves when this extra component is present in the model.</value>
+  </data>
+  <data name="devianceImprovementColumn.Width" type="System.Int32, mscorlib">
+    <value>58</value>
+  </data>
+  <metadata name="occupancyColumn.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>True</value>
+  </metadata>
+  <data name="occupancyColumn.HeaderText" xml:space="preserve">
+    <value>Occ</value>
+  </data>
+  <data name="occupancyColumn.ToolTipText" xml:space="preserve">
+    <value>Posterior occupancy.
+Fraction of RJMCMC samples where a similar component is present, indicating peak stability across the chain.</value>
+  </data>
+  <data name="occupancyColumn.Width" type="System.Int32, mscorlib">
+    <value>52</value>
+  </data>
+  <metadata name="centerStdDevColumn.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>True</value>
+  </metadata>
+  <data name="centerStdDevColumn.HeaderText" xml:space="preserve">
+    <value>Center std</value>
+  </data>
+  <data name="centerStdDevColumn.ToolTipText" xml:space="preserve">
+    <value>Center spread.
+Standard deviation of the candidate center across samples; lower values mean a more stable peak position.</value>
+  </data>
+  <data name="centerStdDevColumn.Width" type="System.Int32, mscorlib">
+    <value>80</value>
+  </data>
+  <metadata name="residualSnrColumn.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>True</value>
+  </metadata>
+  <data name="residualSnrColumn.HeaderText" xml:space="preserve">
+    <value>Res SNR</value>
+  </data>
+  <data name="residualSnrColumn.ToolTipText" xml:space="preserve">
+    <value>Residual SNR.
+Strength of the residual evidence near the anchor-only solution; larger values suggest a real extra peak.</value>
+  </data>
+  <data name="residualSnrColumn.Width" type="System.Int32, mscorlib">
+    <value>77</value>
+  </data>
+  <metadata name="residualCorrelationColumn.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>True</value>
+  </metadata>
+  <data name="residualCorrelationColumn.HeaderText" xml:space="preserve">
+    <value>Res corr</value>
+  </data>
+  <data name="residualCorrelationColumn.ToolTipText" xml:space="preserve">
+    <value>Residual correlation.
+Similarity between the local residual shape and an expected peak-like residual.</value>
+  </data>
+  <data name="residualCorrelationColumn.Width" type="System.Int32, mscorlib">
+    <value>72</value>
+  </data>
+  <metadata name="anchorDistanceColumn.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>True</value>
+  </metadata>
+  <data name="anchorDistanceColumn.HeaderText" xml:space="preserve">
+    <value>Anchor dist</value>
+  </data>
+  <data name="anchorDistanceColumn.ToolTipText" xml:space="preserve">
+    <value>Distance from anchor peak.
+Offset of the extra component relative to the anchor peak center, measured in FWHM units.</value>
+  </data>
+  <data name="anchorDistanceColumn.Width" type="System.Int32, mscorlib">
+    <value>85</value>
+  </data>
+  <metadata name="supportingChainsColumn.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>True</value>
+  </metadata>
+  <data name="supportingChainsColumn.HeaderText" xml:space="preserve">
+    <value>Chains</value>
+  </data>
+  <data name="supportingChainsColumn.ToolTipText" xml:space="preserve">
+    <value>Supporting chains.
+Number of independent RJMCMC chains that produced a similar candidate within the support tolerance.</value>
+  </data>
+  <data name="supportingChainsColumn.Width" type="System.Int32, mscorlib">
+    <value>64</value>
   </data>
   <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
-  <data name="table1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>0, 75</value>
+  <data name="dataGridViewDetails.Location" type="System.Drawing.Point, System.Drawing">
+    <value>12, 12</value>
   </data>
-  <data name="table1.NoItemsText" xml:space="preserve">
-    <value />
+  <data name="dataGridViewDetails.Size" type="System.Drawing.Size, System.Drawing">
+    <value>940, 328</value>
   </data>
-  <data name="table1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>432, 148</value>
-  </data>
-  <data name="table1.TabIndex" type="System.Int32, mscorlib">
+  <data name="dataGridViewDetails.TabIndex" type="System.Int32, mscorlib">
     <value>0</value>
   </data>
-  <metadata name="tableModel1.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-    <value>152, 17</value>
-  </metadata>
-  <data name="table1.Text" xml:space="preserve">
-    <value>table1</value>
+  <data name="dataGridViewDetails.Text" xml:space="preserve">
+    <value>dataGridViewDetails</value>
   </data>
-  <data name="&gt;&gt;table1.Name" xml:space="preserve">
-    <value>table1</value>
+  <data name="&gt;&gt;dataGridViewDetails.Name" xml:space="preserve">
+    <value>dataGridViewDetails</value>
   </data>
-  <data name="&gt;&gt;table1.Type" xml:space="preserve">
-    <value>XPTable.Models.Table, BecquerelMonitor, Version=2026.7.3.2, Culture=neutral, PublicKeyToken=null</value>
+  <data name="&gt;&gt;dataGridViewDetails.Type" xml:space="preserve">
+    <value>System.Windows.Forms.DataGridView, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;table1.Parent" xml:space="preserve">
+  <data name="&gt;&gt;dataGridViewDetails.Parent" xml:space="preserve">
     <value>$this</value>
   </data>
-  <data name="&gt;&gt;table1.ZOrder" xml:space="preserve">
-    <value>11</value>
-  </data>
-  <data name="numericUpDown1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>62, 7</value>
-  </data>
-  <data name="numericUpDown1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>40, 20</value>
-  </data>
-  <data name="numericUpDown1.TabIndex" type="System.Int32, mscorlib">
+  <data name="&gt;&gt;dataGridViewDetails.ZOrder" xml:space="preserve">
     <value>1</value>
   </data>
-  <data name="numericUpDown1.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
+  <data name="buttonClose.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Bottom, Right</value>
   </data>
-  <data name="&gt;&gt;numericUpDown1.Name" xml:space="preserve">
-    <value>numericUpDown1</value>
+  <data name="buttonClose.Location" type="System.Drawing.Point, System.Drawing">
+    <value>877, 346</value>
   </data>
-  <data name="&gt;&gt;numericUpDown1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  <data name="buttonClose.Size" type="System.Drawing.Size, System.Drawing">
+    <value>75, 23</value>
   </data>
-  <data name="&gt;&gt;numericUpDown1.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;numericUpDown1.ZOrder" xml:space="preserve">
-    <value>10</value>
-  </data>
-  <data name="checkBoxDeconvolution.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="checkBoxDeconvolution.Location" type="System.Drawing.Point, System.Drawing">
-    <value>115, 9</value>
-  </data>
-  <data name="checkBoxDeconvolution.Size" type="System.Drawing.Size, System.Drawing">
-    <value>95, 17</value>
-  </data>
-  <data name="checkBoxDeconvolution.TabIndex" type="System.Int32, mscorlib">
-    <value>2</value>
-  </data>
-  <data name="checkBoxDeconvolution.Text" xml:space="preserve">
-    <value>Deconvolution</value>
-  </data>
-  <data name="&gt;&gt;checkBoxDeconvolution.Name" xml:space="preserve">
-    <value>checkBoxDeconvolution</value>
-  </data>
-  <data name="&gt;&gt;checkBoxDeconvolution.Type" xml:space="preserve">
-    <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;checkBoxDeconvolution.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;checkBoxDeconvolution.ZOrder" xml:space="preserve">
-    <value>8</value>
-  </data>
-  <data name="label1.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="label1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>7, 9</value>
-  </data>
-  <data name="label1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>50, 13</value>
-  </data>
-  <data name="label1.TabIndex" type="System.Int32, mscorlib">
-    <value>4</value>
-  </data>
-  <data name="label1.Text" xml:space="preserve">
-    <value>Min SNR</value>
-  </data>
-  <data name="&gt;&gt;label1.Name" xml:space="preserve">
-    <value>label1</value>
-  </data>
-  <data name="&gt;&gt;label1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;label1.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;label1.ZOrder" xml:space="preserve">
-    <value>9</value>
-  </data>
-  <data name="label3.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="label3.Location" type="System.Drawing.Point, System.Drawing">
-    <value>304, 10</value>
-  </data>
-  <data name="label3.Size" type="System.Drawing.Size, System.Drawing">
-    <value>55, 13</value>
-  </data>
-  <data name="label3.TabIndex" type="System.Int32, mscorlib">
-    <value>6</value>
-  </data>
-  <data name="label3.Text" xml:space="preserve">
-    <value>Tolerance</value>
-  </data>
-  <data name="&gt;&gt;label3.Name" xml:space="preserve">
-    <value>label3</value>
-  </data>
-  <data name="&gt;&gt;label3.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;label3.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;label3.ZOrder" xml:space="preserve">
-    <value>7</value>
-  </data>
-  <metadata name="contextMenuStrip1.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-    <value>272, 17</value>
-  </metadata>
-  <data name="toolStripMenuItem1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>178, 22</value>
-  </data>
-  <data name="toolStripMenuItem1.Text" xml:space="preserve">
-    <value>Add in calibration</value>
-  </data>
-  <data name="toolStripMenuItem2.Size" type="System.Drawing.Size, System.Drawing">
-    <value>178, 22</value>
-  </data>
-  <data name="toolStripMenuItem2.Text" xml:space="preserve">
-    <value>Search Isotope Base</value>
-  </data>
-  <data name="contextMenuStrip1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>179, 48</value>
-  </data>
-  <data name="&gt;&gt;contextMenuStrip1.Name" xml:space="preserve">
-    <value>contextMenuStrip1</value>
-  </data>
-  <data name="&gt;&gt;contextMenuStrip1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ContextMenuStrip, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="numericUpDown3.Location" type="System.Drawing.Point, System.Drawing">
-    <value>366, 7</value>
-  </data>
-  <data name="numericUpDown3.Size" type="System.Drawing.Size, System.Drawing">
-    <value>54, 20</value>
-  </data>
-  <data name="numericUpDown3.TabIndex" type="System.Int32, mscorlib">
-    <value>7</value>
-  </data>
-  <data name="numericUpDown3.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
-    <value>Right</value>
-  </data>
-  <data name="&gt;&gt;numericUpDown3.Name" xml:space="preserve">
-    <value>numericUpDown3</value>
-  </data>
-  <data name="&gt;&gt;numericUpDown3.Type" xml:space="preserve">
-    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;numericUpDown3.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;numericUpDown3.ZOrder" xml:space="preserve">
-    <value>6</value>
-  </data>
-  <data name="button1.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
-    <value>Top, Right</value>
-  </data>
-  <data name="button1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>335, 32</value>
-  </data>
-  <data name="button1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>90, 23</value>
-  </data>
-  <data name="button1.TabIndex" type="System.Int32, mscorlib">
-    <value>8</value>
-  </data>
-  <data name="button1.Text" xml:space="preserve">
-    <value>Edit Nuclide...</value>
-  </data>
-  <data name="&gt;&gt;button1.Name" xml:space="preserve">
-    <value>button1</value>
-  </data>
-  <data name="&gt;&gt;button1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;button1.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;button1.ZOrder" xml:space="preserve">
-    <value>5</value>
-  </data>
-  <data name="label4.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="label4.Location" type="System.Drawing.Point, System.Drawing">
-    <value>7, 60</value>
-  </data>
-  <data name="label4.Size" type="System.Drawing.Size, System.Drawing">
-    <value>84, 13</value>
-  </data>
-  <data name="label4.TabIndex" type="System.Int32, mscorlib">
-    <value>9</value>
-  </data>
-  <data name="label4.Text" xml:space="preserve">
-    <value>Detected Peaks</value>
-  </data>
-  <data name="&gt;&gt;label4.Name" xml:space="preserve">
-    <value>label4</value>
-  </data>
-  <data name="&gt;&gt;label4.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;label4.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;label4.ZOrder" xml:space="preserve">
-    <value>4</value>
-  </data>
-  <data name="comboBoxNuclSet.Location" type="System.Drawing.Point, System.Drawing">
-    <value>62, 33</value>
-  </data>
-  <data name="comboBoxNuclSet.Size" type="System.Drawing.Size, System.Drawing">
-    <value>162, 21</value>
-  </data>
-  <data name="comboBoxNuclSet.TabIndex" type="System.Int32, mscorlib">
-    <value>10</value>
-  </data>
-  <data name="&gt;&gt;comboBoxNuclSet.Name" xml:space="preserve">
-    <value>comboBoxNuclSet</value>
-  </data>
-  <data name="&gt;&gt;comboBoxNuclSet.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;comboBoxNuclSet.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;comboBoxNuclSet.ZOrder" xml:space="preserve">
-    <value>2</value>
-  </data>
-  <data name="labelSetName.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="labelSetName.Location" type="System.Drawing.Point, System.Drawing">
-    <value>7, 37</value>
-  </data>
-  <data name="labelSetName.Size" type="System.Drawing.Size, System.Drawing">
-    <value>46, 13</value>
-  </data>
-  <data name="labelSetName.TabIndex" type="System.Int32, mscorlib">
-    <value>11</value>
-  </data>
-  <data name="labelSetName.Text" xml:space="preserve">
-    <value>Use set:</value>
-  </data>
-  <data name="&gt;&gt;labelSetName.Name" xml:space="preserve">
-    <value>labelSetName</value>
-  </data>
-  <data name="&gt;&gt;labelSetName.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;labelSetName.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;labelSetName.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
-  <data name="buttonDeconvolutionInfo.Font" type="System.Drawing.Font, System.Drawing">
-    <value>Microsoft Sans Serif, 10pt, style=Bold</value>
-  </data>
-  <data name="buttonDeconvolutionInfo.Location" type="System.Drawing.Point, System.Drawing">
-    <value>230, 6</value>
-  </data>
-  <data name="buttonDeconvolutionInfo.Size" type="System.Drawing.Size, System.Drawing">
-    <value>29, 23</value>
-  </data>
-  <data name="buttonDeconvolutionInfo.TabIndex" type="System.Int32, mscorlib">
-    <value>3</value>
-  </data>
-  <data name="buttonDeconvolutionInfo.Text" xml:space="preserve">
-    <value>i</value>
-  </data>
-  <data name="&gt;&gt;buttonDeconvolutionInfo.Name" xml:space="preserve">
-    <value>buttonDeconvolutionInfo</value>
-  </data>
-  <data name="&gt;&gt;buttonDeconvolutionInfo.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;buttonDeconvolutionInfo.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;buttonDeconvolutionInfo.ZOrder" xml:space="preserve">
+  <data name="buttonClose.TabIndex" type="System.Int32, mscorlib">
     <value>1</value>
+  </data>
+  <data name="buttonClose.Text" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="&gt;&gt;buttonClose.Name" xml:space="preserve">
+    <value>buttonClose</value>
+  </data>
+  <data name="&gt;&gt;buttonClose.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;buttonClose.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;buttonClose.ZOrder" xml:space="preserve">
+    <value>0</value>
   </data>
   <metadata name="$this.Localizable" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>True</value>
@@ -480,14 +349,8 @@
   <data name="$this.AutoScaleDimensions" type="System.Drawing.SizeF, System.Drawing">
     <value>6, 13</value>
   </data>
-  <data name="$this.AutoScroll" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="$this.AutoScrollMinSize" type="System.Drawing.Size, System.Drawing">
-    <value>340, 100</value>
-  </data>
   <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
-    <value>432, 209</value>
+    <value>964, 381</value>
   </data>
   <data name="$this.Font" type="System.Drawing.Font, System.Drawing">
     <value>Microsoft Sans Serif, 8pt</value>
@@ -4761,76 +4624,97 @@
         nR7OG23/P+lc/Y4dBvlpAAAAAElFTkSuQmCC
 </value>
   </data>
-  <data name="$this.TabText" xml:space="preserve">
-    <value>Peak Detection</value>
+  <data name="$this.MinimumSize" type="System.Drawing.Size, System.Drawing">
+    <value>980, 320</value>
+  </data>
+  <data name="$this.StartPosition" type="System.Windows.Forms.FormStartPosition, System.Windows.Forms">
+    <value>CenterParent</value>
   </data>
   <data name="$this.Text" xml:space="preserve">
-    <value>Peak Detection</value>
+    <value>Deconvolution Information</value>
   </data>
-  <data name="&gt;&gt;columnModel1.Name" xml:space="preserve">
-    <value>columnModel1</value>
+  <data name="&gt;&gt;nuclideColumn.Name" xml:space="preserve">
+    <value>nuclideColumn</value>
   </data>
-  <data name="&gt;&gt;columnModel1.Type" xml:space="preserve">
-    <value>XPTable.Models.ColumnModel, BecquerelMonitor, Version=2026.7.3.2, Culture=neutral, PublicKeyToken=null</value>
+  <data name="&gt;&gt;nuclideColumn.Type" xml:space="preserve">
+    <value>System.Windows.Forms.DataGridViewTextBoxColumn, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;textColumn3.Name" xml:space="preserve">
-    <value>textColumn3</value>
+  <data name="&gt;&gt;energyColumn.Name" xml:space="preserve">
+    <value>energyColumn</value>
   </data>
-  <data name="&gt;&gt;textColumn3.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2026.7.3.2, Culture=neutral, PublicKeyToken=null</value>
+  <data name="&gt;&gt;energyColumn.Type" xml:space="preserve">
+    <value>System.Windows.Forms.DataGridViewTextBoxColumn, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;textColumn1.Name" xml:space="preserve">
-    <value>textColumn1</value>
+  <data name="&gt;&gt;channelColumn.Name" xml:space="preserve">
+    <value>channelColumn</value>
   </data>
-  <data name="&gt;&gt;textColumn1.Type" xml:space="preserve">
-    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.7.3.2, Culture=neutral, PublicKeyToken=null</value>
+  <data name="&gt;&gt;channelColumn.Type" xml:space="preserve">
+    <value>System.Windows.Forms.DataGridViewTextBoxColumn, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;textColumn4.Name" xml:space="preserve">
-    <value>textColumn4</value>
+  <data name="&gt;&gt;snrColumn.Name" xml:space="preserve">
+    <value>snrColumn</value>
   </data>
-  <data name="&gt;&gt;textColumn4.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2026.7.3.2, Culture=neutral, PublicKeyToken=null</value>
+  <data name="&gt;&gt;snrColumn.Type" xml:space="preserve">
+    <value>System.Windows.Forms.DataGridViewTextBoxColumn, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;textColumn2.Name" xml:space="preserve">
-    <value>textColumn2</value>
+  <data name="&gt;&gt;fwhmColumn.Name" xml:space="preserve">
+    <value>fwhmColumn</value>
   </data>
-  <data name="&gt;&gt;textColumn2.Type" xml:space="preserve">
-    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.7.3.2, Culture=neutral, PublicKeyToken=null</value>
+  <data name="&gt;&gt;fwhmColumn.Type" xml:space="preserve">
+    <value>System.Windows.Forms.DataGridViewTextBoxColumn, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;textColumn5.Name" xml:space="preserve">
-    <value>textColumn5</value>
+  <data name="&gt;&gt;fwhmDeltaColumn.Name" xml:space="preserve">
+    <value>fwhmDeltaColumn</value>
   </data>
-  <data name="&gt;&gt;textColumn5.Type" xml:space="preserve">
-    <value>XPTable.Models.NumberColumn, BecquerelMonitor, Version=2026.7.3.2, Culture=neutral, PublicKeyToken=null</value>
+  <data name="&gt;&gt;fwhmDeltaColumn.Type" xml:space="preserve">
+    <value>System.Windows.Forms.DataGridViewTextBoxColumn, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;textColumn6.Name" xml:space="preserve">
-    <value>textColumn6</value>
+  <data name="&gt;&gt;devianceImprovementColumn.Name" xml:space="preserve">
+    <value>devianceImprovementColumn</value>
   </data>
-  <data name="&gt;&gt;textColumn6.Type" xml:space="preserve">
-    <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2026.7.3.2, Culture=neutral, PublicKeyToken=null</value>
+  <data name="&gt;&gt;devianceImprovementColumn.Type" xml:space="preserve">
+    <value>System.Windows.Forms.DataGridViewTextBoxColumn, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;tableModel1.Name" xml:space="preserve">
-    <value>tableModel1</value>
+  <data name="&gt;&gt;occupancyColumn.Name" xml:space="preserve">
+    <value>occupancyColumn</value>
   </data>
-  <data name="&gt;&gt;tableModel1.Type" xml:space="preserve">
-    <value>XPTable.Models.TableModel, BecquerelMonitor, Version=2026.7.3.2, Culture=neutral, PublicKeyToken=null</value>
+  <data name="&gt;&gt;occupancyColumn.Type" xml:space="preserve">
+    <value>System.Windows.Forms.DataGridViewTextBoxColumn, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;toolStripMenuItem1.Name" xml:space="preserve">
-    <value>toolStripMenuItem1</value>
+  <data name="&gt;&gt;centerStdDevColumn.Name" xml:space="preserve">
+    <value>centerStdDevColumn</value>
   </data>
-  <data name="&gt;&gt;toolStripMenuItem1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  <data name="&gt;&gt;centerStdDevColumn.Type" xml:space="preserve">
+    <value>System.Windows.Forms.DataGridViewTextBoxColumn, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;toolStripMenuItem2.Name" xml:space="preserve">
-    <value>toolStripMenuItem2</value>
+  <data name="&gt;&gt;residualSnrColumn.Name" xml:space="preserve">
+    <value>residualSnrColumn</value>
   </data>
-  <data name="&gt;&gt;toolStripMenuItem2.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  <data name="&gt;&gt;residualSnrColumn.Type" xml:space="preserve">
+    <value>System.Windows.Forms.DataGridViewTextBoxColumn, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;residualCorrelationColumn.Name" xml:space="preserve">
+    <value>residualCorrelationColumn</value>
+  </data>
+  <data name="&gt;&gt;residualCorrelationColumn.Type" xml:space="preserve">
+    <value>System.Windows.Forms.DataGridViewTextBoxColumn, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;anchorDistanceColumn.Name" xml:space="preserve">
+    <value>anchorDistanceColumn</value>
+  </data>
+  <data name="&gt;&gt;anchorDistanceColumn.Type" xml:space="preserve">
+    <value>System.Windows.Forms.DataGridViewTextBoxColumn, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;supportingChainsColumn.Name" xml:space="preserve">
+    <value>supportingChainsColumn</value>
+  </data>
+  <data name="&gt;&gt;supportingChainsColumn.Type" xml:space="preserve">
+    <value>System.Windows.Forms.DataGridViewTextBoxColumn, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;$this.Name" xml:space="preserve">
-    <value>DCPeakDetectionView</value>
+    <value>PeakDeconvolutionInfoForm</value>
   </data>
   <data name="&gt;&gt;$this.Type" xml:space="preserve">
-    <value>BecquerelMonitor.ToolWindow, BecquerelMonitor, Version=2026.7.3.2, Culture=neutral, PublicKeyToken=null</value>
+    <value>System.Windows.Forms.Form, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
 </root>

@@ -181,6 +181,19 @@ namespace BecquerelMonitor
                     null,
                     refineCentroid: false);
                 peak.PeakSearchOrigin = PeakSearchOrigin.RJMCMC;
+                peak.DeconvolutionInfo = new PeakDeconvolutionInfo
+                {
+                    Amplitude = candidate.Amplitude,
+                    DevianceImprovement = candidate.DevianceImprovement,
+                    PosteriorOccupancy = candidate.PosteriorOccupancy,
+                    CenterStdDev = candidate.CenterStdDev,
+                    ResidualSnr = candidate.ResidualSnr,
+                    ResidualCorrelation = candidate.ResidualCorrelation,
+                    AnchorDistanceFwhm = candidate.AnchorDistanceFwhm,
+                    SupportingChainCount = candidate.SupportingChainCount,
+                    MinimumSnrThreshold = minSnr,
+                    MatchTolerancePercent = tol
+                };
                 peak.Nuclide = MatchNuclide(peak, tol, nuclideSet);
                 if (peak.Nuclide == null && nuclideSet?.HideUnknownPeaks == true)
                 {

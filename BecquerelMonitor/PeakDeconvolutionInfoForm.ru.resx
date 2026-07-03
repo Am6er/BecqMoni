@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="nuclideColumn.HeaderText" xml:space="preserve">
+    <value>Изотоп</value>
+  </data>
+  <data name="nuclideColumn.ToolTipText" xml:space="preserve">
+    <value>Изотоп.
+Название нуклида, сопоставленного с принятым пиком после деконволюции.</value>
+  </data>
+  <data name="energyColumn.HeaderText" xml:space="preserve">
+    <value>Энергия</value>
+  </data>
+  <data name="energyColumn.ToolTipText" xml:space="preserve">
+    <value>Энергия пика.
+Измеренная энергия принятого пика после пересчёта канала по текущей калибровке.</value>
+  </data>
+  <data name="channelColumn.HeaderText" xml:space="preserve">
+    <value>Канал</value>
+  </data>
+  <data name="channelColumn.ToolTipText" xml:space="preserve">
+    <value>Канал пика.
+Дискретный канал спектра, который был принят для итогового деконволюированного пика.</value>
+  </data>
+  <data name="snrColumn.ToolTipText" xml:space="preserve">
+    <value>Отношение сигнал/шум.
+Показывает, насколько уверенно кандидатный пик выделяется над локальным шумом.</value>
+  </data>
+  <data name="fwhmColumn.ToolTipText" xml:space="preserve">
+    <value>Ширина пика.
+Оценка полной ширины на половине высоты для принятого деконволюированного компонента.</value>
+  </data>
+  <data name="fwhmDeltaColumn.HeaderText" xml:space="preserve">
+    <value>ΔFWHM</value>
+  </data>
+  <data name="fwhmDeltaColumn.ToolTipText" xml:space="preserve">
+    <value>Отклонение FWHM.
+Абсолютная разница между FWHM кандидата и ожидаемой шириной по текущей калибровке.</value>
+  </data>
+  <data name="devianceImprovementColumn.HeaderText" xml:space="preserve">
+    <value>ΔDev</value>
+  </data>
+  <data name="devianceImprovementColumn.ToolTipText" xml:space="preserve">
+    <value>Улучшение deviance.
+Показывает, насколько лучше модель описывает данные при добавлении этого дополнительного компонента.</value>
+  </data>
+  <data name="occupancyColumn.ToolTipText" xml:space="preserve">
+    <value>Posterior occupancy.
+Доля выборок RJMCMC, в которых присутствует похожий компонент; это показатель устойчивости пика по цепи.</value>
+  </data>
+  <data name="centerStdDevColumn.HeaderText" xml:space="preserve">
+    <value>СКО центра</value>
+  </data>
+  <data name="centerStdDevColumn.ToolTipText" xml:space="preserve">
+    <value>Разброс центра.
+Стандартное отклонение положения центра кандидата по выборкам; чем меньше значение, тем стабильнее положение пика.</value>
+  </data>
+  <data name="residualSnrColumn.HeaderText" xml:space="preserve">
+    <value>SNR ост.</value>
+  </data>
+  <data name="residualSnrColumn.ToolTipText" xml:space="preserve">
+    <value>SNR остатка.
+Сила остаточного сигнала рядом с решением «только якорный пик»; большие значения поддерживают наличие отдельного пика.</value>
+  </data>
+  <data name="residualCorrelationColumn.HeaderText" xml:space="preserve">
+    <value>Корр. ост.</value>
+  </data>
+  <data name="residualCorrelationColumn.ToolTipText" xml:space="preserve">
+    <value>Корреляция остатка.
+Похожесть локального остатка на ожидаемую форму пика.</value>
+  </data>
+  <data name="anchorDistanceColumn.HeaderText" xml:space="preserve">
+    <value>Дист. якоря</value>
+  </data>
+  <data name="anchorDistanceColumn.ToolTipText" xml:space="preserve">
+    <value>Удаление от якоря.
+Смещение дополнительного компонента относительно якорного пика, выраженное в единицах FWHM.</value>
+  </data>
+  <data name="supportingChainsColumn.HeaderText" xml:space="preserve">
+    <value>Цепей</value>
+  </data>
+  <data name="supportingChainsColumn.ToolTipText" xml:space="preserve">
+    <value>Поддерживающие цепи.
+Количество независимых RJMCMC-цепей, которые нашли похожего кандидата в пределах допуска по положению.</value>
+  </data>
+  <data name="buttonClose.Text" xml:space="preserve">
+    <value>Закрыть</value>
+  </data>
+  <data name="$this.Text" xml:space="preserve">
+    <value>Параметры деконволюции</value>
+  </data>
+</root>
