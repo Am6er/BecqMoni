@@ -261,16 +261,8 @@ namespace BecquerelMonitor
         {
             foreach (Peak existingPeak in peaks)
             {
-                double duplicateDistance = Math.Max(1.0, 0.20 * Math.Max(existingPeak.FWHM, peak.FWHM));
+                double duplicateDistance = Math.Max(1.0, 0.04 * Math.Max(existingPeak.FWHM, peak.FWHM));
                 if (Math.Abs(existingPeak.Channel - peak.Channel) <= duplicateDistance)
-                {
-                    return false;
-                }
-
-                if (existingPeak.Nuclide != null &&
-                    peak.Nuclide != null &&
-                    existingPeak.Nuclide.Energy == peak.Nuclide.Energy &&
-                    Math.Abs(existingPeak.Channel - peak.Channel) <= Math.Max(2.0, 0.5 * Math.Max(existingPeak.FWHM, peak.FWHM)))
                 {
                     return false;
                 }
