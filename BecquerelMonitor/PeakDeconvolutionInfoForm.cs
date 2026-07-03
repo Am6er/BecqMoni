@@ -348,6 +348,7 @@ namespace BecquerelMonitor
             AppendKeyValue(builder, prefix + ".deconvolution.roi_start_channel", info.RoiStartChannel);
             AppendKeyValue(builder, prefix + ".deconvolution.roi_end_channel", info.RoiEndChannel);
             AppendKeyValue(builder, prefix + ".deconvolution.local_anchor_channels", JoinInts(info.LocalAnchorChannels));
+            AppendKeyValue(builder, prefix + ".deconvolution.halo_anchor_channels", JoinInts(info.HaloAnchorChannels));
             AppendKeyValue(builder, prefix + ".deconvolution.reference_anchor_channels", JoinInts(info.ReferenceAnchorChannels));
             AppendKeyValue(builder, prefix + ".deconvolution.support_tolerance_channels", CalculateSupportToleranceChannels(peak.FWHM, config));
         }

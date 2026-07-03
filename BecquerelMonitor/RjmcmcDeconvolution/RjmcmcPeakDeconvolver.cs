@@ -45,6 +45,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             public bool[] AnchorForbiddenChannels;
             public int AvailableNonAnchorChannelCount;
             public RjmcmcComponentProfile[] Profiles;
+            public Dictionary<int, RjmcmcComponentProfile> HaloProfiles;
             public double MeanObserved;
             public double AmplitudeScale;
             public double LogAmplitudeScale;
@@ -356,6 +357,12 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 rawRois.Add(roi);
             }
 
+            List<int> allAnchorChannels = rawRois
+                .SelectMany(roi => roi.AnchorChannels)
+                .Distinct()
+                .OrderBy(channel => channel)
+                .ToList();
+
             rawRois.Sort((a, b) => a.StartChannel.CompareTo(b.StartChannel));
             List<RjmcmcRoi> merged = new List<RjmcmcRoi>();
             foreach (RjmcmcRoi roi in rawRois)
@@ -395,14 +402,16 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             List<RjmcmcRoi> bounded = new List<RjmcmcRoi>();
             foreach (RjmcmcRoi roi in merged)
             {
-                foreach (RjmcmcRoi boundedRoi in SplitOrBoundRoi(roi, minChannel, maxChannel, config))
+                foreach (RjmcmcRoi boundedRoi in SplitOrBoundRoi(roi, allAnchorChannels, minChannel, maxChannel, fwhmCalibration, config))
                 {
                     boundedRoi.AnchorChannels.Sort();
+                    boundedRoi.HaloAnchorChannels.Sort();
                     boundedRoi.ReferenceAnchorChannels.Sort();
                     if (!bounded.Any(existing =>
                         existing.StartChannel == boundedRoi.StartChannel &&
                         existing.EndChannel == boundedRoi.EndChannel &&
                         existing.AnchorChannels.SequenceEqual(boundedRoi.AnchorChannels) &&
+                        existing.HaloAnchorChannels.SequenceEqual(boundedRoi.HaloAnchorChannels) &&
                         existing.ReferenceAnchorChannels.SequenceEqual(boundedRoi.ReferenceAnchorChannels)))
                     {
                         bounded.Add(boundedRoi);
@@ -420,15 +429,26 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         /// </summary>
         static IEnumerable<RjmcmcRoi> SplitOrBoundRoi(
             RjmcmcRoi roi,
+            IList<int> allAnchorChannels,
             int minChannel,
             int maxChannel,
+            FwhmCalibration fwhmCalibration,
             RjmcmcConfig config)
         {
             if (roi.Width <= config.MaxChannelsPerRoi && roi.AnchorChannels.Count <= config.MaxAnchorsPerRoi)
             {
-                CopyReferenceAnchors(roi.ReferenceAnchorChannels, roi.ReferenceAnchorChannels.Count > 0 ? roi.ReferenceAnchorChannels : roi.AnchorChannels, roi.StartChannel, roi.EndChannel);
-                yield return roi;
-                yield break;
+                PopulateLocalAnchors(roi, allAnchorChannels);
+                if (roi.AnchorChannels.Count <= config.MaxAnchorsPerRoi)
+                {
+                    CopyReferenceAnchors(
+                        roi.ReferenceAnchorChannels,
+                        allAnchorChannels,
+                        minChannel,
+                        maxChannel);
+                    PopulateHaloAnchors(roi, fwhmCalibration);
+                    yield return roi;
+                    yield break;
+                }
             }
 
             foreach (int anchorChannel in roi.AnchorChannels)
@@ -444,21 +464,101 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                     EndChannel = end
                 };
 
-                foreach (int channel in roi.AnchorChannels)
-                {
-                    if (channel >= bounded.StartChannel && channel <= bounded.EndChannel)
-                    {
-                        bounded.AnchorChannels.Add(channel);
-                    }
-                }
+                PopulateLocalAnchors(bounded, allAnchorChannels);
 
-                CopyReferenceAnchors(bounded.ReferenceAnchorChannels, roi.ReferenceAnchorChannels.Count > 0 ? roi.ReferenceAnchorChannels : roi.AnchorChannels, minChannel, maxChannel);
+                CopyReferenceAnchors(
+                    bounded.ReferenceAnchorChannels,
+                    allAnchorChannels,
+                    minChannel,
+                    maxChannel);
+                PopulateHaloAnchors(bounded, fwhmCalibration);
 
                 if (bounded.AnchorChannels.Count > 0 && bounded.AnchorChannels.Count <= config.MaxAnchorsPerRoi)
                 {
                     yield return bounded;
                 }
             }
+        }
+
+        static void PopulateLocalAnchors(RjmcmcRoi roi, IEnumerable<int> allAnchorChannels)
+        {
+            if (roi == null || allAnchorChannels == null)
+            {
+                return;
+            }
+
+            roi.AnchorChannels.Clear();
+            foreach (int anchorChannel in allAnchorChannels)
+            {
+                if (anchorChannel >= roi.StartChannel &&
+                    anchorChannel <= roi.EndChannel &&
+                    !roi.AnchorChannels.Contains(anchorChannel))
+                {
+                    roi.AnchorChannels.Add(anchorChannel);
+                }
+            }
+        }
+
+        static void PopulateHaloAnchors(RjmcmcRoi roi, FwhmCalibration fwhmCalibration)
+        {
+            if (roi == null)
+            {
+                return;
+            }
+
+            roi.HaloAnchorChannels.Clear();
+            List<int> referenceAnchorChannels = (roi.ReferenceAnchorChannels.Count > 0
+                ? roi.ReferenceAnchorChannels
+                : roi.AnchorChannels)
+                .Distinct()
+                .OrderBy(channel => channel)
+                .ToList();
+
+            int? leftNeighbor = referenceAnchorChannels
+                .Where(channel => channel < roi.StartChannel)
+                .Cast<int?>()
+                .LastOrDefault();
+            int? rightNeighbor = referenceAnchorChannels
+                .Where(channel => channel > roi.EndChannel)
+                .Cast<int?>()
+                .FirstOrDefault();
+
+            if (leftNeighbor.HasValue && DoesAnchorProfileIntersectRoi(leftNeighbor.Value, roi, fwhmCalibration))
+            {
+                roi.HaloAnchorChannels.Add(leftNeighbor.Value);
+            }
+
+            if (rightNeighbor.HasValue &&
+                !roi.HaloAnchorChannels.Contains(rightNeighbor.Value) &&
+                DoesAnchorProfileIntersectRoi(rightNeighbor.Value, roi, fwhmCalibration))
+            {
+                roi.HaloAnchorChannels.Add(rightNeighbor.Value);
+            }
+        }
+
+        static bool DoesAnchorProfileIntersectRoi(int anchorChannel, RjmcmcRoi roi, FwhmCalibration fwhmCalibration)
+        {
+            if (roi == null)
+            {
+                return false;
+            }
+
+            double fwhm = fwhmCalibration.ChannelToFwhm(anchorChannel);
+            if (!PeakShapeModel.IsFinite(fwhm) || fwhm <= 0.0)
+            {
+                return false;
+            }
+
+            double leftSupport = PeakShapeModel.GetLeftSupport(fwhmCalibration, fwhm);
+            double rightSupport = PeakShapeModel.GetRightSupport(fwhmCalibration, fwhm);
+            if (!PeakShapeModel.IsFinite(leftSupport) || !PeakShapeModel.IsFinite(rightSupport))
+            {
+                return false;
+            }
+
+            double supportStart = anchorChannel - leftSupport;
+            double supportEnd = anchorChannel + rightSupport;
+            return supportEnd >= roi.StartChannel && supportStart <= roi.EndChannel;
         }
 
         static void CopyReferenceAnchors(List<int> target, IEnumerable<int> source, int minChannel, int maxChannel)
@@ -597,6 +697,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 AnchorForbiddenChannels = anchorForbiddenChannels,
                 AvailableNonAnchorChannelCount = CountAvailableNonAnchorChannels(anchorForbiddenChannels),
                 Profiles = isUsable ? BuildComponentProfiles(roi, fwhmCalibration) : new RjmcmcComponentProfile[0],
+                HaloProfiles = isUsable ? BuildHaloComponentProfiles(roi, fwhmCalibration) : new Dictionary<int, RjmcmcComponentProfile>(),
                 MeanObserved = observed.Length > 0 ? sumResidual / observed.Length : 0.0,
                 AmplitudeScale = amplitudeScale,
                 LogAmplitudeScale = Math.Log(amplitudeScale),
@@ -669,7 +770,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         static bool[] BuildAnchorForbiddenChannels(RjmcmcRoi roi, FwhmCalibration fwhmCalibration)
         {
             bool[] forbidden = new bool[roi.Width];
-            foreach (int anchorChannel in roi.AnchorChannels)
+            foreach (int anchorChannel in EnumerateModelAnchorChannels(roi))
             {
                 double fwhm = fwhmCalibration.ChannelToFwhm(anchorChannel);
                 if (!PeakShapeModel.IsFinite(fwhm) || fwhm <= 0.0)
@@ -714,51 +815,70 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             for (int localCenter = 0; localCenter < profiles.Length; localCenter++)
             {
                 int centerChannel = roi.StartChannel + localCenter;
-                double fwhm = Math.Max(1.0, fwhmCalibration.ChannelToFwhm(centerChannel));
-                RjmcmcComponentProfile profile = new RjmcmcComponentProfile
-                {
-                    Fwhm = fwhm,
-                    StartIndex = 0,
-                    EndIndex = -1,
-                    RelativeValues = new double[0],
-                    IsValid = false
-                };
-                profiles[localCenter] = profile;
-
-                if (!PeakShapeModel.IsFinite(fwhm) || fwhm <= 0.0)
-                {
-                    continue;
-                }
-
-                double leftSupport = PeakShapeModel.GetLeftSupport(fwhmCalibration, fwhm);
-                double rightSupport = PeakShapeModel.GetRightSupport(fwhmCalibration, fwhm);
-                if (!PeakShapeModel.IsFinite(leftSupport) || !PeakShapeModel.IsFinite(rightSupport))
-                {
-                    continue;
-                }
-
-                int startChannel = Math.Max(roi.StartChannel, centerChannel - Convert.ToInt32(Math.Ceiling(leftSupport)));
-                int endChannel = Math.Min(roi.EndChannel, centerChannel + Convert.ToInt32(Math.Ceiling(rightSupport)));
-                if (startChannel > endChannel)
-                {
-                    profile.IsValid = true;
-                    continue;
-                }
-
-                profile.StartIndex = startChannel - roi.StartChannel;
-                profile.EndIndex = endChannel - roi.StartChannel;
-                profile.RelativeValues = new double[profile.EndIndex - profile.StartIndex + 1];
-                for (int localIndex = profile.StartIndex; localIndex <= profile.EndIndex; localIndex++)
-                {
-                    int channel = roi.StartChannel + localIndex;
-                    profile.RelativeValues[localIndex - profile.StartIndex] =
-                        PeakShapeModel.RelativeValue(channel - centerChannel, fwhm, fwhmCalibration);
-                }
-
-                profile.IsValid = true;
+                profiles[localCenter] = BuildComponentProfile(roi, fwhmCalibration, centerChannel);
             }
 
             return profiles;
+        }
+
+        static Dictionary<int, RjmcmcComponentProfile> BuildHaloComponentProfiles(RjmcmcRoi roi, FwhmCalibration fwhmCalibration)
+        {
+            Dictionary<int, RjmcmcComponentProfile> profiles = new Dictionary<int, RjmcmcComponentProfile>();
+            foreach (int anchorChannel in roi.HaloAnchorChannels)
+            {
+                profiles[anchorChannel] = BuildComponentProfile(roi, fwhmCalibration, anchorChannel);
+            }
+
+            return profiles;
+        }
+
+        static RjmcmcComponentProfile BuildComponentProfile(
+            RjmcmcRoi roi,
+            FwhmCalibration fwhmCalibration,
+            int centerChannel)
+        {
+            double fwhm = Math.Max(1.0, fwhmCalibration.ChannelToFwhm(centerChannel));
+            RjmcmcComponentProfile profile = new RjmcmcComponentProfile
+            {
+                Fwhm = fwhm,
+                StartIndex = 0,
+                EndIndex = -1,
+                RelativeValues = new double[0],
+                IsValid = false
+            };
+
+            if (!PeakShapeModel.IsFinite(fwhm) || fwhm <= 0.0)
+            {
+                return profile;
+            }
+
+            double leftSupport = PeakShapeModel.GetLeftSupport(fwhmCalibration, fwhm);
+            double rightSupport = PeakShapeModel.GetRightSupport(fwhmCalibration, fwhm);
+            if (!PeakShapeModel.IsFinite(leftSupport) || !PeakShapeModel.IsFinite(rightSupport))
+            {
+                return profile;
+            }
+
+            int startChannel = Math.Max(roi.StartChannel, centerChannel - Convert.ToInt32(Math.Ceiling(leftSupport)));
+            int endChannel = Math.Min(roi.EndChannel, centerChannel + Convert.ToInt32(Math.Ceiling(rightSupport)));
+            if (startChannel > endChannel)
+            {
+                profile.IsValid = true;
+                return profile;
+            }
+
+            profile.StartIndex = startChannel - roi.StartChannel;
+            profile.EndIndex = endChannel - roi.StartChannel;
+            profile.RelativeValues = new double[profile.EndIndex - profile.StartIndex + 1];
+            for (int localIndex = profile.StartIndex; localIndex <= profile.EndIndex; localIndex++)
+            {
+                int channel = roi.StartChannel + localIndex;
+                profile.RelativeValues[localIndex - profile.StartIndex] =
+                    PeakShapeModel.RelativeValue(channel - centerChannel, fwhm, fwhmCalibration);
+            }
+
+            profile.IsValid = true;
+            return profile;
         }
 
         /// <summary>
@@ -1107,34 +1227,69 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         static RjmcmcState CreateInitialState(RjmcmcRoiWorkspace workspace)
         {
             RjmcmcRoi roi = workspace.Roi;
-            int[] observed = workspace.Observed;
             RjmcmcState state = new RjmcmcState
             {
-                Anchors = new List<RjmcmcPeakComponent>(roi.AnchorChannels.Count),
+                Anchors = new List<RjmcmcPeakComponent>(CountModelAnchors(roi)),
                 Extras = new List<RjmcmcPeakComponent>()
             };
 
             EstimateBackground(workspace, out double leftMean, out double rightMean);
-            int width = Math.Max(1, observed.Length - 1);
+            int width = Math.Max(1, workspace.Observed.Length - 1);
             state.BackgroundIntercept = Math.Max(0.1, leftMean);
             state.BackgroundSlope = (rightMean - leftMean) / width;
             state.BackgroundQuadratic = 0.0;
 
-            foreach (int anchorChannel in roi.AnchorChannels)
+            foreach (int anchorChannel in EnumerateModelAnchorChannels(roi))
             {
-                int localIndex = anchorChannel - roi.StartChannel;
-                localIndex = Math.Max(0, Math.Min(observed.Length - 1, localIndex));
-                double background = FixedBackgroundAt(workspace.FixedBackground, localIndex) + BackgroundAt(state, localIndex);
-                double amplitude = Math.Max(1.0, observed[localIndex] - background);
                 state.Anchors.Add(new RjmcmcPeakComponent
                 {
                     Channel = anchorChannel,
                     Fwhm = GetProfile(workspace, anchorChannel)?.Fwhm ?? 1.0,
-                    Amplitude = amplitude
+                    Amplitude = EstimateInitialAnchorAmplitude(workspace, state, anchorChannel)
                 });
             }
 
             return state;
+        }
+
+        static double EstimateInitialAnchorAmplitude(RjmcmcRoiWorkspace workspace, RjmcmcState state, int anchorChannel)
+        {
+            if (anchorChannel >= workspace.Roi.StartChannel && anchorChannel <= workspace.Roi.EndChannel)
+            {
+                int localIndex = anchorChannel - workspace.Roi.StartChannel;
+                localIndex = Math.Max(0, Math.Min(workspace.Observed.Length - 1, localIndex));
+                double backgroundAtCenter = FixedBackgroundAt(workspace.FixedBackground, localIndex) + BackgroundAt(state, localIndex);
+                return Math.Max(1.0, workspace.Observed[localIndex] - backgroundAtCenter);
+            }
+
+            RjmcmcComponentProfile profile = GetProfile(workspace, anchorChannel);
+            if (profile == null || !profile.IsValid || profile.StartIndex > profile.EndIndex)
+            {
+                return 1.0;
+            }
+
+            double numerator = 0.0;
+            double denominator = 0.0;
+            for (int localIndex = profile.StartIndex; localIndex <= profile.EndIndex; localIndex++)
+            {
+                double relativeValue = profile.RelativeValues[localIndex - profile.StartIndex];
+                if (!PeakShapeModel.IsFinite(relativeValue) || relativeValue <= 0.0)
+                {
+                    continue;
+                }
+
+                double background = FixedBackgroundAt(workspace.FixedBackground, localIndex) + BackgroundAt(state, localIndex);
+                double residual = Math.Max(0.0, workspace.Observed[localIndex] - background);
+                numerator += residual * relativeValue;
+                denominator += relativeValue * relativeValue;
+            }
+
+            if (!PeakShapeModel.IsFinite(numerator) || !PeakShapeModel.IsFinite(denominator) || denominator <= 0.0)
+            {
+                return 1.0;
+            }
+
+            return Math.Max(1.0, numerator / denominator);
         }
 
         static void EstimateBackground(RjmcmcRoiWorkspace workspace, out double leftMean, out double rightMean)
@@ -1330,12 +1485,17 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         static RjmcmcComponentProfile GetProfile(RjmcmcRoiWorkspace workspace, int channel)
         {
             int localIndex = channel - workspace.Roi.StartChannel;
-            if (localIndex < 0 || localIndex >= workspace.Profiles.Length)
+            if (localIndex >= 0 && localIndex < workspace.Profiles.Length)
             {
-                return null;
+                return workspace.Profiles[localIndex];
             }
 
-            return workspace.Profiles[localIndex];
+            if (workspace.HaloProfiles != null && workspace.HaloProfiles.TryGetValue(channel, out RjmcmcComponentProfile profile))
+            {
+                return profile;
+            }
+
+            return null;
         }
 
         static double BackgroundAt(RjmcmcState state, int localIndex)
@@ -1964,11 +2124,42 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                     RoiStartChannel = workspace.Roi.StartChannel,
                     RoiEndChannel = workspace.Roi.EndChannel,
                     LocalAnchorChannels = workspace.Roi.AnchorChannels.ToArray(),
+                    HaloAnchorChannels = workspace.Roi.HaloAnchorChannels.ToArray(),
                     ReferenceAnchorChannels = workspace.Roi.ReferenceAnchorChannels.ToArray()
                 });
             }
 
             return candidates;
+        }
+
+        static IEnumerable<int> EnumerateModelAnchorChannels(RjmcmcRoi roi)
+        {
+            if (roi == null)
+            {
+                yield break;
+            }
+
+            HashSet<int> seen = new HashSet<int>();
+            foreach (int anchorChannel in roi.AnchorChannels)
+            {
+                if (seen.Add(anchorChannel))
+                {
+                    yield return anchorChannel;
+                }
+            }
+
+            foreach (int anchorChannel in roi.HaloAnchorChannels)
+            {
+                if (seen.Add(anchorChannel))
+                {
+                    yield return anchorChannel;
+                }
+            }
+        }
+
+        static int CountModelAnchors(RjmcmcRoi roi)
+        {
+            return EnumerateModelAnchorChannels(roi).Count();
         }
 
         /// <summary>

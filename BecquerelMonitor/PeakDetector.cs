@@ -196,6 +196,7 @@ namespace BecquerelMonitor
                     RoiStartChannel = candidate.RoiStartChannel,
                     RoiEndChannel = candidate.RoiEndChannel,
                     LocalAnchorChannels = candidate.LocalAnchorChannels,
+                    HaloAnchorChannels = candidate.HaloAnchorChannels,
                     ReferenceAnchorChannels = candidate.ReferenceAnchorChannels
                 };
                 peak.Nuclide = MatchNuclide(peak, tol, nuclideSet);
