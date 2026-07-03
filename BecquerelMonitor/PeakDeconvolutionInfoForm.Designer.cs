@@ -28,7 +28,6 @@ namespace BecquerelMonitor
             this.channelColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.snrColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.fwhmColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.fwhmDeltaColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.devianceImprovementColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.occupancyColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.centerStdDevColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
@@ -46,7 +45,7 @@ namespace BecquerelMonitor
             this.dataGridViewDetails.AllowUserToDeleteRows = false;
             this.dataGridViewDetails.AllowUserToResizeRows = false;
             resources.ApplyResources(this.dataGridViewDetails, "dataGridViewDetails");
-            this.dataGridViewDetails.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.DisplayedCells;
+            this.dataGridViewDetails.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
             this.dataGridViewDetails.BackgroundColor = System.Drawing.SystemColors.Window;
             this.dataGridViewDetails.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dataGridViewDetails.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
@@ -55,7 +54,6 @@ namespace BecquerelMonitor
             this.channelColumn,
             this.snrColumn,
             this.fwhmColumn,
-            this.fwhmDeltaColumn,
             this.devianceImprovementColumn,
             this.occupancyColumn,
             this.centerStdDevColumn,
@@ -72,6 +70,7 @@ namespace BecquerelMonitor
             // 
             // nuclideColumn
             // 
+            this.nuclideColumn.FillWeight = 68F;
             resources.ApplyResources(this.nuclideColumn, "nuclideColumn");
             this.nuclideColumn.Name = "nuclideColumn";
             this.nuclideColumn.ReadOnly = true;
@@ -80,6 +79,7 @@ namespace BecquerelMonitor
             // 
             dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleRight;
             this.energyColumn.DefaultCellStyle = dataGridViewCellStyle1;
+            this.energyColumn.FillWeight = 65F;
             resources.ApplyResources(this.energyColumn, "energyColumn");
             this.energyColumn.Name = "energyColumn";
             this.energyColumn.ReadOnly = true;
@@ -88,6 +88,7 @@ namespace BecquerelMonitor
             // 
             dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleRight;
             this.channelColumn.DefaultCellStyle = dataGridViewCellStyle2;
+            this.channelColumn.FillWeight = 71F;
             resources.ApplyResources(this.channelColumn, "channelColumn");
             this.channelColumn.Name = "channelColumn";
             this.channelColumn.ReadOnly = true;
@@ -96,6 +97,7 @@ namespace BecquerelMonitor
             // 
             dataGridViewCellStyle3.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleRight;
             this.snrColumn.DefaultCellStyle = dataGridViewCellStyle3;
+            this.snrColumn.FillWeight = 55F;
             resources.ApplyResources(this.snrColumn, "snrColumn");
             this.snrColumn.Name = "snrColumn";
             this.snrColumn.ReadOnly = true;
@@ -103,20 +105,15 @@ namespace BecquerelMonitor
             // fwhmColumn
             // 
             this.fwhmColumn.DefaultCellStyle = dataGridViewCellStyle3;
+            this.fwhmColumn.FillWeight = 66F;
             resources.ApplyResources(this.fwhmColumn, "fwhmColumn");
             this.fwhmColumn.Name = "fwhmColumn";
             this.fwhmColumn.ReadOnly = true;
             // 
-            // fwhmDeltaColumn
-            // 
-            this.fwhmDeltaColumn.DefaultCellStyle = dataGridViewCellStyle3;
-            resources.ApplyResources(this.fwhmDeltaColumn, "fwhmDeltaColumn");
-            this.fwhmDeltaColumn.Name = "fwhmDeltaColumn";
-            this.fwhmDeltaColumn.ReadOnly = true;
-            // 
             // devianceImprovementColumn
             // 
             this.devianceImprovementColumn.DefaultCellStyle = dataGridViewCellStyle3;
+            this.devianceImprovementColumn.FillWeight = 58F;
             resources.ApplyResources(this.devianceImprovementColumn, "devianceImprovementColumn");
             this.devianceImprovementColumn.Name = "devianceImprovementColumn";
             this.devianceImprovementColumn.ReadOnly = true;
@@ -124,6 +121,7 @@ namespace BecquerelMonitor
             // occupancyColumn
             // 
             this.occupancyColumn.DefaultCellStyle = dataGridViewCellStyle3;
+            this.occupancyColumn.FillWeight = 52F;
             resources.ApplyResources(this.occupancyColumn, "occupancyColumn");
             this.occupancyColumn.Name = "occupancyColumn";
             this.occupancyColumn.ReadOnly = true;
@@ -131,6 +129,7 @@ namespace BecquerelMonitor
             // centerStdDevColumn
             // 
             this.centerStdDevColumn.DefaultCellStyle = dataGridViewCellStyle3;
+            this.centerStdDevColumn.FillWeight = 80F;
             resources.ApplyResources(this.centerStdDevColumn, "centerStdDevColumn");
             this.centerStdDevColumn.Name = "centerStdDevColumn";
             this.centerStdDevColumn.ReadOnly = true;
@@ -138,6 +137,7 @@ namespace BecquerelMonitor
             // residualSnrColumn
             // 
             this.residualSnrColumn.DefaultCellStyle = dataGridViewCellStyle3;
+            this.residualSnrColumn.FillWeight = 77F;
             resources.ApplyResources(this.residualSnrColumn, "residualSnrColumn");
             this.residualSnrColumn.Name = "residualSnrColumn";
             this.residualSnrColumn.ReadOnly = true;
@@ -145,6 +145,7 @@ namespace BecquerelMonitor
             // residualCorrelationColumn
             // 
             this.residualCorrelationColumn.DefaultCellStyle = dataGridViewCellStyle3;
+            this.residualCorrelationColumn.FillWeight = 72F;
             resources.ApplyResources(this.residualCorrelationColumn, "residualCorrelationColumn");
             this.residualCorrelationColumn.Name = "residualCorrelationColumn";
             this.residualCorrelationColumn.ReadOnly = true;
@@ -152,6 +153,7 @@ namespace BecquerelMonitor
             // anchorDistanceColumn
             // 
             this.anchorDistanceColumn.DefaultCellStyle = dataGridViewCellStyle3;
+            this.anchorDistanceColumn.FillWeight = 85F;
             resources.ApplyResources(this.anchorDistanceColumn, "anchorDistanceColumn");
             this.anchorDistanceColumn.Name = "anchorDistanceColumn";
             this.anchorDistanceColumn.ReadOnly = true;
@@ -159,6 +161,7 @@ namespace BecquerelMonitor
             // supportingChainsColumn
             // 
             this.supportingChainsColumn.DefaultCellStyle = dataGridViewCellStyle3;
+            this.supportingChainsColumn.FillWeight = 64F;
             resources.ApplyResources(this.supportingChainsColumn, "supportingChainsColumn");
             this.supportingChainsColumn.Name = "supportingChainsColumn";
             this.supportingChainsColumn.ReadOnly = true;
@@ -197,7 +200,6 @@ namespace BecquerelMonitor
         private System.Windows.Forms.DataGridViewTextBoxColumn channelColumn;
         private System.Windows.Forms.DataGridViewTextBoxColumn snrColumn;
         private System.Windows.Forms.DataGridViewTextBoxColumn fwhmColumn;
-        private System.Windows.Forms.DataGridViewTextBoxColumn fwhmDeltaColumn;
         private System.Windows.Forms.DataGridViewTextBoxColumn devianceImprovementColumn;
         private System.Windows.Forms.DataGridViewTextBoxColumn occupancyColumn;
         private System.Windows.Forms.DataGridViewTextBoxColumn centerStdDevColumn;
