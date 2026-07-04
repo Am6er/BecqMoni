@@ -10,6 +10,15 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
 {
     internal static class RjmcmcPeakDeconvolver
     {
+        internal sealed class RjmcmcRuntimeStatsSnapshot
+        {
+            public bool HasData { get; set; }
+            public double LastRunElapsedMilliseconds { get; set; }
+            public double AverageElapsedMilliseconds { get; set; }
+            public int SampleCount { get; set; }
+            public int Capacity { get; set; }
+        }
+
         enum MoveKind
         {
             Birth,
@@ -133,6 +142,12 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             public double ResidualSnr;
             public double ResidualCorrelation;
         }
+
+        const int RuntimeHistoryCapacity = 10;
+        static readonly object runtimeStatsSync = new object();
+        static readonly Queue<double> recentRunElapsedMilliseconds = new Queue<double>(RuntimeHistoryCapacity);
+        static double recentRunElapsedMillisecondsSum;
+        static double lastRunElapsedMilliseconds;
 
         sealed class RjmcmcOccupancyTracker
         {
@@ -280,10 +295,61 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 return result;
             }
 
-            List<RjmcmcRoi> rois = SelectProcessableRois(BuildRois(foregroundSpectrum, finder, peakConfig, fwhmCalibration, config), config);
-            List<RjmcmcPeakCandidate> extraCandidates = ProcessRois(foregroundSpectrum, fixedBackgroundSpectrum, fwhmCalibration, rois, config);
-            result.ExtraCandidates.AddRange(extraCandidates);
-            return result;
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            try
+            {
+                List<RjmcmcRoi> rois = SelectProcessableRois(BuildRois(foregroundSpectrum, finder, peakConfig, fwhmCalibration, config), config);
+                List<RjmcmcPeakCandidate> extraCandidates = ProcessRois(foregroundSpectrum, fixedBackgroundSpectrum, fwhmCalibration, rois, config);
+                result.ExtraCandidates.AddRange(extraCandidates);
+                return result;
+            }
+            finally
+            {
+                stopwatch.Stop();
+                RjmcmcRuntimeStatsSnapshot runtimeStats = RecordRuntime(stopwatch.Elapsed.TotalMilliseconds);
+                result.LastRunElapsedMilliseconds = runtimeStats.LastRunElapsedMilliseconds;
+                result.AverageElapsedMillisecondsLast10Runs = runtimeStats.AverageElapsedMilliseconds;
+                result.AverageElapsedMillisecondsSampleCount = runtimeStats.SampleCount;
+            }
+        }
+
+        internal static RjmcmcRuntimeStatsSnapshot GetRuntimeStatsSnapshot()
+        {
+            lock (runtimeStatsSync)
+            {
+                return CreateRuntimeStatsSnapshotUnsafe();
+            }
+        }
+
+        static RjmcmcRuntimeStatsSnapshot RecordRuntime(double elapsedMilliseconds)
+        {
+            lock (runtimeStatsSync)
+            {
+                lastRunElapsedMilliseconds = elapsedMilliseconds;
+                recentRunElapsedMilliseconds.Enqueue(elapsedMilliseconds);
+                recentRunElapsedMillisecondsSum += elapsedMilliseconds;
+
+                while (recentRunElapsedMilliseconds.Count > RuntimeHistoryCapacity)
+                {
+                    recentRunElapsedMillisecondsSum -= recentRunElapsedMilliseconds.Dequeue();
+                }
+
+                return CreateRuntimeStatsSnapshotUnsafe();
+            }
+        }
+
+        static RjmcmcRuntimeStatsSnapshot CreateRuntimeStatsSnapshotUnsafe()
+        {
+            int sampleCount = recentRunElapsedMilliseconds.Count;
+            bool hasData = sampleCount > 0;
+            return new RjmcmcRuntimeStatsSnapshot
+            {
+                HasData = hasData,
+                LastRunElapsedMilliseconds = hasData ? lastRunElapsedMilliseconds : 0.0,
+                AverageElapsedMilliseconds = hasData ? recentRunElapsedMillisecondsSum / sampleCount : 0.0,
+                SampleCount = sampleCount,
+                Capacity = RuntimeHistoryCapacity
+            };
         }
 
         /// <summary>
@@ -435,49 +501,179 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             FwhmCalibration fwhmCalibration,
             RjmcmcConfig config)
         {
-            if (roi.Width <= config.MaxChannelsPerRoi && roi.AnchorChannels.Count <= config.MaxAnchorsPerRoi)
+            List<int> anchorChannels = roi?.AnchorChannels?
+                .Distinct()
+                .OrderBy(channel => channel)
+                .ToList();
+            if (anchorChannels == null || anchorChannels.Count == 0)
             {
-                PopulateLocalAnchors(roi, allAnchorChannels);
-                if (roi.AnchorChannels.Count <= config.MaxAnchorsPerRoi)
-                {
-                    CopyReferenceAnchors(
-                        roi.ReferenceAnchorChannels,
-                        allAnchorChannels,
-                        minChannel,
-                        maxChannel);
-                    PopulateHaloAnchors(roi, fwhmCalibration);
-                    yield return roi;
-                    yield break;
-                }
+                yield break;
             }
 
-            foreach (int anchorChannel in roi.AnchorChannels)
+            foreach (RjmcmcRoi bounded in SplitAnchorGroup(
+                anchorChannels,
+                allAnchorChannels,
+                minChannel,
+                maxChannel,
+                fwhmCalibration,
+                config))
             {
-                int halfWidth = Math.Max(2, config.MaxChannelsPerRoi / 2);
-                int start = Math.Max(minChannel, anchorChannel - halfWidth);
-                int end = Math.Min(maxChannel, start + config.MaxChannelsPerRoi - 1);
-                start = Math.Max(minChannel, end - config.MaxChannelsPerRoi + 1);
+                yield return bounded;
+            }
+        }
 
-                RjmcmcRoi bounded = new RjmcmcRoi
-                {
-                    StartChannel = start,
-                    EndChannel = end
-                };
+        static IEnumerable<RjmcmcRoi> SplitAnchorGroup(
+            List<int> anchorChannels,
+            IList<int> allAnchorChannels,
+            int minChannel,
+            int maxChannel,
+            FwhmCalibration fwhmCalibration,
+            RjmcmcConfig config)
+        {
+            if (anchorChannels == null || anchorChannels.Count == 0)
+            {
+                yield break;
+            }
 
+            RjmcmcRoi bounded = CreateBoundedRoi(anchorChannels, minChannel, maxChannel, fwhmCalibration, config);
+            int maxWidth = ResolveEffectiveMaxChannelsPerRoi(anchorChannels, minChannel, maxChannel, fwhmCalibration, config);
+            bool widthFits = bounded.Width <= maxWidth;
+            bool anchorCountFits = anchorChannels.Count <= config.MaxAnchorsPerRoi;
+            if (widthFits && anchorCountFits)
+            {
                 PopulateLocalAnchors(bounded, allAnchorChannels);
-
                 CopyReferenceAnchors(
                     bounded.ReferenceAnchorChannels,
                     allAnchorChannels,
                     minChannel,
                     maxChannel);
                 PopulateHaloAnchors(bounded, fwhmCalibration);
-
                 if (bounded.AnchorChannels.Count > 0 && bounded.AnchorChannels.Count <= config.MaxAnchorsPerRoi)
                 {
                     yield return bounded;
                 }
+
+                yield break;
             }
+
+            int splitIndex = FindAnchorGroupSplitIndex(anchorChannels, fwhmCalibration);
+            if (splitIndex <= 0 || splitIndex >= anchorChannels.Count)
+            {
+                PopulateLocalAnchors(bounded, allAnchorChannels);
+                CopyReferenceAnchors(
+                    bounded.ReferenceAnchorChannels,
+                    allAnchorChannels,
+                    minChannel,
+                    maxChannel);
+                PopulateHaloAnchors(bounded, fwhmCalibration);
+                if (bounded.AnchorChannels.Count > 0 && bounded.AnchorChannels.Count <= config.MaxAnchorsPerRoi)
+                {
+                    yield return bounded;
+                }
+
+                yield break;
+            }
+
+            List<int> left = anchorChannels.GetRange(0, splitIndex);
+            List<int> right = anchorChannels.GetRange(splitIndex, anchorChannels.Count - splitIndex);
+
+            foreach (RjmcmcRoi child in SplitAnchorGroup(left, allAnchorChannels, minChannel, maxChannel, fwhmCalibration, config))
+            {
+                yield return child;
+            }
+
+            foreach (RjmcmcRoi child in SplitAnchorGroup(right, allAnchorChannels, minChannel, maxChannel, fwhmCalibration, config))
+            {
+                yield return child;
+            }
+        }
+
+        static RjmcmcRoi CreateBoundedRoi(
+            IList<int> anchorChannels,
+            int minChannel,
+            int maxChannel,
+            FwhmCalibration fwhmCalibration,
+            RjmcmcConfig config)
+        {
+            int firstAnchor = anchorChannels[0];
+            int lastAnchor = anchorChannels[anchorChannels.Count - 1];
+            int leftRadius = GetAnchorRoiRadius(firstAnchor, fwhmCalibration, config);
+            int rightRadius = GetAnchorRoiRadius(lastAnchor, fwhmCalibration, config);
+            return new RjmcmcRoi
+            {
+                StartChannel = Math.Max(minChannel, firstAnchor - leftRadius),
+                EndChannel = Math.Min(maxChannel, lastAnchor + rightRadius)
+            };
+        }
+
+        static int ResolveEffectiveMaxChannelsPerRoi(
+            IList<int> anchorChannels,
+            int minChannel,
+            int maxChannel,
+            FwhmCalibration fwhmCalibration,
+            RjmcmcConfig config)
+        {
+            int availableChannels = Math.Max(1, maxChannel - minChannel + 1);
+            int spectrumGuard = Math.Min(
+                config.MaxChannelsPerRoi,
+                Math.Max(128, availableChannels / 4));
+
+            if (anchorChannels == null || anchorChannels.Count == 0)
+            {
+                return Math.Max(5, spectrumGuard);
+            }
+
+            double representativeFwhm = anchorChannels
+                .Select(channel => SanitizeFwhm(fwhmCalibration.ChannelToFwhm(channel)))
+                .OrderBy(fwhm => fwhm)
+                .ElementAt(anchorChannels.Count / 2);
+            double widthFwhm = Math.Max(
+                2.0 * config.RoiRadiusFwhm + 1.0,
+                3.0 * config.RoiRadiusFwhm);
+            int fwhmBasedLimit = Math.Max(5, Convert.ToInt32(Math.Ceiling(widthFwhm * representativeFwhm)));
+            return Math.Max(5, Math.Min(spectrumGuard, fwhmBasedLimit));
+        }
+
+        static int FindAnchorGroupSplitIndex(IList<int> anchorChannels, FwhmCalibration fwhmCalibration)
+        {
+            if (anchorChannels == null || anchorChannels.Count < 2)
+            {
+                return 0;
+            }
+
+            int bestIndex = 0;
+            double bestNormalizedGap = Double.NegativeInfinity;
+            for (int i = 0; i < anchorChannels.Count - 1; i++)
+            {
+                int leftChannel = anchorChannels[i];
+                int rightChannel = anchorChannels[i + 1];
+                double leftFwhm = SanitizeFwhm(fwhmCalibration.ChannelToFwhm(leftChannel));
+                double rightFwhm = SanitizeFwhm(fwhmCalibration.ChannelToFwhm(rightChannel));
+                double normalizedGap = (rightChannel - leftChannel) / Math.Max(1.0, 0.5 * (leftFwhm + rightFwhm));
+                if (normalizedGap > bestNormalizedGap)
+                {
+                    bestNormalizedGap = normalizedGap;
+                    bestIndex = i + 1;
+                }
+            }
+
+            return bestIndex;
+        }
+
+        static int GetAnchorRoiRadius(int anchorChannel, FwhmCalibration fwhmCalibration, RjmcmcConfig config)
+        {
+            double fwhm = SanitizeFwhm(fwhmCalibration.ChannelToFwhm(anchorChannel));
+            return Math.Max(3, Convert.ToInt32(Math.Ceiling(config.RoiRadiusFwhm * fwhm)));
+        }
+
+        static double SanitizeFwhm(double fwhm)
+        {
+            if (!PeakShapeModel.IsFinite(fwhm) || fwhm <= 0.0)
+            {
+                return 1.0;
+            }
+
+            return fwhm;
         }
 
         static void PopulateLocalAnchors(RjmcmcRoi roi, IEnumerable<int> allAnchorChannels)
