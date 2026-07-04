@@ -303,10 +303,10 @@ namespace BecquerelMonitor.Utils
             return normalizedSpectrum;
         }
 
-        public EnergySpectrum Continuum()
+        public EnergySpectrum Continuum(List<Peak> peaks = null)
         {
             EnergySpectrum continuum = this.EnergySpectrum.Clone();
-            continuum.Spectrum = SASNIP(this.EnergySpectrum.Spectrum, coeff: 1.0, useLLS: true, decreasing: true);
+            continuum.Spectrum = SASNIP(this.EnergySpectrum.Spectrum, peaks, coeff: 1.0, useLLS: true, decreasing: true);
             Parallel.For(0, continuum.NumberOfChannels, i =>
             {
                 if (continuum.Spectrum[i] > this.EnergySpectrum.Spectrum[i])
@@ -949,7 +949,7 @@ namespace BecquerelMonitor.Utils
         }
 
         // https://doi.org/10.1016/j.nima.2017.12.064
-        int[] SASNIP(int[] x, double coeff = 1.0, bool useLLS = false, bool decreasing = false)
+        int[] SASNIP(int[] x, List<Peak> peaks = null, double coeff = 1.0, bool useLLS = false, bool decreasing = false)
         {
             double[] baseline = new double[x.Length];
 
@@ -962,9 +962,7 @@ namespace BecquerelMonitor.Utils
                 baseline = x.Select(i => Convert.ToDouble(i)).ToArray();
             }
 
-            //FWHM from config
-            double[] r = new double[x.Length];
-            r = r.Select((i, iter) => (baseline[iter] == 0) ? 0 : coeff * (FWHM(iter, this.FwhmCalibration))).ToArray();
+            double[] r = BuildSnipRadius(baseline, peaks, coeff);
 
             int n = Convert.ToInt32(r.Max());
 
@@ -1003,6 +1001,69 @@ namespace BecquerelMonitor.Utils
 
             int[] baseline_arr = baseline.Select(i => Convert.ToInt32(i)).ToArray();
             return baseline_arr;
+        }
+
+        double[] BuildSnipRadius(double[] baseline, List<Peak> peaks, double coeff)
+        {
+            double[] radius = new double[baseline.Length];
+            for (int i = 0; i < baseline.Length; i++)
+            {
+                if (baseline[i] == 0)
+                {
+                    continue;
+                }
+
+                radius[i] = coeff * FWHM(i, this.FwhmCalibration);
+            }
+
+            if (peaks == null || peaks.Count == 0)
+            {
+                return radius;
+            }
+
+            int[] multiplicity = BuildPeakMultiplicityMap(baseline.Length, peaks);
+            for (int i = 0; i < radius.Length; i++)
+            {
+                if (multiplicity[i] > 1 && radius[i] > 0.0)
+                {
+                    radius[i] *= multiplicity[i];
+                }
+            }
+
+            return radius;
+        }
+
+        int[] BuildPeakMultiplicityMap(int channelsCount, List<Peak> peaks)
+        {
+            const double SupportFactor = 1.5;
+
+            int[] delta = new int[channelsCount + 1];
+            foreach (Peak peak in peaks)
+            {
+                if (peak == null || !IsFinite(peak.FWHM) || peak.FWHM <= 0.0)
+                {
+                    continue;
+                }
+
+                int halfWidth = Math.Max(1, Convert.ToInt32(Math.Ceiling(peak.FWHM * SupportFactor)));
+                int left = Math.Max(0, peak.Channel - halfWidth);
+                int right = Math.Min(channelsCount - 1, peak.Channel + halfWidth);
+                delta[left]++;
+                if (right + 1 < delta.Length)
+                {
+                    delta[right + 1]--;
+                }
+            }
+
+            int[] multiplicity = new int[channelsCount];
+            int current = 0;
+            for (int i = 0; i < channelsCount; i++)
+            {
+                current += delta[i];
+                multiplicity[i] = current;
+            }
+
+            return multiplicity;
         }
 
         double LLS(double x)

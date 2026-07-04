@@ -1158,12 +1158,14 @@ namespace BecquerelMonitor
             if (this.backgroundMode == BackgroundMode.ShowContinuum)
             {
                 SpectrumAriphmetics sa = new SpectrumAriphmetics(this.activeResultData.FwhmCalibration, this.energySpectrum, this.smoothingMethod);
-                this.continuumEnergySpectrum = sa.Continuum();
+                List<Peak> peaks = this.activeResultData.DetectedPeaks != null
+                    ? new List<Peak>(this.activeResultData.DetectedPeaks)
+                    : new List<Peak>();
+                this.continuumEnergySpectrum = sa.Continuum(peaks);
 
                 this.peakEnergySpectrum.Clear();
-                if (this.activeResultData.DetectedPeaks.Count > 0)
+                if (peaks.Count > 0)
                 {
-                    List<Peak> peaks = new List<Peak>(this.activeResultData.DetectedPeaks);
                     for (int i = 0; i < peaks.Count; i++)
                     {
                         var peakInfoTuple = sa.GetPeak(peaks[i], this.continuumEnergySpectrum);
@@ -1854,6 +1856,7 @@ namespace BecquerelMonitor
                     {
                         using (Pen pen5 = new Pen(colorConfig.BackgroundSpectrumColor.Color))
                         {
+                            pen5.Width = 2;
                             this.DrawLineChart(g, pen5, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, true);
                         }
                         for (int i = 0; i < this.peakEnergySpectrum.Count; i++)
@@ -1861,6 +1864,7 @@ namespace BecquerelMonitor
                             PeakEnergySpectrumInfo peakInfo = this.peakEnergySpectrum[i];
                             using (Pen pen5 = new Pen(peakInfo.PeakColor))
                             {
+                                pen5.Width = 2;
                                 this.DrawPeakLineChart(g, pen5, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, peakInfo.PeakSpectrum, peakInfo.MinChannel, peakInfo.MaxChannel);
                             }
                         }
