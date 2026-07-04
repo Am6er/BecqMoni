@@ -52,8 +52,42 @@ namespace BecquerelMonitor
             }
             if (mainForm.ActiveDocument != null)
             {
-                fwhmCalibration = mainForm.ActiveDocument.ActiveResultData.FwhmCalibration;
+                ResultData activeResultData = mainForm.ActiveDocument.ActiveResultData;
+                EnsureFwhmCalibration(activeResultData);
+                fwhmCalibration = activeResultData != null ? activeResultData.FwhmCalibration : null;
+                if (fwhmCalibration == null)
+                {
+                    tableModel1.Rows.Clear();
+                    calibrationProcessingPanel.Hide();
+                    UpdateCalibrateButtonState();
+                    return;
+                }
                 UpdateData();
+            }
+        }
+
+        void EnsureFwhmCalibration(ResultData resultData)
+        {
+            if (resultData == null || resultData.FwhmCalibration != null)
+            {
+                return;
+            }
+
+            FWHMPeakDetectionMethodConfig cfg = resultData.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
+            EnergyCalibration energyCalibration = resultData.EnergySpectrum != null ? resultData.EnergySpectrum.EnergyCalibration : null;
+            if (cfg == null || energyCalibration == null)
+            {
+                return;
+            }
+
+            if (cfg.FwhmCalibration == null)
+            {
+                cfg.FwhmCalibration = FwhmCalibration.DefaultCalibration(cfg, energyCalibration);
+            }
+
+            if (cfg.FwhmCalibration != null)
+            {
+                resultData.FwhmCalibration = cfg.FwhmCalibration.Clone();
             }
         }
 
@@ -212,7 +246,10 @@ namespace BecquerelMonitor
 
         void UpdateCalibrateButtonState()
         {
-            if (selectCurveComboBox.SelectedIndex == -1 ||
+            bool hasCalibration = fwhmCalibration != null;
+
+            if (!hasCalibration ||
+                selectCurveComboBox.SelectedIndex == -1 ||
                 (CollectedPeaksTable.SelectedItems.Length > 0 && CollectedPeaksTable.SelectedItems[0].Index < 0) ||
                 (lastSelectedIndex == selectCurveComboBox.SelectedIndex && calibrationDone) ||
                 minPeaksRequirement > tableModel1.Rows.Count)
@@ -222,7 +259,7 @@ namespace BecquerelMonitor
             {
                 executeCalibrationButton.Enabled = true;
             }
-            if (minPeaksRequirement > tableModel1.Rows.Count)
+            if (!hasCalibration || minPeaksRequirement > tableModel1.Rows.Count)
             {
                 saveToDeviceCfgButton.Enabled = false;
             }
@@ -230,7 +267,7 @@ namespace BecquerelMonitor
             {
                 saveToDeviceCfgButton.Enabled = true;
             }
-            if (isCalibrationPeaksExist() > 1)
+            if (hasCalibration && isCalibrationPeaksExist() > 1)
             {
                 getAllPeaksButton.Enabled = true;
             }
@@ -784,8 +821,18 @@ namespace BecquerelMonitor
             {
                 foreach (DocEnergySpectrum doc in mainForm.DocumentList)
                 {
+                    if (doc == null || doc.ResultDataFile == null || doc.ResultDataFile.ResultDataList == null)
+                    {
+                        continue;
+                    }
+
                     foreach (ResultData data in doc.ResultDataFile.ResultDataList)
                     {
+                        if (data == null || data.FwhmCalibration == null || data.FwhmCalibration.CalibrationPeaks == null)
+                        {
+                            continue;
+                        }
+
                         count += data.FwhmCalibration.CalibrationPeaks.Count;
                     }
                 }
@@ -797,14 +844,30 @@ namespace BecquerelMonitor
         {
             List<CalibrationPeak> peaks = new List<CalibrationPeak>();
             Dictionary<int, double> peaksDict = new Dictionary<int, double>();
+            ResultData activeResultData = mainForm.ActiveDocument != null ? mainForm.ActiveDocument.ActiveResultData : null;
+
+            EnsureFwhmCalibration(activeResultData);
+            if (activeResultData == null || activeResultData.FwhmCalibration == null)
+            {
+                UpdateCalibrateButtonState();
+                return;
+            }
 
             if (mainForm.DocumentList != null)
             {
                 foreach (DocEnergySpectrum doc in mainForm.DocumentList)
                 {
+                    if (doc == null || doc.ResultDataFile == null || doc.ResultDataFile.ResultDataList == null)
+                    {
+                        continue;
+                    }
+
                     foreach (ResultData data in doc.ResultDataFile.ResultDataList)
                     {
-                        if (data.FwhmCalibration.CalibrationPeaks.Count > 0)
+                        if (data != null &&
+                            data.FwhmCalibration != null &&
+                            data.FwhmCalibration.CalibrationPeaks != null &&
+                            data.FwhmCalibration.CalibrationPeaks.Count > 0)
                         {
                             peaks.AddRange(data.FwhmCalibration.CalibrationPeaks);
                         }
@@ -812,7 +875,7 @@ namespace BecquerelMonitor
                 }
                 if (peaks.Count > 0)
                 {
-                    mainForm.ActiveDocument.ActiveResultData.FwhmCalibration.CalibrationPeaks.Clear();
+                    activeResultData.FwhmCalibration.CalibrationPeaks.Clear();
                 }
                 foreach (CalibrationPeak peak in peaks)
                 {
@@ -823,7 +886,7 @@ namespace BecquerelMonitor
                     else
                     {
                         peaksDict.Add(peak.Channel, peak.FWHM);
-                        mainForm.ActiveDocument.ActiveResultData.FwhmCalibration.CalibrationPeaks.Add(peak);
+                        activeResultData.FwhmCalibration.CalibrationPeaks.Add(peak);
                         mainForm.ActiveDocument.Dirty = true;
                         calibrationDone = false;
                     }

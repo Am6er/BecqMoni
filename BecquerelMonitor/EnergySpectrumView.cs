@@ -1217,6 +1217,11 @@ namespace BecquerelMonitor
                 {
                     this.continuumEnergySpectrum.DrawingSpectrum = sa.SMA2(this.continuumEnergySpectrum.DrawingSpectrum, numberOfSMADataPoints, countlimit: countlimit, progressive: progressiveSmooth);
                 }
+                for (int i = 0; i < this.peakEnergySpectrum.Count; i++)
+                {
+                    PeakEnergySpectrumInfo peakInfo = this.peakEnergySpectrum[i];
+                    peakInfo.DrawingPeakSpectrum = sa.SMA2((double[])peakInfo.PeakSpectrum.Clone(), numberOfSMADataPoints, countlimit: countlimit, progressive: progressiveSmooth);
+                }
                 sa.Dispose();
             }
             else if (this.smoothingMethod == SmoothingMethod.WeightedMovingAverage)
@@ -1236,6 +1241,11 @@ namespace BecquerelMonitor
                 if (this.backgroundMode == BackgroundMode.ShowContinuum && this.continuumEnergySpectrum != null)
                 {
                     this.continuumEnergySpectrum.DrawingSpectrum = sa.WMA2(this.continuumEnergySpectrum.DrawingSpectrum, numberOfWMADataPoints, countlimit: countlimit, progressive: progressiveSmooth);
+                }
+                for (int i = 0; i < this.peakEnergySpectrum.Count; i++)
+                {
+                    PeakEnergySpectrumInfo peakInfo = this.peakEnergySpectrum[i];
+                    peakInfo.DrawingPeakSpectrum = sa.WMA2((double[])peakInfo.PeakSpectrum.Clone(), numberOfWMADataPoints, countlimit: countlimit, progressive: progressiveSmooth);
                 }
                 sa.Dispose();
             }
@@ -1758,7 +1768,7 @@ namespace BecquerelMonitor
                                 {
                                     using (new Pen(Color.FromArgb(alpha, peakInfo.PeakColor)))
                                     {
-                                        this.DrawPeakBarChart(g, brush, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, peakInfo.PeakSpectrum, peakInfo.MinChannel, peakInfo.MaxChannel);
+                                        this.DrawPeakBarChart(g, brush, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, peakInfo.DrawingPeakSpectrum, peakInfo.MinChannel, peakInfo.MaxChannel);
                                     }
                                 }
                             }
@@ -1828,7 +1838,7 @@ namespace BecquerelMonitor
                                 {
                                     using (new Pen(Color.FromArgb(alpha4, peakInfo.PeakColor)))
                                     {
-                                        this.DrawPeakBarChart(g, brush, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, peakInfo.PeakSpectrum, peakInfo.MinChannel, peakInfo.MaxChannel);
+                                        this.DrawPeakBarChart(g, brush, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, peakInfo.DrawingPeakSpectrum, peakInfo.MinChannel, peakInfo.MaxChannel);
                                     }
                                 }
                             }
@@ -1865,7 +1875,7 @@ namespace BecquerelMonitor
                             using (Pen pen5 = new Pen(peakInfo.PeakColor))
                             {
                                 pen5.Width = 2;
-                                this.DrawPeakLineChart(g, pen5, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, peakInfo.PeakSpectrum, peakInfo.MinChannel, peakInfo.MaxChannel);
+                                this.DrawPeakLineChart(g, pen5, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, peakInfo.DrawingPeakSpectrum, peakInfo.MinChannel, peakInfo.MaxChannel);
                             }
                         }
                     }
@@ -2194,7 +2204,34 @@ namespace BecquerelMonitor
             }
         }
 
-        void DrawPeakBarChart(Graphics g, Brush brush, EnergySpectrum spectrum, EnergyCalibration calibration, int[] peakSpectrum, int min_ch, int max_ch)
+        int GetSpectrumValueY(double value)
+        {
+            if (this.verticalScaleType == VerticalScaleType.LinearScale)
+            {
+                if (value <= 0.0)
+                {
+                    return this.height;
+                }
+                return this.height - (int)((value - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+            }
+            if (this.verticalScaleType == VerticalScaleType.PowerScale)
+            {
+                if (value <= 0.0)
+                {
+                    return this.height + 100;
+                }
+                double valuePow = Pow(value);
+                return this.height - (int)((valuePow - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+            }
+            if (value <= 0.0)
+            {
+                return this.height + 100;
+            }
+            double valueLog = Log10(value);
+            return this.height - (int)((valueLog - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+        }
+
+        void DrawPeakBarChart(Graphics g, Brush brush, EnergySpectrum spectrum, EnergyCalibration calibration, double[] peakSpectrum, int min_ch, int max_ch)
         {
             int num = this.CalcMaximumXValue() + this.scrollX + this.left;
             int i = Math.Max(this.VisibleLeftPixel, this.left);
@@ -2232,32 +2269,18 @@ namespace BecquerelMonitor
                         num4 /= spectrum.MeasurementTime;
                         peakv /= spectrum.MeasurementTime;
                     }
-                    if (num4 > 0.0 && peakv > 0.0)
+                    if (peakv > 0.0)
                     {
-                        int num5;
-                        int peak;
-                        if (this.verticalScaleType == VerticalScaleType.LinearScale)
-                        {
-                            num5 = this.height - (int)((num4 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                            peak = this.height - (int)((peakv - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                        }
-                        else if (this.verticalScaleType == VerticalScaleType.PowerScale)
-                        {
-                            double num6 = Pow(num4);
-                            num5 = this.height - (int)((num6 - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                            double peaklog = Pow(peakv);
-                            peak = this.height - (int)((peaklog - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                        }
-                        else
-                        {
-                            double num6 = Log10(num4);
-                            num5 = this.height - (int)((num6 - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                            double peaklog = Log10(peakv);
-                            peak = this.height - (int)((peaklog - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                        }
+                        int num5 = GetSpectrumValueY(num4);
+                        int peak = GetSpectrumValueY(peakv);
                         if (i > this.left)
                         {
-                            g.FillRectangle(brush, i, peak, 1, num5 - peak);
+                            int top = Math.Min(peak, num5);
+                            int bottom = Math.Max(peak, num5);
+                            if (bottom > top)
+                            {
+                                g.FillRectangle(brush, i, top, 1, bottom - top);
+                            }
                         }
                     }
                 }
@@ -2313,42 +2336,7 @@ namespace BecquerelMonitor
                 {
                     num3 = (int)(((double)i + 0.5) * this.horizontalScale) + this.scrollX + this.left;
                 }
-                int num5;
-                if (this.verticalScaleType == VerticalScaleType.LinearScale)
-                {
-                    if (num <= 0.0)
-                    {
-                        num5 = this.height;
-                    }
-                    else
-                    {
-                        num5 = this.height - (int)((num - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                    }
-                }
-                else if (this.verticalScaleType == VerticalScaleType.PowerScale)
-                {
-                    double num6 = Pow(num);
-                    if (num <= 0.0)
-                    {
-                        num5 = this.height + 100;
-                    }
-                    else
-                    {
-                        num5 = this.height - (int)((num6 - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                    }
-                }
-                else
-                {
-                    double num6 = Log10(num);
-                    if (num <= 0.0)
-                    {
-                        num5 = this.height + 100;
-                    }
-                    else
-                    {
-                        num5 = this.height - (int)((num6 - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                    }
-                }
+                int num5 = GetSpectrumValueY(num);
                 if (num3 > this.left)
                 {
                     if (!hasPreviousPoint)
@@ -2372,7 +2360,7 @@ namespace BecquerelMonitor
             }
         }
 
-        void DrawPeakLineChart(Graphics g, Pen pen, EnergySpectrum spectrum, EnergyCalibration calibration, int[] peakSpectrum, int min_ch, int max_ch)
+        void DrawPeakLineChart(Graphics g, Pen pen, EnergySpectrum spectrum, EnergyCalibration calibration, double[] peakSpectrum, int min_ch, int max_ch)
         {
             int y = this.height;
             int x = 0;
@@ -2389,10 +2377,8 @@ namespace BecquerelMonitor
             for (int i = startChannel; i <= endChannel; i++)
             {
                 double peakv = spectrum.DrawingSpectrum[i] + peakSpectrum[i];
-                double num = spectrum.DrawingSpectrum[i];
                 if (this.verticalUnit == VerticalUnit.CountsPerSecond && spectrum.MeasurementTime != 0.0)
                 {
-                    num /= spectrum.MeasurementTime;
                     peakv /= spectrum.MeasurementTime;
                 }
                 int num3;
@@ -2405,51 +2391,7 @@ namespace BecquerelMonitor
                 {
                     num3 = (int)(((double)i + 0.5) * this.horizontalScale) + this.scrollX + this.left;
                 }
-                int num5;
-                int peak;
-                if (this.verticalScaleType == VerticalScaleType.LinearScale)
-                {
-                    if (num <= 0.0 || peakv <= 0.0)
-                    {
-                        num5 = this.height;
-                        peak = this.height;
-                    }
-                    else
-                    {
-                        num5 = this.height - (int)((num - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                        peak = this.height - (int)((peakv - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                    }
-                }
-                else if (this.verticalScaleType == VerticalScaleType.PowerScale)
-                {
-                    double num6 = Pow(num);
-                    double peaklog = Pow(peakv);
-                    if (num <= 0.0 || peakv <= 0.0)
-                    {
-                        num5 = this.height + 100;
-                        peak = this.height + 100;
-                    }
-                    else
-                    {
-                        num5 = this.height - (int)((num6 - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                        peak = this.height - (int)((peaklog - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                    }
-                }
-                else
-                {
-                    double num6 = Log10(num);
-                    double peaklog = Log10(peakv);
-                    if (num <= 0.0 || peakv <= 0.0)
-                    {
-                        num5 = this.height + 100;
-                        peak = this.height + 100;
-                    }
-                    else
-                    {
-                        num5 = this.height - (int)((num6 - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                        peak = this.height - (int)((peaklog - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                    }
-                }
+                int peak = GetSpectrumValueY(peakv);
                 if (num3 > this.left)
                 {
                     try
@@ -4499,13 +4441,16 @@ namespace BecquerelMonitor
         {
             public PeakEnergySpectrumInfo(int[] peakSpectrum, int minChannel, int maxChannel, Color peakColor)
             {
-                this.PeakSpectrum = peakSpectrum;
+                this.PeakSpectrum = peakSpectrum.Select(value => (double)value).ToArray();
+                this.DrawingPeakSpectrum = (double[])this.PeakSpectrum.Clone();
                 this.MinChannel = minChannel;
                 this.MaxChannel = maxChannel;
                 this.PeakColor = peakColor;
             }
 
-            public int[] PeakSpectrum { get; private set; }
+            public double[] PeakSpectrum { get; private set; }
+
+            public double[] DrawingPeakSpectrum { get; set; }
 
             public int MinChannel { get; private set; }
 
