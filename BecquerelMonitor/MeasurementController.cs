@@ -150,6 +150,18 @@ namespace BecquerelMonitor
                     this.deviceController = (DeviceController)Activator.CreateInstance(deviceType.DeviceControllerType);
                 }
             }
+            else if (deviceType.DeviceControllerType == typeof(ObsidianDeviceController))
+            {
+                if (this.deviceController == null)
+                {
+                    this.deviceController = (DeviceController)Activator.CreateInstance(deviceType.DeviceControllerType);
+                }
+            }
+            if (this.deviceController == null)
+            {
+                MessageBox.Show(Resources.ERRInvalidDeviceType);
+                return false;
+            }
             return true;
         }
 

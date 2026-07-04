@@ -464,6 +464,15 @@
       <DependentUpon>RadiaCodeDeviceForm.cs</DependentUpon>
     </Compile>
     <Compile Include="RadiaCodeIn.cs" />
+    <Compile Include="ObsidianDeviceConfig.cs" />
+    <Compile Include="ObsidianDeviceController.cs" />
+    <Compile Include="ObsidianDeviceForm.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="ObsidianDeviceForm.Designer.cs">
+      <DependentUpon>ObsidianDeviceForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ObsidianIn.cs" />
     <Compile Include="RepeatButton.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -1052,6 +1061,13 @@
     </EmbeddedResource>
     <EmbeddedResource Include="RadiaCodeDeviceForm.ru.resx">
       <DependentUpon>RadiaCodeDeviceForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ObsidianDeviceForm.resx">
+      <DependentUpon>ObsidianDeviceForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ObsidianDeviceForm.ru.resx">
+      <DependentUpon>ObsidianDeviceForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="ROIConfigForm.resx">
       <DependentUpon>ROIConfigForm.cs</DependentUpon>

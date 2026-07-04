@@ -41946,8 +41946,14 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="DeviceTypeRadiaCode" xml:space="preserve">
     <value>RadiaCode</value>
   </data>
+  <data name="DeviceTypeObsidian" xml:space="preserve">
+    <value>Obsidian</value>
+  </data>
   <data name="ERRBLENotFound" xml:space="preserve">
     <value>Bluetooth device not found. BecqMoni should connect to RadiaCode via Bluetooth Low Energy.</value>
+  </data>
+  <data name="ERRBLENotFoundObsidian" xml:space="preserve">
+    <value>Bluetooth device not found. BecqMoni should connect to Obsidian via Bluetooth Low Energy.</value>
   </data>
   <data name="ERRBTNotSupportedByOS" xml:space="preserve">
     <value>Bluetooth doesn't supported by this OS. Could not find Windows Runtime type Windows.Devices.Bluetooth.BluetoothLEDevice.</value>
@@ -41960,6 +41966,9 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="ERREmptyRadiaCodeData" xml:space="preserve">
     <value>Empty RadiaCode address, nothing to test. Hit "Scan BLE" button, get your device in combobox and save config.</value>
+  </data>
+  <data name="ERREmptyObsidianData" xml:space="preserve">
+    <value>Empty Obsidian address, nothing to test. Hit "Scan BLE" button, get your device in combobox and save config.</value>
   </data>
   <data name="pow" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\pow.bmp;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>

@@ -187,9 +187,20 @@ namespace BecquerelMonitor
                 MessageBox.Show(Resources.CalibrationFunctionError);
                 return true;
             }
-            DeviceConfigInfo deviceConfigInfo = this.deviceConfigMap[devConfig.Guid];
-            this.deviceConfigMap.Remove(deviceConfigInfo.Guid);
-            this.deviceConfigList.Remove(deviceConfigInfo);
+            DeviceConfigInfo deviceConfigInfo = null;
+            if (!string.IsNullOrEmpty(devConfig.Guid))
+            {
+                this.deviceConfigMap.TryGetValue(devConfig.Guid, out deviceConfigInfo);
+            }
+            if (deviceConfigInfo == null)
+            {
+                deviceConfigInfo = this.deviceConfigList.Find(config => config.Guid == devConfig.Guid);
+            }
+            if (deviceConfigInfo != null)
+            {
+                this.deviceConfigMap.Remove(deviceConfigInfo.Guid);
+                this.deviceConfigList.Remove(deviceConfigInfo);
+            }
             if (devConfig.OriginalFilename != devConfig.Filename)
             {
                 try

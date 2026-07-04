@@ -276,6 +276,10 @@ namespace BecquerelMonitor
                 {
                     ((RadiaCodeDeviceController)dc).applicationCLose();
                 }
+                if (dc is ObsidianDeviceController)
+                {
+                    ((ObsidianDeviceController)dc).applicationCLose();
+                }
 
                 if (!docEnergySpectrum.IsNamed && !docEnergySpectrum.Dirty)
                 {
@@ -503,6 +507,10 @@ namespace BecquerelMonitor
                     {
                         SetStatusTextCenter($"Radiacode BLE status: {activeDocument.ActiveResultData.DetectorFeature}", false);
                     }
+                    if (activeDocument != null && activeDocument.ActiveResultData.MeasurementController.DeviceController is ObsidianDeviceController)
+                    {
+                        SetStatusTextCenter($"Obsidian BLE status: {activeDocument.ActiveResultData.DetectorFeature}", false);
+                    }
                 }
                 this.countChart += 100;
                 if (this.countChart >= this.globalConfigManager.GlobalConfig.ChartViewConfig.ChartRefreshCycle)
@@ -647,6 +655,11 @@ namespace BecquerelMonitor
                 if (this.activeDocument.ActiveResultData.DeviceConfig.InputDeviceConfig is RadiaCodeDeviceConfig)
                 {
                     SetStatusTextCenter($"Radiacode BLE status: {this.activeDocument.ActiveResultData.DetectorFeature}", false);
+                    return;
+                }
+                if (this.activeDocument.ActiveResultData.DeviceConfig.InputDeviceConfig is ObsidianDeviceConfig)
+                {
+                    SetStatusTextCenter($"Obsidian BLE status: {this.activeDocument.ActiveResultData.DetectorFeature}", false);
                     return;
                 }
             }
@@ -1387,6 +1400,7 @@ namespace BecquerelMonitor
                     this.StopRecordingOrTesting(this.activeDocument);
                     this.DestroyVCPThreads(this.activeDocument);
                     this.DestroyRCThreads(this.activeDocument);
+                    this.DestroyObsidianThreads(this.activeDocument);
                     this.UnsubscribeDocumentEvent(this.activeDocument);
                     this.documentManager.CloseDocument(this.activeDocument);
                 }
@@ -1402,7 +1416,8 @@ namespace BecquerelMonitor
                 {
                     this.StopRecordingOrTesting(docEnergySpectrum);
                     this.DestroyVCPThreads(docEnergySpectrum);
-                    this.DestroyRCThreads (docEnergySpectrum);
+                    this.DestroyRCThreads(docEnergySpectrum);
+                    this.DestroyObsidianThreads(docEnergySpectrum);
                     if (force || this.ConfirmSaveDocument(docEnergySpectrum))
                     {
                         this.UnsubscribeDocumentEvent(docEnergySpectrum);
@@ -1812,6 +1827,26 @@ namespace BecquerelMonitor
             }
         }
 
+        void DestroyObsidianThreads(DocEnergySpectrum docEnergySpectrum)
+        {
+            if (docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController is ObsidianDeviceController)
+            {
+                string guid = docEnergySpectrum.ActiveResultData.DeviceConfig.Guid;
+                int documents_with_same_device_config_guid = 0;
+                foreach (DocEnergySpectrum doc in this.documentManager.DocumentList)
+                {
+                    if (guid.Equals(doc.ActiveResultData.DeviceConfig.Guid) && doc.ActiveResultData.MeasurementController.DeviceController != null)
+                    {
+                        documents_with_same_device_config_guid++;
+                    }
+                }
+                if (documents_with_same_device_config_guid < 2)
+                {
+                    ObsidianIn.cleanUp(docEnergySpectrum.ActiveResultData.DeviceConfig.Guid);
+                }
+            }
+        }
+
         // Token: 0x06000A87 RID: 2695 RVA: 0x0003EBB8 File Offset: 0x0003CDB8
         void DocEnergySpectrum_FormClosing(object sender, FormClosingEventArgs e)
         {
@@ -1828,6 +1863,7 @@ namespace BecquerelMonitor
             this.StopRecordingOrTesting(docEnergySpectrum);
             this.DestroyVCPThreads(docEnergySpectrum);
             this.DestroyRCThreads(docEnergySpectrum);
+            this.DestroyObsidianThreads(docEnergySpectrum);
             docEnergySpectrum.FormClosing -= this.DocEnergySpectrum_FormClosing;
         }
 

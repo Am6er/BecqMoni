@@ -336,6 +336,21 @@ namespace BecquerelMonitor
                                 this.ActiveDeviceConfig.ChannelPitch = 1;
                                 break;
                             }
+                        case "Obsidian":
+                            {
+                                this.button13.Enabled = false;
+                                this.button13.Visible = false;
+                                this.button14.Enabled = false;
+                                this.button14.Visible = false;
+
+                                this.integerTextBox1.Enabled = false;
+                                this.doubleTextBox6.Enabled = false;
+                                this.integerTextBox1.Text = "1024";
+                                this.doubleTextBox6.Text = "1";
+                                this.ActiveDeviceConfig.NumberOfChannels = 1024;
+                                this.ActiveDeviceConfig.ChannelPitch = 1;
+                                break;
+                            }
                         default:
                             {
                                 this.button13.Enabled = false;
