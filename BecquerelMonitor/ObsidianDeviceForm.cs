@@ -184,6 +184,18 @@ namespace BecquerelMonitor
             {
                 return;
             }
+
+            DialogResult dialogResult = MessageBox.Show(
+                string.Format(Resources.LoadDefaultPeakFinderSettingsQuestion, "Obsidian"),
+                Resources.LoadDefaultPeakFinderSettingsQuestionTitle,
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+            if (dialogResult == DialogResult.Yes)
+            {
+                deviceConfigForm.ActiveDeviceConfig.PeakDetectionMethodConfig = ObsidianPresets.DefaultFwhmPreset();
+                deviceConfigForm.LoadPeakFinderPresetContents(deviceConfigForm.ActiveDeviceConfig);
+            }
+
             troubleShootbtn.Enabled = true;
             SetActiveDeviceConfigDirty();
         }
@@ -314,6 +326,52 @@ namespace BecquerelMonitor
                 return;
             }
             tshootText += DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss") + " " + e.Text + Environment.NewLine;
+        }
+    }
+
+    public class ObsidianPresets
+    {
+        public static FWHMPeakDetectionMethodConfig DefaultFwhmPreset()
+        {
+            FWHMPeakDetectionMethodConfig config = new FWHMPeakDetectionMethodConfig();
+            config.Ch_Concat = 1024;
+            config.FWHM_AT_0 = 5.59394239000857;
+            config.Min_FWHM_Tol = 1;
+            config.Max_FWHM_Tol = 199;
+            config.Ch_Fwhm = 291;
+            config.Width_Fwhm = 39;
+            config.Min_Range = 30;
+            config.FwhmCalibration = CreateSqrtCalibration();
+            return config;
+        }
+
+        private static FwhmCalibration CreateSqrtCalibration()
+        {
+            return new SqrtFwhmCalibration
+            {
+                CalibrationPeaks = new List<CalibrationPeak>
+                {
+                    new CalibrationPeak { Channel = 32, Energy = 59.54, FWHM = 13 },
+                    new CalibrationPeak { Channel = 139, Energy = 300.02956878446986, FWHM = 24 },
+                    new CalibrationPeak { Channel = 291, Energy = 654.51183387815468, FWHM = 39 },
+                    new CalibrationPeak { Channel = 620, Energy = 1473.44192432156, FWHM = 65 }
+                },
+                Coefficients = new[]
+                {
+                    31.292193476365014,
+                    3.4918724129749568,
+                    0.0052870613233780717
+                },
+                PeakType = FwhmCalibration.GaussianPeakType,
+                ExpGaussExpLeftTail = 1.0,
+                ExpGaussExpRightTail = 1.0,
+                VoigtSigma = 1.0,
+                VoigtGamma = 1.0,
+                GaussianChi2Total = 2861.9689761169598,
+                ExpGaussExpChi2Total = 2861.8619262196221,
+                VoigtChi2Total = 2868.8536653647052,
+                Chi2pNdp = 9.50820257846166
+            };
         }
     }
 }
