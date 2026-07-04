@@ -869,7 +869,15 @@ namespace BecquerelMonitor.Utils
 
         public (int[], int, int, Color) GetPeak(Peak peak, EnergySpectrum continuum)
         {
-            int amplitude = this.EnergySpectrum.Spectrum[peak.Channel] - continuum.Spectrum[peak.Channel];
+            double amplitude = this.EnergySpectrum.Spectrum[peak.Channel] - continuum.Spectrum[peak.Channel];
+            if (peak != null &&
+                peak.PeakSearchOrigin == PeakSearchOrigin.RJMCMC &&
+                peak.DeconvolutionInfo != null &&
+                IsFinite(peak.DeconvolutionInfo.Amplitude) &&
+                peak.DeconvolutionInfo.Amplitude > 0.0)
+            {
+                amplitude = peak.DeconvolutionInfo.Amplitude;
+            }
             double fwhm = peak.FWHM;
             int median = peak.Channel;
             if (!IsFinite(fwhm) || fwhm <= 0.0)
