@@ -15,7 +15,7 @@ namespace BecquerelMonitor
     public partial class ObsidianDeviceForm : InputDeviceForm
     {
         private readonly List<string> addressBLE = new List<string>();
-        private Dictionary<ulong, BluetoothLEDevice> devices;
+        private HashSet<ulong> devices;
         private BluetoothLEAdvertisementWatcher watcher;
         private string DeviceSerial;
         private int currentBLEindex = -1;
@@ -27,7 +27,7 @@ namespace BecquerelMonitor
         public ObsidianDeviceForm()
         {
             InitializeComponent();
-            devices = new Dictionary<ulong, BluetoothLEDevice>();
+            devices = new HashSet<ulong>();
         }
 
         public ObsidianDeviceForm(DeviceConfigForm deviceConfigForm)
@@ -37,7 +37,7 @@ namespace BecquerelMonitor
             this.deviceConfigForm = deviceConfigForm;
             base.DeviceTypeString = Resources.DeviceTypeObsidian;
             formLoading = false;
-            devices = new Dictionary<ulong, BluetoothLEDevice>();
+            devices = new HashSet<ulong>();
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -102,39 +102,34 @@ namespace BecquerelMonitor
             }
         }
 
-        private async void Watcher_Recived(BluetoothLEAdvertisementWatcher sender, BluetoothLEAdvertisementReceivedEventArgs args)
+        private void Watcher_Recived(BluetoothLEAdvertisementWatcher sender, BluetoothLEAdvertisementReceivedEventArgs args)
         {
-            if (args == null)
-            {
-                return;
-            }
-            BluetoothLEDevice localDevice = await BluetoothLEDevice.FromBluetoothAddressAsync(args.BluetoothAddress);
-            if (localDevice == null)
-            {
-                return;
-            }
-            string deviceName = localDevice.Name;
-            if (string.IsNullOrWhiteSpace(deviceName))
-            {
-                return;
-            }
-            if (deviceName.IndexOf("Obsidian", StringComparison.OrdinalIgnoreCase) == -1)
-            {
-                return;
-            }
-            if (devices == null)
-            {
-                devices = new Dictionary<ulong, BluetoothLEDevice>();
-            }
-            if (devices.ContainsKey(args.BluetoothAddress))
-            {
-                return;
-            }
-
             try
             {
+                if (args == null)
+                {
+                    return;
+                }
+                string deviceName = args.Advertisement?.LocalName;
+                if (string.IsNullOrWhiteSpace(deviceName))
+                {
+                    return;
+                }
+                if (deviceName.IndexOf("Obsidian", StringComparison.OrdinalIgnoreCase) == -1)
+                {
+                    return;
+                }
+                if (devices == null)
+                {
+                    devices = new HashSet<ulong>();
+                }
+                if (devices.Contains(args.BluetoothAddress))
+                {
+                    return;
+                }
+
                 Trace.WriteLine($"Found {deviceName} with addr {args.BluetoothAddress}");
-                devices.Add(args.BluetoothAddress, localDevice);
+                devices.Add(args.BluetoothAddress);
                 string serial = ExtractSerial(deviceName);
                 comboBox1.Invoke(new Action(() =>
                 {
@@ -246,6 +241,7 @@ namespace BecquerelMonitor
                 {
                     obsidianInputDevice.DeviceSerial = null;
                     obsidianInputDevice.AddressBLE = null;
+                    obsidianInputDevice.OBS_EnergyCalibration = null;
                     troubleShootbtn.Enabled = false;
                 }
             }
