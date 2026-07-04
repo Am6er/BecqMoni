@@ -2267,7 +2267,18 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 return candidates;
             }
 
-            foreach (RjmcmcPeakComponent extra in best.Extras.OrderBy(component => component.Channel))
+            RjmcmcState optimizedBest = best.Clone();
+            if (!OptimizeProfileLikelihoodState(optimizedBest, workspace, config))
+            {
+                optimizedBest = best.Clone();
+                if (!EvaluateState(optimizedBest, workspace, lambda, config))
+                {
+                    return candidates;
+                }
+            }
+
+            double[] reducedLambda = new double[workspace.Length];
+            foreach (RjmcmcPeakComponent extra in optimizedBest.Extras.OrderBy(component => component.Channel))
             {
                 int tolerance = CenterToleranceForFwhm(extra.Fwhm, config);
                 double anchorDistanceFwhm = NearestAnchorDistanceFwhm(extra, workspace);
@@ -2284,7 +2295,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                     continue;
                 }
 
-                ProfileDevianceResult profile = ComputeProfileDevianceImprovement(best, extra, workspace, lambda, config);
+                ProfileDevianceResult profile = ComputeProfileDevianceImprovement(optimizedBest, extra, workspace, reducedLambda, config);
                 if (profile == null ||
                     !PeakShapeModel.IsFinite(profile.Improvement) ||
                     profile.Improvement <= 0.0)
@@ -2364,19 +2375,18 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         /// likelihood-based residual checks; Gulam Razul et al. (2003), NIM A 497, 492-510.
         /// </summary>
         static ProfileDevianceResult ComputeProfileDevianceImprovement(
-            RjmcmcState best,
+            RjmcmcState optimizedBest,
             RjmcmcPeakComponent extra,
             RjmcmcRoiWorkspace workspace,
             double[] lambda,
             RjmcmcConfig config)
         {
-            RjmcmcState full = best.Clone();
-            if (!OptimizeProfileLikelihoodState(full, workspace, config))
+            if (optimizedBest == null)
             {
                 return null;
             }
 
-            RjmcmcState reduced = full.Clone();
+            RjmcmcState reduced = optimizedBest.Clone();
             if (!RemoveMatchingExtra(reduced, extra))
             {
                 return null;
@@ -2392,7 +2402,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 return null;
             }
 
-            double improvement = 2.0 * (full.LogLikelihood - reduced.LogLikelihood);
+            double improvement = 2.0 * (optimizedBest.LogLikelihood - reduced.LogLikelihood);
             if (!PeakShapeModel.IsFinite(improvement) || improvement <= 0.0)
             {
                 return null;
