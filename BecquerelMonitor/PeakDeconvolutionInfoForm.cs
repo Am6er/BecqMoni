@@ -128,6 +128,7 @@ namespace BecquerelMonitor
             AppendSpectrumSection(builder, "background_spectrum", activeResultData?.BackgroundEnergySpectrum);
             AppendPeakDetectionConfig(builder, peakConfig);
             AppendRjmcmcConfig(builder, rjmcmcConfig);
+            AppendRjmcmcRuntimeStats(builder);
             AppendEnergyCalibration(builder, activeResultData?.EnergySpectrum?.EnergyCalibration);
             AppendFwhmCalibration(builder, activeResultData?.FwhmCalibration);
             AppendDetectedPeaks(builder, activeResultData?.DetectedPeaks);
@@ -228,6 +229,22 @@ namespace BecquerelMonitor
             AppendKeyValue(builder, "rjmcmc_config_resolved.close_anchor_minimum_residual_profile_correlation", config.CloseAnchorMinimumResidualProfileCorrelation);
             AppendKeyValue(builder, "rjmcmc_config_resolved.chain_count", config.ChainCount);
             AppendKeyValue(builder, "rjmcmc_config_resolved.max_degree_of_parallelism", config.MaxDegreeOfParallelism);
+            builder.AppendLine();
+        }
+
+        void AppendRjmcmcRuntimeStats(StringBuilder builder)
+        {
+            RjmcmcPeakDeconvolver.RjmcmcRuntimeStatsSnapshot stats = RjmcmcPeakDeconvolver.GetRuntimeStatsSnapshot();
+
+            builder.AppendLine("[rjmcmc_runtime]");
+            AppendKeyValue(builder, "rjmcmc_runtime.present", stats != null && stats.HasData);
+            if (stats != null && stats.HasData)
+            {
+                AppendKeyValue(builder, "rjmcmc_runtime.last_run_ms", stats.LastRunElapsedMilliseconds);
+                AppendKeyValue(builder, "rjmcmc_runtime.average_last_10_runs_ms", stats.AverageElapsedMilliseconds);
+                AppendKeyValue(builder, "rjmcmc_runtime.sample_count", stats.SampleCount);
+                AppendKeyValue(builder, "rjmcmc_runtime.history_capacity", stats.Capacity);
+            }
             builder.AppendLine();
         }
 
