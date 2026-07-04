@@ -257,6 +257,22 @@ namespace BecquerelMonitor
                     rc_deviceConfig.RC_EnergyCalibration = null;
                 }
             }
+            else if (deviceConfig.InputDeviceConfig is ObsidianDeviceConfig)
+            {
+                ObsidianDeviceConfig obs_deviceConfig = (ObsidianDeviceConfig)deviceConfig.InputDeviceConfig;
+                if (this.energyCalibration.PolynomialOrder == 2)
+                {
+                    obs_deviceConfig.OBS_EnergyCalibration = (PolynomialEnergyCalibration)this.energyCalibration.Clone();
+                }
+                else if (this.energyCalibration.PolynomialOrder > 2 && this.rc_EnergyCalibration != null)
+                {
+                    obs_deviceConfig.OBS_EnergyCalibration = (PolynomialEnergyCalibration)this.rc_EnergyCalibration.Clone();
+                }
+                else
+                {
+                    obs_deviceConfig.OBS_EnergyCalibration = null;
+                }
+            }
             DeviceConfigManager.GetInstance().SaveConfig(activeDocument.ActiveResultData.DeviceConfig);
             activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration = this.energyCalibration;
             this.mainForm.UpdateDeviceConfigForm();
@@ -773,7 +789,7 @@ namespace BecquerelMonitor
             DeviceConfigInfo deviceConfig = activeDocument.ActiveResultData.DeviceConfig;
             if (deviceConfig != null && !string.IsNullOrEmpty(deviceConfig.Guid))
             {
-                if (deviceConfig.InputDeviceConfig is RadiaCodeDeviceConfig && PolynomOrder >= 2)
+                if ((deviceConfig.InputDeviceConfig is RadiaCodeDeviceConfig || deviceConfig.InputDeviceConfig is ObsidianDeviceConfig) && PolynomOrder >= 2)
                 {
                     if (this.checkBox2.Checked)
                     {

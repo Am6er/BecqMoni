@@ -763,4 +763,156 @@ namespace BecquerelMonitor
             this.status = status;
         }
     }
+
+    public class ObsidianCalibrationIO : IDisposable
+    {
+        private const string OBS_SETTINGS_SERVICE = "fe641600-00b0-4240-ba50-05ca45bf8aaa";
+        private const string OBS_CALIBRATION_A0 = "fe641621-00b0-4240-ba50-05ca45bf8aaa";
+        private const string OBS_CALIBRATION_A1 = "fe641622-00b0-4240-ba50-05ca45bf8aaa";
+        private const string OBS_CALIBRATION_A2 = "fe641623-00b0-4240-ba50-05ca45bf8aaa";
+
+        private BluetoothLEDevice device;
+        private GattDeviceService settingsService;
+        private GattCharacteristic a0Characteristic;
+        private GattCharacteristic a1Characteristic;
+        private GattCharacteristic a2Characteristic;
+
+        public bool Connect(string addressBle)
+        {
+            if (string.IsNullOrWhiteSpace(addressBle))
+            {
+                return false;
+            }
+
+            EnsureBluetoothEnabled();
+
+            device = BluetoothLEDevice.FromBluetoothAddressAsync(Convert.ToUInt64(addressBle)).AsTask().GetAwaiter().GetResult();
+            if (device == null)
+            {
+                return false;
+            }
+
+            GattDeviceServicesResult serviceResult =
+                device.GetGattServicesForUuidAsync(Guid.Parse(OBS_SETTINGS_SERVICE)).AsTask().GetAwaiter().GetResult();
+            if (serviceResult == null || serviceResult.Status != GattCommunicationStatus.Success || serviceResult.Services.Count == 0)
+            {
+                return false;
+            }
+
+            settingsService = serviceResult.Services[0];
+            a0Characteristic = GetCharacteristic(OBS_CALIBRATION_A0);
+            a1Characteristic = GetCharacteristic(OBS_CALIBRATION_A1);
+            a2Characteristic = GetCharacteristic(OBS_CALIBRATION_A2);
+
+            return a0Characteristic != null && a1Characteristic != null && a2Characteristic != null;
+        }
+
+        public PolynomialEnergyCalibration ReadCalibration()
+        {
+            if (a0Characteristic == null || a1Characteristic == null || a2Characteristic == null)
+            {
+                return null;
+            }
+
+            PolynomialEnergyCalibration calibration = new PolynomialEnergyCalibration();
+            calibration.PolynomialOrder = 2;
+            calibration.Coefficients = new double[3];
+            calibration.Coefficients[0] = ReadFloatCharacteristic(a0Characteristic);
+            calibration.Coefficients[1] = ReadFloatCharacteristic(a1Characteristic);
+            calibration.Coefficients[2] = ReadFloatCharacteristic(a2Characteristic);
+            return calibration;
+        }
+
+        public bool WriteCalibration(PolynomialEnergyCalibration calibration)
+        {
+            if (calibration == null || calibration.Coefficients == null || calibration.PolynomialOrder < 2 || calibration.Coefficients.Length < 3)
+            {
+                return false;
+            }
+
+            if (a0Characteristic == null || a1Characteristic == null || a2Characteristic == null)
+            {
+                return false;
+            }
+
+            return WriteFloatCharacteristic(a0Characteristic, (float)calibration.Coefficients[0])
+                && WriteFloatCharacteristic(a1Characteristic, (float)calibration.Coefficients[1])
+                && WriteFloatCharacteristic(a2Characteristic, (float)calibration.Coefficients[2]);
+        }
+
+        private static void EnsureBluetoothEnabled()
+        {
+            RadioAccessStatus access = Radio.RequestAccessAsync().AsTask().GetAwaiter().GetResult();
+            if (access != RadioAccessStatus.Allowed)
+            {
+                throw new InvalidOperationException("Bluetooth access denied.");
+            }
+
+            BluetoothAdapter adapter = BluetoothAdapter.GetDefaultAsync().AsTask().GetAwaiter().GetResult();
+            if (adapter == null)
+            {
+                throw new InvalidOperationException("Bluetooth adapter not found.");
+            }
+
+            Radio radio = adapter.GetRadioAsync().AsTask().GetAwaiter().GetResult();
+            if (radio != null && radio.State != RadioState.On)
+            {
+                radio.SetStateAsync(RadioState.On).AsTask().GetAwaiter().GetResult();
+            }
+        }
+
+        private GattCharacteristic GetCharacteristic(string uuid)
+        {
+            GattCharacteristicsResult result =
+                settingsService.GetCharacteristicsForUuidAsync(Guid.Parse(uuid)).AsTask().GetAwaiter().GetResult();
+            if (result == null || result.Status != GattCommunicationStatus.Success || result.Characteristics.Count == 0)
+            {
+                return null;
+            }
+
+            return result.Characteristics[0];
+        }
+
+        private static float ReadFloatCharacteristic(GattCharacteristic characteristic)
+        {
+            GattReadResult result = characteristic.ReadValueAsync(BluetoothCacheMode.Uncached).AsTask().GetAwaiter().GetResult();
+            if (result == null || result.Status != GattCommunicationStatus.Success)
+            {
+                throw new InvalidOperationException("Failed to read calibration characteristic.");
+            }
+
+            DataReader reader = DataReader.FromBuffer(result.Value);
+            byte[] buffer = new byte[reader.UnconsumedBufferLength];
+            reader.ReadBytes(buffer);
+            if (buffer.Length < 4)
+            {
+                throw new InvalidOperationException("Calibration characteristic value is too short.");
+            }
+
+            return BitConverter.ToSingle(buffer, 0);
+        }
+
+        private static bool WriteFloatCharacteristic(GattCharacteristic characteristic, float value)
+        {
+            DataWriter writer = new DataWriter();
+            writer.WriteBytes(BitConverter.GetBytes(value));
+            GattCommunicationStatus status = characteristic.WriteValueAsync(writer.DetachBuffer()).AsTask().GetAwaiter().GetResult();
+            return status == GattCommunicationStatus.Success;
+        }
+
+        public void Dispose()
+        {
+            if (settingsService != null)
+            {
+                settingsService.Dispose();
+                settingsService = null;
+            }
+
+            if (device != null)
+            {
+                device.Dispose();
+                device = null;
+            }
+        }
+    }
 }

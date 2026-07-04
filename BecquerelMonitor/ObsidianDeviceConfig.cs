@@ -4,6 +4,7 @@ namespace BecquerelMonitor
     {
         private string device_serial;
         private string address_ble;
+        private PolynomialEnergyCalibration obs_energy_calibration;
 
         public string DeviceSerial
         {
@@ -17,6 +18,12 @@ namespace BecquerelMonitor
             set { address_ble = value; }
         }
 
+        public PolynomialEnergyCalibration OBS_EnergyCalibration
+        {
+            get { return obs_energy_calibration; }
+            set { obs_energy_calibration = value; }
+        }
+
         public ObsidianDeviceConfig()
         {
         }
@@ -25,6 +32,7 @@ namespace BecquerelMonitor
         {
             device_serial = instance.device_serial;
             address_ble = instance.address_ble;
+            obs_energy_calibration = instance.obs_energy_calibration;
         }
 
         public override InputDeviceConfig Clone()

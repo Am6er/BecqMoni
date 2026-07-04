@@ -338,8 +338,8 @@ namespace BecquerelMonitor
                             }
                         case "Obsidian":
                             {
-                                this.button13.Enabled = false;
-                                this.button13.Visible = false;
+                                this.button13.Enabled = true;
+                                this.button13.Visible = true;
                                 this.button14.Enabled = false;
                                 this.button14.Visible = false;
 
@@ -483,6 +483,23 @@ namespace BecquerelMonitor
                 if (rc_config.RC_EnergyCalibration != null)
                 {
                     this.textBox16.Text = rc_config.RC_EnergyCalibration.ToString();
+                    this.button14.Enabled = true;
+                    this.button14.Visible = true;
+                }
+                else
+                {
+                    this.button14.Enabled = false;
+                    this.button14.Visible = true;
+                }
+            }
+            else if (type != null && type.Name == "Obsidian")
+            {
+                ObsidianDeviceConfig obs_config = (ObsidianDeviceConfig)config.InputDeviceConfig;
+                this.button13.Enabled = true;
+                this.button13.Visible = true;
+                if (obs_config.OBS_EnergyCalibration != null)
+                {
+                    this.textBox16.Text = obs_config.OBS_EnergyCalibration.ToString();
                     this.button14.Enabled = true;
                     this.button14.Visible = true;
                 }
@@ -769,6 +786,20 @@ namespace BecquerelMonitor
                     {
                         RadiaCodeDeviceConfig rc_config = (RadiaCodeDeviceConfig)config.InputDeviceConfig;
                         rc_config.RC_EnergyCalibration = this.rc_EnergyCalibration;
+                    }
+                }
+                else if (config.InputDeviceConfig is ObsidianDeviceConfig)
+                {
+                    PolynomialEnergyCalibration cal = (PolynomialEnergyCalibration)config.EnergyCalibration;
+                    if (cal.PolynomialOrder == 2)
+                    {
+                        ObsidianDeviceConfig obs_config = (ObsidianDeviceConfig)config.InputDeviceConfig;
+                        obs_config.OBS_EnergyCalibration = cal;
+                    }
+                    else if (this.rc_EnergyCalibration != null)
+                    {
+                        ObsidianDeviceConfig obs_config = (ObsidianDeviceConfig)config.InputDeviceConfig;
+                        obs_config.OBS_EnergyCalibration = this.rc_EnergyCalibration;
                     }
                 }
                 this.inputDeviceForm.SaveFormContents(config.InputDeviceConfig);
@@ -1306,6 +1337,48 @@ namespace BecquerelMonitor
                     MessageBox.Show(Resources.ERRReadDataFromPort_Empty);
                 }
             }
+            else if (this.activeDeviceConfig.DeviceType == "Obsidian")
+            {
+                ObsidianDeviceConfig deviceconfig = (ObsidianDeviceConfig)this.activeDeviceConfig.InputDeviceConfig;
+                try
+                {
+                    using (ObsidianCalibrationIO device = new ObsidianCalibrationIO())
+                    {
+                        if (!device.Connect(deviceconfig.AddressBLE))
+                        {
+                            MessageBox.Show(String.Format(Resources.ERRReadDataFromPort, deviceconfig.DeviceSerial));
+                            return;
+                        }
+
+                        PolynomialEnergyCalibration polynomialEnergyCalibration = device.ReadCalibration();
+                        if (polynomialEnergyCalibration != null)
+                        {
+                            this.activeDeviceConfig.EnergyCalibration = polynomialEnergyCalibration;
+                            deviceconfig.OBS_EnergyCalibration = (PolynomialEnergyCalibration)polynomialEnergyCalibration.Clone();
+
+                            this.numericUpDown1.Text = "0";
+                            this.numericUpDown2.Text = "0";
+                            this.numericUpDown7.Text = "0";
+                            this.numericUpDown8.Text = "0";
+                            this.numericUpDown9.Text = "0";
+
+                            this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString();
+                            this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString();
+                            this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString();
+                            this.textBox16.Text = deviceconfig.OBS_EnergyCalibration.ToString();
+                            this.button14.Enabled = true;
+                            SetActiveDeviceConfigDirty();
+                            return;
+                        }
+                    }
+
+                    MessageBox.Show(String.Format(Resources.ERRReadDataFromPort, deviceconfig.DeviceSerial));
+                }
+                catch
+                {
+                    MessageBox.Show(Resources.ERRReadDataFromPort_Empty);
+                }
+            }
         }
 
         void button14_Click(object sender, EventArgs e)
@@ -1500,6 +1573,47 @@ namespace BecquerelMonitor
                         else
                         {
                             ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + status_msg);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + ex.Message);
+                    }
+                }
+                else if (this.activeDeviceConfig.DeviceType == "Obsidian")
+                {
+                    if (this.button6.Enabled)
+                    {
+                        ShowOwnedMessageBox(Resources.MSGSaveBeforeWritingData);
+                        return;
+                    }
+                    try
+                    {
+                        Cursor.Current = Cursors.WaitCursor;
+                        b.ReportProgress(0);
+                        ObsidianDeviceConfig obs_config = (ObsidianDeviceConfig)this.activeDeviceConfig.InputDeviceConfig;
+                        PolynomialEnergyCalibration polynomialEnergyCalibration = obs_config.OBS_EnergyCalibration;
+                        if (polynomialEnergyCalibration == null)
+                        {
+                            ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + "Empty calibration");
+                            return;
+                        }
+
+                        bool commands_accepted;
+                        using (ObsidianCalibrationIO device = new ObsidianCalibrationIO())
+                        {
+                            commands_accepted = device.Connect(obs_config.AddressBLE) && device.WriteCalibration(polynomialEnergyCalibration);
+                        }
+
+                        b.ReportProgress(100);
+                        Cursor.Current = Cursors.Default;
+                        if (commands_accepted)
+                        {
+                            ShowOwnedMessageBox(Resources.MSGCoefficientsUploadedSuccesfull);
+                        }
+                        else
+                        {
+                            ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice);
                         }
                     }
                     catch (Exception ex)
