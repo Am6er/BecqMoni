@@ -675,6 +675,15 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("DeviceTypeRadiaCode", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Obsidian.
+        /// </summary>
+        public static string DeviceTypeObsidian {
+            get {
+                return ResourceManager.GetString("DeviceTypeObsidian", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Dose rate:.
@@ -803,6 +812,15 @@ namespace BecquerelMonitor.Properties {
         public static string ERRBLENotFound {
             get {
                 return ResourceManager.GetString("ERRBLENotFound", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Bluetooth device not found. BecqMoni should connect to Obsidian via Bluetooth Low Energy..
+        /// </summary>
+        public static string ERRBLENotFoundObsidian {
+            get {
+                return ResourceManager.GetString("ERRBLENotFoundObsidian", resourceCulture);
             }
         }
         
@@ -967,6 +985,15 @@ namespace BecquerelMonitor.Properties {
         public static string ERREmptyRadiaCodeData {
             get {
                 return ResourceManager.GetString("ERREmptyRadiaCodeData", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Empty Obsidian address, nothing to test. Hit &quot;Scan BLE&quot; button, get your device in combobox and save config..
+        /// </summary>
+        public static string ERREmptyObsidianData {
+            get {
+                return ResourceManager.GetString("ERREmptyObsidianData", resourceCulture);
             }
         }
         

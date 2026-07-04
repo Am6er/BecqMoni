@@ -224,6 +224,10 @@ namespace BecquerelMonitor
                 {
                     return ((RadiaCodeDeviceController)deviceController).PulseDetector;
                 }
+                else if (deviceController is ObsidianDeviceController)
+                {
+                    return ((ObsidianDeviceController)deviceController).PulseDetector;
+                }
                 return null;
             }
             set
@@ -240,6 +244,10 @@ namespace BecquerelMonitor
                 else if (deviceController is RadiaCodeDeviceController)
                 {
                     ((RadiaCodeDeviceController)deviceController).PulseDetector = value;
+                }
+                else if (deviceController is ObsidianDeviceController)
+                {
+                    ((ObsidianDeviceController)deviceController).PulseDetector = value;
                 }
             }
         }

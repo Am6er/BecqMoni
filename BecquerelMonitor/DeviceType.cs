@@ -58,6 +58,15 @@ namespace BecquerelMonitor
             deviceType.DeviceConfigType = typeof(RadiaCodeDeviceConfig);
             DeviceType.deviceTypeList.Add(deviceType);
             DeviceType.deviceTypeMap.Add(deviceType.Id, deviceType);
+
+            deviceType = new DeviceType();
+            deviceType.Id = "Obsidian";
+            deviceType.Name = Resources.DeviceTypeObsidian;
+            deviceType.DeviceConfigFormType = typeof(ObsidianDeviceForm);
+            deviceType.DeviceControllerType = typeof(ObsidianDeviceController);
+            deviceType.DeviceConfigType = typeof(ObsidianDeviceConfig);
+            DeviceType.deviceTypeList.Add(deviceType);
+            DeviceType.deviceTypeMap.Add(deviceType.Id, deviceType);
         }
 
         // Token: 0x17000156 RID: 342

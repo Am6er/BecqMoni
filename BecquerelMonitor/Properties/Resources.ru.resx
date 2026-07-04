@@ -614,6 +614,9 @@
   <data name="ERRBLENotFound" xml:space="preserve">
     <value>Устройство Bluetooth не обнаружено. BecqMoni подключается к RadiaCode по Bluetooth Low Energy.</value>
   </data>
+  <data name="ERRBLENotFoundObsidian" xml:space="preserve">
+    <value>Устройство Bluetooth не обнаружено. BecqMoni подключается к Obsidian по Bluetooth Low Energy.</value>
+  </data>
   <data name="ERRBTNotSupportedByOS" xml:space="preserve">
     <value>Bluetooth не поддерживается данной OS. Не могу найти Windows Runtime type Windows.Devices.Bluetooth.BluetoothLEDevice.</value>
   </data>
@@ -625,6 +628,12 @@
   </data>
   <data name="ERREmptyRadiaCodeData" xml:space="preserve">
     <value>Отсутствуют данные об устройстве RadiaCode, нечего проверять. Нажмите кнопку "Scan BLE", выберите своё устройство и сохраните конфиг.</value>
+  </data>
+  <data name="ERREmptyObsidianData" xml:space="preserve">
+    <value>Отсутствуют данные об устройстве Obsidian, нечего проверять. Нажмите кнопку "Scan BLE", выберите своё устройство и сохраните конфиг.</value>
+  </data>
+  <data name="DeviceTypeObsidian" xml:space="preserve">
+    <value>Obsidian</value>
   </data>
   <data name="Centroid" xml:space="preserve">
     <value>Центр</value>
