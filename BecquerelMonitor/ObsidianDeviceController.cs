@@ -10,9 +10,8 @@ namespace BecquerelMonitor
         private bool new_document_created = false;
         private string deviceGuid;
         private ResultData resultData;
-        private bool already_subscribed = false;
-        private string previous_guid;
         private string status = "Unknown";
+        private ObsidianIn subscribedInstance;
 
         public ObsidianDeviceController()
         {
@@ -22,7 +21,16 @@ namespace BecquerelMonitor
 
         private void ObsidianDeviceController_DeviceConfigListChanged(object sender, DeviceConfigChangedEventArgs e)
         {
-            already_subscribed = false;
+            if (resultData == null || subscribedInstance == null)
+            {
+                return;
+            }
+
+            if (resultData.DeviceConfig != null &&
+                resultData.DeviceConfig.InputDeviceConfig is ObsidianDeviceConfig deviceConfig)
+            {
+                subscribedInstance.setDeviceSerial(deviceConfig.DeviceSerial, deviceConfig.AddressBLE);
+            }
         }
 
         public double getCPS()
@@ -43,7 +51,7 @@ namespace BecquerelMonitor
         {
             if (deviceGuid != null)
             {
-                if (status == "Connected")
+                if (status == "Connected" || status == "Recording")
                 {
                     ObsidianIn.getInstance(deviceGuid).sendCommand("Reset");
                     resultData.StartTime = DateTime.Now;
@@ -57,64 +65,32 @@ namespace BecquerelMonitor
 
         public override bool StartMeasurement(ResultData resultData)
         {
-            ResultDataStatus resultDataStatus = resultData.ResultDataStatus;
+            ResultDataStatus currentResultDataStatus = resultData.ResultDataStatus;
             this.resultData = resultData;
             deviceGuid = resultData.DeviceConfig.Guid;
-            this.resultDataStatus = resultDataStatus;
+            this.resultDataStatus = currentResultDataStatus;
             if (resultData.DeviceConfig.InputDeviceConfig.GetType() == typeof(ObsidianDeviceConfig))
             {
                 pulseDetector.Pulses = resultData.PulseCollection;
                 pulseDetector.EnergySpectrum = resultData.EnergySpectrum;
                 ObsidianDeviceConfig deviceConfig = (ObsidianDeviceConfig)resultData.DeviceConfig.InputDeviceConfig;
-                DeviceConfigInfo dci = DeviceConfigManager.GetInstance().DeviceConfigMap[resultData.DeviceConfig.Guid];
+                ObsidianIn instance = ObsidianIn.getInstance(deviceGuid);
+                DeviceConfigManager.GetInstance().DeviceConfigMap.TryGetValue(resultData.DeviceConfig.Guid, out DeviceConfigInfo dci);
                 if (dci != null && dci.InputDeviceConfig is ObsidianDeviceConfig)
                 {
                     ObsidianDeviceConfig dc = (ObsidianDeviceConfig)dci.InputDeviceConfig;
-                    ObsidianIn.getInstance(deviceGuid).setDeviceSerial(dc.DeviceSerial, dc.AddressBLE);
+                    instance.setDeviceSerial(dc.DeviceSerial, dc.AddressBLE);
                 }
                 else
                 {
-                    ObsidianIn.getInstance(resultData.DeviceConfig.Guid).setDeviceSerial(deviceConfig.DeviceSerial, deviceConfig.AddressBLE);
+                    instance.setDeviceSerial(deviceConfig.DeviceSerial, deviceConfig.AddressBLE);
                 }
 
-                if (previous_guid != null && !previous_guid.Equals(resultData.DeviceConfig.Guid))
-                {
-                    already_subscribed = false;
-                    try
-                    {
-                        ObsidianIn.getInstance(previous_guid).DataReady -= DataIn_DataReady;
-                        ObsidianIn.getInstance(previous_guid).PortFailure -= ObsidianDeviceController_PortFailure;
-                        ObsidianIn.getInstance(previous_guid).Status -= ObsidianDeviceController_Status;
-                    }
-                    catch (Exception)
-                    {
-                    }
-                }
-
-                if (!already_subscribed)
-                {
-                    ObsidianIn.getInstance(resultData.DeviceConfig.Guid).DataReady += DataIn_DataReady;
-                    ObsidianIn.getInstance(resultData.DeviceConfig.Guid).PortFailure += ObsidianDeviceController_PortFailure;
-                    ObsidianIn.getInstance(resultData.DeviceConfig.Guid).Status += ObsidianDeviceController_Status;
-                    already_subscribed = true;
-                }
-
-                previous_guid = resultData.DeviceConfig.Guid;
-                bool commands_accepted = true;
-                ObsidianIn.getInstance(resultData.DeviceConfig.Guid).sendCommand("Start");
-                if (new_document_created)
-                {
-                    resultData.StartTime = DateTime.Now;
-                    if (commands_accepted)
-                    {
-                        new_document_created = false;
-                    }
-                }
-                resultDataStatus.Recording = commands_accepted;
-                if (commands_accepted)
-                {
-                    return true;
-                }
+                SubscribeToInstance(instance);
+                currentResultDataStatus.Recording = false;
+                resultData.DetectorFeature = "Starting";
+                instance.sendCommand("Start");
+                return true;
             }
             return false;
         }
@@ -133,6 +109,22 @@ namespace BecquerelMonitor
             if (resultData != null && resultData.ResultDataStatus != null)
             {
                 resultData.DetectorFeature = currentStatus;
+                switch (currentStatus)
+                {
+                    case "Recording":
+                        resultData.ResultDataStatus.Recording = true;
+                        break;
+                    case "Starting":
+                    case "Connecting":
+                    case "Connected":
+                    case "Reconnecting":
+                    case "Resetting":
+                    case "Faulted":
+                    case "Stopped":
+                    case "Disconnected":
+                        resultData.ResultDataStatus.Recording = false;
+                        break;
+                }
             }
         }
 
@@ -169,6 +161,21 @@ namespace BecquerelMonitor
 
         private void update_hystogram(ObsidianInDataReadyArgs e)
         {
+            if (resultDataStatus == null)
+            {
+                return;
+            }
+
+            if (!resultDataStatus.Recording)
+            {
+                resultDataStatus.Recording = true;
+                if (new_document_created && resultData != null)
+                {
+                    resultData.StartTime = DateTime.Now;
+                    new_document_created = false;
+                }
+            }
+
             if (resultDataStatus.Recording)
             {
                 e.Hystogram.CopyTo(pulseDetector.EnergySpectrum.Spectrum, 0);
@@ -185,12 +192,12 @@ namespace BecquerelMonitor
 
         public override void StopMeasurement(ResultData resultData)
         {
-            ResultDataStatus resultDataStatus = resultData.ResultDataStatus;
+            ResultDataStatus currentResultDataStatus = resultData.ResultDataStatus;
             if (deviceGuid != null)
             {
                 ObsidianIn.getInstance(deviceGuid).sendCommand("Stop");
                 resultData.EndTime = DateTime.Now;
-                resultDataStatus.Recording = false;
+                currentResultDataStatus.Recording = false;
             }
         }
 
@@ -212,7 +219,46 @@ namespace BecquerelMonitor
 
         public void Dispose()
         {
-            throw new NotImplementedException();
+            DeviceConfigManager.GetInstance().DeviceConfigListChanged -= ObsidianDeviceController_DeviceConfigListChanged;
+            UnsubscribeFromInstance();
+        }
+
+        private void SubscribeToInstance(ObsidianIn instance)
+        {
+            if (ReferenceEquals(subscribedInstance, instance))
+            {
+                return;
+            }
+
+            UnsubscribeFromInstance();
+            if (instance == null)
+            {
+                return;
+            }
+
+            instance.DataReady += DataIn_DataReady;
+            instance.PortFailure += ObsidianDeviceController_PortFailure;
+            instance.Status += ObsidianDeviceController_Status;
+            subscribedInstance = instance;
+        }
+
+        private void UnsubscribeFromInstance()
+        {
+            if (subscribedInstance == null)
+            {
+                return;
+            }
+
+            try
+            {
+                subscribedInstance.DataReady -= DataIn_DataReady;
+                subscribedInstance.PortFailure -= ObsidianDeviceController_PortFailure;
+                subscribedInstance.Status -= ObsidianDeviceController_Status;
+            }
+            catch (Exception)
+            {
+            }
+            subscribedInstance = null;
         }
     }
 }

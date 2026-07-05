@@ -15,10 +15,9 @@ namespace BecquerelMonitor
     public partial class RadiaCodeDeviceForm : InputDeviceForm
     {
         private List<String> adressBLE = new List<String>();
-        private Dictionary<ulong, BluetoothLEDevice> devices;
+        private HashSet<ulong> devices;
         private Dictionary<string, string> devicePreset;
         private BluetoothLEAdvertisementWatcher watcher;
-        private BluetoothLEDevice dev;
         private string DeviceSerial;
         private int currentBLEindex = -1;
         bool formLoading = false;
@@ -28,6 +27,8 @@ namespace BecquerelMonitor
         public RadiaCodeDeviceForm()
         {
             InitializeComponent();
+            devices = new HashSet<ulong>();
+            devicePreset = new Dictionary<string, string>();
         }
 
         public RadiaCodeDeviceForm(DeviceConfigForm deviceConfigForm)
@@ -37,8 +38,6 @@ namespace BecquerelMonitor
             this.deviceConfigForm = deviceConfigForm;
             base.DeviceTypeString = Resources.DeviceTypeRadiaCode;
             this.formLoading = false;
-            devices = new Dictionary<ulong, BluetoothLEDevice>();
-            devicePreset = new Dictionary<string, string>();
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -90,6 +89,7 @@ namespace BecquerelMonitor
                 devicePreset.Clear();
                 Thread.Sleep(200);
                 watcher.Stop();
+                watcher.Received -= Watcher_Recived;
                 TroubleshootText.Clear();
                 //watcher.SignalStrengthFilter.InRangeThresholdInDBm = -110;
                 //watcher.SignalStrengthFilter.OutOfRangeThresholdInDBm = -110;
@@ -103,41 +103,48 @@ namespace BecquerelMonitor
             }
         }
 
-        private async void Watcher_Recived(BluetoothLEAdvertisementWatcher sender, BluetoothLEAdvertisementReceivedEventArgs args)
+        private void Watcher_Recived(BluetoothLEAdvertisementWatcher sender, BluetoothLEAdvertisementReceivedEventArgs args)
         {
-            dev = await BluetoothLEDevice.FromBluetoothAddressAsync(args.BluetoothAddress);
-            Tuple<ulong, BluetoothLEDevice> tup = new Tuple<ulong, BluetoothLEDevice>(args.BluetoothAddress, dev);
-
-            if (dev != null && args != null)
+            try
             {
-                try
+                if (args == null)
                 {
-                    if (dev.Name == null && dev.Name.IndexOf("RadiaCode-1") == -1) return;
-                } catch (Exception) { }
-                if (!devices.ContainsKey(args.BluetoothAddress))
-                {
-                    try
-                    {
-                        Trace.WriteLine($"Found {dev.Name} with addr {args.BluetoothAddress}");
-                        devices.Add(args.BluetoothAddress, dev);
-                        String model = dev.Name.Split('#')[0];
-                        devicePreset.Add(args.BluetoothAddress.ToString(), model);
-                        String name = dev.Name.Split('#')[1];
-                        comboBox1.Invoke(new Action(() =>
-                        {
-                            adressBLE.Add(args.BluetoothAddress.ToString());
-                            int item = comboBox1.Items.IndexOf(name);
-                            if (item == -1) comboBox1.Items.Add(name);
-                            if (!comboBox1.DroppedDown) comboBox1.DroppedDown = true;
-                        }));
-                        TroubleshootText.Invoke(new Action(() =>
-                        {
-                            TroubleshootText.AppendText($"Found device {name} with BLE addr {args.BluetoothAddress}" + System.Environment.NewLine);
-                        }));
-                    } catch (Exception) { }
+                    return;
                 }
-            }
 
+                string deviceName = args.Advertisement?.LocalName;
+                if (string.IsNullOrWhiteSpace(deviceName) || deviceName.IndexOf("RadiaCode-1", StringComparison.OrdinalIgnoreCase) == -1)
+                {
+                    return;
+                }
+                if (devices.Contains(args.BluetoothAddress))
+                {
+                    return;
+                }
+
+                Trace.WriteLine($"Found {deviceName} with addr {args.BluetoothAddress}");
+                devices.Add(args.BluetoothAddress);
+
+                string[] nameParts = deviceName.Split('#');
+                string model = nameParts.Length > 0 ? nameParts[0] : deviceName;
+                string name = nameParts.Length > 1 ? nameParts[1] : deviceName;
+                devicePreset[args.BluetoothAddress.ToString()] = model;
+
+                comboBox1.Invoke(new Action(() =>
+                {
+                    adressBLE.Add(args.BluetoothAddress.ToString());
+                    int item = comboBox1.Items.IndexOf(name);
+                    if (item == -1) comboBox1.Items.Add(name);
+                    if (!comboBox1.DroppedDown) comboBox1.DroppedDown = true;
+                }));
+                TroubleshootText.Invoke(new Action(() =>
+                {
+                    TroubleshootText.AppendText($"Found device {name} with BLE addr {args.BluetoothAddress}" + System.Environment.NewLine);
+                }));
+            }
+            catch (Exception)
+            {
+            }
         }
 
         private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
@@ -146,6 +153,7 @@ namespace BecquerelMonitor
             if (watcher != null)
             {
                 watcher.Stop();
+                watcher.Received -= Watcher_Recived;
                 Thread.Sleep(200);
             }
             currentBLEindex = comboBox1.SelectedIndex;
@@ -178,7 +186,11 @@ namespace BecquerelMonitor
 
         public override void FormClosing()
         {
-            if (watcher != null) watcher.Stop();
+            if (watcher != null)
+            {
+                watcher.Stop();
+                watcher.Received -= Watcher_Recived;
+            }
         }
 
         public override void LoadFormContents(InputDeviceConfig inputConfig)

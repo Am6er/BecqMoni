@@ -17,8 +17,11 @@ namespace BecquerelMonitor
     {
         private Thread readerThread, discoveryThread;
         private volatile bool thread_alive = true;
-        private int[] hystogram_buffered = new int[1024];
-        private enum State { Connecting, Connected, Disconnected, Resetting, Calibration, CalibrationDone, CalibrationFail };
+        private readonly int[] hystogram_buffered = new int[1024];
+        private readonly object connectionLock = new object();
+        private readonly object packetLock = new object();
+        private readonly object stateLock = new object();
+        private enum State { Starting, Connecting, Connected, Recording, Reconnecting, Disconnected, Resetting, Calibration, CalibrationDone, CalibrationFail, Faulted, Stopped };
         private State state = State.Disconnected;
         private double cps;
         private String deviceserial, addressble;
@@ -42,6 +45,7 @@ namespace BecquerelMonitor
         public event EventHandler<EventArgs> PortFailure;
         public event EventHandler<RadiaCodeStatusArgs> Status;
         public event EventHandler<RadiaCodeTroubleShootArgs> TroubleShoot;
+        private static readonly object instancesLock = new object();
         private static List<RadiaCodeIn> instances = new List<RadiaCodeIn>();
         private bool trshoot = false;
         private bool calibration = false;
@@ -57,15 +61,23 @@ namespace BecquerelMonitor
 
         public static void cleanUp(string guid)
         {
-            foreach (RadiaCodeIn s in instances)
+            RadiaCodeIn instanceToDispose = null;
+            lock (instancesLock)
             {
-                if (s.GUID.Equals(guid))
+                foreach (RadiaCodeIn s in instances.ToArray())
                 {
-                    instances.Remove(s);
-                    s.Dispose();
-                    Trace.WriteLine("Instance " + guid + " removed!");
-                    return;
+                    if (s != null && s.GUID.Equals(guid))
+                    {
+                        instances.Remove(s);
+                        instanceToDispose = s;
+                        break;
+                    }
                 }
+            }
+            if (instanceToDispose != null)
+            {
+                instanceToDispose.Dispose();
+                Trace.WriteLine("Instance " + guid + " removed!");
             }
         }
 
@@ -80,75 +92,104 @@ namespace BecquerelMonitor
 
         private void setStatus(State state)
         {
-            this.state = state;
-            if (Status != null) Status(this, new RadiaCodeStatusArgs(getStateString()));
+            string nextStatus;
+            lock (stateLock)
+            {
+                this.state = state;
+                nextStatus = GetStateString(state);
+            }
+            if (Status != null) Status(this, new RadiaCodeStatusArgs(nextStatus));
         }
 
         public string getStateString()
         {
-            switch ((int)state)
+            lock (stateLock)
             {
-                case 0: return "Connecting";
-                case 1: return "Connected";
-                case 2: return "Disconnected";
-                case 3: return "Resetting";
-                case 4: return "Calibration";
-                case 5: return "Calibration done";
-                case 6: return "Calibration fail";
+                return GetStateString(state);
+            }
+        }
+
+        private static string GetStateString(State state)
+        {
+            switch (state)
+            {
+                case State.Starting: return "Starting";
+                case State.Connecting: return "Connecting";
+                case State.Connected: return "Connected";
+                case State.Recording: return "Recording";
+                case State.Reconnecting: return "Reconnecting";
+                case State.Disconnected: return "Disconnected";
+                case State.Resetting: return "Resetting";
+                case State.Calibration: return "Calibration";
+                case State.CalibrationDone: return "Calibration done";
+                case State.CalibrationFail: return "Calibration fail";
+                case State.Faulted: return "Faulted";
+                case State.Stopped: return "Stopped";
                 default: return "Unknown";
             }
         }
 
         public static List<RadiaCodeIn> getAllInstances()
         {
-            return instances;
+            lock (instancesLock)
+            {
+                return new List<RadiaCodeIn>(instances);
+            }
         }
 
         public static RadiaCodeIn getInstance(string guid, bool troubleshoot = false)
         {
-            foreach (RadiaCodeIn s in instances)
+            lock (instancesLock)
             {
-                if (s == null) continue;
-                if (guid.Equals(s.GUID))
+                foreach (RadiaCodeIn s in instances)
                 {
-                    return s;
+                    if (s == null) continue;
+                    if (guid.Equals(s.GUID))
+                    {
+                        return s;
+                    }
                 }
+                RadiaCodeIn instance = new RadiaCodeIn(guid, troubleshoot);
+                instances.Add(instance);
+                return instance;
             }
-            RadiaCodeIn instance = new RadiaCodeIn(guid, troubleshoot);
-            instances.Add(instance);
-            return instance;
         }
 
         public static void finishAll()
         {
-            foreach (RadiaCodeIn s in instances)
+            List<RadiaCodeIn> instancesToDispose;
+            lock (instancesLock)
+            {
+                instancesToDispose = new List<RadiaCodeIn>(instances);
+                instances.Clear();
+            }
+            foreach (RadiaCodeIn s in instancesToDispose)
             {
                 if (s != null) s.Dispose();
             }
-            instances.Clear();
         }
 
-        private async Task TestBT()
+        private void TestBT()
         {
             try
             {
                 Trace.WriteLine("Check BT status");
                 sendTroubleShoot("Check BT status...");
-                RadioAccessStatus access = await Radio.RequestAccessAsync();
+                RadioAccessStatus access = Radio.RequestAccessAsync().AsTask().GetAwaiter().GetResult();
                 if (access != RadioAccessStatus.Allowed)
                 {
                     sendTroubleShoot("Error! current user isn't allowed to use radio module.");
                     return;
                 }
-                BluetoothAdapter adapter = await BluetoothAdapter.GetDefaultAsync();
+                BluetoothAdapter adapter = BluetoothAdapter.GetDefaultAsync().AsTask().GetAwaiter().GetResult();
                 if (null != adapter)
                 {
-                    Radio btRadio = await adapter.GetRadioAsync();
+                    Radio btRadio = adapter.GetRadioAsync().AsTask().GetAwaiter().GetResult();
                     if (btRadio.State != RadioState.On)
                     {
                         Trace.WriteLine("BT was disabled, enabling it");
                         sendTroubleShoot("BT was disabled, enabling it.");
-                        await btRadio.SetStateAsync(RadioState.On);
+                        btRadio.SetStateAsync(RadioState.On).AsTask().GetAwaiter().GetResult();
                     }
                     else
                     {
@@ -165,9 +206,9 @@ namespace BecquerelMonitor
             }
         }
 
-        private async void doDiscovery()
+        private void doDiscovery()
         {
-            await TestBT();
+            TestBT();
             Trace.WriteLine("Run discovery, to awaiken device");
             if (watcher == null) watcher = new BluetoothLEAdvertisementWatcher();
             watcher.ScanningMode = BluetoothLEScanningMode.Active;
@@ -180,7 +221,7 @@ namespace BecquerelMonitor
             }
             catch (Exception ex) {
                 MessageBox.Show($"{ex.Message}: {ex.StackTrace}", "Error doing discovery", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                if (PortFailure != null) { PortFailure(this, null); }
+                RaisePortFailure();
             } finally
             {
                 watcher.Stop();
@@ -193,61 +234,138 @@ namespace BecquerelMonitor
             return;
         }
 
-        private async void ConnectBLE(string addrBLE)
+        private bool ConnectBLE(string addrBLE)
         {
+            BluetoothLEDevice localDevice = null;
+            GattDeviceService localService = null;
+            GattCharacteristic localWriteCharacteristic = null;
+            GattCharacteristic localNotifyCharacteristic = null;
             try
             {
-                Trace.WriteLine($"Try to connect BLE at addr: {addrBLE}");
-                sendTroubleShoot($"Try to connect BLE at addr: {addrBLE}");
-                dev = await BluetoothLEDevice.FromBluetoothAddressAsync(Convert.ToUInt64(addrBLE));
-                if (dev != null)
+                lock (connectionLock)
                 {
-                    dev.ConnectionStatusChanged += Dev_ConnectionStatusChanged;
-                    GattDeviceServicesResult servisesResult = await dev.GetGattServicesForUuidAsync(Guid.Parse(RC_BLE_Service));
-                    if (servisesResult != null && servisesResult.Status == GattCommunicationStatus.Success)
+                    Trace.WriteLine($"Try to connect BLE at addr: {addrBLE}");
+                    sendTroubleShoot($"Try to connect BLE at addr: {addrBLE}");
+                    localDevice = BluetoothLEDevice.FromBluetoothAddressAsync(Convert.ToUInt64(addrBLE)).AsTask().GetAwaiter().GetResult();
+                    if (localDevice == null)
                     {
-                        service = servisesResult.Services[0];
-                        GattCharacteristicsResult characteristicsResult = await service.GetCharacteristicsForUuidAsync(Guid.Parse(RC_BLE_Characteristic));
-                        if (characteristicsResult != null && characteristicsResult.Status == GattCommunicationStatus.Success)
-                        {
-                            characteristic = characteristicsResult.Characteristics[0];
-                        }
-                        GattCharacteristicsResult charNotifyResult = await service.GetCharacteristicsForUuidAsync(Guid.Parse(RC_BLE_Notify));
-                        if (charNotifyResult != null && charNotifyResult.Status == GattCommunicationStatus.Success)
-                        {
-
-                            characteristicNotify = charNotifyResult.Characteristics[0];
-                            characteristicNotify.ValueChanged += Characteristic_ValueChanged;
-                            if (characteristicNotify.CharacteristicProperties.HasFlag(GattCharacteristicProperties.Notify))
-                            {
-                                GattCommunicationStatus status = await characteristicNotify.WriteClientCharacteristicConfigurationDescriptorAsync(
-                                    GattClientCharacteristicConfigurationDescriptorValue.Notify);
-                            }
-                        }
+                        sendTroubleShoot("Failed to create BLE device from address.");
+                        return false;
                     }
+
+                    GattDeviceServicesResult servicesResult = localDevice.GetGattServicesForUuidAsync(Guid.Parse(RC_BLE_Service)).AsTask().GetAwaiter().GetResult();
+                    if (servicesResult == null || servicesResult.Status != GattCommunicationStatus.Success || servicesResult.Services.Count == 0)
+                    {
+                        sendTroubleShoot($"Failed to get GATT service. Status={servicesResult?.Status}");
+                        return false;
+                    }
+
+                    localService = servicesResult.Services[0];
+                    GattCharacteristicsResult writeResult = localService.GetCharacteristicsForUuidAsync(Guid.Parse(RC_BLE_Characteristic)).AsTask().GetAwaiter().GetResult();
+                    if (writeResult == null || writeResult.Status != GattCommunicationStatus.Success || writeResult.Characteristics.Count == 0)
+                    {
+                        sendTroubleShoot($"Failed to get write characteristic. Status={writeResult?.Status}");
+                        return false;
+                    }
+
+                    localWriteCharacteristic = writeResult.Characteristics[0];
+                    if (!CanWrite(localWriteCharacteristic))
+                    {
+                        sendTroubleShoot("Write characteristic does not support write operations.");
+                        return false;
+                    }
+
+                    GattCharacteristicsResult notifyResult = localService.GetCharacteristicsForUuidAsync(Guid.Parse(RC_BLE_Notify)).AsTask().GetAwaiter().GetResult();
+                    if (notifyResult == null || notifyResult.Status != GattCommunicationStatus.Success || notifyResult.Characteristics.Count == 0)
+                    {
+                        sendTroubleShoot($"Failed to get notify characteristic. Status={notifyResult?.Status}");
+                        return false;
+                    }
+
+                    localNotifyCharacteristic = notifyResult.Characteristics[0];
+                    if (!localNotifyCharacteristic.CharacteristicProperties.HasFlag(GattCharacteristicProperties.Notify))
+                    {
+                        sendTroubleShoot("Notify characteristic does not support notifications.");
+                        return false;
+                    }
+
+                    localNotifyCharacteristic.ValueChanged += Characteristic_ValueChanged;
+                    GattCommunicationStatus cccdStatus = localNotifyCharacteristic.WriteClientCharacteristicConfigurationDescriptorAsync(
+                        GattClientCharacteristicConfigurationDescriptorValue.Notify).AsTask().GetAwaiter().GetResult();
+                    if (cccdStatus != GattCommunicationStatus.Success)
+                    {
+                        localNotifyCharacteristic.ValueChanged -= Characteristic_ValueChanged;
+                        sendTroubleShoot($"Failed to enable notifications. CCCD status={cccdStatus}");
+                        return false;
+                    }
+
+                    localDevice.ConnectionStatusChanged += Dev_ConnectionStatusChanged;
+                    dev = localDevice;
+                    service = localService;
+                    characteristic = localWriteCharacteristic;
+                    characteristicNotify = localNotifyCharacteristic;
+
+                    ResetPacket();
+                    sendTroubleShoot("Send RC_SET_EXCHANGE handshake");
+                    WritePacket(RC_SET_EXCHANGE);
+                    return true;
                 }
             }
             catch (Exception ex)
             {
                 Trace.WriteLine($"Exception: {ex.Message} {ex.StackTrace}");
+                sendTroubleShoot($"Exception while connecting BLE: {ex.Message}");
+                return false;
+            }
+            finally
+            {
+                bool success;
+                lock (connectionLock)
+                {
+                    success = ReferenceEquals(dev, localDevice) &&
+                        ReferenceEquals(service, localService) &&
+                        ReferenceEquals(characteristic, localWriteCharacteristic) &&
+                        ReferenceEquals(characteristicNotify, localNotifyCharacteristic);
+                }
+                if (!success)
+                {
+                    DisposeConnectionResources(localDevice, localService, localNotifyCharacteristic, detachDeviceEvent: true);
+                }
             }
         }
 
         private void Dev_ConnectionStatusChanged(BluetoothLEDevice sender, object args)
         {
-            if (dev != null) sendTroubleShoot($"Device connection status changed: {dev.ConnectionStatus}");
-            if (dev == null && state == State.Connected)
+            BluetoothConnectionStatus? connectionStatus = null;
+            State currentState;
+            lock (connectionLock)
+            {
+                if (dev != null)
+                {
+                    connectionStatus = dev.ConnectionStatus;
+                }
+            }
+            if (connectionStatus.HasValue)
+            {
+                sendTroubleShoot($"Device connection status changed: {connectionStatus.Value}");
+            }
+            lock (stateLock)
+            {
+                currentState = state;
+            }
+            if (!connectionStatus.HasValue && (currentState == State.Connected || currentState == State.Recording || currentState == State.Resetting))
             {
                 Trace.WriteLine("Disconnect device event");
                 sendTroubleShoot($"Device connection status changed: dev disconnected");
-                setStatus(State.Connecting);
-                //if (PortFailure != null) PortFailure(this, null);
+                setStatus(State.Reconnecting);
             }
-            if (dev != null && dev.ConnectionStatus == BluetoothConnectionStatus.Disconnected && state != State.Disconnected)
+            if (connectionStatus == BluetoothConnectionStatus.Disconnected &&
+                currentState != State.Disconnected &&
+                currentState != State.Stopped &&
+                currentState != State.Faulted)
             {
                 Trace.WriteLine("Disconnect device event");
-                setStatus(State.Connecting);
-                //if (PortFailure != null) PortFailure(this, null);
+                setStatus(State.Reconnecting);
             }
         }
 
@@ -258,9 +376,8 @@ namespace BecquerelMonitor
                 DataReader reader = DataReader.FromBuffer(args.CharacteristicValue);
                 byte[] buffer = new byte[reader.UnconsumedBufferLength];
                 reader.ReadBytes(buffer);
-                //Trace.WriteLine("Got buffer: " + string.Join(",", buffer));
-                //skip exhange packet
-                if (string.Join(",", buffer).StartsWith("16,0,0,0,7,0,0,128"))
+                string bufferSignature = string.Join(",", buffer);
+                if (bufferSignature.StartsWith("16,0,0,0,7,0,0,128"))
                 {
                     if (buffer.Length > 17 && buffer[16] == 1)
                     {
@@ -273,10 +390,9 @@ namespace BecquerelMonitor
                     }
                     return;
                 }
-                //calibration response
                 if (calibration && calibration_sent)
                 {
-                    if (string.Join(",", buffer).StartsWith("8,0,0,0,39,8,0,131"))
+                    if (bufferSignature.StartsWith("8,0,0,0,39,8,0,131"))
                     {
                         if (buffer.Length > 9 && buffer[8] == 1)
                         {
@@ -296,78 +412,92 @@ namespace BecquerelMonitor
                     }
                     return;
                 }
-                if (buffer.Length > 14 && BitConverter.ToUInt32(buffer, 4) == 2147485734 && BitConverter.ToUInt32(buffer, 4) == 1)
+
+                lock (packetLock)
                 {
-                    packet = new RCSpectrum();
-                }
-                if (packet.NEWPACKET)
-                {
-                    packet.SIZE = BitConverter.ToInt32(buffer, 0) + 4;
-                    if (packet.SIZE < 20)
+                    if (buffer.Length > 14 && BitConverter.ToUInt32(buffer, 4) == 2147485734 && BitConverter.ToUInt32(buffer, 4) == 1)
+                    {
+                        packet = new RCSpectrum();
+                    }
+                    if (packet.NEWPACKET)
+                    {
+                        packet.SIZE = BitConverter.ToInt32(buffer, 0) + 4;
+                        if (packet.SIZE < 20)
+                        {
+                            packet.BROKEN = true;
+                            Trace.WriteLine("Drop packet because it is not spectrum packet");
+                            return;
+                        }
+                        packet.buffer = new byte[packet.SIZE];
+                        packet.NEWPACKET = false;
+                    }
+                    if (buffer.Length > packet.buffer.Length - packet.counter)
                     {
                         packet.BROKEN = true;
-                        Trace.WriteLine("Drop packet because it is not spectrum packet");
+                        Trace.WriteLine("Drop packet because size > expected size.");
                         return;
                     }
-                    packet.buffer = new byte[packet.SIZE];
-                    packet.NEWPACKET = false;
-                }
-                if (buffer.Length > packet.buffer.Length - packet.counter)
-                {
-                    packet.BROKEN = true;
-                    Trace.WriteLine("Drop packet because size > expected size.");
-                    return;
-                }
-                Array.Copy(buffer, 0, packet.buffer, packet.counter, buffer.Length);
-                packet.counter += buffer.Length;
-                if (packet.counter == packet.SIZE)
-                {
-                    // Trace.WriteLine($"Packet size: {packet.SIZE}");
-                    if (packet.SIZE == 12)
+                    Array.Copy(buffer, 0, packet.buffer, packet.counter, buffer.Length);
+                    packet.counter += buffer.Length;
+                    if (packet.counter == packet.SIZE)
+                    {
+                        if (packet.SIZE == 12)
+                        {
+                            packet.BROKEN = true;
+                            Trace.WriteLine("Drop packet because it is not spectrum packet");
+                            return;
+                        }
+                        try
+                        {
+                            packet.DecodePacket();
+                            List<float> calibrationValues = packet.GetCalibration();
+                            this.A0 = calibrationValues[0];
+                            this.A1 = calibrationValues[1];
+                            this.A2 = calibrationValues[2];
+                        } catch (Exception ex)
+                        {
+                            Trace.WriteLine($"Exception: {ex.Message} {ex.StackTrace}");
+                            packet.BROKEN = true;
+                            Trace.WriteLine("Drop packet because it is not spectrum packet");
+                            return;
+                        }
+
+                        if (packet.SPECTRUM.Length == 1024)
+                        {
+                            packet.COMPLETE = true;
+                        }
+                        else
+                        {
+                            packet.BROKEN = true;
+                            sendTroubleShoot($"Drop packet because spectrum channels: {packet.SPECTRUM.Length}. Expected: 1024 channels.");
+                            Trace.WriteLine($"Drop packet because spectrum channels: {packet.SPECTRUM.Length}. Expected: 1024 channels.");
+                            return;
+                        }
+                    }
+                    else if (packet.counter > packet.SIZE)
                     {
                         packet.BROKEN = true;
-                        Trace.WriteLine("Drop packet because it is not spectrum packet");
+                        Trace.WriteLine($"Drop packet because size: {packet.counter} > expected size: {packet.SIZE}");
                         return;
                     }
-                    try
-                    {
-                        packet.DecodePacket();
-                        List<float> calibration = packet.GetCalibration();
-                        this.A0 = calibration[0];
-                        this.A1 = calibration[1];
-                        this.A2 = calibration[2];
-                    } catch (Exception ex)
-                    {
-                        Trace.WriteLine($"Exception: {ex.Message} {ex.StackTrace}");
-                        packet.BROKEN = true;
-                        Trace.WriteLine("Drop packet because it is not spectrum packet");
-                        return;
-                    }
-                    
-                    if (packet.SPECTRUM.Length == 1024)
-                    {
-                        packet.COMPLETE = true;
-                    }
-                    else
-                    {
-                        packet.BROKEN = true;
-                        sendTroubleShoot($"Drop packet because spectrum channels: {packet.SPECTRUM.Length}. Expected: 1024 channels.");
-                        Trace.WriteLine($"Drop packet because spectrum channels: {packet.SPECTRUM.Length}. Expected: 1024 channels.");
-                        return;
-                    }
-                }
-                else if (packet.counter > packet.SIZE)
-                {
-                    packet.BROKEN = true;
-                    Trace.WriteLine($"Drop packet because size: {packet.counter} > expected size: {packet.SIZE}");
-                    return;
                 }
             } catch (Exception ex)
             {
-                packet.BROKEN = true;
+                lock (packetLock)
+                {
+                    packet.BROKEN = true;
+                }
                 sendTroubleShoot($"Drop packet because EXCEPTION: {ex.Message} at {ex.StackTrace}");
                 Trace.WriteLine($"Drop packet because EXCEPTION: {ex.Message} at {ex.StackTrace}");
                 return;
+            }
+        }
+
+        private void ResetPacket()
+        {
+            lock (packetLock)
+            {
+                packet = new RCSpectrum();
             }
         }
 
@@ -409,18 +539,23 @@ namespace BecquerelMonitor
             Trace.WriteLine("Command sent: " + command);
             switch (command)
             {
-                case "Start": setStatus(State.Connecting); Thread.Sleep(100); break;
-                case "Stop": setStatus(State.Disconnected); DisconnectBLE(); break;
-                case "Reset": setStatus(State.Resetting); Thread.Sleep(100); break;
+                case "Start": setStatus(State.Starting); break;
+                case "Stop": setStatus(State.Stopped); DisconnectBLE(); break;
+                case "Reset": setStatus(State.Resetting); break;
                 case "Calibration":
                     {
                         calibration = true;
-                        if (this.state == State.Disconnected) setStatus(State.Connecting);
-                        Thread.Sleep(100);
+                        lock (stateLock)
+                        {
+                            if (this.state == State.Disconnected || this.state == State.Stopped)
+                            {
+                                setStatus(State.Starting);
+                            }
+                        }
                         break;
                     }
-                case "Continue": setStatus(State.Connected); Thread.Sleep(100); break;
-                default: setStatus(State.Disconnected); break;
+                case "Continue": setStatus(State.Connected); break;
+                default: setStatus(State.Faulted); break;
             }
         }
 
@@ -439,24 +574,27 @@ namespace BecquerelMonitor
             return null;
         }
 
-        private async void WritePacket(string packet)
+        private void WritePacket(string packet)
         {
             byte[] input = packet.ToCharArray().Select(b => (byte)b).ToArray<byte>();
-            DataWriter writer = new DataWriter();
-            writer.WriteBytes(input);
-            if (characteristic != null)
+            lock (connectionLock)
             {
-                try
+                if (characteristic == null)
                 {
-                    GattCommunicationStatus result = await characteristic.WriteValueAsync(writer.DetachBuffer());
-                } catch (Exception ex) {
-                    Trace.WriteLine($"Exception: {ex.Message} {ex.StackTrace}");
-                    setStatus(State.Connecting);
+                    throw new InvalidOperationException("Write characteristic is not available.");
+                }
+
+                DataWriter writer = new DataWriter();
+                writer.WriteBytes(input);
+                GattCommunicationStatus result = characteristic.WriteValueAsync(writer.DetachBuffer()).AsTask().GetAwaiter().GetResult();
+                if (result != GattCommunicationStatus.Success)
+                {
+                    throw new InvalidOperationException($"BLE write failed with status {result}.");
                 }
             }
         }
 
-        private async void WriteCalibration(PolynomialEnergyCalibration calibration)
+        private void WriteCalibration(PolynomialEnergyCalibration calibration)
         {
             byte[] a0 = BitConverter.GetBytes(Convert.ToSingle(calibration.Coefficients[0]));
             byte[] a1 = BitConverter.GetBytes(Convert.ToSingle(calibration.Coefficients[1]));
@@ -467,20 +605,105 @@ namespace BecquerelMonitor
             byte[] payload1 = payload.Take(18).ToArray();
             byte[] payload2 = payload.Skip(18).ToArray();
 
-            DataWriter writer = new DataWriter();
-            if (characteristic != null)
+            lock (connectionLock)
+            {
+                if (characteristic == null)
+                {
+                    throw new InvalidOperationException("Write characteristic is not available.");
+                }
+
+                DataWriter writer1 = new DataWriter();
+                writer1.WriteBytes(payload1);
+                GattCommunicationStatus result = characteristic.WriteValueAsync(writer1.DetachBuffer()).AsTask().GetAwaiter().GetResult();
+                if (result != GattCommunicationStatus.Success)
+                {
+                    throw new InvalidOperationException($"Calibration write step 1 failed with status {result}.");
+                }
+
+                DataWriter writer2 = new DataWriter();
+                writer2.WriteBytes(payload2);
+                result = characteristic.WriteValueAsync(writer2.DetachBuffer()).AsTask().GetAwaiter().GetResult();
+                if (result != GattCommunicationStatus.Success)
+                {
+                    throw new InvalidOperationException($"Calibration write step 2 failed with status {result}.");
+                }
+            }
+        }
+
+        private static bool CanWrite(GattCharacteristic gattCharacteristic)
+        {
+            return gattCharacteristic != null &&
+                (gattCharacteristic.CharacteristicProperties.HasFlag(GattCharacteristicProperties.Write) ||
+                 gattCharacteristic.CharacteristicProperties.HasFlag(GattCharacteristicProperties.WriteWithoutResponse));
+        }
+
+        private void RaisePortFailure()
+        {
+            if (PortFailure != null) PortFailure(this, null);
+        }
+
+        private void RaiseDataReady(RadiaCodeInDataReadyArgs args)
+        {
+            if (DataReady == null)
+            {
+                return;
+            }
+
+            foreach (EventHandler<RadiaCodeInDataReadyArgs> handler in DataReady.GetInvocationList())
             {
                 try
                 {
-                    writer.WriteBytes(payload1);
-                    GattCommunicationStatus result = await characteristic.WriteValueAsync(writer.DetachBuffer());
-                    writer.WriteBytes(payload2);
-                    result = await characteristic.WriteValueAsync(writer.DetachBuffer());
+                    handler(this, args);
                 }
                 catch (Exception ex)
                 {
-                    Trace.WriteLine($"Exception: {ex.Message} {ex.StackTrace}");
-                    setStatus(State.Connecting);
+                    Trace.WriteLine($"RadiaCode DataReady handler exception: {ex.Message} {ex.StackTrace}");
+                }
+            }
+        }
+
+        private bool HasActiveConnection()
+        {
+            lock (connectionLock)
+            {
+                return dev != null && service != null && characteristic != null && characteristicNotify != null;
+            }
+        }
+
+        private void DisposeConnectionResources(BluetoothLEDevice bluetoothLeDevice, GattDeviceService gattService, GattCharacteristic notifyCharacteristic, bool detachDeviceEvent)
+        {
+            if (notifyCharacteristic != null)
+            {
+                try
+                {
+                    notifyCharacteristic.ValueChanged -= Characteristic_ValueChanged;
+                }
+                catch (Exception)
+                {
+                }
+            }
+            if (gattService != null)
+            {
+                try
+                {
+                    gattService.Dispose();
+                }
+                catch (Exception)
+                {
+                }
+            }
+            if (bluetoothLeDevice != null)
+            {
+                try
+                {
+                    if (detachDeviceEvent)
+                    {
+                        bluetoothLeDevice.ConnectionStatusChanged -= Dev_ConnectionStatusChanged;
+                    }
+                    bluetoothLeDevice.Dispose();
+                }
+                catch (Exception)
+                {
                 }
             }
         }
@@ -491,112 +714,124 @@ namespace BecquerelMonitor
         {
             while (thread_alive)
             {
-                //Trace.WriteLine($"Current state is {state}");
                 if (device_serial_changed)
                 {
                     device_serial_changed = false;
-                    setStatus(State.Connecting);
+                    setStatus(State.Starting);
                 }
 
-                switch (state)
+                State currentState;
+                lock (stateLock)
                 {
+                    currentState = state;
+                }
+
+                switch (currentState)
+                {
+                    case State.Stopped:
                     case State.Disconnected:
-                        {
-                            Thread.Sleep(500);
-                            break;
-                        }
+                        Thread.Sleep(500);
+                        break;
 
+                    case State.Starting:
                     case State.Connecting:
+                    case State.Reconnecting:
+                        try
                         {
-                            try
+                            if (addressble != null)
                             {
-                                if (addressble != null)
-                                {
-                                    DisconnectBLE();
-                                    ConnectBLE(addressble);
-                                    if (trshoot)
-                                    {
-                                        trshootCount++;
-                                        if (trshootCount == 3)
-                                        {
-                                            sendTroubleShoot("Error! 3 attempts was maded to connect device, no success connection.");
-                                            sendTroubleShoot("QUIT");
-                                            Thread.Sleep(500);
-                                            thread_alive = false;
-                                            break;
-                                        }
-                                    }
-                                    for (int i = 0; i <= 100; i++)
-                                    {
-                                        Thread.Sleep(100);
-                                        if (!thread_alive) break;
-                                        if (dev != null && service != null && characteristic != null && characteristicNotify != null)
-                                        {
-                                            if (trshoot) trshootCount = 0;
-                                            setStatus(State.Connected);
-                                            packet = new RCSpectrum();
-                                            Trace.WriteLine("RC_SET_EXCHANGE");
-                                            sendTroubleShoot("Send RC_SET_EXCHANGE handshake");
-                                            WritePacket(RC_SET_EXCHANGE);
-                                            Thread.Sleep(100);
-                                            break;
-                                        }
-                                    }
-                                    if (state != State.Connected)
-                                    {
-                                        doDiscovery();
-                                    }
-                                }
-                                else
-                                {
-                                    // addressble is empty.
-                                    if (this.trshoot)
-                                    {
-                                        sendTroubleShoot("QUIT");
-                                    }
-                                    Thread.Sleep(500);
-                                    thread_alive = false;
-                                    break;
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                Trace.WriteLine($"Exception: {ex.Message} {ex.StackTrace}");
-                                DisconnectBLE();
-                                Thread.Sleep(500);
-                            }
-                            break;
-                        }
-
-                    case State.Resetting:
-                        {
-                            try
-                            {
-                                if (!thread_alive) break;
-                                if (dev == null || service == null || characteristic == null || characteristicNotify == null)
+                                if (currentState != State.Reconnecting)
                                 {
                                     setStatus(State.Connecting);
+                                }
+                                DisconnectBLE();
+                                bool connected = ConnectBLE(addressble);
+                                if (connected)
+                                {
+                                    if (trshoot)
+                                    {
+                                        trshootCount = 0;
+                                    }
+                                    setStatus(State.Connected);
+                                    ResetPacket();
                                     break;
                                 }
-                                packet = new RCSpectrum();
-                                WritePacket(RC_RESET_SPECTRUM);
-                                Thread.Sleep(1000);
-                                setStatus(State.Connecting);
+                                if (trshoot)
+                                {
+                                    trshootCount++;
+                                    if (trshootCount == 3)
+                                    {
+                                        sendTroubleShoot("Error! 3 attempts was made to connect device, no success connection.");
+                                        sendTroubleShoot("QUIT");
+                                        setStatus(State.Faulted);
+                                        Thread.Sleep(500);
+                                        thread_alive = false;
+                                        break;
+                                    }
+                                }
+                                setStatus(State.Reconnecting);
+                                doDiscovery();
                             }
-                            catch (Exception ex)
+                            else
                             {
-                                Trace.WriteLine($"Exception: {ex.Message} {ex.StackTrace}");
-                                setStatus(State.Connecting);
-                                if (PortFailure != null) PortFailure(this, null);
+                                if (this.trshoot)
+                                {
+                                    sendTroubleShoot("QUIT");
+                                }
+                                setStatus(State.Faulted);
+                                Thread.Sleep(500);
+                                thread_alive = false;
                             }
-                            break;
                         }
+                        catch (Exception ex)
+                        {
+                            Trace.WriteLine($"Exception: {ex.Message} {ex.StackTrace}");
+                            DisconnectBLE();
+                            Thread.Sleep(500);
+                        }
+                        break;
+
+                    case State.Resetting:
+                        try
+                        {
+                            if (!thread_alive)
+                            {
+                                break;
+                            }
+                            if (!HasActiveConnection())
+                            {
+                                setStatus(State.Reconnecting);
+                                break;
+                            }
+                            ResetPacket();
+                            sendTroubleShoot("Send reset spectrum command");
+                            WritePacket(RC_RESET_SPECTRUM);
+                            Thread.Sleep(1000);
+                            setStatus(State.Connected);
+                        }
+                        catch (Exception ex)
+                        {
+                            Trace.WriteLine($"Exception: {ex.Message} {ex.StackTrace}");
+                            sendTroubleShoot($"Reset command failed: {ex.Message}");
+                            setStatus(State.Reconnecting);
+                        }
+                        break;
 
                     case State.Calibration:
+                        try
                         {
+                            if (!thread_alive)
+                            {
+                                break;
+                            }
+                            if (!HasActiveConnection())
+                            {
+                                setStatus(State.Reconnecting);
+                                break;
+                            }
                             if (polynomialEnergyCalibration != null && !calibration_sent)
                             {
-                                packet = new RCSpectrum();
+                                ResetPacket();
                                 WriteCalibration(this.polynomialEnergyCalibration);
                                 calibration_sent = true;
                                 Trace.WriteLine("Calibration sent");
@@ -605,84 +840,136 @@ namespace BecquerelMonitor
                             {
                                 Thread.Sleep(200);
                             }
-                            break;
                         }
+                        catch (Exception ex)
+                        {
+                            Trace.WriteLine($"Calibration write exception: {ex.Message} {ex.StackTrace}");
+                            sendTroubleShoot($"Calibration write failed: {ex.Message}");
+                            calibration_sent = false;
+                            setStatus(State.Reconnecting);
+                        }
+                        break;
 
                     case State.CalibrationDone:
-                        {
-                            Thread.Sleep(200);
-                            Trace.WriteLine($"State: CalibrationDone");
-                            break;
-                        }
+                        Thread.Sleep(200);
+                        Trace.WriteLine($"State: CalibrationDone");
+                        break;
 
                     case State.CalibrationFail:
-                        {
-                            Thread.Sleep(200);
-                            Trace.WriteLine($"State: CalibrationFail");
-                            break;
-                        }
+                        Thread.Sleep(200);
+                        Trace.WriteLine($"State: CalibrationFail");
+                        break;
 
                     case State.Connected:
+                    case State.Recording:
+                        try
                         {
-                            try
+                            if (!thread_alive)
                             {
-                                if (!thread_alive) break;
-                                if (dev == null || service == null || characteristic == null || characteristicNotify == null)
+                                break;
+                            }
+                            if (!HasActiveConnection())
+                            {
+                                setStatus(State.Reconnecting);
+                                break;
+                            }
+                            if (calibration)
+                            {
+                                setStatus(State.Calibration);
+                                break;
+                            }
+                            ResetPacket();
+                            sendTroubleShoot("Send get Spectrum command");
+                            WritePacket(RC_GET_SPECTRUM);
+                            int counter = 0;
+                            while (true)
+                            {
+                                bool complete;
+                                bool broken;
+                                State pollingState;
+                                lock (packetLock)
                                 {
-                                    setStatus(State.Connecting);
+                                    complete = packet.COMPLETE;
+                                    broken = packet.BROKEN;
+                                }
+                                lock (stateLock)
+                                {
+                                    pollingState = state;
+                                }
+                                if (complete || broken || !thread_alive || (pollingState != State.Connected && pollingState != State.Recording))
+                                {
                                     break;
                                 }
-                                if (calibration)
+                                Thread.Sleep(200);
+                                counter++;
+                                if (counter >= 38)
                                 {
-                                    setStatus(State.Calibration);
-                                    break;
-                                }
-                                packet = new RCSpectrum();
-                                sendTroubleShoot("Send get Spectrum command");
-                                WritePacket(RC_GET_SPECTRUM);
-                                int counter = 0;
-                                while (!packet.COMPLETE)
-                                {
-                                    if (packet.BROKEN || !thread_alive || state != State.Connected) break;
-                                    Thread.Sleep(200);
-                                    counter++;
-                                    if (counter >= 38)
+                                    lock (packetLock)
                                     {
                                         packet.BROKEN = true;
-                                        setStatus(State.Connecting);
+                                        sendTroubleShoot($"Spectrum receive timeout. total={packet.counter}");
                                     }
-                                    // Trace.WriteLine($"Current state is {state}, packet: {packet.SIZE}");
+                                    setStatus(State.Reconnecting);
                                 }
-                                if (!thread_alive) break;
-                                if (packet.BROKEN || state != State.Connected || packet.SPECTRUM == null) break;
-                                sendTroubleShoot("Packet recieved");
-                                sendTroubleShoot($"Spectrum real time: {packet.TIME_S}");
-                                sendTroubleShoot($"Spectrum calibration: A0={packet.A0} A1={packet.A1} A2={packet.A2}");
-                                packet.SPECTRUM.CopyTo(hystogram_buffered, 0);
-                                ulong sum = (ulong)hystogram_buffered.Sum();
-
-                                if (packet.TIME_S != 0) this.cps = sum / packet.TIME_S;
-                                sendTroubleShoot($"Spectrum cps: {this.cps}");
-                                sendTroubleShoot($"Spectrum total counts: {sum}");
-                                if (this.trshoot)
+                            }
+                            if (!thread_alive)
+                            {
+                                break;
+                            }
+                            int[] spectrum = null;
+                            int elapsedTime = 0;
+                            lock (packetLock)
+                            {
+                                State readyState;
+                                lock (stateLock)
                                 {
-                                    sendTroubleShoot("QUIT");
-                                    Thread.Sleep(500);
-                                    thread_alive = false;
+                                    readyState = state;
+                                }
+                                if (packet.BROKEN || (readyState != State.Connected && readyState != State.Recording) || packet.SPECTRUM == null)
+                                {
                                     break;
                                 }
-                                //Trace.WriteLine($"Data sent {sum}");
-                                if (DataReady != null) DataReady(this, new RadiaCodeInDataReadyArgs(hystogram_buffered, (int)packet.TIME_S, (int)sum));
+                                spectrum = packet.SPECTRUM.ToArray();
+                                elapsedTime = (int)packet.TIME_S;
                             }
-                            catch (Exception ex)
+                            sendTroubleShoot("Packet recieved");
+                            sendTroubleShoot($"Spectrum real time: {elapsedTime}");
+                            sendTroubleShoot($"Spectrum calibration: A0={packet.A0} A1={packet.A1} A2={packet.A2}");
+                            spectrum.CopyTo(hystogram_buffered, 0);
+                            long sum = hystogram_buffered.Sum(i => (long)i);
+                            if (elapsedTime != 0)
                             {
-                                MessageBox.Show($"{ex.Message} {ex.StackTrace}");
-                                setStatus(State.Connecting);
-                                if (PortFailure != null) PortFailure(this, null);
+                                lock (connectionLock)
+                                {
+                                    cps = sum / (double)elapsedTime;
+                                }
                             }
-
-                            break;
+                            sendTroubleShoot($"Spectrum cps: {cps}");
+                            sendTroubleShoot($"Spectrum total counts: {sum}");
+                            if (currentState != State.Recording)
+                            {
+                                setStatus(State.Recording);
+                            }
+                            if (this.trshoot)
+                            {
+                                sendTroubleShoot("QUIT");
+                                Thread.Sleep(500);
+                                thread_alive = false;
+                                break;
+                            }
+                            RaiseDataReady(new RadiaCodeInDataReadyArgs(hystogram_buffered, elapsedTime, sum));
                         }
+                        catch (Exception ex)
+                        {
+                            Trace.WriteLine($"Spectrum polling exception: {ex.Message} {ex.StackTrace}");
+                            sendTroubleShoot($"Spectrum polling exception: {ex.Message}");
+                            setStatus(State.Reconnecting);
+                        }
+                        break;
+
+                    case State.Faulted:
+                        Thread.Sleep(500);
+                        break;
                 }
             }
             Trace.WriteLine("RadiaCodeIn thread stopped " + guid);
@@ -691,7 +978,13 @@ namespace BecquerelMonitor
 
         public double CPS
         {
-            get { return (double)this.cps; }
+            get
+            {
+                lock (connectionLock)
+                {
+                    return cps;
+                }
+            }
         }
 
         public void Dispose()
@@ -700,10 +993,17 @@ namespace BecquerelMonitor
             {
                 Trace.WriteLine("RadiaCodeIn thread termination request");
                 thread_alive = false;
+                setStatus(State.Stopped);
                 Trace.WriteLine("Try to disconnect..");
                 DisconnectBLE();
-                readerThread.Join();
-                discoveryThread.Join();
+                if (readerThread.IsAlive)
+                {
+                    readerThread.Join(5000);
+                }
+                if (discoveryThread != null && discoveryThread.IsAlive)
+                {
+                    discoveryThread.Join(5000);
+                }
             }
         }
 
@@ -711,18 +1011,38 @@ namespace BecquerelMonitor
         {
             sendTroubleShoot("Disconnect BLE service");
             Trace.WriteLine("Disconnect BLE service");
-            if (service != null) service.Dispose(); service = null;
-            if (dev != null) dev.Dispose(); dev = null;
-            Thread.Sleep(1000);
-            GC.Collect();
+            BluetoothLEDevice deviceToDispose = null;
+            GattDeviceService serviceToDispose = null;
+            GattCharacteristic notifyToDetach = null;
+            try
+            {
+                lock (connectionLock)
+                {
+                    notifyToDetach = characteristicNotify;
+                    characteristicNotify = null;
+                    characteristic = null;
+                    serviceToDispose = service;
+                    service = null;
+                    deviceToDispose = dev;
+                    dev = null;
+                    cps = 0.0;
+                }
+                calibration_sent = false;
+                ResetPacket();
+                DisposeConnectionResources(deviceToDispose, serviceToDispose, notifyToDetach, detachDeviceEvent: true);
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine($"Exception during disconnect: {ex.Message} {ex.StackTrace}");
+            }
         }
     }
 
     public class RadiaCodeInDataReadyArgs : EventArgs
     {
-        private int[] hystogram;
-        private int elapsed_time;
-        private long sum;
+        private readonly int[] hystogram;
+        private readonly int elapsed_time;
+        private readonly long sum;
 
         public int[] Hystogram
         {
@@ -741,7 +1061,8 @@ namespace BecquerelMonitor
 
         public RadiaCodeInDataReadyArgs(int[] hyst, int elapsed_time, long sum)
         {
-            this.hystogram = hyst;
+            this.hystogram = new int[hyst.Length];
+            hyst.CopyTo(this.hystogram, 0);
             this.elapsed_time = elapsed_time;
             this.sum = sum;
         }
