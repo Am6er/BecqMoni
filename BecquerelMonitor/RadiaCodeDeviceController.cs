@@ -21,13 +21,18 @@ namespace BecquerelMonitor
 
         private void RadiaCodeDeviceController_DeviceConfigListChanged(object sender, DeviceConfigChangedEventArgs e)
         {
-            if (resultData == null || subscribedInstance == null)
+            if (resultData == null || subscribedInstance == null || resultData.DeviceConfig == null || e == null)
             {
                 return;
             }
 
-            if (resultData.DeviceConfig != null &&
-                resultData.DeviceConfig.InputDeviceConfig is RadiaCodeDeviceConfig deviceConfig)
+            if (!string.Equals(resultData.DeviceConfig.Guid, e.Guid, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            if (DeviceConfigManager.GetInstance().DeviceConfigMap.TryGetValue(e.Guid, out DeviceConfigInfo updatedDeviceConfig) &&
+                updatedDeviceConfig.InputDeviceConfig is RadiaCodeDeviceConfig deviceConfig)
             {
                 subscribedInstance.setDeviceSerial(deviceConfig.DeviceSerial, deviceConfig.AddressBLE);
             }
