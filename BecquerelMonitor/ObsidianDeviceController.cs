@@ -87,7 +87,12 @@ namespace BecquerelMonitor
                 }
 
                 SubscribeToInstance(instance);
-                currentResultDataStatus.Recording = false;
+                currentResultDataStatus.Recording = true;
+                if (new_document_created)
+                {
+                    resultData.StartTime = DateTime.Now;
+                    new_document_created = false;
+                }
                 resultData.DetectorFeature = "Starting";
                 instance.sendCommand("Start");
                 return true;
@@ -114,11 +119,6 @@ namespace BecquerelMonitor
                     case "Recording":
                         resultData.ResultDataStatus.Recording = true;
                         break;
-                    case "Starting":
-                    case "Connecting":
-                    case "Connected":
-                    case "Reconnecting":
-                    case "Resetting":
                     case "Faulted":
                     case "Stopped":
                     case "Disconnected":
@@ -164,16 +164,6 @@ namespace BecquerelMonitor
             if (resultDataStatus == null)
             {
                 return;
-            }
-
-            if (!resultDataStatus.Recording)
-            {
-                resultDataStatus.Recording = true;
-                if (new_document_created && resultData != null)
-                {
-                    resultData.StartTime = DateTime.Now;
-                    new_document_created = false;
-                }
             }
 
             if (resultDataStatus.Recording)
