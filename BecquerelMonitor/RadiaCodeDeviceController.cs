@@ -10,9 +10,8 @@ namespace BecquerelMonitor
         private bool new_document_created = false;
         private string deviceGuid;
         private ResultData resultData;
-        private bool already_subscribed = false;
-        private string previous_guid;
         private string status = "Unknown";
+        private RadiaCodeIn subscribedInstance;
 
         public RadiaCodeDeviceController()
         {
@@ -22,7 +21,16 @@ namespace BecquerelMonitor
 
         private void RadiaCodeDeviceController_DeviceConfigListChanged(object sender, DeviceConfigChangedEventArgs e)
         {
-            already_subscribed = false;
+            if (resultData == null || subscribedInstance == null)
+            {
+                return;
+            }
+
+            if (resultData.DeviceConfig != null &&
+                resultData.DeviceConfig.InputDeviceConfig is RadiaCodeDeviceConfig deviceConfig)
+            {
+                subscribedInstance.setDeviceSerial(deviceConfig.DeviceSerial, deviceConfig.AddressBLE);
+            }
         }
 
         public double getCPS()
@@ -43,7 +51,7 @@ namespace BecquerelMonitor
         {
             if (deviceGuid != null)
             {
-                if (status == "Connected")
+                if (status == "Connected" || status == "Recording")
                 {
                     RadiaCodeIn.getInstance(deviceGuid).sendCommand("Reset");
                     resultData.StartTime = DateTime.Now;
@@ -56,64 +64,32 @@ namespace BecquerelMonitor
 
         public override bool StartMeasurement(ResultData resultData)
         {
-            ResultDataStatus resultDataStatus = resultData.ResultDataStatus;
+            ResultDataStatus currentResultDataStatus = resultData.ResultDataStatus;
             this.resultData = resultData;
             deviceGuid = resultData.DeviceConfig.Guid;
-            this.resultDataStatus = resultDataStatus;
+            this.resultDataStatus = currentResultDataStatus;
             if (resultData.DeviceConfig.InputDeviceConfig.GetType() == typeof(RadiaCodeDeviceConfig))
             {
                 this.pulseDetector.Pulses = resultData.PulseCollection;
                 this.pulseDetector.EnergySpectrum = resultData.EnergySpectrum;
                 RadiaCodeDeviceConfig deviceConfig = (RadiaCodeDeviceConfig)resultData.DeviceConfig.InputDeviceConfig;
-                DeviceConfigInfo dci = DeviceConfigManager.GetInstance().DeviceConfigMap[resultData.DeviceConfig.Guid];
+                RadiaCodeIn instance = RadiaCodeIn.getInstance(deviceGuid);
+                DeviceConfigManager.GetInstance().DeviceConfigMap.TryGetValue(resultData.DeviceConfig.Guid, out DeviceConfigInfo dci);
                 if (dci != null && (dci.InputDeviceConfig is RadiaCodeDeviceConfig))
                 {
                     RadiaCodeDeviceConfig dc = (RadiaCodeDeviceConfig)dci.InputDeviceConfig;
-                    RadiaCodeIn.getInstance(deviceGuid).setDeviceSerial(dc.DeviceSerial, dc.AddressBLE);
+                    instance.setDeviceSerial(dc.DeviceSerial, dc.AddressBLE);
                 }
                 else
                 {
-                    RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).setDeviceSerial(deviceConfig.DeviceSerial, deviceConfig.AddressBLE);
+                    instance.setDeviceSerial(deviceConfig.DeviceSerial, deviceConfig.AddressBLE);
                 }
 
-                if (previous_guid != null)
-                {
-                    if (!previous_guid.Equals(resultData.DeviceConfig.Guid))
-                    {
-                        already_subscribed = false;
-                        try
-                        {
-                            RadiaCodeIn.getInstance(previous_guid).DataReady -= DataIn_DataReady;
-                            RadiaCodeIn.getInstance(previous_guid).PortFailure -= RadiaCodeDeviceController_PortFailure;
-                            RadiaCodeIn.getInstance(previous_guid).Status -= RadiaCodeDeviceController_Status;
-                        }
-                        catch (Exception)
-                        {
-                        }
-                    }
-                }
-
-                if (!already_subscribed)
-                {
-                    RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).DataReady += DataIn_DataReady;
-                    RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).PortFailure += RadiaCodeDeviceController_PortFailure;
-                    RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).Status += RadiaCodeDeviceController_Status;
-                    already_subscribed = true;
-                }
-
-                previous_guid = resultData.DeviceConfig.Guid;
-                bool commands_accepted = true;
-                RadiaCodeIn.getInstance(resultData.DeviceConfig.Guid).sendCommand("Start");
-                RadiaCodeDeviceConfig devconfig = (RadiaCodeDeviceConfig)resultData.DeviceConfig.InputDeviceConfig;
-                //TODO add check
-                commands_accepted &= true;
-                if (new_document_created)
-                {
-                    resultData.StartTime = DateTime.Now;
-                    if (commands_accepted) new_document_created = false;
-                }
-                resultDataStatus.Recording = commands_accepted;
-                if (commands_accepted) return true;
+                SubscribeToInstance(instance);
+                currentResultDataStatus.Recording = false;
+                resultData.DetectorFeature = "Starting";
+                instance.sendCommand("Start");
+                return true;
             }
             return false;
         }
@@ -132,6 +108,25 @@ namespace BecquerelMonitor
             if (resultData != null && resultData.ResultDataStatus != null)
             {
                 resultData.DetectorFeature = status;
+                switch (status)
+                {
+                    case "Recording":
+                        resultData.ResultDataStatus.Recording = true;
+                        break;
+                    case "Starting":
+                    case "Connecting":
+                    case "Connected":
+                    case "Reconnecting":
+                    case "Resetting":
+                    case "Calibration":
+                    case "Calibration done":
+                    case "Calibration fail":
+                    case "Faulted":
+                    case "Stopped":
+                    case "Disconnected":
+                        resultData.ResultDataStatus.Recording = false;
+                        break;
+                }
             }
         }
 
@@ -168,6 +163,21 @@ namespace BecquerelMonitor
 
         private void update_hystogram(RadiaCodeInDataReadyArgs e)
         {
+            if (this.resultDataStatus == null)
+            {
+                return;
+            }
+
+            if (!this.resultDataStatus.Recording)
+            {
+                this.resultDataStatus.Recording = true;
+                if (new_document_created && this.resultData != null)
+                {
+                    this.resultData.StartTime = DateTime.Now;
+                    new_document_created = false;
+                }
+            }
+
             if (this.resultDataStatus.Recording)
             {
                 e.Hystogram.CopyTo(this.pulseDetector.EnergySpectrum.Spectrum, 0);
@@ -184,12 +194,12 @@ namespace BecquerelMonitor
 
         public override void StopMeasurement(ResultData resultData)
         {
-            ResultDataStatus resultDataStatus = resultData.ResultDataStatus;
+            ResultDataStatus currentResultDataStatus = resultData.ResultDataStatus;
             if (deviceGuid != null)
             {
                 RadiaCodeIn.getInstance(deviceGuid).sendCommand("Stop");
                 resultData.EndTime = DateTime.Now;
-                resultDataStatus.Recording = false;
+                currentResultDataStatus.Recording = false;
             }
         }
 
@@ -219,9 +229,49 @@ namespace BecquerelMonitor
 
         public void Dispose()
         {
-            throw new NotImplementedException();
+            DeviceConfigManager.GetInstance().DeviceConfigListChanged -= RadiaCodeDeviceController_DeviceConfigListChanged;
+            UnsubscribeFromInstance();
         }
 
         #endregion
+
+        private void SubscribeToInstance(RadiaCodeIn instance)
+        {
+            if (ReferenceEquals(subscribedInstance, instance))
+            {
+                return;
+            }
+
+            UnsubscribeFromInstance();
+            if (instance == null)
+            {
+                return;
+            }
+
+            instance.DataReady += DataIn_DataReady;
+            instance.PortFailure += RadiaCodeDeviceController_PortFailure;
+            instance.Status += RadiaCodeDeviceController_Status;
+            subscribedInstance = instance;
+        }
+
+        private void UnsubscribeFromInstance()
+        {
+            if (subscribedInstance == null)
+            {
+                return;
+            }
+
+            try
+            {
+                subscribedInstance.DataReady -= DataIn_DataReady;
+                subscribedInstance.PortFailure -= RadiaCodeDeviceController_PortFailure;
+                subscribedInstance.Status -= RadiaCodeDeviceController_Status;
+            }
+            catch (Exception)
+            {
+            }
+
+            subscribedInstance = null;
+        }
     }
 }

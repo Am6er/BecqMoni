@@ -31,6 +31,8 @@ namespace BecquerelMonitor
         private volatile bool thread_alive = true;
         private readonly int[] hystogram_buffered = new int[SpectrumChannels];
         private readonly object packetLock = new object();
+        private readonly object connectionLock = new object();
+        private readonly object stateLock = new object();
         private State state = State.Disconnected;
         private double cps;
         private string deviceserial;
@@ -45,13 +47,19 @@ namespace BecquerelMonitor
         private BluetoothLEAdvertisementWatcher watcher;
         private bool trshoot = false;
         private int trshootCount = 0;
+        private static readonly object instancesLock = new object();
 
         private enum State
         {
+            Starting,
             Connecting,
             Connected,
+            Recording,
+            Reconnecting,
             Disconnected,
-            Resetting
+            Resetting,
+            Faulted,
+            Stopped
         }
 
         public event EventHandler<ObsidianInDataReadyArgs> DataReady;
@@ -83,53 +91,78 @@ namespace BecquerelMonitor
 
         public double CPS
         {
-            get { return cps; }
+            get
+            {
+                lock (connectionLock)
+                {
+                    return cps;
+                }
+            }
         }
 
         public static List<ObsidianIn> getAllInstances()
         {
-            return instances;
+            lock (instancesLock)
+            {
+                return new List<ObsidianIn>(instances);
+            }
         }
 
         public static ObsidianIn getInstance(string guid, bool troubleshoot = false)
         {
-            foreach (ObsidianIn instance in instances)
+            lock (instancesLock)
             {
-                if (instance != null && guid.Equals(instance.GUID))
+                foreach (ObsidianIn instance in instances)
                 {
-                    return instance;
+                    if (instance != null && guid.Equals(instance.GUID))
+                    {
+                        return instance;
+                    }
                 }
+                ObsidianIn newInstance = new ObsidianIn(guid, troubleshoot);
+                instances.Add(newInstance);
+                return newInstance;
             }
-            ObsidianIn newInstance = new ObsidianIn(guid, troubleshoot);
-            instances.Add(newInstance);
-            return newInstance;
         }
 
         public static void cleanUp(string guid)
         {
-            for (int i = 0; i < instances.Count; i++)
+            ObsidianIn instanceToDispose = null;
+            lock (instancesLock)
             {
-                ObsidianIn instance = instances[i];
-                if (instance != null && instance.GUID.Equals(guid))
+                for (int i = 0; i < instances.Count; i++)
                 {
-                    instances.RemoveAt(i);
-                    instance.Dispose();
-                    Trace.WriteLine("Instance " + guid + " removed!");
-                    return;
+                    ObsidianIn instance = instances[i];
+                    if (instance != null && instance.GUID.Equals(guid))
+                    {
+                        instances.RemoveAt(i);
+                        instanceToDispose = instance;
+                        break;
+                    }
                 }
+            }
+            if (instanceToDispose != null)
+            {
+                instanceToDispose.Dispose();
+                Trace.WriteLine("Instance " + guid + " removed!");
             }
         }
 
         public static void finishAll()
         {
-            foreach (ObsidianIn instance in instances)
+            List<ObsidianIn> instancesToDispose;
+            lock (instancesLock)
+            {
+                instancesToDispose = new List<ObsidianIn>(instances);
+                instances.Clear();
+            }
+            foreach (ObsidianIn instance in instancesToDispose)
             {
                 if (instance != null)
                 {
                     instance.Dispose();
                 }
             }
-            instances.Clear();
         }
 
         private void sendTroubleShoot(string text)
@@ -142,21 +175,39 @@ namespace BecquerelMonitor
 
         private void setStatus(State nextState)
         {
-            state = nextState;
+            string nextStatus;
+            lock (stateLock)
+            {
+                state = nextState;
+                nextStatus = GetStateString(nextState);
+            }
             if (Status != null)
             {
-                Status(this, new ObsidianStatusArgs(getStateString()));
+                Status(this, new ObsidianStatusArgs(nextStatus));
             }
         }
 
         public string getStateString()
         {
-            switch ((int)state)
+            lock (stateLock)
             {
-                case 0: return "Connecting";
-                case 1: return "Connected";
-                case 2: return "Disconnected";
-                case 3: return "Resetting";
+                return GetStateString(state);
+            }
+        }
+
+        private static string GetStateString(State currentState)
+        {
+            switch (currentState)
+            {
+                case State.Starting: return "Starting";
+                case State.Connecting: return "Connecting";
+                case State.Connected: return "Connected";
+                case State.Recording: return "Recording";
+                case State.Reconnecting: return "Reconnecting";
+                case State.Disconnected: return "Disconnected";
+                case State.Resetting: return "Resetting";
+                case State.Faulted: return "Faulted";
+                case State.Stopped: return "Stopped";
                 default: return "Unknown";
             }
         }
@@ -181,44 +232,42 @@ namespace BecquerelMonitor
             switch (command)
             {
                 case "Start":
-                    setStatus(State.Connecting);
-                    Thread.Sleep(100);
+                    setStatus(State.Starting);
                     break;
                 case "Stop":
-                    setStatus(State.Disconnected);
+                    setStatus(State.Stopped);
                     DisconnectBLE();
                     break;
                 case "Reset":
                     setStatus(State.Resetting);
-                    Thread.Sleep(100);
                     break;
                 default:
-                    setStatus(State.Disconnected);
+                    setStatus(State.Faulted);
                     break;
             }
         }
 
-        private async System.Threading.Tasks.Task TestBT()
+        private void TestBT()
         {
             try
             {
                 Trace.WriteLine("Check BT status");
                 sendTroubleShoot("Check BT status...");
-                RadioAccessStatus access = await Radio.RequestAccessAsync();
+                RadioAccessStatus access = Radio.RequestAccessAsync().AsTask().GetAwaiter().GetResult();
                 if (access != RadioAccessStatus.Allowed)
                 {
                     sendTroubleShoot("Error! current user isn't allowed to use radio module.");
                     return;
                 }
-                BluetoothAdapter adapter = await BluetoothAdapter.GetDefaultAsync();
+                BluetoothAdapter adapter = BluetoothAdapter.GetDefaultAsync().AsTask().GetAwaiter().GetResult();
                 if (adapter != null)
                 {
-                    Radio btRadio = await adapter.GetRadioAsync();
+                    Radio btRadio = adapter.GetRadioAsync().AsTask().GetAwaiter().GetResult();
                     if (btRadio.State != RadioState.On)
                     {
                         Trace.WriteLine("BT was disabled, enabling it");
                         sendTroubleShoot("BT was disabled, enabling it.");
-                        await btRadio.SetStateAsync(RadioState.On);
+                        btRadio.SetStateAsync(RadioState.On).AsTask().GetAwaiter().GetResult();
                     }
                     else
                     {
@@ -234,9 +283,9 @@ namespace BecquerelMonitor
             }
         }
 
-        private async void doDiscovery()
+        private void doDiscovery()
         {
-            await TestBT();
+            TestBT();
             Trace.WriteLine("Run discovery, to awake device");
             if (watcher == null)
             {
@@ -253,10 +302,7 @@ namespace BecquerelMonitor
             catch (Exception ex)
             {
                 MessageBox.Show($"{ex.Message}: {ex.StackTrace}", "Error doing discovery", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                if (PortFailure != null)
-                {
-                    PortFailure(this, null);
-                }
+                RaisePortFailure();
             }
             finally
             {
@@ -270,61 +316,135 @@ namespace BecquerelMonitor
             return;
         }
 
-        private async void ConnectBLE(string addrBLE)
+        private bool ConnectBLE(string addrBLE)
         {
+            BluetoothLEDevice localDevice = null;
+            GattDeviceService localService = null;
+            GattCharacteristic localWriteCharacteristic = null;
+            GattCharacteristic localNotifyCharacteristic = null;
             try
             {
-                Trace.WriteLine($"Try to connect BLE at addr: {addrBLE}");
-                sendTroubleShoot($"Try to connect BLE at addr: {addrBLE}");
-                dev = await BluetoothLEDevice.FromBluetoothAddressAsync(Convert.ToUInt64(addrBLE));
-                if (dev != null)
+                lock (connectionLock)
                 {
-                    dev.ConnectionStatusChanged += Dev_ConnectionStatusChanged;
-                    GattDeviceServicesResult servicesResult = await dev.GetGattServicesForUuidAsync(Guid.Parse(OBS_HISTORY_SERVICE));
-                    if (servicesResult != null && servicesResult.Status == GattCommunicationStatus.Success && servicesResult.Services.Count > 0)
+                    Trace.WriteLine($"Try to connect BLE at addr: {addrBLE}");
+                    sendTroubleShoot($"Try to connect BLE at addr: {addrBLE}");
+                    localDevice = BluetoothLEDevice.FromBluetoothAddressAsync(Convert.ToUInt64(addrBLE)).AsTask().GetAwaiter().GetResult();
+                    if (localDevice == null)
                     {
-                        service = servicesResult.Services[0];
-                        GattCharacteristicsResult characteristicsResult = await service.GetCharacteristicsForUuidAsync(Guid.Parse(OBS_COMMAND_CHARACTERISTIC));
-                        if (characteristicsResult != null && characteristicsResult.Status == GattCommunicationStatus.Success && characteristicsResult.Characteristics.Count > 0)
-                        {
-                            characteristic = characteristicsResult.Characteristics[0];
-                        }
-                        GattCharacteristicsResult charNotifyResult = await service.GetCharacteristicsForUuidAsync(Guid.Parse(OBS_NOTIFY_CHARACTERISTIC));
-                        if (charNotifyResult != null && charNotifyResult.Status == GattCommunicationStatus.Success && charNotifyResult.Characteristics.Count > 0)
-                        {
-                            characteristicNotify = charNotifyResult.Characteristics[0];
-                            characteristicNotify.ValueChanged += Characteristic_ValueChanged;
-                            if (characteristicNotify.CharacteristicProperties.HasFlag(GattCharacteristicProperties.Notify))
-                            {
-                                await characteristicNotify.WriteClientCharacteristicConfigurationDescriptorAsync(
-                                    GattClientCharacteristicConfigurationDescriptorValue.Notify);
-                            }
-                        }
+                        sendTroubleShoot("Failed to create BLE device from address.");
+                        return false;
                     }
+
+                    GattDeviceServicesResult servicesResult = localDevice.GetGattServicesForUuidAsync(Guid.Parse(OBS_HISTORY_SERVICE)).AsTask().GetAwaiter().GetResult();
+                    if (servicesResult == null || servicesResult.Status != GattCommunicationStatus.Success || servicesResult.Services.Count == 0)
+                    {
+                        sendTroubleShoot($"Failed to get GATT service. Status={servicesResult?.Status}");
+                        return false;
+                    }
+
+                    localService = servicesResult.Services[0];
+                    GattCharacteristicsResult writeResult = localService.GetCharacteristicsForUuidAsync(Guid.Parse(OBS_COMMAND_CHARACTERISTIC)).AsTask().GetAwaiter().GetResult();
+                    if (writeResult == null || writeResult.Status != GattCommunicationStatus.Success || writeResult.Characteristics.Count == 0)
+                    {
+                        sendTroubleShoot($"Failed to get write characteristic. Status={writeResult?.Status}");
+                        return false;
+                    }
+
+                    localWriteCharacteristic = writeResult.Characteristics[0];
+                    if (!CanWrite(localWriteCharacteristic))
+                    {
+                        sendTroubleShoot("Write characteristic does not support write operations.");
+                        return false;
+                    }
+
+                    GattCharacteristicsResult notifyResult = localService.GetCharacteristicsForUuidAsync(Guid.Parse(OBS_NOTIFY_CHARACTERISTIC)).AsTask().GetAwaiter().GetResult();
+                    if (notifyResult == null || notifyResult.Status != GattCommunicationStatus.Success || notifyResult.Characteristics.Count == 0)
+                    {
+                        sendTroubleShoot($"Failed to get notify characteristic. Status={notifyResult?.Status}");
+                        return false;
+                    }
+
+                    localNotifyCharacteristic = notifyResult.Characteristics[0];
+                    if (!localNotifyCharacteristic.CharacteristicProperties.HasFlag(GattCharacteristicProperties.Notify))
+                    {
+                        sendTroubleShoot("Notify characteristic does not support notifications.");
+                        return false;
+                    }
+
+                    localNotifyCharacteristic.ValueChanged += Characteristic_ValueChanged;
+                    GattCommunicationStatus cccdStatus =
+                        localNotifyCharacteristic.WriteClientCharacteristicConfigurationDescriptorAsync(
+                            GattClientCharacteristicConfigurationDescriptorValue.Notify).AsTask().GetAwaiter().GetResult();
+                    if (cccdStatus != GattCommunicationStatus.Success)
+                    {
+                        localNotifyCharacteristic.ValueChanged -= Characteristic_ValueChanged;
+                        sendTroubleShoot($"Failed to enable notifications. CCCD status={cccdStatus}");
+                        return false;
+                    }
+
+                    localDevice.ConnectionStatusChanged += Dev_ConnectionStatusChanged;
+                    dev = localDevice;
+                    service = localService;
+                    characteristic = localWriteCharacteristic;
+                    characteristicNotify = localNotifyCharacteristic;
+                    return true;
                 }
             }
             catch (Exception ex)
             {
                 Trace.WriteLine($"Exception: {ex.Message} {ex.StackTrace}");
+                sendTroubleShoot($"Exception while connecting BLE: {ex.Message}");
+                return false;
+            }
+            finally
+            {
+                bool success;
+                lock (connectionLock)
+                {
+                    success = ReferenceEquals(dev, localDevice) &&
+                        ReferenceEquals(service, localService) &&
+                        ReferenceEquals(characteristic, localWriteCharacteristic) &&
+                        ReferenceEquals(characteristicNotify, localNotifyCharacteristic);
+                }
+                if (!success)
+                {
+                    DisposeConnectionResources(localDevice, localService, localNotifyCharacteristic, detachDeviceEvent: true);
+                }
             }
         }
 
         private void Dev_ConnectionStatusChanged(BluetoothLEDevice sender, object args)
         {
-            if (dev != null)
+            BluetoothConnectionStatus? connectionStatus = null;
+            State currentState;
+            lock (connectionLock)
             {
-                sendTroubleShoot($"Device connection status changed: {dev.ConnectionStatus}");
+                if (dev != null)
+                {
+                    connectionStatus = dev.ConnectionStatus;
+                }
             }
-            if (dev == null && state == State.Connected)
+            if (connectionStatus.HasValue)
+            {
+                sendTroubleShoot($"Device connection status changed: {connectionStatus.Value}");
+            }
+            lock (stateLock)
+            {
+                currentState = state;
+            }
+            if (!connectionStatus.HasValue && (currentState == State.Connected || currentState == State.Recording || currentState == State.Resetting))
             {
                 Trace.WriteLine("Disconnect device event");
                 sendTroubleShoot("Device connection status changed: dev disconnected");
-                setStatus(State.Connecting);
+                setStatus(State.Reconnecting);
             }
-            if (dev != null && dev.ConnectionStatus == BluetoothConnectionStatus.Disconnected && state != State.Disconnected)
+            if (connectionStatus == BluetoothConnectionStatus.Disconnected &&
+                currentState != State.Disconnected &&
+                currentState != State.Stopped &&
+                currentState != State.Faulted)
             {
                 Trace.WriteLine("Disconnect device event");
-                setStatus(State.Connecting);
+                setStatus(State.Reconnecting);
             }
         }
 
@@ -390,20 +510,106 @@ namespace BecquerelMonitor
             }
         }
 
-        private async void WritePacket(byte[] packetBytes)
+        private void WritePacket(byte[] packetBytes)
         {
-            DataWriter writer = new DataWriter();
-            writer.WriteBytes(packetBytes);
-            if (characteristic != null)
+            lock (connectionLock)
+            {
+                if (characteristic == null)
+                {
+                    throw new InvalidOperationException("Write characteristic is not available.");
+                }
+
+                DataWriter writer = new DataWriter();
+                writer.WriteBytes(packetBytes);
+                GattCommunicationStatus writeStatus = characteristic.WriteValueAsync(writer.DetachBuffer()).AsTask().GetAwaiter().GetResult();
+                if (writeStatus != GattCommunicationStatus.Success)
+                {
+                    throw new InvalidOperationException($"BLE write failed with status {writeStatus}.");
+                }
+            }
+        }
+
+        private static bool CanWrite(GattCharacteristic gattCharacteristic)
+        {
+            return gattCharacteristic != null &&
+                (gattCharacteristic.CharacteristicProperties.HasFlag(GattCharacteristicProperties.Write) ||
+                 gattCharacteristic.CharacteristicProperties.HasFlag(GattCharacteristicProperties.WriteWithoutResponse));
+        }
+
+        private void RaisePortFailure()
+        {
+            if (PortFailure != null)
+            {
+                PortFailure(this, null);
+            }
+        }
+
+        private void RaiseDataReady(ObsidianInDataReadyArgs args)
+        {
+            if (DataReady == null)
+            {
+                return;
+            }
+
+            foreach (EventHandler<ObsidianInDataReadyArgs> handler in DataReady.GetInvocationList())
             {
                 try
                 {
-                    await characteristic.WriteValueAsync(writer.DetachBuffer());
+                    handler(this, args);
                 }
                 catch (Exception ex)
                 {
-                    Trace.WriteLine($"Exception: {ex.Message} {ex.StackTrace}");
-                    setStatus(State.Connecting);
+                    Trace.WriteLine($"Obsidian DataReady handler exception: {ex.Message} {ex.StackTrace}");
+                }
+            }
+        }
+
+        private bool HasActiveConnection()
+        {
+            lock (connectionLock)
+            {
+                return dev != null && service != null && characteristic != null && characteristicNotify != null;
+            }
+        }
+
+        private void DisposeConnectionResources(
+            BluetoothLEDevice bluetoothLeDevice,
+            GattDeviceService gattService,
+            GattCharacteristic notifyCharacteristic,
+            bool detachDeviceEvent)
+        {
+            if (notifyCharacteristic != null)
+            {
+                try
+                {
+                    notifyCharacteristic.ValueChanged -= Characteristic_ValueChanged;
+                }
+                catch (Exception)
+                {
+                }
+            }
+            if (gattService != null)
+            {
+                try
+                {
+                    gattService.Dispose();
+                }
+                catch (Exception)
+                {
+                }
+            }
+            if (bluetoothLeDevice != null)
+            {
+                try
+                {
+                    if (detachDeviceEvent)
+                    {
+                        bluetoothLeDevice.ConnectionStatusChanged -= Dev_ConnectionStatusChanged;
+                    }
+                    bluetoothLeDevice.Dispose();
+                }
+                catch (Exception)
+                {
                 }
             }
         }
@@ -415,22 +621,45 @@ namespace BecquerelMonitor
                 if (device_serial_changed)
                 {
                     device_serial_changed = false;
-                    setStatus(State.Connecting);
+                    setStatus(State.Starting);
                 }
 
-                switch (state)
+                State currentState;
+                lock (stateLock)
                 {
+                    currentState = state;
+                }
+
+                switch (currentState)
+                {
+                    case State.Stopped:
                     case State.Disconnected:
                         Thread.Sleep(500);
                         break;
 
+                    case State.Starting:
                     case State.Connecting:
+                    case State.Reconnecting:
                         try
                         {
                             if (addressble != null)
                             {
+                                if (currentState != State.Reconnecting)
+                                {
+                                    setStatus(State.Connecting);
+                                }
                                 DisconnectBLE();
-                                ConnectBLE(addressble);
+                                bool connected = ConnectBLE(addressble);
+                                if (connected)
+                                {
+                                    if (trshoot)
+                                    {
+                                        trshootCount = 0;
+                                    }
+                                    setStatus(State.Connected);
+                                    ResetPacket();
+                                    break;
+                                }
                                 if (trshoot)
                                 {
                                     trshootCount++;
@@ -438,33 +667,14 @@ namespace BecquerelMonitor
                                     {
                                         sendTroubleShoot("Error! 3 attempts was made to connect device, no success connection.");
                                         sendTroubleShoot("QUIT");
+                                        setStatus(State.Faulted);
                                         Thread.Sleep(500);
                                         thread_alive = false;
                                         break;
                                     }
                                 }
-                                for (int i = 0; i <= 100; i++)
-                                {
-                                    Thread.Sleep(100);
-                                    if (!thread_alive)
-                                    {
-                                        break;
-                                    }
-                                    if (dev != null && service != null && characteristic != null && characteristicNotify != null)
-                                    {
-                                        if (trshoot)
-                                        {
-                                            trshootCount = 0;
-                                        }
-                                        setStatus(State.Connected);
-                                        ResetPacket();
-                                        break;
-                                    }
-                                }
-                                if (state != State.Connected)
-                                {
-                                    doDiscovery();
-                                }
+                                setStatus(State.Reconnecting);
+                                doDiscovery();
                             }
                             else
                             {
@@ -472,6 +682,7 @@ namespace BecquerelMonitor
                                 {
                                     sendTroubleShoot("QUIT");
                                 }
+                                setStatus(State.Faulted);
                                 Thread.Sleep(500);
                                 thread_alive = false;
                             }
@@ -491,9 +702,9 @@ namespace BecquerelMonitor
                             {
                                 break;
                             }
-                            if (dev == null || service == null || characteristic == null || characteristicNotify == null)
+                            if (!HasActiveConnection())
                             {
-                                setStatus(State.Connecting);
+                                setStatus(State.Reconnecting);
                                 break;
                             }
                             ResetPacket();
@@ -505,24 +716,22 @@ namespace BecquerelMonitor
                         catch (Exception ex)
                         {
                             Trace.WriteLine($"Exception: {ex.Message} {ex.StackTrace}");
-                            setStatus(State.Connecting);
-                            if (PortFailure != null)
-                            {
-                                PortFailure(this, null);
-                            }
+                            sendTroubleShoot($"Reset command failed: {ex.Message}");
+                            setStatus(State.Reconnecting);
                         }
                         break;
 
                     case State.Connected:
+                    case State.Recording:
                         try
                         {
                             if (!thread_alive)
                             {
                                 break;
                             }
-                            if (dev == null || service == null || characteristic == null || characteristicNotify == null)
+                            if (!HasActiveConnection())
                             {
-                                setStatus(State.Connecting);
+                                setStatus(State.Reconnecting);
                                 break;
                             }
                             ResetPacket();
@@ -538,7 +747,12 @@ namespace BecquerelMonitor
                                     complete = packet.COMPLETE;
                                     broken = packet.BROKEN;
                                 }
-                                if (complete || broken || !thread_alive || state != State.Connected)
+                                State pollingState;
+                                lock (stateLock)
+                                {
+                                    pollingState = state;
+                                }
+                                if (complete || broken || !thread_alive || (pollingState != State.Connected && pollingState != State.Recording))
                                 {
                                     break;
                                 }
@@ -551,7 +765,7 @@ namespace BecquerelMonitor
                                         packet.BROKEN = true;
                                         sendTroubleShoot($"Spectrum receive timeout. total={packet.Counter}");
                                     }
-                                    setStatus(State.Connecting);
+                                    setStatus(State.Reconnecting);
                                 }
                             }
                             if (!thread_alive)
@@ -562,7 +776,12 @@ namespace BecquerelMonitor
                             int elapsedTime = 0;
                             lock (packetLock)
                             {
-                                if (packet.BROKEN || state != State.Connected || packet.SPECTRUM == null)
+                                State readyState;
+                                lock (stateLock)
+                                {
+                                    readyState = state;
+                                }
+                                if (packet.BROKEN || (readyState != State.Connected && readyState != State.Recording) || packet.SPECTRUM == null)
                                 {
                                     break;
                                 }
@@ -575,10 +794,17 @@ namespace BecquerelMonitor
                             long sum = hystogram_buffered.Sum(i => (long)i);
                             if (elapsedTime != 0)
                             {
-                                cps = sum / (double)elapsedTime;
+                                lock (connectionLock)
+                                {
+                                    cps = sum / (double)elapsedTime;
+                                }
                             }
                             sendTroubleShoot($"Spectrum cps: {cps}");
                             sendTroubleShoot($"Spectrum total counts: {sum}");
+                            if (currentState != State.Recording)
+                            {
+                                setStatus(State.Recording);
+                            }
                             if (trshoot)
                             {
                                 sendTroubleShoot("QUIT");
@@ -586,20 +812,18 @@ namespace BecquerelMonitor
                                 thread_alive = false;
                                 break;
                             }
-                            if (DataReady != null)
-                            {
-                                DataReady(this, new ObsidianInDataReadyArgs(hystogram_buffered, elapsedTime, (int)sum));
-                            }
+                            RaiseDataReady(new ObsidianInDataReadyArgs(hystogram_buffered, elapsedTime, (int)sum));
                         }
                         catch (Exception ex)
                         {
-                            MessageBox.Show($"{ex.Message} {ex.StackTrace}");
-                            setStatus(State.Connecting);
-                            if (PortFailure != null)
-                            {
-                                PortFailure(this, null);
-                            }
+                            Trace.WriteLine($"Spectrum polling exception: {ex.Message} {ex.StackTrace}");
+                            sendTroubleShoot($"Spectrum polling exception: {ex.Message}");
+                            setStatus(State.Reconnecting);
                         }
+                        break;
+
+                    case State.Faulted:
+                        Thread.Sleep(500);
                         break;
                 }
             }
@@ -613,15 +837,16 @@ namespace BecquerelMonitor
             {
                 Trace.WriteLine("ObsidianIn thread termination request");
                 thread_alive = false;
+                setStatus(State.Stopped);
                 Trace.WriteLine("Try to disconnect..");
                 DisconnectBLE();
                 if (readerThread.IsAlive)
                 {
-                    readerThread.Join();
+                    readerThread.Join(5000);
                 }
                 if (discoveryThread != null && discoveryThread.IsAlive)
                 {
-                    discoveryThread.Join();
+                    discoveryThread.Join(5000);
                 }
             }
         }
@@ -630,32 +855,28 @@ namespace BecquerelMonitor
         {
             sendTroubleShoot("Disconnect BLE service");
             Trace.WriteLine("Disconnect BLE service");
+            BluetoothLEDevice deviceToDispose = null;
+            GattDeviceService serviceToDispose = null;
+            GattCharacteristic notifyToDetach = null;
             try
             {
-                if (characteristicNotify != null)
+                lock (connectionLock)
                 {
-                    characteristicNotify.ValueChanged -= Characteristic_ValueChanged;
+                    notifyToDetach = characteristicNotify;
                     characteristicNotify = null;
+                    characteristic = null;
+                    serviceToDispose = service;
+                    service = null;
+                    deviceToDispose = dev;
+                    dev = null;
+                    cps = 0.0;
                 }
-                characteristic = null;
-                if (service != null)
-                {
-                    service.Dispose();
-                }
-                service = null;
-                if (dev != null)
-                {
-                    dev.ConnectionStatusChanged -= Dev_ConnectionStatusChanged;
-                    dev.Dispose();
-                }
-                dev = null;
+                DisposeConnectionResources(deviceToDispose, serviceToDispose, notifyToDetach, detachDeviceEvent: true);
             }
             catch (Exception ex)
             {
                 Trace.WriteLine($"Exception during disconnect: {ex.Message} {ex.StackTrace}");
             }
-            Thread.Sleep(1000);
-            GC.Collect();
         }
 
         private class ObsidianSpectrumPacket
