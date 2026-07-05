@@ -970,6 +970,7 @@ namespace BecquerelMonitor
             if (previousDocument != null)
             {
                 previousDocument.ActiveEnergyCalibration = false;
+                previousDocument.Invalidate(true);
             }
             this.activeDocument = (DocEnergySpectrum)this.dockPanel1.ActiveDocument;
             this.dcPulseView.PulseView.PulseShape = null;
@@ -1010,6 +1011,9 @@ namespace BecquerelMonitor
                 }
                 this.AutoSaveStripMenuItem.Checked = this.activeDocument.AutoSave;
                 this.RefreshDocumentChart(this.activeDocument);
+                this.activeDocument.EnergySpectrumView.RefreshSelectionOverlay();
+                this.activeDocument.Invalidate(true);
+                this.dockPanel1.Invalidate(true);
             }
             else
             {

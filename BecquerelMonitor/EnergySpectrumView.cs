@@ -487,6 +487,17 @@ namespace BecquerelMonitor
             this.selectionFWHMinkev = 0.0;
         }
 
+        public void RefreshSelectionOverlay()
+        {
+            if (this.selectionStart == -1 || this.selectionEnd == -1)
+            {
+                return;
+            }
+
+            this.InvalidateSelectionAnalytics();
+            base.Invalidate();
+        }
+
         void InvalidateViewportData()
         {
             this.viewportDataDirty = true;
