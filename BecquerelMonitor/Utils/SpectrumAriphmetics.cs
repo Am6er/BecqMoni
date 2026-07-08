@@ -939,14 +939,23 @@ namespace BecquerelMonitor.Utils
                 int end = decreasing ? 1 : n;
                 int step = decreasing ? -1 : 1;
 
+                int len = x.Length;
                 for (int p = start; decreasing ? p >= end : p <= end; p += step)
                 {
                     double[] next = (double[])baseline.Clone();
-                    Parallel.For(p, x.Length - p, i =>
+                    // Итерируем все каналы и зажимаем индексы соседей к границам,
+                    // а не пропускаем первые/последние p каналов. Иначе крайний
+                    // низкоэнергетический пик не клиппируется (симметричное окно
+                    // уходит за канал 0) и остаётся в континууме.
+                    Parallel.For(0, len, i =>
                     {
                         if (p <= r[i])
                         {
-                            double b = (baseline[i - p] + baseline[i + p]) / 2;
+                            int il = i - p;
+                            if (il < 0) il = 0;
+                            int ir = i + p;
+                            if (ir > len - 1) ir = len - 1;
+                            double b = (baseline[il] + baseline[ir]) / 2;
                             next[i] = Math.Min(baseline[i], b);
                         }
                     });
@@ -966,6 +975,14 @@ namespace BecquerelMonitor.Utils
         double[] BuildSnipRadius(double[] baseline, List<Peak> peaks, double coeff)
         {
             double[] radius = new double[baseline.Length];
+
+            // FWHM-модель (sqrt от квадратичной по каналу) на низких каналах может
+            // уходить под ноль и клампиться в 0. Тогда радиус SNIP становится нулевым,
+            // условие (p <= r[i]) никогда не выполняется, и низкоэнергетические каналы
+            // вообще не клиппируются — континуум "засасывается" в первый пик.
+            // Держим FWHM плоско ниже самого нижнего калибровочного канала.
+            double fwhmFloor = LowEnergyFwhmFloor(baseline.Length);
+
             for (int i = 0; i < baseline.Length; i++)
             {
                 if (baseline[i] == 0)
@@ -973,7 +990,13 @@ namespace BecquerelMonitor.Utils
                     continue;
                 }
 
-                radius[i] = coeff * FWHM(i, this.FwhmCalibration);
+                double fwhm = FWHM(i, this.FwhmCalibration);
+                if (!IsFinite(fwhm) || fwhm < fwhmFloor)
+                {
+                    fwhm = fwhmFloor;
+                }
+
+                radius[i] = coeff * fwhm;
             }
 
             if (peaks == null || peaks.Count == 0)
@@ -991,6 +1014,57 @@ namespace BecquerelMonitor.Utils
             }
 
             return radius;
+        }
+
+        // Нижний предел FWHM для низких каналов: значение модели в самой нижней
+        // калибровочной точке (плоская экстраполяция вниз). Так радиус SNIP не
+        // проваливается в 0 там, где квадратичная модель даёт отрицательный аргумент.
+        double LowEnergyFwhmFloor(int channelsCount)
+        {
+            if (this.FwhmCalibration == null || channelsCount <= 0)
+            {
+                return 0.0;
+            }
+
+            // Нижний калибровочный канал, если точки заданы.
+            int anchorChannel = -1;
+            List<CalibrationPeak> calPeaks = this.FwhmCalibration.CalibrationPeaks;
+            if (calPeaks != null && calPeaks.Count > 0)
+            {
+                anchorChannel = int.MaxValue;
+                foreach (CalibrationPeak cp in calPeaks)
+                {
+                    if (cp != null && cp.Channel >= 0 && cp.Channel < anchorChannel)
+                    {
+                        anchorChannel = cp.Channel;
+                    }
+                }
+                if (anchorChannel == int.MaxValue)
+                {
+                    anchorChannel = -1;
+                }
+            }
+
+            if (anchorChannel >= 0)
+            {
+                double anchorFwhm = FWHM(anchorChannel, this.FwhmCalibration);
+                if (IsFinite(anchorFwhm) && anchorFwhm > 0.0)
+                {
+                    return anchorFwhm;
+                }
+            }
+
+            // Фолбэк: первый канал, где модель даёт положительный FWHM.
+            for (int i = 0; i < channelsCount; i++)
+            {
+                double f = FWHM(i, this.FwhmCalibration);
+                if (IsFinite(f) && f > 0.0)
+                {
+                    return f;
+                }
+            }
+
+            return 0.0;
         }
 
         int[] BuildPeakMultiplicityMap(int channelsCount, List<Peak> peaks)
