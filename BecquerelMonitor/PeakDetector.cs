@@ -245,7 +245,8 @@ namespace BecquerelMonitor
                     energySpectrum,
                     Convert.ToInt32(centroid),
                     Convert.ToInt32(centroid - mul - 1),
-                    Convert.ToInt32(centroid + mul + 1));
+                    Convert.ToInt32(centroid + mul + 1),
+                    config.UseCenterOfMassCentroid);
             }
 
             Peak peak = new Peak();

@@ -595,8 +595,28 @@ namespace BecquerelMonitor
                     this.selectionFWHM = analytics.FwhmResult.Resolution;
                     this.selectionFullWidth = (int)(analytics.FwhmResult.RightChannel - analytics.FwhmResult.LeftChannel);
                     this.selectionFWHMinkev = analytics.FwhmResult.ResolutionInkeV;
-                    this.selectionCentroidCh = (int)analytics.FwhmResult.MaxChannel;
-                    this.selectionCentroidkeV = this.energyCalibration.ChannelToEnergy(this.selectionCentroidCh);
+
+                    // Центроид отображаемого пика: по умолчанию (флаг выключен) —
+                    // прежний argmax (MaxChannel); при включённом UseCenterOfMassCentroid —
+                    // центр масс по ядру пика (тот же метод, что и в детекции).
+                    double centroidChannel = analytics.FwhmResult.MaxChannel;
+                    bool useComCentroid = true;
+                    if (this.activeResultData.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig centroidConfig)
+                    {
+                        useComCentroid = centroidConfig.UseCenterOfMassCentroid;
+                    }
+                    if (useComCentroid)
+                    {
+                        SpectrumAriphmetics centroidSa = new SpectrumAriphmetics();
+                        centroidChannel = centroidSa.FindCentroid(
+                            fwhmSpectrum,
+                            (int)analytics.FwhmResult.MaxChannel,
+                            startChannel,
+                            endChannel,
+                            true);
+                    }
+                    this.selectionCentroidCh = (int)Math.Round(centroidChannel);
+                    this.selectionCentroidkeV = this.energyCalibration.ChannelToEnergy(centroidChannel);
                 }
             }
 
