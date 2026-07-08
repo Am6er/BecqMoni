@@ -582,6 +582,11 @@ namespace BecquerelMonitor
                 this.numericUpDown16.Value = (decimal)config.NumberOfChannels;
             }
 
+            this.numericUpDownWidenFactor.Minimum = (decimal)1.0;
+            this.numericUpDownWidenFactor.Maximum = (decimal)3.0;
+            this.numericUpDownWidenFactor.Increment = (decimal)0.05;
+            this.numericUpDownWidenFactor.Value = ClampNumericValue(this.numericUpDownWidenFactor, (decimal)FWHMPeakDetectionMethodConfig.PeakWidthWidenFactor);
+
             LoadDeconvolutionControls(FWHMPeakDetectionMethodConfig);
             LoadPeakShapeControls(FWHMPeakDetectionMethodConfig.FwhmCalibration);
 
@@ -626,6 +631,7 @@ namespace BecquerelMonitor
             this.numericUpDown14.Value = FWHMPeakDetectionMethodConfig.Min_FWHM_Tol;
             this.numericUpDown15.Value = FWHMPeakDetectionMethodConfig.Max_FWHM_Tol;
             this.numericUpDown16.Value = FWHMPeakDetectionMethodConfig.Ch_Concat;
+            this.numericUpDownWidenFactor.Value = ClampNumericValue(this.numericUpDownWidenFactor, (decimal)FWHMPeakDetectionMethodConfig.PeakWidthWidenFactor);
             this.numericUpDown12.Value = (decimal)FWHMPeakDetectionMethodConfig.Min_Range;
             LoadDeconvolutionControls(FWHMPeakDetectionMethodConfig);
             LoadPeakShapeControls(FWHMPeakDetectionMethodConfig.FwhmCalibration);
@@ -852,6 +858,7 @@ namespace BecquerelMonitor
                 FWHMPeakDetectionMethodConfig.Min_FWHM_Tol = this.numericUpDown14.Value;
                 FWHMPeakDetectionMethodConfig.Max_FWHM_Tol = this.numericUpDown15.Value;
                 FWHMPeakDetectionMethodConfig.Ch_Concat = (int)this.numericUpDown16.Value;
+                FWHMPeakDetectionMethodConfig.PeakWidthWidenFactor = (double)this.numericUpDownWidenFactor.Value;
                 FWHMPeakDetectionMethodConfig.UseDeconvolution = this.deconvolutionEnabledCheckBox.Checked;
                 FWHMPeakDetectionMethodConfig.BurnIn = (int)this.deconvolutionBurnInNumericUpDown.Value;
                 FWHMPeakDetectionMethodConfig.Samples = (int)this.deconvolutionSamplesNumericUpDown.Value;
@@ -2078,6 +2085,11 @@ namespace BecquerelMonitor
         }
 
         void numericUpDown16_ValueChanged(object sender, EventArgs e)
+        {
+            this.SetActiveDeviceConfigDirty();
+        }
+
+        void numericUpDownWidenFactor_ValueChanged(object sender, EventArgs e)
         {
             this.SetActiveDeviceConfigDirty();
         }

@@ -1172,7 +1172,12 @@ namespace BecquerelMonitor
                 List<Peak> peaks = this.activeResultData.DetectedPeaks != null
                     ? new List<Peak>(this.activeResultData.DetectedPeaks)
                     : new List<Peak>();
-                this.continuumEnergySpectrum = sa.Continuum(peaks);
+                double widenFactor = 1.2;
+                if (this.activeResultData.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig fwhmDetConfig)
+                {
+                    widenFactor = fwhmDetConfig.PeakWidthWidenFactor;
+                }
+                this.continuumEnergySpectrum = sa.Continuum(peaks, peakWidthWidenFactor: widenFactor);
 
                 this.peakEnergySpectrum.Clear();
                 if (peaks.Count > 0)

@@ -130,6 +130,8 @@ namespace BecquerelMonitor
             this.numericUpDown14 = new System.Windows.Forms.NumericUpDown();
             this.numericUpDown15 = new System.Windows.Forms.NumericUpDown();
             this.numericUpDown16 = new System.Windows.Forms.NumericUpDown();
+            this.numericUpDownWidenFactor = new System.Windows.Forms.NumericUpDown();
+            this.labelWidenFactor = new System.Windows.Forms.Label();
             this.deconvolutionGroupBox = new System.Windows.Forms.GroupBox();
             this.deconvolutionEnabledLabel = new System.Windows.Forms.Label();
             this.deconvolutionEnabledCheckBox = new System.Windows.Forms.CheckBox();
@@ -199,6 +201,7 @@ namespace BecquerelMonitor
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown14)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown15)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown16)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDownWidenFactor)).BeginInit();
             this.deconvolutionGroupBox.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.deconvolutionBurnInNumericUpDown)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.deconvolutionSamplesNumericUpDown)).BeginInit();
@@ -852,6 +855,8 @@ namespace BecquerelMonitor
             this.groupBox2.Controls.Add(this.numericUpDown14);
             this.groupBox2.Controls.Add(this.numericUpDown15);
             this.groupBox2.Controls.Add(this.numericUpDown16);
+            this.groupBox2.Controls.Add(this.labelWidenFactor);
+            this.groupBox2.Controls.Add(this.numericUpDownWidenFactor);
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.TabStop = false;
             // 
@@ -948,7 +953,27 @@ namespace BecquerelMonitor
             resources.ApplyResources(this.numericUpDown16, "numericUpDown16");
             this.numericUpDown16.Name = "numericUpDown16";
             this.numericUpDown16.ValueChanged += new System.EventHandler(this.numericUpDown16_ValueChanged);
-            // 
+            //
+            // labelWidenFactor
+            //
+            this.labelWidenFactor.AutoSize = true;
+            this.labelWidenFactor.ImeMode = System.Windows.Forms.ImeMode.NoControl;
+            this.labelWidenFactor.Location = new System.Drawing.Point(225, 117);
+            this.labelWidenFactor.Name = "labelWidenFactor";
+            this.labelWidenFactor.Size = new System.Drawing.Size(113, 13);
+            this.labelWidenFactor.TabIndex = 20;
+            this.labelWidenFactor.Text = "Peak width widen factor";
+            //
+            // numericUpDownWidenFactor
+            //
+            this.numericUpDownWidenFactor.DecimalPlaces = 2;
+            this.numericUpDownWidenFactor.Location = new System.Drawing.Point(347, 115);
+            this.numericUpDownWidenFactor.Name = "numericUpDownWidenFactor";
+            this.numericUpDownWidenFactor.Size = new System.Drawing.Size(73, 20);
+            this.numericUpDownWidenFactor.TabIndex = 8;
+            this.numericUpDownWidenFactor.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            this.numericUpDownWidenFactor.ValueChanged += new System.EventHandler(this.numericUpDownWidenFactor_ValueChanged);
+            //
             // deconvolutionGroupBox
             // 
             resources.ApplyResources(this.deconvolutionGroupBox, "deconvolutionGroupBox");
@@ -1367,6 +1392,7 @@ namespace BecquerelMonitor
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown14)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown15)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown16)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDownWidenFactor)).EndInit();
             this.deconvolutionGroupBox.ResumeLayout(false);
             this.deconvolutionGroupBox.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.deconvolutionBurnInNumericUpDown)).EndInit();
@@ -1524,7 +1550,11 @@ namespace BecquerelMonitor
 
         System.Windows.Forms.NumericUpDown numericUpDown16;
 
-		// Token: 0x04000286 RID: 646
+        System.Windows.Forms.NumericUpDown numericUpDownWidenFactor;
+
+        System.Windows.Forms.Label labelWidenFactor;
+
+// Token: 0x04000286 RID: 646
 		System.Windows.Forms.Label label42;
 
 		// Token: 0x04000287 RID: 647
