@@ -1,0 +1,31 @@
+=== C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\RjmcmcTuning\spectra\Th-232 16.06.2026.xml ===
+MinSNR=6.0; Finder=18; DeconvExtras=4; FinalPeaks=22
+Final peaks:
+  ch=  172  E=   49.45 keV  SNR=284.59  FWHM= 27.30
+  ch=  224  E=   72.04 keV  SNR= 76.56  FWHM= 25.37
+  ch=  340  E=  122.03 keV  SNR= 55.69  FWHM= 36.60
+  ch=  393  E=  144.70 keV  SNR= 74.75  FWHM= 42.24
+  ch=  445  E=  166.84 keV  SNR=165.23  FWHM= 46.22
+  ch=  542  E=  207.91 keV  SNR=134.45  FWHM= 52.87
+  ch=  615  E=  238.63 keV  SNR=1043.30  FWHM= 58.23
+  ch=  852  E=  337.49 keV  SNR=540.69  FWHM= 71.55
+  ch= 1030  E=  411.07 keV  SNR=  9.33  FWHM= 20.68
+  ch= 1158  E=  463.76 keV  SNR= 86.00  FWHM= 55.26
+  ch= 1274  E=  511.40 keV  SNR=179.17  FWHM= 64.32
+  ch= 1450  E=  583.60 keV  SNR=636.75  FWHM= 96.90
+  ch= 1791  E=  723.69 keV  SNR=127.02  FWHM= 95.18
+  ch= 1936  E=  783.52 keV  SNR= 14.06  FWHM= 38.15
+  ch= 2231  E=  906.03 keV  SNR=397.96  FWHM=117.00
+  ch= 2365  E=  962.10 keV  SNR=205.77  FWHM=100.99
+  ch= 2694  E= 1101.13 keV  SNR= 20.82  FWHM= 99.40
+  ch= 3031  E= 1245.71 keV  SNR= 22.44  FWHM=153.98
+  ch= 3808  E= 1587.31 keV  SNR=274.73  FWHM=169.78
+  ch= 5016  E= 2130.21 keV  SNR=128.35  FWHM=184.48
+  ch= 5476  E= 2333.29 keV  SNR= 70.18  FWHM=239.10
+  ch= 6145  E= 2614.13 keV  SNR=373.36  FWHM=223.61
+RJMCMC extras:
+  ch= 224.00  SNR= 76.56  amp=   7772.56  deltaD= 8402.74  occ= 1.000  std=  0.84  residSNR= 76.56  corr= 0.728  dist= 2.050  support=2  roi=[194..502]  local=[348]  halo=[172,620]
+  ch= 393.00  SNR= 74.75  amp=   7895.61  deltaD= 8068.76  occ= 1.000  std=  1.39  residSNR= 74.75  corr= 0.691  dist= 1.065  support=2  roi=[194..502]  local=[348]  halo=[172,620]
+  ch= 445.00  SNR=165.23  amp=   9513.34  deltaD=33530.72  occ= 1.000  std=  2.33  residSNR=165.23  corr= 0.858  dist= 2.099  support=2  roi=[194..502]  local=[348]  halo=[172,620]
+  ch= 542.00  SNR=134.45  amp=  16704.07  deltaD=48098.40  occ= 1.000  std=  0.00  residSNR=134.45  corr= 0.569  dist= 1.352  support=2  roi=[389..851]  local=[620]  halo=[348,860]
+
