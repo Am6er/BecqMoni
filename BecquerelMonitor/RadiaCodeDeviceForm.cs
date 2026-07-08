@@ -15,8 +15,8 @@ namespace BecquerelMonitor
     public partial class RadiaCodeDeviceForm : InputDeviceForm
     {
         private List<String> adressBLE = new List<String>();
-        private HashSet<ulong> devices;
-        private Dictionary<string, string> devicePreset;
+        private HashSet<ulong> devices = new HashSet<ulong>();
+        private Dictionary<string, string> devicePreset = new Dictionary<string, string>();
         private BluetoothLEAdvertisementWatcher watcher;
         private string DeviceSerial;
         private int currentBLEindex = -1;

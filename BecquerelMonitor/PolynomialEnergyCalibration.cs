@@ -119,7 +119,7 @@ namespace BecquerelMonitor
                     return false;
                 }
             }
-            if (this.polynomialOrder > 4 && this.polynomialOrder < 1) { return false; }
+            if (this.polynomialOrder > 4 || this.polynomialOrder < 1) { return false; }
             for (int i = 1; i <= channels; i++)
             {
                 double prevEnrg = this.ChannelToEnergy(i - 1);
@@ -168,8 +168,8 @@ namespace BecquerelMonitor
         // Token: 0x06000734 RID: 1844 RVA: 0x00029E1C File Offset: 0x0002801C
         public override double EnergyToChannel(double enrg, int maxCh = 8192)
         {
-            if (this.maxChannels != maxCh) this.maxChannels = maxCh;
-            if (this.maxEnergy == -1) this.maxEnergy = ChannelToEnergy(this.maxChannels);
+            if (this.maxChannels != maxCh) { this.maxChannels = maxCh; this.maxEnergy = -1; }
+            if (this.maxEnergy == -1 || this.dirty) this.maxEnergy = ChannelToEnergy(this.maxChannels);
             if (enrg > this.maxEnergy && this.maxEnergy != -1) return this.maxChannels;
             if (this.dirty || this.energytochanel == null)
             {
@@ -229,7 +229,17 @@ namespace BecquerelMonitor
                         System.Windows.Forms.MessageBox.Show(Resources.CalibrationFunctionError);
                         return 0;
                     }
-                    return (-b + Math.Sqrt(discriminant)) / (2.0 * a);
+                    double sqrtD = Math.Sqrt(discriminant);
+                    double root1 = (-b + sqrtD) / (2.0 * a);
+                    double root2 = (-b - sqrtD) / (2.0 * a);
+                    bool root1InRange = root1 >= 0.0 && root1 <= maxCh;
+                    bool root2InRange = root2 >= 0.0 && root2 <= maxCh;
+                    if (root1InRange && root2InRange) return Math.Min(root1, root2);
+                    if (root1InRange) return root1;
+                    if (root2InRange) return root2;
+                    if (root1 >= 0.0) return root1;
+                    if (root2 >= 0.0) return root2;
+                    return 0;
                 }
             }
             if (this.polynomialOrder == 4)

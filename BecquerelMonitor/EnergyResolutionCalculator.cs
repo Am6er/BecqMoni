@@ -12,7 +12,7 @@ namespace BecquerelMonitor
             if (startChannel >= endChannel || spectrum.NumberOfChannels < endChannel) return null;
             int centroid = startChannel;
             if (spectrum.Spectrum.Length <= startChannel) return null;
-            double centroid_counts = (double)spectrum.Spectrum[centroid] - SpectrumAriphmetics.getY(centroid, startChannel, endChannel, spectrum.Spectrum[startChannel], spectrum.Spectrum[endChannel]);
+            double centroid_counts = (double)spectrum.Spectrum[centroid];
             for (int i = startChannel; i <= endChannel; i++)
             {
                 if ((double)spectrum.Spectrum[i] - SpectrumAriphmetics.getY(i, startChannel, endChannel, spectrum.Spectrum[startChannel], spectrum.Spectrum[endChannel]) 
@@ -57,6 +57,7 @@ namespace BecquerelMonitor
 
 
 
+            EnergyResolutionResult result = new EnergyResolutionResult();
             result.StartChannel = (double)startChannel;
             result.EndChannel = (double)endChannel;
             result.StartValue = start_counts;
@@ -71,7 +72,5 @@ namespace BecquerelMonitor
             result.ResolutionInkeV = resolutioninkev;
             return result;
         }
-
-        static EnergyResolutionResult result = new EnergyResolutionResult();
     }
 }

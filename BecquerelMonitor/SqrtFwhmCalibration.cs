@@ -28,7 +28,15 @@ namespace BecquerelMonitor
 
         public override double FwhmToChannel(double fwhm)
         {
-            return (-coefficients[1] + Math.Sqrt(coefficients[1] * coefficients[1] - 4 * coefficients[2] * (coefficients[0] - fwhm * fwhm))) / (2 * coefficients[2]);
+            // Degenerate to linear when the quadratic term is absent: fwhm^2 = c0 + c1*ch
+            if (coefficients[2] == 0)
+            {
+                if (coefficients[1] == 0) return 0.0;
+                return (fwhm * fwhm - coefficients[0]) / coefficients[1];
+            }
+            double discriminant = coefficients[1] * coefficients[1] - 4 * coefficients[2] * (coefficients[0] - fwhm * fwhm);
+            if (discriminant < 0) return 0.0;
+            return (-coefficients[1] + Math.Sqrt(discriminant)) / (2 * coefficients[2]);
         }
 
         public override string GetFormula()
@@ -40,7 +48,7 @@ namespace BecquerelMonitor
         {
             return new SqrtFwhmCalibration {
                 CalibrationPeaks = CalibrationPeak.ClonePeaks(this.CalibrationPeaks),
-                Coefficients = this.Coefficients,
+                Coefficients = (double[])this.Coefficients.Clone(),
                 PeakType = this.PeakType,
                 ExpGaussExpLeftTail = this.ExpGaussExpLeftTail,
                 ExpGaussExpRightTail = this.ExpGaussExpRightTail,

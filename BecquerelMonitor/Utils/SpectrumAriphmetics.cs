@@ -46,7 +46,7 @@ namespace BecquerelMonitor.Utils
             }
         }
 
-        public int FindCentroid2(EnergySpectrum energySpectrum, int centroid, int low_boundary, int high_boundary)
+        public int FindCentroid(EnergySpectrum energySpectrum, int centroid, int low_boundary, int high_boundary)
         {
             if (low_boundary < 0) low_boundary = 0;
             if (high_boundary >= energySpectrum.NumberOfChannels) high_boundary = energySpectrum.NumberOfChannels - 1;
@@ -73,54 +73,6 @@ namespace BecquerelMonitor.Utils
                 }
             }
             return max;
-        }
-
-        public int FindCentroid(EnergySpectrum energySpectrum, int centroid, int low_boundary, int high_boundary)
-        {
-            if (low_boundary < 0) low_boundary = 0;
-            if (high_boundary >= energySpectrum.NumberOfChannels) high_boundary = energySpectrum.NumberOfChannels - 1;
-            if (high_boundary - low_boundary < 3)
-            {
-                if (energySpectrum.Spectrum[low_boundary] > energySpectrum.Spectrum[high_boundary])
-                {
-                    return low_boundary;
-                } else
-                {
-                    return high_boundary;
-                }
-            }
-
-            int poly_order = 16;
-            if (energySpectrum.NumberOfChannels <= 1024)
-            {
-                poly_order = 8;
-            }
-            
-            if (high_boundary - low_boundary < poly_order)
-            {
-                poly_order = high_boundary - low_boundary;
-            }
-            double[] x = new double[high_boundary - low_boundary + 1];
-            double[] y = new double[high_boundary - low_boundary + 1];
-            for (int j = 0; j < high_boundary - low_boundary + 1; j++)
-            {
-                x[j] = low_boundary + j;
-                y[j] = Ln(energySpectrum.Spectrum[low_boundary + j]);
-            }
-            Func<double, double> func = Fit.PolynomialFunc(x, y, poly_order);
-            double new_centroid = centroid;
-            double max = func.Invoke(new_centroid);
-            for (int j = low_boundary; j < high_boundary; j++)
-            {
-                double new_max = func.Invoke(j);
-                if (new_max > max)
-                {
-                    new_centroid = j;
-                    max = new_max;
-                }
-            }
-            if (new_centroid > high_boundary || new_centroid < low_boundary) new_centroid = centroid;
-            return Convert.ToInt32(new_centroid);
         }
 
         double Ln(double x)

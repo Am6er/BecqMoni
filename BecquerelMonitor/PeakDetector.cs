@@ -241,7 +241,7 @@ namespace BecquerelMonitor
             {
                 int concat = Math.Max(1, config.Ch_Concat);
                 int mul = energySpectrum.Spectrum.Length / concat;
-                centroid = sa.FindCentroid2(
+                centroid = sa.FindCentroid(
                     energySpectrum,
                     Convert.ToInt32(centroid),
                     Convert.ToInt32(centroid - mul - 1),
