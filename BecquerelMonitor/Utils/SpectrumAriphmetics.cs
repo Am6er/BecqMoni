@@ -1013,6 +1013,15 @@ namespace BecquerelMonitor.Utils
             // прямо под спектром.
             double fwhmFloor = LowEnergyFwhmFloor(baseline.Length);
 
+            // В зоне, где модель FWHM невалидна, ширину окна берём из РЕАЛЬНО
+            // обнаруженного пика, накрывающего этот канал (его измеренный FWHM),
+            // а не из константного пола. Иначе широкий низкоэнергетический пик,
+            // сидящий ниже валидной зоны модели (как главный пик у самого края
+            // на грубо забиненных спектрах), недоклиппируется полом-5 и континуум
+            // горбом лезет в него. Где модель валидна — поведение не меняется.
+            double[] peakFwhmCover = BuildPeakFwhmCoverage(baseline.Length, peaks);
+            bool[] fromPeakWidth = new bool[baseline.Length];
+
             for (int i = 0; i < baseline.Length; i++)
             {
                 if (baseline[i] == 0)
@@ -1023,7 +1032,14 @@ namespace BecquerelMonitor.Utils
                 double fwhm = FWHM(i, this.FwhmCalibration);
                 if (!IsFinite(fwhm) || fwhm < fwhmFloor)
                 {
+                    // Модель невалидна/вырождена. Берём ширину накрывающего пика,
+                    // если он есть, иначе маленький пол.
                     fwhm = fwhmFloor;
+                    if (peakFwhmCover != null && peakFwhmCover[i] > fwhm)
+                    {
+                        fwhm = peakFwhmCover[i];
+                        fromPeakWidth[i] = true;
+                    }
                 }
 
                 radius[i] = coeff * fwhm;
@@ -1037,13 +1053,50 @@ namespace BecquerelMonitor.Utils
             int[] multiplicity = BuildPeakMultiplicityMap(baseline.Length, peaks);
             for (int i = 0; i < radius.Length; i++)
             {
-                if (multiplicity[i] > 1 && radius[i] > 0.0)
+                // Множитель мультиплета НЕ применяем там, где радиус уже взят из
+                // измеренной ширины пика: она сама учитывает реальную ширину, а
+                // домножение на кратность раздувает окно и "выгрызает" континуум.
+                if (multiplicity[i] > 1 && radius[i] > 0.0 && !fromPeakWidth[i])
                 {
                     radius[i] *= multiplicity[i];
                 }
             }
 
             return radius;
+        }
+
+        // Карта покрытия каналов обнаруженными пиками: для каждого канала —
+        // максимальный FWHM пика, поддержка которого (±FWHM*SupportFactor)
+        // накрывает канал. 0, если ни один пик не накрывает.
+        double[] BuildPeakFwhmCoverage(int channelsCount, List<Peak> peaks)
+        {
+            double[] cover = new double[channelsCount];
+            if (peaks == null || peaks.Count == 0)
+            {
+                return cover;
+            }
+
+            const double SupportFactor = 1.5;
+            foreach (Peak peak in peaks)
+            {
+                if (peak == null || !IsFinite(peak.FWHM) || peak.FWHM <= 0.0)
+                {
+                    continue;
+                }
+
+                int halfWidth = Math.Max(1, Convert.ToInt32(Math.Ceiling(peak.FWHM * SupportFactor)));
+                int left = Math.Max(0, peak.Channel - halfWidth);
+                int right = Math.Min(channelsCount - 1, peak.Channel + halfWidth);
+                for (int i = left; i <= right; i++)
+                {
+                    if (peak.FWHM > cover[i])
+                    {
+                        cover[i] = peak.FWHM;
+                    }
+                }
+            }
+
+            return cover;
         }
 
         // Минимальный радиус SNIP (в каналах) для низких энергий, где FWHM-модель
