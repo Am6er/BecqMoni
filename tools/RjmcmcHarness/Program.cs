@@ -1,4 +1,5 @@
 using BecquerelMonitor;
+using BecquerelMonitor.Utils;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -33,6 +34,13 @@ namespace RjmcmcHarness
                 foreach (string spectrumFile in spectrumFiles)
                 {
                     Console.WriteLine("=== {0} ===", spectrumFile);
+                    if (!String.IsNullOrEmpty(options.OracleSeries))
+                    {
+                        RunOracleScenario(spectrumFile, options.OracleSeries, ResolveMinSnrValues(options, diagnostics).First(), options, diagnostics);
+                        Console.WriteLine();
+                        continue;
+                    }
+
                     foreach (double minSnr in ResolveMinSnrValues(options, diagnostics))
                     {
                         RunScenario(spectrumFile, minSnr, options, diagnostics);
@@ -392,6 +400,470 @@ namespace RjmcmcHarness
             throw new MissingMemberException(type.FullName, name);
         }
 
+        // ===================== Oracle mode =====================
+        // Fixed peak positions from evaluated decay-series tables (DDEP/ENSDF), free amplitudes,
+        // fitted by Poisson likelihood on the same model stack the production deconvolution uses
+        // (PeakShapeModel profiles, SASNIP continuum coeff=2, scaled instrument background envelope).
+        // Compares the "oracle" model against the production final-peak model on the same data.
+
+        sealed class OracleLine
+        {
+            public double Energy;
+            public string Label;
+            public OracleLine(double energy, string label) { Energy = energy; Label = label; }
+        }
+
+        sealed class FitComponent
+        {
+            public string Label;
+            public double Energy;
+            public int Channel;
+            public double Fwhm;
+            public int Start;
+            public double[] Profile;
+            public double Amplitude;
+            public bool Frozen;
+        }
+
+        static readonly OracleLine[] OracleTh232 = new[]
+        {
+            new OracleLine(129.1,"Ac228"), new OracleLine(209.3,"Ac228"), new OracleLine(238.6,"Pb212"),
+            new OracleLine(241.0,"Ra224"), new OracleLine(270.2,"Ac228"), new OracleLine(277.4,"Tl208"),
+            new OracleLine(300.1,"Pb212"), new OracleLine(328.0,"Ac228"), new OracleLine(338.3,"Ac228"),
+            new OracleLine(409.5,"Ac228"), new OracleLine(463.0,"Ac228"), new OracleLine(583.2,"Tl208"),
+            new OracleLine(727.3,"Bi212"), new OracleLine(755.3,"Ac228"), new OracleLine(772.3,"Ac228"),
+            new OracleLine(785.4,"Bi212"), new OracleLine(794.9,"Ac228"), new OracleLine(830.5,"Ac228"),
+            new OracleLine(835.7,"Ac228"), new OracleLine(860.6,"Tl208"), new OracleLine(911.2,"Ac228"),
+            new OracleLine(964.8,"Ac228"), new OracleLine(969.0,"Ac228"), new OracleLine(1588.2,"Ac228"),
+            new OracleLine(1620.5,"Bi212"), new OracleLine(1630.6,"Ac228"), new OracleLine(2614.5,"Tl208"),
+            new OracleLine(511.0,"annih"), new OracleLine(1460.8,"K40"),
+        };
+
+        static readonly OracleLine[] OracleRa226 = new[]
+        {
+            new OracleLine(186.2,"Ra226"), new OracleLine(242.0,"Pb214"), new OracleLine(295.2,"Pb214"),
+            new OracleLine(351.9,"Pb214"), new OracleLine(609.3,"Bi214"), new OracleLine(665.4,"Bi214"),
+            new OracleLine(768.4,"Bi214"), new OracleLine(786.0,"Pb214"), new OracleLine(806.2,"Bi214"),
+            new OracleLine(934.1,"Bi214"), new OracleLine(1120.3,"Bi214"), new OracleLine(1155.2,"Bi214"),
+            new OracleLine(1238.1,"Bi214"), new OracleLine(1280.9,"Bi214"), new OracleLine(1377.7,"Bi214"),
+            new OracleLine(1401.5,"Bi214"), new OracleLine(1408.0,"Bi214"), new OracleLine(1509.2,"Bi214"),
+            new OracleLine(1661.3,"Bi214"), new OracleLine(1729.6,"Bi214"), new OracleLine(1764.5,"Bi214"),
+            new OracleLine(1847.4,"Bi214"), new OracleLine(2118.5,"Bi214"), new OracleLine(2204.2,"Bi214"),
+            new OracleLine(2447.9,"Bi214"), new OracleLine(511.0,"annih"), new OracleLine(1460.8,"K40"),
+        };
+
+        static void RunOracleScenario(string spectrumFile, string series, double minSnr, Options options, DiagnosticSnapshot diagnostics)
+        {
+            ResultData resultData = LoadResultData(spectrumFile);
+            FWHMPeakDetectionMethodConfig peakConfig = PreparePeakConfig(resultData, minSnr, options, diagnostics);
+            bool useBackgroundSubtraction = ResolveBackgroundSubtraction(options, diagnostics);
+            EnergySpectrum spectrum = resultData.EnergySpectrum;
+            FwhmCalibration fwhmCalibration = resultData.FwhmCalibration;
+            int channels = spectrum.NumberOfChannels;
+
+            // Production final peaks (base pipeline as committed).
+            PeakDetector detector = new PeakDetector();
+            List<Peak> basePeaks = detector.DetectPeak(
+                resultData,
+                useBackgroundSubtraction ? BackgroundMode.Substract : BackgroundMode.Visible,
+                SmoothingMethod.None,
+                null);
+
+            // SNIP continuum exactly as production BuildSnipContinuum (finder anchors, coeff 2.0).
+            object finder = InvokePrivateMethod(detector, "PeakFinder", spectrum, peakConfig, fwhmCalibration);
+            double[] centroids = GetPropertyOrField(finder, "centroids") as double[] ?? new double[0];
+            double[] finderFwhms = GetPropertyOrField(finder, "fwhms") as double[] ?? new double[0];
+            List<Peak> anchorPeaks = new List<Peak>();
+            for (int i = 0; i < centroids.Length; i++)
+            {
+                anchorPeaks.Add(new Peak
+                {
+                    Channel = Convert.ToInt32(Math.Round(centroids[i])),
+                    FWHM = i < finderFwhms.Length ? finderFwhms[i] : 0.0
+                });
+            }
+
+            SpectrumAriphmetics ariphmetics = new SpectrumAriphmetics(fwhmCalibration, spectrum, SmoothingMethod.None);
+            int[] snip;
+            try
+            {
+                snip = ariphmetics.Continuum(anchorPeaks, 2.0).Spectrum;
+            }
+            finally
+            {
+                ariphmetics.Dispose();
+            }
+
+            double[] fixedBackground = BuildOracleFixedBackground(
+                spectrum,
+                useBackgroundSubtraction ? resultData.BackgroundEnergySpectrum : null,
+                snip);
+
+            int chMin = ClampChannel(channels, spectrum.EnergyCalibration.EnergyToChannel(peakConfig.Min_Range, maxChannels: channels));
+            int chMax = ClampChannel(channels, spectrum.EnergyCalibration.EnergyToChannel(peakConfig.Max_Range, maxChannels: channels));
+            if (chMax < chMin) { int t = chMin; chMin = chMax; chMax = t; }
+
+            int[] observed = spectrum.Spectrum;
+
+            // Null model: fixed background only.
+            double devianceNull = PoissonDeviance(observed, BuildLambda(fixedBackground, new List<FitComponent>(), channels), chMin, chMax);
+
+            // Base model: components at production final-peak channels, amplitudes refit.
+            List<FitComponent> baseComponents = new List<FitComponent>();
+            foreach (Peak peak in basePeaks.OrderBy(p => p.Channel))
+            {
+                FitComponent component = BuildFitComponent(spectrum, fwhmCalibration, peak.Channel,
+                    String.Format(CultureInfo.InvariantCulture, "det@{0:F0}", peak.Energy), peak.Energy);
+                if (component != null) baseComponents.Add(component);
+            }
+
+            double devianceBase = FitAmplitudes(observed, fixedBackground, baseComponents, chMin, chMax, 300);
+
+            // Oracle model: components at tabulated line energies, amplitudes free.
+            OracleLine[] lines = String.Equals(series, "th", StringComparison.OrdinalIgnoreCase) ? OracleTh232 : OracleRa226;
+            List<FitComponent> oracleComponents = new List<FitComponent>();
+            foreach (OracleLine line in lines.OrderBy(l => l.Energy))
+            {
+                int channel = ClampChannel(channels, spectrum.EnergyCalibration.EnergyToChannel(line.Energy, maxChannels: channels));
+                if (channel <= chMin || channel >= chMax) continue;
+                FitComponent component = BuildFitComponent(spectrum, fwhmCalibration, channel, line.Label, line.Energy);
+                if (component != null) oracleComponents.Add(component);
+            }
+
+            double devianceOracle = FitAmplitudes(observed, fixedBackground, oracleComponents, chMin, chMax, 300);
+
+            Console.WriteLine(String.Format(CultureInfo.InvariantCulture,
+                "OracleFit series={0} range=[{1}..{2}]ch  D(null)={3:F0}  D(base)={4:F0} k={5}  D(oracle)={6:F0} k={7}",
+                series, chMin, chMax, devianceNull, devianceBase, baseComponents.Count, devianceOracle, oracleComponents.Count));
+            Console.WriteLine(String.Format(CultureInfo.InvariantCulture,
+                "AIC-like: base={0:F0}  oracle={1:F0}  (D + 2k)", devianceBase + 2.0 * baseComponents.Count, devianceOracle + 2.0 * oracleComponents.Count));
+
+            double[] lambdaOracle = BuildLambda(fixedBackground, oracleComponents, channels);
+            Console.WriteLine("Oracle lines:");
+            foreach (FitComponent component in oracleComponents)
+            {
+                double z = FisherZ(component, lambdaOracle);
+                double deltaD = DevianceDrop(observed, fixedBackground, oracleComponents, component, chMin, chMax, devianceOracle);
+                int bestShift = BestShiftChannels(observed, lambdaOracle, component, channels);
+                double shiftKeV = spectrum.EnergyCalibration.ChannelToEnergy(component.Channel + bestShift) -
+                                  spectrum.EnergyCalibration.ChannelToEnergy(component.Channel);
+                double fwhmKeV = spectrum.EnergyCalibration.ChannelToEnergy(Convert.ToInt32(component.Channel + component.Fwhm / 2.0)) -
+                                 spectrum.EnergyCalibration.ChannelToEnergy(Convert.ToInt32(component.Channel - component.Fwhm / 2.0));
+                bool covered = basePeaks.Any(p => Math.Abs(p.Channel - component.Channel) <= 0.5 * component.Fwhm);
+                string verdict = z >= 4.0 ? (covered ? "OK-detected" : "RECOVERABLE") : (z >= 2.0 ? "marginal" : "absent");
+                Console.WriteLine(String.Format(CultureInfo.InvariantCulture,
+                    "  {0,-6} E={1,7:F1} ch={2,5} FWHMkeV={3,5:F1}  A={4,10:F1}  z={5,7:F1}  dD={6,9:F1}  shift={7,5:F1}keV  {8}{9}",
+                    component.Label, component.Energy, component.Channel, fwhmKeV, component.Amplitude, z, deltaD, shiftKeV,
+                    verdict, covered ? "" : " [no-peak-in-pipeline]"));
+            }
+        }
+
+        static int ClampChannel(int channels, double value)
+        {
+            return Math.Max(0, Math.Min(channels - 1, Convert.ToInt32(Math.Round(value))));
+        }
+
+        static double[] BuildOracleFixedBackground(EnergySpectrum foreground, EnergySpectrum background, int[] snip)
+        {
+            int channels = foreground.NumberOfChannels;
+            double[] result = new double[channels];
+            double scale = background != null && background.MeasurementTime > 0.0 && foreground.MeasurementTime > 0.0
+                ? foreground.MeasurementTime / background.MeasurementTime
+                : 0.0;
+            bool sameCalibration = background != null &&
+                foreground.EnergyCalibration != null &&
+                foreground.EnergyCalibration.Equals(background.EnergyCalibration);
+            for (int i = 0; i < channels; i++)
+            {
+                double value = snip != null && i < snip.Length ? Math.Max(0.0, snip[i]) : 0.0;
+                if (scale > 0.0)
+                {
+                    int backgroundChannel = i;
+                    if (!sameCalibration)
+                    {
+                        double energy = foreground.EnergyCalibration.ChannelToEnergy(i);
+                        backgroundChannel = Convert.ToInt32(background.EnergyCalibration.EnergyToChannel(energy, maxChannels: background.NumberOfChannels));
+                    }
+
+                    if (backgroundChannel >= 0 && backgroundChannel < background.NumberOfChannels)
+                    {
+                        value = Math.Max(value, scale * background.Spectrum[backgroundChannel]);
+                    }
+                }
+
+                result[i] = value;
+            }
+
+            return result;
+        }
+
+        static FitComponent BuildFitComponent(EnergySpectrum spectrum, FwhmCalibration fwhmCalibration, int channel, string label, double energy)
+        {
+            double fwhm = fwhmCalibration.ChannelToFwhm(channel);
+            if (Double.IsNaN(fwhm) || Double.IsInfinity(fwhm) || fwhm <= 0.0)
+            {
+                return null;
+            }
+
+            double left = (double)InvokeInternalStaticMethod("BecquerelMonitor.Utils.PeakShapeModel", "GetLeftSupport", fwhmCalibration, fwhm);
+            double right = (double)InvokeInternalStaticMethod("BecquerelMonitor.Utils.PeakShapeModel", "GetRightSupport", fwhmCalibration, fwhm);
+            if (Double.IsNaN(left) || Double.IsInfinity(left) || Double.IsNaN(right) || Double.IsInfinity(right))
+            {
+                return null;
+            }
+
+            int start = Math.Max(0, channel - Convert.ToInt32(Math.Ceiling(left)));
+            int end = Math.Min(spectrum.NumberOfChannels - 1, channel + Convert.ToInt32(Math.Ceiling(right)));
+            if (start > end)
+            {
+                return null;
+            }
+
+            double[] profile = new double[end - start + 1];
+            for (int ch = start; ch <= end; ch++)
+            {
+                profile[ch - start] = (double)InvokeInternalStaticMethod(
+                    "BecquerelMonitor.Utils.PeakShapeModel", "RelativeValue", (double)(ch - channel), fwhm, fwhmCalibration);
+            }
+
+            return new FitComponent
+            {
+                Label = label,
+                Energy = energy,
+                Channel = channel,
+                Fwhm = fwhm,
+                Start = start,
+                Profile = profile,
+                Amplitude = 0.0
+            };
+        }
+
+        static double[] BuildLambda(double[] fixedBackground, List<FitComponent> components, int channels)
+        {
+            double[] lambda = new double[channels];
+            for (int i = 0; i < channels; i++)
+            {
+                lambda[i] = Math.Max(1E-6, fixedBackground[i]);
+            }
+
+            foreach (FitComponent component in components)
+            {
+                for (int j = 0; j < component.Profile.Length; j++)
+                {
+                    lambda[component.Start + j] += component.Amplitude * component.Profile[j];
+                }
+            }
+
+            return lambda;
+        }
+
+        static double PoissonDeviance(int[] observed, double[] lambda, int chMin, int chMax)
+        {
+            double deviance = 0.0;
+            for (int i = chMin; i <= chMax; i++)
+            {
+                double mu = Math.Max(1E-9, lambda[i]);
+                int k = observed[i];
+                deviance += k > 0
+                    ? 2.0 * (k * Math.Log(k / mu) - (k - mu))
+                    : 2.0 * mu;
+            }
+
+            return deviance;
+        }
+
+        static double LocalLogLikelihoodDelta(int[] observed, double[] lambda, FitComponent component, double amplitudeDelta, int chMin, int chMax)
+        {
+            double delta = 0.0;
+            for (int j = 0; j < component.Profile.Length; j++)
+            {
+                int ch = component.Start + j;
+                if (ch < chMin || ch > chMax)
+                {
+                    continue;
+                }
+
+                double p = component.Profile[j];
+                if (p <= 0.0)
+                {
+                    continue;
+                }
+
+                double mu = lambda[ch];
+                double muNew = mu + amplitudeDelta * p;
+                if (muNew <= 1E-9)
+                {
+                    return Double.NegativeInfinity;
+                }
+
+                delta += observed[ch] > 0
+                    ? observed[ch] * Math.Log(muNew / mu) - (muNew - mu)
+                    : -(muNew - mu);
+            }
+
+            return delta;
+        }
+
+        static void ApplyAmplitudeDelta(double[] lambda, FitComponent component, double amplitudeDelta)
+        {
+            for (int j = 0; j < component.Profile.Length; j++)
+            {
+                lambda[component.Start + j] += amplitudeDelta * component.Profile[j];
+            }
+
+            component.Amplitude += amplitudeDelta;
+        }
+
+        static double FitAmplitudes(int[] observed, double[] fixedBackground, List<FitComponent> components, int chMin, int chMax, int iterations)
+        {
+            double[] lambda = BuildLambda(fixedBackground, components, observed.Length);
+
+            // Matched least-squares initialisation on the running residual.
+            foreach (FitComponent component in components)
+            {
+                if (component.Frozen)
+                {
+                    continue;
+                }
+
+                double numerator = 0.0;
+                double denominator = 0.0;
+                for (int j = 0; j < component.Profile.Length; j++)
+                {
+                    int ch = component.Start + j;
+                    double p = component.Profile[j];
+                    numerator += (observed[ch] - lambda[ch]) * p;
+                    denominator += p * p;
+                }
+
+                double initial = denominator > 0.0 ? Math.Max(0.0, numerator / denominator) : 0.0;
+                if (initial > 0.0)
+                {
+                    ApplyAmplitudeDelta(lambda, component, initial);
+                }
+            }
+
+            double stepScale = 1.0;
+            for (int iteration = 0; iteration < iterations; iteration++)
+            {
+                bool improved = false;
+                foreach (FitComponent component in components)
+                {
+                    if (component.Frozen)
+                    {
+                        continue;
+                    }
+
+                    double step = Math.Max(0.5, component.Amplitude * 0.10) * stepScale;
+                    for (int direction = -1; direction <= 1; direction += 2)
+                    {
+                        double delta = direction * step;
+                        if (component.Amplitude + delta < 0.0)
+                        {
+                            delta = -component.Amplitude;
+                            if (delta == 0.0)
+                            {
+                                continue;
+                            }
+                        }
+
+                        double gain = LocalLogLikelihoodDelta(observed, lambda, component, delta, chMin, chMax);
+                        if (gain > 1E-9)
+                        {
+                            ApplyAmplitudeDelta(lambda, component, delta);
+                            improved = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (improved)
+                {
+                    stepScale = Math.Min(1.0, stepScale * 1.25);
+                }
+                else
+                {
+                    stepScale *= 0.5;
+                    if (stepScale < 1E-5)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            return PoissonDeviance(observed, lambda, chMin, chMax);
+        }
+
+        static double FisherZ(FitComponent component, double[] lambda)
+        {
+            if (component.Amplitude <= 0.0)
+            {
+                return 0.0;
+            }
+
+            double information = 0.0;
+            for (int j = 0; j < component.Profile.Length; j++)
+            {
+                double p = component.Profile[j];
+                information += p * p / Math.Max(1.0, lambda[component.Start + j]);
+            }
+
+            return component.Amplitude * Math.Sqrt(information);
+        }
+
+        static double DevianceDrop(int[] observed, double[] fixedBackground, List<FitComponent> components, FitComponent target, int chMin, int chMax, double fittedDeviance)
+        {
+            double savedAmplitude = target.Amplitude;
+            double[] savedAmplitudes = components.Select(c => c.Amplitude).ToArray();
+            target.Amplitude = 0.0;
+            target.Frozen = true;
+            double devianceWithout = FitAmplitudes(observed, fixedBackground, components, chMin, chMax, 60);
+            target.Frozen = false;
+            for (int i = 0; i < components.Count; i++)
+            {
+                components[i].Amplitude = savedAmplitudes[i];
+            }
+
+            target.Amplitude = savedAmplitude;
+            return devianceWithout - fittedDeviance;
+        }
+
+        static int BestShiftChannels(int[] observed, double[] lambda, FitComponent component, int channels)
+        {
+            int radius = Math.Max(2, Convert.ToInt32(Math.Round(0.6 * component.Fwhm)));
+            double bestScore = Double.NegativeInfinity;
+            int bestShift = 0;
+            for (int shift = -radius; shift <= radius; shift++)
+            {
+                double score = 0.0;
+                for (int j = 0; j < component.Profile.Length; j++)
+                {
+                    int ch = component.Start + j + shift;
+                    if (ch < 0 || ch >= channels)
+                    {
+                        continue;
+                    }
+
+                    // residual with this component's own contribution restored at its fitted place
+                    double residual = observed[ch] - lambda[ch];
+                    if (j + shift >= 0 && j + shift < component.Profile.Length)
+                    {
+                        residual += component.Amplitude * component.Profile[j + shift];
+                    }
+
+                    score += residual * component.Profile[j];
+                }
+
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestShift = shift;
+                }
+            }
+
+            return bestShift;
+        }
+
         sealed class Options
         {
             public string InputPath { get; private set; }
@@ -414,6 +886,7 @@ namespace RjmcmcHarness
             public double? MinDevianceImprovementOverride { get; private set; }
             public double? MinimumCandidateAmplitudeOverride { get; private set; }
             public bool? UseBackgroundSubtractionOverride { get; private set; }
+            public string OracleSeries { get; private set; }
 
             public static Options Parse(string[] args)
             {
@@ -504,6 +977,10 @@ namespace RjmcmcHarness
                     else if (arg.StartsWith("--min-amp=", StringComparison.OrdinalIgnoreCase))
                     {
                         options.MinimumCandidateAmplitudeOverride = Double.Parse(arg.Substring("--min-amp=".Length), CultureInfo.InvariantCulture);
+                    }
+                    else if (arg.StartsWith("--oracle=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        options.OracleSeries = arg.Substring("--oracle=".Length).Trim('"');
                     }
                     else if (String.Equals(arg, "--bg=visible", StringComparison.OrdinalIgnoreCase))
                     {

@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # Scores RjmcmcHarness output against tabular gamma lines of Th-232 and Ra-226 (U-238).
-# Usage:  TOL=6 python score.py out/*.txt
+# Matching window is physical: a line matches a peak if |E_line - E_peak| <= 0.5 * FWHM_keV(peak),
+# where FWHM_keV = FWHM_channels * (E/ch) of that peak. No absolute energy filter.
+# Set env TOL=<keV> to force a fixed absolute window instead (legacy comparisons).
+# Usage:  python score.py out/*.txt
 import sys, re, glob, os
 
 # DDEP/ENSDF evaluated lines, abs. emission >= ~1% (plus historical 830.5), 2026 check.
@@ -24,6 +27,9 @@ RA226 = [
 ]
 COMMON = [(511.0,"annih"),(1460.8,"K40")]
 
+PEAK_RE = re.compile(
+    r"ch=\s*([\-\d]+)\s+E=\s*([\-\d.]+)\s*keV\s+SNR=\s*([\d.]+)\s+FWHM=\s*([\d.]+)")
+
 def parse_final_peaks(text):
     peaks=[]; grab=False
     for ln in text.splitlines():
@@ -32,35 +38,39 @@ def parse_final_peaks(text):
         if ln.strip().startswith("RJMCMC extras"):
             grab=False; continue
         if grab:
-            m=re.search(r"ch=\s*([\-\d]+)\s+E=\s*([\-\d.]+)\s*keV\s+SNR=\s*([\d.]+)", ln)
+            m=PEAK_RE.search(ln)
             if m:
-                peaks.append((int(m.group(1)), float(m.group(2)), float(m.group(3))))
+                ch=int(m.group(1)); e=float(m.group(2))
+                snr=float(m.group(3)); fwhm_ch=float(m.group(4))
+                fwhm_kev = fwhm_ch * (e/ch) if ch > 0 and e > 0 else 0.0
+                peaks.append((ch, e, snr, fwhm_kev))
     return peaks
 
-def greedy_match(pe, lines, tol):
-    used=[False]*len(pe); matched=[]
+def peak_tolerance(peak, fixed_tol):
+    if fixed_tol is not None:
+        return fixed_tol
+    # physical window: the line must fall inside the peak core
+    return max(1.0, 0.5 * peak[3])
+
+def greedy_match(peaks, lines, fixed_tol):
+    used=[False]*len(peaks); matched=[]
     for (le,lab) in lines:
-        best=-1; bestd=tol+1
-        for i,v in enumerate(pe):
+        best=-1; bestd=None
+        for i,p in enumerate(peaks):
             if used[i]: continue
-            d=abs(v-le)
-            if d<bestd: bestd=d; best=i
-        if best>=0 and bestd<=tol:
-            used[best]=True; matched.append((le,lab,pe[best],round(bestd,1)))
+            d=abs(p[1]-le)
+            if d <= peak_tolerance(p, fixed_tol) and (bestd is None or d < bestd):
+                bestd=d; best=i
+        if best>=0:
+            used[best]=True; matched.append((le,lab,peaks[best][1],round(bestd,1)))
     mset={m[0] for m in matched}
     uml=[(le,lab) for (le,lab) in lines if le not in mset]
-    ump=[pe[i] for i in range(len(pe)) if not used[i]]
+    ump=[peaks[i][1] for i in range(len(peaks)) if not used[i]]
     return matched, uml, ump
 
-def score_block(text, series, tol=5.0, emin=60.0, emax=3000.0):
-    peaks=parse_final_peaks(text)
-    pe=[p[1] for p in peaks if emin<=p[1]<=emax]
-    lines=[(e,l) for (e,l) in series if emin<=e<=emax]
-    matched,uml,ump=greedy_match(pe,lines,tol)
-    return peaks, matched, uml, ump
-
 def main():
-    tol=float(os.environ.get("TOL","5"))
+    tol_env=os.environ.get("TOL")
+    fixed_tol=float(tol_env) if tol_env else None
     files=[]
     for a in sys.argv[1:]:
         g=sorted(glob.glob(a))
@@ -70,9 +80,10 @@ def main():
         base=os.path.basename(f).lower()
         # series by filename prefix (th*/ra*); substring search broke on names like 'birthmix'
         series,sname=(TH232+COMMON,"Th-232") if base.startswith('th') else (RA226+COMMON,"Ra-226")
-        peaks,matched,uml,ump=score_block(text,series,tol)
-        total=len([1 for e,l in series if 60<=e<=3000])
-        print("=== %s  [%s] finalPeaks=%d matched=%d/%d tol=+/-%gkeV" % (os.path.basename(f),sname,len(peaks),len(matched),total,tol))
+        peaks=parse_final_peaks(text)
+        matched,uml,ump=greedy_match(peaks,series,fixed_tol)
+        tolinfo = "+/-%gkeV" % fixed_tol if fixed_tol is not None else "0.5*FWHM(peak)"
+        print("=== %s  [%s] finalPeaks=%d matched=%d/%d tol=%s" % (os.path.basename(f),sname,len(peaks),len(matched),len(series),tolinfo))
         print("  matched:", ", ".join("%s%.0f(p%.0f,d%s)"%(lab,le,v,d) for le,lab,v,d in matched))
         print("  MISSED :", ", ".join("%s%.0f"%(lab,le) for le,lab in uml))
         print("  extraPk:", ", ".join("%.0f"%e for e in sorted(ump)))
