@@ -943,18 +943,18 @@ namespace BecquerelMonitor.Utils
                 for (int p = start; decreasing ? p >= end : p <= end; p += step)
                 {
                     double[] next = (double[])baseline.Clone();
-                    // Итерируем все каналы и зажимаем индексы соседей к границам,
-                    // а не пропускаем первые/последние p каналов. Иначе крайний
-                    // низкоэнергетический пик не клиппируется (симметричное окно
-                    // уходит за канал 0) и остаётся в континууме.
+                    // Итерируем все каналы и зеркально отражаем индексы соседей
+                    // от границ, а не пропускаем первые/последние p каналов. Иначе
+                    // крайний низкоэнергетический пик не клиппируется (симметричное
+                    // окно уходит за канал 0) и остаётся в континууме. Отражение
+                    // (в отличие от зажима к baseline[0]) не проваливает континуум
+                    // у самого левого края, а ведёт его по подъёму спектра.
                     Parallel.For(0, len, i =>
                     {
                         if (p <= r[i])
                         {
-                            int il = i - p;
-                            if (il < 0) il = 0;
-                            int ir = i + p;
-                            if (ir > len - 1) ir = len - 1;
+                            int il = ReflectIndex(i - p, len);
+                            int ir = ReflectIndex(i + p, len);
                             double b = (baseline[il] + baseline[ir]) / 2;
                             next[i] = Math.Min(baseline[i], b);
                         }
@@ -972,6 +972,32 @@ namespace BecquerelMonitor.Utils
             return baseline_arr;
         }
 
+        // Зеркальное отражение индекса от границ [0, len-1].
+        // Для маленьких выходов за край даёт корректный симметричный сосед;
+        // при экстремальных выходах схлопывается к ближайшей границе.
+        static int ReflectIndex(int index, int len)
+        {
+            if (len <= 1)
+            {
+                return 0;
+            }
+
+            int last = len - 1;
+            while (index < 0 || index > last)
+            {
+                if (index < 0)
+                {
+                    index = -index;
+                }
+                if (index > last)
+                {
+                    index = 2 * last - index;
+                }
+            }
+
+            return index;
+        }
+
         double[] BuildSnipRadius(double[] baseline, List<Peak> peaks, double coeff)
         {
             double[] radius = new double[baseline.Length];
@@ -980,7 +1006,11 @@ namespace BecquerelMonitor.Utils
             // уходить под ноль и клампиться в 0. Тогда радиус SNIP становится нулевым,
             // условие (p <= r[i]) никогда не выполняется, и низкоэнергетические каналы
             // вообще не клиппируются — континуум "засасывается" в первый пик.
-            // Держим FWHM плоско ниже самого нижнего калибровочного канала.
+            // Ставим небольшой ненулевой пол. Он должен быть МАЛЕНЬКИМ: на низких
+            // энергиях реальный FWHM в каналах невелик, а широкое окно на крутом
+            // низкоэнергетическом склоне дотягивается до near-zero области и
+            // "выгрызает" континуум почти в ноль вместо того, чтобы вести его
+            // прямо под спектром.
             double fwhmFloor = LowEnergyFwhmFloor(baseline.Length);
 
             for (int i = 0; i < baseline.Length; i++)
@@ -1016,55 +1046,50 @@ namespace BecquerelMonitor.Utils
             return radius;
         }
 
-        // Нижний предел FWHM для низких каналов: значение модели в самой нижней
-        // калибровочной точке (плоская экстраполяция вниз). Так радиус SNIP не
-        // проваливается в 0 там, где квадратичная модель даёт отрицательный аргумент.
+        // Минимальный радиус SNIP (в каналах) для низких энергий, где FWHM-модель
+        // вырождается в 0. Держим маленьким: на низких энергиях реальное разрешение
+        // в каналах мало, а слишком широкое окно "выгрызает" континуум на крутом
+        // склоне. Значение подобрано так, чтобы континуум шёл прямо под спектром на
+        // низкоэнергетическом подъёме; при этом резкие пики клиппируются реальной
+        // (большей) моделью FWHM выше этой зоны.
+        const double MinLowEnergyFwhmChannels = 5.0;
+
         double LowEnergyFwhmFloor(int channelsCount)
         {
-            if (this.FwhmCalibration == null || channelsCount <= 0)
+            if (channelsCount <= 0)
             {
                 return 0.0;
             }
 
-            // Нижний калибровочный канал, если точки заданы.
-            int anchorChannel = -1;
-            List<CalibrationPeak> calPeaks = this.FwhmCalibration.CalibrationPeaks;
-            if (calPeaks != null && calPeaks.Count > 0)
+            double floor = MinLowEnergyFwhmChannels;
+
+            // Не превышаем реальное разрешение прибора в нижней калибровочной точке:
+            // если детектор действительно очень узкий, берём меньшее значение.
+            if (this.FwhmCalibration != null)
             {
-                anchorChannel = int.MaxValue;
-                foreach (CalibrationPeak cp in calPeaks)
+                List<CalibrationPeak> calPeaks = this.FwhmCalibration.CalibrationPeaks;
+                if (calPeaks != null && calPeaks.Count > 0)
                 {
-                    if (cp != null && cp.Channel >= 0 && cp.Channel < anchorChannel)
+                    int anchorChannel = int.MaxValue;
+                    foreach (CalibrationPeak cp in calPeaks)
                     {
-                        anchorChannel = cp.Channel;
+                        if (cp != null && cp.Channel >= 0 && cp.Channel < anchorChannel)
+                        {
+                            anchorChannel = cp.Channel;
+                        }
+                    }
+                    if (anchorChannel != int.MaxValue)
+                    {
+                        double anchorFwhm = FWHM(anchorChannel, this.FwhmCalibration);
+                        if (IsFinite(anchorFwhm) && anchorFwhm > 0.0 && anchorFwhm < floor)
+                        {
+                            floor = anchorFwhm;
+                        }
                     }
                 }
-                if (anchorChannel == int.MaxValue)
-                {
-                    anchorChannel = -1;
-                }
             }
 
-            if (anchorChannel >= 0)
-            {
-                double anchorFwhm = FWHM(anchorChannel, this.FwhmCalibration);
-                if (IsFinite(anchorFwhm) && anchorFwhm > 0.0)
-                {
-                    return anchorFwhm;
-                }
-            }
-
-            // Фолбэк: первый канал, где модель даёт положительный FWHM.
-            for (int i = 0; i < channelsCount; i++)
-            {
-                double f = FWHM(i, this.FwhmCalibration);
-                if (IsFinite(f) && f > 0.0)
-                {
-                    return f;
-                }
-            }
-
-            return 0.0;
+            return floor;
         }
 
         int[] BuildPeakMultiplicityMap(int channelsCount, List<Peak> peaks)
