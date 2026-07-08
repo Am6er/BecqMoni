@@ -18,8 +18,13 @@ namespace BecquerelMonitor
         private const string OBS_COMMAND_CHARACTERISTIC = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
         private const string OBS_NOTIFY_CHARACTERISTIC = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
         private const int SpectrumChannels = 1024;
-        private const int SpectrumTimeSize = 2;
-        private const int SpectrumTrailerSize = 2;
+        // Accumulation time is a 32-bit value stored as two 16-bit words:
+        // t_spectrL (low word) followed by t_spectrH (high word). See spec
+        // "структура данных спектра" (spectr, 2052 bytes).
+        private const int SpectrumTimeSize = 4;
+        // The BLE spectrum notification carries no CRC trailer; the full 2052-byte
+        // payload is exactly channels (2048) + 32-bit time (4).
+        private const int SpectrumTrailerSize = 0;
         private const int SpectrumPayloadSize = SpectrumChannels * 2 + SpectrumTimeSize;
         private const int SpectrumPacketSize = SpectrumPayloadSize + SpectrumTrailerSize;
         private const int SpectrumCompletionGuardChunkSize = 10;
@@ -897,7 +902,7 @@ namespace BecquerelMonitor
             {
                 get
                 {
-                    if (Counter < SpectrumPacketSize)
+                    if (Counter < SpectrumPacketSize || SpectrumPayloadSize + 2 > Buffer.Length)
                     {
                         return -1;
                     }
@@ -919,7 +924,11 @@ namespace BecquerelMonitor
                 {
                     SPECTRUM[i] = BitConverter.ToUInt16(Buffer, i * 2);
                 }
-                TIME_S = BitConverter.ToUInt16(Buffer, SpectrumChannels * 2);
+                // 32-bit accumulation time: low word (t_spectrL) at offset 2048,
+                // high word (t_spectrH) at offset 2050.
+                int timeLow = BitConverter.ToUInt16(Buffer, SpectrumChannels * 2);
+                int timeHigh = BitConverter.ToUInt16(Buffer, SpectrumChannels * 2 + 2);
+                TIME_S = timeLow | (timeHigh << 16);
                 COMPLETE = true;
             }
         }
