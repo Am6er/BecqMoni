@@ -1,0 +1,34 @@
+=== C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\RjmcmcTuning\spectra\Th-232 16.06.2026.xml ===
+OracleFit series=th range=[127..6631]ch  D(null)=51132899  D(base)=5373747 k=24  D(oracle)=14734729 k=29
+AIC-like: base=5373795  oracle=14734787  (D + 2k)
+Oracle lines:
+  Ac228  E=  129.1 ch=  357 FWHMkeV= 17.1  A=   12655.6  z=  245.2  dD=  64281.6  shift= 10.3keV  OK-detected
+  Ac228  E=  209.3 ch=  545 FWHMkeV= 22.8  A=   38618.6  z=  796.5  dD= 774324.9  shift= -3.4keV  OK-detected
+  Pb212  E=  238.6 ch=  615 FWHMkeV= 24.4  A=  125451.3  z= 2048.9  dD=  88529.7  shift=  0.4keV  OK-detected
+  Ra224  E=  241.0 ch=  621 FWHMkeV= 24.3  A=   14946.2  z=  247.5  dD=   6390.9  shift=  3.4keV  OK-detected
+  Ac228  E=  270.2 ch=  690 FWHMkeV= 25.9  A=   25029.7  z=  631.6  dD=  47888.3  shift= -0.8keV  OK-detected
+  Tl208  E=  277.4 ch=  708 FWHMkeV= 25.9  A=    1089.9  z=   28.9  dD=   -814.6  shift=-15.9keV  OK-detected
+  Pb212  E=  300.1 ch=  762 FWHMkeV= 27.5  A=   15401.9  z=  449.8  dD= 124830.8  shift=  0.0keV  OK-detected
+  Ac228  E=  328.0 ch=  829 FWHMkeV= 28.2  A=    1969.6  z=   54.4  dD=   -300.7  shift= -8.7keV  OK-detected
+  Ac228  E=  338.3 ch=  854 FWHMkeV= 29.0  A=   44225.7  z= 1196.1  dD= 508086.8  shift=  0.4keV  OK-detected
+  Ac228  E=  409.5 ch= 1026 FWHMkeV= 32.2  A=    3352.8  z=  146.2  dD=  21614.0  shift= -2.5keV  OK-detected
+  Ac228  E=  463.0 ch= 1156 FWHMkeV= 34.5  A=    8990.4  z=  404.2  dD= 189921.8  shift=  2.5keV  OK-detected
+  annih  E=  511.0 ch= 1273 FWHMkeV= 36.1  A=   16609.2  z=  745.3  dD= 741577.7  shift=  2.9keV  OK-detected
+  Tl208  E=  583.2 ch= 1449 FWHMkeV= 39.4  A=   35329.6  z= 1459.9  dD=3860743.6  shift=  0.4keV  OK-detected
+  Bi212  E=  727.3 ch= 1800 FWHMkeV= 44.5  A=    8606.4  z=  612.7  dD= 279591.4  shift= -9.1keV  OK-detected
+  Ac228  E=  755.3 ch= 1868 FWHMkeV= 45.4  A=       0.0  z=    0.0  dD=  -1068.5  shift= 26.0keV  absent [no-peak-in-pipeline]
+  Ac228  E=  772.3 ch= 1909 FWHMkeV= 46.3  A=    1343.6  z=  111.2  dD=   1509.8  shift=  2.5keV  OK-detected
+  Bi212  E=  785.4 ch= 1941 FWHMkeV= 46.3  A=    2571.3  z=  218.4  dD=    470.1  shift=  0.0keV  OK-detected
+  Ac228  E=  794.9 ch= 1964 FWHMkeV= 46.3  A=    1362.7  z=  119.0  dD=    306.0  shift=  0.4keV  OK-detected
+  Ac228  E=  830.5 ch= 2049 FWHMkeV= 48.1  A=    1140.4  z=  108.1  dD=   -136.9  shift= -3.7keV  RECOVERABLE [no-peak-in-pipeline]
+  Ac228  E=  835.7 ch= 2062 FWHMkeV= 48.1  A=       0.0  z=    0.0  dD=  -1068.5  shift= 28.7keV  absent [no-peak-in-pipeline]
+  Tl208  E=  860.6 ch= 2122 FWHMkeV= 49.1  A=    4031.8  z=  355.3  dD=  51851.1  shift=  6.7keV  RECOVERABLE [no-peak-in-pipeline]
+  Ac228  E=  911.2 ch= 2243 FWHMkeV= 50.9  A=   16722.3  z= 1140.2  dD=1970954.8  shift= -2.5keV  OK-detected
+  Ac228  E=  964.8 ch= 2371 FWHMkeV= 52.9  A=   10297.0  z=  855.9  dD=  12762.7  shift=  0.4keV  OK-detected
+  Ac228  E=  969.0 ch= 2381 FWHMkeV= 52.9  A=     440.8  z=   37.9  dD=   -935.7  shift=  0.4keV  OK-detected
+  K40    E= 1460.8 ch= 3523 FWHMkeV= 68.9  A=    2223.2  z=  485.0  dD= 419238.1  shift= 13.7keV  OK-detected
+  Ac228  E= 1588.2 ch= 3810 FWHMkeV= 72.3  A=    3762.6  z=  635.3  dD= 326002.1  shift=-15.2keV  OK-detected
+  Bi212  E= 1620.5 ch= 3882 FWHMkeV= 73.3  A=       0.0  z=    0.0  dD=  -1068.5  shift= 43.9keV  absent
+  Ac228  E= 1630.6 ch= 3905 FWHMkeV= 73.4  A=    2363.9  z=  450.6  dD=  68797.1  shift= 44.3keV  RECOVERABLE [no-peak-in-pipeline]
+  Tl208  E= 2614.5 ch= 6146 FWHMkeV= 85.0  A=    2809.3  z=  794.4  dD=4052175.8  shift= -2.0keV  OK-detected
+

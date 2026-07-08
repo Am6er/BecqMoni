@@ -1,0 +1,32 @@
+=== C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\RjmcmcTuning\spectra\Чароит в домике.xml ===
+OracleFit series=ra range=[97..6947]ch  D(null)=2491810  D(base)=367785 k=18  D(oracle)=1338097 k=27
+AIC-like: base=367821  oracle=1338151  (D + 2k)
+Oracle lines:
+  Ra226  E=  186.2 ch=  508 FWHMkeV= 20.6  A=    2510.8  z=  257.7  dD= 100869.9  shift=  1.5keV  OK-detected
+  Pb214  E=  242.0 ch=  654 FWHMkeV= 23.0  A=    2467.3  z=  286.7  dD= 133456.0  shift=  0.4keV  OK-detected
+  Pb214  E=  295.2 ch=  792 FWHMkeV= 25.4  A=    2634.4  z=  330.4  dD= 196269.1  shift= -0.4keV  OK-detected
+  Pb214  E=  351.9 ch=  940 FWHMkeV= 27.8  A=    3211.5  z=  410.3  dD= 358023.1  shift= -1.2keV  OK-detected
+  annih  E=  511.0 ch= 1349 FWHMkeV= 33.6  A=     144.0  z=   47.6  dD=   2559.1  shift= -5.9keV  RECOVERABLE [no-peak-in-pipeline]
+  Bi214  E=  609.3 ch= 1600 FWHMkeV= 36.9  A=    1191.5  z=  279.9  dD= 159933.9  shift= -3.9keV  OK-detected
+  Bi214  E=  665.4 ch= 1743 FWHMkeV= 37.8  A=      78.2  z=   34.5  dD=   1320.9  shift= 22.9keV  RECOVERABLE [no-peak-in-pipeline]
+  Bi214  E=  768.4 ch= 2004 FWHMkeV= 40.4  A=     163.5  z=   74.4  dD=   3553.2  shift=-11.1keV  OK-detected
+  Pb214  E=  786.0 ch= 2048 FWHMkeV= 41.3  A=       0.0  z=    0.0  dD=      0.0  shift=-24.6keV  absent
+  Bi214  E=  806.2 ch= 2099 FWHMkeV= 42.1  A=     113.9  z=   57.1  dD=   2575.2  shift= 25.1keV  RECOVERABLE [no-peak-in-pipeline]
+  Bi214  E=  934.1 ch= 2419 FWHMkeV= 44.8  A=     179.9  z=   99.0  dD=  14127.2  shift= -6.4keV  OK-detected
+  Bi214  E= 1120.3 ch= 2882 FWHMkeV= 48.5  A=     215.8  z=  122.4  dD=  19576.3  shift=-15.7keV  OK-detected
+  Bi214  E= 1155.2 ch= 2969 FWHMkeV= 49.4  A=      96.4  z=   64.5  dD=   4711.3  shift= 23.9keV  RECOVERABLE [no-peak-in-pipeline]
+  Bi214  E= 1238.1 ch= 3173 FWHMkeV= 50.4  A=     113.6  z=   86.6  dD=  10304.2  shift=-18.3keV  OK-detected
+  Bi214  E= 1280.9 ch= 3279 FWHMkeV= 51.3  A=      64.0  z=   57.1  dD=   4101.0  shift= 26.5keV  RECOVERABLE [no-peak-in-pipeline]
+  Bi214  E= 1377.7 ch= 3516 FWHMkeV= 53.1  A=      96.6  z=   81.1  dD=   3992.4  shift=-15.5keV  OK-detected
+  Bi214  E= 1401.5 ch= 3574 FWHMkeV= 53.2  A=       0.0  z=    0.0  dD=      0.0  shift= 31.9keV  absent
+  Bi214  E= 1408.0 ch= 3590 FWHMkeV= 54.0  A=      53.2  z=   42.9  dD=    343.8  shift= 12.7keV  OK-detected
+  K40    E= 1460.8 ch= 3719 FWHMkeV= 54.1  A=      89.9  z=   69.3  dD=   5142.7  shift= -7.8keV  OK-detected
+  Bi214  E= 1509.2 ch= 3837 FWHMkeV= 55.0  A=      60.3  z=   63.3  dD=   5757.6  shift= 23.0keV  RECOVERABLE [no-peak-in-pipeline]
+  Bi214  E= 1661.3 ch= 4207 FWHMkeV= 56.9  A=      36.1  z=   53.9  dD=   4556.4  shift=-34.2keV  RECOVERABLE [no-peak-in-pipeline]
+  Bi214  E= 1729.6 ch= 4372 FWHMkeV= 57.9  A=      43.2  z=   51.1  dD=   2357.8  shift= -3.3keV  OK-detected
+  Bi214  E= 1764.5 ch= 4456 FWHMkeV= 58.7  A=      56.7  z=   65.6  dD=   4348.1  shift=  3.3keV  OK-detected
+  Bi214  E= 1847.4 ch= 4657 FWHMkeV= 59.7  A=      29.7  z=   51.8  dD=   4762.3  shift=  0.0keV  RECOVERABLE [no-peak-in-pipeline]
+  Bi214  E= 2118.5 ch= 5309 FWHMkeV= 62.4  A=      13.0  z=   30.5  dD=   1403.0  shift=-13.7keV  RECOVERABLE [no-peak-in-pipeline]
+  Bi214  E= 2204.2 ch= 5515 FWHMkeV= 63.3  A=      16.8  z=   38.4  dD=   2557.3  shift= -2.9keV  OK-detected
+  Bi214  E= 2447.9 ch= 6100 FWHMkeV= 64.2  A=       5.1  z=   20.6  dD=   1014.2  shift= -6.7keV  OK-detected
+
