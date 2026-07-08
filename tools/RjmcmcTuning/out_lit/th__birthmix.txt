@@ -1,0 +1,29 @@
+=== C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\RjmcmcTuning\spectra\Th-232 16.06.2026.xml ===
+MinSNR=6.0; Finder=18; DeconvExtras=3; FinalPeaks=21
+Final peaks:
+  ch=  158  E=   43.35 keV  SNR=300.51  FWHM= 14.15
+  ch=  172  E=   49.45 keV  SNR=284.59  FWHM= 27.30
+  ch=  340  E=  122.03 keV  SNR= 55.69  FWHM= 36.60
+  ch=  615  E=  238.63 keV  SNR=1043.30  FWHM= 58.23
+  ch=  739  E=  290.51 keV  SNR=327.09  FWHM= 64.35
+  ch=  852  E=  337.49 keV  SNR=540.69  FWHM= 71.55
+  ch= 1030  E=  411.07 keV  SNR=  9.33  FWHM= 20.68
+  ch= 1158  E=  463.76 keV  SNR= 86.00  FWHM= 55.26
+  ch= 1274  E=  511.40 keV  SNR=179.17  FWHM= 64.32
+  ch= 1450  E=  583.60 keV  SNR=636.75  FWHM= 96.90
+  ch= 1791  E=  723.69 keV  SNR=127.02  FWHM= 95.18
+  ch= 1936  E=  783.52 keV  SNR= 14.06  FWHM= 38.15
+  ch= 2231  E=  906.03 keV  SNR=397.96  FWHM=117.00
+  ch= 2365  E=  962.10 keV  SNR=205.77  FWHM=100.99
+  ch= 2694  E= 1101.13 keV  SNR= 20.82  FWHM= 99.40
+  ch= 3031  E= 1245.71 keV  SNR= 22.44  FWHM=153.98
+  ch= 3808  E= 1587.31 keV  SNR=274.73  FWHM=169.78
+  ch= 5016  E= 2130.21 keV  SNR=128.35  FWHM=184.48
+  ch= 5209  E= 2216.05 keV  SNR= 87.82  FWHM=192.80
+  ch= 5476  E= 2333.29 keV  SNR= 70.18  FWHM=239.10
+  ch= 6145  E= 2614.13 keV  SNR=373.36  FWHM=223.61
+RJMCMC extras:
+  ch= 158.00  SNR=300.51  amp=  43582.41  deltaD=114959.59  occ= 1.000  std=  0.00  residSNR=300.51  corr= 0.849  dist= 0.816  support=3  roi=[127..241]  local=[172]  halo=[348]
+  ch= 739.00  SNR=327.09  amp=  17057.56  deltaD=156486.03  occ= 1.000  std=  1.79  residSNR=327.09  corr= 0.802  dist= 1.716  support=3  roi=[714..1342]  local=[860,1028,1156,1276]  halo=[620,1452]
+  ch=5209.00  SNR= 87.82  amp=    418.18  deltaD=11000.50  occ= 1.000  std=  0.00  residSNR= 87.82  corr= 0.768  dist= 0.980  support=2  roi=[4264..5776]  local=[5020,5484]  halo=[3812,6148]
+
