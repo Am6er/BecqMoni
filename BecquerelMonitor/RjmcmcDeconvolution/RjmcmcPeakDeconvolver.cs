@@ -143,6 +143,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             public double ResidualCorrelation;
         }
 
+        const double SnipClippingRadiusFwhm = 2.0;
         const int RuntimeHistoryCapacity = 10;
         static readonly object runtimeStatsSync = new object();
         static readonly Queue<double> recentRunElapsedMilliseconds = new Queue<double>(RuntimeHistoryCapacity);
@@ -299,7 +300,8 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             try
             {
                 List<RjmcmcRoi> rois = SelectProcessableRois(BuildRois(foregroundSpectrum, finder, peakConfig, fwhmCalibration, config), config);
-                List<RjmcmcPeakCandidate> extraCandidates = ProcessRois(foregroundSpectrum, fixedBackgroundSpectrum, fwhmCalibration, rois, config);
+                int[] snipContinuum = BuildSnipContinuum(foregroundSpectrum, finder, fwhmCalibration);
+                List<RjmcmcPeakCandidate> extraCandidates = ProcessRois(foregroundSpectrum, fixedBackgroundSpectrum, snipContinuum, fwhmCalibration, rois, config);
                 result.ExtraCandidates.AddRange(extraCandidates);
                 return result;
             }
@@ -785,6 +787,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         static List<RjmcmcPeakCandidate> ProcessRois(
             EnergySpectrum foregroundSpectrum,
             EnergySpectrum fixedBackgroundSpectrum,
+            int[] snipContinuum,
             FwhmCalibration fwhmCalibration,
             List<RjmcmcRoi> rois,
             RjmcmcConfig config)
@@ -803,7 +806,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                     break;
                 }
 
-                RjmcmcRoiWorkspace workspace = CreateWorkspace(foregroundSpectrum, fixedBackgroundSpectrum, fwhmCalibration, roi, config);
+                RjmcmcRoiWorkspace workspace = CreateWorkspace(foregroundSpectrum, fixedBackgroundSpectrum, snipContinuum, fwhmCalibration, roi, config);
                 if (workspace.IsUsable)
                 {
                     usableWorkspaces.Add(workspace);
@@ -856,12 +859,13 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         static RjmcmcRoiWorkspace CreateWorkspace(
             EnergySpectrum foregroundSpectrum,
             EnergySpectrum fixedBackgroundSpectrum,
+            int[] snipContinuum,
             FwhmCalibration fwhmCalibration,
             RjmcmcRoi roi,
             RjmcmcConfig config)
         {
             int[] observed = ExtractObserved(foregroundSpectrum, roi);
-            double[] fixedBackground = ExtractFixedBackground(foregroundSpectrum, fixedBackgroundSpectrum, roi);
+            double[] fixedBackground = ExtractFixedBackground(foregroundSpectrum, fixedBackgroundSpectrum, snipContinuum, roi);
             int maxObserved = 0;
             double maxResidual = 0.0;
             double sumResidual = 0.0;
@@ -1357,10 +1361,49 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             return observed;
         }
 
+        /// <summary>
+        /// Builds the fixed (non-sampled) background of a ROI as the envelope of the scaled instrument
+        /// background and the SASNIP continuum of the foreground spectrum. The SNIP part is the same
+        /// baseline the UI draws in BackgroundMode.ShowContinuum, so deconvolution and the displayed
+        /// continuum agree; the scaled instrument background keeps ambient peaks (e.g. K-40) that SNIP
+        /// deliberately passes under. max() avoids double counting the shared continuum component.
+        /// </summary>
         static double[] ExtractFixedBackground(
             EnergySpectrum foregroundSpectrum,
             EnergySpectrum backgroundSpectrum,
+            int[] snipContinuum,
             RjmcmcRoi roi)
+        {
+            double[] fixedBackground = new double[roi.Width];
+            bool hasBackground = ApplyScaledInstrumentBackground(foregroundSpectrum, backgroundSpectrum, roi, fixedBackground);
+
+            if (snipContinuum != null)
+            {
+                for (int i = 0; i < fixedBackground.Length; i++)
+                {
+                    int channel = roi.StartChannel + i;
+                    if (channel < 0 || channel >= snipContinuum.Length)
+                    {
+                        continue;
+                    }
+
+                    double snipValue = snipContinuum[channel];
+                    if (PeakShapeModel.IsFinite(snipValue) && snipValue > 0.0 && snipValue > fixedBackground[i])
+                    {
+                        fixedBackground[i] = snipValue;
+                        hasBackground = true;
+                    }
+                }
+            }
+
+            return hasBackground ? fixedBackground : null;
+        }
+
+        static bool ApplyScaledInstrumentBackground(
+            EnergySpectrum foregroundSpectrum,
+            EnergySpectrum backgroundSpectrum,
+            RjmcmcRoi roi,
+            double[] fixedBackground)
         {
             if (foregroundSpectrum == null ||
                 backgroundSpectrum == null ||
@@ -1369,16 +1412,15 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 foregroundSpectrum.MeasurementTime <= 0.0 ||
                 backgroundSpectrum.MeasurementTime <= 0.0)
             {
-                return null;
+                return false;
             }
 
             double scale = foregroundSpectrum.MeasurementTime / backgroundSpectrum.MeasurementTime;
             if (!PeakShapeModel.IsFinite(scale) || scale <= 0.0)
             {
-                return null;
+                return false;
             }
 
-            double[] fixedBackground = new double[roi.Width];
             bool hasBackground = false;
             bool sameCalibration = foregroundSpectrum.EnergyCalibration != null &&
                 foregroundSpectrum.EnergyCalibration.Equals(backgroundSpectrum.EnergyCalibration);
@@ -1390,7 +1432,7 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 {
                     if (foregroundSpectrum.EnergyCalibration == null || backgroundSpectrum.EnergyCalibration == null)
                     {
-                        return null;
+                        return false;
                     }
 
                     double energy = foregroundSpectrum.EnergyCalibration.ChannelToEnergy(foregroundChannel);
@@ -1412,7 +1454,63 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                 }
             }
 
-            return hasBackground ? fixedBackground : null;
+            return hasBackground;
+        }
+
+        /// <summary>
+        /// Computes the SASNIP continuum of the foreground spectrum with the same call the UI uses for
+        /// BackgroundMode.ShowContinuum (SpectrumAriphmetics.Continuum), so the deconvolution background
+        /// and the displayed continuum are identical. Finder anchors act as the peak list that widens
+        /// the SNIP clipping radius over multiplets.
+        /// </summary>
+        static int[] BuildSnipContinuum(
+            EnergySpectrum foregroundSpectrum,
+            FWHMPeakDetector.PeakFinder finder,
+            FwhmCalibration fwhmCalibration)
+        {
+            if (foregroundSpectrum?.Spectrum == null || fwhmCalibration == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                List<Peak> anchorPeaks = new List<Peak>();
+                if (finder?.centroids != null)
+                {
+                    for (int i = 0; i < finder.centroids.Length; i++)
+                    {
+                        Peak peak = new Peak
+                        {
+                            Channel = Convert.ToInt32(Math.Round(finder.centroids[i]))
+                        };
+                        if (finder.fwhms != null && i < finder.fwhms.Length)
+                        {
+                            peak.FWHM = finder.fwhms[i];
+                        }
+
+                        anchorPeaks.Add(peak);
+                    }
+                }
+
+                SpectrumAriphmetics ariphmetics = new SpectrumAriphmetics(fwhmCalibration, foregroundSpectrum, SmoothingMethod.None);
+                try
+                {
+                    // Wider clipping radius than the display default: at detection time only finder
+                    // anchors are known (the display later passes the final peak list, which widens
+                    // the SNIP radius over yet-undetected shoulders), so a stiffer baseline is needed
+                    // to avoid absorbing weak shoulder lines the deconvolution is meant to find.
+                    return ariphmetics.Continuum(anchorPeaks, coeff: SnipClippingRadiusFwhm)?.Spectrum;
+                }
+                finally
+                {
+                    ariphmetics.Dispose();
+                }
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         /// <summary>

@@ -68,7 +68,8 @@ def main():
     for f in files:
         text=open(f,encoding='utf-8',errors='ignore').read()
         base=os.path.basename(f).lower()
-        series,sname=(TH232+COMMON,"Th-232") if 'th' in base else (RA226+COMMON,"Ra-226")
+        # series by filename prefix (th*/ra*); substring search broke on names like 'birthmix'
+        series,sname=(TH232+COMMON,"Th-232") if base.startswith('th') else (RA226+COMMON,"Ra-226")
         peaks,matched,uml,ump=score_block(text,series,tol)
         total=len([1 for e,l in series if 60<=e<=3000])
         print("=== %s  [%s] finalPeaks=%d matched=%d/%d tol=+/-%gkeV" % (os.path.basename(f),sname,len(peaks),len(matched),total,tol))

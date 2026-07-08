@@ -255,10 +255,10 @@ namespace BecquerelMonitor.Utils
             return normalizedSpectrum;
         }
 
-        public EnergySpectrum Continuum(List<Peak> peaks = null)
+        public EnergySpectrum Continuum(List<Peak> peaks = null, double coeff = 1.0)
         {
             EnergySpectrum continuum = this.EnergySpectrum.Clone();
-            continuum.Spectrum = SASNIP(this.EnergySpectrum.Spectrum, peaks, coeff: 1.0, useLLS: true, decreasing: true);
+            continuum.Spectrum = SASNIP(this.EnergySpectrum.Spectrum, peaks, coeff: coeff, useLLS: true, decreasing: true);
             Parallel.For(0, continuum.NumberOfChannels, i =>
             {
                 if (continuum.Spectrum[i] > this.EnergySpectrum.Spectrum[i])

@@ -1,0 +1,25 @@
+=== C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\RjmcmcTuning\spectra\Чароит в домике.xml ===
+MinSNR=4.0; Finder=18; DeconvExtras=1; FinalPeaks=19
+Final peaks:
+  ch=  142  E=   47.13 keV  SNR= 48.38  FWHM= 24.06
+  ch=  182  E=   62.26 keV  SNR= 82.21  FWHM= 30.47
+  ch=  223  E=   77.79 keV  SNR=180.35  FWHM= 40.18
+  ch=  409  E=  148.44 keV  SNR= 24.00  FWHM= 46.23
+  ch=  516  E=  189.25 keV  SNR=104.00  FWHM= 52.21
+  ch=  651  E=  240.90 keV  SNR=113.05  FWHM= 58.64
+  ch=  800  E=  298.12 keV  SNR=148.50  FWHM= 62.48
+  ch=  936  E=  350.55 keV  SNR=219.04  FWHM= 75.37
+  ch= 1593  E=  606.42 keV  SNR=142.83  FWHM=104.94
+  ch= 1997  E=  765.82 keV  SNR= 20.35  FWHM=108.00
+  ch= 2404  E=  927.92 keV  SNR= 10.17  FWHM=125.80
+  ch= 2872  E= 1116.06 keV  SNR= 37.38  FWHM=135.54
+  ch= 3168  E= 1235.96 keV  SNR= 11.31  FWHM=137.01
+  ch= 3529  E= 1383.04 keV  SNR=  6.48  FWHM=128.07
+  ch= 3698  E= 1452.19 keV  SNR= 16.67  FWHM=149.35
+  ch= 4415  E= 1747.41 keV  SNR= 32.73  FWHM=165.60
+  ch= 5492  E= 2194.72 keV  SNR= 11.24  FWHM=198.30
+  ch= 6093  E= 2445.14 keV  SNR=  5.43  FWHM=153.43
+  ch= 6454  E= 2595.43 keV  SNR=  7.51  FWHM=147.34
+RJMCMC extras:
+  ch= 182.00  SNR= 82.21  amp=   2169.70  deltaD=13215.75  occ= 1.000  std=  0.60  residSNR= 82.21  corr= 0.681  dist= 1.327  support=2  roi=[97..367]  local=[140,228]  halo=[412]
+

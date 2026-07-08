@@ -1,0 +1,31 @@
+=== C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\RjmcmcTuning\spectra\Th-232 16.06.2026.xml ===
+MinSNR=6.0; Finder=18; DeconvExtras=4; FinalPeaks=22
+Final peaks:
+  ch=  158  E=   43.35 keV  SNR=322.08  FWHM= 14.15
+  ch=  172  E=   49.45 keV  SNR=284.59  FWHM= 27.30
+  ch=  191  E=   57.72 keV  SNR=502.39  FWHM= 20.54
+  ch=  340  E=  122.03 keV  SNR= 55.69  FWHM= 36.60
+  ch=  541  E=  207.48 keV  SNR=315.89  FWHM= 52.81
+  ch=  592  E=  228.97 keV  SNR=159.44  FWHM= 56.00
+  ch=  615  E=  238.63 keV  SNR=1043.30  FWHM= 58.23
+  ch=  852  E=  337.49 keV  SNR=540.69  FWHM= 71.55
+  ch= 1030  E=  411.07 keV  SNR=  9.33  FWHM= 20.68
+  ch= 1158  E=  463.76 keV  SNR= 86.00  FWHM= 55.26
+  ch= 1274  E=  511.40 keV  SNR=179.17  FWHM= 64.32
+  ch= 1450  E=  583.60 keV  SNR=636.75  FWHM= 96.90
+  ch= 1791  E=  723.69 keV  SNR=127.02  FWHM= 95.18
+  ch= 1936  E=  783.52 keV  SNR= 14.06  FWHM= 38.15
+  ch= 2231  E=  906.03 keV  SNR=397.96  FWHM=117.00
+  ch= 2365  E=  962.10 keV  SNR=205.77  FWHM=100.99
+  ch= 2694  E= 1101.13 keV  SNR= 20.82  FWHM= 99.40
+  ch= 3031  E= 1245.71 keV  SNR= 22.44  FWHM=153.98
+  ch= 3808  E= 1587.31 keV  SNR=274.73  FWHM=169.78
+  ch= 5016  E= 2130.21 keV  SNR=128.35  FWHM=184.48
+  ch= 5476  E= 2333.29 keV  SNR= 70.18  FWHM=239.10
+  ch= 6145  E= 2614.13 keV  SNR=373.36  FWHM=223.61
+RJMCMC extras:
+  ch= 158.00  SNR=322.08  amp=  46984.02  deltaD=138747.86  occ= 1.000  std=  0.81  residSNR=322.08  corr= 0.788  dist= 0.816  support=4  roi=[127..241]  local=[172]  halo=[348]
+  ch= 191.00  SNR=502.39  amp=  59424.20  deltaD=328081.80  occ= 1.000  std=  0.95  residSNR=502.39  corr= 0.817  dist= 0.925  support=4  roi=[127..241]  local=[172]  halo=[348]
+  ch= 541.00  SNR=315.89  amp=  16705.69  deltaD=123194.24  occ= 0.733  std=  2.56  residSNR=315.89  corr= 0.787  dist= 1.370  support=3  roi=[389..851]  local=[620]  halo=[348,860]
+  ch= 592.00  SNR=159.44  amp=  18180.33  deltaD=50190.81  occ= 0.932  std=  2.36  residSNR=159.44  corr= 0.604  dist= 0.485  support=4  roi=[389..851]  local=[620]  halo=[348,860]
+
