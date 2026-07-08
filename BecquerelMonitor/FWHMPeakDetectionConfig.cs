@@ -247,6 +247,21 @@ namespace BecquerelMonitor
             }
         }
 
+        // Максимальный коэффициент расширения окна оценки континуума (SNIP)
+        // относительно модельного FWHM в сторону измеренной ширины пика, если
+        // реальный пик оказывается шире модели. См. SpectrumAriphmetics.BuildSnipRadius.
+        public double PeakWidthWidenFactor
+        {
+            get
+            {
+                return this.peak_width_widen_factor;
+            }
+            set
+            {
+                this.peak_width_widen_factor = value;
+            }
+        }
+
         [XmlElement(typeof(SimpleSqrtFwhmCalibration))]
         [XmlElement(typeof(SqrtFwhmCalibration))]
         public FwhmCalibration FwhmCalibration { get => fwhmCalibration; set => fwhmCalibration = value; }
@@ -269,6 +284,7 @@ namespace BecquerelMonitor
             this.min_fwhm_tol = config.min_fwhm_tol;
             this.max_fwhm_tol = config.max_fwhm_tol;
             this.ch_concat = config.ch_concat;
+            this.peak_width_widen_factor = config.peak_width_widen_factor;
             this.use_deconvolution = config.use_deconvolution;
             this.burnIn = config.burnIn;
             this.samples = config.samples;
@@ -313,6 +329,8 @@ namespace BecquerelMonitor
         decimal max_fwhm_tol = 199;
 
         int ch_concat = 1024;
+
+        double peak_width_widen_factor = 1.2;
 
         bool use_deconvolution = false;
 

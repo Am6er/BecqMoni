@@ -255,8 +255,11 @@ namespace BecquerelMonitor.Utils
             return normalizedSpectrum;
         }
 
-        public EnergySpectrum Continuum(List<Peak> peaks = null, double coeff = 1.0)
+        public EnergySpectrum Continuum(List<Peak> peaks = null, double coeff = 1.0, double peakWidthWidenFactor = DefaultPeakWidthWidenFactor)
         {
+            this.peakWidthWidenFactor = IsFinite(peakWidthWidenFactor) && peakWidthWidenFactor >= 1.0
+                ? peakWidthWidenFactor
+                : DefaultPeakWidthWidenFactor;
             EnergySpectrum continuum = this.EnergySpectrum.Clone();
             continuum.Spectrum = SASNIP(this.EnergySpectrum.Spectrum, peaks, coeff: coeff, useLLS: true, decreasing: true);
             Parallel.For(0, continuum.NumberOfChannels, i =>
@@ -1048,7 +1051,7 @@ namespace BecquerelMonitor.Utils
                     // но не более чем в PeakWidthWidenFactor раз — чтобы, если пик
                     // окажется шире модели, континуум не "засасывался" в него, и при
                     // этом окно не раздувалось и не выгрызало континуум.
-                    fwhm = Math.Min(peakFwhmCover[i], fwhm * PeakWidthWidenFactor);
+                    fwhm = Math.Min(peakFwhmCover[i], fwhm * this.peakWidthWidenFactor);
                 }
 
                 radius[i] = coeff * fwhm;
@@ -1118,8 +1121,12 @@ namespace BecquerelMonitor.Utils
 
         // Насколько (максимум) можно расширить окно SNIP относительно модельного
         // FWHM в сторону измеренной ширины пика, когда пик реально шире модели.
-        // Запас на недооценку ширины моделью; 1.2 = до +20%.
-        const double PeakWidthWidenFactor = 1.2;
+        // Запас на недооценку ширины моделью; 1.2 = до +20%. Значение берётся из
+        // FWHMPeakDetectionMethodConfig.PeakWidthWidenFactor (см. Continuum);
+        // константа — только фолбэк по умолчанию.
+        const double DefaultPeakWidthWidenFactor = 1.2;
+
+        double peakWidthWidenFactor = DefaultPeakWidthWidenFactor;
 
         double LowEnergyFwhmFloor(int channelsCount)
         {
