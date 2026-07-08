@@ -40,6 +40,8 @@ namespace BecquerelMonitor
                 double tragetPeakEnergyErrMax = targetPeakEnergy * (1.0 + (double)targetPeak.Error / 100.0);
                 int leftChannel = (int)Math.Floor(deviceConfig.EnergyCalibration.EnergyToChannel(targetPeakEnergyErrMin, maxChannels: energySpectrum.NumberOfChannels));
                 int rightChannel = (int)Math.Ceiling(deviceConfig.EnergyCalibration.EnergyToChannel(tragetPeakEnergyErrMax, maxChannels: energySpectrum.NumberOfChannels));
+                if (leftChannel < 0) leftChannel = 0;
+                if (rightChannel > energySpectrum.NumberOfChannels - 1) rightChannel = energySpectrum.NumberOfChannels - 1;
                 double currentPeakMaximum = 0.0;
                 int channel = -1;
                 for (int k = leftChannel; k <= rightChannel; k++)
@@ -81,7 +83,9 @@ namespace BecquerelMonitor
             {
                 calibrationPoints.Add(new CalibrationPoint(0, 0m, 0));
             }
-            int polynomialOrder = Math.Max(2, calibrationPoints.Count - 1);
+            // Order must not exceed the number of points minus one (else the fit is
+            // under-determined) and must stay within the range ChannelToEnergy supports (<= 4).
+            int polynomialOrder = Math.Min(calibrationPoints.Count - 1, 4);
             if (polynomialOrder < 1)
             {
                 polynomialOrder = 1;

@@ -28,6 +28,7 @@ namespace BecquerelMonitor
 
         public override double FwhmToChannel(double fwhm)
         {
+            if (coefficients[1] == 0) return 0.0;
             return (fwhm * fwhm - coefficients[0]) / coefficients[1];
         }
         public override FwhmCalibration Clone()
@@ -35,7 +36,7 @@ namespace BecquerelMonitor
             return new SimpleSqrtFwhmCalibration
             {
                 CalibrationPeaks = CalibrationPeak.ClonePeaks(this.CalibrationPeaks),
-                Coefficients = this.Coefficients,
+                Coefficients = (double[])this.Coefficients.Clone(),
                 PeakType = this.PeakType,
                 ExpGaussExpLeftTail = this.ExpGaussExpLeftTail,
                 ExpGaussExpRightTail = this.ExpGaussExpRightTail,
@@ -50,7 +51,7 @@ namespace BecquerelMonitor
 
         public override string GetFormula()
         {
-            return String.Format(formula, "k", "b");
+            return String.Format(formula, "b", "k");
         }
 
 
@@ -69,7 +70,7 @@ namespace BecquerelMonitor
 
         public override string ToString()
         {
-            return String.Format(formula, coefficients[1], coefficients[0]);
+            return String.Format(formula, coefficients[0], coefficients[1]);
         }
 
         public override bool NotCalibrated()

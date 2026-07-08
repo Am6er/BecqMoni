@@ -53,7 +53,7 @@ namespace BecquerelMonitor
             }
 
             doseRate.Rate = doseRates.Sum();
-            if (doseRate.Rate >= double.MaxValue || energySpectrum.MeasurementTime == 0.0)
+            if (double.IsNaN(doseRate.Rate) || double.IsInfinity(doseRate.Rate) || energySpectrum.MeasurementTime == 0.0)
             {
                 doseRate.Rate = 0.0;
                 return doseRate;
