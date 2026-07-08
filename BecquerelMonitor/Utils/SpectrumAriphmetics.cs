@@ -1041,6 +1041,15 @@ namespace BecquerelMonitor.Utils
                         fromPeakWidth[i] = true;
                     }
                 }
+                else if (peakFwhmCover != null && peakFwhmCover[i] > fwhm)
+                {
+                    // Модель валидна, но реально обнаруженный пик ШИРЕ модели.
+                    // Немного расширяем окно в сторону измеренной ширины (с запасом),
+                    // но не более чем в PeakWidthWidenFactor раз — чтобы, если пик
+                    // окажется шире модели, континуум не "засасывался" в него, и при
+                    // этом окно не раздувалось и не выгрызало континуум.
+                    fwhm = Math.Min(peakFwhmCover[i], fwhm * PeakWidthWidenFactor);
+                }
 
                 radius[i] = coeff * fwhm;
             }
@@ -1106,6 +1115,11 @@ namespace BecquerelMonitor.Utils
         // низкоэнергетическом подъёме; при этом резкие пики клиппируются реальной
         // (большей) моделью FWHM выше этой зоны.
         const double MinLowEnergyFwhmChannels = 5.0;
+
+        // Насколько (максимум) можно расширить окно SNIP относительно модельного
+        // FWHM в сторону измеренной ширины пика, когда пик реально шире модели.
+        // Запас на недооценку ширины моделью; 1.2 = до +20%.
+        const double PeakWidthWidenFactor = 1.2;
 
         double LowEnergyFwhmFloor(int channelsCount)
         {
