@@ -262,6 +262,21 @@ namespace BecquerelMonitor
             }
         }
 
+        // Метод уточнения центроида пика: true — центр масс по ядру пика
+        // (устойчив к шуму/плоским вершинам), false — сырой argmax (максимальный бин).
+        // См. SpectrumAriphmetics.FindCentroid.
+        public bool UseCenterOfMassCentroid
+        {
+            get
+            {
+                return this.use_center_of_mass_centroid;
+            }
+            set
+            {
+                this.use_center_of_mass_centroid = value;
+            }
+        }
+
         [XmlElement(typeof(SimpleSqrtFwhmCalibration))]
         [XmlElement(typeof(SqrtFwhmCalibration))]
         public FwhmCalibration FwhmCalibration { get => fwhmCalibration; set => fwhmCalibration = value; }
@@ -285,6 +300,7 @@ namespace BecquerelMonitor
             this.max_fwhm_tol = config.max_fwhm_tol;
             this.ch_concat = config.ch_concat;
             this.peak_width_widen_factor = config.peak_width_widen_factor;
+            this.use_center_of_mass_centroid = config.use_center_of_mass_centroid;
             this.use_deconvolution = config.use_deconvolution;
             this.burnIn = config.burnIn;
             this.samples = config.samples;
@@ -331,6 +347,8 @@ namespace BecquerelMonitor
         int ch_concat = 1024;
 
         double peak_width_widen_factor = 1.2;
+
+        bool use_center_of_mass_centroid = true;
 
         bool use_deconvolution = false;
 

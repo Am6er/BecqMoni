@@ -586,6 +586,7 @@ namespace BecquerelMonitor
             this.numericUpDownWidenFactor.Maximum = (decimal)3.0;
             this.numericUpDownWidenFactor.Increment = (decimal)0.05;
             this.numericUpDownWidenFactor.Value = ClampNumericValue(this.numericUpDownWidenFactor, (decimal)FWHMPeakDetectionMethodConfig.PeakWidthWidenFactor);
+            this.centroidComCheckBox.Checked = FWHMPeakDetectionMethodConfig.UseCenterOfMassCentroid;
 
             LoadDeconvolutionControls(FWHMPeakDetectionMethodConfig);
             LoadPeakShapeControls(FWHMPeakDetectionMethodConfig.FwhmCalibration);
@@ -632,6 +633,7 @@ namespace BecquerelMonitor
             this.numericUpDown15.Value = FWHMPeakDetectionMethodConfig.Max_FWHM_Tol;
             this.numericUpDown16.Value = FWHMPeakDetectionMethodConfig.Ch_Concat;
             this.numericUpDownWidenFactor.Value = ClampNumericValue(this.numericUpDownWidenFactor, (decimal)FWHMPeakDetectionMethodConfig.PeakWidthWidenFactor);
+            this.centroidComCheckBox.Checked = FWHMPeakDetectionMethodConfig.UseCenterOfMassCentroid;
             this.numericUpDown12.Value = (decimal)FWHMPeakDetectionMethodConfig.Min_Range;
             LoadDeconvolutionControls(FWHMPeakDetectionMethodConfig);
             LoadPeakShapeControls(FWHMPeakDetectionMethodConfig.FwhmCalibration);
@@ -859,6 +861,7 @@ namespace BecquerelMonitor
                 FWHMPeakDetectionMethodConfig.Max_FWHM_Tol = this.numericUpDown15.Value;
                 FWHMPeakDetectionMethodConfig.Ch_Concat = (int)this.numericUpDown16.Value;
                 FWHMPeakDetectionMethodConfig.PeakWidthWidenFactor = (double)this.numericUpDownWidenFactor.Value;
+                FWHMPeakDetectionMethodConfig.UseCenterOfMassCentroid = this.centroidComCheckBox.Checked;
                 FWHMPeakDetectionMethodConfig.UseDeconvolution = this.deconvolutionEnabledCheckBox.Checked;
                 FWHMPeakDetectionMethodConfig.BurnIn = (int)this.deconvolutionBurnInNumericUpDown.Value;
                 FWHMPeakDetectionMethodConfig.Samples = (int)this.deconvolutionSamplesNumericUpDown.Value;
@@ -2090,6 +2093,11 @@ namespace BecquerelMonitor
         }
 
         void numericUpDownWidenFactor_ValueChanged(object sender, EventArgs e)
+        {
+            this.SetActiveDeviceConfigDirty();
+        }
+
+        void centroidComCheckBox_CheckedChanged(object sender, EventArgs e)
         {
             this.SetActiveDeviceConfigDirty();
         }

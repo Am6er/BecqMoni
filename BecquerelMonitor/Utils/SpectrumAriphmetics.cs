@@ -46,33 +46,81 @@ namespace BecquerelMonitor.Utils
             }
         }
 
-        public int FindCentroid(EnergySpectrum energySpectrum, int centroid, int low_boundary, int high_boundary)
+        // Уточнение центроида пика по ядру: центр масс (интенсивно-взвешенное
+        // среднее) на фоново-вычтенных отсчётах, по смежным бинам выше полумаксимума
+        // вокруг вершины. Даёт субканальную позицию и устойчив к шуму и приплюснутым
+        // вершинам (в отличие от сырого argmax, который скачет на один бин). Ограничение
+        // ядра полумаксимумом отсекает хвосты и удалённых соседей.
+        // Проверено на синтетике (плоские/шумные/наклонный фон) и на реальных спектрах.
+        // useCenterOfMass=false возвращает сырой argmax (максимальный бин) — для
+        // сравнения методов (переключается флагом в конфиге детекции).
+        public double FindCentroid(EnergySpectrum energySpectrum, int centroid, int low_boundary, int high_boundary, bool useCenterOfMass = true)
         {
+            int[] spectrum = energySpectrum.Spectrum;
             if (low_boundary < 0) low_boundary = 0;
             if (high_boundary >= energySpectrum.NumberOfChannels) high_boundary = energySpectrum.NumberOfChannels - 1;
+            if (high_boundary <= low_boundary)
+            {
+                return low_boundary;
+            }
             if (high_boundary - low_boundary < 3)
             {
-                if (energySpectrum.Spectrum[low_boundary] > energySpectrum.Spectrum[high_boundary])
-                {
-                    return low_boundary;
-                }
-                else
-                {
-                    return high_boundary;
-                }
+                return spectrum[low_boundary] >= spectrum[high_boundary] ? low_boundary : high_boundary;
             }
 
-            int max = low_boundary;
-            int max_counts = energySpectrum.Spectrum[low_boundary];
-            for (int i = low_boundary; i < high_boundary + 1; i++)
+            // Вершина и фон (минимум) в окне.
+            int apex = low_boundary;
+            int apexCounts = spectrum[low_boundary];
+            int bg = spectrum[low_boundary];
+            for (int i = low_boundary; i <= high_boundary; i++)
             {
-                if (energySpectrum.Spectrum[i] > max_counts)
-                {
-                    max = i;
-                    max_counts = energySpectrum.Spectrum[i];
-                }
+                int v = spectrum[i];
+                if (v > apexCounts) { apexCounts = v; apex = i; }
+                if (v < bg) { bg = v; }
             }
-            return max;
+
+            if (!useCenterOfMass)
+            {
+                // Прежний метод: максимальный бин.
+                return apex;
+            }
+
+            double height = apexCounts - bg;
+            if (height <= 0.0)
+            {
+                return apex;
+            }
+
+            // Смежные бины выше полумаксимума вокруг вершины (ядро пика).
+            double threshold = bg + 0.5 * height;
+            int left = apex;
+            while (left > low_boundary && spectrum[left - 1] > threshold)
+            {
+                left--;
+            }
+            int right = apex;
+            while (right < high_boundary && spectrum[right + 1] > threshold)
+            {
+                right++;
+            }
+
+            // Центр масс по ядру на фоново-вычтенных весах.
+            double weightSum = 0.0;
+            double weightedPos = 0.0;
+            for (int i = left; i <= right; i++)
+            {
+                double w = spectrum[i] - bg;
+                if (w <= 0.0) continue;
+                weightSum += w;
+                weightedPos += i * w;
+            }
+
+            if (weightSum <= 0.0)
+            {
+                return apex;
+            }
+
+            return weightedPos / weightSum;
         }
 
         double Ln(double x)

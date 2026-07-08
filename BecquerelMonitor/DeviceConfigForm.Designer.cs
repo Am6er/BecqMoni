@@ -132,6 +132,7 @@ namespace BecquerelMonitor
             this.numericUpDown16 = new System.Windows.Forms.NumericUpDown();
             this.numericUpDownWidenFactor = new System.Windows.Forms.NumericUpDown();
             this.labelWidenFactor = new System.Windows.Forms.Label();
+            this.centroidComCheckBox = new System.Windows.Forms.CheckBox();
             this.deconvolutionGroupBox = new System.Windows.Forms.GroupBox();
             this.deconvolutionEnabledLabel = new System.Windows.Forms.Label();
             this.deconvolutionEnabledCheckBox = new System.Windows.Forms.CheckBox();
@@ -857,6 +858,7 @@ namespace BecquerelMonitor
             this.groupBox2.Controls.Add(this.numericUpDown16);
             this.groupBox2.Controls.Add(this.labelWidenFactor);
             this.groupBox2.Controls.Add(this.numericUpDownWidenFactor);
+            this.groupBox2.Controls.Add(this.centroidComCheckBox);
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.TabStop = false;
             // 
@@ -973,6 +975,18 @@ namespace BecquerelMonitor
             this.numericUpDownWidenFactor.TabIndex = 8;
             this.numericUpDownWidenFactor.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             this.numericUpDownWidenFactor.ValueChanged += new System.EventHandler(this.numericUpDownWidenFactor_ValueChanged);
+            //
+            // centroidComCheckBox
+            //
+            this.centroidComCheckBox.AutoSize = true;
+            this.centroidComCheckBox.ImeMode = System.Windows.Forms.ImeMode.NoControl;
+            this.centroidComCheckBox.Location = new System.Drawing.Point(225, 143);
+            this.centroidComCheckBox.Name = "centroidComCheckBox";
+            this.centroidComCheckBox.Size = new System.Drawing.Size(180, 17);
+            this.centroidComCheckBox.TabIndex = 21;
+            this.centroidComCheckBox.Text = "Centroid by center of mass";
+            this.centroidComCheckBox.UseVisualStyleBackColor = true;
+            this.centroidComCheckBox.CheckedChanged += new System.EventHandler(this.centroidComCheckBox_CheckedChanged);
             //
             // deconvolutionGroupBox
             // 
@@ -1553,6 +1567,8 @@ namespace BecquerelMonitor
         System.Windows.Forms.NumericUpDown numericUpDownWidenFactor;
 
         System.Windows.Forms.Label labelWidenFactor;
+
+        System.Windows.Forms.CheckBox centroidComCheckBox;
 
 // Token: 0x04000286 RID: 646
 		System.Windows.Forms.Label label42;
