@@ -2309,7 +2309,11 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
                     continue;
                 }
 
-                double snr = Math.Sqrt(profile.Improvement);
+                // Matched-filter z-score of the candidate against the reduced model residual.
+                // Mathematically consistent with FWHMPeakDetector.PeakFilter.convolve SNR
+                // (signal / sqrt(Poisson-weighted filter energy)), unlike sqrt(deviance),
+                // which is a chi-square statistic with ~2 degrees of freedom (center+amplitude).
+                double snr = profile.ResidualSnr;
                 if (IsCloseToAnchor(anchorDistanceFwhm, config) &&
                     profile.ResidualCorrelation < config.CloseAnchorMinimumResidualProfileCorrelation)
                 {

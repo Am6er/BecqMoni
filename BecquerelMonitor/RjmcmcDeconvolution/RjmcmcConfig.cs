@@ -46,7 +46,10 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         public static RjmcmcConfig CreateDefault()
         {
             const double defaultPeakFinderSnr = 10.0;
-            const double defaultExtraSnrMultiplier = 1.5;
+            // 1.0 keeps the RJMCMC extras on the same detection bar as the FWHM finder:
+            // the final Min_SNR gate in PeakDetector.AppendRjmcmcPeaks now compares the
+            // same matched-filter statistic, so no extra safety multiplier is needed.
+            const double defaultExtraSnrMultiplier = 1.0;
             double defaultTargetSnr = CalculateExtraTargetSnr(defaultPeakFinderSnr, defaultExtraSnrMultiplier);
 
             return new RjmcmcConfig
@@ -134,13 +137,17 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
 
         static double CalculateMinimumDevianceImprovement(double targetSnr)
         {
-            return Math.Max(1.0, targetSnr * targetSnr);
+            // Wilks: deviance improvement of an extra component is ~chi-square with
+            // 2 degrees of freedom (center + amplitude), E[dD|null] ~ 2, so the
+            // z^2-equivalent threshold needs the +2 correction to stay consistent
+            // with a one-sided z (matched-filter SNR) threshold.
+            return Math.Max(1.0, targetSnr * targetSnr + 2.0);
         }
 
         static double CalculateSupportingDevianceImprovement(double targetSnr, double supportingSnrFraction)
         {
             double supportSnr = Math.Max(1.0, targetSnr * Math.Max(0.0, supportingSnrFraction));
-            return supportSnr * supportSnr;
+            return supportSnr * supportSnr + 2.0;
         }
     }
 }
