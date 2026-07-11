@@ -24,9 +24,35 @@ namespace BecquerelMonitor
             base.OnMouseUp(e);
             if (e.Button == MouseButtons.Left)
             {
-                RepeatButton.repeatButtonTimer.Stop();
-                RepeatButton.repeatButtonTimer.Tick -= this.repeatButtonTimer_Tick;
+                StopRepeat();
             }
+        }
+
+        // A missed MouseUp (modal dialog, lost capture) used to leave the STATIC timer
+        // running forever - endless auto-clicks, and the timer kept the view of a closed
+        // document alive. Stop on capture loss and on disposal as well.
+        protected override void OnMouseCaptureChanged(EventArgs e)
+        {
+            base.OnMouseCaptureChanged(e);
+            if (!base.Capture)
+            {
+                StopRepeat();
+            }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                StopRepeat();
+            }
+            base.Dispose(disposing);
+        }
+
+        void StopRepeat()
+        {
+            RepeatButton.repeatButtonTimer.Stop();
+            RepeatButton.repeatButtonTimer.Tick -= this.repeatButtonTimer_Tick;
         }
 
         // Token: 0x06000BE4 RID: 3044 RVA: 0x00047F54 File Offset: 0x00046154

@@ -1,5 +1,6 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
+using System.Diagnostics;
 using System.Windows.Forms;
 using WinMM;
 
@@ -68,7 +69,6 @@ namespace BecquerelMonitor
                 waveIn.Dispose();
                 return false;
             }
-            GC.Collect();
             this.pulseDetector.Pulses = resultData.PulseCollection;
             this.pulseDetector.Initialize(audioInputDeviceConfig, waveFormat, resultDataStatus.TimeInSamples);
             this.pulseDetector.EnergySpectrum = resultData.EnergySpectrum;
@@ -142,8 +142,18 @@ namespace BecquerelMonitor
             DeviceConfigInfo deviceConfig = resultData.DeviceConfig;
             AudioInputDeviceConfig audioInputDeviceConfig = (AudioInputDeviceConfig)deviceConfig.InputDeviceConfig;
             WaveIn waveIn = resultDataStatus.WaveIn;
-            waveIn.Stop();
-            waveIn.Close();
+            try
+            {
+                // waveInReset/waveInClose throw MMSystemException if the USB audio device
+                // was unplugged mid-recording; this path runs on the UI thread with no
+                // handler above it, so a dead device used to crash the application.
+                waveIn.Stop();
+                waveIn.Close();
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine("WaveIn stop failed (device removed?): " + ex.Message);
+            }
             waveIn.DataReady -= this.waveIn_DataReady;
             resultDataStatus.TotalTime += DateTime.Now - resultData.StartTime;
             resultDataStatus.ElapsedTime = resultDataStatus.TotalTime;
@@ -155,8 +165,14 @@ namespace BecquerelMonitor
                                                                             resultData.EnergySpectrum.TotalPulseCount,
                                                                             audioInputDeviceConfig.DeadTime());
             resultDataStatus.Recording = false;
-            waveIn.Dispose();
-            GC.Collect();
+            try
+            {
+                waveIn.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine("WaveIn dispose failed (device removed?): " + ex.Message);
+            }
             if (resultDataStatus.AudioVolumeChanged)
             {
                 try

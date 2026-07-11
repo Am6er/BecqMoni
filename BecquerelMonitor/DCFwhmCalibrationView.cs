@@ -22,6 +22,8 @@ namespace BecquerelMonitor
 
         bool peakPickupProcessing = false;
 
+        EnergySpectrumView pickupSubscribedView;
+
         bool calibrationDone = true;
         bool updatingCurveSelection;
 
@@ -339,7 +341,9 @@ namespace BecquerelMonitor
                 cancelAddPeakButton.Enabled = true;
                 peakPickupProcessing = true;
                 addPeakButton.Enabled = !peakPickupProcessing;
-                mainForm.ActiveDocument.EnergySpectrumView.PeakPickuped += this.EnergySpectrumView_PeakPickuped;
+                // Remember the subscribed view - see ClearPeakPickupState.
+                this.pickupSubscribedView = mainForm.ActiveDocument.EnergySpectrumView;
+                this.pickupSubscribedView.PeakPickuped += this.EnergySpectrumView_PeakPickuped;
             }
         }
 
@@ -378,9 +382,12 @@ namespace BecquerelMonitor
 
         void ClearPeakPickupState()
         {
-            if (mainForm.ActiveDocument != null)
+            // Unsubscribe from the view we actually subscribed to, not from whatever
+            // document happens to be active now.
+            if (this.pickupSubscribedView != null)
             {
-                mainForm.ActiveDocument.EnergySpectrumView.PeakPickuped -= this.EnergySpectrumView_PeakPickuped;
+                this.pickupSubscribedView.PeakPickuped -= this.EnergySpectrumView_PeakPickuped;
+                this.pickupSubscribedView = null;
             }
             peakPickupProcessing = false;
             addPeakButton.Enabled = !peakPickupProcessing;

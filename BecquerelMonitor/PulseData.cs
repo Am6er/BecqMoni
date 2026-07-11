@@ -57,14 +57,23 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            int count = base.Count;
+            // Serialize a consistent snapshot: during audio recording the WaveIn thread
+            // keeps adding pulses (via PulseCollection.Add, which takes the same lock),
+            // and enumerating the live list here used to abort autosave with
+            // "Collection was modified" - truncating the target file.
+            Pulse[] snapshot;
+            lock (this)
+            {
+                snapshot = base.ToArray();
+            }
+            int count = snapshot.Length;
             if (count == 0)
             {
                 return;
             }
             byte[] array = new byte[count * 20];
             int i = 0;
-            foreach (Pulse pulse in this)
+            foreach (Pulse pulse in snapshot)
             {
                 Buffer.BlockCopy(BitConverter.GetBytes(pulse.Time), 0, array, i, 8);
                 i += 8;

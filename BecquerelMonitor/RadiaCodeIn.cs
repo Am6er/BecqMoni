@@ -40,6 +40,7 @@ namespace BecquerelMonitor
         GattCharacteristic characteristic, characteristicNotify = null;
         RCSpectrum packet = new RCSpectrum();
         private BluetoothLEAdvertisementWatcher watcher;
+        private readonly object watcherLock = new object();
 
         public event EventHandler<RadiaCodeInDataReadyArgs> DataReady;
         public event EventHandler<EventArgs> PortFailure;
@@ -210,22 +211,31 @@ namespace BecquerelMonitor
         {
             TestBT();
             Trace.WriteLine("Run discovery, to awaiken device");
-            if (watcher == null) watcher = new BluetoothLEAdvertisementWatcher();
-            watcher.ScanningMode = BluetoothLEScanningMode.Active;
-            watcher.Received -= Watcher_Recived;
-            watcher.Received += Watcher_Recived;
-            try
+            // Serialize the whole discovery session under watcherLock: doDiscovery runs from
+            // both the discovery thread and the reader thread (reconnect). Locking only the
+            // watcher creation left Start/Stop/subscribe/unsubscribe racing on a shared
+            // watcher, so two sessions could Start/Stop the same instance concurrently.
+            lock (watcherLock)
             {
-                watcher.Start();
-                Thread.Sleep(5000);
-            }
-            catch (Exception ex) {
-                MessageBox.Show($"{ex.Message}: {ex.StackTrace}", "Error doing discovery", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                RaisePortFailure();
-            } finally
-            {
-                watcher.Stop();
+                if (watcher == null) watcher = new BluetoothLEAdvertisementWatcher();
+                watcher.ScanningMode = BluetoothLEScanningMode.Active;
                 watcher.Received -= Watcher_Recived;
+                watcher.Received += Watcher_Recived;
+                try
+                {
+                    watcher.Start();
+                    Thread.Sleep(5000);
+                }
+                catch (Exception ex) {
+                    // No MessageBox from the reader thread: it blocked BLE reception until
+                    // the user clicked it away.
+                    Trace.WriteLine($"Error doing discovery: {ex.Message}: {ex.StackTrace}");
+                    RaisePortFailure();
+                } finally
+                {
+                    watcher.Stop();
+                    watcher.Received -= Watcher_Recived;
+                }
             }
         }
 
@@ -415,7 +425,10 @@ namespace BecquerelMonitor
 
                 lock (packetLock)
                 {
-                    if (buffer.Length > 14 && BitConverter.ToUInt32(buffer, 4) == 2147485734 && BitConverter.ToUInt32(buffer, 4) == 1)
+                    // Resync: 0x80000A26 at offset 4 marks the start of a new spectrum response.
+                    // (Was "x == 2147485734 && x == 1" - the same expression compared to two
+                    // constants, i.e. always false, so resync never fired.)
+                    if (buffer.Length > 14 && BitConverter.ToUInt32(buffer, 4) == 2147485734)
                     {
                         packet = new RCSpectrum();
                     }
@@ -509,10 +522,12 @@ namespace BecquerelMonitor
 
             readerThread = new Thread(this.run);
             readerThread.Name = "RadiaCodeIn";
+            readerThread.IsBackground = true;
             readerThread.Start();
 
             discoveryThread = new Thread(doDiscovery);
             discoveryThread.Name = "Discovery";
+            discoveryThread.IsBackground = true;
             discoveryThread.Start();
         }
 
@@ -1202,9 +1217,25 @@ namespace BecquerelMonitor
                         case 3:
                             result = last_value + (short)(((buffer[i + 1] & 0xFF) << 8) | (buffer[i] & 0xFF)); i += 2; break;
                         case 4:
-                            result = last_value + (((buffer[i + 2] & 0xFF) << 16) | ((buffer[i + 1] & 0xFF) << 8) | (buffer[i] & 0xFF)) & 0xFFFFFF; i += 3; break;
+                            {
+                                // MDID_S24: signed 24-bit delta. The device reference
+                                // decoder consumes three bytes per value and one padding
+                                // byte after the whole S24 block (ZipPrm.SrcPtr = ++src).
+                                int diff24 = buffer[i]
+                                    | (buffer[i + 1] << 8)
+                                    | ((sbyte)buffer[i + 2] << 16);
+                                result = unchecked(last_value + diff24);
+                                i += 3;
+                                if (j == count_occurences - 1)
+                                {
+                                    i++;
+                                }
+                                break;
+                            }
                         case 5:
-                            result = last_value + (((buffer[i + 3] & 0xFF) << 24) | ((buffer[i + 2] & 0xFF) << 16) | ((buffer[i + 1] & 0xFF) << 8) | (buffer[i] & 0xFF)) & 0xFFFFFF; i += 4; break;
+                            // MDID_U32 is an absolute value, not a delta. This follows the
+                            // device reference decoder's Decode_U32 implementation.
+                            result = ((buffer[i + 3] & 0xFF) << 24) | ((buffer[i + 2] & 0xFF) << 16) | ((buffer[i + 1] & 0xFF) << 8) | (buffer[i] & 0xFF); i += 4; break;
                         default:
                             throw new Exception("Wtf");
                     }

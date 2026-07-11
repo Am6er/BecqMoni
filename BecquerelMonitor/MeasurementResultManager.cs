@@ -72,14 +72,22 @@ namespace BecquerelMonitor
                             mda2 = mdaBq;
                             break;
                         case ResultTranslation.BecquerelsPerKilogram:
-                            resultValue2 = resultBq / this.resultData.SampleInfo.Weight;
-                            resultError2 = resultBqError / this.resultData.SampleInfo.Weight;
-                            mda2 = mdaBq / this.resultData.SampleInfo.Weight;
+                            // Weight defaults to 0 - guard the denominator, otherwise the
+                            // tables (and saved results) get NaN/Infinity every 500 ms.
+                            if (this.resultData.SampleInfo.Weight > 0.0)
+                            {
+                                resultValue2 = resultBq / this.resultData.SampleInfo.Weight;
+                                resultError2 = resultBqError / this.resultData.SampleInfo.Weight;
+                                mda2 = mdaBq / this.resultData.SampleInfo.Weight;
+                            }
                             break;
                         case ResultTranslation.BecquerelsPerLiter:
-                            resultValue2 = resultBq / this.resultData.SampleInfo.Volume;
-                            resultError2 = resultBqError / this.resultData.SampleInfo.Volume;
-                            mda2 = mdaBq / this.resultData.SampleInfo.Volume;
+                            if (this.resultData.SampleInfo.Volume > 0.0)
+                            {
+                                resultValue2 = resultBq / this.resultData.SampleInfo.Volume;
+                                resultError2 = resultBqError / this.resultData.SampleInfo.Volume;
+                                mda2 = mdaBq / this.resultData.SampleInfo.Volume;
+                            }
                             break;
                     }
                     MeasurementResult item = new MeasurementResult(roidefinition, resultValue2, resultError2, mda2);
@@ -113,7 +121,9 @@ namespace BecquerelMonitor
                 DateTime time = this.resultData.SampleInfo.Time;
                 DateTime endTime = this.resultData.EndTime;
                 double num = (endTime - time).TotalDays / 365.0;
-                double num2 = 1.0 / Math.Pow(0.5, num / halfLife);
+                // Shipped ROI configs contain HalfLife=0 definitions; dividing by them
+                // produced Infinity. Skip the correction when no valid half-life is set.
+                double num2 = halfLife > 0.0 ? 1.0 / Math.Pow(0.5, num / halfLife) : 1.0;
                 double resultValue2 = resultValue * num2;
                 double resultError2 = resultError * num2;
                 MeasurementResult item = new MeasurementResult(roidefinition, resultValue2, resultError2, measurementResult.MDA);
@@ -334,12 +344,27 @@ namespace BecquerelMonitor
                     double num27 = (double)(num18 - num17 + 1);
                     double num28 = (double)(num20 - num19 + 1);
                     double num29 = (double)(upperLimitChannelIndex - lowerLimitChannelIndex + 1);
-                    double num30 = num29 / num28 * (num24 - num25) / (num26 - num25);
-                    double num31 = num29 / num27 * (num26 - num24) / (num26 - num25);
+                    double num30;
+                    double num31;
+                    if (num26 != num25)
+                    {
+                        num30 = num29 / num28 * (num24 - num25) / (num26 - num25);
+                        num31 = num29 / num27 * (num26 - num24) / (num26 - num25);
+                    }
+                    else
+                    {
+                        // Degenerate side windows (same centers) - the trapezoid weights
+                        // used to divide by zero here; fall back to an even 50/50 split.
+                        num30 = num29 / num28 * 0.5;
+                        num31 = num29 / num27 * 0.5;
+                    }
                     netCounts = num21 - num30 * num23 - num31 * num22;
                     netCountsSigma = Math.Sqrt(num21 + Math.Pow(num31, 2.0) * num22 + Math.Pow(num30, 2.0) * num23);
                     double num32 = Math.Abs(roiprimitiveData.Coefficient);
-                    num6 = Math.Abs(netCounts) / fgTime / fgTime * num32 + Math.Pow(Math.Abs(netCountsSigma) / fgTime / fgTime * num32, 2.0);
+                    // Contribution to the H0 variance in cps^2: (coeff * sigma / t)^2.
+                    // The old expression mixed dimensions (counts/t^2*k + (counts/t^2*k)^2)
+                    // and used the coefficient linearly instead of squared.
+                    num6 = Math.Pow(num32 * netCountsSigma / fgTime, 2.0);
                 }
                 else if (roiprimitiveData is ROIReferenceData)
                 {
@@ -362,7 +387,8 @@ namespace BecquerelMonitor
                         }
                     }
                     double coeff = Math.Abs(roiprimitiveData.Coefficient);
-                    num6 = Math.Abs(netCounts) / fgTime / fgTime * coeff + Math.Pow(Math.Abs(netCountsSigma) / fgTime / fgTime * coeff, 2.0);
+                    // Same dimensional fix as in the Covell branch above.
+                    num6 = Math.Pow(coeff * netCountsSigma / fgTime, 2.0);
                 }
                 double coefficient = roiprimitiveData.Coefficient;
                 double coefficientError = roiprimitiveData.CoefficientError;
@@ -371,6 +397,12 @@ namespace BecquerelMonitor
                 if (netCounts != 0.0 && coefficient != 0.0)
                 {
                     countsToUseError = countsToUse * Math.Sqrt(Math.Pow(netCountsSigma / netCounts, 2.0) + Math.Pow(coefficientError / coefficient, 2.0));
+                }
+                else if (coefficient != 0.0)
+                {
+                    // netCounts == 0 still has a counting uncertainty: report 0 +- sigma,
+                    // not 0 +- 0.
+                    countsToUseError = Math.Abs(coefficient) * netCountsSigma;
                 }
                 if (roiprimitiveData.Operation == this.addOpe)
                 {
@@ -395,7 +427,10 @@ namespace BecquerelMonitor
             roi.MDA = -1.0;
             if (hasBg)
             {
-                double mdaCps = detectionLevel * detectionLevel / (2.0 * fgTime) + detectionLevel * Math.Sqrt(detectionLevel * detectionLevel / (4.0 * fgTime * fgTime) + num);
+                // Currie form (Ld = k^2/t + 2*k*sigma0), consistent with
+                // ROIAriphmetics.CalculateLd; the old expression solved x = k*sqrt(x/t + S)
+                // and understated the MDA up to ~2x for dominating background.
+                double mdaCps = detectionLevel * detectionLevel / fgTime + 2.0 * detectionLevel * Math.Sqrt(num);
                 roi.MDA = mdaCps * this.measurementTime;
             }
             return true;

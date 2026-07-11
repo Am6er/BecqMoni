@@ -5,3 +5,4 @@ BecquerelMonitor/obj/*
 tools/RjmcmcHarness/*.exe
 *.csproj.user
 AGENTS.md
+CLAUDE.md

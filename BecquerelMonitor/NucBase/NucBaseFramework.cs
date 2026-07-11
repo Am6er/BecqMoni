@@ -22,7 +22,13 @@ namespace BecquerelMonitor.NucBase
             try
             {
                 SqliteDataReader reader = db.ReadData("select z, n, ifnull(half_life, '?'), ifnull(half_life_unit, ''), ifnull(half_life_sec, 0), ifnull(abundance, 0) from nuclides where nucid = '" + nucname + "' and half_life not null");
-                reader.Read();
+                if (!reader.Read())
+                {
+                    // Stable isotopes have no half_life row: not an error, just no data.
+                    // Reading without this check used to throw and pop an error dialog.
+                    db.Close();
+                    return null;
+                }
                 nuc.Z = reader.GetInt32(0);
                 nuc.N = reader.GetInt32(1);
                 nuc.HalfLife = reader.GetString(2);

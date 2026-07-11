@@ -174,32 +174,33 @@ namespace BecquerelMonitor
         // Token: 0x06000BDF RID: 3039 RVA: 0x00047C48 File Offset: 0x00045E48
         void ShowPercentage(Graphics g)
         {
-            Region region = new Region(new RectangleF((float)base.ClientRectangle.X, (float)base.ClientRectangle.Y, (float)(base.ClientRectangle.Width * base.Value / 100), (float)base.ClientRectangle.Height));
-            using (Brush brush = new SolidBrush(this.overlayColor))
+            // Regions in using: two Region handles per call used to leak, ~20/s during
+            // recording (progress Invalidates on every value change).
+            using (Region region = new Region(new RectangleF((float)base.ClientRectangle.X, (float)base.ClientRectangle.Y, (float)(base.ClientRectangle.Width * base.Value / 100), (float)base.ClientRectangle.Height)))
             {
-                g.Clip = region;
-                g.DrawString(this.Text, this.Font, brush, base.ClientRectangle, this.stringFormat);
-            }
-            Region region2 = new Region(base.ClientRectangle);
-            region2.Exclude(region);
-            using (Brush brush2 = new SolidBrush(this.ForeColor))
-            {
-                g.Clip = region2;
-                g.DrawString(this.Text, this.Font, brush2, base.ClientRectangle, this.stringFormat);
+                using (Brush brush = new SolidBrush(this.overlayColor))
+                {
+                    g.Clip = region;
+                    g.DrawString(this.Text, this.Font, brush, base.ClientRectangle, this.stringFormat);
+                }
+                using (Region region2 = new Region(base.ClientRectangle))
+                {
+                    region2.Exclude(region);
+                    using (Brush brush2 = new SolidBrush(this.ForeColor))
+                    {
+                        g.Clip = region2;
+                        g.DrawString(this.Text, this.Font, brush2, base.ClientRectangle, this.stringFormat);
+                    }
+                }
             }
         }
 
         // Token: 0x06000BE0 RID: 3040 RVA: 0x00047D78 File Offset: 0x00045F78
         protected override void WndProc(ref Message m)
         {
+            // Note: with UserPaint the WM_PAINT path already goes through OnPaint (which
+            // calls ShowPercentage); painting again here doubled the work per frame.
             base.WndProc(ref m);
-            if (this.percentageVisible && m.Msg == 15 && base.Enabled)
-            {
-                using (Graphics graphics = base.CreateGraphics())
-                {
-                    this.ShowPercentage(graphics);
-                }
-            }
         }
 
         // Token: 0x06000BE1 RID: 3041 RVA: 0x00047DE0 File Offset: 0x00045FE0
@@ -228,7 +229,10 @@ namespace BecquerelMonitor
                         graphics.FillRectangle(brush, rectangle);
                     }
                 }
-                this.ShowPercentage(graphics);
+                if (this.percentageVisible)
+                {
+                    this.ShowPercentage(graphics);
+                }
             }
         }
 

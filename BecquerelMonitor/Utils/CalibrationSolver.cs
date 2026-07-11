@@ -193,7 +193,13 @@ namespace BecquerelMonitor.Utils
                     weight_sum += weight;
                     retvalue += weight * Math.Pow(pol.ChannelToEnergy(points[i].Channel) - (double)points[i].Energy, 2);
                 }
-                retvalue /= (points.Count * weight_sum);
+                // Weighted mean = sum(w*e^2) / sum(w). Dividing additionally by points.Count
+                // understated the value by a factor of N.
+                if (weight_sum == 0.0)
+                {
+                    return -1;
+                }
+                retvalue /= weight_sum;
                 return retvalue;
             } catch
             {

@@ -293,7 +293,16 @@ namespace BecquerelMonitor
                 }
                 AtomSpectraVCPIn.getInstance(deviceGuid).sendCommand("-sto");
                 resultData.EndTime = DateTime.Now;
-                resultDataStatus.Recording = !AtomSpectraVCPIn.getInstance(deviceGuid).waitForAnswer("-ok", 1000);
+                // Always leave Recording = false. The old code kept Recording = true when
+                // the device did not answer, so MeasurementController.OnTimer called
+                // StopRecording again on the next tick - an endless series of ~4-second
+                // UI freezes (the PortFailure subscription that could break the loop is
+                // commented out).
+                if (!AtomSpectraVCPIn.getInstance(deviceGuid).waitForAnswer("-ok", 1000))
+                {
+                    System.Diagnostics.Trace.WriteLine("AtomSpectra: no -ok answer to -sto, stopping locally anyway");
+                }
+                resultDataStatus.Recording = false;
             }
         }
 
@@ -328,7 +337,21 @@ namespace BecquerelMonitor
 
         public void Dispose()
         {
-            throw new NotImplementedException();
+            // Unsubscribe from the singleton manager: the subscription made in the
+            // constructor used to keep this controller (and through it the ResultData
+            // and the whole closed document) alive forever. Was throw NotImplementedException.
+            DeviceConfigManager.GetInstance().DeviceConfigListChanged -= AtomSpectraDeviceController_DeviceConfigListChanged;
+            if (previous_guid != null && already_subscribed)
+            {
+                try
+                {
+                    AtomSpectraVCPIn.getInstance(previous_guid).DataReady -= DataIn_DataReady;
+                }
+                catch (Exception)
+                {
+                }
+                already_subscribed = false;
+            }
         }
 
         #endregion

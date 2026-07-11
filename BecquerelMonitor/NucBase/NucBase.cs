@@ -42,7 +42,6 @@ namespace BecquerelMonitor.NucBase
 
         private void DoSearch()
         {
-            GC.Collect();
             string isotopeTextBox = this.IsotopeTextBox.Text.Trim().Replace("-", "");
             Match isomerRegex = Regex.Match(isotopeTextBox, @"[m]\d{0,1}$");
             string isomer = "";
@@ -57,25 +56,31 @@ namespace BecquerelMonitor.NucBase
             isotope = isotope_number + isotope_name + isomer;
             this.SearchedIsotope = isotope;
             bool incDecayChain = this.IncludeDecayChainCheckBox.Checked;
+            // TryParse instead of Convert.ToDouble: non-numeric input used to throw
+            // FormatException out of the search button handler.
             double lowEnergy = 0.0;
             if (this.LowEnrgTextBox.Text.Length != 0)
             {
-                lowEnergy = Convert.ToDouble(this.LowEnrgTextBox.Text);
+                double.TryParse(this.LowEnrgTextBox.Text, out lowEnergy);
             }
             double highEnergy = 0.0;
             if (this.HighEnrgTextBox.Text.Length != 0)
             {
-                highEnergy = Convert.ToDouble(this.HighEnrgTextBox.Text);
+                double.TryParse(this.HighEnrgTextBox.Text, out highEnergy);
             }
             double intensity = 0.0;
             if (this.IntencityTextBox.Text.Length != 0)
             {
-                intensity = Convert.ToDouble(this.IntencityTextBox.Text);
+                double.TryParse(this.IntencityTextBox.Text, out intensity);
             }
             double half_life = -1;
             if (this.HalfLifeUOMComboBox.Text.Length > 0 && this.HalfLifeTextBox.Text.Length > 0)
             {
-                half_life = ConvertHalfLifeToSeconds(Convert.ToDouble(this.HalfLifeTextBox.Text), this.HalfLifeUOMComboBox.Text);
+                double halfLifeValue;
+                if (double.TryParse(this.HalfLifeTextBox.Text, out halfLifeValue))
+                {
+                    half_life = ConvertHalfLifeToSeconds(halfLifeValue, this.HalfLifeUOMComboBox.Text);
+                }
             }
 
             NucBaseFramework fw = new NucBaseFramework();
@@ -234,6 +239,11 @@ namespace BecquerelMonitor.NucBase
             string isotope = this.ResultDataGridView.Rows[e.RowIndex].Cells[NameColumnIdx].Value.ToString();
             NucBaseFramework fw = new NucBaseFramework();
             Nuclide nuc = fw.getNuclude(isotope);
+            if (nuc == null)
+            {
+                // Stable isotope (no half-life row) - nothing to display.
+                return;
+            }
             this.IsotopeNameLabel.Text = isotope;
             this.IsotopeZLabel.Text = nuc.Z.ToString();
             this.IsotopeNLabel.Text = nuc.N.ToString();
@@ -346,6 +356,11 @@ namespace BecquerelMonitor.NucBase
             {
                 NucBaseFramework fw = new NucBaseFramework();
                 Nuclide nuc = fw.getNuclude(isotope);
+                if (nuc == null)
+                {
+                    // Stable isotope (no half-life row) - nothing to display.
+                    return;
+                }
                 this.IsotopeNameLabel.Text = isotope;
                 this.IsotopeZLabel.Text = nuc.Z.ToString();
                 this.IsotopeNLabel.Text = nuc.N.ToString();
@@ -389,7 +404,9 @@ namespace BecquerelMonitor.NucBase
                         double energy = (double)row.Cells[EnergyColumnIdx].Value;
                         double intencity = (double)row.Cells[IntencityColumnIdx].Value;
                         double halfLife = Convert.ToDouble(((string)row.Cells[HalfLifeColumnIdx].Value).Split('(')[0]);
-                        string halfLifeUnit = ((string)row.Cells[HalfLifeColumnIdx].Value).Split('(')[1].Substring(0, 1);
+                        // Take the full unit, not the first character: Substring(0,1) turned
+                        // "ms" into "m" (minutes, a x60000 error) and "us"/"ns" into unknown units.
+                        string halfLifeUnit = ((string)row.Cells[HalfLifeColumnIdx].Value).Split('(')[1].TrimEnd(')');
                         double halfLifeYears = ConvertHalfLifeToSeconds(halfLife, halfLifeUnit) / 31536000;
 
                         if (IncludeDecayChainCheckBox.Checked && checkBoxAppendRootName.Checked && this.SearchedIsotope != name)

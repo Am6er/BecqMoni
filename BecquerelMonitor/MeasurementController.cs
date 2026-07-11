@@ -1,5 +1,6 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
+using System.Collections.Generic;
 using System.Media;
 using System.Windows.Forms;
 
@@ -8,6 +9,63 @@ namespace BecquerelMonitor
     // Token: 0x02000083 RID: 131
     public class MeasurementController
     {
+        // Exclusive device ownership: one physical device (device config GUID) can be
+        // recorded by at most one MeasurementController at a time. Without this two
+        // ResultData could subscribe to the same singleton input; Stop from one sent a
+        // physical stop while the other stayed with Recording == true.
+        static readonly Dictionary<string, MeasurementController> deviceLeases = new Dictionary<string, MeasurementController>();
+        static readonly object deviceLeaseLock = new object();
+
+        bool AcquireDeviceLease()
+        {
+            string guid = this.resultData != null && this.resultData.DeviceConfig != null
+                ? this.resultData.DeviceConfig.Guid
+                : null;
+            if (guid == null)
+            {
+                return true;
+            }
+            lock (deviceLeaseLock)
+            {
+                MeasurementController owner;
+                if (deviceLeases.TryGetValue(guid, out owner) && owner != this)
+                {
+                    return false;
+                }
+                deviceLeases[guid] = this;
+                return true;
+            }
+        }
+
+        void ReleaseDeviceLease()
+        {
+            string guid = this.resultData != null && this.resultData.DeviceConfig != null
+                ? this.resultData.DeviceConfig.Guid
+                : null;
+            if (guid == null)
+            {
+                return;
+            }
+            lock (deviceLeaseLock)
+            {
+                MeasurementController owner;
+                if (deviceLeases.TryGetValue(guid, out owner) && owner == this)
+                {
+                    deviceLeases.Remove(guid);
+                }
+            }
+        }
+
+        // Idempotent lease release for teardown paths (document close / spectrum delete).
+        // The lease used to be released only from StopRecording()/DetachFromDevice(), both
+        // of which the close/delete callers skip once ResultDataStatus.Recording has been
+        // flipped to false by a device Stopped/Faulted/Disconnected status. That orphaned
+        // the GUID in deviceLeases until process restart.
+        public void ReleaseLeaseIfHeld()
+        {
+            this.ReleaseDeviceLease();
+        }
+
         // Token: 0x14000019 RID: 25
         // (add) Token: 0x060006A0 RID: 1696 RVA: 0x00027F40 File Offset: 0x00026140
         // (remove) Token: 0x060006A1 RID: 1697 RVA: 0x00027F7C File Offset: 0x0002617C
@@ -84,31 +142,53 @@ namespace BecquerelMonitor
         public bool StartRecording()
         {
             ResultDataStatus resultDataStatus = this.resultData.ResultDataStatus;
+            if (!this.AcquireDeviceLease())
+            {
+                MessageBox.Show(string.Format(Resources.ERRDeviceBusy, this.resultData.DeviceConfig.Name));
+                return false;
+            }
             if (!this.CreateDeviceController())
             {
+                this.ReleaseDeviceLease();
                 return false;
             }
             try
             {
                 bool result = this.deviceController.StartMeasurement(this.resultData);
-                if (!result) return false;
+                if (!result)
+                {
+                    this.ReleaseDeviceLease();
+                    return false;
+                }
             } catch (Exception)
             {
                 MessageBox.Show(Resources.ERRBTNotSupportedByOS);
+                this.ReleaseDeviceLease();
                 return false;
             }
-            
+
             return true;
         }
 
         public bool AttachToDevice()
         {
             ResultDataStatus resultDataStatus = this.resultData.ResultDataStatus;
-            if (!this.CreateDeviceController())
+            if (!this.AcquireDeviceLease())
             {
+                MessageBox.Show(string.Format(Resources.ERRDeviceBusy, this.resultData.DeviceConfig.Name));
                 return false;
             }
-            return this.deviceController.AttachToDevice(this.resultData);
+            if (!this.CreateDeviceController())
+            {
+                this.ReleaseDeviceLease();
+                return false;
+            }
+            bool attached = this.deviceController.AttachToDevice(this.resultData);
+            if (!attached)
+            {
+                this.ReleaseDeviceLease();
+            }
+            return attached;
         }
 
         // Token: 0x060006AC RID: 1708 RVA: 0x00028070 File Offset: 0x00026270
@@ -173,6 +253,7 @@ namespace BecquerelMonitor
                 return;
             }
             this.deviceController.StopMeasurement(this.resultData);
+            this.ReleaseDeviceLease();
             if (this.MeasurementTerminated != null)
             {
                 this.MeasurementTerminated(this, new EventArgs());
@@ -186,6 +267,7 @@ namespace BecquerelMonitor
                 return;
             }
             this.deviceController.DetachFromDevice(this.resultData);
+            this.ReleaseDeviceLease();
             if (this.MeasurementTerminated != null)
             {
                 this.MeasurementTerminated(this, new EventArgs());

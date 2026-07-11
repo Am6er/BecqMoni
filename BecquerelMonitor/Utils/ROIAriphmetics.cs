@@ -134,7 +134,7 @@ namespace BecquerelMonitor.Utils
             return activityError;
         }
 
-        public static double CalculateMDACounts(double bgCounts, double bgTime, double fgTime, double confidence)
+        public static double CalculateLqCounts(double bgCounts, double bgTime, double fgTime, double confidence)
         {
             double mdaCps = Math.Pow(confidence, 2.0) / (2.0 * fgTime) 
                 + confidence * Math.Sqrt(

@@ -97,7 +97,9 @@ namespace BecquerelMonitor
         {
             BecquerelMonitor.Package package = new BecquerelMonitor.Package();
             originalContext = SynchronizationContext.Current;
-            if (!package.IsStandAlone && !Directory.Exists(userDirectory) || !Directory.Exists(userDirectoryConfig))
+            // Parentheses matter: without them "&&" bound tighter than "||" and the config-copy
+            // block also ran for standalone builds whenever exe\config was missing.
+            if (!package.IsStandAlone && (!Directory.Exists(userDirectory) || !Directory.Exists(userDirectoryConfig)))
             {
                 try
                 {
@@ -129,7 +131,16 @@ namespace BecquerelMonitor
                 return;
             }
             //CustomCulture
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(this.globalConfig.Language);
+            try
+            {
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(this.globalConfig.Language);
+            }
+            catch (CultureNotFoundException)
+            {
+                // The default config value is the fake culture "OS"; on systems where
+                // GetCultureInfo throws for unknown names this used to crash before the
+                // main window appeared. Keep the system UI culture instead.
+            }
             System.Globalization.CultureInfo customCulture = (System.Globalization.CultureInfo)System.Threading.Thread.CurrentThread.CurrentCulture.Clone();
             customCulture.NumberFormat.NumberDecimalSeparator = ".";
             System.Threading.Thread.CurrentThread.CurrentCulture = customCulture;
@@ -267,18 +278,27 @@ namespace BecquerelMonitor
             this.mainFormClosing = true;
             foreach (DocEnergySpectrum docEnergySpectrum in this.documentManager.DocumentList.ToList())
             {
-                DeviceController dc = docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController;
-                if (dc is AtomSpectraDeviceController)
+                // Stop and shut down controllers of ALL ResultData, not just the active
+                // one - otherwise non-active recordings kept their worker threads alive
+                // past application close.
+                this.StopRecordingOrTesting(docEnergySpectrum);
+                foreach (ResultData resultData in docEnergySpectrum.ResultDataFile.ResultDataList)
                 {
-                    ((AtomSpectraDeviceController)dc).applicationCLose();
-                }
-                if (dc is RadiaCodeDeviceController)
-                {
-                    ((RadiaCodeDeviceController)dc).applicationCLose();
-                }
-                if (dc is ObsidianDeviceController)
-                {
-                    ((ObsidianDeviceController)dc).applicationCLose();
+                    DeviceController dc = resultData.MeasurementController != null
+                        ? resultData.MeasurementController.DeviceController
+                        : null;
+                    if (dc is AtomSpectraDeviceController)
+                    {
+                        ((AtomSpectraDeviceController)dc).applicationCLose();
+                    }
+                    if (dc is RadiaCodeDeviceController)
+                    {
+                        ((RadiaCodeDeviceController)dc).applicationCLose();
+                    }
+                    if (dc is ObsidianDeviceController)
+                    {
+                        ((ObsidianDeviceController)dc).applicationCLose();
+                    }
                 }
 
                 if (!docEnergySpectrum.IsNamed && !docEnergySpectrum.Dirty)
@@ -596,6 +616,12 @@ namespace BecquerelMonitor
             activeResultData.MeasurementResultCollection = this.resultManager.Translate(resultCollection, ResultTranslation.BecquerelsPerKilogram);
             foreach (DCResultView dcresultView in this.dcResultViewList)
             {
+                // Hidden views (HideOnClose) stay in the list forever; recomputing and
+                // refilling their tables every 500 ms was pure waste.
+                if (!dcresultView.Visible)
+                {
+                    continue;
+                }
                 dcresultView.ShowResult(resultCollection, refresh);
             }
         }
@@ -1306,6 +1332,12 @@ namespace BecquerelMonitor
             }
             DocumentManager combinedDocManager = new DocumentManager();
             DocEnergySpectrum combinedSpectrum = combinedDocManager.OpenDocument(openFileDialog.FileName);
+            if (combinedSpectrum == null)
+            {
+                // OpenDocument returns null on a broken file or when the user declines
+                // the calibration-fix prompt; CombineWith would NRE on it.
+                return;
+            }
             SpectrumAriphmetics sa = new SpectrumAriphmetics(this.activeDocument);
             this.activeDocument = sa.CombineWith(combinedSpectrum);
             sa.Dispose();
@@ -1344,7 +1376,10 @@ namespace BecquerelMonitor
             this.activeDocument.ActiveResultData.PulseCollection = docEnergySpectrum.ActiveResultData.PulseCollection.Clone();
             this.activeDocument.ActiveResultData.SampleInfo = docEnergySpectrum.ActiveResultData.SampleInfo;
             this.activeDocument.ActiveResultData.StartTime = docEnergySpectrum.ActiveResultData.StartTime;
-            FwhmCalibration fwhmCalibration = docEnergySpectrum.ActiveResultData.FwhmCalibration.RecalcWithNewChannelNum(docEnergySpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels, newChan);
+            // FwhmCalibration can be null (DefaultCalibration may fail) - guard the NRE.
+            FwhmCalibration fwhmCalibration = docEnergySpectrum.ActiveResultData.FwhmCalibration != null
+                ? docEnergySpectrum.ActiveResultData.FwhmCalibration.RecalcWithNewChannelNum(docEnergySpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels, newChan)
+                : null;
             this.activeDocument.ActiveResultData.FwhmCalibration = fwhmCalibration;
             this.activeDocument.Dirty = true;
             this.UpdateAllView();
@@ -1500,13 +1535,16 @@ namespace BecquerelMonitor
         // Token: 0x06000A78 RID: 2680 RVA: 0x0003E564 File Offset: 0x0003C764
         void StopRecordingOrTesting(DocEnergySpectrum doc)
         {
-            ResultData activeResultData = doc.ActiveResultData;
-            ResultDataStatus resultDataStatus = activeResultData.ResultDataStatus;
-            if (resultDataStatus.Recording)
+            // Stop ALL recording spectra of the document, not only the active one:
+            // multi-recording is a normal state (OnTimer services every recording
+            // ResultData), but stop/close/delete only handled ActiveResultData.
+            foreach (ResultData resultData in doc.ResultDataFile.ResultDataList)
             {
-                doc.ActiveResultData.MeasurementController.StopRecording();
+                if (resultData.ResultDataStatus.Recording && resultData.MeasurementController != null)
+                {
+                    resultData.MeasurementController.StopRecording();
+                }
             }
-            bool testing = resultDataStatus.Testing;
         }
 
         // Token: 0x06000A79 RID: 2681 RVA: 0x0003E5A8 File Offset: 0x0003C7A8
@@ -1736,8 +1774,73 @@ namespace BecquerelMonitor
             doc.AddSpectrumToDocument -= this.DocEnergySpectrum_AddSpectrumToDocument;
             foreach (ResultData resultData in doc.ResultDataFile.ResultDataList)
             {
-                MeasurementController measurementController = resultData.MeasurementController;
-                measurementController.MeasurementTerminated -= this.activeDocument_MeasurementTerminated;
+                this.CleanupMeasurementController(resultData.MeasurementController);
+            }
+        }
+
+        // Tear down a MeasurementController: unsubscribe our event, release any device lease,
+        // and dispose the device controller. The controller stays subscribed to the singleton
+        // input (RadiaCodeIn/ObsidianIn/AtomSpectraVCPIn) and would otherwise keep receiving
+        // events for a closed/deleted spectrum. Shared by the document-close path and the
+        // single-spectrum delete path.
+        void CleanupMeasurementController(MeasurementController measurementController)
+        {
+            if (measurementController == null)
+            {
+                return;
+            }
+            measurementController.MeasurementTerminated -= this.activeDocument_MeasurementTerminated;
+            measurementController.ReleaseLeaseIfHeld();
+            if (measurementController.DeviceController is IDisposable disposableController)
+            {
+                try
+                {
+                    disposableController.Dispose();
+                }
+                catch (Exception)
+                {
+                }
+                measurementController.DeviceController = null;
+            }
+        }
+
+        // Drop the shared singleton input (RadiaCodeIn/ObsidianIn/AtomSpectraVCPIn) for a device
+        // GUID if no other open ResultData still uses it. On document close DestroyVCPThreads does
+        // this ref-counted across OTHER documents; the single-spectrum delete path had no
+        // equivalent, so the *In worker/BLE connection lived until the document was closed.
+        // Counts across ALL open documents including the current one (the deleted ResultData is
+        // already removed and its controller nulled, so it will not match).
+        void CleanupSingletonInputIfUnused(DeviceController deletedDeviceController, string guid)
+        {
+            if (deletedDeviceController == null || string.IsNullOrEmpty(guid))
+            {
+                return;
+            }
+            foreach (DocEnergySpectrum doc in this.documentManager.DocumentList)
+            {
+                foreach (ResultData other in doc.ResultDataFile.ResultDataList)
+                {
+                    if (other.MeasurementController != null
+                        && other.MeasurementController.DeviceController != null
+                        && other.DeviceConfig != null
+                        && guid.Equals(other.DeviceConfig.Guid))
+                    {
+                        // Still in use by another spectrum - keep the singleton alive.
+                        return;
+                    }
+                }
+            }
+            if (deletedDeviceController is AtomSpectraDeviceController)
+            {
+                AtomSpectraVCPIn.cleanUp(guid);
+            }
+            else if (deletedDeviceController is RadiaCodeDeviceController)
+            {
+                RadiaCodeIn.cleanUp(guid);
+            }
+            else if (deletedDeviceController is ObsidianDeviceController)
+            {
+                ObsidianIn.cleanUp(guid);
             }
         }
 
@@ -1791,64 +1894,64 @@ namespace BecquerelMonitor
             deviceConfigForm.SetUpperThreshold(deviceConfig, threshold);
         }
 
+        // Considers ALL ResultData of the closing document and counts users of a device
+        // GUID across ALL ResultData of the remaining documents. The old per-type
+        // implementations only looked at ActiveResultData on both sides, so worker
+        // threads of non-active spectra survived the document close.
         void DestroyVCPThreads (DocEnergySpectrum docEnergySpectrum)
         {
-            if (docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController is AtomSpectraDeviceController)
+            foreach (ResultData closingResultData in docEnergySpectrum.ResultDataFile.ResultDataList)
             {
-                string guid = docEnergySpectrum.ActiveResultData.DeviceConfig.Guid;
-                int documents_with_same_device_config_guid = 0;
+                DeviceController deviceController = closingResultData.MeasurementController != null
+                    ? closingResultData.MeasurementController.DeviceController
+                    : null;
+                if (deviceController == null || closingResultData.DeviceConfig == null || closingResultData.DeviceConfig.Guid == null)
+                {
+                    continue;
+                }
+                string guid = closingResultData.DeviceConfig.Guid;
+                int usersInOtherDocuments = 0;
                 foreach (DocEnergySpectrum doc in this.documentManager.DocumentList)
                 {
-                    if (guid.Equals(doc.ActiveResultData.DeviceConfig.Guid) && doc.ActiveResultData.MeasurementController.DeviceController != null)
+                    if (doc == docEnergySpectrum)
                     {
-                        documents_with_same_device_config_guid++;
+                        continue;
+                    }
+                    foreach (ResultData other in doc.ResultDataFile.ResultDataList)
+                    {
+                        if (other.MeasurementController != null && other.MeasurementController.DeviceController != null
+                            && other.DeviceConfig != null && guid.Equals(other.DeviceConfig.Guid))
+                        {
+                            usersInOtherDocuments++;
+                        }
                     }
                 }
-                if (documents_with_same_device_config_guid < 2)
+                if (usersInOtherDocuments == 0)
                 {
-                    AtomSpectraVCPIn.cleanUp(docEnergySpectrum.ActiveResultData.DeviceConfig.Guid);
+                    if (deviceController is AtomSpectraDeviceController)
+                    {
+                        AtomSpectraVCPIn.cleanUp(guid);
+                    }
+                    else if (deviceController is RadiaCodeDeviceController)
+                    {
+                        RadiaCodeIn.cleanUp(guid);
+                    }
+                    else if (deviceController is ObsidianDeviceController)
+                    {
+                        ObsidianIn.cleanUp(guid);
+                    }
                 }
             }
         }
 
         void DestroyRCThreads (DocEnergySpectrum docEnergySpectrum)
         {
-            if (docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController is RadiaCodeDeviceController)
-            {
-                string guid = docEnergySpectrum.ActiveResultData.DeviceConfig.Guid;
-                int documents_with_same_device_config_guid = 0;
-                foreach (DocEnergySpectrum doc in this.documentManager.DocumentList)
-                {
-                    if (guid.Equals(doc.ActiveResultData.DeviceConfig.Guid) && doc.ActiveResultData.MeasurementController.DeviceController != null)
-                    {
-                        documents_with_same_device_config_guid++;
-                    }
-                }
-                if (documents_with_same_device_config_guid < 2)
-                {
-                    RadiaCodeIn.cleanUp(docEnergySpectrum.ActiveResultData.DeviceConfig.Guid);
-                }
-            }
+            // Handled by DestroyVCPThreads, which now covers all device types.
         }
 
         void DestroyObsidianThreads(DocEnergySpectrum docEnergySpectrum)
         {
-            if (docEnergySpectrum.ActiveResultData.MeasurementController.DeviceController is ObsidianDeviceController)
-            {
-                string guid = docEnergySpectrum.ActiveResultData.DeviceConfig.Guid;
-                int documents_with_same_device_config_guid = 0;
-                foreach (DocEnergySpectrum doc in this.documentManager.DocumentList)
-                {
-                    if (guid.Equals(doc.ActiveResultData.DeviceConfig.Guid) && doc.ActiveResultData.MeasurementController.DeviceController != null)
-                    {
-                        documents_with_same_device_config_guid++;
-                    }
-                }
-                if (documents_with_same_device_config_guid < 2)
-                {
-                    ObsidianIn.cleanUp(docEnergySpectrum.ActiveResultData.DeviceConfig.Guid);
-                }
-            }
+            // Handled by DestroyVCPThreads, which now covers all device types.
         }
 
         // Token: 0x06000A87 RID: 2695 RVA: 0x0003EBB8 File Offset: 0x0003CDB8
@@ -1881,9 +1984,13 @@ namespace BecquerelMonitor
             DocEnergySpectrum docEnergySpectrum = (DocEnergySpectrum)sender;
             if (!this.mainFormClosing)
             {
-                //this.dockPanel1.DocumentStyle = 
+                //this.dockPanel1.DocumentStyle =
                 this.documentManager.DocumentList.Remove(docEnergySpectrum);
             }
+            // Closing a tab with the "x" button used to leave ALL MainForm subscriptions
+            // (including MeasurementTerminated on every controller) attached to the dead
+            // document, keeping it alive and processing events.
+            this.UnsubscribeDocumentEvent(docEnergySpectrum);
             docEnergySpectrum.FormClosed -= this.DocEnergySpectrum_FormClosed;
         }
 
@@ -1916,6 +2023,12 @@ namespace BecquerelMonitor
             foreach (string pathname in e.Pathnames)
             {
                 ResultDataFile resultDataFile = this.documentManager.LoadDocument(docEnergySpectrum, pathname);
+                if (resultDataFile == null)
+                {
+                    // LoadDocument returns null on a broken file or user refusal;
+                    // dereferencing it crashed drag&drop onto an open document.
+                    continue;
+                }
                 foreach (ResultData resultData in resultDataFile.ResultDataList)
                 {
                     if (docEnergySpectrum.ResultDataFile.ResultDataList.Count >= this.globalConfigManager.MaximumSpectrumPerFile)
@@ -1923,7 +2036,11 @@ namespace BecquerelMonitor
                         break;
                     }
                     docEnergySpectrum.ResultDataFile.ResultDataList.Add(resultData);
-                    resultData.MeasurementController = new MeasurementController(docEnergySpectrum, resultData);
+                    // LoadDocument already created a MeasurementController for this ResultData.
+                    if (resultData.MeasurementController == null)
+                    {
+                        resultData.MeasurementController = new MeasurementController(docEnergySpectrum, resultData);
+                    }
                     resultData.MeasurementController.MeasurementTerminated += this.activeDocument_MeasurementTerminated;
                 }
             }
@@ -2035,7 +2152,26 @@ namespace BecquerelMonitor
             {
                 return;
             }
+            // Stop the recording before removing the spectrum: deleting it used to leave
+            // the device controller running with no owner.
+            if (activeResultData.ResultDataStatus.Recording && activeResultData.MeasurementController != null)
+            {
+                activeResultData.MeasurementController.StopRecording();
+            }
+            // Fully tear down the controller (lease + dispose + unsubscribe from the singleton
+            // input), matching the document-close path. Deleting a spectrum used to only remove
+            // it from the list, leaving its controller subscribed to RadiaCodeIn/ObsidianIn and
+            // receiving events for the removed spectrum.
+            // Capture the device controller + GUID BEFORE CleanupMeasurementController nulls the
+            // DeviceController, so we can also drop the shared singleton input if this was its
+            // last user (the close path does this via DestroyVCPThreads; delete had no equivalent).
+            DeviceController deletedDeviceController = activeResultData.MeasurementController != null
+                ? activeResultData.MeasurementController.DeviceController
+                : null;
+            string deletedDeviceGuid = activeResultData.DeviceConfig != null ? activeResultData.DeviceConfig.Guid : null;
+            this.CleanupMeasurementController(activeResultData.MeasurementController);
             doc.DeleteActiveResultData();
+            this.CleanupSingletonInputIfUnused(deletedDeviceController, deletedDeviceGuid);
             doc.Dirty = true;
             if (doc == this.activeDocument)
             {
@@ -2157,11 +2293,11 @@ namespace BecquerelMonitor
             try
             {
                 Cursor.Current = Cursors.WaitCursor;
-                using (FileStream fileStream = new FileStream(fileName, FileMode.Create))
+                Utils.AtomicFileWriter.Write(fileName, fileStream =>
                 {
                     XmlSerializer xmlSerializer = new XmlSerializer(typeof(ResultDataFile));
                     xmlSerializer.Serialize(fileStream, resultDataFile);
-                }
+                });
                 OpenExistingDocument(fileName);
                 Cursor.Current = Cursors.Default;
             }
@@ -2205,11 +2341,11 @@ namespace BecquerelMonitor
             try
             {
                 Cursor.Current = Cursors.WaitCursor;
-                using (FileStream fileStream = new FileStream(fileName, FileMode.Create))
+                Utils.AtomicFileWriter.Write(fileName, fileStream =>
                 {
                     XmlSerializer xmlSerializer = new XmlSerializer(typeof(ResultDataFile));
                     xmlSerializer.Serialize(fileStream, resultDataFile);
-                }
+                });
                 Cursor.Current = Cursors.Default;
             }
             catch (Exception ex)
@@ -2250,11 +2386,11 @@ namespace BecquerelMonitor
             try
             {
                 Cursor.Current = Cursors.WaitCursor;
-                using (FileStream fileStream = new FileStream(fileName, FileMode.Create))
+                Utils.AtomicFileWriter.Write(fileName, fileStream =>
                 {
                     XmlSerializer xmlSerializer = new XmlSerializer(typeof(ResultDataFile));
                     xmlSerializer.Serialize(fileStream, resultDataFile);
-                }
+                });
                 Cursor.Current = Cursors.Default;
             }
             catch (Exception ex)

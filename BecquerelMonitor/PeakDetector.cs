@@ -76,7 +76,6 @@ namespace BecquerelMonitor
                         : left.Channel.CompareTo(right.Channel);
                 });
             }
-            GC.Collect();
             return peaks;
         }
 
@@ -113,7 +112,14 @@ namespace BecquerelMonitor
                         }
                         else
                         {
-                            return false;
+                            if (hidepeaks || isUnresol)
+                            {
+                                return false;
+                            }
+                            // Mirror of the branch above: when the peaks are resolvable,
+                            // the farther peak only loses the nuclide label. It used to be
+                            // dropped entirely, losing a real peak.
+                            newpeak.Nuclide = null;
                         }
                     }
                 }
@@ -240,7 +246,11 @@ namespace BecquerelMonitor
             if (refineCentroid && sa != null && config != null)
             {
                 int concat = Math.Max(1, config.Ch_Concat);
-                int mul = energySpectrum.Spectrum.Length / concat;
+                // Keep the window at least [c-2, c+2]: for spectra shorter than Ch_Concat
+                // the integer division gave mul = 0, the window collapsed to [c-1, c+1]
+                // and FindCentroid returned only a BOUNDARY - every peak systematically
+                // shifted by +-1 channel on 256/512/1000-channel spectra.
+                int mul = Math.Max(1, energySpectrum.Spectrum.Length / concat);
                 centroid = sa.FindCentroid(
                     energySpectrum,
                     Convert.ToInt32(centroid),

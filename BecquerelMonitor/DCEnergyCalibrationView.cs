@@ -344,6 +344,9 @@ namespace BecquerelMonitor
                 {
                     if (pe.Coefficients[order] == result) return;
                     pe.Coefficients[order] = result;
+                    // Element write bypasses the property setter - drop the stale
+                    // EnergyToChannel cache explicitly.
+                    pe.InvalidateCache();
                     if (pe.CheckCalibration(channels: this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels))
                     {
                         this.energyCalibration = (PolynomialEnergyCalibration)pe;
@@ -465,7 +468,11 @@ namespace BecquerelMonitor
             if (activeDocument != null)
             {
                 this.channelPickupProcessing = true;
-                activeDocument.EnergySpectrumView.ChannelPickuped += this.energySpectrumView_ChannelPickuped;
+                // Remember the view we subscribed to: unsubscribing used to go through
+                // the CURRENT ActiveDocument, so switching documents mid-pickup left the
+                // subscription dangling on the old view.
+                this.pickupSubscribedView = activeDocument.EnergySpectrumView;
+                this.pickupSubscribedView.ChannelPickuped += this.energySpectrumView_ChannelPickuped;
             }
             this.UpdateMultipointButtonState();
         }
@@ -568,10 +575,12 @@ namespace BecquerelMonitor
         // Token: 0x0600082C RID: 2092 RVA: 0x0002E5FC File Offset: 0x0002C7FC
         void ClearChannelPickupState()
         {
-            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
-            if (activeDocument != null)
+            // Unsubscribe from the view we actually subscribed to, not from whatever
+            // document happens to be active now.
+            if (this.pickupSubscribedView != null)
             {
-                activeDocument.EnergySpectrumView.ChannelPickuped -= this.energySpectrumView_ChannelPickuped;
+                this.pickupSubscribedView.ChannelPickuped -= this.energySpectrumView_ChannelPickuped;
+                this.pickupSubscribedView = null;
             }
             this.channelPickupProcessing = false;
             this.UpdateMultipointButtonState();
@@ -746,6 +755,7 @@ namespace BecquerelMonitor
             {
                 this.energyCalibration.Coefficients[i] = 0.0;
             }
+            this.energyCalibration.InvalidateCache();
 
             int PolynomOrder = (int)this.numericUpDown6.Value;
             if (PolynomOrder == 0) PolynomOrder += 1;
@@ -915,6 +925,8 @@ namespace BecquerelMonitor
 
         // Token: 0x0400041B RID: 1051
         bool channelPickupProcessing;
+
+        EnergySpectrumView pickupSubscribedView;
 
         // Token: 0x0400041C RID: 1052
         bool calibrationDone;

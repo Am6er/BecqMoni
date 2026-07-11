@@ -166,10 +166,10 @@ namespace BecquerelMonitor.N42
                 throw new InvalidOperationException("Unsupported type of calibration. Expected CalibrationEquation = List.");
             }
 
-            string[] chanEnergy = rad.MeasurementGroup.Measurement.Spectrum.EnergyCalibration.ChannelEnergies.Replace("\n", string.Empty).Split(new string[] { " " }, StringSplitOptions.None);
+            string[] chanEnergy = rad.MeasurementGroup.Measurement.Spectrum.EnergyCalibration.ChannelEnergies.Replace("\n", " ").Split(new string[] { " " }, StringSplitOptions.None);
             chanEnergy = Array.FindAll(chanEnergy, isNotN42SpectrumValid);
 
-            string[] chanData = rad.MeasurementGroup.Measurement.Spectrum.ChannelData.Data.Replace("\n", string.Empty).Split(new string[] { " " }, StringSplitOptions.None);
+            string[] chanData = rad.MeasurementGroup.Measurement.Spectrum.ChannelData.Data.Replace("\n", " ").Split(new string[] { " " }, StringSplitOptions.None);
             chanData = Array.FindAll(chanData, isNotN42SpectrumValid);
 
             int NumberOfChanels = rad.MeasurementGroup.Measurement.Spectrum.ChannelData.NumberOfChannels;
@@ -220,7 +220,7 @@ namespace BecquerelMonitor.N42
 
         public int N42_2006_getChannels(N42InstrumentData rad)
         {
-            string[] chanData = rad.Measurement.Spectrum.ChannelData.Replace("\n", string.Empty).Split(new string[] { " " }, StringSplitOptions.None);
+            string[] chanData = rad.Measurement.Spectrum.ChannelData.Replace("\n", " ").Split(new string[] { " " }, StringSplitOptions.None);
             chanData = Array.FindAll(chanData, isNotN42SpectrumValid);
             return chanData.Length;
         }
@@ -247,10 +247,10 @@ namespace BecquerelMonitor.N42
                 throw new InvalidOperationException("No calibration section found in N42InstrumentData.");
             }
 
-            string[] enCalibrationCoeff = calibration.Equation.Coefficients.Replace("\n", string.Empty).Split(new string[] { " " }, StringSplitOptions.None);
+            string[] enCalibrationCoeff = calibration.Equation.Coefficients.Replace("\n", " ").Split(new string[] { " " }, StringSplitOptions.None);
             enCalibrationCoeff = Array.FindAll(enCalibrationCoeff, isNotN42SpectrumValid);
 
-            string[] chanData = rad.Measurement.Spectrum.ChannelData.Replace("\n", string.Empty).Split(new string[] { " " }, StringSplitOptions.None);
+            string[] chanData = rad.Measurement.Spectrum.ChannelData.Replace("\n", " ").Split(new string[] { " " }, StringSplitOptions.None);
             chanData = Array.FindAll(chanData, isNotN42SpectrumValid);
 
             int NumberOfChanels = chanData.Length;
@@ -298,7 +298,10 @@ namespace BecquerelMonitor.N42
             }
             int PolynomialOrder = enCalibrationCoeff.Length - 1;
 
-            if (PolynomialOrder > 5)
+            // PolynomialEnergyCalibration supports order 4 at most (see ChannelToEnergy);
+            // the old check allowed order 5, which later failed outside the import's
+            // try/catch at draw time.
+            if (PolynomialOrder > 4)
             {
                 throw new Exception("Unsupported calibration points number. Got polynom order = " + PolynomialOrder);
             }
@@ -325,9 +328,9 @@ namespace BecquerelMonitor.N42
 
         public int N42_2012_getChannels(RadInstrumentData rad)
         {
-            string[] n42SpectrumCounts = rad.RadMeasurement[0].Spectrum[0].ChannelData.Value.Replace("\n", string.Empty).Split(new string[] { " " }, StringSplitOptions.None);
-            n42SpectrumCounts = Array.FindAll(n42SpectrumCounts, isNotN42SpectrumValid);
-            return n42SpectrumCounts.Length;
+            // Use ChannelData.SpectrumToArray() so CountedZeroes (N42 run-length) files
+            // report the expanded channel count, not the compressed token count.
+            return rad.RadMeasurement[0].Spectrum[0].ChannelData.SpectrumToArray().Length;
         }
 
         public DocEnergySpectrum ImportFromN42(RadInstrumentData rad, DocEnergySpectrum doc, string filename)
@@ -412,20 +415,29 @@ namespace BecquerelMonitor.N42
                 resultData.ResultDataStatus.ElapsedTime = TimeSpan.FromSeconds(ElapsedTime);
                 resultData.ResultDataStatus.PresetTime = ElapsedTime;
 
-                string[] n42SpectrumCounts = radMeasurement.Spectrum[0].ChannelData.Value.Replace("\n", string.Empty).Split(new string[] { " " }, StringSplitOptions.None);
-                n42SpectrumCounts = Array.FindAll(n42SpectrumCounts, isNotN42SpectrumValid);
-                int NumberOfChanels = n42SpectrumCounts.Length;
+                // ChannelData.SpectrumToArray() handles compressionCode="CountedZeroes"
+                // (N42 run-length); the old manual split ignored it and produced a wrong
+                // spectrum for compressed files.
+                int[] n42Spectrum = radMeasurement.Spectrum[0].ChannelData.SpectrumToArray();
+                int NumberOfChanels = n42Spectrum.Length;
                 resultData.EnergySpectrum.Spectrum = new int[NumberOfChanels];
                 resultData.EnergySpectrum.NumberOfChannels = NumberOfChanels;
                 resultData.EnergySpectrum.ChannelPitch = 1;
                 for (int k = 0; k < NumberOfChanels; k++)
                 {
-                    resultData.EnergySpectrum.Spectrum[k] = int.Parse(n42SpectrumCounts[k]);
+                    resultData.EnergySpectrum.Spectrum[k] = n42Spectrum[k];
                 }
                 resultData.EnergySpectrum.TotalPulseCount = 0;
-                if (radMeasurement.GrossCounts != null)
+                // TotalCounts is xs:double per the N42 standard (e.g. "52341.0");
+                // long.Parse used to throw on it and was culture-dependent. Fall back to
+                // the array sum when the field is missing or unparsable.
+                if (radMeasurement.GrossCounts != null && radMeasurement.GrossCounts.Length > 0
+                    && double.TryParse(radMeasurement.GrossCounts[0].TotalCounts,
+                        System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out double totalCountsValue))
                 {
-                    resultData.EnergySpectrum.TotalPulseCount = long.Parse(radMeasurement.GrossCounts[0].TotalCounts);
+                    resultData.EnergySpectrum.TotalPulseCount = (long)Math.Round(totalCountsValue);
                 } else
                 {
                     resultData.EnergySpectrum.TotalPulseCount = resultData.EnergySpectrum.Spectrum.Sum(x => (long)x);
@@ -435,7 +447,7 @@ namespace BecquerelMonitor.N42
                 try
                 {
                     resultData.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
-                    string[] n42CalibrationCoeff = radCalibration.CoefficientValues.Replace("\n", string.Empty).Split(new string[] { " " }, StringSplitOptions.None);
+                    string[] n42CalibrationCoeff = radCalibration.CoefficientValues.Replace("\n", " ").Split(new string[] { " " }, StringSplitOptions.None);
                     n42CalibrationCoeff = Array.FindAll(n42CalibrationCoeff, isNotN42SpectrumValid);
                     if (n42CalibrationCoeff.Length == 0)
                     {
@@ -444,7 +456,8 @@ namespace BecquerelMonitor.N42
                     }
                     int PolynomialOrder = n42CalibrationCoeff.Length - 1;
 
-                    if (PolynomialOrder > 5)
+                    // Max supported order is 4 (see PolynomialEnergyCalibration).
+                    if (PolynomialOrder > 4)
                     {
                         throw new Exception("Unsupported calibration points number. Got polynom order = " + PolynomialOrder);
                     }

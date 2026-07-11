@@ -51,8 +51,33 @@ namespace BecquerelMonitor.N42
 
         public int[] SpectrumToArray()
         {
-            string[] n42SpectrimCounts = this.valueField.Replace("\n", string.Empty).Split(new string[] { " " }, StringSplitOptions.None);
+            string[] n42SpectrimCounts = this.valueField.Replace("\n", " ").Split(new string[] { " " }, StringSplitOptions.None);
             n42SpectrimCounts = Array.FindAll(n42SpectrimCounts, isNotN42SpectrumValid);
+
+            if (this.compressionCodeField == "CountedZeroes")
+            {
+                // N42 run-length encoding: a zero is followed by the number of zeros it
+                // represents. This used to be silently ignored, producing a wrong spectrum.
+                System.Collections.Generic.List<int> expanded = new System.Collections.Generic.List<int>();
+                for (int i = 0; i < n42SpectrimCounts.Length; i++)
+                {
+                    int channelValue = int.Parse(n42SpectrimCounts[i]);
+                    if (channelValue == 0 && i + 1 < n42SpectrimCounts.Length)
+                    {
+                        int zeroCount = int.Parse(n42SpectrimCounts[++i]);
+                        for (int z = 0; z < zeroCount; z++)
+                        {
+                            expanded.Add(0);
+                        }
+                    }
+                    else
+                    {
+                        expanded.Add(channelValue);
+                    }
+                }
+                return expanded.ToArray();
+            }
+
             int NumberOfChanels = n42SpectrimCounts.Length;
 
             int[] returnvalue = new int[NumberOfChanels];

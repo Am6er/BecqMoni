@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-using System.Windows.Forms;
 using Windows.Devices.Bluetooth;
 using Windows.Devices.Bluetooth.Advertisement;
 using Windows.Devices.Bluetooth.GenericAttributeProfile;
@@ -18,17 +17,24 @@ namespace BecquerelMonitor
         private const string OBS_COMMAND_CHARACTERISTIC = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
         private const string OBS_NOTIFY_CHARACTERISTIC = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
         private const int SpectrumChannels = 1024;
-        // Accumulation time is a 32-bit value stored as two 16-bit words:
-        // t_spectrL (low word) followed by t_spectrH (high word). See spec
-        // "структура данных спектра" (spectr, 2052 bytes).
+        // The spectrum command's num field selects the channel width: num=2 -> uint16 (device
+        // saturates each channel at 0xFFFF = 65535), num=4 -> uint32 (true counts, no
+        // saturation). We request num=4 (see OBS_GET_SPECTRUM). Confirmed from the QUARTA app's
+        // own HCI capture: 1024 uint32 channels, peak ~97500 > 65535, payload exactly 4100 bytes.
+        private const int SpectrumBytesPerChannel = 4;
+        // Accumulation time is a 32-bit value (t_spectrL low word + t_spectrH high word),
+        // right after the channels.
         private const int SpectrumTimeSize = 4;
-        // The BLE spectrum notification carries no CRC trailer; the full 2052-byte
-        // payload is exactly channels (2048) + 32-bit time (4).
+        // The BLE spectrum notification carries no CRC trailer; the full payload is
+        // exactly channels (4096) + 32-bit time (4) = 4100 bytes.
         private const int SpectrumTrailerSize = 0;
-        private const int SpectrumPayloadSize = SpectrumChannels * 2 + SpectrumTimeSize;
+        private const int SpectrumPayloadSize = SpectrumChannels * SpectrumBytesPerChannel + SpectrumTimeSize;
         private const int SpectrumPacketSize = SpectrumPayloadSize + SpectrumTrailerSize;
         private const int SpectrumCompletionGuardChunkSize = 10;
-        private static readonly byte[] OBS_GET_SPECTRUM = { 0x20, 0x00, 0x02, 0x00 };
+        // Diagnostic capacity: hold more than one payload so nothing is dropped while we learn
+        // the real on-wire size. Reception is logged chunk-by-chunk via Trace.
+        private const int SpectrumDiagnosticBufferSize = 16384;
+        private static readonly byte[] OBS_GET_SPECTRUM = { 0x20, 0x00, 0x04, 0x00 };  // type=32 (read spectrum), num=4 => uint32 channels (4100-byte payload)
         private static readonly byte[] OBS_RESET_SPECTRUM = { 0x21, 0x00, 0x01, 0x00 };
 
         private Thread readerThread;
@@ -50,6 +56,7 @@ namespace BecquerelMonitor
         private GattCharacteristic characteristicNotify = null;
         private ObsidianSpectrumPacket packet = new ObsidianSpectrumPacket();
         private BluetoothLEAdvertisementWatcher watcher;
+        private readonly object watcherLock = new object();
         private bool trshoot = false;
         private int trshootCount = 0;
         private static readonly object instancesLock = new object();
@@ -82,10 +89,12 @@ namespace BecquerelMonitor
 
             readerThread = new Thread(run);
             readerThread.Name = "ObsidianIn";
+            readerThread.IsBackground = true;
             readerThread.Start();
 
             discoveryThread = new Thread(doDiscovery);
             discoveryThread.Name = "ObsidianDiscovery";
+            discoveryThread.IsBackground = true;
             discoveryThread.Start();
         }
 
@@ -292,27 +301,35 @@ namespace BecquerelMonitor
         {
             TestBT();
             Trace.WriteLine("Run discovery, to awake device");
-            if (watcher == null)
+            // Serialize the whole discovery session under watcherLock: doDiscovery runs from
+            // both the discovery thread and the reader thread (reconnect). Locking only the
+            // watcher creation left Start/Stop/subscribe/unsubscribe racing on a shared
+            // watcher, so two sessions could Start/Stop the same instance concurrently.
+            lock (watcherLock)
             {
-                watcher = new BluetoothLEAdvertisementWatcher();
-            }
-            watcher.ScanningMode = BluetoothLEScanningMode.Active;
-            watcher.Received -= Watcher_Recived;
-            watcher.Received += Watcher_Recived;
-            try
-            {
-                watcher.Start();
-                Thread.Sleep(5000);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"{ex.Message}: {ex.StackTrace}", "Error doing discovery", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                RaisePortFailure();
-            }
-            finally
-            {
-                watcher.Stop();
+                if (watcher == null)
+                {
+                    watcher = new BluetoothLEAdvertisementWatcher();
+                }
+                watcher.ScanningMode = BluetoothLEScanningMode.Active;
                 watcher.Received -= Watcher_Recived;
+                watcher.Received += Watcher_Recived;
+                try
+                {
+                    watcher.Start();
+                    Thread.Sleep(5000);
+                }
+                catch (Exception ex)
+                {
+                    // No MessageBox from the reader thread: it blocked BLE reception.
+                    Trace.WriteLine($"Error doing discovery: {ex.Message}: {ex.StackTrace}");
+                    RaisePortFailure();
+                }
+                finally
+                {
+                    watcher.Stop();
+                    watcher.Received -= Watcher_Recived;
+                }
             }
         }
 
@@ -474,31 +491,22 @@ namespace BecquerelMonitor
                     {
                         return;
                     }
-                    if (packet.Counter + buffer.Length > SpectrumPacketSize)
+                    if (packet.Counter + buffer.Length > packet.Buffer.Length)
                     {
+                        // Only trip if we exceed the (generous) diagnostic buffer, not the
+                        // expected payload — otherwise we could never observe the true size.
                         packet.BROKEN = true;
-                        string overflowMessage = $"Drop packet because size: {packet.Counter + buffer.Length} > expected size: {SpectrumPacketSize}";
+                        string overflowMessage = $"Obsidian: chunk overflow past diagnostic buffer {packet.Buffer.Length}, total would be {packet.Counter + buffer.Length}";
                         sendTroubleShoot(overflowMessage);
                         Trace.WriteLine(overflowMessage);
                         return;
                     }
                     packet.Append(buffer);
 
-                    string decodeReason = null;
-                    if (packet.Counter == SpectrumPayloadSize)
-                    {
-                        decodeReason = "payload-size";
-                    }
-                    else if (packet.Counter == SpectrumPacketSize)
-                    {
-                        decodeReason = "full-packet-size";
-                    }
-                    else if (packet.Counter > SpectrumPayloadSize && buffer.Length == SpectrumCompletionGuardChunkSize)
-                    {
-                        decodeReason = "guard-final-chunk-size";
-                    }
-
-                    if (decodeReason != null)
+                    // Decode as soon as we have at least one full payload. Using >= (not ==)
+                    // makes completion independent of exact chunk boundaries; extra trailing
+                    // bytes past the payload are ignored by the decoder.
+                    if (!packet.COMPLETE && packet.Counter >= SpectrumPayloadSize)
                     {
                         packet.Decode();
                     }
@@ -886,7 +894,7 @@ namespace BecquerelMonitor
 
         private class ObsidianSpectrumPacket
         {
-            public byte[] Buffer = new byte[SpectrumPacketSize];
+            public byte[] Buffer = new byte[SpectrumDiagnosticBufferSize];
             public int Counter;
             public bool COMPLETE;
             public bool BROKEN;
@@ -922,13 +930,10 @@ namespace BecquerelMonitor
                 SPECTRUM = new int[SpectrumChannels];
                 for (int i = 0; i < SpectrumChannels; i++)
                 {
-                    SPECTRUM[i] = BitConverter.ToUInt16(Buffer, i * 2);
+                    SPECTRUM[i] = (int)BitConverter.ToUInt32(Buffer, i * SpectrumBytesPerChannel);
                 }
-                // 32-bit accumulation time: low word (t_spectrL) at offset 2048,
-                // high word (t_spectrH) at offset 2050.
-                int timeLow = BitConverter.ToUInt16(Buffer, SpectrumChannels * 2);
-                int timeHigh = BitConverter.ToUInt16(Buffer, SpectrumChannels * 2 + 2);
-                TIME_S = timeLow | (timeHigh << 16);
+                // 32-bit accumulation time, immediately after the 4096 bytes of channel data.
+                TIME_S = (int)BitConverter.ToUInt32(Buffer, SpectrumChannels * SpectrumBytesPerChannel);
                 COMPLETE = true;
             }
         }

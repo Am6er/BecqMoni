@@ -1180,7 +1180,10 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             }
 
             List<RjmcmcPeakCandidate> accepted = best.RawCandidates
-                .Where(candidate => candidate.DevianceImprovement >= config.MinDevianceImprovement)
+                // MinimumCandidateAmplitude was computed but never consumed anywhere in
+                // the deconvolver; default is 0.0, so this is a no-op unless explicitly set.
+                .Where(candidate => candidate.DevianceImprovement >= config.MinDevianceImprovement
+                    && candidate.Amplitude >= config.MinimumCandidateAmplitude)
                 .OrderByDescending(candidate => candidate.DevianceImprovement)
                 .Where(candidate => HasRequiredChainSupport(candidate, best, results, config))
                 .Take(config.MaxExtraPeaksPerRoi)

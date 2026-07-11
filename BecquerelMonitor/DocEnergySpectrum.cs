@@ -416,33 +416,30 @@ namespace BecquerelMonitor
                 resultData.EnergySpectrum.EnergyCalibration = resultData.DeviceConfig.EnergyCalibration.Clone();
                 resultData.PresetTime = resultData.DeviceConfig.DefaultMeasurementTime;
                 resultData.ResultDataStatus.PresetTime = resultData.PresetTime;
+                // Work on a CLONE of the global device config's method config: the old code
+                // wrote FwhmCalibration/Enabled into the live DeviceConfigManager object,
+                // so creating a document mutated the global config (and a later config
+                // save persisted those accidental changes).
                 FWHMPeakDetectionMethodConfig devcfg = (FWHMPeakDetectionMethodConfig)resultData.DeviceConfig.PeakDetectionMethodConfig;
-                if (devcfg.FwhmCalibration == null)
-                {
-                    devcfg.FwhmCalibration = FwhmCalibration.DefaultCalibration(devcfg, resultData.EnergySpectrum.EnergyCalibration);
-                }
                 resultData.PeakDetectionMethodConfig = devcfg.Clone();
                 FWHMPeakDetectionMethodConfig cfg = (FWHMPeakDetectionMethodConfig)resultData.PeakDetectionMethodConfig;
+                if (cfg.FwhmCalibration == null)
+                {
+                    cfg.FwhmCalibration = FwhmCalibration.DefaultCalibration(cfg, resultData.EnergySpectrum.EnergyCalibration);
+                }
                 if (resultData.FwhmCalibration == null)
                 {
                     // Result data file doesn't contains calibration
                     // Create it from FWHMPeakDetectionMethodConfig
-                    resultData.FwhmCalibration = cfg.FwhmCalibration.Clone();
+                    // (DefaultCalibration may return null - guard the NRE)
+                    resultData.FwhmCalibration = cfg.FwhmCalibration != null ? cfg.FwhmCalibration.Clone() : null;
                 } else
                 {
                     // Result data file contains calibration
                     // Override resultData.PeakDetectionMethodConfig with it
                     cfg.FwhmCalibration = resultData.FwhmCalibration.Clone();
                 }
-                if (GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.DefaultPeakMode == PeakMode.Visible)
-                {
-                    cfg.Enabled = true;
-                    devcfg.Enabled = true;
-                } else
-                {
-                    cfg.Enabled = false;
-                    devcfg.Enabled = false;
-                }
+                cfg.Enabled = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.DefaultPeakMode == PeakMode.Visible;
             }
             else
             {
