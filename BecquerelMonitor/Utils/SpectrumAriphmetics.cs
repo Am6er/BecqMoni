@@ -65,7 +65,17 @@ namespace BecquerelMonitor.Utils
             }
             if (high_boundary - low_boundary < 3)
             {
-                return spectrum[low_boundary] >= spectrum[high_boundary] ? low_boundary : high_boundary;
+                // Argmax over the whole window. The old code compared only the two
+                // boundaries and never considered the interior channels.
+                int best = low_boundary;
+                for (int i = low_boundary + 1; i <= high_boundary; i++)
+                {
+                    if (spectrum[i] > spectrum[best])
+                    {
+                        best = i;
+                    }
+                }
+                return best;
             }
 
             // Вершина и фон (минимум) в окне.
@@ -155,39 +165,83 @@ namespace BecquerelMonitor.Utils
 
         public DocEnergySpectrum CombineWith(DocEnergySpectrum docenergySpectrum)
         {
-            if (this.MainSpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels == docenergySpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels)
+            EnergySpectrum mainSpectrum = this.MainSpectrum.ActiveResultData.EnergySpectrum;
+            EnergySpectrum addedSpectrum = docenergySpectrum.ActiveResultData.EnergySpectrum;
+            if (mainSpectrum.NumberOfChannels == addedSpectrum.NumberOfChannels)
             {
-                PolynomialEnergyCalibration MainSpectrumEnergyCalibration = (PolynomialEnergyCalibration)this.MainSpectrum.ActiveResultData.EnergySpectrum.EnergyCalibration;
-                PolynomialEnergyCalibration CombinedSpectrumEnergyCalibration = (PolynomialEnergyCalibration)docenergySpectrum.ActiveResultData.EnergySpectrum.EnergyCalibration;
-                bool checkCalibration = CombinedSpectrumEnergyCalibration.CheckCalibration(docenergySpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels);
+                PolynomialEnergyCalibration MainSpectrumEnergyCalibration = (PolynomialEnergyCalibration)mainSpectrum.EnergyCalibration;
+                PolynomialEnergyCalibration CombinedSpectrumEnergyCalibration = (PolynomialEnergyCalibration)addedSpectrum.EnergyCalibration;
+                bool checkCalibration = CombinedSpectrumEnergyCalibration.CheckCalibration(addedSpectrum.NumberOfChannels);
                 if (!checkCalibration)
                 {
                     MessageBox.Show(String.Format(Resources.ERRCombineBadCalibratedSpectra, docenergySpectrum.Filename));
                 }
+                // Count what is ACTUALLY added to the array so that the totals stay
+                // consistent with it. The old code zeroed the last channel of the SOURCE
+                // document (mutating it), then still added the full TotalPulseCount.
+                long addedCounts = 0;
                 if (CombinedSpectrumEnergyCalibration.Equals(MainSpectrumEnergyCalibration) || !checkCalibration)
                 {
-                    docenergySpectrum.ActiveResultData.EnergySpectrum.Spectrum[docenergySpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels - 1] = 0;
-                    for (int i = 0; i < this.MainSpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels; i++)
+                    for (int i = 0; i < mainSpectrum.NumberOfChannels; i++)
                     {
-                        this.MainSpectrum.ActiveResultData.EnergySpectrum.Spectrum[i] += docenergySpectrum.ActiveResultData.EnergySpectrum.Spectrum[i];
+                        int add = addedSpectrum.Spectrum[i];
+                        mainSpectrum.Spectrum[i] += add;
+                        addedCounts += add;
+                    }
+                    // Same channel scale - raw pulses of the added spectrum can be merged
+                    // (they used to be silently dropped, so a rebuild from pulses
+                    // restored only the first spectrum).
+                    if (docenergySpectrum.ActiveResultData.PulseCollection != null
+                        && this.MainSpectrum.ActiveResultData.PulseCollection != null)
+                    {
+                        foreach (Pulse pulse in docenergySpectrum.ActiveResultData.PulseCollection.Pulses.ToArray())
+                        {
+                            this.MainSpectrum.ActiveResultData.PulseCollection.Add(new Pulse(pulse.Time, pulse.Height, pulse.Width));
+                        }
                     }
                 }
                 else
                 {
-                    for (int i = 0; i < this.MainSpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels; i++)
+                    // Count-conserving remap by energy-bin overlap. The old
+                    // nearest-neighbour gather duplicated/skipped source channels and did
+                    // not preserve the integral.
+                    int sourceChannels = addedSpectrum.NumberOfChannels;
+                    double[] cumulative = new double[sourceChannels + 1];
+                    for (int i = 0; i < sourceChannels; i++)
                     {
-                        double getChannel = Math.Round(CombinedSpectrumEnergyCalibration.EnergyToChannel(MainSpectrumEnergyCalibration.ChannelToEnergy(i), maxCh: docenergySpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels));
-                        if (getChannel >= 0 && getChannel < this.MainSpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels)
-                        {
-                            this.MainSpectrum.ActiveResultData.EnergySpectrum.Spectrum[i] += docenergySpectrum.ActiveResultData.EnergySpectrum.Spectrum[Convert.ToInt32(getChannel)];
-                        }
+                        cumulative[i + 1] = cumulative[i] + addedSpectrum.Spectrum[i];
                     }
+                    Func<double, double> cumulativeAt = position =>
+                    {
+                        if (position <= 0.0) return 0.0;
+                        if (position >= sourceChannels) return cumulative[sourceChannels];
+                        int k = (int)Math.Floor(position);
+                        return cumulative[k] + (position - k) * addedSpectrum.Spectrum[k];
+                    };
+                    double startChannel = CombinedSpectrumEnergyCalibration.EnergyToChannel(
+                        MainSpectrumEnergyCalibration.ChannelToEnergy(0.0), maxCh: sourceChannels);
+                    long previousRounded = (long)Math.Round(cumulativeAt(startChannel));
+                    for (int i = 0; i < mainSpectrum.NumberOfChannels; i++)
+                    {
+                        double edgeChannel = CombinedSpectrumEnergyCalibration.EnergyToChannel(
+                            MainSpectrumEnergyCalibration.ChannelToEnergy((double)(i + 1)), maxCh: sourceChannels);
+                        long rounded = (long)Math.Round(cumulativeAt(edgeChannel));
+                        int add = (int)(rounded - previousRounded);
+                        if (add > 0)
+                        {
+                            mainSpectrum.Spectrum[i] += add;
+                            addedCounts += add;
+                        }
+                        previousRounded = rounded;
+                    }
+                    // Raw pulses of the added spectrum are in a different channel scale
+                    // and are intentionally NOT merged.
                 }
 
-                this.MainSpectrum.ActiveResultData.EnergySpectrum.MeasurementTime += docenergySpectrum.ActiveResultData.EnergySpectrum.MeasurementTime;
-                this.MainSpectrum.ActiveResultData.EnergySpectrum.LiveTime += docenergySpectrum.ActiveResultData.EnergySpectrum.LiveTime;
-                this.MainSpectrum.ActiveResultData.EnergySpectrum.TotalPulseCount += docenergySpectrum.ActiveResultData.EnergySpectrum.TotalPulseCount;
-                this.MainSpectrum.ActiveResultData.EnergySpectrum.ValidPulseCount += docenergySpectrum.ActiveResultData.EnergySpectrum.ValidPulseCount;
+                mainSpectrum.MeasurementTime += addedSpectrum.MeasurementTime;
+                mainSpectrum.LiveTime += addedSpectrum.LiveTime;
+                mainSpectrum.TotalPulseCount += addedCounts;
+                mainSpectrum.ValidPulseCount += addedCounts;
 
                 this.MainSpectrum.ActiveResultData.PresetTime += docenergySpectrum.ActiveResultData.PresetTime;
                 this.MainSpectrum.ActiveResultData.ResultDataStatus.PresetTime += docenergySpectrum.ActiveResultData.ResultDataStatus.PresetTime;
@@ -227,7 +281,11 @@ namespace BecquerelMonitor.Utils
                 Parallel.For(0, substractedEnergySpectrum.NumberOfChannels, i =>
                 {
                     double enrg = this.EnergySpectrum.EnergyCalibration.ChannelToEnergy(i);
-                    int bgchan = Convert.ToInt32(bgenergySpectrum.EnergyCalibration.EnergyToChannel(enrg, maxChannels: substractedEnergySpectrum.NumberOfChannels));
+                    // Pass the BACKGROUND's channel count to the background calibration:
+                    // the old code passed the foreground's count, which both remapped to
+                    // wrong channels for fg/bg with different binning and permanently
+                    // poisoned the (stateful) bg calibration cache.
+                    int bgchan = Convert.ToInt32(bgenergySpectrum.EnergyCalibration.EnergyToChannel(enrg, maxChannels: bgenergySpectrum.NumberOfChannels));
                     if (bgchan >= 0 && bgchan < bgenergySpectrum.NumberOfChannels)
                     {
                         substractedEnergySpectrum.Spectrum[i] = Convert.ToInt32(this.EnergySpectrum.Spectrum[i] - norm_coeff * bgenergySpectrum.Spectrum[bgchan]);
@@ -1260,14 +1318,44 @@ namespace BecquerelMonitor.Utils
 
         static int[] ConcatArray(int[] spectrum, int newChanNumber)
         {
+            return RebinArray(spectrum, newChanNumber);
+        }
+
+        // Count-conserving rebin for ARBITRARY old/new channel counts (up or down).
+        // The old ConcatArray used an integer multiplier (10->7 kept only 7 of 10
+        // samples) and RestoreArray used integer division plus overlapping polynomial
+        // windows - neither preserved the integral. This distributes counts by bin-edge
+        // overlap; rounding via the cumulative sum keeps the total EXACTLY equal.
+        static int[] RebinArray(int[] spectrum, int newChanNumber)
+        {
+            int oldChanNumber = spectrum.Length;
             int[] result = new int[newChanNumber];
-            int multiplier = spectrum.Length / newChanNumber;
-            for (int i = 0; i < result.Length; i++)
+            if (oldChanNumber == 0 || newChanNumber <= 0)
             {
-                for (int j = 0; j < multiplier; j++)
+                return result;
+            }
+            double[] cumulative = new double[oldChanNumber + 1];
+            for (int i = 0; i < oldChanNumber; i++)
+            {
+                cumulative[i + 1] = cumulative[i] + spectrum[i];
+            }
+            long previousRounded = 0;
+            for (int j = 1; j <= newChanNumber; j++)
+            {
+                double position = (double)j * oldChanNumber / newChanNumber;
+                double cumulativeAtEdge;
+                if (position >= oldChanNumber)
                 {
-                    result[i] += spectrum[multiplier * i + j];
+                    cumulativeAtEdge = cumulative[oldChanNumber];
                 }
+                else
+                {
+                    int k = (int)Math.Floor(position);
+                    cumulativeAtEdge = cumulative[k] + (position - k) * spectrum[k];
+                }
+                long rounded = (long)Math.Round(cumulativeAtEdge);
+                result[j - 1] = (int)(rounded - previousRounded);
+                previousRounded = rounded;
             }
             return result;
         }
@@ -1322,8 +1410,10 @@ namespace BecquerelMonitor.Utils
             newSpectrum.MeasurementTime = energySpectrum.MeasurementTime;
             newSpectrum.LiveTime = energySpectrum.LiveTime;
             newSpectrum.TotalPulseCount = newSpectrum.Spectrum.Sum(x => (long)x);
-            double newValidPulseCount = (double)newSpectrum.TotalPulseCount * (double)energySpectrum.ValidPulseCount / (double)energySpectrum.TotalPulseCount;
-            newSpectrum.ValidPulseCount = (long)newValidPulseCount;
+            // Guard the empty spectrum: 0*0/0 produced NaN, and (long)NaN is long.MinValue.
+            newSpectrum.ValidPulseCount = energySpectrum.TotalPulseCount > 0
+                ? (long)((double)newSpectrum.TotalPulseCount * energySpectrum.ValidPulseCount / energySpectrum.TotalPulseCount)
+                : 0L;
             newSpectrum.NumberOfSamples = energySpectrum.NumberOfSamples;
             return newSpectrum;
         }
@@ -1343,33 +1433,20 @@ namespace BecquerelMonitor.Utils
             newSpectrum.MeasurementTime = energySpectrum.MeasurementTime;
             newSpectrum.LiveTime = energySpectrum.LiveTime;
             newSpectrum.TotalPulseCount = newSpectrum.Spectrum.Sum(x => (long)x);
-            double newValidPulseCount = (double)newSpectrum.TotalPulseCount * (double)energySpectrum.ValidPulseCount / (double)energySpectrum.TotalPulseCount;
-            newSpectrum.ValidPulseCount = (long)newValidPulseCount;
+            // Guard the empty spectrum: 0*0/0 produced NaN, and (long)NaN is long.MinValue.
+            newSpectrum.ValidPulseCount = energySpectrum.TotalPulseCount > 0
+                ? (long)((double)newSpectrum.TotalPulseCount * energySpectrum.ValidPulseCount / energySpectrum.TotalPulseCount)
+                : 0L;
             newSpectrum.NumberOfSamples = energySpectrum.NumberOfSamples;
             return newSpectrum;
         }
 
         static int[] RestoreArray(int[] spectrum, int newChanNumber)
         {
-            int[] result = new int[newChanNumber];
-            int multiplier = newChanNumber / spectrum.Length;
-            for (int i = 0; i < spectrum.Length - 4; i++)
-            {
-                double[] x_v = { i * multiplier, (i + 1) * multiplier, (i + 2) * multiplier, (i + 3) * multiplier, (i + 4) * multiplier };
-                double[] y_v = { spectrum[i] / multiplier, spectrum[i + 1] / multiplier, spectrum[i + 2] / multiplier, spectrum[i + 3] / multiplier, spectrum[i + 4] / multiplier };
-
-                double[] poly = Fit.Polynomial(x_v, y_v, 3);
-
-                for (int j = 0; j < 4*multiplier; j++)
-                {
-                    result[multiplier * i + j] = Convert.ToInt32(poly[0] + poly[1] * (i * multiplier + j) + poly[2] * Math.Pow(i * multiplier + j, 2) + poly[3] * Math.Pow(i * multiplier + j, 3));
-                    if (result[multiplier * i + j] < 0)
-                    {
-                        result[multiplier * i + j] = 0;
-                    }
-                }
-            }
-            return result;
+            // Count-conserving upsample. The old polynomial-fit implementation lost
+            // counts to integer division, overwrote overlapping windows and left the
+            // tail channels empty; the sum was not preserved.
+            return RebinArray(spectrum, newChanNumber);
         }
 
         public double[] WMA2(double[] spectrum, int numberOfWMADataPoints, int countlimit = 100, bool progressive = false)
@@ -1609,9 +1686,10 @@ namespace BecquerelMonitor.Utils
 
         public void Dispose()
         {
+            // No unmanaged resources here; the forced GC.Collect that used to live in this
+            // method ran up to 5x/second from the dose-rate timer and froze the UI.
             this.MainSpectrum = null;
             this.EnergySpectrum = null;
-            GC.Collect();
         }
 
         DocEnergySpectrum MainSpectrum;

@@ -42132,4 +42132,10 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="PeakFitChiTableCloseButton" xml:space="preserve">
     <value>Close</value>
   </data>
+  <data name="ERRDeviceBusy" xml:space="preserve">
+    <value>Device "{0}" is already used by another recording spectrum. Stop that measurement first.</value>
+  </data>
+  <data name="Lq_counts" xml:space="preserve">
+    <value>Lq counts</value>
+  </data>
 </root>

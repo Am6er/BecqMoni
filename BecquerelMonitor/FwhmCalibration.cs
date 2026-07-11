@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Xml.Serialization;
 
 namespace BecquerelMonitor
@@ -83,8 +84,11 @@ namespace BecquerelMonitor
             double mul = (double)oldchannelnum / (double)newchannelnum;
             foreach (CalibrationPeak peak in newFwhmCalibration.CalibrationPeaks)
             {
-                peak.Channel = (int)(peak.Channel / mul);
-                peak.FWHM = (int)(peak.FWHM / mul);
+                // Round the channel instead of truncating, and keep FWHM as double:
+                // the old (int) cast turned e.g. FWHM 12.7/8 into 1 (and anything < mul
+                // into 0), so the curve was fitted to ruined points.
+                peak.Channel = (int)Math.Round(peak.Channel / mul);
+                peak.FWHM = peak.FWHM / mul;
             }
             newFwhmCalibration.PerformCalibration(newchannelnum);
             return newFwhmCalibration;

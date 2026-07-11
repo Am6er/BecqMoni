@@ -111,8 +111,18 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
             config.RoiRadiusFwhm = Math.Max(1.0, peakConfig.RoiRadiusFwhm);
             double peakFinderSnr = NormalizeTargetSnr(peakConfig.Min_SNR);
             config.TargetSnr = CalculateExtraTargetSnr(peakFinderSnr, config.ExtraSnrMultiplier);
-            config.MinDevianceImprovement = CalculateMinimumDevianceImprovement(config.TargetSnr);
-            config.MinimumCandidateAmplitude = 0.0;
+            // Respect explicit overrides (harness flags --min-dev/--min-amp used to be
+            // no-ops: both values were unconditionally overwritten here). When the config
+            // still carries the default, derive the threshold from the target SNR as before.
+            if (peakConfig.MinDevianceImprovement != config.MinDevianceImprovement)
+            {
+                config.MinDevianceImprovement = Math.Max(1.0, peakConfig.MinDevianceImprovement);
+            }
+            else
+            {
+                config.MinDevianceImprovement = CalculateMinimumDevianceImprovement(config.TargetSnr);
+            }
+            config.MinimumCandidateAmplitude = Math.Max(0.0, peakConfig.MinimumCandidateAmplitude);
             config.SupportingDevianceImprovement = CalculateSupportingDevianceImprovement(config.TargetSnr, config.SupportingSnrFraction);
             return config;
         }

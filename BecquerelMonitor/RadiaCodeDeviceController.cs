@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Windows.Forms;
 
 namespace BecquerelMonitor
@@ -127,6 +128,10 @@ namespace BecquerelMonitor
                     case "Stopped":
                     case "Disconnected":
                         resultData.ResultDataStatus.Recording = false;
+                        // Release the device lease on async device-side termination too:
+                        // otherwise the GUID stays leased (new spectrum gets ERRDeviceBusy)
+                        // until the old spectrum is closed/deleted. Idempotent.
+                        resultData.MeasurementController?.ReleaseLeaseIfHeld();
                         break;
                 }
             }
@@ -172,6 +177,15 @@ namespace BecquerelMonitor
 
             if (this.resultDataStatus.Recording)
             {
+                // Guard the lengths like AtomSpectraDeviceController does: a document with
+                // a different channel count used to crash with ArgumentException here.
+                // Use != (not just >): a shorter histogram passes a > check but CopyTo then
+                // leaves a stale tail with a TotalPulseCount that no longer matches the array.
+                if (e.Hystogram.Length != this.pulseDetector.EnergySpectrum.Spectrum.Length)
+                {
+                    Trace.WriteLine($"RadiaCode: histogram size {e.Hystogram.Length} > document channels {this.pulseDetector.EnergySpectrum.Spectrum.Length}, dropping update");
+                    return;
+                }
                 e.Hystogram.CopyTo(this.pulseDetector.EnergySpectrum.Spectrum, 0);
                 this.pulseDetector.EnergySpectrum.TotalPulseCount = e.SUM;
                 this.pulseDetector.EnergySpectrum.ValidPulseCount = e.SUM;

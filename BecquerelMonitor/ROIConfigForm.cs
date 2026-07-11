@@ -65,6 +65,8 @@ namespace BecquerelMonitor
         {
             if (!this.ConfirmSaveROIConfig())
             {
+                // Actually cancel the close instead of closing without cleanup.
+                e.Cancel = true;
                 return;
             }
             this.globalConfigManager.GlobalConfig.ROIConfigFormWidth = base.Width;
@@ -74,6 +76,18 @@ namespace BecquerelMonitor
             for (int i = 0; i < this.columnModel3.Columns.Count; i++)
             {
                 array[i] = this.columnModel3.Columns[i].Width;
+            }
+            // Drop UI-control references stored inside the (singleton-held) ROI config
+            // data: they used to keep disposed controls and this closed form alive.
+            if (this.activeROIConfig != null)
+            {
+                foreach (ROIDefinitionData roidefinitionData in this.activeROIConfig.ROIDefinitions)
+                {
+                    foreach (ROIPrimitiveData roiprimitiveData in roidefinitionData.ROIPrimitives)
+                    {
+                        roiprimitiveData.Control = null;
+                    }
+                }
             }
         }
 

@@ -70,29 +70,38 @@ namespace BecquerelMonitor
                 string[] files = Directory.GetFiles(userDirectoryConfigDevice, "*.xml");
                 foreach (string path in files)
                 {
-                    DeviceConfigInfo deviceConfigInfo;
-                    using (FileStream fileStream = new FileStream(path, FileMode.Open))
+                    // Per-file try: one broken XML used to abort loading of ALL remaining
+                    // device configs (the try wrapped the whole loop).
+                    try
                     {
-                        deviceConfigInfo = (DeviceConfigInfo)xmlSerializer2.Deserialize(fileStream);
-                    }
-                    if (!(deviceConfigInfo.FormatVersion == "120920"))
-                    {
-                        using (FileStream fileStream2 = new FileStream(path, FileMode.Open))
+                        DeviceConfigInfo deviceConfigInfo;
+                        using (FileStream fileStream = new FileStream(path, FileMode.Open))
                         {
-                            DeviceConfigInfo_097b old = (DeviceConfigInfo_097b)xmlSerializer.Deserialize(fileStream2);
-                            deviceConfigInfo = new DeviceConfigInfo(old);
+                            deviceConfigInfo = (DeviceConfigInfo)xmlSerializer2.Deserialize(fileStream);
+                        }
+                        if (!(deviceConfigInfo.FormatVersion == "120920"))
+                        {
+                            using (FileStream fileStream2 = new FileStream(path, FileMode.Open))
+                            {
+                                DeviceConfigInfo_097b old = (DeviceConfigInfo_097b)xmlSerializer.Deserialize(fileStream2);
+                                deviceConfigInfo = new DeviceConfigInfo(old);
+                            }
+                        }
+                        deviceConfigInfo.OriginalFilename = Path.GetFileName(path);
+                        deviceConfigInfo.Filename = Path.GetFileName(path);
+                        if (this.deviceConfigMap.ContainsKey(deviceConfigInfo.Guid))
+                        {
+                            MessageBox.Show(string.Format(Resources.ERRDuplicateDeviceConfigGUID, deviceConfigInfo.Filename), Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                        }
+                        else
+                        {
+                            this.deviceConfigList.Add(deviceConfigInfo);
+                            this.deviceConfigMap.Add(deviceConfigInfo.Guid, deviceConfigInfo);
                         }
                     }
-                    deviceConfigInfo.OriginalFilename = Path.GetFileName(path);
-                    deviceConfigInfo.Filename = Path.GetFileName(path);
-                    if (this.deviceConfigMap.ContainsKey(deviceConfigInfo.Guid))
+                    catch (Exception)
                     {
-                        MessageBox.Show(string.Format(Resources.ERRDuplicateDeviceConfigGUID, deviceConfigInfo.Filename), Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-                    }
-                    else
-                    {
-                        this.deviceConfigList.Add(deviceConfigInfo);
-                        this.deviceConfigMap.Add(deviceConfigInfo.Guid, deviceConfigInfo);
+                        MessageBox.Show(Resources.ERRLoadingDeviceConfigFailed + "\n" + path, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
                     }
                 }
             }
@@ -124,11 +133,11 @@ namespace BecquerelMonitor
             audioInputDeviceConfig.AudioInputDevice = audioInputDevice;
             try
             {
-                using (FileStream fileStream = new FileStream(path, FileMode.Create))
+                Utils.AtomicFileWriter.Write(path, fileStream =>
                 {
                     XmlSerializer xmlSerializer = new XmlSerializer(typeof(DeviceConfigInfo));
                     xmlSerializer.Serialize(fileStream, deviceConfigInfo);
-                }
+                });
             }
             catch (Exception)
             {
@@ -157,11 +166,11 @@ namespace BecquerelMonitor
             try
             {
                 string path = userDirectoryConfigDevice + deviceConfigInfo.Filename;
-                using (FileStream fileStream = new FileStream(path, FileMode.Create))
+                Utils.AtomicFileWriter.Write(path, fileStream =>
                 {
                     XmlSerializer xmlSerializer = new XmlSerializer(typeof(DeviceConfigInfo));
                     xmlSerializer.Serialize(fileStream, deviceConfigInfo);
-                }
+                });
             }
             catch (Exception)
             {
@@ -185,7 +194,9 @@ namespace BecquerelMonitor
             if (!pe.CheckCalibration(channels: devConfig.NumberOfChannels))
             {
                 MessageBox.Show(Resources.CalibrationFunctionError);
-                return true;
+                // Was "return true" - the caller believed the config was saved, closed
+                // the form and the user's edits silently disappeared.
+                return false;
             }
             DeviceConfigInfo deviceConfigInfo = null;
             if (!string.IsNullOrEmpty(devConfig.Guid))
@@ -218,11 +229,11 @@ namespace BecquerelMonitor
             try
             {
                 string path = userDirectoryConfigDevice + deviceConfigInfo.Filename;
-                using (FileStream fileStream = new FileStream(path, FileMode.Create))
+                Utils.AtomicFileWriter.Write(path, fileStream =>
                 {
                     XmlSerializer xmlSerializer = new XmlSerializer(typeof(DeviceConfigInfo));
                     xmlSerializer.Serialize(fileStream, deviceConfigInfo);
-                }
+                });
             }
             catch (Exception)
             {

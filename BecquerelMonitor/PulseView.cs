@@ -92,7 +92,20 @@ namespace BecquerelMonitor
 
         protected override void OnPaint(PaintEventArgs pe)
         {
-            if (this.pulseShape == null)
+            // Take local snapshots: the audio thread writes PulseShape/PulseShapeSize
+            // without synchronization while this paints. Also clamp the size to the
+            // array length - a torn update used to cause IndexOutOfRangeException here.
+            double[] pulseShape = this.pulseShape;
+            int pulseShapeSize = this.pulseShapeSize;
+            if (pulseShape == null || pulseShape.Length == 0)
+            {
+                return;
+            }
+            if (pulseShapeSize > pulseShape.Length)
+            {
+                pulseShapeSize = pulseShape.Length;
+            }
+            if (pulseShapeSize < 2)
             {
                 return;
             }
@@ -125,8 +138,8 @@ namespace BecquerelMonitor
 
             stringFormat.Alignment = StringAlignment.Far;
             float x = (float)num;
-            float y = (float)(-(float)this.pulseShape[0]) * num3 + num2;
-            float num6 = (float)num + (float)this.peakIndex * (float)width / (float)(this.pulseShapeSize - 1);
+            float y = (float)(-(float)pulseShape[0]) * num3 + num2;
+            float num6 = (float)num + (float)this.peakIndex * (float)width / (float)(pulseShapeSize - 1);
             float lineY = -100f * num3 + num2;
             graphics.DrawLine(pen, num6, lineY, num6, (float)base.Height);
 
@@ -136,10 +149,10 @@ namespace BecquerelMonitor
                 graphics.PixelOffsetMode = PixelOffsetMode.Half;
             }
 
-            for (int i = 0; i < this.pulseShapeSize; i++)
+            for (int i = 0; i < pulseShapeSize; i++)
             {
-                num6 = (float)num + (float)i * (float)width / (float)(this.pulseShapeSize - 1);
-                lineY = (float)(-(float)this.pulseShape[i]) * num3 + num2;
+                num6 = (float)num + (float)i * (float)width / (float)(pulseShapeSize - 1);
+                lineY = (float)(-(float)pulseShape[i]) * num3 + num2;
                 graphics.DrawLine(this.isValidPulse ? Pens.Yellow : Pens.Red, x, y, num6, lineY);
                 x = num6;
                 y = lineY;

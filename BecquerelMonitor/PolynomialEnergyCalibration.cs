@@ -166,9 +166,19 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000734 RID: 1844 RVA: 0x00029E1C File Offset: 0x0002801C
+        // Writes of the form calibration.Coefficients[i] = x mutate the array through the
+        // getter and bypass the property setter, so the dirty flag (and with it the
+        // EnergyToChannel cache) was never invalidated. Call this after such writes.
+        public void InvalidateCache()
+        {
+            this.dirty = true;
+        }
+
         public override double EnergyToChannel(double enrg, int maxCh = 8192)
         {
-            if (this.maxChannels != maxCh) { this.maxChannels = maxCh; this.maxEnergy = -1; }
+            // Changing maxCh must also drop the cached energy->channel map, not only
+            // maxEnergy - stale entries from the previous maxChannels survived here.
+            if (this.maxChannels != maxCh) { this.maxChannels = maxCh; this.maxEnergy = -1; this.dirty = true; }
             if (this.maxEnergy == -1 || this.dirty) this.maxEnergy = ChannelToEnergy(this.maxChannels);
             if (enrg > this.maxEnergy && this.maxEnergy != -1) return this.maxChannels;
             if (this.dirty || this.energytochanel == null)

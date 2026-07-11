@@ -123,6 +123,9 @@ namespace BecquerelMonitor.Utils
             rlabel = new Rectangle(this.width - 60, this.height - 32, 120, 32);
             g.DrawString(Resources.ChartHeaderChannel, this.Font, brush, rlabel);
 
+            // Dispose GDI objects: this runs on every paint and used to leak handles.
+            brush.Dispose();
+            pen.Dispose();
         }
 
         void PaintChart(Graphics g)
@@ -152,20 +155,21 @@ namespace BecquerelMonitor.Utils
                 this.originalcalibration = (PolynomialEnergyCalibration)this.calibration.Clone();
                 this.formloading = false;
             }
-            Pen pen = new Pen(this.globalConfigManager.GlobalConfig.ColorConfig.ActiveSpectrumColor.Color);
-            if (!this.polycorrect)
+            Color chartColor = this.polycorrect
+                ? this.globalConfigManager.GlobalConfig.ColorConfig.ActiveSpectrumColor.Color
+                : this.globalConfigManager.GlobalConfig.ColorConfig.BgDiffColor.Color;
+            using (Pen pen = new Pen(chartColor))
             {
-                pen = new Pen(this.globalConfigManager.GlobalConfig.ColorConfig.BgDiffColor.Color);
-            }
-            for (int i = 0; i < this.maxChannels - 1; i++)
-            {
-                if (this.height - EnergyToPx(i + 1) <= this.startheight)
+                for (int i = 0; i < this.maxChannels - 1; i++)
                 {
-                    break;
-                }
-                if (EnergyToPx(i) > 0)
-                {
-                    g.DrawLine(pen, ChanToPx(i), this.height - EnergyToPx(i), ChanToPx(i + 1), this.height - EnergyToPx(i + 1));
+                    if (this.height - EnergyToPx(i + 1) <= this.startheight)
+                    {
+                        break;
+                    }
+                    if (EnergyToPx(i) > 0)
+                    {
+                        g.DrawLine(pen, ChanToPx(i), this.height - EnergyToPx(i), ChanToPx(i + 1), this.height - EnergyToPx(i + 1));
+                    }
                 }
             }
         }
@@ -233,6 +237,9 @@ namespace BecquerelMonitor.Utils
                 }
                 g.FillEllipse(brush, ChanToPx(point.Channel) - r / 2, this.height - EnergyToPx((double)point.Energy) - r / 2, r, r);
             }
+            brush.Dispose();
+            glowbrush.Dispose();
+            textbrush.Dispose();
         }
 
         void WriteCalibration(Graphics g)
@@ -240,7 +247,9 @@ namespace BecquerelMonitor.Utils
             Brush brush = new SolidBrush(this.globalConfigManager.GlobalConfig.ColorConfig.AxisFigureColor.Color);
             Rectangle label = new Rectangle(100, this.startheight, 1000, 62);
             string functiontext = this.calibration.ToString();
-            if (!this.weights)
+            // Branches were inverted: the unweighted mode displayed WMSE and the weighted
+            // mode displayed plain MSE.
+            if (this.weights)
             {
                 functiontext += "\n" + Resources.MSGMSE + ":" + "\n"
                     + "\t" + Resources.Default + ": " + Utils.CalibrationSolver.WMSE(this.originalcalibration.Coefficients, this.originalpoints).ToString("f4") + "\n"
@@ -257,6 +266,7 @@ namespace BecquerelMonitor.Utils
                 functiontext += "\n" + Resources.CalibrationFunctionError;
             }
             g.DrawString(functiontext, this.Font, brush, label);
+            brush.Dispose();
         }
 
         private void CalibrationGraph_MouseMove(object sender, MouseEventArgs e)

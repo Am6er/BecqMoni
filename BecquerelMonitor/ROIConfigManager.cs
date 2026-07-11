@@ -70,33 +70,42 @@ namespace BecquerelMonitor
                 string[] files = Directory.GetFiles(configROI, "*.xml");
                 foreach (string path in files)
                 {
-                    ROIConfigData roiconfigData;
-                    using (FileStream fileStream = new FileStream(path, FileMode.Open))
+                    // Per-file try: one broken XML used to abort loading of ALL remaining
+                    // ROI configs (the try wrapped the whole loop).
+                    try
                     {
-                        roiconfigData = (ROIConfigData)xmlSerializer.Deserialize(fileStream);
-                    }
-                    if (!(roiconfigData.FormatVersion == "120920"))
-                    {
-                        roiconfigData.InitFormatVersion();
-                    }
-                    foreach (ROIDefinitionData roidefinitionData in roiconfigData.ROIDefinitions)
-                    {
-                        foreach (ROIPrimitiveData roiprimitiveData in roidefinitionData.ROIPrimitives)
+                        ROIConfigData roiconfigData;
+                        using (FileStream fileStream = new FileStream(path, FileMode.Open))
                         {
-                            roiprimitiveData.Primitive = ROIPrimitiveDefinition.DefinitionsMap[roiprimitiveData.PrimitiveType];
-                            roiprimitiveData.Operation = ROIPrimitiveOperation.OperationsMap[roiprimitiveData.OperationType];
+                            roiconfigData = (ROIConfigData)xmlSerializer.Deserialize(fileStream);
+                        }
+                        if (!(roiconfigData.FormatVersion == "120920"))
+                        {
+                            roiconfigData.InitFormatVersion();
+                        }
+                        foreach (ROIDefinitionData roidefinitionData in roiconfigData.ROIDefinitions)
+                        {
+                            foreach (ROIPrimitiveData roiprimitiveData in roidefinitionData.ROIPrimitives)
+                            {
+                                roiprimitiveData.Primitive = ROIPrimitiveDefinition.DefinitionsMap[roiprimitiveData.PrimitiveType];
+                                roiprimitiveData.Operation = ROIPrimitiveOperation.OperationsMap[roiprimitiveData.OperationType];
+                            }
+                        }
+                        roiconfigData.OriginalFilename = Path.GetFileName(path);
+                        roiconfigData.Filename = Path.GetFileName(path);
+                        if (this.roiConfigMap.ContainsKey(roiconfigData.Guid))
+                        {
+                            MessageBox.Show(string.Format(Resources.ERRDuplicateROIConfigGUID, roiconfigData.Filename), Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                        }
+                        else
+                        {
+                            this.roiConfigList.Add(roiconfigData);
+                            this.roiConfigMap.Add(roiconfigData.Guid, roiconfigData);
                         }
                     }
-                    roiconfigData.OriginalFilename = Path.GetFileName(path);
-                    roiconfigData.Filename = Path.GetFileName(path);
-                    if (this.roiConfigMap.ContainsKey(roiconfigData.Guid))
+                    catch (Exception)
                     {
-                        MessageBox.Show(string.Format(Resources.ERRDuplicateROIConfigGUID, roiconfigData.Filename), Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-                    }
-                    else
-                    {
-                        this.roiConfigList.Add(roiconfigData);
-                        this.roiConfigMap.Add(roiconfigData.Guid, roiconfigData);
+                        MessageBox.Show(Resources.ERRLoadingROIConfigFailed + "\n" + path, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
                     }
                 }
             }
@@ -121,11 +130,11 @@ namespace BecquerelMonitor
             string path = configROI + roiconfigData.Filename;
             try
             {
-                using (FileStream fileStream = new FileStream(path, FileMode.Create))
+                Utils.AtomicFileWriter.Write(path, fileStream =>
                 {
                     XmlSerializer xmlSerializer = new XmlSerializer(typeof(ROIConfigData));
                     xmlSerializer.Serialize(fileStream, roiconfigData);
-                }
+                });
             }
             catch (Exception)
             {
@@ -153,11 +162,11 @@ namespace BecquerelMonitor
             try
             {
                 string path = configROI + roiconfigData.Filename;
-                using (FileStream fileStream = new FileStream(path, FileMode.Create))
+                Utils.AtomicFileWriter.Write(path, fileStream =>
                 {
                     XmlSerializer xmlSerializer = new XmlSerializer(typeof(ROIConfigData));
                     xmlSerializer.Serialize(fileStream, roiconfigData);
-                }
+                });
             }
             catch (Exception)
             {
@@ -238,11 +247,11 @@ namespace BecquerelMonitor
             try
             {
                 string path = configROI + roiconfigData.Filename;
-                using (FileStream fileStream = new FileStream(path, FileMode.Create))
+                Utils.AtomicFileWriter.Write(path, fileStream =>
                 {
                     XmlSerializer xmlSerializer = new XmlSerializer(typeof(ROIConfigData));
                     xmlSerializer.Serialize(fileStream, roiconfigData);
-                }
+                });
             }
             catch (Exception)
             {
@@ -322,11 +331,11 @@ namespace BecquerelMonitor
                     roiconfigData.Dirty = false;
                     roiconfigData.ROIEfficiency = points;
                     string path = configROI + ROIName + ".xml";
-                    using (FileStream fileStream = new FileStream(path, FileMode.Create))
+                    Utils.AtomicFileWriter.Write(path, fileStream =>
                     {
                         XmlSerializer xmlSerializer = new XmlSerializer(typeof(ROIConfigData));
                         xmlSerializer.Serialize(fileStream, roiconfigData);
-                    }
+                    });
                     this.roiConfigList.Add(roiconfigData);
                     this.roiConfigMap.Add(roiconfigData.Guid, roiconfigData);
                     this.roiConfigList.Sort();

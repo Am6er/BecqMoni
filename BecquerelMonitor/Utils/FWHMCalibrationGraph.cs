@@ -120,24 +120,28 @@ namespace BecquerelMonitor.Utils
             rlabel = new Rectangle(this.width - 60, this.height - 32, 120, 32);
             g.DrawString(Resources.ChartHeaderChannel, this.Font, brush, rlabel);
 
+            // Dispose GDI objects: this runs on every paint and used to leak handles.
+            brush.Dispose();
+            pen.Dispose();
         }
 
         void PaintChart(Graphics g)
         {
-            Pen pen = new Pen(this.globalConfigManager.GlobalConfig.ColorConfig.ActiveSpectrumColor.Color);
-            if (!this.polycorrect)
+            Color chartColor = this.polycorrect
+                ? this.globalConfigManager.GlobalConfig.ColorConfig.ActiveSpectrumColor.Color
+                : this.globalConfigManager.GlobalConfig.ColorConfig.BgDiffColor.Color;
+            using (Pen pen = new Pen(chartColor))
             {
-                pen = new Pen(this.globalConfigManager.GlobalConfig.ColorConfig.BgDiffColor.Color);
-            }
-            for (int i = 0; i < this.maxChannels - 1; i++)
-            {
-                if (this.height - ChanToPy(i + 1) <= this.startheight)
+                for (int i = 0; i < this.maxChannels - 1; i++)
                 {
-                    break;
-                }
-                if (ChanToPy(i) > 0)
-                {
-                    g.DrawLine(pen, ChanToPx(i), this.height - ChanToPy(i), ChanToPx(i + 1), this.height - ChanToPy(i + 1));
+                    if (this.height - ChanToPy(i + 1) <= this.startheight)
+                    {
+                        break;
+                    }
+                    if (ChanToPy(i) > 0)
+                    {
+                        g.DrawLine(pen, ChanToPx(i), this.height - ChanToPy(i), ChanToPx(i + 1), this.height - ChanToPy(i + 1));
+                    }
                 }
             }
         }
@@ -215,6 +219,9 @@ namespace BecquerelMonitor.Utils
                 }
                 g.FillEllipse(brush, ChanToPx(point.Channel) - r / 2, this.height - FWHMToPy(point.FWHM) - r / 2, r, r);
             }
+            brush.Dispose();
+            glowbrush.Dispose();
+            textbrush.Dispose();
         }
 
         void DrawInfoPanel(Graphics g)
@@ -281,6 +288,7 @@ namespace BecquerelMonitor.Utils
                     " ch\n"
                  );
             g.DrawString(labeltext, this.Font, textbrush, label);
+            textbrush.Dispose();
         }
 
         void WriteCalibration(Graphics g)
@@ -296,6 +304,7 @@ namespace BecquerelMonitor.Utils
                 functiontext += "\n" + Resources.CalibrationFunctionError;
             }
             g.DrawString(functiontext, this.Font, brush, label);
+            brush.Dispose();
         }
 
         private void FWHMCalibrationGraph_MouseMove(object sender, MouseEventArgs e)

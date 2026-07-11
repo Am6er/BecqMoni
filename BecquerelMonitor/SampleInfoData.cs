@@ -99,6 +99,7 @@ namespace BecquerelMonitor
         {
             SampleInfoData sampleInfoData = new SampleInfoData();
             sampleInfoData.Name = this.Name;
+            sampleInfoData.Location = this.Location;
             sampleInfoData.Volume = this.Volume;
             sampleInfoData.Note = this.Note;
             sampleInfoData.Weight = this.Weight;

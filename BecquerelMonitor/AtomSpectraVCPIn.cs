@@ -173,6 +173,7 @@ namespace BecquerelMonitor
             port.DataReceived += Port_DataReceived;
             readerThread = new Thread(this.run);
             readerThread.Name = "AtomSpectraVCPIn";
+            readerThread.IsBackground = true;
             readerThread.Start();
 
             timer = new Timer(timer_Elapsed, null, 0, Timeout.Infinite);
@@ -243,7 +244,9 @@ namespace BecquerelMonitor
         {
             long ms = timeNowMs() + timeout_ms;
             string str = null;
-            while (!received_lines.TryDequeue(out str) && (timeNowMs() < ms)) ;
+            // Sleep(1) instead of a bare spin: this runs on the UI thread and used to burn
+            // a full core for up to timeout_ms.
+            while (!received_lines.TryDequeue(out str) && (timeNowMs() < ms)) Thread.Sleep(1);
             if (str == null) return false;
             int index = str.IndexOf('\r');
             if (index != -1)
@@ -257,7 +260,7 @@ namespace BecquerelMonitor
         {
             long ms = timeNowMs() + timeout_ms;
             string str = null;
-            while (!received_lines.TryDequeue(out str) && (timeNowMs() < ms)) ;
+            while (!received_lines.TryDequeue(out str) && (timeNowMs() < ms)) Thread.Sleep(1);
             if (str == null) return "";
             int index = str.IndexOf('\r');
             return str;
@@ -430,7 +433,15 @@ namespace BecquerelMonitor
                                 //elapsed_time_static = elapsed_time;
                                 //cps_static = cps;
                                 hystogram.CopyTo(hystogram_buffered, 0);
-                                int channels = DeviceConfigManager.GetInstance().DeviceConfigMap[GUID].NumberOfChannels;
+                                // TryGetValue: the UI thread can Remove/Add configs while
+                                // this reader thread runs; a missing GUID used to throw
+                                // KeyNotFoundException, swallowed as a bogus "PortFailure".
+                                DeviceConfigInfo deviceConfigInfo;
+                                if (!DeviceConfigManager.GetInstance().DeviceConfigMap.TryGetValue(GUID, out deviceConfigInfo))
+                                {
+                                    continue;
+                                }
+                                int channels = deviceConfigInfo.NumberOfChannels;
                                 if (hystogram_buffered.Length > channels)
                                 {
                                     int[] hystogram_compress = new int[channels];
@@ -451,7 +462,12 @@ namespace BecquerelMonitor
                                     if (DataReady != null) DataReady(this, new AtomSpectraVCPInDataReadyArgs(hystogram_compress, cpu_load, elapsed_time, invalid_pulses));
                                 } else
                                 {
-                                    if (DataReady != null) DataReady(this, new AtomSpectraVCPInDataReadyArgs(hystogram_buffered, cpu_load, elapsed_time, invalid_pulses));
+                                    // Hand the subscribers their own COPY: the handler runs
+                                    // deferred via SynchronizationContext.Post, while
+                                    // hystogram_buffered is overwritten every second - a busy
+                                    // UI used to receive a torn histogram (the compressed
+                                    // branch above already passes a fresh array).
+                                    if (DataReady != null) DataReady(this, new AtomSpectraVCPInDataReadyArgs((int[])hystogram_buffered.Clone(), cpu_load, elapsed_time, invalid_pulses));
                                 }
                             }
                             else if (packet_cmd == 0x03) //printf
@@ -542,7 +558,12 @@ namespace BecquerelMonitor
                 Trace.WriteLine("AtomSpectraVCPIn thread termination request");
                 thread_alive = false;
                 onDataReceivedEvent.Set();
-                readerThread.Join();
+                // Bounded join: Dispose is called from the UI thread; an unbounded Join()
+                // used to hang application shutdown when the reader was stuck in port I/O.
+                if (!readerThread.Join(5000))
+                {
+                    Trace.WriteLine("AtomSpectraVCPIn reader thread did not stop within 5s (background thread, will die with the process)");
+                }
             }
         }
 

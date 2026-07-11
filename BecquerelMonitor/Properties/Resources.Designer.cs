@@ -668,20 +668,20 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to RadiaCode.
-        /// </summary>
-        public static string DeviceTypeRadiaCode {
-            get {
-                return ResourceManager.GetString("DeviceTypeRadiaCode", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Looks up a localized string similar to Obsidian.
         /// </summary>
         public static string DeviceTypeObsidian {
             get {
                 return ResourceManager.GetString("DeviceTypeObsidian", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to RadiaCode.
+        /// </summary>
+        public static string DeviceTypeRadiaCode {
+            get {
+                return ResourceManager.GetString("DeviceTypeRadiaCode", resourceCulture);
             }
         }
         
@@ -814,7 +814,7 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("ERRBLENotFound", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Bluetooth device not found. BecqMoni should connect to Obsidian via Bluetooth Low Energy..
         /// </summary>
@@ -917,6 +917,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Device &quot;{0}&quot; is already used by another recording spectrum. Stop that measurement first..
+        /// </summary>
+        public static string ERRDeviceBusy {
+            get {
+                return ResourceManager.GetString("ERRDeviceBusy", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Device configuration is not selected..
         /// </summary>
         public static string ERRDeviceConfigNotSelected {
@@ -971,6 +980,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Empty Obsidian address, nothing to test. Hit &quot;Scan BLE&quot; button, get your device in combobox and save config..
+        /// </summary>
+        public static string ERREmptyObsidianData {
+            get {
+                return ResourceManager.GetString("ERREmptyObsidianData", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Empty port name.
         /// </summary>
         public static string ERREmptyPortName {
@@ -985,15 +1003,6 @@ namespace BecquerelMonitor.Properties {
         public static string ERREmptyRadiaCodeData {
             get {
                 return ResourceManager.GetString("ERREmptyRadiaCodeData", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Empty Obsidian address, nothing to test. Hit &quot;Scan BLE&quot; button, get your device in combobox and save config..
-        /// </summary>
-        public static string ERREmptyObsidianData {
-            get {
-                return ResourceManager.GetString("ERREmptyObsidianData", resourceCulture);
             }
         }
         
@@ -1622,6 +1631,15 @@ namespace BecquerelMonitor.Properties {
             get {
                 object obj = ResourceManager.GetObject("log", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Lq counts.
+        /// </summary>
+        public static string Lq_counts {
+            get {
+                return ResourceManager.GetString("Lq_counts", resourceCulture);
             }
         }
         
@@ -2258,6 +2276,123 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Best.
+        /// </summary>
+        public static string PeakFitChiTableBestColumn {
+            get {
+                return ResourceManager.GetString("PeakFitChiTableBestColumn", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to chi2.
+        /// </summary>
+        public static string PeakFitChiTableChi2Column {
+            get {
+                return ResourceManager.GetString("PeakFitChiTableChi2Column", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to chi2/ndp.
+        /// </summary>
+        public static string PeakFitChiTableChi2PerNdpColumn {
+            get {
+                return ResourceManager.GetString("PeakFitChiTableChi2PerNdpColumn", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Close.
+        /// </summary>
+        public static string PeakFitChiTableCloseButton {
+            get {
+                return ResourceManager.GetString("PeakFitChiTableCloseButton", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Curve.
+        /// </summary>
+        public static string PeakFitChiTableCurveColumn {
+            get {
+                return ResourceManager.GetString("PeakFitChiTableCurveColumn", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ndp.
+        /// </summary>
+        public static string PeakFitChiTableNdpColumn {
+            get {
+                return ResourceManager.GetString("PeakFitChiTableNdpColumn", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Parameters.
+        /// </summary>
+        public static string PeakFitChiTableParametersColumn {
+            get {
+                return ResourceManager.GetString("PeakFitChiTableParametersColumn", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Selected shape: {0}..
+        /// </summary>
+        public static string PeakFitChiTablePeakSummary {
+            get {
+                return ResourceManager.GetString("PeakFitChiTablePeakSummary", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Peak shape chi2/ndp comparison.
+        /// </summary>
+        public static string PeakFitChiTableTitle {
+            get {
+                return ResourceManager.GetString("PeakFitChiTableTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to n/a.
+        /// </summary>
+        public static string PeakFitChiTableUnavailable {
+            get {
+                return ResourceManager.GetString("PeakFitChiTableUnavailable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Exp-Gaussian-Exp.
+        /// </summary>
+        public static string PeakShapeExpGaussExp {
+            get {
+                return ResourceManager.GetString("PeakShapeExpGaussExp", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Gaussian.
+        /// </summary>
+        public static string PeakShapeGaussian {
+            get {
+                return ResourceManager.GetString("PeakShapeGaussian", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Voigt.
+        /// </summary>
+        public static string PeakShapeVoigt {
+            get {
+                return ResourceManager.GetString("PeakShapeVoigt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to %.
         /// </summary>
         public static string PercentCharacter {
@@ -2617,6 +2752,24 @@ namespace BecquerelMonitor.Properties {
         public static string VCPDeviceStatusUnknown {
             get {
                 return ResourceManager.GetString("VCPDeviceStatusUnknown", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to relative γ.
+        /// </summary>
+        public static string VoigtRelativeGammaLabel {
+            get {
+                return ResourceManager.GetString("VoigtRelativeGammaLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to relative σ.
+        /// </summary>
+        public static string VoigtRelativeSigmaLabel {
+            get {
+                return ResourceManager.GetString("VoigtRelativeSigmaLabel", resourceCulture);
             }
         }
         

@@ -611,6 +611,9 @@
   <data name="TemperatureStr" xml:space="preserve">
     <value>Температура детектора: {0}°C</value>
   </data>
+  <data name="DeviceTypeObsidian" xml:space="preserve">
+    <value>Obsidian</value>
+  </data>
   <data name="ERRBLENotFound" xml:space="preserve">
     <value>Устройство Bluetooth не обнаружено. BecqMoni подключается к RadiaCode по Bluetooth Low Energy.</value>
   </data>
@@ -631,9 +634,6 @@
   </data>
   <data name="ERREmptyObsidianData" xml:space="preserve">
     <value>Отсутствуют данные об устройстве Obsidian, нечего проверять. Нажмите кнопку "Scan BLE", выберите своё устройство и сохраните конфиг.</value>
-  </data>
-  <data name="DeviceTypeObsidian" xml:space="preserve">
-    <value>Obsidian</value>
   </data>
   <data name="Centroid" xml:space="preserve">
     <value>Центр</value>
@@ -707,9 +707,6 @@
   <data name="ImportSpecUtilsFileDialogTitle" xml:space="preserve">
     <value>Импорт при помощи SpecUtils</value>
   </data>
-  <data name="SPEFileFilter" xml:space="preserve">
-    <value>Файлы SpectraLine SPE (*.spe)|*.spe|Все файлы (*.*)|*.*</value>
-  </data>
   <data name="VoigtRelativeSigmaLabel" xml:space="preserve">
     <value>отн. σ</value>
   </data>
@@ -745,5 +742,15 @@
   </data>
   <data name="PeakFitChiTableCloseButton" xml:space="preserve">
     <value>Закрыть</value>
+  </data>
+  <data name="ERRDeviceBusy" xml:space="preserve">
+    <value>Устройство «{0}» уже используется другим записывающим спектром. Сначала остановите то измерение.</value>
+  </data>
+  <data name="SPEFileFilter" xml:space="preserve">
+    <value>Файлы SpectraLine SPE (*.spe)|*.spe|Все файлы (*.*)|*.*</value>
+  </data>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="Lq_counts" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
   </data>
 </root>

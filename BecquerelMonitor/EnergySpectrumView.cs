@@ -702,7 +702,7 @@ namespace BecquerelMonitor
                         analytics.Lc = ROIAriphmetics.CalculateLc(bgCounts, bgTime, fgTime, limitsConfidenceLevel);
                         analytics.Lu = ROIAriphmetics.CalculateLu(fgCounts, fgTime, bgCounts, bgTime, limitsConfidenceLevel);
                         analytics.Ld = ROIAriphmetics.CalculateLd(bgCounts, bgTime, fgTime, limitsConfidenceLevel);
-                        analytics.Mda = ROIAriphmetics.CalculateMDACounts(bgCounts, bgTime, fgTime, detectionLevel);
+                        analytics.Lq = ROIAriphmetics.CalculateLqCounts(bgCounts, bgTime, fgTime, detectionLevel);
 
                         if (this.peakMode == PeakMode.Visible && analytics.SelectionFWHM > 0.0 &&
                             this.activeResultData.Visible &&
@@ -2388,7 +2388,8 @@ namespace BecquerelMonitor
                     }
                     catch (Exception)
                     {
-                        MessageBox.Show("123");
+                        // Swallow bad coordinates (NaN/Infinity from a broken calibration).
+                        // Was MessageBox.Show("123") - a modal dialog per channel per paint.
                     }
                 }
                 x = num3;
@@ -2441,7 +2442,8 @@ namespace BecquerelMonitor
                     }
                     catch (Exception)
                     {
-                        MessageBox.Show("123");
+                        // Swallow bad coordinates (NaN/Infinity from a broken calibration).
+                        // Was MessageBox.Show("123") - a modal dialog per channel per paint.
                     }
                 }
                 x = num3;
@@ -2570,8 +2572,12 @@ namespace BecquerelMonitor
                     }
                     if (num > (float)this.left)
                     {
-                        Pen pen = new Pen(roidefinitionData.Color.Color, 2);
-                        g.DrawLine(pen, num, (float)((1.0 - intencityscale) * (this.height - 1)), num, (float)(this.height - 1));
+                        // using: this runs per-ROI per-paint and used to leak a GDI Pen
+                        // handle on every line drawn.
+                        using (Pen pen = new Pen(roidefinitionData.Color.Color, 2))
+                        {
+                            g.DrawLine(pen, num, (float)((1.0 - intencityscale) * (this.height - 1)), num, (float)(this.height - 1));
+                        }
                     }
             }
             }
@@ -3251,7 +3257,7 @@ namespace BecquerelMonitor
         // Token: 0x060004BF RID: 1215 RVA: 0x0001A5F0 File Offset: 0x000187F0
         void ShowHorizontalAxis(Graphics g)
         {
-            new Pen(Color.FromArgb(240, 240, 240));
+            // (removed an ownerless "new Pen(...)" that leaked a GDI handle every paint)
             ColorConfig colorConfig = this.globalConfigManager.GlobalConfig.ColorConfig;
             using (Brush brush = new SolidBrush(colorConfig.AxisBackgroundColor.Color))
             {
@@ -3745,7 +3751,7 @@ namespace BecquerelMonitor
                 double Lc = selection.Lc;
                 double Lu = selection.Lu;
                 double Ld = selection.Ld;
-                double mda = selection.Mda;
+                double Lq = selection.Lq;
                 double activity = selection.Activity;
                 double activityError = selection.ActivityError;
                 double activityUpperLimit = selection.ActivityUpperLimit;
@@ -3856,8 +3862,8 @@ namespace BecquerelMonitor
                     g.DrawString(Resources.Ld_counts + " (" + confidencelevel_str + ")", this.Font, Brushes.Black, r2);
                     g.DrawString(Ld.ToString(floatFormat), this.Font, Brushes.Black, r2, this.farFormat);
                     r2.Y += 16;
-                    g.DrawString(Resources.MDA_cnts, this.Font, Brushes.Black, r2);
-                    g.DrawString(mda.ToString(floatFormat), this.Font, Brushes.Black, r2, this.farFormat);
+                    g.DrawString(Resources.Lq_counts, this.Font, Brushes.Black, r2);
+                    g.DrawString(Lq.ToString(floatFormat), this.Font, Brushes.Black, r2, this.farFormat);
                     r2.Y += 16;
                     if (this.selectionFWHM > 0.0 && activity > 0.0)
                     {
@@ -4543,7 +4549,7 @@ namespace BecquerelMonitor
 
             public double Ld { get; set; }
 
-            public double Mda { get; set; }
+            public double Lq { get; set; }
 
             public double Activity { get; set; }
 

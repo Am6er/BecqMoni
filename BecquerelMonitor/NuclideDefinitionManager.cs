@@ -59,10 +59,16 @@ namespace BecquerelMonitor
             {
                 NuclideDefinitionManager.instance.NuclideDefinitionFile = new NuclideDefinitionFile();
                 NuclideDefinitionManager.instance.InitializeNuclideDefinitionFile();
-                Directory.CreateDirectory("config");
-                if (NuclideDefinitionManager.instance.SaveDefinitionFile())
+                // Only CREATE a default file when none exists. A transient read error
+                // (file locked by antivirus/cloud sync) used to trigger an immediate
+                // overwrite of the user's NuclideDefinition.xml with the 4-nuclide default.
+                if (!File.Exists(NuclideDefinitionManager.instance.nuclideDefinitionFilename))
                 {
-                    MessageBox.Show(Resources.MSGNewNuclideDefinitionFileCreated, Resources.NotificationDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
+                    Directory.CreateDirectory(Path.GetDirectoryName(NuclideDefinitionManager.instance.nuclideDefinitionFilename));
+                    if (NuclideDefinitionManager.instance.SaveDefinitionFile())
+                    {
+                        MessageBox.Show(Resources.MSGNewNuclideDefinitionFileCreated, Resources.NotificationDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
+                    }
                 }
             }
             return NuclideDefinitionManager.instance;
@@ -99,10 +105,10 @@ namespace BecquerelMonitor
             XmlSerializer xmlSerializer = new XmlSerializer(typeof(NuclideDefinitionFile));
             try
             {
-                using (FileStream fileStream = new FileStream(nuclideDefinitionFilename, FileMode.Create))
+                Utils.AtomicFileWriter.Write(nuclideDefinitionFilename, fileStream =>
                 {
                     xmlSerializer.Serialize(fileStream, this.nuclideDefinitionFile);
-                }
+                });
             }
             catch (Exception)
             {

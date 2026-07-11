@@ -21,8 +21,10 @@ namespace BecquerelMonitor
         private int currentBLEindex = -1;
         private bool formLoading = false;
         private ObsidianDeviceConfig config;
-        private string tshootText = "";
-        private bool isRunning = false;
+        // volatile: written by the BLE thread (troubleshoot handler is invoked directly,
+        // without Post), read by the UI polling loop.
+        private volatile string tshootText = "";
+        private volatile bool isRunning = false;
 
         public ObsidianDeviceForm()
         {

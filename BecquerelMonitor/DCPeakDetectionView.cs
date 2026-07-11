@@ -65,9 +65,21 @@ namespace BecquerelMonitor
                     }
                 }
                 deviceConfigInfo = lastConfigInfo;
-                if (deviceConfigInfo != null) activeResultData.DeviceConfig.PeakDetectionMethodConfig = deviceConfigInfo.PeakDetectionMethodConfig;
+                if (deviceConfigInfo != null && deviceConfigInfo.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig fallbackConfig)
+                {
+                    activeResultData.DeviceConfig.PeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)fallbackConfig.Clone();
+                }
             }
-            if (deviceConfigInfo != null) activeResultData.PeakDetectionMethodConfig = deviceConfigInfo.PeakDetectionMethodConfig;
+            // Give the ResultData its OWN config copy only when it has none. The old code
+            // unconditionally assigned the device config's object (without Clone) on every
+            // refresh, so SNR/tolerance became shared between documents and edits mutated
+            // the global device config.
+            if (!(activeResultData.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig)
+                && deviceConfigInfo != null
+                && deviceConfigInfo.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig deviceMethodConfig)
+            {
+                activeResultData.PeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)deviceMethodConfig.Clone();
+            }
             if (!(activeResultData.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig fwhmPeakDetectionMethodConfig))
             {
                 this.tableModel1.Rows.Clear();
@@ -80,12 +92,28 @@ namespace BecquerelMonitor
             this.numericUpDown1.Minimum = 1;
             this.numericUpDown1.Maximum = 10000;
             this.numericUpDown1.Increment = 1;
-            this.numericUpDown1.Value = (decimal)fwhmPeakDetectionMethodConfig.Min_SNR;
+            // Don't overwrite a value the user is editing: this method runs every 2 s
+            // from the main timer during recording and used to reset the field.
+            if (!this.numericUpDown1.Focused)
+            {
+                decimal minSnr = (decimal)fwhmPeakDetectionMethodConfig.Min_SNR;
+                if (this.numericUpDown1.Value != minSnr)
+                {
+                    this.numericUpDown1.Value = minSnr;
+                }
+            }
 
             this.numericUpDown3.Minimum = 0;
             this.numericUpDown3.Maximum = 100;
             this.numericUpDown3.Increment = 0.1m;
-            this.numericUpDown3.Value = (decimal)fwhmPeakDetectionMethodConfig.Tolerance;
+            if (!this.numericUpDown3.Focused)
+            {
+                decimal tolerance = (decimal)fwhmPeakDetectionMethodConfig.Tolerance;
+                if (this.numericUpDown3.Value != tolerance)
+                {
+                    this.numericUpDown3.Value = tolerance;
+                }
+            }
 
             this.FormLoading = false;
             this.UpdatePeakDetectionResult();
@@ -94,7 +122,13 @@ namespace BecquerelMonitor
 
         public async void UpdatePeakDetectionResult()
         {
-            if (isProcessing) return;
+            if (isProcessing)
+            {
+                // Don't silently drop the request ("drop, not queue"): re-run once the
+                // current detection finishes, so e.g. an SNR change made mid-run is not lost.
+                refreshPending = true;
+                return;
+            }
             isProcessing = true;
 
             try
@@ -108,21 +142,60 @@ namespace BecquerelMonitor
                 FWHMPeakDetectionMethodConfig fWHMConfig = (FWHMPeakDetectionMethodConfig)activeResultData.PeakDetectionMethodConfig;
                 if (activeResultData.FwhmCalibration == null)
                 {
-                    // TODO нужно будет добавить обработку
-                    throw new NotImplementedException();
+                    // No calibration - nothing to detect. This used to throw
+                    // NotImplementedException, silently swallowed by the catch below.
+                    return;
                 }
+                // Snapshot the detection inputs on the UI thread before handing off to the
+                // background Task.Run. DetectPeak used to run against the live ResultData: the
+                // device loop mutates EnergySpectrum.Spectrum in place (via originalContext.Post
+                // on the UI thread) and the config fields can change mid-run, so the background
+                // thread could observe a half-written spectrum or a torn config. EnergySpectrum
+                // /config Clone() deep-copy their arrays, so the snapshot is fully detached.
+                ResultData snapshot = new ResultData
+                {
+                    EnergySpectrum = activeResultData.EnergySpectrum.Clone(),
+                    BackgroundEnergySpectrum = activeResultData.BackgroundEnergySpectrum != null
+                        ? activeResultData.BackgroundEnergySpectrum.Clone()
+                        : null,
+                    PeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)fWHMConfig.Clone(),
+                    // Clone the calibration too (guarded like ResultData.Clone): passing the live
+                    // reference let the background detector see a mid-edit FWHM calibration if the
+                    // user changed it via the UI during Task.Run.
+                    FwhmCalibration = activeResultData.FwhmCalibration != null
+                        ? activeResultData.FwhmCalibration.Clone()
+                        : null
+                };
+                BackgroundMode bgMode = activeDocument.EnergySpectrumView.BackgroundMode;
+                SmoothingMethod smoothMethod = activeDocument.EnergySpectrumView.SmoothingMethod;
+
                 PeakDetector peakDetector = new PeakDetector();
-                List<Peak> peaks = await Task.Run(() => peakDetector.DetectPeak(activeResultData,
-                    activeDocument.EnergySpectrumView.BackgroundMode,
-                    activeDocument.EnergySpectrumView.SmoothingMethod,
+                List<Peak> peaks = await Task.Run(() => peakDetector.DetectPeak(snapshot,
+                    bgMode,
+                    smoothMethod,
                     this.selectedNuclideSet));
                 activeResultData.DetectedPeaks = new List<Peak>(peaks);
-                RefreshTable();
+                // Refresh only if the user is still on the same document: RefreshTable()
+                // reads the CURRENT ActiveResultData and used to show peaks of a foreign
+                // spectrum after switching documents mid-detection.
+                if (this.mainForm.ActiveDocument == activeDocument)
+                {
+                    RefreshTable();
+                }
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                // Don't swallow silently - at least leave a trace.
+                System.Diagnostics.Trace.WriteLine("Peak detection failed: " + ex.Message);
+            }
             finally
             {
                 isProcessing = false;
+                if (refreshPending)
+                {
+                    refreshPending = false;
+                    UpdatePeakDetectionResult();
+                }
             }
         }
 
@@ -238,19 +311,29 @@ namespace BecquerelMonitor
             {
                 DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
                 ResultData activeResultData = activeDocument?.ActiveResultData;
-                DeviceConfigInfo deviceConfig = activeResultData?.DeviceConfig;
-                if (!(deviceConfig?.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig fwhmPeakDetectionMethodConfig))
+                // Mutate the per-document clone only. Taking the object from
+                // DeviceConfig.PeakDetectionMethodConfig, mutating it and assigning that same
+                // reference back into activeResultData.PeakDetectionMethodConfig used to alias
+                // the shared global device config into the ResultData, breaking the clone made
+                // in DocumentManager.PrepareDeviceConfig.
+                if (!(activeResultData?.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig fwhmPeakDetectionMethodConfig))
                 {
                     return;
                 }
 
                 fwhmPeakDetectionMethodConfig.UseDeconvolution = this.checkBoxDeconvolution.Checked;
-                activeResultData.PeakDetectionMethodConfig = fwhmPeakDetectionMethodConfig;
 
-                DeviceConfigManager deviceConfigManager = DeviceConfigManager.GetInstance();
-                if (!string.IsNullOrEmpty(deviceConfig.Guid) && deviceConfigManager.DeviceConfigMap.ContainsKey(deviceConfig.Guid))
+                // Persist the preference to the shared device config separately, without
+                // aliasing it into the ResultData clone.
+                DeviceConfigInfo deviceConfig = activeResultData.DeviceConfig;
+                if (deviceConfig?.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig deviceFwhmConfig)
                 {
-                    deviceConfigManager.SaveConfig(deviceConfig);
+                    deviceFwhmConfig.UseDeconvolution = this.checkBoxDeconvolution.Checked;
+                    DeviceConfigManager deviceConfigManager = DeviceConfigManager.GetInstance();
+                    if (!string.IsNullOrEmpty(deviceConfig.Guid) && deviceConfigManager.DeviceConfigMap.ContainsKey(deviceConfig.Guid))
+                    {
+                        deviceConfigManager.SaveConfig(deviceConfig);
+                    }
                 }
 
                 this.UpdatePeakDetectionResult();
@@ -399,5 +482,7 @@ namespace BecquerelMonitor
         private NuclideSet selectedNuclideSet = null;
 
         private bool isProcessing = false;
+
+        private bool refreshPending = false;
     }
 }

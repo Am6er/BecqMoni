@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel;
 using System.Windows.Forms;
 
@@ -92,6 +92,7 @@ namespace BecquerelMonitor
             }
 
             energyCalibration.Coefficients[2] = (double)numericUpDown1.Value;
+            energyCalibration.InvalidateCache();
             button.FireEnergyCalibrationChanged(new EnergyCalibrationChangedEventArgs(energyCalibration));
         }
 
@@ -103,6 +104,7 @@ namespace BecquerelMonitor
             }
 
             energyCalibration.Coefficients[1] = (double)numericUpDown2.Value;
+            energyCalibration.InvalidateCache();
             button.FireEnergyCalibrationChanged(new EnergyCalibrationChangedEventArgs(energyCalibration));
         }
 
@@ -114,6 +116,7 @@ namespace BecquerelMonitor
             }
 
             energyCalibration.Coefficients[0] = (double)numericUpDown3.Value;
+            energyCalibration.InvalidateCache();
             button.FireEnergyCalibrationChanged(new EnergyCalibrationChangedEventArgs(energyCalibration));
         }
 
@@ -149,6 +152,7 @@ namespace BecquerelMonitor
             }
 
             energyCalibration.Coefficients[2] = defaultEnergyCalibration.Coefficients[2];
+            energyCalibration.InvalidateCache();
             numericUpDown1.Value = (decimal)energyCalibration.Coefficients[2];
             button.FireEnergyCalibrationChanged(new EnergyCalibrationChangedEventArgs(energyCalibration));
         }
@@ -161,6 +165,7 @@ namespace BecquerelMonitor
             }
 
             energyCalibration.Coefficients[1] = defaultEnergyCalibration.Coefficients[1];
+            energyCalibration.InvalidateCache();
             numericUpDown2.Value = (decimal)energyCalibration.Coefficients[1];
             button.FireEnergyCalibrationChanged(new EnergyCalibrationChangedEventArgs(energyCalibration));
         }
@@ -173,6 +178,7 @@ namespace BecquerelMonitor
             }
 
             energyCalibration.Coefficients[0] = defaultEnergyCalibration.Coefficients[0];
+            energyCalibration.InvalidateCache();
             numericUpDown3.Value = (decimal)energyCalibration.Coefficients[0];
             button.FireEnergyCalibrationChanged(new EnergyCalibrationChangedEventArgs(energyCalibration));
         }

@@ -351,14 +351,25 @@ namespace BecquerelMonitor
             this.energySpectrum = old.EnergySpectrum;
             this.backgroundEnergySpectrum = old.BackgroundEnergySpectrum;
             this.pulseCollection = old.PulseCollection;
-            PolynomialEnergyCalibration polynomialEnergyCalibration = (PolynomialEnergyCalibration)this.energySpectrum.EnergyCalibration;
-            polynomialEnergyCalibration.Coefficients[2] = 0.0;
-            polynomialEnergyCalibration.Coefficients[1] = old.EnergyCoefficient;
-            polynomialEnergyCalibration.Coefficients[0] = old.EnergyOffset;
-            PolynomialEnergyCalibration polynomialEnergyCalibration2 = (PolynomialEnergyCalibration)this.backgroundEnergySpectrum.EnergyCalibration;
-            polynomialEnergyCalibration2.Coefficients[2] = 0.0;
-            polynomialEnergyCalibration2.Coefficients[1] = old.EnergyCoefficient;
-            polynomialEnergyCalibration2.Coefficients[0] = old.EnergyOffset;
+            // 0.93b stored a linear calibration as two scalars. Build a fresh linear
+            // calibration instead of writing Coefficients[2] into whatever array the
+            // deserializer produced (the default calibration has only 2 coefficients ->
+            // IndexOutOfRange) and only touch the background spectrum if it exists
+            // (old files without background -> NullReferenceException).
+            if (this.energySpectrum != null)
+            {
+                PolynomialEnergyCalibration polynomialEnergyCalibration = new PolynomialEnergyCalibration();
+                polynomialEnergyCalibration.PolynomialOrder = 1;
+                polynomialEnergyCalibration.Coefficients = new double[] { old.EnergyOffset, old.EnergyCoefficient };
+                this.energySpectrum.EnergyCalibration = polynomialEnergyCalibration;
+            }
+            if (this.backgroundEnergySpectrum != null)
+            {
+                PolynomialEnergyCalibration polynomialEnergyCalibration2 = new PolynomialEnergyCalibration();
+                polynomialEnergyCalibration2.PolynomialOrder = 1;
+                polynomialEnergyCalibration2.Coefficients = new double[] { old.EnergyOffset, old.EnergyCoefficient };
+                this.backgroundEnergySpectrum.EnergyCalibration = polynomialEnergyCalibration2;
+            }
         }
 
         public ResultData(ResultData_097b old)
@@ -389,12 +400,14 @@ namespace BecquerelMonitor
                 StartTime = this.StartTime,
                 EndTime = this.EndTime,
                 PresetTime = this.PresetTime,
-                BackgroundEnergySpectrum = this.BackgroundEnergySpectrum.Clone(),
+                BackgroundEnergySpectrum = this.BackgroundEnergySpectrum != null ? this.BackgroundEnergySpectrum.Clone() : null,
                 BackgroundSpectrumFile = this.BackgroundSpectrumFile,
                 BackgroundSpectrumPathname = this.BackgroundSpectrumPathname,
                 EnergySpectrum = this.EnergySpectrum.Clone(),
                 PulseCollection = this.PulseCollection.Clone(),
-                FwhmCalibration = this.FwhmCalibration.Clone()
+                // FwhmCalibration can legitimately be null (DefaultCalibration may fail
+                // on a non-monotonic default curve).
+                FwhmCalibration = this.FwhmCalibration != null ? this.FwhmCalibration.Clone() : null
             };
         }
 

@@ -149,7 +149,18 @@ namespace BecquerelMonitor
                                 data.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
                             } else
                             {
-                                data.EnergySpectrum.EnergyCalibration = pol.Downgrade(zerosCount);
+                                // Downgrade takes the TARGET polynomial order, not the number of
+                                // trailing zero coefficients (passing zerosCount silently discarded
+                                // valid middle terms, e.g. order-4 with one zero -> linear).
+                                PolynomialEnergyCalibration downgraded = (PolynomialEnergyCalibration)pol.Downgrade(pol.Coefficients.Length - 1 - zerosCount);
+                                if (downgraded.CheckCalibration(channels: data.EnergySpectrum.NumberOfChannels))
+                                {
+                                    data.EnergySpectrum.EnergyCalibration = downgraded;
+                                }
+                                else
+                                {
+                                    data.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
+                                }
                             }
                         } else
                         {
@@ -210,13 +221,19 @@ namespace BecquerelMonitor
                                 {
                                     data.BackgroundEnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
                                 }
-                                else if (zerosCount == 1)
-                                {
-                                    data.BackgroundEnergySpectrum.EnergyCalibration = pol.Downgrade(1);
-                                }
                                 else
                                 {
-                                    data.BackgroundEnergySpectrum.EnergyCalibration = pol.Downgrade(zerosCount);
+                                    // See the foreground branch above: Downgrade expects the
+                                    // target order, not zerosCount.
+                                    PolynomialEnergyCalibration downgraded = (PolynomialEnergyCalibration)pol.Downgrade(pol.Coefficients.Length - 1 - zerosCount);
+                                    if (downgraded.CheckCalibration(channels: data.BackgroundEnergySpectrum.NumberOfChannels))
+                                    {
+                                        data.BackgroundEnergySpectrum.EnergyCalibration = downgraded;
+                                    }
+                                    else
+                                    {
+                                        data.BackgroundEnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
+                                    }
                                 }
                             }
                             else
@@ -270,7 +287,6 @@ namespace BecquerelMonitor
                 }
             }
             DocEnergySpectrum docEnergySpectrum2 = new DocEnergySpectrum(filename);
-            GC.Collect();
             Cursor.Current = Cursors.WaitCursor;
             try
             {
@@ -336,6 +352,13 @@ namespace BecquerelMonitor
                 resultDataStatus.TimeInSamples = resultData2.EnergySpectrum.NumberOfSamples;
                 resultData2.ResultDataStatus = resultDataStatus;
                 resultData2.MeasurementController = new MeasurementController(docEnergySpectrum2, resultData2);
+            }
+            // A file with an empty <ResultDataList/> passes CheckDocument (empty loop);
+            // indexing [0] here used to crash outside any try/catch.
+            if (docEnergySpectrum2.ResultDataFile.ResultDataList.Count == 0)
+            {
+                MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ""));
+                return null;
             }
             docEnergySpectrum2.ResultDataFile.ResultDataList[0].Selected = true;
             docEnergySpectrum2.UpdateEnergySpectrum();
@@ -410,7 +433,12 @@ namespace BecquerelMonitor
                 resultData2.ResultDataStatus = resultDataStatus;
                 resultData2.MeasurementController = new MeasurementController(doc, resultData2);
             }
-            doc.ResultDataFile.ResultDataList[0].Selected = true;
+            // Select the first spectrum of the LOADED file (the old code set the flag on
+            // the receiving document instead) and guard against an empty list.
+            if (resultDataFile.ResultDataList.Count > 0)
+            {
+                resultDataFile.ResultDataList[0].Selected = true;
+            }
             return resultDataFile;
         }
 
@@ -442,7 +470,6 @@ namespace BecquerelMonitor
                 }
             }
             DocEnergySpectrum docEnergySpectrum2 = new DocEnergySpectrum(filename);
-            GC.Collect();
             try
             {
                 Cursor.Current = Cursors.WaitCursor;
@@ -494,7 +521,6 @@ namespace BecquerelMonitor
 
         public void ImportDocumentSpecUtils(DocEnergySpectrum doc, string filepath, int presettime)
         {
-            GC.Collect();
             IntPtr file_h = IntPtr.Zero;
 
             try
@@ -737,7 +763,6 @@ namespace BecquerelMonitor
 
         public void ImportDocumentGBS(DocEnergySpectrum doc, string filePath)
         {
-            GC.Collect();
 
             SampleInfoData info = doc.ActiveResultData.SampleInfo;
 
@@ -820,7 +845,10 @@ namespace BecquerelMonitor
                         points.Add(point);
                     }
 
-                    double[] matrix = Utils.CalibrationSolver.Solve(points, numpoints - 1);
+                    // Clamp the polynomial order to 4 (the maximum PolynomialEnergyCalibration
+                    // supports): "order = number of points - 1" without a limit produced a
+                    // calibration that crashed later at draw time.
+                    double[] matrix = Utils.CalibrationSolver.Solve(points, Math.Min(4, numpoints - 1));
                     PolynomialEnergyCalibration energyCalibration = (PolynomialEnergyCalibration)energySpectrum.EnergyCalibration;
                     energyCalibration.Coefficients = new double[matrix.Length];
                     energyCalibration.PolynomialOrder = matrix.Length - 1;
@@ -857,7 +885,6 @@ namespace BecquerelMonitor
 
         public void ImportDocumentAtomSpectra(DocEnergySpectrum doc, string filePath)
         {
-            GC.Collect();
 
             try
             {
@@ -907,7 +934,6 @@ namespace BecquerelMonitor
             
 
             EnergySpectrum energySpectrum = doc.ActiveResultData.EnergySpectrum;
-            energySpectrum.Initialize();
             ResultDataStatus resultDataStatus = doc.ActiveResultData.ResultDataStatus;
             SampleInfoData info = doc.ActiveResultData.SampleInfo;
 
@@ -920,6 +946,8 @@ namespace BecquerelMonitor
                     string fileformat = streamReader.ReadLine();
                     if (fileformat != "FORMAT: 3")
                     {
+                        // Note: Initialize() used to run BEFORE this check, so opening a
+                        // file of the wrong format wiped the current spectrum.
                         throw new Exception(String.Format(Resources.ERROpenAtomSpectraFormat, fileformat));
                     }
                     else
@@ -966,6 +994,9 @@ namespace BecquerelMonitor
                             coefficients[i] = XmlConvert.ToDouble(streamReader.ReadLine().Replace(',', '.'));
                         }
 
+                        // Wipe the old spectrum only now, when the header has been parsed
+                        // and channel data is about to be read.
+                        energySpectrum.Initialize();
                         long TotalPulseCount = 0;
                         for (int i = 0; i < energySpectrum.Spectrum.Length; i++)
                         {
@@ -1038,10 +1069,8 @@ namespace BecquerelMonitor
 
         public void ImportDocumentN42(DocEnergySpectrum doc, string filename)
         {
-            GC.Collect();
 
             EnergySpectrum energySpectrum = doc.ActiveResultData.EnergySpectrum;
-            energySpectrum.Initialize();
 
             bool importWithEmtyConfig = GlobalConfigManager.GetInstance().GlobalConfig.ImportSpectrumWithEmptyConfig;
 
@@ -1053,6 +1082,9 @@ namespace BecquerelMonitor
                 XmlSerializer ser = new XmlSerializer(n42Type);
                 Util util = new Util();
 
+                // Wipe the current spectrum only AFTER deserialization has succeeded.
+                // Initialize() used to run before Deserialize, so a file with a recognized
+                // root element but a broken body zeroed the open document before throwing.
                 if (n42Type == typeof(RadInstrumentData))
                 {
                     //Add DHS namespace for Interspec compatibility
@@ -1069,6 +1101,7 @@ namespace BecquerelMonitor
                     {
                         n42object = (RadInstrumentData)ser.Deserialize(reader);
                     }
+                    energySpectrum.Initialize();
                     if (importWithEmtyConfig)
                     {
                         this.ResetSpectrumConfig(doc.ActiveResultData, util.N42_2012_getChannels(n42object));
@@ -1081,6 +1114,7 @@ namespace BecquerelMonitor
                     {
                         n42object = (RadiologicalInstrumentData)ser.Deserialize(reader);
                     }
+                    energySpectrum.Initialize();
                     if (importWithEmtyConfig)
                     {
                         this.ResetSpectrumConfig(doc.ActiveResultData, n42object.MeasurementGroup.Measurement.Spectrum.ChannelData.NumberOfChannels);
@@ -1093,6 +1127,7 @@ namespace BecquerelMonitor
                     {
                         n42object = (N42InstrumentData)ser.Deserialize(reader);
                     }
+                    energySpectrum.Initialize();
                     if (importWithEmtyConfig)
                     {
                         this.ResetSpectrumConfig(doc.ActiveResultData, util.N42_2006_getChannels(n42object));
@@ -1128,7 +1163,6 @@ namespace BecquerelMonitor
 
         public void ExportDocumentAtomSpectra(DocEnergySpectrum doc)
         {
-            GC.Collect();
             SaveFileDialog saveFileDialog = new SaveFileDialog();
             saveFileDialog.Title = Resources.AtomSpectraExportDialogTitle;
             saveFileDialog.Filter = Resources.AtomSpectraFileFilter;
@@ -1221,12 +1255,14 @@ namespace BecquerelMonitor
                 RadInstrumentData radN42Object = util.ExportToN42(doc);
                 XmlSerializer xmlSerializer = new XmlSerializer(typeof(RadInstrumentData));
 
-                using (FileStream fileStream = new FileStream(fileName, FileMode.Create))
-                using (XmlWriter writer = XmlWriter.Create(fileStream, xmlSettings))
+                Utils.AtomicFileWriter.Write(fileName, fileStream =>
                 {
-                    xmlSerializer.Serialize(writer, radN42Object);
-                    writer.Flush();
-                }
+                    using (XmlWriter writer = XmlWriter.Create(fileStream, xmlSettings))
+                    {
+                        xmlSerializer.Serialize(writer, radN42Object);
+                        writer.Flush();
+                    }
+                });
             }
             catch (Exception ex)
             {
@@ -1252,12 +1288,16 @@ namespace BecquerelMonitor
             {
                 XmlSerializer xmlSerializer = new XmlSerializer(typeof(ResultDataFile));
 
-                using (FileStream fileStream = new FileStream(doc.Filename, FileMode.Create))
-                using (XmlWriter writer = XmlWriter.Create(fileStream, xmlSettings))
+                // Atomic save: the old FileMode.Create truncated the target before
+                // serialization, so any error destroyed the last good spectrum file.
+                Utils.AtomicFileWriter.Write(doc.Filename, fileStream =>
                 {
-                    xmlSerializer.Serialize(writer, resultDataFile);
-                    writer.Flush();
-                }
+                    using (XmlWriter writer = XmlWriter.Create(fileStream, xmlSettings))
+                    {
+                        xmlSerializer.Serialize(writer, resultDataFile);
+                        writer.Flush();
+                    }
+                });
             }
             catch (Exception ex)
             {
@@ -1268,7 +1308,9 @@ namespace BecquerelMonitor
             {
                 Cursor.Current = Cursors.Default;
             }
-            doc.Dirty = doc.ActiveResultData.ResultDataStatus.Recording;
+            // A document stays dirty if ANY of its spectra is still recording,
+            // not only the active one.
+            doc.Dirty = resultDataFile.ResultDataList.Any(rd => rd.ResultDataStatus.Recording);
             return true;
         }
 
@@ -1578,6 +1620,9 @@ namespace BecquerelMonitor
 
                 message += "\n\n---\nExpected format:\nChannel,Counts (TotalTime=3600.3s)\n0,0\n1,324\n2,376\n...\n";
                 MessageBox.Show(message);
+                // Abort the import: falling through used to wipe the current spectrum
+                // (Initialize below) and write partially parsed data into the document.
+                return;
             }
             
             bool importWithEmtyConfig = GlobalConfigManager.GetInstance().GlobalConfig.ImportSpectrumWithEmptyConfig;
@@ -1708,6 +1753,9 @@ namespace BecquerelMonitor
                 message += "\n\n---\nExpected format:\nEnergy,Count #0d6h13m30s\n5.65,2933\n...\n";
 
                 MessageBox.Show(message);
+                // Abort the import: falling through used to wipe the current spectrum
+                // and write partially parsed data into the document.
+                return;
             }
 
             bool importWithEmtyConfig = GlobalConfigManager.GetInstance().GlobalConfig.ImportSpectrumWithEmptyConfig;

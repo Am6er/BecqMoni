@@ -36,7 +36,12 @@
         // Token: 0x0600023E RID: 574 RVA: 0x000090DC File Offset: 0x000072DC
         public void Add(Pulse pulse)
         {
-            this.pulses.Add(pulse);
+            // Same lock as PulseData.WriteXml: adds come from the WaveIn thread while
+            // the UI thread may be serializing the document.
+            lock (this.pulses)
+            {
+                this.pulses.Add(pulse);
+            }
         }
 
         // Token: 0x1700010E RID: 270
@@ -55,14 +60,28 @@
         // Token: 0x06000242 RID: 578 RVA: 0x0000912C File Offset: 0x0000732C
         public void Clear()
         {
-            this.pulses.Clear();
+            lock (this.pulses)
+            {
+                this.pulses.Clear();
+            }
         }
 
         public PulseCollection Clone()
         {
+            // Deep copy. The old implementation copied the PulseData REFERENCE, so a
+            // derived document (Concat/Cutoff/Normalize) shared the pulse list with the
+            // original: clearing the clone wiped the source's raw pulses.
             PulseCollection pulseCollection = new PulseCollection();
             pulseCollection.Format = this.Format;
-            pulseCollection.Pulses = this.Pulses;
+            PulseData copy = new PulseData();
+            lock (this.pulses)
+            {
+                foreach (Pulse pulse in this.pulses)
+                {
+                    copy.Add(new Pulse(pulse.Time, pulse.Height, pulse.Width));
+                }
+            }
+            pulseCollection.Pulses = copy;
             return pulseCollection;
         }
 

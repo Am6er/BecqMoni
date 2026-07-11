@@ -92,6 +92,11 @@ namespace BecquerelMonitor
         {
             if (!this.ConfirmSaveDeviceConfig())
             {
+                // Actually cancel the close. A bare return let the form close anyway
+                // while skipping the cleanup below (the 50 ms AudioInputDeviceForm timer
+                // then kept poking disposed controls, and ChannelPickuped stayed
+                // subscribed).
+                e.Cancel = true;
                 return;
             }
             if (this.inputDeviceForm != null)
@@ -827,6 +832,9 @@ namespace BecquerelMonitor
                 }
                 polynomialEnergyCalibration.Coefficients[1] = double.Parse(this.numericUpDown2.Text);
                 polynomialEnergyCalibration.Coefficients[0] = double.Parse(this.numericUpDown7.Text);
+                // Element writes bypass the property setter - drop the stale
+                // EnergyToChannel cache explicitly.
+                polynomialEnergyCalibration.InvalidateCache();
                 if (config.StabilizerConfig == null)
                 {
                     config.StabilizerConfig = new StabilizerConfig();
@@ -1068,6 +1076,7 @@ namespace BecquerelMonitor
                 {
                     if (pe.Coefficients[order] == result) return;
                     pe.Coefficients[order] = result;
+                    pe.InvalidateCache();
                     this.activeDeviceConfig.EnergyCalibration = (PolynomialEnergyCalibration)pe;
                 }
                 t.ForeColor = Color.Black;
@@ -1329,22 +1338,24 @@ namespace BecquerelMonitor
                             this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString();
                             this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString();
                             SetActiveDeviceConfigDirty();
-                            if (!runexist)
-                            {
-                                device.Dispose();
-                            }
                             return;
                         }
                     }
                     MessageBox.Show(String.Format(Resources.ERRReadDataFromPort, deviceconfig.DeviceSerial));
-                    if (!runexist)
-                    {
-                        device.Dispose();
-                    }
                 }
                 catch
                 {
                     MessageBox.Show(Resources.ERRReadDataFromPort_Empty);
+                }
+                finally
+                {
+                    // The locally created RadiaCodeIn bypasses the static instances
+                    // registry (finishAll cannot see it), so it MUST be disposed here -
+                    // including on exceptions, which used to leak its BLE threads.
+                    if (!runexist)
+                    {
+                        device.Dispose();
+                    }
                 }
             }
             else if (this.activeDeviceConfig.DeviceType == "Obsidian")
@@ -1395,6 +1406,10 @@ namespace BecquerelMonitor
         {
             this.button14.Enabled = false;
 
+            // Capture UI state on the UI thread: DoWork used to read this.button6.Enabled
+            // from the worker thread (illegal cross-thread control access).
+            bool configNotSaved = this.button6.Enabled;
+
             BackgroundWorker worker = new BackgroundWorker();
             worker.WorkerReportsProgress = true;
             worker.DoWork += new DoWorkEventHandler(delegate (object o, DoWorkEventArgs args)
@@ -1404,7 +1419,7 @@ namespace BecquerelMonitor
 
                 if (this.activeDeviceConfig.DeviceType == "AtomSpectraVCP")
                 {
-                    if (this.button6.Enabled)
+                    if (configNotSaved)
                     {
                         ShowOwnedMessageBox(Resources.MSGSaveBeforeWritingData);
                         return;
@@ -1508,7 +1523,7 @@ namespace BecquerelMonitor
                     }
                 } else if (this.activeDeviceConfig.DeviceType == "RadiaCode")
                 {
-                    if (this.button6.Enabled)
+                    if (configNotSaved)
                     {
                         ShowOwnedMessageBox(Resources.MSGSaveBeforeWritingData);
                         return;
@@ -1548,32 +1563,40 @@ namespace BecquerelMonitor
                         }
                         string status_msg = "";
 
-                        device.setCalibration(polynomialEnergyCalibration);
-
-                        device.sendCommand("Calibration");
-
-                        for (int i = 0; i < 100; i++)
+                        try
                         {
-                            Thread.Sleep(100);
-                            if (device.getStateString() == "Calibration done")
+                            device.setCalibration(polynomialEnergyCalibration);
+
+                            device.sendCommand("Calibration");
+
+                            for (int i = 0; i < 100; i++)
                             {
-                                commands_accepted = true;
-                                b.ReportProgress(100);
-                                break;
-                            } else if (device.getStateString() == "Calibration fail")
-                            {
-                                commands_accepted = false;
-                                b.ReportProgress(100);
-                                break;
+                                Thread.Sleep(100);
+                                if (device.getStateString() == "Calibration done")
+                                {
+                                    commands_accepted = true;
+                                    b.ReportProgress(100);
+                                    break;
+                                } else if (device.getStateString() == "Calibration fail")
+                                {
+                                    commands_accepted = false;
+                                    b.ReportProgress(100);
+                                    break;
+                                }
                             }
                         }
-
-                        if (!runexist)
+                        finally
                         {
-                            device.Dispose();
-                        } else
-                        {
-                            device.sendCommand("Continue");
+                            // The locally created RadiaCodeIn bypasses the instances
+                            // registry, so dispose it even on exceptions (it used to
+                            // leak its BLE threads).
+                            if (!runexist)
+                            {
+                                device.Dispose();
+                            } else
+                            {
+                                device.sendCommand("Continue");
+                            }
                         }
                         Cursor.Current = Cursors.Default;
                         if (commands_accepted)
@@ -1592,7 +1615,7 @@ namespace BecquerelMonitor
                 }
                 else if (this.activeDeviceConfig.DeviceType == "Obsidian")
                 {
-                    if (this.button6.Enabled)
+                    if (configNotSaved)
                     {
                         ShowOwnedMessageBox(Resources.MSGSaveBeforeWritingData);
                         return;
@@ -1649,6 +1672,11 @@ namespace BecquerelMonitor
             {
                 mainForm.ClearStatusTextLeft();
                 this.button14.Enabled = true;
+                // Errors from DoWork used to be silently swallowed.
+                if (args.Error != null)
+                {
+                    ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + args.Error.Message);
+                }
             });
 
             worker.RunWorkerAsync();
@@ -1732,7 +1760,9 @@ namespace BecquerelMonitor
             if (activeDocument != null)
             {
                 this.channelPickupProcessing = true;
-                activeDocument.EnergySpectrumView.ChannelPickuped += this.energySpectrumView_ChannelPickuped;
+                // Remember the subscribed view - see ClearChannelPickupState.
+                this.pickupSubscribedView = activeDocument.EnergySpectrumView;
+                this.pickupSubscribedView.ChannelPickuped += this.energySpectrumView_ChannelPickuped;
             }
             this.UpdateMultipointButtonState();
         }
@@ -1782,11 +1812,12 @@ namespace BecquerelMonitor
         // Token: 0x06000538 RID: 1336 RVA: 0x00021B84 File Offset: 0x0001FD84
         void ClearChannelPickupState()
         {
-            MainForm mainForm = (MainForm)base.Owner;
-            DocEnergySpectrum activeDocument = mainForm.ActiveDocument;
-            if (activeDocument != null)
+            // Unsubscribe from the view we actually subscribed to, not from whatever
+            // document happens to be active now.
+            if (this.pickupSubscribedView != null)
             {
-                activeDocument.EnergySpectrumView.ChannelPickuped -= this.energySpectrumView_ChannelPickuped;
+                this.pickupSubscribedView.ChannelPickuped -= this.energySpectrumView_ChannelPickuped;
+                this.pickupSubscribedView = null;
             }
             this.channelPickupProcessing = false;
             this.UpdateMultipointButtonState();
@@ -2340,6 +2371,8 @@ namespace BecquerelMonitor
 
         // Token: 0x040002BF RID: 703
         bool channelPickupProcessing;
+
+        EnergySpectrumView pickupSubscribedView;
 
         // Token: 0x040002C0 RID: 704
         bool calibrationDone;

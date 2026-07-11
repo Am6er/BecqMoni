@@ -76,10 +76,10 @@ namespace BecquerelMonitor
             XmlSerializer xmlSerializer = new XmlSerializer(typeof(GlobalConfigInfo));
             try
             {
-                using (FileStream fileStream = new FileStream(becqMoniMainConfig, FileMode.Create))
+                Utils.AtomicFileWriter.Write(becqMoniMainConfig, fileStream =>
                 {
                     xmlSerializer.Serialize(fileStream, this.globalConfig);
-                }
+                });
             }
             catch (Exception)
             {

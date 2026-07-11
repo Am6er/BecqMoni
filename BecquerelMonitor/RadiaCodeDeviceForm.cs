@@ -22,7 +22,9 @@ namespace BecquerelMonitor
         private int currentBLEindex = -1;
         bool formLoading = false;
         private RadiaCodeDeviceConfig config;
-        private string tshootText = "";
+        // volatile: written by the BLE thread (troubleshoot handler is invoked directly,
+        // without Post), read by the UI polling loop.
+        private volatile string tshootText = "";
 
         public RadiaCodeDeviceForm()
         {
@@ -238,7 +240,7 @@ namespace BecquerelMonitor
             return true;
         }
 
-        bool isRunning = false;
+        volatile bool isRunning = false;
 
         private void troubleShootbtn_Click(object sender, EventArgs e)
         {
