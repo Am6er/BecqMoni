@@ -702,7 +702,7 @@ namespace BecquerelMonitor
                         analytics.Lc = ROIAriphmetics.CalculateLc(bgCounts, bgTime, fgTime, limitsConfidenceLevel);
                         analytics.Lu = ROIAriphmetics.CalculateLu(fgCounts, fgTime, bgCounts, bgTime, limitsConfidenceLevel);
                         analytics.Ld = ROIAriphmetics.CalculateLd(bgCounts, bgTime, fgTime, limitsConfidenceLevel);
-                        analytics.Lq = ROIAriphmetics.CalculateLqCounts(bgCounts, bgTime, fgTime, detectionLevel);
+                        analytics.Lq = ROIAriphmetics.CalculateLqCounts(bgCounts, bgTime, fgTime, limitsConfidenceLevel);
 
                         if (this.peakMode == PeakMode.Visible && analytics.SelectionFWHM > 0.0 &&
                             this.activeResultData.Visible &&
