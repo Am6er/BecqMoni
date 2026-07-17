@@ -1356,18 +1356,17 @@ namespace BecquerelMonitor
                             result = last_value + (short)(((buffer[i + 1] & 0xFF) << 8) | (buffer[i] & 0xFF)); i += 2; break;
                         case 4:
                             {
-                                // MDID_S24: signed 24-bit delta. The device reference
-                                // decoder consumes three bytes per value and one padding
-                                // byte after the whole S24 block (ZipPrm.SrcPtr = ++src).
+                                // MDID_S24: signed 24-bit delta. Per the device firmware
+                                // coder (RCSpectrumCoder::Decode_S24) exactly three bytes
+                                // are consumed per value, with no padding after the block.
+                                // Note: the spec's example decoder has a spurious
+                                // "ZipPrm.SrcPtr = ++src" (extra byte skip) — that is a
+                                // documentation bug, do not replicate it.
                                 int diff24 = buffer[i]
                                     | (buffer[i + 1] << 8)
                                     | ((sbyte)buffer[i + 2] << 16);
                                 result = unchecked(last_value + diff24);
                                 i += 3;
-                                if (j == count_occurences - 1)
-                                {
-                                    i++;
-                                }
                                 break;
                             }
                         case 5:
