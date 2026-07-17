@@ -59,6 +59,13 @@ namespace BecquerelMonitor
         private readonly object watcherLock = new object();
         private bool trshoot = false;
         private int trshootCount = 0;
+        // One-shot guard: the reader thread waits for the initial discovery scan to finish before
+        // its very first connect attempt (wake-before-connect), so attempt #1 no longer races.
+        private volatile bool initialDiscoveryJoined = false;
+        // Troubleshoot-only: track whether the target device is actually advertising during the
+        // discovery window (helps tell "device out of range / silent" apart from "GATT failed").
+        private volatile int discoveryAdvCount = 0;
+        private volatile short discoveryLastRssi = 0;
         private static readonly object instancesLock = new object();
 
         private enum State
@@ -187,13 +194,48 @@ namespace BecquerelMonitor
             }
         }
 
+        // --- Troubleshoot diagnostic helpers (used only on the troubleshoot path) ---
+        private static long ElapsedMs(Stopwatch sw)
+        {
+            return sw != null ? sw.ElapsedMilliseconds : -1;
+        }
+
+        private static string FormatProtocolError(byte? protocolError)
+        {
+            return protocolError.HasValue ? $"0x{protocolError.Value:X2}" : "none";
+        }
+
+        private static string SafeConnStatus(BluetoothLEDevice device)
+        {
+            if (device == null)
+            {
+                return "n/a";
+            }
+            try
+            {
+                return device.ConnectionStatus.ToString();
+            }
+            catch (Exception)
+            {
+                return "unavailable";
+            }
+        }
+
         private void setStatus(State nextState)
         {
             string nextStatus;
+            State prevState;
             lock (stateLock)
             {
+                prevState = state;
                 state = nextState;
                 nextStatus = GetStateString(nextState);
+            }
+            // Diagnostics only (troubleshoot form): make the state machine's path visible so the
+            // disconnect -> connect -> reconnect cycle behind a failed first attempt is readable.
+            if (prevState != nextState)
+            {
+                sendTroubleShoot($"State: {GetStateString(prevState)} -> {nextStatus}");
             }
             if (Status != null)
             {
@@ -276,18 +318,24 @@ namespace BecquerelMonitor
                 BluetoothAdapter adapter = BluetoothAdapter.GetDefaultAsync().AsTask().GetAwaiter().GetResult();
                 if (adapter != null)
                 {
+                    sendTroubleShoot($"BT adapter: address={adapter.BluetoothAddress:X12}, lowEnergySupported={adapter.IsLowEnergySupported}, centralRoleSupported={adapter.IsCentralRoleSupported}");
                     Radio btRadio = adapter.GetRadioAsync().AsTask().GetAwaiter().GetResult();
                     if (btRadio.State != RadioState.On)
                     {
                         Trace.WriteLine("BT was disabled, enabling it");
-                        sendTroubleShoot("BT was disabled, enabling it.");
-                        btRadio.SetStateAsync(RadioState.On).AsTask().GetAwaiter().GetResult();
+                        sendTroubleShoot($"BT radio '{btRadio.Name}' was {btRadio.State}, enabling it.");
+                        RadioAccessStatus setResult = btRadio.SetStateAsync(RadioState.On).AsTask().GetAwaiter().GetResult();
+                        sendTroubleShoot($"BT radio enable result: {setResult}");
                     }
                     else
                     {
                         Trace.WriteLine($"BT status: {btRadio.State}");
-                        sendTroubleShoot($"BT status: {btRadio.State}");
+                        sendTroubleShoot($"BT radio '{btRadio.Name}' status: {btRadio.State}");
                     }
+                }
+                else
+                {
+                    sendTroubleShoot("BT adapter not found (GetDefaultAsync returned null).");
                 }
             }
             catch (Exception ex)
@@ -314,6 +362,9 @@ namespace BecquerelMonitor
                 watcher.ScanningMode = BluetoothLEScanningMode.Active;
                 watcher.Received -= Watcher_Recived;
                 watcher.Received += Watcher_Recived;
+                discoveryAdvCount = 0;
+                discoveryLastRssi = 0;
+                sendTroubleShoot($"Discovery: 5s active scan to wake device (target addr={addressble})...");
                 try
                 {
                     watcher.Start();
@@ -323,19 +374,39 @@ namespace BecquerelMonitor
                 {
                     // No MessageBox from the reader thread: it blocked BLE reception.
                     Trace.WriteLine($"Error doing discovery: {ex.Message}: {ex.StackTrace}");
+                    sendTroubleShoot($"Error doing discovery: {ex.Message}");
                     RaisePortFailure();
                 }
                 finally
                 {
                     watcher.Stop();
                     watcher.Received -= Watcher_Recived;
+                    sendTroubleShoot($"Discovery finished (watcher status={watcher.Status}): {discoveryAdvCount} advertisement(s) from target seen" +
+                        (discoveryAdvCount > 0 ? $", last RSSI={discoveryLastRssi} dBm." : " — device did not advertise in this window."));
                 }
             }
         }
 
         private void Watcher_Recived(BluetoothLEAdvertisementWatcher sender, BluetoothLEAdvertisementReceivedEventArgs args)
         {
-            return;
+            // Troubleshoot-only bookkeeping: count how many advertisements the target device
+            // emits during the discovery window. No effect on the normal (non-troubleshoot) path.
+            if (!trshoot || args == null)
+            {
+                return;
+            }
+            try
+            {
+                ulong target;
+                if (addressble != null && ulong.TryParse(addressble, out target) && args.BluetoothAddress == target)
+                {
+                    discoveryAdvCount++;
+                    discoveryLastRssi = args.RawSignalStrengthInDBm;
+                }
+            }
+            catch (Exception)
+            {
+            }
         }
 
         private bool ConnectBLE(string addrBLE)
@@ -348,48 +419,60 @@ namespace BecquerelMonitor
             {
                 lock (connectionLock)
                 {
+                    Stopwatch sw = trshoot ? Stopwatch.StartNew() : null;
                     Trace.WriteLine($"Try to connect BLE at addr: {addrBLE}");
                     sendTroubleShoot($"Try to connect BLE at addr: {addrBLE}");
                     localDevice = BluetoothLEDevice.FromBluetoothAddressAsync(Convert.ToUInt64(addrBLE)).AsTask().GetAwaiter().GetResult();
                     if (localDevice == null)
                     {
-                        sendTroubleShoot("Failed to create BLE device from address.");
+                        sendTroubleShoot($"Failed to create BLE device from address (FromBluetoothAddressAsync returned null after {ElapsedMs(sw)} ms).");
                         return false;
+                    }
+                    // Windows caches a BluetoothLEDevice even when it is not yet connected; the very
+                    // first GATT query is what actually forces the connection, and it commonly fails
+                    // with Unreachable if the device just started advertising. Report the pre-query
+                    // connection status so a "not yet connected" first attempt is obvious.
+                    if (trshoot)
+                    {
+                        string preConnStatus;
+                        try { preConnStatus = localDevice.ConnectionStatus.ToString(); } catch (Exception) { preConnStatus = "unavailable"; }
+                        sendTroubleShoot($"BLE device resolved in {ElapsedMs(sw)} ms: name='{localDevice.Name}', connStatus={preConnStatus}");
                     }
 
                     GattDeviceServicesResult servicesResult = localDevice.GetGattServicesForUuidAsync(Guid.Parse(OBS_HISTORY_SERVICE)).AsTask().GetAwaiter().GetResult();
                     if (servicesResult == null || servicesResult.Status != GattCommunicationStatus.Success || servicesResult.Services.Count == 0)
                     {
-                        sendTroubleShoot($"Failed to get GATT service. Status={servicesResult?.Status}");
+                        sendTroubleShoot($"Failed to get GATT service after {ElapsedMs(sw)} ms. Status={servicesResult?.Status}, protocolError={FormatProtocolError(servicesResult?.ProtocolError)}, serviceCount={(servicesResult != null ? servicesResult.Services.Count : 0)}, connStatus={SafeConnStatus(localDevice)}");
                         return false;
                     }
+                    sendTroubleShoot($"GATT history service acquired after {ElapsedMs(sw)} ms.");
 
                     localService = servicesResult.Services[0];
                     GattCharacteristicsResult writeResult = localService.GetCharacteristicsForUuidAsync(Guid.Parse(OBS_COMMAND_CHARACTERISTIC)).AsTask().GetAwaiter().GetResult();
                     if (writeResult == null || writeResult.Status != GattCommunicationStatus.Success || writeResult.Characteristics.Count == 0)
                     {
-                        sendTroubleShoot($"Failed to get write characteristic. Status={writeResult?.Status}");
+                        sendTroubleShoot($"Failed to get write characteristic after {ElapsedMs(sw)} ms. Status={writeResult?.Status}, protocolError={FormatProtocolError(writeResult?.ProtocolError)}");
                         return false;
                     }
 
                     localWriteCharacteristic = writeResult.Characteristics[0];
                     if (!CanWrite(localWriteCharacteristic))
                     {
-                        sendTroubleShoot("Write characteristic does not support write operations.");
+                        sendTroubleShoot($"Write characteristic does not support write operations (properties={localWriteCharacteristic.CharacteristicProperties}).");
                         return false;
                     }
 
                     GattCharacteristicsResult notifyResult = localService.GetCharacteristicsForUuidAsync(Guid.Parse(OBS_NOTIFY_CHARACTERISTIC)).AsTask().GetAwaiter().GetResult();
                     if (notifyResult == null || notifyResult.Status != GattCommunicationStatus.Success || notifyResult.Characteristics.Count == 0)
                     {
-                        sendTroubleShoot($"Failed to get notify characteristic. Status={notifyResult?.Status}");
+                        sendTroubleShoot($"Failed to get notify characteristic after {ElapsedMs(sw)} ms. Status={notifyResult?.Status}, protocolError={FormatProtocolError(notifyResult?.ProtocolError)}");
                         return false;
                     }
 
                     localNotifyCharacteristic = notifyResult.Characteristics[0];
                     if (!localNotifyCharacteristic.CharacteristicProperties.HasFlag(GattCharacteristicProperties.Notify))
                     {
-                        sendTroubleShoot("Notify characteristic does not support notifications.");
+                        sendTroubleShoot($"Notify characteristic does not support notifications (properties={localNotifyCharacteristic.CharacteristicProperties}).");
                         return false;
                     }
 
@@ -400,9 +483,10 @@ namespace BecquerelMonitor
                     if (cccdStatus != GattCommunicationStatus.Success)
                     {
                         localNotifyCharacteristic.ValueChanged -= Characteristic_ValueChanged;
-                        sendTroubleShoot($"Failed to enable notifications. CCCD status={cccdStatus}");
+                        sendTroubleShoot($"Failed to enable notifications after {ElapsedMs(sw)} ms. CCCD status={cccdStatus}, connStatus={SafeConnStatus(localDevice)}");
                         return false;
                     }
+                    sendTroubleShoot($"BLE connected: notifications enabled after {ElapsedMs(sw)} ms total.");
 
                     localDevice.ConnectionStatusChanged += Dev_ConnectionStatusChanged;
                     dev = localDevice;
@@ -657,6 +741,24 @@ namespace BecquerelMonitor
                         {
                             if (addressble != null)
                             {
+                                // Wake-before-connect: the discoveryThread runs a one-shot active
+                                // scan that makes the peripheral known to the Windows BT stack.
+                                // Without waiting for it, the first ConnectBLE races ahead and
+                                // FromBluetoothAddressAsync returns null (device not yet seen
+                                // advertising), burning attempt #1. Join that initial scan once
+                                // before the first attempt so attempt #1 lands on an awake device.
+                                if (!initialDiscoveryJoined)
+                                {
+                                    initialDiscoveryJoined = true;
+                                    Thread discovery = discoveryThread;
+                                    if (discovery != null && discovery.IsAlive && !ReferenceEquals(discovery, Thread.CurrentThread))
+                                    {
+                                        sendTroubleShoot("Waiting for initial discovery scan to finish before first connect...");
+                                        discovery.Join(7000);
+                                        sendTroubleShoot("Initial discovery scan done; proceeding to first connect.");
+                                    }
+                                }
+                                sendTroubleShoot($"Connect cycle: entryState={GetStateString(currentState)}, attempt={(trshoot ? trshootCount + 1 : 0)}");
                                 if (currentState != State.Reconnecting)
                                 {
                                     setStatus(State.Connecting);
@@ -866,7 +968,43 @@ namespace BecquerelMonitor
 
         private void DisconnectBLE()
         {
-            sendTroubleShoot("Disconnect BLE service");
+            // Diagnostics (troubleshoot form): the reader thread always calls DisconnectBLE before
+            // each ConnectBLE, so on the very first Start this "reset" tears down nothing. Report
+            // whether an actual connection existed and its last status, so a real drop is told
+            // apart from the routine pre-connect cleanup.
+            if (trshoot)
+            {
+                bool hadDevice, hadService, hadWrite, hadNotify;
+                string connStatus = "n/a";
+                State reasonState;
+                lock (connectionLock)
+                {
+                    hadDevice = dev != null;
+                    hadService = service != null;
+                    hadWrite = characteristic != null;
+                    hadNotify = characteristicNotify != null;
+                    if (dev != null)
+                    {
+                        try { connStatus = dev.ConnectionStatus.ToString(); } catch (Exception) { connStatus = "unavailable"; }
+                    }
+                }
+                lock (stateLock)
+                {
+                    reasonState = state;
+                }
+                if (hadDevice)
+                {
+                    sendTroubleShoot($"Disconnect BLE service: tearing down existing connection (state={GetStateString(reasonState)}, connStatus={connStatus}, service={hadService}, write={hadWrite}, notify={hadNotify})");
+                }
+                else
+                {
+                    sendTroubleShoot($"Disconnect BLE service: no active connection (routine cleanup before connect, state={GetStateString(reasonState)})");
+                }
+            }
+            else
+            {
+                sendTroubleShoot("Disconnect BLE service");
+            }
             Trace.WriteLine("Disconnect BLE service");
             BluetoothLEDevice deviceToDispose = null;
             GattDeviceService serviceToDispose = null;
@@ -934,6 +1072,14 @@ namespace BecquerelMonitor
                 }
                 // 32-bit accumulation time, immediately after the 4096 bytes of channel data.
                 TIME_S = (int)BitConverter.ToUInt32(Buffer, SpectrumChannels * SpectrumBytesPerChannel);
+                // TEMP diagnostics: dump the packet tail (last channels + time region) and the
+                // real received size, to pin the exact time-field layout for long measurements.
+                int dumpFrom = SpectrumChannels * SpectrumBytesPerChannel - 8;
+                int dumpLen = Math.Min(Counter, Buffer.Length) - dumpFrom;
+                if (dumpFrom >= 0 && dumpLen > 0)
+                {
+                    Trace.WriteLine($"Obsidian spectrum tail: counter={Counter}, TIME_S={TIME_S}, bytes[{dumpFrom}..]={BitConverter.ToString(Buffer, dumpFrom, dumpLen)}");
+                }
                 COMPLETE = true;
             }
         }
