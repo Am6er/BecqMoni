@@ -127,11 +127,25 @@ namespace BecquerelMonitor
                     case "Faulted":
                     case "Stopped":
                     case "Disconnected":
+                        // Hard stop on device-side termination. If a measurement was actually
+                        // running (e.g. Troubleshoot stole the BLE link and disposed the recording
+                        // instance -> Recording -> Stopped), drive the full stop pipeline so the
+                        // Measurement Control panel receives MeasurementTerminated and flips out of
+                        // the recording state (Start re-enabled). Previously only the Recording flag
+                        // was cleared, so the stop event never reached the form and Start stayed
+                        // wrongly active. NotifyMeasurementStoppedByDevice also releases the lease.
+                        bool wasRecording = resultData.ResultDataStatus.Recording;
                         resultData.ResultDataStatus.Recording = false;
-                        // Release the device lease on async device-side termination too:
-                        // otherwise the GUID stays leased (new spectrum gets ERRDeviceBusy)
-                        // until the old spectrum is closed/deleted. Idempotent.
-                        resultData.MeasurementController?.ReleaseLeaseIfHeld();
+                        if (wasRecording && resultData.MeasurementController != null)
+                        {
+                            resultData.MeasurementController.NotifyMeasurementStoppedByDevice();
+                        }
+                        else
+                        {
+                            // Not recording: just release the lease (idempotent) so the GUID does
+                            // not stay leased until the old spectrum is closed/deleted.
+                            resultData.MeasurementController?.ReleaseLeaseIfHeld();
+                        }
                         break;
                 }
             }

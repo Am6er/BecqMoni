@@ -66,6 +66,26 @@ namespace BecquerelMonitor
             this.ReleaseDeviceLease();
         }
 
+        // Device-initiated termination: the device reported a terminal status
+        // (Stopped/Faulted/Disconnected) on its own — e.g. its BLE connection was taken over by
+        // the Troubleshoot session while a measurement was running. The device side is already
+        // torn down, so we must NOT re-issue a Stop command (StopMeasurement would call
+        // ObsidianIn.getInstance and resurrect a disposed instance). We only release the lease,
+        // clear the recording flag, and raise MeasurementTerminated so the Measurement Control
+        // panel leaves the recording state (Start re-enabled, Stop disabled). Idempotent.
+        public void NotifyMeasurementStoppedByDevice()
+        {
+            this.ReleaseDeviceLease();
+            if (this.resultData != null && this.resultData.ResultDataStatus != null)
+            {
+                this.resultData.ResultDataStatus.Recording = false;
+            }
+            if (this.MeasurementTerminated != null)
+            {
+                this.MeasurementTerminated(this, new EventArgs());
+            }
+        }
+
         // Token: 0x14000019 RID: 25
         // (add) Token: 0x060006A0 RID: 1696 RVA: 0x00027F40 File Offset: 0x00026140
         // (remove) Token: 0x060006A1 RID: 1697 RVA: 0x00027F7C File Offset: 0x0002617C
