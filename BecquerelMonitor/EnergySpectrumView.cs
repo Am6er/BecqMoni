@@ -1799,14 +1799,7 @@ namespace BecquerelMonitor
 
                             for (int i = 0; i < this.peakEnergySpectrum.Count; i++)
                             {
-                                PeakEnergySpectrumInfo peakInfo = this.peakEnergySpectrum[i];
-                                using (Brush brush = new SolidBrush(Color.FromArgb(alpha, peakInfo.PeakColor)))
-                                {
-                                    using (new Pen(Color.FromArgb(alpha, peakInfo.PeakColor)))
-                                    {
-                                        this.DrawPeakBarChart(g, brush, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, peakInfo.DrawingPeakSpectrum, peakInfo.MinChannel, peakInfo.MaxChannel);
-                                    }
-                                }
+                                this.DrawPeakOutline(g, this.peakEnergySpectrum[i]);
                             }
                         }
 
@@ -1869,14 +1862,7 @@ namespace BecquerelMonitor
                             }
                             for (int i = 0; i < this.peakEnergySpectrum.Count; i++)
                             {
-                                PeakEnergySpectrumInfo peakInfo = this.peakEnergySpectrum[i];
-                                using (Brush brush = new SolidBrush(Color.FromArgb(alpha4, peakInfo.PeakColor)))
-                                {
-                                    using (new Pen(Color.FromArgb(alpha4, peakInfo.PeakColor)))
-                                    {
-                                        this.DrawPeakBarChart(g, brush, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, peakInfo.DrawingPeakSpectrum, peakInfo.MinChannel, peakInfo.MaxChannel);
-                                    }
-                                }
+                                this.DrawPeakOutline(g, this.peakEnergySpectrum[i]);
                             }
                         }
                     }
@@ -1907,12 +1893,7 @@ namespace BecquerelMonitor
                         }
                         for (int i = 0; i < this.peakEnergySpectrum.Count; i++)
                         {
-                            PeakEnergySpectrumInfo peakInfo = this.peakEnergySpectrum[i];
-                            using (Pen pen5 = new Pen(peakInfo.PeakColor))
-                            {
-                                pen5.Width = 2;
-                                this.DrawPeakLineChart(g, pen5, this.continuumEnergySpectrum, this.continuumEnergySpectrum.EnergyCalibration, peakInfo.DrawingPeakSpectrum, peakInfo.MinChannel, peakInfo.MaxChannel);
-                            }
+                            this.DrawPeakOutline(g, this.peakEnergySpectrum[i]);
                         }
                     }
                     if (this.energySpectrum.MeasurementTime != 0.0)
@@ -2395,6 +2376,86 @@ namespace BecquerelMonitor
                 x = num3;
                 y = num5;
             }
+        }
+
+        // Контурная отрисовка пика поверх континуума: одна линия насыщенным
+        // цветом пика (без заливки и окантовки). Антиалиасинг включается
+        // локально: в режиме заливки спектра он глобально выключен, и без
+        // него контур рисуется зубчатой лесенкой.
+        void DrawPeakOutline(Graphics g, PeakEnergySpectrumInfo peakInfo)
+        {
+            EnergySpectrum spectrum = this.continuumEnergySpectrum;
+            EnergyCalibration calibration = spectrum.EnergyCalibration;
+
+            SmoothingMode savedSmoothing = g.SmoothingMode;
+            PixelOffsetMode savedPixelOffset = g.PixelOffsetMode;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.PixelOffsetMode = PixelOffsetMode.Half;
+            try
+            {
+                Color saturated = SaturatePeakColor(peakInfo.PeakColor);
+
+                // Полупрозрачная внутренняя заливка ТЕМ ЖЕ цветом, что и
+                // окантовка. Alpha должна быть достаточной, чтобы оттенок
+                // ДОМИНИРОВАЛ над ярким фоном спектра (синяя окантовка →
+                // видимо синяя заливка), иначе цвет заливки съедается фоном.
+                using (Brush fillBrush = new SolidBrush(Color.FromArgb(128, saturated)))
+                {
+                    this.DrawPeakBarChart(g, fillBrush, spectrum, calibration, peakInfo.DrawingPeakSpectrum, peakInfo.MinChannel, peakInfo.MaxChannel);
+                }
+
+                using (Pen peakPen = new Pen(saturated, 2.1f))
+                {
+                    peakPen.LineJoin = LineJoin.Round;
+                    peakPen.StartCap = LineCap.Round;
+                    peakPen.EndCap = LineCap.Round;
+                    this.DrawPeakLineChart(g, peakPen, spectrum, calibration, peakInfo.DrawingPeakSpectrum, peakInfo.MinChannel, peakInfo.MaxChannel);
+                }
+            }
+            finally
+            {
+                g.SmoothingMode = savedSmoothing;
+                g.PixelOffsetMode = savedPixelOffset;
+            }
+        }
+
+        // Насыщенная версия цвета пика: полная сатурация и умеренная яркость,
+        // чтобы линия читалась и на заливке спектра, и на тёмном фоне.
+        // Ахроматичные цвета (серый дефолт нуклида) не «красим» — лишь
+        // затемняем для контраста.
+        static Color SaturatePeakColor(Color color)
+        {
+            double r = color.R / 255.0;
+            double gc = color.G / 255.0;
+            double b = color.B / 255.0;
+            double max = Math.Max(r, Math.Max(gc, b));
+            double min = Math.Min(r, Math.Min(gc, b));
+            double saturation = max <= 0.0 ? 0.0 : (max - min) / max;
+
+            if (saturation < 0.15)
+            {
+                int gray = 70;
+                return Color.FromArgb(gray, gray, gray);
+            }
+
+            double hue = color.GetHue(); // 0..360
+            const double S = 1.0;
+            const double V = 0.85;
+            double c = V * S;
+            double x = c * (1.0 - Math.Abs(hue / 60.0 % 2.0 - 1.0));
+            double m = V - c;
+            double r1, g1, b1;
+            if (hue < 60) { r1 = c; g1 = x; b1 = 0; }
+            else if (hue < 120) { r1 = x; g1 = c; b1 = 0; }
+            else if (hue < 180) { r1 = 0; g1 = c; b1 = x; }
+            else if (hue < 240) { r1 = 0; g1 = x; b1 = c; }
+            else if (hue < 300) { r1 = x; g1 = 0; b1 = c; }
+            else { r1 = c; g1 = 0; b1 = x; }
+
+            return Color.FromArgb(
+                (int)Math.Round((r1 + m) * 255.0),
+                (int)Math.Round((g1 + m) * 255.0),
+                (int)Math.Round((b1 + m) * 255.0));
         }
 
         void DrawPeakLineChart(Graphics g, Pen pen, EnergySpectrum spectrum, EnergyCalibration calibration, double[] peakSpectrum, int min_ch, int max_ch)

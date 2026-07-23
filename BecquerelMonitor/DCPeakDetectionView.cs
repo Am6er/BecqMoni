@@ -245,7 +245,9 @@ namespace BecquerelMonitor
                     }
                     int snr = (int)peak.SNR;
                     Cell nuclideCell = new Cell(text);
-                    nuclideCell.Tag = peak.PeakSearchOrigin;
+                    // Весь Peak, а не только origin: рендереру нужен и
+                    // Nuclide.IsAnchor (красный якорь), и origin (синий LIB).
+                    nuclideCell.Tag = peak;
                     row.Cells.Add(nuclideCell);
                     row.Cells.Add(new Cell(peak.Energy.ToString("f2"), Math.Round(peak.Energy, 2)));
                     row.Cells.Add(new Cell(text2));

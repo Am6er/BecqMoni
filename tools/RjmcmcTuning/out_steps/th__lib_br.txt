@@ -1,0 +1,52 @@
+=== C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\RjmcmcTuning\spectra\Th-232 16.06.2026.xml ===
+Anchor: Tl-208 (Th-232) 2614.53 keV
+MinSNR=6.0; Finder=18; DeconvExtras=4; LibraryPeaks=24; FinalPeaks=42
+Final peaks:
+  ch=  158  E=   43.35 keV  SNR=246.32  FWHM= 14.15
+  ch=  172  E=   49.45 keV  SNR=284.59  FWHM= 27.30
+  ch=  195  E=   59.46 keV  SNR=804.62  FWHM= 21.18  [LIB W x-ray]
+  ch=  235  E=   76.81 keV  SNR=354.25  FWHM= 26.79  [LIB X-ray]
+  ch=  340  E=  122.03 keV  SNR= 55.69  FWHM= 36.60
+  ch=  355  E=  128.46 keV  SNR=252.93  FWHM= 39.08  [LIB Ac-228 (Th-232)]
+  ch=  542  E=  207.91 keV  SNR=235.62  FWHM= 52.87
+  ch=  582  E=  224.76 keV  SNR=130.58  FWHM= 55.39  [LIB ?]
+  ch=  617  E=  239.47 keV  SNR=1043.30  FWHM= 58.23
+  ch=  689  E=  269.63 keV  SNR=399.10  FWHM= 61.63  [LIB Ac-228 (Th-232)]
+  ch=  706  E=  276.74 keV  SNR=272.36  FWHM= 62.56  [LIB Tl-208 (Th-232)]
+  ch=  761  E=  299.67 keV  SNR=425.64  FWHM= 65.51  [LIB Pb-212 (Th-232)]
+  ch=  857  E=  339.56 keV  SNR=540.69  FWHM= 71.55
+  ch= 1028  E=  410.25 keV  SNR=  9.33  FWHM= 20.68
+  ch= 1158  E=  463.76 keV  SNR= 86.00  FWHM= 55.26
+  ch= 1274  E=  511.40 keV  SNR=179.17  FWHM= 64.32
+  ch= 1406  E=  565.55 keV  SNR=174.94  FWHM= 93.62  [LIB ?]
+  ch= 1450  E=  583.60 keV  SNR=636.75  FWHM= 96.90
+  ch= 1799  E=  726.99 keV  SNR=440.21  FWHM=107.42  [LIB Bi-212 (Th-232)]
+  ch= 1867  E=  755.02 keV  SNR= 70.04  FWHM=109.64  [LIB Ac-228 (Th-232)]
+  ch= 1908  E=  771.95 keV  SNR=106.46  FWHM=110.97  [LIB Ac-228 (Th-232)]
+  ch= 1939  E=  784.76 keV  SNR= 79.23  FWHM=111.96  [LIB Bi-212 (Th-232)]
+  ch= 1963  E=  794.68 keV  SNR=311.27  FWHM=112.72  [LIB Ac-228 (Th-232)]
+  ch= 2048  E=  829.89 keV  SNR= 42.52  FWHM=115.39  [LIB Ac-228 (Th-232)]
+  ch= 2061  E=  835.28 keV  SNR=126.46  FWHM=115.79  [LIB Ac-228 (Th-232)]
+  ch= 2121  E=  860.20 keV  SNR=332.05  FWHM=117.64  [LIB Tl-208 (Th-232)]
+  ch= 2233  E=  906.86 keV  SNR=397.96  FWHM=117.00
+  ch= 2367  E=  962.94 keV  SNR=205.77  FWHM=100.99
+  ch= 2637  E= 1076.90 keV  SNR= 35.18  FWHM=132.58  [LIB ?]
+  ch= 2692  E= 1100.28 keV  SNR= 20.82  FWHM= 99.40
+  ch= 3033  E= 1246.57 keV  SNR= 22.44  FWHM=153.98
+  ch= 3182  E= 1311.23 keV  SNR=321.37  FWHM=146.96  [LIB ?]
+  ch= 3522  E= 1460.34 keV  SNR=265.61  FWHM=155.37  [LIB K-40]
+  ch= 3571  E= 1482.00 keV  SNR=106.04  FWHM=156.55
+  ch= 3809  E= 1587.75 keV  SNR=531.50  FWHM=162.20  [LIB Ac-228 (Th-232)]
+  ch= 3881  E= 1619.91 keV  SNR=245.69  FWHM=163.88  [LIB Bi-212 (Th-232)]
+  ch= 3904  E= 1630.19 keV  SNR=275.26  FWHM=164.41  [LIB Ac-228 (Th-232)]
+  ch= 4332  E= 1822.51 keV  SNR=647.94  FWHM=174.10  [LIB ?]
+  ch= 4955  E= 2102.93 keV  SNR=366.52  FWHM=187.53  [LIB ?]
+  ch= 5016  E= 2130.21 keV  SNR=128.35  FWHM=184.48
+  ch= 5476  E= 2333.29 keV  SNR= 70.18  FWHM=239.10
+  ch= 6145  E= 2614.13 keV  SNR=373.36  FWHM=223.61
+RJMCMC extras:
+  ch= 158.00  SNR=246.32  amp=  47846.71  deltaD=114084.50  occ= 1.000  std=  0.00  residSNR=246.32  corr= 0.713  dist= 0.816  support=3  roi=[127..241]  local=[172]  halo=[348]
+  ch= 542.00  SNR=235.62  amp=  17919.81  deltaD=92178.34  occ= 1.000  std=  0.48  residSNR=235.62  corr= 0.743  dist= 1.352  support=2  roi=[389..851]  local=[620]  halo=[348,860]
+  ch= 703.00  SNR=137.20  amp=   9049.40  deltaD=41812.49  occ= 1.000  std=  1.50  residSNR=137.20  corr= 0.684  dist= 1.330  support=2  roi=[389..851]  local=[620]  halo=[348,860]
+  ch= 731.00  SNR=182.56  amp=  12750.67  deltaD=59674.75  occ= 1.000  std=  1.65  residSNR=182.56  corr= 0.757  dist= 1.737  support=4  roi=[714..1342]  local=[860,1028,1156,1276]  halo=[620,1452]
+

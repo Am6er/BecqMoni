@@ -126,7 +126,7 @@
   </data>
   <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
   <data name="buttonClose.Location" type="System.Drawing.Point, System.Drawing">
-    <value>437, 425</value>
+    <value>517, 425</value>
   </data>
   <data name="buttonClose.Size" type="System.Drawing.Size, System.Drawing">
     <value>82, 23</value>
@@ -160,7 +160,7 @@
     <value>NoControl</value>
   </data>
   <data name="buttonSave.Location" type="System.Drawing.Point, System.Drawing">
-    <value>343, 425</value>
+    <value>423, 425</value>
   </data>
   <data name="buttonSave.Size" type="System.Drawing.Size, System.Drawing">
     <value>88, 23</value>
@@ -286,7 +286,7 @@
     <value>12, 5</value>
   </data>
   <data name="groupBoxEdit.Size" type="System.Drawing.Size, System.Drawing">
-    <value>507, 410</value>
+    <value>587, 410</value>
   </data>
   <data name="groupBoxEdit.TabIndex" type="System.Int32, mscorlib">
     <value>10</value>
@@ -313,7 +313,7 @@
     <value>NoControl</value>
   </data>
   <data name="labelFilter.Location" type="System.Drawing.Point, System.Drawing">
-    <value>275, 37</value>
+    <value>355, 37</value>
   </data>
   <data name="labelFilter.Size" type="System.Drawing.Size, System.Drawing">
     <value>32, 13</value>
@@ -340,7 +340,7 @@
     <value>Top, Right</value>
   </data>
   <data name="textBoxFilter.Location" type="System.Drawing.Point, System.Drawing">
-    <value>326, 34</value>
+    <value>406, 34</value>
   </data>
   <data name="textBoxFilter.Size" type="System.Drawing.Size, System.Drawing">
     <value>169, 20</value>
@@ -370,7 +370,7 @@
     <value>293, 59</value>
   </data>
   <data name="tableNuclides.Size" type="System.Drawing.Size, System.Drawing">
-    <value>202, 341</value>
+    <value>282, 341</value>
   </data>
   <data name="tableNuclides.TabIndex" type="System.Int32, mscorlib">
     <value>14</value>
@@ -420,6 +420,15 @@
   <data name="columnNuclideEnergy.Width" type="System.Int32, mscorlib">
     <value>70</value>
   </data>
+  <data name="columnNuclideAnchor.Text" xml:space="preserve">
+    <value>Anchor</value>
+  </data>
+  <data name="columnNuclideAnchor.ToolTipText" xml:space="preserve">
+    <value>Anchor line: when the peak finder detects it, all lines of the set are fitted (library fit)</value>
+  </data>
+  <data name="columnNuclideAnchor.Width" type="System.Int32, mscorlib">
+    <value>55</value>
+  </data>
   <data name="buttonDeleteSet.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Bottom, Left</value>
   </data>
@@ -463,7 +472,7 @@
     <value>NoControl</value>
   </data>
   <data name="labelNuclides.Location" type="System.Drawing.Point, System.Drawing">
-    <value>275, 18</value>
+    <value>355, 18</value>
   </data>
   <data name="labelNuclides.Size" type="System.Drawing.Size, System.Drawing">
     <value>144, 13</value>
@@ -604,7 +613,7 @@
     <value>6, 13</value>
   </data>
   <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
-    <value>531, 457</value>
+    <value>611, 457</value>
   </data>
   <data name="$this.Icon" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
@@ -4879,7 +4888,7 @@
     <value>909, 689</value>
   </data>
   <data name="$this.MinimumSize" type="System.Drawing.Size, System.Drawing">
-    <value>547, 496</value>
+    <value>627, 496</value>
   </data>
   <data name="$this.Text" xml:space="preserve">
     <value>Edit Nuclide Sets</value>
@@ -4904,6 +4913,12 @@
   </data>
   <data name="&gt;&gt;columnNuclideEnergy.Name" xml:space="preserve">
     <value>columnNuclideEnergy</value>
+  </data>
+  <data name="&gt;&gt;columnNuclideAnchor.Name" xml:space="preserve">
+    <value>columnNuclideAnchor</value>
+  </data>
+  <data name="&gt;&gt;columnNuclideAnchor.Type" xml:space="preserve">
+    <value>XPTable.Models.CheckBoxColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;columnNuclideEnergy.Type" xml:space="preserve">
     <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>

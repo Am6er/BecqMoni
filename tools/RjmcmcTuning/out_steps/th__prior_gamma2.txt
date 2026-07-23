@@ -1,0 +1,35 @@
+=== C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\RjmcmcTuning\spectra\Th-232 16.06.2026.xml ===
+MinSNR=6.0; Finder=18; DeconvExtras=6; FinalPeaks=24
+Final peaks:
+  ch=  159  E=   43.78 keV  SNR=229.99  FWHM= 14.38
+  ch=  172  E=   49.45 keV  SNR=284.59  FWHM= 27.30
+  ch=  191  E=   57.72 keV  SNR=305.82  FWHM= 20.54
+  ch=  199  E=   61.20 keV  SNR=210.07  FWHM= 21.81
+  ch=  340  E=  122.03 keV  SNR= 55.69  FWHM= 36.60
+  ch=  617  E=  239.47 keV  SNR=1043.30  FWHM= 58.23
+  ch=  735  E=  288.84 keV  SNR=256.30  FWHM= 64.13
+  ch=  857  E=  339.56 keV  SNR=540.69  FWHM= 71.55
+  ch= 1028  E=  410.25 keV  SNR=  9.33  FWHM= 20.68
+  ch= 1158  E=  463.76 keV  SNR= 86.00  FWHM= 55.26
+  ch= 1274  E=  511.40 keV  SNR=179.17  FWHM= 64.32
+  ch= 1450  E=  583.60 keV  SNR=636.75  FWHM= 96.90
+  ch= 1791  E=  723.69 keV  SNR=127.02  FWHM= 95.18
+  ch= 1934  E=  782.69 keV  SNR= 14.06  FWHM= 38.15
+  ch= 2233  E=  906.86 keV  SNR=397.96  FWHM=117.00
+  ch= 2367  E=  962.94 keV  SNR=205.77  FWHM=100.99
+  ch= 2692  E= 1100.28 keV  SNR= 20.82  FWHM= 99.40
+  ch= 3033  E= 1246.57 keV  SNR= 22.44  FWHM=153.98
+  ch= 3572  E= 1482.44 keV  SNR=100.90  FWHM=156.58
+  ch= 3809  E= 1587.75 keV  SNR=274.73  FWHM=169.78
+  ch= 3949  E= 1650.33 keV  SNR= 62.26  FWHM=165.45
+  ch= 5016  E= 2130.21 keV  SNR=128.35  FWHM=184.48
+  ch= 5476  E= 2333.29 keV  SNR= 70.18  FWHM=239.10
+  ch= 6145  E= 2614.13 keV  SNR=373.36  FWHM=223.61
+RJMCMC extras:
+  ch= 159.00  SNR=229.99  amp=  49870.85  deltaD=104671.06  occ= 1.000  std=  0.41  residSNR=229.99  corr= 0.712  dist= 0.758  support=4  roi=[127..241]  local=[172]  halo=[348]
+  ch= 191.00  SNR=305.82  amp=  51133.74  deltaD=169052.82  occ= 1.000  std=  0.39  residSNR=305.82  corr= 0.746  dist= 0.925  support=4  roi=[127..241]  local=[172]  halo=[348]
+  ch= 199.00  SNR=210.07  amp=  33909.30  deltaD=80295.96  occ= 1.000  std=  0.28  residSNR=210.07  corr= 0.744  dist= 1.238  support=2  roi=[194..502]  local=[348]  halo=[172,620]
+  ch= 735.00  SNR=226.90  amp=  14850.79  deltaD=80999.62  occ= 1.000  std=  1.46  residSNR=226.90  corr= 0.812  dist= 1.773  support=4  roi=[714..1342]  local=[860,1028,1156,1276]  halo=[620,1452]
+  ch=3572.00  SNR=100.91  amp=    405.27  deltaD= 9638.23  occ= 1.000  std=  0.00  residSNR=100.91  corr= 0.909  dist= 1.479  support=3  roi=[3162..4462]  local=[3812]  halo=[3028,5020]
+  ch=3949.00  SNR= 62.26  amp=    394.22  deltaD= 7803.99  occ= 1.000  std=  3.85  residSNR= 62.26  corr= 0.640  dist= 0.828  support=3  roi=[3162..4462]  local=[3812]  halo=[3028,5020]
+

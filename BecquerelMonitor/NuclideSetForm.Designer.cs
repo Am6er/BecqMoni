@@ -45,6 +45,7 @@ namespace BecquerelMonitor
             this.columnNuclideIncluded = new XPTable.Models.CheckBoxColumn();
             this.columnNuclideName = new XPTable.Models.TextColumn();
             this.columnNuclideEnergy = new XPTable.Models.TextColumn();
+            this.columnNuclideAnchor = new XPTable.Models.CheckBoxColumn();
             this.tableModelNuclides = new XPTable.Models.TableModel();
             this.buttonDeleteSet = new System.Windows.Forms.Button();
             this.labelNuclides = new System.Windows.Forms.Label();
@@ -120,7 +121,8 @@ namespace BecquerelMonitor
             this.columnModelNuclides.Columns.AddRange(new XPTable.Models.Column[] {
             this.columnNuclideIncluded,
             this.columnNuclideName,
-            this.columnNuclideEnergy});
+            this.columnNuclideEnergy,
+            this.columnNuclideAnchor});
             // 
             // columnNuclideIncluded
             // 
@@ -137,14 +139,22 @@ namespace BecquerelMonitor
             this.columnNuclideName.Selectable = false;
             this.columnNuclideName.Sortable = false;
             resources.ApplyResources(this.columnNuclideName, "columnNuclideName");
-            // 
+            //
             // columnNuclideEnergy
-            // 
+            //
             this.columnNuclideEnergy.Editable = false;
             this.columnNuclideEnergy.IsTextTrimmed = false;
             this.columnNuclideEnergy.Selectable = false;
             this.columnNuclideEnergy.Sortable = false;
             resources.ApplyResources(this.columnNuclideEnergy, "columnNuclideEnergy");
+            //
+            // columnNuclideAnchor
+            //
+            this.columnNuclideAnchor.IsTextTrimmed = false;
+            this.columnNuclideAnchor.Resizable = false;
+            this.columnNuclideAnchor.Selectable = false;
+            this.columnNuclideAnchor.Sortable = false;
+            resources.ApplyResources(this.columnNuclideAnchor, "columnNuclideAnchor");
             // 
             // buttonDeleteSet
             // 
@@ -239,6 +249,7 @@ namespace BecquerelMonitor
         private XPTable.Models.CheckBoxColumn columnNuclideIncluded;
         private XPTable.Models.TextColumn columnNuclideName;
         private XPTable.Models.TextColumn columnNuclideEnergy;
+        private XPTable.Models.CheckBoxColumn columnNuclideAnchor;
         private XPTable.Models.ColumnModel columnModelSets;
         private XPTable.Models.TextColumn columnSetName;
         private XPTable.Models.TableModel tableModelSets;

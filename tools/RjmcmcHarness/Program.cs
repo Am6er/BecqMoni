@@ -81,18 +81,20 @@ namespace RjmcmcHarness
                 peakConfig,
                 resultData.FwhmCalibration);
 
+            NuclideSet nuclideSet = ResolveNuclideSet(options);
             List<Peak> peaks = detector.DetectPeak(
                 resultData,
                 useBackgroundSubtraction ? BackgroundMode.Substract : BackgroundMode.Visible,
                 SmoothingMethod.None,
-                null);
+                nuclideSet);
 
             Console.WriteLine(string.Format(
                 CultureInfo.InvariantCulture,
-                "MinSNR={0:F1}; Finder={1}; DeconvExtras={2}; FinalPeaks={3}",
+                "MinSNR={0:F1}; Finder={1}; DeconvExtras={2}; LibraryPeaks={3}; FinalPeaks={4}",
                 minSnr,
                 CountArrayProperty(finder, "centroids"),
                 CountListProperty(deconvolution, "ExtraCandidates"),
+                peaks.Count(p => p.PeakSearchOrigin == PeakSearchOrigin.Library),
                 peaks.Count));
 
             PrintDetectedPeaks(peaks);
@@ -254,12 +256,57 @@ namespace RjmcmcHarness
             {
                 Console.WriteLine(string.Format(
                     CultureInfo.InvariantCulture,
-                    "  ch={0,5}  E={1,8:F2} keV  SNR={2,6:F2}  FWHM={3,6:F2}",
+                    "  ch={0,5}  E={1,8:F2} keV  SNR={2,6:F2}  FWHM={3,6:F2}{4}",
                     peak.Channel,
                     peak.Energy,
                     peak.SNR,
-                    peak.FWHM));
+                    peak.FWHM,
+                    peak.PeakSearchOrigin == PeakSearchOrigin.Library
+                        ? string.Format(CultureInfo.InvariantCulture, "  [LIB {0}]", peak.Nuclide?.Name ?? "?")
+                        : ""));
             }
+        }
+
+        // Resolves the nuclide set named by --nuclide-set= and flags --anchor= line
+        // energies as IsAnchor in memory (the user's NuclideDefinition.xml is not saved).
+        static NuclideSet ResolveNuclideSet(Options options)
+        {
+            if (String.IsNullOrEmpty(options.NuclideSetName))
+            {
+                return null;
+            }
+
+            NuclideDefinitionManager manager = NuclideDefinitionManager.GetInstance();
+            NuclideSet nuclideSet = manager.NuclideSets
+                .FirstOrDefault(set => String.Equals(set.Name, options.NuclideSetName, StringComparison.OrdinalIgnoreCase));
+            if (nuclideSet == null)
+            {
+                Console.Error.WriteLine("Nuclide set not found: " + options.NuclideSetName);
+                return null;
+            }
+
+            if (options.AnchorEnergies != null && options.AnchorEnergies.Count > 0)
+            {
+                foreach (NuclideDefinition nuclide in manager.NuclideDefinitions)
+                {
+                    if (nuclide.Sets == null || !nuclide.Sets.Contains(nuclideSet.Id))
+                    {
+                        continue;
+                    }
+
+                    if (options.AnchorEnergies.Any(energy => Math.Abs(nuclide.Energy - energy) <= 2.0))
+                    {
+                        nuclide.IsAnchor = true;
+                        Console.WriteLine(string.Format(
+                            CultureInfo.InvariantCulture,
+                            "Anchor: {0} {1:F2} keV",
+                            nuclide.Name,
+                            nuclide.Energy));
+                    }
+                }
+            }
+
+            return nuclideSet;
         }
 
         static void PrintExtraCandidates(object deconvolution)
@@ -887,6 +934,8 @@ namespace RjmcmcHarness
             public double? MinimumCandidateAmplitudeOverride { get; private set; }
             public bool? UseBackgroundSubtractionOverride { get; private set; }
             public string OracleSeries { get; private set; }
+            public string NuclideSetName { get; private set; }
+            public List<double> AnchorEnergies { get; private set; }
 
             public static Options Parse(string[] args)
             {
@@ -981,6 +1030,19 @@ namespace RjmcmcHarness
                     else if (arg.StartsWith("--oracle=", StringComparison.OrdinalIgnoreCase))
                     {
                         options.OracleSeries = arg.Substring("--oracle=".Length).Trim('"');
+                    }
+                    else if (arg.StartsWith("--nuclide-set=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        options.NuclideSetName = arg.Substring("--nuclide-set=".Length).Trim('"');
+                    }
+                    else if (arg.StartsWith("--anchor=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // In-memory anchor override: nuclide-set line energies (keV) to flag
+                        // IsAnchor for this run without touching the user's NuclideDefinition.xml.
+                        options.AnchorEnergies = arg.Substring("--anchor=".Length)
+                            .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(value => Double.Parse(value, CultureInfo.InvariantCulture))
+                            .ToList();
                     }
                     else if (String.Equals(arg, "--bg=visible", StringComparison.OrdinalIgnoreCase))
                     {

@@ -129,6 +129,12 @@
   <data name="columnNuclideEnergy.Text" xml:space="preserve">
     <value>Энергия</value>
   </data>
+  <data name="columnNuclideAnchor.Text" xml:space="preserve">
+    <value>Якорь</value>
+  </data>
+  <data name="columnNuclideAnchor.ToolTipText" xml:space="preserve">
+    <value>Якорная линия: если finder нашёл её, все линии набора фитятся библиотечным фитом</value>
+  </data>
   <data name="buttonDeleteSet.Text" xml:space="preserve">
     <value>Удалить набор</value>
   </data>
