@@ -1,0 +1,51 @@
+=== C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\RjmcmcTuning\spectra\Чароит в домике.xml ===
+Anchor: Bi-214 (Ra-226) 609.32 keV
+MinSNR=4.0; Finder=18; DeconvExtras=0; LibraryPeaks=30; FinalPeaks=45
+Final peaks:
+  ch=  132  E=   43.35 keV  SNR=179.65  FWHM= 25.12  [LIB Pb-210 (Ra-226)]
+  ch=  140  E=   46.38 keV  SNR= 48.38  FWHM= 24.06
+  ch=  150  E=   50.16 keV  SNR=104.50  FWHM= 27.17  [LIB Pb-214 (Ra-226)]
+  ch=  180  E=   61.51 keV  SNR= 60.58  FWHM= 30.28
+  ch=  225  E=   78.55 keV  SNR=180.35  FWHM= 40.18
+  ch=  389  E=  140.83 keV  SNR= 54.32  FWHM= 46.28  [LIB U-235 (U-238)]
+  ch=  409  E=  148.44 keV  SNR= 24.00  FWHM= 46.23
+  ch=  499  E=  182.75 keV  SNR=118.00  FWHM= 52.68  [LIB U-235 (U-238)]
+  ch=  512  E=  187.72 keV  SNR=104.00  FWHM= 52.21
+  ch=  581  E=  214.09 keV  SNR=113.93  FWHM= 56.94  [LIB ?]
+  ch=  654  E=  242.05 keV  SNR=113.05  FWHM= 58.64
+  ch=  797  E=  296.96 keV  SNR=148.50  FWHM= 62.48
+  ch=  941  E=  352.48 keV  SNR=219.04  FWHM= 75.37
+  ch= 1142  E=  430.31 keV  SNR= 31.69  FWHM= 79.43  [LIB ?]
+  ch= 1341  E=  507.77 keV  SNR= 49.53  FWHM= 85.70  [LIB Annihil]
+  ch= 1592  E=  606.02 keV  SNR=142.83  FWHM=104.94
+  ch= 1735  E=  662.27 keV  SNR= 42.24  FWHM= 96.52  [LIB Bi-214 (Ra-226)]
+  ch= 1894  E=  725.04 keV  SNR= 43.91  FWHM=100.41  [LIB ?]
+  ch= 1995  E=  765.03 keV  SNR= 74.95  FWHM=102.76  [LIB Bi-214 (Ra-226)]
+  ch= 2040  E=  782.88 keV  SNR= 17.33  FWHM=103.77  [LIB Pb-214 (Ra-226)]
+  ch= 2091  E=  803.13 keV  SNR= 23.62  FWHM=104.91  [LIB Bi-214 (Ra-226)]
+  ch= 2264  E=  872.00 keV  SNR= 74.01  FWHM=108.61  [LIB ?]
+  ch= 2404  E=  927.92 keV  SNR= 10.17  FWHM=125.80
+  ch= 2578  E=  997.66 keV  SNR= 88.98  FWHM=114.79  [LIB Pa-234m (U-238)]
+  ch= 2874  E= 1116.87 keV  SNR= 37.38  FWHM=135.54
+  ch= 3012  E= 1172.69 keV  SNR= 74.56  FWHM=122.36  [LIB ?]
+  ch= 3165  E= 1234.74 keV  SNR= 97.84  FWHM=124.80  [LIB Bi-214 (Ra-226)]
+  ch= 3271  E= 1277.83 keV  SNR= 32.98  FWHM=126.42  [LIB Bi-214 (Ra-226)]
+  ch= 3508  E= 1374.46 keV  SNR= 65.19  FWHM=129.87  [LIB Bi-214 (Ra-226)]
+  ch= 3566  E= 1398.16 keV  SNR= 19.93  FWHM=130.68  [LIB Bi-214 (Ra-226)]
+  ch= 3582  E= 1404.71 keV  SNR= 35.59  FWHM=130.90  [LIB Bi-214 (Ra-226)]
+  ch= 3698  E= 1452.19 keV  SNR= 16.67  FWHM=149.35
+  ch= 3829  E= 1505.92 keV  SNR= 57.93  FWHM=134.18  [LIB Bi-214 (Ra-226)]
+  ch= 3993  E= 1573.32 keV  SNR= 56.63  FWHM=136.22  [LIB ?]
+  ch= 4198  E= 1657.78 keV  SNR= 34.84  FWHM=138.65  [LIB Bi-214 (Ra-226)]
+  ch= 4261  E= 1683.78 keV  SNR= 27.51  FWHM=139.36  [LIB ?]
+  ch= 4364  E= 1726.32 keV  SNR= 18.48  FWHM=140.50  [LIB Bi-214 (Ra-226)]
+  ch= 4448  E= 1761.06 keV  SNR= 85.97  FWHM=141.40  [LIB Bi-214 (Ra-226)]
+  ch= 4649  E= 1844.29 keV  SNR= 48.31  FWHM=143.47  [LIB Bi-214 (Ra-226)]
+  ch= 4866  E= 1934.31 keV  SNR= 37.46  FWHM=145.57  [LIB ?]
+  ch= 5227  E= 2084.39 keV  SNR= 23.17  FWHM=148.75  [LIB ?]
+  ch= 5301  E= 2115.18 keV  SNR= 12.02  FWHM=149.36  [LIB Bi-214 (Ra-226)]
+  ch= 5492  E= 2194.72 keV  SNR= 11.24  FWHM=198.30
+  ch= 6093  E= 2445.14 keV  SNR=  5.43  FWHM=153.43
+  ch= 6454  E= 2595.43 keV  SNR=  7.51  FWHM=147.34
+RJMCMC extras:
+

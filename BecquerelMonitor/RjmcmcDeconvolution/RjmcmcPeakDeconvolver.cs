@@ -1466,7 +1466,10 @@ namespace BecquerelMonitor.RjmcmcDeconvolution
         /// and the displayed continuum are identical. Finder anchors act as the peak list that widens
         /// the SNIP clipping radius over multiplets.
         /// </summary>
-        static int[] BuildSnipContinuum(
+        // internal: SNIP-континуум по якорям finder'а переиспользуется
+        // библиотечным фитом (PeakDetector.AppendLibraryPeaks) — фон там
+        // должен совпадать с фоном деконволюции.
+        internal static int[] BuildSnipContinuum(
             EnergySpectrum foregroundSpectrum,
             FWHMPeakDetector.PeakFinder finder,
             FwhmCalibration fwhmCalibration)

@@ -9,6 +9,7 @@ namespace BecquerelMonitor
     public partial class NuclideSetForm : Form
     {
         private const int NuclideCheckboxColumnIndex = 0;
+        private const int NuclideAnchorColumnIndex = 3;
         private const int SetNameColumnIndex = 0;
         private const int SetHidePeaksColumnIndex = 1;
 
@@ -64,6 +65,7 @@ namespace BecquerelMonitor
             row.Cells.Add(new Cell() { Checked = included });
             row.Cells.Add(new Cell(nuclideDefinition.Name));
             row.Cells.Add(new Cell(nuclideDefinition.Energy.ToString(), nuclideDefinition.Energy));
+            row.Cells.Add(new Cell() { Checked = nuclideDefinition.IsAnchor });
             row.Tag = nuclideDefinition;
 
             return row;
@@ -143,6 +145,18 @@ namespace BecquerelMonitor
                 bool include = !e.Cell.Checked;
                 this.UpdateNuclideDefinition(this.tableModelNuclides.Rows[e.Row].Tag as NuclideDefinition, include);
             }
+            else if (e.Cell.Index == NuclideAnchorColumnIndex)
+            {
+                // Якорная линия library-fit: флаг глобальный для линии (не
+                // пер-сетовый) — линия, выбранная якорем, обычно якорь во всех
+                // сетах, где присутствует (например, Tl-208 2614.5).
+                NuclideDefinition nuclideDefinition = this.tableModelNuclides.Rows[e.Row].Tag as NuclideDefinition;
+                if (nuclideDefinition != null)
+                {
+                    nuclideDefinition.IsAnchor = !e.Cell.Checked;
+                    this.MarkAsDirty();
+                }
+            }
         }
 
         private void ToggleNuclideSelection()
@@ -158,12 +172,22 @@ namespace BecquerelMonitor
                 ? ""
                 : "X";
 
-            for (int i = 0; i < this.nuclideManager.NuclideDefinitions.Count; i++)
+            // Итерируем строки ТАБЛИЦЫ, а не весь список нуклидов: при
+            // активном фильтре строк меньше, чем определений, и Rows[i] за
+            // пределами списка возвращает null (NRE). Заодно «выделить всё»
+            // честно действует только на видимые (отфильтрованные) строки.
+            bool includeAll = checkCol.Text == "X";
+            for (int i = 0; i < this.tableModelNuclides.Rows.Count; i++)
             {
-                bool include = checkCol.Text == "X";
                 Row row = this.tableModelNuclides.Rows[i];
-                row.Cells[NuclideCheckboxColumnIndex].Checked = include;
-                this.UpdateNuclideDefinition(row.Tag as NuclideDefinition, include);
+                NuclideDefinition nuclideDefinition = row?.Tag as NuclideDefinition;
+                if (nuclideDefinition == null)
+                {
+                    continue;
+                }
+
+                row.Cells[NuclideCheckboxColumnIndex].Checked = includeAll;
+                this.UpdateNuclideDefinition(nuclideDefinition, includeAll);
             }
 
             this.tableNuclides.ResumeLayout();

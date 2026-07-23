@@ -1,0 +1,31 @@
+=== C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\RjmcmcTuning\spectra\Th-232 16.06.2026.xml ===
+MinSNR=6.0; Finder=18; DeconvExtras=4; FinalPeaks=22
+Final peaks:
+  ch=  172  E=   49.45 keV  SNR=284.59  FWHM= 27.30
+  ch=  189  E=   56.85 keV  SNR=346.16  FWHM= 20.21
+  ch=  340  E=  122.03 keV  SNR= 55.69  FWHM= 36.60
+  ch=  617  E=  239.47 keV  SNR=1043.30  FWHM= 58.23
+  ch=  697  E=  272.98 keV  SNR=124.02  FWHM= 62.07
+  ch=  733  E=  288.00 keV  SNR= 98.63  FWHM= 64.02
+  ch=  857  E=  339.56 keV  SNR=540.69  FWHM= 71.55
+  ch= 1028  E=  410.25 keV  SNR=  9.33  FWHM= 20.68
+  ch= 1158  E=  463.76 keV  SNR= 86.00  FWHM= 55.26
+  ch= 1274  E=  511.40 keV  SNR=179.17  FWHM= 64.32
+  ch= 1385  E=  556.94 keV  SNR= 77.49  FWHM= 92.83
+  ch= 1450  E=  583.60 keV  SNR=636.75  FWHM= 96.90
+  ch= 1791  E=  723.69 keV  SNR=127.02  FWHM= 95.18
+  ch= 1934  E=  782.69 keV  SNR= 14.06  FWHM= 38.15
+  ch= 2233  E=  906.86 keV  SNR=397.96  FWHM=117.00
+  ch= 2367  E=  962.94 keV  SNR=205.77  FWHM=100.99
+  ch= 2692  E= 1100.28 keV  SNR= 20.82  FWHM= 99.40
+  ch= 3033  E= 1246.57 keV  SNR= 22.44  FWHM=153.98
+  ch= 3809  E= 1587.75 keV  SNR=274.73  FWHM=169.78
+  ch= 5016  E= 2130.21 keV  SNR=128.35  FWHM=184.48
+  ch= 5476  E= 2333.29 keV  SNR= 70.18  FWHM=239.10
+  ch= 6145  E= 2614.13 keV  SNR=373.36  FWHM=223.61
+RJMCMC extras:
+  ch= 189.00  SNR=346.16  amp=  59467.47  deltaD=209942.33  occ= 1.000  std=  0.00  residSNR=346.16  corr= 0.757  dist= 0.841  support=2  roi=[127..241]  local=[172]  halo=[348]
+  ch= 697.00  SNR=124.02  amp=   9021.37  deltaD=30875.73  occ= 1.000  std=  1.57  residSNR=124.02  corr= 0.647  dist= 1.241  support=4  roi=[389..851]  local=[620]  halo=[348,860]
+  ch= 733.00  SNR=111.14  amp=   7256.01  deltaD=16482.67  occ= 0.915  std=  0.00  residSNR=111.14  corr= 0.830  dist= 1.765  support=3  roi=[714..1342]  local=[860,1028,1156,1276]  halo=[620,1452]
+  ch=1385.00  SNR= 77.41  amp=   2602.47  deltaD=10693.34  occ= 1.000  std=  2.69  residSNR= 77.41  corr= 0.690  dist= 0.703  support=3  roi=[921..1631]  local=[1028,1156,1276,1452]  halo=[860,1796]
+

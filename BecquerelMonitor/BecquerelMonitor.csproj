@@ -36,7 +36,7 @@
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
     <ApplicationRevision>1</ApplicationRevision>
-    <ApplicationVersion>2026.07.17.01</ApplicationVersion>
+    <ApplicationVersion>2026.07.24.01</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -350,6 +350,7 @@
     </Compile>
     <Compile Include="LayoutMode.cs" />
     <Compile Include="LegendCellRenderer.cs" />
+    <Compile Include="LibraryPeakFitter.cs" />
     <Compile Include="MagnificationReference.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>

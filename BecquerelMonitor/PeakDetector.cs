@@ -68,6 +68,12 @@ namespace BecquerelMonitor
                     fwhmPeakDetectionMethodConfig.Min_SNR,
                     fwhmPeakDetectionMethodConfig.Tolerance,
                     nuclideSet);
+            }
+
+            AppendLibraryPeaks(peaks, resultData, bgMode, finder, nuclideSet, fwhmPeakDetectionMethodConfig);
+
+            if (useDeconvolution || nuclideSet != null)
+            {
                 peaks.Sort((left, right) =>
                 {
                     int energyComparison = left.Energy.CompareTo(right.Energy);
@@ -77,6 +83,79 @@ namespace BecquerelMonitor
                 });
             }
             return peaks;
+        }
+
+        // Библиотечный фит по активному нуклидному сету (LibraryPeakFitter):
+        // якорная линия сета найдена finder'ом → компоненты на всех линиях
+        // сета, Пуассон-фит амплитуд, значимые (z >= SignificanceZ) — в пики
+        // с origin Library. Работает и без деконволюции.
+        void AppendLibraryPeaks(
+            List<Peak> peaks,
+            ResultData resultData,
+            BackgroundMode bgMode,
+            FWHMPeakDetector.PeakFinder finder,
+            NuclideSet nuclideSet,
+            FWHMPeakDetectionMethodConfig peakConfig)
+        {
+            if (nuclideSet == null || peaks.Count == 0)
+            {
+                return;
+            }
+
+            int[] snipContinuum = RjmcmcPeakDeconvolver.BuildSnipContinuum(
+                resultData.EnergySpectrum,
+                finder,
+                resultData.FwhmCalibration);
+
+            LibraryPeakFitter.LibraryFitResult fitResult = LibraryPeakFitter.Fit(
+                resultData.EnergySpectrum,
+                bgMode == BackgroundMode.Substract ? resultData.BackgroundEnergySpectrum : null,
+                snipContinuum,
+                resultData.FwhmCalibration,
+                peaks,
+                nuclideSet,
+                peakConfig);
+
+            // Пики, сработавшие якорями (включившие библиотечный фит) —
+            // флаг для отрисовки, независимый от того, какой экземпляр
+            // нуклида достался пику в MatchNuclide (дубликаты линий).
+            foreach (Peak anchorPeak in fitResult.AnchorPeaks)
+            {
+                anchorPeak.IsLibraryAnchor = true;
+            }
+
+            // Пики-центроиды блендов, заменённые линиями bound-группы
+            // (BR-связка: их место занимают линии с табличными позициями).
+            foreach (Peak replaced in fitResult.ReplacedPeaks)
+            {
+                peaks.Remove(replaced);
+            }
+
+            foreach (LibraryPeakFitter.LibraryCandidate candidate in fitResult.AddedPeaks)
+            {
+                // Безымянные компоненты отклика (escape SE/DE) скрываются
+                // вместе с прочими неопознанными пиками.
+                if (candidate.Nuclide == null && nuclideSet.HideUnknownPeaks)
+                {
+                    continue;
+                }
+
+                Peak peak = CreatePeak(
+                    resultData.EnergySpectrum,
+                    candidate.Channel,
+                    candidate.Z,
+                    candidate.Fwhm,
+                    0.0,
+                    null,
+                    null,
+                    refineCentroid: false);
+                peak.PeakSearchOrigin = PeakSearchOrigin.Library;
+                peak.Nuclide = candidate.Nuclide;
+                if (CanAppendDeconvolvedPeak(peak, peaks))
+                {
+                    peaks.Add(peak);
+                }
+            }
         }
 
         bool isNewPeak(Peak newpeak, bool hidepeaks, List<Peak> peaks)
