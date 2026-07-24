@@ -2160,8 +2160,8 @@ namespace BecquerelMonitor
             // FillPath: поколоночный FillRectangle давал по вызову GDI+ на
             // КАЖДЫЙ пиксель ширины, на каждый спектр, каждый кадр.
             this.barChartRun.Clear();
-            this.barChartPath.Reset();
-            GraphicsPath path = this.barChartPath;
+            this.spectrumFillPath.Reset();
+            GraphicsPath path = this.spectrumFillPath;
             int runStartX = 0;
             int previousBarX = Int32.MinValue;
             while (i <= maxPixel)
@@ -2275,11 +2275,14 @@ namespace BecquerelMonitor
             this.barChartRun.Clear();
         }
 
-        // Переиспользуемый буфер точек одной непрерывной «лестницы» и путь, в
-        // который они складываются. Оба переживают кадр: DrawBarChart зовётся
-        // по разу на спектр каждую отрисовку. Путь освобождается в Dispose.
+        // Переиспользуемые буферы точек и общий путь заливки для DrawBarChart
+        // (лестница столбиков) и DrawPeakBarChart (лента между континуумом и
+        // пиком). Оба метода начинают с Reset и одновременно не выполняются.
+        // Путь освобождается в Dispose.
         readonly List<Point> barChartRun = new List<Point>();
-        readonly GraphicsPath barChartPath = new GraphicsPath();
+        readonly List<Point> peakBandTop = new List<Point>();
+        readonly List<Point> peakBandBottom = new List<Point>();
+        readonly GraphicsPath spectrumFillPath = new GraphicsPath();
 
         int GetSpectrumValueY(double value)
         {
@@ -2396,6 +2399,15 @@ namespace BecquerelMonitor
             // вызовов EnergyToChannel с обращением в его ConcurrentDictionary.
             // Теперь строится один раз за отрисовку.
             int[] pixelChannels = this.EnsurePixelChannelMap(spectrum, calibration, firstPixel, maxPixel);
+
+            // Заливка пика — лента между кривой континуума и кривой пика, и
+            // рисовалась она столбиком на пиксель. Верх ленты идёт по одной
+            // кривой, низ по другой, поэтому непрерывный участок замыкается в
+            // полигон и всё уходит одним FillPath (как в DrawBarChart).
+            this.spectrumFillPath.Reset();
+            this.peakBandTop.Clear();
+            this.peakBandBottom.Clear();
+            int previousBandX = Int32.MinValue;
             int i = firstPixel;
             while (i <= maxPixel)
             {
@@ -2424,7 +2436,18 @@ namespace BecquerelMonitor
                             int bottom = Math.Max(peak, num5);
                             if (bottom > top)
                             {
-                                g.FillRectangle(brush, i, top, 1, bottom - top);
+                                // Пропуск колонки рвёт ленту: соседние участки
+                                // нельзя замыкать в один полигон.
+                                if (this.peakBandTop.Count > 0 && i != previousBandX + 1)
+                                {
+                                    this.FlushPeakBand();
+                                }
+
+                                this.peakBandTop.Add(new Point(i, top));
+                                this.peakBandTop.Add(new Point(i + 1, top));
+                                this.peakBandBottom.Add(new Point(i, bottom));
+                                this.peakBandBottom.Add(new Point(i + 1, bottom));
+                                previousBandX = i;
                             }
                         }
                     }
@@ -2432,6 +2455,35 @@ namespace BecquerelMonitor
 
                 i++;
             }
+
+            this.FlushPeakBand();
+            if (this.spectrumFillPath.PointCount > 0)
+            {
+                g.FillPath(brush, this.spectrumFillPath);
+            }
+        }
+
+        // Замыкает накопленный участок ленты: верх слева направо, низ справа
+        // налево. Кривые не пересекаются (bottom > top на каждой колонке),
+        // поэтому полигон не самопересекается и заливается ровно теми же
+        // пикселями, что поколоночные прямоугольники.
+        void FlushPeakBand()
+        {
+            if (this.peakBandTop.Count == 0)
+            {
+                return;
+            }
+
+            Point[] polygon = new Point[this.peakBandTop.Count + this.peakBandBottom.Count];
+            this.peakBandTop.CopyTo(polygon, 0);
+            for (int k = 0; k < this.peakBandBottom.Count; k++)
+            {
+                polygon[this.peakBandTop.Count + k] = this.peakBandBottom[this.peakBandBottom.Count - 1 - k];
+            }
+
+            this.spectrumFillPath.AddPolygon(polygon);
+            this.peakBandTop.Clear();
+            this.peakBandBottom.Clear();
         }
 
         // Token: 0x060004B8 RID: 1208 RVA: 0x00018CD8 File Offset: 0x00016ED8
