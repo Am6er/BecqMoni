@@ -16,10 +16,10 @@ namespace BecquerelMonitor
                 {
                     this.components.Dispose();
                 }
-                // Переиспользуемый путь заливки столбиков (DrawBarChart) держит
+                // Переиспользуемый путь заливки спектра и пиков держит
                 // неуправляемый хэндл GDI+ и в components не кладётся —
                 // GraphicsPath не IComponent.
-                this.barChartPath.Dispose();
+                this.spectrumFillPath.Dispose();
             }
             base.Dispose(disposing);
         }
