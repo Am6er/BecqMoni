@@ -174,6 +174,11 @@ namespace BecquerelMonitor
             this.dirty = true;
         }
 
+        // Потолок мемоизации энергия->канал. С запасом перекрывает пиксельную
+        // ширину графика на любом мониторе, так что при фиксированном масштабе
+        // сброс не срабатывает вовсе.
+        const int EnergyToChannelCacheLimit = 32768;
+
         public override double EnergyToChannel(double enrg, int maxCh = 8192)
         {
             // Changing maxCh must also drop the cached energy->channel map, not only
@@ -196,6 +201,16 @@ namespace BecquerelMonitor
                 } else
                 {
                     value = EnrgToChannel(enrg, maxCh: this.maxChannels);
+                    // Кеш чисто мемоизационный, но раньше он не имел потолка и
+                    // рос неограниченно: график зовёт EnergyToChannel по одному
+                    // ключу на пиксель, и при масштабировании КАЖДЫЙ кадр даёт
+                    // новый набор энергий - за 40 шагов зума набегало под 50 тыс.
+                    // записей, которые больше никогда не понадобятся. Сброс
+                    // безопасен: это чистая функция, пересчёт дешёвый.
+                    if (this.energytochanel.Count >= EnergyToChannelCacheLimit)
+                    {
+                        this.energytochanel.Clear();
+                    }
                     this.energytochanel.TryAdd(enrg, value);
                     return value;
                 }
