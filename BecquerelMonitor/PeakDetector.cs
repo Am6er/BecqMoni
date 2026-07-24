@@ -102,15 +102,13 @@ namespace BecquerelMonitor
                 return;
             }
 
-            int[] snipContinuum = RjmcmcPeakDeconvolver.BuildSnipContinuum(
-                resultData.EnergySpectrum,
-                finder,
-                resultData.FwhmCalibration);
-
             LibraryPeakFitter.LibraryFitResult fitResult = LibraryPeakFitter.Fit(
                 resultData.EnergySpectrum,
                 bgMode == BackgroundMode.Substract ? resultData.BackgroundEnergySpectrum : null,
-                snipContinuum,
+                () => RjmcmcPeakDeconvolver.BuildSnipContinuum(
+                    resultData.EnergySpectrum,
+                    finder,
+                    resultData.FwhmCalibration),
                 resultData.FwhmCalibration,
                 peaks,
                 nuclideSet,

@@ -1,7 +1,6 @@
 using BecquerelMonitor.Properties;
 using System;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using XPTable.Events;
 using XPTable.Renderers;
@@ -22,44 +21,35 @@ namespace BecquerelMonitor
             this.libraryBitmap = CreateLibraryBitmap();
         }
 
-        // Красный круг: пик, совпавший с якорной линией нуклидного сета —
-        // он включает библиотечный фит всей цепочки.
+        // Красный якорь (U+2693): пик, совпавший с якорной линией нуклидного
+        // сета — он включает библиотечный фит всей цепочки.
         static Bitmap CreateAnchorBitmap()
         {
-            Bitmap bitmap = new Bitmap(16, 16);
-            using (Graphics g = Graphics.FromImage(bitmap))
-            using (Brush fill = new SolidBrush(Color.Red))
-            using (Pen edge = new Pen(Color.DarkRed, 1f))
-            {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.FillEllipse(fill, 3f, 3f, 10f, 10f);
-                g.DrawEllipse(edge, 3f, 3f, 10f, 10f);
-            }
-
-            return bitmap;
+            return CreateGlyphBitmap("⚓", Color.Red);
         }
 
-        // Синяя книжка: пик, добавленный библиотечным фитом (origin Library).
+        // Синяя книжка (U+1F4D6): пик, добавленный библиотечным фитом
+        // (origin Library).
         static Bitmap CreateLibraryBitmap()
+        {
+            return CreateGlyphBitmap("\U0001F4D6", Color.RoyalBlue);
+        }
+
+        // Юникод-глиф в битмап 16x16. GDI+ не поддерживает цветные шрифты и
+        // рисует эмодзи-глифы Segoe UI Emoji монохромным контуром — поэтому
+        // цвет задаётся кистью.
+        static Bitmap CreateGlyphBitmap(string glyph, Color color)
         {
             Bitmap bitmap = new Bitmap(16, 16);
             using (Graphics g = Graphics.FromImage(bitmap))
+            using (Font font = new Font("Segoe UI Emoji", 12f, FontStyle.Regular, GraphicsUnit.Pixel))
+            using (Brush brush = new SolidBrush(color))
+            using (StringFormat format = new StringFormat(StringFormat.GenericTypographic))
             {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                using (Brush cover = new SolidBrush(Color.RoyalBlue))
-                using (Pen edge = new Pen(Color.MidnightBlue, 1f))
-                using (Pen page = new Pen(Color.White, 1f))
-                {
-                    // Обложка
-                    g.FillRectangle(cover, 3.5f, 2.5f, 9f, 11f);
-                    g.DrawRectangle(edge, 3.5f, 2.5f, 9f, 11f);
-                    // Корешок
-                    g.DrawLine(edge, 5.5f, 2.5f, 5.5f, 13.5f);
-                    // Строки «текста»
-                    g.DrawLine(page, 7f, 5.5f, 11f, 5.5f);
-                    g.DrawLine(page, 7f, 8f, 11f, 8f);
-                    g.DrawLine(page, 7f, 10.5f, 11f, 10.5f);
-                }
+                format.Alignment = StringAlignment.Center;
+                format.LineAlignment = StringAlignment.Center;
+                g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+                g.DrawString(glyph, font, brush, new RectangleF(0f, 0f, 16f, 16f), format);
             }
 
             return bitmap;
