@@ -59,8 +59,10 @@ namespace BecquerelMonitor
 
         public sealed class LibraryCandidate
         {
-            public NuclideDefinition Nuclide; // null у escape-компонент
-            public string Label;              // подпись для диагностики (SE/DE)
+            // Всегда задан: escape-компоненты (SE/DE) участвуют в модели фита,
+            // но кандидатами не становятся — библиотечную пометку получают
+            // только линии сета.
+            public NuclideDefinition Nuclide;
             public int Channel;
             public double Fwhm;
             public double Amplitude;
@@ -88,6 +90,10 @@ namespace BecquerelMonitor
             // Члены bound-группы (для развёртки амплитуды по линиям).
             public List<LineSite> GroupMembers;
             public double[] GroupWeights;
+            // Профили членов группы, построенные один раз вместе с групповым
+            // компонентом: их дважды используют BestMemberZ и финальная
+            // развёртка, а BuildFitComponent — не самая дешёвая операция.
+            public List<FitComponent> GroupComponents;
         }
 
         sealed class LineSite
@@ -106,6 +112,7 @@ namespace BecquerelMonitor
             FwhmCalibration fwhmCalibration,
             List<Peak> existingPeaks,
             NuclideSet nuclideSet,
+            List<NuclideDefinition> nuclideDefinitions,
             FWHMPeakDetectionMethodConfig peakConfig)
         {
             LibraryFitResult result = new LibraryFitResult();
@@ -114,7 +121,10 @@ namespace BecquerelMonitor
                 return result;
             }
 
-            List<NuclideDefinition> setLines = NuclideDefinitionManager.GetInstance().NuclideDefinitions
+            // Список приходит снимком от вызывающего (PeakDetector.DetectPeak):
+            // живой NuclideDefinitions правится из UI-потока, а фит крутится
+            // в Task.Run.
+            List<NuclideDefinition> setLines = (nuclideDefinitions ?? NuclideDefinitionManager.GetInstance().NuclideDefinitions)
                 .Where(n => n != null && n.Visible && n.Energy > 0.0 && n.Sets != null && n.Sets.Contains(nuclideSet.Id))
                 .OrderBy(n => n.Energy)
                 .ToList();
@@ -138,7 +148,7 @@ namespace BecquerelMonitor
             // matched-filter центроид точнее табличной позиции при дрейфе.
             int calibrationShift = 0;
             double bestAnchorSnr = Double.NegativeInfinity;
-            bool anchorMatched = false;
+            Dictionary<Peak, NuclideDefinition> anchorMatches = new Dictionary<Peak, NuclideDefinition>();
             foreach (NuclideDefinition anchorLine in setLines.Where(n => n.IsAnchor))
             {
                 int anchorChannel = ClampChannel(channels, spectrum.EnergyCalibration.EnergyToChannel(anchorLine.Energy, maxChannels: channels));
@@ -147,9 +157,9 @@ namespace BecquerelMonitor
                     double tolerance = AnchorMatchToleranceFwhm * Math.Max(1.0, peak.FWHM);
                     if (Math.Abs(peak.Channel - anchorChannel) <= tolerance)
                     {
-                        anchorMatched = true;
-                        if (!result.AnchorPeaks.Contains(peak))
+                        if (!anchorMatches.ContainsKey(peak))
                         {
+                            anchorMatches.Add(peak, anchorLine);
                             result.AnchorPeaks.Add(peak);
                         }
                         if (peak.SNR > bestAnchorSnr)
@@ -161,7 +171,7 @@ namespace BecquerelMonitor
                 }
             }
 
-            if (!anchorMatched)
+            if (anchorMatches.Count == 0)
             {
                 return result;
             }
@@ -210,6 +220,29 @@ namespace BecquerelMonitor
             // замены другими группами.
             Dictionary<Peak, LineSite> claims = BuildClaims(existingPeaks, sites);
 
+            // Якорный пик — тоже заявивший: гейт якоря (AnchorMatchToleranceFwhm)
+            // ШИРЕ ClaimToleranceFwhm, поэтому пик, включивший весь фит, в
+            // claims попадал не всегда, и дедуп дрейфа мог его удалить —
+            // вместе с якорной пометкой, выставляемой в AppendLibraryPeaks.
+            // Совпадает с claims только у сильнейшего якоря: от него берётся
+            // calibrationShift, поэтому его сайт садится ровно на пик, а
+            // остальные якоря уезжают на разницу локальных дрейфов.
+            foreach (KeyValuePair<Peak, NuclideDefinition> anchorMatch in anchorMatches)
+            {
+                if (claims.ContainsKey(anchorMatch.Key))
+                {
+                    continue;
+                }
+
+                LineSite anchorSite = sites.FirstOrDefault(s => ReferenceEquals(s.Nuclide, anchorMatch.Value));
+                if (anchorSite != null)
+                {
+                    claims[anchorMatch.Key] = anchorSite;
+                }
+            }
+
+            HashSet<LineSite> claimedSites = new HashSet<LineSite>(claims.Values);
+
             // --- Кластеризация в bound-группы (Sparrow + одна цепочка + BR) ---
             List<List<LineSite>> clusters = ClusterSites(sites);
             List<LineSite> singles = new List<LineSite>();
@@ -245,7 +278,7 @@ namespace BecquerelMonitor
             List<FitComponent> singleComponents = new List<FitComponent>();
             foreach (LineSite site in singles)
             {
-                if (claims.Values.Contains(site))
+                if (claimedSites.Contains(site))
                 {
                     continue;
                 }
@@ -303,10 +336,13 @@ namespace BecquerelMonitor
             // --- Модель A: пики + одиночные компоненты, без групп ---
             List<FitComponent> model = new List<FitComponent>(peakComponents.Values);
             model.AddRange(singleComponents);
-            double devianceCurrent = FitModel(observed, fixedBackground, model, chMin, chMax);
+            HashSet<FitComponent> modelSet = new HashSet<FitComponent>(model);
+            double[] lambdaCurrent;
+            double devianceCurrent = FitModel(observed, fixedBackground, model, chMin, chMax, out lambdaCurrent);
 
             // --- Последовательное принятие bound-групп по AIC ---
             List<Peak> replacedPeaks = new List<Peak>();
+            HashSet<Peak> replacedSet = new HashSet<Peak>();
             foreach (List<LineSite> group in groups.OrderBy(g => g[0].Channel))
             {
                 FitComponent groupComponent = BuildGroupComponent(spectrum, fwhmCalibration, group);
@@ -318,9 +354,10 @@ namespace BecquerelMonitor
                 // Пики-центроиды бленда: близко к линиям группы и не заявлены
                 // линией вне группы.
                 List<Peak> covering = new List<Peak>();
+                HashSet<FitComponent> coveringComponents = new HashSet<FitComponent>();
                 foreach (KeyValuePair<Peak, FitComponent> entry in peakComponents)
                 {
-                    if (!model.Contains(entry.Value))
+                    if (!modelSet.Contains(entry.Value))
                     {
                         continue; // уже заменён предыдущей группой
                     }
@@ -338,14 +375,14 @@ namespace BecquerelMonitor
                     }
 
                     covering.Add(peak);
+                    coveringComponents.Add(entry.Value);
                 }
 
-                List<FitComponent> trial = model
-                    .Where(c => !covering.Any(p => ReferenceEquals(peakComponents[p], c)))
-                    .ToList();
+                List<FitComponent> trial = model.Where(c => !coveringComponents.Contains(c)).ToList();
                 trial.Add(groupComponent);
 
-                double devianceTrial = FitModel(observed, fixedBackground, trial, chMin, chMax);
+                double[] lambdaTrial;
+                double devianceTrial = FitModel(observed, fixedBackground, trial, chMin, chMax, out lambdaTrial);
 
                 // AIC: D + 2k; в trial добавлен 1 параметр, убрано covering.Count.
                 double aicCurrent = devianceCurrent + 2.0 * model.Count;
@@ -355,16 +392,22 @@ namespace BecquerelMonitor
                     continue;
                 }
 
-                double[] lambdaTrial = BuildLambda(fixedBackground, trial, channels);
-                double bestMemberZ = BestMemberZ(spectrum, fwhmCalibration, groupComponent, lambdaTrial);
+                double bestMemberZ = BestMemberZ(groupComponent, lambdaTrial);
                 if (bestMemberZ < SignificanceZ)
                 {
                     continue;
                 }
 
                 model = trial;
+                modelSet = new HashSet<FitComponent>(trial);
                 devianceCurrent = devianceTrial;
-                replacedPeaks.AddRange(covering);
+                foreach (Peak covered in covering)
+                {
+                    if (replacedSet.Add(covered))
+                    {
+                        replacedPeaks.Add(covered);
+                    }
+                }
             }
 
             // --- Финальный отбор ---
@@ -373,8 +416,7 @@ namespace BecquerelMonitor
             // ОТКЛОНЁННОЙ пробы амплитуды в model остаются от фита с чужим
             // групповым компонентом (занижены там, где он перекрывал линии).
             // Скалярные AIC-сравнения это не ломало, а финальные z — ломало.
-            FitModel(observed, fixedBackground, model, chMin, chMax);
-            double[] lambda = BuildLambda(fixedBackground, model, channels);
+            FitModel(observed, fixedBackground, model, chMin, chMax, out lambdaCurrent);
             foreach (FitComponent component in model)
             {
                 if (component.GroupMembers != null)
@@ -385,14 +427,9 @@ namespace BecquerelMonitor
                     {
                         LineSite member = component.GroupMembers[i];
                         double memberAmplitude = component.Amplitude * component.GroupWeights[i];
-                        FitComponent memberComponent = BuildFitComponent(spectrum, fwhmCalibration, member.Channel, member.Nuclide, null);
-                        if (memberComponent == null)
-                        {
-                            continue;
-                        }
-
+                        FitComponent memberComponent = component.GroupComponents[i];
                         memberComponent.Amplitude = memberAmplitude;
-                        double z = FisherZ(memberComponent, lambda);
+                        double z = FisherZ(memberComponent, lambdaCurrent);
                         if (z < SignificanceZ)
                         {
                             continue;
@@ -410,11 +447,11 @@ namespace BecquerelMonitor
                 }
                 else if (component.Nuclide != null)
                 {
-                    // Одиночная линия сета. Escape-компоненты (Label != null)
+                    // Одиночная линия сета. Escape-компоненты (Nuclide == null)
                     // НЕ выводятся как пики: они остаются только в модели
                     // фита, чтобы амплитуда SE/DE не перетекала в соседние
                     // линии. Библиотечную пометку получают ТОЛЬКО линии сета.
-                    double z = FisherZ(component, lambda);
+                    double z = FisherZ(component, lambdaCurrent);
                     if (z < SignificanceZ)
                     {
                         continue;
@@ -435,18 +472,20 @@ namespace BecquerelMonitor
             // принятой библиотечной компоненты — это либо та же линия со
             // сдвинутым центроидом (дрейф калибровки, K-40 1482→1461), либо
             // артефакт на её склоне. Табличная позиция точнее — пик уходит.
-            // Заявленные пики (принадлежащие другой линии сета) защищены.
+            // Заявленные и якорные пики защищены: якорный пик мог не попасть в
+            // claims, если его линия вышла за [chMin, chMax] и сайта не
+            // получила, а удалять пик, включивший весь фит, нельзя.
             foreach (LibraryCandidate candidate in result.AddedPeaks)
             {
                 foreach (Peak peak in existingPeaks)
                 {
-                    if (replacedPeaks.Contains(peak) || claims.ContainsKey(peak))
+                    if (replacedSet.Contains(peak) || claims.ContainsKey(peak) || anchorMatches.ContainsKey(peak))
                     {
                         continue;
                     }
 
                     double tolerance = BlendCoverToleranceFwhm * Math.Max(1.0, Math.Max(peak.FWHM, candidate.Fwhm));
-                    if (Math.Abs(peak.Channel - candidate.Channel) <= tolerance)
+                    if (Math.Abs(peak.Channel - candidate.Channel) <= tolerance && replacedSet.Add(peak))
                     {
                         replacedPeaks.Add(peak);
                     }
@@ -538,9 +577,20 @@ namespace BecquerelMonitor
             double scale = background != null && background.MeasurementTime > 0.0 && foreground.MeasurementTime > 0.0
                 ? foreground.MeasurementTime / background.MeasurementTime
                 : 0.0;
-            bool sameCalibration = background != null &&
-                foreground.EnergyCalibration != null &&
-                foreground.EnergyCalibration.Equals(background.EnergyCalibration);
+            if (!PeakShapeModel.IsFinite(scale) || scale < 0.0)
+            {
+                scale = 0.0;
+            }
+
+            // Без обеих калибровок канал фона не сопоставить — фон прибора
+            // просто не подмешивается (как в RJMCMC-аналоге
+            // ApplyScaledInstrumentBackground, который в этом случае выходит).
+            if (scale > 0.0 && (foreground.EnergyCalibration == null || background.EnergyCalibration == null))
+            {
+                scale = 0.0;
+            }
+
+            bool sameCalibration = scale > 0.0 && SameCalibration(foreground.EnergyCalibration, background.EnergyCalibration);
             for (int i = 0; i < channels; i++)
             {
                 double value = snip != null && i < snip.Length ? Math.Max(0.0, snip[i]) : 0.0;
@@ -563,6 +613,27 @@ namespace BecquerelMonitor
             }
 
             return fixedBackground;
+        }
+
+        // Безопасное сравнение калибровок. EnergyCalibration.Equals у
+        // наследников кастует аргумент БЕЗ проверки типа и сразу его
+        // разыменовывает (NRE на null, InvalidCastException на чужом типе), а
+        // NonlinearEnergyCalibration бросает NotImplementedException. Отсюда
+        // исключение убило бы всю детекцию: DetectPeak вызывается под
+        // catch-all в DCPeakDetectionView, который лишь пишет в Trace.
+        static bool SameCalibration(EnergyCalibration left, EnergyCalibration right)
+        {
+            if (ReferenceEquals(left, right))
+            {
+                return true;
+            }
+
+            if (left == null || right == null || left.GetType() != right.GetType())
+            {
+                return false;
+            }
+
+            return left.Equals(right);
         }
 
         static FitComponent BuildFitComponent(EnergySpectrum spectrum, FwhmCalibration fwhmCalibration, int channel, NuclideDefinition nuclide, string label)
@@ -651,23 +722,20 @@ namespace BecquerelMonitor
                 Profile = profile,
                 Amplitude = 0.0,
                 GroupMembers = members,
-                GroupWeights = weights
+                GroupWeights = weights,
+                GroupComponents = memberComponents
             };
         }
 
-        // Максимальный z по членам группы (для критерия принятия).
-        static double BestMemberZ(EnergySpectrum spectrum, FwhmCalibration fwhmCalibration, FitComponent groupComponent, double[] lambda)
+        // Максимальный z по членам группы (для критерия принятия). Профили
+        // членов уже построены в BuildGroupComponent — переиспользуем их, а не
+        // строим заново на каждую пробу.
+        static double BestMemberZ(FitComponent groupComponent, double[] lambda)
         {
             double best = 0.0;
-            for (int i = 0; i < groupComponent.GroupMembers.Count; i++)
+            for (int i = 0; i < groupComponent.GroupComponents.Count; i++)
             {
-                LineSite member = groupComponent.GroupMembers[i];
-                FitComponent memberComponent = BuildFitComponent(spectrum, fwhmCalibration, member.Channel, member.Nuclide, null);
-                if (memberComponent == null)
-                {
-                    continue;
-                }
-
+                FitComponent memberComponent = groupComponent.GroupComponents[i];
                 memberComponent.Amplitude = groupComponent.Amplitude * groupComponent.GroupWeights[i];
                 double z = FisherZ(memberComponent, lambda);
                 if (z > best)
@@ -756,21 +824,25 @@ namespace BecquerelMonitor
         }
 
         // Полный фит модели «с нуля» (амплитуды сбрасываются) — используется
-        // и для базовой модели, и для AIC-проб bound-групп.
-        static double FitModel(int[] observed, double[] fixedBackground, List<FitComponent> components, int chMin, int chMax)
+        // и для базовой модели, и для AIC-проб bound-групп. lambda отдаётся
+        // наружу: спуск и так держит её актуальной, а вызывающему она нужна
+        // для FisherZ — собирать её повторно через BuildLambda было лишним
+        // полным проходом по спектру на каждую пробу.
+        static double FitModel(int[] observed, double[] fixedBackground, List<FitComponent> components, int chMin, int chMax, out double[] lambda)
         {
             foreach (FitComponent component in components)
             {
                 component.Amplitude = 0.0;
             }
 
-            return FitAmplitudes(observed, fixedBackground, components, chMin, chMax, FitIterations);
+            return FitAmplitudes(observed, fixedBackground, components, chMin, chMax, FitIterations, out lambda);
         }
 
         // Координатный Пуассон-спуск с matched-инициализацией (oracle-режим).
-        static double FitAmplitudes(int[] observed, double[] fixedBackground, List<FitComponent> components, int chMin, int chMax, int iterations)
+        static double FitAmplitudes(int[] observed, double[] fixedBackground, List<FitComponent> components, int chMin, int chMax, int iterations, out double[] lambdaResult)
         {
-            double[] lambda = BuildLambda(fixedBackground, components, observed.Length);
+            double[] lambda = BuildLambda(fixedBackground, components, fixedBackground.Length);
+            lambdaResult = lambda;
 
             foreach (FitComponent component in components)
             {
