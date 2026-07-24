@@ -169,11 +169,19 @@ namespace BecquerelMonitor
                 BackgroundMode bgMode = activeDocument.EnergySpectrumView.BackgroundMode;
                 SmoothingMethod smoothMethod = activeDocument.EnergySpectrumView.SmoothingMethod;
 
+                // Список нуклидов тоже снимается здесь, на UI-потоке:
+                // NuclideSetForm правит и сортирует его in-place, а перечисление
+                // живого списка из Task.Run валилось бы на "Collection was
+                // modified" — прямо в catch ниже, унося с собой всю детекцию.
+                List<NuclideDefinition> nuclideDefinitions =
+                    new List<NuclideDefinition>(NuclideDefinitionManager.GetInstance().NuclideDefinitions);
+
                 PeakDetector peakDetector = new PeakDetector();
                 List<Peak> peaks = await Task.Run(() => peakDetector.DetectPeak(snapshot,
                     bgMode,
                     smoothMethod,
-                    this.selectedNuclideSet));
+                    this.selectedNuclideSet,
+                    nuclideDefinitions));
                 activeResultData.DetectedPeaks = new List<Peak>(peaks);
                 // Refresh only if the user is still on the same document: RefreshTable()
                 // reads the CURRENT ActiveResultData and used to show peaks of a foreign

@@ -8,8 +8,16 @@ namespace BecquerelMonitor
 {
     public class PeakDetector
     {
-        public List<Peak> DetectPeak(ResultData resultData, BackgroundMode bgMode, SmoothingMethod smoothMethod, NuclideSet nuclideSet)
+        public List<Peak> DetectPeak(ResultData resultData, BackgroundMode bgMode, SmoothingMethod smoothMethod, NuclideSet nuclideSet, List<NuclideDefinition> nuclideDefinitions = null)
         {
+            // Снимок списка нуклидов. DetectPeak крутится в Task.Run, а
+            // NuclideSetForm правит и СОРТИРУЕТ тот же список из UI-потока:
+            // перечисление живого списка ловит "Collection was modified", а
+            // catch-all в DCPeakDetectionView гасит этим всю детекцию в одну
+            // строку Trace. Копию снимает вызывающий — на UI-потоке; null для
+            // однопоточных вызовов (харнесс).
+            this.nuclideDefinitions = nuclideDefinitions ?? this.nuclideManager.NuclideDefinitions;
+
             FWHMPeakDetectionMethodConfig fwhmPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)resultData.PeakDetectionMethodConfig;
             EnergySpectrum inferenceSpectrum;
             SpectrumAriphmetics sa = new SpectrumAriphmetics();
@@ -112,6 +120,7 @@ namespace BecquerelMonitor
                 resultData.FwhmCalibration,
                 peaks,
                 nuclideSet,
+                this.nuclideDefinitions,
                 peakConfig);
 
             // Пики, сработавшие якорями (включившие библиотечный фит) —
@@ -129,15 +138,12 @@ namespace BecquerelMonitor
                 peaks.Remove(replaced);
             }
 
+            // HideUnknownPeaks здесь не проверяется: кандидат всегда несёт
+            // линию сета. Компоненты отклика (escape SE/DE) сидят только в
+            // модели фита и наружу не выходят — см. финальный отбор в
+            // LibraryPeakFitter.Fit.
             foreach (LibraryPeakFitter.LibraryCandidate candidate in fitResult.AddedPeaks)
             {
-                // Безымянные компоненты отклика (escape SE/DE) скрываются
-                // вместе с прочими неопознанными пиками.
-                if (candidate.Nuclide == null && nuclideSet.HideUnknownPeaks)
-                {
-                    continue;
-                }
-
                 Peak peak = CreatePeak(
                     resultData.EnergySpectrum,
                     candidate.Channel,
@@ -349,7 +355,7 @@ namespace BecquerelMonitor
         {
             NuclideDefinition bestNuclide = null;
             double minDelta = Double.MaxValue;
-            foreach (NuclideDefinition nuclideDefinition in this.nuclideManager.NuclideDefinitions)
+            foreach (NuclideDefinition nuclideDefinition in this.nuclideDefinitions)
             {
                 if (!nuclideDefinition.Visible || nuclideDefinition.Energy == 0.0) continue;
                 if (nuclideSet != null && !nuclideDefinition.Sets.Contains(nuclideSet.Id)) continue;
@@ -417,5 +423,8 @@ namespace BecquerelMonitor
         }
 
         NuclideDefinitionManager nuclideManager = NuclideDefinitionManager.GetInstance();
+
+        // Снимок NuclideDefinitions на время одного прогона DetectPeak.
+        List<NuclideDefinition> nuclideDefinitions;
     }
 }

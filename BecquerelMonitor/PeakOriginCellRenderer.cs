@@ -71,8 +71,12 @@ namespace BecquerelMonitor
                 {
                     bitmap = this.libraryBitmap;
                 }
-                else if (peak.IsLibraryAnchor || (peak.Nuclide != null && peak.Nuclide.IsAnchor))
+                else if (peak.IsLibraryAnchor)
                 {
+                    // Только реально сработавший якорь: Nuclide.IsAnchor сам по
+                    // себе означал бы «эта линия помечена якорной», и глиф
+                    // рисовался бы даже без выбранного сета, когда
+                    // LibraryPeakFitter не запускался вовсе.
                     bitmap = this.anchorBitmap;
                 }
                 else if (peak.PeakSearchOrigin == PeakSearchOrigin.RJMCMC)
