@@ -102,7 +102,7 @@ namespace BecquerelMonitor
         public static LibraryFitResult Fit(
             EnergySpectrum spectrum,
             EnergySpectrum backgroundSpectrum,
-            int[] snipContinuum,
+            Func<int[]> snipContinuumProvider,
             FwhmCalibration fwhmCalibration,
             List<Peak> existingPeaks,
             NuclideSet nuclideSet,
@@ -165,6 +165,11 @@ namespace BecquerelMonitor
             {
                 return result;
             }
+
+            // SNIP-континуум запрашивается лениво и только здесь, ПОСЛЕ
+            // якорных гейтов: у большинства пользователей сет без якорей, и
+            // считать полный SNIP на каждый прогон детекции было бы впустую.
+            int[] snipContinuum = snipContinuumProvider != null ? snipContinuumProvider() : null;
 
             int[] observed = spectrum.Spectrum;
             double[] fixedBackground = BuildFixedBackground(spectrum, backgroundSpectrum, snipContinuum);
@@ -363,6 +368,12 @@ namespace BecquerelMonitor
             }
 
             // --- Финальный отбор ---
+            // Рефит принятой модели: FitModel(trial) мутирует амплитуды
+            // компонентов, разделяемых trial и model, поэтому после
+            // ОТКЛОНЁННОЙ пробы амплитуды в model остаются от фита с чужим
+            // групповым компонентом (занижены там, где он перекрывал линии).
+            // Скалярные AIC-сравнения это не ломало, а финальные z — ломало.
+            FitModel(observed, fixedBackground, model, chMin, chMax);
             double[] lambda = BuildLambda(fixedBackground, model, channels);
             foreach (FitComponent component in model)
             {
