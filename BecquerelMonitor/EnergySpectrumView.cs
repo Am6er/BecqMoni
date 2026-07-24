@@ -2155,6 +2155,15 @@ namespace BecquerelMonitor
             {
                 return;
             }
+
+            // Столбики копятся в «лестничный» полигон и заливаются одним
+            // FillPath: поколоночный FillRectangle давал по вызову GDI+ на
+            // КАЖДЫЙ пиксель ширины, на каждый спектр, каждый кадр.
+            this.barChartRun.Clear();
+            this.barChartPath.Reset();
+            GraphicsPath path = this.barChartPath;
+            int runStartX = 0;
+            int previousBarX = Int32.MinValue;
             while (i <= maxPixel)
             {
                 int num3;
@@ -2214,16 +2223,63 @@ namespace BecquerelMonitor
                             double num6 = Log10(num4);
                             num5 = this.height - (int)((num6 - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                         }
-                        if (i > this.left)
+                        // Столбик существует, только если он непустой по высоте:
+                        // FillRectangle с нулевой/отрицательной высотой не рисовал
+                        // ничего, и полигон тоже не должен его захватывать.
+                        if (i > this.left && num5 < this.height)
                         {
-                            g.FillRectangle(brush, i, num5, 1, this.height - num5);
+                            if (this.barChartRun.Count == 0)
+                            {
+                                runStartX = i;
+                            }
+                            else if (i != previousBarX + 1)
+                            {
+                                // Разрыв: пустые колонки рвут заливку на отдельные
+                                // фигуры, соединять их полигоном нельзя.
+                                this.FlushBarRun(path, runStartX);
+                                runStartX = i;
+                            }
+
+                            this.barChartRun.Add(new Point(i, num5));
+                            this.barChartRun.Add(new Point(i + 1, num5));
+                            previousBarX = i;
                         }
                     }
                 }
 
                 i++;
             }
+
+            this.FlushBarRun(path, runStartX);
+            if (path.PointCount > 0)
+            {
+                g.FillPath(brush, path);
+            }
         }
+
+        // Закрывает накопленную «лестницу» столбиков в полигон: верх идёт по
+        // значениям, низ — общей линией по height. Пиксели те же, что у
+        // поколоночного FillRectangle (проверено попиксельно), но вместо
+        // тысяч вызовов GDI+ получается один FillPath.
+        void FlushBarRun(GraphicsPath path, int runStartX)
+        {
+            if (this.barChartRun.Count == 0)
+            {
+                return;
+            }
+
+            int lastX = this.barChartRun[this.barChartRun.Count - 1].X;
+            this.barChartRun.Add(new Point(lastX, this.height));
+            this.barChartRun.Add(new Point(runStartX, this.height));
+            path.AddPolygon(this.barChartRun.ToArray());
+            this.barChartRun.Clear();
+        }
+
+        // Переиспользуемый буфер точек одной непрерывной «лестницы» и путь, в
+        // который они складываются. Оба переживают кадр: DrawBarChart зовётся
+        // по разу на спектр каждую отрисовку. Путь освобождается в Dispose.
+        readonly List<Point> barChartRun = new List<Point>();
+        readonly GraphicsPath barChartPath = new GraphicsPath();
 
         int GetSpectrumValueY(double value)
         {

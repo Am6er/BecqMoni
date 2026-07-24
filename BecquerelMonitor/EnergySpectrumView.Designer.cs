@@ -10,9 +10,16 @@ namespace BecquerelMonitor
     {
         protected override void Dispose(bool disposing)
         {
-            if (disposing && this.components != null)
+            if (disposing)
             {
-                this.components.Dispose();
+                if (this.components != null)
+                {
+                    this.components.Dispose();
+                }
+                // Переиспользуемый путь заливки столбиков (DrawBarChart) держит
+                // неуправляемый хэндл GDI+ и в components не кладётся —
+                // GraphicsPath не IComponent.
+                this.barChartPath.Dispose();
             }
             base.Dispose(disposing);
         }
