@@ -89,6 +89,7 @@ namespace BecquerelMonitor.RoiWizard
             get { return new ResolutionModel((double)this.numResolution.Value); }
         }
 
+
         // Панель живёт всё время работы приложения (HideOnClose), а классификацию можно
         // поправить в NucBase между её показами. Сброса кэша каталога для этого мало:
         // списки уже разложены по контролам, их надо пересобрать. Сравниваем редакцию
