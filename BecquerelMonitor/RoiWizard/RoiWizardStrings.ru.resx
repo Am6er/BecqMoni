@@ -91,9 +91,6 @@
   <data name="stepExport" xml:space="preserve">
     <value>Оформление и экспорт</value>
   </data>
-  <data name="pinTip" xml:space="preserve">
-    <value>Поверх остальных окон</value>
-  </data>
   <data name="groupSearch_Text" xml:space="preserve">
     <value>Поиск изотопа</value>
   </data>

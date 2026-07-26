@@ -1280,10 +1280,18 @@ namespace BecquerelMonitor
             if (this.roiWizardForm == null || this.roiWizardForm.IsDisposed)
             {
                 this.roiWizardForm = new RoiWizard.RoiWizardForm(this.RoiWizardResolution);
+                // Размер плавающего окна берётся у самой формы: её Size уже подогнан
+                // шрифтом темы (AutoScaleMode.Font укрупняет разметку), и плавающее
+                // окно отдаёт содержимому ровно столько же, сколько форма имеет в
+                // клиентской области. Жёсткие числа здесь обрезали бы содержимое.
+                System.Drawing.Size want = this.roiWizardForm.Size;
+                System.Drawing.Rectangle work = Screen.FromControl(this).WorkingArea;
+                want = new System.Drawing.Size(Math.Min(want.Width, work.Width),
+                                               Math.Min(want.Height, work.Height));
                 System.Drawing.Rectangle bounds = new System.Drawing.Rectangle(
-                    this.Location.X + Math.Max(0, (this.Width - 1200) / 2),
-                    this.Location.Y + Math.Max(0, (this.Height - 700) / 2),
-                    1200, 700);
+                    work.X + Math.Max(0, (work.Width - want.Width) / 2),
+                    work.Y + Math.Max(0, (work.Height - want.Height) / 2),
+                    want.Width, want.Height);
                 this.roiWizardForm.Show(this.dockPanel1, bounds);
             }
             else
