@@ -92,6 +92,11 @@ namespace BecquerelMonitor.RoiWizard
             get { return Get("stepExport", "Styling and export"); }
         }
 
+        public static string pinTip
+        {
+            get { return Get("pinTip", "Keep on top of other windows"); }
+        }
+
         public static string groupSearch_Text
         {
             get { return Get("groupSearch_Text", "Nuclide search"); }

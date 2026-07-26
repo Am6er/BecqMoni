@@ -42,6 +42,8 @@ namespace BecquerelMonitor.RoiWizard
             this.MinimizeBox = false;
             this.MaximizeBox = true;
             this.ShowInTaskbar = false;
+            this.ShowIcon = false;
+            WizardTheme.ApplyCaption(this);        // синий заголовок, как у окон BecqMoni
 
             this.view.Dock = DockStyle.Fill;
             this.view.ReadOnly = true;
