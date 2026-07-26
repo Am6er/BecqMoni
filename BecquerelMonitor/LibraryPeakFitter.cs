@@ -57,6 +57,43 @@ namespace BecquerelMonitor
         // Максимум итераций координатного спуска (как в oracle-режиме).
         const int FitIterations = 300;
 
+        // --- Гейт значимости: сравнение моделей вместо теста амплитуды ---
+        //
+        // Fisher z проверяет «амплитуда значимо отлична от нуля», а не «здесь есть
+        // пик»: компонента на пустом месте забирает систематический положительный
+        // остаток, и при миллионах отсчётов z уходит в сотни. На сетах-обманках
+        // (якорь настоящий, остальные линии сдвинуты на пустые энергии) фит принимал
+        // 63-79 % несуществующих линий, одинаково на девяти спектрах, трёх детекторах
+        // и статистике от 0.43 М до 61 М; распределения z у фантомов и настоящих линий
+        // совпадают, подъём порога режет тех и других поровну, а улучшение модели фона
+        // проверено прямым экспериментом и не помогает. Подробности —
+        // tools/LibraryFitLab/README.md, раздел «Результат 2».
+        //
+        // Правильный вопрос — не «велика ли амплитуда», а «становится ли модель лучше,
+        // если эту компоненту оставить». Отсюда тест отношения правдоподобий: ΔD между
+        // моделью с компонентой и без неё. Ключевая часть — ПЕРЕФИТ СОСЕДЕЙ при
+        // выключении: без него отсчётам компоненты некуда деться, ΔD раздувается и тест
+        // вырождается обратно в тест амплитуды. Именно поэтому фантом и проходил:
+        // рядом всегда есть чему его подобрать, но амплитудный критерий этого не видит.
+        //
+        // Порог. При H0 (амплитуда = 0) ΔD асимптотически хи-квадрат с одной степенью
+        // свободы, но параметр лежит на границе области (амплитуда неотрицательна),
+        // поэтому нулевое распределение — смесь 50:50 из chi2(0) и chi2(1), и
+        // односторонний уровень значимости z соответствует порогу z^2. Это и есть
+        // «поправка Уилкса» из плана в README; при z = 4 получается 16.
+        public const double SignificanceDeltaDeviance = SignificanceZ * SignificanceZ;
+
+        // Сколько проходов координатного спуска отводится на локальный перефит соседей
+        // при выключенной компоненте. Окно узкое (носитель одной компоненты), соседей
+        // единицы, и спуск сходится за десяток проходов; 300 как в основном фите здесь
+        // не нужны и стоили бы дорого - перефит делается на каждого кандидата.
+        const int ProfileFitIterations = 40;
+
+        // Переключатель на время сравнения критериев: false - прежний гейт по Fisher z.
+        // Держится явным, чтобы прогон tools/LibraryFitLab мог померить оба на одних и
+        // тех же спектрах и сетах-обманках.
+        public static bool UseDevianceGate = true;
+
         public sealed class LibraryCandidate
         {
             // Всегда задан: escape-компоненты (SE/DE) участвуют в модели фита,
@@ -430,7 +467,8 @@ namespace BecquerelMonitor
                         FitComponent memberComponent = component.GroupComponents[i];
                         memberComponent.Amplitude = memberAmplitude;
                         double z = FisherZ(memberComponent, lambdaCurrent);
-                        if (z < SignificanceZ)
+                        if (!Significant(observed, model, memberComponent, lambdaCurrent,
+                                         chMin, chMax, z))
                         {
                             continue;
                         }
@@ -452,7 +490,8 @@ namespace BecquerelMonitor
                     // фита, чтобы амплитуда SE/DE не перетекала в соседние
                     // линии. Библиотечную пометку получают ТОЛЬКО линии сета.
                     double z = FisherZ(component, lambdaCurrent);
-                    if (z < SignificanceZ)
+                    if (!Significant(observed, model, component, lambdaCurrent,
+                                     chMin, chMax, z))
                     {
                         continue;
                     }
@@ -907,6 +946,108 @@ namespace BecquerelMonitor
             }
 
             return PoissonDeviance(observed, lambda, chMin, chMax);
+        }
+
+        // Проходит ли компонента гейт значимости.
+        static bool Significant(int[] observed, List<FitComponent> model, FitComponent component,
+                                double[] lambda, int chMin, int chMax, double z)
+        {
+            if (!UseDevianceGate)
+            {
+                return z >= SignificanceZ;
+            }
+            return DevianceGain(observed, model, component, lambda, chMin, chMax)
+                   >= SignificanceDeltaDeviance;
+        }
+
+        // Насколько хуже становится модель, если компоненту убрать: ΔD = D(без) − D(с),
+        // посчитанные на носителе самой компоненты.
+        //
+        // Соседи при выключении ПЕРЕФИЧИВАЮТСЯ. Это и есть содержательная часть теста:
+        // фантом стоит там, где его вклад может подобрать континуум или соседняя линия,
+        // и после перефита модель без него почти так же хороша — ΔD мал. У настоящей
+        // линии подобрать её форму нечем, и ΔD велик. Без перефита отсчётам выключенной
+        // компоненты некуда деться, ΔD раздувается на её же площадь, и тест вырождается
+        // обратно в тест амплитуды, то есть в тот самый гейт, который ничего не ловит.
+        //
+        // Модель возвращается в исходное состояние: тот же lambda и те же амплитуды —
+        // каждый кандидат проверяется относительно одной и той же принятой модели.
+        static double DevianceGain(int[] observed, List<FitComponent> model, FitComponent target,
+                                   double[] lambda, int chMin, int chMax)
+        {
+            if (target.Amplitude <= 0.0)
+            {
+                return 0.0;
+            }
+            int start = Math.Max(chMin, target.Start);
+            int end = Math.Min(chMax, target.Start + target.Profile.Length - 1);
+            if (start > end)
+            {
+                return 0.0;
+            }
+
+            double devianceWith = PoissonDeviance(observed, lambda, start, end);
+
+            double targetAmplitude = target.Amplitude;
+            ApplyAmplitudeDelta(lambda, target, -targetAmplitude);
+
+            List<FitComponent> neighbours = new List<FitComponent>();
+            List<double> saved = new List<double>();
+            foreach (FitComponent other in model)
+            {
+                if (ReferenceEquals(other, target))
+                {
+                    continue;
+                }
+                int otherEnd = other.Start + other.Profile.Length - 1;
+                if (otherEnd < start || other.Start > end)
+                {
+                    continue;                       // носители не пересекаются
+                }
+                neighbours.Add(other);
+                saved.Add(other.Amplitude);
+            }
+
+            for (int iteration = 0; iteration < ProfileFitIterations; iteration++)
+            {
+                bool improved = false;
+                foreach (FitComponent other in neighbours)
+                {
+                    double step = Math.Max(0.5, other.Amplitude * 0.10);
+                    for (int direction = -1; direction <= 1; direction += 2)
+                    {
+                        double delta = direction * step;
+                        if (other.Amplitude + delta < 0.0)
+                        {
+                            delta = -other.Amplitude;
+                            if (delta == 0.0)
+                            {
+                                continue;
+                            }
+                        }
+                        if (LocalLogLikelihoodDelta(observed, lambda, other, delta, start, end) > 1E-9)
+                        {
+                            ApplyAmplitudeDelta(lambda, other, delta);
+                            improved = true;
+                            break;
+                        }
+                    }
+                }
+                if (!improved)
+                {
+                    break;
+                }
+            }
+
+            double devianceWithout = PoissonDeviance(observed, lambda, start, end);
+
+            for (int i = 0; i < neighbours.Count; i++)
+            {
+                ApplyAmplitudeDelta(lambda, neighbours[i], saved[i] - neighbours[i].Amplitude);
+            }
+            ApplyAmplitudeDelta(lambda, target, targetAmplitude);
+
+            return devianceWithout - devianceWith;
         }
 
         // z = A·sqrt(I), I = Σ p²/max(1, λ) — информация Фишера амплитуды при
