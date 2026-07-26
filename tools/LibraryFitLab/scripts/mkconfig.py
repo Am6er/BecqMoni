@@ -35,6 +35,20 @@ for row in CALIB.values():
 # cannot be seen at all and would only pad the counts.
 DET_RANGE = {'ASN16': (40.0, 3000.0), 'AS80x80': (40.0, 2900.0), 'RC103': (40.0, 2800.0)}
 
+# Модели разрешения корпуса. Раньше здесь были только три детектора девятки —
+# всё, что лежало в data/calibration.json, — и построить сет для германия или
+# CZT было не из чего. corpus/detectors.csv пишет build_corpus.py: строка на
+# группу, модель FWHM(E) и рабочий диапазон. Числа девятки в нём те же самые,
+# так что старые сеты не меняются.
+_DETECTORS_CSV = os.path.join(os.path.dirname(HERE), 'corpus', 'detectors.csv')
+if os.path.exists(_DETECTORS_CSV):
+    import csv as _csv
+    with open(_DETECTORS_CSV, encoding='utf-8-sig', newline='') as _fh:
+        for _row in _csv.DictReader(_fh):
+            DETECTORS[_row['det']] = [float(_row['res_c0']), float(_row['res_c1']),
+                                      float(_row['res_c2'])]
+            DET_RANGE[_row['det']] = (float(_row['e_lo']), float(_row['e_hi']))
+
 K_GRID = [0.0, 0.3, 0.5, 0.7, 0.85, 1.0, 1.3, 1.6, 2.0]
 I_GRID = [0.0, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0]
 
@@ -227,8 +241,18 @@ if __name__ == '__main__':
     kinds = kinds[0] if kinds else ('real', 'decoy')
     suffix = ([a.split('=')[1] for a in sys.argv[1:] if a.startswith('--suffix=')] + [''])[0]
 
+    # Полная сетка k x I_min — это 9 x 7 сетов на цепочку; для сравнения гейтов
+    # нужна одна рекомендованная точка, зато на восемнадцати группах.
+    for arg in sys.argv[1:]:
+        if arg.startswith('--k='):
+            K_GRID[:] = [float(x) for x in arg.split('=', 1)[1].split(',')]
+        if arg.startswith('--imin='):
+            I_GRID[:] = [float(x) for x in arg.split('=', 1)[1].split(',')]
+    dets = ([a.split('=', 1)[1].split(',') for a in sys.argv[1:]
+             if a.startswith('--dets=')] + [sorted(DETECTORS)])[0]
+
     all_manifest = []
-    for det in DETECTORS:
+    for det in dets:
         wd = os.path.join(HERE, 'wd_%s%s' % (det, suffix))
         os.makedirs(os.path.join(wd, 'config'), exist_ok=True)
         path = os.path.join(wd, 'config', 'NuclideDefinition.xml')

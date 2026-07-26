@@ -11,17 +11,9 @@
   <ThermometerType>None</ThermometerType>
   <EnergyCalibrationType>Polynomial</EnergyCalibrationType>
   <!-- Конфигурация корпуса LibraryFitLab. Реального прибора за ней нет: она
-       нужна, чтобы харнесс нашёл устройство спектра и взял осмысленные
-       Min_Range/Max_Range/Ch_Concat. Калибровки энергии и FWHM лежат в самих
-       спектрах.
-       Note ОБЯЗАН быть пустым. CDATA.ReadXml зовёт reader.ReadElementString(),
-       который съедает и закрывающий тег, после чего XmlSerializer закрывает
-       ещё один элемент — следующий. Для SampleInfo/Note это сходит с рук, там
-       Note последний, а в DeviceConfigInfo за ним идут PolynomialEnergyCalibration,
-       Stabilizer, DoseRate и PeakDetectionMethodConfig, и все они молча
-       теряются: конфигурация читается со значениями по умолчанию
-       (Min_Range=30, Max_Range=2800, Ch_Concat=1024). Германий с непустым Note
-       пересыпался в 1024 канала и не давал НИ ОДНОГО пика. -->
+       нужна, чтобы харнесс нашёл устройство спектра и взял отсюда
+       Min_Range/Max_Range/Ch_Concat/Tolerance/Max_Items. Калибровки энергии и
+       FWHM лежат в самих спектрах, здесь они только заглушка. -->
   <Note />
   <PolynomialEnergyCalibration>
     <PolynomialOrder>2</PolynomialOrder>
