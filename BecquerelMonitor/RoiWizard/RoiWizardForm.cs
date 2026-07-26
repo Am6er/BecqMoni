@@ -407,7 +407,11 @@ namespace BecquerelMonitor.RoiWizard
                 row.Tag = nuclide;
                 this.tableModelCatalog.Rows.Add(row);
             }
-            this.tableCatalog.ResumeLayout();
+            // ResumeLayout(true), а не без аргумента: без отложенного прохода XPTable
+            // не пересчитывает диапазон вертикальной полосы после смены строк, и она
+            // упирается в максимум, не дойдя до последних строк (клавишами дойти можно,
+            // ползунком нет), а при устаревшей позиции показывает хвост списка на пустом фоне.
+            this.tableCatalog.ResumeLayout(true);
             this.LayoutCatalogColumns();
         }
 
@@ -1186,7 +1190,11 @@ namespace BecquerelMonitor.RoiWizard
                 row.BackColor = line.Selected ? WizardTheme.Selection : WizardTheme.Card;
                 this.tableModelLines.Rows.Add(row);
             }
-            this.tableLines.ResumeLayout();
+            // ResumeLayout(true), а не без аргумента: без отложенного прохода XPTable
+            // не пересчитывает диапазон вертикальной полосы после смены строк, и она
+            // упирается в максимум, не дойдя до последних строк (клавишами дойти можно,
+            // ползунком нет), а при устаревшей позиции показывает хвост списка на пустом фоне.
+            this.tableLines.ResumeLayout(true);
             this.suspendEvents = false;
             this.UpdateStatus();
         }
@@ -1415,7 +1423,11 @@ namespace BecquerelMonitor.RoiWizard
                 row.Tag = hit;
                 this.tableModelNear.Rows.Add(row);
             }
-            this.tableNear.ResumeLayout();
+            // ResumeLayout(true), а не без аргумента: без отложенного прохода XPTable
+            // не пересчитывает диапазон вертикальной полосы после смены строк, и она
+            // упирается в максимум, не дойдя до последних строк (клавишами дойти можно,
+            // ползунком нет), а при устаревшей позиции показывает хвост списка на пустом фоне.
+            this.tableNear.ResumeLayout(true);
             this.LayoutNearColumns();
 
             if (this.nearHits.Count == 0)
