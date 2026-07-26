@@ -14,3 +14,6 @@ scripts/scored.json
 # промежуточное: манифест сетов и копия калибровок, которую mkconfig.py ждёт рядом с собой
 scripts/sets_manifest.json
 scripts/calibration.json
+
+# байт-код python
+scripts/__pycache__/

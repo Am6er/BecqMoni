@@ -58,14 +58,17 @@ static class CatalogCheck
         Check("PrettyName 244CM", NuclideCatalog.PrettyName("244CM"), "Cm-244");
         Check("PrettyName 147PM", NuclideCatalog.PrettyName("147PM"), "Pm-147");
         Check("PrettyName 152SM", NuclideCatalog.PrettyName("152SM"), "Sm-152");
-        Check("PrettyName 234PAm1", NuclideCatalog.PrettyName("234PAm1"), "Pa-234m");
+        Check("PrettyName 234PAm1", NuclideCatalog.PrettyName("234PAm1"), "Pa-234m1");
         Check("PrettyName 108AGm", NuclideCatalog.PrettyName("108AGm"), "Ag-108m");
-        Check("PrettyName 99TCm1", NuclideCatalog.PrettyName("99TCm1"), "Tc-99m");
+        Check("PrettyName 99TCm1", NuclideCatalog.PrettyName("99TCm1"), "Tc-99m1");
+        // номер состояния значащий: 163 группы схлопывались в одно имя, у Y-98 их шесть
+        Check("PrettyName 152EUm1", NuclideCatalog.PrettyName("152EUm1"), "Eu-152m1");
+        Check("PrettyName 152EUm2", NuclideCatalog.PrettyName("152EUm2"), "Eu-152m2");
         Check("PrettyName 208TL", NuclideCatalog.PrettyName("208TL"), "Tl-208");
         Check("Am-241 есть в каталоге", catalog.Find("Am-241") != null, null);
         Check("Cm-244 есть в каталоге", catalog.Find("Cm-244") != null, null);
 
-        CatalogNuclide pa234m = catalog.Find("Pa-234m");
+        CatalogNuclide pa234m = catalog.Find("Pa-234m1");
         Check("Pa-234m найден (изомер)", pa234m != null, pa234m == null ? null : pa234m.Nucid);
         if (pa234m != null)
             Near("Pa-234m 1001.03 кэВ (min l_seqno)", FindLine(pa234m, 1001.03), 0.842, 0.05);
@@ -115,7 +118,10 @@ static class CatalogCheck
         CatalogChain u238 = catalog.FindChain("u238");
         if (u238 != null)
         {
-            Near("u238: ветвление Ra-226", u238.BranchingOf("Ra-226"), 1.0, 0.01);
+            // 0.9984, а не 1: недостающие 0.16 % — переход 234mPa -> 234Pa -> 234U,
+            // у которого в decay_chain нет процента. Ожидание зафиксировано явно,
+            // чтобы допуск не прятал расхождение.
+            Near("u238: ветвление Ra-226", u238.BranchingOf("Ra-226"), 0.9984, 0.0005);
             Check("u238 содержит Bi-214", u238.Members.Contains("Bi-214"), null);
         }
 
@@ -171,6 +177,26 @@ static class CatalogCheck
         Near("AnchoredSet = 0.25", MergeCriterionInfo.DefaultFactor(MergeCriterion.AnchoredSet), 0.25, 1e-9);
         Check("плато Measured принимает 0.5", MergeCriterionInfo.IsFactorSane(MergeCriterion.Measured, 0.5), null);
         Check("плато Measured отвергает 0.3", !MergeCriterionInfo.IsFactorSane(MergeCriterion.Measured, 0.3), null);
+
+        // Ветвление ниже точки слияния ветвей: к Pb-210 в ряду U-238 приходят слабая
+        // прямая ветка Bi-214 (0.003 %) и основная через Po-214. Раскрытие узла один раз
+        // «по накопленному на этот момент» занижало потомков в 33 000 раз.
+        if (u238 != null)
+        {
+            Near("u238: Pb-210 после слияния", u238.BranchingOf("Pb-210"), 0.9984, 0.01);
+            Near("u238: Bi-210 (потомок за слиянием)", u238.BranchingOf("Bi-210"), 0.9984, 0.01);
+            Near("u238: Po-210 (потомок за слиянием)", u238.BranchingOf("Po-210"), 0.9984, 0.01);
+        }
+
+        // Дубли строк в nuclides: 144TBm лежит трижды, 161PM и 35NA дважды
+        int tb = 0, pm = 0;
+        foreach (CatalogNuclide n in catalog.Nuclides)
+        {
+            if (n.Name == "Tb-144m") tb++;
+            if (n.Name == "Pm-161") pm++;
+        }
+        Check("Tb-144m в списке один раз", tb <= 1, tb.ToString());
+        Check("Pm-161 в списке один раз", pm <= 1, pm.ToString());
 
         Console.WriteLine();
         CompareWithReference(catalog);
@@ -233,7 +259,7 @@ static class CatalogCheck
         List<SpectralLine> all = builder.Build(u238, null);
         SpectralLine pa234m = null;
         foreach (SpectralLine line in all)
-            if (line.Nuclide == "Pa-234m" && Math.Abs(line.Energy - 1001.03) < 1.0) pa234m = line;
+            if (line.Nuclide == "Pa-234m1" && Math.Abs(line.Energy - 1001.03) < 1.0) pa234m = line;
         Check("якорь U-238 1001.03 найден", pa234m != null,
               pa234m == null ? null : pa234m.Intensity.ToString("0.###", CultureInfo.InvariantCulture));
         if (pa234m != null)

@@ -107,6 +107,44 @@ namespace BecquerelMonitor.RoiWizard
             return Load(DatabasePath);
         }
 
+        // Есть ли база и нужные каталогу таблицы. Проверять обязательно ДО показа окна:
+        // раньше каталог был встроенным ресурсом и исчезнуть не мог, а с переходом на
+        // базу отсутствующий или старый файл стал падением. Причём падало бы не окно:
+        // MainForm.GetContentFromPersistString создаёт панель при восстановлении
+        // раскладки, а LoadFromXml на старте не обёрнут — у пользователя с панелью в
+        // сохранённой раскладке приложение не запускалось бы вовсе.
+        public static bool IsAvailable
+        {
+            get
+            {
+                if (!File.Exists(DatabasePath))
+                {
+                    return false;
+                }
+                try
+                {
+                    using (SqliteConnection connection =
+                           new SqliteConnection("Data Source=" + DatabasePath + ";Mode=ReadOnly;Cache=Shared;"))
+                    {
+                        connection.Open();
+                        using (SqliteCommand command = connection.CreateCommand())
+                        {
+                            command.CommandText =
+                                "select count(*) from sqlite_master where type='table' and name in " +
+                                "('nuclides','decay_radiations','decay_chain'," +
+                                " 'families','nuclide_families','xrf_elements','xrf_lines'," +
+                                " 'chains','catalog_meta')";
+                            return Convert.ToInt32(command.ExecuteScalar()) == 9;
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
+            }
+        }
+
         public static NuclideCatalog Load(string databasePath)
         {
             if (!File.Exists(databasePath))
@@ -199,9 +237,13 @@ namespace BecquerelMonitor.RoiWizard
         // пропадать не должны. Форма показывает их отдельным серым стилем «без линий».
         void ReadNuclides(SqliteConnection connection)
         {
+            // rowid-дедуп: у таблицы nuclides нет уникального ключа по nucid, и три
+            // записи задвоены (144TBm трижды, 161PM и 35NA дважды). Без этого нуклид
+            // показывался бы в списке столько раз, сколько строк в базе.
             using (SqliteCommand command = Command(connection,
                 "select n.nucid, n.half_life_sec from nuclides n " +
-                "where n.half_life_sec is not null " +
+                "where n.rowid in (select min(rowid) from nuclides group by nucid) " +
+                "  and n.half_life_sec is not null " +
                 "  and (exists (select 1 from decay_radiations r " +
                 "               where r.parent_nucid = n.nucid and r.type_a in ('G','X') " +
                 "                 and r.intensity_num is not null and r.energy_num is not null) " +
@@ -555,9 +597,13 @@ namespace BecquerelMonitor.RoiWizard
 
         // ─── имена и форматирование ─────────────────────────────────────────
 
-        // «208TL» → «Tl-208», «234PAm1» → «Pa-234m», «99TCm1» → «Tc-99m».
-        // Номер изомера отбрасывается: в подписи он не нужен, а второго изомера с
-        // гамма-линиями в базе не встречается.
+        // «208TL» → «Tl-208», «234PAm1» → «Pa-234m1», «108AGm» → «Ag-108m».
+        //
+        // Номер изомерного состояния СОХРАНЯЕТСЯ. Отбрасывать его нельзя: в базе 163
+        // группы, схлопывающиеся в одно имя, и у Y-98 таких состояний шесть
+        // (98Ym1…98Ym6). Имя — это идентичность записи набора (NuclideDefinition.Name),
+        // и два разных нуклида под одним именем в наборе различить нечем. Заодно это
+        // делает обратное преобразование ToNucid однозначным.
         //
         // РЕГИСТР ЗНАЧАЩИЙ. Символ элемента в nucid записан заглавными, изомер — строчной
         // «m» (в базе 1077 таких записей, ни одной с заглавной M на конце). Искать
@@ -587,7 +633,7 @@ namespace BecquerelMonitor.RoiWizard
             if (marker > 0)
             {
                 symbol = tail.Substring(0, marker);
-                meta = "m";
+                meta = tail.Substring(marker);       // «m», «m1», «m2» — номер значащий
             }
             symbol = symbol.Length == 1
                 ? symbol.ToUpperInvariant()
@@ -595,8 +641,8 @@ namespace BecquerelMonitor.RoiWizard
             return symbol + "-" + mass + meta;
         }
 
-        // «Tl-208» → «208TL». Обратное преобразование неоднозначно по суффиксу изомера
-        // (в базе встречаются и «234PAm1», и «108AGm»), поэтому варианты перебираются.
+        // «Tl-208» → «208TL», «Pa-234m1» → «234PAm1». Однозначно: номер состояния
+        // сохраняется в подписи (см. PrettyName), поэтому перебирать суффиксы не нужно.
         string ToNucid(string name)
         {
             if (string.IsNullOrEmpty(name))
@@ -609,28 +655,17 @@ namespace BecquerelMonitor.RoiWizard
                 return name;
             }
             string symbol = name.Substring(0, dash).ToUpperInvariant();
-            string mass = name.Substring(dash + 1);
-            bool meta = mass.EndsWith("m", StringComparison.OrdinalIgnoreCase);
-            if (meta)
-            {
-                mass = mass.Substring(0, mass.Length - 1);
-            }
-            string root = mass + symbol;
-            if (!meta || this.byNucid == null)
-            {
-                return root;
-            }
-            foreach (string suffix in MetastableSuffixes)
-            {
-                if (this.byNucid.ContainsKey(root + suffix))
-                {
-                    return root + suffix;
-                }
-            }
-            return root + "m1";
-        }
+            string tail = name.Substring(dash + 1);
 
-        static readonly string[] MetastableSuffixes = { "m1", "m", "m2", "m3" };
+            int digits = 0;
+            while (digits < tail.Length && char.IsDigit(tail[digits]))
+            {
+                digits++;
+            }
+            string mass = tail.Substring(0, digits);
+            string meta = tail.Substring(digits).ToLowerInvariant();   // «», «m», «m1»
+            return mass + symbol + meta;
+        }
 
         // Машинная запись «<число> <код единицы>»: подпись на языке интерфейса собирает
         // форма (HalfLifeLabel). Сам каталог одноязычен — это данные, а не текст.
