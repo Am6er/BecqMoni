@@ -87,6 +87,7 @@ namespace BecquerelMonitor
             this.roiDefinitionRToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.NuclideDefinitionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.NuclideSetToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.RoiWizardToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.NucDB = new System.Windows.Forms.ToolStripMenuItem();
             this.OpenConfigNToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator5 = new System.Windows.Forms.ToolStripSeparator();
@@ -557,6 +558,7 @@ namespace BecquerelMonitor
             this.roiDefinitionRToolStripMenuItem,
             this.NuclideDefinitionToolStripMenuItem,
             this.NuclideSetToolStripMenuItem,
+            this.RoiWizardToolStripMenuItem,
             this.NucDB,
             this.OpenConfigNToolStripMenuItem,
             this.toolStripSeparator5,
@@ -587,6 +589,12 @@ namespace BecquerelMonitor
             this.NuclideSetToolStripMenuItem.Name = "NuclideSetToolStripMenuItem";
             resources.ApplyResources(this.NuclideSetToolStripMenuItem, "NuclideSetToolStripMenuItem");
             this.NuclideSetToolStripMenuItem.Click += new System.EventHandler(this.NuclideSetToolStripMenuItem_Click);
+            // 
+            // RoiWizardToolStripMenuItem
+            // 
+            this.RoiWizardToolStripMenuItem.Name = "RoiWizardToolStripMenuItem";
+            resources.ApplyResources(this.RoiWizardToolStripMenuItem, "RoiWizardToolStripMenuItem");
+            this.RoiWizardToolStripMenuItem.Click += new System.EventHandler(this.RoiWizardToolStripMenuItem_Click);
             // 
             // NucDB
             // 
@@ -876,6 +884,8 @@ namespace BecquerelMonitor
 		global::System.Windows.Forms.ToolStripMenuItem NuclideDefinitionToolStripMenuItem;
 
 		global::System.Windows.Forms.ToolStripMenuItem NuclideSetToolStripMenuItem;
+
+		global::System.Windows.Forms.ToolStripMenuItem RoiWizardToolStripMenuItem;
 
 		global::System.Windows.Forms.ToolStripMenuItem OpenConfigNToolStripMenuItem;
 
