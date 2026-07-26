@@ -36,6 +36,8 @@ namespace LibraryFitLab
                 Options options = Options.Parse(args);
                 Environment.CurrentDirectory = options.WorkingDirectory;
 
+                ApplyGate(options.Gate, options.ShapeZ, options.ShapeWindow, options.ShapeFlank, options.ShapeOrder);
+
                 GlobalConfigManager.GetInstance();
                 DeviceConfigManager.GetInstance();
                 NuclideDefinitionManager nuclideManager = NuclideDefinitionManager.GetInstance();
@@ -50,8 +52,8 @@ namespace LibraryFitLab
                 using (StreamWriter peaksWriter = OpenWriter(options.PeaksPath))
                 using (StreamWriter runsWriter = OpenWriter(options.RunsPath))
                 {
-                    WriteLine(peaksWriter, "run,spectrum,set,snr,deconv,roi,extra,channel,energy,peak_snr,fwhm,origin,anchor,nuclide,nuclide_energy");
-                    WriteLine(runsWriter, "run,spectrum,set,snr,deconv,roi,extra,burnin,samples,maxrois,mindev,minamp,ms,n_total,n_finder,n_rjmcmc,n_library,n_anchor,set_lines");
+                    WriteLine(peaksWriter, "run,spectrum,set,gate,snr,deconv,roi,extra,channel,energy,peak_snr,fwhm,origin,anchor,nuclide,nuclide_energy");
+                    WriteLine(runsWriter, "run,spectrum,set,gate,snr,deconv,roi,extra,burnin,samples,maxrois,mindev,minamp,ms,n_total,n_finder,n_rjmcmc,n_library,n_anchor,set_lines");
 
                     int run = 0;
                     foreach (string spectrumFile in ResolveSpectrumFiles(options.InputPath))
@@ -77,6 +79,51 @@ namespace LibraryFitLab
             {
                 Console.Error.WriteLine(ex);
                 return 1;
+            }
+        }
+
+        // Какой гейт значимости проверяет библиотечный фит. Держится ключом, а не
+        // пересборкой, чтобы все критерии мерились на одних и тех же спектрах и
+        // одних и тех же сетах-обманках в одном свипе.
+        //   z        - Fisher z фитованной амплитуды (исходный критерий)
+        //   dd       - только тест отношения правдоподобий ΔD
+        //   shape    - только устойчивость к смене модели фона
+        //   dd+shape - ΔD как дешёвый предварительный отсев, затем устойчивость
+        static void ApplyGate(string gate, double? shapeZ, double? window, double? flank, int? order)
+        {
+            if (shapeZ.HasValue)
+            {
+                LibraryPeakFitter.BackgroundShapeZ = shapeZ.Value;
+            }
+            if (window.HasValue) LibraryPeakFitter.ShapeWindowSigma = window.Value;
+            if (flank.HasValue) LibraryPeakFitter.ShapeFlankSigma = flank.Value;
+            if (order.HasValue) LibraryPeakFitter.ShapeMaxOrder = order.Value;
+
+            switch (gate)
+            {
+                case "z":
+                    LibraryPeakFitter.UseDevianceGate = false;
+                    LibraryPeakFitter.UseBackgroundShapeGate = false;
+                    break;
+                case "dd":
+                    LibraryPeakFitter.UseDevianceGate = true;
+                    LibraryPeakFitter.UseBackgroundShapeGate = false;
+                    break;
+                case "shape":
+                    LibraryPeakFitter.UseDevianceGate = false;
+                    LibraryPeakFitter.UseBackgroundShapeGate = true;
+                    break;
+                case "shape-raw":
+                    LibraryPeakFitter.UseDevianceGate = false;
+                    LibraryPeakFitter.UseBackgroundShapeGate = true;
+                    LibraryPeakFitter.ShapeGateSubtractNeighbours = false;
+                    break;
+                case "dd+shape":
+                    LibraryPeakFitter.UseDevianceGate = true;
+                    LibraryPeakFitter.UseBackgroundShapeGate = true;
+                    break;
+                default:
+                    throw new ArgumentException("unknown --gate: " + gate);
             }
         }
 
@@ -128,8 +175,8 @@ namespace LibraryFitLab
                 ? 0
                 : nuclideManager.NuclideDefinitions.Count(n => n != null && n.Sets != null && n.Sets.Contains(set.Id));
 
-            string prefix = string.Format(CultureInfo.InvariantCulture, "{0},{1},{2},{3},{4},{5},{6}",
-                run, Csv(spectrumName), Csv(set?.Name ?? "-"),
+            string prefix = string.Format(CultureInfo.InvariantCulture, "{0},{1},{2},{3},{4},{5},{6},{7}",
+                run, Csv(spectrumName), Csv(set?.Name ?? "-"), Csv(options.Gate),
                 scenario.MinSnr.ToString("F2", CultureInfo.InvariantCulture),
                 scenario.UseDeconvolution ? 1 : 0,
                 scenario.RoiRadiusFwhm.ToString("F2", CultureInfo.InvariantCulture),
@@ -367,6 +414,11 @@ namespace LibraryFitLab
             public double? MaxRange;
             public double? Tolerance;
             public int? MaxItems;
+            public string Gate = "dd+shape";
+            public double? ShapeZ;
+            public double? ShapeWindow;
+            public double? ShapeFlank;
+            public int? ShapeOrder;
 
             public static Options Parse(string[] args)
             {
@@ -398,6 +450,11 @@ namespace LibraryFitLab
                     else if (TryValue(arg, "--max-range=", out value)) options.MaxRange = ParseDouble(value);
                     else if (TryValue(arg, "--tolerance=", out value)) options.Tolerance = ParseDouble(value);
                     else if (TryValue(arg, "--max-items=", out value)) options.MaxItems = ParseInt(value);
+                    else if (TryValue(arg, "--gate=", out value)) options.Gate = value.Trim().ToLowerInvariant();
+                    else if (TryValue(arg, "--shape-z=", out value)) options.ShapeZ = ParseDouble(value);
+                    else if (TryValue(arg, "--shape-window=", out value)) options.ShapeWindow = ParseDouble(value);
+                    else if (TryValue(arg, "--shape-flank=", out value)) options.ShapeFlank = ParseDouble(value);
+                    else if (TryValue(arg, "--shape-order=", out value)) options.ShapeOrder = ParseInt(value);
                     else if (string.Equals(arg, "--no-set", StringComparison.OrdinalIgnoreCase)) options.IncludeNoSet = true;
                     else if (string.Equals(arg, "--bg=visible", StringComparison.OrdinalIgnoreCase)) options.SubtractBackground = false;
                     else if (string.Equals(arg, "--bg=substract", StringComparison.OrdinalIgnoreCase)) options.SubtractBackground = true;

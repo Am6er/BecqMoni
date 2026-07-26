@@ -94,6 +94,61 @@ namespace BecquerelMonitor
         // тех же спектрах и сетах-обманках.
         public static bool UseDevianceGate = true;
 
+        // --- Гейт устойчивости к модели фона ---
+        //
+        // ΔD снял 17-28 п.п. фантомов ценой 9-15 п.п. recall, но половина
+        // несуществующих линий всё ещё проходит. Причина у обоих гейтов общая: и
+        // амплитуда, и прирост правдоподобия считаются ОТНОСИТЕЛЬНО ОДНОЙ И ТОЙ ЖЕ
+        // подложки - огибающей SNIP и фона прибора. Если структура появилась из-за
+        // того, КАК проведён континуум, оба теста её подтвердят: модель без
+        // компоненты действительно хуже описывает данные, потому что подложка в этом
+        // месте занижена.
+        //
+        // Здесь задаётся другой вопрос: переживёт ли линия смену модели фона. Чистая
+        // площадь гауссианы известной ширины меряется дважды - над ЛИНЕЙНОЙ и над
+        // КВАДРАТИЧНОЙ подложкой, подогнанной только по крыльям окна и никак не
+        // связанной ни со SNIP, ни с фоном прибора. Амплитуда в обеих линейна, так
+        // что оценка всегда возвращает число с честной пуассоновской ошибкой, а не
+        // упирается в границу. Настоящий фотопик положителен и значим при обеих
+        // подложках: это избыток, а не то, как нарисован континуум. Искривление
+        // континуума при смене порядка меняет знак.
+        //
+        // Рабочая точка взята из измерения на тех же девяти спектрах
+        // (tools/LibraryFitLab/scripts/verify_phantom.py): тест отсеивает 84-96 %
+        // фантомов, сохраняя 53-92 % настоящих линий - заметно лучше, чем у ΔD.
+        // ΔD остаётся дешёвым предварительным отсевом: он считается на носителе
+        // компоненты и не требует отдельного прохода по спектру.
+        public static bool UseBackgroundShapeGate = true;
+
+        // Порог значимости чистой площади при КАЖДОЙ из двух подложек.
+        // Не const: свип tools/LibraryFitLab гоняет по нему рабочую точку.
+        public static double BackgroundShapeZ = 3.0;
+
+        // Полуокно измерения и граница крыльев, в сигмах. Не const: геометрия окна
+        // и есть главный параметр теста, свип гоняет по ней рабочую точку. Чем
+        // шире окно, тем меньше у квадратичной подложки возможности повторить
+        // сам пик, но тем больше шансов зацепить соседнюю линию.
+        //
+        // 4.5/2.5 — лучшая точка измерения на корпусе из 46 спектров. Исходные
+        // 2.6/1.5 (геометрия офлайновой проверки) дают на 4 п.п. меньше recall
+        // при том же соотношении ложных к настоящим: на узком окне квадратика
+        // успевает частично повторить сам пик и съедает настоящие линии.
+        public static double ShapeWindowSigma = 4.5;
+        public static double ShapeFlankSigma = 2.5;
+
+        // Максимальный порядок подложки. 2 — исходная пара «линейная и
+        // квадратичная»; 1 оставляет только линейную и показывает, сколько стоит
+        // именно квадратичная.
+        public static int ShapeMaxOrder = 2;
+
+        // Вычитать ли из наблюдённого спектра вклад ОСТАЛЬНЫХ компонент модели перед
+        // измерением. Офлайновая проверка этого не делала и теряла настоящие линии в
+        // блендах: крылья окна ложатся на соседнюю линию, подложка задирается, и
+        // чистая площадь уходит в минус. Вычитаются только линии - фиксированный фон
+        // (SNIP + фон прибора) НЕ трогается, иначе тест снова окажется относительно
+        // той самой подложки, от которой он и должен быть независим.
+        public static bool ShapeGateSubtractNeighbours = true;
+
         public sealed class LibraryCandidate
         {
             // Всегда задан: escape-компоненты (SE/DE) участвуют в модели фита,
@@ -952,12 +1007,243 @@ namespace BecquerelMonitor
         static bool Significant(int[] observed, List<FitComponent> model, FitComponent component,
                                 double[] lambda, int chMin, int chMax, double z)
         {
-            if (!UseDevianceGate)
+            if (UseDevianceGate &&
+                DevianceGain(observed, model, component, lambda, chMin, chMax)
+                    < SignificanceDeltaDeviance)
             {
-                return z >= SignificanceZ;
+                return false;
             }
-            return DevianceGain(observed, model, component, lambda, chMin, chMax)
-                   >= SignificanceDeltaDeviance;
+            if (!UseDevianceGate && !UseBackgroundShapeGate && z < SignificanceZ)
+            {
+                return false;
+            }
+            return !UseBackgroundShapeGate ||
+                   SurvivesBackgroundChange(observed, model, component, chMin, chMax);
+        }
+
+        // Положительна и значима ли чистая площадь компоненты при ДВУХ разных
+        // подложках, проведённых по крыльям окна.
+        static bool SurvivesBackgroundChange(int[] observed, List<FitComponent> model,
+                                             FitComponent component, int chMin, int chMax)
+        {
+            double sigma = component.Fwhm / PseudoVoigtProfile.FwhmToSigma;
+            if (!PeakShapeModel.IsFinite(sigma) || sigma <= 0.0)
+            {
+                return true;                 // ширины нет - проверять нечем
+            }
+
+            int half = (int)Math.Round(ShapeWindowSigma * sigma);
+            // На 1024 каналах ниже ~120 кэВ сигма — пара каналов, и крыльев не
+            // хватает даже на квадратичную подложку. Раньше тест в этом месте
+            // просто не мог быть посчитан; окно расширяется до минимума, при
+            // котором в крыльях остаётся хотя бы по три канала с каждой стороны.
+            half = Math.Max(half, (int)Math.Ceiling(ShapeFlankSigma * sigma) + 3);
+            int lo = Math.Max(chMin, component.Channel - half);
+            int hi = Math.Min(chMax, component.Channel + half);
+            if (hi - lo < 8)
+            {
+                return true;                 // окна не хватает даже на подложку
+            }
+
+            double[] y = new double[hi - lo + 1];
+            for (int i = 0; i < y.Length; i++)
+            {
+                y[i] = observed[lo + i];
+            }
+
+            if (ShapeGateSubtractNeighbours)
+            {
+                foreach (FitComponent other in model)
+                {
+                    if (ReferenceEquals(other, component) || other.Amplitude <= 0.0)
+                    {
+                        continue;
+                    }
+
+                    // Компонента bound-группы, к которой принадлежит проверяемая
+                    // линия, в model лежит как ОДИН объект с суммарным профилем -
+                    // включая долю самой линии. Вычесть его целиком значит стереть
+                    // проверяемый пик и гарантированно завалить тест: у всех линий
+                    // в блендах чистая площадь уходила в ноль. Вычитаются соседи
+                    // по группе поимённо, сама линия - нет.
+                    if (other.GroupComponents != null && other.GroupComponents.Contains(component))
+                    {
+                        for (int i = 0; i < other.GroupComponents.Count; i++)
+                        {
+                            FitComponent sibling = other.GroupComponents[i];
+                            if (ReferenceEquals(sibling, component))
+                            {
+                                continue;
+                            }
+                            SubtractInto(y, lo, hi, sibling, other.Amplitude * other.GroupWeights[i]);
+                        }
+                        continue;
+                    }
+
+                    SubtractInto(y, lo, hi, other, other.Amplitude);
+                }
+            }
+
+            for (int order = 1; order <= ShapeMaxOrder; order++)
+            {
+                double z = LocalShapeZ(y, lo, component.Channel, sigma, order);
+                if (double.IsNaN(z))
+                {
+                    continue;                // посчитать не удалось - это не улика
+                }
+                if (z < BackgroundShapeZ)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        static void SubtractInto(double[] y, int lo, int hi, FitComponent source, double amplitude)
+        {
+            if (amplitude <= 0.0)
+            {
+                return;
+            }
+            for (int j = 0; j < source.Profile.Length; j++)
+            {
+                int channel = source.Start + j;
+                if (channel >= lo && channel <= hi)
+                {
+                    y[channel - lo] -= amplitude * source.Profile[j];
+                }
+            }
+        }
+
+        // z чистой площади гауссианы фиксированной ширины над подложкой порядка
+        // `order`, подогнанной по крыльям окна методом наименьших квадратов.
+        // Амплитуда линейна, поэтому оценка всегда определена и может быть
+        // отрицательной - в отличие от координатного спуска, зажатого нулём снизу.
+        static double LocalShapeZ(double[] y, int offset, double center, double sigma, int order)
+        {
+            int n = y.Length;
+            double[] g = new double[n];
+            bool[] flank = new bool[n];
+            int flankCount = 0;
+            for (int i = 0; i < n; i++)
+            {
+                double t = (offset + i - center) / sigma;
+                g[i] = Math.Exp(-0.5 * t * t);
+                flank[i] = Math.Abs(t) > ShapeFlankSigma;
+                if (flank[i])
+                {
+                    flankCount++;
+                }
+            }
+            if (flankCount < order + 3)
+            {
+                return double.NaN;
+            }
+
+            // Подложка фитится по t = канал − центр, а не по номеру канала: на
+            // 16384 каналах t^4 в нормальных уравнениях иначе теряет точность.
+            double[] coefficients = PolyFitFlanks(y, offset, center, flank, order);
+            if (coefficients == null)
+            {
+                return double.NaN;
+            }
+
+            double gg = 0.0, numerator = 0.0, variance = 0.0;
+            for (int i = 0; i < n; i++)
+            {
+                double t = offset + i - center;
+                double baseline = 0.0;
+                double power = 1.0;
+                for (int k = 0; k <= order; k++)
+                {
+                    baseline += coefficients[k] * power;
+                    power *= t;
+                }
+                gg += g[i] * g[i];
+                numerator += (y[i] - baseline) * g[i];
+                variance += (Math.Max(y[i], 0.0) + Math.Max(baseline, 0.0)) * g[i] * g[i];
+            }
+            if (gg <= 1E-9 || variance <= 0.0)
+            {
+                return double.NaN;
+            }
+
+            double amplitude = numerator / gg;
+            double error = Math.Sqrt(variance) / gg;
+            return error > 0.0 ? amplitude / error : double.NaN;
+        }
+
+        static double[] PolyFitFlanks(double[] y, int offset, double center, bool[] flank, int order)
+        {
+            int size = order + 1;
+            double[,] normal = new double[size, size + 1];
+            for (int i = 0; i < y.Length; i++)
+            {
+                if (!flank[i])
+                {
+                    continue;
+                }
+                double t = offset + i - center;
+                double[] powers = new double[size];
+                double power = 1.0;
+                for (int k = 0; k < size; k++)
+                {
+                    powers[k] = power;
+                    power *= t;
+                }
+                for (int r = 0; r < size; r++)
+                {
+                    for (int c = 0; c < size; c++)
+                    {
+                        normal[r, c] += powers[r] * powers[c];
+                    }
+                    normal[r, size] += powers[r] * y[i];
+                }
+            }
+
+            for (int col = 0; col < size; col++)
+            {
+                int pivot = col;
+                for (int r = col + 1; r < size; r++)
+                {
+                    if (Math.Abs(normal[r, col]) > Math.Abs(normal[pivot, col]))
+                    {
+                        pivot = r;
+                    }
+                }
+                if (Math.Abs(normal[pivot, col]) < 1E-12)
+                {
+                    return null;             // вырожденная система - крылья пусты
+                }
+                if (pivot != col)
+                {
+                    for (int c = col; c <= size; c++)
+                    {
+                        double swap = normal[col, c];
+                        normal[col, c] = normal[pivot, c];
+                        normal[pivot, c] = swap;
+                    }
+                }
+                for (int r = 0; r < size; r++)
+                {
+                    if (r == col)
+                    {
+                        continue;
+                    }
+                    double factor = normal[r, col] / normal[col, col];
+                    for (int c = col; c <= size; c++)
+                    {
+                        normal[r, c] -= factor * normal[col, c];
+                    }
+                }
+            }
+
+            double[] result = new double[size];
+            for (int r = 0; r < size; r++)
+            {
+                result[r] = normal[r, size] / normal[r, r];
+            }
+            return result;
         }
 
         // Насколько хуже становится модель, если компоненту убрать: ΔD = D(без) − D(с),

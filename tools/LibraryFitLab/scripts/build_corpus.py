@@ -606,6 +606,40 @@ def write_manifest(rows):
     print('манифест: %s (%d строк)' % (path, len(rows)))
 
 
+def write_detectors(state, res_coef, rows):
+    """corpus/detectors.csv — модель разрешения и рабочий диапазон на группу.
+
+    Нужен всему, что строит сеты: ширина линии на энергии определяет и фильтр
+    разноса k*FWHM, и куда можно сдвигать линии обманки. Раньше эти модели
+    существовали только для трёх детекторов девятки, внутри
+    data/calibration.json, и mkconfig.py знал ровно их.
+    """
+    channels, ranges = {}, {}
+    for st in state.values():
+        channels.setdefault(st['det'], st['sp'].n)
+        cfg = st.get('peak_config') or PEAK_CONFIG_DEFAULTS
+        ranges.setdefault(st['det'], (cfg['Min_Range'], cfg['Max_Range']))
+    for row in rows:
+        channels.setdefault(row['det'], int(row['channels']))
+        ranges.setdefault(row['det'], (PEAK_CONFIG_DEFAULTS['Min_Range'],
+                                       PEAK_CONFIG_DEFAULTS['Max_Range']))
+
+    path = os.path.join(CORPUS, 'detectors.csv')
+    with open(path, 'w', encoding='utf-8-sig', newline='') as fh:
+        w = csv.writer(fh)
+        w.writerow(['det', 'channels', 'spectra', 'e_lo', 'e_hi',
+                    'res_c0', 'res_c1', 'res_c2', 'fwhm_662_pct'])
+        for det in sorted(res_coef):
+            coef = res_coef[det]
+            rf = corpus_calib.resolution_fn(coef)
+            lo, hi = ranges.get(det, (30.0, 2800.0))
+            w.writerow([det, channels.get(det, ''),
+                        sum(1 for r in rows if r['det'] == det), lo, hi,
+                        repr(float(coef[0])), repr(float(coef[1])), repr(float(coef[2])),
+                        round(100 * rf(662.0) / 662.0, 2)])
+    print('детекторы: %s (%d групп)' % (path, len(res_coef)))
+
+
 # ---------------------------------------------------------------------------
 def main():
     only = None
@@ -804,6 +838,7 @@ def main():
     if only is None:
         rows = legacy_manifest(legacy_rows) + rows
         write_manifest(rows)
+        write_detectors(state, res_coef, rows)
 
     with open(os.path.join(HERE, 'corpus_state.json'), 'w', encoding='utf-8') as fh:
         json.dump({k: dict(det=v['det'], ecal=[float(c) for c in v['ecal'].coef],

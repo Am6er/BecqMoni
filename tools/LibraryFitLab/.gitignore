@@ -15,7 +15,7 @@ scripts/corpus_state.json
 # рабочие каталоги прогона: копия приложения + конфиг на каждый детектор
 scripts/wd_*/
 
-# результаты свипов
+# результаты свипов (в том числе сравнения гейтов, scripts/out_gate/)
 scripts/out_*/
 scripts/scored.json
 
