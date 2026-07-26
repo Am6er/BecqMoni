@@ -5444,4 +5444,10 @@
   <data name="&gt;&gt;$this.Type" xml:space="preserve">
     <value>System.Windows.Forms.Form, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
+  <data name="RoiWizardToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+    <value>224, 22</value>
+  </data>
+  <data name="RoiWizardToolStripMenuItem.Text" xml:space="preserve">
+    <value>ROI and nuclide set builder...</value>
+  </data>
 </root>

@@ -318,4 +318,7 @@
   <data name="SpecUtilsToolStripMenuItem.Text" xml:space="preserve">
     <value>Импорт при помощи SpectUtils..</value>
   </data>
+  <data name="RoiWizardToolStripMenuItem.Text" xml:space="preserve">
+    <value>Конструктор ROI и наборов нуклидов...</value>
+  </data>
 </root>

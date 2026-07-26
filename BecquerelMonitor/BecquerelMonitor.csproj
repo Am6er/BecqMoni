@@ -84,6 +84,30 @@
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="RoiWizard\NuclideCatalog.cs" />
+    <Compile Include="RoiWizard\SpectralLine.cs" />
+    <Compile Include="RoiWizard\LineSetBuilder.cs" />
+    <Compile Include="RoiWizard\LineMerger.cs" />
+    <Compile Include="RoiWizard\SecondaryPeaks.cs" />
+    <Compile Include="RoiWizard\AnchorPicker.cs" />
+    <Compile Include="RoiWizard\ZoneCalculator.cs" />
+    <Compile Include="RoiWizard\SetChecker.cs" />
+    <Compile Include="RoiWizard\SetExporter.cs" />
+    <Compile Include="RoiWizard\WizardTheme.cs" />
+    <Compile Include="RoiWizard\CatalogCellRenderers.cs" />
+    <Compile Include="RoiWizard\RoiWizardStrings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>RoiWizardStrings.resx</DependentUpon>
+    </Compile>
+    <Compile Include="RoiWizard\HelpForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="RoiWizard\RoiWizardForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="RoiWizard\RoiWizardForm.Designer.cs">
+      <DependentUpon>RoiWizardForm.cs</DependentUpon>
+    </Compile>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
@@ -875,6 +899,10 @@
     <Compile Include="XPTable\Win32\WindowStyles.cs" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="RoiWizard\RoiWizardStrings.ru.resx" />
+    <EmbeddedResource Include="RoiWizard\RoiWizardStrings.resx" />
+    <EmbeddedResource Include="RoiWizard\help.xml" />
+    <EmbeddedResource Include="RoiWizard\nuclides.xml" />
     <EmbeddedResource Include="AboutForm.resx">
       <DependentUpon>AboutForm.cs</DependentUpon>
     </EmbeddedResource>

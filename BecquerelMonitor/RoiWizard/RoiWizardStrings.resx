@@ -1,0 +1,529 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="form_Title" xml:space="preserve">
+    <value>ROI and nuclide set builder</value>
+  </data>
+  <data name="tabSources_Text" xml:space="preserve">
+    <value>1 · Nuclides</value>
+  </data>
+  <data name="tabLines_Text" xml:space="preserve">
+    <value>2 · Lines</value>
+  </data>
+  <data name="tabExport_Text" xml:space="preserve">
+    <value>3 · Styling and export</value>
+  </data>
+  <data name="statusFormat" xml:space="preserve">
+    <value>lines: {0} of {1} · nuclides: {2}</value>
+  </data>
+  <data name="buttonHelp_Text" xml:space="preserve">
+    <value>Help</value>
+  </data>
+  <data name="stepBack" xml:space="preserve">
+    <value>◂ Back</value>
+  </data>
+  <data name="stepForward" xml:space="preserve">
+    <value>Next ▸</value>
+  </data>
+  <data name="stepNuclides" xml:space="preserve">
+    <value>Nuclides</value>
+  </data>
+  <data name="stepLines" xml:space="preserve">
+    <value>Lines</value>
+  </data>
+  <data name="stepExport" xml:space="preserve">
+    <value>Styling and export</value>
+  </data>
+  <data name="groupSearch_Text" xml:space="preserve">
+    <value>Nuclide search</value>
+  </data>
+  <data name="buttonAddSingle_Text" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="buttonAddFamily_Text" xml:space="preserve">
+    <value>+ family</value>
+  </data>
+  <data name="buttonAddChain_Text" xml:space="preserve">
+    <value>+ chain</value>
+  </data>
+  <data name="columnCatalogName_Text" xml:space="preserve">
+    <value>Nuclide</value>
+  </data>
+  <data name="columnCatalogFamilies_Text" xml:space="preserve">
+    <value>Families</value>
+  </data>
+  <data name="columnCatalogLines_Text" xml:space="preserve">
+    <value>Lines</value>
+  </data>
+  <data name="labelSearchHint_Text" xml:space="preserve">
+    <value>Typing narrows the list: by name or by family code.</value>
+  </data>
+  <data name="presetsCaption" xml:space="preserve">
+    <value>Presets:</value>
+  </data>
+  <data name="preset1_Title" xml:space="preserve">
+    <value>NORM background</value>
+  </data>
+  <data name="preset1_Hint" xml:space="preserve">
+    <value>Th-232 + U-238 as chains + K-40</value>
+  </data>
+  <data name="preset2_Title" xml:space="preserve">
+    <value>Cs-137 / Co-60 check</value>
+  </data>
+  <data name="preset2_Hint" xml:space="preserve">
+    <value>Reference check sources</value>
+  </data>
+  <data name="preset3_Title" xml:space="preserve">
+    <value>Calibration set</value>
+  </data>
+  <data name="preset3_Hint" xml:space="preserve">
+    <value>Am-241, Ba-133, Eu-152, Cs-137, Co-60</value>
+  </data>
+  <data name="preset4_Title" xml:space="preserve">
+    <value>Medical</value>
+  </data>
+  <data name="preset4_Hint" xml:space="preserve">
+    <value>MED family</value>
+  </data>
+  <data name="preset5_Title" xml:space="preserve">
+    <value>Detector and shield XRF</value>
+  </data>
+  <data name="preset5_Hint" xml:space="preserve">
+    <value>Pb, W, La, Ba, I</value>
+  </data>
+  <data name="groupGroup_Text" xml:space="preserve">
+    <value>Group</value>
+  </data>
+  <data name="buttonGroupAll_Text" xml:space="preserve">
+    <value>add all</value>
+  </data>
+  <data name="buttonGroupFamily_Text" xml:space="preserve">
+    <value>+ family lines</value>
+  </data>
+  <data name="buttonGroupChain_Text" xml:space="preserve">
+    <value>+ chain</value>
+  </data>
+  <data name="hintNone" xml:space="preserve">
+    <value>Tick a nuclide — the buttons apply to it.</value>
+  </data>
+  <data name="hintPicked" xml:space="preserve">
+    <value>Applies to the ticked ones ({0}).</value>
+  </data>
+  <data name="groupXrf_Text" xml:space="preserve">
+    <value>XRF elements</value>
+  </data>
+  <data name="labelXrf_Text" xml:space="preserve">
+    <value>Shielding and detector materials:</value>
+  </data>
+  <data name="labelXrfHint_Text" xml:space="preserve">
+    <value>Kα/Kβ (+L for heavy elements). Intensities are nominal (Kα1 = 100) — markers only.</value>
+  </data>
+  <data name="groupSelected_Text" xml:space="preserve">
+    <value>Selected</value>
+  </data>
+  <data name="buttonClear_Text" xml:space="preserve">
+    <value>clear all</value>
+  </data>
+  <data name="xrfChipPrefix" xml:space="preserve">
+    <value>XRF </value>
+  </data>
+  <data name="emptySelectionHint" xml:space="preserve">
+    <value>empty — start with a group above</value>
+  </data>
+  <data name="groupResolution_Text" xml:space="preserve">
+    <value>Detector-resolution adaptation</value>
+  </data>
+  <data name="labelResolution_Text" xml:space="preserve">
+    <value>R, % at 662 keV</value>
+  </data>
+  <data name="buttonFromSpectrum_Text" xml:space="preserve">
+    <value>from spectrum</value>
+  </data>
+  <data name="labelCriterion_Text" xml:space="preserve">
+    <value>criterion</value>
+  </data>
+  <data name="labelFactor_Text" xml:space="preserve">
+    <value>× FWHM</value>
+  </data>
+  <data name="buttonMerge_Text" xml:space="preserve">
+    <value>Merge close lines</value>
+  </data>
+  <data name="buttonUnmerge_Text" xml:space="preserve">
+    <value>Restore originals</value>
+  </data>
+  <data name="mergeInfoFormat" xml:space="preserve">
+    <value>threshold {0:0.##}·FWHM: lines merge closer than {1:0.#} keV at 100, {2:0.#} at 662, {3:0.#} at 1500</value>
+  </data>
+  <data name="criterionSparrow" xml:space="preserve">
+    <value>Sparrow limit — ROI markers (0.85·FWHM)</value>
+  </data>
+  <data name="criterionAnchored" xml:space="preserve">
+    <value>anchored set — library fit (0.25·FWHM)</value>
+  </data>
+  <data name="criterionManual" xml:space="preserve">
+    <value>manual</value>
+  </data>
+  <data name="groupFilters_Text" xml:space="preserve">
+    <value>Filters and selection</value>
+  </data>
+  <data name="checkIntensity_Text" xml:space="preserve">
+    <value>intensity ≥, %</value>
+  </data>
+  <data name="intensityRelative" xml:space="preserve">
+    <value>relative (within nuclide, max = 100)</value>
+  </data>
+  <data name="intensityAbsolute" xml:space="preserve">
+    <value>absolute (per decay)</value>
+  </data>
+  <data name="checkEnergy_Text" xml:space="preserve">
+    <value>energy, keV</value>
+  </data>
+  <data name="checkHalfLife_Text" xml:space="preserve">
+    <value>T½</value>
+  </data>
+  <data name="buttonSelectAll_Text" xml:space="preserve">
+    <value>✓ select all visible</value>
+  </data>
+  <data name="buttonSelectNone_Text" xml:space="preserve">
+    <value>✗ deselect all visible</value>
+  </data>
+  <data name="labelTopN_Text" xml:space="preserve">
+    <value>top-N by I per nuclide</value>
+  </data>
+  <data name="buttonSelectTop_Text" xml:space="preserve">
+    <value>Select top-N</value>
+  </data>
+  <data name="checkHideUnselected_Text" xml:space="preserve">
+    <value>hide unselected</value>
+  </data>
+  <data name="labelTypes_Text" xml:space="preserve">
+    <value>Line types</value>
+  </data>
+  <data name="checkTypeXray_Text" xml:space="preserve">
+    <value>X (decay)</value>
+  </data>
+  <data name="checkTypeXrf_Text" xml:space="preserve">
+    <value>XRF</value>
+  </data>
+  <data name="checkTypeSecondary_Text" xml:space="preserve">
+    <value>secondary</value>
+  </data>
+  <data name="checkEquilibrium_Text" xml:space="preserve">
+    <value>series equilibrium (intensities per parent decay)</value>
+  </data>
+  <data name="unitSeconds" xml:space="preserve">
+    <value>s</value>
+  </data>
+  <data name="unitHours" xml:space="preserve">
+    <value>h</value>
+  </data>
+  <data name="unitDays" xml:space="preserve">
+    <value>d</value>
+  </data>
+  <data name="unitYears" xml:space="preserve">
+    <value>y</value>
+  </data>
+  <data name="hlSeconds" xml:space="preserve">
+    <value>s</value>
+  </data>
+  <data name="hlMinutes" xml:space="preserve">
+    <value>min</value>
+  </data>
+  <data name="hlHours" xml:space="preserve">
+    <value>h</value>
+  </data>
+  <data name="hlDays" xml:space="preserve">
+    <value>d</value>
+  </data>
+  <data name="hlYears" xml:space="preserve">
+    <value>y</value>
+  </data>
+  <data name="columnLineName_Text" xml:space="preserve">
+    <value>Nuclide</value>
+  </data>
+  <data name="columnLineEnergy_Text" xml:space="preserve">
+    <value>E, keV</value>
+  </data>
+  <data name="columnLineIntensity_Text" xml:space="preserve">
+    <value>I, %</value>
+  </data>
+  <data name="columnLineRelative_Text" xml:space="preserve">
+    <value>I rel., %</value>
+  </data>
+  <data name="columnLineHalfLife_Text" xml:space="preserve">
+    <value>T½</value>
+  </data>
+  <data name="columnLineType_Text" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="lineTypeXrf" xml:space="preserve">
+    <value>XRF</value>
+  </data>
+  <data name="lineTypeSecondary" xml:space="preserve">
+    <value>sec</value>
+  </data>
+  <data name="groupSecondary_Text" xml:space="preserve">
+    <value>Secondary peaks (computed from selected γ lines)</value>
+  </data>
+  <data name="labelSecondaryMin_Text" xml:space="preserve">
+    <value>for γ lines with I ≥, %</value>
+  </data>
+  <data name="checkSecBackscatter_Text" xml:space="preserve">
+    <value>backscatter (BS)</value>
+  </data>
+  <data name="checkSecComptonEdge_Text" xml:space="preserve">
+    <value>Compton edge (CE)</value>
+  </data>
+  <data name="checkSecSingleEscape_Text" xml:space="preserve">
+    <value>escape 511 (SE)</value>
+  </data>
+  <data name="checkSecDoubleEscape_Text" xml:space="preserve">
+    <value>escape 1022 (DE)</value>
+  </data>
+  <data name="checkSecIodine_Text" xml:space="preserve">
+    <value>I-K escape (NaI, −28.6)</value>
+  </data>
+  <data name="checkSecAnnihilation_Text" xml:space="preserve">
+    <value>annihilation 511</value>
+  </data>
+  <data name="checkSecSum_Text" xml:space="preserve">
+    <value>cascade sum (E1+E2)</value>
+  </data>
+  <data name="checkSecPileUp_Text" xml:space="preserve">
+    <value>pile-up 2×E</value>
+  </data>
+  <data name="buttonGenerateSecondary_Text" xml:space="preserve">
+    <value>Generate</value>
+  </data>
+  <data name="secondaryFormat" xml:space="preserve">
+    <value>secondary markers added: {0}</value>
+  </data>
+  <data name="annihilationLabel" xml:space="preserve">
+    <value>Annihilation 511</value>
+  </data>
+  <data name="groupNear_Text" xml:space="preserve">
+    <value>Nearby-line search (whole database — who else emits here)</value>
+  </data>
+  <data name="labelNearEnergy_Text" xml:space="preserve">
+    <value>energy, keV</value>
+  </data>
+  <data name="labelNearWindow_Text" xml:space="preserve">
+    <value>± window</value>
+  </data>
+  <data name="labelNearIntensity_Text" xml:space="preserve">
+    <value>I ≥, %</value>
+  </data>
+  <data name="labelNearHalfLife_Text" xml:space="preserve">
+    <value>T½ ≥</value>
+  </data>
+  <data name="buttonNearSearch_Text" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="buttonNearAdd_Text" xml:space="preserve">
+    <value>+ add</value>
+  </data>
+  <data name="columnNearDelta_Text" xml:space="preserve">
+    <value>ΔE</value>
+  </data>
+  <data name="nearAdded" xml:space="preserve">
+    <value>added</value>
+  </data>
+  <data name="nearMoreFormat" xml:space="preserve">
+    <value>showing the first {0} of {1}</value>
+  </data>
+  <data name="nearEmptyFormat" xml:space="preserve">
+    <value>nothing found within {0} ± {1} keV</value>
+  </data>
+  <data name="groupStyle_Text" xml:space="preserve">
+    <value>ROI styling</value>
+  </data>
+  <data name="labelStyle_Text" xml:space="preserve">
+    <value>mode</value>
+  </data>
+  <data name="labelWidth_Text" xml:space="preserve">
+    <value>zone width</value>
+  </data>
+  <data name="labelColors_Text" xml:space="preserve">
+    <value>Colours</value>
+  </data>
+  <data name="buttonColorByChain_Text" xml:space="preserve">
+    <value>by chain</value>
+  </data>
+  <data name="buttonColorByNuclide_Text" xml:space="preserve">
+    <value>by nuclide</value>
+  </data>
+  <data name="roiStyleMarkers" xml:space="preserve">
+    <value>marker lines (height ∝ I, no zones)</value>
+  </data>
+  <data name="roiStyleZones" xml:space="preserve">
+    <value>zones (limits around the peak)</value>
+  </data>
+  <data name="roiStyleBoth" xml:space="preserve">
+    <value>zones + intensity markers</value>
+  </data>
+  <data name="widthModePercent" xml:space="preserve">
+    <value>% of energy (BecqMoni style)</value>
+  </data>
+  <data name="widthModeFwhm" xml:space="preserve">
+    <value>k × FWHM (scintillator)</value>
+  </data>
+  <data name="groupExport_Text" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="labelConfigName_Text" xml:space="preserve">
+    <value>ROI configuration name</value>
+  </data>
+  <data name="buttonCreateRoi_Text" xml:space="preserve">
+    <value>Create ROI configuration</value>
+  </data>
+  <data name="buttonPreview_Text" xml:space="preserve">
+    <value>Preview</value>
+  </data>
+  <data name="labelSetName_Text" xml:space="preserve">
+    <value>set name (NuclideSet)</value>
+  </data>
+  <data name="textSetName_Text" xml:space="preserve">
+    <value>IAEA set</value>
+  </data>
+  <data name="labelAnchor_Text" xml:space="preserve">
+    <value>anchor line</value>
+  </data>
+  <data name="buttonCreateSet_Text" xml:space="preserve">
+    <value>Add set to the library</value>
+  </data>
+  <data name="checkFullSet_Text" xml:space="preserve">
+    <value>full set (all lines, for fitting)</value>
+  </data>
+  <data name="labelAnchorCount_Text" xml:space="preserve">
+    <value>anchor lines</value>
+  </data>
+  <data name="labelIssues_Text" xml:space="preserve">
+    <value>Data check:</value>
+  </data>
+  <data name="previewEmpty" xml:space="preserve">
+    <value>no lines selected</value>
+  </data>
+  <data name="anchorAuto" xml:space="preserve">
+    <value>auto — {0} {1}</value>
+  </data>
+  <data name="issuePrefixRoi" xml:space="preserve">
+    <value>ROI</value>
+  </data>
+  <data name="issuePrefixSet" xml:space="preserve">
+    <value>SET</value>
+  </data>
+  <data name="issueNone" xml:space="preserve">
+    <value>no issues</value>
+  </data>
+  <data name="issueEqualEnergies" xml:space="preserve">
+    <value>equal energies: “{0}” and “{1}” ({2} / {3} keV) — the amplitude fit degenerates here</value>
+  </data>
+  <data name="issueZeroYield" xml:space="preserve">
+    <value>zero yield: “{0}” ({1} keV)</value>
+  </data>
+  <data name="issueAnchorIsXrf" xml:space="preserve">
+    <value>the anchor “{0}” ({1} keV) is a characteristic X-ray of a material, not a decay line: the fit would rest on a line whose position or intensity is nominal</value>
+  </data>
+  <data name="issueAnchorIsSecondary" xml:space="preserve">
+    <value>the anchor “{0}” ({1} keV) is a computed secondary marker, not a decay line: the fit would rest on a line whose position or intensity is nominal</value>
+  </data>
+  <data name="issueNoAnchor" xml:space="preserve">
+    <value>no anchor line: the set holds no decay line at all (XRF and secondary markers cannot be anchors) — the library fit does not start without one</value>
+  </data>
+  <data name="issueAnchorIsXray" xml:space="preserve">
+    <value>the anchor is the X-ray line “{0}” ({1} keV): a γ line is a firmer footing for the fit</value>
+  </data>
+  <data name="issueZonesOverlap" xml:space="preserve">
+    <value>zones overlap: “{0}” [{1}–{2}] and “{3}” [{4}–{5}]</value>
+  </data>
+  <data name="confirmTitle" xml:space="preserve">
+    <value>ROI and nuclide set builder</value>
+  </data>
+  <data name="confirmRoiOverwrite" xml:space="preserve">
+    <value>A configuration named “{0}” already exists — its file will be overwritten. Continue?</value>
+  </data>
+  <data name="confirmSetDuplicate" xml:space="preserve">
+    <value>The library already holds a set named “{0}”. Add another one with the same name?</value>
+  </data>
+  <data name="noLinesSelected" xml:space="preserve">
+    <value>No lines selected.</value>
+  </data>
+  <data name="noResolutionFromSpectrum" xml:space="preserve">
+    <value>The resolution could not be taken from the active spectrum.</value>
+  </data>
+  <data name="confirmErrorsHead" xml:space="preserve">
+    <value>The set cannot be saved — the data check found errors:</value>
+  </data>
+  <data name="confirmIssuesHead" xml:space="preserve">
+    <value>The data check found issues:</value>
+  </data>
+  <data name="confirmErrorsTail" xml:space="preserve">
+    <value>Two lines at the same energy make the amplitude fit degenerate, and zero intensity drops a line out of the chain coupling.</value>
+  </data>
+  <data name="confirmSaveAnyway" xml:space="preserve">
+    <value>Save anyway?</value>
+  </data>
+  <data name="helpTitle" xml:space="preserve">
+    <value>Help: ROI and nuclide set builder</value>
+  </data>
+  <data name="helpSourcesArrow" xml:space="preserve">
+    <value>   →   </value>
+  </data>
+</root>

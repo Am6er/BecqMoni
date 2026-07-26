@@ -1264,6 +1264,50 @@ namespace BecquerelMonitor
             form.ShowDialog();
         }
 
+        void RoiWizardToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            this.ShowRoiWizardForm();
+        }
+
+        // Окно мастера. Разрешение детектора передаётся делегатом: форма спросит его,
+        // когда пользователь нажмёт «из спектра», и оставит введённое руками значение,
+        // если взять неоткуда (0).
+        public void ShowRoiWizardForm()
+        {
+            using (RoiWizard.RoiWizardForm form = new RoiWizard.RoiWizardForm(this.RoiWizardResolution))
+            {
+                form.ShowDialog(this);
+            }
+        }
+
+        // Разрешение для мастера — из родной FWHM-калибровки активного спектра, приведённой
+        // к тому виду, в котором его ждёт мастер: R в процентах на 662 кэВ. Калибровка
+        // задана в каналах, поэтому ширина переводится в энергию так же, как в
+        // DCPeakDetectionView: по краям окна ±FWHM/2.
+        double RoiWizardResolution()
+        {
+            DocEnergySpectrum document = this.ActiveDocument;
+            if (document == null || document.ActiveResultData == null)
+            {
+                return 0;
+            }
+            ResultData active = document.ActiveResultData;
+            EnergySpectrum spectrum = active.EnergySpectrum;
+            if (spectrum == null || spectrum.EnergyCalibration == null || active.FwhmCalibration == null)
+            {
+                return 0;
+            }
+            double channel = spectrum.EnergyCalibration.EnergyToChannel(662.0, maxChannels: spectrum.NumberOfChannels);
+            double fwhmChannels = active.FwhmCalibration.ChannelToFwhm(channel);
+            if (!(fwhmChannels > 0))
+            {
+                return 0;
+            }
+            double left = spectrum.EnergyCalibration.ChannelToEnergy(channel - fwhmChannels / 2.0);
+            double right = spectrum.EnergyCalibration.ChannelToEnergy(channel + fwhmChannels / 2.0);
+            return right > left ? (right - left) / 662.0 * 100.0 : 0;
+        }
+
         // Token: 0x06000A73 RID: 2675 RVA: 0x0003E2F4 File Offset: 0x0003C4F4
         Rectangle GetTotalBound()
         {

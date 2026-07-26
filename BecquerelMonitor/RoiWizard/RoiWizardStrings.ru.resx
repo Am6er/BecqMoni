@@ -1,0 +1,529 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="form_Title" xml:space="preserve">
+    <value>Конструктор ROI и наборов нуклидов</value>
+  </data>
+  <data name="tabSources_Text" xml:space="preserve">
+    <value>1 · Изотопы</value>
+  </data>
+  <data name="tabLines_Text" xml:space="preserve">
+    <value>2 · Линии</value>
+  </data>
+  <data name="tabExport_Text" xml:space="preserve">
+    <value>3 · Оформление и экспорт</value>
+  </data>
+  <data name="statusFormat" xml:space="preserve">
+    <value>линий: {0} из {1} · нуклидов: {2}</value>
+  </data>
+  <data name="buttonHelp_Text" xml:space="preserve">
+    <value>Справка</value>
+  </data>
+  <data name="stepBack" xml:space="preserve">
+    <value>◂ Назад</value>
+  </data>
+  <data name="stepForward" xml:space="preserve">
+    <value>Вперёд ▸</value>
+  </data>
+  <data name="stepNuclides" xml:space="preserve">
+    <value>Изотопы</value>
+  </data>
+  <data name="stepLines" xml:space="preserve">
+    <value>Линии</value>
+  </data>
+  <data name="stepExport" xml:space="preserve">
+    <value>Оформление и экспорт</value>
+  </data>
+  <data name="groupSearch_Text" xml:space="preserve">
+    <value>Поиск изотопа</value>
+  </data>
+  <data name="buttonAddSingle_Text" xml:space="preserve">
+    <value>Добавить</value>
+  </data>
+  <data name="buttonAddFamily_Text" xml:space="preserve">
+    <value>+ семейство</value>
+  </data>
+  <data name="buttonAddChain_Text" xml:space="preserve">
+    <value>+ цепочка</value>
+  </data>
+  <data name="columnCatalogName_Text" xml:space="preserve">
+    <value>Нуклид</value>
+  </data>
+  <data name="columnCatalogFamilies_Text" xml:space="preserve">
+    <value>Семейства</value>
+  </data>
+  <data name="columnCatalogLines_Text" xml:space="preserve">
+    <value>Линий</value>
+  </data>
+  <data name="labelSearchHint_Text" xml:space="preserve">
+    <value>Ввод сужает список: по имени или по коду семейства.</value>
+  </data>
+  <data name="presetsCaption" xml:space="preserve">
+    <value>Пресеты:</value>
+  </data>
+  <data name="preset1_Title" xml:space="preserve">
+    <value>ЕРН-фон</value>
+  </data>
+  <data name="preset1_Hint" xml:space="preserve">
+    <value>Th-232 + U-238 цепочками + K-40</value>
+  </data>
+  <data name="preset2_Title" xml:space="preserve">
+    <value>Поверка Cs-137 / Co-60</value>
+  </data>
+  <data name="preset2_Hint" xml:space="preserve">
+    <value>Контрольные источники</value>
+  </data>
+  <data name="preset3_Title" xml:space="preserve">
+    <value>ОСГИ / калибровка</value>
+  </data>
+  <data name="preset3_Hint" xml:space="preserve">
+    <value>Am-241, Ba-133, Eu-152, Cs-137, Co-60</value>
+  </data>
+  <data name="preset4_Title" xml:space="preserve">
+    <value>Медицинские</value>
+  </data>
+  <data name="preset4_Hint" xml:space="preserve">
+    <value>Семейство MED</value>
+  </data>
+  <data name="preset5_Title" xml:space="preserve">
+    <value>ХРИ детектора и защиты</value>
+  </data>
+  <data name="preset5_Hint" xml:space="preserve">
+    <value>Pb, W, La, Ba, I</value>
+  </data>
+  <data name="groupGroup_Text" xml:space="preserve">
+    <value>Группа</value>
+  </data>
+  <data name="buttonGroupAll_Text" xml:space="preserve">
+    <value>добавить все</value>
+  </data>
+  <data name="buttonGroupFamily_Text" xml:space="preserve">
+    <value>+ линии семейства</value>
+  </data>
+  <data name="buttonGroupChain_Text" xml:space="preserve">
+    <value>+ цепочкой</value>
+  </data>
+  <data name="hintNone" xml:space="preserve">
+    <value>Отметьте нуклид — кнопки применятся к нему.</value>
+  </data>
+  <data name="hintPicked" xml:space="preserve">
+    <value>Применяется к отмеченным ({0}).</value>
+  </data>
+  <data name="groupXrf_Text" xml:space="preserve">
+    <value>ХРИ — элементы</value>
+  </data>
+  <data name="labelXrf_Text" xml:space="preserve">
+    <value>Материалы защиты и детектора:</value>
+  </data>
+  <data name="labelXrfHint_Text" xml:space="preserve">
+    <value>Kα/Kβ (+L для тяжёлых). Интенсивности относительные (Kα1 = 100) — только маркеры.</value>
+  </data>
+  <data name="groupSelected_Text" xml:space="preserve">
+    <value>Выбрано</value>
+  </data>
+  <data name="buttonClear_Text" xml:space="preserve">
+    <value>очистить всё</value>
+  </data>
+  <data name="xrfChipPrefix" xml:space="preserve">
+    <value>ХРИ </value>
+  </data>
+  <data name="emptySelectionHint" xml:space="preserve">
+    <value>пусто — начните с группы выше</value>
+  </data>
+  <data name="groupResolution_Text" xml:space="preserve">
+    <value>Адаптация под разрешение детектора</value>
+  </data>
+  <data name="labelResolution_Text" xml:space="preserve">
+    <value>R, % на 662 кэВ</value>
+  </data>
+  <data name="buttonFromSpectrum_Text" xml:space="preserve">
+    <value>из спектра</value>
+  </data>
+  <data name="labelCriterion_Text" xml:space="preserve">
+    <value>критерий</value>
+  </data>
+  <data name="labelFactor_Text" xml:space="preserve">
+    <value>× FWHM</value>
+  </data>
+  <data name="buttonMerge_Text" xml:space="preserve">
+    <value>Объединить близкие</value>
+  </data>
+  <data name="buttonUnmerge_Text" xml:space="preserve">
+    <value>Вернуть исходные</value>
+  </data>
+  <data name="mergeInfoFormat" xml:space="preserve">
+    <value>порог {0:0.##}·FWHM: сливаются линии ближе {1:0.#} кэВ на 100, {2:0.#} на 662, {3:0.#} на 1500</value>
+  </data>
+  <data name="criterionSparrow" xml:space="preserve">
+    <value>предел Sparrow — маркеры ROI (0,85·FWHM)</value>
+  </data>
+  <data name="criterionAnchored" xml:space="preserve">
+    <value>якорный набор — библиотечный фит (0,25·FWHM)</value>
+  </data>
+  <data name="criterionManual" xml:space="preserve">
+    <value>вручную</value>
+  </data>
+  <data name="groupFilters_Text" xml:space="preserve">
+    <value>Фильтры и выбор</value>
+  </data>
+  <data name="checkIntensity_Text" xml:space="preserve">
+    <value>интенсивность ≥,</value>
+  </data>
+  <data name="intensityRelative" xml:space="preserve">
+    <value>относительная (внутри изотопа, макс = 100)</value>
+  </data>
+  <data name="intensityAbsolute" xml:space="preserve">
+    <value>абсолютная (на распад)</value>
+  </data>
+  <data name="checkEnergy_Text" xml:space="preserve">
+    <value>энергия, кэВ</value>
+  </data>
+  <data name="checkHalfLife_Text" xml:space="preserve">
+    <value>T½</value>
+  </data>
+  <data name="buttonSelectAll_Text" xml:space="preserve">
+    <value>✓ выбрать все видимые</value>
+  </data>
+  <data name="buttonSelectNone_Text" xml:space="preserve">
+    <value>✗ снять все видимые</value>
+  </data>
+  <data name="labelTopN_Text" xml:space="preserve">
+    <value>топ-N по I на нуклид</value>
+  </data>
+  <data name="buttonSelectTop_Text" xml:space="preserve">
+    <value>Выбрать топ-N</value>
+  </data>
+  <data name="checkHideUnselected_Text" xml:space="preserve">
+    <value>скрыть невыбранные</value>
+  </data>
+  <data name="labelTypes_Text" xml:space="preserve">
+    <value>Тип линий</value>
+  </data>
+  <data name="checkTypeXray_Text" xml:space="preserve">
+    <value>X (распад)</value>
+  </data>
+  <data name="checkTypeXrf_Text" xml:space="preserve">
+    <value>ХРИ</value>
+  </data>
+  <data name="checkTypeSecondary_Text" xml:space="preserve">
+    <value>вторичные</value>
+  </data>
+  <data name="checkEquilibrium_Text" xml:space="preserve">
+    <value>равновесие ряда (интенсивности на распад родителя)</value>
+  </data>
+  <data name="unitSeconds" xml:space="preserve">
+    <value>сек</value>
+  </data>
+  <data name="unitHours" xml:space="preserve">
+    <value>ч</value>
+  </data>
+  <data name="unitDays" xml:space="preserve">
+    <value>сут</value>
+  </data>
+  <data name="unitYears" xml:space="preserve">
+    <value>лет</value>
+  </data>
+  <data name="hlSeconds" xml:space="preserve">
+    <value>с</value>
+  </data>
+  <data name="hlMinutes" xml:space="preserve">
+    <value>мин</value>
+  </data>
+  <data name="hlHours" xml:space="preserve">
+    <value>ч</value>
+  </data>
+  <data name="hlDays" xml:space="preserve">
+    <value>сут</value>
+  </data>
+  <data name="hlYears" xml:space="preserve">
+    <value>лет</value>
+  </data>
+  <data name="columnLineName_Text" xml:space="preserve">
+    <value>Нуклид</value>
+  </data>
+  <data name="columnLineEnergy_Text" xml:space="preserve">
+    <value>E, кэВ</value>
+  </data>
+  <data name="columnLineIntensity_Text" xml:space="preserve">
+    <value>I, %</value>
+  </data>
+  <data name="columnLineRelative_Text" xml:space="preserve">
+    <value>I отн., %</value>
+  </data>
+  <data name="columnLineHalfLife_Text" xml:space="preserve">
+    <value>T½</value>
+  </data>
+  <data name="columnLineType_Text" xml:space="preserve">
+    <value>Тип</value>
+  </data>
+  <data name="lineTypeXrf" xml:space="preserve">
+    <value>ХРИ</value>
+  </data>
+  <data name="lineTypeSecondary" xml:space="preserve">
+    <value>втор</value>
+  </data>
+  <data name="groupSecondary_Text" xml:space="preserve">
+    <value>Вторичные пики (расчёт по выбранным γ-линиям)</value>
+  </data>
+  <data name="labelSecondaryMin_Text" xml:space="preserve">
+    <value>для γ-линий с I ≥, %</value>
+  </data>
+  <data name="checkSecBackscatter_Text" xml:space="preserve">
+    <value>рассеяние назад (BS)</value>
+  </data>
+  <data name="checkSecComptonEdge_Text" xml:space="preserve">
+    <value>комптон-край (CE)</value>
+  </data>
+  <data name="checkSecSingleEscape_Text" xml:space="preserve">
+    <value>вылет 511 (SE)</value>
+  </data>
+  <data name="checkSecDoubleEscape_Text" xml:space="preserve">
+    <value>вылет 1022 (DE)</value>
+  </data>
+  <data name="checkSecIodine_Text" xml:space="preserve">
+    <value>вылет I-K (NaI, −28.6)</value>
+  </data>
+  <data name="checkSecAnnihilation_Text" xml:space="preserve">
+    <value>аннигиляция 511</value>
+  </data>
+  <data name="checkSecSum_Text" xml:space="preserve">
+    <value>суммирование каскадное</value>
+  </data>
+  <data name="checkSecPileUp_Text" xml:space="preserve">
+    <value>наложение 2×E</value>
+  </data>
+  <data name="buttonGenerateSecondary_Text" xml:space="preserve">
+    <value>Сгенерировать</value>
+  </data>
+  <data name="secondaryFormat" xml:space="preserve">
+    <value>добавлено вторичных маркеров: {0}</value>
+  </data>
+  <data name="annihilationLabel" xml:space="preserve">
+    <value>Аннигиляция 511</value>
+  </data>
+  <data name="groupNear_Text" xml:space="preserve">
+    <value>Поиск близких линий (по всей базе — кто ещё светит рядом)</value>
+  </data>
+  <data name="labelNearEnergy_Text" xml:space="preserve">
+    <value>энергия, кэВ</value>
+  </data>
+  <data name="labelNearWindow_Text" xml:space="preserve">
+    <value>± окно</value>
+  </data>
+  <data name="labelNearIntensity_Text" xml:space="preserve">
+    <value>I ≥, %</value>
+  </data>
+  <data name="labelNearHalfLife_Text" xml:space="preserve">
+    <value>T½ ≥</value>
+  </data>
+  <data name="buttonNearSearch_Text" xml:space="preserve">
+    <value>Искать</value>
+  </data>
+  <data name="buttonNearAdd_Text" xml:space="preserve">
+    <value>+ добавить</value>
+  </data>
+  <data name="columnNearDelta_Text" xml:space="preserve">
+    <value>ΔE</value>
+  </data>
+  <data name="nearAdded" xml:space="preserve">
+    <value>в наборе</value>
+  </data>
+  <data name="nearMoreFormat" xml:space="preserve">
+    <value>показаны первые {0} из {1}</value>
+  </data>
+  <data name="nearEmptyFormat" xml:space="preserve">
+    <value>в окне {0} ± {1} кэВ ничего не найдено</value>
+  </data>
+  <data name="groupStyle_Text" xml:space="preserve">
+    <value>Оформление ROI</value>
+  </data>
+  <data name="labelStyle_Text" xml:space="preserve">
+    <value>режим</value>
+  </data>
+  <data name="labelWidth_Text" xml:space="preserve">
+    <value>ширина зоны</value>
+  </data>
+  <data name="labelColors_Text" xml:space="preserve">
+    <value>Цвета</value>
+  </data>
+  <data name="buttonColorByChain_Text" xml:space="preserve">
+    <value>по цепочке</value>
+  </data>
+  <data name="buttonColorByNuclide_Text" xml:space="preserve">
+    <value>по нуклиду</value>
+  </data>
+  <data name="roiStyleMarkers" xml:space="preserve">
+    <value>линии-маркеры (высота ∝ I, без зон)</value>
+  </data>
+  <data name="roiStyleZones" xml:space="preserve">
+    <value>зоны (границы вокруг пика)</value>
+  </data>
+  <data name="roiStyleBoth" xml:space="preserve">
+    <value>зоны + маркеры интенсивности</value>
+  </data>
+  <data name="widthModePercent" xml:space="preserve">
+    <value>% от энергии (как в BecqMoni)</value>
+  </data>
+  <data name="widthModeFwhm" xml:space="preserve">
+    <value>k × FWHM (сцинтиллятор)</value>
+  </data>
+  <data name="groupExport_Text" xml:space="preserve">
+    <value>Экспорт</value>
+  </data>
+  <data name="labelConfigName_Text" xml:space="preserve">
+    <value>имя ROI-конфигурации</value>
+  </data>
+  <data name="buttonCreateRoi_Text" xml:space="preserve">
+    <value>Создать ROI-конфигурацию</value>
+  </data>
+  <data name="buttonPreview_Text" xml:space="preserve">
+    <value>Предпросмотр</value>
+  </data>
+  <data name="labelSetName_Text" xml:space="preserve">
+    <value>имя набора (NuclideSet)</value>
+  </data>
+  <data name="textSetName_Text" xml:space="preserve">
+    <value>Набор IAEA</value>
+  </data>
+  <data name="labelAnchor_Text" xml:space="preserve">
+    <value>якорная линия</value>
+  </data>
+  <data name="buttonCreateSet_Text" xml:space="preserve">
+    <value>Добавить набор в библиотеку</value>
+  </data>
+  <data name="checkFullSet_Text" xml:space="preserve">
+    <value>полный набор (все линии, для фита)</value>
+  </data>
+  <data name="labelAnchorCount_Text" xml:space="preserve">
+    <value>якорей</value>
+  </data>
+  <data name="labelIssues_Text" xml:space="preserve">
+    <value>Проверка данных:</value>
+  </data>
+  <data name="previewEmpty" xml:space="preserve">
+    <value>линии не выбраны</value>
+  </data>
+  <data name="anchorAuto" xml:space="preserve">
+    <value>auto — {0} {1}</value>
+  </data>
+  <data name="issuePrefixRoi" xml:space="preserve">
+    <value>ROI</value>
+  </data>
+  <data name="issuePrefixSet" xml:space="preserve">
+    <value>SET</value>
+  </data>
+  <data name="issueNone" xml:space="preserve">
+    <value>замечаний нет</value>
+  </data>
+  <data name="issueEqualEnergies" xml:space="preserve">
+    <value>равные энергии: «{0}» и «{1}» ({2} / {3} кэВ) — подгонка амплитуд на этой позиции вырождается</value>
+  </data>
+  <data name="issueZeroYield" xml:space="preserve">
+    <value>нулевой выход: «{0}» ({1} кэВ)</value>
+  </data>
+  <data name="issueAnchorIsXrf" xml:space="preserve">
+    <value>якорем выбрана линия «{0}» ({1} кэВ): это характеристический рентген материала, а не линия распада. Фит сел бы на опору, положение или интенсивность которой условны</value>
+  </data>
+  <data name="issueAnchorIsSecondary" xml:space="preserve">
+    <value>якорем выбрана линия «{0}» ({1} кэВ): это расчётный вторичный маркер, а не линия распада. Фит сел бы на опору, положение или интенсивность которой условны</value>
+  </data>
+  <data name="issueNoAnchor" xml:space="preserve">
+    <value>нет якорной линии: в наборе нет ни одной линии распада (ХРИ и вторичные маркеры якорем быть не могут) — библиотечный фит без якоря не запускается</value>
+  </data>
+  <data name="issueAnchorIsXray" xml:space="preserve">
+    <value>якорь — рентгеновская линия «{0}» ({1} кэВ): для опоры фита надёжнее γ-линия</value>
+  </data>
+  <data name="issueZonesOverlap" xml:space="preserve">
+    <value>перекрытие зон: «{0}» [{1}–{2}] и «{3}» [{4}–{5}]</value>
+  </data>
+  <data name="confirmTitle" xml:space="preserve">
+    <value>Конструктор ROI и наборов нуклидов</value>
+  </data>
+  <data name="confirmRoiOverwrite" xml:space="preserve">
+    <value>Конфигурация «{0}» уже есть — её файл будет перезаписан. Продолжить?</value>
+  </data>
+  <data name="confirmSetDuplicate" xml:space="preserve">
+    <value>Набор «{0}» в библиотеке уже есть. Добавить ещё один с тем же именем?</value>
+  </data>
+  <data name="noLinesSelected" xml:space="preserve">
+    <value>Линии не выбраны.</value>
+  </data>
+  <data name="noResolutionFromSpectrum" xml:space="preserve">
+    <value>Не удалось взять разрешение из активного спектра.</value>
+  </data>
+  <data name="confirmErrorsHead" xml:space="preserve">
+    <value>Набор сохранить нельзя — проверка данных нашла ошибки:</value>
+  </data>
+  <data name="confirmIssuesHead" xml:space="preserve">
+    <value>Проверка данных нашла замечания:</value>
+  </data>
+  <data name="confirmErrorsTail" xml:space="preserve">
+    <value>Две линии на одной энергии вырождают подгонку амплитуд, а нулевая интенсивность выбрасывает линию из связки по цепочке.</value>
+  </data>
+  <data name="confirmSaveAnyway" xml:space="preserve">
+    <value>Всё равно сохранить?</value>
+  </data>
+  <data name="helpTitle" xml:space="preserve">
+    <value>Справка: конструктор ROI и наборов нуклидов</value>
+  </data>
+  <data name="helpSourcesArrow" xml:space="preserve">
+    <value>   →   </value>
+  </data>
+</root>
