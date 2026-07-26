@@ -20,6 +20,12 @@ namespace BecquerelMonitor
 
             this.RefreshNuclideSets();
             this.UpdateDeconvolutionInfoButtonState();
+            // список наборов пересобирается при каждой записи файла определений,
+            // иначе новый набор виден только после перезапуска
+            this.nuclideManager.NuclideDefinitionListChanged += delegate(object sender, EventArgs e)
+            {
+                this.RefreshNuclideSets();
+            };
         }
 
         // Token: 0x0600043E RID: 1086 RVA: 0x0001423C File Offset: 0x0001243C

@@ -53,6 +53,10 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000932 RID: 2354 RVA: 0x00035750 File Offset: 0x00033950
+        // Поднимается после успешной записи файла определений: списки наборов
+        // в интерфейсе иначе обновляются только при следующем запуске.
+        public event EventHandler NuclideDefinitionListChanged;
+
         public static NuclideDefinitionManager GetInstance()
         {
             if (!NuclideDefinitionManager.instance.LoadDefinitionFile())
@@ -114,6 +118,10 @@ namespace BecquerelMonitor
             {
                 MessageBox.Show(Resources.ERRSavingNuclideDefinitionFile, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
                 return false;
+            }
+            if (this.NuclideDefinitionListChanged != null)
+            {
+                this.NuclideDefinitionListChanged(this, new EventArgs());
             }
             return true;
         }
