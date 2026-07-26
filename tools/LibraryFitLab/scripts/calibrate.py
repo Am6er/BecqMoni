@@ -27,7 +27,13 @@ import xml.etree.ElementTree as ET
 from spectrum import Spectrum, monotone
 from gaussfit import fit_peak, FWHM_SIGMA
 from chains import chain_lines, CHAINS
-import gainscan
+# Стадия подбора усиления; самого модуля в дереве нет, а всё остальное в этом
+# файле от него не зависит — поэтому импорт не обязан быть фатальным. Раньше он
+# валил и apply_calibration.py, и запуск calibrate.py напрямую.
+try:
+    import gainscan                                   # noqa: F401
+except ImportError:
+    gainscan = None
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, 'spectra')

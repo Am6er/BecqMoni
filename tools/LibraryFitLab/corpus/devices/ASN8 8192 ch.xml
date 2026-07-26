@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<DeviceConfigInfo xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <FormatVersion>120920</FormatVersion>
+  <Guid>a6e969ae-9f09-4512-843d-358137b20c5f</Guid>
+  <Name>ASN8 8192 ch</Name>
+  <LastUpdated>2026-07-26T00:00:00.0000000+03:00</LastUpdated>
+  <DefaultMeasurementTime>360000000</DefaultMeasurementTime>
+  <ChannelPitch>1</ChannelPitch>
+  <NumberOfChannels>8192</NumberOfChannels>
+  <DeviceType>AudioInputDevice</DeviceType>
+  <ThermometerType>None</ThermometerType>
+  <EnergyCalibrationType>Polynomial</EnergyCalibrationType>
+  <!-- Конфигурация корпуса LibraryFitLab. Реального прибора за ней нет: она
+       нужна, чтобы харнесс нашёл устройство спектра и взял осмысленные
+       Min_Range/Max_Range/Ch_Concat. Калибровки энергии и FWHM лежат в самих
+       спектрах.
+       Note ОБЯЗАН быть пустым. CDATA.ReadXml зовёт reader.ReadElementString(),
+       который съедает и закрывающий тег, после чего XmlSerializer закрывает
+       ещё один элемент — следующий. Для SampleInfo/Note это сходит с рук, там
+       Note последний, а в DeviceConfigInfo за ним идут PolynomialEnergyCalibration,
+       Stabilizer, DoseRate и PeakDetectionMethodConfig, и все они молча
+       теряются: конфигурация читается со значениями по умолчанию
+       (Min_Range=30, Max_Range=2800, Ch_Concat=1024). Германий с непустым Note
+       пересыпался в 1024 канала и не давал НИ ОДНОГО пика. -->
+  <Note />
+  <PolynomialEnergyCalibration>
+    <PolynomialOrder>2</PolynomialOrder>
+    <Coefficients>
+      <Coefficient>-9.40258</Coefficient>
+      <Coefficient>0.367894</Coefficient>
+      <Coefficient>3.42e-06</Coefficient>
+    </Coefficients>
+  </PolynomialEnergyCalibration>
+  <StabilizerConfig>
+    <TargetPeaks />
+  </StabilizerConfig>
+  <DoseRateConfig>
+    <DoseRateCalibrationPoints />
+  </DoseRateConfig>
+  <PeakDetectionMethodConfig>
+    <Min_SNR>4</Min_SNR>
+    <FWHM_AT_0>0.001</FWHM_AT_0>
+    <Ch_Fwhm>4096</Ch_Fwhm>
+    <Width_Fwhm>178</Width_Fwhm>
+    <Max_Items>40</Max_Items>
+    <Tolerance>10</Tolerance>
+    <Min_Range>30.0</Min_Range>
+    <Max_Range>2800.0</Max_Range>
+    <Min_FWHM_Tol>1</Min_FWHM_Tol>
+    <Max_FWHM_Tol>199</Max_FWHM_Tol>
+    <Enabled>true</Enabled>
+    <Ch_Concat>1170</Ch_Concat>
+    <PeakType>0</PeakType>
+    <ExpGaussExpLeftTail>1</ExpGaussExpLeftTail>
+    <ExpGaussExpRightTail>1</ExpGaussExpRightTail>
+  </PeakDetectionMethodConfig>
+  <BackgroundSpectrumPathname />
+</DeviceConfigInfo>
