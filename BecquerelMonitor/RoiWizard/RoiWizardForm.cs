@@ -1287,7 +1287,8 @@ namespace BecquerelMonitor.RoiWizard
                     if (Math.Abs(gamma.Energy - energy) <= window && gamma.Intensity >= minIntensity)
                     {
                         this.nearHits.Add(new NearHit(nuclide.Name, gamma.Energy, gamma.Intensity,
-                                                      "γ", "g", nuclide.HalfLifeText, null));
+                                                      "γ", "g", nuclide.HalfLifeText,
+                                                      nuclide.HalfLifeYears, null));
                     }
                 }
                 foreach (CatalogXrayLine xray in nuclide.Xray)
@@ -1296,7 +1297,8 @@ namespace BecquerelMonitor.RoiWizard
                     {
                         this.nearHits.Add(new NearHit(nuclide.Name, xray.Energy, xray.Intensity,
                                                       "X " + xray.Shell, "x",
-                                                      nuclide.HalfLifeText, null));
+                                                      nuclide.HalfLifeText,
+                                                      nuclide.HalfLifeYears, null));
                     }
                 }
             }
@@ -1310,7 +1312,7 @@ namespace BecquerelMonitor.RoiWizard
                             RoiWizardStrings.lineTypeXrf + " " + element.Symbol,
                             line.Energy, line.Intensity,
                             RoiWizardStrings.lineTypeXrf + " " + line.Label, "xrf",
-                            "—", element.Symbol));
+                            "—", 0.0, element.Symbol));
                     }
                 }
             }
@@ -1342,7 +1344,7 @@ namespace BecquerelMonitor.RoiWizard
                 Cell kind = new Cell(hit.TypeName);
                 kind.Tag = hit.TypeKind;           // цвет бейджа — по коду, не по подписи
                 row.Cells.Add(kind);
-                row.Cells.Add(new Cell(HalfLifeLabel(hit.HalfLife)));
+                row.Cells.Add(new Cell(HalfLifeLabel(hit.HalfLife), hit.HalfLifeYears));
                 // тег ячейки — признак «есть что нажимать»: у добавленного нуклида
                 // кнопки нет, как и на странице, вместо неё подпись «в наборе»
                 Cell action = new Cell(added ? RoiWizardStrings.nearAdded
@@ -1405,11 +1407,14 @@ namespace BecquerelMonitor.RoiWizard
             public readonly string TypeName;     // подпись бейджа: она переводится
             public readonly string TypeKind;     // код типа: по нему берётся цвет
             public readonly string HalfLife;
+            public readonly double HalfLifeYears;   // ключ сортировки столбца T½
             public readonly string XrfSymbol;
 
             public NearHit(string nuclide, double energy, double intensity,
-                           string typeName, string typeKind, string halfLife, string xrfSymbol)
+                           string typeName, string typeKind, string halfLife,
+                           double halfLifeYears, string xrfSymbol)
             {
+                this.HalfLifeYears = halfLifeYears;
                 this.Nuclide = nuclide;
                 this.Energy = energy;
                 this.Intensity = intensity;

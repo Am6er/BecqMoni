@@ -130,6 +130,13 @@ namespace BecquerelMonitor.RoiWizard
                     table.SelectionForeColor = Ink;
                     table.ForeColor = Ink;
                     table.BackColor = Card;
+                    // Отсортированный столбец XPTable по умолчанию заливает своим
+                    // цветом (WhiteSmoke) поверх фона строки, и после щелчка по
+                    // заголовку отмеченные строки теряли подсветку именно в этом
+                    // столбце. Прозрачный цвет отключает заливку (рендерер рисует
+                    // её только при A != 0); направление сортировки и так показано
+                    // стрелкой в заголовке — как на странице-эталоне.
+                    table.SortedColumnBackColor = Color.Transparent;
                     continue;
                 }
 

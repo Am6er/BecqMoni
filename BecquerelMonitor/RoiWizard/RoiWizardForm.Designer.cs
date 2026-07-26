@@ -34,7 +34,9 @@ namespace BecquerelMonitor.RoiWizard
             this.columnCatalogName = new XPTable.Models.TextColumn();
             this.columnCatalogFamilies = new XPTable.Models.TextColumn();
             this.columnCatalogHalfLife = new XPTable.Models.TextColumn();
+            this.columnCatalogHalfLife.Comparer = typeof(XPTable.Sorting.NumberComparer);
             this.columnCatalogLines = new XPTable.Models.TextColumn();
+            this.columnCatalogLines.Comparer = typeof(XPTable.Sorting.NumberComparer);
             this.tableModelCatalog = new XPTable.Models.TableModel();
 
             this.groupGroup = new System.Windows.Forms.GroupBox();
@@ -116,11 +118,15 @@ namespace BecquerelMonitor.RoiWizard
             this.tableNear = new XPTable.Models.Table();
             this.columnModelNear = new XPTable.Models.ColumnModel();
             this.columnNearDelta = new XPTable.Models.TextColumn();
+            this.columnNearDelta.Comparer = typeof(XPTable.Sorting.NumberComparer);
             this.columnNearName = new XPTable.Models.TextColumn();
             this.columnNearEnergy = new XPTable.Models.TextColumn();
+            this.columnNearEnergy.Comparer = typeof(XPTable.Sorting.NumberComparer);
             this.columnNearIntensity = new XPTable.Models.TextColumn();
+            this.columnNearIntensity.Comparer = typeof(XPTable.Sorting.NumberComparer);
             this.columnNearType = new XPTable.Models.TextColumn();
             this.columnNearHalfLife = new XPTable.Models.TextColumn();
+            this.columnNearHalfLife.Comparer = typeof(XPTable.Sorting.NumberComparer);
             this.columnNearAdd = new XPTable.Models.ButtonColumn();
             this.columnNearFill = new XPTable.Models.TextColumn();
             this.tableModelNear = new XPTable.Models.TableModel();
@@ -135,9 +141,13 @@ namespace BecquerelMonitor.RoiWizard
             this.columnLineSelected = new XPTable.Models.CheckBoxColumn();
             this.columnLineName = new XPTable.Models.TextColumn();
             this.columnLineEnergy = new XPTable.Models.TextColumn();
+            this.columnLineEnergy.Comparer = typeof(XPTable.Sorting.NumberComparer);
             this.columnLineIntensity = new XPTable.Models.TextColumn();
+            this.columnLineIntensity.Comparer = typeof(XPTable.Sorting.NumberComparer);
             this.columnLineRelative = new XPTable.Models.TextColumn();
+            this.columnLineRelative.Comparer = typeof(XPTable.Sorting.NumberComparer);
             this.columnLineHalfLife = new XPTable.Models.TextColumn();
+            this.columnLineHalfLife.Comparer = typeof(XPTable.Sorting.NumberComparer);
             this.columnLineType = new XPTable.Models.TextColumn();
             this.tableModelLines = new XPTable.Models.TableModel();
 
