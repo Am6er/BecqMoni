@@ -1,5 +1,5 @@
 /*
- * Copyright © 2005, Mathew Hall
+ * Copyright ï¿½ 2005, Mathew Hall
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, 
@@ -2681,6 +2681,25 @@ namespace XPTable.Models
 
                 int visibleRowCount = this.GetVisibleRowCount(hscroll, true);
                 vScrollBar.LargeChange = visibleRowCount < 0 ? 0 : visibleRowCount + 1;
+
+                // The range has just changed - the table was resized, rows were added or
+                // removed, or a neighbouring panel folded and gave us more height. The
+                // current position may now sit past the new end. WinForms does not clamp
+                // Value on its own when LargeChange grows, and XPTable keeps topIndex in a
+                // separate field, so without this the table keeps the stale top row and
+                // paints only the remaining tail of the list against empty background -
+                // the list looks like it vanished.
+                int maxValue = vScrollBar.Maximum - vScrollBar.LargeChange + 1;
+                if (maxValue < vScrollBar.Minimum)
+                {
+                    maxValue = vScrollBar.Minimum;
+                }
+
+                if (vScrollBar.Value > maxValue)
+                {
+                    // assigning Value raises ValueChanged, which is what moves topIndex
+                    vScrollBar.Value = maxValue;
+                }
             }
             else
             {
