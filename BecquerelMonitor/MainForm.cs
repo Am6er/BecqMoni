@@ -1264,6 +1264,71 @@ namespace BecquerelMonitor
             form.ShowDialog();
         }
 
+        void RoiWizardToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            this.ShowRoiWizardForm();
+        }
+
+        // Окно мастера — плавающая док-панель на общем dockPanel1: её можно пристыковать,
+        // сгруппировать с другими панелями и убрать в автоскрытие булавкой, как любую
+        // панель приложения. Экземпляр один: закрытие прячет панель (HideOnClose),
+        // повторный вызов из меню возвращает её со всеми настройками.
+        RoiWizard.RoiWizardForm roiWizardForm;
+
+        public void ShowRoiWizardForm()
+        {
+            if (this.roiWizardForm == null || this.roiWizardForm.IsDisposed)
+            {
+                this.roiWizardForm = new RoiWizard.RoiWizardForm(this.RoiWizardResolution);
+                // Размер плавающего окна берётся у самой формы: её Size уже подогнан
+                // шрифтом темы (AutoScaleMode.Font укрупняет разметку), и плавающее
+                // окно отдаёт содержимому ровно столько же, сколько форма имеет в
+                // клиентской области. Жёсткие числа здесь обрезали бы содержимое.
+                System.Drawing.Size want = this.roiWizardForm.Size;
+                System.Drawing.Rectangle work = Screen.FromControl(this).WorkingArea;
+                want = new System.Drawing.Size(Math.Min(want.Width, work.Width),
+                                               Math.Min(want.Height, work.Height));
+                System.Drawing.Rectangle bounds = new System.Drawing.Rectangle(
+                    work.X + Math.Max(0, (work.Width - want.Width) / 2),
+                    work.Y + Math.Max(0, (work.Height - want.Height) / 2),
+                    want.Width, want.Height);
+                this.roiWizardForm.Show(this.dockPanel1, bounds);
+            }
+            else
+            {
+                this.roiWizardForm.Show(this.dockPanel1);
+                this.roiWizardForm.Activate();
+            }
+        }
+
+        // Разрешение для мастера — из родной FWHM-калибровки активного спектра, приведённой
+        // к тому виду, в котором его ждёт мастер: R в процентах на 662 кэВ. Калибровка
+        // задана в каналах, поэтому ширина переводится в энергию так же, как в
+        // DCPeakDetectionView: по краям окна ±FWHM/2.
+        double RoiWizardResolution()
+        {
+            DocEnergySpectrum document = this.ActiveDocument;
+            if (document == null || document.ActiveResultData == null)
+            {
+                return 0;
+            }
+            ResultData active = document.ActiveResultData;
+            EnergySpectrum spectrum = active.EnergySpectrum;
+            if (spectrum == null || spectrum.EnergyCalibration == null || active.FwhmCalibration == null)
+            {
+                return 0;
+            }
+            double channel = spectrum.EnergyCalibration.EnergyToChannel(662.0, maxChannels: spectrum.NumberOfChannels);
+            double fwhmChannels = active.FwhmCalibration.ChannelToFwhm(channel);
+            if (!(fwhmChannels > 0))
+            {
+                return 0;
+            }
+            double left = spectrum.EnergyCalibration.ChannelToEnergy(channel - fwhmChannels / 2.0);
+            double right = spectrum.EnergyCalibration.ChannelToEnergy(channel + fwhmChannels / 2.0);
+            return right > left ? (right - left) / 662.0 * 100.0 : 0;
+        }
+
         // Token: 0x06000A73 RID: 2675 RVA: 0x0003E2F4 File Offset: 0x0003C4F4
         Rectangle GetTotalBound()
         {
