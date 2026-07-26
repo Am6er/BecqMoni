@@ -2050,13 +2050,36 @@ namespace BecquerelMonitor.RoiWizard
 
         // Справка — тот же текст, что в модальном окне страницы; он лежит ресурсом,
         // выгруженным из index.html, поэтому расходиться версиям негде.
+        //
+        // Окно показывается такой же плавающей панелью, как и сам мастер: тогда его
+        // заголовок рисует та же тема хоста, и два окна модуля выглядят одинаково.
+        // Подбирать цвета руками для второго окна бессмысленно — они разъедутся при
+        // любой смене темы. Вне док-системы (тесты, автономный прогон формы) остаётся
+        // обычный диалог.
         void ShowHelp()
         {
-            using (HelpForm help = new HelpForm())
+            if (this.helpForm != null && !this.helpForm.IsDisposed)
             {
-                help.ShowDialog(this);
+                this.helpForm.Activate();
+                return;
+            }
+            this.helpForm = new HelpForm();
+            if (this.DockPanel != null)
+            {
+                Size want = this.helpForm.Size;
+                Rectangle bounds = new Rectangle(
+                    this.Left + Math.Max(0, (this.Width - want.Width) / 2),
+                    this.Top + Math.Max(0, (this.Height - want.Height) / 2),
+                    want.Width, want.Height);
+                this.helpForm.Show(this.DockPanel, bounds);
+            }
+            else
+            {
+                this.helpForm.Show(this);
             }
         }
+
+        HelpForm helpForm;
 
         // Кнопки внизу подписываются именами соседних шагов, а на краях — обобщённо
         // и выключены. То же поведение, что у пары кнопок в строке состояния страницы.
