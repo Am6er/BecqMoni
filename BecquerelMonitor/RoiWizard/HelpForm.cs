@@ -143,7 +143,7 @@ namespace BecquerelMonitor.RoiWizard
                 string piece = token.Value;
                 if (piece[0] == '<')
                 {
-                    this.Tag(piece);
+                    this.ApplyTag(piece);
                 }
                 else
                 {
@@ -152,7 +152,9 @@ namespace BecquerelMonitor.RoiWizard
             }
         }
 
-        void Tag(string tag)
+        // Не «Tag»: у Control уже есть свойство с таким именем, и метод его скрывал —
+        // компилятор справедливо предупреждал (CS0108).
+        void ApplyTag(string tag)
         {
             bool closing = tag.StartsWith("</", StringComparison.Ordinal);
             Match name = Regex.Match(tag, @"^</?\s*([a-zA-Z]+)");
