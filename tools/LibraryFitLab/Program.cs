@@ -215,10 +215,19 @@ namespace LibraryFitLab
             }
 
             resultData.DeviceConfig = deviceConfig;
-            FWHMPeakDetectionMethodConfig peakConfig = resultData.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
-            resultData.PeakDetectionMethodConfig = peakConfig != null
-                ? (FWHMPeakDetectionMethodConfig)peakConfig.Clone()
-                : (FWHMPeakDetectionMethodConfig)((FWHMPeakDetectionMethodConfig)deviceConfig.PeakDetectionMethodConfig).Clone();
+            // Настройки поиска берутся из конфигурации УСТРОЙСТВА, а не из
+            // ResultData. Раньше здесь стояло "из файла, если есть, иначе из
+            // устройства", но ветка с устройством была недостижима:
+            // ResultData.PeakDetectionMethodConfig помечен [XmlIgnore] и
+            // инициализирован новым FWHMPeakDetectionMethodConfig, то есть из
+            // файла не читается никогда, а null не бывает. Все прогоны молча
+            // шли на умолчаниях класса (Min_Range = 30, Max_Range = 2800,
+            // Ch_Concat = 1024). Для 8192-канальных сцинтилляторов это близко к
+            // правде — 14 каналов на полуширину, — поэтому расхождения не было
+            // видно; на германии 16384 канала пересыпались в 1024, полуширина
+            // становилась меньше канала, и финдер не находил НИ ОДНОГО пика.
+            resultData.PeakDetectionMethodConfig =
+                (FWHMPeakDetectionMethodConfig)((FWHMPeakDetectionMethodConfig)deviceConfig.PeakDetectionMethodConfig).Clone();
             resultData.ROIConfig = null;
 
             if (resultData.FwhmCalibration == null)

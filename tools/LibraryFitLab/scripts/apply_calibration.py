@@ -16,7 +16,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 LAB = r'C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\LibraryFitLab'
 SCRIPTS = os.path.join(LAB, 'scripts')
 
-sys.path.insert(0, HERE)        # заглушка gainscan
+sys.path.insert(0, HERE)
 sys.path.append(SCRIPTS)
 
 import calibrate                                        # noqa: E402
