@@ -27,6 +27,13 @@ namespace BecquerelMonitor.NucBase
         // Ветви слабее этого не прослеживаются — их линии всё равно ниже любого порога.
         const double MinFraction = 1e-6;
 
+        // Потолок числа раскрытий. Узел раскрывается повторно на каждый новый вклад,
+        // поэтому счётчика членов ряда мало: замкнутый цикл в данных (A → B → A с
+        // процентами, не гасящими друг друга) крутился бы, пока доля не упадёт ниже
+        // MinFraction. Она падает геометрически, так что предел достижим только на
+        // испорченных данных — это страховка, а не рабочий режим.
+        const int StepLimit = 10000;
+
         // Путь к базе — от каталога сборки, а не от Environment.CurrentDirectory:
         // рабочий каталог процесса меняет любой файловый диалог, и после «Открыть
         // спектр» из другой папки база перестала бы находиться.
@@ -80,6 +87,21 @@ namespace BecquerelMonitor.NucBase
             fraction[rootNucid] = 1.0;
             order.Add(rootNucid);
 
+            // Распространяется ПРИРАЩЕНИЕ доли, а не сама доля, и узел раскрывается
+            // столько раз, сколько к нему приходит вклад. Однократное раскрытие «по
+            // накопленному на этот момент» недосчитывает всё, что ниже точки слияния
+            // ветвей: в ряду U-238 к Pb-210 идут прямая слабая ветка Bi-214 (0.003 %) и
+            // основная через Po-214 (99.98 %), и если раскрыть Pb-210 сразу по слабой,
+            // его потомки Bi-210 и Po-210 остаются с долей 3e-5 вместо 0.9984 —
+            // занижение в 33 000 раз. Сам Pb-210 при этом накапливается верно, страдают
+            // только потомки, поэтому на нынешних данных (у Bi-210 гамма-линий нет,
+            // у Po-210 одна линия 0.001 %) это не видно. Свойство алгоритма, не данных.
+            Dictionary<string, double> pending =
+                new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+            pending[rootNucid] = 1.0;
+            Queue<string> queue = new Queue<string>();
+            queue.Enqueue(rootNucid);
+
             // Следуются только переходы с минимальным l_seqno на пару «родитель →
             // дочерний»: строки с бо́льшим уровнем описывают распад возбуждённого уровня
             // и дублируют переход с другим процентом. У Bi-212 наряду с настоящими
@@ -95,9 +117,21 @@ namespace BecquerelMonitor.NucBase
                     "                     and x.dec_type = d.dec_type)";
                 SqliteParameter parameter = command.Parameters.Add("@nucid", SqliteType.Text);
 
-                for (int i = 0; i < order.Count && order.Count < MemberLimit; i++)
+                int steps_taken = 0;
+                while (queue.Count > 0 && order.Count < MemberLimit && steps_taken < StepLimit)
                 {
-                    string current = order[i];
+                    steps_taken++;
+                    string current = queue.Dequeue();
+
+                    // берём накопленное приращение и обнуляем его: доля, уже разосланная
+                    // потомкам, второй раз рассылаться не должна
+                    double increment;
+                    if (!pending.TryGetValue(current, out increment) || increment < MinFraction)
+                    {
+                        continue;
+                    }
+                    pending[current] = 0.0;
+
                     parameter.Value = current;
 
                     // Читатель закрывается до правки словаря: следующая итерация
@@ -127,7 +161,7 @@ namespace BecquerelMonitor.NucBase
 
                     foreach (KeyValuePair<string, double> step in steps)
                     {
-                        double share = fraction[current] * step.Value / 100.0;
+                        double share = increment * step.Value / 100.0;
                         if (share < MinFraction)
                         {
                             continue;
@@ -139,8 +173,13 @@ namespace BecquerelMonitor.NucBase
                         else
                         {
                             fraction[step.Key] = share;
-                            order.Add(step.Key);
+                            order.Add(step.Key);      // порядок первого появления = порядок ряда
                         }
+
+                        double waiting;
+                        pending.TryGetValue(step.Key, out waiting);
+                        pending[step.Key] = waiting + share;
+                        queue.Enqueue(step.Key);      // пришёл новый вклад — раскрыть снова
                     }
                 }
             }

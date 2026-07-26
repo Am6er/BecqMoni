@@ -1282,13 +1282,28 @@ namespace BecquerelMonitor
         // Панель создаётся один раз и переиспользуется — в том числе при восстановлении
         // раскладки: GetContentFromPersistString зовёт это же свойство, иначе панель,
         // сохранённая в ExpertMode.xml, при следующем запуске молча пропадала бы.
+        // Возвращает null, если каталог недоступен: база нуклидов — файл поставки, но
+        // отсутствовать или оказаться старой она может (ручная замена, неполное
+        // обновление). Панель тогда просто не открывается, а приложение работает.
         RoiWizard.RoiWizardForm RoiWizardPanel
         {
             get
             {
                 if (this.roiWizardForm == null || this.roiWizardForm.IsDisposed)
                 {
-                    this.roiWizardForm = new RoiWizard.RoiWizardForm(this.RoiWizardResolution);
+                    if (!RoiWizard.NuclideCatalog.IsAvailable)
+                    {
+                        return null;
+                    }
+                    try
+                    {
+                        this.roiWizardForm = new RoiWizard.RoiWizardForm(this.RoiWizardResolution);
+                    }
+                    catch (Exception ex)
+                    {
+                        Trace.WriteLine("ROI wizard: " + ex);
+                        return null;
+                    }
                 }
                 return this.roiWizardForm;
             }
@@ -1297,6 +1312,12 @@ namespace BecquerelMonitor
         public void ShowRoiWizardForm()
         {
             RoiWizard.RoiWizardForm form = this.RoiWizardPanel;
+            if (form == null)
+            {
+                MessageBox.Show(this, Resources.NuclideFamiliesUnavailable,
+                    Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
             if (form.DockPanel == null)
             {
                 // Панель ещё не размещена (первый вызов и раскладка её не вернула) —

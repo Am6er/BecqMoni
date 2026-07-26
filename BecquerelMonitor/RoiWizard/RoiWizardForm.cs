@@ -1242,7 +1242,11 @@ namespace BecquerelMonitor.RoiWizard
                 case "h": return RoiWizardStrings.hlHours;
                 case "d": return RoiWizardStrings.hlDays;
                 case "y": return RoiWizardStrings.hlYears;
+                // доли секунды — символы СИ, они одинаковы во всех языках; «us» пишется
+                // микро-знаком, миллисекунды и наносекунды и так совпадают с кодом базы
                 case "us": return "µs";
+                case "ms": return "ms";
+                case "ns": return "ns";
                 default: return unit;
             }
         }
