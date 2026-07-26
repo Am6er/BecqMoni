@@ -2689,6 +2689,15 @@ namespace XPTable.Models
                 // separate field, so without this the table keeps the stale top row and
                 // paints only the remaining tail of the list against empty background -
                 // the list looks like it vanished.
+                //
+                // Same bound as EnsureSafeVScrollValue (Maximum - visibleRows, and
+                // visibleRows is LargeChange - 1), which already guards the scroll events;
+                // it is only the range change that had no guard. Not calling that method
+                // directly on purpose: it can return a negative value when Maximum is below
+                // visibleRows, and assigning that to Value would throw. That combination
+                // needs rows taller than TableModel.RowHeight - vscroll is decided on the
+                // real total height while visibleRows divides by the model height - so it
+                // is out of reach here, but a clamp that can throw is not worth reusing.
                 int maxValue = vScrollBar.Maximum - vScrollBar.LargeChange + 1;
                 if (maxValue < vScrollBar.Minimum)
                 {
@@ -2697,7 +2706,10 @@ namespace XPTable.Models
 
                 if (vScrollBar.Value > maxValue)
                 {
-                    // assigning Value raises ValueChanged, which is what moves topIndex
+                    // assigning Value raises ValueChanged, which is what moves topIndex.
+                    // No recursion: the handler only re-enters UpdateScrollBars when
+                    // EnableWordWrap is set, and on that second pass Value already equals
+                    // maxValue, so this branch does not fire again.
                     vScrollBar.Value = maxValue;
                 }
             }
