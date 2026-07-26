@@ -1269,14 +1269,27 @@ namespace BecquerelMonitor
             this.ShowRoiWizardForm();
         }
 
-        // Окно мастера. Разрешение детектора передаётся делегатом: форма спросит его,
-        // когда пользователь нажмёт «из спектра», и оставит введённое руками значение,
-        // если взять неоткуда (0).
+        // Окно мастера — плавающая док-панель на общем dockPanel1: её можно пристыковать,
+        // сгруппировать с другими панелями и убрать в автоскрытие булавкой, как любую
+        // панель приложения. Экземпляр один: закрытие прячет панель (HideOnClose),
+        // повторный вызов из меню возвращает её со всеми настройками.
+        RoiWizard.RoiWizardForm roiWizardForm;
+
         public void ShowRoiWizardForm()
         {
-            using (RoiWizard.RoiWizardForm form = new RoiWizard.RoiWizardForm(this.RoiWizardResolution))
+            if (this.roiWizardForm == null || this.roiWizardForm.IsDisposed)
             {
-                form.ShowDialog(this);
+                this.roiWizardForm = new RoiWizard.RoiWizardForm(this.RoiWizardResolution);
+                System.Drawing.Rectangle bounds = new System.Drawing.Rectangle(
+                    this.Location.X + Math.Max(0, (this.Width - 1200) / 2),
+                    this.Location.Y + Math.Max(0, (this.Height - 700) / 2),
+                    1200, 700);
+                this.roiWizardForm.Show(this.dockPanel1, bounds);
+            }
+            else
+            {
+                this.roiWizardForm.Show(this.dockPanel1);
+                this.roiWizardForm.Activate();
             }
         }
 

@@ -6,6 +6,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
+using WeifenLuo.WinFormsUI.Docking;
 using System.Xml.Serialization;
 using XPTable.Events;
 using XPTable.Models;
@@ -15,7 +16,11 @@ namespace BecquerelMonitor.RoiWizard
     // Окно конструктора: три шага повторяют веб-версию инструмента, но результат
     // никуда не выгружается файлом — ROI-конфигурация уходит в ROIConfigManager,
     // а набор нуклидов в NuclideDefinitionManager.
-    public partial class RoiWizardForm : Form
+    // Наследование от DockContent делает окно родной док-панелью BecqMoni:
+    // полоска заголовка, булавка автоскрытия, группировка и прилипание рисуются
+    // и работают той же темой VS2015BlueTheme, что у «Обнаружения пиков» и
+    // остальных панелей — имитировать ничего не нужно.
+    public partial class RoiWizardForm : DockContent
     {
         readonly NuclideCatalog catalog;
         readonly SourceSelection selection = new SourceSelection();
@@ -45,6 +50,9 @@ namespace BecquerelMonitor.RoiWizard
             this.InitializeComponent();
             // цвета и шрифт — из темы веб-версии, чтобы окно выглядело так же
             WizardTheme.Apply(this);
+            // закрытие панели прячет её, а не разрушает: повторное открытие из меню
+            // возвращает выбранные источники и настройки нетронутыми
+            this.HideOnClose = true;
             this.resolutionProvider = resolutionProvider;
 
             this.catalog = NuclideCatalog.GetInstance();
@@ -76,6 +84,7 @@ namespace BecquerelMonitor.RoiWizard
         {
             get { return new ResolutionModel((double)this.numResolution.Value); }
         }
+
 
         // ─── наполнение ─────────────────────────────────────────────────────
 
@@ -438,6 +447,17 @@ namespace BecquerelMonitor.RoiWizard
             this.groupGroup.SetBounds(Pad + column + Gap, Top, middle, boxHeight);
             this.groupXrf.SetBounds(Pad + column + Gap + middle + Gap, Top, column, boxHeight);
 
+            // блок пресетов переносится по ширине колонки, и число строк меняется:
+            // высота блока пересчитывается под фактический перенос, иначе нижняя
+            // строка срезается краем панели; таблица каталога отдаёт ей место
+            int presetWidth = column - 12;
+            int presetHeight = this.panelPresets.GetPreferredSize(
+                new Size(presetWidth, 0)).Height;
+            int presetTop = this.groupSearch.ClientSize.Height - 8 - presetHeight;
+            this.panelPresets.SetBounds(6, presetTop, presetWidth, presetHeight);
+            this.labelSearchHint.Top = presetTop - this.labelSearchHint.Height - 2;
+            this.tableCatalog.Height = this.labelSearchHint.Top - 4 - this.tableCatalog.Top;
+
             // ряды кнопок делят ширину своей панели: жёсткие ширины не влезают,
             // когда колонка уже суммы масштабированных кнопок (.line — flex-строка)
             LayoutButtonRow(this.groupSearch, new Control[] {
@@ -708,6 +728,7 @@ namespace BecquerelMonitor.RoiWizard
             if (line != null)
             {
                 line.Selected = row.Cells[0].Checked;
+                row.BackColor = line.Selected ? WizardTheme.Selection : WizardTheme.Card;
                 this.UpdateStatus();
             }
         }
@@ -1104,6 +1125,8 @@ namespace BecquerelMonitor.RoiWizard
                 kind.Tag = TypeKind(line.Type);    // цвет бейджа — по коду, не по подписи
                 row.Cells.Add(kind);
                 row.Tag = line;
+                // отмеченная строка тонируется, как в вебе: tr.selrow{background:var(--sel)}
+                row.BackColor = line.Selected ? WizardTheme.Selection : WizardTheme.Card;
                 this.tableModelLines.Rows.Add(row);
             }
             this.tableLines.ResumeLayout();
