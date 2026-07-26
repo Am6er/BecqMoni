@@ -42138,4 +42138,28 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="Lq_counts" xml:space="preserve">
     <value>Lq counts</value>
   </data>
+  <data name="ButtonOK" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="ButtonCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="NuclideFamiliesButton" xml:space="preserve">
+    <value>Families…</value>
+  </data>
+  <data name="NuclideFamiliesTitle" xml:space="preserve">
+    <value>Families of {0}</value>
+  </data>
+  <data name="NuclideFamiliesHint" xml:space="preserve">
+    <value>Which application groups this nuclide belongs to. NORM / MED / IND / SNM follow ANSI N42.34; the rest are outside the standard. Used by the ROI and nuclide set builder.</value>
+  </data>
+  <data name="NuclideFamiliesSaveFailed" xml:space="preserve">
+    <value>Could not save the classification: {0}</value>
+  </data>
+  <data name="NuclideFamiliesUnavailable" xml:space="preserve">
+    <value>The nuclide database has no classification tables.</value>
+  </data>
+  <data name="NuclideFamiliesNoIsotope" xml:space="preserve">
+    <value>Search for an isotope first — the classification is edited for it.</value>
+  </data>
 </root>

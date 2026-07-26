@@ -416,6 +416,10 @@ namespace BecquerelMonitor
             {
                 return this.dcPeakDetectionView;
             }
+            if (a == typeof(RoiWizard.RoiWizardForm).ToString())
+            {
+                return this.RoiWizardPanel;
+            }
             if (a == typeof(DCEnergyCalibrationView).ToString())
             {
                 return this.dcEnergyCalibrationView;
@@ -1275,16 +1279,33 @@ namespace BecquerelMonitor
         // повторный вызов из меню возвращает её со всеми настройками.
         RoiWizard.RoiWizardForm roiWizardForm;
 
+        // Панель создаётся один раз и переиспользуется — в том числе при восстановлении
+        // раскладки: GetContentFromPersistString зовёт это же свойство, иначе панель,
+        // сохранённая в ExpertMode.xml, при следующем запуске молча пропадала бы.
+        RoiWizard.RoiWizardForm RoiWizardPanel
+        {
+            get
+            {
+                if (this.roiWizardForm == null || this.roiWizardForm.IsDisposed)
+                {
+                    this.roiWizardForm = new RoiWizard.RoiWizardForm(this.RoiWizardResolution);
+                }
+                return this.roiWizardForm;
+            }
+        }
+
         public void ShowRoiWizardForm()
         {
-            if (this.roiWizardForm == null || this.roiWizardForm.IsDisposed)
+            RoiWizard.RoiWizardForm form = this.RoiWizardPanel;
+            if (form.DockPanel == null)
             {
-                this.roiWizardForm = new RoiWizard.RoiWizardForm(this.RoiWizardResolution);
-                // Размер плавающего окна берётся у самой формы: её Size уже подогнан
-                // шрифтом темы (AutoScaleMode.Font укрупняет разметку), и плавающее
-                // окно отдаёт содержимому ровно столько же, сколько форма имеет в
-                // клиентской области. Жёсткие числа здесь обрезали бы содержимое.
-                System.Drawing.Size want = this.roiWizardForm.Size;
+                // Панель ещё не размещена (первый вызов и раскладка её не вернула) —
+                // открываем плавающей по центру рабочей области. Размер берётся у самой
+                // формы: её Size уже подогнан шрифтом темы (AutoScaleMode.Font укрупняет
+                // разметку), и плавающее окно отдаёт содержимому ровно столько же,
+                // сколько форма имеет в клиентской области. Жёсткие числа здесь
+                // обрезали бы содержимое.
+                System.Drawing.Size want = form.Size;
                 System.Drawing.Rectangle work = Screen.FromControl(this).WorkingArea;
                 want = new System.Drawing.Size(Math.Min(want.Width, work.Width),
                                                Math.Min(want.Height, work.Height));
@@ -1292,13 +1313,14 @@ namespace BecquerelMonitor
                     work.X + Math.Max(0, (work.Width - want.Width) / 2),
                     work.Y + Math.Max(0, (work.Height - want.Height) / 2),
                     want.Width, want.Height);
-                this.roiWizardForm.Show(this.dockPanel1, bounds);
+                form.Show(this.dockPanel1, bounds);
             }
             else
             {
-                this.roiWizardForm.Show(this.dockPanel1);
-                this.roiWizardForm.Activate();
+                // размещена — в том числе спрятана булавкой или закрыта (HideOnClose)
+                form.Show(this.dockPanel1);
             }
+            form.Activate();
         }
 
         // Разрешение для мастера — из родной FWHM-калибровки активного спектра, приведённой

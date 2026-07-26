@@ -29,6 +29,9 @@ namespace BecquerelMonitor.RoiWizard
                                             Func<SpectralLine, Color> colorOf)
         {
             ROIConfigData config = new ROIConfigData();
+            // ту же версию формата проставляет ROIConfigManager.CreateConfig; без неё
+            // предпросмотр показывал бы пустой FormatVersion вместо того, что ляжет в файл
+            config.InitFormatVersion();
             config.Guid = System.Guid.NewGuid().ToString();
             config.Name = string.IsNullOrEmpty(name) ? "IAEA lines" : name;
             config.LastUpdated = DateTime.Now;
@@ -109,7 +112,21 @@ namespace BecquerelMonitor.RoiWizard
                     : (line.HalfLifeYears >= 1e9 ? 0 : line.HalfLifeYears);
                 definition.NuclideColor = colorOf != null ? colorOf(line) : Color.Gray;
                 definition.Visible = true;
-                definition.Intencity = line.Intensity;
+                // Аппаратным записям интенсивность не выставляется, и это не потеря
+                // данных, а требование. Обратное рассеяние, комптоновский край, вылеты,
+                // сумм-пики и ХРИ защиты в спектре ЕСТЬ и ловятся finder'ом — держать их
+                // в наборе полезно: лучше именованный аппаратный пик, чем фантомная
+                // линия нуклида на том же месте. Но выхода на распад у них нет: доля от
+                // родителя — эмпирическая оценка, интенсивность ХРИ условна (Kα1 = 100).
+                //
+                // Нулевая Intencity гарантирует, что такая запись не попадёт в BR-связку:
+                // LibraryPeakFitter собирает bound-группу только из линий с Intencity > 0
+                // (members.All(m => m.Intensity > 0)), поэтому запись остаётся одиночным
+                // компонентом со свободной амплитудой. Заодно EnergySpectrumView не
+                // посчитает по комптоновскому краю активность — там гейт Intencity > 0.
+                definition.Intencity = line.Type == LineType.Xrf || line.Type == LineType.Secondary
+                    ? 0.0
+                    : line.Intensity;
                 definition.Sets.Add(set.Id);
                 definition.IsAnchor = Contains(anchors, line);
                 definitions.Add(definition);

@@ -149,11 +149,19 @@ namespace BecquerelMonitor.RoiWizard
 
     // Критерий, ближе которого линии считаются нераздельными.
     // Числа взяты из BecquerelMonitor/LibraryPeakFitter.cs, не подобраны на глаз.
+    // Порядок членов совпадает с порядком строк comboCriterion: форма приводит
+    // SelectedIndex прямо к этому перечислению.
     public enum MergeCriterion
     {
         // SparrowFwhm = 0.85 (δ = 2σ): физический предел разрешимости двух пиков.
         // Ближе этого дублет виден как один пик — для ROI-маркеров сливаем.
         Sparrow,
+        // MeasuredFwhm = 0.7: не предел разрешимости, а измеренный оптимум состава
+        // сета — сетка 9×7 по трём детекторам, девять спектров (tools/LibraryFitLab,
+        // 25.07.2026). Обе величины законны и отвечают на разные вопросы: Sparrow —
+        // «различит ли детектор», 0.7 — «что выгоднее отдать библиотечному фиту».
+        // Выбор за пользователем.
+        Measured,
         // ClaimToleranceFwhm = 0.25: для наборов, уходящих в библиотеку. Пары от 0.25
         // до 0.85 FWHM разбирает библиотечный фит по якорной линии, более далёкие —
         // деконволюция, поэтому сливать их нельзя: набор обедняется.
@@ -165,6 +173,7 @@ namespace BecquerelMonitor.RoiWizard
     public static class MergeCriterionInfo
     {
         public const double SparrowFwhm = 0.85;
+        public const double MeasuredFwhm = 0.7;
         public const double ClaimToleranceFwhm = 0.25;
 
         public static double DefaultFactor(MergeCriterion criterion)
@@ -173,6 +182,8 @@ namespace BecquerelMonitor.RoiWizard
             {
                 case MergeCriterion.Sparrow:
                     return SparrowFwhm;
+                case MergeCriterion.Measured:
+                    return MeasuredFwhm;
                 case MergeCriterion.AnchoredSet:
                     return ClaimToleranceFwhm;
                 default:
@@ -181,13 +192,17 @@ namespace BecquerelMonitor.RoiWizard
         }
 
         // Для якорного режима осмысленный разброс — 0.2…0.3 (оценка разработчика
-        // BecqMoni; ClaimToleranceFwhm = 0.25 попадает в середину).
+        // BecqMoni; ClaimToleranceFwhm = 0.25 попадает в середину). Для измеренного —
+        // плато сетки: 0.5…0.85, за его краями recall падает в обе стороны (при k = 0
+        // у AS80x80 78.5 % против 89.9 %, выше 0.85 у RC-103 обрыв 95 % → 75 %).
         public static bool IsFactorSane(MergeCriterion criterion, double factor)
         {
             switch (criterion)
             {
                 case MergeCriterion.Sparrow:
                     return Math.Abs(factor - SparrowFwhm) < 1e-9;
+                case MergeCriterion.Measured:
+                    return factor >= 0.5 && factor <= 0.85;
                 case MergeCriterion.AnchoredSet:
                     return factor >= 0.2 && factor <= 0.3;
                 default:
@@ -196,30 +211,12 @@ namespace BecquerelMonitor.RoiWizard
         }
     }
 
-    // Вековое равновесие ряда: доля распадов ряда, проходящая через нуклид.
-    // Bi-212: β 64.06 % (→Po-212) / α 35.94 % (→Tl-208);
-    // Ac-227: β 98.62 % (→Th-227) / α 1.38 % (→Fr-223);
-    // Bi-211: α 99.724 % (→Tl-207) / β 0.276 % (→Po-211).
-    public static class EquilibriumFactors
-    {
-        static readonly Dictionary<string, double> factors = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase)
-        {
-            { "Tl-208", 0.3594 },
-            { "Po-212", 0.6406 },
-            { "Fr-223", 0.0138 },
-            { "Th-227", 0.9862 },
-            { "Tl-207", 0.99724 },
-            { "Po-211", 0.00276 }
-        };
-
-        // Без пересчёта I — «на 100 распадов самого излучающего нуклида», как в базе IAEA
-        // и в файлах Intensities BecqMoni: у Tl-208 линия 2614 кэВ имеет I = 99.75 %.
-        // В равновесном ряду Th-232 через Tl-208 идёт лишь 35.94 % распадов, поэтому
-        // на один распад Th-232 эта линия даёт 99.75 × 0.3594 ≈ 35.85 %.
-        public static double For(string nuclide)
-        {
-            double factor;
-            return factors.TryGetValue(nuclide ?? "", out factor) ? factor : 1.0;
-        }
-    }
+    // Вековое равновесие ряда (доля распадов ряда, проходящая через нуклид) больше не
+    // задаётся таблицей в коде: его считает NuclideCatalog обходом decay_chain, и берётся
+    // оно оттуда же, откуда линии — см. CatalogChain.Branching и ChainBranchingOf.
+    //
+    // Смысл множителя прежний. Без пересчёта I — «на 100 распадов самого излучающего
+    // нуклида», как в nucdb и в файлах Intensities BecqMoni: у Tl-208 линия 2614 кэВ
+    // имеет I = 99.75 %. В равновесном ряду Th-232 через Tl-208 идёт лишь 35.94 %
+    // распадов, поэтому на один распад Th-232 эта линия даёт 99.75 × 0.3594 ≈ 35.85 %.
 }

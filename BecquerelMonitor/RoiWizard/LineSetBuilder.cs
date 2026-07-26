@@ -204,8 +204,11 @@ namespace BecquerelMonitor.RoiWizard
                 // оснований. Признак «взят в составе ряда» — подпись отличается от имени:
                 // при Chain это «Tl-208 (Th-232)», при FamilyLines — имя родителя.
                 bool partOfSeries = !string.Equals(label, nuclide.Name, StringComparison.Ordinal);
+                // Множитель равновесия берётся у ряда, а тот считает его обходом
+                // decay_chain: зашитая таблица шести ветвлений разошлась бы с базой при
+                // первом же её обновлении.
                 double equilibrium = this.ScaleToSeriesParent && partOfSeries
-                    ? EquilibriumFactors.For(nuclide.Name)
+                    ? this.catalog.ChainBranchingOf(nuclide)
                     : 1.0;
 
                 foreach (CatalogGammaLine gamma in nuclide.Gamma)
@@ -272,25 +275,137 @@ namespace BecquerelMonitor.RoiWizard
             return lines;
         }
 
-        // Профиль «полный набор» для библиотечного фита: все γ- и X-линии выбранных
-        // источников, независимо от галок, фильтров и слияния.
+        // Измеренный оптимум состава сета: разнос до более сильной линии ≥ 0.7·FWHM
+        // и интенсивность ≥ 1 % на распад родителя цепочки.
         //
-        // Прореживание набора вредит: по прогонам разработчика BecqMoni (RjmcmcTuning,
-        // итерация 9) полная цепочка ряда даёт recall 26/29 для Th-232 и 27/27 для Ra-226,
-        // а «набор пользователя из 16 сильных линий» не добавляет к слепому поиску ничего.
-        // Слияние тоже не применяется: пары от 0.25 до 0.85 FWHM разбирает сам библиотечный
-        // фит по якорю, и склеивать их — значит отнимать у него линии.
+        // Числа не подобраны на глаз — это результат сетки 9×7 по трём детекторам
+        // (tools/LibraryFitLab, 25.07.2026, девять спектров). Оптимум или его копия
+        // совпал у всех трёх, и в обе стороны от него хуже:
         //
-        // Вторичных пиков здесь нет и быть не должно: escape- и сумм-компоненты
-        // LibraryPeakFitter строит сам, а имя вида «SE (Bi-214)» создало бы ложную цепочку.
-        public List<SpectralLine> BuildFullSet(SourceSelection selection)
+        //   k = 0    recall НИЖЕ (AS80x80 78.5 % против 89.9 %) — лишние компоненты
+        //            делят между собой амплитуду и перестают проходить z-гейт;
+        //   k > 0.85 обрыв: у RC-103 95 % → 75 %, выпадают разделимые линии;
+        //   I < 1 %  recall не растёт НИ НА ОДНОМ детекторе, а фантомов заметно больше
+        //            (у ASN16 16.6 против 9.0 штук на пару «спектр × цепочка»);
+        //   I = 2 %  −10…14 п.п., обрезаются реальные линии 1–2 %.
+        //
+        // Остаётся около 20 линий на цепочку. Плотный сет стоит ещё и тем, что
+        // библиотечный фит удаляет пики финдера: 0.5–1.3 на прогон здесь против
+        // 1.3–2.0 при k = 0.5 / I = 0.
+        public const double RecommendedFwhmFactor = 0.7;
+        public const double RecommendedMinIntensity = 1.0;
+
+        // Профиль для библиотечного фита. Слияние не применяется: k — фильтр СОСТАВА, он
+        // не заменяет SparrowFwhm = 0.85, по которому LibraryPeakFitter группирует уже
+        // набранные линии в BR-связку во время фита. Пары с разносом 0.7…0.85 обязаны
+        // остаться в сете — их разбирает связка, и склеивать их значит отнимать у неё линии.
+        //
+        // Вторичных пиков здесь нет: их место — рабочая таблица, откуда пользователь их
+        // добавляет осознанно (в набор они уходят с Intencity = 0, см. SetExporter).
+        //
+        // mustKeep — линии, которые входят в сет независимо от обоих фильтров. Это якоря:
+        // якорь U-238 (Pa-234m 1001.03 кэВ) имеет 0.842 % и порог по интенсивности не
+        // проходит, а без якоря фит не запускается вовсе.
+        public List<SpectralLine> BuildRecommendedSet(SourceSelection selection,
+                                                      ResolutionModel resolution,
+                                                      IList<SpectralLine> mustKeep)
+        {
+            return this.BuildRecommendedSet(selection, resolution, mustKeep,
+                                            RecommendedFwhmFactor, RecommendedMinIntensity);
+        }
+
+        public List<SpectralLine> BuildRecommendedSet(SourceSelection selection,
+                                                      ResolutionModel resolution,
+                                                      IList<SpectralLine> mustKeep,
+                                                      double fwhmFactor, double minIntensity)
         {
             List<SpectralLine> lines = this.Build(selection, null);
+
+            // Порядок отбора — по убыванию интенсивности: фильтр разноса меряется ДО
+            // БОЛЕЕ СИЛЬНОЙ линии, поэтому сильная всегда принимается первой и остаётся
+            // на своей табличной позиции, а слабый сосед отбрасывается. Это не слияние:
+            // центроид никуда не сдвигается, а сдвинутая позиция сломала бы посадку
+            // компонент, на которой библиотечный фит и держится.
+            lines.Sort(delegate(SpectralLine a, SpectralLine b)
+            {
+                int byIntensity = b.Intensity.CompareTo(a.Intensity);
+                return byIntensity != 0 ? byIntensity : a.Energy.CompareTo(b.Energy);
+            });
+
+            List<SpectralLine> accepted = new List<SpectralLine>();
             foreach (SpectralLine line in lines)
             {
+                line.Selected = false;
+                if (Forced(mustKeep, line))
+                {
+                    accepted.Add(line);
+                    line.Selected = true;
+                    continue;
+                }
+                // Только γ. Оптимум мерялся на гамма-линиях цепочки (LibraryFitLab гоняет
+                // chains.py с kinds=('G',)), и рентген распада в этой конфигурации не
+                // участвовал. Если пустить его сюда, K-серия свинца и висмута (72…88 кэВ)
+                // как более сильная вытесняет по разносу настоящие γ 84.4 (Th-228) и
+                // 99.5 (Ac-228) — на NaI при FWHM ~16 кэВ они и правда неразделимы, но
+                // это уже ДРУГАЯ конфигурация, а её recall никто не мерял. Отклоняться
+                // от измеренного оптимума без измерения нельзя; рентген остаётся
+                // доступен через таблицу вручную.
+                if (line.Type != LineType.Gamma)
+                {
+                    continue;
+                }
+                if (line.Intensity < minIntensity)
+                {
+                    continue;
+                }
+                if (resolution != null && fwhmFactor > 0 &&
+                    TooCloseToStronger(accepted, line, resolution, fwhmFactor))
+                {
+                    continue;
+                }
+                accepted.Add(line);
                 line.Selected = true;
             }
+
+            lines.Sort(delegate(SpectralLine a, SpectralLine b)
+            {
+                return a.Energy.CompareTo(b.Energy);
+            });
             return lines;
+        }
+
+        // Якорь сравнивается по ссылке и по ключу: ссылка ловит линию, выбранную в той же
+        // таблице, ключ — ту же линию из пересобранного набора.
+        static bool Forced(IList<SpectralLine> mustKeep, SpectralLine line)
+        {
+            if (mustKeep == null)
+            {
+                return false;
+            }
+            foreach (SpectralLine kept in mustKeep)
+            {
+                if (ReferenceEquals(kept, line) ||
+                    (!string.IsNullOrEmpty(kept.Key) &&
+                     string.Equals(kept.Key, line.Key, StringComparison.Ordinal)))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        static bool TooCloseToStronger(List<SpectralLine> accepted, SpectralLine line,
+                                       ResolutionModel resolution, double fwhmFactor)
+        {
+            double window = fwhmFactor * resolution.Fwhm(line.Energy);
+            foreach (SpectralLine other in accepted)
+            {
+                if (Math.Abs(other.Energy - line.Energy) < window)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         // Фильтр решает, что выбрано, а не что видно

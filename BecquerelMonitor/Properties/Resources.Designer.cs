@@ -2830,5 +2830,53 @@ namespace BecquerelMonitor.Properties {
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
+        public static string ButtonOK {
+            get {
+                return ResourceManager.GetString("ButtonOK", resourceCulture);
+            }
+        }
+        
+        public static string ButtonCancel {
+            get {
+                return ResourceManager.GetString("ButtonCancel", resourceCulture);
+            }
+        }
+        
+        public static string NuclideFamiliesButton {
+            get {
+                return ResourceManager.GetString("NuclideFamiliesButton", resourceCulture);
+            }
+        }
+        
+        public static string NuclideFamiliesTitle {
+            get {
+                return ResourceManager.GetString("NuclideFamiliesTitle", resourceCulture);
+            }
+        }
+        
+        public static string NuclideFamiliesHint {
+            get {
+                return ResourceManager.GetString("NuclideFamiliesHint", resourceCulture);
+            }
+        }
+        
+        public static string NuclideFamiliesSaveFailed {
+            get {
+                return ResourceManager.GetString("NuclideFamiliesSaveFailed", resourceCulture);
+            }
+        }
+        
+        public static string NuclideFamiliesUnavailable {
+            get {
+                return ResourceManager.GetString("NuclideFamiliesUnavailable", resourceCulture);
+            }
+        }
+        
+        public static string NuclideFamiliesNoIsotope {
+            get {
+                return ResourceManager.GetString("NuclideFamiliesNoIsotope", resourceCulture);
+            }
+        }
+        
     }
 }

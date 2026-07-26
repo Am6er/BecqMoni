@@ -121,6 +121,13 @@ namespace BecquerelMonitor.RoiWizard
                 Key = "m|" + strongest.Nuclide + "|" + centroid.ToString("0.0", CultureInfo.InvariantCulture),
                 Nuclide = strongest.Nuclide,
                 Label = strongest.Label + " (" + interval + ")",
+                // Подпись владельца обязана пережить слияние. Без неё LibraryName берёт
+                // владельца из Nuclide, и в режиме «линии семейства» слитая линия Ac-228,
+                // идущая под именем Th-232, получала имя «Th-232 965–969 (Ac-228)» —
+                // ChainOf читает последние скобки и выдаёт цепочку «Ac-228». Линия
+                // выпадала из BR-связки ряда в собственную одиночную цепочку, тогда как
+                // все её несклеенные соседи оставались в «Th-232».
+                OwnerLabel = strongest.OwnerLabel,
                 Interval = interval,
                 Merged = true,
                 Energy = Math.Round(centroid, 2),

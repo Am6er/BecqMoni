@@ -103,7 +103,7 @@ namespace BecquerelMonitor.RoiWizard
             IssueLevel level = forLibrary ? IssueLevel.Error : IssueLevel.Warning;
             for (int i = 1; i < sorted.Count; i++)
             {
-                if (Math.Abs(sorted[i].Energy - sorted[i - 1].Energy) < 1.0)
+                if (Math.Abs(sorted[i].Energy - sorted[i - 1].Energy) < DegenerateGap(sorted[i], resolution))
                 {
                     // Совпавшие энергии подгонку вырождают, но запрещать из-за них экспорт
                     // нельзя: пара «рентген распада + ХРИ того же элемента» — физически одна
@@ -121,6 +121,15 @@ namespace BecquerelMonitor.RoiWizard
             }
             foreach (SpectralLine line in sorted)
             {
+                // Аппаратные записи (ХРИ защиты и расчётные вторичные) выхода на распад
+                // не имеют по определению, и в набор они уходят с Intencity = 0 намеренно
+                // — см. SetExporter.BuildNuclideSet. Требовать от них ненулевой
+                // интенсивности значило бы запрещать единственное, ради чего они нужны:
+                // занять место, куда иначе сядет фантомная линия нуклида.
+                if (line.Type == LineType.Xrf || line.Type == LineType.Secondary)
+                {
+                    continue;
+                }
                 if (!(line.Intensity > 0))
                 {
                     issues.Add(new SetIssue
@@ -197,6 +206,34 @@ namespace BecquerelMonitor.RoiWizard
                 }
             }
             return issues;
+        }
+
+        // Ниже какого разноса две линии считаются стоящими «на одной позиции».
+        //
+        // Фиксированный килоэлектронвольт для этого не годится: разрешение растёт как
+        // корень из энергии, и один и тот же зазор на 14 кэВ — это пятая доля FWHM
+        // (позиции ещё различимы), а на 2614 кэВ — сотая (позиции неразличимы ничем).
+        // Порог поэтому в долях FWHM: у сцинтиллятора R = 7.5 % это 0.7 кэВ на 13 кэВ —
+        // примерно прежний килоэлектронвольт — и 9.8 кэВ на 2614, где прежний порог
+        // молча пропускал вырожденные пары.
+        //
+        // 0.1·FWHM — заметно ниже и предела Sparrow (0.85), и допуска заявки линии в
+        // LibraryPeakFitter (0.25): пары шире этого фит ещё разбирает BR-связкой,
+        // а ближе — амплитуда делится между компонентами произвольно.
+        public const double DegenerateFwhmFactor = 0.1;
+
+        // Запасной порог, когда модель разрешения не задана (проверка ROI зовётся без
+        // неё): прежняя константа, чтобы поведение не менялось молча.
+        const double DegenerateGapFallbackKeV = 1.0;
+
+        static double DegenerateGap(SpectralLine line, ResolutionModel resolution)
+        {
+            if (resolution == null)
+            {
+                return DegenerateGapFallbackKeV;
+            }
+            double fwhm = resolution.Fwhm(line.Energy);
+            return fwhm > 0 ? DegenerateFwhmFactor * fwhm : DegenerateGapFallbackKeV;
         }
 
         static string Name(SpectralLine line, bool forLibrary)
