@@ -898,11 +898,14 @@ namespace BecquerelMonitor.RoiWizard
             this.buttonCreateSet.Size = new System.Drawing.Size(192, 23);
             this.checkFullSet.Text = RoiWizardStrings.checkFullSet_Text;
             this.checkFullSet.Location = new System.Drawing.Point(148, 80);
-            this.checkFullSet.Size = new System.Drawing.Size(220, 19);
+            // AutoSize, а не фиксированные 220 px: подпись несёт числа фильтра
+            // («0,7·FWHM, ≥1 %») и в 220 обрезалась на середине, а в русской раскладке
+            // она ещё длиннее. Соседи справа отодвинуты, запас до кнопки создания есть.
+            this.checkFullSet.AutoSize = true;
             this.labelAnchorCount.Text = RoiWizardStrings.labelAnchorCount_Text;
-            this.labelAnchorCount.Location = new System.Drawing.Point(376, 82);
+            this.labelAnchorCount.Location = new System.Drawing.Point(470, 82);
             this.labelAnchorCount.AutoSize = true;
-            this.numAnchors.Location = new System.Drawing.Point(446, 79);
+            this.numAnchors.Location = new System.Drawing.Point(540, 79);
             this.numAnchors.Size = new System.Drawing.Size(60, 21);
             this.numAnchors.Minimum = 1;
             this.numAnchors.Maximum = 9;

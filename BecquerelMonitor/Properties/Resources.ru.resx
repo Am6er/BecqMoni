@@ -753,4 +753,28 @@
   <data name="Lq_counts" type="System.Resources.ResXNullRef, System.Windows.Forms">
     <value />
   </data>
+  <data name="ButtonOK" xml:space="preserve">
+    <value>ОК</value>
+  </data>
+  <data name="ButtonCancel" xml:space="preserve">
+    <value>Отмена</value>
+  </data>
+  <data name="NuclideFamiliesButton" xml:space="preserve">
+    <value>Семейства…</value>
+  </data>
+  <data name="NuclideFamiliesTitle" xml:space="preserve">
+    <value>Семейства: {0}</value>
+  </data>
+  <data name="NuclideFamiliesHint" xml:space="preserve">
+    <value>К каким группам применения относится нуклид. NORM / MED / IND / SNM — по ANSI N42.34, остальные вне стандарта. Используется конструктором ROI и наборов нуклидов.</value>
+  </data>
+  <data name="NuclideFamiliesSaveFailed" xml:space="preserve">
+    <value>Не удалось сохранить классификацию: {0}</value>
+  </data>
+  <data name="NuclideFamiliesUnavailable" xml:space="preserve">
+    <value>В базе нуклидов нет таблиц классификации.</value>
+  </data>
+  <data name="NuclideFamiliesNoIsotope" xml:space="preserve">
+    <value>Сначала найдите изотоп — классификация правится для него.</value>
+  </data>
 </root>

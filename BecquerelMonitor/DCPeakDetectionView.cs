@@ -282,27 +282,53 @@ namespace BecquerelMonitor
             this.UpdateDeconvolutionInfoButtonState();
         }
 
+        // Пересборка списка гасит собственный обработчик выбора.
+        //
+        // Items.Clear() сам по себе ставит SelectedIndex = -1 и ПОДНИМАЕТ
+        // SelectedIndexChanged; обработчик на отрицательном индексе обнуляет
+        // selectedNuclideSet и запускает полный перерасчёт пиков. К строке
+        // восстановления выбора восстанавливать было уже нечего — набор терялся при
+        // каждом обновлении списка, и любой вызов извне (уведомление об изменении
+        // библиотеки) ронял поиск пиков. Поэтому выбор снимается в локальную
+        // переменную ДО очистки, а обработчик на время пересборки отключён.
+        bool refreshingNuclideSets;
+
         public void RefreshNuclideSets()
         {
-            this.comboBoxNuclSet.Items.Clear();
-            string allNuclidesText = this.comboBoxNuclSetAllNuclidesText;
-            if (string.IsNullOrEmpty(allNuclidesText))
+            NuclideSet previous = this.selectedNuclideSet;
+            bool nested = this.refreshingNuclideSets;
+            this.refreshingNuclideSets = true;
+            try
             {
-                allNuclidesText = "--- All Nuclides ---";
-            }
+                this.comboBoxNuclSet.Items.Clear();
+                string allNuclidesText = this.comboBoxNuclSetAllNuclidesText;
+                if (string.IsNullOrEmpty(allNuclidesText))
+                {
+                    allNuclidesText = "--- All Nuclides ---";
+                }
 
-            this.comboBoxNuclSet.Items.Add(allNuclidesText);
-            foreach (NuclideSet set in this.nuclideManager.NuclideSets)
-            {
-                this.comboBoxNuclSet.Items.Add(set.Name);
+                this.comboBoxNuclSet.Items.Add(allNuclidesText);
+                foreach (NuclideSet set in this.nuclideManager.NuclideSets)
+                {
+                    this.comboBoxNuclSet.Items.Add(set.Name);
+                }
+
+                // IndexOf вернёт -1, если выбранный набор удалили — тогда честно
+                // сбрасываемся на «все нуклиды», а не держим ссылку на исчезнувший набор
+                int index = previous != null
+                    ? this.nuclideManager.NuclideSets.IndexOf(previous) + 1
+                    : 0;
+                if (index <= 0)
+                {
+                    index = 0;
+                    previous = null;
+                }
+                this.selectedNuclideSet = previous;
+                this.comboBoxNuclSet.SelectedIndex = index;
             }
-            if (this.selectedNuclideSet != null)
+            finally
             {
-                this.comboBoxNuclSet.SelectedIndex = this.nuclideManager.NuclideSets.IndexOf(this.selectedNuclideSet) + 1;
-            }
-            else
-            {
-                this.comboBoxNuclSet.SelectedIndex = 0;
+                this.refreshingNuclideSets = nested;
             }
         }
 
@@ -435,6 +461,10 @@ namespace BecquerelMonitor
 
         private void comboBoxNuclSet_SelectedIndexChanged(object sender, EventArgs e)
         {
+            if (this.refreshingNuclideSets)
+            {
+                return;          // список пересобирается, выбор пользователя не менялся
+            }
             if (this.comboBoxNuclSet.SelectedIndex > 0)
             {
                 this.selectedNuclideSet = this.nuclideManager.NuclideSets[this.comboBoxNuclSet.SelectedIndex - 1];

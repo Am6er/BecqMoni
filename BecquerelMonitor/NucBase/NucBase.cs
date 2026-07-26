@@ -33,6 +33,53 @@ namespace BecquerelMonitor.NucBase
             this.Icon = Resources.becqmoni;
             this.IncludeDecayChainCheckBox.Enabled = false;
             this.comboBoxNameFormat.SelectedIndex = 1;
+            this.AddFamiliesButton();
+        }
+
+        // Кнопка редактора семейств добавляется кодом, а не разметкой: разметка тянет
+        // подписи через resources.ApplyResources из NucBase.resx (436 КБ на язык), а
+        // здесь достаточно одной строки из общих Resources — и локализация та же.
+        Button buttonFamilies;
+
+        void AddFamiliesButton()
+        {
+            this.buttonFamilies = new Button();
+            this.buttonFamilies.Text = Resources.NuclideFamiliesButton;
+            this.buttonFamilies.AutoSize = true;
+            this.buttonFamilies.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            this.buttonFamilies.Anchor = this.buttonImportDef.Anchor;
+            this.buttonFamilies.Location = new System.Drawing.Point(
+                this.buttonImportDef.Right + 8, this.buttonImportDef.Top);
+            this.buttonFamilies.Height = this.buttonImportDef.Height;
+            this.buttonFamilies.UseVisualStyleBackColor = true;
+            this.buttonFamilies.Click += this.buttonFamilies_Click;
+            this.buttonImportDef.Parent.Controls.Add(this.buttonFamilies);
+            this.buttonFamilies.BringToFront();
+        }
+
+        // Классификация правится для НАЙДЕННОГО изотопа: она принадлежит нуклиду, а не
+        // отдельной его линии, поэтому отметки в таблице результатов роли не играют.
+        void buttonFamilies_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrEmpty(this.SearchedIsotope))
+            {
+                MessageBox.Show(this, Resources.NuclideFamiliesNoIsotope, this.Text,
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+            if (!NuclideFamilies.IsAvailable)
+            {
+                MessageBox.Show(this, Resources.NuclideFamiliesUnavailable, this.Text,
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // SearchedIsotope уже в формате базы («241AM») — его собирает DoSearch.
+            using (NuclideFamiliesForm dialog =
+                   new NuclideFamiliesForm(FormatIsotopeName(this.SearchedIsotope), this.SearchedIsotope))
+            {
+                dialog.ShowDialog(this);
+            }
         }
 
         private void SearchButton_Click(object sender, EventArgs e)
@@ -395,6 +442,22 @@ namespace BecquerelMonitor.NucBase
                 int updatedCount = 0;
                 int createdCount = 0;
                 NuclideDefinitionManager defManager = NuclideDefinitionManager.GetInstance();
+
+                // Импорт ряда целиком: имена получают «(корень)», и BecqMoni читает по
+                // ним цепочку (ChainOf в LibraryPeakFitter), а BR-связка берёт веса
+                // компонент прямо из Intencity. В decay_radiations интенсивность дана на
+                // распад САМОГО нуклида, поэтому без пересчёта на распад корня группа из
+                // линий Tl-208 и Bi-212 делит амплитуду бленда в неверной пропорции:
+                // 583.19 кэВ идёт как 85 % вместо 30.5 %.
+                //
+                // Пересчёт только при импорте ряда с корнем в имени. Без «(корень)»
+                // каждая запись — сама себе цепочка, связывать нечего, и интенсивность
+                // на распад своего нуклида как раз верна.
+                bool scaleToChainParent = IncludeDecayChainCheckBox.Checked && checkBoxAppendRootName.Checked;
+                Dictionary<string, double> chainBranching = scaleToChainParent
+                    ? DecayChains.BranchingFrom(this.SearchedIsotope)
+                    : null;
+
                 foreach (DataGridViewRow row in this.ResultDataGridView.Rows)
                 {
                     if ((bool)row.Cells[CheckedColumnIdx].Value == true)
@@ -402,7 +465,8 @@ namespace BecquerelMonitor.NucBase
                         string name = (string)row.Cells[NameColumnIdx].Value;
                         string formattedName = FormatIsotopeName(name);
                         double energy = (double)row.Cells[EnergyColumnIdx].Value;
-                        double intencity = (double)row.Cells[IntencityColumnIdx].Value;
+                        double intencity = (double)row.Cells[IntencityColumnIdx].Value
+                                           * DecayChains.FactorOf(chainBranching, name);
                         double halfLife = Convert.ToDouble(((string)row.Cells[HalfLifeColumnIdx].Value).Split('(')[0]);
                         // Take the full unit, not the first character: Substring(0,1) turned
                         // "ms" into "m" (minutes, a x60000 error) and "us"/"ns" into unknown units.

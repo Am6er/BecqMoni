@@ -68,7 +68,7 @@
     <value>2 · Lines</value>
   </data>
   <data name="tabExport_Text" xml:space="preserve">
-    <value>3 · Styling and export</value>
+    <value>3 · Styling and creation</value>
   </data>
   <data name="statusFormat" xml:space="preserve">
     <value>lines: {0} of {1} · nuclides: {2}</value>
@@ -89,7 +89,7 @@
     <value>Lines</value>
   </data>
   <data name="stepExport" xml:space="preserve">
-    <value>Styling and export</value>
+    <value>Styling and creation</value>
   </data>
   <data name="groupSearch_Text" xml:space="preserve">
     <value>Nuclide search</value>
@@ -213,6 +213,9 @@
   </data>
   <data name="criterionSparrow" xml:space="preserve">
     <value>Sparrow limit — ROI markers (0.85·FWHM)</value>
+  </data>
+  <data name="criterionMeasured" xml:space="preserve">
+    <value>measured optimum — set composition (0.7·FWHM)</value>
   </data>
   <data name="criterionAnchored" xml:space="preserve">
     <value>anchored set — library fit (0.25·FWHM)</value>
@@ -352,6 +355,15 @@
   <data name="buttonGenerateSecondary_Text" xml:space="preserve">
     <value>Generate</value>
   </data>
+  <data name="statusMerged" xml:space="preserve">
+    <value>merged groups: {0}, lines absorbed: {1}</value>
+  </data>
+  <data name="statusRoiCreated" xml:space="preserve">
+    <value>ROI configuration «{0}» created: {1} regions</value>
+  </data>
+  <data name="statusSetCreated" xml:space="preserve">
+    <value>set «{0}» added to the library: {1} lines, {2} anchor(s)</value>
+  </data>
   <data name="secondaryFormat" xml:space="preserve">
     <value>secondary markers added: {0}</value>
   </data>
@@ -425,7 +437,7 @@
     <value>k × FWHM (scintillator)</value>
   </data>
   <data name="groupExport_Text" xml:space="preserve">
-    <value>Export</value>
+    <value>Create</value>
   </data>
   <data name="labelConfigName_Text" xml:space="preserve">
     <value>ROI configuration name</value>
@@ -449,7 +461,7 @@
     <value>Add set to the library</value>
   </data>
   <data name="checkFullSet_Text" xml:space="preserve">
-    <value>full set (all lines, for fitting)</value>
+    <value>recommended composition (0.7·FWHM, ≥1 %)</value>
   </data>
   <data name="labelAnchorCount_Text" xml:space="preserve">
     <value>anchor lines</value>

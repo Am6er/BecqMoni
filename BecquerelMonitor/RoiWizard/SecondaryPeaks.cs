@@ -32,18 +32,51 @@ namespace BecquerelMonitor.RoiWizard
     // систематически смещено. Величины поправок получены из измерений комплекса Gamma-1C
     // (NaI(Tl) 63×63, защита Pb 50 мм с вкладышем Cd/Cu): 9 нуклидов,
     // 18 первичных линий, 31 надёжная запись из 41.
+    // Эмпирические поправки к положению вторичных особенностей. Числа сняты на одном
+    // комплексе (Gamma-1C: NaI(Tl) 63×63, защита Pb 50 мм с вкладышем Cd/Cu; 9 нуклидов,
+    // 18 первичных линий, 31 надёжная запись из 41), и полагаться на специфику одного
+    // детектора нельзя — поэтому они вынесены в настраиваемый объект, а не зашиты
+    // константами в алгоритм.
+    //
+    // Переносимость у двух поправок разная, и это важно:
+    //
+    //  * сдвиг комптоновского КРАЯ выражен в долях FWHM и задаётся не детектором, а
+    //    ПОИСКОМ: аналитическая формула даёт край ступеньки, а метод второй производной
+    //    (Марискотти) находит центроид размытой особенности, систематически ниже.
+    //    Алгоритм один и тот же на любом детекторе, поэтому доля FWHM переносима;
+    //  * сдвиг ОБРАТНОГО РАССЕЯНИЯ — многократное рассеяние в защите и держателе, он
+    //    задаётся геометрией, а не кристаллом. Универсального значения у него нет.
+    //    Раньше он был записан абсолютным (+10 кэВ), из-за чего на 1024-канальном
+    //    детекторе с FWHM 12–37 каналов означал совсем не то же, что на 8192-канальном.
+    //    Теперь он тоже в долях FWHM (медиана +9.9 кэВ на энергиях обратного рассеяния
+    //    200–250 кэВ при R = 7.5 % — это ≈0.35·FWHM), так что хотя бы масштабируется с
+    //    разрешением. Разброс в исходных измерениях +0.3…+18.4 кэВ — значение остаётся
+    //    отправной точкой, а не константой природы.
+    public class SecondaryPeakTuning
+    {
+        public double ComptonEdgeFwhmFactor { get; set; }
+        public double BackscatterFwhmFactor { get; set; }
+
+        public SecondaryPeakTuning()
+        {
+            this.ComptonEdgeFwhmFactor = SecondaryPeaks.ComptonEdgeFwhmFactor;
+            this.BackscatterFwhmFactor = SecondaryPeaks.BackscatterFwhmFactor;
+        }
+    }
+
     public static class SecondaryPeaks
     {
         public const double ElectronMassKeV = 510.999;
 
         // |сдвиг| комптоновского края = k·FWHM(E_края). Медиана по 12 записям — 0.78,
         // кучно 0.69…0.84 на 340–1250 кэВ. Источник правила даёт 0.7 по двум нуклидам.
+        // Свойство поиска, а не детектора — см. комментарий к SecondaryPeakTuning.
         public const double ComptonEdgeFwhmFactor = 0.8;
 
-        // Пик обратного рассеяния смещён вверх: многократное рассеяние добавляется к
-        // однократному 180°. Медиана 8 записей +9.9 кэВ, разброс +0.3…+18.4 — величина
-        // задаётся геометрией источника и защиты, через FWHM не выражается.
-        public const double BackscatterShiftKeV = 10.0;
+        // Пик обратного рассеяния смещён вверх многократным рассеянием. Медиана
+        // измерений +9.9 кэВ на 200–250 кэВ, что при R = 7.5 % даёт ≈0.35·FWHM.
+        // Задаётся геометрией защиты — величина отправная, а не универсальная.
+        public const double BackscatterFwhmFactor = 0.35;
 
         // Доли от площади родительского фотопика (медианы измеренных отношений).
         // Прежнее общее «10 %» расходилось с измерениями почти втрое.
@@ -80,6 +113,20 @@ namespace BecquerelMonitor.RoiWizard
                                                   double minParentIntensity,
                                                   string annihilationLabel)
         {
+            return Generate(lines, resolution, kinds, minParentIntensity, annihilationLabel, null);
+        }
+
+        public static List<SpectralLine> Generate(IEnumerable<SpectralLine> lines,
+                                                  ResolutionModel resolution,
+                                                  SecondaryKind kinds,
+                                                  double minParentIntensity,
+                                                  string annihilationLabel,
+                                                  SecondaryPeakTuning tuning)
+        {
+            if (tuning == null)
+            {
+                tuning = new SecondaryPeakTuning();
+            }
             List<SpectralLine> result = new List<SpectralLine>();
             List<SpectralLine> parents = new List<SpectralLine>();
             bool wantAnnihilation = (kinds & SecondaryKind.Annihilation) != 0;
@@ -98,11 +145,14 @@ namespace BecquerelMonitor.RoiWizard
 
                 if ((kinds & SecondaryKind.Backscatter) != 0 && line.Energy >= 200)
                 {
-                    Add(result, line, "BS", backscatter + BackscatterShiftKeV, BackscatterFraction, origin);
+                    Add(result, line, "BS",
+                        backscatter + tuning.BackscatterFwhmFactor * resolution.Fwhm(backscatter),
+                        BackscatterFraction, origin);
                 }
                 if ((kinds & SecondaryKind.ComptonEdge) != 0 && line.Energy >= 200)
                 {
-                    Add(result, line, "CE", edge - ComptonEdgeFwhmFactor * resolution.Fwhm(edge),
+                    Add(result, line, "CE",
+                        edge - tuning.ComptonEdgeFwhmFactor * resolution.Fwhm(edge),
                         ComptonEdgeFraction, origin);
                 }
                 // порог образования пар 1022 кэВ; берём с запасом, чтобы маркер не лез туда,

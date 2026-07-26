@@ -34,28 +34,26 @@ namespace BecquerelMonitor.RoiWizard
         // иначе на выбранной строке сливался бы с --sel
         public static readonly Color Bar = Color.FromArgb(56, 0x14, 0x48, 0x74);
 
-        // 12px/1.4 "Segoe UI" из темы — это 9 pt
-        public static Font BaseFont
-        {
-            get { return new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point); }
-        }
+        // Шрифты — общие на процесс, а не свойства, создающие Font на каждое
+        // обращение: Walk раздаёт BaseFont сотне контролов, а рендеры держат
+        // BadgeFont/HintFont полями, и ни один из потребителей владельцем шрифта
+        // не становится — WinForms не диспозит Font, который ему присвоили.
+        // Дескрипторы GDI здесь считают (ср. using (Pen ...) в EnergySpectrumView).
 
-        public static Font LegendFont
-        {
-            get { return new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point); }
-        }
+        // 12px/1.4 "Segoe UI" из темы — это 9 pt
+        public static readonly Font BaseFont =
+            new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
+
+        public static readonly Font LegendFont =
+            new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point);
 
         // 11px мелкого текста списков (.nuc .hl) — 8.25 pt
-        public static Font HintFont
-        {
-            get { return new Font("Segoe UI", 8.25F, FontStyle.Regular, GraphicsUnit.Point); }
-        }
+        public static readonly Font HintFont =
+            new Font("Segoe UI", 8.25F, FontStyle.Regular, GraphicsUnit.Point);
 
         // 9.5px полужирного бейджа семейства (.fbadge) — 7.125 pt
-        public static Font BadgeFont
-        {
-            get { return new Font("Segoe UI", 7.125F, FontStyle.Bold, GraphicsUnit.Point); }
-        }
+        public static readonly Font BadgeFont =
+            new Font("Segoe UI", 7.125F, FontStyle.Bold, GraphicsUnit.Point);
 
         // Цвета бейджей типов линий — правила .b-g / .b-x / .b-xrf / .b-sec темы.
         // Ключ — не подпись (она переводится), а код типа.

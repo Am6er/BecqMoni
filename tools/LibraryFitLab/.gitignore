@@ -1,0 +1,16 @@
+# Артефакты прогонов: всё это пересоздаётся конвейером и весит ~100 МБ.
+# Порядок: apply_calibration.py -> mkconfig.py -> run_sets.ps1 -> analyze.py -> report_sets.py
+
+# перекалиброванные копии спектров (apply_calibration.py / calibrate.py)
+scripts/spectra/
+
+# рабочие каталоги прогона: копия приложения + конфиг на каждый детектор
+scripts/wd_*/
+
+# результаты свипов
+scripts/out_*/
+scripts/scored.json
+
+# промежуточное: манифест сетов и копия калибровок, которую mkconfig.py ждёт рядом с собой
+scripts/sets_manifest.json
+scripts/calibration.json

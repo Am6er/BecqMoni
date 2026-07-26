@@ -68,7 +68,7 @@
     <value>2 · Линии</value>
   </data>
   <data name="tabExport_Text" xml:space="preserve">
-    <value>3 · Оформление и экспорт</value>
+    <value>3 · Оформление и создание</value>
   </data>
   <data name="statusFormat" xml:space="preserve">
     <value>линий: {0} из {1} · нуклидов: {2}</value>
@@ -89,7 +89,7 @@
     <value>Линии</value>
   </data>
   <data name="stepExport" xml:space="preserve">
-    <value>Оформление и экспорт</value>
+    <value>Оформление и создание</value>
   </data>
   <data name="groupSearch_Text" xml:space="preserve">
     <value>Поиск изотопа</value>
@@ -213,6 +213,9 @@
   </data>
   <data name="criterionSparrow" xml:space="preserve">
     <value>предел Sparrow — маркеры ROI (0,85·FWHM)</value>
+  </data>
+  <data name="criterionMeasured" xml:space="preserve">
+    <value>измеренный оптимум — состав сета (0,7·FWHM)</value>
   </data>
   <data name="criterionAnchored" xml:space="preserve">
     <value>якорный набор — библиотечный фит (0,25·FWHM)</value>
@@ -352,6 +355,15 @@
   <data name="buttonGenerateSecondary_Text" xml:space="preserve">
     <value>Сгенерировать</value>
   </data>
+  <data name="statusMerged" xml:space="preserve">
+    <value>слито групп: {0}, поглощено линий: {1}</value>
+  </data>
+  <data name="statusRoiCreated" xml:space="preserve">
+    <value>ROI-конфигурация «{0}» создана: зон {1}</value>
+  </data>
+  <data name="statusSetCreated" xml:space="preserve">
+    <value>набор «{0}» добавлен в библиотеку: линий {1}, якорей {2}</value>
+  </data>
   <data name="secondaryFormat" xml:space="preserve">
     <value>добавлено вторичных маркеров: {0}</value>
   </data>
@@ -425,7 +437,7 @@
     <value>k × FWHM (сцинтиллятор)</value>
   </data>
   <data name="groupExport_Text" xml:space="preserve">
-    <value>Экспорт</value>
+    <value>Создание</value>
   </data>
   <data name="labelConfigName_Text" xml:space="preserve">
     <value>имя ROI-конфигурации</value>
@@ -449,7 +461,7 @@
     <value>Добавить набор в библиотеку</value>
   </data>
   <data name="checkFullSet_Text" xml:space="preserve">
-    <value>полный набор (все линии, для фита)</value>
+    <value>рекомендованный состав (0,7·FWHM, ≥1 %)</value>
   </data>
   <data name="labelAnchorCount_Text" xml:space="preserve">
     <value>якорей</value>

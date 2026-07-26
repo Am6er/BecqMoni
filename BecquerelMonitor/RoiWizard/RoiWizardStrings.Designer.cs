@@ -54,7 +54,7 @@ namespace BecquerelMonitor.RoiWizard
 
         public static string tabExport_Text
         {
-            get { return Get("tabExport_Text", "3 · Styling and export"); }
+            get { return Get("tabExport_Text", "3 · Styling and creation"); }
         }
 
         public static string statusFormat
@@ -89,7 +89,7 @@ namespace BecquerelMonitor.RoiWizard
 
         public static string stepExport
         {
-            get { return Get("stepExport", "Styling and export"); }
+            get { return Get("stepExport", "Styling and creation"); }
         }
 
         public static string groupSearch_Text
@@ -295,6 +295,11 @@ namespace BecquerelMonitor.RoiWizard
         public static string criterionSparrow
         {
             get { return Get("criterionSparrow", "Sparrow limit — ROI markers (0.85·FWHM)"); }
+        }
+
+        public static string criterionMeasured
+        {
+            get { return Get("criterionMeasured", "measured optimum — set composition (0.7·FWHM)"); }
         }
 
         public static string criterionAnchored
@@ -527,6 +532,21 @@ namespace BecquerelMonitor.RoiWizard
             get { return Get("buttonGenerateSecondary_Text", "Generate"); }
         }
 
+        public static string statusMerged
+        {
+            get { return Get("statusMerged", "merged groups: {0}, lines absorbed: {1}"); }
+        }
+
+        public static string statusRoiCreated
+        {
+            get { return Get("statusRoiCreated", "ROI configuration «{0}» created: {1} regions"); }
+        }
+
+        public static string statusSetCreated
+        {
+            get { return Get("statusSetCreated", "set «{0}» added to the library: {1} lines, {2} anchor(s)"); }
+        }
+
         public static string secondaryFormat
         {
             get { return Get("secondaryFormat", "secondary markers added: {0}"); }
@@ -649,7 +669,7 @@ namespace BecquerelMonitor.RoiWizard
 
         public static string groupExport_Text
         {
-            get { return Get("groupExport_Text", "Export"); }
+            get { return Get("groupExport_Text", "Create"); }
         }
 
         public static string labelConfigName_Text
@@ -689,7 +709,7 @@ namespace BecquerelMonitor.RoiWizard
 
         public static string checkFullSet_Text
         {
-            get { return Get("checkFullSet_Text", "full set (all lines, for fitting)"); }
+            get { return Get("checkFullSet_Text", "recommended composition (0.7·FWHM, ≥1 %)"); }
         }
 
         public static string labelAnchorCount_Text
