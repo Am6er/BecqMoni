@@ -91,6 +91,9 @@
   <data name="stepExport" xml:space="preserve">
     <value>Styling and export</value>
   </data>
+  <data name="pinTip" xml:space="preserve">
+    <value>Keep on top of other windows</value>
+  </data>
   <data name="groupSearch_Text" xml:space="preserve">
     <value>Nuclide search</value>
   </data>

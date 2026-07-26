@@ -974,11 +974,13 @@ namespace BecquerelMonitor.RoiWizard
             this.statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
                 this.statusLabel, this.buttonHelp, this.buttonStepPrev, this.buttonStepNext });
 
+
             // ─── форма ─────────────────────────────────────────────────────
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1180, 620);
             this.MinimumSize = new System.Drawing.Size(1000, 500);
+            this.ShowIcon = false;
             this.Controls.Add(this.tabs);
             this.Controls.Add(this.statusStrip);
             this.Name = "RoiWizardForm";

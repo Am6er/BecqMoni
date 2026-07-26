@@ -96,7 +96,67 @@ namespace BecquerelMonitor.RoiWizard
         {
             root.Font = BaseFont;
             Walk(root);
+            // рамку окна Apply не трогает: окно мастера — DockContent, его полоску
+            // рисует тема DockPanelSuite самого приложения; самодельная полоска
+            // (ApplyCaption) нужна только окнам вне док-системы — справке
         }
+
+        // Полоска заголовка — как у док-панелей самого BecqMoni («Обнаружение пиков»,
+        // «Управление измерением»): цвет ToolWindowCaptionInactive.Background из
+        // VS2015BlueTheme, которую MainForm ставит в InitializeDockPanelTheme, та же
+        // высота, булавка и кнопки прямо в полоске, углы без скругления. Системный
+        // заголовок Windows и толще, и не пускает в себя булавку, поэтому он убирается
+        // совсем (WM_NCCALCSIZE), а полоска рисуется своя. Стили окна при этом
+        // сохраняются — перетаскивание, ресайз за края и снап работают как обычно.
+        // Все значения — из ColorPalette той же темы (снятые рефлексией):
+        // ToolWindowCaptionInactive.*, ToolWindowCaptionButton*, ToolWindowBorder.
+        internal static readonly Color CaptionBack = Color.FromArgb(0x4D, 0x60, 0x82);
+        internal static readonly Color CaptionGlyph = Color.FromArgb(0xCE, 0xD4, 0xDD);
+        internal static readonly Color CaptionHover = Color.FromArgb(0xFF, 0xFC, 0xF4);
+        internal static readonly Color CaptionHoverEdge = Color.FromArgb(0xE5, 0xC3, 0x65);
+        internal static readonly Color CaptionDown = Color.FromArgb(0xFF, 0xE8, 0xA6);
+        internal static readonly Color WindowEdge = Color.FromArgb(0x8E, 0x9B, 0xBC);
+
+        const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+        const int DWMWA_BORDER_COLOR = 34;
+        const int DWMWA_CAPTION_COLOR = 35;
+        const int DWMWA_TEXT_COLOR = 36;
+        const int DWMWCP_DONOTROUND = 1;      // у полосок панелей скругления нет
+
+        [DllImport("dwmapi.dll")]
+        internal static extern int DwmSetWindowAttribute(IntPtr window, int attribute,
+                                                         ref int value, int size);
+
+        public static void ApplyCaption(Form form)
+        {
+            new PanelChrome(form);
+        }
+
+        internal static int ColorRef(Color color)
+        {
+            // DWM ждёт 0x00BBGGRR (COLORREF), а Color.ToArgb — 0xAARRGGBB
+            return color.R | (color.G << 8) | (color.B << 16);
+        }
+
+        internal static void SetDwm(Form form)
+        {
+            IntPtr handle = form.Handle;
+            int caption = ColorRef(CaptionBack);    // видно только в миниатюрах Alt-Tab
+            int text = ColorRef(Card);
+            int border = ColorRef(CaptionBack);
+            int corner = DWMWCP_DONOTROUND;
+            try
+            {
+                DwmSetWindowAttribute(handle, DWMWA_CAPTION_COLOR, ref caption, sizeof(int));
+                DwmSetWindowAttribute(handle, DWMWA_TEXT_COLOR, ref text, sizeof(int));
+                DwmSetWindowAttribute(handle, DWMWA_BORDER_COLOR, ref border, sizeof(int));
+                DwmSetWindowAttribute(handle, DWMWA_WINDOW_CORNER_PREFERENCE,
+                                      ref corner, sizeof(int));
+            }
+            catch (DllNotFoundException) { }        // dwmapi.dll есть везде, где есть Aero
+            catch (EntryPointNotFoundException) { } // на всякий случай
+        }
+
 
         static void Walk(Control parent)
         {
@@ -200,6 +260,266 @@ namespace BecquerelMonitor.RoiWizard
             }
             SendMessage(edit.Handle, EM_SETMARGINS,
                         (IntPtr)EC_RIGHTMARGIN, (IntPtr)(NumberPadding << 16));
+        }
+    }
+
+    // Полоска заголовка в стиле док-панелей BecqMoni плюс подкласс окна, который
+    // прячет системный caption. NativeWindow используется, чтобы не заставлять формы
+    // наследоваться от специального базового класса.
+    sealed class PanelChrome : NativeWindow
+    {
+        // Метрики VS2012DockPaneCaption (их переиспользует тема VS2015): высота =
+        // кнопка 18px + зазоры 3 сверху и снизу (текстовая ветка формулы даёт меньше
+        // и не побеждает); кнопки — квадраты с зазором 1 между собой и 4 от правого
+        // края. Высота 24px сверена пиксельно с живой панелью «Обнаружение пиков».
+        const int StripHeight = 24;               // высота полоски док-панели, лог. px
+        const int ButtonSize = 18;
+        const int ButtonGapTop = 3;
+        const int ButtonGapBetween = 1;
+        const int ButtonGapRight = 4;
+        const int Grip = 6;                       // зона ресайза по краям, лог. px
+
+        const int WM_NCCALCSIZE = 0x0083;
+        const int WM_NCHITTEST = 0x0084;
+        const int WM_NCLBUTTONDOWN = 0x00A1;
+        const int HTCLIENT = 1, HTCAPTION = 2;
+        const int HTLEFT = 10, HTRIGHT = 11, HTTOP = 12, HTTOPLEFT = 13, HTTOPRIGHT = 14;
+        const int HTBOTTOM = 15, HTBOTTOMLEFT = 16, HTBOTTOMRIGHT = 17;
+        const int SM_CXSIZEFRAME = 32, SM_CXPADDEDBORDER = 92;
+
+        [DllImport("user32.dll")]
+        static extern bool ReleaseCapture();
+        [DllImport("user32.dll")]
+        static extern IntPtr SendMessage(IntPtr window, int message, IntPtr wParam, IntPtr lParam);
+        [DllImport("user32.dll")]
+        static extern int GetSystemMetrics(int index);
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct RECT { public int Left, Top, Right, Bottom; }
+
+        readonly Form form;
+        readonly Panel strip;
+        readonly CheckBox pin;
+        readonly Button buttonMax;
+        readonly ToolTip tips = new ToolTip();
+
+        public PanelChrome(Form owner)
+        {
+            this.form = owner;
+            this.strip = new Panel();
+            this.strip.Dock = DockStyle.Top;
+            this.strip.Height = this.Scaled(StripHeight);
+            this.strip.BackColor = WizardTheme.CaptionBack;
+            this.strip.Paint += this.OnStripPaint;
+            this.strip.MouseDown += this.OnStripMouseDown;
+            this.strip.MouseDoubleClick += this.OnStripDoubleClick;
+
+            Button close = this.MakeButton("");             // ChromeClose
+            close.Click += delegate { this.form.Close(); };
+            this.buttonMax = this.MakeButton("");           // ChromeMaximize
+            this.buttonMax.Visible = this.form.MaximizeBox;
+            this.buttonMax.Click += delegate { this.ToggleMaximize(); };
+            Button minimize = this.MakeButton("");          // ChromeMinimize
+            minimize.Visible = this.form.MinimizeBox;
+            minimize.Click += delegate { this.form.WindowState = FormWindowState.Minimized; };
+
+            this.pin = new CheckBox();
+            this.pin.Appearance = Appearance.Button;
+            this.StyleFlat(this.pin);
+            this.pin.Text = "";                             // Pin
+            this.pin.FlatAppearance.CheckedBackColor = WizardTheme.CaptionDown;
+            this.pin.CheckedChanged += delegate
+            {
+                this.form.TopMost = this.pin.Checked;
+                this.pin.Text = this.pin.Checked ? "" : "";
+            };
+            this.tips.SetToolTip(this.pin, RoiWizardStrings.pinTip);
+
+            // порядок добавления — это порядок укладки от правого края
+            this.strip.Controls.Add(close);
+            this.strip.Controls.Add(this.buttonMax);
+            this.strip.Controls.Add(minimize);
+            this.strip.Controls.Add(this.pin);
+            this.strip.Resize += delegate { this.LayoutButtons(); };
+            this.LayoutButtons();
+
+            // окантовка окна — ToolWindowBorder темы: кольцо в 1px из фона формы
+            // плюс кромка DWM того же цвета
+            this.form.BackColor = WizardTheme.WindowEdge;
+            this.form.Padding = new Padding(1);
+
+            // полоска добавляется последней: док-раскладка обходит контролы с конца,
+            // поэтому она займёт верх раньше, чем Fill заберёт остаток
+            this.form.Controls.Add(this.strip);
+            this.form.TextChanged += delegate { this.strip.Invalidate(); };
+            this.form.Resize += delegate { this.SyncMaxGlyph(); };
+
+            if (this.form.IsHandleCreated)
+            {
+                this.Attach();
+            }
+            this.form.HandleCreated += delegate { this.Attach(); };
+            this.form.HandleDestroyed += delegate { this.ReleaseHandle(); };
+        }
+
+        void Attach()
+        {
+            this.AssignHandle(this.form.Handle);
+            WizardTheme.SetDwm(this.form);
+            // рамки больше нет — окно чуть ужимается, чтобы содержимое осталось
+            // тех же пропорций, что и с системным заголовком
+            this.form.PerformLayout();
+        }
+
+        int Scaled(int logical)
+        {
+            return (int)Math.Round(logical * this.form.DeviceDpi / 96.0);
+        }
+
+        Button MakeButton(string glyph)
+        {
+            Button button = new Button();
+            this.StyleFlat(button);
+            button.Text = glyph;
+            return button;
+        }
+
+        void StyleFlat(ButtonBase button)
+        {
+            button.FlatStyle = FlatStyle.Flat;
+            button.FlatAppearance.BorderSize = 0;
+            button.FlatAppearance.BorderColor = WizardTheme.CaptionHoverEdge;
+            button.FlatAppearance.MouseOverBackColor = WizardTheme.CaptionHover;
+            button.FlatAppearance.MouseDownBackColor = WizardTheme.CaptionDown;
+            button.BackColor = WizardTheme.CaptionBack;
+            button.ForeColor = WizardTheme.CaptionGlyph;
+            button.Font = new Font("Segoe MDL2 Assets", 7F);
+            button.Size = new Size(this.Scaled(ButtonSize), this.Scaled(ButtonSize));
+            button.TabStop = false;
+            button.TextAlign = ContentAlignment.MiddleCenter;
+            // кремовая заливка с золотой рамкой и чёрным глифом — только под курсором,
+            // как у кнопок панелей темы
+            button.MouseEnter += delegate(object sender, EventArgs e)
+            {
+                ButtonBase self = (ButtonBase)sender;
+                self.FlatAppearance.BorderSize = 1;
+                self.ForeColor = WizardTheme.Ink;
+            };
+            button.MouseLeave += delegate(object sender, EventArgs e)
+            {
+                ButtonBase self = (ButtonBase)sender;
+                self.FlatAppearance.BorderSize = 0;
+                self.ForeColor = WizardTheme.CaptionGlyph;
+            };
+        }
+
+        void LayoutButtons()
+        {
+            int x = this.strip.Width - this.Scaled(ButtonGapRight);
+            int y = this.Scaled(ButtonGapTop);
+            foreach (Control button in this.strip.Controls)
+            {
+                if (!(button is ButtonBase))
+                {
+                    continue;
+                }
+                x -= button.Width;
+                button.Location = new Point(x, y);
+                x -= this.Scaled(ButtonGapBetween);
+            }
+        }
+
+        void OnStripPaint(object sender, PaintEventArgs e)
+        {
+            TextRenderer.DrawText(e.Graphics, this.form.Text, WizardTheme.BaseFont,
+                new Rectangle(this.Scaled(6), 0,
+                              this.strip.Width - this.Scaled(6), this.strip.Height),
+                WizardTheme.Card,
+                TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis |
+                TextFormatFlags.NoPrefix);
+        }
+
+        void OnStripMouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button != MouseButtons.Left)
+            {
+                return;
+            }
+            int code = HTCAPTION;
+            if (this.form.WindowState == FormWindowState.Normal && e.Y <= this.Scaled(Grip))
+            {
+                int grip = this.Scaled(Grip);
+                code = e.X < grip ? HTTOPLEFT
+                     : e.X > this.strip.Width - grip ? HTTOPRIGHT : HTTOP;
+            }
+            ReleaseCapture();
+            SendMessage(this.form.Handle, WM_NCLBUTTONDOWN, (IntPtr)code, IntPtr.Zero);
+        }
+
+        void OnStripDoubleClick(object sender, MouseEventArgs e)
+        {
+            if (this.form.MaximizeBox)
+            {
+                this.ToggleMaximize();
+            }
+        }
+
+        void ToggleMaximize()
+        {
+            this.form.WindowState = this.form.WindowState == FormWindowState.Maximized
+                ? FormWindowState.Normal : FormWindowState.Maximized;
+        }
+
+        void SyncMaxGlyph()
+        {
+            this.buttonMax.Text = this.form.WindowState == FormWindowState.Maximized
+                ? "" : "";            // ChromeRestore : ChromeMaximize
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            switch (m.Msg)
+            {
+                case WM_NCCALCSIZE:
+                    if (m.WParam != IntPtr.Zero)
+                    {
+                        if (this.form.WindowState == FormWindowState.Maximized)
+                        {
+                            // развёрнутое окно без этой поправки вылезает рамкой
+                            // за края монитора
+                            RECT rect = (RECT)Marshal.PtrToStructure(m.LParam, typeof(RECT));
+                            int pad = GetSystemMetrics(SM_CXSIZEFRAME)
+                                    + GetSystemMetrics(SM_CXPADDEDBORDER);
+                            rect.Left += pad; rect.Top += pad;
+                            rect.Right -= pad; rect.Bottom -= pad;
+                            Marshal.StructureToPtr(rect, m.LParam, false);
+                        }
+                        m.Result = IntPtr.Zero;   // клиентская область = всё окно
+                        return;
+                    }
+                    break;
+
+                case WM_NCHITTEST:
+                    base.WndProc(ref m);
+                    if ((int)m.Result == HTCLIENT
+                        && this.form.WindowState == FormWindowState.Normal)
+                    {
+                        Point at = this.form.PointToClient(new Point(m.LParam.ToInt32()));
+                        int grip = this.Scaled(Grip);
+                        bool left = at.X < grip;
+                        bool right = at.X > this.form.ClientSize.Width - grip;
+                        bool top = at.Y < grip;
+                        bool bottom = at.Y > this.form.ClientSize.Height - grip;
+                        int hit = HTCLIENT;
+                        if (top) { hit = left ? HTTOPLEFT : right ? HTTOPRIGHT : HTTOP; }
+                        else if (bottom) { hit = left ? HTBOTTOMLEFT : right ? HTBOTTOMRIGHT : HTBOTTOM; }
+                        else if (left) { hit = HTLEFT; }
+                        else if (right) { hit = HTRIGHT; }
+                        m.Result = (IntPtr)hit;
+                    }
+                    return;
+            }
+            base.WndProc(ref m);
         }
     }
 }
