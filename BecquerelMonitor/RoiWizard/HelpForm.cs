@@ -16,7 +16,7 @@ namespace BecquerelMonitor.RoiWizard
     // а вынут из index.html скриптом tools/export_help.py в ресурс help.xml: два
     // текста иначе разъедутся после первой же правки страницы. Здесь разбирается
     // то же подмножество разметки, что использует страница: p, b, code, a, таблица.
-    public class HelpForm : Form
+    public class HelpForm : WeifenLuo.WinFormsUI.Docking.DockContent
     {
         const string ResourceName = "BecquerelMonitor.RoiWizard.help.xml";
 
@@ -43,7 +43,6 @@ namespace BecquerelMonitor.RoiWizard
             this.MaximizeBox = true;
             this.ShowInTaskbar = false;
             this.ShowIcon = false;
-            WizardTheme.ApplyCaption(this);        // синий заголовок, как у окон BecqMoni
 
             this.view.Dock = DockStyle.Fill;
             this.view.ReadOnly = true;
