@@ -37,7 +37,8 @@ namespace LibraryFitLab
                 Environment.CurrentDirectory = options.WorkingDirectory;
 
                 ApplyGate(options.Gate, options.ShapeZ, options.ShapeWindow, options.ShapeFlank,
-                          options.ShapeOrder, options.ChainVeto, options.ChainScatter);
+                          options.ShapeOrder, options.ChainVeto, options.ChainScatter,
+                          options.ChainMinLines);
 
                 GlobalConfigManager.GetInstance();
                 DeviceConfigManager.GetInstance();
@@ -93,8 +94,12 @@ namespace LibraryFitLab
         //   chain    - z по линии плюс вето по согласованности набора (умолчание)
         //   dd+shape+chain - всё сразу
         static void ApplyGate(string gate, double? shapeZ, double? window, double? flank, int? order,
-                              bool? chainVeto, double? chainScatter)
+                              bool? chainVeto, double? chainScatter, int? chainMinLines)
         {
+            if (chainMinLines.HasValue)
+            {
+                LibraryPeakFitter.ChainConsistencyMinLines = chainMinLines.Value;
+            }
             if (shapeZ.HasValue)
             {
                 LibraryPeakFitter.BackgroundShapeZ = shapeZ.Value;
@@ -105,6 +110,7 @@ namespace LibraryFitLab
             if (chainVeto.HasValue) LibraryPeakFitter.UseChainConsistencyVeto = chainVeto.Value;
             if (chainScatter.HasValue) LibraryPeakFitter.ChainScatterLimit = chainScatter.Value;
 
+            LibraryPeakFitter.UseChainVetoFallback = false;
             switch (gate)
             {
                 case "z":
@@ -132,6 +138,28 @@ namespace LibraryFitLab
                     LibraryPeakFitter.UseDevianceGate = true;
                     LibraryPeakFitter.UseBackgroundShapeGate = true;
                     LibraryPeakFitter.UseChainConsistencyVeto = false;
+                    break;
+                // Связка «устойчивость к фону + вето по набору». В журнале её не
+                // было: там мерилось только «всё» (dd+shape+chain), и вывод
+                // «строгие критерии морят вето голодом» сделан по нему. Но голод
+                // создаёт прежде всего dd — он несёт тот же дефект
+                // фиксированного континуума, что и z, и режет линии, ничего не
+                // добавляя. Отчёт Verter73 к PR #32 показал, что на германии
+                // shape даёт вдвенадцатеро меньше фантомов, чем вето, при том же
+                // recall, — значит комбинацию без dd надо померить отдельно.
+                // Вето с запасным критерием: shape включается ТОЛЬКО там, где
+                // вето воздержалось или сняло набор. Это и есть конструкция,
+                // которую поддерживают замеры по детекторам.
+                case "chain+fallback":
+                    LibraryPeakFitter.UseDevianceGate = false;
+                    LibraryPeakFitter.UseBackgroundShapeGate = false;
+                    LibraryPeakFitter.UseChainConsistencyVeto = true;
+                    LibraryPeakFitter.UseChainVetoFallback = true;
+                    break;
+                case "shape+chain":
+                    LibraryPeakFitter.UseDevianceGate = false;
+                    LibraryPeakFitter.UseBackgroundShapeGate = true;
+                    LibraryPeakFitter.UseChainConsistencyVeto = true;
                     break;
                 case "dd+shape+chain":
                     LibraryPeakFitter.UseDevianceGate = true;
@@ -442,6 +470,7 @@ namespace LibraryFitLab
             public int? ShapeOrder;
             public bool? ChainVeto;
             public double? ChainScatter;
+            public int? ChainMinLines;
 
             public static Options Parse(string[] args)
             {
@@ -480,6 +509,7 @@ namespace LibraryFitLab
                     else if (TryValue(arg, "--shape-order=", out value)) options.ShapeOrder = ParseInt(value);
                     else if (TryValue(arg, "--chain-veto=", out value)) options.ChainVeto = bool.Parse(value);
                     else if (TryValue(arg, "--chain-scatter=", out value)) options.ChainScatter = ParseDouble(value);
+                    else if (TryValue(arg, "--chain-min-lines=", out value)) options.ChainMinLines = int.Parse(value);
                     else if (string.Equals(arg, "--no-set", StringComparison.OrdinalIgnoreCase)) options.IncludeNoSet = true;
                     else if (string.Equals(arg, "--bg=visible", StringComparison.OrdinalIgnoreCase)) options.SubtractBackground = false;
                     else if (string.Equals(arg, "--bg=substract", StringComparison.OrdinalIgnoreCase)) options.SubtractBackground = true;

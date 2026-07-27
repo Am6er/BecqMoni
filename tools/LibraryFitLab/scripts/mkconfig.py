@@ -24,7 +24,14 @@ from chains import chain_lines, CHAINS, ANCHORS
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 # Detector resolution models fitted by calibrate.py: FWHM[keV] = sqrt(a+b*E+c*E^2)
-with open(os.path.join(HERE, 'calibration.json')) as fh:
+#
+# scripts/calibration.json — промежуточный файл, он в .gitignore, и у
+# постороннего здесь падало. Оригинал девятки лежит в data/calibration.json и
+# в репозиторий входит; берём его, если промежуточного нет.
+_CALIB_JSON = os.path.join(HERE, 'calibration.json')
+if not os.path.exists(_CALIB_JSON):
+    _CALIB_JSON = os.path.join(os.path.dirname(HERE), 'data', 'calibration.json')
+with open(_CALIB_JSON) as fh:
     CALIB = {row['key']: row for row in json.load(fh)}
 
 DETECTORS = {}

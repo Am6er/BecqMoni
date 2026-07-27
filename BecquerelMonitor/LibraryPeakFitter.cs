@@ -187,7 +187,34 @@ namespace BecquerelMonitor
         // Меньше этого числа линий - кривую не построить (порядок 1 требует двух
         // параметров, нужна хотя бы пара степеней свободы). Судить не о чем, и
         // отсутствие суждения не улика: набор пропускается.
-        public const int ChainConsistencyMinLines = 4;
+        // Сколько линий нужно вету, чтобы его вердикту можно было верить.
+        // Было const 4 — минимум, при котором вообще строится кривая. Замеры
+        // показали, что «строится» и «надёжен» это разные вещи: на германии с
+        // оборванным рядом U-238 кривая строится ровно по четырём точкам, вето
+        // объявляет НАСТОЯЩИЙ набор несогласованным и откатывает результат к
+        // базе финдера. Ниже этого числа вето воздерживается, и решение
+        // принимает запасной критерий по линии.
+        //
+        // Умолчание 6, а не 4: замеры по корпусу (69 спектров) дали при нём
+        // 63.5 % recall и 8.6 % фантомов против 64.0 / 9.7 при четырёх, то есть
+        // на четырёх-пяти точках вердикт вета уже шум, и передать решение
+        // запасному критерию выгоднее.
+        public static int ChainConsistencyMinLines = 6;
+
+        // Запасной критерий на случай, когда вето по набору судить не может.
+        // Замеры на корпусе (69 спектров) показали, что вето и тест
+        // устойчивости к фону дополняют друг друга ВДОЛЬ ОСИ РАЗРЕШЕНИЯ, а не
+        // конкурируют: на сцинтилляторах вето сильнее (G1S 94.7 % при 6.5 %
+        // фантомов против 84.0 / 13.1 у shape), а на германии, где цепочка даёт
+        // мало разрешённых одиночных линий, вето снимает НАСТОЯЩИЙ набор и не
+        // добавляет ничего сверх финдера (HPGE 28.2 % при нуле фантомов), тогда
+        // как shape поднимает recall до 38.5 % ценой 3.7 %.
+        //
+        // Поэтому shape включается не ВМЕСТО вето и не ВМЕСТЕ с ним (глобально
+        // связка хуже: 10.4 % фантомов против 6.4 % при том же recall - shape
+        // отбирает у вето точки для кривой), а ТОЛЬКО там, где вето
+        // воздержалось или сняло набор целиком.
+        public static bool UseChainVetoFallback = true;
 
         // Вычитать ли из наблюдённого спектра вклад ОСТАЛЬНЫХ компонент модели перед
         // измерением. Офлайновая проверка этого не делала и теряла настоящие линии в
@@ -488,6 +515,11 @@ namespace BecquerelMonitor
             // --- Последовательное принятие bound-групп по AIC ---
             List<Peak> replacedPeaks = new List<Peak>();
             HashSet<Peak> replacedSet = new HashSet<Peak>();
+            // Компоненты фита, идущие в ногу с result.AddedPeaks. Нужны запасному
+            // критерию: он проверяет линии тестом устойчивости к модели фона, а
+            // тот работает по компоненте. Список ЛОКАЛЬНЫЙ — FitComponent тип
+            // приватный, и в публичный LibraryCandidate его не положить.
+            List<FitComponent> addedSources = new List<FitComponent>();
             foreach (List<LineSite> group in groups.OrderBy(g => g[0].Channel))
             {
                 FitComponent groupComponent = BuildGroupComponent(spectrum, fwhmCalibration, group);
@@ -590,6 +622,7 @@ namespace BecquerelMonitor
                             Area = memberAmplitude * ProfileSum(memberComponent),
                             Z = z
                         });
+                        addedSources.Add(memberComponent);
                     }
                 }
                 else if (component.Nuclide != null)
@@ -614,11 +647,35 @@ namespace BecquerelMonitor
                         Area = component.Amplitude * ProfileSum(component),
                         Z = z
                     });
+                    addedSources.Add(component);
                 }
             }
 
             // --- Вето по согласованности набора ---
-            if (UseChainConsistencyVeto && !ChainConsistent(result.AddedPeaks))
+            ChainVerdict verdict = UseChainConsistencyVeto
+                ? ChainConsistent(result.AddedPeaks)
+                : ChainVerdict.Consistent;
+
+            // Вето воздержалось: точек на кривую не хватило. Прежде в этом
+            // случае не судил никто - пофайловые критерии в production
+            // выключены, и на коротких наборах защиты не было вовсе. Здесь
+            // включается тест устойчивости к модели фона, поимённо.
+            if (UseChainConsistencyVeto && UseChainVetoFallback &&
+                verdict == ChainVerdict.Abstained)
+            {
+                result.AddedPeaks = ShapeFilter(result.AddedPeaks, addedSources,
+                                                observed, model, chMin, chMax);
+            }
+
+            // Ветки Inconsistent запасной критерий НЕ трогает, и это измерено.
+            // Когда он подменял собой снятие несогласованного набора, доля
+            // фантомов на сцинтилляторах росла впятеро при неизменном recall
+            // (G1S 33.9 % против 6.5 %): вето убивает набор-обманку ЦЕЛИКОМ, а
+            // тест устойчивости пропускает треть его линий — сам по себе он
+            // опускает фантомы только до 28.9 %. Сила вето именно в решении на
+            // набор, и подменять его решением по линии нельзя.
+
+            if (UseChainConsistencyVeto && verdict == ChainVerdict.Inconsistent)
             {
                 // Набор не согласуется сам с собой: линии, которые он предъявил,
                 // не ложатся на общую кривую эффективности. Снимаем весь
@@ -1429,7 +1486,37 @@ namespace BecquerelMonitor
         // шкале подгонка отдала бы весь вес самым сильным линиям. Порядок 2 при
         // пяти и более линиях, иначе 1: на четырёх точках квадратика не оставит
         // ни одной степени свободы и разброс окажется нулевым у любого набора.
-        static bool ChainConsistent(List<LibraryCandidate> candidates)
+        // Оставить только те линии, что переживают смену модели фона. Тест тот
+        // же самый, что и в гейте по линии (SurvivesBackgroundChange), но
+        // применяется ПОСЛЕ фита, а не во время него: пока идёт фит, отсев по
+        // одной линии лишает вето точек для кривой, и оно перестаёт судить -
+        // измерено, глобально это даёт 10.4 % фантомов против 6.4 %.
+        static List<LibraryCandidate> ShapeFilter(List<LibraryCandidate> candidates,
+                                                  List<FitComponent> sources,
+                                                  int[] observed, List<FitComponent> model,
+                                                  int chMin, int chMax)
+        {
+            List<LibraryCandidate> kept = new List<LibraryCandidate>();
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                FitComponent source = i < sources.Count ? sources[i] : null;
+                if (source == null ||
+                    SurvivesBackgroundChange(observed, model, source, chMin, chMax))
+                {
+                    kept.Add(candidates[i]);
+                }
+            }
+            return kept;
+        }
+
+        internal enum ChainVerdict
+        {
+            Consistent,      // набор лёг на общую кривую
+            Inconsistent,    // не лёг - это улика
+            Abstained        // точек меньше ChainConsistencyMinLines: судить не о чем
+        }
+
+        static ChainVerdict ChainConsistent(List<LibraryCandidate> candidates)
         {
             List<double> x = new List<double>();
             List<double> y = new List<double>();
@@ -1451,14 +1538,14 @@ namespace BecquerelMonitor
 
             if (x.Count < ChainConsistencyMinLines)
             {
-                return true;                 // судить не о чем - это не улика
+                return ChainVerdict.Abstained;   // судить не о чем - это не улика
             }
 
             int order = x.Count >= 5 ? 2 : 1;
             double[] coefficients = PolyFit(x, y, order);
             if (coefficients == null)
             {
-                return true;
+                return ChainVerdict.Abstained;
             }
 
             double sum = 0.0;
@@ -1478,7 +1565,9 @@ namespace BecquerelMonitor
             // Разброс дробный: exp(rms) - 1. Для настоящей цепочки это 50-100 %,
             // для набора, собранного из случайных структур, - вдвое больше.
             double scatter = Math.Exp(Math.Sqrt(sum / x.Count)) - 1.0;
-            return !PeakShapeModel.IsFinite(scatter) || scatter <= ChainScatterLimit;
+            return (!PeakShapeModel.IsFinite(scatter) || scatter <= ChainScatterLimit)
+                ? ChainVerdict.Consistent
+                : ChainVerdict.Inconsistent;
         }
 
         // Взвешенных весов тут нет намеренно: погрешность площади у сильной линии

@@ -15,8 +15,29 @@ but with two corrections that matter for a library fit:
 """
 import sqlite3
 import re
+import os
 
-DB = r'C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\nucdb.sqlite'
+# База ищется относительно дерева решения, а не по абсолютному пути: раньше
+# здесь стоял путь на машине автора, и у постороннего падало всё, что строит
+# сеты. Переопределяется переменной окружения LFL_NUCDB.
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_SOLUTION = os.path.normpath(os.path.join(_HERE, '..', '..', '..'))
+
+
+def _find_db():
+    env = os.environ.get('LFL_NUCDB')
+    if env:
+        return env
+    for candidate in (
+            os.path.join(_SOLUTION, 'BecquerelMonitor', 'nucdb.sqlite'),
+            os.path.join(_SOLUTION, 'nucdb.sqlite'),
+    ):
+        if os.path.isfile(candidate):
+            return candidate
+    return os.path.join(_SOLUTION, 'BecquerelMonitor', 'nucdb.sqlite')
+
+
+DB = _find_db()
 
 
 def conn():

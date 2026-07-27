@@ -119,7 +119,27 @@ namespace BecquerelMonitor
                     return false;
                 }
             }
-            if (this.polynomialOrder > 4 || this.polynomialOrder < 1) { return false; }
+            // Степени выше четвёртой ChannelToEnergy и EnrgToChannel теперь считают
+            // (см. ниже), поэтому огульно отвергать их больше нельзя. Проверка та
+            // же, что у степеней 1-4: длина массива и ненулевой старший член, а
+            // решает всё равно проход по монотонности ниже.
+            //
+            // Отвергать было хуже, чем кажется. DocumentManager.CheckDocument
+            // проверяет <EnergySpectrum> и <BackgroundEnergySpectrum> как две
+            // независимые калибровки, и его ветка починки понижает порядок только
+            // по ХВОСТОВЫМ НУЛЯМ коэффициентов. У настоящего полинома 5-й степени
+            // нулей нет, zerosCount = 0 - и калибровка заменялась на дефолтную.
+            // То есть фон с полиномом 5-й степени убивал калибровку всего
+            // документа, даже когда у самого спектра она линейная.
+            if (this.polynomialOrder < 1) { return false; }
+            if (this.polynomialOrder > 4)
+            {
+                if (this.Coefficients.Length != this.polynomialOrder + 1 ||
+                    this.Coefficients[this.polynomialOrder] == 0.0)
+                {
+                    return false;
+                }
+            }
             for (int i = 1; i <= channels; i++)
             {
                 double prevEnrg = this.ChannelToEnergy(i - 1);

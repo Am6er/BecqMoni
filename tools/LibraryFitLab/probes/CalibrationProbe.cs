@@ -102,10 +102,27 @@ class CalibrationProbe
                 n, fromApp, manual, delta, back);
         }
 
+        // Вторая половина дефекта, и она жёстче смещения шкалы.
+        // CheckCalibration отвергала любой порядок выше четвёртого, а
+        // DocumentManager.CheckDocument проверяет <EnergySpectrum> и
+        // <BackgroundEnergySpectrum> как ДВЕ НЕЗАВИСИМЫЕ калибровки и чинит их
+        // понижением степени по хвостовым нулям коэффициентов. У настоящего
+        // полинома 5-й степени нулей нет, ветка zerosCount == 0 заменяла
+        // калибровку на дефолтную - то есть фон 5-й степени убивал шкалу всего
+        // документа, даже когда у самого спектра она линейная.
+        Console.WriteLine();
+        bool accepted = calibration.CheckCalibration(channels: es.NumberOfChannels);
+        Console.WriteLine("CheckCalibration(степень {0}): {1}",
+            calibration.PolynomialOrder, accepted ? "принята" : "ОТВЕРГНУТА");
+        if (!accepted)
+        {
+            bad = true;
+        }
+
         Console.WriteLine();
         Console.WriteLine(bad
             ? "ПЛОХО: приложение читает калибровку не тем полиномом, который записан"
-            : "ок: шкала совпадает с записанным полиномом");
+            : "ок: шкала совпадает с записанным полиномом, калибровка принята");
         return bad ? 1 : 0;
     }
 }
