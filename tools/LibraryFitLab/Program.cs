@@ -58,10 +58,14 @@ namespace LibraryFitLab
                     WriteLine(peaksWriter, "run,spectrum,set,gate,snr,deconv,roi,extra,channel,energy,peak_snr,fwhm,origin,anchor,nuclide,nuclide_energy");
                     WriteLine(runsWriter, "run,spectrum,set,gate,snr,deconv,roi,extra,burnin,samples,maxrois,mindev,minamp,ms,n_total,n_finder,n_rjmcmc,n_library,n_anchor,set_lines");
 
+                    var effCurves = LoadEffCurves(options.EffCurve);
                     int run = 0;
                     foreach (string spectrumFile in ResolveSpectrumFiles(options.InputPath))
                     {
                         string spectrumName = Path.GetFileNameWithoutExtension(spectrumFile);
+                        // Кривая ставится на спектр: у одного детектора в рабочем
+                        // каталоге лежат разные геометрии, а форма у них разная.
+                        SetEffCurve(effCurves, spectrumName);
                         foreach (Scenario scenario in options.Scenarios)
                         {
                             // A null set entry means "run without any nuclide set"
@@ -94,6 +98,61 @@ namespace LibraryFitLab
         //   dd+shape - ΔD как дешёвый предварительный отсев, затем устойчивость
         //   chain    - z по линии плюс вето по согласованности набора (умолчание)
         //   dd+shape+chain - всё сразу
+        // Внешние кривые эффективности: CSV «спектр, энергия, эффективность».
+        // Ключ — имя файла спектра без расширения, чтобы одна таблица покрывала
+        // рабочий каталог с разными геометриями.
+        static Dictionary<string, List<KeyValuePair<double, double>>> LoadEffCurves(string path)
+        {
+            var bySpectrum = new Dictionary<string, List<KeyValuePair<double, double>>>(
+                StringComparer.OrdinalIgnoreCase);
+            if (string.IsNullOrEmpty(path) || !File.Exists(path))
+            {
+                return bySpectrum;
+            }
+            bool header = true;
+            foreach (string raw in File.ReadAllLines(path))
+            {
+                string line = raw.Trim();
+                if (line.Length == 0) continue;
+                if (header) { header = false; continue; }
+                string[] parts = line.Split(',');
+                if (parts.Length < 3) continue;
+                double e, eff;
+                if (!double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out e)) continue;
+                if (!double.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out eff)) continue;
+                if (e <= 0.0 || eff <= 0.0) continue;
+                List<KeyValuePair<double, double>> list;
+                if (!bySpectrum.TryGetValue(parts[0], out list))
+                {
+                    list = new List<KeyValuePair<double, double>>();
+                    bySpectrum[parts[0]] = list;
+                }
+                list.Add(new KeyValuePair<double, double>(Math.Log(e), Math.Log(eff)));
+            }
+            foreach (var kv in bySpectrum)
+            {
+                kv.Value.Sort((a, b) => a.Key.CompareTo(b.Key));
+            }
+            return bySpectrum;
+        }
+
+        static void SetEffCurve(Dictionary<string, List<KeyValuePair<double, double>>> curves,
+                                string spectrumName)
+        {
+            List<KeyValuePair<double, double>> pts;
+            if (curves == null || !curves.TryGetValue(spectrumName, out pts) || pts.Count < 2)
+            {
+                LibraryPeakFitter.ExternalLnEnergy = null;
+                LibraryPeakFitter.ExternalLnEfficiency = null;
+                return;
+            }
+            var xs = new double[pts.Count];
+            var ys = new double[pts.Count];
+            for (int i = 0; i < pts.Count; i++) { xs[i] = pts[i].Key; ys[i] = pts[i].Value; }
+            LibraryPeakFitter.ExternalLnEnergy = xs;
+            LibraryPeakFitter.ExternalLnEfficiency = ys;
+        }
+
         static void ApplyGate(string gate, double? shapeZ, double? window, double? flank, int? order,
                               bool? chainVeto, double? chainScatter, int? chainMinLines,
                               double? absenceMiss, double? absenceSigma,
@@ -502,6 +561,7 @@ namespace LibraryFitLab
             public double? AbsenceSigma;
             public double? TrimFraction;
             public double? TrimGrubbs;
+            public string EffCurve;
 
             public static Options Parse(string[] args)
             {
@@ -545,6 +605,7 @@ namespace LibraryFitLab
                     else if (TryValue(arg, "--absence-sigma=", out value)) options.AbsenceSigma = ParseDouble(value);
                     else if (TryValue(arg, "--trim-fraction=", out value)) options.TrimFraction = ParseDouble(value);
                     else if (TryValue(arg, "--trim-grubbs=", out value)) options.TrimGrubbs = ParseDouble(value);
+                    else if (TryValue(arg, "--eff-curve=", out value)) options.EffCurve = value;
                     else if (string.Equals(arg, "--no-set", StringComparison.OrdinalIgnoreCase)) options.IncludeNoSet = true;
                     else if (string.Equals(arg, "--bg=visible", StringComparison.OrdinalIgnoreCase)) options.SubtractBackground = false;
                     else if (string.Equals(arg, "--bg=substract", StringComparison.OrdinalIgnoreCase)) options.SubtractBackground = true;
