@@ -139,21 +139,36 @@ namespace LibraryFitLab
             return bySpectrum;
         }
 
+        // Кривая текущего спектра, в том же виде, в каком её носит приложение:
+        // ROIConfigData со списком ROIEfficiencyData. Так харнесс идёт ТЕМ ЖЕ
+        // путём, что и GUI, — через ResultData.ROIConfig, а не через отдельный
+        // лабораторный вход.
+        static ROIConfigData CurrentEfficiencyConfig;
+
         static void SetEffCurve(Dictionary<string, List<KeyValuePair<double, double>>> curves,
                                 string spectrumName)
         {
+            CurrentEfficiencyConfig = null;
             List<KeyValuePair<double, double>> pts;
             if (curves == null || !curves.TryGetValue(spectrumName, out pts) || pts.Count < 2)
             {
-                LibraryPeakFitter.ExternalLnEnergy = null;
-                LibraryPeakFitter.ExternalLnEfficiency = null;
                 return;
             }
-            var xs = new double[pts.Count];
-            var ys = new double[pts.Count];
-            for (int i = 0; i < pts.Count; i++) { xs[i] = pts[i].Key; ys[i] = pts[i].Value; }
-            LibraryPeakFitter.ExternalLnEnergy = xs;
-            LibraryPeakFitter.ExternalLnEfficiency = ys;
+            var points = new List<ROIEfficiencyData>();
+            foreach (var kv in pts)
+            {
+                points.Add(new ROIEfficiencyData
+                {
+                    Energy = Math.Exp(kv.Key),
+                    Efficiency = Math.Exp(kv.Value),
+                    ErrorPercent = 0.0
+                });
+            }
+            CurrentEfficiencyConfig = new ROIConfigData
+            {
+                Name = "eff:" + spectrumName,
+                ROIEfficiency = points
+            };
         }
 
         // Переопределения настроек финдера. Ноль/пусто — оставить как в конфиге.
@@ -438,7 +453,10 @@ namespace LibraryFitLab
             resultData.PeakDetectionMethodConfig =
                 (FWHMPeakDetectionMethodConfig)((FWHMPeakDetectionMethodConfig)deviceConfig.PeakDetectionMethodConfig).Clone();
             ApplyFinderOverrides((FWHMPeakDetectionMethodConfig)resultData.PeakDetectionMethodConfig);
-            resultData.ROIConfig = null;
+            // Кривая эффективности прибора, если её дали ключом --eff-curve.
+            // В приложении сюда её кладёт DocEnergySpectrum по
+            // DeviceConfigInfo.EfficencyROIGuid; здесь — тот же слот.
+            resultData.ROIConfig = CurrentEfficiencyConfig;
 
             if (resultData.FwhmCalibration == null)
             {

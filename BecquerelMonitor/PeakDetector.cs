@@ -121,7 +121,11 @@ namespace BecquerelMonitor
                 peaks,
                 nuclideSet,
                 this.nuclideDefinitions,
-                peakConfig);
+                peakConfig,
+                // Кривая эффективности прибора: DocEnergySpectrum кладёт её сюда
+                // по DeviceConfigInfo.EfficencyROIGuid при открытии документа.
+                // Может отсутствовать — тогда фит работает как раньше.
+                resultData.ROIConfig);
 
             // Пики, сработавшие якорями (включившие библиотечный фит) —
             // флаг для отрисовки, независимый от того, какой экземпляр
