@@ -52,13 +52,10 @@ from chains import chain_lines, CHAINS, ANCHORS          # noqa: E402
 # квадратика повторить сам пик, и не залезли ли крылья на соседнюю линию.
 VARIANTS = [
     ('z', []),
-    ('dd', []),
-    ('shape', []),
     ('dd+shape', []),
     ('chain', ['--chain-scatter=1.0'], 'z+chain/1.0'),
     ('chain', ['--chain-scatter=1.25'], 'z+chain/1.25'),
     ('chain', ['--chain-scatter=1.5'], 'z+chain/1.5'),
-    ('dd+shape+chain', ['--chain-scatter=1.25'], 'всё/1.25'),
 ]
 
 K, IMIN = 0.7, 1.0
@@ -68,7 +65,8 @@ I_REF = 1.0        # линия идёт в знаменатель recall с э�
 U238_HEAD = {'238U', '234TH', '234PAm1', '234PA', '234U', '230TH'}
 
 # Как метка цепочки в манифесте отображается в режим подсчёта recall.
-CHAIN_MODE = {'Th-232': ('Th-232', 'pos'), 'Ra-226': ('Ra-226', 'pos'),
+CHAIN_MODE = {'Th-232': ('Th-232', 'pos'), 'Th-228': ('Th-228', 'pos'),
+              'Ra-226': ('Ra-226', 'pos'),
               'U-238': ('U-238', 'pos'), 'U-238u': ('U-238', 'head'),
               'U-235': ('U-235', 'pos')}
 

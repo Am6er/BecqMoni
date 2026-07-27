@@ -100,6 +100,22 @@ NEW_DEVICE = {
                     channels=8192, dtype='AtomSpectraVCP', lo=20.0, hi=2800.0),
     'RC103g':  dict(guid='17280748-6c91-49e6-a001-3c074db3750e', name='RC-103g 1024 (corpus)',
                     channels=1024, dtype='RadiaCode', lo=15.0, hi=2800.0),
+    # --- из spectravibe-toolkit, аттестованные источники ---
+    'G1S':     dict(guid='9e5a1c00-0007-4a00-9000-11c0de000007',
+                    name='Gamma-1S UDS-GC 63x63 1024 (corpus)',
+                    channels=1024, dtype='AudioInput', lo=30.0, hi=2800.0),
+    'HPGE_GMX': dict(guid='9e5a1c00-0008-4a00-9000-11c0de000008',
+                     name='HPGe GMX 8192 (corpus)',
+                     channels=8192, dtype='AudioInput', lo=20.0, hi=2800.0),
+    'HPGE_GEM': dict(guid='9e5a1c00-0009-4a00-9000-11c0de000009',
+                     name='HPGe GEM20P4 8192 (corpus)',
+                     channels=8192, dtype='AudioInput', lo=20.0, hi=2800.0),
+    'LABR_BRIL': dict(guid='9e5a1c00-000a-4a00-9000-11c0de00000a',
+                      name='LaBr3 BrilLanCe380 1024 (corpus)',
+                      channels=1024, dtype='AudioInput', lo=30.0, hi=2800.0),
+    'CZT_TECD': dict(guid='9e5a1c00-000b-4a00-9000-11c0de00000b',
+                     name='CZT Te(Cd) 4095 (corpus)',
+                     channels=4095, dtype='AudioInput', lo=30.0, hi=2800.0),
 }
 
 def device_guid(det):
@@ -647,7 +663,8 @@ def main():
         if a.startswith('--only='):
             only = set(a.split('=', 1)[1].split(','))
 
-    entries = [e for e in corpus_def.NEW if only is None or e['key'] in only]
+    entries = [e for e in corpus_def.NEW + corpus_def.VIBE
+               if only is None or e['key'] in only]
     os.makedirs(OUT_SPECTRA, exist_ok=True)
 
     # --- девятка: побайтная копия ---
