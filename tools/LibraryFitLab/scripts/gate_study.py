@@ -53,12 +53,12 @@ from chains import chain_lines, CHAINS, ANCHORS          # noqa: E402
 VARIANTS = [
     ('z', []),
     ('dd', []),
-    ('shape', ['--shape-z=3', '--shape-order=1'], 'shape/lin'),
-    ('shape', ['--shape-z=3', '--shape-window=2.6', '--shape-flank=1.5'], 'shape/w2.6'),
     ('shape', []),
     ('dd+shape', []),
-    ('dd+shape', ['--shape-z=6'], 'dd+shape/z6'),
-    ('shape-raw', []),
+    ('chain', ['--chain-scatter=1.0'], 'z+chain/1.0'),
+    ('chain', ['--chain-scatter=1.25'], 'z+chain/1.25'),
+    ('chain', ['--chain-scatter=1.5'], 'z+chain/1.5'),
+    ('dd+shape+chain', ['--chain-scatter=1.25'], 'всё/1.25'),
 ]
 
 K, IMIN = 0.7, 1.0
