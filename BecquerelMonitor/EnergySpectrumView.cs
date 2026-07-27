@@ -450,22 +450,36 @@ namespace BecquerelMonitor
             };
         }
 
+        // Пустые catch здесь оставляли поля null и гасили причину: к
+        // globalConfigManager обращаются 28 раз, к nuclideManager 4, и НИ ОДНО из
+        // обращений на null не проверяется. Падение приходило позже, в другом
+        // месте и без следа виновника.
+        //
+        // Путь конструктора для дизайнера отсекается выше отдельным return, так
+        // что сюда попадает только рантайм. Там отсутствие синглтона пережить
+        // нельзя — порядок инициализации менеджеров задан в Program.cs, и если
+        // он нарушен, приложение уже сломано. Поэтому не глушим, а сообщаем
+        // сразу и с именем того, что не получилось.
         void TryLoadRuntimeDependencies()
         {
             try
             {
                 this.globalConfigManager = GlobalConfigManager.GetInstance();
             }
-            catch
+            catch (Exception ex)
             {
+                throw new InvalidOperationException(
+                    "GlobalConfigManager.GetInstance() failed while constructing EnergySpectrumView", ex);
             }
 
             try
             {
                 this.nuclideManager = NuclideDefinitionManager.GetInstance();
             }
-            catch
+            catch (Exception ex)
             {
+                throw new InvalidOperationException(
+                    "NuclideDefinitionManager.GetInstance() failed while constructing EnergySpectrumView", ex);
             }
         }
 
