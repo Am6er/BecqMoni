@@ -274,6 +274,74 @@ namespace BecquerelMonitor
         // (в поставке есть `LSRM Geometries/`); до тех пор переключатель выключен.
         public static bool UseOutlierTrim = false;
 
+        // ВНЕШНЯЯ кривая эффективности: ln(eps) в узлах, отсортированных по ln(E).
+        // Задаётся снаружи на спектр; null — работает прежняя, подогнанная по
+        // самому набору.
+        //
+        // Ради этого и затевалось: оба вета опираются на кривую, построенную по
+        // тем же линиям, которые они судят. Отсюда круг — поимённое исключение
+        // выбросов правит улику под вердикт, а предсказание в вето по
+        // отсутствиям проверяет отсутствующее тем, что построено по
+        // присутствующим. Внешняя кривая круг разрывает: форма фиксирована
+        // аттестацией, свободен только масштаб (активность), которого набор всё
+        // равно не знает.
+        //
+        // Экстраполировать за крайние узлы НЕЛЬЗЯ. У геометрии «Дента» первые
+        // два узла отстоят на 3 кэВ при разнице эффективности 30 %, наклон между
+        // ними шумовой, и продолжение по нему на 100 кэВ вниз дало ln eps = -14.8
+        // вместо -2.7. Линии вне покрытия исключаются.
+        public static double[] ExternalLnEnergy;
+        public static double[] ExternalLnEfficiency;
+
+        // ln eps(E) по внешней кривой или NaN вне покрытия.
+        static double ExternalLnEps(double lnE)
+        {
+            double[] x = ExternalLnEnergy;
+            double[] y = ExternalLnEfficiency;
+            if (x == null || y == null || x.Length < 2 || x.Length != y.Length)
+            {
+                return double.NaN;
+            }
+            if (lnE < x[0] || lnE > x[x.Length - 1])
+            {
+                return double.NaN;
+            }
+            int hi = Array.BinarySearch(x, lnE);
+            if (hi >= 0)
+            {
+                return y[hi];
+            }
+            hi = ~hi;
+            int lo = hi - 1;
+            double t = (lnE - x[lo]) / (x[hi] - x[lo]);
+            return y[lo] + t * (y[hi] - y[lo]);
+        }
+
+        // Масштаб набора при ФИКСИРОВАННОЙ форме: ln A = среднее (y - ln eps).
+        // Возвращает false, если покрытых точек меньше порога доверия.
+        static bool ExternalScale(List<double> x, List<double> y, out double lnA)
+        {
+            lnA = 0.0;
+            double sum = 0.0;
+            int n = 0;
+            for (int i = 0; i < x.Count; i++)
+            {
+                double m = ExternalLnEps(x[i]);
+                if (!PeakShapeModel.IsFinite(m))
+                {
+                    continue;
+                }
+                sum += y[i] - m;
+                n++;
+            }
+            if (n < ChainConsistencyMinLines)
+            {
+                return false;
+            }
+            lnA = sum / n;
+            return true;
+        }
+
         // Сколько линий позволено выбросить, в долях набора. Без ограничения
         // подгонка выродится: из любого набора можно оставить ChainConsistencyMinLines
         // точек, легших на кривую, и объявить его согласованным.
@@ -1618,10 +1686,42 @@ namespace BecquerelMonitor
         static double UnexplainedAbsence(List<LibraryCandidate> accepted,
                                          List<FitComponent> model, double[] lambda)
         {
-            double[] curve = EfficiencyCurve(accepted);
-            if (curve == null)
+            // Внешняя кривая разрывает круг: отсутствие проверяется формой,
+            // полученной вне этого измерения, а не построенной по присутствующим.
+            bool external = ExternalLnEnergy != null;
+            double externalLnA = 0.0;
+            double[] curve = null;
+            if (external)
             {
-                return -1.0;
+                List<double> ex = new List<double>();
+                List<double> ey = new List<double>();
+                foreach (LibraryCandidate candidate in accepted)
+                {
+                    if (candidate.Nuclide == null || candidate.Area <= 0.0 ||
+                        candidate.Nuclide.Intencity <= 0.0 || candidate.Nuclide.Energy <= 0.0)
+                    {
+                        continue;
+                    }
+                    double ratio = candidate.Area / candidate.Nuclide.Intencity;
+                    if (!PeakShapeModel.IsFinite(ratio) || ratio <= 0.0)
+                    {
+                        continue;
+                    }
+                    ex.Add(Math.Log(candidate.Nuclide.Energy));
+                    ey.Add(Math.Log(ratio));
+                }
+                if (!ExternalScale(ex, ey, out externalLnA))
+                {
+                    return -1.0;
+                }
+            }
+            else
+            {
+                curve = EfficiencyCurve(accepted);
+                if (curve == null)
+                {
+                    return -1.0;
+                }
             }
 
             HashSet<NuclideDefinition> seen = new HashSet<NuclideDefinition>();
@@ -1665,8 +1765,20 @@ namespace BecquerelMonitor
                 double sigmaArea = sigmaAmplitude * profileSum;
 
                 double lnE = Math.Log(component.Nuclide.Energy);
-                double model_ = curve[0] + curve[1] * lnE +
-                                (curve.Length > 2 ? curve[2] * lnE * lnE : 0.0);
+                double model_;
+                if (external)
+                {
+                    model_ = ExternalLnEps(lnE) + externalLnA;
+                    if (!PeakShapeModel.IsFinite(model_))
+                    {
+                        continue;           // энергия вне покрытия аттестации
+                    }
+                }
+                else
+                {
+                    model_ = curve[0] + curve[1] * lnE +
+                             (curve.Length > 2 ? curve[2] * lnE * lnE : 0.0);
+                }
                 double predicted = component.Nuclide.Intencity * Math.Exp(model_);
                 if (!PeakShapeModel.IsFinite(predicted) ||
                     predicted < AbsenceVisibleSigma * sigmaArea)
@@ -1842,6 +1954,33 @@ namespace BecquerelMonitor
             if (x.Count < ChainConsistencyMinLines)
             {
                 return ChainVerdict.Abstained;   // судить не о чем - это не улика
+            }
+
+            // Внешняя кривая: форма фиксирована, свободен только масштаб.
+            if (ExternalLnEnergy != null)
+            {
+                double lnAext;
+                if (!ExternalScale(x, y, out lnAext))
+                {
+                    return ChainVerdict.Abstained;
+                }
+                double se = 0.0;
+                int ne = 0;
+                for (int i = 0; i < x.Count; i++)
+                {
+                    double m = ExternalLnEps(x[i]);
+                    if (!PeakShapeModel.IsFinite(m))
+                    {
+                        continue;
+                    }
+                    double r = y[i] - (m + lnAext);
+                    se += r * r;
+                    ne++;
+                }
+                double sc = Math.Exp(Math.Sqrt(se / ne)) - 1.0;
+                return (!PeakShapeModel.IsFinite(sc) || sc <= ChainScatterLimit)
+                    ? ChainVerdict.Consistent
+                    : ChainVerdict.Inconsistent;
             }
 
             int order = x.Count >= 5 ? 2 : 1;
