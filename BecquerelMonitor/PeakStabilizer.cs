@@ -8,6 +8,13 @@ namespace BecquerelMonitor
     public class PeakStabilizer
     {
         // Token: 0x0600060A RID: 1546 RVA: 0x00025F10 File Offset: 0x00024110
+        // Наблюдаемость стабилизатора. Он работает в фоне и при неудаче решения
+        // СЛАУ молча выходит; счётчики позволяют отличить «не сработало» от
+        // «не потребовалось», не меняя поведения.
+        public static int SolveFailures;
+        public static int SolveSuccesses;
+        public static Exception LastSolveError;
+
         public void Stabilize(ResultData resultData)
         {
             DeviceConfigInfo deviceConfig = resultData.DeviceConfig;
@@ -96,13 +103,21 @@ namespace BecquerelMonitor
                 matrix = CalibrationSolver.Solve(calibrationPoints, polynomialOrder);
                 if (matrix == null)
                 {
+                    SolveFailures++;
+                    LastSolveError = null;
                     return;
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                // Для фонового процесса молчание разумно, но без счётчика
+                // «не сработало» неотличимо от «не потребовалось»: стабилизатор
+                // мог не работать никогда, и увидеть это было неоткуда.
+                SolveFailures++;
+                LastSolveError = ex;
                 return;
             }
+            SolveSuccesses++;
             newPolynomialEnergyCalibration.Coefficients = new double[matrix.Length];
             newPolynomialEnergyCalibration.PolynomialOrder = matrix.Length - 1;
             newPolynomialEnergyCalibration.Coefficients = matrix;
