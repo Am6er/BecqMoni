@@ -92,7 +92,13 @@ namespace BecquerelMonitor
         // Переключатель на время сравнения критериев: false - прежний гейт по Fisher z.
         // Держится явным, чтобы прогон tools/LibraryFitLab мог померить оба на одних и
         // тех же спектрах и сетах-обманках.
-        public static bool UseDevianceGate = true;
+        // Умолчание — ВЫКЛЮЧЕН. Измерено на корпусе: ΔD и тест устойчивости
+        // отбирают линии по одной, и чем строже они отсеивают, тем меньше точек
+        // остаётся вету по согласованности набора, которому нужно минимум
+        // четыре. В связке «ΔD + shape + вето» фантомов оказывается 9.6 % против
+        // 5.1 % у «z + вето» при том же recall: пофайловые критерии голодом
+        // выключают тот, что работает лучше их обоих.
+        public static bool UseDevianceGate = false;
 
         // --- Гейт устойчивости к модели фона ---
         //
@@ -118,7 +124,8 @@ namespace BecquerelMonitor
         // фантомов, сохраняя 53-92 % настоящих линий - заметно лучше, чем у ΔD.
         // ΔD остаётся дешёвым предварительным отсевом: он считается на носителе
         // компоненты и не требует отдельного прохода по спектру.
-        public static bool UseBackgroundShapeGate = true;
+        // Умолчание — ВЫКЛЮЧЕН, по той же причине, что и ΔD (см. выше).
+        public static bool UseBackgroundShapeGate = false;
 
         // Порог значимости чистой площади при КАЖДОЙ из двух подложек.
         // Не const: свип tools/LibraryFitLab гоняет по нему рабочую точку.
@@ -141,6 +148,47 @@ namespace BecquerelMonitor
         // именно квадратичная.
         public static int ShapeMaxOrder = 2;
 
+        // --- Вето по согласованности набора (кривая относительной эффективности) ---
+        //
+        // Всё, что стояло до сих пор, судит компоненту ПООДИНОЧКЕ: велика ли
+        // амплитуда, лучше ли с ней модель, переживёт ли линия смену подложки. Ни
+        // один из этих вопросов не спрашивает главного - согласуются ли принятые
+        // линии МЕЖДУ СОБОЙ. А у настоящей цепочки в вековом равновесии все линии
+        // делят одну активность, и потому площадь каждой обязана равняться
+        // A * I(E) * eps(E): точки S/I ложатся на одну гладкую кривую
+        // эффективности. Форма eps(E) заранее не нужна - она фитится вместе с
+        // активностью, важна только гладкость (тот же приём, что в изотопном
+        // анализе: Рейлли, гл. 8, RE(E) ~ C(E)/BR).
+        //
+        // У сета-обманки интенсивности табличные, а площади набраны из того, что
+        // случайно оказалось на сдвинутой энергии. Лечь на общую кривую они не
+        // обязаны, и не ложатся.
+        //
+        // Измерено на корпусе до реализации (scripts/re_curve_check.py): дробный
+        // разброс вокруг кривой у настоящих цепочек - медиана 74 %, у обманок -
+        // 156 %. При пороге 100 % проходят 76 % настоящих наборов и 16 % обманок.
+        //
+        // Почему порог так велик. Даже сильные одиночные линии настоящей цепочки
+        // расходятся с гладкой кривой на 24 % (медиана; худший случай 58 %):
+        // каскадное суммирование, интерференция, погрешности табличных
+        // интенсивностей. Это систематический пол, ниже которого порог опускать
+        // нельзя - иначе критерий начнёт отвергать настоящие цепочки.
+        //
+        // Решение принимается на НАБОР целиком: не согласуется - снимаются все
+        // библиотечные линии. Якорный пик найден финдером независимо и остаётся,
+        // то есть при срабатывании вето recall откатывается к базе финдера.
+        public static bool UseChainConsistencyVeto = true;
+
+        // Предельный дробный разброс вокруг кривой. 1.25 — рабочая точка,
+        // измеренная на корпусе: тот же recall, что у прежнего «ΔD + shape»
+        // (59.4 %), при 5.7 % фантомов против 24.7 %.
+        public static double ChainScatterLimit = 1.25;
+
+        // Меньше этого числа линий - кривую не построить (порядок 1 требует двух
+        // параметров, нужна хотя бы пара степеней свободы). Судить не о чем, и
+        // отсутствие суждения не улика: набор пропускается.
+        public const int ChainConsistencyMinLines = 4;
+
         // Вычитать ли из наблюдённого спектра вклад ОСТАЛЬНЫХ компонент модели перед
         // измерением. Офлайновая проверка этого не делала и теряла настоящие линии в
         // блендах: крылья окна ложатся на соседнюю линию, подложка задирается, и
@@ -158,6 +206,11 @@ namespace BecquerelMonitor
             public int Channel;
             public double Fwhm;
             public double Amplitude;
+            // Площадь = амплитуда * сумма профиля. Профиль нормирован на высоту
+            // (PeakShapeModel.RelativeValue), поэтому амплитуда сама по себе -
+            // высота, а сравнивать линии разных энергий надо по площади: ширина
+            // растёт как sqrt(E), и на 2615 кэВ она вдвое больше, чем на 600.
+            public double Area;
             public double Z;
         }
 
@@ -534,6 +587,7 @@ namespace BecquerelMonitor
                             Channel = member.Channel,
                             Fwhm = member.Fwhm,
                             Amplitude = memberAmplitude,
+                            Area = memberAmplitude * ProfileSum(memberComponent),
                             Z = z
                         });
                     }
@@ -557,9 +611,30 @@ namespace BecquerelMonitor
                         Channel = component.Channel,
                         Fwhm = component.Fwhm,
                         Amplitude = component.Amplitude,
+                        Area = component.Amplitude * ProfileSum(component),
                         Z = z
                     });
                 }
+            }
+
+            // --- Вето по согласованности набора ---
+            if (UseChainConsistencyVeto && !ChainConsistent(result.AddedPeaks))
+            {
+                // Набор не согласуется сам с собой: линии, которые он предъявил,
+                // не ложатся на общую кривую эффективности. Снимаем весь
+                // библиотечный вклад - решение принимается на набор, а не на
+                // линию, потому что несогласованность и есть свойство набора.
+                //
+                // Вместе с добавленными линиями отменяется и ЗАМЕНА пиков
+                // финдера линиями bound-групп. Иначе фит уносит с собой центроид
+                // бленда, ничего не давая взамен, и recall проваливается НИЖЕ
+                // базы финдера - ровно это и наблюдалось на германии
+                // (23.1 % против 28.2 % у финдера), пока замена не отменялась.
+                result.AddedPeaks.Clear();
+                // Чистится ЛОКАЛЬНЫЙ список: result.ReplacedPeaks присваивается
+                // из него ниже, и очистка самого поля здесь была бы затёрта.
+                replacedPeaks.Clear();
+                replacedSet.Clear();
             }
 
             // --- Дедуп дрейфа: незаявленный существующий пик в 0.5·FWHM от
@@ -1334,6 +1409,147 @@ namespace BecquerelMonitor
             ApplyAmplitudeDelta(lambda, target, targetAmplitude);
 
             return devianceWithout - devianceWith;
+        }
+
+        // Сумма профиля компоненты: множитель между амплитудой (высотой) и площадью.
+        static double ProfileSum(FitComponent component)
+        {
+            double sum = 0.0;
+            for (int i = 0; i < component.Profile.Length; i++)
+            {
+                sum += component.Profile[i];
+            }
+            return sum;
+        }
+
+        // Ложатся ли принятые линии набора на одну гладкую кривую S/I = A·eps(E).
+        //
+        // Кривая берётся в логарифмах: ln(S/I) = polynom(ln E). Логарифм здесь не
+        // косметика - эффективность падает на порядки по диапазону, и в линейной
+        // шкале подгонка отдала бы весь вес самым сильным линиям. Порядок 2 при
+        // пяти и более линиях, иначе 1: на четырёх точках квадратика не оставит
+        // ни одной степени свободы и разброс окажется нулевым у любого набора.
+        static bool ChainConsistent(List<LibraryCandidate> candidates)
+        {
+            List<double> x = new List<double>();
+            List<double> y = new List<double>();
+            foreach (LibraryCandidate candidate in candidates)
+            {
+                if (candidate.Nuclide == null || candidate.Area <= 0.0 ||
+                    candidate.Nuclide.Intencity <= 0.0 || candidate.Nuclide.Energy <= 0.0)
+                {
+                    continue;
+                }
+                double ratio = candidate.Area / candidate.Nuclide.Intencity;
+                if (!PeakShapeModel.IsFinite(ratio) || ratio <= 0.0)
+                {
+                    continue;
+                }
+                x.Add(Math.Log(candidate.Nuclide.Energy));
+                y.Add(Math.Log(ratio));
+            }
+
+            if (x.Count < ChainConsistencyMinLines)
+            {
+                return true;                 // судить не о чем - это не улика
+            }
+
+            int order = x.Count >= 5 ? 2 : 1;
+            double[] coefficients = PolyFit(x, y, order);
+            if (coefficients == null)
+            {
+                return true;
+            }
+
+            double sum = 0.0;
+            for (int i = 0; i < x.Count; i++)
+            {
+                double model = 0.0;
+                double power = 1.0;
+                for (int k = 0; k <= order; k++)
+                {
+                    model += coefficients[k] * power;
+                    power *= x[i];
+                }
+                double residual = y[i] - model;
+                sum += residual * residual;
+            }
+
+            // Разброс дробный: exp(rms) - 1. Для настоящей цепочки это 50-100 %,
+            // для набора, собранного из случайных структур, - вдвое больше.
+            double scatter = Math.Exp(Math.Sqrt(sum / x.Count)) - 1.0;
+            return !PeakShapeModel.IsFinite(scatter) || scatter <= ChainScatterLimit;
+        }
+
+        // Взвешенных весов тут нет намеренно: погрешность площади у сильной линии
+        // - доли процента, и взвешивание по ней отдало бы весь фит двум-трём
+        // линиям, а разброс определяется систематикой, а не статистикой.
+        static double[] PolyFit(List<double> x, List<double> y, int order)
+        {
+            int size = order + 1;
+            double[,] normal = new double[size, size + 1];
+            for (int i = 0; i < x.Count; i++)
+            {
+                double[] powers = new double[size];
+                double power = 1.0;
+                for (int k = 0; k < size; k++)
+                {
+                    powers[k] = power;
+                    power *= x[i];
+                }
+                for (int r = 0; r < size; r++)
+                {
+                    for (int c = 0; c < size; c++)
+                    {
+                        normal[r, c] += powers[r] * powers[c];
+                    }
+                    normal[r, size] += powers[r] * y[i];
+                }
+            }
+
+            for (int col = 0; col < size; col++)
+            {
+                int pivot = col;
+                for (int r = col + 1; r < size; r++)
+                {
+                    if (Math.Abs(normal[r, col]) > Math.Abs(normal[pivot, col]))
+                    {
+                        pivot = r;
+                    }
+                }
+                if (Math.Abs(normal[pivot, col]) < 1E-12)
+                {
+                    return null;
+                }
+                if (pivot != col)
+                {
+                    for (int c = col; c <= size; c++)
+                    {
+                        double swap = normal[col, c];
+                        normal[col, c] = normal[pivot, c];
+                        normal[pivot, c] = swap;
+                    }
+                }
+                for (int r = 0; r < size; r++)
+                {
+                    if (r == col)
+                    {
+                        continue;
+                    }
+                    double factor = normal[r, col] / normal[col, col];
+                    for (int c = col; c <= size; c++)
+                    {
+                        normal[r, c] -= factor * normal[col, c];
+                    }
+                }
+            }
+
+            double[] result = new double[size];
+            for (int r = 0; r < size; r++)
+            {
+                result[r] = normal[r, size] / normal[r, r];
+            }
+            return result;
         }
 
         // z = A·sqrt(I), I = Σ p²/max(1, λ) — информация Фишера амплитуды при

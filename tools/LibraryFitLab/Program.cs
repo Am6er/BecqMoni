@@ -36,7 +36,8 @@ namespace LibraryFitLab
                 Options options = Options.Parse(args);
                 Environment.CurrentDirectory = options.WorkingDirectory;
 
-                ApplyGate(options.Gate, options.ShapeZ, options.ShapeWindow, options.ShapeFlank, options.ShapeOrder);
+                ApplyGate(options.Gate, options.ShapeZ, options.ShapeWindow, options.ShapeFlank,
+                          options.ShapeOrder, options.ChainVeto, options.ChainScatter);
 
                 GlobalConfigManager.GetInstance();
                 DeviceConfigManager.GetInstance();
@@ -89,7 +90,10 @@ namespace LibraryFitLab
         //   dd       - только тест отношения правдоподобий ΔD
         //   shape    - только устойчивость к смене модели фона
         //   dd+shape - ΔD как дешёвый предварительный отсев, затем устойчивость
-        static void ApplyGate(string gate, double? shapeZ, double? window, double? flank, int? order)
+        //   chain    - z по линии плюс вето по согласованности набора (умолчание)
+        //   dd+shape+chain - всё сразу
+        static void ApplyGate(string gate, double? shapeZ, double? window, double? flank, int? order,
+                              bool? chainVeto, double? chainScatter)
         {
             if (shapeZ.HasValue)
             {
@@ -98,29 +102,46 @@ namespace LibraryFitLab
             if (window.HasValue) LibraryPeakFitter.ShapeWindowSigma = window.Value;
             if (flank.HasValue) LibraryPeakFitter.ShapeFlankSigma = flank.Value;
             if (order.HasValue) LibraryPeakFitter.ShapeMaxOrder = order.Value;
+            if (chainVeto.HasValue) LibraryPeakFitter.UseChainConsistencyVeto = chainVeto.Value;
+            if (chainScatter.HasValue) LibraryPeakFitter.ChainScatterLimit = chainScatter.Value;
 
             switch (gate)
             {
                 case "z":
                     LibraryPeakFitter.UseDevianceGate = false;
                     LibraryPeakFitter.UseBackgroundShapeGate = false;
+                    LibraryPeakFitter.UseChainConsistencyVeto = false;
                     break;
                 case "dd":
                     LibraryPeakFitter.UseDevianceGate = true;
                     LibraryPeakFitter.UseBackgroundShapeGate = false;
+                    LibraryPeakFitter.UseChainConsistencyVeto = false;
                     break;
                 case "shape":
                     LibraryPeakFitter.UseDevianceGate = false;
                     LibraryPeakFitter.UseBackgroundShapeGate = true;
+                    LibraryPeakFitter.UseChainConsistencyVeto = false;
                     break;
                 case "shape-raw":
                     LibraryPeakFitter.UseDevianceGate = false;
                     LibraryPeakFitter.UseBackgroundShapeGate = true;
                     LibraryPeakFitter.ShapeGateSubtractNeighbours = false;
+                    LibraryPeakFitter.UseChainConsistencyVeto = false;
                     break;
                 case "dd+shape":
                     LibraryPeakFitter.UseDevianceGate = true;
                     LibraryPeakFitter.UseBackgroundShapeGate = true;
+                    LibraryPeakFitter.UseChainConsistencyVeto = false;
+                    break;
+                case "dd+shape+chain":
+                    LibraryPeakFitter.UseDevianceGate = true;
+                    LibraryPeakFitter.UseBackgroundShapeGate = true;
+                    LibraryPeakFitter.UseChainConsistencyVeto = true;
+                    break;
+                case "chain":
+                    LibraryPeakFitter.UseDevianceGate = false;
+                    LibraryPeakFitter.UseBackgroundShapeGate = false;
+                    LibraryPeakFitter.UseChainConsistencyVeto = true;
                     break;
                 default:
                     throw new ArgumentException("unknown --gate: " + gate);
@@ -414,11 +435,13 @@ namespace LibraryFitLab
             public double? MaxRange;
             public double? Tolerance;
             public int? MaxItems;
-            public string Gate = "dd+shape";
+            public string Gate = "chain";
             public double? ShapeZ;
             public double? ShapeWindow;
             public double? ShapeFlank;
             public int? ShapeOrder;
+            public bool? ChainVeto;
+            public double? ChainScatter;
 
             public static Options Parse(string[] args)
             {
@@ -455,6 +478,8 @@ namespace LibraryFitLab
                     else if (TryValue(arg, "--shape-window=", out value)) options.ShapeWindow = ParseDouble(value);
                     else if (TryValue(arg, "--shape-flank=", out value)) options.ShapeFlank = ParseDouble(value);
                     else if (TryValue(arg, "--shape-order=", out value)) options.ShapeOrder = ParseInt(value);
+                    else if (TryValue(arg, "--chain-veto=", out value)) options.ChainVeto = bool.Parse(value);
+                    else if (TryValue(arg, "--chain-scatter=", out value)) options.ChainScatter = ParseDouble(value);
                     else if (string.Equals(arg, "--no-set", StringComparison.OrdinalIgnoreCase)) options.IncludeNoSet = true;
                     else if (string.Equals(arg, "--bg=visible", StringComparison.OrdinalIgnoreCase)) options.SubtractBackground = false;
                     else if (string.Equals(arg, "--bg=substract", StringComparison.OrdinalIgnoreCase)) options.SubtractBackground = true;
