@@ -8,16 +8,23 @@ build_corpus.py собирал их тем же путём, что и всё п�
 import os
 import shutil
 
-SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'svt', 'detectors')
+SRC = os.environ.get('SVT_ROOT') or os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), 'svt', 'detectors')
 DEST = r'C:\Users\moroz\YandexDisk\Спектры\SpectraVibe'
 
 KIT = os.path.join(SRC, 'Gamma-1S', 'reference_spectra', 'reference_kits_becqmoni')
 HANDY_HPGE = os.path.join(SRC, 'Handy_HPGe', 'reference_spectra', 'becqmoni',
                           'Work', 'Handy', 'Handy(HPGe)', 'Spe')
+HANDY_HPGE_BG = os.path.join(SRC, 'Handy_HPGe', 'reference_spectra', 'background',
+                             'becqmoni', 'Work', 'Handy', 'Handy(HPGe)', 'Spe')
 GP = os.path.join(SRC, 'GP_HPGe20', 'reference_spectra', 'becqmoni',
                   'Work', 'GP', 'HPGe(20_)', 'Spe')
+GP_BG = os.path.join(SRC, 'GP_HPGe20', 'reference_spectra', 'background',
+                     'becqmoni', 'Work', 'GP', 'HPGe(20_)', 'Spe', 'Background')
 LABR = os.path.join(SRC, 'Handy_LaBr', 'reference_spectra', 'becqmoni',
                     'Work', 'Handy', 'Handy(LaBr)', 'Spe')
+LABR_BG = os.path.join(SRC, 'Handy_LaBr', 'reference_spectra', 'background',
+                       'becqmoni', 'Work', 'Handy', 'Handy(LaBr)', 'Spe', 'Background')
 TECD = os.path.join(SRC, 'Simple_TeCd', 'reference_spectra', 'becqmoni',
                     'Work', 'Simple', 'TeCd(Demo)', 'Spe')
 
@@ -52,17 +59,22 @@ FILES = [
     ('HPGe GMX', HANDY_HPGE + r'\Th-232  17 kBq.xml', 'Th232 17 кБк.xml'),
     ('HPGe GMX', HANDY_HPGE + r'\Th-228  68 kBq.xml', 'Th228 68 кБк.xml'),
     ('HPGe GMX', HANDY_HPGE + r'\Eu-152  244 kBq.xml', 'Eu152 244 кБк.xml'),
-    ('HPGe GMX', HANDY_HPGE + r'\Bckg-1500 keV.xml', 'Фон.xml'),
+    ('HPGe GMX', HANDY_HPGE_BG + r'\Bckg-1500 keV.xml', 'Фон.xml'),
     # --- HPGe GEM20, маринелли ---
     ('HPGe GEM20', GP + r'\Marinelli\m_th16.xml', 'Th232 маринелли.xml'),
     ('HPGe GEM20', GP + r'\Marinelli\m_ra16.xml', 'Ra226 маринелли.xml'),
     ('HPGe GEM20', GP + r'\Marinelli\m_k16.xml', 'K40 маринелли.xml'),
+    # Бланк той же геометрии, что и три образца выше: маринелли с
+    # дистиллированной водой, 5 часов набора. Вшитый фон у этих файлов
+    # апстрим убрал (он был подобран автоматически и нёс полином 5-й
+    # степени), поэтому пара задаётся явно в corpus_def.
+    ('HPGe GEM20', GP_BG + r'\Bckg_5.xml', 'Фон маринелли (дист. вода).xml'),
     # калибровка 5-й степени — фикстура к правке ChannelToEnergy, не член корпуса
     ('HPGe GEM20', GP + r'\Point25\Y88-SRC-05-25cm.xml', 'Y88 25см (полином 5й степени).xml'),
     # --- LaBr3 BrilLanCe 380 ---
     ('LaBr3 BrilLanCe', LABR + r'\Th228_#SRC-17_24sm.xml', 'Th228 24см.xml'),
     ('LaBr3 BrilLanCe', LABR + r'\Eu152_#SRC-13_24sm.xml', 'Eu152 24см.xml'),
-    ('LaBr3 BrilLanCe', LABR + r'\Background\Background_1.xml', 'Фон.xml'),
+    ('LaBr3 BrilLanCe', LABR_BG + r'\Background_1.xml', 'Фон.xml'),
     # --- CZT Te(Cd) ---
     ('CZT TeCd', TECD + r'\AmCeCsCoY.xml', 'Смесь Am-Ce-Cs-Co-Y.xml'),
 ]

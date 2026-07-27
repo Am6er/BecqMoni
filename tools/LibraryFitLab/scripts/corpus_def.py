@@ -315,19 +315,32 @@ VIBE = [
          path=p('SpectraVibe', 'HPGe GMX', 'Фон.xml'),
          why='фон того же германия'),
 
+    # У GP_HPGe20 апстрим убрал вшитый фон: он подбирался автоматически по
+    # пересечению компонентов пути и нёс полином 5-й степени, от которого
+    # BecqMoni сбрасывал калибровку всего документа. Пара задана заново и
+    # явно: Bckg_5 — та же геометрия маринелли, дистиллированная вода,
+    # калибровка 2-й степени, 5 часов набора. Для трёх образцов в маринелли
+    # это штатный бланк, а не случайный сосед по дереву.
     dict(key='HPGeGEM_Th232', det='HPGE_GEM', channels=8192, chains=['Th-232'],
          path=p('SpectraVibe', 'HPGe GEM20', 'Th232 маринелли.xml'),
+         bg=p('SpectraVibe', 'HPGe GEM20', 'Фон маринелли (дист. вода).xml'),
          why='второй германий, маринелли: два независимых HPGe вместо одного'),
     dict(key='HPGeGEM_Ra226', det='HPGE_GEM', channels=8192, chains=['Ra-226'],
          path=p('SpectraVibe', 'HPGe GEM20', 'Ra226 маринелли.xml'),
+         bg=p('SpectraVibe', 'HPGe GEM20', 'Фон маринелли (дист. вода).xml'),
          why='радий на германии — линии ряда разрешены поодиночке'),
     dict(key='HPGeGEM_K40', det='HPGE_GEM', channels=8192, nuclides=['40K'],
          path=p('SpectraVibe', 'HPGe GEM20', 'K40 маринелли.xml'),
+         bg=p('SpectraVibe', 'HPGe GEM20', 'Фон маринелли (дист. вода).xml'),
          why='негатив на германии'),
 
     dict(key='LaBrBril_Th228', det='LABR_BRIL', channels=1024, chains=['Th-228'],
          path=p('SpectraVibe', 'LaBr3 BrilLanCe', 'Th228 24см.xml'),
-         why='второй LaBr3, другой производитель и вчетверо меньше каналов'),
+         why='второй LaBr3, другой производитель и вчетверо меньше каналов. '
+             'ОГОВОРКА: вшитый фон Background_1 подобран апстримом автоматически '
+             'и человеком не проверен (detectors/CHANGELOG.md, 27.07.2026). '
+             'Оставлен: это фоновое измерение того же детектора, а образец — '
+             'точечный источник на 24 см, для которого комнатный фон и есть верный'),
     dict(key='LaBrBril_Eu152', det='LABR_BRIL', channels=1024, nuclides=['152EU'],
          path=p('SpectraVibe', 'LaBr3 BrilLanCe', 'Eu152 24см.xml'),
          why='европий на LaBr3: 14 линий при разрешении между NaI и германием'),

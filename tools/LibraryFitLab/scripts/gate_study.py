@@ -51,11 +51,12 @@ from chains import chain_lines, CHAINS, ANCHORS          # noqa: E402
 # перебирается ГЕОМЕТРИЯ окна и порядок подложки — то, что решает, может ли
 # квадратика повторить сам пик, и не залезли ли крылья на соседнюю линию.
 VARIANTS = [
-    ('z', []),
-    ('dd+shape', []),
     ('chain', ['--chain-scatter=1.0'], 'z+chain/1.0'),
     ('chain', ['--chain-scatter=1.25'], 'z+chain/1.25'),
-    ('chain', ['--chain-scatter=1.5'], 'z+chain/1.5'),
+    ('chain+fallback', ['--chain-scatter=1.0', '--chain-min-lines=4'], 'chain1.0.fb4'),
+    ('chain+fallback', ['--chain-scatter=1.0', '--chain-min-lines=6'], 'chain1.0.fb6'),
+    ('chain+fallback', ['--chain-scatter=1.25', '--chain-min-lines=6'], 'chain1.25.fb6'),
+    ('chain+fallback', ['--chain-scatter=1.25', '--chain-min-lines=8'], 'chain1.25.fb8'),
 ]
 
 K, IMIN = 0.7, 1.0
