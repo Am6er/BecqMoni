@@ -240,4 +240,112 @@ NEW = [
              'сам по себе, как спектр'),
 ]
 
-ALL = LEGACY + NEW
+# ---------------------------------------------------------------------------
+# Пополнение 28.07.2026 из spectravibe-toolkit (VibeEngineering-LLC).
+# Аттестованные источники с паспортными активностями, оригиналы в
+# `Спектры/SpectraVibe`. Что здесь нового по сравнению со всем, что было:
+#
+#   * ГЕОМЕТРИЯ. Один детектор Гамма-1С, один и тот же ториевый источник в трёх
+#     сосудах и точечные источники на 5 и 25 см. Каскадное суммирование зависит
+#     от геометрии сильнее всего остального, а именно оно и держит
+#     систематический пол вето по согласованности набора (24 % разброса вокруг
+#     кривой эффективности). До сих пор в корпусе не было ни одной пары
+#     «то же самое, но в другой геометрии».
+#   * ПАСПОРТНЫЕ АКТИВНОСТИ. Впервые в корпусе.
+#   * Eu-152 — четырнадцать линий одного нуклида от 122 до 1408 кэВ. Не цепочка,
+#     но объект того же типа для критерия согласованности; в корпусе такого не
+#     было.
+#   * Th-228 — укороченный ториевый ряд без Ac-228. Проверка, как вето ведёт
+#     себя на ЧАСТИЧНОЙ цепочке.
+#   * Второй и третий германий, второй LaBr3, второй CZT — закрывают дыру,
+#     записанную в журнале («на одном спектре HPGe порог не откалибровать»).
+# ---------------------------------------------------------------------------
+VIBE = [
+    dict(key='G1S_Th232_Denta', det='G1S', channels=1024, chains=['Th-232'],
+         path=p('SpectraVibe', 'Gamma-1S', 'Th232 Дента-120мл.xml'),
+         why='Th-232, флакон Дента 120 мл вплотную; 1940 Бк/кг паспорт'),
+    dict(key='G1S_Th232_Marinelli', det='G1S', channels=1024, chains=['Th-232'],
+         path=p('SpectraVibe', 'Gamma-1S', 'Th232 Маринелли-1л.xml'),
+         why='тот же источник в маринелли 1 л: другая геометрия, другое каскадное суммирование'),
+    dict(key='G1S_Th232_Petri', det='G1S', channels=1024, chains=['Th-232'],
+         path=p('SpectraVibe', 'Gamma-1S', 'Th232 Петри-60мл.xml'),
+         why='тот же источник в чашке Петри 60 мл — третья точка оси геометрии'),
+    dict(key='G1S_Ra226_Denta', det='G1S', channels=1024, chains=['Ra-226'],
+         path=p('SpectraVibe', 'Gamma-1S', 'Ra226 Дента-120мл.xml'),
+         why='аттестованный Ra-226, 1780 Бк/кг'),
+    dict(key='G1S_Ra226_Petri', det='G1S', channels=1024, chains=['Ra-226'],
+         path=p('SpectraVibe', 'Gamma-1S', 'Ra226 Петри-60мл.xml'),
+         why='тот же радий в другой геометрии'),
+    dict(key='G1S_K40_Denta', det='G1S', channels=1024, nuclides=['40K'],
+         path=p('SpectraVibe', 'Gamma-1S', 'K40 Дента-120мл.xml'),
+         why='негатив с паспортной активностью, 2530 Бк/кг'),
+    dict(key='G1S_Th228_25cm', det='G1S', channels=1024, chains=['Th-228'],
+         path=p('SpectraVibe', 'Gamma-1S', 'Th228 точечный 25см.xml'),
+         why='укороченный ториевый ряд, точечный источник на 25 см — суммирование слабое'),
+    dict(key='G1S_Th228_5cm', det='G1S', channels=1024, chains=['Th-228'],
+         path=p('SpectraVibe', 'Gamma-1S', 'Th228 точечный 5см.xml'),
+         why='тот же ряд на 5 см — суммирование сильное. Пара к предыдущему: '
+             'чистая ось каскадного суммирования при неизменном всём остальном'),
+    dict(key='G1S_Eu152_25cm', det='G1S', channels=1024, nuclides=['152EU'],
+         path=p('SpectraVibe', 'Gamma-1S', 'Eu152 точечный 25см.xml'),
+         why='четырнадцать линий одного нуклида, 122-1408 кэВ, слабое суммирование'),
+    dict(key='G1S_Eu152_5cm', det='G1S', channels=1024, nuclides=['152EU'],
+         path=p('SpectraVibe', 'Gamma-1S', 'Eu152 точечный 5см.xml'),
+         why='тот же европий на 5 см: у Eu-152 каскадов много, и здесь они видны'),
+    dict(key='G1S_Co60_25cm', det='G1S', channels=1024, nuclides=['60CO'],
+         path=p('SpectraVibe', 'Gamma-1S', 'Co60 точечный 25см.xml'),
+         why='негатив; классическая каскадная пара 1173/1332'),
+    dict(key='G1S_Ba133_25cm', det='G1S', channels=1024, nuclides=['133BA'],
+         path=p('SpectraVibe', 'Gamma-1S', 'Ba133 точечный 25см.xml'),
+         why='негатив из семи линий — многолинейчатый, но не цепочка'),
+
+    dict(key='HPGeGMX_Th232', det='HPGE_GMX', channels=8192, chains=['Th-232'],
+         path=p('SpectraVibe', 'HPGe GMX', 'Th232 17 кБк.xml'),
+         why='ТОРИЕВАЯ ЦЕПОЧКА НА ГЕРМАНИИ. Единственный прежний HPGe нёс головы '
+             'рядов U-238 и U-235, где сильных линий почти нет, и вето по '
+             'согласованности набора там не с чем было строить'),
+    dict(key='HPGeGMX_Th228', det='HPGE_GMX', channels=8192, chains=['Th-228'],
+         path=p('SpectraVibe', 'HPGe GMX', 'Th228 68 кБк.xml'),
+         why='укороченный ряд на германии: линии разделены полностью'),
+    dict(key='HPGeGMX_Eu152', det='HPGE_GMX', channels=8192, nuclides=['152EU'],
+         path=p('SpectraVibe', 'HPGe GMX', 'Eu152 244 кБк.xml'),
+         why='четырнадцать разрешённых линий — предельный случай для критерия согласованности'),
+    dict(key='HPGeGMX_Background', det='HPGE_GMX', channels=8192,
+         chains=['Th-232', 'Ra-226'], nuclides=['40K'],
+         path=p('SpectraVibe', 'HPGe GMX', 'Фон.xml'),
+         why='фон того же германия'),
+
+    dict(key='HPGeGEM_Th232', det='HPGE_GEM', channels=8192, chains=['Th-232'],
+         path=p('SpectraVibe', 'HPGe GEM20', 'Th232 маринелли.xml'),
+         why='второй германий, маринелли: два независимых HPGe вместо одного'),
+    dict(key='HPGeGEM_Ra226', det='HPGE_GEM', channels=8192, chains=['Ra-226'],
+         path=p('SpectraVibe', 'HPGe GEM20', 'Ra226 маринелли.xml'),
+         why='радий на германии — линии ряда разрешены поодиночке'),
+    dict(key='HPGeGEM_K40', det='HPGE_GEM', channels=8192, nuclides=['40K'],
+         path=p('SpectraVibe', 'HPGe GEM20', 'K40 маринелли.xml'),
+         why='негатив на германии'),
+
+    dict(key='LaBrBril_Th228', det='LABR_BRIL', channels=1024, chains=['Th-228'],
+         path=p('SpectraVibe', 'LaBr3 BrilLanCe', 'Th228 24см.xml'),
+         why='второй LaBr3, другой производитель и вчетверо меньше каналов'),
+    dict(key='LaBrBril_Eu152', det='LABR_BRIL', channels=1024, nuclides=['152EU'],
+         path=p('SpectraVibe', 'LaBr3 BrilLanCe', 'Eu152 24см.xml'),
+         why='европий на LaBr3: 14 линий при разрешении между NaI и германием'),
+    dict(key='LaBrBril_Background', det='LABR_BRIL', channels=1024,
+         chains=['Th-232', 'Ra-226'], nuclides=['40K'],
+         path=p('SpectraVibe', 'LaBr3 BrilLanCe', 'Фон.xml'),
+         why='фон LaBr3 — у кристалла есть собственная активность'),
+
+    dict(key='CZTTeCd_Mix', det='CZT_TECD', channels=4095,
+         nuclides=['241AM', '139CE', '137CS', '60CO', '88Y'],
+         path=p('SpectraVibe', 'CZT TeCd', 'Смесь Am-Ce-Cs-Co-Y.xml'),
+         why='второй CZT и первая в корпусе СМЕСЬ из пяти независимых нуклидов: '
+             'проверка, не примет ли фит чужие линии за свою цепочку'),
+]
+
+# Файл `SpectraVibe/HPGe GEM20/Y88 25см (полином 5й степени).xml` в корпус НЕ
+# взят: Y-88 даёт всего две линии, мерить на нём нечего. Он оставлен в
+# библиотеке как фикстура к правке PolynomialEnergyCalibration — на нём
+# проверяется probes/CalibrationProbe.cs.
+
+ALL = LEGACY + NEW + VIBE

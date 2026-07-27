@@ -119,11 +119,17 @@ def chain_lines(root, kinds=('G',), e_min=10.0, e_max=3200.0):
     return merged
 
 
-CHAINS = {'Th-232': '232TH', 'Ra-226': '226RA', 'U-238': '238U', 'U-235': '235U'}
+# Th-228 — нижняя половина ториевого ряда, от Th-228 до Tl-208. Отдельная
+# цепочка, а не Th-232: аттестованный источник Th-228 не содержит Ac-228, и его
+# линий 911/969/338 кэВ в спектре нет. Считать такой источник рядом Th-232
+# значит записать в знаменатель recall линии, которых там быть не может.
+CHAINS = {'Th-232': '232TH', 'Th-228': '228TH', 'Ra-226': '226RA',
+          'U-238': '238U', 'U-235': '235U'}
 
 # Anchor lines: strong, clean single peaks used as the gate of the set.
 ANCHORS = {
     'Th-232': [2614.51],   # Tl-208, 100% of chain, top of spectrum, no neighbours
+    'Th-228': [2614.51],   # тот же Tl-208: он есть и в укороченном ряду
     'Ra-226': [609.32],    # Bi-214, strongest Ra line
     'U-238': [1001.03],    # Pa-234m, classic "uranium" monopeak (Ra-free glass too)
     'U-235': [185.72],     # U-235 itself
