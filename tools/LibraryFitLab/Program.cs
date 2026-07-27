@@ -38,7 +38,7 @@ namespace LibraryFitLab
 
                 ApplyGate(options.Gate, options.ShapeZ, options.ShapeWindow, options.ShapeFlank,
                           options.ShapeOrder, options.ChainVeto, options.ChainScatter,
-                          options.ChainMinLines);
+                          options.ChainMinLines, options.AbsenceMiss, options.AbsenceSigma);
 
                 GlobalConfigManager.GetInstance();
                 DeviceConfigManager.GetInstance();
@@ -94,8 +94,11 @@ namespace LibraryFitLab
         //   chain    - z по линии плюс вето по согласованности набора (умолчание)
         //   dd+shape+chain - всё сразу
         static void ApplyGate(string gate, double? shapeZ, double? window, double? flank, int? order,
-                              bool? chainVeto, double? chainScatter, int? chainMinLines)
+                              bool? chainVeto, double? chainScatter, int? chainMinLines,
+                              double? absenceMiss, double? absenceSigma)
         {
+            if (absenceMiss.HasValue) LibraryPeakFitter.AbsenceMissLimit = absenceMiss.Value;
+            if (absenceSigma.HasValue) LibraryPeakFitter.AbsenceVisibleSigma = absenceSigma.Value;
             if (chainMinLines.HasValue)
             {
                 LibraryPeakFitter.ChainConsistencyMinLines = chainMinLines.Value;
@@ -111,6 +114,7 @@ namespace LibraryFitLab
             if (chainScatter.HasValue) LibraryPeakFitter.ChainScatterLimit = chainScatter.Value;
 
             LibraryPeakFitter.UseChainVetoFallback = false;
+            LibraryPeakFitter.UseAbsenceVeto = false;
             switch (gate)
             {
                 case "z":
@@ -150,6 +154,14 @@ namespace LibraryFitLab
                 // Вето с запасным критерием: shape включается ТОЛЬКО там, где
                 // вето воздержалось или сняло набор. Это и есть конструкция,
                 // которую поддерживают замеры по детекторам.
+                // Вето по разбросу + вето по отсутствиям + запасной критерий.
+                case "chain+absence":
+                    LibraryPeakFitter.UseDevianceGate = false;
+                    LibraryPeakFitter.UseBackgroundShapeGate = false;
+                    LibraryPeakFitter.UseChainConsistencyVeto = true;
+                    LibraryPeakFitter.UseChainVetoFallback = true;
+                    LibraryPeakFitter.UseAbsenceVeto = true;
+                    break;
                 case "chain+fallback":
                     LibraryPeakFitter.UseDevianceGate = false;
                     LibraryPeakFitter.UseBackgroundShapeGate = false;
@@ -471,6 +483,8 @@ namespace LibraryFitLab
             public bool? ChainVeto;
             public double? ChainScatter;
             public int? ChainMinLines;
+            public double? AbsenceMiss;
+            public double? AbsenceSigma;
 
             public static Options Parse(string[] args)
             {
@@ -510,6 +524,8 @@ namespace LibraryFitLab
                     else if (TryValue(arg, "--chain-veto=", out value)) options.ChainVeto = bool.Parse(value);
                     else if (TryValue(arg, "--chain-scatter=", out value)) options.ChainScatter = ParseDouble(value);
                     else if (TryValue(arg, "--chain-min-lines=", out value)) options.ChainMinLines = int.Parse(value);
+                    else if (TryValue(arg, "--absence-miss=", out value)) options.AbsenceMiss = ParseDouble(value);
+                    else if (TryValue(arg, "--absence-sigma=", out value)) options.AbsenceSigma = ParseDouble(value);
                     else if (string.Equals(arg, "--no-set", StringComparison.OrdinalIgnoreCase)) options.IncludeNoSet = true;
                     else if (string.Equals(arg, "--bg=visible", StringComparison.OrdinalIgnoreCase)) options.SubtractBackground = false;
                     else if (string.Equals(arg, "--bg=substract", StringComparison.OrdinalIgnoreCase)) options.SubtractBackground = true;

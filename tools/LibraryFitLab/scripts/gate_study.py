@@ -51,12 +51,10 @@ from chains import chain_lines, CHAINS, ANCHORS          # noqa: E402
 # перебирается ГЕОМЕТРИЯ окна и порядок подложки — то, что решает, может ли
 # квадратика повторить сам пик, и не залезли ли крылья на соседнюю линию.
 VARIANTS = [
-    ('chain', ['--chain-scatter=1.0'], 'z+chain/1.0'),
-    ('chain', ['--chain-scatter=1.25'], 'z+chain/1.25'),
-    ('chain+fallback', ['--chain-scatter=1.0', '--chain-min-lines=4'], 'chain1.0.fb4'),
-    ('chain+fallback', ['--chain-scatter=1.0', '--chain-min-lines=6'], 'chain1.0.fb6'),
-    ('chain+fallback', ['--chain-scatter=1.25', '--chain-min-lines=6'], 'chain1.25.fb6'),
-    ('chain+fallback', ['--chain-scatter=1.25', '--chain-min-lines=8'], 'chain1.25.fb8'),
+    ('chain+absence', ['--chain-scatter=1.25', '--chain-min-lines=6', '--absence-miss=0.45'], 'абс 0.45'),
+    ('chain+absence', ['--chain-scatter=1.25', '--chain-min-lines=6', '--absence-miss=0.35'], 'абс 0.35'),
+    ('chain+absence', ['--chain-scatter=1.25', '--chain-min-lines=6', '--absence-miss=0.25'], 'абс 0.25'),
+    ('chain+absence', ['--chain-scatter=1.25', '--chain-min-lines=6', '--absence-miss=0.35', '--absence-sigma=3'], 'абс 0.35 s3'),
 ]
 
 K, IMIN = 0.7, 1.0
