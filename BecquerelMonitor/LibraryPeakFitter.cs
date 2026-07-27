@@ -290,43 +290,74 @@ namespace BecquerelMonitor
         // два узла отстоят на 3 кэВ при разнице эффективности 30 %, наклон между
         // ними шумовой, и продолжение по нему на 100 кэВ вниз дало ln eps = -14.8
         // вместо -2.7. Линии вне покрытия исключаются.
-        public static double[] ExternalLnEnergy;
-        public static double[] ExternalLnEfficiency;
-
-        // ln eps(E) по внешней кривой или NaN вне покрытия.
-        static double ExternalLnEps(double lnE)
+        // Ничего изобретать не пришлось — всё уже есть в приложении:
+        // ROIEfficiencyData (энергия, эффективность, погрешность) — это формат
+        // экспорта LSRM; DeviceConfigForm умеет импортировать такие файлы;
+        // DeviceConfigInfo.EfficencyROIGuid связывает кривую с прибором, а
+        // DocEnergySpectrum кладёт её в ResultData.ROIConfig при открытии
+        // документа. Не хватало ровно одного: фиттер её не читал.
+        //
+        // Кривой может и НЕ БЫТЬ — это штатный случай, а не исключение. Тогда всё
+        // работает по-прежнему, на кривой, подогнанной по самому набору.
+        sealed class EfficiencyShape
         {
-            double[] x = ExternalLnEnergy;
-            double[] y = ExternalLnEfficiency;
-            if (x == null || y == null || x.Length < 2 || x.Length != y.Length)
+            readonly ROIAriphmetics arithmetics;
+
+            EfficiencyShape(ROIAriphmetics arithmetics)
             {
-                return double.NaN;
+                this.arithmetics = arithmetics;
             }
-            if (lnE < x[0] || lnE > x[x.Length - 1])
+
+            // null, если кривой нет или она непригодна. Исключение здесь гасится
+            // намеренно: отсутствие кривой не должно ронять поиск пиков.
+            public static EfficiencyShape From(ROIConfigData config)
             {
-                return double.NaN;
+                if (config == null || !config.HasEfficiency ||
+                    config.ROIEfficiency == null || config.ROIEfficiency.Count < 2)
+                {
+                    return null;
+                }
+                try
+                {
+                    ROIAriphmetics arithmetics = new ROIAriphmetics(config);
+                    return arithmetics.HasValidCurve ? new EfficiencyShape(arithmetics) : null;
+                }
+                catch (Exception)
+                {
+                    return null;
+                }
             }
-            int hi = Array.BinarySearch(x, lnE);
-            if (hi >= 0)
+
+            // ln eps(E) или NaN вне покрытия. Экстраполировать нельзя, и штатный
+            // CalculateEfficiency за границами узлов сам возвращает null — это
+            // правильно: продолжение по краевому наклону на редкой сетке даёт
+            // ошибку в порядки (проверено, см. журнал).
+            public double LnEfficiency(double energy)
             {
-                return y[hi];
+                if (energy <= 0.0)
+                {
+                    return double.NaN;
+                }
+                ROIEfficiencyData point = this.arithmetics.CalculateEfficiency(energy);
+                if (point == null || point.Efficiency <= 0.0)
+                {
+                    return double.NaN;
+                }
+                return Math.Log(point.Efficiency);
             }
-            hi = ~hi;
-            int lo = hi - 1;
-            double t = (lnE - x[lo]) / (x[hi] - x[lo]);
-            return y[lo] + t * (y[hi] - y[lo]);
         }
 
         // Масштаб набора при ФИКСИРОВАННОЙ форме: ln A = среднее (y - ln eps).
         // Возвращает false, если покрытых точек меньше порога доверия.
-        static bool ExternalScale(List<double> x, List<double> y, out double lnA)
+        static bool ExternalScale(EfficiencyShape shape, List<double> x, List<double> y,
+                                  out double lnA)
         {
             lnA = 0.0;
             double sum = 0.0;
             int n = 0;
             for (int i = 0; i < x.Count; i++)
             {
-                double m = ExternalLnEps(x[i]);
+                double m = shape.LnEfficiency(Math.Exp(x[i]));
                 if (!PeakShapeModel.IsFinite(m))
                 {
                     continue;
@@ -431,9 +462,12 @@ namespace BecquerelMonitor
             List<Peak> existingPeaks,
             NuclideSet nuclideSet,
             List<NuclideDefinition> nuclideDefinitions,
-            FWHMPeakDetectionMethodConfig peakConfig)
+            FWHMPeakDetectionMethodConfig peakConfig,
+            ROIConfigData efficiencyConfig = null)
         {
             LibraryFitResult result = new LibraryFitResult();
+            // Кривая прибора, если она к нему привязана. Может отсутствовать.
+            EfficiencyShape efficiencyShape = EfficiencyShape.From(efficiencyConfig);
             if (spectrum?.Spectrum == null || fwhmCalibration == null || nuclideSet == null || peakConfig == null)
             {
                 return result;
@@ -799,7 +833,7 @@ namespace BecquerelMonitor
 
             // --- Вето по согласованности набора ---
             ChainVerdict verdict = UseChainConsistencyVeto
-                ? ChainConsistent(result.AddedPeaks)
+                ? ChainConsistent(result.AddedPeaks, efficiencyShape)
                 : ChainVerdict.Consistent;
 
             // Вето воздержалось: точек на кривую не хватило. Прежде в этом
@@ -826,7 +860,8 @@ namespace BecquerelMonitor
             // только когда то высказалось — иначе кривой нет.
             if (UseAbsenceVeto && verdict == ChainVerdict.Consistent)
             {
-                double missed = UnexplainedAbsence(result.AddedPeaks, model, lambdaCurrent);
+                double missed = UnexplainedAbsence(result.AddedPeaks, model, lambdaCurrent,
+                                                   efficiencyShape);
                 if (missed >= 0.0 && missed > AbsenceMissLimit)
                 {
                     verdict = ChainVerdict.Inconsistent;
@@ -1684,11 +1719,12 @@ namespace BecquerelMonitor
         // видимыми, а фит их не принял. Возвращает -1, если предсказывать не по
         // чему (ни одна линия не проходит порог видимости).
         static double UnexplainedAbsence(List<LibraryCandidate> accepted,
-                                         List<FitComponent> model, double[] lambda)
+                                         List<FitComponent> model, double[] lambda,
+                                         EfficiencyShape shape)
         {
             // Внешняя кривая разрывает круг: отсутствие проверяется формой,
             // полученной вне этого измерения, а не построенной по присутствующим.
-            bool external = ExternalLnEnergy != null;
+            bool external = shape != null;
             double externalLnA = 0.0;
             double[] curve = null;
             if (external)
@@ -1710,7 +1746,7 @@ namespace BecquerelMonitor
                     ex.Add(Math.Log(candidate.Nuclide.Energy));
                     ey.Add(Math.Log(ratio));
                 }
-                if (!ExternalScale(ex, ey, out externalLnA))
+                if (!ExternalScale(shape, ex, ey, out externalLnA))
                 {
                     return -1.0;
                 }
@@ -1768,7 +1804,7 @@ namespace BecquerelMonitor
                 double model_;
                 if (external)
                 {
-                    model_ = ExternalLnEps(lnE) + externalLnA;
+                    model_ = shape.LnEfficiency(component.Nuclide.Energy) + externalLnA;
                     if (!PeakShapeModel.IsFinite(model_))
                     {
                         continue;           // энергия вне покрытия аттестации
@@ -1931,7 +1967,8 @@ namespace BecquerelMonitor
             Abstained        // точек меньше ChainConsistencyMinLines: судить не о чем
         }
 
-        static ChainVerdict ChainConsistent(List<LibraryCandidate> candidates)
+        static ChainVerdict ChainConsistent(List<LibraryCandidate> candidates,
+                                            EfficiencyShape shape)
         {
             List<double> x = new List<double>();
             List<double> y = new List<double>();
@@ -1957,10 +1994,10 @@ namespace BecquerelMonitor
             }
 
             // Внешняя кривая: форма фиксирована, свободен только масштаб.
-            if (ExternalLnEnergy != null)
+            if (shape != null)
             {
                 double lnAext;
-                if (!ExternalScale(x, y, out lnAext))
+                if (!ExternalScale(shape, x, y, out lnAext))
                 {
                     return ChainVerdict.Abstained;
                 }
@@ -1968,7 +2005,7 @@ namespace BecquerelMonitor
                 int ne = 0;
                 for (int i = 0; i < x.Count; i++)
                 {
-                    double m = ExternalLnEps(x[i]);
+                    double m = shape.LnEfficiency(Math.Exp(x[i]));
                     if (!PeakShapeModel.IsFinite(m))
                     {
                         continue;
