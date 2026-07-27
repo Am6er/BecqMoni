@@ -36,8 +36,22 @@ namespace BecquerelMonitor
             List<double> doseRates = new List<double>();
             foreach (DoseRateCalibrationPoint point in config.DoseRateCalibrationPoints)
             {
-                int startch = (int)calibration.EnergyToChannel(point.LowerBound, maxCh: energySpectrum.NumberOfChannels);
-                int endch = (int)calibration.EnergyToChannel(point.UpperBound, maxCh: energySpectrum.NumberOfChannels);
+                int startch;
+                int endch;
+                try
+                {
+                    startch = (int)calibration.EnergyToChannel(point.LowerBound, maxCh: energySpectrum.NumberOfChannels);
+                    endch = (int)calibration.EnergyToChannel(point.UpperBound, maxCh: energySpectrum.NumberOfChannels);
+                }
+                catch (OutofChannelException)
+                {
+                    // Калибровка не даёт канала для этой границы. Раньше сюда
+                    // приходил ноль, клампы его пропускали, цикл не выполнялся, и
+                    // точка выпадала из расчёта мощности дозы МОЛЧА, с виду как
+                    // обычная точка с нулевыми отсчётами. Пропуск остался, но
+                    // теперь он следствие явного отказа, а не совпадения.
+                    continue;
+                }
                 if (startch < 0) startch = 0;
                 if (endch >= energySpectrum.Spectrum.Length) endch = energySpectrum.Spectrum.Length - 1;
                 double counts = 0.0;

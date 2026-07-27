@@ -247,6 +247,53 @@ namespace BecquerelMonitor
         // 0.25 -> те же 7.1 % ценой recall. Плато на 0.35, там и стоим.
         public static double AbsenceMissLimit = 0.35;
 
+        // Поимённое исключение выбросов вместо решения «всё или ничего».
+        //
+        // Оба вета решают на НАБОР: набор из девяти согласованных линий и одного
+        // фантома проходит целиком, и остаток фантомов живёт именно там. Достать
+        // одну линию ни одно из них не может по построению.
+        //
+        // Здесь набор, не уложившийся в порог разброса, не снимается сразу:
+        // выбрасывается линия с наибольшей невязкой относительно кривой, кривая
+        // строится заново, и так пока разброс не уложится. Промышленный образец —
+        // PACE у Canberra (ANIMMA 2021): переопределённая система по активностям,
+        // восстановленные площади против измеренных, выбросы поимённо.
+        //
+        // ВЫКЛЮЧЕНО ПО ИТОГАМ ЗАМЕРА. Приём не переносится, и причина общая:
+        // разброс вокруг кривой — единственное, что отличает набор от обманки, а
+        // процедура, РЕДАКТИРУЮЩАЯ набор ради улучшения этой самой статистики,
+        // уничтожает улику, по которой судит. Наивный выброс худшей невязки поднял
+        // фантомы с 7.1 до 49.9 %. Условие Граббса (выбрасывать только настоящий
+        // выброс, а не просто худший) чинит поведение и интерполирует между 49.9 и
+        // 7.1 %, но выигрышной точки нет: при K = 3.5 выходит 65.1 % recall при
+        // 9.6 % фантомов, то есть 0.74 ложной на настоящую против 0.59 без выброса.
+        //
+        // У PACE ожидаемые площади предсказываются по НЕЗАВИСИМО откалиброванной
+        // кривой эффективности, а у нас кривая подгоняется по самому набору —
+        // отсюда круг. Приём станет применим, если появится независимая кривая
+        // (в поставке есть `LSRM Geometries/`); до тех пор переключатель выключен.
+        public static bool UseOutlierTrim = false;
+
+        // Сколько линий позволено выбросить, в долях набора. Без ограничения
+        // подгонка выродится: из любого набора можно оставить ChainConsistencyMinLines
+        // точек, легших на кривую, и объявить его согласованным.
+        public static double OutlierTrimMaxFraction = 0.34;
+
+        // Во сколько стандартных отклонений невязка должна превосходить
+        // остальные, чтобы линию можно было выбросить.
+        //
+        // Без этого условия приём не работает вовсе — измерено: наивное
+        // «выбросить худшую невязку» подняло долю фантомов с 7.1 до 49.9 %,
+        // потому что выброс худшего оптимизирует РОВНО ТУ статистику, по которой
+        // судит вето, и согласованным становится любой набор. Ужесточение доли
+        // не помогает (0.20 дало 38.4 %).
+        //
+        // Условие Граббса разводит два случая, которые наивный приём смешивает:
+        // у набора-обманки разбросаны ВСЕ точки, ни одна не выделяется, выбросить
+        // некого — вето срабатывает; у настоящего набора с одним фантомом тот
+        // выделяется и уходит.
+        public static double OutlierTrimGrubbsK = 2.5;
+
         // Вычитать ли из наблюдённого спектра вклад ОСТАЛЬНЫХ компонент модели перед
         // измерением. Офлайновая проверка этого не делала и теряла настоящие линии в
         // блендах: крылья окна ложатся на соседнюю линию, подложка задирается, и
@@ -715,6 +762,19 @@ namespace BecquerelMonitor
                 if (missed >= 0.0 && missed > AbsenceMissLimit)
                 {
                     verdict = ChainVerdict.Inconsistent;
+                }
+            }
+
+            // Набор не уложился в порог — прежде чем снимать его целиком,
+            // попробовать выбросить виновные линии поимённо.
+            if (UseChainConsistencyVeto && UseOutlierTrim &&
+                verdict == ChainVerdict.Inconsistent)
+            {
+                List<LibraryCandidate> trimmed = TrimToConsistent(result.AddedPeaks);
+                if (trimmed != null && trimmed.Count > 0)
+                {
+                    result.AddedPeaks = trimmed;
+                    verdict = ChainVerdict.Consistent;
                 }
             }
 
@@ -1650,6 +1710,106 @@ namespace BecquerelMonitor
                 return null;
             }
             return PolyFit(x, y, x.Count >= 5 ? 2 : 1);
+        }
+
+        // Убрать выбросы поимённо, пока набор не уложится в порог разброса.
+        // Возвращает укороченный список или null, если уложить не удалось в
+        // пределах дозволенного числа исключений.
+        static List<LibraryCandidate> TrimToConsistent(List<LibraryCandidate> candidates)
+        {
+            // Кандидаты, по которым кривая не строится (нет площади, интенсивности
+            // или энергии), в подгонке не участвуют и выбросами быть не могут, но
+            // из набора не выпадают: решение принимается по тем, кто на кривой.
+            List<LibraryCandidate> usable = new List<LibraryCandidate>();
+            List<LibraryCandidate> passive = new List<LibraryCandidate>();
+            foreach (LibraryCandidate candidate in candidates)
+            {
+                double ratio = candidate.Nuclide != null && candidate.Nuclide.Intencity > 0.0 &&
+                               candidate.Nuclide.Energy > 0.0 && candidate.Area > 0.0
+                    ? candidate.Area / candidate.Nuclide.Intencity
+                    : double.NaN;
+                if (PeakShapeModel.IsFinite(ratio) && ratio > 0.0)
+                {
+                    usable.Add(candidate);
+                }
+                else
+                {
+                    passive.Add(candidate);
+                }
+            }
+
+            int allowed = (int)Math.Floor(usable.Count * OutlierTrimMaxFraction);
+            for (int dropped = 0; ; dropped++)
+            {
+                if (usable.Count < ChainConsistencyMinLines)
+                {
+                    return null;
+                }
+
+                List<double> x = new List<double>();
+                List<double> y = new List<double>();
+                foreach (LibraryCandidate candidate in usable)
+                {
+                    x.Add(Math.Log(candidate.Nuclide.Energy));
+                    y.Add(Math.Log(candidate.Area / candidate.Nuclide.Intencity));
+                }
+                int order = x.Count >= 5 ? 2 : 1;
+                double[] coefficients = PolyFit(x, y, order);
+                if (coefficients == null)
+                {
+                    return null;
+                }
+
+                double sum = 0.0;
+                int worst = -1;
+                double worstResidual = -1.0;
+                for (int i = 0; i < x.Count; i++)
+                {
+                    double model = 0.0;
+                    double power = 1.0;
+                    for (int k = 0; k <= order; k++)
+                    {
+                        model += coefficients[k] * power;
+                        power *= x[i];
+                    }
+                    double residual = Math.Abs(y[i] - model);
+                    sum += residual * residual;
+                    if (residual > worstResidual)
+                    {
+                        worstResidual = residual;
+                        worst = i;
+                    }
+                }
+
+                double scatter = Math.Exp(Math.Sqrt(sum / x.Count)) - 1.0;
+                if (!PeakShapeModel.IsFinite(scatter) || scatter <= ChainScatterLimit)
+                {
+                    List<LibraryCandidate> kept = new List<LibraryCandidate>(usable);
+                    kept.AddRange(passive);
+                    return kept;
+                }
+
+                if (dropped >= allowed || worst < 0)
+                {
+                    return null;               // не уложить - набор снимается целиком
+                }
+
+                // Выбрасывать можно только НАСТОЯЩИЙ выброс. Среднеквадратичная
+                // невязка считается БЕЗ кандидата на исключение: иначе он сам
+                // раздувает знаменатель и никогда не проходит порог.
+                double restSum = sum - worstResidual * worstResidual;
+                int restCount = x.Count - 1;
+                if (restCount < 2)
+                {
+                    return null;
+                }
+                double restSigma = Math.Sqrt(restSum / restCount);
+                if (!(restSigma > 0.0) || worstResidual < OutlierTrimGrubbsK * restSigma)
+                {
+                    return null;               // разбросаны все - это не выброс, а набор
+                }
+                usable.RemoveAt(worst);
+            }
         }
 
         internal enum ChainVerdict

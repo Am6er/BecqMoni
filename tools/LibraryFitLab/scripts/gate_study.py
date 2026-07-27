@@ -51,10 +51,10 @@ from chains import chain_lines, CHAINS, ANCHORS          # noqa: E402
 # перебирается ГЕОМЕТРИЯ окна и порядок подложки — то, что решает, может ли
 # квадратика повторить сам пик, и не залезли ли крылья на соседнюю линию.
 VARIANTS = [
-    ('chain+absence', ['--chain-scatter=1.25', '--chain-min-lines=6', '--absence-miss=0.45'], 'абс 0.45'),
-    ('chain+absence', ['--chain-scatter=1.25', '--chain-min-lines=6', '--absence-miss=0.35'], 'абс 0.35'),
-    ('chain+absence', ['--chain-scatter=1.25', '--chain-min-lines=6', '--absence-miss=0.25'], 'абс 0.25'),
-    ('chain+absence', ['--chain-scatter=1.25', '--chain-min-lines=6', '--absence-miss=0.35', '--absence-sigma=3'], 'абс 0.35 s3'),
+    ('chain+absence', ['--chain-scatter=1.25', '--chain-min-lines=6', '--absence-miss=0.35'], 'production'),
+    ('chain+trim', ['--chain-scatter=1.25', '--chain-min-lines=6', '--absence-miss=0.35', '--trim-fraction=0.34', '--trim-grubbs=2.5'], 'grubbs 2.5'),
+    ('chain+trim', ['--chain-scatter=1.25', '--chain-min-lines=6', '--absence-miss=0.35', '--trim-fraction=0.34', '--trim-grubbs=3.5'], 'grubbs 3.5'),
+    ('chain+trim', ['--chain-scatter=1.25', '--chain-min-lines=6', '--absence-miss=0.35', '--trim-fraction=0.20', '--trim-grubbs=2.0'], 'grubbs 2.0 f20'),
 ]
 
 K, IMIN = 0.7, 1.0
