@@ -39,6 +39,7 @@ s оценивается робастно (MAD): часть смещений в�
 import os
 import sys
 import csv
+import re
 import json
 import xml.etree.ElementTree as ET
 
@@ -240,7 +241,7 @@ def main():
 
     for row in manifest:
         key, det = row['key'], row['det']
-        chains = [c for c in (row.get('chains') or '').split('|') if c]
+        chains = [c for c in re.split(r'[;|]', row.get('chains') or '') if c]
         d = dets.get(det)
         if not chains or not d:
             continue

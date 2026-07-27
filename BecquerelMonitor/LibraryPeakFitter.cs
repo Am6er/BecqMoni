@@ -216,6 +216,37 @@ namespace BecquerelMonitor
         // воздержалось или сняло набор целиком.
         public static bool UseChainVetoFallback = true;
 
+        // Второе вето по набору: доля линий, которые кривая эффективности
+        // предсказывает УВЕРЕННО ВИДИМЫМИ, а фит их не принял.
+        //
+        // Прежнее вето спрашивает только про принятые линии — легли ли они на
+        // общую кривую. Про отсутствующие не спрашивает никто, а это половина
+        // доступной информации. У настоящей цепочки в равновесии отсутствие
+        // информативнее присутствия: если 2614 кэВ есть с площадью A, то 583
+        // обязана быть с предсказуемой площадью. У набора-обманки линии смещены
+        // на пустые энергии, фит принимает те, что случайно сели на структуру, а
+        // остальные проваливаются — и сейчас эти провалы игнорируются.
+        //
+        // Замерено офлайн по полному корпусу (scripts/absence_check.py), 61
+        // настоящий набор против 51 обманки. При одинаковой доле пропущенных
+        // настоящих наборов связка двух вето бьёт каждое поодиночке на всех
+        // рабочих точках: при 70 % настоящих — 13.7 % обманок против 23.5 % у
+        // одного разброса, при 90 % — 49.0 % против 72.5 %.
+        public static bool UseAbsenceVeto = true;
+
+        // Во сколько сигм предсказание должно превышать ноль, чтобы отсутствие
+        // линии считалось уликой. Это критический уровень по Currie, только
+        // поставленный обратной стороной: не «видна ли линия», а «должна ли она
+        // была быть видна». Пять меряется заметно лучше двух и трёх.
+        public static double AbsenceVisibleSigma = 5.0;
+
+        // Порог доли необъяснённых пропусков. Офлайновый расчёт давал оптимум
+        // около 0.6, но в фиттере эффект слабее: модель видит не все линии сета,
+        // а континуум у неё свой (SNIP плюс фон прибора), не локальный полином.
+        // Скан по корпусу: 0.60 не даёт ничего, 0.45 -> 7.4 %, 0.35 -> 7.1 %,
+        // 0.25 -> те же 7.1 % ценой recall. Плато на 0.35, там и стоим.
+        public static double AbsenceMissLimit = 0.35;
+
         // Вычитать ли из наблюдённого спектра вклад ОСТАЛЬНЫХ компонент модели перед
         // измерением. Офлайновая проверка этого не делала и теряла настоящие линии в
         // блендах: крылья окна ложатся на соседнюю линию, подложка задирается, и
@@ -674,6 +705,18 @@ namespace BecquerelMonitor
             // тест устойчивости пропускает треть его линий — сам по себе он
             // опускает фантомы только до 28.9 %. Сила вето именно в решении на
             // набор, и подменять его решением по линии нельзя.
+
+            // Второе вето: набор молчит там, где по собственной же кривой
+            // обязан был говорить. Считается ДО снятия набора первым вето и
+            // только когда то высказалось — иначе кривой нет.
+            if (UseAbsenceVeto && verdict == ChainVerdict.Consistent)
+            {
+                double missed = UnexplainedAbsence(result.AddedPeaks, model, lambdaCurrent);
+                if (missed >= 0.0 && missed > AbsenceMissLimit)
+                {
+                    verdict = ChainVerdict.Inconsistent;
+                }
+            }
 
             if (UseChainConsistencyVeto && verdict == ChainVerdict.Inconsistent)
             {
@@ -1507,6 +1550,106 @@ namespace BecquerelMonitor
                 }
             }
             return kept;
+        }
+
+        // Доля линий набора, которые кривая эффективности объявляет уверенно
+        // видимыми, а фит их не принял. Возвращает -1, если предсказывать не по
+        // чему (ни одна линия не проходит порог видимости).
+        static double UnexplainedAbsence(List<LibraryCandidate> accepted,
+                                         List<FitComponent> model, double[] lambda)
+        {
+            double[] curve = EfficiencyCurve(accepted);
+            if (curve == null)
+            {
+                return -1.0;
+            }
+
+            HashSet<NuclideDefinition> seen = new HashSet<NuclideDefinition>();
+            foreach (LibraryCandidate candidate in accepted)
+            {
+                if (candidate.Nuclide != null)
+                {
+                    seen.Add(candidate.Nuclide);
+                }
+            }
+
+            int expected = 0;
+            int missing = 0;
+            foreach (FitComponent component in model)
+            {
+                if (component.Nuclide == null || component.Nuclide.Intencity <= 0.0 ||
+                    component.Nuclide.Energy <= 0.0)
+                {
+                    continue;                       // escape-компоненты сюда не входят
+                }
+
+                // Сигма чистой площади при НУЛЕВОМ сигнале: та же информация
+                // Фишера, что в FisherZ, только без множителя-амплитуды —
+                // у отвергнутой линии амплитуда нулевая, и через неё не выразить.
+                double information = 0.0;
+                for (int j = 0; j < component.Profile.Length; j++)
+                {
+                    double pr = component.Profile[j];
+                    information += pr * pr / Math.Max(1.0, lambda[component.Start + j]);
+                }
+                if (information <= 0.0)
+                {
+                    continue;
+                }
+                double sigmaAmplitude = 1.0 / Math.Sqrt(information);
+                double profileSum = ProfileSum(component);
+                if (profileSum <= 0.0)
+                {
+                    continue;
+                }
+                double sigmaArea = sigmaAmplitude * profileSum;
+
+                double lnE = Math.Log(component.Nuclide.Energy);
+                double model_ = curve[0] + curve[1] * lnE +
+                                (curve.Length > 2 ? curve[2] * lnE * lnE : 0.0);
+                double predicted = component.Nuclide.Intencity * Math.Exp(model_);
+                if (!PeakShapeModel.IsFinite(predicted) ||
+                    predicted < AbsenceVisibleSigma * sigmaArea)
+                {
+                    continue;                       // линия и не должна была быть видна
+                }
+
+                expected++;
+                if (!seen.Contains(component.Nuclide))
+                {
+                    missing++;
+                }
+            }
+
+            return expected > 0 ? (double)missing / expected : -1.0;
+        }
+
+        // Коэффициенты ln(S/I) = polynom(ln E) по принятым линиям. Та же кривая,
+        // на которой стоит вето по разбросу; вынесена, чтобы её считали оба.
+        static double[] EfficiencyCurve(List<LibraryCandidate> candidates)
+        {
+            List<double> x = new List<double>();
+            List<double> y = new List<double>();
+            foreach (LibraryCandidate candidate in candidates)
+            {
+                if (candidate.Nuclide == null || candidate.Area <= 0.0 ||
+                    candidate.Nuclide.Intencity <= 0.0 || candidate.Nuclide.Energy <= 0.0)
+                {
+                    continue;
+                }
+                double ratio = candidate.Area / candidate.Nuclide.Intencity;
+                if (!PeakShapeModel.IsFinite(ratio) || ratio <= 0.0)
+                {
+                    continue;
+                }
+                x.Add(Math.Log(candidate.Nuclide.Energy));
+                y.Add(Math.Log(ratio));
+            }
+            if (x.Count < ChainConsistencyMinLines)
+            {
+                return null;
+            }
+            return PolyFit(x, y, x.Count >= 5 ? 2 : 1);
         }
 
         internal enum ChainVerdict
