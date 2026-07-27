@@ -38,7 +38,8 @@ namespace LibraryFitLab
 
                 ApplyGate(options.Gate, options.ShapeZ, options.ShapeWindow, options.ShapeFlank,
                           options.ShapeOrder, options.ChainVeto, options.ChainScatter,
-                          options.ChainMinLines, options.AbsenceMiss, options.AbsenceSigma);
+                          options.ChainMinLines, options.AbsenceMiss, options.AbsenceSigma,
+                          options.TrimFraction, options.TrimGrubbs);
 
                 GlobalConfigManager.GetInstance();
                 DeviceConfigManager.GetInstance();
@@ -95,8 +96,11 @@ namespace LibraryFitLab
         //   dd+shape+chain - всё сразу
         static void ApplyGate(string gate, double? shapeZ, double? window, double? flank, int? order,
                               bool? chainVeto, double? chainScatter, int? chainMinLines,
-                              double? absenceMiss, double? absenceSigma)
+                              double? absenceMiss, double? absenceSigma,
+                              double? trimFraction, double? trimGrubbs)
         {
+            if (trimFraction.HasValue) LibraryPeakFitter.OutlierTrimMaxFraction = trimFraction.Value;
+            if (trimGrubbs.HasValue) LibraryPeakFitter.OutlierTrimGrubbsK = trimGrubbs.Value;
             if (absenceMiss.HasValue) LibraryPeakFitter.AbsenceMissLimit = absenceMiss.Value;
             if (absenceSigma.HasValue) LibraryPeakFitter.AbsenceVisibleSigma = absenceSigma.Value;
             if (chainMinLines.HasValue)
@@ -115,6 +119,7 @@ namespace LibraryFitLab
 
             LibraryPeakFitter.UseChainVetoFallback = false;
             LibraryPeakFitter.UseAbsenceVeto = false;
+            LibraryPeakFitter.UseOutlierTrim = false;
             switch (gate)
             {
                 case "z":
@@ -155,6 +160,16 @@ namespace LibraryFitLab
                 // вето воздержалось или сняло набор. Это и есть конструкция,
                 // которую поддерживают замеры по детекторам.
                 // Вето по разбросу + вето по отсутствиям + запасной критерий.
+                // Полная связка: вето по разбросу с поимённым исключением
+                // выбросов + вето по отсутствиям + запасной критерий.
+                case "chain+trim":
+                    LibraryPeakFitter.UseDevianceGate = false;
+                    LibraryPeakFitter.UseBackgroundShapeGate = false;
+                    LibraryPeakFitter.UseChainConsistencyVeto = true;
+                    LibraryPeakFitter.UseChainVetoFallback = true;
+                    LibraryPeakFitter.UseAbsenceVeto = true;
+                    LibraryPeakFitter.UseOutlierTrim = true;
+                    break;
                 case "chain+absence":
                     LibraryPeakFitter.UseDevianceGate = false;
                     LibraryPeakFitter.UseBackgroundShapeGate = false;
@@ -485,6 +500,8 @@ namespace LibraryFitLab
             public int? ChainMinLines;
             public double? AbsenceMiss;
             public double? AbsenceSigma;
+            public double? TrimFraction;
+            public double? TrimGrubbs;
 
             public static Options Parse(string[] args)
             {
@@ -526,6 +543,8 @@ namespace LibraryFitLab
                     else if (TryValue(arg, "--chain-min-lines=", out value)) options.ChainMinLines = int.Parse(value);
                     else if (TryValue(arg, "--absence-miss=", out value)) options.AbsenceMiss = ParseDouble(value);
                     else if (TryValue(arg, "--absence-sigma=", out value)) options.AbsenceSigma = ParseDouble(value);
+                    else if (TryValue(arg, "--trim-fraction=", out value)) options.TrimFraction = ParseDouble(value);
+                    else if (TryValue(arg, "--trim-grubbs=", out value)) options.TrimGrubbs = ParseDouble(value);
                     else if (string.Equals(arg, "--no-set", StringComparison.OrdinalIgnoreCase)) options.IncludeNoSet = true;
                     else if (string.Equals(arg, "--bg=visible", StringComparison.OrdinalIgnoreCase)) options.SubtractBackground = false;
                     else if (string.Equals(arg, "--bg=substract", StringComparison.OrdinalIgnoreCase)) options.SubtractBackground = true;

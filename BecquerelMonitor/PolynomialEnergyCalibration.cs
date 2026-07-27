@@ -223,6 +223,7 @@ namespace BecquerelMonitor
             if (this.maxChannels != maxCh) { this.maxChannels = maxCh; this.maxEnergy = -1; this.dirty = true; }
             if (this.maxEnergy == -1 || this.dirty) this.maxEnergy = ChannelToEnergy(this.maxChannels);
             if (enrg > this.maxEnergy && this.maxEnergy != -1) return this.maxChannels;
+
             if (this.dirty || this.energytochanel == null)
             {
                 this.energytochanel = new ConcurrentDictionary<double, double>();
@@ -256,6 +257,10 @@ namespace BecquerelMonitor
 
         double EnrgToChannel(double enrg, int maxCh = 8192)
         {
+            // Здесь ноль - ПРАВИЛЬНЫЙ ответ, а не признак неудачи: энергия ниже
+            // начала шкалы (coefficients[0] и есть ChannelToEnergy(0)) приходится
+            // на левый край. Отказы решателя ниже возвращать ноль не должны -
+            // иначе ошибка неотличима от этого законного случая.
             if (enrg < 0 || enrg < this.coefficients[0])
             {
                 return 0;
@@ -278,8 +283,14 @@ namespace BecquerelMonitor
                 {
                     if (b == 0.0)
                     {
-                        System.Windows.Forms.MessageBox.Show(Resources.CalibrationFunctionError);
-                        return 0;
+                        // Ноль - валидный номер канала, поэтому возвращать его
+                        // при неудаче нельзя: ошибка становится неотличима от
+                        // результата. Энергии ниже начала шкалы отсекает
+                        // обёртка EnergyToChannel, так что сюда попадает только
+                        // настоящий отказ - калибровка немонотонна или
+                        // вырождена. OutofChannelException потребители уже
+                        // ловят (MeasurementResultManager, EnergySpectrumView).
+                        throw new OutofChannelException();
                     }
                     return - c / b;
                 }
@@ -288,8 +299,14 @@ namespace BecquerelMonitor
                     double discriminant = Math.Pow(b, 2.0) - 4.0 * a * c;
                     if (discriminant < 0.0)
                     {
-                        System.Windows.Forms.MessageBox.Show(Resources.CalibrationFunctionError);
-                        return 0;
+                        // Ноль - валидный номер канала, поэтому возвращать его
+                        // при неудаче нельзя: ошибка становится неотличима от
+                        // результата. Энергии ниже начала шкалы отсекает
+                        // обёртка EnergyToChannel, так что сюда попадает только
+                        // настоящий отказ - калибровка немонотонна или
+                        // вырождена. OutofChannelException потребители уже
+                        // ловят (MeasurementResultManager, EnergySpectrumView).
+                        throw new OutofChannelException();
                     }
                     double sqrtD = Math.Sqrt(discriminant);
                     double root1 = (-b + sqrtD) / (2.0 * a);
@@ -301,7 +318,14 @@ namespace BecquerelMonitor
                     if (root2InRange) return root2;
                     if (root1 >= 0.0) return root1;
                     if (root2 >= 0.0) return root2;
-                    return 0;
+                    // Ноль - валидный номер канала, поэтому возвращать его
+                    // при неудаче нельзя: ошибка становится неотличима от
+                    // результата. Энергии ниже начала шкалы отсекает
+                    // обёртка EnergyToChannel, так что сюда попадает только
+                    // настоящий отказ - калибровка немонотонна или
+                    // вырождена. OutofChannelException потребители уже
+                    // ловят (MeasurementResultManager, EnergySpectrumView).
+                    throw new OutofChannelException();
                 }
             }
             if (this.polynomialOrder == 4)
@@ -315,9 +339,12 @@ namespace BecquerelMonitor
                 }
                 catch
                 {
-                    //throw new Exception(String.Format("Calibration coefficients are incorrect channels for Energy: " + enrg));
-                    //System.Windows.Forms.MessageBox.Show("Calibration coefficients are incorrect channels for Energy: " + enrg);
-                    return 0;
+                    // Ноль - валидный номер канала (см. проверку в начале метода),
+                    // поэтому при отказе решателя возвращать его нельзя: ошибка
+                    // становится неотличима от результата. MeasurementResultManager
+                    // молча получал нулевую площадь ROI, DoseRateManager - нулевые
+                    // отсчёты и выброшенную точку калибровки дозы.
+                    throw new OutofChannelException();
                 }
             }
 
@@ -332,9 +359,12 @@ namespace BecquerelMonitor
                 }
                 catch
                 {
-                    //System.Windows.Forms.MessageBox.Show("Calibration coefficients are incorrect channels for Energy: " + enrg);
-                    //throw new Exception(String.Format("Calibration coefficients are incorrect channels for Energy: " + enrg));
-                    return 0;
+                    // Ноль - валидный номер канала (см. проверку в начале метода),
+                    // поэтому при отказе решателя возвращать его нельзя: ошибка
+                    // становится неотличима от результата. MeasurementResultManager
+                    // молча получал нулевую площадь ROI, DoseRateManager - нулевые
+                    // отсчёты и выброшенную точку калибровки дозы.
+                    throw new OutofChannelException();
                 }
             }
 
@@ -361,7 +391,12 @@ namespace BecquerelMonitor
                 }
                 catch
                 {
-                    return 0;
+                    // Ноль - валидный номер канала (см. проверку в начале метода),
+                    // поэтому при отказе решателя возвращать его нельзя: ошибка
+                    // становится неотличима от результата. MeasurementResultManager
+                    // молча получал нулевую площадь ROI, DoseRateManager - нулевые
+                    // отсчёты и выброшенную точку калибровки дозы.
+                    throw new OutofChannelException();
                 }
             }
 
