@@ -29,6 +29,7 @@
 import csv
 import os
 import shutil
+import glob
 import subprocess
 import sys
 from collections import defaultdict
@@ -217,8 +218,34 @@ def parse_set(name):
     return head, 'real'
 
 
+def coverage_check(dets):
+    """Сколько групп должно было посчитаться и сколько дало непустой CSV.
+
+    Третья ловушка покрытия подряд, и первая — не в скрипте разбора, а в самом
+    прогоне: группа CZT_TECD падала при десериализации, gate_study печатал
+    «ОШИБКА», но прогоны запускались с подавленным выводом, и `--report`
+    разбирает готовые CSV, об упавшей группе не зная. Расхождение и есть сигнал.
+    """
+    missing = []
+    for det in dets:
+        files = glob.glob(os.path.join(OUT, '%s_*_runs.csv' % det))
+        if not files:
+            missing.append((det, 'нет файлов'))
+            continue
+        if not any(sum(1 for _ in open(f, encoding='utf-8-sig')) > 1 for f in files):
+            missing.append((det, 'файлы пусты'))
+    print('групп в манифесте %d, с прогоном %d' % (len(dets), len(dets) - len(missing)))
+    for det, why in missing:
+        print('  ГРУППА НЕ ПОСЧИТАНА: %-12s %s' % (det, why))
+    return missing
+
+
 def report():
     import json
+
+    rows = [r for r in read_csv(os.path.join(CORPUS, 'manifest.csv'))]
+    coverage_check(sorted(set(r['det'] for r in rows)))
+    print()
     sets_manifest = json.load(open(os.path.join(HERE, 'sets_manifest.json'), encoding='utf-8'))
     decoy_lines = {(m['det'], m['set_name']):
                    [l for l in m['lines'] if l.get('decoy')]

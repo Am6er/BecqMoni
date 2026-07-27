@@ -308,6 +308,18 @@ def extract(entry):
     if entry['det'] in NEW_DEVICE:
         name_el.text = NEW_DEVICE[entry['det']]['name']
 
+    # Пустой <Time /> роняет десериализацию всего документа: приложение читает
+    # его как DateTime и получает FormatException, а харнесс — падение прогона
+    # на всю группу. Такой файл приехал из апстрима (`CZTTeCd_Mix`), и группа
+    # CZT_TECD молча не считалась НИ В ОДНОМ прогоне с c115209 по ec5136a:
+    # gate_study печатает «ОШИБКА», но прогоны запускались с подавленным
+    # выводом. Нормализуем здесь, чтобы дефект не приезжал со следующим
+    # импортом.
+    for si in root.iter('SampleInfo'):
+        t = si.find('Time')
+        if t is not None and not (t.text or '').strip():
+            si.remove(t)
+
     os.makedirs(RAW, exist_ok=True)
     dest = os.path.join(RAW, entry['key'] + '.xml')
     tree.write(dest, encoding='utf-8', xml_declaration=True)
