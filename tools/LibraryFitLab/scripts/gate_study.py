@@ -52,13 +52,9 @@ from chains import chain_lines, CHAINS, ANCHORS          # noqa: E402
 # перебирается ГЕОМЕТРИЯ окна и порядок подложки — то, что решает, может ли
 # квадратика повторить сам пик, и не залезли ли крылья на соседнюю линию.
 VARIANTS = [
-    ('chain+absence', ['--chain-scatter=1.25', '--chain-min-lines=6', '--absence-miss=0.35'], 'как есть'),
-    ('chain+absence', ['--chain-scatter=1.25', '--chain-min-lines=6', '--absence-miss=0.35', '--ch-concat=99999'], 'без объединения'),
-    ('chain+absence', ['--chain-scatter=1.25', '--chain-min-lines=6', '--absence-miss=0.35', '--ch-concat=1024'], 'объед. до 1024'),
-    ('chain+absence', ['--chain-scatter=1.25', '--chain-min-lines=6', '--absence-miss=0.35', '--ch-concat=512'], 'объед. до 512'),
-    ('chain+absence', ['--chain-scatter=1.25', '--chain-min-lines=6', '--absence-miss=0.35', '--fwhm-tol=50:150'], 'ширина 50-150%'),
-    ('chain+absence', ['--chain-scatter=1.25', '--chain-min-lines=6', '--absence-miss=0.35', '--fwhm-tol=70:130'], 'ширина 70-130%'),
-    ('chain+absence', ['--chain-scatter=1.25', '--chain-min-lines=6', '--absence-miss=0.35', '--match-tol=1'], 'допуск 1%'),
+    ('chain+absence', ['--chain-scatter=1.25', '--chain-min-lines=6', '--absence-miss=0.35'], 'production'),
+    ('chain+absence', ['--chain-scatter=1.25', '--chain-min-lines=6', '--absence-miss=0.35', '--eff-curve=%s' % os.path.join(os.path.dirname(HERE), 'data', 'eff_by_spectrum_lsrm.csv')], 'кривые LSRM'),
+    ('chain+absence', ['--chain-scatter=1.25', '--chain-min-lines=6', '--absence-miss=0.35', '--eff-curve=%s' % os.path.join(os.path.dirname(HERE), 'data', 'eff_by_spectrum_lsrm_sens.csv')], 'LSRM, др. геометрия'),
 ]
 
 K, IMIN = 0.7, 1.0
