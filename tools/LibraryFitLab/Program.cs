@@ -40,6 +40,9 @@ namespace LibraryFitLab
                           options.ShapeOrder, options.ChainVeto, options.ChainScatter,
                           options.ChainMinLines, options.AbsenceMiss, options.AbsenceSigma,
                           options.TrimFraction, options.TrimGrubbs);
+                FinderChConcat = options.ChConcat;
+                FinderFwhmTol = options.FwhmTol;
+                FinderMatchTol = options.MatchTol;
 
                 GlobalConfigManager.GetInstance();
                 DeviceConfigManager.GetInstance();
@@ -151,6 +154,30 @@ namespace LibraryFitLab
             for (int i = 0; i < pts.Count; i++) { xs[i] = pts[i].Key; ys[i] = pts[i].Value; }
             LibraryPeakFitter.ExternalLnEnergy = xs;
             LibraryPeakFitter.ExternalLnEfficiency = ys;
+        }
+
+        // Переопределения настроек финдера. Ноль/пусто — оставить как в конфиге.
+        static int? FinderChConcat;
+        static string FinderFwhmTol;
+        static double? FinderMatchTol;
+
+        static void ApplyFinderOverrides(FWHMPeakDetectionMethodConfig config)
+        {
+            if (config == null) return;
+            if (FinderChConcat.HasValue) config.Ch_Concat = FinderChConcat.Value;
+            if (FinderMatchTol.HasValue) config.Tolerance = FinderMatchTol.Value;
+            if (!string.IsNullOrEmpty(FinderFwhmTol))
+            {
+                string[] parts = FinderFwhmTol.Split(':');
+                decimal lo, hi;
+                if (parts.Length == 2 &&
+                    decimal.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out lo) &&
+                    decimal.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out hi))
+                {
+                    config.Min_FWHM_Tol = lo;
+                    config.Max_FWHM_Tol = hi;
+                }
+            }
         }
 
         static void ApplyGate(string gate, double? shapeZ, double? window, double? flank, int? order,
@@ -410,6 +437,7 @@ namespace LibraryFitLab
             // становилась меньше канала, и финдер не находил НИ ОДНОГО пика.
             resultData.PeakDetectionMethodConfig =
                 (FWHMPeakDetectionMethodConfig)((FWHMPeakDetectionMethodConfig)deviceConfig.PeakDetectionMethodConfig).Clone();
+            ApplyFinderOverrides((FWHMPeakDetectionMethodConfig)resultData.PeakDetectionMethodConfig);
             resultData.ROIConfig = null;
 
             if (resultData.FwhmCalibration == null)
@@ -562,6 +590,9 @@ namespace LibraryFitLab
             public double? TrimFraction;
             public double? TrimGrubbs;
             public string EffCurve;
+            public int? ChConcat;
+            public string FwhmTol;
+            public double? MatchTol;
 
             public static Options Parse(string[] args)
             {
@@ -606,6 +637,12 @@ namespace LibraryFitLab
                     else if (TryValue(arg, "--trim-fraction=", out value)) options.TrimFraction = ParseDouble(value);
                     else if (TryValue(arg, "--trim-grubbs=", out value)) options.TrimGrubbs = ParseDouble(value);
                     else if (TryValue(arg, "--eff-curve=", out value)) options.EffCurve = value;
+                    // Настройки самого финдера — чтобы мерить их влияние, а не
+                    // угадывать. Все три берутся из конфига устройства и здесь
+                    // только переопределяются.
+                    else if (TryValue(arg, "--ch-concat=", out value)) options.ChConcat = int.Parse(value);
+                    else if (TryValue(arg, "--fwhm-tol=", out value)) options.FwhmTol = value;
+                    else if (TryValue(arg, "--match-tol=", out value)) options.MatchTol = ParseDouble(value);
                     else if (string.Equals(arg, "--no-set", StringComparison.OrdinalIgnoreCase)) options.IncludeNoSet = true;
                     else if (string.Equals(arg, "--bg=visible", StringComparison.OrdinalIgnoreCase)) options.SubtractBackground = false;
                     else if (string.Equals(arg, "--bg=substract", StringComparison.OrdinalIgnoreCase)) options.SubtractBackground = true;
