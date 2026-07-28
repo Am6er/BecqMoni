@@ -54,7 +54,7 @@ from chains import chain_lines, CHAINS, ANCHORS          # noqa: E402
 VARIANTS = [
     ('chain+absence', ['--chain-scatter=1.25', '--chain-min-lines=6', '--absence-miss=0.35'], 'production'),
     ('chain+absence', ['--chain-scatter=1.25', '--chain-min-lines=6', '--absence-miss=0.35', '--eff-curve=%s' % os.path.join(os.path.dirname(HERE), 'data', 'eff_by_spectrum_lsrm.csv')], 'кривые LSRM'),
-    ('chain+absence', ['--chain-scatter=1.25', '--chain-min-lines=6', '--absence-miss=0.35', '--eff-curve=%s' % os.path.join(os.path.dirname(HERE), 'data', 'eff_by_spectrum_lsrm_sens.csv')], 'LSRM, др. геометрия'),
+    ('chain+absence', ['--chain-scatter=1.25', '--chain-min-lines=6', '--absence-miss=0.35', '--eff-curve=%s' % os.path.join(os.path.dirname(HERE), 'data', 'eff_by_spectrum_lsrm_sens.csv')], 'LSRM, др.геом'),
 ]
 
 K, IMIN = 0.7, 1.0
@@ -227,7 +227,13 @@ def coverage_check(dets):
     """
     missing = []
     for det in dets:
-        files = glob.glob(os.path.join(OUT, '%s_*_runs.csv' % det))
+        # Точные имена, а не glob по префиксу: шаблон 'CZT_*' ловил файлы
+        # CZT_TECD_*, 'HPGE_*' — HPGE_GEM и HPGE_GMX, и полностью упавшая
+        # группа числилась «с прогоном» за счёт соседей. Счётчик покрытия,
+        # заведённый после прошлой ловушки, сам был ей подвержен.
+        files = [os.path.join(OUT, tag_of(det, label) + '_runs.csv')
+                 for label, _gate, _extra in points()]
+        files = [f for f in files if os.path.exists(f)]
         if not files:
             missing.append((det, 'нет файлов'))
             continue
@@ -322,12 +328,18 @@ def report():
                     bucket['fired'] += 1
                     shown = decoy_lines.get((det, meta['set']), [])
                     bucket['ph_shown'] += len(shown)
-                    wanted = {round(l['e'], 2) for l in shown}
+                    # Сопоставление по ДОПУСКУ, а не по равенству округлённых.
+                    # Харнесс пишет энергию форматом F3, скрипт сверял round(·,2):
+                    # значения, различающиеся на тысячные, уезжали в разные сотые
+                    # и не матчились. Померено на живых данных: из 379 принятых
+                    # линий обманок 10 терялись (2.6 %), все в пределах 0.01 кэВ,
+                    # и потеря односторонняя — доля фантомов занижалась.
+                    wanted = sorted(l['e'] for l in shown)
                     for p in peaks.get(run_id, []):
                         if p['origin'] != 'Library' or p['anchor'] == '1':
                             continue
                         e = float(p['nuclide_energy'] or p['energy'])
-                        if round(e, 2) in wanted:
+                        if wanted and min(abs(e - w) for w in wanted) < 0.01:
                             bucket['ph_acc'] += 1
 
     per_det = '--per-det' in sys.argv
@@ -339,9 +351,16 @@ def report():
     for det in sorted(dets):
         for gate in labels:
             b = stat[gate].get(det)
-            if not b or not b['ref']:
+            if not b:
                 continue
-            recall = 100.0 * b['hit'] / b['ref']
+            # Группа без цепочек (CZT_TECD — смесь пяти нуклидов, RC103g) даёт
+            # пустой знаменатель recall, но её обманки предъявляются и
+            # принимаются честно. Раньше условие стояло ДО аккумуляции, и
+            # спектры, существующие ровно ради ложных срабатываний, в колонку
+            # фантомов не попадали ни разу.
+            if not b['ref'] and not b['ph_shown']:
+                continue
+            recall = 100.0 * b['hit'] / b['ref'] if b['ref'] else float('nan')
             phantom = 100.0 * b['ph_acc'] / b['ph_shown'] if b['ph_shown'] else float('nan')
             if per_det:
                 print('%-10s %-14s %7.1f%% %8d %7.1f%% %8d %8.0f' % (

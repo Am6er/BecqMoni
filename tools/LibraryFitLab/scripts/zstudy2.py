@@ -59,13 +59,15 @@ def gather(subdir, manifest_name, want_kind):
             if want_kind == 'real' and truth['chains'][chain] not in ('pos', 'head'):
                 continue
             info = manifest.get((det, meta['set']), {})
-            by_energy = {round(l['e'], 2): l for l in info.get('lines', [])}
+            all_lines = list(info.get('lines', []))
             group = []
             for p in peaks.get(run, []):
                 if p['origin'] != 'Library':
                     continue
                 e = float(p['nuclide_energy'] or p['energy'])
-                line = by_energy.get(round(e, 2))
+                line = min(all_lines, key=lambda l: abs(e - l['e']), default=None)
+                if line is not None and abs(e - line['e']) >= 0.01:
+                    line = None
                 if line is None:
                     continue
                 if want_kind == 'decoy' and not line.get('decoy'):

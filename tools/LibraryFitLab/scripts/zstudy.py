@@ -57,13 +57,14 @@ def collect(subdir, manifest_name, want_kind):
             if want_kind == 'real' and truth['chains'][chain] not in ('pos', 'head'):
                 continue
             info = manifest.get((det, meta['set']), {})
-            decoy_e = {round(l['e'], 2) for l in info.get('lines', []) if l.get('decoy')}
+            decoy_e = sorted(l['e'] for l in info.get('lines', []) if l.get('decoy'))
             for p in peaks.get(run, []):
                 if p['origin'] != 'Library' or p['anchor'] == '1':
                     continue
                 z = float(p['peak_snr'])
                 e = float(p['nuclide_energy'] or p['energy'])
-                if want_kind == 'decoy' and round(e, 2) not in decoy_e:
+                if want_kind == 'decoy' and not (
+                        decoy_e and min(abs(e - d) for d in decoy_e) < 0.01):
                     continue
                 bucket[(det, k, imin)].append(z)
     return bucket
