@@ -186,6 +186,16 @@ def run():
     build_sets(dets)
 
     os.makedirs(OUT, exist_ok=True)
+    # Целевые файлы сносятся ДО прогона. Отказ до открытия писателя (битый
+    # конфиг устройства, нерезолвленные сеты) оставлял CSV прошлого свипа, и
+    # --report спокойно оценивал их как текущие: свежий отчёт по несвежим
+    # данным, без единого признака.
+    for det in dets:
+        for label, _gate, _extra in points():
+            for suffix in ('_runs.csv', '_peaks.csv'):
+                stale = os.path.join(OUT, tag_of(det, label) + suffix)
+                if os.path.exists(stale):
+                    os.remove(stale)
     for det in dets:
         wd = prepare_workdir(det, by_det[det])
         exe = os.path.join(wd, 'LibraryFitLab.exe')
@@ -287,6 +297,12 @@ def report():
             runs_path = os.path.join(OUT, tag + '_runs.csv')
             peaks_path = os.path.join(OUT, tag + '_peaks.csv')
             if not os.path.exists(runs_path):
+                # НЕ молча. Гейт, чьих CSV нет, раньше просто не участвовал, и
+                # итоговая таблица показывала его отсутствие как ничто: два
+                # гейта могли сравниваться по разным подмножествам корпуса, а
+                # отчёт выглядел нормальным. coverage_check ловит только
+                # полностью выпавшую группу, а не выпавшую пару (группа, гейт).
+                failed.append((det, label, '(нет файла прогона)', '-'))
                 continue
             runs = {int(r['run']): r for r in read_csv(runs_path, 'utf-8')}
             peaks = defaultdict(list)

@@ -71,6 +71,21 @@ def set_chain(tag):
     return CHAIN_TAG.get(tag, tag)
 
 
+# Голова ряда U-238: нуклиды до радия. Спектр урановой соли или стекла содержит
+# только их, а сет несёт весь ряд — и хвост засчитывался НАСТОЯЩЕМУ набору как
+# необъяснённые пропуски. Смещение пессимистичное (разделение занижалось, не
+# завышалось), но число всё равно неверное.
+U238_HEAD_NUCS = {'238U', '234TH', '234PAM1', '234PAm1', '234PA', '234U', '230TH'}
+
+
+def head_lines(tag, lines):
+    """Линии сета, физически возможные для этого тега манифеста."""
+    if tag != 'U-238u':
+        return lines
+    return [l for l in lines if (l.get('nucid') or '').upper() in
+            {n.upper() for n in U238_HEAD_NUCS}]
+
+
 def read_csv(path, encoding='utf-8-sig'):
     with open(path, encoding=encoding, newline='') as fh:
         return list(csv.DictReader(fh))
@@ -290,7 +305,7 @@ def main():
             for kind in ('real', 'decoy'):
                 for m in sets.get((det, set_chain(chain), kind), []):
                     x, y = [], []
-                    for line in m['lines']:
+                    for line in head_lines(chain, m['lines']):
                         e0, inten = float(line['e']), float(line['i'])
                         if not (lo <= e0 <= hi) or inten <= 0:
                             continue
