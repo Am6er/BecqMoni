@@ -53,6 +53,7 @@ sys.path.insert(0, HERE)
 
 from chains import chain_lines, CHAINS                  # noqa: E402
 
+LABEL_USED = ['production']
 I_STRONG = 5.0        # «сильная» линия цепочки: от этой интенсивности, %
 MAX_DIST_FWHM = 8.0   # дальше ближайшая линия уже не при чём
 
@@ -107,12 +108,25 @@ def load_accepted():
     # асимметрии комптоновской ступеньки был получен на неполных данных.
     known = sorted((r['det'] for r in read_csv(os.path.join(CORPUS, 'detectors.csv'))),
                    key=len, reverse=True)
+    # ОДИН вариант гейта на замер. Раньше склеивались все *_peaks.csv, то есть
+    # один и тот же спектр входил в выборку столько раз, сколько вариантов было
+    # в прогоне, и «принято» суммировалось по разным критериям сразу. Вариант
+    # задаётся ключом --label=, по умолчанию production.
+    label = 'production'
+    for arg in sys.argv[1:]:
+        if arg.startswith('--label='):
+            label = arg.split('=', 1)[1]
+    LABEL_USED[0] = label
     out = {}
+    used = 0
     for path in glob.glob(os.path.join(OUT, '*_peaks.csv')):
         base = os.path.basename(path)
         det = next((d for d in known if base.startswith(d + '_')), None)
         if det is None:
             continue
+        if base[len(det) + 1:-len('_peaks.csv')] != label:
+            continue
+        used += 1
         for row in read_csv(path):
             name = row.get('set') or ''
             if '~decoy' not in name:
@@ -178,6 +192,7 @@ def main():
                 stat['принято'].append(dd)
                 per.setdefault(det, {'предъявлено': [], 'принято': []})['принято'].append(dd)
 
+    print('вариант гейта: %s' % LABEL_USED[0])
     print('линий обманок с ближайшей сильной линией в пределах %.0f FWHM:' % MAX_DIST_FWHM)
     print('  предъявлено %d, принято %d' % (len(stat['предъявлено']), len(stat['принято'])))
     if not stat['принято']:
