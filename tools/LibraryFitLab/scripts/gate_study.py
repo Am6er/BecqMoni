@@ -237,8 +237,16 @@ def coverage_check(dets):
         if not files:
             missing.append((det, 'нет файлов'))
             continue
-        if not any(sum(1 for _ in open(f, encoding='utf-8-sig')) > 1 for f in files):
-            missing.append((det, 'файлы пусты'))
+        # Строка-маркер ERROR прогоном не является: файл из одних маркеров
+        # раньше проходил по условию «строк больше одной».
+        def has_real_rows(path):
+            try:
+                return any((r.get('n_total') or '').strip() not in ('', 'ERROR')
+                           for r in read_csv(path))
+            except Exception:
+                return False
+        if not any(has_real_rows(f) for f in files):
+            missing.append((det, 'нет удачных прогонов'))
     print('групп в манифесте %d, с прогоном %d' % (len(dets), len(dets) - len(missing)))
     for det, why in missing:
         print('  ГРУППА НЕ ПОСЧИТАНА: %-12s %s' % (det, why))
@@ -248,6 +256,7 @@ def coverage_check(dets):
 def report():
     import json
 
+    failed = []
     rows = [r for r in read_csv(os.path.join(CORPUS, 'manifest.csv'))]
     coverage_check(sorted(set(r['det'] for r in rows)))
     print()
@@ -285,6 +294,17 @@ def report():
                 peaks[int(p['run'])].append(p)
 
             for run_id, meta in runs.items():
+                # Строка-маркер провалившегося прогона. Проверка стоит ПЕРВОЙ и
+                # до ветки baseline: иначе провал базы уходил в подсчёт финдера,
+                # ref прирастал всеми линиями цепочек спектра при нуле хитов, и
+                # recall финдера занижался без следа — ровно тот «отказ,
+                # неотличимый от нормы», ради которого маркер и вводился.
+                # А для прогона с сетом ниже падало float('') на пустом ms:
+                # громко, но трейсбек — это не спроектированный сигнал.
+                if (meta.get('n_total') or '').strip() == 'ERROR':
+                    failed.append((det, label, meta.get('spectrum') or '?',
+                                   meta.get('set') or '-'))
+                    continue
                 if meta['set'] == '-':
                     # База: тот же спектр без сета вообще. Без неё цифры гейта
                     # не читаются — если recall упал до базы, библиотечный фит
@@ -341,6 +361,14 @@ def report():
                         e = float(p['nuclide_energy'] or p['energy'])
                         if wanted and min(abs(e - w) for w in wanted) < 0.01:
                             bucket['ph_acc'] += 1
+
+    if failed:
+        print('ПРОГОНОВ ПРОВАЛИЛОСЬ: %d' % len(failed))
+        for det, label, spectrum, setname in failed[:20]:
+            print('  %-12s %-16s %-22s %s' % (det, label, spectrum, setname))
+        if len(failed) > 20:
+            print('  ... и ещё %d' % (len(failed) - 20))
+        print()
 
     per_det = '--per-det' in sys.argv
     print('%-10s %-14s %8s %8s %8s %8s %8s' % (
