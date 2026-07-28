@@ -13,9 +13,20 @@ namespace BecquerelMonitor
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
         protected override void Dispose(bool disposing)
         {
-            if (disposing && (components != null))
+            if (disposing)
             {
-                components.Dispose();
+                // Отписка от синглтона. MainForm пересоздаёт панель не только по
+                // IsDisposed, но и при каждой смене раскладки, а подписка была
+                // анонимным делегатом и не снималась вовсе: каждое переключение
+                // оставляло вечный обработчик на мёртвом графе контролов.
+                if (this.nuclideManager != null)
+                {
+                    this.nuclideManager.NuclideDefinitionListChanged -= this.OnNuclideDefinitionListChanged;
+                }
+                if (components != null)
+                {
+                    components.Dispose();
+                }
             }
 
             base.Dispose(disposing);

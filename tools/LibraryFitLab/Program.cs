@@ -83,6 +83,11 @@ namespace LibraryFitLab
                     }
                 }
 
+                if (Failures > 0)
+                {
+                    Console.Error.WriteLine("{0} run(s) failed", Failures);
+                    return 2;
+                }
                 return 0;
             }
             catch (Exception ex)
@@ -108,9 +113,16 @@ namespace LibraryFitLab
         {
             var bySpectrum = new Dictionary<string, List<KeyValuePair<double, double>>>(
                 StringComparer.OrdinalIgnoreCase);
-            if (string.IsNullOrEmpty(path) || !File.Exists(path))
+            if (string.IsNullOrEmpty(path))
             {
-                return bySpectrum;
+                return bySpectrum;                  // ключ не задан — кривых нет, это норма
+            }
+            // А вот заданный, но нечитаемый путь — отказ, а не «работаем без
+            // кривых»: сравнительная колонка молча вырождалась в копию
+            // production, и это ровно тот класс, который журнал уже ловил.
+            if (!File.Exists(path))
+            {
+                throw new FileNotFoundException("efficiency curve file not found", path);
             }
             bool header = true;
             foreach (string raw in File.ReadAllLines(path))
@@ -136,6 +148,10 @@ namespace LibraryFitLab
             {
                 kv.Value.Sort((a, b) => a.Key.CompareTo(b.Key));
             }
+            if (bySpectrum.Count == 0)
+            {
+                throw new InvalidDataException("efficiency curve file has no usable rows: " + path);
+            }
             return bySpectrum;
         }
 
@@ -144,6 +160,11 @@ namespace LibraryFitLab
         // путём, что и GUI, — через ResultData.ROIConfig, а не через отдельный
         // лабораторный вход.
         static ROIConfigData CurrentEfficiencyConfig;
+
+        // Сколько прогонов провалилось. Ненулевое значение поднимает код
+        // возврата: свип, где часть спектров не посчиталась, успешным не
+        // считается, иначе gate_study его stderr не покажет.
+        static int Failures;
 
         static void SetEffCurve(Dictionary<string, List<KeyValuePair<double, double>>> curves,
                                 string spectrumName)
@@ -328,13 +349,21 @@ namespace LibraryFitLab
             StreamWriter peaksWriter,
             StreamWriter runsWriter)
         {
-            ResultData resultData = LoadResultData(spectrumFile);
-            FWHMPeakDetectionMethodConfig config = PreparePeakConfig(resultData, scenario, options);
-
+            // LoadResultData и PreparePeakConfig стоят ПОД тем же catch, что и
+            // сам прогон. Раньше они были снаружи, и один битый спектр
+            // (задокументированный CZTTeCd с пустым <Time/>) убивал весь остаток
+            // свипа, оставляя правдоподобные частичные CSV — а --report их
+            // спокойно оценивал. Плюс упавший прогон исчезал из runs.csv, Main
+            // возвращал 0, и gate_study показывал stderr только при ненулевом
+            // коде: отказ был неотличим от результата.
+            ResultData resultData;
+            FWHMPeakDetectionMethodConfig config;
             Stopwatch watch = Stopwatch.StartNew();
             List<Peak> peaks;
             try
             {
+                resultData = LoadResultData(spectrumFile);
+                config = PreparePeakConfig(resultData, scenario, options);
                 peaks = new PeakDetector().DetectPeak(
                     resultData,
                     options.SubtractBackground ? BackgroundMode.Substract : BackgroundMode.Visible,
@@ -344,6 +373,12 @@ namespace LibraryFitLab
             catch (Exception ex)
             {
                 Console.Error.WriteLine("run {0} {1} / {2} failed: {3}", run, spectrumName, set?.Name ?? "-", ex.Message);
+                // Строка-маркер: прогон был и провалился. Пустота в CSV читается
+                // как «прогона не существовало», а это разные вещи.
+                WriteLine(runsWriter, string.Format(CultureInfo.InvariantCulture,
+                    "{0},{1},{2},{3},,,,,,,,,,,ERROR,,,,,", run, Csv(spectrumName),
+                    Csv(set?.Name ?? "-"), Csv(options.Gate)));
+                Failures++;
                 return;
             }
             watch.Stop();

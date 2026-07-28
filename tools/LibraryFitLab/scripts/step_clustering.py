@@ -101,9 +101,18 @@ def load_accepted():
     энергии линии сета: она точно совпадает с манифестом, а `energy` — это
     подогнанный центроид, и он смещён.
     """
+    # Группа определяется по СПИСКУ из detectors.csv, длиннейшим совпадающим
+    # префиксом. split('_')[0] терял девять групп из двадцати трёх — всю
+    # лестницу ASN8, оба варианта HPGe, CZT_TECD, LABR_BRIL, — и вывод об
+    # асимметрии комптоновской ступеньки был получен на неполных данных.
+    known = sorted((r['det'] for r in read_csv(os.path.join(CORPUS, 'detectors.csv'))),
+                   key=len, reverse=True)
     out = {}
     for path in glob.glob(os.path.join(OUT, '*_peaks.csv')):
-        det = os.path.basename(path).split('_')[0]
+        base = os.path.basename(path)
+        det = next((d for d in known if base.startswith(d + '_')), None)
+        if det is None:
+            continue
         for row in read_csv(path):
             name = row.get('set') or ''
             if '~decoy' not in name:

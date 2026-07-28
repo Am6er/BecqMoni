@@ -458,6 +458,18 @@ namespace BecquerelMonitor.NucBase
                     ? DecayChains.BranchingFrom(this.SearchedIsotope)
                     : null;
 
+                // Пустой словарь при запрошенном масштабировании означает, что
+                // обход ряда не состоялся (ошибка базы). Молча импортировать
+                // строки без масштаба, но С МАРКЕРОМ цепочки нельзя: маркер
+                // включает BR-связку фиттера, а веса будут «на распад своего
+                // нуклида». Предупреждаем и не даём этого сделать.
+                if (scaleToChainParent && (chainBranching == null || chainBranching.Count == 0))
+                {
+                    MessageBox.Show(Resources.ERRChainBranchingUnavailable,
+                        Resources.Warning, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
                 foreach (DataGridViewRow row in this.ResultDataGridView.Rows)
                 {
                     if ((bool)row.Cells[CheckedColumnIdx].Value == true)
@@ -465,6 +477,19 @@ namespace BecquerelMonitor.NucBase
                         string name = (string)row.Cells[NameColumnIdx].Value;
                         string formattedName = FormatIsotopeName(name);
                         double energy = (double)row.Cells[EnergyColumnIdx].Value;
+                        // Нуклида нет в посчитанном ряду — значит обход отсёк его
+                        // как несущественный (доля ниже DecayChains.MinFraction).
+                        // FactorOf для отсутствующего возвращает 1.0, и без этой
+                        // проверки САМЫЕ СЛАБЫЕ члены ряда уезжали в базу с полной
+                        // интенсивностью «на распад своего нуклида», то есть
+                        // выглядели самыми сильными: Bi-215 при импорте U-235
+                        // получал 48.93 % вместо ~4e-5 % — и с маркером цепочки,
+                        // то есть прямо в BR-связку фиттера. Семантику FactorOf не
+                        // трогаем (её фиксирует CatalogCheck), пропускаем строку.
+                        if (scaleToChainParent && !chainBranching.ContainsKey(name))
+                        {
+                            continue;
+                        }
                         double intencity = (double)row.Cells[IntencityColumnIdx].Value
                                            * DecayChains.FactorOf(chainBranching, name);
                         double halfLife = Convert.ToDouble(((string)row.Cells[HalfLifeColumnIdx].Value).Split('(')[0]);

@@ -1,0 +1,3 @@
+[submodule "geant4-detector-models"]
+	path = geant4-detector-models
+	url = https://github.com/VibeEngineering-LLC/geant4-detector-models.git

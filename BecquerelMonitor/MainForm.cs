@@ -1361,7 +1361,18 @@ namespace BecquerelMonitor
             {
                 return 0;
             }
-            double channel = spectrum.EnergyCalibration.EnergyToChannel(662.0, maxChannels: spectrum.NumberOfChannels);
+            // Ловим сами: у метода уже есть конвенция «разрешения нет — вернуть 0»,
+            // и вырожденная калибровка должна попадать в неё, а не улетать наверх.
+            double channel;
+            try
+            {
+                channel = spectrum.EnergyCalibration.EnergyToChannel(
+                    662.0, maxChannels: spectrum.NumberOfChannels);
+            }
+            catch (OutofChannelException)
+            {
+                return 0;
+            }
             double fwhmChannels = active.FwhmCalibration.ChannelToFwhm(channel);
             if (!(fwhmChannels > 0))
             {

@@ -60,6 +60,17 @@ KNEE_KEV = float(os.environ.get('CS_KNEE', '150'))
 SLOPE_LO, SLOPE_HI = -2.5, 0.0
 
 
+# Тег манифеста -> цепочка в sets_manifest. Манифест помечает голову ряда как
+# `U-238u`, а сеты знают только `U-238`: прямой поиск терял ШЕСТЬ урановых
+# спектров (все стёкла, GS4000_U, HPGE_Uranium) — то есть именно оборванные
+# ряды, самый жёсткий случай для вета по отсутствиям.
+CHAIN_TAG = {'U-238u': 'U-238'}
+
+
+def set_chain(tag):
+    return CHAIN_TAG.get(tag, tag)
+
+
 def read_csv(path, encoding='utf-8-sig'):
     with open(path, encoding=encoding, newline='') as fh:
         return list(csv.DictReader(fh))
@@ -277,7 +288,7 @@ def main():
 
         for chain in chains:
             for kind in ('real', 'decoy'):
-                for m in sets.get((det, chain, kind), []):
+                for m in sets.get((det, set_chain(chain), kind), []):
                     x, y = [], []
                     for line in m['lines']:
                         e0, inten = float(line['e']), float(line['i'])

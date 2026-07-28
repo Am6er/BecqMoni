@@ -81,6 +81,17 @@ CHAIN_MODE = {'Th-232': ('Th-232', 'pos'), 'Th-228': ('Th-228', 'pos'),
 U238_HEAD = {'238U', '234TH', '234PAm1', '234PA', '234U', '230TH'}
 
 
+# Тег манифеста -> цепочка в sets_manifest. Манифест помечает голову ряда как
+# `U-238u`, а сеты знают только `U-238`: прямой поиск терял ШЕСТЬ урановых
+# спектров (все стёкла, GS4000_U, HPGE_Uranium) — то есть именно оборванные
+# ряды, самый жёсткий случай для вета по отсутствиям.
+CHAIN_TAG = {'U-238u': 'U-238'}
+
+
+def set_chain(tag):
+    return CHAIN_TAG.get(tag, tag)
+
+
 def read_csv(path, encoding='utf-8-sig'):
     with open(path, encoding=encoding, newline='') as fh:
         return list(csv.DictReader(fh))
@@ -256,7 +267,7 @@ def main():
                 continue
             name, mode = CHAIN_MODE[chain]
             strong = merged_strong(chain_rows(name, mode, lo, hi), res, lo, hi)
-            dec = [e for e, _ in decoy_sets.get((det, chain), [])]
+            dec = [e for e, _ in decoy_sets.get((det, set_chain(chain)), [])]
             if not strong or not dec:
                 continue
             for kind, items in (('real', strong), ('decoy', dec)):

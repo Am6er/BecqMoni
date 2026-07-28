@@ -1343,7 +1343,16 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Unsupported calibration method polynom order {0}. Only 2,3,4,5 points exist..
+        ///   Looks up a localized string similar to Decay chain data is unavailable...
+        /// </summary>
+        public static string ERRChainBranchingUnavailable {
+            get {
+                return ResourceManager.GetString("ERRChainBranchingUnavailable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unsupported calibration method. Got polynom order = {0}.
         /// </summary>
         public static string ERRUnsupportedCalibrationMethod {
             get {

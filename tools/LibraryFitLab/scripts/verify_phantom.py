@@ -83,12 +83,12 @@ def phantoms(key, det, k=0.85, imin=0.2):
         if abs(kk - k) > 1e-9 or abs(ii - imin) > 1e-9:
             continue
         info = manifest.get((det, meta['set']), {})
-        decoy_e = {round(l['e'], 2) for l in info.get('lines', []) if l.get('decoy')}
+        decoy_e = sorted(l['e'] for l in info.get('lines', []) if l.get('decoy'))
         for p in peaks.get(run, []):
             if p['origin'] != 'Library' or p['anchor'] == '1':
                 continue
             e = float(p['nuclide_energy'] or p['energy'])
-            if round(e, 2) in decoy_e:
+            if decoy_e and min(abs(e - d) for d in decoy_e) < 0.01:
                 out.append((chain, e, float(p['peak_snr'])))
     return out
 

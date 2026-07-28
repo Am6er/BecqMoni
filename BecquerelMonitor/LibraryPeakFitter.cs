@@ -845,6 +845,17 @@ namespace BecquerelMonitor
             {
                 result.AddedPeaks = ShapeFilter(result.AddedPeaks, addedSources,
                                                 observed, model, chMin, chMax);
+                // Вернуть пики финдера, которым нечего пришло взамен.
+                //
+                // Замена центроида бленда линиями bound-группы делается ДО
+                // запасного критерия. Если он снял того члена группы, ради
+                // которого центроид был вытеснен, пик исчезал, а взамен не
+                // появлялось ничего — тот самый провал НИЖЕ базы финдера, от
+                // которого ветка Inconsistent защищена явной очисткой замен
+                // (на германии это стоило 23.1 % против 28.2 % у финдера).
+                // Воздержание случается как раз на коротких наборах, где бленды
+                // и живут, так что случай не гипотетический.
+                RestoreUncoveredPeaks(result.AddedPeaks, replacedPeaks, replacedSet);
             }
 
             // Ветки Inconsistent запасной критерий НЕ трогает, и это измерено.
@@ -1692,6 +1703,33 @@ namespace BecquerelMonitor
         // шкале подгонка отдала бы весь вес самым сильным линиям. Порядок 2 при
         // пяти и более линиях, иначе 1: на четырёх точках квадратика не оставит
         // ни одной степени свободы и разброс окажется нулевым у любого набора.
+        // Снять отметку замены с пиков, рядом с которыми не осталось ни одного
+        // принятого кандидата. Допуск тот же, по которому замена и делалась.
+        static void RestoreUncoveredPeaks(List<LibraryCandidate> accepted,
+                                          List<Peak> replacedPeaks, HashSet<Peak> replacedSet)
+        {
+            for (int i = replacedPeaks.Count - 1; i >= 0; i--)
+            {
+                Peak peak = replacedPeaks[i];
+                bool covered = false;
+                foreach (LibraryCandidate candidate in accepted)
+                {
+                    double tolerance = BlendCoverToleranceFwhm *
+                                       Math.Max(1.0, Math.Max(peak.FWHM, candidate.Fwhm));
+                    if (Math.Abs(peak.Channel - candidate.Channel) <= tolerance)
+                    {
+                        covered = true;
+                        break;
+                    }
+                }
+                if (!covered)
+                {
+                    replacedPeaks.RemoveAt(i);
+                    replacedSet.Remove(peak);
+                }
+            }
+        }
+
         // Оставить только те линии, что переживают смену модели фона. Тест тот
         // же самый, что и в гейте по линии (SurvivesBackgroundChange), но
         // применяется ПОСЛЕ фита, а не во время него: пока идёт фит, отсев по

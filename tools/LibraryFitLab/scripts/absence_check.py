@@ -58,6 +58,17 @@ CRIT_K = float(os.environ.get('AC_CRIT', '3.0'))          # во сколько 
 MIN_LINES = 4         # ниже вето не строит кривую
 
 
+# Тег манифеста -> цепочка в sets_manifest. Манифест помечает голову ряда как
+# `U-238u`, а сеты знают только `U-238`: прямой поиск терял ШЕСТЬ урановых
+# спектров (все стёкла, GS4000_U, HPGE_Uranium) — то есть именно оборванные
+# ряды, самый жёсткий случай для вета по отсутствиям.
+CHAIN_TAG = {'U-238u': 'U-238'}
+
+
+def set_chain(tag):
+    return CHAIN_TAG.get(tag, tag)
+
+
 def read_csv(path, encoding='utf-8-sig'):
     with open(path, encoding=encoding, newline='') as fh:
         return list(csv.DictReader(fh))
@@ -155,7 +166,7 @@ def main():
 
         for chain in chains:
             for kind in ('real', 'decoy'):
-                for m in sets.get((det, chain, kind), []):
+                for m in sets.get((det, set_chain(chain), kind), []):
                     n_inst += 1
                     meas = []          # (E, I, площадь, сигма, принята)
                     for line in m['lines']:

@@ -71,7 +71,12 @@ namespace BecquerelMonitor.RoiWizard
         {
             if (disposing)
             {
-                this.baseFont.Dispose();
+                // baseFont НЕ трогаем: это WizardTheme.BaseFont — общий статический
+                // шрифт всего модуля, назначенный форме мастера и почти всем его
+                // контролам. HideOnClose здесь не выставлен, поэтому первый же Esc
+                // уничтожал общий GDI-шрифт: дальше мусор при перерисовке, а
+                // повторное открытие справки падало уже в конструкторе на
+                // new Font(baseFont, Bold). Освобождаем только своё.
                 this.boldFont.Dispose();
                 this.codeFont.Dispose();
             }

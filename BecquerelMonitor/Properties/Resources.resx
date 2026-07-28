@@ -42162,4 +42162,7 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="NuclideFamiliesNoIsotope" xml:space="preserve">
     <value>Search for an isotope first — the classification is edited for it.</value>
   </data>
+  <data name="ERRChainBranchingUnavailable" xml:space="preserve">
+    <value>Decay chain data is unavailable, so intensities cannot be scaled to the chain parent. Import cancelled: importing with a chain marker but unscaled intensities would feed wrong weights to the branching-ratio coupling.</value>
+  </data>
 </root>

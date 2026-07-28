@@ -64,11 +64,11 @@ namespace BecquerelMonitor.RoiWizard
 
         public override void Dispose()
         {
-            if (this.font != null)
-            {
-                this.font.Dispose();
-                this.font = null;
-            }
+            // Шрифт НЕ освобождаем: это общий статический WizardTheme.BadgeFont
+            // или HintFont, а не собственный экземпляр. Освободив его здесь, мы
+            // уничтожили бы шрифт, которым рисуют остальные рендереры и форма
+            // мастера — та же мина, что стояла в HelpForm. Ссылку обнуляем.
+            this.font = null;
             base.Dispose();
         }
     }
@@ -113,11 +113,11 @@ namespace BecquerelMonitor.RoiWizard
 
         public override void Dispose()
         {
-            if (this.font != null)
-            {
-                this.font.Dispose();
-                this.font = null;
-            }
+            // Шрифт НЕ освобождаем: это общий статический WizardTheme.BadgeFont
+            // или HintFont, а не собственный экземпляр. Освободив его здесь, мы
+            // уничтожили бы шрифт, которым рисуют остальные рендереры и форма
+            // мастера — та же мина, что стояла в HelpForm. Ссылку обнуляем.
+            this.font = null;
             base.Dispose();
         }
     }
@@ -230,11 +230,11 @@ namespace BecquerelMonitor.RoiWizard
 
         public override void Dispose()
         {
-            if (this.font != null)
-            {
-                this.font.Dispose();
-                this.font = null;
-            }
+            // Шрифт НЕ освобождаем: это общий статический WizardTheme.BadgeFont
+            // или HintFont, а не собственный экземпляр. Освободив его здесь, мы
+            // уничтожили бы шрифт, которым рисуют остальные рендереры и форма
+            // мастера — та же мина, что стояла в HelpForm. Ссылку обнуляем.
+            this.font = null;
             base.Dispose();
         }
     }
@@ -329,11 +329,11 @@ namespace BecquerelMonitor.RoiWizard
 
         public override void Dispose()
         {
-            if (this.font != null)
-            {
-                this.font.Dispose();
-                this.font = null;
-            }
+            // Шрифт НЕ освобождаем: это общий статический WizardTheme.BadgeFont
+            // или HintFont, а не собственный экземпляр. Освободив его здесь, мы
+            // уничтожили бы шрифт, которым рисуют остальные рендереры и форма
+            // мастера — та же мина, что стояла в HelpForm. Ссылку обнуляем.
+            this.font = null;
             base.Dispose();
         }
     }

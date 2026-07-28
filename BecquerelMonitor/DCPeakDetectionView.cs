@@ -21,14 +21,42 @@ namespace BecquerelMonitor
             this.RefreshNuclideSets();
             this.UpdateDeconvolutionInfoButtonState();
             // список наборов пересобирается при каждой записи файла определений,
-            // иначе новый набор виден только после перезапуска
-            this.nuclideManager.NuclideDefinitionListChanged += delegate(object sender, EventArgs e)
-            {
-                this.RefreshNuclideSets();
-            };
+            // иначе новый набор виден только после перезапуска.
+            //
+            // Обработчик ИМЕНОВАННЫЙ и снимается в Dispose. Анонимный делегат
+            // снять было нельзя, а MainForm пересоздаёт панель не только по
+            // IsDisposed, но и при каждой смене раскладки (InitializeToolViews):
+            // каждое переключение оставляло вечную подписку, старый граф
+            // контролов не собирался сборщиком и продолжал перелопачивать списки
+            // при каждой записи набора.
+            this.nuclideManager.NuclideDefinitionListChanged += this.OnNuclideDefinitionListChanged;
         }
 
+        void OnNuclideDefinitionListChanged(object sender, EventArgs e)
+        {
+            if (this.IsDisposed)
+            {
+                return;
+            }
+            this.RefreshNuclideSets();
+        }
+
+
         // Token: 0x0600043E RID: 1086 RVA: 0x0001423C File Offset: 0x0001243C
+        // Конфиг ROI, только если он действительно привязан к устройству как
+        // кривая эффективности. Копия глубокая: снапшот и делается ради отвязки
+        // от живых объектов, а ROIConfigManager отдаёт общий экземпляр.
+        static ROIConfigData BoundEfficiencyConfig(ResultData resultData)
+        {
+            ROIConfigData config = resultData?.ROIConfig;
+            string guid = resultData?.DeviceConfig?.EfficencyROIGuid;
+            if (config == null || string.IsNullOrEmpty(guid) || config.Guid != guid)
+            {
+                return null;
+            }
+            return config.HasEfficiency ? config.Clone() : null;
+        }
+
         public void ShowPeakDetectionResult()
         {
             this.FormLoading = true;
@@ -170,7 +198,23 @@ namespace BecquerelMonitor
                     // user changed it via the UI during Task.Run.
                     FwhmCalibration = activeResultData.FwhmCalibration != null
                         ? activeResultData.FwhmCalibration.Clone()
-                        : null
+                        : null,
+                    // Кривая эффективности прибора. Без неё вето по набору судит
+                    // согласованность по кривой, подогнанной по самому набору, —
+                    // то есть правит улику под вердикт. Раньше её здесь не было
+                    // вовсе, и внешняя кривая до фиттера НИКОГДА не доезжала:
+                    // фича работала только в харнессе, который кладёт ROIConfig
+                    // сам. Отсутствие кривой при этом штатный случай, поэтому
+                    // отказ был неотличим от нормы.
+                    //
+                    // Берём ТОЛЬКО привязанную к устройству по Guid.
+                    // DocEnergySpectrum при отсутствии EfficencyROIGuid кладёт в
+                    // ROIConfig первый попавшийся конфиг из списка — для таблицы
+                    // ROI это законно (поле двойного назначения), а как кривая
+                    // это чужой прибор и чужая геометрия. Проверка стоит здесь, а
+                    // не в PeakDetector, потому что DeviceConfig в снапшот не
+                    // входит, а на UI-потоке оба объекта живые.
+                    ROIConfig = BoundEfficiencyConfig(activeResultData)
                 };
                 BackgroundMode bgMode = activeDocument.EnergySpectrumView.BackgroundMode;
                 SmoothingMethod smoothMethod = activeDocument.EnergySpectrumView.SmoothingMethod;
