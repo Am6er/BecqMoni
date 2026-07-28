@@ -26,6 +26,16 @@ foreach ($key in $keys) {
 Write-Output "started $($jobs.Count) background-flag jobs"
 $jobs | Wait-Job | Out-Null
 foreach ($j in $jobs) { Receive-Job $j | Where-Object { $_ } | Write-Output }
+# Упавший джоб раньше проходил незамеченным: скрипт печатал
+# сводку по лежалым CSV прошлого прогона и выходил с кодом 0.
+$failed = 0
+foreach ($j in $jobs) {
+  if ($j.State -ne 'Completed') { $failed++ }
+}
+if ($failed -gt 0) {
+  Write-Error "$failed job(s) failed"
+  exit 1
+}
 $jobs | Remove-Job
 Get-ChildItem "$Lab\out_bgtest\*_runs.csv" | ForEach-Object {
   "{0}: {1} runs" -f $_.Name, ((Get-Content $_.FullName).Count - 1)

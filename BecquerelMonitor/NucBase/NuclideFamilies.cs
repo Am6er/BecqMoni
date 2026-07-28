@@ -145,6 +145,39 @@ namespace BecquerelMonitor.NucBase
 
         // Полная замена набора семейств нуклида. Всё в одной транзакции: половина
         // применённой правки хуже, чем непринятая.
+        // Покажет ли каталог мастера классификацию этого нуклида.
+        //
+        // Каталог берёт только нуклиды с известным периодом полураспада
+        // (NuclideCatalog: `half_life_sec is not null`), и это верно — у
+        // стабильного нет линий, из которых строить ROI. Но диалог семейств
+        // принимал классификацию для любого нуклида молча, и запись уходила в
+        // базу навсегда невидимой. Пусть говорит.
+        public static bool IsVisibleInCatalog(string nucid)
+        {
+            if (string.IsNullOrEmpty(nucid))
+            {
+                return false;
+            }
+            try
+            {
+                using (SqliteConnection connection = new SqliteConnection(ConnectionString(false)))
+                {
+                    connection.Open();
+                    using (SqliteCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText =
+                            "select 1 from nuclides where nucid = @nucid and half_life_sec is not null limit 1";
+                        command.Parameters.Add("@nucid", SqliteType.Text).Value = nucid;
+                        return command.ExecuteScalar() != null;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                return true;                 // не смогли проверить — не мешаем работать
+            }
+        }
+
         public static void Set(string nucid, IEnumerable<string> codes)
         {
             if (string.IsNullOrEmpty(nucid))

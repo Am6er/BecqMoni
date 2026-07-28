@@ -1331,8 +1331,12 @@ namespace BecquerelMonitor.RoiWizard
             }
             // прежние маркеры заменяются: иначе повторное нажатие плодит дубли
             this.lines.RemoveAll(delegate(SpectralLine line) { return line.Type == LineType.Secondary; });
+            // Метка берётся из ресурсов: перегрузка без неё подставляет зашитую
+            // английскую DefaultAnnihilationLabel, из-за чего локализованный
+            // ресурс annihilationLabel не использовался никогда.
             List<SpectralLine> generated = SecondaryPeaks.Generate(
-                this.lines, this.Resolution, kinds, (double)this.numSecondaryMin.Value);
+                this.lines, this.Resolution, kinds, (double)this.numSecondaryMin.Value,
+                RoiWizardStrings.annihilationLabel);
             this.lines.AddRange(generated);
             this.RefreshLines();
             this.statusLabel.Text = string.Format(CultureInfo.CurrentCulture,
@@ -1609,6 +1613,14 @@ namespace BecquerelMonitor.RoiWizard
 
         void RefreshAnchorCombo()
         {
+            // Выбранный вручную якорь запоминается и восстанавливается: список
+            // перезаполняется при каждом возврате на вкладку экспорта, и
+            // SelectedIndex = 0 ниже молча сбрасывал ручной выбор обратно на
+            // «авто». Пользователь узнавал об этом только по составу ROI.
+            SpectralLine keep = this.comboAnchor.SelectedIndex > 0 &&
+                                this.comboAnchor.SelectedIndex - 1 < this.anchorCandidates.Count
+                ? this.anchorCandidates[this.comboAnchor.SelectedIndex - 1]
+                : null;
             this.comboAnchor.Items.Clear();
             // Кандидаты держатся списком, а не вычисляются по индексу заново: список
             // выбранных линий меняется галками, и индекс в комбобоксе иначе съезжает
@@ -1629,7 +1641,16 @@ namespace BecquerelMonitor.RoiWizard
                 this.anchorCandidates.Add(line);
                 this.comboAnchor.Items.Add(line.Label + " " + line.Energy.ToString("0.0", CultureInfo.CurrentCulture));
             }
-            this.comboAnchor.SelectedIndex = 0;
+            int restored = 0;
+            if (keep != null)
+            {
+                int at = this.anchorCandidates.IndexOf(keep);
+                if (at >= 0)
+                {
+                    restored = at + 1;                   // нулевой пункт — «авто»
+                }
+            }
+            this.comboAnchor.SelectedIndex = restored;
         }
 
         readonly List<SpectralLine> anchorCandidates = new List<SpectralLine>();
@@ -1749,7 +1770,19 @@ namespace BecquerelMonitor.RoiWizard
             built.OriginalFilename = filename;
             if (target != null)
             {
-                built.Guid = target.Guid;
+                // Перезапись: кнопка «Создать» НЕ заменяет запись целиком, а
+                // правит существующую — Name и ROIDefinitions, — оставляя всё
+                // прочее как было. Прежде всего кривую эффективности: в файле
+                // она сохранялась, а предпросмотр показывал built, где её нет,
+                // и обещание «что именно ляжет в файл» не выполнялось.
+                // Зеркалим путь записи по КОПИИ, чтобы не тронуть живую запись.
+                ROIConfigData preview = target.Clone();
+                preview.Name = built.Name;
+                preview.ROIDefinitions.Clear();
+                preview.ROIDefinitions.AddRange(built.ROIDefinitions);
+                preview.Filename = filename;
+                preview.OriginalFilename = filename;
+                built = preview;
             }
             // без шапки с замечаниями: они уже перечислены в панели «Проверка данных»
             // прямо над этим полем, а на странице такой панели нет — там шапка и нужна
@@ -2210,9 +2243,15 @@ namespace BecquerelMonitor.RoiWizard
             if (this.DockPanel != null)
             {
                 Size want = this.helpForm.Size;
+                // Экранные координаты, а не координаты внутри контейнера:
+                // Show(dockPanel, bounds) для плавающего окна ждёт экранные, а
+                // this.Left/Top — положение панели в её родителе. На одном
+                // мониторе разница выглядела просто смещением, на нескольких
+                // справка уезжала в угол не того экрана.
+                Rectangle onScreen = this.RectangleToScreen(this.ClientRectangle);
                 Rectangle bounds = new Rectangle(
-                    this.Left + Math.Max(0, (this.Width - want.Width) / 2),
-                    this.Top + Math.Max(0, (this.Height - want.Height) / 2),
+                    onScreen.Left + Math.Max(0, (onScreen.Width - want.Width) / 2),
+                    onScreen.Top + Math.Max(0, (onScreen.Height - want.Height) / 2),
                     want.Width, want.Height);
                 this.helpForm.Show(this.DockPanel, bounds);
             }

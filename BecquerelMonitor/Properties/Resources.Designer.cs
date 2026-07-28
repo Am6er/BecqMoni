@@ -1343,6 +1343,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Nuclide {0} has no known half-life...
+        /// </summary>
+        public static string NuclideFamiliesNotInCatalog {
+            get {
+                return ResourceManager.GetString("NuclideFamiliesNotInCatalog", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Decay chain data is unavailable...
         /// </summary>
         public static string ERRChainBranchingUnavailable {

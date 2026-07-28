@@ -35,6 +35,9 @@ def main():
             g['fired'] += 1
             g['decoy'] += r['n_decoy_lines'] or 0
             g['fp'] += r['fp'] or 0
+    # TRUTH — таблица легаси-девятки, снятая до введения корпуса: спектров,
+    # добавленных вместе с ним, в ней нет, и обращение по ключу падало KeyError.
+    per = {k: v for k, v in per.items() if k in TRUTH}
     for key in sorted(per, key=lambda k: (TRUTH[k]['det'], k)):
         g = per[key]
         rate = 100.0 * g['fp'] / g['decoy'] if g['decoy'] else float('nan')
@@ -69,7 +72,8 @@ def main():
         n, f = by[key]
         if f:
             print('   %-16s %-8s %3d%%  (%s)' % (
-                key[0], key[1], round(100 * f / n), TRUTH[key[0]]['chains'][key[1]]))
+                key[0], key[1], round(100 * f / n),
+        TRUTH.get(key[0], {}).get('chains', {}).get(key[1], '?')))
 
 
 if __name__ == '__main__':

@@ -42165,4 +42165,7 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="ERRChainBranchingUnavailable" xml:space="preserve">
     <value>Decay chain data is unavailable, so intensities cannot be scaled to the chain parent. Import cancelled: importing with a chain marker but unscaled intensities would feed wrong weights to the branching-ratio coupling.</value>
   </data>
+  <data name="NuclideFamiliesNotInCatalog" xml:space="preserve">
+    <value>Nuclide {0} has no known half-life, so the ROI wizard catalog will never show this classification: the catalog only lists nuclides that emit lines. The record will be saved but stay invisible there. Save anyway?</value>
+  </data>
 </root>

@@ -82,7 +82,9 @@ def sample_structure(key):
     absent still contribute their strong lines, because the room background has
     some radon and thorium in it whatever the sample is.
     """
-    truth = TRUTH[key]
+    truth = TRUTH.get(key)
+    if truth is None:
+        return None                    # спектр не из легаси-девятки
     det = truth['det']
     lo, hi = DET_RANGE[det]
     out = [1460.82, 511.0, 57.98, 59.32, 67.24, 69.1]

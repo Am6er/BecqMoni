@@ -17,6 +17,7 @@ namespace BecquerelMonitor.NucBase
     public class NuclideFamiliesForm : Form
     {
         readonly string nucid;
+        readonly ToolTip familyTips = new ToolTip { AutoPopDelay = 20000 };
         readonly List<CheckBox> boxes = new List<CheckBox>();
 
         public NuclideFamiliesForm(string displayName, string nucid)
@@ -55,10 +56,14 @@ namespace BecquerelMonitor.NucBase
                     Location = new Point(16, top),
                     AutoSize = true
                 };
-                // пояснение — подсказкой, чтобы окно не разрасталось
+                // пояснение — подсказкой, чтобы окно не разрасталось.
+                // ToolTip общий на всю форму и лежит в components: отдельный
+                // экземпляр на каждый чекбокс никем не освобождался, а ToolTip —
+                // это окно и таймер, то есть утечка хендлов на каждое открытие
+                // диалога.
                 if (!string.IsNullOrEmpty(family.LocalizedInfo))
                 {
-                    new ToolTip { AutoPopDelay = 20000 }.SetToolTip(box, family.LocalizedInfo);
+                    this.familyTips.SetToolTip(box, family.LocalizedInfo);
                 }
                 this.Controls.Add(box);
                 this.boxes.Add(box);
@@ -97,6 +102,23 @@ namespace BecquerelMonitor.NucBase
                     codes.Add((string)box.Tag);
                 }
             }
+            // Классификация стабильного нуклида уходила в базу молча и навсегда
+            // невидимой: каталог мастера берёт только нуклиды с известным
+            // периодом полураспада, и это верно — у стабильного нет линий, из
+            // которых строить ROI. Сохранить не запрещаем (база — не только для
+            // мастера), но предупреждаем, что в каталоге записи не будет.
+            if (codes.Count > 0 && !NuclideFamilies.IsVisibleInCatalog(this.nucid))
+            {
+                if (MessageBox.Show(this,
+                        string.Format(CultureInfo.CurrentCulture,
+                            Resources.NuclideFamiliesNotInCatalog, this.nucid),
+                        Resources.Warning, MessageBoxButtons.OKCancel,
+                        MessageBoxIcon.Warning) != DialogResult.OK)
+                {
+                    this.DialogResult = DialogResult.None;
+                    return;
+                }
+            }
             try
             {
                 NuclideFamilies.Set(this.nucid, codes);
@@ -111,6 +133,15 @@ namespace BecquerelMonitor.NucBase
                     Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
                 this.DialogResult = DialogResult.None;
             }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                this.familyTips.Dispose();
+            }
+            base.Dispose(disposing);
         }
     }
 }
