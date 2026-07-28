@@ -36,6 +36,16 @@ foreach ($key in $map.Keys) {
 Write-Output "started $($jobs.Count) deconvolution jobs"
 $jobs | Wait-Job | Out-Null
 foreach ($j in $jobs) { Receive-Job $j | Where-Object { $_ } | Write-Output }
+# Упавший джоб раньше проходил незамеченным: скрипт печатал
+# сводку по лежалым CSV прошлого прогона и выходил с кодом 0.
+$failed = 0
+foreach ($j in $jobs) {
+  if ($j.State -ne 'Completed') { $failed++ }
+}
+if ($failed -gt 0) {
+  Write-Error "$failed job(s) failed"
+  exit 1
+}
 $jobs | Remove-Job
 Get-ChildItem "$Lab\out_deconv\*_runs.csv" | ForEach-Object {
   "{0}: {1} runs" -f $_.Name, ((Get-Content $_.FullName).Count - 1)
