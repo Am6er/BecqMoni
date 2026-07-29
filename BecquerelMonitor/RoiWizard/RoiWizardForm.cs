@@ -35,6 +35,9 @@ namespace BecquerelMonitor.RoiWizard
 
         List<SpectralLine> lines = new List<SpectralLine>();
         List<SpectralLine> beforeMerge;
+        // Слияние близких линий — режим, а не разовое действие: он переживает пересборку
+        // набора по фильтрам и снимается только кнопкой «Вернуть исходные».
+        bool mergeOn;
         // источник разрешения из хоста: FWHM-калибровка открытого спектра.
         // Если не задан, кнопка «из спектра» просто выключена — форма остаётся
         // самостоятельной и тестируемой без приложения.
@@ -261,6 +264,15 @@ namespace BecquerelMonitor.RoiWizard
 
         void ApplyPreset(Preset preset)
         {
+            // Пресет ЗАМЕНЯЕТ выбор, а не добавляется к нему. Прежде два клика подряд
+            // молча сливали наборы: «ЕРН-фон» (Th-232 + U-238 + K-40) поверх уже
+            // выбранного давал объединение, о котором нигде не сообщалось. Сброс — тем
+            // же способом, что у кнопки «Очистить» (buttonClear): и выбор, и галки ХРИ.
+            this.selection.Clear();
+            for (int i = 0; i < this.checkedXrf.Items.Count; i++)
+            {
+                this.checkedXrf.SetItemChecked(i, false);
+            }
             foreach (string chainRoot in preset.Chains)
             {
                 this.selection.Add(this.catalog, chainRoot, AddMode.Chain);
@@ -678,9 +690,9 @@ namespace BecquerelMonitor.RoiWizard
                 this.Rebuild();
             };
 
-            this.numResolution.ValueChanged += delegate { this.UpdateMergeInfo(); };
+            this.numResolution.ValueChanged += delegate { this.UpdateMergeInfo(); this.RemergeIfOn(); };
             this.comboCriterion.SelectedIndexChanged += this.OnCriterionChanged;
-            this.numFactor.ValueChanged += delegate { this.UpdateMergeInfo(); };
+            this.numFactor.ValueChanged += delegate { this.UpdateMergeInfo(); this.RemergeIfOn(); };
             this.buttonMerge.Click += delegate { this.MergeLines(); };
             this.buttonUnmerge.Click += delegate { this.UnmergeLines(); };
 
@@ -759,6 +771,8 @@ namespace BecquerelMonitor.RoiWizard
             this.numFactor.Enabled = criterion != MergeCriterion.Sparrow;
             this.suspendEvents = false;
             this.UpdateMergeInfo();
+            // смена критерия меняет порог — при включённом режиме слияние переприменяется
+            this.RemergeIfOn();
         }
 
         void OnXrfCheck(object sender, ItemCheckEventArgs e)
@@ -1082,7 +1096,18 @@ namespace BecquerelMonitor.RoiWizard
         {
             this.builder.ScaleToSeriesParent = this.checkEquilibrium.Checked;
             this.lines = this.builder.Build(this.selection, this.CurrentFilter());
+            // базовый набор сменился, прежний снимок «до слияния» к нему не относится
             this.beforeMerge = null;
+            // Объединение — это РЕЖИМ, а не разовое действие над текущим списком. Раньше
+            // любой чекбокс фильтра сбрасывал его молча: пользователь нажимал «Объединить
+            // близкие», менял порог интенсивности — и слияние исчезало без всякого
+            // признака, причём кнопка выглядела так же. Теперь режим переживает
+            // пересборку и применяется к новому набору сам; выключает его только
+            // «Вернуть исходные».
+            if (this.mergeOn)
+            {
+                this.ApplyMerge(false);
+            }
 
             this.RefreshSelectedList();
             this.RefreshLines();
@@ -1534,6 +1559,15 @@ namespace BecquerelMonitor.RoiWizard
 
         void MergeLines()
         {
+            this.mergeOn = true;
+            this.ApplyMerge(true);
+        }
+
+        // announce = писать итог в строку состояния. При автоматическом переприменении
+        // после пересборки итог не пишется: строку тут же перебьёт UpdateStatus, а
+        // мигающее «объединено N групп» на каждый чих фильтра только мешает.
+        void ApplyMerge(bool announce)
+        {
             if (this.lines.Count == 0)
             {
                 return;
@@ -1544,6 +1578,10 @@ namespace BecquerelMonitor.RoiWizard
             }
             LineMerger merger = new LineMerger(this.Resolution, (double)this.numFactor.Value);
             this.lines = merger.Merge(this.beforeMerge);
+            if (!announce)
+            {
+                return;      // RefreshLines позовёт Rebuild сам, вторая перерисовка лишняя
+            }
             this.RefreshLines();
             this.statusLabel.Text = string.Format(CultureInfo.CurrentCulture,
                 RoiWizardStrings.statusMerged, merger.MergedGroups, merger.AbsorbedLines);
@@ -1551,6 +1589,8 @@ namespace BecquerelMonitor.RoiWizard
 
         void UnmergeLines()
         {
+            // «Вернуть исходные» — единственный выключатель режима слияния
+            this.mergeOn = false;
             if (this.beforeMerge == null)
             {
                 return;
@@ -1558,6 +1598,22 @@ namespace BecquerelMonitor.RoiWizard
             this.lines = new List<SpectralLine>(this.beforeMerge);
             this.beforeMerge = null;
             this.RefreshLines();
+        }
+
+        // Порог слияния тоже переприменяется на ходу: менять критерий или множитель при
+        // включённом режиме и не видеть результата — то же расхождение показанного с
+        // действительным, что и сброс слияния фильтром.
+        void RemergeIfOn()
+        {
+            if (this.suspendEvents || !this.mergeOn)
+            {
+                return;
+            }
+            this.lines = this.beforeMerge != null
+                ? new List<SpectralLine>(this.beforeMerge)
+                : this.lines;
+            this.beforeMerge = null;
+            this.ApplyMerge(true);
         }
 
         void UpdateMergeInfo()
@@ -1671,12 +1727,35 @@ namespace BecquerelMonitor.RoiWizard
             this.labelAnchor.Enabled = !this.checkFullSet.Checked;
         }
 
+        // Линии, которые уйдут в результат: видимые по галкам типов. Раньше галки
+        // управляли ТОЛЬКО видимостью таблицы, и снятая «рентген распада» оставляла
+        // рентгеновские линии в файле: на экране 27 γ-линий и счётчик «27 из 91», а в
+        // конфигурации те же 27 областей, из которых 10 рентгеновские — ни одной из них
+        // пользователь не видел. Этим же объяснялось, почему проверка данных ругалась на
+        // «Pb-212 X KpB1»: на линию, которой на экране не было.
+        //
+        // Теперь «вижу = получаю»: скрытый тип не уходит ни в ROI, ни в набор. Галка
+        // обратно — линия возвращается, состояние выбора при этом не теряется, потому
+        // что Selected у линии не трогается.
+        List<SpectralLine> ExportableLines()
+        {
+            List<SpectralLine> result = new List<SpectralLine>();
+            foreach (SpectralLine line in this.lines)
+            {
+                if (this.IsTypeVisible(line.Type))
+                {
+                    result.Add(line);
+                }
+            }
+            return result;
+        }
+
         List<SpectralLine> SelectedLines()
         {
             List<SpectralLine> result = new List<SpectralLine>();
             foreach (SpectralLine line in this.lines)
             {
-                if (line.Selected)
+                if (line.Selected && this.IsTypeVisible(line.Type))
                 {
                     result.Add(line);
                 }
@@ -1707,6 +1786,7 @@ namespace BecquerelMonitor.RoiWizard
                 case IssueKind.AnchorIsSecondary: format = RoiWizardStrings.issueAnchorIsSecondary; break;
                 case IssueKind.NoAnchor: format = RoiWizardStrings.issueNoAnchor; break;
                 case IssueKind.AnchorIsXray: format = RoiWizardStrings.issueAnchorIsXray; break;
+                case IssueKind.MixedChains: format = RoiWizardStrings.issueMixedChains; break;
                 default: format = RoiWizardStrings.issueZonesOverlap; break;
             }
             return issue.Args == null || issue.Args.Length == 0
@@ -1719,7 +1799,9 @@ namespace BecquerelMonitor.RoiWizard
             this.ApplyExporterSettings();
             this.listIssues.BeginUpdate();
             this.listIssues.Items.Clear();
-            foreach (SetIssue issue in SetChecker.Check(this.lines, false, this.zones, this.Resolution))
+            // проверяется то, что уйдёт в файл: скрытые галкой типы туда больше не идут
+            foreach (SetIssue issue in SetChecker.Check(this.ExportableLines(), false,
+                                                       this.zones, this.Resolution))
             {
                 this.listIssues.Items.Add(RoiWizardStrings.issuePrefixRoi + " · " + Describe(issue));
             }
@@ -1732,13 +1814,15 @@ namespace BecquerelMonitor.RoiWizard
                 manualAnchors = new List<SpectralLine>();
                 manualAnchors.Add(manual);
             }
+            // Показываются ВСЕ замечания набора, а не только ошибки. Прежний фильтр по
+            // IssueLevel.Error выбрасывал то, что SetChecker выдаёт предупреждением
+            // СОЗНАТЕЛЬНО (равные энергии — «рентген распада + ХРИ того же элемента»
+            // физически одна линия; рентгеновский якорь; смешанные цепочки): решение по
+            // ним за оператором, а до оператора они не доходили вовсе.
             foreach (SetIssue issue in SetChecker.Check(this.LibraryLines(manualAnchors), true,
                                                         this.zones, this.Resolution, manualAnchors))
             {
-                if (issue.Level == IssueLevel.Error)
-                {
-                    this.listIssues.Items.Add(RoiWizardStrings.issuePrefixSet + " · " + Describe(issue));
-                }
+                this.listIssues.Items.Add(RoiWizardStrings.issuePrefixSet + " · " + Describe(issue));
             }
             if (this.listIssues.Items.Count == 0)
             {
@@ -1758,7 +1842,8 @@ namespace BecquerelMonitor.RoiWizard
                 return;
             }
             this.ApplyExporterSettings();
-            ROIConfigData built = this.exporter.BuildRoiConfig(this.lines, this.textConfigName.Text,
+            ROIConfigData built = this.exporter.BuildRoiConfig(this.ExportableLines(),
+                                                              this.textConfigName.Text,
                                                               this.ColorOfLine);
             // Предпросмотр должен показывать ФАЙЛ, а не заготовку: имя файла и Guid
             // берутся у той записи, которую кнопка «Создать» будет писать. При
@@ -1830,13 +1915,14 @@ namespace BecquerelMonitor.RoiWizard
             }
             this.ApplyExporterSettings();
 
-            List<SetIssue> issues = SetChecker.Check(this.lines, false, this.zones, this.Resolution);
+            List<SpectralLine> exportable = this.ExportableLines();
+            List<SetIssue> issues = SetChecker.Check(exportable, false, this.zones, this.Resolution);
             if (issues.Count > 0 && !this.Confirm(issues, false))
             {
                 return;
             }
 
-            ROIConfigData built = this.exporter.BuildRoiConfig(this.lines, this.textConfigName.Text,
+            ROIConfigData built = this.exporter.BuildRoiConfig(exportable, this.textConfigName.Text,
                                                               this.ColorOfLine);
 
             // SaveConfig пишет файл по Filename, поэтому запись с уже занятым именем файла
@@ -1870,8 +1956,26 @@ namespace BecquerelMonitor.RoiWizard
             config.ROIDefinitions.AddRange(built.ROIDefinitions);
             manager.SaveConfig(config);                  // он же поднимает ROIConfigListChanged
 
+            // Сколько областей реально измеряют площадь. В режиме маркеров границы равны
+            // −10 («зоны нет»), примитива там нет и быть не должно — но «создано: 51
+            // область» без оговорки читается как «готово к измерению», а панель результата
+            // покажет прочерки. Считаем и говорим прямо.
+            int measurable = 0;
+            foreach (ROIDefinitionData roi in config.ROIDefinitions)
+            {
+                if (roi.ROIPrimitives.Count > 0)
+                {
+                    measurable++;
+                }
+            }
             this.statusLabel.Text = string.Format(CultureInfo.CurrentCulture,
                 RoiWizardStrings.statusRoiCreated, config.Name, config.ROIDefinitions.Count);
+            if (measurable < config.ROIDefinitions.Count)
+            {
+                this.statusLabel.Text += " · " + string.Format(CultureInfo.CurrentCulture,
+                    RoiWizardStrings.statusRoiNotMeasurable,
+                    config.ROIDefinitions.Count - measurable);
+            }
         }
 
         // Что уходит в библиотеку: либо отмеченное в таблице, либо рекомендованный состав
@@ -1879,9 +1983,12 @@ namespace BecquerelMonitor.RoiWizard
         // ≥1 % на распад родителя), минуя галки и слияние. См. LineSetBuilder.
         List<SpectralLine> LibraryLines(IList<SpectralLine> mustKeep)
         {
+            // ручной состав — то, что видно в таблице (ExportableLines, а не все линии:
+            // скрытый галкой тип в набор не уходит). Рекомендованный состав строится не
+            // по таблице, а по источникам, и галок типов не касается — так и задумано.
             return this.checkFullSet.Checked
                 ? this.builder.BuildRecommendedSet(this.selection, this.Resolution, mustKeep)
-                : this.lines;
+                : this.ExportableLines();
         }
 
         void CreateNuclideSet()
@@ -1921,6 +2028,15 @@ namespace BecquerelMonitor.RoiWizard
                 this.Confirm(errors, true);
                 return;
             }
+            // Предупреждения набора раньше вычислялись и выбрасывались: диалог поднимался
+            // только на ошибках, поэтому смешанные цепочки, рентгеновский якорь и равные
+            // энергии уходили в библиотеку молча — при том что на пути ROI та же пара
+            // линий честно спрашивала «сохранить всё равно?». Теперь спрашивает и здесь.
+            List<SetIssue> warnings = issues.FindAll(delegate(SetIssue i) { return i.Level == IssueLevel.Warning; });
+            if (warnings.Count > 0 && !this.Confirm(warnings, false))
+            {
+                return;
+            }
 
             // повторное нажатие добавило бы в библиотеку полный дубль записей
             if (!this.ConfirmDuplicateSet(this.textSetName.Text))
@@ -1934,7 +2050,8 @@ namespace BecquerelMonitor.RoiWizard
 
             NuclideDefinitionManager manager = NuclideDefinitionManager.GetInstance();
             manager.NuclideSets.Add(set);
-            manager.NuclideDefinitions.AddRange(definitions);
+            // записи переиспользуются, а не плодятся: см. SetExporter.MergeIntoLibrary
+            SetExporter.MergeIntoLibrary(manager.NuclideDefinitions, set.Id, definitions);
             // SaveDefinitionFile поднимает NuclideDefinitionListChanged — на него
             // подписан DCPeakDetectionView, поэтому новый набор виден в «Обнаружении
             // пиков» сразу, без перезапуска.
@@ -2301,10 +2418,19 @@ namespace BecquerelMonitor.RoiWizard
 
         void UpdateStatus()
         {
+            // Счёт по ВИДИМЫМ типам, как и экспорт (см. ExportableLines): иначе счётчик
+            // обещал бы больше линий, чем уйдёт в файл. Скрытые галкой типы не входят ни
+            // в числитель, ни в знаменатель — «27 из 81» вместо прежних «27 из 91».
             int selected = 0;
+            int visible = 0;
             Dictionary<string, bool> nuclides = new Dictionary<string, bool>();
             foreach (SpectralLine line in this.lines)
             {
+                if (!this.IsTypeVisible(line.Type))
+                {
+                    continue;
+                }
+                visible++;
                 if (line.Selected)
                 {
                     selected++;
@@ -2312,7 +2438,7 @@ namespace BecquerelMonitor.RoiWizard
                 }
             }
             this.statusLabel.Text = string.Format(CultureInfo.CurrentCulture, this.statusFormat,
-                selected, this.lines.Count, nuclides.Count);
+                selected, visible, nuclides.Count);
         }
 
     }

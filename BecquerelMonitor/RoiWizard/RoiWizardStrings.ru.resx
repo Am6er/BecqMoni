@@ -361,6 +361,9 @@
   <data name="statusRoiCreated" xml:space="preserve">
     <value>ROI-конфигурация «{0}» создана: зон {1}</value>
   </data>
+  <data name="statusRoiNotMeasurable" xml:space="preserve">
+    <value>из них не измеряют площадь: {0} (маркеры: зоны нет, коэффициент Бк/имп не задан)</value>
+  </data>
   <data name="statusSetCreated" xml:space="preserve">
     <value>набор «{0}» добавлен в библиотеку: линий {1}, якорей {2}</value>
   </data>
@@ -501,6 +504,9 @@
   </data>
   <data name="issueAnchorIsXray" xml:space="preserve">
     <value>якорь — рентгеновская линия «{0}» ({1} кэВ): для опоры фита надёжнее γ-линия</value>
+  </data>
+  <data name="issueMixedChains" xml:space="preserve">
+    <value>в наборе смешаны цепочки распада ({0}): якорный гейт общий на весь набор — одного совпавшего якоря достаточно, чтобы включились и остальные, а они дают ложные отождествления</value>
   </data>
   <data name="issueZonesOverlap" xml:space="preserve">
     <value>перекрытие зон: «{0}» [{1}–{2}] и «{3}» [{4}–{5}]</value>
