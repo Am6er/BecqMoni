@@ -20,7 +20,8 @@ namespace BecquerelMonitor.RoiWizard
         AnchorIsSecondary,
         NoAnchor,
         AnchorIsXray,
-        ZonesOverlap
+        ZonesOverlap,
+        MixedChains
     }
 
     public class SetIssue
@@ -185,6 +186,37 @@ namespace BecquerelMonitor.RoiWizard
                     });
                 }
             }
+            if (forLibrary)
+            {
+                // Один набор — одна цепочка. Якорный гейт LibraryPeakFitter общий на весь
+                // набор: если в нём лежат и Th-232, и U-238, то одного найденного якоря
+                // (скажем, 2614,5 кэВ тория) достаточно, чтобы фит посадил компоненты и
+                // на урановую половину — на ториевом образце она даёт ложные
+                // отождествления. Ровно это делал пресет «ЕРН-фон», добавлявший два ряда
+                // одним набором.
+                //
+                // Линии без родителя в скобках (K-40, Cs-137, ХРИ, вторичные) в ряд не
+                // входят и здесь не считаются: набор «Cs-137 + Co-60» законен.
+                List<string> chains = new List<string>();
+                foreach (SpectralLine line in sorted)
+                {
+                    string chain = ChainOf(line);
+                    if (chain == null || chains.Contains(chain))
+                    {
+                        continue;
+                    }
+                    chains.Add(chain);
+                }
+                if (chains.Count > 1)
+                {
+                    issues.Add(new SetIssue
+                    {
+                        Level = IssueLevel.Warning,
+                        Kind = IssueKind.MixedChains,
+                        Args = new object[] { string.Join(", ", chains.ToArray()) }
+                    });
+                }
+            }
             if (!forLibrary && zones != null && zones.Style != RoiStyle.Markers)
             {
                 for (int i = 1; i < sorted.Count; i++)
@@ -234,6 +266,30 @@ namespace BecquerelMonitor.RoiWizard
             }
             double fwhm = resolution.Fwhm(line.Energy);
             return fwhm > 0 ? DegenerateFwhmFactor * fwhm : DegenerateGapFallbackKeV;
+        }
+
+        // Цепочка линии — так, как её прочитает LibraryPeakFitter.ChainOf: текст в
+        // ПОСЛЕДНИХ скобках имени записи. Скобки в имени не украшение, а признак ряда
+        // (см. SpectralLine.LibraryName), поэтому смотреть надо именно на LibraryName, а
+        // не на Nuclide: в режиме «линии семейства» линия Ra-228 идёт под именем Th-232.
+        //
+        // null означает «линия не входит ни в один ряд»: одиночный нуклид (K-40, Cs-137),
+        // ХРИ материала или расчётный вторичный пик. Такие линии в проверке смешения не
+        // участвуют — набор из нескольких независимых нуклидов законен.
+        static string ChainOf(SpectralLine line)
+        {
+            string name = line.LibraryName;
+            if (string.IsNullOrEmpty(name) || name[name.Length - 1] != ')')
+            {
+                return null;
+            }
+            int close = name.Length - 1;
+            int open = name.LastIndexOf('(', close - 1);
+            if (open <= 0)
+            {
+                return null;
+            }
+            return name.Substring(open + 1, close - open - 1);
         }
 
         static string Name(SpectralLine line, bool forLibrary)

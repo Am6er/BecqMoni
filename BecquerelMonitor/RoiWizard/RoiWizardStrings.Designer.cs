@@ -542,6 +542,11 @@ namespace BecquerelMonitor.RoiWizard
             get { return Get("statusRoiCreated", "ROI configuration «{0}» created: {1} regions"); }
         }
 
+        public static string statusRoiNotMeasurable
+        {
+            get { return Get("statusRoiNotMeasurable", "{0} of them do not measure area (markers: no zone, no Bq/cps coefficient)"); }
+        }
+
         public static string statusSetCreated
         {
             get { return Get("statusSetCreated", "set «{0}» added to the library: {1} lines, {2} anchor(s)"); }
@@ -775,6 +780,11 @@ namespace BecquerelMonitor.RoiWizard
         public static string issueAnchorIsXray
         {
             get { return Get("issueAnchorIsXray", "the anchor is the X-ray line “{0}” ({1} keV): a γ line is a firmer footing for the fit"); }
+        }
+
+        public static string issueMixedChains
+        {
+            get { return Get("issueMixedChains", "the set mixes decay series ({0}): the anchor gate is common to the whole set, so one matched anchor switches the others on as well and they yield false identifications"); }
         }
 
         public static string issueZonesOverlap

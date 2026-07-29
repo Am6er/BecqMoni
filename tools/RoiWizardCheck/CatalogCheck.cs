@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using BecquerelMonitor;
 using BecquerelMonitor.RoiWizard;
 
 // Проверка каталога, переведённого на nucdb.sqlite: читается ли он вообще,
@@ -202,8 +203,172 @@ static class CatalogCheck
         CompareWithReference(catalog);
 
         Console.WriteLine();
+        CheckRoiPrimitives(catalog);
+
+        Console.WriteLine();
+        CheckMixedChains(catalog);
+
+        Console.WriteLine();
+        CheckLibraryMerge(catalog);
+
+        Console.WriteLine();
         Console.WriteLine(failures == 0 ? "ВСЁ ЗЕЛЁНОЕ" : failures + " ПРОВАЛОВ");
         return failures == 0 ? 0 : 1;
+    }
+
+    // D1: у каждой области ROI-конфигурации есть примитив подсчёта. Без него
+    // MeasurementResultManager.CalculateROI обходит пустой список и возвращает count = 0 —
+    // конфигурация мастера рисовала границы и показывала нули по всем областям.
+    static void CheckRoiPrimitives(NuclideCatalog catalog)
+    {
+        // таблицы примитивов в приложении наполняет старт; харнесс поднимает их сам
+        ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
+        ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
+
+        ResolutionModel resolution = new ResolutionModel(6.664);
+        LineSetBuilder builder = new LineSetBuilder(catalog).Reset();
+        SourceSelection selection = new SourceSelection();
+        selection.Add(catalog, "Th-232", AddMode.Chain);
+        List<SpectralLine> lines = builder.BuildRecommendedSet(selection, resolution, null);
+
+        ZoneCalculator zones = new ZoneCalculator(resolution);
+        zones.Style = RoiStyle.Zones;
+        ROIConfigData config = new SetExporter(resolution, zones)
+            .BuildRoiConfig(lines, "harness zones", null);
+
+        Check("области построены", config.ROIDefinitions.Count > 0,
+              config.ROIDefinitions.Count + " шт.");
+        int empty = 0, wrongType = 0, wrongLimits = 0;
+        foreach (ROIDefinitionData roi in config.ROIDefinitions)
+        {
+            if (roi.ROIPrimitives.Count == 0) { empty++; continue; }
+            ROISimpleDifferenceData prim = roi.ROIPrimitives[0] as ROISimpleDifferenceData;
+            if (prim == null) { wrongType++; continue; }
+            // границы примитива обязаны совпасть с границами области: считается площадь
+            // именно нарисованной зоны, а не какого-то своего окна
+            if (Math.Abs(prim.LowerLimit - roi.LowerLimit) > 1e-9 ||
+                Math.Abs(prim.UpperLimit - roi.UpperLimit) > 1e-9) wrongLimits++;
+        }
+        Check("у всех областей есть примитив", empty == 0, "пустых: " + empty);
+        Check("примитив — BG difference", wrongType == 0, "иного типа: " + wrongType);
+        Check("границы примитива равны границам области", wrongLimits == 0,
+              "расхождений: " + wrongLimits);
+        if (config.ROIDefinitions.Count > 0)
+        {
+            ROIPrimitiveData first = config.ROIDefinitions[0].ROIPrimitives.Count > 0
+                ? config.ROIDefinitions[0].ROIPrimitives[0] : null;
+            Check("PrimitiveType в файле", first == null ? null : first.PrimitiveType,
+                  "BG difference");
+            Check("OperationType в файле", first == null ? null : first.OperationType,
+                  "Addition");
+        }
+
+        // Режим МАРКЕРОВ: границы области равны −10 («зоны нет»), примитив с таким
+        // интервалом дал бы ноль отсчётов и выглядел настроенным. Найдено живым прогоном
+        // оператора: первая версия правки создавала такие пустышки.
+        ZoneCalculator markers = new ZoneCalculator(resolution);
+        markers.Style = RoiStyle.Markers;
+        ROIConfigData marked = new SetExporter(resolution, markers)
+            .BuildRoiConfig(lines, "harness markers", null);
+        int markerPrims = 0, negative = 0;
+        foreach (ROIDefinitionData roi in marked.ROIDefinitions)
+        {
+            markerPrims += roi.ROIPrimitives.Count;
+            if (roi.LowerLimit >= 0.0) negative++;
+        }
+        Check("маркеры: области построены", marked.ROIDefinitions.Count > 0,
+              marked.ROIDefinitions.Count + " шт.");
+        Check("маркеры: границы −10 (зоны нет)", negative == 0, "с обычными границами: " + negative);
+        Check("маркеры: примитивов НЕТ (пустышку не пишем)", markerPrims == 0,
+              "примитивов: " + markerPrims);
+    }
+
+    // D9: набор из двух рядов распада ловится предупреждением. Якорный гейт
+    // LibraryPeakFitter общий на весь набор, поэтому один найденный якорь включает и
+    // вторую половину — на ториевом образце урановая даёт ложные отождествления.
+    static void CheckMixedChains(NuclideCatalog catalog)
+    {
+        ResolutionModel resolution = new ResolutionModel(6.664);
+
+        SourceSelection mixed = new SourceSelection();
+        mixed.Add(catalog, "Th-232", AddMode.Chain);
+        mixed.Add(catalog, "U-238", AddMode.Chain);
+        Check("смешанные ряды дают предупреждение",
+              HasMixedChains(catalog, mixed, resolution), null);
+
+        SourceSelection single = new SourceSelection();
+        single.Add(catalog, "Th-232", AddMode.Chain);
+        Check("один ряд предупреждения не даёт",
+              !HasMixedChains(catalog, single, resolution), null);
+
+        // Набор независимых нуклидов законен: у них нет родителя в скобках, в ряд они не
+        // входят, и запрещать «Cs-137 + Co-60» было бы ложной тревогой.
+        SourceSelection separate = new SourceSelection();
+        separate.Add(catalog, "Cs-137", AddMode.Single);
+        separate.Add(catalog, "Co-60", AddMode.Single);
+        Check("Cs-137 + Co-60 — не смешение рядов",
+              !HasMixedChains(catalog, separate, resolution), null);
+    }
+
+    // D4: повторный прогон мастера не плодит записи библиотеки. Прежний AddRange добавлял
+    // копию каждой линии на каждый прогон — четыре прогона давали 230 записей вместо 118 и
+    // до четырёх копий «Tl-208 (Th-232) 2614.511». Это единственный дефект мастера,
+    // оставлявший необратимый след в пользовательском файле.
+    static void CheckLibraryMerge(NuclideCatalog catalog)
+    {
+        ResolutionModel resolution = new ResolutionModel(6.664);
+        LineSetBuilder builder = new LineSetBuilder(catalog).Reset();
+        SourceSelection selection = new SourceSelection();
+        selection.Add(catalog, "Th-232", AddMode.Chain);
+        List<SpectralLine> lines = builder.BuildRecommendedSet(selection, resolution, null);
+        SetExporter exporter = new SetExporter(resolution);
+
+        List<NuclideDefinition> library = new List<NuclideDefinition>();
+
+        List<NuclideDefinition> first;
+        NuclideSet setA = exporter.BuildNuclideSet(lines, "harness A", null, null,
+                                                   AnchorPicker.DefaultCount, out first);
+        SetExporter.MergeIntoLibrary(library, setA.Id, first);
+        int afterFirst = library.Count;
+        Check("первый прогон наполняет библиотеку", afterFirst > 0, afterFirst + " записей");
+
+        // тот же состав вторым набором: линии те же, набор другой
+        List<NuclideDefinition> second;
+        NuclideSet setB = exporter.BuildNuclideSet(lines, "harness B", null, null,
+                                                   AnchorPicker.DefaultCount, out second);
+        SetExporter.MergeIntoLibrary(library, setB.Id, second);
+        Check("второй прогон записей не добавил", library.Count == afterFirst,
+              library.Count + " (было " + afterFirst + ")");
+
+        int inBoth = 0;
+        foreach (NuclideDefinition d in library)
+            if (d.Sets.Contains(setA.Id) && d.Sets.Contains(setB.Id)) inBoth++;
+        Check("записи принадлежат обоим наборам", inBoth == afterFirst,
+              inBoth + " из " + afterFirst);
+
+        // дублей по (имя, энергия) не появилось
+        int duplicates = 0;
+        for (int i = 0; i < library.Count; i++)
+            for (int j = i + 1; j < library.Count; j++)
+                if (library[i].Name == library[j].Name &&
+                    Math.Abs(library[i].Energy - library[j].Energy) < SetExporter.SameEnergyKeV)
+                    duplicates++;
+        Check("дублей (имя, энергия) нет", duplicates == 0, "пар: " + duplicates);
+
+        // якорь не теряется: во втором наборе он тот же, флаг должен остаться поднятым
+        int anchors = 0;
+        foreach (NuclideDefinition d in library) if (d.IsAnchor) anchors++;
+        Check("якоря сохранены", anchors > 0, anchors + " шт.");
+    }
+
+    static bool HasMixedChains(NuclideCatalog catalog, SourceSelection selection,
+                               ResolutionModel resolution)
+    {
+        List<SpectralLine> lines = new LineSetBuilder(catalog).Reset()
+            .BuildRecommendedSet(selection, resolution, null);
+        foreach (SetIssue issue in SetChecker.Check(lines, true, null, resolution))
+            if (issue.Kind == IssueKind.MixedChains) return true;
+        return false;
     }
 
     // Приёмочная проверка фильтра состава: воспроизводит ли BuildRecommendedSet сет из

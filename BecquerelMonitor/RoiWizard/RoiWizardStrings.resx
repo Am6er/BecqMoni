@@ -361,6 +361,9 @@
   <data name="statusRoiCreated" xml:space="preserve">
     <value>ROI configuration «{0}» created: {1} regions</value>
   </data>
+  <data name="statusRoiNotMeasurable" xml:space="preserve">
+    <value>{0} of them do not measure area (markers: no zone, no Bq/cps coefficient)</value>
+  </data>
   <data name="statusSetCreated" xml:space="preserve">
     <value>set «{0}» added to the library: {1} lines, {2} anchor(s)</value>
   </data>
@@ -501,6 +504,9 @@
   </data>
   <data name="issueAnchorIsXray" xml:space="preserve">
     <value>the anchor is the X-ray line “{0}” ({1} keV): a γ line is a firmer footing for the fit</value>
+  </data>
+  <data name="issueMixedChains" xml:space="preserve">
+    <value>the set mixes decay series ({0}): the anchor gate is common to the whole set, so one matched anchor switches the others on as well and they yield false identifications</value>
   </data>
   <data name="issueZonesOverlap" xml:space="preserve">
     <value>zones overlap: “{0}” [{1}–{2}] and “{3}” [{4}–{5}]</value>
