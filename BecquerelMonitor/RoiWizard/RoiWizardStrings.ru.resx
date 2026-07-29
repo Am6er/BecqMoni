@@ -361,6 +361,21 @@
   <data name="statusRoiCreated" xml:space="preserve">
     <value>ROI-конфигурация «{0}» создана: зон {1}</value>
   </data>
+  <data name="tipConfigName" xml:space="preserve">
+    <value>Имя становится именем файла в config\ROI; совпадение имён перезапишет этот файл.</value>
+  </data>
+  <data name="tipSetName" xml:space="preserve">
+    <value>Имя набора в библиотеке нуклидов; повторное имя приложение переспросит перед записью.</value>
+  </data>
+  <data name="tipFullSet" xml:space="preserve">
+    <value>Относится только к НАБОРУ: ROI-конфигурация всегда строится по таблице.</value>
+  </data>
+  <data name="tipAnchorManual" xml:space="preserve">
+    <value>Якорь, выбранный руками. При полном наборе недоступен: там якоря выбираются автоматически.</value>
+  </data>
+  <data name="tipAnchorCount" xml:space="preserve">
+    <value>Сколько линий помечать якорями при автоматическом выборе.</value>
+  </data>
   <data name="statusRoiNotMeasurable" xml:space="preserve">
     <value>из них не измеряют площадь: {0} (маркеры: зоны нет, коэффициент Бк/имп не задан)</value>
   </data>

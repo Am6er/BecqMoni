@@ -361,6 +361,21 @@
   <data name="statusRoiCreated" xml:space="preserve">
     <value>ROI configuration «{0}» created: {1} regions</value>
   </data>
+  <data name="tipConfigName" xml:space="preserve">
+    <value>The name becomes the file name under config\ROI; a matching name overwrites that file.</value>
+  </data>
+  <data name="tipSetName" xml:space="preserve">
+    <value>Name of the set in the nuclide library; a duplicate name is confirmed before saving.</value>
+  </data>
+  <data name="tipFullSet" xml:space="preserve">
+    <value>Applies to the SET only: the ROI configuration is always built from the table.</value>
+  </data>
+  <data name="tipAnchorManual" xml:space="preserve">
+    <value>Anchor chosen by hand. Disabled with the full set: there the anchors are picked automatically.</value>
+  </data>
+  <data name="tipAnchorCount" xml:space="preserve">
+    <value>How many lines to mark as anchors when they are picked automatically.</value>
+  </data>
   <data name="statusRoiNotMeasurable" xml:space="preserve">
     <value>{0} of them do not measure area (markers: no zone, no Bq/cps coefficient)</value>
   </data>

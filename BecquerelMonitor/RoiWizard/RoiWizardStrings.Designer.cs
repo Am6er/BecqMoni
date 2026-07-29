@@ -542,6 +542,31 @@ namespace BecquerelMonitor.RoiWizard
             get { return Get("statusRoiCreated", "ROI configuration «{0}» created: {1} regions"); }
         }
 
+        public static string tipConfigName
+        {
+            get { return Get("tipConfigName", "The name becomes the file name under config\\ROI; a matching name overwrites that file."); }
+        }
+
+        public static string tipSetName
+        {
+            get { return Get("tipSetName", "Name of the set in the nuclide library; a duplicate name is confirmed before saving."); }
+        }
+
+        public static string tipFullSet
+        {
+            get { return Get("tipFullSet", "Applies to the SET only: the ROI configuration is always built from the table."); }
+        }
+
+        public static string tipAnchorManual
+        {
+            get { return Get("tipAnchorManual", "Anchor chosen by hand. Disabled with the full set: there the anchors are picked automatically."); }
+        }
+
+        public static string tipAnchorCount
+        {
+            get { return Get("tipAnchorCount", "How many lines to mark as anchors when they are picked automatically."); }
+        }
+
         public static string statusRoiNotMeasurable
         {
             get { return Get("statusRoiNotMeasurable", "{0} of them do not measure area (markers: no zone, no Bq/cps coefficient)"); }

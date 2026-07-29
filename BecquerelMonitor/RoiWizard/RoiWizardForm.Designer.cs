@@ -418,7 +418,10 @@ namespace BecquerelMonitor.RoiWizard
             this.labelResolution.AutoSize = true;
             this.numResolution.Location = new System.Drawing.Point(102, 20);
             this.numResolution.Size = new System.Drawing.Size(56, 21);
-            this.numResolution.DecimalPlaces = 1;
+            // два знака, а не один: у HPGe R = 0.22 %, и округление до 0.2 занижает
+            // ширину пика на 9 % — модель разрешения сцинтилляторная, но само поле
+            // не должно добавлять к её погрешности своей
+            this.numResolution.DecimalPlaces = 2;
             this.numResolution.Increment = new decimal(new int[] { 1, 0, 0, 65536 });
             this.numResolution.Minimum = new decimal(new int[] { 1, 0, 0, 65536 });
             this.numResolution.Maximum = new decimal(new int[] { 30, 0, 0, 0 });

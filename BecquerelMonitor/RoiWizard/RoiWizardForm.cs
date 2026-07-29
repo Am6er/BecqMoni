@@ -75,6 +75,7 @@ namespace BecquerelMonitor.RoiWizard
 
             this.buttonFromSpectrum.Enabled = resolutionProvider != null;
             this.SyncSetControls();
+            this.SetUpTips();
             this.FillXrf();
             this.FillPresets();
             this.SetFold(this.groupSecondary, false);
@@ -1725,6 +1726,21 @@ namespace BecquerelMonitor.RoiWizard
         {
             this.comboAnchor.Enabled = !this.checkFullSet.Checked;
             this.labelAnchor.Enabled = !this.checkFullSet.Checked;
+        }
+
+        // Подсказки к элементам, чей смысл из подписи не читается. Все три места нашлись
+        // в отчёте по интерфейсу: галка «полный набор» стоит в общей рамке с созданием ROI
+        // и выглядит относящейся к обоим (а ROI всегда строится по таблице); при её
+        // включении гаснет выбор якоря, но остаётся счётчик — и со стороны кажется, что
+        // погасло действующее, хотя погасло как раз недействующее; имя конфигурации
+        // становится именем файла, и совпадение имён перезапишет чужой файл.
+        void SetUpTips()
+        {
+            this.tips.SetToolTip(this.textConfigName, RoiWizardStrings.tipConfigName);
+            this.tips.SetToolTip(this.textSetName, RoiWizardStrings.tipSetName);
+            this.tips.SetToolTip(this.checkFullSet, RoiWizardStrings.tipFullSet);
+            this.tips.SetToolTip(this.comboAnchor, RoiWizardStrings.tipAnchorManual);
+            this.tips.SetToolTip(this.numAnchors, RoiWizardStrings.tipAnchorCount);
         }
 
         // Линии, которые уйдут в результат: видимые по галкам типов. Раньше галки
