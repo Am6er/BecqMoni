@@ -23,12 +23,12 @@ namespace Pie
     /// solved by weighted NNLS; the drift by a coarse grid search; robustness
     /// by Huber-type reweighting.
     ///
-    /// Build (after the main project, same pattern as tools/LibraryFitLab):
+    /// Build (after the main project, same pattern as the corpus workdirs):
     ///   csc /target:exe /platform:anycpu /langversion:7.3 /out:&lt;wd&gt;\pie.exe
     ///       /r:&lt;wd&gt;\BecquerelMonitor.exe /r:System.dll /r:System.Core.dll
     ///       /r:System.Xml.dll /r:System.Drawing.dll /r:System.Windows.Forms.dll
     ///       tools\pie\Program.cs
-    /// Run from a LibraryFitLab-style workdir (config/ + spectra/).
+    /// Run from a corpus workdir tools/CORPUS/scripts/wd_* (config/ + spectra/).
     /// </summary>
     internal static class Program
     {

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """Скоринг полноспектральной декомпозиции (pie) против истины корпуса.
 
-Читает tools/LibraryFitLab/corpus/manifest.csv и out/<группа>_<режим>_components.csv,
+Читает tools/CORPUS/corpus/manifest.csv и out/<группа>_<режим>_components.csv,
 считает по каждому спектру попадания (все ли компоненты истины найдены)
 и фантомы (найденные компоненты, которых в образце нет).
 
@@ -31,7 +31,7 @@ import sys
 from collections import defaultdict
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-MANIFEST = os.path.join(HERE, '..', 'LibraryFitLab', 'corpus', 'manifest.csv')
+MANIFEST = os.path.join(HERE, '..', 'CORPUS', 'corpus', 'manifest.csv')
 OUT = os.path.join(HERE, 'out')
 
 # манифест -> компоненты. Компонент U-238 в pie — только голова ряда
