@@ -1,6 +1,6 @@
 # Сборка pie.exe и прогон полноспектральной декомпозиции по NaI/CsI-группам
 # корпуса (ASN16, AS80x80, RC103, RC103g). Использует готовые рабочие каталоги
-# tools/LibraryFitLab/scripts/wd_* (конфиг устройства + спектры корпуса).
+# tools/CORPUS/scripts/wd_* (конфиг устройства + спектры корпуса).
 #
 #   pwsh tools/pie/run_corpus.ps1 [-Mode snip|spline|both] [-SkipBuild] [-DumpModels]
 
@@ -15,8 +15,8 @@ $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $pieDir = Join-Path $repo 'tools\pie'
 $outDir = Join-Path $pieDir 'out'
-$wdRoot = Join-Path $repo 'tools\LibraryFitLab\scripts'
-$effTable = Join-Path $repo 'tools\LibraryFitLab\data\eff_by_spectrum_lsrm.csv'
+$wdRoot = Join-Path $repo 'tools\CORPUS\scripts'
+$effTable = Join-Path $repo 'tools\CORPUS\data\eff_by_spectrum_lsrm.csv'
 $csc = 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\Roslyn\csc.exe'
 
 # группа -> (workdir, есть ли кривые эффективности)
