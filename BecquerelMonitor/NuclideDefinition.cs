@@ -145,22 +145,6 @@ namespace BecquerelMonitor
             }
         }
 
-        // Якорная линия нуклидного сета: если FWHM-finder нашёл пик на этой
-        // энергии, библиотечный фит (LibraryPeakFitter) сажает компоненты на
-        // все линии сета и фитит их амплитуды Пуассон-правдоподобием.
-        // Отсутствует в старых NuclideDefinition.xml — десериализуется в false.
-        public bool IsAnchor
-        {
-            get
-            {
-                return this.isAnchor;
-            }
-            set
-            {
-                this.isAnchor = value;
-            }
-        }
-
         // Token: 0x040009B1 RID: 2481
         string name = "";
 
@@ -183,7 +167,5 @@ namespace BecquerelMonitor
         SerializableColor nuclideColor = Color.Gray;
 
         HashSet<Guid> sets = new HashSet<Guid>();
-
-        bool isAnchor;
     }
 }

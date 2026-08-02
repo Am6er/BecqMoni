@@ -9,7 +9,6 @@ namespace BecquerelMonitor
     public partial class NuclideSetForm : Form
     {
         private const int NuclideCheckboxColumnIndex = 0;
-        private const int NuclideAnchorColumnIndex = 3;
         private const int SetNameColumnIndex = 0;
         private const int SetHidePeaksColumnIndex = 1;
 
@@ -65,7 +64,6 @@ namespace BecquerelMonitor
             row.Cells.Add(new Cell() { Checked = included });
             row.Cells.Add(new Cell(nuclideDefinition.Name));
             row.Cells.Add(new Cell(nuclideDefinition.Energy.ToString(), nuclideDefinition.Energy));
-            row.Cells.Add(new Cell() { Checked = nuclideDefinition.IsAnchor });
             row.Tag = nuclideDefinition;
 
             return row;
@@ -144,18 +142,6 @@ namespace BecquerelMonitor
             {
                 bool include = !e.Cell.Checked;
                 this.UpdateNuclideDefinition(this.tableModelNuclides.Rows[e.Row].Tag as NuclideDefinition, include);
-            }
-            else if (e.Cell.Index == NuclideAnchorColumnIndex)
-            {
-                // Якорная линия library-fit: флаг глобальный для линии (не
-                // пер-сетовый) — линия, выбранная якорем, обычно якорь во всех
-                // сетах, где присутствует (например, Tl-208 2614.5).
-                NuclideDefinition nuclideDefinition = this.tableModelNuclides.Rows[e.Row].Tag as NuclideDefinition;
-                if (nuclideDefinition != null)
-                {
-                    nuclideDefinition.IsAnchor = !e.Cell.Checked;
-                    this.MarkAsDirty();
-                }
             }
         }
 

@@ -2,9 +2,7 @@ namespace BecquerelMonitor
 {
     public enum PeakSearchOrigin
     {
-        FWHMPeakFinder,
-        RJMCMC,
-        Library
+        FWHMPeakFinder
     }
 
     public class Peak
@@ -129,34 +127,6 @@ namespace BecquerelMonitor
             }
         }
 
-        public PeakDeconvolutionInfo DeconvolutionInfo
-        {
-            get
-            {
-                return this.deconvolutionInfo;
-            }
-            set
-            {
-                this.deconvolutionInfo = value;
-            }
-        }
-
-        // Пик совпал с якорной линией сета и включил библиотечный фит.
-        // Ставится в PeakDetector.AppendLibraryPeaks; надёжнее, чем проверка
-        // Nuclide.IsAnchor (при дубликатах линии пик может получить
-        // незаякоренную копию из MatchNuclide).
-        public bool IsLibraryAnchor
-        {
-            get
-            {
-                return this.isLibraryAnchor;
-            }
-            set
-            {
-                this.isLibraryAnchor = value;
-            }
-        }
-
         double energy;
 
         int channel;
@@ -176,9 +146,5 @@ namespace BecquerelMonitor
         double fwhm_delta;
 
         PeakSearchOrigin peakSearchOrigin;
-
-        PeakDeconvolutionInfo deconvolutionInfo;
-
-        bool isLibraryAnchor;
     }
 }

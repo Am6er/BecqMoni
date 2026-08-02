@@ -43,7 +43,6 @@ namespace BecquerelMonitor
             this.textColumn6 = new XPTable.Models.TextColumn();
             this.tableModel1 = new XPTable.Models.TableModel();
             this.numericUpDown1 = new System.Windows.Forms.NumericUpDown();
-            this.checkBoxDeconvolution = new System.Windows.Forms.CheckBox();
             this.label1 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
@@ -54,7 +53,6 @@ namespace BecquerelMonitor
             this.label4 = new System.Windows.Forms.Label();
             this.comboBoxNuclSet = new System.Windows.Forms.ComboBox();
             this.labelSetName = new System.Windows.Forms.Label();
-            this.buttonDeconvolutionInfo = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.table1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
             this.contextMenuStrip1.SuspendLayout();
@@ -133,14 +131,7 @@ namespace BecquerelMonitor
             resources.ApplyResources(this.numericUpDown1, "numericUpDown1");
             this.numericUpDown1.Name = "numericUpDown1";
             this.numericUpDown1.ValueChanged += new System.EventHandler(this.numericUpDown1_ValueChanged);
-            // 
-            // checkBoxDeconvolution
-            // 
-            resources.ApplyResources(this.checkBoxDeconvolution, "checkBoxDeconvolution");
-            this.checkBoxDeconvolution.Name = "checkBoxDeconvolution";
-            this.checkBoxDeconvolution.UseVisualStyleBackColor = true;
-            this.checkBoxDeconvolution.CheckedChanged += new System.EventHandler(this.checkBoxDeconvolution_CheckedChanged);
-            // 
+            //
             // label1
             // 
             resources.ApplyResources(this.label1, "label1");
@@ -208,27 +199,18 @@ namespace BecquerelMonitor
             // 
             resources.ApplyResources(this.labelSetName, "labelSetName");
             this.labelSetName.Name = "labelSetName";
-            // 
-            // buttonDeconvolutionInfo
-            // 
-            resources.ApplyResources(this.buttonDeconvolutionInfo, "buttonDeconvolutionInfo");
-            this.buttonDeconvolutionInfo.Name = "buttonDeconvolutionInfo";
-            this.buttonDeconvolutionInfo.UseVisualStyleBackColor = true;
-            this.buttonDeconvolutionInfo.Click += new System.EventHandler(this.buttonDeconvolutionInfo_Click);
-            // 
+            //
             // DCPeakDetectionView
-            // 
+            //
             resources.ApplyResources(this, "$this");
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ContextMenuStrip = this.contextMenuStrip1;
-            this.Controls.Add(this.buttonDeconvolutionInfo);
             this.Controls.Add(this.comboBoxNuclSet);
             this.Controls.Add(this.labelSetName);
             this.Controls.Add(this.label4);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.numericUpDown3);
             this.Controls.Add(this.label3);
-            this.Controls.Add(this.checkBoxDeconvolution);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.numericUpDown1);
             this.Controls.Add(this.table1);
@@ -254,7 +236,6 @@ namespace BecquerelMonitor
         private XPTable.Models.NumberColumn textColumn5;
         private XPTable.Models.TextColumn textColumn6;
         private System.Windows.Forms.NumericUpDown numericUpDown1;
-        private System.Windows.Forms.CheckBox checkBoxDeconvolution;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.NumericUpDown numericUpDown3;
@@ -266,6 +247,5 @@ namespace BecquerelMonitor
         private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
         private System.Windows.Forms.ComboBox comboBoxNuclSet;
         private System.Windows.Forms.Label labelSetName;
-        private System.Windows.Forms.Button buttonDeconvolutionInfo;
     }
 }
