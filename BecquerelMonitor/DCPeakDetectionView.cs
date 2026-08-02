@@ -16,23 +16,19 @@ namespace BecquerelMonitor
         {
             this.mainForm = mainForm;
             this.InitializeComponent();
-            this.columnModel1.Columns[0].Renderer = new PeakOriginCellRenderer();
 
             this.RefreshNuclideSets();
-            this.UpdateDeconvolutionInfoButtonState();
         }
 
         // Token: 0x0600043E RID: 1086 RVA: 0x0001423C File Offset: 0x0001243C
         public void ShowPeakDetectionResult()
         {
             this.FormLoading = true;
-            this.checkBoxDeconvolution.Checked = false;
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
             if (activeDocument == null || activeDocument.ActiveResultData == null)
             {
                 this.tableModel1.Rows.Clear();
                 this.FormLoading = false;
-                this.UpdateDeconvolutionInfoButtonState();
                 return;
             }
             ResultData activeResultData = activeDocument.ActiveResultData;
@@ -41,7 +37,6 @@ namespace BecquerelMonitor
             {
                 this.tableModel1.Rows.Clear();
                 this.FormLoading = false;
-                this.UpdateDeconvolutionInfoButtonState();
                 return;
             }
             if (deviceConfigInfo.Guid == null)
@@ -84,11 +79,8 @@ namespace BecquerelMonitor
             {
                 this.tableModel1.Rows.Clear();
                 this.FormLoading = false;
-                this.UpdateDeconvolutionInfoButtonState();
                 return;
             }
-            this.checkBoxDeconvolution.Checked = fwhmPeakDetectionMethodConfig.UseDeconvolution;
-
             this.numericUpDown1.Minimum = 1;
             this.numericUpDown1.Maximum = 10000;
             this.numericUpDown1.Increment = 1;
@@ -213,14 +205,12 @@ namespace BecquerelMonitor
             if (activeDocument == null || activeDocument.ActiveResultData == null)
             {
                 this.tableModel1.Rows.Clear();
-                this.UpdateDeconvolutionInfoButtonState();
                 return;
             }
             ResultData activeResultData = activeDocument.ActiveResultData;
             if (activeResultData.DetectedPeaks == null)
             {
                 this.tableModel1.Rows.Clear();
-                this.UpdateDeconvolutionInfoButtonState();
                 return;
             }
             List<Peak> peaks = new List<Peak>(activeResultData.DetectedPeaks);
@@ -231,7 +221,6 @@ namespace BecquerelMonitor
                 if (energyCalibration == null)
                 {
                     this.tableModel1.Rows.Clear();
-                    this.UpdateDeconvolutionInfoButtonState();
                     return;
                 }
 
@@ -252,11 +241,7 @@ namespace BecquerelMonitor
                         }
                     }
                     int snr = (int)peak.SNR;
-                    Cell nuclideCell = new Cell(text);
-                    // Весь Peak, а не только origin: рендереру нужен и
-                    // Nuclide.IsAnchor (красный якорь), и origin (синий LIB).
-                    nuclideCell.Tag = peak;
-                    row.Cells.Add(nuclideCell);
+                    row.Cells.Add(new Cell(text));
                     row.Cells.Add(new Cell(peak.Energy.ToString("f2"), Math.Round(peak.Energy, 2)));
                     row.Cells.Add(new Cell(text2));
                     row.Cells.Add(new Cell(peak.Channel.ToString(), peak.Channel));
@@ -273,7 +258,6 @@ namespace BecquerelMonitor
                 //this.table1.AutoResizeColumnWidths();
             }
 
-            this.UpdateDeconvolutionInfoButtonState();
         }
 
         public void RefreshNuclideSets()
@@ -311,46 +295,6 @@ namespace BecquerelMonitor
                 fwhmPeakDetectionMethodConfig.Min_SNR = (double)((int)this.numericUpDown1.Value);
                 this.UpdatePeakDetectionResult();
                 activeDocument.EnergySpectrumView.Invalidate();
-            }
-        }
-
-        // Token: 0x06000441 RID: 1089 RVA: 0x00014500 File Offset: 0x00012700
-        void checkBoxDeconvolution_CheckedChanged(object sender, EventArgs e)
-        {
-            if (this.FormLoading == false)
-            {
-                DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
-                ResultData activeResultData = activeDocument?.ActiveResultData;
-                // Mutate the per-document clone only. Taking the object from
-                // DeviceConfig.PeakDetectionMethodConfig, mutating it and assigning that same
-                // reference back into activeResultData.PeakDetectionMethodConfig used to alias
-                // the shared global device config into the ResultData, breaking the clone made
-                // in DocumentManager.PrepareDeviceConfig.
-                if (!(activeResultData?.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig fwhmPeakDetectionMethodConfig))
-                {
-                    return;
-                }
-
-                fwhmPeakDetectionMethodConfig.UseDeconvolution = this.checkBoxDeconvolution.Checked;
-
-                // Persist the preference to the shared device config separately, without
-                // aliasing it into the ResultData clone.
-                DeviceConfigInfo deviceConfig = activeResultData.DeviceConfig;
-                if (deviceConfig?.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig deviceFwhmConfig)
-                {
-                    deviceFwhmConfig.UseDeconvolution = this.checkBoxDeconvolution.Checked;
-                    DeviceConfigManager deviceConfigManager = DeviceConfigManager.GetInstance();
-                    if (!string.IsNullOrEmpty(deviceConfig.Guid) && deviceConfigManager.DeviceConfigMap.ContainsKey(deviceConfig.Guid))
-                    {
-                        deviceConfigManager.SaveConfig(deviceConfig);
-                    }
-                }
-
-                this.UpdatePeakDetectionResult();
-                if (activeDocument != null && activeDocument.EnergySpectrumView != null)
-                {
-                    activeDocument.EnergySpectrumView.Invalidate();
-                }
             }
         }
 
@@ -439,42 +383,6 @@ namespace BecquerelMonitor
             }
 
             this.UpdatePeakDetectionResult();
-        }
-
-        void buttonDeconvolutionInfo_Click(object sender, EventArgs e)
-        {
-            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
-            List<Peak> deconvolvedPeaks = this.GetDetectedDeconvolutionPeaks();
-            if (activeDocument == null || deconvolvedPeaks.Count == 0)
-            {
-                return;
-            }
-
-            using (PeakDeconvolutionInfoForm dialog = new PeakDeconvolutionInfoForm(activeDocument, deconvolvedPeaks, this.selectedNuclideSet))
-            {
-                dialog.ShowDialog(this);
-            }
-        }
-
-        List<Peak> GetDetectedDeconvolutionPeaks()
-        {
-            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
-            ResultData activeResultData = activeDocument != null ? activeDocument.ActiveResultData : null;
-            if (activeResultData == null || activeResultData.DetectedPeaks == null)
-            {
-                return new List<Peak>();
-            }
-
-            return activeResultData.DetectedPeaks
-                .Where(peak => peak != null &&
-                    peak.PeakSearchOrigin == PeakSearchOrigin.RJMCMC &&
-                    peak.DeconvolutionInfo != null)
-                .ToList();
-        }
-
-        void UpdateDeconvolutionInfoButtonState()
-        {
-            this.buttonDeconvolutionInfo.Enabled = this.checkBoxDeconvolution.Checked && this.GetDetectedDeconvolutionPeaks().Count > 0;
         }
 
         // Token: 0x040001B3 RID: 435

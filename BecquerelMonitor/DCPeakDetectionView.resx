@@ -216,33 +216,6 @@
   <data name="&gt;&gt;numericUpDown1.ZOrder" xml:space="preserve">
     <value>10</value>
   </data>
-  <data name="checkBoxDeconvolution.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="checkBoxDeconvolution.Location" type="System.Drawing.Point, System.Drawing">
-    <value>115, 9</value>
-  </data>
-  <data name="checkBoxDeconvolution.Size" type="System.Drawing.Size, System.Drawing">
-    <value>95, 17</value>
-  </data>
-  <data name="checkBoxDeconvolution.TabIndex" type="System.Int32, mscorlib">
-    <value>2</value>
-  </data>
-  <data name="checkBoxDeconvolution.Text" xml:space="preserve">
-    <value>Deconvolution</value>
-  </data>
-  <data name="&gt;&gt;checkBoxDeconvolution.Name" xml:space="preserve">
-    <value>checkBoxDeconvolution</value>
-  </data>
-  <data name="&gt;&gt;checkBoxDeconvolution.Type" xml:space="preserve">
-    <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;checkBoxDeconvolution.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;checkBoxDeconvolution.ZOrder" xml:space="preserve">
-    <value>8</value>
-  </data>
   <data name="label1.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
@@ -446,33 +419,6 @@
   </data>
   <data name="&gt;&gt;labelSetName.ZOrder" xml:space="preserve">
     <value>3</value>
-  </data>
-  <data name="buttonDeconvolutionInfo.Font" type="System.Drawing.Font, System.Drawing">
-    <value>Microsoft Sans Serif, 10pt, style=Bold</value>
-  </data>
-  <data name="buttonDeconvolutionInfo.Location" type="System.Drawing.Point, System.Drawing">
-    <value>230, 6</value>
-  </data>
-  <data name="buttonDeconvolutionInfo.Size" type="System.Drawing.Size, System.Drawing">
-    <value>29, 23</value>
-  </data>
-  <data name="buttonDeconvolutionInfo.TabIndex" type="System.Int32, mscorlib">
-    <value>3</value>
-  </data>
-  <data name="buttonDeconvolutionInfo.Text" xml:space="preserve">
-    <value>i</value>
-  </data>
-  <data name="&gt;&gt;buttonDeconvolutionInfo.Name" xml:space="preserve">
-    <value>buttonDeconvolutionInfo</value>
-  </data>
-  <data name="&gt;&gt;buttonDeconvolutionInfo.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;buttonDeconvolutionInfo.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;buttonDeconvolutionInfo.ZOrder" xml:space="preserve">
-    <value>1</value>
   </data>
   <metadata name="$this.Localizable" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>True</value>

@@ -70,7 +70,6 @@ namespace BecquerelMonitor
             }
             this.groupBox2.Top = 24;
             this.peakSpecgroupBox.Top = this.groupBox2.Bottom + 6;
-            this.deconvolutionGroupBox.Top = this.peakSpecgroupBox.Bottom + 6;
         }
 
         void HideTempcoTabPage()
@@ -593,7 +592,6 @@ namespace BecquerelMonitor
             this.numericUpDownWidenFactor.Value = ClampNumericValue(this.numericUpDownWidenFactor, (decimal)FWHMPeakDetectionMethodConfig.PeakWidthWidenFactor);
             this.centroidComCheckBox.Checked = FWHMPeakDetectionMethodConfig.UseCenterOfMassCentroid;
 
-            LoadDeconvolutionControls(FWHMPeakDetectionMethodConfig);
             LoadPeakShapeControls(FWHMPeakDetectionMethodConfig.FwhmCalibration);
 
 
@@ -640,43 +638,8 @@ namespace BecquerelMonitor
             this.numericUpDownWidenFactor.Value = ClampNumericValue(this.numericUpDownWidenFactor, (decimal)FWHMPeakDetectionMethodConfig.PeakWidthWidenFactor);
             this.centroidComCheckBox.Checked = FWHMPeakDetectionMethodConfig.UseCenterOfMassCentroid;
             this.numericUpDown12.Value = (decimal)FWHMPeakDetectionMethodConfig.Min_Range;
-            LoadDeconvolutionControls(FWHMPeakDetectionMethodConfig);
             LoadPeakShapeControls(FWHMPeakDetectionMethodConfig.FwhmCalibration);
             this.contentsLoading = false;
-        }
-
-        void LoadDeconvolutionControls(FWHMPeakDetectionMethodConfig config)
-        {
-            ConfigureDeconvolutionControls();
-            this.deconvolutionEnabledCheckBox.Checked = config.UseDeconvolution;
-            this.deconvolutionBurnInNumericUpDown.Value = ClampNumericValue(this.deconvolutionBurnInNumericUpDown, config.BurnIn);
-            this.deconvolutionSamplesNumericUpDown.Value = ClampNumericValue(this.deconvolutionSamplesNumericUpDown, config.Samples);
-            this.deconvolutionMaxRoisNumericUpDown.Value = ClampNumericValue(this.deconvolutionMaxRoisNumericUpDown, config.MaxRois);
-            this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Value = ClampNumericValue(this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown, config.MaxExtraPeaksPerRoi);
-            this.deconvolutionRoiRadiusFwhmNumericUpDown.Value = ClampNumericValue(this.deconvolutionRoiRadiusFwhmNumericUpDown, (decimal)config.RoiRadiusFwhm);
-        }
-
-        void ConfigureDeconvolutionControls()
-        {
-            this.deconvolutionBurnInNumericUpDown.Minimum = 0;
-            this.deconvolutionBurnInNumericUpDown.Maximum = 100000;
-            this.deconvolutionBurnInNumericUpDown.Increment = 100;
-
-            this.deconvolutionSamplesNumericUpDown.Minimum = 1;
-            this.deconvolutionSamplesNumericUpDown.Maximum = 100000;
-            this.deconvolutionSamplesNumericUpDown.Increment = 100;
-
-            this.deconvolutionMaxRoisNumericUpDown.Minimum = 1;
-            this.deconvolutionMaxRoisNumericUpDown.Maximum = 1000;
-            this.deconvolutionMaxRoisNumericUpDown.Increment = 1;
-
-            this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Minimum = 0;
-            this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Maximum = 100;
-            this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Increment = 1;
-
-            this.deconvolutionRoiRadiusFwhmNumericUpDown.Minimum = 1;
-            this.deconvolutionRoiRadiusFwhmNumericUpDown.Maximum = 100;
-            this.deconvolutionRoiRadiusFwhmNumericUpDown.Increment = 0.5m;
         }
 
         static decimal ClampNumericValue(NumericUpDown numericUpDown, decimal value)
@@ -870,12 +833,6 @@ namespace BecquerelMonitor
                 FWHMPeakDetectionMethodConfig.Ch_Concat = (int)this.numericUpDown16.Value;
                 FWHMPeakDetectionMethodConfig.PeakWidthWidenFactor = (double)this.numericUpDownWidenFactor.Value;
                 FWHMPeakDetectionMethodConfig.UseCenterOfMassCentroid = this.centroidComCheckBox.Checked;
-                FWHMPeakDetectionMethodConfig.UseDeconvolution = this.deconvolutionEnabledCheckBox.Checked;
-                FWHMPeakDetectionMethodConfig.BurnIn = (int)this.deconvolutionBurnInNumericUpDown.Value;
-                FWHMPeakDetectionMethodConfig.Samples = (int)this.deconvolutionSamplesNumericUpDown.Value;
-                FWHMPeakDetectionMethodConfig.MaxRois = (int)this.deconvolutionMaxRoisNumericUpDown.Value;
-                FWHMPeakDetectionMethodConfig.MaxExtraPeaksPerRoi = (int)this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Value;
-                FWHMPeakDetectionMethodConfig.RoiRadiusFwhm = (double)this.deconvolutionRoiRadiusFwhmNumericUpDown.Value;
                 StoreCurrentPeakShapeParameters();
                 FWHMPeakDetectionMethodConfig.FwhmCalibration.PeakType = peakTypecomboBox.SelectedIndex;
                 FWHMPeakDetectionMethodConfig.FwhmCalibration.ExpGaussExpLeftTail = (double)expGaussExpLeftValue;
@@ -2129,11 +2086,6 @@ namespace BecquerelMonitor
         }
 
         void centroidComCheckBox_CheckedChanged(object sender, EventArgs e)
-        {
-            this.SetActiveDeviceConfigDirty();
-        }
-
-        void deconvolutionConfig_ValueChanged(object sender, EventArgs e)
         {
             this.SetActiveDeviceConfigDirty();
         }

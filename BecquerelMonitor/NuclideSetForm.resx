@@ -420,15 +420,6 @@
   <data name="columnNuclideEnergy.Width" type="System.Int32, mscorlib">
     <value>70</value>
   </data>
-  <data name="columnNuclideAnchor.Text" xml:space="preserve">
-    <value>Anchor</value>
-  </data>
-  <data name="columnNuclideAnchor.ToolTipText" xml:space="preserve">
-    <value>Anchor line: when the peak finder detects it, all lines of the set are fitted (library fit)</value>
-  </data>
-  <data name="columnNuclideAnchor.Width" type="System.Int32, mscorlib">
-    <value>55</value>
-  </data>
   <data name="buttonDeleteSet.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Bottom, Left</value>
   </data>
@@ -4913,12 +4904,6 @@
   </data>
   <data name="&gt;&gt;columnNuclideEnergy.Name" xml:space="preserve">
     <value>columnNuclideEnergy</value>
-  </data>
-  <data name="&gt;&gt;columnNuclideAnchor.Name" xml:space="preserve">
-    <value>columnNuclideAnchor</value>
-  </data>
-  <data name="&gt;&gt;columnNuclideAnchor.Type" xml:space="preserve">
-    <value>XPTable.Models.CheckBoxColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;columnNuclideEnergy.Type" xml:space="preserve">
     <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>

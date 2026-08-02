@@ -1,8 +1,6 @@
-using BecquerelMonitor.RjmcmcDeconvolution;
 using BecquerelMonitor.Utils;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace BecquerelMonitor
 {
@@ -53,113 +51,9 @@ namespace BecquerelMonitor
             }
 
             FWHMPeakDetector.PeakFinder finder = PeakFinder(searchSpectrum, fwhmPeakDetectionMethodConfig, resultData.FwhmCalibration);
-            bool useDeconvolution = fwhmPeakDetectionMethodConfig.UseDeconvolution;
-            RjmcmcResult deconvolution = null;
-            if (useDeconvolution)
-            {
-                deconvolution = RjmcmcPeakDeconvolver.Run(
-                    resultData.EnergySpectrum,
-                    bgMode == BackgroundMode.Substract ? resultData.BackgroundEnergySpectrum : null,
-                    finder,
-                    fwhmPeakDetectionMethodConfig,
-                    resultData.FwhmCalibration);
-            }
 
             peaks = CollectPeaks(finder, searchSpectrum, fwhmPeakDetectionMethodConfig.Tolerance, sa, nuclideSet, fwhmPeakDetectionMethodConfig);
-            if (useDeconvolution)
-            {
-                AppendRjmcmcPeaks(
-                    peaks,
-                    deconvolution,
-                    inferenceSpectrum,
-                    resultData.FwhmCalibration,
-                    fwhmPeakDetectionMethodConfig.Min_SNR,
-                    fwhmPeakDetectionMethodConfig.Tolerance,
-                    nuclideSet);
-            }
-
-            AppendLibraryPeaks(peaks, resultData, bgMode, finder, nuclideSet, fwhmPeakDetectionMethodConfig);
-
-            if (useDeconvolution || nuclideSet != null)
-            {
-                peaks.Sort((left, right) =>
-                {
-                    int energyComparison = left.Energy.CompareTo(right.Energy);
-                    return energyComparison != 0
-                        ? energyComparison
-                        : left.Channel.CompareTo(right.Channel);
-                });
-            }
             return peaks;
-        }
-
-        // Библиотечный фит по активному нуклидному сету (LibraryPeakFitter):
-        // якорная линия сета найдена finder'ом → компоненты на всех линиях
-        // сета, Пуассон-фит амплитуд, значимые (z >= SignificanceZ) — в пики
-        // с origin Library. Работает и без деконволюции.
-        void AppendLibraryPeaks(
-            List<Peak> peaks,
-            ResultData resultData,
-            BackgroundMode bgMode,
-            FWHMPeakDetector.PeakFinder finder,
-            NuclideSet nuclideSet,
-            FWHMPeakDetectionMethodConfig peakConfig)
-        {
-            if (nuclideSet == null || peaks.Count == 0)
-            {
-                return;
-            }
-
-            LibraryPeakFitter.LibraryFitResult fitResult = LibraryPeakFitter.Fit(
-                resultData.EnergySpectrum,
-                bgMode == BackgroundMode.Substract ? resultData.BackgroundEnergySpectrum : null,
-                () => RjmcmcPeakDeconvolver.BuildSnipContinuum(
-                    resultData.EnergySpectrum,
-                    finder,
-                    resultData.FwhmCalibration),
-                resultData.FwhmCalibration,
-                peaks,
-                nuclideSet,
-                this.nuclideDefinitions,
-                peakConfig);
-
-            // Пики, сработавшие якорями (включившие библиотечный фит) —
-            // флаг для отрисовки, независимый от того, какой экземпляр
-            // нуклида достался пику в MatchNuclide (дубликаты линий).
-            foreach (Peak anchorPeak in fitResult.AnchorPeaks)
-            {
-                anchorPeak.IsLibraryAnchor = true;
-            }
-
-            // Пики-центроиды блендов, заменённые линиями bound-группы
-            // (BR-связка: их место занимают линии с табличными позициями).
-            foreach (Peak replaced in fitResult.ReplacedPeaks)
-            {
-                peaks.Remove(replaced);
-            }
-
-            // HideUnknownPeaks здесь не проверяется: кандидат всегда несёт
-            // линию сета. Компоненты отклика (escape SE/DE) сидят только в
-            // модели фита и наружу не выходят — см. финальный отбор в
-            // LibraryPeakFitter.Fit.
-            foreach (LibraryPeakFitter.LibraryCandidate candidate in fitResult.AddedPeaks)
-            {
-                Peak peak = CreatePeak(
-                    resultData.EnergySpectrum,
-                    candidate.Channel,
-                    candidate.Z,
-                    candidate.Fwhm,
-                    0.0,
-                    null,
-                    null,
-                    refineCentroid: false);
-                peak.PeakSearchOrigin = PeakSearchOrigin.Library;
-                peak.Nuclide = candidate.Nuclide;
-                if (CanAppendDeconvolvedPeak(peak, peaks))
-                {
-                    peaks.Add(peak);
-                }
-            }
         }
 
         bool isNewPeak(Peak newpeak, bool hidepeaks, List<Peak> peaks)
@@ -246,76 +140,6 @@ namespace BecquerelMonitor
             return peaks;
         }
 
-        void AppendRjmcmcPeaks(List<Peak> peaks, RjmcmcResult deconvolution, EnergySpectrum energySpectrum, FwhmCalibration fwhmCalibration, double minSnr, double tol, NuclideSet nuclideSet)
-        {
-            if (deconvolution == null || deconvolution.ExtraCandidates == null || deconvolution.ExtraCandidates.Count == 0)
-            {
-                return;
-            }
-
-            foreach (RjmcmcPeakCandidate candidate in deconvolution.ExtraCandidates.OrderBy(c => c.Channel))
-            {
-                if (!IsFinite(candidate.Snr) || candidate.Snr < minSnr)
-                {
-                    continue;
-                }
-
-                Peak peak = CreatePeak(
-                    energySpectrum,
-                    candidate.Channel,
-                    candidate.Snr,
-                    candidate.Fwhm,
-                    FwhmDelta(candidate, fwhmCalibration),
-                    null,
-                    null,
-                    refineCentroid: false);
-                peak.PeakSearchOrigin = PeakSearchOrigin.RJMCMC;
-                peak.DeconvolutionInfo = new PeakDeconvolutionInfo
-                {
-                    Amplitude = candidate.Amplitude,
-                    DevianceImprovement = candidate.DevianceImprovement,
-                    PosteriorOccupancy = candidate.PosteriorOccupancy,
-                    CenterStdDev = candidate.CenterStdDev,
-                    ResidualSnr = candidate.ResidualSnr,
-                    ResidualCorrelation = candidate.ResidualCorrelation,
-                    AnchorDistanceFwhm = candidate.AnchorDistanceFwhm,
-                    SupportingChainCount = candidate.SupportingChainCount,
-                    MinimumSnrThreshold = minSnr,
-                    MatchTolerancePercent = tol,
-                    RoiStartChannel = candidate.RoiStartChannel,
-                    RoiEndChannel = candidate.RoiEndChannel,
-                    LocalAnchorChannels = candidate.LocalAnchorChannels,
-                    HaloAnchorChannels = candidate.HaloAnchorChannels,
-                    ReferenceAnchorChannels = candidate.ReferenceAnchorChannels
-                };
-                peak.Nuclide = MatchNuclide(peak, tol, nuclideSet);
-                if (peak.Nuclide == null && nuclideSet?.HideUnknownPeaks == true)
-                {
-                    continue;
-                }
-
-                if (CanAppendDeconvolvedPeak(peak, peaks))
-                {
-                    peaks.Add(peak);
-                }
-            }
-        }
-
-        double FwhmDelta(RjmcmcPeakCandidate candidate, FwhmCalibration fwhmCalibration)
-        {
-            if (candidate == null || fwhmCalibration == null)
-            {
-                return 0.0;
-            }
-
-            return Math.Abs(candidate.Fwhm - fwhmCalibration.ChannelToFwhm(candidate.Channel));
-        }
-
-        bool IsFinite(double value)
-        {
-            return !Double.IsNaN(value) && !Double.IsInfinity(value);
-        }
-
         Peak CreatePeak(
             EnergySpectrum energySpectrum,
             double centroid,
@@ -369,20 +193,6 @@ namespace BecquerelMonitor
             }
 
             return bestNuclide;
-        }
-
-        bool CanAppendDeconvolvedPeak(Peak peak, List<Peak> peaks)
-        {
-            foreach (Peak existingPeak in peaks)
-            {
-                double duplicateDistance = Math.Max(1.0, 0.04 * Math.Max(existingPeak.FWHM, peak.FWHM));
-                if (Math.Abs(existingPeak.Channel - peak.Channel) <= duplicateDistance)
-                {
-                    return false;
-                }
-            }
-
-            return true;
         }
 
         FWHMPeakDetector.PeakFinder PeakFinder(EnergySpectrum energySpectrum, FWHMPeakDetectionMethodConfig peakConfig, FwhmCalibration fwhmCalibration)
