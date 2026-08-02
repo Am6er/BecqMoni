@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<DeviceConfigInfo xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <FormatVersion>120920</FormatVersion>
+  <Guid>27cc6fd0-ec1d-457e-baf2-33fe07ff3064</Guid>
+  <Name>Gamma-Spectra 4000 (corpus)</Name>
+  <LastUpdated>2026-07-26T00:00:00.0000000+03:00</LastUpdated>
+  <DefaultMeasurementTime>360000000</DefaultMeasurementTime>
+  <ChannelPitch>1</ChannelPitch>
+  <NumberOfChannels>4000</NumberOfChannels>
+  <DeviceType>AudioInput</DeviceType>
+  <ThermometerType>None</ThermometerType>
+  <EnergyCalibrationType>Polynomial</EnergyCalibrationType>
+  <!-- Конфигурация корпуса LibraryFitLab. Реального прибора за ней нет: она
+       нужна, чтобы харнесс нашёл устройство спектра и взял отсюда
+       Min_Range/Max_Range/Ch_Concat/Tolerance/Max_Items. Калибровки энергии и
+       FWHM лежат в самих спектрах, здесь они только заглушка. -->
+  <Note />
+  <PolynomialEnergyCalibration>
+    <PolynomialOrder>2</PolynomialOrder>
+    <Coefficients>
+      <Coefficient>-4.7201686471649</Coefficient>
+      <Coefficient>0.938</Coefficient>
+      <Coefficient>2.17546387344158e-05</Coefficient>
+    </Coefficients>
+  </PolynomialEnergyCalibration>
+  <StabilizerConfig>
+    <TargetPeaks />
+  </StabilizerConfig>
+  <DoseRateConfig>
+    <DoseRateCalibrationPoints />
+  </DoseRateConfig>
+  <PeakDetectionMethodConfig>
+    <Min_SNR>4</Min_SNR>
+    <FWHM_AT_0>0.001</FWHM_AT_0>
+    <Ch_Fwhm>2000</Ch_Fwhm>
+    <Width_Fwhm>118</Width_Fwhm>
+    <Max_Items>40</Max_Items>
+    <Tolerance>10</Tolerance>
+    <Min_Range>20.0</Min_Range>
+    <Max_Range>2800.0</Max_Range>
+    <Min_FWHM_Tol>1</Min_FWHM_Tol>
+    <Max_FWHM_Tol>199</Max_FWHM_Tol>
+    <Enabled>true</Enabled>
+    <Ch_Concat>1333</Ch_Concat>
+    <PeakType>0</PeakType>
+    <ExpGaussExpLeftTail>1</ExpGaussExpLeftTail>
+    <ExpGaussExpRightTail>1</ExpGaussExpRightTail>
+  </PeakDetectionMethodConfig>
+  <BackgroundSpectrumPathname />
+</DeviceConfigInfo>
