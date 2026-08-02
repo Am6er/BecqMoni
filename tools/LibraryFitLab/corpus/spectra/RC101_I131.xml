@@ -1,0 +1,2108 @@
+<?xml version='1.0' encoding='utf-8'?>
+<ResultDataFile>
+  <FormatVersion>120920</FormatVersion>
+  <ResultDataList>
+    <ResultData>
+      <DeviceConfigReference>
+        <Name>RadiaCode-101</Name>
+      <Guid>71687ebf-6c58-47b8-85d2-aece957edbdf</Guid></DeviceConfigReference>
+      <SampleInfo>
+        <Name>I 131</Name>
+        <Note>С фоном</Note>
+      </SampleInfo>
+      <BackgroundSpectrumFile>Фон дом деревня.xml</BackgroundSpectrumFile>
+
+       <StartTime>2024-03-15T04:04:48</StartTime>
+ <EndTime>2024-03-15T04:16:18</EndTime>
+
+ <EnergySpectrum>
+  <NumberOfChannels>1024</NumberOfChannels>
+  <ChannelPitch>1</ChannelPitch>
+  <SpectrumName>I 131</SpectrumName>
+  <Comment>D0A120D184D0BED0BDD0BED0BC</Comment>
+  <SerialNumber>RC-101-005361</SerialNumber>
+  <EnergyCalibration>
+    <PolynomialOrder>2</PolynomialOrder>
+    <Coefficients>
+      <Coefficient>-8.548115941446454</Coefficient><Coefficient>2.3802347451607893</Coefficient><Coefficient>0.0005530450952065867</Coefficient></Coefficients>
+  </EnergyCalibration>
+  <MeasurementTime>690</MeasurementTime>
+  <Spectrum>
+    <DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>149</DataPoint>
+<DataPoint>658</DataPoint>
+<DataPoint>3414</DataPoint>
+<DataPoint>10164</DataPoint>
+<DataPoint>18561</DataPoint>
+<DataPoint>25056</DataPoint>
+<DataPoint>29904</DataPoint>
+<DataPoint>33150</DataPoint>
+<DataPoint>34589</DataPoint>
+<DataPoint>32235</DataPoint>
+<DataPoint>29563</DataPoint>
+<DataPoint>26822</DataPoint>
+<DataPoint>24067</DataPoint>
+<DataPoint>21570</DataPoint>
+<DataPoint>20213</DataPoint>
+<DataPoint>19221</DataPoint>
+<DataPoint>18842</DataPoint>
+<DataPoint>18766</DataPoint>
+<DataPoint>19301</DataPoint>
+<DataPoint>19891</DataPoint>
+<DataPoint>20375</DataPoint>
+<DataPoint>21957</DataPoint>
+<DataPoint>24231</DataPoint>
+<DataPoint>25599</DataPoint>
+<DataPoint>29910</DataPoint>
+<DataPoint>31891</DataPoint>
+<DataPoint>35203</DataPoint>
+<DataPoint>37120</DataPoint>
+<DataPoint>39065</DataPoint>
+<DataPoint>39462</DataPoint>
+<DataPoint>38984</DataPoint>
+<DataPoint>37364</DataPoint>
+<DataPoint>36268</DataPoint>
+<DataPoint>33673</DataPoint>
+<DataPoint>30404</DataPoint>
+<DataPoint>27184</DataPoint>
+<DataPoint>24107</DataPoint>
+<DataPoint>21692</DataPoint>
+<DataPoint>19317</DataPoint>
+<DataPoint>16917</DataPoint>
+<DataPoint>16146</DataPoint>
+<DataPoint>15317</DataPoint>
+<DataPoint>14399</DataPoint>
+<DataPoint>13954</DataPoint>
+<DataPoint>13875</DataPoint>
+<DataPoint>13729</DataPoint>
+<DataPoint>13733</DataPoint>
+<DataPoint>13882</DataPoint>
+<DataPoint>14117</DataPoint>
+<DataPoint>14618</DataPoint>
+<DataPoint>14909</DataPoint>
+<DataPoint>15271</DataPoint>
+<DataPoint>15732</DataPoint>
+<DataPoint>16638</DataPoint>
+<DataPoint>16791</DataPoint>
+<DataPoint>16275</DataPoint>
+<DataPoint>18293</DataPoint>
+<DataPoint>18414</DataPoint>
+<DataPoint>19239</DataPoint>
+<DataPoint>19653</DataPoint>
+<DataPoint>20316</DataPoint>
+<DataPoint>20245</DataPoint>
+<DataPoint>20600</DataPoint>
+<DataPoint>20185</DataPoint>
+<DataPoint>20977</DataPoint>
+<DataPoint>20763</DataPoint>
+<DataPoint>20932</DataPoint>
+<DataPoint>20344</DataPoint>
+<DataPoint>19942</DataPoint>
+<DataPoint>19563</DataPoint>
+<DataPoint>18948</DataPoint>
+<DataPoint>18614</DataPoint>
+<DataPoint>18214</DataPoint>
+<DataPoint>17298</DataPoint>
+<DataPoint>16595</DataPoint>
+<DataPoint>16082</DataPoint>
+<DataPoint>15365</DataPoint>
+<DataPoint>14762</DataPoint>
+<DataPoint>13799</DataPoint>
+<DataPoint>12712</DataPoint>
+<DataPoint>12579</DataPoint>
+<DataPoint>11748</DataPoint>
+<DataPoint>11273</DataPoint>
+<DataPoint>10549</DataPoint>
+<DataPoint>9936</DataPoint>
+<DataPoint>9410</DataPoint>
+<DataPoint>8779</DataPoint>
+<DataPoint>8041</DataPoint>
+<DataPoint>7852</DataPoint>
+<DataPoint>7277</DataPoint>
+<DataPoint>7161</DataPoint>
+<DataPoint>6822</DataPoint>
+<DataPoint>6591</DataPoint>
+<DataPoint>6237</DataPoint>
+<DataPoint>6079</DataPoint>
+<DataPoint>5859</DataPoint>
+<DataPoint>5802</DataPoint>
+<DataPoint>5839</DataPoint>
+<DataPoint>5739</DataPoint>
+<DataPoint>5869</DataPoint>
+<DataPoint>5941</DataPoint>
+<DataPoint>6026</DataPoint>
+<DataPoint>6195</DataPoint>
+<DataPoint>6017</DataPoint>
+<DataPoint>6284</DataPoint>
+<DataPoint>6415</DataPoint>
+<DataPoint>6746</DataPoint>
+<DataPoint>6822</DataPoint>
+<DataPoint>6868</DataPoint>
+<DataPoint>7032</DataPoint>
+<DataPoint>7212</DataPoint>
+<DataPoint>7132</DataPoint>
+<DataPoint>7249</DataPoint>
+<DataPoint>7066</DataPoint>
+<DataPoint>7224</DataPoint>
+<DataPoint>7475</DataPoint>
+<DataPoint>7348</DataPoint>
+<DataPoint>7566</DataPoint>
+<DataPoint>7382</DataPoint>
+<DataPoint>7598</DataPoint>
+<DataPoint>8326</DataPoint>
+<DataPoint>8236</DataPoint>
+<DataPoint>8693</DataPoint>
+<DataPoint>9221</DataPoint>
+<DataPoint>9881</DataPoint>
+<DataPoint>10681</DataPoint>
+<DataPoint>11847</DataPoint>
+<DataPoint>12425</DataPoint>
+<DataPoint>14204</DataPoint>
+<DataPoint>15444</DataPoint>
+<DataPoint>16801</DataPoint>
+<DataPoint>18076</DataPoint>
+<DataPoint>19690</DataPoint>
+<DataPoint>21307</DataPoint>
+<DataPoint>22700</DataPoint>
+<DataPoint>23722</DataPoint>
+<DataPoint>25936</DataPoint>
+<DataPoint>26473</DataPoint>
+<DataPoint>28111</DataPoint>
+<DataPoint>28712</DataPoint>
+<DataPoint>29398</DataPoint>
+<DataPoint>29742</DataPoint>
+<DataPoint>29795</DataPoint>
+<DataPoint>29144</DataPoint>
+<DataPoint>29175</DataPoint>
+<DataPoint>28689</DataPoint>
+<DataPoint>28098</DataPoint>
+<DataPoint>27546</DataPoint>
+<DataPoint>25695</DataPoint>
+<DataPoint>24580</DataPoint>
+<DataPoint>22625</DataPoint>
+<DataPoint>21020</DataPoint>
+<DataPoint>20150</DataPoint>
+<DataPoint>17805</DataPoint>
+<DataPoint>16422</DataPoint>
+<DataPoint>15043</DataPoint>
+<DataPoint>13440</DataPoint>
+<DataPoint>11958</DataPoint>
+<DataPoint>10848</DataPoint>
+<DataPoint>9254</DataPoint>
+<DataPoint>8255</DataPoint>
+<DataPoint>7526</DataPoint>
+<DataPoint>6414</DataPoint>
+<DataPoint>5689</DataPoint>
+<DataPoint>5019</DataPoint>
+<DataPoint>4346</DataPoint>
+<DataPoint>3720</DataPoint>
+<DataPoint>3450</DataPoint>
+<DataPoint>2967</DataPoint>
+<DataPoint>2504</DataPoint>
+<DataPoint>2281</DataPoint>
+<DataPoint>2023</DataPoint>
+<DataPoint>1859</DataPoint>
+<DataPoint>1591</DataPoint>
+<DataPoint>1427</DataPoint>
+<DataPoint>1291</DataPoint>
+<DataPoint>1214</DataPoint>
+<DataPoint>1111</DataPoint>
+<DataPoint>1052</DataPoint>
+<DataPoint>1059</DataPoint>
+<DataPoint>929</DataPoint>
+<DataPoint>915</DataPoint>
+<DataPoint>877</DataPoint>
+<DataPoint>801</DataPoint>
+<DataPoint>772</DataPoint>
+<DataPoint>771</DataPoint>
+<DataPoint>720</DataPoint>
+<DataPoint>658</DataPoint>
+<DataPoint>673</DataPoint>
+<DataPoint>547</DataPoint>
+<DataPoint>594</DataPoint>
+<DataPoint>570</DataPoint>
+<DataPoint>566</DataPoint>
+<DataPoint>545</DataPoint>
+<DataPoint>496</DataPoint>
+<DataPoint>501</DataPoint>
+<DataPoint>461</DataPoint>
+<DataPoint>413</DataPoint>
+<DataPoint>394</DataPoint>
+<DataPoint>421</DataPoint>
+<DataPoint>419</DataPoint>
+<DataPoint>394</DataPoint>
+<DataPoint>418</DataPoint>
+<DataPoint>366</DataPoint>
+<DataPoint>395</DataPoint>
+<DataPoint>403</DataPoint>
+<DataPoint>389</DataPoint>
+<DataPoint>323</DataPoint>
+<DataPoint>312</DataPoint>
+<DataPoint>320</DataPoint>
+<DataPoint>321</DataPoint>
+<DataPoint>305</DataPoint>
+<DataPoint>307</DataPoint>
+<DataPoint>279</DataPoint>
+<DataPoint>273</DataPoint>
+<DataPoint>297</DataPoint>
+<DataPoint>304</DataPoint>
+<DataPoint>313</DataPoint>
+<DataPoint>314</DataPoint>
+<DataPoint>331</DataPoint>
+<DataPoint>337</DataPoint>
+<DataPoint>327</DataPoint>
+<DataPoint>316</DataPoint>
+<DataPoint>373</DataPoint>
+<DataPoint>384</DataPoint>
+<DataPoint>373</DataPoint>
+<DataPoint>385</DataPoint>
+<DataPoint>436</DataPoint>
+<DataPoint>423</DataPoint>
+<DataPoint>454</DataPoint>
+<DataPoint>482</DataPoint>
+<DataPoint>580</DataPoint>
+<DataPoint>534</DataPoint>
+<DataPoint>537</DataPoint>
+<DataPoint>606</DataPoint>
+<DataPoint>634</DataPoint>
+<DataPoint>612</DataPoint>
+<DataPoint>628</DataPoint>
+<DataPoint>640</DataPoint>
+<DataPoint>649</DataPoint>
+<DataPoint>628</DataPoint>
+<DataPoint>670</DataPoint>
+<DataPoint>678</DataPoint>
+<DataPoint>782</DataPoint>
+<DataPoint>678</DataPoint>
+<DataPoint>698</DataPoint>
+<DataPoint>734</DataPoint>
+<DataPoint>614</DataPoint>
+<DataPoint>722</DataPoint>
+<DataPoint>682</DataPoint>
+<DataPoint>633</DataPoint>
+<DataPoint>673</DataPoint>
+<DataPoint>598</DataPoint>
+<DataPoint>571</DataPoint>
+<DataPoint>596</DataPoint>
+<DataPoint>521</DataPoint>
+<DataPoint>511</DataPoint>
+<DataPoint>466</DataPoint>
+<DataPoint>506</DataPoint>
+<DataPoint>492</DataPoint>
+<DataPoint>408</DataPoint>
+<DataPoint>453</DataPoint>
+<DataPoint>397</DataPoint>
+<DataPoint>365</DataPoint>
+<DataPoint>373</DataPoint>
+<DataPoint>332</DataPoint>
+<DataPoint>319</DataPoint>
+<DataPoint>280</DataPoint>
+<DataPoint>306</DataPoint>
+<DataPoint>307</DataPoint>
+<DataPoint>260</DataPoint>
+<DataPoint>236</DataPoint>
+<DataPoint>256</DataPoint>
+<DataPoint>235</DataPoint>
+<DataPoint>230</DataPoint>
+<DataPoint>223</DataPoint>
+<DataPoint>226</DataPoint>
+<DataPoint>192</DataPoint>
+<DataPoint>219</DataPoint>
+<DataPoint>179</DataPoint>
+<DataPoint>172</DataPoint>
+<DataPoint>154</DataPoint>
+<DataPoint>173</DataPoint>
+<DataPoint>159</DataPoint>
+<DataPoint>156</DataPoint>
+<DataPoint>131</DataPoint>
+<DataPoint>132</DataPoint>
+<DataPoint>139</DataPoint>
+<DataPoint>141</DataPoint>
+<DataPoint>123</DataPoint>
+<DataPoint>119</DataPoint>
+<DataPoint>119</DataPoint>
+<DataPoint>88</DataPoint>
+<DataPoint>101</DataPoint>
+<DataPoint>94</DataPoint>
+<DataPoint>84</DataPoint>
+<DataPoint>83</DataPoint>
+<DataPoint>57</DataPoint>
+<DataPoint>70</DataPoint>
+<DataPoint>65</DataPoint>
+<DataPoint>45</DataPoint>
+<DataPoint>42</DataPoint>
+<DataPoint>48</DataPoint>
+<DataPoint>36</DataPoint>
+<DataPoint>28</DataPoint>
+<DataPoint>39</DataPoint>
+<DataPoint>33</DataPoint>
+<DataPoint>34</DataPoint>
+<DataPoint>28</DataPoint>
+<DataPoint>29</DataPoint>
+<DataPoint>28</DataPoint>
+<DataPoint>24</DataPoint>
+<DataPoint>25</DataPoint>
+<DataPoint>11</DataPoint>
+<DataPoint>24</DataPoint>
+<DataPoint>25</DataPoint>
+<DataPoint>18</DataPoint>
+<DataPoint>22</DataPoint>
+<DataPoint>17</DataPoint>
+<DataPoint>18</DataPoint>
+<DataPoint>10</DataPoint>
+<DataPoint>19</DataPoint>
+<DataPoint>13</DataPoint>
+<DataPoint>10</DataPoint>
+<DataPoint>14</DataPoint>
+<DataPoint>5</DataPoint>
+<DataPoint>12</DataPoint>
+<DataPoint>12</DataPoint>
+<DataPoint>10</DataPoint>
+<DataPoint>8</DataPoint>
+<DataPoint>11</DataPoint>
+<DataPoint>8</DataPoint>
+<DataPoint>8</DataPoint>
+<DataPoint>12</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>8</DataPoint>
+<DataPoint>6</DataPoint>
+<DataPoint>9</DataPoint>
+<DataPoint>12</DataPoint>
+<DataPoint>5</DataPoint>
+<DataPoint>9</DataPoint>
+<DataPoint>10</DataPoint>
+<DataPoint>8</DataPoint>
+<DataPoint>8</DataPoint>
+<DataPoint>7</DataPoint>
+<DataPoint>6</DataPoint>
+<DataPoint>3</DataPoint>
+<DataPoint>8</DataPoint>
+<DataPoint>4</DataPoint>
+<DataPoint>3</DataPoint>
+<DataPoint>7</DataPoint>
+<DataPoint>3</DataPoint>
+<DataPoint>4</DataPoint>
+<DataPoint>9</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>5</DataPoint>
+<DataPoint>4</DataPoint>
+<DataPoint>5</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>6</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>5</DataPoint>
+<DataPoint>4</DataPoint>
+<DataPoint>5</DataPoint>
+<DataPoint>5</DataPoint>
+<DataPoint>4</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>4</DataPoint>
+<DataPoint>6</DataPoint>
+<DataPoint>3</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>4</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>3</DataPoint>
+<DataPoint>4</DataPoint>
+<DataPoint>3</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>8</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>4</DataPoint>
+<DataPoint>3</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>3</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>5</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>4</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>3</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>3</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>2</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>1</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>0</DataPoint>
+<DataPoint>4</DataPoint>
+
+  </Spectrum>
+ <LiveTime>690</LiveTime></EnergySpectrum>
+
+
+      
+
+      <BackgroundEnergySpectrum>
+        <NumberOfChannels>1024</NumberOfChannels>
+        <ChannelPitch>1</ChannelPitch>
+        <EnergyCalibration>
+          <PolynomialOrder>2</PolynomialOrder>
+          <Coefficients>
+            <Coefficient>-15.3190727233887</Coefficient><Coefficient>2.82597327232361</Coefficient><Coefficient>0.000639676989521831</Coefficient></Coefficients>
+        </EnergyCalibration>
+        <ValidPulseCount>752497</ValidPulseCount>
+        <TotalPulseCount>752497</TotalPulseCount>
+        <MeasurementTime>92223</MeasurementTime>
+        <NumberOfSamples>0</NumberOfSamples>
+        <Spectrum>
+          <DataPoint>0</DataPoint>
+          <DataPoint>0</DataPoint>
+          <DataPoint>0</DataPoint>
+          <DataPoint>0</DataPoint>
+          <DataPoint>0</DataPoint>
+          <DataPoint>0</DataPoint>
+          <DataPoint>0</DataPoint>
+          <DataPoint>0</DataPoint>
+          <DataPoint>35</DataPoint>
+          <DataPoint>296</DataPoint>
+          <DataPoint>867</DataPoint>
+          <DataPoint>1428</DataPoint>
+          <DataPoint>2120</DataPoint>
+          <DataPoint>2606</DataPoint>
+          <DataPoint>3001</DataPoint>
+          <DataPoint>3470</DataPoint>
+          <DataPoint>4018</DataPoint>
+          <DataPoint>4265</DataPoint>
+          <DataPoint>4808</DataPoint>
+          <DataPoint>5319</DataPoint>
+          <DataPoint>6229</DataPoint>
+          <DataPoint>6890</DataPoint>
+          <DataPoint>7683</DataPoint>
+          <DataPoint>8478</DataPoint>
+          <DataPoint>9760</DataPoint>
+          <DataPoint>10744</DataPoint>
+          <DataPoint>11689</DataPoint>
+          <DataPoint>12251</DataPoint>
+          <DataPoint>13789</DataPoint>
+          <DataPoint>14066</DataPoint>
+          <DataPoint>15165</DataPoint>
+          <DataPoint>15237</DataPoint>
+          <DataPoint>16439</DataPoint>
+          <DataPoint>15828</DataPoint>
+          <DataPoint>15987</DataPoint>
+          <DataPoint>15515</DataPoint>
+          <DataPoint>15725</DataPoint>
+          <DataPoint>15167</DataPoint>
+          <DataPoint>15018</DataPoint>
+          <DataPoint>14215</DataPoint>
+          <DataPoint>14297</DataPoint>
+          <DataPoint>13854</DataPoint>
+          <DataPoint>13354</DataPoint>
+          <DataPoint>13066</DataPoint>
+          <DataPoint>12781</DataPoint>
+          <DataPoint>12158</DataPoint>
+          <DataPoint>12043</DataPoint>
+          <DataPoint>11739</DataPoint>
+          <DataPoint>11448</DataPoint>
+          <DataPoint>10710</DataPoint>
+          <DataPoint>10425</DataPoint>
+          <DataPoint>10017</DataPoint>
+          <DataPoint>9816</DataPoint>
+          <DataPoint>9230</DataPoint>
+          <DataPoint>9060</DataPoint>
+          <DataPoint>8739</DataPoint>
+          <DataPoint>8507</DataPoint>
+          <DataPoint>8054</DataPoint>
+          <DataPoint>7845</DataPoint>
+          <DataPoint>7627</DataPoint>
+          <DataPoint>7128</DataPoint>
+          <DataPoint>6895</DataPoint>
+          <DataPoint>6596</DataPoint>
+          <DataPoint>6118</DataPoint>
+          <DataPoint>6319</DataPoint>
+          <DataPoint>5926</DataPoint>
+          <DataPoint>5648</DataPoint>
+          <DataPoint>5532</DataPoint>
+          <DataPoint>5285</DataPoint>
+          <DataPoint>5104</DataPoint>
+          <DataPoint>4898</DataPoint>
+          <DataPoint>4673</DataPoint>
+          <DataPoint>4640</DataPoint>
+          <DataPoint>4496</DataPoint>
+          <DataPoint>4348</DataPoint>
+          <DataPoint>4092</DataPoint>
+          <DataPoint>4006</DataPoint>
+          <DataPoint>3788</DataPoint>
+          <DataPoint>3857</DataPoint>
+          <DataPoint>3748</DataPoint>
+          <DataPoint>3779</DataPoint>
+          <DataPoint>3442</DataPoint>
+          <DataPoint>3424</DataPoint>
+          <DataPoint>3413</DataPoint>
+          <DataPoint>3191</DataPoint>
+          <DataPoint>3105</DataPoint>
+          <DataPoint>3065</DataPoint>
+          <DataPoint>2924</DataPoint>
+          <DataPoint>2944</DataPoint>
+          <DataPoint>2795</DataPoint>
+          <DataPoint>2731</DataPoint>
+          <DataPoint>2593</DataPoint>
+          <DataPoint>2517</DataPoint>
+          <DataPoint>2375</DataPoint>
+          <DataPoint>2402</DataPoint>
+          <DataPoint>2362</DataPoint>
+          <DataPoint>2158</DataPoint>
+          <DataPoint>1911</DataPoint>
+          <DataPoint>1886</DataPoint>
+          <DataPoint>1780</DataPoint>
+          <DataPoint>1684</DataPoint>
+          <DataPoint>1613</DataPoint>
+          <DataPoint>1578</DataPoint>
+          <DataPoint>1424</DataPoint>
+          <DataPoint>1489</DataPoint>
+          <DataPoint>1425</DataPoint>
+          <DataPoint>1323</DataPoint>
+          <DataPoint>1369</DataPoint>
+          <DataPoint>1262</DataPoint>
+          <DataPoint>1285</DataPoint>
+          <DataPoint>1208</DataPoint>
+          <DataPoint>1268</DataPoint>
+          <DataPoint>1164</DataPoint>
+          <DataPoint>1148</DataPoint>
+          <DataPoint>1087</DataPoint>
+          <DataPoint>1058</DataPoint>
+          <DataPoint>1095</DataPoint>
+          <DataPoint>1009</DataPoint>
+          <DataPoint>1016</DataPoint>
+          <DataPoint>956</DataPoint>
+          <DataPoint>892</DataPoint>
+          <DataPoint>933</DataPoint>
+          <DataPoint>905</DataPoint>
+          <DataPoint>932</DataPoint>
+          <DataPoint>900</DataPoint>
+          <DataPoint>826</DataPoint>
+          <DataPoint>795</DataPoint>
+          <DataPoint>811</DataPoint>
+          <DataPoint>809</DataPoint>
+          <DataPoint>694</DataPoint>
+          <DataPoint>703</DataPoint>
+          <DataPoint>685</DataPoint>
+          <DataPoint>686</DataPoint>
+          <DataPoint>673</DataPoint>
+          <DataPoint>631</DataPoint>
+          <DataPoint>652</DataPoint>
+          <DataPoint>549</DataPoint>
+          <DataPoint>607</DataPoint>
+          <DataPoint>556</DataPoint>
+          <DataPoint>545</DataPoint>
+          <DataPoint>529</DataPoint>
+          <DataPoint>493</DataPoint>
+          <DataPoint>542</DataPoint>
+          <DataPoint>530</DataPoint>
+          <DataPoint>545</DataPoint>
+          <DataPoint>483</DataPoint>
+          <DataPoint>506</DataPoint>
+          <DataPoint>459</DataPoint>
+          <DataPoint>425</DataPoint>
+          <DataPoint>411</DataPoint>
+          <DataPoint>424</DataPoint>
+          <DataPoint>406</DataPoint>
+          <DataPoint>424</DataPoint>
+          <DataPoint>444</DataPoint>
+          <DataPoint>381</DataPoint>
+          <DataPoint>403</DataPoint>
+          <DataPoint>405</DataPoint>
+          <DataPoint>384</DataPoint>
+          <DataPoint>345</DataPoint>
+          <DataPoint>360</DataPoint>
+          <DataPoint>385</DataPoint>
+          <DataPoint>343</DataPoint>
+          <DataPoint>378</DataPoint>
+          <DataPoint>397</DataPoint>
+          <DataPoint>359</DataPoint>
+          <DataPoint>331</DataPoint>
+          <DataPoint>349</DataPoint>
+          <DataPoint>329</DataPoint>
+          <DataPoint>322</DataPoint>
+          <DataPoint>313</DataPoint>
+          <DataPoint>315</DataPoint>
+          <DataPoint>258</DataPoint>
+          <DataPoint>316</DataPoint>
+          <DataPoint>298</DataPoint>
+          <DataPoint>292</DataPoint>
+          <DataPoint>289</DataPoint>
+          <DataPoint>304</DataPoint>
+          <DataPoint>289</DataPoint>
+          <DataPoint>314</DataPoint>
+          <DataPoint>301</DataPoint>
+          <DataPoint>306</DataPoint>
+          <DataPoint>298</DataPoint>
+          <DataPoint>286</DataPoint>
+          <DataPoint>301</DataPoint>
+          <DataPoint>282</DataPoint>
+          <DataPoint>276</DataPoint>
+          <DataPoint>258</DataPoint>
+          <DataPoint>240</DataPoint>
+          <DataPoint>287</DataPoint>
+          <DataPoint>260</DataPoint>
+          <DataPoint>250</DataPoint>
+          <DataPoint>263</DataPoint>
+          <DataPoint>276</DataPoint>
+          <DataPoint>277</DataPoint>
+          <DataPoint>265</DataPoint>
+          <DataPoint>257</DataPoint>
+          <DataPoint>257</DataPoint>
+          <DataPoint>248</DataPoint>
+          <DataPoint>278</DataPoint>
+          <DataPoint>249</DataPoint>
+          <DataPoint>283</DataPoint>
+          <DataPoint>233</DataPoint>
+          <DataPoint>271</DataPoint>
+          <DataPoint>286</DataPoint>
+          <DataPoint>263</DataPoint>
+          <DataPoint>259</DataPoint>
+          <DataPoint>270</DataPoint>
+          <DataPoint>243</DataPoint>
+          <DataPoint>233</DataPoint>
+          <DataPoint>242</DataPoint>
+          <DataPoint>256</DataPoint>
+          <DataPoint>233</DataPoint>
+          <DataPoint>209</DataPoint>
+          <DataPoint>229</DataPoint>
+          <DataPoint>209</DataPoint>
+          <DataPoint>200</DataPoint>
+          <DataPoint>215</DataPoint>
+          <DataPoint>225</DataPoint>
+          <DataPoint>206</DataPoint>
+          <DataPoint>188</DataPoint>
+          <DataPoint>220</DataPoint>
+          <DataPoint>194</DataPoint>
+          <DataPoint>171</DataPoint>
+          <DataPoint>201</DataPoint>
+          <DataPoint>169</DataPoint>
+          <DataPoint>173</DataPoint>
+          <DataPoint>187</DataPoint>
+          <DataPoint>175</DataPoint>
+          <DataPoint>154</DataPoint>
+          <DataPoint>177</DataPoint>
+          <DataPoint>162</DataPoint>
+          <DataPoint>160</DataPoint>
+          <DataPoint>161</DataPoint>
+          <DataPoint>175</DataPoint>
+          <DataPoint>145</DataPoint>
+          <DataPoint>167</DataPoint>
+          <DataPoint>154</DataPoint>
+          <DataPoint>165</DataPoint>
+          <DataPoint>152</DataPoint>
+          <DataPoint>128</DataPoint>
+          <DataPoint>134</DataPoint>
+          <DataPoint>140</DataPoint>
+          <DataPoint>155</DataPoint>
+          <DataPoint>129</DataPoint>
+          <DataPoint>133</DataPoint>
+          <DataPoint>141</DataPoint>
+          <DataPoint>122</DataPoint>
+          <DataPoint>126</DataPoint>
+          <DataPoint>121</DataPoint>
+          <DataPoint>115</DataPoint>
+          <DataPoint>126</DataPoint>
+          <DataPoint>130</DataPoint>
+          <DataPoint>113</DataPoint>
+          <DataPoint>137</DataPoint>
+          <DataPoint>128</DataPoint>
+          <DataPoint>119</DataPoint>
+          <DataPoint>117</DataPoint>
+          <DataPoint>123</DataPoint>
+          <DataPoint>118</DataPoint>
+          <DataPoint>128</DataPoint>
+          <DataPoint>127</DataPoint>
+          <DataPoint>120</DataPoint>
+          <DataPoint>124</DataPoint>
+          <DataPoint>99</DataPoint>
+          <DataPoint>130</DataPoint>
+          <DataPoint>114</DataPoint>
+          <DataPoint>117</DataPoint>
+          <DataPoint>129</DataPoint>
+          <DataPoint>95</DataPoint>
+          <DataPoint>119</DataPoint>
+          <DataPoint>113</DataPoint>
+          <DataPoint>100</DataPoint>
+          <DataPoint>120</DataPoint>
+          <DataPoint>87</DataPoint>
+          <DataPoint>105</DataPoint>
+          <DataPoint>114</DataPoint>
+          <DataPoint>109</DataPoint>
+          <DataPoint>96</DataPoint>
+          <DataPoint>103</DataPoint>
+          <DataPoint>107</DataPoint>
+          <DataPoint>103</DataPoint>
+          <DataPoint>113</DataPoint>
+          <DataPoint>100</DataPoint>
+          <DataPoint>97</DataPoint>
+          <DataPoint>91</DataPoint>
+          <DataPoint>84</DataPoint>
+          <DataPoint>109</DataPoint>
+          <DataPoint>103</DataPoint>
+          <DataPoint>116</DataPoint>
+          <DataPoint>93</DataPoint>
+          <DataPoint>101</DataPoint>
+          <DataPoint>96</DataPoint>
+          <DataPoint>99</DataPoint>
+          <DataPoint>86</DataPoint>
+          <DataPoint>85</DataPoint>
+          <DataPoint>93</DataPoint>
+          <DataPoint>81</DataPoint>
+          <DataPoint>90</DataPoint>
+          <DataPoint>89</DataPoint>
+          <DataPoint>119</DataPoint>
+          <DataPoint>91</DataPoint>
+          <DataPoint>102</DataPoint>
+          <DataPoint>71</DataPoint>
+          <DataPoint>105</DataPoint>
+          <DataPoint>101</DataPoint>
+          <DataPoint>94</DataPoint>
+          <DataPoint>105</DataPoint>
+          <DataPoint>92</DataPoint>
+          <DataPoint>108</DataPoint>
+          <DataPoint>97</DataPoint>
+          <DataPoint>83</DataPoint>
+          <DataPoint>108</DataPoint>
+          <DataPoint>94</DataPoint>
+          <DataPoint>86</DataPoint>
+          <DataPoint>74</DataPoint>
+          <DataPoint>82</DataPoint>
+          <DataPoint>94</DataPoint>
+          <DataPoint>90</DataPoint>
+          <DataPoint>89</DataPoint>
+          <DataPoint>99</DataPoint>
+          <DataPoint>95</DataPoint>
+          <DataPoint>93</DataPoint>
+          <DataPoint>86</DataPoint>
+          <DataPoint>96</DataPoint>
+          <DataPoint>76</DataPoint>
+          <DataPoint>85</DataPoint>
+          <DataPoint>73</DataPoint>
+          <DataPoint>76</DataPoint>
+          <DataPoint>67</DataPoint>
+          <DataPoint>77</DataPoint>
+          <DataPoint>91</DataPoint>
+          <DataPoint>67</DataPoint>
+          <DataPoint>71</DataPoint>
+          <DataPoint>75</DataPoint>
+          <DataPoint>76</DataPoint>
+          <DataPoint>73</DataPoint>
+          <DataPoint>74</DataPoint>
+          <DataPoint>84</DataPoint>
+          <DataPoint>75</DataPoint>
+          <DataPoint>70</DataPoint>
+          <DataPoint>69</DataPoint>
+          <DataPoint>61</DataPoint>
+          <DataPoint>62</DataPoint>
+          <DataPoint>61</DataPoint>
+          <DataPoint>65</DataPoint>
+          <DataPoint>56</DataPoint>
+          <DataPoint>68</DataPoint>
+          <DataPoint>73</DataPoint>
+          <DataPoint>57</DataPoint>
+          <DataPoint>67</DataPoint>
+          <DataPoint>83</DataPoint>
+          <DataPoint>64</DataPoint>
+          <DataPoint>63</DataPoint>
+          <DataPoint>60</DataPoint>
+          <DataPoint>70</DataPoint>
+          <DataPoint>68</DataPoint>
+          <DataPoint>61</DataPoint>
+          <DataPoint>81</DataPoint>
+          <DataPoint>68</DataPoint>
+          <DataPoint>53</DataPoint>
+          <DataPoint>60</DataPoint>
+          <DataPoint>50</DataPoint>
+          <DataPoint>52</DataPoint>
+          <DataPoint>47</DataPoint>
+          <DataPoint>55</DataPoint>
+          <DataPoint>46</DataPoint>
+          <DataPoint>48</DataPoint>
+          <DataPoint>59</DataPoint>
+          <DataPoint>60</DataPoint>
+          <DataPoint>78</DataPoint>
+          <DataPoint>65</DataPoint>
+          <DataPoint>70</DataPoint>
+          <DataPoint>57</DataPoint>
+          <DataPoint>55</DataPoint>
+          <DataPoint>59</DataPoint>
+          <DataPoint>50</DataPoint>
+          <DataPoint>65</DataPoint>
+          <DataPoint>54</DataPoint>
+          <DataPoint>52</DataPoint>
+          <DataPoint>48</DataPoint>
+          <DataPoint>65</DataPoint>
+          <DataPoint>54</DataPoint>
+          <DataPoint>63</DataPoint>
+          <DataPoint>57</DataPoint>
+          <DataPoint>62</DataPoint>
+          <DataPoint>54</DataPoint>
+          <DataPoint>61</DataPoint>
+          <DataPoint>69</DataPoint>
+          <DataPoint>48</DataPoint>
+          <DataPoint>66</DataPoint>
+          <DataPoint>51</DataPoint>
+          <DataPoint>53</DataPoint>
+          <DataPoint>54</DataPoint>
+          <DataPoint>55</DataPoint>
+          <DataPoint>62</DataPoint>
+          <DataPoint>56</DataPoint>
+          <DataPoint>58</DataPoint>
+          <DataPoint>61</DataPoint>
+          <DataPoint>50</DataPoint>
+          <DataPoint>64</DataPoint>
+          <DataPoint>41</DataPoint>
+          <DataPoint>43</DataPoint>
+          <DataPoint>52</DataPoint>
+          <DataPoint>51</DataPoint>
+          <DataPoint>45</DataPoint>
+          <DataPoint>39</DataPoint>
+          <DataPoint>48</DataPoint>
+          <DataPoint>42</DataPoint>
+          <DataPoint>49</DataPoint>
+          <DataPoint>47</DataPoint>
+          <DataPoint>45</DataPoint>
+          <DataPoint>45</DataPoint>
+          <DataPoint>34</DataPoint>
+          <DataPoint>56</DataPoint>
+          <DataPoint>38</DataPoint>
+          <DataPoint>38</DataPoint>
+          <DataPoint>50</DataPoint>
+          <DataPoint>40</DataPoint>
+          <DataPoint>40</DataPoint>
+          <DataPoint>33</DataPoint>
+          <DataPoint>30</DataPoint>
+          <DataPoint>27</DataPoint>
+          <DataPoint>29</DataPoint>
+          <DataPoint>30</DataPoint>
+          <DataPoint>30</DataPoint>
+          <DataPoint>35</DataPoint>
+          <DataPoint>44</DataPoint>
+          <DataPoint>36</DataPoint>
+          <DataPoint>35</DataPoint>
+          <DataPoint>43</DataPoint>
+          <DataPoint>34</DataPoint>
+          <DataPoint>25</DataPoint>
+          <DataPoint>42</DataPoint>
+          <DataPoint>32</DataPoint>
+          <DataPoint>37</DataPoint>
+          <DataPoint>29</DataPoint>
+          <DataPoint>38</DataPoint>
+          <DataPoint>41</DataPoint>
+          <DataPoint>17</DataPoint>
+          <DataPoint>18</DataPoint>
+          <DataPoint>29</DataPoint>
+          <DataPoint>29</DataPoint>
+          <DataPoint>33</DataPoint>
+          <DataPoint>33</DataPoint>
+          <DataPoint>30</DataPoint>
+          <DataPoint>22</DataPoint>
+          <DataPoint>29</DataPoint>
+          <DataPoint>30</DataPoint>
+          <DataPoint>29</DataPoint>
+          <DataPoint>26</DataPoint>
+          <DataPoint>42</DataPoint>
+          <DataPoint>40</DataPoint>
+          <DataPoint>32</DataPoint>
+          <DataPoint>29</DataPoint>
+          <DataPoint>36</DataPoint>
+          <DataPoint>44</DataPoint>
+          <DataPoint>32</DataPoint>
+          <DataPoint>40</DataPoint>
+          <DataPoint>28</DataPoint>
+          <DataPoint>36</DataPoint>
+          <DataPoint>43</DataPoint>
+          <DataPoint>29</DataPoint>
+          <DataPoint>38</DataPoint>
+          <DataPoint>37</DataPoint>
+          <DataPoint>45</DataPoint>
+          <DataPoint>29</DataPoint>
+          <DataPoint>27</DataPoint>
+          <DataPoint>40</DataPoint>
+          <DataPoint>33</DataPoint>
+          <DataPoint>36</DataPoint>
+          <DataPoint>36</DataPoint>
+          <DataPoint>39</DataPoint>
+          <DataPoint>26</DataPoint>
+          <DataPoint>35</DataPoint>
+          <DataPoint>41</DataPoint>
+          <DataPoint>39</DataPoint>
+          <DataPoint>37</DataPoint>
+          <DataPoint>35</DataPoint>
+          <DataPoint>36</DataPoint>
+          <DataPoint>41</DataPoint>
+          <DataPoint>31</DataPoint>
+          <DataPoint>42</DataPoint>
+          <DataPoint>30</DataPoint>
+          <DataPoint>28</DataPoint>
+          <DataPoint>31</DataPoint>
+          <DataPoint>40</DataPoint>
+          <DataPoint>32</DataPoint>
+          <DataPoint>27</DataPoint>
+          <DataPoint>28</DataPoint>
+          <DataPoint>32</DataPoint>
+          <DataPoint>35</DataPoint>
+          <DataPoint>35</DataPoint>
+          <DataPoint>37</DataPoint>
+          <DataPoint>33</DataPoint>
+          <DataPoint>29</DataPoint>
+          <DataPoint>24</DataPoint>
+          <DataPoint>20</DataPoint>
+          <DataPoint>33</DataPoint>
+          <DataPoint>24</DataPoint>
+          <DataPoint>28</DataPoint>
+          <DataPoint>32</DataPoint>
+          <DataPoint>20</DataPoint>
+          <DataPoint>35</DataPoint>
+          <DataPoint>26</DataPoint>
+          <DataPoint>14</DataPoint>
+          <DataPoint>25</DataPoint>
+          <DataPoint>23</DataPoint>
+          <DataPoint>22</DataPoint>
+          <DataPoint>26</DataPoint>
+          <DataPoint>27</DataPoint>
+          <DataPoint>33</DataPoint>
+          <DataPoint>21</DataPoint>
+          <DataPoint>22</DataPoint>
+          <DataPoint>27</DataPoint>
+          <DataPoint>35</DataPoint>
+          <DataPoint>18</DataPoint>
+          <DataPoint>23</DataPoint>
+          <DataPoint>17</DataPoint>
+          <DataPoint>23</DataPoint>
+          <DataPoint>20</DataPoint>
+          <DataPoint>28</DataPoint>
+          <DataPoint>16</DataPoint>
+          <DataPoint>25</DataPoint>
+          <DataPoint>27</DataPoint>
+          <DataPoint>25</DataPoint>
+          <DataPoint>22</DataPoint>
+          <DataPoint>20</DataPoint>
+          <DataPoint>27</DataPoint>
+          <DataPoint>32</DataPoint>
+          <DataPoint>20</DataPoint>
+          <DataPoint>25</DataPoint>
+          <DataPoint>28</DataPoint>
+          <DataPoint>15</DataPoint>
+          <DataPoint>19</DataPoint>
+          <DataPoint>21</DataPoint>
+          <DataPoint>21</DataPoint>
+          <DataPoint>19</DataPoint>
+          <DataPoint>16</DataPoint>
+          <DataPoint>20</DataPoint>
+          <DataPoint>24</DataPoint>
+          <DataPoint>18</DataPoint>
+          <DataPoint>17</DataPoint>
+          <DataPoint>21</DataPoint>
+          <DataPoint>19</DataPoint>
+          <DataPoint>13</DataPoint>
+          <DataPoint>17</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>22</DataPoint>
+          <DataPoint>12</DataPoint>
+          <DataPoint>21</DataPoint>
+          <DataPoint>20</DataPoint>
+          <DataPoint>23</DataPoint>
+          <DataPoint>9</DataPoint>
+          <DataPoint>13</DataPoint>
+          <DataPoint>15</DataPoint>
+          <DataPoint>19</DataPoint>
+          <DataPoint>14</DataPoint>
+          <DataPoint>16</DataPoint>
+          <DataPoint>12</DataPoint>
+          <DataPoint>15</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>19</DataPoint>
+          <DataPoint>10</DataPoint>
+          <DataPoint>21</DataPoint>
+          <DataPoint>15</DataPoint>
+          <DataPoint>12</DataPoint>
+          <DataPoint>12</DataPoint>
+          <DataPoint>14</DataPoint>
+          <DataPoint>14</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>18</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>20</DataPoint>
+          <DataPoint>15</DataPoint>
+          <DataPoint>10</DataPoint>
+          <DataPoint>13</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>20</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>10</DataPoint>
+          <DataPoint>17</DataPoint>
+          <DataPoint>18</DataPoint>
+          <DataPoint>16</DataPoint>
+          <DataPoint>18</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>12</DataPoint>
+          <DataPoint>15</DataPoint>
+          <DataPoint>14</DataPoint>
+          <DataPoint>10</DataPoint>
+          <DataPoint>16</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>12</DataPoint>
+          <DataPoint>10</DataPoint>
+          <DataPoint>15</DataPoint>
+          <DataPoint>13</DataPoint>
+          <DataPoint>14</DataPoint>
+          <DataPoint>18</DataPoint>
+          <DataPoint>14</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>10</DataPoint>
+          <DataPoint>15</DataPoint>
+          <DataPoint>13</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>15</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>13</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>10</DataPoint>
+          <DataPoint>10</DataPoint>
+          <DataPoint>12</DataPoint>
+          <DataPoint>16</DataPoint>
+          <DataPoint>13</DataPoint>
+          <DataPoint>9</DataPoint>
+          <DataPoint>14</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>9</DataPoint>
+          <DataPoint>13</DataPoint>
+          <DataPoint>9</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>20</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>9</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>12</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>19</DataPoint>
+          <DataPoint>15</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>12</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>15</DataPoint>
+          <DataPoint>17</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>14</DataPoint>
+          <DataPoint>12</DataPoint>
+          <DataPoint>10</DataPoint>
+          <DataPoint>12</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>14</DataPoint>
+          <DataPoint>9</DataPoint>
+          <DataPoint>10</DataPoint>
+          <DataPoint>13</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>12</DataPoint>
+          <DataPoint>10</DataPoint>
+          <DataPoint>9</DataPoint>
+          <DataPoint>13</DataPoint>
+          <DataPoint>9</DataPoint>
+          <DataPoint>13</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>10</DataPoint>
+          <DataPoint>10</DataPoint>
+          <DataPoint>12</DataPoint>
+          <DataPoint>15</DataPoint>
+          <DataPoint>13</DataPoint>
+          <DataPoint>9</DataPoint>
+          <DataPoint>12</DataPoint>
+          <DataPoint>13</DataPoint>
+          <DataPoint>10</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>13</DataPoint>
+          <DataPoint>12</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>13</DataPoint>
+          <DataPoint>13</DataPoint>
+          <DataPoint>12</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>10</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>10</DataPoint>
+          <DataPoint>9</DataPoint>
+          <DataPoint>19</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>12</DataPoint>
+          <DataPoint>15</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>9</DataPoint>
+          <DataPoint>9</DataPoint>
+          <DataPoint>13</DataPoint>
+          <DataPoint>10</DataPoint>
+          <DataPoint>14</DataPoint>
+          <DataPoint>14</DataPoint>
+          <DataPoint>10</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>9</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>9</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>13</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>9</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>10</DataPoint>
+          <DataPoint>15</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>13</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>12</DataPoint>
+          <DataPoint>14</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>14</DataPoint>
+          <DataPoint>13</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>0</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>9</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>9</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>0</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>0</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>0</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>0</DataPoint>
+          <DataPoint>0</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>0</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>0</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>0</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>0</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>0</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>0</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>0</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>0</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>1</DataPoint>
+          <DataPoint>10</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>9</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>5</DataPoint>
+          <DataPoint>3</DataPoint>
+          <DataPoint>2</DataPoint>
+          <DataPoint>4</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>1035</DataPoint>
+        </Spectrum>
+      <LiveTime>92223</LiveTime></BackgroundEnergySpectrum>
+      <Visible>true</Visible>
+      <PulseCollection>
+        <Format>Base64 encoded binary</Format>
+        <Pulses />
+      </PulseCollection>
+    <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>20.70293146630851</Coefficient><Coefficient>2.864715234724718</Coefficient><Coefficient>-0.0010283533212039422</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
+  </ResultDataList>
+</ResultDataFile>
