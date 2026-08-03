@@ -155,11 +155,17 @@ namespace BecquerelMonitor
             //
             // calcHintLabel
             //
+            // AutoSize обязателен. Без него метка не появилась на вкладке вовсе
+            // — ни на экране, ни в дереве UI Automation, хотя текст был задан и
+            // размер выставлен руками. Соседняя anchorHintLabel отличалась
+            // ровно этим и рисовалась. Заданный руками Size убран: пусть высоту
+            // считает сама метка по переносу в MaximumSize, иначе перевод
+            // другой длины опять её обрежет.
+            this.calcHintLabel.AutoSize = true;
             this.calcHintLabel.ForeColor = System.Drawing.Color.DimGray;
             this.calcHintLabel.Location = new System.Drawing.Point(10, 68);
             this.calcHintLabel.MaximumSize = new System.Drawing.Size(600, 0);
             this.calcHintLabel.Name = "calcHintLabel";
-            this.calcHintLabel.Size = new System.Drawing.Size(600, 32);
             this.calcHintLabel.TabIndex = 4;
             this.calcHintLabel.Text = BecquerelMonitor.Properties.Resources.EfficiencyMakerCalcHint;
             //

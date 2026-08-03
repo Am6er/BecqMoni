@@ -83,7 +83,7 @@
     <value>Убрать выбранные</value>
   </data>
   <data name="geometryLabel.Text" xml:space="preserve">
-    <value>Геометрия детектора (файл .in LSRM) — чтобы посчитать кривую:</value>
+    <value>Геометрия детектора (файл .in LSRM):</value>
   </data>
   <data name="geometryBrowseButton.Text" xml:space="preserve">
     <value>Обзор...</value>
