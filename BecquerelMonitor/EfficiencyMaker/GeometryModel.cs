@@ -258,6 +258,13 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Вещество собирается из троек, разложенных по файлу:
         /// `<prefix>Ro<part>` — плотность, `<prefix>Z<part>[i]` — номер элемента,
         /// `<prefix>Fractions<part>[i]` — его массовая доля.
+        ///
+        /// Доли именно МАССОВЫЕ: в редакторе материалов конструктора геометрий
+        /// LSRM колонка так и подписана — «Weight fract», а рядом в файле стоит
+        /// `<prefix>FractionType<part> = MASS`. Ключ FractionType здесь не
+        /// читается, потому что во всех восьми поставочных файлах он MASS; если
+        /// когда-нибудь попадётся ATOM, разбор промолчит и посчитает неверно —
+        /// это известный незакрытый случай, а не недосмотр.
         /// </summary>
         static GeometryMaterial Material(Dictionary<string, string> kv, string prefix,
                                          string part, string nameKey)
