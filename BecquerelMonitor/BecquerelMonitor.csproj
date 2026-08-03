@@ -308,7 +308,11 @@
     <Compile Include="EfficiencyMaker\EfficiencyCurveGraph.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="EfficiencyMaker\AttenuationData.cs" />
     <Compile Include="EfficiencyMaker\EfficiencyFitter.cs" />
+    <Compile Include="EfficiencyMaker\EfficiencySimulator.cs" />
+    <Compile Include="EfficiencyMaker\GeometryModel.cs" />
+    <Compile Include="EfficiencyMaker\PartialCrossSections.cs" />
     <Compile Include="EfficiencyMaker\EfficiencyModel.cs" />
     <Compile Include="EfficiencyMakerForm.cs">
       <SubType>Form</SubType>
