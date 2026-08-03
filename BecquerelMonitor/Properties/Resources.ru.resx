@@ -1134,4 +1134,13 @@
   <data name="EfficiencyMakerImpossibleCurve" xml:space="preserve">
     <value>Подогнанная кривая физически невозможна: эффективность {1:G3} на {0:F0} кэВ. Линий {2} против {3} свободных параметров — снизьте степень полинома или добавьте спектров.</value>
   </data>
+  <data name="EfficiencyMakerWholeLibrary" xml:space="preserve">
+    <value>(вся библиотека)</value>
+  </data>
+  <data name="GeometryEditorPreset" xml:space="preserve">
+    <value>Готовый детектор:</value>
+  </data>
+  <data name="GeometryEditorPresetPrompt" xml:space="preserve">
+    <value>(выбрать и подставить)</value>
+  </data>
 </root>

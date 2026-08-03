@@ -40,6 +40,7 @@ namespace BecquerelMonitor
         Panel pointPanel, cylinderPanel, marinelliPanel;
         Panel cylinderSizePanel, boxSizePanel;
         TextBox pathTextBox;
+        ComboBox presetCombo;
         GeometrySketch detectorSketch, sourceSketch;
 
         GeometryModel model;
@@ -116,15 +117,15 @@ namespace BecquerelMonitor
         void BuildLayout()
         {
             this.Text = Resources.GeometryEditorTitle;
-            this.ClientSize = new Size(1060, 610);
-            this.MinimumSize = new Size(1076, 649);
+            this.ClientSize = new Size(1060, 650);
+            this.MinimumSize = new Size(1076, 689);
             this.StartPosition = FormStartPosition.CenterParent;
             this.Icon = Resources.becqmoni;
 
             TabControl tabs = new TabControl
             {
                 Location = new Point(12, 12),
-                Size = new Size(1036, 500),
+                Size = new Size(1036, 540),
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom,
             };
 
@@ -140,21 +141,21 @@ namespace BecquerelMonitor
             Label pathLabel = new Label
             {
                 AutoSize = true,
-                Location = new Point(12, 526),
+                Location = new Point(12, 566),
                 Text = Resources.GeometryEditorFile,
                 Anchor = AnchorStyles.Bottom | AnchorStyles.Left,
             };
 
             this.pathTextBox = new TextBox
             {
-                Location = new Point(12, 544),
+                Location = new Point(12, 584),
                 Size = new Size(930, 20),
                 Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
             };
 
             Button browse = new Button
             {
-                Location = new Point(948, 542),
+                Location = new Point(948, 582),
                 Size = new Size(100, 24),
                 Text = Resources.GeometryEditorBrowse,
                 Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
@@ -164,7 +165,7 @@ namespace BecquerelMonitor
 
             Button ok = new Button
             {
-                Location = new Point(828, 574),
+                Location = new Point(828, 614),
                 Size = new Size(106, 26),
                 Text = Resources.GeometryEditorSave,
                 Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
@@ -174,7 +175,7 @@ namespace BecquerelMonitor
 
             Button cancel = new Button
             {
-                Location = new Point(942, 574),
+                Location = new Point(942, 614),
                 Size = new Size(106, 26),
                 Text = Resources.GeometryEditorCancel,
                 DialogResult = DialogResult.Cancel,
@@ -194,10 +195,36 @@ namespace BecquerelMonitor
         {
             this.detectorSketch = this.AddSketch(tab, GeometrySketch.SketchMode.Detector);
             Panel page = FieldColumn(tab);
+
+            // Готовые детекторы — самым верхом: обвязку сцинтиллятора по памяти
+            // не восстановить, а ошибка в ней стоит десятков процентов.
+            page.Controls.Add(new Label
+            {
+                AutoSize = true,
+                Location = new Point(14, 14),
+                Text = Resources.GeometryEditorPreset,
+            });
+
+            this.presetCombo = new ComboBox
+            {
+                Location = new Point(160, 11),
+                Size = new Size(300, 21),
+                DropDownStyle = ComboBoxStyle.DropDownList,
+            };
+            this.presetCombo.Items.Add(Resources.GeometryEditorPresetPrompt);
+            foreach (GeometryPresets.Preset preset in GeometryPresets.Items)
+            {
+                this.presetCombo.Items.Add(preset);
+            }
+
+            this.presetCombo.SelectedIndex = 0;
+            this.presetCombo.SelectedIndexChanged += this.PresetChanged;
+            page.Controls.Add(this.presetCombo);
+
             this.cylinderRadio = new RadioButton
             {
                 AutoSize = true,
-                Location = new Point(14, 12),
+                Location = new Point(14, 46),
                 Text = Resources.GeometryEditorShapeCylinder,
                 Checked = true,
             };
@@ -205,7 +232,7 @@ namespace BecquerelMonitor
             this.boxRadio = new RadioButton
             {
                 AutoSize = true,
-                Location = new Point(190, 12),
+                Location = new Point(190, 46),
                 Text = Resources.GeometryEditorShapeBox,
             };
 
@@ -213,13 +240,13 @@ namespace BecquerelMonitor
             page.Controls.Add(this.cylinderRadio);
             page.Controls.Add(this.boxRadio);
 
-            this.cylinderSizePanel = new Panel { Location = new Point(0, 36), Size = new Size(620, 56) };
+            this.cylinderSizePanel = new Panel { Location = new Point(0, 70), Size = new Size(620, 56) };
             int y = 0;
             this.Row(this.cylinderSizePanel, ref y, "CrystalDiameter", Resources.GeometryEditorCrystalDiameter);
             this.Row(this.cylinderSizePanel, ref y, "CrystalHeight", Resources.GeometryEditorCrystalHeight);
             page.Controls.Add(this.cylinderSizePanel);
 
-            this.boxSizePanel = new Panel { Location = new Point(0, 36), Size = new Size(620, 106), Visible = false };
+            this.boxSizePanel = new Panel { Location = new Point(0, 70), Size = new Size(620, 106), Visible = false };
             y = 0;
             this.Row(this.boxSizePanel, ref y, "CrystalBoxX", Resources.GeometryEditorBoxX);
             this.Row(this.boxSizePanel, ref y, "CrystalBoxY", Resources.GeometryEditorBoxY);
@@ -234,7 +261,7 @@ namespace BecquerelMonitor
             this.boxSizePanel.Controls.Add(this.equivalentLabel);
             page.Controls.Add(this.boxSizePanel);
 
-            Panel rest = new Panel { Location = new Point(0, 148), Size = new Size(620, 152) };
+            Panel rest = new Panel { Location = new Point(0, 182), Size = new Size(620, 152) };
             y = 0;
             this.Row(rest, ref y, "FrontReflectorThickness", Resources.GeometryEditorFrontReflector);
             this.Row(rest, ref y, "SideReflectorThickness", Resources.GeometryEditorSideReflector);
@@ -243,7 +270,7 @@ namespace BecquerelMonitor
             this.Row(rest, ref y, "MountingThickness", Resources.GeometryEditorMounting);
             page.Controls.Add(rest);
 
-            Panel mats = new Panel { Location = new Point(0, 306), Size = new Size(620, 150) };
+            Panel mats = new Panel { Location = new Point(0, 340), Size = new Size(620, 150) };
             y = 0;
             this.MaterialRow(mats, ref y, "Crystal", Resources.GeometryEditorCrystalMaterial,
                              GeometryMaterialLibrary.MaterialKind.Crystal);
@@ -663,6 +690,35 @@ namespace BecquerelMonitor
             double volume = this.Get("CrystalBoxX") * this.Get("CrystalBoxY") * this.Get("CrystalBoxZ");
             this.equivalentLabel.Text = string.Format(CultureInfo.InvariantCulture,
                 Resources.GeometryEditorEquivalent, d, volume);
+        }
+
+        /// <summary>
+        /// Подставить готовый детектор. Меняется ТОЛЬКО детектор: источник
+        /// остаётся тот, что выбран на своей вкладке — один и тот же кристалл
+        /// меряют и в маринелли, и точечным источником.
+        ///
+        /// Список возвращается к приглашению: это действие, а не состояние.
+        /// Оставленное имя лгало бы, как только тронут любое поле.
+        /// </summary>
+        void PresetChanged(object sender, EventArgs e)
+        {
+            if (this.loading || this.presetCombo.SelectedIndex <= 0)
+            {
+                return;
+            }
+
+            GeometryPresets.Preset preset =
+                this.presetCombo.SelectedItem as GeometryPresets.Preset;
+            if (preset == null)
+            {
+                return;
+            }
+
+            GeometryModel g = this.BuildModel();
+            preset.Apply(g);
+            this.model = g;
+            this.LoadFromModel();
+            this.presetCombo.SelectedIndex = 0;
         }
 
         void ShapeChanged(object sender, EventArgs e)

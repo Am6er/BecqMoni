@@ -298,6 +298,9 @@ namespace BecquerelMonitor
             this.spectraGrid.AllowUserToDeleteRows = false;
             this.spectraGrid.AllowUserToResizeRows = false;
             this.spectraGrid.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
+            // Белое поле под строками, а не системный серый: серый читается как
+            // «список выключен», хотя таблица рабочая и пустая.
+            this.spectraGrid.BackgroundColor = System.Drawing.Color.White;
             this.spectraGrid.ColumnHeadersHeightSizeMode =
                 System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
             this.spectraGrid.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
@@ -637,6 +640,7 @@ namespace BecquerelMonitor
             this.Controls.Add(this.statusLabel);
             this.Controls.Add(this.progressBar);
             this.Controls.Add(this.splitContainer);
+            this.Icon = BecquerelMonitor.Properties.Resources.becqmoni;
             this.MinimumSize = new System.Drawing.Size(900, 780);
             this.Name = "EfficiencyMakerForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;

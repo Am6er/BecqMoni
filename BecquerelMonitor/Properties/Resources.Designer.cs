@@ -3616,5 +3616,23 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("EfficiencyMakerImpossibleCurve", resourceCulture);
             }
         }
+
+        public static string EfficiencyMakerWholeLibrary {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerWholeLibrary", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorPreset {
+            get {
+                return ResourceManager.GetString("GeometryEditorPreset", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorPresetPrompt {
+            get {
+                return ResourceManager.GetString("GeometryEditorPresetPrompt", resourceCulture);
+            }
+        }
 }
 }

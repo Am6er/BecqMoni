@@ -42519,4 +42519,13 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="EfficiencyMakerImpossibleCurve" xml:space="preserve">
     <value>The fitted curve is physically impossible: efficiency {1:G3} at {0:F0} keV. {2} lines against {3} free parameters - lower the polynomial order or add spectra.</value>
   </data>
+  <data name="EfficiencyMakerWholeLibrary" xml:space="preserve">
+    <value>(whole library)</value>
+  </data>
+  <data name="GeometryEditorPreset" xml:space="preserve">
+    <value>Known detector:</value>
+  </data>
+  <data name="GeometryEditorPresetPrompt" xml:space="preserve">
+    <value>(choose to fill in)</value>
+  </data>
 </root>

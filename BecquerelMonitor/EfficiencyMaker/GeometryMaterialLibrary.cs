@@ -22,14 +22,26 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>Вещество библиотеки: имя как в файлах LSRM, формула, плотность.</summary>
         public sealed class Entry
         {
+            /// <summary>
+            /// Имя ровно как в файлах LSRM. В список оно и пишется — иначе их
+            /// программа не узнает вещество.
+            /// </summary>
             public string Name;
+
+            /// <summary>
+            /// Привычное сокращение: CsI, NaI, HPGe. В файл не попадает, но в
+            /// списке стоит первым — по «Cesium iodide» кристалл ищут глазами
+            /// дольше, чем по «CsI».
+            /// </summary>
+            public string Abbr;
+
             public string Formula;
             public double Density;
             public MaterialKind Kind;
 
             public override string ToString()
             {
-                return this.Name;
+                return string.IsNullOrEmpty(this.Abbr) ? this.Name : this.Abbr + " — " + this.Name;
             }
         }
 
@@ -63,46 +75,52 @@ namespace BecquerelMonitor.EfficiencyMaker
         static List<Entry> Build()
         {
             List<Entry> list = new List<Entry>();
-            Action<string, string, double, MaterialKind> add = (name, formula, density, kind) =>
-                list.Add(new Entry { Name = name, Formula = formula, Density = density, Kind = kind });
+            Action<string, string, string, double, MaterialKind> add =
+                (abbr, name, formula, density, kind) => list.Add(new Entry
+                {
+                    Abbr = abbr, Name = name, Formula = formula, Density = density, Kind = kind
+                });
 
             // Кристаллы. Имена — как в файлах LSRM, чтобы сохранённый файл
-            // читался их же программой без переименований.
-            add("Cesium iodide", "Cs1 I1", 4.51, MaterialKind.Crystal);
-            add("Sodium iodide", "Na1 I1", 3.667, MaterialKind.Crystal);
-            add("Bismuth germanate", "Bi4 Ge3 O12", 7.13, MaterialKind.Crystal);
-            add("Lanthanum bromide", "La1 Br3", 5.08, MaterialKind.Crystal);
-            add("Cerium bromide", "Ce1 Br3", 5.1, MaterialKind.Crystal);
-            add("Strontium iodide", "Sr1 I2", 4.55, MaterialKind.Crystal);
-            add("Cadmium telluride", "Cd1 Te1", 5.85, MaterialKind.Crystal);
-            add("Gadolinium oxyorthosilicate", "Gd2 Si1 O5", 6.71, MaterialKind.Crystal);
-            add("Germanium", "Ge1", 5.323, MaterialKind.Crystal);
+            // читался их же программой без переименований; сокращение только для
+            // списка. HPGe — не отдельное вещество, а тот же германий: приставка
+            // говорит о чистоте, а не о составе.
+            add("CsI", "Cesium iodide", "Cs1 I1", 4.51, MaterialKind.Crystal);
+            add("NaI", "Sodium iodide", "Na1 I1", 3.667, MaterialKind.Crystal);
+            add("BGO", "Bismuth germanate", "Bi4 Ge3 O12", 7.13, MaterialKind.Crystal);
+            add("LaBr3", "Lanthanum bromide", "La1 Br3", 5.08, MaterialKind.Crystal);
+            add("CeBr3", "Cerium bromide", "Ce1 Br3", 5.1, MaterialKind.Crystal);
+            add("SrI2", "Strontium iodide", "Sr1 I2", 4.55, MaterialKind.Crystal);
+            add("CdTe", "Cadmium telluride", "Cd1 Te1", 5.85, MaterialKind.Crystal);
+            add("CZT", "Cadmium zinc telluride", "Cd9 Zn1 Te10", 5.78, MaterialKind.Crystal);
+            add("GSO", "Gadolinium oxyorthosilicate", "Gd2 Si1 O5", 6.71, MaterialKind.Crystal);
+            add("HPGe", "Germanium", "Ge1", 5.323, MaterialKind.Crystal);
 
             // Отражатели
-            add("Polytetrafluoroethylene", "C2 F4", 2.25, MaterialKind.Reflector);
-            add("Magnesium oxide", "Mg1 O1", 3.58, MaterialKind.Reflector);
-            add("Titanium dioxide", "Ti1 O2", 4.23, MaterialKind.Reflector);
-            add("Aluminum oxide", "Al2 O3", 3.97, MaterialKind.Reflector);
+            add("PTFE", "Polytetrafluoroethylene", "C2 F4", 2.25, MaterialKind.Reflector);
+            add("MgO", "Magnesium oxide", "Mg1 O1", 3.58, MaterialKind.Reflector);
+            add("TiO2", "Titanium dioxide", "Ti1 O2", 4.23, MaterialKind.Reflector);
+            add("Al2O3", "Aluminum oxide", "Al2 O3", 3.97, MaterialKind.Reflector);
 
             // Корпус и оправа
-            add("Aluminum", "Al1", 2.7, MaterialKind.Cladding);
-            add("Titanium", "Ti1", 4.51, MaterialKind.Cladding);
-            add("Iron", "Fe1", 7.874, MaterialKind.Cladding);
-            add("Carbon", "C1", 1.7, MaterialKind.Cladding);
+            add("Al", "Aluminum", "Al1", 2.7, MaterialKind.Cladding);
+            add("Ti", "Titanium", "Ti1", 4.51, MaterialKind.Cladding);
+            add("Fe", "Iron", "Fe1", 7.874, MaterialKind.Cladding);
+            add("C", "Carbon", "C1", 1.7, MaterialKind.Cladding);
 
             // Стенки сосудов
-            add("Polyethylene terephthalate", "C10 H8 O4", 1.38, MaterialKind.BeakerWall);
-            add("Polyethylene", "C2 H4", 0.94, MaterialKind.BeakerWall);
-            add("Polypropylene", "C3 H6", 0.905, MaterialKind.BeakerWall);
-            add("Polystyrene", "C8 H8", 1.06, MaterialKind.BeakerWall);
-            add("Glass", "Si1 O2", 2.32, MaterialKind.BeakerWall);
+            add("PET", "Polyethylene terephthalate", "C10 H8 O4", 1.38, MaterialKind.BeakerWall);
+            add("PE", "Polyethylene", "C2 H4", 0.94, MaterialKind.BeakerWall);
+            add("PP", "Polypropylene", "C3 H6", 0.905, MaterialKind.BeakerWall);
+            add("PS", "Polystyrene", "C8 H8", 1.06, MaterialKind.BeakerWall);
+            add("SiO2", "Glass", "Si1 O2", 2.32, MaterialKind.BeakerWall);
 
             // Пробы
-            add("Water, liquid", "H2 O1", 1.0, MaterialKind.Source);
-            add("Air, dry", "N2 O1", 0.001205, MaterialKind.Source);
-            add("Silicon dioxide", "Si1 O2", 1.6, MaterialKind.Source);
-            add("Calcium carbonate", "Ca1 C1 O3", 1.5, MaterialKind.Source);
-            add("Potassium chloride", "K1 Cl1", 1.0, MaterialKind.Source);
+            add("H2O", "Water, liquid", "H2 O1", 1.0, MaterialKind.Source);
+            add("Air", "Air, dry", "N2 O1", 0.001205, MaterialKind.Source);
+            add("SiO2", "Silicon dioxide", "Si1 O2", 1.6, MaterialKind.Source);
+            add("CaCO3", "Calcium carbonate", "Ca1 C1 O3", 1.5, MaterialKind.Source);
+            add("KCl", "Potassium chloride", "K1 Cl1", 1.0, MaterialKind.Source);
             return list;
         }
 
