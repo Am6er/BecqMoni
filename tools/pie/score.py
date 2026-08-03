@@ -32,6 +32,7 @@ from collections import defaultdict
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MANIFEST = os.path.join(HERE, '..', 'CORPUS', 'corpus', 'manifest.csv')
+DETECTORS = os.path.join(HERE, '..', 'CORPUS', 'corpus', 'detectors.csv')
 OUT = os.path.join(HERE, 'out')
 
 # манифест -> компоненты. Компонент U-238 в pie — только голова ряда
@@ -55,6 +56,20 @@ ROOM = {'Th-232', 'Ra-226', 'K-40'}
 
 def family(comp):
     return FAMILY.get(comp, comp)
+
+
+def load_resolutions():
+    """Группа -> ПШПВ на 662 кэВ, % (последняя колонка detectors.csv)."""
+    res = {}
+    with open(DETECTORS, encoding='utf-8-sig') as fh:
+        for row in csv.reader(fh):
+            if len(row) < 2 or not row[0] or row[0].startswith('#'):
+                continue
+            try:
+                res[row[0]] = float(row[-1])
+            except ValueError:
+                continue          # строка заголовка
+    return res
 
 
 def load_truth():
@@ -89,6 +104,7 @@ def load_results(mode, out_dir):
     source = {}
     groups = set()
     errors = set()
+    chi2 = {}
     for name in sorted(os.listdir(out_dir)):
         if not name.endswith(suffix):
             continue
@@ -108,7 +124,12 @@ def load_results(mode, out_dir):
                 for row in csv.DictReader(fh):
                     if row.get('chi2ndf') == 'ERROR':
                         errors.add(row['spectrum'])
-    return results, groups, errors
+                        continue
+                    try:
+                        chi2[row['spectrum']] = float(row['chi2ndf'])
+                    except (TypeError, ValueError):
+                        pass
+    return results, groups, errors, chi2
 
 
 def main():
@@ -119,12 +140,25 @@ def main():
     ap.add_argument('--out-dir', default=OUT,
                     help='каталог с <группа>_<режим>_{components,runs}.csv')
     ap.add_argument('--verbose', action='store_true')
+    # Приборы с разрешением лучше 3 % (HPGe, CZT) — вне предмета: там пик
+    # разрешается сам, и полноспектральная декомпозиция решает другую задачу.
+    # Порог 0 возвращает весь корпус.
+    ap.add_argument('--min-fwhm', type=float, default=0.0,
+                    help='нижняя граница ПШПВ на 662 кэВ, %% (3 — только сцинтилляторы)')
     args = ap.parse_args()
 
     truth = load_truth()
-    results, groups, errors = load_results(args.mode, args.out_dir)
+    results, groups, errors, chi2 = load_results(args.mode, args.out_dir)
     if not results:
         sys.exit('нет результатов режима %s в %s' % (args.mode, args.out_dir))
+
+    resolution = load_resolutions()
+    if args.min_fwhm > 0.0:
+        dropped = sorted(d for d, f in resolution.items() if f < args.min_fwhm)
+        truth = {k: t for k, t in truth.items()
+                 if resolution.get(t['det'], 0.0) >= args.min_fwhm}
+        print('исключены по разрешению < %.1f %%: %s'
+              % (args.min_fwhm, ', '.join(dropped) or '-'))
 
     # покрытие: группа, чей файл есть в результатах, обязана содержать все
     # свои спектры из манифеста — упавший спектр не оставляет строк в
@@ -207,6 +241,16 @@ def main():
         print('%-10s %8d %9.0f%% %10d' % (det, n, 100.0 * h / t_ if t_ else 0, p))
     print('%-10s %8d %9.0f%% %10d  (+%d комнатных)' % (
         'итого', ts, 100.0 * th / tt if tt else 0, tp, total_soft))
+
+    # χ²/ndf по тем же спектрам, что вошли в скоринг: сумма — чтобы сравнивать
+    # прогоны между собой, медиана — чтобы один тяжёлый спектр не решал всё.
+    scored = sorted(chi2[s] for s in chi2 if s in truth)
+    if scored:
+        mid = scored[len(scored) // 2] if len(scored) % 2 else \
+            0.5 * (scored[len(scored) // 2 - 1] + scored[len(scored) // 2])
+        # без греческих букв: консоль под cp1251 их не печатает
+        print('%-10s %8d  sum chi2/ndf %.1f   медиана %.2f'
+              % ('', len(scored), sum(scored), mid))
 
 
 if __name__ == '__main__':
