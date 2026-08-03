@@ -444,34 +444,48 @@ namespace BecquerelMonitor
 
         // Где встали панели значений курсора в этом кадре: их может быть одна
         // (канал) или две (канал + выделенная область), и они переезжают слева
-        // направо вслед за курсором. Список состава ставится под ними — один,
-        // общий, в самом низу.
+        // направо вслед за курсором. Список состава ставится под левой из них —
+        // один, общий.
         int cursorPanelLeft;
         int cursorPanelBottom;
+        bool cursorPanelRegistered;
 
         void ResetCursorPanelBounds(int anchorX, int anchorY)
         {
             this.cursorPanelLeft = anchorX;
             this.cursorPanelBottom = anchorY;
+            this.cursorPanelRegistered = false;
         }
 
         void RegisterCursorPanel(int x, int y, int height)
         {
-            if (x < this.cursorPanelLeft)
+            // Низ берётся у ЛЕВОЙ панели, а не самый нижний из всех. Список
+            // состава встаёт под левой, и общий максимум отрывал его от неё на
+            // всю разницу высот: панель выделенной области вдвое-втрое выше
+            // панели канала, и при выделении области список уезжал вниз
+            // отдельным куском. Какая из панелей левая — зависит от того, с
+            // какой стороны курсор, поэтому условие по x, а не по виду панели.
+            if (!this.cursorPanelRegistered || x < this.cursorPanelLeft)
             {
                 this.cursorPanelLeft = x;
+                this.cursorPanelBottom = y + height;
+                this.cursorPanelRegistered = true;
+                return;
             }
 
-            int bottom = y + height;
-            if (bottom > this.cursorPanelBottom)
+            if (x == this.cursorPanelLeft)
             {
-                this.cursorPanelBottom = bottom;
+                int bottom = y + height;
+                if (bottom > this.cursorPanelBottom)
+                {
+                    this.cursorPanelBottom = bottom;
+                }
             }
         }
 
         /// <summary>
-        /// Состав разложения — одной таблицей под панелями значений курсора,
-        /// сколько бы их ни было. Внутрь них список не вписывается: панель
+        /// Состав разложения — одной таблицей под левой панелью значений
+        /// курсора. Внутрь них список не вписывается: панель
         /// выделенной области появляется и исчезает, и список прыгал бы между
         /// таблицами.
         /// </summary>
