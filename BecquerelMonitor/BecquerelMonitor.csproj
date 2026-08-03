@@ -317,6 +317,7 @@
     <Compile Include="EfficiencyMaker\PartialCrossSections.cs" />
     <Compile Include="EfficiencyMaker\EfficiencyModel.cs" />
     <Compile Include="EfficiencyMaker\GeometryMaterialLibrary.cs" />
+    <Compile Include="EfficiencyMaker\GeometrySketch.cs" />
     <Compile Include="EfficiencyMaker\GeometryWriter.cs" />
     <Compile Include="GeometryEditorForm.cs">
       <SubType>Form</SubType>

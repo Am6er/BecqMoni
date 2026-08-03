@@ -40,6 +40,7 @@ namespace BecquerelMonitor
         Panel pointPanel, cylinderPanel, marinelliPanel;
         Panel cylinderSizePanel, boxSizePanel;
         TextBox pathTextBox;
+        GeometrySketch detectorSketch, sourceSketch;
 
         GeometryModel model;
 
@@ -115,16 +116,15 @@ namespace BecquerelMonitor
         void BuildLayout()
         {
             this.Text = Resources.GeometryEditorTitle;
-            this.ClientSize = new Size(660, 610);
-            this.MinimumSize = new Size(676, 649);
+            this.ClientSize = new Size(1060, 610);
+            this.MinimumSize = new Size(1076, 649);
             this.StartPosition = FormStartPosition.CenterParent;
-            this.MaximizeBox = false;
             this.Icon = Resources.becqmoni;
 
             TabControl tabs = new TabControl
             {
                 Location = new Point(12, 12),
-                Size = new Size(636, 500),
+                Size = new Size(1036, 500),
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom,
             };
 
@@ -148,13 +148,13 @@ namespace BecquerelMonitor
             this.pathTextBox = new TextBox
             {
                 Location = new Point(12, 544),
-                Size = new Size(530, 20),
+                Size = new Size(930, 20),
                 Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
             };
 
             Button browse = new Button
             {
-                Location = new Point(548, 542),
+                Location = new Point(948, 542),
                 Size = new Size(100, 24),
                 Text = Resources.GeometryEditorBrowse,
                 Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
@@ -164,7 +164,7 @@ namespace BecquerelMonitor
 
             Button ok = new Button
             {
-                Location = new Point(428, 574),
+                Location = new Point(828, 574),
                 Size = new Size(106, 26),
                 Text = Resources.GeometryEditorSave,
                 Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
@@ -174,7 +174,7 @@ namespace BecquerelMonitor
 
             Button cancel = new Button
             {
-                Location = new Point(542, 574),
+                Location = new Point(942, 574),
                 Size = new Size(106, 26),
                 Text = Resources.GeometryEditorCancel,
                 DialogResult = DialogResult.Cancel,
@@ -190,8 +190,10 @@ namespace BecquerelMonitor
             this.CancelButton = cancel;
         }
 
-        void BuildDetectorTab(TabPage page)
+        void BuildDetectorTab(TabPage tab)
         {
+            this.detectorSketch = this.AddSketch(tab, GeometrySketch.SketchMode.Detector);
+            Panel page = FieldColumn(tab);
             this.cylinderRadio = new RadioButton
             {
                 AutoSize = true,
@@ -252,8 +254,41 @@ namespace BecquerelMonitor
             page.Controls.Add(mats);
         }
 
-        void BuildSourceTab(TabPage page)
+        /// <summary>
+        /// Чертёж справа от полей — как в конструкторе LSRM. Без него из двух
+        /// десятков чисел не видно, что за что отвечает.
+        ///
+        /// Раскладка на Dock, а не на Anchor. С якорем чертёж вылез втрое за
+        /// свои границы: Anchor выставлялся в инициализаторе, ДО добавления в
+        /// родителя, и привязки считались от ещё не размеченной вкладки
+        /// (200x100) — при её росте до настоящего размера контрол вырос на ту
+        /// же разницу. Dock считается на разметке и такого не знает.
+        /// </summary>
+        GeometrySketch AddSketch(TabPage page, GeometrySketch.SketchMode mode)
         {
+            GeometrySketch sketch = new GeometrySketch { Mode = mode, Dock = DockStyle.Fill };
+            page.Controls.Add(sketch);
+            // Заполняющий контрол должен стоять ПЕРВЫМ в списке: стыковка идёт с
+            // конца списка к началу, и последним размещается тот, кто занимает
+            // остаток. С обратным порядком чертёж получал всю ширину вкладки и
+            // просто закрывался колонкой полей — видна была его правая треть.
+            sketch.BringToFront();
+            return sketch;
+        }
+
+        /// <summary>Левая колонка с полями: чертёж занимает всё, что осталось.</summary>
+        static Panel FieldColumn(TabPage page)
+        {
+            Panel column = new Panel { Dock = DockStyle.Left, Width = 616 };
+            page.Controls.Add(column);
+            column.SendToBack();
+            return column;
+        }
+
+        void BuildSourceTab(TabPage tab)
+        {
+            this.sourceSketch = this.AddSketch(tab, GeometrySketch.SketchMode.Source);
+            Panel page = FieldColumn(tab);
             Label typeLabel = new Label
             {
                 AutoSize = true,
@@ -525,6 +560,24 @@ namespace BecquerelMonitor
 
             this.ShapeChanged(null, EventArgs.Empty);
             this.SourceTypeChanged(null, EventArgs.Empty);
+            this.RefreshSketch();
+        }
+
+        /// <summary>
+        /// Перерисовать чертёж по тому, что сейчас в полях. Модель собирается
+        /// заново на каждое изменение: чертёж обязан показывать НЫНЕШНИЕ числа,
+        /// иначе он врёт убедительнее, чем пустое место.
+        /// </summary>
+        void RefreshSketch()
+        {
+            if (this.detectorSketch == null || this.sourceSketch == null)
+            {
+                return;
+            }
+
+            GeometryModel g = this.BuildModel();
+            this.detectorSketch.SetModel(g);
+            this.sourceSketch.SetModel(g);
         }
 
         void SelectMaterial(string key, GeometryMaterial material)
@@ -600,6 +653,8 @@ namespace BecquerelMonitor
                 this.compositions[key].Text = GeometryMaterialLibrary.Describe(
                     this.MaterialOf(key, this.Get(key + ".Density")));
             }
+
+            this.RefreshSketch();
         }
 
         void UpdateEquivalent()
@@ -619,6 +674,8 @@ namespace BecquerelMonitor
             {
                 this.UpdateEquivalent();
             }
+
+            this.RefreshSketch();
         }
 
         void SourceTypeChanged(object sender, EventArgs e)
@@ -627,6 +684,7 @@ namespace BecquerelMonitor
             this.pointPanel.Visible = index == 0;
             this.cylinderPanel.Visible = index == 1;
             this.marinelliPanel.Visible = index == 2;
+            this.RefreshSketch();
         }
 
         void Set(string key, double value)
