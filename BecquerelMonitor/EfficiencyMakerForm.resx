@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
@@ -81,6 +81,18 @@
   </data>
   <data name="spectraRemoveButton.Text" xml:space="preserve">
     <value>Remove selected</value>
+  </data>
+  <data name="geometryLabel.Text" xml:space="preserve">
+    <value>Detector geometry (LSRM .in) - to calculate the curve instead:</value>
+  </data>
+  <data name="geometryBrowseButton.Text" xml:space="preserve">
+    <value>Browse...</value>
+  </data>
+  <data name="geometryClearButton.Text" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="calculateButton.Text" xml:space="preserve">
+    <value>Calculate from geometry</value>
   </data>
   <data name="spectraClearButton.Text" xml:space="preserve">
     <value>Clear list</value>

@@ -23,7 +23,9 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>С опорной точки, введённой руками.</summary>
         Anchor,
         /// <summary>Ниоткуда: восстановлена только форма.</summary>
-        ShapeOnly
+        ShapeOnly,
+        /// <summary>Посчитана из геометрии: уровень абсолютный, не подогнанный.</summary>
+        Simulation
     }
 
     /// <summary>Одна измеренная линия одного спектра.</summary>

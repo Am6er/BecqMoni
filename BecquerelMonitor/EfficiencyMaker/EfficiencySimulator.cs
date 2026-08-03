@@ -1061,9 +1061,16 @@ namespace BecquerelMonitor.EfficiencyMaker
             List<string> parts = new List<string>();
             foreach (Region r in this.regions)
             {
+                // У бруса радиусов нет вовсе, и печатать их нулями — врать в
+                // журнале прогона, который теперь видит пользователь.
+                string shape = r.IsBox
+                    ? string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                        "{0:F2}x{1:F2}", 2.0 * r.AX, 2.0 * r.AY)
+                    : string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                        "r[{0:F2}..{1:F2}]", r.RIn, r.ROut);
                 parts.Add(string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                    "{0} r[{1:F2}..{2:F2}] z[{3:F2}..{4:F2}]{5}",
-                    r.Material.Name, r.RIn, r.ROut, r.ZMin, r.ZMax, r.IsCrystal ? " *кристалл*" : ""));
+                    "{0} {1} z[{2:F2}..{3:F2}]{4}",
+                    r.Material.Name, shape, r.ZMin, r.ZMax, r.IsCrystal ? " *" : ""));
             }
 
             return string.Join("; ", parts.ToArray());
