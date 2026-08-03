@@ -80,12 +80,17 @@ namespace BecquerelMonitor
         /// </summary>
         void ExtendBoundariesWithFsaModel(int firstChannel, int lastChannel, ref double maximum)
         {
-            if (!this.IsFsaVisible())
+            if (!this.IsFsaMode())
             {
                 return;
             }
 
-            double[] model = this.fsaOverlay.Result.Model;
+            // Снимок, а не два обращения к свойству: разложение публикуется
+            // фоновым потоком, и на каждом пути отказа (пустая библиотека,
+            // Analyze вернул null, исключение) оно становится null. Проверить
+            // одно чтение и разыменовать другое — значит однажды упасть здесь.
+            FsaResult result = this.fsaOverlay.Result;
+            double[] model = result != null ? result.Model : null;
             if (model == null)
             {
                 return;
@@ -124,6 +129,21 @@ namespace BecquerelMonitor
             }
 
             this.fsaOverlay.EnsureUpToDate(this.activeResultData, this.backgroundEnergySpectrum != null, this.fsaEfficiencyRoi);
+        }
+
+        /// <summary>
+        /// Забыть разложение: оно принадлежит прежнему спектру. Вызывается при
+        /// смене активного спектра — иначе стек предыдущего дорисовывался бы
+        /// поверх нового до конца пересчёта.
+        /// </summary>
+        internal void ResetFsaOverlay()
+        {
+            this.fsaOverlay.Reset();
+            this.fsaLayers = null;
+            this.fsaLayersSource = null;
+            this.fsaCumulative = null;
+            this.fsaZeroLevel = null;
+            this.fsaNetSpectrum = null;
         }
 
         void FsaOverlayCompleted(object sender, EventArgs e)
@@ -203,19 +223,30 @@ namespace BecquerelMonitor
         /// <summary>
         /// Стек компонентов и линия измеренного спектра поверх него. Рисуется
         /// вместо обычной заливки активного спектра.
+        ///
+        /// Возвращает false, если рисовать нечем: режим не тот, разложение ещё
+        /// не готово или уже сброшено. Решение принимается ЗДЕСЬ, по одному
+        /// снимку результата, а не проверкой у вызывающего: раздельные проверка
+        /// и отрисовка расходились между собой (разложение успевало исчезнуть
+        /// между ними), и кадр оставался вовсе без активного спектра.
         /// </summary>
-        void ShowFsaOverlay(Graphics g)
+        bool ShowFsaOverlay(Graphics g)
         {
+            if (!this.IsFsaMode())
+            {
+                return false;
+            }
+
             FsaResult result = this.fsaOverlay.Result;
             if (result == null)
             {
-                return;
+                return false;
             }
 
             List<FsaStackLayer> layers = this.GetFsaLayers(result);
             if (layers.Count == 0 || this.fsaCumulative == null)
             {
-                return;
+                return false;
             }
 
             // Заливка идёт БЕЗ антиалиасинга: ленты стека — вертикальные
@@ -265,6 +296,8 @@ namespace BecquerelMonitor
                 g.SmoothingMode = savedSmoothing;
                 g.PixelOffsetMode = savedPixelOffset;
             }
+
+            return true;
         }
 
         /// <summary>Лента между двумя кривыми — тем же способом, что заливка пиков.</summary>

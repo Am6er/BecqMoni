@@ -43,9 +43,19 @@ namespace BecquerelMonitor
             set
             {
                 this.activeResultDataIndex = value;
+                ResultData previous = this.activeResultData;
                 if (this.resultDataList != null)
                 {
                     this.activeResultData = this.resultDataList[this.activeResultDataIndex];
+                }
+                // Разложение принадлежит спектру, по которому его считали.
+                // Сменился спектр — прежний стек надо забыть, иначе он
+                // дорисовывается поверх нового до конца пересчёта. Сравнение по
+                // ссылке, а не по индексу: индекс переставляют и тем же
+                // значением, на каждом обновлении набора.
+                if (!object.ReferenceEquals(previous, this.activeResultData))
+                {
+                    this.ResetFsaOverlay();
                 }
                 this.InvalidatePreparedViewData();
             }
@@ -1821,11 +1831,7 @@ namespace BecquerelMonitor
                             }
                         }
 
-                        if (this.IsFsaVisible())
-                        {
-                            this.ShowFsaOverlay(g);
-                        }
-                        else if (this.energySpectrum.MeasurementTime != 0.0)
+                        if (!this.ShowFsaOverlay(g) && this.energySpectrum.MeasurementTime != 0.0)
                         {
                             int alpha2 = (int)(colorConfig.ActiveSpectrumColorTransparency * 255m / 100m);
                             Color color = this.backgroundMode == BackgroundMode.Substract
@@ -1844,11 +1850,7 @@ namespace BecquerelMonitor
                     else
                     {
                         // draw active spectrum first, then background/continuum
-                        if (this.IsFsaVisible())
-                        {
-                            this.ShowFsaOverlay(g);
-                        }
-                        else if (this.energySpectrum.MeasurementTime != 0.0)
+                        if (!this.ShowFsaOverlay(g) && this.energySpectrum.MeasurementTime != 0.0)
                         {
                             int alpha3 = (int)(colorConfig.ActiveSpectrumColorTransparency * 255m / 100m);
                             Color color = this.backgroundMode == BackgroundMode.Substract
@@ -1922,11 +1924,7 @@ namespace BecquerelMonitor
                             this.DrawPeakOutline(g, this.peakEnergySpectrum[i]);
                         }
                     }
-                    if (this.IsFsaVisible())
-                    {
-                        this.ShowFsaOverlay(g);
-                    }
-                    else if (this.energySpectrum.MeasurementTime != 0.0)
+                    if (!this.ShowFsaOverlay(g) && this.energySpectrum.MeasurementTime != 0.0)
                     {
                         Color color = this.backgroundMode == BackgroundMode.Substract
                             ? colorConfig.BgDiffColor.Color
@@ -3706,6 +3704,10 @@ namespace BecquerelMonitor
             {
                 peak = peak2;
             }
+            // Снимок на весь проход: свойство каждый раз перечитывает результат
+            // разложения, который публикует фоновый поток. Проверить одно
+            // чтение и проиндексировать другое — значит однажды упасть здесь.
+            double[] fsaNet = this.FsaNetSpectrum;
             foreach (Peak peak4 in detectedPeaks)
             {
                 int channel2 = peak4.Channel;
@@ -3720,13 +3722,13 @@ namespace BecquerelMonitor
                     num4 = (int)(((num5 - this.energyViewOffset) * this.pixelPerEnergy + 0.5) * this.horizontalScale + (double)this.scrollX + (double)this.left);
                 }
                 double num6 = 0.0;
-                if (this.IsFsaVisible() && this.FsaNetSpectrum != null && channel2 < this.FsaNetSpectrum.Length)
+                if (fsaNet != null && channel2 >= 0 && channel2 < fsaNet.Length)
                 {
                     // В режиме разложения на графике нарисован спектр ЗА ВЫЧЕТОМ
                     // фона — метка пика должна упираться в ту же кривую, иначе
                     // она висит над ней на величину фона (на слабых пробах это
                     // 13-50 % высоты пика).
-                    num6 = this.FsaNetSpectrum[channel2];
+                    num6 = fsaNet[channel2];
                 }
                 else if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0
                     && this.substractedEnergySpectrum != null)

@@ -26,6 +26,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         bool running;
         string status;
 
+        // Поколение результата. Сброс (смена активного спектра) его увеличивает,
+        // и уже запущенный счёт, вернувшись, увидит чужой номер и промолчит:
+        // иначе разложение прежнего спектра воскресало бы поверх нового уже
+        // ПОСЛЕ сброса, и забыть его было бы нечем.
+        int generation;
+
         /// <summary>Готовое разложение или null, пока его нет.</summary>
         public FsaResult Result
         {
@@ -71,7 +77,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 this.result = null;
                 this.stamp = "";
+                this.pendingStamp = null;
                 this.status = null;
+                this.generation++;
             }
         }
 
@@ -88,6 +96,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             string currentStamp = BuildStamp(resultData, subtractBackground, efficiencyRoi);
+            int myGeneration;
             lock (this.sync)
             {
                 if (this.running || currentStamp == this.stamp || currentStamp == this.pendingStamp)
@@ -98,8 +107,33 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 this.running = true;
                 this.pendingStamp = currentStamp;
                 this.status = Properties.Resources.FSACalculating;
+                myGeneration = this.generation;
             }
 
+            // Со снятого флага и до Task.Run всё идёт под try: снимок трогает
+            // менеджеры и списки, и брошенное здесь исключение оставило бы
+            // running навсегда взведённым — разложение застряло бы на
+            // «считается» до конца жизни вида, а сама ошибка ушла бы в
+            // отрисовку, у которой обработчика нет.
+            try
+            {
+                this.Launch(resultData, subtractBackground, efficiencyRoi, myGeneration);
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine("FSA start failed: " + ex);
+                lock (this.sync)
+                {
+                    this.running = false;
+                    this.pendingStamp = null;
+                    this.status = Properties.Resources.FSAFailed;
+                }
+            }
+        }
+
+        void Launch(ResultData resultData, bool subtractBackground, ROIConfigData efficiencyRoi,
+                    int myGeneration)
+        {
             EnergySpectrum spectrum = resultData.EnergySpectrum;
             EnergySpectrum background = subtractBackground ? resultData.BackgroundEnergySpectrum : null;
             FwhmCalibration fwhmCalibration = resultData.FwhmCalibration;
@@ -154,10 +188,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 lock (this.sync)
                 {
                     this.running = false;
-                    this.stamp = this.pendingStamp;
+                    if (myGeneration == this.generation)
+                    {
+                        this.stamp = this.pendingStamp;
+                        this.result = computed;
+                        this.status = message;
+                    }
+
+                    // Сброс уже случился: считали прежний спектр, публиковать
+                    // нечего. Отпечаток остаётся пустым, и следующий проход
+                    // подготовки вида закажет счёт заново.
                     this.pendingStamp = null;
-                    this.result = computed;
-                    this.status = message;
                 }
 
                 EventHandler handler = this.Completed;
