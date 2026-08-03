@@ -933,6 +933,21 @@
   <data name="EfficiencyMakerGraphXAxis" xml:space="preserve">
     <value>E, кэВ</value>
   </data>
+  <data name="EfficiencyMakerTabCalculate" xml:space="preserve">
+    <value>Расчёт из геометрии</value>
+  </data>
+  <data name="EfficiencyMakerTabFit" xml:space="preserve">
+    <value>Подгонка по спектрам</value>
+  </data>
+  <data name="EfficiencyMakerCalcHint" xml:space="preserve">
+    <value>Кривая считается из файла геометрии монте-карловским переносом — спектры не нужны. В отличие от подгонки, уровень получается АБСОЛЮТНЫЙ, а не только форма.</value>
+  </data>
+  <data name="EfficiencyMakerGraphDiffAxis" xml:space="preserve">
+    <value>новая / исходная − 1, %</value>
+  </data>
+  <data name="EfficiencyMakerGraphDiffNoReference" xml:space="preserve">
+    <value>Загрузите исходную кривую, чтобы увидеть отличия</value>
+  </data>
   <data name="EfficiencyMakerReasonSeriesScatter" xml:space="preserve">
     <value>разброс серии x{0:F1}</value>
   </data>

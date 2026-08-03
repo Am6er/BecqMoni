@@ -52,6 +52,23 @@ namespace BecquerelMonitor
         {
             InitializeComponent();
             LoadChains();
+            UpdateGraphMode();
+        }
+
+        /// <summary>
+        /// Отличия от исходной кривой показываются только на вкладке подгонки.
+        /// Расчёт из геометрии не поправляет прежнюю кривую, а даёт свою с
+        /// абсолютным уровнем; показывать его расхождение с чужой кривой как
+        /// «отличие» — выдавать за поправку то, что поправкой не является.
+        /// </summary>
+        void UpdateGraphMode()
+        {
+            this.graph.ShowDifference = this.tabControl.SelectedTab == this.tabPageFit;
+        }
+
+        void tabControl_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            UpdateGraphMode();
         }
 
         void LoadChains()
@@ -471,7 +488,14 @@ namespace BecquerelMonitor
 
             try
             {
-                string note = this.lastResult.LevelSource == EfficiencyLevelSource.Simulation
+                // Исходный ROI-файл копируется целиком (зоны и заметка не
+                // теряются) только когда кривая ЕГО и поправляет. У расчёта из
+                // геометрии своя кривая с абсолютным уровнем: подкладывать под
+                // неё чужие зоны нельзя — файл геометрии и файл кривой на
+                // вкладке подгонки относятся к разным приборам сплошь и рядом.
+                bool fromGeometry = this.lastResult.LevelSource == EfficiencyLevelSource.Simulation;
+                string basedOn = fromGeometry ? "" : this.referenceTextBox.Text;
+                string note = fromGeometry
                     ? string.Format(CultureInfo.InvariantCulture,
                         "Efficiency maker: calculated from geometry {0}, {1} points, {2}-{3} keV, "
                         + "{4} histories per point",
@@ -483,7 +507,7 @@ namespace BecquerelMonitor
                         this.lastResult.AcceptedCount, this.lastResult.SeriesKeys.Count,
                         this.lastResult.Chi2Ndf, (int)this.lastResult.MinEnergy,
                         (int)this.lastResult.MaxEnergy, this.lastResult.LevelSource);
-                EfficiencyFitter.SaveCurve(path, this.referenceTextBox.Text,
+                EfficiencyFitter.SaveCurve(path, basedOn,
                     Path.GetFileNameWithoutExtension(path), this.lastResult.Curve, note);
                 this.statusLabel.Text = string.Format(Resources.EfficiencyMakerSaved, path);
                 AppendLog(this.statusLabel.Text);
