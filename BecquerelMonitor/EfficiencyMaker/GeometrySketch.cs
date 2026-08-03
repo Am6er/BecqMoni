@@ -108,6 +108,30 @@ namespace BecquerelMonitor.EfficiencyMaker
             return (float)(length * this.scale);
         }
 
+        // Выноски, стоящие ЗА пределами тела, задаются отступом в точках, а не в
+        // сантиметрах. Отступ в сантиметрах пропорционален размеру детектора и
+        // при длинном кристалле уносил выноску за край поля: размер X у бруска
+        // 1.5x1.8x6.0 не рисовался вовсе, а у куба 2.54 рисовался — видимость
+        // зависела от пропорций, что и есть худший вид ошибки в отрисовке.
+
+        /// <summary>Мировая координата на N точек выше верха поля.</summary>
+        double AboveTop(double pixels)
+        {
+            return this.worldTop - pixels / this.scale;
+        }
+
+        /// <summary>Мировая координата на N точек правее заданной.</summary>
+        double RightOf(double x, double pixels)
+        {
+            return x + pixels / this.scale;
+        }
+
+        /// <summary>Мировая координата на N точек левее заданной.</summary>
+        double LeftOf(double x, double pixels)
+        {
+            return x - pixels / this.scale;
+        }
+
         protected override void OnPaint(PaintEventArgs e)
         {
             Graphics g = e.Graphics;
@@ -160,7 +184,10 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             // Поля под размерные линии: слева и сверху они длиннее, там стоят
             // выноски с числами.
-            const int MarginX = 74, MarginTop = 34, MarginBottom = 30;
+            // Поля под выноски: сверху помещается размерная линия с подписью
+            // (22 точки отступа плюс высота строки), по бокам — подпись с
+            // числом.
+            const int MarginX = 78, MarginTop = 42, MarginBottom = 30;
             double worldWidth = Math.Max(right - left, 1e-6);
             double worldHeight = Math.Max(bottom - top, 1e-6);
             double sx = (this.Width - 2.0 * MarginX) / worldWidth;
@@ -231,10 +258,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             using (Pen pen = new Pen(Ink, 1f))
             using (Brush ink = new SolidBrush(Ink))
             {
-                // Поперечник кристалла — над торцом, длина — справа.
-                this.DimH(g, pen, ink, -halfWidth, halfWidth, zFace - 0.18 * (height + 1.0),
+                // Поперечник кристалла — над торцом, длина — справа. Обе стоят
+                // за телом детектора, поэтому отступ в точках.
+                this.DimH(g, pen, ink, -halfWidth, halfWidth, this.AboveTop(22),
                           2.0 * halfWidth, widthKey);
-                this.DimV(g, pen, ink, outerHalf + 0.12 * (2.0 * outerHalf + 1.0), 0.0, height,
+                this.DimV(g, pen, ink, this.RightOf(outerHalf, 26), 0.0, height,
                           height, lengthKey);
                 this.DimV(g, pen, ink, -halfWidth * 0.45, -tfr, 0.0, tfr, "FrontReflectorThickness");
                 this.DimV(g, pen, ink, halfWidth * 0.45, zFace, -tfr, tfc, "FrontCladdingThickness");
@@ -393,9 +421,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                         double hs = Math.Max(m.SourceHeight, 0.0);
                         double zWallTop = zFace - Math.Max(m.BeakerToDetectorDistance, 0.0);
                         double zSrcTop = zWallTop - end;
-                        this.DimH(g, pen, ink, -rOut, rOut, zSrcTop - hs - 0.25 * (hs + 1.0),
+                        this.DimH(g, pen, ink, -rOut, rOut, this.AboveTop(22),
                                   2.0 * rOut, "BeakerDiameter");
-                        this.DimV(g, pen, ink, rOut * 1.25, zSrcTop - hs, zSrcTop, hs, "SourceHeight");
+                        this.DimV(g, pen, ink, this.RightOf(rOut, 26), zSrcTop - hs, zSrcTop, hs,
+                                  "SourceHeight");
                         this.DimV(g, pen, ink, 0.0, zWallTop, zFace,
                                   Math.Max(m.BeakerToDetectorDistance, 0.0), "BeakerToDetectorDistance");
                         this.DimV(g, pen, ink, -rOut * 0.55, zSrcTop, zWallTop, end, "BeakerEndWallThickness");
@@ -420,13 +449,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                         double cap = Math.Max(0.0, hs - hh);
                         double zSrc0 = zCeiling - the - cap;
                         double body = Math.Max(m.MarinelliBeakerHeight, 0.0);
-                        this.DimH(g, pen, ink, -rOut, rOut, zSrc0 - 0.14 * (hs + 1.0),
+                        this.DimH(g, pen, ink, -rOut, rOut, this.AboveTop(22),
                                   2.0 * rOut, "MarinelliBeakerDiameter");
                         this.DimH(g, pen, ink, -rh, rh, zCeiling + hh * 0.55, 2.0 * rh,
                                   "MarinelliHoleDiameter");
-                        this.DimV(g, pen, ink, -rOut * 1.16, zSrc0, zSrc0 + hs, hs, "MarinelliSourceHeight");
+                        this.DimV(g, pen, ink, this.LeftOf(-rOut, 30), zSrc0, zSrc0 + hs, hs,
+                                  "MarinelliSourceHeight");
                         this.DimV(g, pen, ink, rh * 0.55, zCeiling, zCeiling + hh, hh, "MarinelliHoleHeight");
-                        this.DimV(g, pen, ink, rOut * 1.16, zSrc0 - side, zSrc0 - side + body,
+                        this.DimV(g, pen, ink, this.RightOf(rOut, 26), zSrc0 - side, zSrc0 - side + body,
                                   body, "MarinelliBeakerHeight");
                         this.DimH(g, pen, ink, -rOut, -(rOut - side), zSrc0 + hs * 0.28, side,
                                   "MarinelliSideThickness");
