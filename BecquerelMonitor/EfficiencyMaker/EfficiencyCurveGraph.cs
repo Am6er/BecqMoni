@@ -265,12 +265,22 @@ namespace BecquerelMonitor.EfficiencyMaker
                 g.DrawString(Resources.EfficiencyMakerGraphDiffAxis, this.Font, text,
                              diff.Left + 6, diff.Top + 3);
 
+                // Сравнивать не с чем: сказать об этом прямо, а не оставлять
+                // пустую рамку, которую можно прочесть как «отличий нет». И
+                // сказать, ЧЕГО именно не хватает: подпись «загрузите исходную
+                // кривую» при загруженной исходной сбивает с толку — не хватает
+                // посчитанной.
                 Interpolator source = new Interpolator(this.reference);
-                if (!source.Ok || this.result == null || this.result.Curve.Count < 2)
+                if (!source.Ok)
                 {
-                    // Сравнивать не с чем: сказать об этом прямо, а не оставлять
-                    // пустую рамку, которую можно прочесть как «отличий нет».
                     TextRenderer.DrawText(g, Resources.EfficiencyMakerGraphDiffNoReference, this.Font,
+                        diff, Color.Gray, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+                    return;
+                }
+
+                if (this.result == null || this.result.Curve.Count < 2)
+                {
+                    TextRenderer.DrawText(g, Resources.EfficiencyMakerGraphDiffNoResult, this.Font,
                         diff, Color.Gray, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
                     return;
                 }

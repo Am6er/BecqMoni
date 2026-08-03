@@ -42504,4 +42504,7 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="GeometryWarningFractionType" xml:space="preserve">
     <value>WARNING - {0}: unknown fraction type "{1}", read as mass fractions.</value>
   </data>
+  <data name="EfficiencyMakerGraphDiffNoResult" xml:space="preserve">
+    <value>Build the curve to see the difference</value>
+  </data>
 </root>

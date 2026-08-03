@@ -1119,4 +1119,7 @@
   <data name="GeometryWarningFractionType" xml:space="preserve">
     <value>ВНИМАНИЕ — {0}: неизвестный тип долей «{1}», прочитаны как массовые.</value>
   </data>
+  <data name="EfficiencyMakerGraphDiffNoResult" xml:space="preserve">
+    <value>Постройте кривую, чтобы увидеть отличия</value>
+  </data>
 </root>
