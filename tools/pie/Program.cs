@@ -47,6 +47,15 @@ namespace Pie
                 DeviceConfigManager.GetInstance();
                 NuclideDefinitionManager nuclideManager = NuclideDefinitionManager.GetInstance();
 
+                // Состав библиотеки — под каждый спектр свой: набор нуклидов
+                // выбирает оператор под задачу, и гонять на ториевом электроде
+                // Eu-152 с I-131 незачем. Карта «спектр -> состав» строится
+                // make_sets.py по классу пробы; без карты — общий список.
+                Dictionary<string, List<string>> componentMap =
+                    LoadComponentMap(options.ComponentMapPath);
+                Dictionary<string, List<Component>> libraryCache =
+                    new Dictionary<string, List<Component>>(StringComparer.OrdinalIgnoreCase);
+
                 List<Component> library = BuildLibrary(nuclideManager, options.Components,
                                                        options.SplitChains);
 
@@ -78,7 +87,19 @@ namespace Pie
                     {
                         try
                         {
-                            RunOne(file, options, library, effCurves, runsWriter, compWriter);
+                            List<Component> forFile = library;
+                            List<string> wanted;
+                            if (componentMap.TryGetValue(
+                                    Path.GetFileNameWithoutExtension(file), out wanted))
+                            {
+                                string key = string.Join(",", wanted);
+                                if (!libraryCache.TryGetValue(key, out forFile))
+                                {
+                                    forFile = BuildLibrary(nuclideManager, wanted, options.SplitChains);
+                                    libraryCache[key] = forFile;
+                                }
+                            }
+                            RunOne(file, options, forFile, effCurves, runsWriter, compWriter);
                         }
                         catch (Exception ex)
                         {
@@ -101,7 +122,40 @@ namespace Pie
             }
         }
 
+        /// <summary>
+        /// Карта «спектр -> состав библиотеки» (CSV: spectrum,components).
+        /// Мешающие образы в карту не входят: ХРИ, пики вылета и обратное
+        /// рассеяние — часть модели отклика, а не выбор оператора, и
+        /// добавляются всегда.
+        /// </summary>
+        static Dictionary<string, List<string>> LoadComponentMap(string path)
+        {
+            Dictionary<string, List<string>> map =
+                new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            if (string.IsNullOrEmpty(path)) return map;
+            foreach (string raw in File.ReadAllLines(path))
+            {
+                string line = raw.Trim();
+                if (line.Length == 0) continue;
+                int comma = line.IndexOf(',');
+                if (comma <= 0) continue;
+                string key = line.Substring(0, comma).Trim();
+                if (string.Equals(key, "spectrum", StringComparison.OrdinalIgnoreCase)) continue;
+                List<string> comps = line.Substring(comma + 1).Split(';')
+                    .Select(c => c.Trim()).Where(c => c.Length > 0).ToList();
+                if (comps.Count == 0) continue;
+                comps.AddRange(NuisanceComponents);
+                map[key] = comps;
+            }
+            Console.Error.WriteLine("Component map: {0} spectra from {1}", map.Count, Path.GetFileName(path));
+            return map;
+        }
+
+        static readonly string[] NuisanceComponents =
+            { "Xray-W", "Xray-Pb", "SE-2614", "DE-2614" };
+
         static int Failures;
+        static int KnotDiv;                          // --knot-div, 0 = без предела
         static int PriorCol = -1;
         static double PriorWeight;
         static string CurrentMode = "snip";
@@ -116,6 +170,7 @@ namespace Pie
         {
             string name = Path.GetFileNameWithoutExtension(file);
             CurrentMode = options.Mode;
+            KnotDiv = options.KnotDiv;
             Stopwatch watch = Stopwatch.StartNew();
 
             ResultData rd = LoadResultData(file, options.ResultIndex);
@@ -333,6 +388,28 @@ namespace Pie
             FitResult best = FitHuber(library, fixedCols, cal, fwhmCal, eff, bestGain, bestOffset,
                                       chLo, chHi, nch, y, var, baseWeights, options, null);
 
+            // --- образ обратного рассеяния по найденному составу -------------
+            // Строится ДО отсева по z: отсев решает, какие компоненты дожили,
+            // и решать это надо уже при закрытой области рассеяния — иначе
+            // фантом, кормящийся ею, проходит отсев и остаётся навсегда.
+            if (options.Backscatter || options.SumPeaks)
+            {
+                List<Component> bs = BuildResponseComponents(best, eff, options);
+                if (bs.Count > 0)
+                {
+                    List<Component> withBs = new List<Component>(library);
+                    withBs.AddRange(bs);
+                    FitResult refit = FitHuber(withBs, fixedCols, cal, fwhmCal, eff,
+                                               bestGain, bestOffset, chLo, chHi, nch,
+                                               y, var, baseWeights, options, null);
+                    if (refit != null)
+                    {
+                        best = refit;
+                        library = withBs;
+                    }
+                }
+            }
+
             // --- «предварительный анализ состава»: второй проход без
             // компонентов, не прошедших порог значимости в первом ------------
             if (options.RefitZ > 0)
@@ -348,6 +425,26 @@ namespace Pie
                 {
                     best = FitHuber(library, fixedCols, cal, fwhmCal, eff, bestGain, bestOffset,
                                     chLo, chHi, nch, y, var, baseWeights, options, keep);
+                }
+            }
+
+            // --- второй круг выведенных образов ------------------------------
+            // Форма образа задаётся составом, а состав только что изменился
+            // отсевом. Один круг — компромисс: до отсева образ строится по
+            // засоренному составу, после отсева поздно влиять на сам отсев.
+            if (options.Backscatter || options.SumPeaks)
+            {
+                List<Component> survivors = best.Columns
+                    .Where(c => c.Component != null && !IsDerivedResponse(c.Component))
+                    .Select(c => c.Component).ToList();
+                List<Component> bs = BuildResponseComponents(best, eff, options);
+                if (bs.Count > 0)
+                {
+                    survivors.AddRange(bs);
+                    FitResult refit = FitHuber(survivors, fixedCols, cal, fwhmCal, eff,
+                                               bestGain, bestOffset, chLo, chHi, nch,
+                                               y, var, baseWeights, options, null);
+                    if (refit != null) best = refit;
                 }
             }
 
@@ -605,6 +702,254 @@ namespace Pie
             };
         }
 
+        /// <summary>
+        /// Образ обратного рассеяния по составу, найденному предыдущим проходом.
+        ///
+        /// Фотон энергии E, рассеявшийся назад в веществе ВНЕ кристалла (защита,
+        /// сама проба, стены), приходит в детектор с энергией E/(1+2E/511) и даёт
+        /// пик там. По журналу это причина фантомов №1: 662 → 184 кэВ садится на
+        /// U-235 185.7, мультиплет 300-340 → ~145, ХРИ W 59 → 48.
+        ///
+        /// Образ строится ВТОРЫМ проходом, а не заранее: форма зависит от того,
+        /// что в спектре есть. У Cs-137 это один пик на 184 кэВ, у ториевого
+        /// электрода — блоб из полусотни линий. Общий образ «по всей библиотеке»
+        /// имел бы чужую форму, а по образу на компонент колонки получались бы
+        /// почти коллинеарными: отображение E → E_bs сжимающее, все обратные пики
+        /// любого состава лежат в 50-256 кэВ.
+        ///
+        /// Вес линии берётся на энергии ИСХОДНОГО фотона (Amp·I·eff(E)) — это
+        /// поток, которому есть чем рассеиваться, — и второй раз эффективность не
+        /// применяется (WeightsAreFinal). Доля рассеянного назад и зависимость
+        /// собственной эффективности от E_bs уходят в свободную амплитуду.
+        /// </summary>
+        const double ElectronMassKev = 510.99895;
+
+        /// <summary>
+        /// Сечение Клейна — Нишины на телесный угол, без общего множителя:
+        /// P² · (P + 1/P − sin²θ), где P = E'/E.
+        /// </summary>
+        static double KleinNishina(double ratio, double sinSquared)
+        {
+            return ratio * ratio * (ratio + 1.0 / ratio - sinSquared);
+        }
+
+        /// <summary>
+        /// Две колонки, а не одна. Прогон по корпусу показал, что они чинят
+        /// РАЗНЫЕ спектры: узкий пик строго назад снимает U-235 с ASN16_Cs137
+        /// (16.5 % → 0), широкий горб по задней полусфере снимает Ba-133 с
+        /// европиевых спектров G1S — и наоборот, каждая по отдельности теряет
+        /// то, что чинит другая. Физически обе есть: доля однократного
+        /// рассеяния строго назад против интеграла по полусфере задаётся
+        /// геометрией рассеивателя, которой мы не знаем. Поэтому обе колонки
+        /// свободны, а смесь выбирает NNLS.
+        /// </summary>
+        /// <summary>
+        /// Образ каскадного суммирования: два гамма-кванта одного распада
+        /// попадают в кристалл вместе и дают пик на E1+E2.
+        ///
+        /// В каталоге ошибок журнала это отдельная строка: RC103_Co60 (сумм-пик
+        /// 2505 садится на хвост 2614 и кормит комнатный Th-232) и пустота
+        /// 2220-2400 на ASN16_Th232 (Bi-212 727.3 + 1620.5). Суммирование
+        /// резко на близкой геометрии и слабо на распределённом фоне — тем же
+        /// объясняется перекос внутрицепочечных отношений из итерации 11.
+        ///
+        /// Что взято из физики и что — приближение:
+        /// * суммируются только линии ОДНОГО нуклида: разные дочерние цепочки
+        ///   распадаются в разные моменты и в совпадение не попадают;
+        /// * вероятность зарегистрировать оба кванта полностью — произведение
+        ///   эффективностей полного поглощения eps(E1)*eps(E2), это точно;
+        /// * вероятность вылета обоих в одном распаде взята как min(I1,I2) —
+        ///   это верно для настоящего каскада (второй квант следует за первым)
+        ///   и завышено для альтернативных ветвей. Схем распада в таблице
+        ///   линий нет, различить нечем; ошибка уходит в свободную амплитуду и
+        ///   в форму образа, а не в состав.
+        /// </summary>
+        static Component BuildSumPeakComponent(FitResult fit, EffCurve eff)
+        {
+            const double BinKev = 1.0;
+            Dictionary<int, double> hist = new Dictionary<int, double>();
+
+            for (int k = 0; k < fit.Columns.Count; k++)
+            {
+                Component src = fit.Columns[k].Component;
+                if (src == null || src.Kind == "nuisance" || src.Lines.Count == 0) continue;
+                double amp = fit.Amp[k];
+                if (!(amp > 0.0)) continue;
+
+                foreach (var byNuclide in src.Lines.GroupBy(l => l.Nuclide ?? "",
+                                                            StringComparer.OrdinalIgnoreCase))
+                {
+                    List<NuclideLine> lines = byNuclide
+                        .Where(l => l.Energy > 0.0 && l.Intensity > 0.0).ToList();
+                    if (lines.Count < 2) continue;
+                    for (int a = 0; a < lines.Count; a++)
+                    {
+                        double effA = eff == null ? 1.0 : eff.Eval(lines[a].Energy);
+                        if (!(effA > 0.0)) continue;
+                        for (int b = a + 1; b < lines.Count; b++)
+                        {
+                            double effB = eff == null ? 1.0 : eff.Eval(lines[b].Energy);
+                            if (!(effB > 0.0)) continue;
+                            double joint = Math.Min(lines[a].Intensity, lines[b].Intensity) / 100.0;
+                            double weight = amp * joint * effA * effB;
+                            if (!(weight > 0.0)) continue;
+                            int bin = (int)((lines[a].Energy + lines[b].Energy) / BinKev);
+                            double have;
+                            hist.TryGetValue(bin, out have);
+                            hist[bin] = have + weight;
+                        }
+                    }
+                }
+            }
+
+            if (hist.Count == 0) return null;
+            double top = hist.Values.Max();
+            if (!(top > 0.0)) return null;
+
+            Component sum = new Component
+            {
+                Name = "SumPeaks",
+                Kind = "nuisance",
+                WeightsAreFinal = true,
+            };
+            foreach (KeyValuePair<int, double> kv in hist.OrderBy(p => p.Key))
+            {
+                double share = kv.Value / top;
+                // хвост в тысячные доли максимума — это тысячи линий, которые
+                // ничего не рисуют, но удваивают счёт построения образа
+                if (share < 1e-4) continue;
+                sum.Lines.Add(new NuclideLine
+                {
+                    Nuclide = "sum",
+                    Energy = (kv.Key + 0.5) * BinKev,
+                    Intensity = 100.0 * share,
+                });
+            }
+            return sum.Lines.Count > 0 ? sum : null;
+        }
+
+        /// <summary>Образы, выведенные из состава предыдущего прохода.</summary>
+        static bool IsDerivedResponse(Component comp)
+        {
+            return comp != null && comp.Name != null
+                && (comp.Name.StartsWith("Backscatter", StringComparison.Ordinal)
+                    || comp.Name == "SumPeaks");
+        }
+
+        static List<Component> BuildResponseComponents(FitResult fit, EffCurve eff, Options options)
+        {
+            List<Component> made = new List<Component>();
+            if (options.Backscatter) made.AddRange(BuildBackscatterComponents(fit, eff, options));
+            if (options.SumPeaks)
+            {
+                Component sum = BuildSumPeakComponent(fit, eff);
+                if (sum != null) made.Add(sum);
+            }
+            return made;
+        }
+
+        static List<Component> BuildBackscatterComponents(FitResult fit, EffCurve eff, Options options)
+        {
+            List<Component> made = new List<Component>();
+            if (options.BackscatterMode != "sharp")
+            {
+                Component broad = BuildBackscatterComponent(fit, eff, options, options.BackscatterThetaMin);
+                if (broad != null) made.Add(broad);
+            }
+            if (options.BackscatterMode != "broad")
+            {
+                // Строго назад: θ_min = 179° даёт практически одну точку на линию.
+                Component sharp = BuildBackscatterComponent(fit, eff, options, 179.0);
+                if (sharp != null)
+                {
+                    sharp.Name = "Backscatter180";
+                    made.Add(sharp);
+                }
+            }
+            return made;
+        }
+
+        static Component BuildBackscatterComponent(FitResult fit, EffCurve eff, Options options,
+                                                   double thetaMinDegrees)
+        {
+            // Угловой разброс. Строго назад (180°) рассеивается ничтожная доля;
+            // пик обратного рассеяния — это интеграл по задней полусфере, и он
+            // ЗАМЕТНО ШИРЕ фотопика и асимметричен вверх: для 662 кэВ 180° даёт
+            // 184 кэВ, 150° — 194, 120° — 228. Одиночный пик на 184 такую
+            // структуру не изображает, и остаток забирает фантом (U-235 185.7).
+            // Выборка по углу должна быть достаточно частой у 180°: там dE'/dθ
+            // обращается в ноль, и именно это скопление даёт пик обратного
+            // рассеяния. При 24 шагах пик недобирался, и узкую колонку
+            // приходилось заводить отдельно.
+            int steps = options.BackscatterSteps;
+            double thetaMin = thetaMinDegrees * Math.PI / 180.0;
+
+            // Гистограмма по энергии: 4000 линий (500 источников × 24 угла)
+            // строить незачем, образ всё равно живёт в 40-256 кэВ.
+            const double BinKev = 1.0;
+            Dictionary<int, double> hist = new Dictionary<int, double>();
+
+            for (int k = 0; k < fit.Columns.Count; k++)
+            {
+                Component src = fit.Columns[k].Component;
+                if (src == null || src.Kind == "nuisance" || src.Lines.Count == 0) continue;
+                double amp = fit.Amp[k];
+                if (!(amp > 0.0)) continue;
+                foreach (NuclideLine line in src.Lines)
+                {
+                    if (!(line.Energy > 0.0) || !(line.Intensity > 0.0)) continue;
+                    double flux = amp * line.Intensity;
+                    if (eff != null)
+                    {
+                        double e = eff.Eval(line.Energy);
+                        if (!(e > 0.0)) continue;
+                        flux *= e;
+                    }
+                    if (!(flux > 0.0)) continue;
+
+                    double alpha = line.Energy / ElectronMassKev;
+                    for (int s = 0; s < steps; s++)
+                    {
+                        double theta = thetaMin + (Math.PI - thetaMin) * (s + 0.5) / steps;
+                        double cos = Math.Cos(theta), sin = Math.Sin(theta);
+                        double ratio = 1.0 / (1.0 + alpha * (1.0 - cos));
+                        double weight = flux * KleinNishina(ratio, sin * sin) * sin;
+                        double scattered = line.Energy * ratio;
+                        if (!(weight > 0.0) || !(scattered > 0.0)) continue;
+                        int bin = (int)(scattered / BinKev);
+                        double have;
+                        hist.TryGetValue(bin, out have);
+                        hist[bin] = have + weight;
+                    }
+                }
+            }
+
+            if (hist.Count == 0) return null;
+
+            Component bs = new Component
+            {
+                Name = "Backscatter",
+                Kind = "nuisance",
+                WeightsAreFinal = true,
+            };
+            double top = hist.Values.Max();
+            if (!(top > 0.0)) return null;
+            foreach (KeyValuePair<int, double> kv in hist.OrderBy(p => p.Key))
+            {
+                // Нормировка на максимум: амплитуда колонки должна получиться
+                // того же порядка, что у остальных, иначе NNLS работает на
+                // плохо обусловленной матрице.
+                bs.Lines.Add(new NuclideLine
+                {
+                    Nuclide = "bs",
+                    Energy = (kv.Key + 0.5) * BinKev,
+                    Intensity = 100.0 * kv.Value / top,
+                });
+            }
+
+            return bs;
+        }
+
         static double[] BuildTemplate(Component comp, EnergyCalibration cal, FwhmCalibration fwhmCal,
                                       EffCurve eff, double gain, double offset,
                                       int chLo, int chHi, int nch)
@@ -614,7 +959,13 @@ namespace Pie
                 return BuildStandardTemplate(comp, gain, offset, chLo, chHi, nch);
             }
 
+            // Форма профиля — из ПШПВ-калибровки через PeakShapeModel
+            // приложения (не своя гауссиана): харнесс обязан строить образ тем
+            // же кодом, что и продукт. Нормировка на площадь самого профиля по
+            // его полному носителю, даже если часть носителя вышла за границы
+            // фита — иначе линия у края шкалы весит больше своего.
             double[] t = new double[nch];
+            double[] shape = null;                   // значения профиля на носитель, переиспользуются
             bool any = false;
             foreach (NuclideLine line in comp.Lines)
             {
@@ -623,22 +974,36 @@ namespace Pie
                 double p = gain * p0 + offset;
                 double w = fwhmCal.ChannelToFwhm(p);
                 if (w <= 0 || double.IsNaN(w)) continue;
-                double sigma = w / 2.35482;
                 double q = line.Intensity / 100.0;
-                if (eff != null)
+                if (eff != null && !comp.WeightsAreFinal)
                 {
                     double e = eff.Eval(line.Energy);
                     if (e <= 0) continue;
                     q *= e;
                 }
-                int lo = Math.Max(chLo, (int)Math.Floor(p - 5 * sigma));
-                int hi = Math.Min(chHi, (int)Math.Ceiling(p + 5 * sigma));
+                double left = PeakShapeModel.GetLeftSupport(fwhmCal, w);
+                double right = PeakShapeModel.GetRightSupport(fwhmCal, w);
+                if (!(left > 0) || !(right > 0)) continue;
+                int full0 = (int)Math.Floor(p - left);
+                int full1 = (int)Math.Ceiling(p + right);
+                int span = full1 - full0 + 1;
+                if (span <= 0) continue;
+                if (shape == null || shape.Length < span) shape = new double[span];
+                double area = 0.0;
+                for (int i = 0; i < span; i++)
+                {
+                    double v = PeakShapeModel.RelativeValue(full0 + i - p, w, fwhmCal);
+                    shape[i] = v;
+                    area += v;
+                }
+                if (!(area > 0)) continue;
+                int lo = Math.Max(chLo, full0);
+                int hi = Math.Min(chHi, full1);
                 if (hi < lo) continue;
-                double norm = q / (sigma * Math.Sqrt(2.0 * Math.PI));
+                double norm = q / area;
                 for (int i = lo; i <= hi; i++)
                 {
-                    double d = (i - p) / sigma;
-                    t[i] += norm * Math.Exp(-0.5 * d * d);
+                    t[i] += norm * shape[i - full0];
                 }
                 any = true;
             }
@@ -886,13 +1251,17 @@ namespace Pie
         {
             List<int> knots = new List<int>();
             double minStep = (chHi - chLo) / 64.0;
+            // --knot-div: верхний предел шага, доля диапазона. Наверху шкалы
+            // 4·ПШПВ — это сотни каналов, и подложка там сваливается к нулю.
+            // 0 — предела нет (поведение до правки).
+            double maxStep = KnotDiv > 0 ? (chHi - chLo) / (double)KnotDiv : double.MaxValue;
             int ch = chLo;
             while (ch < chHi)
             {
                 knots.Add(ch);
                 double w = fwhmCal.ChannelToFwhm(ch);
                 if (double.IsNaN(w) || w < 1) w = 1;
-                ch += (int)Math.Max(1, Math.Max(4.0 * w, minStep));
+                ch += (int)Math.Max(1, Math.Min(Math.Max(4.0 * w, minStep), maxStep));
             }
             // Узел в 1 канале от chHi дал бы «шапку-спицу» — почти коллинеарную
             // колонку; сливаем только этот вырожденный случай. Порог шире
@@ -941,6 +1310,10 @@ namespace Pie
             public string Name;
             public string Kind;        // "chain" | "single" | "nuisance" | "standard"
             public List<NuclideLine> Lines = new List<NuclideLine>();
+            // Веса линий уже посчитаны целиком (в них входит и эффективность):
+            // так устроен образ обратного рассеяния, где вес линии берётся на
+            // энергии ИСХОДНОГО фотона, а стоит линия на энергии рассеянного.
+            public bool WeightsAreFinal;
             // Образ из измеренного эталона (канонический путь FSA): скорость
             // счёта по каналам В ШКАЛЕ ЭТАЛОНА, полный и без собственного
             // континуума. У каждого спектра корпуса своя калибровка, поэтому
@@ -1400,6 +1773,7 @@ namespace Pie
             public double EMax = 2800;
             public string EffCurvePath;
             public double Xi = 0.03;
+            public int KnotDiv;                      // предел шага узлов: диапазон/KnotDiv
             public double HuberM = 3.0;
             public double GainRange = 0.008;
             public int GainSteps = 9;
@@ -1407,6 +1781,12 @@ namespace Pie
             public int OffsetSteps = 9;
             public bool UseBackground = true;
             public double RefitZ = 3.0;
+            public bool Backscatter;                 // --backscatter
+            public double BackscatterThetaMin = 110; // --bs-theta, градусы
+            public int BackscatterSteps = 24;        // --bs-steps, шагов по углу
+            public string ComponentMapPath;          // --component-map=<csv>
+            public bool SumPeaks;                    // --sum-peaks
+            public string BackscatterMode = "both";  // --bs-mode=broad|sharp|both
             public double BgSigma = 0.15;
             public string BgMode = "fixed";               // fixed | fit
             public string BgFile;
@@ -1436,6 +1816,7 @@ namespace Pie
                         case "--emax": o.EMax = D(value); break;
                         case "--eff-curve": o.EffCurvePath = value; break;
                         case "--xi": o.Xi = D(value); break;
+                        case "--knot-div": o.KnotDiv = int.Parse(value, CultureInfo.InvariantCulture); break;
                         case "--huber": o.HuberM = D(value); break;
                         case "--gain-range": o.GainRange = D(value); break;
                         case "--gain-steps": o.GainSteps = (int)D(value); break;
@@ -1443,6 +1824,12 @@ namespace Pie
                         case "--offset-steps": o.OffsetSteps = (int)D(value); break;
                         case "--no-bg": o.UseBackground = false; break;
                         case "--refit-z": o.RefitZ = D(value); break;
+                        case "--backscatter": o.Backscatter = true; break;
+                        case "--bs-theta": o.BackscatterThetaMin = D(value); break;
+                        case "--bs-steps": o.BackscatterSteps = (int)D(value); break;
+                        case "--component-map": o.ComponentMapPath = value; break;
+                        case "--sum-peaks": o.SumPeaks = true; break;
+                        case "--bs-mode": o.BackscatterMode = value; break;
                         case "--bg-sigma": o.BgSigma = D(value); break;
                         case "--bg": o.BgMode = value; break;
                         case "--bg-file": o.BgFile = value; break;
