@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 using BecquerelMonitor.EfficiencyMaker;
@@ -71,25 +72,77 @@ namespace BecquerelMonitor
             UpdateGraphMode();
         }
 
+        /// <summary>Наборы нуклидов, доступные в выпадающем списке строки.</summary>
+        readonly List<string> chainNames = new List<string>();
+
         void LoadChains()
         {
-            this.chainsCheckedListBox.Items.Clear();
+            this.chainNames.Clear();
             Dictionary<string, List<EfficiencyLine>> chains = EfficiencyLibrary.BuildChains();
             foreach (string name in chains.Keys.OrderBy(n => n, StringComparer.OrdinalIgnoreCase))
             {
-                // Ничего не отмечается по умолчанию. Метод стоит на том, что у
-                // всех линий набора ОДНА активность: это верно для цепочки в
-                // вековом равновесии и неверно для сборного набора вроде
-                // «NORM» (торий, уран и калий разом). Отличить их по составу
-                // нечем, а молча взятый сборный набор портит кривую — на
-                // пачке ASN16 он давал χ²/ndf 173 против 127.
-                this.chainsCheckedListBox.Items.Add(name, false);
+                this.chainNames.Add(name);
             }
 
-            if (this.chainsCheckedListBox.Items.Count == 0)
+            this.spectrumColumn.HeaderText = Resources.EfficiencyMakerColumnSpectrum;
+            this.nuclideSetColumn.HeaderText = Resources.EfficiencyMakerColumnNuclideSet;
+            this.nuclideSetColumn.Items.Clear();
+            // Пустая строка — законный выбор: спектр, которому набор не назначен,
+            // в счёт не идёт. Убрать его из пачки не всегда удобно, а считать по
+            // чужому набору нельзя.
+            this.nuclideSetColumn.Items.Add("");
+            foreach (string name in this.chainNames)
+            {
+                this.nuclideSetColumn.Items.Add(name);
+            }
+
+            if (this.chainNames.Count == 0)
             {
                 AppendLog(Resources.EfficiencyMakerNoChains);
             }
+        }
+
+        /// <summary>
+        /// Набор, угаданный по имени файла: «ASN16_Th232.xml» -> «Th-232».
+        ///
+        /// Только по точному совпадению без разделителей, и только если
+        /// подходит РОВНО один набор. Пачку в двадцать файлов иначе размечать
+        /// руками, а угадать неправильно хуже, чем не угадать: выбор виден в
+        /// ячейке, но проверять его станут не все.
+        /// </summary>
+        string GuessChain(string path)
+        {
+            string name = Simplify(Path.GetFileNameWithoutExtension(path));
+            string found = null;
+            foreach (string chain in this.chainNames)
+            {
+                string token = Simplify(chain);
+                if (token.Length >= 3 && name.IndexOf(token, StringComparison.Ordinal) >= 0)
+                {
+                    if (found != null)
+                    {
+                        return "";
+                    }
+
+                    found = chain;
+                }
+            }
+
+            return found ?? "";
+        }
+
+        static string Simplify(string value)
+        {
+            StringBuilder text = new StringBuilder();
+            foreach (char c in value ?? "")
+            {
+                if (char.IsLetterOrDigit(c))
+                {
+                    text.Append(char.ToLowerInvariant(c));
+                }
+            }
+
+            return text.ToString();
         }
 
         // ------------------------------------------------------------------
@@ -151,29 +204,44 @@ namespace BecquerelMonitor
 
                 foreach (string file in dialog.FileNames)
                 {
-                    if (!this.spectrumFiles.Contains(file, StringComparer.OrdinalIgnoreCase))
+                    if (this.spectrumFiles.Contains(file, StringComparer.OrdinalIgnoreCase))
                     {
-                        this.spectrumFiles.Add(file);
-                        this.spectraListBox.Items.Add(file);
+                        continue;
                     }
+
+                    this.spectrumFiles.Add(file);
+                    int row = this.spectraGrid.Rows.Add(Path.GetFileNameWithoutExtension(file),
+                                                        this.GuessChain(file));
+                    // Полный путь живёт в строке, а не в ячейке: показывать его
+                    // целиком незачем, а одинаковые имена в разных каталогах
+                    // встречаются.
+                    this.spectraGrid.Rows[row].Tag = file;
                 }
             }
         }
 
         void spectraRemoveButton_Click(object sender, EventArgs e)
         {
-            foreach (int index in this.spectraListBox.SelectedIndices.Cast<int>()
-                     .OrderByDescending(i => i).ToList())
+            List<int> rows = new List<int>();
+            foreach (DataGridViewCell cell in this.spectraGrid.SelectedCells)
             {
-                this.spectrumFiles.RemoveAt(index);
-                this.spectraListBox.Items.RemoveAt(index);
+                if (!rows.Contains(cell.RowIndex))
+                {
+                    rows.Add(cell.RowIndex);
+                }
+            }
+
+            foreach (int index in rows.OrderByDescending(i => i))
+            {
+                this.spectrumFiles.Remove((string)this.spectraGrid.Rows[index].Tag);
+                this.spectraGrid.Rows.RemoveAt(index);
             }
         }
 
         void spectraClearButton_Click(object sender, EventArgs e)
         {
             this.spectrumFiles.Clear();
-            this.spectraListBox.Items.Clear();
+            this.spectraGrid.Rows.Clear();
         }
 
         void outputBrowseButton_Click(object sender, EventArgs e)
@@ -443,14 +511,32 @@ namespace BecquerelMonitor
 
         EfficiencyFitInput BuildInput()
         {
+            // Правка ячейки могла остаться незакрытой — без этого выбор в
+            // последней тронутой строке в модель не попадёт.
+            this.spectraGrid.EndEdit();
+
             EfficiencyFitInput input = new EfficiencyFitInput();
             input.SpectrumFiles.AddRange(this.spectrumFiles);
-            foreach (object item in this.chainsCheckedListBox.CheckedItems)
+            int assigned = 0;
+            foreach (DataGridViewRow row in this.spectraGrid.Rows)
             {
-                input.Chains.Add(item.ToString());
+                string path = row.Tag as string;
+                string chain = row.Cells[1].Value as string;
+                if (string.IsNullOrEmpty(path))
+                {
+                    continue;
+                }
+
+                input.ChainsBySpectrum[path] = string.IsNullOrEmpty(chain)
+                    ? new List<string>()
+                    : new List<string> { chain };
+                if (!string.IsNullOrEmpty(chain))
+                {
+                    assigned++;
+                }
             }
 
-            if (input.Chains.Count == 0)
+            if (assigned == 0)
             {
                 MessageBox.Show(this, Resources.EfficiencyMakerNoChainsChecked, this.Text,
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
