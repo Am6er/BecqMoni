@@ -111,9 +111,13 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             // Полоса отличий отъедает высоту у основного поля, поэтому её
-            // появление решается до всех расчётов масштаба.
+            // появление решается до всех расчётов масштаба. Порог на остаток
+            // основного поля — 60 точек, а не 80: при 80 полоса не появлялась
+            // при обычном размере окна вовсе, и увидеть её можно было только
+            // развернув его на весь экран. Молчаливое исчезновение читается как
+            // «отличий нет», а это не то же самое, что «места не хватило».
             bool withDiff = this.showDifference
-                && field.Height >= DiffPanelHeight + DiffPanelGap + 80;
+                && field.Height >= DiffPanelHeight + DiffPanelGap + 60;
             Rectangle plot = withDiff
                 ? new Rectangle(field.X, field.Y, field.Width, field.Height - DiffPanelHeight - DiffPanelGap)
                 : field;
