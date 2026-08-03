@@ -586,8 +586,10 @@ namespace BecquerelMonitor
             this.splitContainer.Orientation = System.Windows.Forms.Orientation.Horizontal;
             this.splitContainer.Panel1.Controls.Add(this.graph);
             this.splitContainer.Panel2.Controls.Add(this.logTextBox);
-            this.splitContainer.Size = new System.Drawing.Size(942, 344);
-            this.splitContainer.SplitterDistance = 220;
+            // Графику отдано больше места, чем прежде: под ним живёт полоса
+            // отличий, и при 220 точках на неё не оставалось высоты.
+            this.splitContainer.Size = new System.Drawing.Size(942, 422);
+            this.splitContainer.SplitterDistance = 262;
             this.splitContainer.TabIndex = 8;
             //
             // graph
@@ -614,7 +616,7 @@ namespace BecquerelMonitor
             //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(966, 722);
+            this.ClientSize = new System.Drawing.Size(966, 800);
             this.Controls.Add(this.tabControl);
             this.Controls.Add(this.outputLabel);
             this.Controls.Add(this.outputTextBox);
@@ -624,7 +626,7 @@ namespace BecquerelMonitor
             this.Controls.Add(this.statusLabel);
             this.Controls.Add(this.progressBar);
             this.Controls.Add(this.splitContainer);
-            this.MinimumSize = new System.Drawing.Size(900, 700);
+            this.MinimumSize = new System.Drawing.Size(900, 780);
             this.Name = "EfficiencyMakerForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Efficiency maker";
