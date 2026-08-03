@@ -83,7 +83,7 @@
     <value>Remove selected</value>
   </data>
   <data name="geometryLabel.Text" xml:space="preserve">
-    <value>Detector geometry (LSRM .in) - to calculate the curve instead:</value>
+    <value>Detector geometry (LSRM .in file):</value>
   </data>
   <data name="geometryBrowseButton.Text" xml:space="preserve">
     <value>Browse...</value>
