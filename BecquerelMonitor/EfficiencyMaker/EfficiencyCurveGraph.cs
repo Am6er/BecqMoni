@@ -116,9 +116,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                         g.DrawLine(grid, x, plot.Top, x, plot.Bottom);
                         if (major)
                         {
-                            string label = v >= 1000
-                                ? (v / 1000).ToString("0.#", CultureInfo.InvariantCulture) + "M"
-                                : v.ToString("0", CultureInfo.InvariantCulture);
+                            // Ось подписана в кэВ (EfficiencyMakerGraphXAxis), и
+                            // метка тоже в кэВ. Прежнее «1M» на отметке 1000
+                            // читалось как мегаэлектронвольт на килоэлектронной
+                            // шкале — то есть как промах в тысячу раз.
+                            string label = v.ToString("0", CultureInfo.InvariantCulture);
                             g.DrawString(label, this.Font, text, x - 10, plot.Bottom + 3);
                         }
                     }

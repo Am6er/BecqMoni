@@ -107,17 +107,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             ordered.RemoveAll(c => c.Curve == null || Max(c.Curve) <= 0.0);
             ordered.Sort((a, b) => Max(b.Curve).CompareTo(Max(a.Curve)));
 
+            // Мешающие образы (рентген, пики вылета) показываются всегда и в
+            // лимит НЕ входят: лимит отмеряет, сколько нуклидов названо
+            // поимённо. Общий счётчик их смешивал — при обычном составе четыре
+            // мешающих (рентген W и Pb, SE- и DE-2614, последние два в
+            // библиотеке всегда) съедали четыре слота из шести, и нуклиды
+            // сверх двух схлопывались в «other».
             List<FsaComponentResult> named = new List<FsaComponentResult>();
             List<FsaComponentResult> rest = new List<FsaComponentResult>();
+            int namedNuclides = 0;
             foreach (FsaComponentResult component in ordered)
             {
-                if (component.Kind != FsaComponentKind.Nuisance && named.Count < maxNamedLayers)
+                if (component.Kind == FsaComponentKind.Nuisance)
                 {
                     named.Add(component);
                 }
-                else if (component.Kind == FsaComponentKind.Nuisance)
+                else if (namedNuclides < maxNamedLayers)
                 {
                     named.Add(component);
+                    namedNuclides++;
                 }
                 else
                 {
@@ -243,7 +251,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 for (int k = 0; k < count; k++)
                 {
-                    layers[k].Curve[i] += above[k][i] / totalAbove * continuum;
+                    // Длина проверяется, как и везде рядом: кривые слоёв
+                    // приходят от анализатора и в принципе могут быть короче
+                    // модели, по которой считается channels.
+                    double[] curve = layers[k].Curve;
+                    if (i < curve.Length)
+                    {
+                        curve[i] += above[k][i] / totalAbove * continuum;
+                    }
                 }
             }
 
