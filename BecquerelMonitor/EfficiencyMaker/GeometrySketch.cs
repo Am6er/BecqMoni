@@ -56,6 +56,36 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.Invalidate();
         }
 
+        string highlight;
+
+        /// <summary>
+        /// Ключ поля, размер которого сейчас подсвечен. Ставится по фокусу в
+        /// поле: из двадцати чисел на чертеже без этого не понять, какое из них
+        /// правишь, а подпись у тонкого слоя вдобавок стоит вплотную к соседней.
+        /// </summary>
+        public string HighlightKey
+        {
+            get
+            {
+                return this.highlight;
+            }
+            set
+            {
+                if (this.highlight != value)
+                {
+                    this.highlight = value;
+                    this.Invalidate();
+                }
+            }
+        }
+
+        bool Lit(string key)
+        {
+            return key != null && string.Equals(key, this.highlight, StringComparison.Ordinal);
+        }
+
+        static readonly Color LitColor = Color.FromArgb(0xD0, 0x20, 0x20);
+
         // ------------------------------------------------------------------
         // Мир -> экран
         // ------------------------------------------------------------------
@@ -194,45 +224,37 @@ namespace BecquerelMonitor.EfficiencyMaker
             double outerHalf = halfWidth + tsr + tsc;
             double zFace = -(tfr + tfc);
 
+            bool box = m.Shape == CrystalShape.Box;
+            string widthKey = box ? "CrystalBoxX" : "CrystalDiameter";
+            string lengthKey = box ? "CrystalBoxZ" : "CrystalHeight";
+
             using (Pen pen = new Pen(Ink, 1f))
             using (Brush ink = new SolidBrush(Ink))
             {
                 // Поперечник кристалла — над торцом, длина — справа.
-                this.DimH(g, pen, ink, -halfWidth, halfWidth, zFace - 0.18 * (height + 1.0), 2.0 * halfWidth);
-                this.DimV(g, pen, ink, outerHalf + 0.12 * (2.0 * outerHalf + 1.0), 0.0, height, height);
-
-                if (tfr > 0.0)
-                {
-                    this.DimV(g, pen, ink, -halfWidth * 0.45, -tfr, 0.0, tfr);
-                }
-
-                if (tfc > 0.0)
-                {
-                    this.DimV(g, pen, ink, halfWidth * 0.45, zFace, -tfr, tfc);
-                }
-
-                if (tsr > 0.0)
-                {
-                    this.DimH(g, pen, ink, -halfWidth - tsr, -halfWidth, height * 0.35, tsr);
-                }
-
-                if (tsc > 0.0)
-                {
-                    this.DimH(g, pen, ink, -outerHalf, -halfWidth - tsr, height * 0.62, tsc);
-                }
-
-                if (tm > 0.0)
-                {
-                    this.DimV(g, pen, ink, 0.0, height, height + tm, tm);
-                }
+                this.DimH(g, pen, ink, -halfWidth, halfWidth, zFace - 0.18 * (height + 1.0),
+                          2.0 * halfWidth, widthKey);
+                this.DimV(g, pen, ink, outerHalf + 0.12 * (2.0 * outerHalf + 1.0), 0.0, height,
+                          height, lengthKey);
+                this.DimV(g, pen, ink, -halfWidth * 0.45, -tfr, 0.0, tfr, "FrontReflectorThickness");
+                this.DimV(g, pen, ink, halfWidth * 0.45, zFace, -tfr, tfc, "FrontCladdingThickness");
+                this.DimH(g, pen, ink, -halfWidth - tsr, -halfWidth, height * 0.35, tsr,
+                          "SideReflectorThickness");
+                this.DimH(g, pen, ink, -outerHalf, -halfWidth - tsr, height * 0.62, tsc,
+                          "SideCladdingThickness");
+                this.DimV(g, pen, ink, 0.0, height, height + tm, tm, "MountingThickness");
 
                 // У бруска третий размер в разрез не попадает — его надо
                 // назвать словами, иначе чертёж выглядит как цилиндр.
-                if (m.Shape == CrystalShape.Box)
+                if (box)
                 {
                     string text = string.Format(CultureInfo.InvariantCulture,
                         "Y = {0:G4} cm", m.CrystalBoxY);
-                    g.DrawString(text, this.Font, ink, 6, 6);
+                    bool lit = this.Lit("CrystalBoxY");
+                    using (Brush litInk = lit ? new SolidBrush(LitColor) : null)
+                    {
+                        g.DrawString(text, this.Font, lit ? litInk : ink, 6, 6);
+                    }
                 }
             }
         }
@@ -360,19 +382,27 @@ namespace BecquerelMonitor.EfficiencyMaker
                 {
                     case GeometrySourceType.Point:
                         this.DimV(g, pen, ink, 0.6, zFace - Math.Max(m.PointDistance, 0.0), zFace,
-                                  Math.Max(m.PointDistance, 0.0));
+                                  Math.Max(m.PointDistance, 0.0), "PointDistance");
                         return;
 
                     case GeometrySourceType.Cylinder:
                     {
                         double rOut = 0.5 * Math.Max(m.BeakerDiameter, 0.0);
+                        double wall = Math.Max(m.BeakerSideWallThickness, 0.0);
+                        double end = Math.Max(m.BeakerEndWallThickness, 0.0);
                         double hs = Math.Max(m.SourceHeight, 0.0);
                         double zWallTop = zFace - Math.Max(m.BeakerToDetectorDistance, 0.0);
-                        double zSrcTop = zWallTop - Math.Max(m.BeakerEndWallThickness, 0.0);
-                        this.DimH(g, pen, ink, -rOut, rOut, zSrcTop - hs - 0.25 * (hs + 1.0), 2.0 * rOut);
-                        this.DimV(g, pen, ink, rOut * 1.25, zSrcTop - hs, zSrcTop, hs);
+                        double zSrcTop = zWallTop - end;
+                        this.DimH(g, pen, ink, -rOut, rOut, zSrcTop - hs - 0.25 * (hs + 1.0),
+                                  2.0 * rOut, "BeakerDiameter");
+                        this.DimV(g, pen, ink, rOut * 1.25, zSrcTop - hs, zSrcTop, hs, "SourceHeight");
                         this.DimV(g, pen, ink, 0.0, zWallTop, zFace,
-                                  Math.Max(m.BeakerToDetectorDistance, 0.0));
+                                  Math.Max(m.BeakerToDetectorDistance, 0.0), "BeakerToDetectorDistance");
+                        this.DimV(g, pen, ink, -rOut * 0.55, zSrcTop, zWallTop, end, "BeakerEndWallThickness");
+                        this.DimH(g, pen, ink, -rOut, -(rOut - wall), zSrcTop - hs * 0.5, wall,
+                                  "BeakerSideWallThickness");
+                        this.DimV(g, pen, ink, rOut * 0.72, zSrcTop - hs, zWallTop,
+                                  Math.Max(m.BeakerHeight, 0.0), "BeakerHeight");
                         return;
                     }
 
@@ -380,16 +410,38 @@ namespace BecquerelMonitor.EfficiencyMaker
                     {
                         double rOut = 0.5 * Math.Max(m.MarinelliBeakerDiameter, 0.0);
                         double rh = 0.5 * Math.Max(m.MarinelliHoleDiameter, 0.0);
+                        double ths = Math.Max(m.MarinelliHoleSideThickness, 0.0);
+                        double side = Math.Max(m.MarinelliSideThickness, 0.0);
                         double hs = Math.Max(m.MarinelliSourceHeight, 0.0);
                         double hh = Math.Max(m.MarinelliHoleHeight, 0.0);
                         double the = Math.Max(m.MarinelliHoleEndWallThickness, 0.0);
+                        double endWall = Math.Max(m.MarinelliEndWallThickness, 0.0);
                         double zCeiling = zFace - Math.Max(m.MarinelliToDetectorDistance, 0.0);
                         double cap = Math.Max(0.0, hs - hh);
                         double zSrc0 = zCeiling - the - cap;
-                        this.DimH(g, pen, ink, -rOut, rOut, zSrc0 - 0.14 * (hs + 1.0), 2.0 * rOut);
-                        this.DimH(g, pen, ink, -rh, rh, zCeiling + hh * 0.55, 2.0 * rh);
-                        this.DimV(g, pen, ink, -rOut * 1.16, zSrc0, zSrc0 + hs, hs);
-                        this.DimV(g, pen, ink, rh * 0.55, zCeiling, zCeiling + hh, hh);
+                        double body = Math.Max(m.MarinelliBeakerHeight, 0.0);
+                        this.DimH(g, pen, ink, -rOut, rOut, zSrc0 - 0.14 * (hs + 1.0),
+                                  2.0 * rOut, "MarinelliBeakerDiameter");
+                        this.DimH(g, pen, ink, -rh, rh, zCeiling + hh * 0.55, 2.0 * rh,
+                                  "MarinelliHoleDiameter");
+                        this.DimV(g, pen, ink, -rOut * 1.16, zSrc0, zSrc0 + hs, hs, "MarinelliSourceHeight");
+                        this.DimV(g, pen, ink, rh * 0.55, zCeiling, zCeiling + hh, hh, "MarinelliHoleHeight");
+                        this.DimV(g, pen, ink, rOut * 1.16, zSrc0 - side, zSrc0 - side + body,
+                                  body, "MarinelliBeakerHeight");
+                        this.DimH(g, pen, ink, -rOut, -(rOut - side), zSrc0 + hs * 0.28, side,
+                                  "MarinelliSideThickness");
+                        this.DimV(g, pen, ink, -rOut * 0.72, zSrc0 - side, zSrc0, side,
+                                  "MarinelliEndWallThickness");
+                        // Стенки колодца разведены по высоте и по стороне: при
+                        // общем 0.2 их подписи иначе налезают друг на друга и
+                        // на выноску диаметра колодца.
+                        this.DimH(g, pen, ink, rh, rh + ths, zCeiling + hh * 0.82, ths,
+                                  "MarinelliHoleSideThickness");
+                        this.DimV(g, pen, ink, -rh * 0.55, zCeiling - the, zCeiling, the,
+                                  "MarinelliHoleEndWallThickness");
+                        this.DimV(g, pen, ink, 0.0, zCeiling, zFace,
+                                  Math.Max(m.MarinelliToDetectorDistance, 0.0),
+                                  "MarinelliToDetectorDistance");
                         return;
                     }
                 }
@@ -423,8 +475,13 @@ namespace BecquerelMonitor.EfficiencyMaker
             g.DrawRectangle(pen, this.X(x), this.Y(z), this.L(width), this.L(height));
         }
 
-        /// <summary>Горизонтальный размер со стрелками и числом над линией.</summary>
-        void DimH(Graphics g, Pen pen, Brush ink, double x1, double x2, double z, double value)
+        /// <summary>
+        /// Горизонтальный размер со стрелками и числом над линией. Подсвеченный
+        /// рисуется красным и жирнее — вместе с линией и стрелками, а не только
+        /// числом: у тонкого слоя число стоит вплотную к соседнему, и одного
+        /// цвета цифры мало, чтобы понять, к чему она относится.
+        /// </summary>
+        void DimH(Graphics g, Pen pen, Brush ink, double x1, double x2, double z, double value, string key)
         {
             float a = this.X(x1), b = this.X(x2), y = this.Y(z);
             if (Math.Abs(b - a) < 2f)
@@ -432,16 +489,23 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return;
             }
 
-            g.DrawLine(pen, a, y, b, y);
-            Arrow(g, pen, a, y, +1f, 0f);
-            Arrow(g, pen, b, y, -1f, 0f);
-            string text = Format(value);
-            SizeF size = g.MeasureString(text, this.Font);
-            g.DrawString(text, this.Font, ink, (a + b) / 2f - size.Width / 2f, y - size.Height - 1f);
+            bool lit = this.Lit(key);
+            using (Pen litPen = lit ? new Pen(LitColor, 1.8f) : null)
+            using (Brush litInk = lit ? new SolidBrush(LitColor) : null)
+            {
+                Pen p = lit ? litPen : pen;
+                Brush b2 = lit ? litInk : ink;
+                g.DrawLine(p, a, y, b, y);
+                Arrow(g, p, a, y, +1f, 0f);
+                Arrow(g, p, b, y, -1f, 0f);
+                string text = Format(value);
+                SizeF size = g.MeasureString(text, this.Font);
+                g.DrawString(text, this.Font, b2, (a + b) / 2f - size.Width / 2f, y - size.Height - 1f);
+            }
         }
 
         /// <summary>Вертикальный размер со стрелками и числом справа.</summary>
-        void DimV(Graphics g, Pen pen, Brush ink, double x, double z1, double z2, double value)
+        void DimV(Graphics g, Pen pen, Brush ink, double x, double z1, double z2, double value, string key)
         {
             float a = this.Y(z1), b = this.Y(z2), xx = this.X(x);
             if (Math.Abs(b - a) < 2f)
@@ -449,12 +513,19 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return;
             }
 
-            g.DrawLine(pen, xx, a, xx, b);
-            Arrow(g, pen, xx, a, 0f, +1f);
-            Arrow(g, pen, xx, b, 0f, -1f);
-            string text = Format(value);
-            SizeF size = g.MeasureString(text, this.Font);
-            g.DrawString(text, this.Font, ink, xx + 3f, (a + b) / 2f - size.Height / 2f);
+            bool lit = this.Lit(key);
+            using (Pen litPen = lit ? new Pen(LitColor, 1.8f) : null)
+            using (Brush litInk = lit ? new SolidBrush(LitColor) : null)
+            {
+                Pen p = lit ? litPen : pen;
+                Brush b2 = lit ? litInk : ink;
+                g.DrawLine(p, xx, a, xx, b);
+                Arrow(g, p, xx, a, 0f, +1f);
+                Arrow(g, p, xx, b, 0f, -1f);
+                string text = Format(value);
+                SizeF size = g.MeasureString(text, this.Font);
+                g.DrawString(text, this.Font, b2, xx + 3f, (a + b) / 2f - size.Height / 2f);
+            }
         }
 
         static void Arrow(Graphics g, Pen pen, float x, float y, float dx, float dy)
