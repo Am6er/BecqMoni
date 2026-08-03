@@ -111,16 +111,35 @@ namespace BecquerelMonitor.EfficiencyMaker
         // Сцена
         // ------------------------------------------------------------------
 
+        /// <summary>
+        /// Область сцены: либо коаксиальное кольцо (RIn..ROut), либо
+        /// прямоугольный брус (|x| &lt;= AX, |y| &lt;= AY). Области вкладываются
+        /// друг в друга, и поиск идёт по порядку: побеждает первая, в которую
+        /// точка попала, поэтому кристалл кладётся раньше своей обвязки.
+        /// </summary>
         sealed class Region
         {
-            public double RIn, ROut, ZMin, ZMax;
+            public bool IsBox;
+            public double RIn, ROut;      // кольцо
+            public double AX, AY;         // полуразмеры бруса
+            public double ZMin, ZMax;
             public GeometryMaterial Material;
             public bool IsCrystal;
 
-            public bool Contains(double r, double z)
+            public bool Contains(double x, double y, double z)
             {
-                return r >= this.RIn - Eps && r < this.ROut - Eps
-                    && z >= this.ZMin - Eps && z < this.ZMax - Eps;
+                if (z < this.ZMin - Eps || z >= this.ZMax - Eps)
+                {
+                    return false;
+                }
+
+                if (this.IsBox)
+                {
+                    return Math.Abs(x) < this.AX - Eps && Math.Abs(y) < this.AY - Eps;
+                }
+
+                double r = Math.Sqrt(x * x + y * y);
+                return r >= this.RIn - Eps && r < this.ROut - Eps;
             }
         }
 
@@ -133,7 +152,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return;
             }
 
-            Region region = new Region
+            this.Register(new Region
             {
                 RIn = rIn,
                 ROut = rOut,
@@ -141,7 +160,33 @@ namespace BecquerelMonitor.EfficiencyMaker
                 ZMax = zMax,
                 Material = material,
                 IsCrystal = isCrystal,
-            };
+            }, isCrystal);
+        }
+
+        /// <summary>Брус с полуразмерами ax, ay. Вкладывается: порядок значим.</summary>
+        void AddBox(double ax, double ay, double zMin, double zMax,
+                    GeometryMaterial material, bool isCrystal)
+        {
+            if (!(ax > Eps) || !(ay > Eps) || !(zMax > zMin + Eps) || material == null
+                || !(material.Density > 0.0))
+            {
+                return;
+            }
+
+            this.Register(new Region
+            {
+                IsBox = true,
+                AX = ax,
+                AY = ay,
+                ZMin = zMin,
+                ZMax = zMax,
+                Material = material,
+                IsCrystal = isCrystal,
+            }, isCrystal);
+        }
+
+        void Register(Region region, bool isCrystal)
+        {
             this.regions.Add(region);
             if (isCrystal)
             {
@@ -164,23 +209,53 @@ namespace BecquerelMonitor.EfficiencyMaker
             double rDet = rc + tsr + tsc;
             double zFace = -(tfr + tfc) - (this.MountingInFront ? tm : 0.0);
 
-            // кристалл и его обвязка
-            this.Add(0.0, rc, 0.0, hc, g.Crystal, true);
-            this.Add(0.0, rc, -tfr, 0.0, g.Reflector, false);
-            this.Add(rc, rc + tsr, -tfr, hc, g.Reflector, false);
-            this.Add(0.0, rDet, -(tfr + tfc), -tfr, g.Cladding, false);
-            this.Add(rc + tsr, rDet, -tfr, hc, g.Cladding, false);
-            if (this.MountingInFront && tm > 0.0)
+            // Кристалл и его обвязка. Области вкладываются, порядок значим:
+            // кристалл кладётся первым, чтобы точка внутри него доставалась ему,
+            // а не объемлющему слою.
+            double transverse;
+            if (g.Shape == CrystalShape.Box)
             {
-                this.Add(0.0, rDet, zFace, -(tfr + tfc), g.Cladding, false);
+                double ax = 0.5 * g.CrystalBoxX, ay = 0.5 * g.CrystalBoxY;
+                hc = g.CrystalBoxZ;
+                this.AddBox(ax, ay, 0.0, hc, g.Crystal, true);
+                this.AddBox(ax, ay, -tfr, 0.0, g.Reflector, false);
+                this.AddBox(ax + tsr, ay + tsr, -tfr, hc, g.Reflector, false);
+                this.AddBox(ax + tsr + tsc, ay + tsr + tsc, -(tfr + tfc), -tfr, g.Cladding, false);
+                this.AddBox(ax + tsr + tsc, ay + tsr + tsc, -tfr, hc, g.Cladding, false);
+                if (this.MountingInFront && tm > 0.0)
+                {
+                    this.AddBox(ax + tsr + tsc, ay + tsr + tsc, zFace, -(tfr + tfc), g.Cladding, false);
+                }
+                else if (tm > 0.0)
+                {
+                    this.AddBox(ax + tsr + tsc, ay + tsr + tsc, hc, hc + tm, g.Cladding, false);
+                }
+
+                double bx = ax + tsr + tsc, by = ay + tsr + tsc;
+                transverse = Math.Sqrt(bx * bx + by * by);
             }
-            else if (tm > 0.0)
+            else
             {
-                this.Add(0.0, rDet, hc, hc + tm, g.Cladding, false);
+                this.Add(0.0, rc, 0.0, hc, g.Crystal, true);
+                this.Add(0.0, rc, -tfr, 0.0, g.Reflector, false);
+                this.Add(rc, rc + tsr, -tfr, hc, g.Reflector, false);
+                this.Add(0.0, rDet, -(tfr + tfc), -tfr, g.Cladding, false);
+                this.Add(rc + tsr, rDet, -tfr, hc, g.Cladding, false);
+                if (this.MountingInFront && tm > 0.0)
+                {
+                    this.Add(0.0, rDet, zFace, -(tfr + tfc), g.Cladding, false);
+                }
+                else if (tm > 0.0)
+                {
+                    this.Add(0.0, rDet, hc, hc + tm, g.Cladding, false);
+                }
+
+                transverse = rDet;
             }
 
             this.sphereZ = 0.5 * hc;
-            this.sphereR = Math.Sqrt(rDet * rDet + Math.Pow(0.5 * hc + tfr + tfc, 2.0)) + 1e-3;
+            this.sphereR = Math.Sqrt(transverse * transverse
+                                     + Math.Pow(0.5 * hc + tfr + tfc, 2.0)) + 1e-3;
 
             switch (g.SourceType)
             {
@@ -431,10 +506,9 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         Region At(double x, double y, double z)
         {
-            double r = Math.Sqrt(x * x + y * y);
             for (int i = 0; i < this.regions.Count; i++)
             {
-                if (this.regions[i].Contains(r, z))
+                if (this.regions[i].Contains(x, y, z))
                 {
                     return this.regions[i];
                 }
@@ -452,8 +526,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                 Region g = this.regions[i];
                 Plane(z, uz, g.ZMin, ref best);
                 Plane(z, uz, g.ZMax, ref best);
-                Cylinder(x, y, ux, uy, g.RIn, ref best);
-                Cylinder(x, y, ux, uy, g.ROut, ref best);
+                if (g.IsBox)
+                {
+                    Plane(x, ux, g.AX, ref best);
+                    Plane(x, ux, -g.AX, ref best);
+                    Plane(y, uy, g.AY, ref best);
+                    Plane(y, uy, -g.AY, ref best);
+                }
+                else
+                {
+                    Cylinder(x, y, ux, uy, g.RIn, ref best);
+                    Cylinder(x, y, ux, uy, g.ROut, ref best);
+                }
             }
 
             return best;
@@ -558,7 +642,18 @@ namespace BecquerelMonitor.EfficiencyMaker
             double best = double.MaxValue;
             Plane(z, uz, c.ZMin, ref best);
             Plane(z, uz, c.ZMax, ref best);
-            Cylinder(x, y, ux, uy, c.ROut, ref best);
+            if (c.IsBox)
+            {
+                Plane(x, ux, c.AX, ref best);
+                Plane(x, ux, -c.AX, ref best);
+                Plane(y, uy, c.AY, ref best);
+                Plane(y, uy, -c.AY, ref best);
+            }
+            else
+            {
+                Cylinder(x, y, ux, uy, c.ROut, ref best);
+            }
+
             return best >= double.MaxValue ? 0.0 : best;
         }
 

@@ -75,6 +75,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         Marinelli
     }
 
+    /// <summary>Форма кристалла.</summary>
+    public enum CrystalShape
+    {
+        Cylinder,
+        /// <summary>Прямоугольный параллелепипед: длинная сторона вдоль оси.</summary>
+        Box
+    }
+
     /// <summary>
     /// Модель геометрии из файла `.in` конструктора геометрий LSRM
     /// (GeometryMaster). Формат — плоский список `ключ = значение единица`
@@ -96,6 +104,26 @@ namespace BecquerelMonitor.EfficiencyMaker
         // Кристалл, см
         public double CrystalDiameter;
         public double CrystalHeight;
+
+        /// <summary>
+        /// Форма кристалла. Формат `.in` конструктора геометрий LSRM умеет
+        /// только цилиндры, и прямоугольные сцинтилляторы там приводят к
+        /// цилиндру равного объёма. Это не безобидно: равный объём и даже
+        /// равная площадь торца не дают равной СРЕДНЕЙ ХОРДЫ, а именно она
+        /// задаёт вероятность взаимодействия при боковом облучении. У ASN16
+        /// параллелепипед 1.5x1.8x6.0 имеет хорду 4V/S = 1.440 см против
+        /// 1.602 см у равнообъёмного цилиндра — на 10 % тоньше, и в стакане
+        /// Маринелли, где кванты идут сбоку, цилиндр завышает эффективность.
+        ///
+        /// Читается из необязательных ключей DS_CrystalBoxX/Y/Z (наше
+        /// расширение формата; в файлах LSRM их нет, и тогда форма
+        /// цилиндрическая).
+        /// </summary>
+        public CrystalShape Shape = CrystalShape.Cylinder;
+
+        public double CrystalBoxX;
+        public double CrystalBoxY;
+        public double CrystalBoxZ;
         public double FrontReflectorThickness;
         public double SideReflectorThickness;
         public double FrontCladdingThickness;
@@ -162,6 +190,14 @@ namespace BecquerelMonitor.EfficiencyMaker
             g.FrontCladdingThickness = Num(kv, "DS_CrystalFrontCladdingThickness");
             g.SideCladdingThickness = Num(kv, "DS_CrystalSideCladdingThickness");
             g.MountingThickness = Num(kv, "DS_DetectorMountingThickness");
+
+            g.CrystalBoxX = Num(kv, "DS_CrystalBoxX");
+            g.CrystalBoxY = Num(kv, "DS_CrystalBoxY");
+            g.CrystalBoxZ = Num(kv, "DS_CrystalBoxZ");
+            if (g.CrystalBoxX > 0.0 && g.CrystalBoxY > 0.0 && g.CrystalBoxZ > 0.0)
+            {
+                g.Shape = CrystalShape.Box;
+            }
 
             g.PointDistance = Num(kv, "pdistance");
 
@@ -271,10 +307,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                     break;
             }
 
+            string crystal = this.Shape == CrystalShape.Box
+                ? string.Format(CultureInfo.InvariantCulture, "брусок {0:F2}x{1:F2}x{2:F2}",
+                                this.CrystalBoxX, this.CrystalBoxY, this.CrystalBoxZ)
+                : string.Format(CultureInfo.InvariantCulture, "цилиндр {0:F3}x{1:F3}",
+                                this.CrystalDiameter, this.CrystalHeight);
+
             return string.Format(CultureInfo.InvariantCulture,
-                "{0}: кристалл {1} {2:F3}x{3:F3} см, ро {4:F3}; источник — {5}, {6}",
-                this.Name, this.Crystal.Name, this.CrystalDiameter, this.CrystalHeight,
-                this.Crystal.Density, source, this.Source.Name);
+                "{0}: кристалл {1} {2} см, ро {3:F3}; источник — {4}, {5}",
+                this.Name, this.Crystal.Name, crystal, this.Crystal.Density, source, this.Source.Name);
         }
     }
 }
