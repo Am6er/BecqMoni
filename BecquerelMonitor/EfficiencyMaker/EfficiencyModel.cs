@@ -81,7 +81,27 @@ namespace BecquerelMonitor.EfficiencyMaker
     {
         public List<string> SpectrumFiles = new List<string>();
 
+        /// <summary>
+        /// Цепочки на все спектры разом. Годится, когда пачка однородная;
+        /// перекрывается поспектральной разметкой ниже.
+        /// </summary>
         public List<string> Chains = new List<string>();
+
+        /// <summary>
+        /// Свой набор нуклидов у каждого спектра: путь к файлу -> цепочки.
+        ///
+        /// Пачка почти никогда не однородна — в неё кладут и ториевый образец, и
+        /// урановый, и цезиевый источник. Общий список цепочек на всех означал
+        /// бы, что в каждом спектре ищутся линии всех наборов: лишние дают
+        /// «нет пика» в лучшем случае, а в худшем — площадь шума на месте
+        /// несуществующей линии, и она тянет кривую.
+        ///
+        /// Спектр без разметки в счёт не идёт (о нём говорится в журнале), а не
+        /// считается по общему списку: молча взятый чужой набор — ровно та
+        /// ошибка, ради которой эта разметка и заводится.
+        /// </summary>
+        public readonly Dictionary<string, List<string>> ChainsBySpectrum =
+            new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
         public List<ROIEfficiencyData> Reference;
 

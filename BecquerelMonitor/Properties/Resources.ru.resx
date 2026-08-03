@@ -1122,4 +1122,16 @@
   <data name="EfficiencyMakerGraphDiffNoResult" xml:space="preserve">
     <value>Постройте кривую, чтобы увидеть отличия</value>
   </data>
+  <data name="EfficiencyMakerColumnSpectrum" xml:space="preserve">
+    <value>Спектр</value>
+  </data>
+  <data name="EfficiencyMakerColumnNuclideSet" xml:space="preserve">
+    <value>Набор нуклидов</value>
+  </data>
+  <data name="EfficiencyMakerNoSetForSpectrum" xml:space="preserve">
+    <value>{0}: набор нуклидов не выбран, спектр пропущен.</value>
+  </data>
+  <data name="EfficiencyMakerImpossibleCurve" xml:space="preserve">
+    <value>Подогнанная кривая физически невозможна: эффективность {1:G3} на {0:F0} кэВ. Линий {2} против {3} свободных параметров — снизьте степень полинома или добавьте спектров.</value>
+  </data>
 </root>

@@ -34,14 +34,14 @@ namespace BecquerelMonitor
             this.referenceBrowseButton = new System.Windows.Forms.Button();
             this.referenceClearButton = new System.Windows.Forms.Button();
             this.spectraLabel = new System.Windows.Forms.Label();
-            this.spectraListBox = new System.Windows.Forms.ListBox();
+            this.spectraGrid = new System.Windows.Forms.DataGridView();
+            this.spectrumColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.nuclideSetColumn = new System.Windows.Forms.DataGridViewComboBoxColumn();
             this.spectraAddButton = new System.Windows.Forms.Button();
             this.spectraRemoveButton = new System.Windows.Forms.Button();
             this.spectraClearButton = new System.Windows.Forms.Button();
             this.runButton = new System.Windows.Forms.Button();
             this.optionsGroupBox = new System.Windows.Forms.GroupBox();
-            this.chainsLabel = new System.Windows.Forms.Label();
-            this.chainsCheckedListBox = new System.Windows.Forms.CheckedListBox();
             this.orderLabel = new System.Windows.Forms.Label();
             this.orderNumericUpDown = new System.Windows.Forms.NumericUpDown();
             this.minIntensityLabel = new System.Windows.Forms.Label();
@@ -67,6 +67,7 @@ namespace BecquerelMonitor
             this.tabPageCalculate.SuspendLayout();
             this.tabPageFit.SuspendLayout();
             this.optionsGroupBox.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.spectraGrid)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.orderNumericUpDown)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.minIntensityNumericUpDown)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.minSignificanceNumericUpDown)).BeginInit();
@@ -218,7 +219,7 @@ namespace BecquerelMonitor
             this.tabPageFit.Controls.Add(this.referenceBrowseButton);
             this.tabPageFit.Controls.Add(this.referenceClearButton);
             this.tabPageFit.Controls.Add(this.spectraLabel);
-            this.tabPageFit.Controls.Add(this.spectraListBox);
+            this.tabPageFit.Controls.Add(this.spectraGrid);
             this.tabPageFit.Controls.Add(this.spectraAddButton);
             this.tabPageFit.Controls.Add(this.spectraRemoveButton);
             this.tabPageFit.Controls.Add(this.spectraClearButton);
@@ -285,26 +286,56 @@ namespace BecquerelMonitor
             this.spectraLabel.TabIndex = 4;
             this.spectraLabel.Text = "Spectra measured in this geometry:";
             //
-            // spectraListBox
+            // spectraGrid
             //
-            this.spectraListBox.Anchor = ((System.Windows.Forms.AnchorStyles)
+            // Таблица вместо списка: у каждого спектра свой набор нуклидов, и
+            // выбирается он в самой строке. Общий список наборов на всю пачку
+            // означал бы поиск чужих линий в каждом спектре.
+            this.spectraGrid.Anchor = ((System.Windows.Forms.AnchorStyles)
                 (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left
                 | System.Windows.Forms.AnchorStyles.Right));
-            this.spectraListBox.FormattingEnabled = true;
-            this.spectraListBox.HorizontalScrollbar = true;
-            this.spectraListBox.Location = new System.Drawing.Point(13, 75);
-            this.spectraListBox.Name = "spectraListBox";
-            this.spectraListBox.SelectionMode = System.Windows.Forms.SelectionMode.MultiExtended;
-            this.spectraListBox.Size = new System.Drawing.Size(392, 108);
-            this.spectraListBox.TabIndex = 5;
+            this.spectraGrid.AllowUserToAddRows = false;
+            this.spectraGrid.AllowUserToDeleteRows = false;
+            this.spectraGrid.AllowUserToResizeRows = false;
+            this.spectraGrid.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
+            this.spectraGrid.ColumnHeadersHeightSizeMode =
+                System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            this.spectraGrid.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+                this.spectrumColumn, this.nuclideSetColumn });
+            // Раскрывать список по первому щелчку, а не по второму: иначе на
+            // пачке в двадцать строк каждый выбор стоит лишнего клика.
+            this.spectraGrid.EditMode = System.Windows.Forms.DataGridViewEditMode.EditOnEnter;
+            this.spectraGrid.Location = new System.Drawing.Point(13, 75);
+            this.spectraGrid.MultiSelect = true;
+            this.spectraGrid.Name = "spectraGrid";
+            this.spectraGrid.RowHeadersVisible = false;
+            this.spectraGrid.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.CellSelect;
+            this.spectraGrid.Size = new System.Drawing.Size(480, 130);
+            this.spectraGrid.TabIndex = 5;
+            //
+            // spectrumColumn
+            //
+            this.spectrumColumn.FillWeight = 62F;
+            this.spectrumColumn.Name = "spectrumColumn";
+            this.spectrumColumn.ReadOnly = true;
+            this.spectrumColumn.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
+            //
+            // nuclideSetColumn
+            //
+            this.nuclideSetColumn.DisplayStyle =
+                System.Windows.Forms.DataGridViewComboBoxDisplayStyle.DropDownButton;
+            this.nuclideSetColumn.FillWeight = 38F;
+            this.nuclideSetColumn.FlatStyle = System.Windows.Forms.FlatStyle.Standard;
+            this.nuclideSetColumn.Name = "nuclideSetColumn";
+            this.nuclideSetColumn.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
             //
             // spectraAddButton
             //
             this.spectraAddButton.Anchor = ((System.Windows.Forms.AnchorStyles)
                 (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left));
-            this.spectraAddButton.Location = new System.Drawing.Point(411, 75);
+            this.spectraAddButton.Location = new System.Drawing.Point(499, 75);
             this.spectraAddButton.Name = "spectraAddButton";
-            this.spectraAddButton.Size = new System.Drawing.Size(154, 23);
+            this.spectraAddButton.Size = new System.Drawing.Size(110, 23);
             this.spectraAddButton.TabIndex = 6;
             this.spectraAddButton.Text = "Add spectra...";
             this.spectraAddButton.UseVisualStyleBackColor = true;
@@ -314,9 +345,9 @@ namespace BecquerelMonitor
             //
             this.spectraRemoveButton.Anchor = ((System.Windows.Forms.AnchorStyles)
                 (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left));
-            this.spectraRemoveButton.Location = new System.Drawing.Point(411, 104);
+            this.spectraRemoveButton.Location = new System.Drawing.Point(499, 104);
             this.spectraRemoveButton.Name = "spectraRemoveButton";
-            this.spectraRemoveButton.Size = new System.Drawing.Size(154, 23);
+            this.spectraRemoveButton.Size = new System.Drawing.Size(110, 23);
             this.spectraRemoveButton.TabIndex = 7;
             this.spectraRemoveButton.Text = "Remove selected";
             this.spectraRemoveButton.UseVisualStyleBackColor = true;
@@ -326,9 +357,9 @@ namespace BecquerelMonitor
             //
             this.spectraClearButton.Anchor = ((System.Windows.Forms.AnchorStyles)
                 (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left));
-            this.spectraClearButton.Location = new System.Drawing.Point(411, 133);
+            this.spectraClearButton.Location = new System.Drawing.Point(499, 133);
             this.spectraClearButton.Name = "spectraClearButton";
-            this.spectraClearButton.Size = new System.Drawing.Size(154, 23);
+            this.spectraClearButton.Size = new System.Drawing.Size(110, 23);
             this.spectraClearButton.TabIndex = 8;
             this.spectraClearButton.Text = "Clear list";
             this.spectraClearButton.UseVisualStyleBackColor = true;
@@ -338,7 +369,7 @@ namespace BecquerelMonitor
             //
             this.runButton.Anchor = ((System.Windows.Forms.AnchorStyles)
                 (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left));
-            this.runButton.Location = new System.Drawing.Point(13, 195);
+            this.runButton.Location = new System.Drawing.Point(13, 214);
             this.runButton.Name = "runButton";
             this.runButton.Size = new System.Drawing.Size(200, 26);
             this.runButton.TabIndex = 9;
@@ -350,8 +381,6 @@ namespace BecquerelMonitor
             //
             this.optionsGroupBox.Anchor = ((System.Windows.Forms.AnchorStyles)
                 (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right));
-            this.optionsGroupBox.Controls.Add(this.chainsLabel);
-            this.optionsGroupBox.Controls.Add(this.chainsCheckedListBox);
             this.optionsGroupBox.Controls.Add(this.orderLabel);
             this.optionsGroupBox.Controls.Add(this.orderNumericUpDown);
             this.optionsGroupBox.Controls.Add(this.minIntensityLabel);
@@ -363,35 +392,17 @@ namespace BecquerelMonitor
             this.optionsGroupBox.Controls.Add(this.anchorEnergyTextBox);
             this.optionsGroupBox.Controls.Add(this.anchorEfficiencyTextBox);
             this.optionsGroupBox.Controls.Add(this.anchorHintLabel);
-            this.optionsGroupBox.Location = new System.Drawing.Point(590, 8);
+            this.optionsGroupBox.Location = new System.Drawing.Point(619, 8);
             this.optionsGroupBox.Name = "optionsGroupBox";
-            this.optionsGroupBox.Size = new System.Drawing.Size(330, 240);
+            this.optionsGroupBox.Size = new System.Drawing.Size(300, 240);
             this.optionsGroupBox.TabIndex = 10;
             this.optionsGroupBox.TabStop = false;
             this.optionsGroupBox.Text = "Settings";
             //
-            // chainsLabel
-            //
-            this.chainsLabel.AutoSize = true;
-            this.chainsLabel.Location = new System.Drawing.Point(10, 22);
-            this.chainsLabel.Name = "chainsLabel";
-            this.chainsLabel.Size = new System.Drawing.Size(120, 13);
-            this.chainsLabel.TabIndex = 0;
-            this.chainsLabel.Text = "Chains in equilibrium:";
-            //
-            // chainsCheckedListBox
-            //
-            this.chainsCheckedListBox.CheckOnClick = true;
-            this.chainsCheckedListBox.FormattingEnabled = true;
-            this.chainsCheckedListBox.Location = new System.Drawing.Point(13, 39);
-            this.chainsCheckedListBox.Name = "chainsCheckedListBox";
-            this.chainsCheckedListBox.Size = new System.Drawing.Size(140, 94);
-            this.chainsCheckedListBox.TabIndex = 1;
-            //
             // orderLabel
             //
             this.orderLabel.AutoSize = true;
-            this.orderLabel.Location = new System.Drawing.Point(166, 22);
+            this.orderLabel.Location = new System.Drawing.Point(12, 22);
             this.orderLabel.Name = "orderLabel";
             this.orderLabel.Size = new System.Drawing.Size(100, 13);
             this.orderLabel.TabIndex = 2;
@@ -399,7 +410,7 @@ namespace BecquerelMonitor
             //
             // orderNumericUpDown
             //
-            this.orderNumericUpDown.Location = new System.Drawing.Point(266, 20);
+            this.orderNumericUpDown.Location = new System.Drawing.Point(230, 20);
             this.orderNumericUpDown.Maximum = new decimal(new int[] { 6, 0, 0, 0 });
             this.orderNumericUpDown.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
             this.orderNumericUpDown.Name = "orderNumericUpDown";
@@ -410,7 +421,7 @@ namespace BecquerelMonitor
             // minIntensityLabel
             //
             this.minIntensityLabel.AutoSize = true;
-            this.minIntensityLabel.Location = new System.Drawing.Point(166, 48);
+            this.minIntensityLabel.Location = new System.Drawing.Point(12, 48);
             this.minIntensityLabel.Name = "minIntensityLabel";
             this.minIntensityLabel.Size = new System.Drawing.Size(100, 13);
             this.minIntensityLabel.TabIndex = 4;
@@ -419,7 +430,7 @@ namespace BecquerelMonitor
             // minIntensityNumericUpDown
             //
             this.minIntensityNumericUpDown.DecimalPlaces = 1;
-            this.minIntensityNumericUpDown.Location = new System.Drawing.Point(266, 46);
+            this.minIntensityNumericUpDown.Location = new System.Drawing.Point(230, 46);
             this.minIntensityNumericUpDown.Maximum = new decimal(new int[] { 100, 0, 0, 0 });
             this.minIntensityNumericUpDown.Name = "minIntensityNumericUpDown";
             this.minIntensityNumericUpDown.Size = new System.Drawing.Size(50, 20);
@@ -432,7 +443,7 @@ namespace BecquerelMonitor
             // minSignificanceLabel
             //
             this.minSignificanceLabel.AutoSize = true;
-            this.minSignificanceLabel.Location = new System.Drawing.Point(166, 74);
+            this.minSignificanceLabel.Location = new System.Drawing.Point(12, 74);
             this.minSignificanceLabel.Name = "minSignificanceLabel";
             this.minSignificanceLabel.Size = new System.Drawing.Size(100, 13);
             this.minSignificanceLabel.TabIndex = 6;
@@ -441,7 +452,7 @@ namespace BecquerelMonitor
             // minSignificanceNumericUpDown
             //
             this.minSignificanceNumericUpDown.DecimalPlaces = 1;
-            this.minSignificanceNumericUpDown.Location = new System.Drawing.Point(266, 72);
+            this.minSignificanceNumericUpDown.Location = new System.Drawing.Point(230, 72);
             this.minSignificanceNumericUpDown.Maximum = new decimal(new int[] { 100, 0, 0, 0 });
             this.minSignificanceNumericUpDown.Name = "minSignificanceNumericUpDown";
             this.minSignificanceNumericUpDown.Size = new System.Drawing.Size(50, 20);
@@ -453,7 +464,7 @@ namespace BecquerelMonitor
             this.backgroundCheckBox.AutoSize = true;
             this.backgroundCheckBox.Checked = true;
             this.backgroundCheckBox.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.backgroundCheckBox.Location = new System.Drawing.Point(169, 99);
+            this.backgroundCheckBox.Location = new System.Drawing.Point(15, 100);
             this.backgroundCheckBox.Name = "backgroundCheckBox";
             this.backgroundCheckBox.Size = new System.Drawing.Size(140, 17);
             this.backgroundCheckBox.TabIndex = 8;
@@ -463,7 +474,7 @@ namespace BecquerelMonitor
             // anchorLabel
             //
             this.anchorLabel.AutoSize = true;
-            this.anchorLabel.Location = new System.Drawing.Point(10, 140);
+            this.anchorLabel.Location = new System.Drawing.Point(12, 130);
             this.anchorLabel.Name = "anchorLabel";
             this.anchorLabel.Size = new System.Drawing.Size(150, 13);
             this.anchorLabel.TabIndex = 9;
@@ -471,26 +482,26 @@ namespace BecquerelMonitor
             //
             // anchorEnergyTextBox
             //
-            this.anchorEnergyTextBox.Location = new System.Drawing.Point(166, 137);
+            this.anchorEnergyTextBox.Location = new System.Drawing.Point(15, 148);
             this.anchorEnergyTextBox.Name = "anchorEnergyTextBox";
-            this.anchorEnergyTextBox.Size = new System.Drawing.Size(70, 20);
+            this.anchorEnergyTextBox.Size = new System.Drawing.Size(80, 20);
             this.anchorEnergyTextBox.TabIndex = 10;
             //
             // anchorEfficiencyTextBox
             //
-            this.anchorEfficiencyTextBox.Location = new System.Drawing.Point(242, 137);
+            this.anchorEfficiencyTextBox.Location = new System.Drawing.Point(101, 148);
             this.anchorEfficiencyTextBox.Name = "anchorEfficiencyTextBox";
-            this.anchorEfficiencyTextBox.Size = new System.Drawing.Size(74, 20);
+            this.anchorEfficiencyTextBox.Size = new System.Drawing.Size(80, 20);
             this.anchorEfficiencyTextBox.TabIndex = 11;
             //
             // anchorHintLabel
             //
             this.anchorHintLabel.AutoSize = true;
             this.anchorHintLabel.ForeColor = System.Drawing.Color.DimGray;
-            this.anchorHintLabel.Location = new System.Drawing.Point(10, 160);
-            this.anchorHintLabel.MaximumSize = new System.Drawing.Size(310, 0);
+            this.anchorHintLabel.Location = new System.Drawing.Point(12, 176);
+            this.anchorHintLabel.MaximumSize = new System.Drawing.Size(278, 0);
             this.anchorHintLabel.Name = "anchorHintLabel";
-            this.anchorHintLabel.Size = new System.Drawing.Size(310, 26);
+            this.anchorHintLabel.Size = new System.Drawing.Size(278, 39);
             this.anchorHintLabel.TabIndex = 12;
             this.anchorHintLabel.Text = "Measurements give the shape only; the absolute level comes"
                 + " from the source curve or from this anchor.";
@@ -641,7 +652,7 @@ namespace BecquerelMonitor
                 this.referenceLabel, this.referenceBrowseButton,
                 this.referenceClearButton, this.spectraLabel, this.spectraAddButton,
                 this.spectraRemoveButton, this.spectraClearButton, this.optionsGroupBox,
-                this.chainsLabel, this.orderLabel, this.minIntensityLabel,
+                this.orderLabel, this.minIntensityLabel,
                 this.minSignificanceLabel, this.backgroundCheckBox, this.anchorLabel,
                 this.anchorHintLabel, this.outputLabel, this.outputBrowseButton,
                 this.runButton, this.saveButton, this.exportButton,
@@ -657,6 +668,7 @@ namespace BecquerelMonitor
             this.tabControl.ResumeLayout(false);
             this.optionsGroupBox.ResumeLayout(false);
             this.optionsGroupBox.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.spectraGrid)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.orderNumericUpDown)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.minIntensityNumericUpDown)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.minSignificanceNumericUpDown)).EndInit();
@@ -677,7 +689,9 @@ namespace BecquerelMonitor
         System.Windows.Forms.Button referenceBrowseButton;
         System.Windows.Forms.Button referenceClearButton;
         System.Windows.Forms.Label spectraLabel;
-        System.Windows.Forms.ListBox spectraListBox;
+        System.Windows.Forms.DataGridView spectraGrid;
+        System.Windows.Forms.DataGridViewTextBoxColumn spectrumColumn;
+        System.Windows.Forms.DataGridViewComboBoxColumn nuclideSetColumn;
         System.Windows.Forms.Button spectraAddButton;
         System.Windows.Forms.Button spectraRemoveButton;
         System.Windows.Forms.Button spectraClearButton;
@@ -690,8 +704,6 @@ namespace BecquerelMonitor
         System.Windows.Forms.Button geometryNewButton;
         System.Windows.Forms.Button geometryEditButton;
         System.Windows.Forms.GroupBox optionsGroupBox;
-        System.Windows.Forms.Label chainsLabel;
-        System.Windows.Forms.CheckedListBox chainsCheckedListBox;
         System.Windows.Forms.Label orderLabel;
         System.Windows.Forms.NumericUpDown orderNumericUpDown;
         System.Windows.Forms.Label minIntensityLabel;

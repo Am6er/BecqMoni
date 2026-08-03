@@ -42507,4 +42507,16 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="EfficiencyMakerGraphDiffNoResult" xml:space="preserve">
     <value>Build the curve to see the difference</value>
   </data>
+  <data name="EfficiencyMakerColumnSpectrum" xml:space="preserve">
+    <value>Spectrum</value>
+  </data>
+  <data name="EfficiencyMakerColumnNuclideSet" xml:space="preserve">
+    <value>Nuclide set</value>
+  </data>
+  <data name="EfficiencyMakerNoSetForSpectrum" xml:space="preserve">
+    <value>{0}: no nuclide set chosen, skipped.</value>
+  </data>
+  <data name="EfficiencyMakerImpossibleCurve" xml:space="preserve">
+    <value>The fitted curve is physically impossible: efficiency {1:G3} at {0:F0} keV. {2} lines against {3} free parameters - lower the polynomial order or add spectra.</value>
+  </data>
 </root>

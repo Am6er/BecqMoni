@@ -89,9 +89,24 @@ namespace BecquerelMonitor.EfficiencyMaker
                     return result;
                 }
 
+                // Поспектральная разметка сильнее общего списка. Если она есть,
+                // но для этого файла пуста, спектр пропускается: взять вместо
+                // неё общий список значило бы искать в спектре чужие линии — и
+                // площадь шума на месте несуществующей линии потянула бы кривую.
+                List<string> forFile = wanted;
+                if (input.ChainsBySpectrum.Count > 0)
+                {
+                    if (!input.ChainsBySpectrum.TryGetValue(file, out forFile) || forFile.Count == 0)
+                    {
+                        log(string.Format(Resources.EfficiencyMakerNoSetForSpectrum,
+                                          Path.GetFileNameWithoutExtension(file)));
+                        continue;
+                    }
+                }
+
                 try
                 {
-                    MeasureSpectrum(file, chains, wanted, interference, input, result, log);
+                    MeasureSpectrum(file, chains, forFile, interference, input, result, log);
                 }
                 catch (Exception ex)
                 {
@@ -959,6 +974,39 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             result.Curve = BuildCurve(result, input);
+
+            // Кривая обязана быть физически возможной. Полином высокой степени
+            // на малом числе линий уходит в разнос: измерено на пачке из двух
+            // спектров — степень 6 дала эффективность 1.0 на 2000 кэВ и 1e-6
+            // на 2615, степень 7 — единицу и 1e-20 в соседних точках.
+            //
+            // Ловится именно УПОР В ПОТОЛОК, а не превышение: BuildCurve режет
+            // значения по единице, и разнос выходил из фиттера в виде опрятной
+            // кривой с полкой 1.0 — та же молчаливая подмена, что и в разборе
+            // геометрии. Единица недостижима ни для какой настоящей геометрии:
+            // это значило бы, что в пик полного поглощения попадает каждый
+            // испущенный квант.
+            double worst = 0.0;
+            double worstEnergy = 0.0;
+            foreach (ROIEfficiencyData point in result.Curve)
+            {
+                bool broken = double.IsNaN(point.Efficiency) || double.IsInfinity(point.Efficiency);
+                if (broken || point.Efficiency > worst)
+                {
+                    worst = broken ? double.PositiveInfinity : point.Efficiency;
+                    worstEnergy = point.Energy;
+                }
+            }
+
+            if (!(worst < 1.0))
+            {
+                result.Curve = new List<ROIEfficiencyData>();
+                result.Error = string.Format(Resources.EfficiencyMakerImpossibleCurve,
+                                             worstEnergy, worst, used.Count,
+                                             result.SeriesKeys.Count + Math.Max(1, input.PolynomialOrder));
+                return;
+            }
+
             log(string.Format(Resources.EfficiencyMakerFitDone,
                 used.Count, result.SeriesKeys.Count, result.Chi2Ndf,
                 result.MinEnergy, result.MaxEnergy));

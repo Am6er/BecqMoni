@@ -3592,5 +3592,29 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("EfficiencyMakerGraphDiffNoResult", resourceCulture);
             }
         }
+
+        public static string EfficiencyMakerColumnSpectrum {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerColumnSpectrum", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerColumnNuclideSet {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerColumnNuclideSet", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerNoSetForSpectrum {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerNoSetForSpectrum", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerImpossibleCurve {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerImpossibleCurve", resourceCulture);
+            }
+        }
 }
 }
