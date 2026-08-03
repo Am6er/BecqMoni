@@ -352,6 +352,30 @@
   <data name="ERRCannotOpenWavFile" xml:space="preserve">
     <value>Не могу открыть WAV файл.</value>
   </data>
+  <data name="FSACalculating" xml:space="preserve">
+    <value>Полноспектральное разложение: считается…</value>
+  </data>
+  <data name="FSANoComponents" xml:space="preserve">
+    <value>Полноспектральное разложение: нет опознанных пиков — сначала поиск пиков</value>
+  </data>
+  <data name="FSANotPossible" xml:space="preserve">
+    <value>Полноспектральное разложение для этого спектра невозможно</value>
+  </data>
+  <data name="FSAFailed" xml:space="preserve">
+    <value>Полноспектральное разложение не удалось, подробности в журнале</value>
+  </data>
+  <data name="FSALegendModel" xml:space="preserve">
+    <value>модель</value>
+  </data>
+  <data name="FSALegendContinuum" xml:space="preserve">
+    <value>континуум</value>
+  </data>
+  <data name="FSANoEfficiencyMark" xml:space="preserve">
+    <value> (без кривой)</value>
+  </data>
+  <data name="FSADriftEdgeMark" xml:space="preserve">
+    <value> !</value>
+  </data>
   <data name="UnknownNuclide" xml:space="preserve">
     <value>(неизвестный)</value>
   </data>

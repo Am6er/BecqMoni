@@ -55,6 +55,7 @@ namespace BecquerelMonitor
             this.SubstractBgToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.ShowConToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.NormByEffToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.ShowFsaToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSplitButton8 = new System.Windows.Forms.ToolStripSplitButton();
             this.highDefinitionViewToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.normalViewToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -408,6 +409,7 @@ namespace BecquerelMonitor
             this.hideBackgroundToolStripMenuItem,
             this.SubstractBgToolStripMenuItem,
             this.ShowConToolStripMenuItem,
+            this.ShowFsaToolStripMenuItem,
             this.NormByEffToolStripMenuItem});
             this.toolStripSplitButtonBgMode.Image = global::BecquerelMonitor.Properties.Resources.BG;
             resources.ApplyResources(this.toolStripSplitButtonBgMode, "toolStripSplitButtonBgMode");
@@ -438,6 +440,12 @@ namespace BecquerelMonitor
             this.ShowConToolStripMenuItem.Name = "ShowConToolStripMenuItem";
             resources.ApplyResources(this.ShowConToolStripMenuItem, "ShowConToolStripMenuItem");
             this.ShowConToolStripMenuItem.Click += new System.EventHandler(this.ShowConToolStripMenuItem_Click);
+            // 
+            // ShowFsaToolStripMenuItem
+            // 
+            this.ShowFsaToolStripMenuItem.Name = "ShowFsaToolStripMenuItem";
+            resources.ApplyResources(this.ShowFsaToolStripMenuItem, "ShowFsaToolStripMenuItem");
+            this.ShowFsaToolStripMenuItem.Click += new System.EventHandler(this.ShowFsaToolStripMenuItem_Click);
             // 
             // NormByEffToolStripMenuItem
             // 
@@ -869,6 +877,8 @@ namespace BecquerelMonitor
         global::System.Windows.Forms.ToolStripMenuItem ShowConToolStripMenuItem;
 
         global::System.Windows.Forms.ToolStripMenuItem NormByEffToolStripMenuItem;
+
+        global::System.Windows.Forms.ToolStripMenuItem ShowFsaToolStripMenuItem;
 
         // Token: 0x0400013E RID: 318
         global::System.Windows.Forms.ToolStripMenuItem hideBackgroundToolStripMenuItem;

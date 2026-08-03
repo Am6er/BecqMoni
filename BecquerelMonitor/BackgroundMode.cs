@@ -19,6 +19,11 @@ namespace BecquerelMonitor
         ShowContinuum,
 
         [XmlEnum(Name = "NormalizeByEfficiency")]
-        NormalizeByEfficiency
+        NormalizeByEfficiency,
+
+        // Полноспектральное разложение: спектр раскладывается на образы
+        // нуклидов и цепочек, поверх графика рисуется послойный стек.
+        [XmlEnum(Name = "ShowFSA")]
+        ShowFSA
     }
 }

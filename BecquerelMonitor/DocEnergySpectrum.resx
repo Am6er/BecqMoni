@@ -399,6 +399,12 @@
   <data name="ShowConToolStripMenuItem.Text" xml:space="preserve">
     <value>Show Continuum with peaks</value>
   </data>
+  <data name="ShowFsaToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+    <value>310, 22</value>
+  </data>
+  <data name="ShowFsaToolStripMenuItem.Text" xml:space="preserve">
+    <value>Show FSA (full-spectrum decomposition)</value>
+  </data>
   <data name="NormByEffToolStripMenuItem.Enabled" type="System.Boolean, mscorlib">
     <value>False</value>
   </data>

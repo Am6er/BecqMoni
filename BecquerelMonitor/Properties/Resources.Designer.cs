@@ -2683,6 +2683,78 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Full-spectrum decomposition: calculating….
+        /// </summary>
+        public static string FSACalculating {
+            get {
+                return ResourceManager.GetString("FSACalculating", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Full-spectrum decomposition: no components to fit with.
+        /// </summary>
+        public static string FSANoComponents {
+            get {
+                return ResourceManager.GetString("FSANoComponents", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Full-spectrum decomposition is not possible for this spectrum.
+        /// </summary>
+        public static string FSANotPossible {
+            get {
+                return ResourceManager.GetString("FSANotPossible", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Full-spectrum decomposition failed, see the log.
+        /// </summary>
+        public static string FSAFailed {
+            get {
+                return ResourceManager.GetString("FSAFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to model.
+        /// </summary>
+        public static string FSALegendModel {
+            get {
+                return ResourceManager.GetString("FSALegendModel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to continuum.
+        /// </summary>
+        public static string FSALegendContinuum {
+            get {
+                return ResourceManager.GetString("FSALegendContinuum", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to (no eff).
+        /// </summary>
+        public static string FSANoEfficiencyMark {
+            get {
+                return ResourceManager.GetString("FSANoEfficiencyMark", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to !.
+        /// </summary>
+        public static string FSADriftEdgeMark {
+            get {
+                return ResourceManager.GetString("FSADriftEdgeMark", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to (unknown).
         /// </summary>
         public static string UnknownNuclide {

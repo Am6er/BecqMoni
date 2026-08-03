@@ -8399,6 +8399,30 @@ http://xptable.sourceforge.net/</value>
   <data name="DeviceTypeLEMCA" xml:space="preserve">
     <value>LEMCA USB Adaptor</value>
   </data>
+  <data name="FSACalculating" xml:space="preserve">
+    <value>Full-spectrum decomposition: calculating…</value>
+  </data>
+  <data name="FSANoComponents" xml:space="preserve">
+    <value>Full-spectrum decomposition: no identified peaks to build the library from — run peak detection first</value>
+  </data>
+  <data name="FSANotPossible" xml:space="preserve">
+    <value>Full-spectrum decomposition is not possible for this spectrum</value>
+  </data>
+  <data name="FSAFailed" xml:space="preserve">
+    <value>Full-spectrum decomposition failed, see the log</value>
+  </data>
+  <data name="FSALegendModel" xml:space="preserve">
+    <value>model</value>
+  </data>
+  <data name="FSALegendContinuum" xml:space="preserve">
+    <value>continuum</value>
+  </data>
+  <data name="FSANoEfficiencyMark" xml:space="preserve">
+    <value> (no eff)</value>
+  </data>
+  <data name="FSADriftEdgeMark" xml:space="preserve">
+    <value> !</value>
+  </data>
   <data name="UnknownNuclide" xml:space="preserve">
     <value>(unknown)</value>
   </data>
