@@ -777,4 +777,112 @@
   <data name="Lq_counts" type="System.Resources.ResXNullRef, System.Windows.Forms">
     <value />
   </data>
+  <data name="EfficiencyMakerMenu" xml:space="preserve">
+    <value>Конструктор эффективности…</value>
+  </data>
+  <data name="EfficiencyMakerNoSpectra" xml:space="preserve">
+    <value>Спектры не выбраны.</value>
+  </data>
+  <data name="EfficiencyMakerNoChains" xml:space="preserve">
+    <value>Наборов нуклидов с выходами нет: цепочки построить не из чего.</value>
+  </data>
+  <data name="EfficiencyMakerNoChainsChecked" xml:space="preserve">
+    <value>Не отмечена ни одна цепочка.</value>
+  </data>
+  <data name="EfficiencyMakerCancelled" xml:space="preserve">
+    <value>Остановлено пользователем.</value>
+  </data>
+  <data name="EfficiencyMakerTooFewLines" xml:space="preserve">
+    <value>Пригодных линий всего {0}: кривую по ним не построить.</value>
+  </data>
+  <data name="EfficiencyMakerNoLiveTime" xml:space="preserve">
+    <value>{0}: живого времени нет, пропущен.</value>
+  </data>
+  <data name="EfficiencyMakerSpectrumDone" xml:space="preserve">
+    <value>{0}: измерено линий — {1}, живое время {2:F0} с</value>
+  </data>
+  <data name="EfficiencyMakerFitDone" xml:space="preserve">
+    <value>Фит: линий {0}, серий {1}, chi2/ndf {2:F2}, диапазон {3:F0}-{4:F0} кэВ</value>
+  </data>
+  <data name="EfficiencyMakerSingular" xml:space="preserve">
+    <value>Нормальные уравнения вырождены.</value>
+  </data>
+  <data name="EfficiencyMakerNoDeviceConfig" xml:space="preserve">
+    <value>Конфигурация устройства не найдена: {0}</value>
+  </data>
+  <data name="EfficiencyMakerNoFwhm" xml:space="preserve">
+    <value>У спектра нет ПШПВ-калибровки.</value>
+  </data>
+  <data name="EfficiencyMakerReasonBlend" xml:space="preserve">
+    <value>наложение с {0} {1:F1} кэВ</value>
+  </data>
+  <data name="EfficiencyMakerReasonWindow" xml:space="preserve">
+    <value>окно слишком узкое</value>
+  </data>
+  <data name="EfficiencyMakerReasonNoPeak" xml:space="preserve">
+    <value>пика нет</value>
+  </data>
+  <data name="EfficiencyMakerReasonWeak" xml:space="preserve">
+    <value>слабая, z={0:F1}</value>
+  </data>
+  <data name="EfficiencyMakerReasonLoneLine" xml:space="preserve">
+    <value>единственная линия серии</value>
+  </data>
+  <data name="EfficiencyMakerRun" xml:space="preserve">
+    <value>Построить кривую</value>
+  </data>
+  <data name="EfficiencyMakerStop" xml:space="preserve">
+    <value>Остановить</value>
+  </data>
+  <data name="EfficiencyMakerRunning" xml:space="preserve">
+    <value>Измеряю линии…</value>
+  </data>
+  <data name="EfficiencyMakerStatus" xml:space="preserve">
+    <value>Линий {0}, серий {1}, chi2/ndf {2:F2}. Уровень: {3}</value>
+  </data>
+  <data name="EfficiencyMakerLevelReference" xml:space="preserve">
+    <value>с исходной кривой</value>
+  </data>
+  <data name="EfficiencyMakerLevelAnchor" xml:space="preserve">
+    <value>с опорной точки</value>
+  </data>
+  <data name="EfficiencyMakerLevelShapeOnly" xml:space="preserve">
+    <value>ТОЛЬКО ФОРМА, уровень произвольный</value>
+  </data>
+  <data name="EfficiencyMakerReferenceLoaded" xml:space="preserve">
+    <value>Исходная кривая {0}: точек {1}</value>
+  </data>
+  <data name="EfficiencyMakerSaved" xml:space="preserve">
+    <value>Сохранено: {0}</value>
+  </data>
+  <data name="EfficiencyMakerRoiFilter" xml:space="preserve">
+    <value>Конфигурация ROI (*.xml)|*.xml|Все файлы (*.*)|*.*</value>
+  </data>
+  <data name="EfficiencyMakerSpectrumFilter" xml:space="preserve">
+    <value>Спектры (*.xml)|*.xml|Все файлы (*.*)|*.*</value>
+  </data>
+  <data name="EfficiencyMakerCsvFilter" xml:space="preserve">
+    <value>CSV (*.csv)|*.csv|Все файлы (*.*)|*.*</value>
+  </data>
+  <data name="EfficiencyMakerGraphEmpty" xml:space="preserve">
+    <value>Кривой ещё нет</value>
+  </data>
+  <data name="EfficiencyMakerGraphXAxis" xml:space="preserve">
+    <value>E, кэВ</value>
+  </data>
+  <data name="EfficiencyMakerReasonSeriesScatter" xml:space="preserve">
+    <value>разброс серии x{0:F1}</value>
+  </data>
+  <data name="EfficiencyMakerReasonOutlier" xml:space="preserve">
+    <value>выброс {0:F1} сигмы</value>
+  </data>
+  <data name="EfficiencyMakerSeriesDropped" xml:space="preserve">
+    <value>серия выброшена: {0} (разброс x{1:F1})</value>
+  </data>
+  <data name="EfficiencyMakerReasonImpossible" xml:space="preserve">
+    <value>невозможная eps={0:F2}</value>
+  </data>
+  <data name="EfficiencyMakerReasonImpossibleLog" xml:space="preserve">
+    <value>{0}: {1:F1} кэВ снята, eps={2:F2} &gt; 1</value>
+  </data>
 </root>

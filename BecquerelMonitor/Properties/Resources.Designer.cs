@@ -2902,5 +2902,221 @@ namespace BecquerelMonitor.Properties {
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-    }
+    
+        public static string EfficiencyMakerMenu {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerMenu", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerNoSpectra {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerNoSpectra", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerNoChains {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerNoChains", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerNoChainsChecked {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerNoChainsChecked", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerCancelled {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerCancelled", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerTooFewLines {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerTooFewLines", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerNoLiveTime {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerNoLiveTime", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerSpectrumDone {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerSpectrumDone", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerFitDone {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerFitDone", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerSingular {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerSingular", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerNoDeviceConfig {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerNoDeviceConfig", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerNoFwhm {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerNoFwhm", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerReasonBlend {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerReasonBlend", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerReasonWindow {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerReasonWindow", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerReasonNoPeak {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerReasonNoPeak", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerReasonWeak {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerReasonWeak", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerReasonLoneLine {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerReasonLoneLine", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerRun {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerRun", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerStop {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerStop", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerRunning {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerRunning", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerStatus {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerStatus", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerLevelReference {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerLevelReference", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerLevelAnchor {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerLevelAnchor", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerLevelShapeOnly {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerLevelShapeOnly", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerReferenceLoaded {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerReferenceLoaded", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerSaved {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerSaved", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerRoiFilter {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerRoiFilter", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerSpectrumFilter {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerSpectrumFilter", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerCsvFilter {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerCsvFilter", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerGraphEmpty {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGraphEmpty", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerGraphXAxis {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGraphXAxis", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerReasonSeriesScatter {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerReasonSeriesScatter", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerReasonOutlier {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerReasonOutlier", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerSeriesDropped {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerSeriesDropped", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerReasonImpossible {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerReasonImpossible", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerReasonImpossibleLog {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerReasonImpossibleLog", resourceCulture);
+            }
+        }
+}
 }

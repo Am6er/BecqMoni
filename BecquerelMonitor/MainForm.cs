@@ -1223,6 +1223,24 @@ namespace BecquerelMonitor
             ShowNucBaseView();
         }
 
+        // Конструктор кривой эффективности: пачка спектров одной геометрии на
+        // вход, ROI-файл с кривой на выход. Окно немодальное — прогон по пачке
+        // долгий, и держать за него приложение нельзя.
+        void efficiencyMakerToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (this.efficiencyMakerForm == null || this.efficiencyMakerForm.IsDisposed)
+            {
+                this.efficiencyMakerForm = new EfficiencyMakerForm();
+                this.efficiencyMakerForm.Show(this);
+            }
+            else
+            {
+                this.efficiencyMakerForm.BringToFront();
+            }
+        }
+
+        EfficiencyMakerForm efficiencyMakerForm;
+
         void ShowNucBaseView()
         {
             if (this.nucBaseView == null || this.nucBaseView.IsDisposed)
