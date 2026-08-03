@@ -25,7 +25,7 @@ DC_DetectorCapBackThickness = 0.15 cm
 DC_DetectorMountingThickness = 3 cm
 
 // Scintillator detector
-DS_CrystalDiameter = 0.67 cm
+DS_CrystalDiameter = 0.7899 cm
 DS_CrystalHeight = 3 cm
 DS_CrystalFrontReflectorThickness = 0.1 cm
 DS_CrystalSideReflectorThickness = 0.1 cm
