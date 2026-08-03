@@ -42318,6 +42318,21 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="EfficiencyMakerGraphXAxis" xml:space="preserve">
     <value>E, keV</value>
   </data>
+  <data name="EfficiencyMakerTabCalculate" xml:space="preserve">
+    <value>Calculate from geometry</value>
+  </data>
+  <data name="EfficiencyMakerTabFit" xml:space="preserve">
+    <value>Fit to measured spectra</value>
+  </data>
+  <data name="EfficiencyMakerCalcHint" xml:space="preserve">
+    <value>The curve is computed from the geometry file by Monte-Carlo transport - no spectra needed. Unlike the fit, this gives the ABSOLUTE level, not just the shape.</value>
+  </data>
+  <data name="EfficiencyMakerGraphDiffAxis" xml:space="preserve">
+    <value>new / source - 1, %</value>
+  </data>
+  <data name="EfficiencyMakerGraphDiffNoReference" xml:space="preserve">
+    <value>Load the source curve to see the difference</value>
+  </data>
   <data name="EfficiencyMakerReasonSeriesScatter" xml:space="preserve">
     <value>series scatter x{0:F1}</value>
   </data>

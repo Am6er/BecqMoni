@@ -3215,6 +3215,36 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string EfficiencyMakerTabCalculate {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerTabCalculate", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerTabFit {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerTabFit", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerCalcHint {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerCalcHint", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerGraphDiffAxis {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGraphDiffAxis", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerGraphDiffNoReference {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGraphDiffNoReference", resourceCulture);
+            }
+        }
+
         public static string EfficiencyMakerReasonSeriesScatter {
             get {
                 return ResourceManager.GetString("EfficiencyMakerReasonSeriesScatter", resourceCulture);
