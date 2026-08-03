@@ -36,6 +36,12 @@ namespace BecquerelMonitor.EfficiencyMaker
     /// </summary>
     public sealed class EfficiencySimulator
     {
+        // Судьба электрона (ElectronEscape, Bremsstrahlung) считается отдельно:
+        // пока она не учтена, расчёт молча кладёт всю энергию электрона на
+        // месте, а на деле электрон вблизи границы уходит наружу, и тормозной
+        // квант тоже может уйти. Обе потери растут с энергией — там же, где
+        // расчёт расходится с измерением сильнее всего.
+
         const double ElectronMassKev = 510.99895;
         const double ClassicalRadiusCm = 2.8179403262e-13;
         const double Avogadro = 6.02214076e23;
@@ -69,6 +75,49 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public bool ScoreEntranceOnly;
 
+        /// <summary>
+        /// Учитывать вылет самого электрона через близкую границу кристалла.
+        /// Разыгрывается изотропное направление, пробег берётся из ESTAR
+        /// (<see cref="ElectronData"/>), путь до границы считается по прямой.
+        ///
+        /// ПО УМОЛЧАНИЮ ВЫКЛЮЧЕНО. Проверку измерением поправка не прошла: она
+        /// обязана быть тем больше, чем мельче кристалл, и она такая и есть —
+        /// на 662 кэВ она снимает 14 % у RC103 (1 см³) и 6 % у ASN16 (16 см³).
+        /// А измерения требуют ровно обратного: у RC103 расчёт и так сходится с
+        /// заводским коэффициентом (1.009), завышен именно ASN16 (1.162). С
+        /// поправкой разброс между детекторами не сжимается, а растёт с 15 % до
+        /// 26 %. Ключ оставлен измерительным: чтобы поправка стала физикой, не
+        /// хватает данных о ветвлении и обратном рассеянии электрона в тяжёлом
+        /// веществе (см. <see cref="ElectronDetour"/>).
+        /// </summary>
+        public bool ElectronEscape;
+
+        /// <summary>
+        /// Учитывать вылет тормозного кванта, рождённого электроном. Спектр —
+        /// толстомишенный, dN/dk ~ 1/k, нормировка привязана к выходу излучения
+        /// из ESTAR, так что средняя излучённая энергия равна табличной.
+        /// </summary>
+        public bool Bremsstrahlung = true;
+
+        /// <summary>
+        /// Отношение средней глубины проникновения электрона к пробегу CSDA
+        /// (detour factor). Единица — прямолинейное торможение: электрон
+        /// уходит дальше всего, вылет получается наибольшим из возможных. У
+        /// тяжёлых сцинтилляторов настоящая величина меньше, и меньше вылет;
+        /// единица здесь стоит нарочно, чтобы поправка была ВЕРХНЕЙ оценкой, а
+        /// не подгонкой. Уменьшение до 0.3 порядка вещей не меняет: у мелкого
+        /// кристалла поправка всё равно больше, чем у крупного.
+        /// </summary>
+        public double ElectronDetour = 1.0;
+
+        /// <summary>
+        /// Сколько энергии событие может потерять и всё-таки остаться в пике,
+        /// кэВ. Пик имеет ширину, и утечка в единицы кэВ из него не выводит.
+        /// Ноль (умолчание) — прежний строгий счёт: в пик идёт только история,
+        /// из которой не вылетело ничего.
+        /// </summary>
+        public double PeakHalfWidthKev;
+
         readonly GeometryModel geometry;
         readonly List<Region> regions = new List<Region>();
         Region crystal;
@@ -76,6 +125,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         Sampler source;
         ulong state;
         bool crystalHasPartials;
+        ElectronData.Material electron;
 
         public EfficiencySimulator(GeometryModel model)
         {
@@ -95,6 +145,20 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             this.Build();
             this.crystalHasPartials = this.CrystalHasPartials();
+            this.electron = ElectronData.Match(this.geometry.Crystal);
+        }
+
+        /// <summary>
+        /// Название материала кристалла в таблице ESTAR, или пустая строка, если
+        /// состава там нет: тогда судьба электрона не считается вовсе.
+        /// </summary>
+        public string ElectronMaterialName
+        {
+            get
+            {
+                this.EnsureBuilt();
+                return this.electron == null ? "" : this.electron.Name;
+            }
         }
 
         /// <summary>Считается ли кристалл по парциальным сечениям, а не приближением.</summary>
@@ -673,6 +737,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return energyKev;
             }
 
+            // lost копит энергию, ушедшую из кристалла на предыдущих шагах: это
+            // тормозные кванты и сами электроны от уже отработанных
+            // взаимодействий. Всё, что возвращается, — сумма таких потерь.
+            double lost = 0.0;
             double e = energyKev;
             for (int step = 0; step < 200; step++)
             {
@@ -681,14 +749,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                 double total = photo + compton + pair;
                 if (!(total > 0.0))
                 {
-                    return e;
+                    return lost + e;
                 }
 
                 double path = this.CrystalPath(x, y, z, ux, uy, uz);
                 double free = -Math.Log(1.0 - this.Uniform()) / total;
                 if (free >= path)
                 {
-                    return e;                       // вылетел
+                    return lost + e;                // вылетел
                 }
 
                 x += ux * free;
@@ -698,7 +766,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 double pick = this.Uniform() * total;
                 if (pick < photo)
                 {
-                    return 0.0;                     // поглотился целиком
+                    // фотоэлектрон уносит почти всю энергию кванта
+                    return lost + this.ElectronLoss(x, y, z, e, depth);
                 }
 
                 if (pick < photo + compton)
@@ -706,18 +775,19 @@ namespace BecquerelMonitor.EfficiencyMaker
                     double cos = this.ComptonCosine(e);
                     double scattered = e / (1.0 + e / ElectronMassKev * (1.0 - cos));
                     this.Rotate(ref ux, ref uy, ref uz, cos);
+                    lost += this.ElectronLoss(x, y, z, e - scattered, depth);
                     e = scattered;
                     if (e < 1.0)
                     {
-                        return 0.0;                 // остаток осел на месте
+                        return lost;                // остаток осел на месте
                     }
 
                     continue;
                 }
 
                 // рождение пары: 1022 кэВ уходит в два кванта аннигиляции,
-                // остальное осело здесь же
-                double escaped = 0.0;
+                // остальное достаётся паре электрон-позитрон
+                double escaped = lost + this.ElectronLoss(x, y, z, e - 2.0 * ElectronMassKev, depth);
                 for (int k = 0; k < 2; k++)
                 {
                     double ax, ay, az;
@@ -728,7 +798,103 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return escaped;
             }
 
-            return e;
+            return lost + e;
+        }
+
+        /// <summary>
+        /// Сколько энергии уходит из кристалла вместе с электроном кинетической
+        /// энергии <paramref name="te"/>, рождённым в точке (x, y, z).
+        ///
+        /// Две независимые статьи расхода:
+        ///
+        /// 1. Тормозное излучение. Полная излучённая энергия задана выходом из
+        ///    ESTAR: &lt;E_rad&gt; = Y(Te)·Te. Спектр берётся толстомишенный,
+        ///    dN/dk = C/k на [k_min, Te]; из условия на среднюю энергию
+        ///    C = Y·Te/(Te - k_min), число квантов = C·ln(Te/k_min). Каждый
+        ///    разыгранный квант ведётся дальше обычной трассировкой и может
+        ///    вылететь, а может поглотиться.
+        ///
+        /// 2. Вылет самого электрона. Направление изотропно, до границы идём по
+        ///    прямой; если пробега CSDA хватает, чтобы её достать, наружу
+        ///    уносится энергия, отвечающая ОСТАТКУ пробега. Пробег CSDA уже
+        ///    включает радиационные потери, поэтому статьи не вычитаются друг из
+        ///    друга — это разные вопросы к одной величине.
+        ///
+        /// Что здесь приближение: направление вылета электрона на самом деле
+        /// вперёд по кванту, а не изотропно; путь не прямая (см.
+        /// <see cref="ElectronDetour"/>); тормозной квант испускается в точке
+        /// рождения электрона, а не вдоль его пути.
+        /// </summary>
+        double ElectronLoss(double x, double y, double z, double te, int depth)
+        {
+            if (this.electron == null || !(te > 1.0) || depth > 12)
+            {
+                return 0.0;
+            }
+
+            double lost = 0.0;
+
+            if (this.Bremsstrahlung)
+            {
+                const double MinKev = 5.0;      // ниже кванту не выйти ниоткуда
+                if (te > MinKev)
+                {
+                    double c = ElectronData.YieldOf(this.electron, te) * te / (te - MinKev);
+                    int n = this.Poisson(c * Math.Log(te / MinKev));
+                    for (int i = 0; i < n; i++)
+                    {
+                        double k = MinKev * Math.Pow(te / MinKev, this.Uniform());
+                        double ax, ay, az;
+                        this.Isotropic(out ax, out ay, out az);
+                        lost += this.InCrystal(x, y, z, ax, ay, az, k, depth + 1);
+                    }
+                }
+            }
+
+            if (this.ElectronEscape)
+            {
+                double density = this.geometry.Crystal.Density;
+                double range = ElectronData.RangeOf(this.electron, te) / density;   // см
+                double ax, ay, az;
+                this.Isotropic(out ax, out ay, out az);
+                double toEdge = this.CrystalPath(x, y, z, ax, ay, az);
+                double used = toEdge / Math.Max(1e-6, this.ElectronDetour);
+                if (used < range)
+                {
+                    lost += ElectronData.EnergyOfRange(this.electron, (range - used) * density);
+                }
+            }
+
+            return lost;
+        }
+
+        /// <summary>Пуассон по Кнуту: среднее у нас всегда меньше единицы.</summary>
+        int Poisson(double mean)
+        {
+            if (!(mean > 0.0))
+            {
+                return 0;
+            }
+
+            if (mean > 20.0)
+            {
+                mean = 20.0;
+            }
+
+            double limit = Math.Exp(-mean), p = 1.0;
+            int k = 0;
+            while (k < 64)
+            {
+                p *= this.Uniform();
+                if (p <= limit)
+                {
+                    break;
+                }
+
+                k++;
+            }
+
+            return k;
         }
 
         /// <summary>Косинус угла комптоновского рассеяния, метод Кана.</summary>
@@ -845,7 +1011,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     else
                     {
                         double escaped = this.InCrystal(px, py, pz, ux, uy, uz, energyKev, 0);
-                        if (escaped <= 0.0)
+                        if (escaped <= this.PeakHalfWidthKev)
                         {
                             score = weight * Math.Exp(-tau);
                         }

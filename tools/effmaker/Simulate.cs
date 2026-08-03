@@ -36,6 +36,10 @@ namespace EffSim
                 string geometry = null, reference = null, outPath = null, all = null, refDir = null;
                 int n = 200000;
                 bool mountFront = false;
+                bool electron = false, brems = true;
+                double detour = 1.0, halfWidth = 0.0, halfWidthFraction = 0.0;
+                double point = -1.0;
+                string list = null;
                 foreach (string arg in args)
                 {
                     int eq = arg.IndexOf('=');
@@ -50,6 +54,19 @@ namespace EffSim
                         case "--all": all = value; break;
                         case "--refdir": refDir = value; break;
                         case "--mount-front": mountFront = true; break;
+                        case "--electron": electron = true; break;
+                        case "--no-brems": brems = false; break;
+                        case "--detour": detour = double.Parse(value, CultureInfo.InvariantCulture); break;
+                        case "--peak-halfwidth":
+                            halfWidth = double.Parse(value, CultureInfo.InvariantCulture); break;
+                        // допуск как доля энергии: пик имеет ширину, и она
+                        // пропорциональна энергии, а не постоянна в кэВ
+                        // подменить источник точечным на заданном расстоянии:
+                        // так меряются заводские коэффициенты BecqMoni
+                        case "--point": point = double.Parse(value, CultureInfo.InvariantCulture); break;
+                        case "--energies": list = value; break;
+                        case "--hw-frac":
+                            halfWidthFraction = double.Parse(value, CultureInfo.InvariantCulture); break;
                         default: throw new ArgumentException("Unknown option: " + arg);
                     }
                 }
@@ -60,7 +77,7 @@ namespace EffSim
                     {
                         RunOne(Path.Combine(all, Pairs[i, 0]),
                                refDir == null ? null : Path.Combine(refDir, Pairs[i, 1]),
-                               null, n, mountFront);
+                               null, n, mountFront, electron, brems, detour, halfWidth, halfWidthFraction, point, list);
                         Console.WriteLine();
                     }
 
@@ -73,7 +90,7 @@ namespace EffSim
                     return 1;
                 }
 
-                RunOne(geometry, reference, outPath, n, mountFront);
+                RunOne(geometry, reference, outPath, n, mountFront, electron, brems, detour, halfWidth, halfWidthFraction, point, list);
                 return 0;
             }
             catch (Exception ex)
@@ -83,9 +100,17 @@ namespace EffSim
             }
         }
 
-        static void RunOne(string geometryPath, string referencePath, string outPath, int n, bool mountFront)
+        static void RunOne(string geometryPath, string referencePath, string outPath, int n,
+                           bool mountFront, bool electron, bool brems, double detour, double halfWidth,
+                           double halfWidthFraction, double point, string list)
         {
             GeometryModel g = GeometryModel.Load(geometryPath);
+            if (point >= 0.0)
+            {
+                g.SourceType = GeometrySourceType.Point;
+                g.PointDistance = point;
+            }
+
             Console.WriteLine("=== {0}", Path.GetFileNameWithoutExtension(geometryPath));
             Console.WriteLine("    {0}", g.Describe());
             if (!g.IsScintillator)
@@ -94,12 +119,28 @@ namespace EffSim
                 return;
             }
 
-            EfficiencySimulator sim = new EfficiencySimulator(g) { Histories = n, MountingInFront = mountFront };
+            EfficiencySimulator sim = new EfficiencySimulator(g)
+            {
+                Histories = n,
+                MountingInFront = mountFront,
+                ElectronEscape = electron,
+                Bremsstrahlung = brems,
+                ElectronDetour = detour,
+                PeakHalfWidthKev = halfWidth,
+            };
             Console.WriteLine("    сцена: {0}", sim.DescribeScene());
+            Console.WriteLine("    электрон: {0}, вылет {1}, тормозное {2}, detour {3:F2}, допуск {4} ",
+                              sim.ElectronMaterialName == "" ? "состава нет в ESTAR" : sim.ElectronMaterialName,
+                              electron ? "да" : "нет", brems ? "да" : "нет", detour, halfWidth);
 
             List<double> energies;
             Dictionary<double, double> truth = null;
-            if (!string.IsNullOrEmpty(referencePath) && File.Exists(referencePath))
+            if (!string.IsNullOrEmpty(list))
+            {
+                energies = list.Split(',')
+                               .Select(v => double.Parse(v, CultureInfo.InvariantCulture)).ToList();
+            }
+            else if (!string.IsNullOrEmpty(referencePath) && File.Exists(referencePath))
             {
                 truth = LoadCurve(referencePath);
                 // Эталоны сняты с разным шагом (20 и 50 кэВ); берём около
@@ -120,6 +161,7 @@ namespace EffSim
             Console.WriteLine("    {0,7}  {1,12}  {2,7}  {3,12}  {4,7}", "E,кэВ", "расчёт", "±%", "эталон", "отн.");
             foreach (double e in energies)
             {
+                sim.PeakHalfWidthKev = halfWidthFraction > 0.0 ? halfWidthFraction * e : halfWidth;
                 double err;
                 double eps = sim.Efficiency(e, out err);
                 double refValue = 0.0;
