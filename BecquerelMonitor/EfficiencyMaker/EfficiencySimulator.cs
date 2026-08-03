@@ -61,6 +61,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public bool MountingInFront;
 
+        /// <summary>
+        /// Считать не пик полного поглощения, а долю квантов, ДОШЕДШИХ до
+        /// кристалла без ослабления. Нужно, чтобы отделить геометрию от физики:
+        /// для точечного источника на оси эта доля равна телесному углу и
+        /// проверяется формулой, безо всякого переноса.
+        /// </summary>
+        public bool ScoreEntranceOnly;
+
         readonly GeometryModel geometry;
         readonly List<Region> regions = new List<Region>();
         Region crystal;
@@ -735,10 +743,17 @@ namespace BecquerelMonitor.EfficiencyMaker
                 double score = 0.0;
                 if (this.ToCrystal(ref px, ref py, ref pz, ux, uy, uz, energyKev, out tau))
                 {
-                    double escaped = this.InCrystal(px, py, pz, ux, uy, uz, energyKev, 0);
-                    if (escaped <= 0.0)
+                    if (this.ScoreEntranceOnly)
                     {
                         score = weight * Math.Exp(-tau);
+                    }
+                    else
+                    {
+                        double escaped = this.InCrystal(px, py, pz, ux, uy, uz, energyKev, 0);
+                        if (escaped <= 0.0)
+                        {
+                            score = weight * Math.Exp(-tau);
+                        }
                     }
                 }
 
