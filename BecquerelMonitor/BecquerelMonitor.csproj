@@ -309,6 +309,7 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="EfficiencyMaker\AttenuationData.cs" />
+    <Compile Include="EfficiencyMaker\ElectronData.cs" />
     <Compile Include="EfficiencyMaker\EfficiencyFitter.cs" />
     <Compile Include="EfficiencyMaker\EfficiencySimulator.cs" />
     <Compile Include="EfficiencyMaker\GeometryModel.cs" />
