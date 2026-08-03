@@ -42492,4 +42492,7 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="GeometryEditorErrorSourceSize" xml:space="preserve">
     <value>Source size must be greater than zero.</value>
   </data>
+  <data name="GeometryEditorErrorNumber" xml:space="preserve">
+    <value>Some values are not numbers - they are highlighted. An unreadable value would silently become zero.</value>
+  </data>
 </root>
