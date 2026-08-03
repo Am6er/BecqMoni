@@ -48,5 +48,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public FsaComponentKind Kind { get; private set; }
 
         public List<FsaLine> Lines { get; private set; }
+
+        /// <summary>
+        /// Вес линии посчитан целиком, эффективность в него уже входит и второй
+        /// раз применяться не должна. Так устроен образ обратного рассеяния:
+        /// вес берётся на энергии исходного фотона, а стоит линия на энергии
+        /// рассеянного.
+        /// </summary>
+        public bool WeightsAreFinal { get; set; }
+
+        /// <summary>
+        /// Образ выведен из состава предыдущего прохода, а не задан библиотекой:
+        /// перед пересборкой такие колонки выбрасываются, иначе они накапливались
+        /// бы от прохода к проходу.
+        /// </summary>
+        public bool Derived { get; set; }
     }
 }
