@@ -26,6 +26,8 @@ namespace BecquerelMonitor
             this.geometryClearButton = new System.Windows.Forms.Button();
             this.calcHintLabel = new System.Windows.Forms.Label();
             this.calculateButton = new System.Windows.Forms.Button();
+            this.geometryNewButton = new System.Windows.Forms.Button();
+            this.geometryEditButton = new System.Windows.Forms.Button();
             this.tabPageFit = new System.Windows.Forms.TabPage();
             this.referenceLabel = new System.Windows.Forms.Label();
             this.referenceTextBox = new System.Windows.Forms.TextBox();
@@ -101,6 +103,8 @@ namespace BecquerelMonitor
             this.tabPageCalculate.Controls.Add(this.geometryClearButton);
             this.tabPageCalculate.Controls.Add(this.calcHintLabel);
             this.tabPageCalculate.Controls.Add(this.calculateButton);
+            this.tabPageCalculate.Controls.Add(this.geometryNewButton);
+            this.tabPageCalculate.Controls.Add(this.geometryEditButton);
             this.tabPageCalculate.Location = new System.Drawing.Point(4, 22);
             this.tabPageCalculate.Name = "tabPageCalculate";
             this.tabPageCalculate.Padding = new System.Windows.Forms.Padding(3);
@@ -181,6 +185,31 @@ namespace BecquerelMonitor
             this.calculateButton.Text = "Calculate from geometry";
             this.calculateButton.UseVisualStyleBackColor = true;
             this.calculateButton.Click += new System.EventHandler(this.calculateButton_Click);
+            //
+            // geometryNewButton
+            //
+            this.geometryNewButton.Anchor = ((System.Windows.Forms.AnchorStyles)
+                (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left));
+            this.geometryNewButton.Location = new System.Drawing.Point(223, 120);
+            this.geometryNewButton.Name = "geometryNewButton";
+            this.geometryNewButton.Size = new System.Drawing.Size(110, 26);
+            this.geometryNewButton.TabIndex = 6;
+            this.geometryNewButton.Text = BecquerelMonitor.Properties.Resources.GeometryEditorNew;
+            this.geometryNewButton.UseVisualStyleBackColor = true;
+            this.geometryNewButton.Click += new System.EventHandler(this.geometryNewButton_Click);
+            //
+            // geometryEditButton
+            //
+            this.geometryEditButton.Anchor = ((System.Windows.Forms.AnchorStyles)
+                (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left));
+            this.geometryEditButton.Enabled = false;
+            this.geometryEditButton.Location = new System.Drawing.Point(339, 120);
+            this.geometryEditButton.Name = "geometryEditButton";
+            this.geometryEditButton.Size = new System.Drawing.Size(110, 26);
+            this.geometryEditButton.TabIndex = 7;
+            this.geometryEditButton.Text = BecquerelMonitor.Properties.Resources.GeometryEditorEdit;
+            this.geometryEditButton.UseVisualStyleBackColor = true;
+            this.geometryEditButton.Click += new System.EventHandler(this.geometryEditButton_Click);
             //
             // tabPageFit
             //
@@ -656,6 +685,8 @@ namespace BecquerelMonitor
         System.Windows.Forms.Button geometryClearButton;
         System.Windows.Forms.Label calcHintLabel;
         System.Windows.Forms.Button calculateButton;
+        System.Windows.Forms.Button geometryNewButton;
+        System.Windows.Forms.Button geometryEditButton;
         System.Windows.Forms.GroupBox optionsGroupBox;
         System.Windows.Forms.Label chainsLabel;
         System.Windows.Forms.CheckedListBox chainsCheckedListBox;
