@@ -42495,4 +42495,13 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="GeometryEditorErrorNumber" xml:space="preserve">
     <value>Some values are not numbers - they are highlighted. An unreadable value would silently become zero.</value>
   </data>
+  <data name="GeometryWarningNoMaterial" xml:space="preserve">
+    <value>WARNING - {0}: thickness {1} cm is set, but the material has no density or composition. The layer is treated as vacuum; otherwise the surrounding layer would silently fill its place.</value>
+  </data>
+  <data name="GeometryWarningAtomFractions" xml:space="preserve">
+    <value>{0}: fractions are atomic (FractionType = ATOM), converted to mass fractions.</value>
+  </data>
+  <data name="GeometryWarningFractionType" xml:space="preserve">
+    <value>WARNING - {0}: unknown fraction type "{1}", read as mass fractions.</value>
+  </data>
 </root>

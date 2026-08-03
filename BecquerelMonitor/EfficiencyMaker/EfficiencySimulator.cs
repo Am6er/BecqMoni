@@ -269,9 +269,35 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
         }
 
+        /// <summary>
+        /// Вещество слоя или ПУСТОТА, если его в файле нет.
+        ///
+        /// Пустота, а не «ничего»: области сцены вложены и ищутся по порядку, и
+        /// пропущенный слой не исчезает, а замещается слоем СНАРУЖИ. Забыли
+        /// плотность отражателя — и на его месте оказывается алюминий корпуса,
+        /// который тяжелее; расчёт доводится до конца и выдаёт чужую кривую.
+        /// Поэтому слой всё равно занимает своё место, но не поглощает.
+        /// О самой пропаже говорит GeometryModel.Warnings.
+        /// </summary>
+        static GeometryMaterial OrVacuum(GeometryMaterial material)
+        {
+            if (material != null && material.Density > 0.0 && material.Fractions.Count > 0)
+            {
+                return material;
+            }
+
+            GeometryMaterial vacuum = new GeometryMaterial { Name = "vacuum", Density = 1e-10 };
+            vacuum.Fractions[1] = 1.0;
+            return vacuum;
+        }
+
         void Build()
         {
             GeometryModel g = this.geometry;
+            GeometryMaterial reflector = OrVacuum(g.Reflector);
+            GeometryMaterial cladding = OrVacuum(g.Cladding);
+            GeometryMaterial beakerWall = OrVacuum(g.BeakerWall);
+            GeometryMaterial sample = OrVacuum(g.Source);
             double rc = 0.5 * g.CrystalDiameter;
             double hc = g.CrystalHeight;
             double tfr = g.FrontReflectorThickness, tsr = g.SideReflectorThickness;
@@ -293,17 +319,17 @@ namespace BecquerelMonitor.EfficiencyMaker
                 double ax = 0.5 * g.CrystalBoxX, ay = 0.5 * g.CrystalBoxY;
                 hc = g.CrystalBoxZ;
                 this.AddBox(ax, ay, 0.0, hc, g.Crystal, true);
-                this.AddBox(ax, ay, -tfr, 0.0, g.Reflector, false);
-                this.AddBox(ax + tsr, ay + tsr, -tfr, hc, g.Reflector, false);
-                this.AddBox(ax + tsr + tsc, ay + tsr + tsc, -(tfr + tfc), -tfr, g.Cladding, false);
-                this.AddBox(ax + tsr + tsc, ay + tsr + tsc, -tfr, hc, g.Cladding, false);
+                this.AddBox(ax, ay, -tfr, 0.0, reflector, false);
+                this.AddBox(ax + tsr, ay + tsr, -tfr, hc, reflector, false);
+                this.AddBox(ax + tsr + tsc, ay + tsr + tsc, -(tfr + tfc), -tfr, cladding, false);
+                this.AddBox(ax + tsr + tsc, ay + tsr + tsc, -tfr, hc, cladding, false);
                 if (this.MountingInFront && tm > 0.0)
                 {
-                    this.AddBox(ax + tsr + tsc, ay + tsr + tsc, zFace, -(tfr + tfc), g.Cladding, false);
+                    this.AddBox(ax + tsr + tsc, ay + tsr + tsc, zFace, -(tfr + tfc), cladding, false);
                 }
                 else if (tm > 0.0)
                 {
-                    this.AddBox(ax + tsr + tsc, ay + tsr + tsc, hc, hc + tm, g.Cladding, false);
+                    this.AddBox(ax + tsr + tsc, ay + tsr + tsc, hc, hc + tm, cladding, false);
                 }
 
                 double bx = ax + tsr + tsc, by = ay + tsr + tsc;
@@ -312,17 +338,17 @@ namespace BecquerelMonitor.EfficiencyMaker
             else
             {
                 this.Add(0.0, rc, 0.0, hc, g.Crystal, true);
-                this.Add(0.0, rc, -tfr, 0.0, g.Reflector, false);
-                this.Add(rc, rc + tsr, -tfr, hc, g.Reflector, false);
-                this.Add(0.0, rDet, -(tfr + tfc), -tfr, g.Cladding, false);
-                this.Add(rc + tsr, rDet, -tfr, hc, g.Cladding, false);
+                this.Add(0.0, rc, -tfr, 0.0, reflector, false);
+                this.Add(rc, rc + tsr, -tfr, hc, reflector, false);
+                this.Add(0.0, rDet, -(tfr + tfc), -tfr, cladding, false);
+                this.Add(rc + tsr, rDet, -tfr, hc, cladding, false);
                 if (this.MountingInFront && tm > 0.0)
                 {
-                    this.Add(0.0, rDet, zFace, -(tfr + tfc), g.Cladding, false);
+                    this.Add(0.0, rDet, zFace, -(tfr + tfc), cladding, false);
                 }
                 else if (tm > 0.0)
                 {
-                    this.Add(0.0, rDet, hc, hc + tm, g.Cladding, false);
+                    this.Add(0.0, rDet, hc, hc + tm, cladding, false);
                 }
 
                 transverse = rDet;
@@ -346,9 +372,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                     double zWallBottom = zWallTop - g.BeakerEndWallThickness;
                     double zSrcTop = zWallBottom;
                     double zSrcBottom = zSrcTop - g.SourceHeight;
-                    this.Add(0.0, rOut, zWallBottom, zWallTop, g.BeakerWall, false);
-                    this.Add(rIn, rOut, zSrcBottom, zSrcTop, g.BeakerWall, false);
-                    this.Add(0.0, rIn, zSrcBottom, zSrcTop, g.Source, false);
+                    this.Add(0.0, rOut, zWallBottom, zWallTop, beakerWall, false);
+                    this.Add(rIn, rOut, zSrcBottom, zSrcTop, beakerWall, false);
+                    this.Add(0.0, rIn, zSrcBottom, zSrcTop, sample, false);
                     this.source = new CylinderSampler(rIn, zSrcBottom, zSrcTop);
                     break;
                 }
@@ -370,11 +396,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                     double cap = Math.Max(0.0, hs - hh);        // проба над потолком колодца
                     double zSrc0 = zCeiling - the - cap;
 
-                    this.Add(0.0, rh + ths, zCeiling - the, zCeiling, g.BeakerWall, false);
-                    this.Add(rh, rh + ths, zCeiling, zCeiling + hh, g.BeakerWall, false);
-                    this.Add(rSrcOut, rOut, zSrc0, zSrc0 + hs, g.BeakerWall, false);
-                    this.Add(0.0, rh + ths, zSrc0, zCeiling - the, g.Source, false);
-                    this.Add(rh + ths, rSrcOut, zSrc0, zSrc0 + hs, g.Source, false);
+                    this.Add(0.0, rh + ths, zCeiling - the, zCeiling, beakerWall, false);
+                    this.Add(rh, rh + ths, zCeiling, zCeiling + hh, beakerWall, false);
+                    this.Add(rSrcOut, rOut, zSrc0, zSrc0 + hs, beakerWall, false);
+                    this.Add(0.0, rh + ths, zSrc0, zCeiling - the, sample, false);
+                    this.Add(rh + ths, rSrcOut, zSrc0, zSrc0 + hs, sample, false);
                     this.source = new MarinelliSampler(rh + ths, rSrcOut, zSrc0, zSrc0 + hs,
                                                        zCeiling - the);
                     break;

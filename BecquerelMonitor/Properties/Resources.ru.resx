@@ -1110,4 +1110,13 @@
   <data name="GeometryEditorErrorNumber" xml:space="preserve">
     <value>Некоторые значения не числа - они подсвечены. Непрочитанное значение молча стало бы нулём.</value>
   </data>
+  <data name="GeometryWarningNoMaterial" xml:space="preserve">
+    <value>ВНИМАНИЕ — {0}: толщина {1} см задана, а плотности или состава у вещества нет. Слой считается пустотой; иначе его место молча занял бы слой снаружи.</value>
+  </data>
+  <data name="GeometryWarningAtomFractions" xml:space="preserve">
+    <value>{0}: доли атомные (FractionType = ATOM), пересчитаны в массовые.</value>
+  </data>
+  <data name="GeometryWarningFractionType" xml:space="preserve">
+    <value>ВНИМАНИЕ — {0}: неизвестный тип долей «{1}», прочитаны как массовые.</value>
+  </data>
 </root>

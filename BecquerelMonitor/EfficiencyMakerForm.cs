@@ -215,6 +215,13 @@ namespace BecquerelMonitor
                 this.calculateButton.Enabled = true;
                 this.geometryEditButton.Enabled = true;
                 AppendLog(string.Format(Resources.EfficiencyMakerGeometryLoaded, model.Describe()));
+                // Предупреждения разбора видны сразу при выборе файла, а не
+                // только когда дойдёт до счёта: подмена слоя или атомные доли
+                // меняют результат, и знать о них надо до запуска.
+                foreach (string warning in model.Warnings)
+                {
+                    AppendLog(warning);
+                }
                 if (string.IsNullOrEmpty(this.outputTextBox.Text))
                 {
                     this.outputTextBox.Text = Path.Combine(
@@ -280,6 +287,13 @@ namespace BecquerelMonitor
                 this.calculateButton.Enabled = true;
                 this.geometryEditButton.Enabled = true;
                 AppendLog(string.Format(Resources.EfficiencyMakerGeometryLoaded, model.Describe()));
+                // Предупреждения разбора видны сразу при выборе файла, а не
+                // только когда дойдёт до счёта: подмена слоя или атомные доли
+                // меняют результат, и знать о них надо до запуска.
+                foreach (string warning in model.Warnings)
+                {
+                    AppendLog(warning);
+                }
                 if (string.IsNullOrEmpty(this.outputTextBox.Text))
                 {
                     this.outputTextBox.Text = Path.Combine(

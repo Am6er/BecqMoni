@@ -3568,5 +3568,23 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("GeometryEditorErrorNumber", resourceCulture);
             }
         }
+
+        public static string GeometryWarningNoMaterial {
+            get {
+                return ResourceManager.GetString("GeometryWarningNoMaterial", resourceCulture);
+            }
+        }
+
+        public static string GeometryWarningAtomFractions {
+            get {
+                return ResourceManager.GetString("GeometryWarningAtomFractions", resourceCulture);
+            }
+        }
+
+        public static string GeometryWarningFractionType {
+            get {
+                return ResourceManager.GetString("GeometryWarningFractionType", resourceCulture);
+            }
+        }
 }
 }
