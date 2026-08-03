@@ -3586,5 +3586,11 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("GeometryWarningFractionType", resourceCulture);
             }
         }
+
+        public static string EfficiencyMakerGraphDiffNoResult {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGraphDiffNoResult", resourceCulture);
+            }
+        }
 }
 }
