@@ -87,10 +87,14 @@ namespace BecquerelMonitor
             this.spectrumColumn.HeaderText = Resources.EfficiencyMakerColumnSpectrum;
             this.nuclideSetColumn.HeaderText = Resources.EfficiencyMakerColumnNuclideSet;
             this.nuclideSetColumn.Items.Clear();
-            // Пустая строка — законный выбор: спектр, которому набор не назначен,
-            // в счёт не идёт. Убрать его из пачки не всегда удобно, а считать по
-            // чужому набору нельзя.
-            this.nuclideSetColumn.Items.Add("");
+            // Первая строка — вся библиотека: в спектре ищутся линии всех
+            // наборов, и каждый набор входит своей серией со своей свободной
+            // активностью. Так работал прежний вариант, когда не отмечали
+            // ничего, и это разумное умолчание — спектр не выпадает из счёта
+            // только потому, что его забыли разметить. Разметка нужна, когда
+            // известно, ЧТО в пробе: лишние наборы дают лишние серии, а слабая
+            // серия отбрасывается по разбросу и тратит линии впустую.
+            this.nuclideSetColumn.Items.Add(Resources.EfficiencyMakerWholeLibrary);
             foreach (string name in this.chainNames)
             {
                 this.nuclideSetColumn.Items.Add(name);
@@ -121,14 +125,14 @@ namespace BecquerelMonitor
                 {
                     if (found != null)
                     {
-                        return "";
+                        return Resources.EfficiencyMakerWholeLibrary;
                     }
 
                     found = chain;
                 }
             }
 
-            return found ?? "";
+            return found ?? Resources.EfficiencyMakerWholeLibrary;
         }
 
         static string Simplify(string value)
@@ -527,10 +531,12 @@ namespace BecquerelMonitor
                     continue;
                 }
 
-                input.ChainsBySpectrum[path] = string.IsNullOrEmpty(chain)
-                    ? new List<string>()
+                bool whole = string.IsNullOrEmpty(chain)
+                             || chain == Resources.EfficiencyMakerWholeLibrary;
+                input.ChainsBySpectrum[path] = whole
+                    ? new List<string>(this.chainNames)
                     : new List<string> { chain };
-                if (!string.IsNullOrEmpty(chain))
+                if (input.ChainsBySpectrum[path].Count > 0)
                 {
                     assigned++;
                 }
