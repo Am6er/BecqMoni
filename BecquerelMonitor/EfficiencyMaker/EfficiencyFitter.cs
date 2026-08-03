@@ -1351,7 +1351,15 @@ namespace BecquerelMonitor.EfficiencyMaker
         {
             try
             {
-                double channel = calibration.EnergyToChannel(energy);
+                // Число каналов обязательно передавать. Без него калибровка
+                // берёт своё умолчание 8192, продолжает полином далеко за конец
+                // спектра и объявляет верхом шкалы значение В ЭТОЙ точке. У
+                // кубической калибровки с отрицательным старшим коэффициентом
+                // (обычное дело у сцинтиллятора) продолжение уходит в минус —
+                // и тогда ЛЮБАЯ энергия оказывается «выше верха шкалы», а
+                // EnergyToChannel возвращает последний канал. Все линии подряд
+                // выпадают за спектр, и разбор молча даёт «0 lines measured».
+                double channel = calibration.EnergyToChannel(energy, channels);
                 if (double.IsNaN(channel) || channel < 0.0 || channel > channels - 1)
                 {
                     return double.NaN;
