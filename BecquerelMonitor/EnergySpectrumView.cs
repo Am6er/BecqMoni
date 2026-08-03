@@ -1216,6 +1216,13 @@ namespace BecquerelMonitor
                 sa.Dispose();
             }
 
+            if (this.backgroundMode == BackgroundMode.ShowFSA)
+            {
+                // Полноспектральное разложение считается в фоне: здесь оно
+                // только ставится в очередь, если устарело.
+                this.UpdateFsaOverlay();
+            }
+
             if (this.backgroundMode == BackgroundMode.NormalizeByEfficiency)
             {
                 ROIConfigData roi = this.activeResultData.ROIConfig;
@@ -1367,6 +1374,11 @@ namespace BecquerelMonitor
                 }
             }
 
+            // Модель разложения может подниматься выше самого спектра (например
+            // на плохо описанном пике): без неё в границах верх стека уходит за
+            // край поля и его нельзя ни увидеть, ни отскроллить.
+            this.ExtendBoundariesWithFsaModel(0, this.numberOfChannels - 1, ref this.totalMaxValue);
+
             if (this.verticalUnit == VerticalUnit.Counts)
             {
                 if (this.totalMaxValue < 1.0)
@@ -1448,6 +1460,8 @@ namespace BecquerelMonitor
                     this.minValue = channelValue;
                 }
             }
+
+            this.ExtendBoundariesWithFsaModel(this.minChannel, this.maxChannel, ref this.maxValue);
 
             if (this.minValue == double.PositiveInfinity)
             {
@@ -1807,7 +1821,11 @@ namespace BecquerelMonitor
                             }
                         }
 
-                        if (this.energySpectrum.MeasurementTime != 0.0)
+                        if (this.IsFsaVisible())
+                        {
+                            this.ShowFsaOverlay(g);
+                        }
+                        else if (this.energySpectrum.MeasurementTime != 0.0)
                         {
                             int alpha2 = (int)(colorConfig.ActiveSpectrumColorTransparency * 255m / 100m);
                             Color color = this.backgroundMode == BackgroundMode.Substract
@@ -1826,7 +1844,11 @@ namespace BecquerelMonitor
                     else
                     {
                         // draw active spectrum first, then background/continuum
-                        if (this.energySpectrum.MeasurementTime != 0.0)
+                        if (this.IsFsaVisible())
+                        {
+                            this.ShowFsaOverlay(g);
+                        }
+                        else if (this.energySpectrum.MeasurementTime != 0.0)
                         {
                             int alpha3 = (int)(colorConfig.ActiveSpectrumColorTransparency * 255m / 100m);
                             Color color = this.backgroundMode == BackgroundMode.Substract
@@ -1900,7 +1922,11 @@ namespace BecquerelMonitor
                             this.DrawPeakOutline(g, this.peakEnergySpectrum[i]);
                         }
                     }
-                    if (this.energySpectrum.MeasurementTime != 0.0)
+                    if (this.IsFsaVisible())
+                    {
+                        this.ShowFsaOverlay(g);
+                    }
+                    else if (this.energySpectrum.MeasurementTime != 0.0)
                     {
                         Color color = this.backgroundMode == BackgroundMode.Substract
                             ? colorConfig.BgDiffColor.Color
@@ -3694,7 +3720,15 @@ namespace BecquerelMonitor
                     num4 = (int)(((num5 - this.energyViewOffset) * this.pixelPerEnergy + 0.5) * this.horizontalScale + (double)this.scrollX + (double)this.left);
                 }
                 double num6 = 0.0;
-                if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0
+                if (this.IsFsaVisible() && this.FsaNetSpectrum != null && channel2 < this.FsaNetSpectrum.Length)
+                {
+                    // В режиме разложения на графике нарисован спектр ЗА ВЫЧЕТОМ
+                    // фона — метка пика должна упираться в ту же кривую, иначе
+                    // она висит над ней на величину фона (на слабых пробах это
+                    // 13-50 % высоты пика).
+                    num6 = this.FsaNetSpectrum[channel2];
+                }
+                else if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0
                     && this.substractedEnergySpectrum != null)
                 {
                     num6 = this.substractedEnergySpectrum.DrawingSpectrum[channel2];
@@ -3923,6 +3957,7 @@ namespace BecquerelMonitor
                     : region_table_x_pos;
             }
             int table_y_pos = 10;
+            this.ResetCursorPanelBounds(channel_table_x_pos - 3, table_y_pos - 3);
             ColorConfig colorConfig = this.globalConfigManager.GlobalConfig.ColorConfig;
             if (this.validCursor && this.cursorChannel >= 0 &&
                 this.cursorChannel < this.energySpectrum.NumberOfChannels &&
@@ -3962,6 +3997,7 @@ namespace BecquerelMonitor
                 g.FillRectangle(Brushes.DarkGray, channel_table_x_pos, table_y_pos, table_width_origin, table_heigth);
                 g.FillRectangle(Brushes.White, channel_table_x_pos - 3, table_y_pos - 3, table_width_origin, table_heigth);
                 g.DrawRectangle(Pens.Black, channel_table_x_pos - 3, table_y_pos - 3, table_width_origin, table_heigth);
+                this.RegisterCursorPanel(channel_table_x_pos - 3, table_y_pos - 3, table_heigth);
                 Rectangle r = new Rectangle(channel_table_x_pos + 5, table_y_pos + 4, table_width_origin - 12, 32);
                 g.DrawString(Resources.ChartHeaderChannel, this.Font, Brushes.Black, r);
                 g.DrawString(this.cursorChannel.ToString(intFormat), this.Font, Brushes.Black, r, this.farFormat);
@@ -4063,6 +4099,7 @@ namespace BecquerelMonitor
                 g.FillRectangle(Brushes.DarkGray, region_table_x_pos, table_y_pos, table_width_origin, infopanel_height);
                 g.FillRectangle(Brushes.White, region_table_x_pos - 3, table_y_pos - 3, table_width_origin, infopanel_height);
                 g.DrawRectangle(Pens.Black, region_table_x_pos - 3, table_y_pos - 3, table_width_origin, infopanel_height);
+                this.RegisterCursorPanel(region_table_x_pos - 3, table_y_pos - 3, infopanel_height);
                 Rectangle r2 = new Rectangle(region_table_x_pos + 5, table_y_pos + 4, table_width_origin - 12, 32);
                 g.DrawString(Resources.ChartHeaderSelection, this.Font, Brushes.Black, r2);
                 r2.Y += 22;
@@ -4206,6 +4243,9 @@ namespace BecquerelMonitor
 
                 }
             }
+
+            // Состав разложения — одной таблицей под всеми панелями курсора.
+            this.ShowFsaTable(g, table_width_origin);
         }
 
         double Log10(double x)

@@ -301,6 +301,17 @@
     <Compile Include="EnergyResolutionCalculator.cs" />
     <Compile Include="EnergyResolutionResult.cs" />
     <Compile Include="EnergySpectrum.cs" />
+    <Compile Include="EnergySpectrumView.Fsa.cs">
+      <DependentUpon>EnergySpectrumView.cs</DependentUpon>
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="FullSpectrumAnalysis\FsaAnalyzer.cs" />
+    <Compile Include="FullSpectrumAnalysis\FsaComponent.cs" />
+    <Compile Include="FullSpectrumAnalysis\FsaEfficiency.cs" />
+    <Compile Include="FullSpectrumAnalysis\FsaLibrary.cs" />
+    <Compile Include="FullSpectrumAnalysis\FsaOverlay.cs" />
+    <Compile Include="FullSpectrumAnalysis\FsaPalette.cs" />
+    <Compile Include="FullSpectrumAnalysis\FsaResult.cs" />
     <Compile Include="EnergySpectrumView.cs">
       <SubType>UserControl</SubType>
     </Compile>
