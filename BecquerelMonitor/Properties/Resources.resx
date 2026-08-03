@@ -42348,4 +42348,148 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="EfficiencyMakerReasonImpossibleLog" xml:space="preserve">
     <value>{0}: {1:F1} keV dropped, eps={2:F2} &gt; 1</value>
   </data>
+  <data name="GeometryEditorTitle" xml:space="preserve">
+    <value>Geometry editor</value>
+  </data>
+  <data name="GeometryEditorTabDetector" xml:space="preserve">
+    <value>Detector</value>
+  </data>
+  <data name="GeometryEditorTabSource" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="GeometryEditorFile" xml:space="preserve">
+    <value>Geometry file:</value>
+  </data>
+  <data name="GeometryEditorBrowse" xml:space="preserve">
+    <value>Browse...</value>
+  </data>
+  <data name="GeometryEditorSave" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="GeometryEditorCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="GeometryEditorNew" xml:space="preserve">
+    <value>New...</value>
+  </data>
+  <data name="GeometryEditorEdit" xml:space="preserve">
+    <value>Edit...</value>
+  </data>
+  <data name="GeometryEditorShapeCylinder" xml:space="preserve">
+    <value>Cylindrical crystal</value>
+  </data>
+  <data name="GeometryEditorShapeBox" xml:space="preserve">
+    <value>Rectangular crystal</value>
+  </data>
+  <data name="GeometryEditorCrystalDiameter" xml:space="preserve">
+    <value>Crystal diameter</value>
+  </data>
+  <data name="GeometryEditorCrystalHeight" xml:space="preserve">
+    <value>Crystal length</value>
+  </data>
+  <data name="GeometryEditorBoxX" xml:space="preserve">
+    <value>Crystal X (face)</value>
+  </data>
+  <data name="GeometryEditorBoxY" xml:space="preserve">
+    <value>Crystal Y (face)</value>
+  </data>
+  <data name="GeometryEditorBoxZ" xml:space="preserve">
+    <value>Crystal Z (along the axis)</value>
+  </data>
+  <data name="GeometryEditorEquivalent" xml:space="preserve">
+    <value>Equivalent cylinder for the .in file: D = {0:F4} cm (equal face area, the LSRM rule). Crystal volume {1:F3} cm3.</value>
+  </data>
+  <data name="GeometryEditorFrontReflector" xml:space="preserve">
+    <value>Crystal front reflector thickness</value>
+  </data>
+  <data name="GeometryEditorSideReflector" xml:space="preserve">
+    <value>Crystal side reflector thickness</value>
+  </data>
+  <data name="GeometryEditorFrontCladding" xml:space="preserve">
+    <value>Crystal front cladding thickness</value>
+  </data>
+  <data name="GeometryEditorSideCladding" xml:space="preserve">
+    <value>Crystal side cladding thickness</value>
+  </data>
+  <data name="GeometryEditorMounting" xml:space="preserve">
+    <value>Detector mounting thickness (behind the crystal)</value>
+  </data>
+  <data name="GeometryEditorCrystalMaterial" xml:space="preserve">
+    <value>Crystal</value>
+  </data>
+  <data name="GeometryEditorReflectorMaterial" xml:space="preserve">
+    <value>Reflector</value>
+  </data>
+  <data name="GeometryEditorCladdingMaterial" xml:space="preserve">
+    <value>Crystal cladding</value>
+  </data>
+  <data name="GeometryEditorSourceType" xml:space="preserve">
+    <value>Source type</value>
+  </data>
+  <data name="GeometryEditorSourcePoint" xml:space="preserve">
+    <value>Point</value>
+  </data>
+  <data name="GeometryEditorSourceCylinder" xml:space="preserve">
+    <value>Cylinder</value>
+  </data>
+  <data name="GeometryEditorSourceMarinelli" xml:space="preserve">
+    <value>Marinelli</value>
+  </data>
+  <data name="GeometryEditorPointDistance" xml:space="preserve">
+    <value>Distance to detector front</value>
+  </data>
+  <data name="GeometryEditorBeakerDiameter" xml:space="preserve">
+    <value>Beaker diameter</value>
+  </data>
+  <data name="GeometryEditorBeakerHeight" xml:space="preserve">
+    <value>Beaker height</value>
+  </data>
+  <data name="GeometryEditorBeakerSideWall" xml:space="preserve">
+    <value>Beaker side wall thickness</value>
+  </data>
+  <data name="GeometryEditorBeakerEndWall" xml:space="preserve">
+    <value>Beaker end wall thickness</value>
+  </data>
+  <data name="GeometryEditorSourceHeight" xml:space="preserve">
+    <value>Source height</value>
+  </data>
+  <data name="GeometryEditorBeakerToDetector" xml:space="preserve">
+    <value>Beaker to detector front distance</value>
+  </data>
+  <data name="GeometryEditorHoleDiameter" xml:space="preserve">
+    <value>Beaker hole diameter</value>
+  </data>
+  <data name="GeometryEditorHoleHeight" xml:space="preserve">
+    <value>Beaker hole height</value>
+  </data>
+  <data name="GeometryEditorHoleSideWall" xml:space="preserve">
+    <value>Beaker hole side thickness</value>
+  </data>
+  <data name="GeometryEditorHoleEndWall" xml:space="preserve">
+    <value>Beaker hole end wall thickness</value>
+  </data>
+  <data name="GeometryEditorWallMaterial" xml:space="preserve">
+    <value>Beaker wall</value>
+  </data>
+  <data name="GeometryEditorSourceMaterial" xml:space="preserve">
+    <value>Sample</value>
+  </data>
+  <data name="GeometryEditorUnitCm" xml:space="preserve">
+    <value>cm</value>
+  </data>
+  <data name="GeometryEditorUnitDensity" xml:space="preserve">
+    <value>g/cm3</value>
+  </data>
+  <data name="GeometryEditorErrorCrystal" xml:space="preserve">
+    <value>Crystal size must be greater than zero.</value>
+  </data>
+  <data name="GeometryEditorErrorDensity" xml:space="preserve">
+    <value>Crystal density must be greater than zero.</value>
+  </data>
+  <data name="GeometryEditorErrorMarinelliHole" xml:space="preserve">
+    <value>The Marinelli beaker diameter must be greater than the hole diameter.</value>
+  </data>
+  <data name="GeometryEditorErrorSourceSize" xml:space="preserve">
+    <value>Source size must be greater than zero.</value>
+  </data>
 </root>

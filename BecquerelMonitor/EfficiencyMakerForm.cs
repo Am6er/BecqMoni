@@ -213,6 +213,7 @@ namespace BecquerelMonitor
                 this.geometry = model;
                 this.geometryTextBox.Text = dialog.FileName;
                 this.calculateButton.Enabled = true;
+                this.geometryEditButton.Enabled = true;
                 AppendLog(string.Format(Resources.EfficiencyMakerGeometryLoaded, model.Describe()));
                 if (string.IsNullOrEmpty(this.outputTextBox.Text))
                 {
@@ -228,6 +229,64 @@ namespace BecquerelMonitor
             this.geometry = null;
             this.geometryTextBox.Text = "";
             this.calculateButton.Enabled = false;
+            this.geometryEditButton.Enabled = false;
+        }
+
+        /// <summary>
+        /// Своя геометрия. Формат `.in` умеет только цилиндры, а у половины
+        /// наших детекторов кристалл прямоугольный — конструктор задаёт форму
+        /// честно и попутно кладёт в файл равноценный цилиндр по правилу
+        /// самого LSRM, чтобы файл открывался и их программой.
+        /// </summary>
+        void geometryNewButton_Click(object sender, EventArgs e)
+        {
+            this.OpenEditor(null);
+        }
+
+        void geometryEditButton_Click(object sender, EventArgs e)
+        {
+            if (this.geometry == null)
+            {
+                return;
+            }
+
+            this.OpenEditor(this.geometry);
+        }
+
+        void OpenEditor(GeometryModel source)
+        {
+            using (GeometryEditorForm editor = new GeometryEditorForm(source))
+            {
+                if (editor.ShowDialog(this) != DialogResult.OK || string.IsNullOrEmpty(editor.SavedPath))
+                {
+                    return;
+                }
+
+                // Сохранённый файл сразу становится выбранным: иначе после
+                // конструктора пришлось бы искать его же кнопкой «Обзор».
+                GeometryModel model;
+                try
+                {
+                    model = GeometryModel.Load(editor.SavedPath);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(this, ex.Message, this.Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                this.geometry = model;
+                this.geometryTextBox.Text = editor.SavedPath;
+                this.calculateButton.Enabled = true;
+                this.geometryEditButton.Enabled = true;
+                AppendLog(string.Format(Resources.EfficiencyMakerGeometryLoaded, model.Describe()));
+                if (string.IsNullOrEmpty(this.outputTextBox.Text))
+                {
+                    this.outputTextBox.Text = Path.Combine(
+                        Path.GetDirectoryName(editor.SavedPath),
+                        Path.GetFileNameWithoutExtension(editor.SavedPath) + " (calculated).xml");
+                }
+            }
         }
 
         static string RoiConfigDirectory()

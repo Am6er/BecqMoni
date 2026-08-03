@@ -963,4 +963,148 @@
   <data name="EfficiencyMakerReasonImpossibleLog" xml:space="preserve">
     <value>{0}: {1:F1} кэВ снята, eps={2:F2} &gt; 1</value>
   </data>
+  <data name="GeometryEditorTitle" xml:space="preserve">
+    <value>Конструктор геометрии</value>
+  </data>
+  <data name="GeometryEditorTabDetector" xml:space="preserve">
+    <value>Детектор</value>
+  </data>
+  <data name="GeometryEditorTabSource" xml:space="preserve">
+    <value>Источник</value>
+  </data>
+  <data name="GeometryEditorFile" xml:space="preserve">
+    <value>Файл геометрии:</value>
+  </data>
+  <data name="GeometryEditorBrowse" xml:space="preserve">
+    <value>Обзор...</value>
+  </data>
+  <data name="GeometryEditorSave" xml:space="preserve">
+    <value>Сохранить</value>
+  </data>
+  <data name="GeometryEditorCancel" xml:space="preserve">
+    <value>Отмена</value>
+  </data>
+  <data name="GeometryEditorNew" xml:space="preserve">
+    <value>Создать...</value>
+  </data>
+  <data name="GeometryEditorEdit" xml:space="preserve">
+    <value>Правка...</value>
+  </data>
+  <data name="GeometryEditorShapeCylinder" xml:space="preserve">
+    <value>Кристалл — цилиндр</value>
+  </data>
+  <data name="GeometryEditorShapeBox" xml:space="preserve">
+    <value>Кристалл — параллелепипед</value>
+  </data>
+  <data name="GeometryEditorCrystalDiameter" xml:space="preserve">
+    <value>Диаметр кристалла</value>
+  </data>
+  <data name="GeometryEditorCrystalHeight" xml:space="preserve">
+    <value>Длина кристалла</value>
+  </data>
+  <data name="GeometryEditorBoxX" xml:space="preserve">
+    <value>Кристалл X (торец)</value>
+  </data>
+  <data name="GeometryEditorBoxY" xml:space="preserve">
+    <value>Кристалл Y (торец)</value>
+  </data>
+  <data name="GeometryEditorBoxZ" xml:space="preserve">
+    <value>Кристалл Z (вдоль оси)</value>
+  </data>
+  <data name="GeometryEditorEquivalent" xml:space="preserve">
+    <value>Равноценный цилиндр для файла .in: D = {0:F4} см (равная площадь торца, правило LSRM). Объём кристалла {1:F3} см3.</value>
+  </data>
+  <data name="GeometryEditorFrontReflector" xml:space="preserve">
+    <value>Отражатель с торца</value>
+  </data>
+  <data name="GeometryEditorSideReflector" xml:space="preserve">
+    <value>Отражатель сбоку</value>
+  </data>
+  <data name="GeometryEditorFrontCladding" xml:space="preserve">
+    <value>Корпус с торца</value>
+  </data>
+  <data name="GeometryEditorSideCladding" xml:space="preserve">
+    <value>Корпус сбоку</value>
+  </data>
+  <data name="GeometryEditorMounting" xml:space="preserve">
+    <value>Оправа детектора (за кристаллом)</value>
+  </data>
+  <data name="GeometryEditorCrystalMaterial" xml:space="preserve">
+    <value>Кристалл</value>
+  </data>
+  <data name="GeometryEditorReflectorMaterial" xml:space="preserve">
+    <value>Отражатель</value>
+  </data>
+  <data name="GeometryEditorCladdingMaterial" xml:space="preserve">
+    <value>Корпус кристалла</value>
+  </data>
+  <data name="GeometryEditorSourceType" xml:space="preserve">
+    <value>Тип источника</value>
+  </data>
+  <data name="GeometryEditorSourcePoint" xml:space="preserve">
+    <value>Точечный</value>
+  </data>
+  <data name="GeometryEditorSourceCylinder" xml:space="preserve">
+    <value>Цилиндр</value>
+  </data>
+  <data name="GeometryEditorSourceMarinelli" xml:space="preserve">
+    <value>Маринелли</value>
+  </data>
+  <data name="GeometryEditorPointDistance" xml:space="preserve">
+    <value>Расстояние до торца детектора</value>
+  </data>
+  <data name="GeometryEditorBeakerDiameter" xml:space="preserve">
+    <value>Диаметр сосуда</value>
+  </data>
+  <data name="GeometryEditorBeakerHeight" xml:space="preserve">
+    <value>Высота сосуда</value>
+  </data>
+  <data name="GeometryEditorBeakerSideWall" xml:space="preserve">
+    <value>Стенка сосуда сбоку</value>
+  </data>
+  <data name="GeometryEditorBeakerEndWall" xml:space="preserve">
+    <value>Стенка сосуда с торца</value>
+  </data>
+  <data name="GeometryEditorSourceHeight" xml:space="preserve">
+    <value>Высота пробы</value>
+  </data>
+  <data name="GeometryEditorBeakerToDetector" xml:space="preserve">
+    <value>От сосуда до торца детектора</value>
+  </data>
+  <data name="GeometryEditorHoleDiameter" xml:space="preserve">
+    <value>Диаметр колодца</value>
+  </data>
+  <data name="GeometryEditorHoleHeight" xml:space="preserve">
+    <value>Глубина колодца</value>
+  </data>
+  <data name="GeometryEditorHoleSideWall" xml:space="preserve">
+    <value>Стенка колодца сбоку</value>
+  </data>
+  <data name="GeometryEditorHoleEndWall" xml:space="preserve">
+    <value>Стенка колодца с торца</value>
+  </data>
+  <data name="GeometryEditorWallMaterial" xml:space="preserve">
+    <value>Стенка сосуда</value>
+  </data>
+  <data name="GeometryEditorSourceMaterial" xml:space="preserve">
+    <value>Проба</value>
+  </data>
+  <data name="GeometryEditorUnitCm" xml:space="preserve">
+    <value>см</value>
+  </data>
+  <data name="GeometryEditorUnitDensity" xml:space="preserve">
+    <value>г/см3</value>
+  </data>
+  <data name="GeometryEditorErrorCrystal" xml:space="preserve">
+    <value>Размер кристалла должен быть больше нуля.</value>
+  </data>
+  <data name="GeometryEditorErrorDensity" xml:space="preserve">
+    <value>Плотность кристалла должна быть больше нуля.</value>
+  </data>
+  <data name="GeometryEditorErrorMarinelliHole" xml:space="preserve">
+    <value>Диаметр стакана Маринелли должен быть больше диаметра колодца.</value>
+  </data>
+  <data name="GeometryEditorErrorSourceSize" xml:space="preserve">
+    <value>Размер источника должен быть больше нуля.</value>
+  </data>
 </root>

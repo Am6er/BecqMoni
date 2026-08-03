@@ -158,6 +158,17 @@ namespace BecquerelMonitor.EfficiencyMaker
         public GeometryMaterial BeakerWall = new GeometryMaterial();
         public GeometryMaterial Source = new GeometryMaterial();
 
+        /// <summary>
+        /// Все пары «ключ = значение» разобранного файла как есть.
+        ///
+        /// Нужны при ЗАПИСИ: редактор правит сцинтилляционную ветвь, а в файле
+        /// есть ещё коаксиальная и описания воздуха, которые мы не читаем и не
+        /// показываем. Перегенерировать их из ничего значило бы подменить чужие
+        /// числа своими умолчаниями, поэтому они переносятся отсюда дословно.
+        /// </summary>
+        public readonly Dictionary<string, string> Raw =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
         static readonly Regex Line = new Regex(@"^\s*([A-Za-z_][A-Za-z0-9_\[\]\.]*)\s*=\s*(.+?)\s*$",
                                                RegexOptions.Compiled);
 
@@ -176,6 +187,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             GeometryModel g = new GeometryModel();
+            foreach (KeyValuePair<string, string> pair in kv)
+            {
+                g.Raw[pair.Key] = pair.Value;
+            }
+
             g.Name = Path.GetFileNameWithoutExtension(path);
             g.IsScintillator = Get(kv, "DetectorType").IndexOf("SCINT", StringComparison.OrdinalIgnoreCase) >= 0;
 

@@ -3274,5 +3274,293 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("EfficiencyMakerReasonImpossibleLog", resourceCulture);
             }
         }
+
+        public static string GeometryEditorTitle {
+            get {
+                return ResourceManager.GetString("GeometryEditorTitle", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorTabDetector {
+            get {
+                return ResourceManager.GetString("GeometryEditorTabDetector", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorTabSource {
+            get {
+                return ResourceManager.GetString("GeometryEditorTabSource", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorFile {
+            get {
+                return ResourceManager.GetString("GeometryEditorFile", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorBrowse {
+            get {
+                return ResourceManager.GetString("GeometryEditorBrowse", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSave {
+            get {
+                return ResourceManager.GetString("GeometryEditorSave", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorCancel {
+            get {
+                return ResourceManager.GetString("GeometryEditorCancel", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorNew {
+            get {
+                return ResourceManager.GetString("GeometryEditorNew", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorEdit {
+            get {
+                return ResourceManager.GetString("GeometryEditorEdit", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorShapeCylinder {
+            get {
+                return ResourceManager.GetString("GeometryEditorShapeCylinder", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorShapeBox {
+            get {
+                return ResourceManager.GetString("GeometryEditorShapeBox", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorCrystalDiameter {
+            get {
+                return ResourceManager.GetString("GeometryEditorCrystalDiameter", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorCrystalHeight {
+            get {
+                return ResourceManager.GetString("GeometryEditorCrystalHeight", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorBoxX {
+            get {
+                return ResourceManager.GetString("GeometryEditorBoxX", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorBoxY {
+            get {
+                return ResourceManager.GetString("GeometryEditorBoxY", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorBoxZ {
+            get {
+                return ResourceManager.GetString("GeometryEditorBoxZ", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorEquivalent {
+            get {
+                return ResourceManager.GetString("GeometryEditorEquivalent", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorFrontReflector {
+            get {
+                return ResourceManager.GetString("GeometryEditorFrontReflector", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSideReflector {
+            get {
+                return ResourceManager.GetString("GeometryEditorSideReflector", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorFrontCladding {
+            get {
+                return ResourceManager.GetString("GeometryEditorFrontCladding", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSideCladding {
+            get {
+                return ResourceManager.GetString("GeometryEditorSideCladding", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorMounting {
+            get {
+                return ResourceManager.GetString("GeometryEditorMounting", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorCrystalMaterial {
+            get {
+                return ResourceManager.GetString("GeometryEditorCrystalMaterial", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorReflectorMaterial {
+            get {
+                return ResourceManager.GetString("GeometryEditorReflectorMaterial", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorCladdingMaterial {
+            get {
+                return ResourceManager.GetString("GeometryEditorCladdingMaterial", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSourceType {
+            get {
+                return ResourceManager.GetString("GeometryEditorSourceType", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSourcePoint {
+            get {
+                return ResourceManager.GetString("GeometryEditorSourcePoint", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSourceCylinder {
+            get {
+                return ResourceManager.GetString("GeometryEditorSourceCylinder", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSourceMarinelli {
+            get {
+                return ResourceManager.GetString("GeometryEditorSourceMarinelli", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorPointDistance {
+            get {
+                return ResourceManager.GetString("GeometryEditorPointDistance", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorBeakerDiameter {
+            get {
+                return ResourceManager.GetString("GeometryEditorBeakerDiameter", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorBeakerHeight {
+            get {
+                return ResourceManager.GetString("GeometryEditorBeakerHeight", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorBeakerSideWall {
+            get {
+                return ResourceManager.GetString("GeometryEditorBeakerSideWall", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorBeakerEndWall {
+            get {
+                return ResourceManager.GetString("GeometryEditorBeakerEndWall", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSourceHeight {
+            get {
+                return ResourceManager.GetString("GeometryEditorSourceHeight", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorBeakerToDetector {
+            get {
+                return ResourceManager.GetString("GeometryEditorBeakerToDetector", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorHoleDiameter {
+            get {
+                return ResourceManager.GetString("GeometryEditorHoleDiameter", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorHoleHeight {
+            get {
+                return ResourceManager.GetString("GeometryEditorHoleHeight", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorHoleSideWall {
+            get {
+                return ResourceManager.GetString("GeometryEditorHoleSideWall", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorHoleEndWall {
+            get {
+                return ResourceManager.GetString("GeometryEditorHoleEndWall", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorWallMaterial {
+            get {
+                return ResourceManager.GetString("GeometryEditorWallMaterial", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSourceMaterial {
+            get {
+                return ResourceManager.GetString("GeometryEditorSourceMaterial", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorUnitCm {
+            get {
+                return ResourceManager.GetString("GeometryEditorUnitCm", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorUnitDensity {
+            get {
+                return ResourceManager.GetString("GeometryEditorUnitDensity", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorErrorCrystal {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorCrystal", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorErrorDensity {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorDensity", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorErrorMarinelliHole {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorMarinelliHole", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorErrorSourceSize {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorSourceSize", resourceCulture);
+            }
+        }
 }
 }
