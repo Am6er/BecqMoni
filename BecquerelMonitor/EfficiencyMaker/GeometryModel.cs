@@ -238,14 +238,65 @@ namespace BecquerelMonitor.EfficiencyMaker
             // и брать цилиндрический для маринеллевской геометрии нельзя.
             g.MarinelliToDetectorDistance = Num(kv, "SM_BeakerToDetectorFrontDistance");
 
-            g.Crystal = Material(kv, "DS_", "Crystal", "M_DS_Crystal.MName");
-            g.Reflector = Material(kv, "DS_", "CrystalReflector", "M_DS_Reflector.MName");
-            g.Cladding = Material(kv, "DS_", "CrystalCladding", "M_DS_Crystal_Cladding.MName");
+            // Ключ типа долей у отражателя называется DS_FractionTypeReflector,
+            // без Crystal, — в отличие от остальных. Так в формате.
+            g.Crystal = Material(kv, "DS_", "Crystal", "M_DS_Crystal.MName",
+                                 "DS_FractionTypeCrystal", g.Warnings);
+            g.Reflector = Material(kv, "DS_", "CrystalReflector", "M_DS_Reflector.MName",
+                                   "DS_FractionTypeReflector", g.Warnings);
+            g.Cladding = Material(kv, "DS_", "CrystalCladding", "M_DS_Crystal_Cladding.MName",
+                                  "DS_FractionTypeCrystalCladding", g.Warnings);
 
             string prefix = g.SourceType == GeometrySourceType.Marinelli ? "SM_" : "SC_";
-            g.BeakerWall = Material(kv, prefix, "Wall", "M_" + prefix + "Beaker.MName");
-            g.Source = Material(kv, prefix, "Source", "M_" + prefix + "Source.MName");
+            g.BeakerWall = Material(kv, prefix, "Wall", "M_" + prefix + "Beaker.MName",
+                                    prefix + "FractionTypeWall", g.Warnings);
+            g.Source = Material(kv, prefix, "Source", "M_" + prefix + "Source.MName",
+                                prefix + "FractionTypeSource", g.Warnings);
+            g.CheckLayers();
             return g;
+        }
+
+        /// <summary>
+        /// Что в разобранном файле выглядит подозрительно. Пусто, если всё ясно.
+        ///
+        /// Заводится не «на всякий случай»: у обеих проверок ниже есть читатель
+        /// — расчёт печатает это в журнал прогона, а конструктор кривой в свой.
+        /// </summary>
+        public readonly List<string> Warnings = new List<string>();
+
+        /// <summary>
+        /// Слой с толщиной, но без вещества. Разбирать это молча нельзя: области
+        /// сцены вложены и ищутся по порядку, поэтому слой без плотности не
+        /// исчезает, а ЗАМЕЩАЕТСЯ слоем снаружи — забыл плотность отражателя, и
+        /// на его месте оказался алюминий корпуса, который тяжелее. Расчёт при
+        /// этом доводится до конца и выдаёт правдоподобную, но чужую кривую.
+        /// </summary>
+        void CheckLayers()
+        {
+            Action<double, GeometryMaterial, string> check = (thickness, material, caption) =>
+            {
+                if (thickness > 0.0 && (material == null || !(material.Density > 0.0)
+                                        || material.Fractions.Count == 0))
+                {
+                    this.Warnings.Add(string.Format(CultureInfo.InvariantCulture,
+                        Properties.Resources.GeometryWarningNoMaterial, caption, thickness));
+                }
+            };
+
+            check(Math.Max(this.FrontReflectorThickness, this.SideReflectorThickness),
+                  this.Reflector, Properties.Resources.GeometryEditorReflectorMaterial);
+            check(Math.Max(this.FrontCladdingThickness, this.SideCladdingThickness),
+                  this.Cladding, Properties.Resources.GeometryEditorCladdingMaterial);
+
+            double wall = this.SourceType == GeometrySourceType.Marinelli
+                ? Math.Max(this.MarinelliSideThickness, this.MarinelliHoleSideThickness)
+                : Math.Max(this.BeakerSideWallThickness, this.BeakerEndWallThickness);
+            check(wall, this.BeakerWall, Properties.Resources.GeometryEditorWallMaterial);
+
+            double sample = this.SourceType == GeometrySourceType.Marinelli
+                ? this.MarinelliSourceHeight
+                : this.SourceType == GeometrySourceType.Cylinder ? this.SourceHeight : 0.0;
+            check(sample, this.Source, Properties.Resources.GeometryEditorSourceMaterial);
         }
 
         static string Get(Dictionary<string, string> kv, string key)
@@ -275,15 +326,17 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// `<prefix>Ro<part>` — плотность, `<prefix>Z<part>[i]` — номер элемента,
         /// `<prefix>Fractions<part>[i]` — его массовая доля.
         ///
-        /// Доли именно МАССОВЫЕ: в редакторе материалов конструктора геометрий
-        /// LSRM колонка так и подписана — «Weight fract», а рядом в файле стоит
-        /// `<prefix>FractionType<part> = MASS`. Ключ FractionType здесь не
-        /// читается, потому что во всех восьми поставочных файлах он MASS; если
-        /// когда-нибудь попадётся ATOM, разбор промолчит и посчитает неверно —
-        /// это известный незакрытый случай, а не недосмотр.
+        /// Тип долей задан ключом `<prefix>FractionType<part>`. Во всех восьми
+        /// поставочных файлах он MASS — так же, как подписана колонка «Weight
+        /// fract» в редакторе материалов LSRM. Но ATOM формат допускает, и
+        /// прочитать атомные доли как массовые значит посчитать неверно и
+        /// молча: у иодида цезия атомные 0.5/0.5 против массовых 0.488/0.512,
+        /// а у чего-нибудь вроде Bi4Ge3O12 разница уже в разы. Поэтому ATOM
+        /// пересчитывается в массовые, а незнакомое значение — повод сказать.
         /// </summary>
         static GeometryMaterial Material(Dictionary<string, string> kv, string prefix,
-                                         string part, string nameKey)
+                                         string part, string nameKey, string fractionTypeKey,
+                                         List<string> warnings)
         {
             GeometryMaterial m = new GeometryMaterial();
             m.Name = Get(kv, nameKey).Trim();
@@ -307,7 +360,61 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
             }
 
+            string type = Get(kv, fractionTypeKey).Trim().ToUpperInvariant();
+            if (type.StartsWith("ATOM"))
+            {
+                ToMassFractions(m);
+                if (warnings != null)
+                {
+                    warnings.Add(string.Format(CultureInfo.InvariantCulture,
+                        Properties.Resources.GeometryWarningAtomFractions,
+                        m.Name.Length > 0 ? m.Name : part));
+                }
+            }
+            else if (type.Length > 0 && !type.StartsWith("MASS") && warnings != null)
+            {
+                warnings.Add(string.Format(CultureInfo.InvariantCulture,
+                    Properties.Resources.GeometryWarningFractionType,
+                    m.Name.Length > 0 ? m.Name : part, type));
+            }
+
             return m;
+        }
+
+        /// <summary>
+        /// Атомные доли -> массовые: доля умножается на атомную массу и всё
+        /// нормируется заново. Обратное преобразование делать нечем и незачем —
+        /// весь расчёт ослабления стоит на массовых долях (правило Брэгга).
+        /// </summary>
+        static void ToMassFractions(GeometryMaterial m)
+        {
+            Dictionary<int, double> mass = new Dictionary<int, double>();
+            double total = 0.0;
+            foreach (KeyValuePair<int, double> pair in m.Fractions)
+            {
+                double atomic;
+                if (!AttenuationData.AtomicMass.TryGetValue(pair.Key, out atomic) || !(atomic > 0.0))
+                {
+                    // Элемента нет в таблице масс — пересчитать нечем; оставляем
+                    // состав как есть, о самом элементе скажет IsKnown.
+                    return;
+                }
+
+                double weight = pair.Value * atomic;
+                mass[pair.Key] = weight;
+                total += weight;
+            }
+
+            if (!(total > 0.0))
+            {
+                return;
+            }
+
+            m.Fractions.Clear();
+            foreach (KeyValuePair<int, double> pair in mass)
+            {
+                m.Fractions[pair.Key] = pair.Value / total;
+            }
         }
 
         /// <summary>

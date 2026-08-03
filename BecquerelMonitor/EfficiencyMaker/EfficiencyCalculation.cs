@@ -85,6 +85,15 @@ namespace BecquerelMonitor.EfficiencyMaker
             };
 
             log(geometry.Describe());
+
+            // Предупреждения разбора идут в журнал ПЕРЕД сценой и числами:
+            // всё, что ниже, посчитано с учётом того, о чём здесь сказано, и
+            // прочитать это задним числом уже бесполезно.
+            foreach (string warning in geometry.Warnings)
+            {
+                log(warning);
+            }
+
             log(simulator.DescribeScene());
             log(string.Format(CultureInfo.InvariantCulture,
                 "{0}: {1}; {2}: {3}; {4}",
