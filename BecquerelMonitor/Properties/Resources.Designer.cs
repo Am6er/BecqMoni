@@ -3562,5 +3562,11 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("GeometryEditorErrorSourceSize", resourceCulture);
             }
         }
+
+        public static string GeometryEditorErrorNumber {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorNumber", resourceCulture);
+            }
+        }
 }
 }

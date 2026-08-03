@@ -315,6 +315,15 @@ namespace BecquerelMonitor
         /// <summary>Строка «подпись — поле — см».</summary>
         void Row(Control parent, ref int y, string key, string caption)
         {
+            if (Find(key) == null)
+            {
+                // Поле без места в модели: оно бы заполнялось пользователем и
+                // никуда не попадало. Ошибка разработчика, и ловить её надо
+                // сразу, а не по кривой, которая тихо посчиталась не по тем
+                // размерам.
+                throw new InvalidOperationException("нет места в модели для поля " + key);
+            }
+
             parent.Controls.Add(new Label
             {
                 AutoSize = true,
@@ -406,38 +415,96 @@ namespace BecquerelMonitor
 
         bool loading;
 
+        /// <summary>
+        /// Поле формы и его место в модели. ОДНА таблица на чтение и на запись:
+        /// раздельные списки уже подвели — «расстояние до детектора» у маринелли
+        /// заводилось, писалось при сохранении, но не читалось при загрузке, и
+        /// правка готового файла молча обнуляла его. Здесь такое невозможно по
+        /// построению: поле без места в модели не создать (Row бросит), а место
+        /// без поля видно в проверке ниже.
+        /// </summary>
+        sealed class FieldMap
+        {
+            public string Key;
+            public Func<GeometryModel, double> Read;
+            public Action<GeometryModel, double> Write;
+        }
+
+        static readonly List<FieldMap> Map = BuildMap();
+
+        static List<FieldMap> BuildMap()
+        {
+            List<FieldMap> map = new List<FieldMap>();
+            Action<string, Func<GeometryModel, double>, Action<GeometryModel, double>> add =
+                (key, read, write) => map.Add(new FieldMap { Key = key, Read = read, Write = write });
+
+            // Размеры кристалла. У бруска, которого в файле ещё не было,
+            // подставляются габариты цилиндра — чтобы поля не открывались
+            // пустыми и не превращались в нули при первом же сохранении.
+            add("CrystalDiameter", g => g.CrystalDiameter, (g, v) => g.CrystalDiameter = v);
+            add("CrystalHeight", g => g.CrystalHeight, (g, v) => g.CrystalHeight = v);
+            add("CrystalBoxX", g => g.CrystalBoxX > 0.0 ? g.CrystalBoxX : g.CrystalDiameter,
+                (g, v) => g.CrystalBoxX = v);
+            add("CrystalBoxY", g => g.CrystalBoxY > 0.0 ? g.CrystalBoxY : g.CrystalDiameter,
+                (g, v) => g.CrystalBoxY = v);
+            add("CrystalBoxZ", g => g.CrystalBoxZ > 0.0 ? g.CrystalBoxZ : g.CrystalHeight,
+                (g, v) => g.CrystalBoxZ = v);
+            add("FrontReflectorThickness", g => g.FrontReflectorThickness, (g, v) => g.FrontReflectorThickness = v);
+            add("SideReflectorThickness", g => g.SideReflectorThickness, (g, v) => g.SideReflectorThickness = v);
+            add("FrontCladdingThickness", g => g.FrontCladdingThickness, (g, v) => g.FrontCladdingThickness = v);
+            add("SideCladdingThickness", g => g.SideCladdingThickness, (g, v) => g.SideCladdingThickness = v);
+            add("MountingThickness", g => g.MountingThickness, (g, v) => g.MountingThickness = v);
+
+            add("PointDistance", g => g.PointDistance, (g, v) => g.PointDistance = v);
+
+            add("BeakerDiameter", g => g.BeakerDiameter, (g, v) => g.BeakerDiameter = v);
+            add("BeakerHeight", g => g.BeakerHeight, (g, v) => g.BeakerHeight = v);
+            add("BeakerSideWallThickness", g => g.BeakerSideWallThickness, (g, v) => g.BeakerSideWallThickness = v);
+            add("BeakerEndWallThickness", g => g.BeakerEndWallThickness, (g, v) => g.BeakerEndWallThickness = v);
+            add("SourceHeight", g => g.SourceHeight, (g, v) => g.SourceHeight = v);
+            add("BeakerToDetectorDistance", g => g.BeakerToDetectorDistance,
+                (g, v) => g.BeakerToDetectorDistance = v);
+
+            add("MarinelliBeakerDiameter", g => g.MarinelliBeakerDiameter, (g, v) => g.MarinelliBeakerDiameter = v);
+            add("MarinelliBeakerHeight", g => g.MarinelliBeakerHeight, (g, v) => g.MarinelliBeakerHeight = v);
+            add("MarinelliHoleDiameter", g => g.MarinelliHoleDiameter, (g, v) => g.MarinelliHoleDiameter = v);
+            add("MarinelliHoleHeight", g => g.MarinelliHoleHeight, (g, v) => g.MarinelliHoleHeight = v);
+            add("MarinelliSideThickness", g => g.MarinelliSideThickness, (g, v) => g.MarinelliSideThickness = v);
+            add("MarinelliEndWallThickness", g => g.MarinelliEndWallThickness,
+                (g, v) => g.MarinelliEndWallThickness = v);
+            add("MarinelliHoleSideThickness", g => g.MarinelliHoleSideThickness,
+                (g, v) => g.MarinelliHoleSideThickness = v);
+            add("MarinelliHoleEndWallThickness", g => g.MarinelliHoleEndWallThickness,
+                (g, v) => g.MarinelliHoleEndWallThickness = v);
+            add("MarinelliSourceHeight", g => g.MarinelliSourceHeight, (g, v) => g.MarinelliSourceHeight = v);
+            add("MarinelliToDetectorDistance", g => g.MarinelliToDetectorDistance,
+                (g, v) => g.MarinelliToDetectorDistance = v);
+            return map;
+        }
+
+        static FieldMap Find(string key)
+        {
+            foreach (FieldMap field in Map)
+            {
+                if (string.Equals(field.Key, key, StringComparison.Ordinal))
+                {
+                    return field;
+                }
+            }
+
+            return null;
+        }
+
         void LoadFromModel()
         {
             this.loading = true;
             try
             {
                 GeometryModel g = this.model;
-                this.Set("CrystalDiameter", g.CrystalDiameter);
-                this.Set("CrystalHeight", g.CrystalHeight);
-                this.Set("CrystalBoxX", g.CrystalBoxX > 0.0 ? g.CrystalBoxX : g.CrystalDiameter);
-                this.Set("CrystalBoxY", g.CrystalBoxY > 0.0 ? g.CrystalBoxY : g.CrystalDiameter);
-                this.Set("CrystalBoxZ", g.CrystalBoxZ > 0.0 ? g.CrystalBoxZ : g.CrystalHeight);
-                this.Set("FrontReflectorThickness", g.FrontReflectorThickness);
-                this.Set("SideReflectorThickness", g.SideReflectorThickness);
-                this.Set("FrontCladdingThickness", g.FrontCladdingThickness);
-                this.Set("SideCladdingThickness", g.SideCladdingThickness);
-                this.Set("MountingThickness", g.MountingThickness);
-                this.Set("PointDistance", g.PointDistance);
-                this.Set("BeakerDiameter", g.BeakerDiameter);
-                this.Set("BeakerHeight", g.BeakerHeight);
-                this.Set("BeakerSideWallThickness", g.BeakerSideWallThickness);
-                this.Set("BeakerEndWallThickness", g.BeakerEndWallThickness);
-                this.Set("SourceHeight", g.SourceHeight);
-                this.Set("BeakerToDetectorDistance", g.BeakerToDetectorDistance);
-                this.Set("MarinelliBeakerDiameter", g.MarinelliBeakerDiameter);
-                this.Set("MarinelliBeakerHeight", g.MarinelliBeakerHeight);
-                this.Set("MarinelliHoleDiameter", g.MarinelliHoleDiameter);
-                this.Set("MarinelliHoleHeight", g.MarinelliHoleHeight);
-                this.Set("MarinelliSideThickness", g.MarinelliSideThickness);
-                this.Set("MarinelliEndWallThickness", g.MarinelliEndWallThickness);
-                this.Set("MarinelliHoleSideThickness", g.MarinelliHoleSideThickness);
-                this.Set("MarinelliHoleEndWallThickness", g.MarinelliHoleEndWallThickness);
-                this.Set("MarinelliSourceHeight", g.MarinelliSourceHeight);
+                foreach (FieldMap field in Map)
+                {
+                    this.Set(field.Key, field.Read(g));
+                }
 
                 this.SelectMaterial("Crystal", g.Crystal);
                 this.SelectMaterial("Reflector", g.Reflector);
@@ -526,6 +593,7 @@ namespace BecquerelMonitor
                 return;
             }
 
+            this.MarkBadValues();
             this.UpdateEquivalent();
             foreach (string key in new[] { "Crystal", "Reflector", "Cladding", "BeakerWall", "Source" })
             {
@@ -572,17 +640,51 @@ namespace BecquerelMonitor
 
         double Get(string key)
         {
+            double value;
+            TryGet(key, out value);
+            return value;
+        }
+
+        bool TryGet(string key, out double value)
+        {
+            value = 0.0;
             TextBox box;
             if (!this.fields.TryGetValue(key, out box))
             {
-                return 0.0;
+                return false;
             }
 
             // Запятая принимается наравне с точкой: раскладка русская, и на
             // цифровом блоке там запятая.
-            double value;
             return double.TryParse((box.Text ?? "").Trim().Replace(',', '.'), NumberStyles.Float,
-                                   CultureInfo.InvariantCulture, out value) ? value : 0.0;
+                                   CultureInfo.InvariantCulture, out value);
+        }
+
+        static readonly Color BadValueColor = Color.FromArgb(0xFF, 0xE0, 0xE0);
+
+        /// <summary>
+        /// Пометить поля, значение которых не прочиталось. Молчать здесь нельзя:
+        /// неразобранное число превращалось в НОЛЬ, и опечатка в толщине
+        /// отражателя тихо убирала отражатель совсем — расчёт при этом честно
+        /// доводился до конца и выдавал кривую не той геометрии.
+        /// </summary>
+        bool MarkBadValues()
+        {
+            bool ok = true;
+            foreach (KeyValuePair<string, TextBox> pair in this.fields)
+            {
+                double value;
+                bool good = TryGet(pair.Key, out value);
+                pair.Value.BackColor = good ? SystemColors.Window : BadValueColor;
+                // Поля скрытой вкладки источника к делу не относятся: в модель
+                // пойдёт только выбранный тип.
+                if (!good && pair.Value.Parent != null && pair.Value.Parent.Visible)
+                {
+                    ok = false;
+                }
+            }
+
+            return ok;
         }
 
         GeometryModel BuildModel()
@@ -590,32 +692,11 @@ namespace BecquerelMonitor
             GeometryModel g = this.model;
             g.IsScintillator = true;
             g.Shape = this.boxRadio.Checked ? CrystalShape.Box : CrystalShape.Cylinder;
-            g.CrystalDiameter = this.Get("CrystalDiameter");
-            g.CrystalHeight = this.Get("CrystalHeight");
-            g.CrystalBoxX = this.Get("CrystalBoxX");
-            g.CrystalBoxY = this.Get("CrystalBoxY");
-            g.CrystalBoxZ = this.Get("CrystalBoxZ");
-            g.FrontReflectorThickness = this.Get("FrontReflectorThickness");
-            g.SideReflectorThickness = this.Get("SideReflectorThickness");
-            g.FrontCladdingThickness = this.Get("FrontCladdingThickness");
-            g.SideCladdingThickness = this.Get("SideCladdingThickness");
-            g.MountingThickness = this.Get("MountingThickness");
-            g.PointDistance = this.Get("PointDistance");
-            g.BeakerDiameter = this.Get("BeakerDiameter");
-            g.BeakerHeight = this.Get("BeakerHeight");
-            g.BeakerSideWallThickness = this.Get("BeakerSideWallThickness");
-            g.BeakerEndWallThickness = this.Get("BeakerEndWallThickness");
-            g.SourceHeight = this.Get("SourceHeight");
-            g.BeakerToDetectorDistance = this.Get("BeakerToDetectorDistance");
-            g.MarinelliBeakerDiameter = this.Get("MarinelliBeakerDiameter");
-            g.MarinelliBeakerHeight = this.Get("MarinelliBeakerHeight");
-            g.MarinelliHoleDiameter = this.Get("MarinelliHoleDiameter");
-            g.MarinelliHoleHeight = this.Get("MarinelliHoleHeight");
-            g.MarinelliSideThickness = this.Get("MarinelliSideThickness");
-            g.MarinelliEndWallThickness = this.Get("MarinelliEndWallThickness");
-            g.MarinelliHoleSideThickness = this.Get("MarinelliHoleSideThickness");
-            g.MarinelliHoleEndWallThickness = this.Get("MarinelliHoleEndWallThickness");
-            g.MarinelliSourceHeight = this.Get("MarinelliSourceHeight");
+            foreach (FieldMap field in Map)
+            {
+                field.Write(g, this.Get(field.Key));
+            }
+
             g.SourceType = this.sourceTypeCombo.SelectedIndex == 2 ? GeometrySourceType.Marinelli
                 : this.sourceTypeCombo.SelectedIndex == 1 ? GeometrySourceType.Cylinder
                 : GeometrySourceType.Point;
@@ -696,6 +777,13 @@ namespace BecquerelMonitor
 
         void SaveClick(object sender, EventArgs e)
         {
+            if (!this.MarkBadValues())
+            {
+                MessageBox.Show(this, Resources.GeometryEditorErrorNumber, this.Text,
+                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             GeometryModel g = this.BuildModel();
             string error = this.Validate(g);
             if (error != null)

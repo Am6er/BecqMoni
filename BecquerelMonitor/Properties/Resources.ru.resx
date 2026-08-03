@@ -1107,4 +1107,7 @@
   <data name="GeometryEditorErrorSourceSize" xml:space="preserve">
     <value>Размер источника должен быть больше нуля.</value>
   </data>
+  <data name="GeometryEditorErrorNumber" xml:space="preserve">
+    <value>Некоторые значения не числа - они подсвечены. Непрочитанное значение молча стало бы нулём.</value>
+  </data>
 </root>
