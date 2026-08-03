@@ -400,6 +400,11 @@ namespace BecquerelMonitor
                 TextAlign = HorizontalAlignment.Right,
             };
             box.TextChanged += this.ValueChanged;
+            // Фокус в поле подсвечивает его размер на чертеже. Из двадцати
+            // чисел иначе не понять, какое из них сейчас правишь, — а у тонких
+            // слоёв подписи стоят вплотную друг к другу.
+            box.Enter += (s, e) => this.SetHighlight(key);
+            box.Leave += (s, e) => this.SetHighlight(null);
             parent.Controls.Add(box);
             this.fields[key] = box;
 
@@ -595,6 +600,24 @@ namespace BecquerelMonitor
         /// заново на каждое изменение: чертёж обязан показывать НЫНЕШНИЕ числа,
         /// иначе он врёт убедительнее, чем пустое место.
         /// </summary>
+        /// <summary>
+        /// Подсветить размер на обоих чертежах. Обоих, а не только видимого:
+        /// вкладку переключают, и разбираться, какой чертёж сейчас на экране,
+        /// здесь незачем — невидимый всё равно не рисуется.
+        /// </summary>
+        void SetHighlight(string key)
+        {
+            if (this.detectorSketch != null)
+            {
+                this.detectorSketch.HighlightKey = key;
+            }
+
+            if (this.sourceSketch != null)
+            {
+                this.sourceSketch.HighlightKey = key;
+            }
+        }
+
         void RefreshSketch()
         {
             if (this.detectorSketch == null || this.sourceSketch == null)
