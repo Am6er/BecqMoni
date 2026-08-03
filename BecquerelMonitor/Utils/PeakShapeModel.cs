@@ -2,7 +2,11 @@ using System;
 
 namespace BecquerelMonitor.Utils
 {
-    internal static class PeakShapeModel
+    // Публичный, а не internal: харнесс полноспектральной декомпозиции
+    // (tools/pie) собирается против BecquerelMonitor.exe и обязан строить
+    // образ ровно тем же профилем, что и приложение — иначе числа из
+    // журнала перестают относиться к продукту.
+    public static class PeakShapeModel
     {
         const double GaussianSigmaWindow = 8.0;
         const double TailAmplitudeCutoffLog = 10.0;

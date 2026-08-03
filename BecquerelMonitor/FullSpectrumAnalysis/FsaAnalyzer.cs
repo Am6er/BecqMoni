@@ -14,9 +14,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     ///
     ///     S(i) ~ sum_j A_j * F_j(i; a, b) + B(i) + C(i)
     ///
-    /// F_j — образ компонента (сумма гауссиан единичной площади по таблице
-    /// линий: положение из энергетической калибровки, ширина из ПШПВ-калибровки,
-    /// вес из выхода на распад родителя и кривой эффективности);
+    /// F_j — образ компонента (сумма профилей единичной площади по таблице
+    /// линий: положение из энергетической калибровки, ширина и форма из
+    /// ПШПВ-калибровки, вес из выхода на распад родителя и кривой
+    /// эффективности);
     /// a, b — дрейф шкалы (усиление и ноль), общие нелинейные параметры,
     /// перебираются сеткой; B — измеренный фон, вычитается с коэффициентом 1;
     /// C — континуум: неотрицательный кусочно-линейный базис («шапки») с шагом
@@ -75,6 +76,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         public int OffsetSteps { get; set; }
 
+        /// <summary>
+        /// Добавлять образы обратного рассеяния, выведенные из найденного
+        /// состава. Мерено на корпусе: recall 86 % → 89 %, Σχ²/ndf 559 → 547.
+        /// </summary>
+        public bool Backscatter { get; set; }
+
         public FsaAnalyzer()
         {
             this.Mode = ContinuumMode.Spline;
@@ -88,6 +95,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.GainSteps = 9;
             this.OffsetRangeKev = 3.0;
             this.OffsetSteps = 9;
+            this.Backscatter = true;
         }
 
         /// <summary>
@@ -279,6 +287,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return null;
             }
 
+            // Образ обратного рассеяния по найденному составу — до отсева по z:
+            // отсев решает, какие компоненты дожили, и решать это надо уже при
+            // закрытой области рассеяния.
+            List<FsaComponent> working = library;
+            if (this.Backscatter)
+            {
+                List<FsaComponent> derived = BuildBackscatterComponents(best, efficiency);
+                if (derived.Count > 0)
+                {
+                    List<FsaComponent> extended = new List<FsaComponent>(library);
+                    extended.AddRange(derived);
+                    FitResult refit = FitHuber(extended, fixedColumns, calibration, fwhmCalibration, efficiency,
+                                               bestGain, bestOffset, chLo, chHi, channels, y, variance, baseWeights, null);
+                    if (refit != null)
+                    {
+                        best = refit;
+                        working = extended;
+                    }
+                }
+            }
+
             // «Предварительный анализ состава»: второй проход без компонентов,
             // не прошедших порог значимости в первом.
             if (this.RefitZ > 0.0)
@@ -302,8 +331,35 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 if (keep.Count > 0 && keep.Count < total)
                 {
-                    FitResult refit = FitHuber(library, fixedColumns, calibration, fwhmCalibration, efficiency,
+                    FitResult refit = FitHuber(working, fixedColumns, calibration, fwhmCalibration, efficiency,
                                                bestGain, bestOffset, chLo, chHi, channels, y, variance, baseWeights, keep);
+                    if (refit != null)
+                    {
+                        best = refit;
+                    }
+                }
+            }
+
+            // Второй круг: форма образа задаётся составом, а состав только что
+            // изменился отсевом.
+            if (this.Backscatter)
+            {
+                List<FsaComponent> survivors = new List<FsaComponent>();
+                for (int k = 0; k < best.Columns.Count; k++)
+                {
+                    FsaComponent component = best.Columns[k].Component;
+                    if (component != null && !component.Derived)
+                    {
+                        survivors.Add(component);
+                    }
+                }
+
+                List<FsaComponent> derived = BuildBackscatterComponents(best, efficiency);
+                if (derived.Count > 0)
+                {
+                    survivors.AddRange(derived);
+                    FitResult refit = FitHuber(survivors, fixedColumns, calibration, fwhmCalibration, efficiency,
+                                               bestGain, bestOffset, chLo, chHi, channels, y, variance, baseWeights, null);
                     if (refit != null)
                     {
                         best = refit;
@@ -628,14 +684,177 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
-        /// Образ компонента: гауссианы единичной площади в позициях линий с
+        /// Образ компонента: профили единичной площади в позициях линий с
         /// учётом дрейфа шкалы, весами по выходу и кривой эффективности.
+        ///
+        /// Форма берётся из ПШПВ-калибровки через <see cref="PeakShapeModel"/> —
+        /// та же, которой рисует и меряет пики всё остальное приложение. Своя
+        /// гауссиана здесь была прямой ошибкой: у приборов с PeakType = 1
+        /// (ExpGaussExp 1.5/5 у ASN16) образ не имел левого хвоста, и невязка
+        /// уходила в континуум.
+        ///
+        /// Нормировка — на площадь самого профиля, посчитанную по его полному
+        /// носителю (GetLeftSupport/GetRightSupport), а не на площадь
+        /// гауссианы: у профиля с хвостами интеграл другой, и гауссова норма
+        /// поднимала бы вершину модели над данными при недоборе площади.
+        /// Носитель считается целиком, даже если часть его вышла за границы
+        /// фита, — иначе линия у края шкалы получила бы вес больше своего.
         /// </summary>
+        const double ElectronMassKev = 510.99895;
+
+        /// <summary>
+        /// Образы обратного рассеяния по составу, найденному предыдущим проходом.
+        ///
+        /// Фотон энергии E, рассеявшийся назад в веществе ВНЕ кристалла (защита,
+        /// сама проба, стены), приходит в детектор с энергией E/(1+2E/511). Без
+        /// такого образа эти пики достаются чужим линиям: 662 → 184 кэВ садится
+        /// на U-235 185.7, мультиплет 300-340 → ~145, ХРИ W 59 → 48. На корпусе
+        /// (58 спектров сцинтилляторов, свой нуклидный сет под каждый) образ дал
+        /// recall 86 % → 89 % и Σχ²/ndf 559 → 547; в частности вернул U-235 на
+        /// граните и K-40 на плитке и снял U-235 с цезиевого спектра.
+        ///
+        /// Колонки две, и это не избыточность: прогон показал, что они чинят
+        /// разные спектры. Узкая (строго назад) снимает U-235 с Cs-137, широкая
+        /// (интеграл по задней полусфере с сечением Клейна — Нишины) снимает
+        /// Ba-133 с европиевых. Доля однократного рассеяния строго назад против
+        /// интеграла задаётся геометрией рассеивателя, которой мы не знаем, —
+        /// поэтому обе свободны, а смесь выбирает NNLS.
+        ///
+        /// Вес линии берётся на энергии ИСХОДНОГО фотона (амплитуда × выход ×
+        /// эффективность) — это поток, которому есть чем рассеиваться, — и
+        /// второй раз эффективность не применяется (WeightsAreFinal).
+        /// </summary>
+        static List<FsaComponent> BuildBackscatterComponents(FitResult fit, FsaEfficiency efficiency)
+        {
+            List<FsaComponent> made = new List<FsaComponent>();
+            FsaComponent broad = BuildBackscatter(fit, efficiency, "Backscatter", 110.0);
+            if (broad != null)
+            {
+                made.Add(broad);
+            }
+
+            FsaComponent sharp = BuildBackscatter(fit, efficiency, "Backscatter180", 179.0);
+            if (sharp != null)
+            {
+                made.Add(sharp);
+            }
+
+            return made;
+        }
+
+        static FsaComponent BuildBackscatter(FitResult fit, FsaEfficiency efficiency,
+                                             string name, double thetaMinDegrees)
+        {
+            const int Steps = 24;
+            const double BinKev = 1.0;
+            double thetaMin = thetaMinDegrees * Math.PI / 180.0;
+            Dictionary<int, double> histogram = new Dictionary<int, double>();
+
+            for (int k = 0; k < fit.Columns.Count; k++)
+            {
+                FsaComponent source = fit.Columns[k].Component;
+                if (source == null || source.Kind == FsaComponentKind.Nuisance
+                    || source.Lines.Count == 0)
+                {
+                    continue;
+                }
+
+                double amplitude = fit.Amplitude[k];
+                if (!(amplitude > 0.0))
+                {
+                    continue;
+                }
+
+                foreach (FsaLine line in source.Lines)
+                {
+                    if (!(line.Energy > 0.0) || !(line.Intensity > 0.0))
+                    {
+                        continue;
+                    }
+
+                    double flux = amplitude * line.Intensity;
+                    if (efficiency != null)
+                    {
+                        double e = efficiency.Eval(line.Energy);
+                        if (!(e > 0.0))
+                        {
+                            continue;
+                        }
+
+                        flux *= e;
+                    }
+
+                    double alpha = line.Energy / ElectronMassKev;
+                    for (int s = 0; s < Steps; s++)
+                    {
+                        double theta = thetaMin + (Math.PI - thetaMin) * (s + 0.5) / Steps;
+                        double sin = Math.Sin(theta);
+                        double ratio = 1.0 / (1.0 + alpha * (1.0 - Math.Cos(theta)));
+                        // Клейн — Нишина на телесный угол без общего множителя,
+                        // умноженная на sin(θ) от самого телесного угла.
+                        double weight = flux * ratio * ratio
+                            * (ratio + 1.0 / ratio - sin * sin) * sin;
+                        double scattered = line.Energy * ratio;
+                        if (!(weight > 0.0) || !(scattered > 0.0))
+                        {
+                            continue;
+                        }
+
+                        int bin = (int)(scattered / BinKev);
+                        double have;
+                        histogram.TryGetValue(bin, out have);
+                        histogram[bin] = have + weight;
+                    }
+                }
+            }
+
+            if (histogram.Count == 0)
+            {
+                return null;
+            }
+
+            double top = 0.0;
+            foreach (double value in histogram.Values)
+            {
+                if (value > top)
+                {
+                    top = value;
+                }
+            }
+
+            if (!(top > 0.0))
+            {
+                return null;
+            }
+
+            FsaComponent component = new FsaComponent(name, FsaComponentKind.Nuisance)
+            {
+                WeightsAreFinal = true,
+                Derived = true,
+            };
+            foreach (KeyValuePair<int, double> pair in histogram)
+            {
+                // Нормировка на максимум: амплитуда колонки должна получиться
+                // того же порядка, что у остальных, иначе NNLS работает на
+                // плохо обусловленной матрице.
+                component.Lines.Add(new FsaLine("bs", (pair.Key + 0.5) * BinKev,
+                                                100.0 * pair.Value / top));
+            }
+
+            component.Lines.Sort((a, b) => a.Energy.CompareTo(b.Energy));
+            return component;
+        }
+
         static double[] BuildTemplate(FsaComponent component, EnergyCalibration calibration,
                                       FwhmCalibration fwhmCalibration, FsaEfficiency efficiency,
                                       double gain, double offset, int chLo, int chHi, int channels)
         {
             double[] template = new double[channels];
+            // Значения профиля считаются один раз на носитель и переиспользуются
+            // между линиями: образ строится заново на каждом узле сетки дрейфа
+            // (9x9 = 81 раз на компонент), и второй проход по носителю ради
+            // площади удваивал бы счёт профиля на канал.
+            double[] shape = null;
             bool any = false;
             foreach (FsaLine line in component.Lines)
             {
@@ -652,9 +871,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                double sigma = fwhm / 2.35482;
                 double weight = line.Intensity / 100.0;
-                if (efficiency != null)
+                if (efficiency != null && !component.WeightsAreFinal)
                 {
                     double e = efficiency.Eval(line.Energy);
                     if (e <= 0.0)
@@ -670,18 +888,50 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                int lo = Math.Max(chLo, (int)Math.Floor(p - 5.0 * sigma));
-                int hi = Math.Min(chHi, (int)Math.Ceiling(p + 5.0 * sigma));
+                double left = PeakShapeModel.GetLeftSupport(fwhmCalibration, fwhm);
+                double right = PeakShapeModel.GetRightSupport(fwhmCalibration, fwhm);
+                if (!(left > 0.0) || !(right > 0.0))
+                {
+                    continue;
+                }
+
+                int full0 = (int)Math.Floor(p - left);
+                int full1 = (int)Math.Ceiling(p + right);
+                int span = full1 - full0 + 1;
+                if (span <= 0)
+                {
+                    continue;
+                }
+
+                if (shape == null || shape.Length < span)
+                {
+                    shape = new double[span];
+                }
+
+                double area = 0.0;
+                for (int i = 0; i < span; i++)
+                {
+                    double v = PeakShapeModel.RelativeValue(full0 + i - p, fwhm, fwhmCalibration);
+                    shape[i] = v;
+                    area += v;
+                }
+
+                if (!(area > 0.0))
+                {
+                    continue;
+                }
+
+                int lo = Math.Max(chLo, full0);
+                int hi = Math.Min(chHi, full1);
                 if (hi < lo)
                 {
                     continue;
                 }
 
-                double norm = weight / (sigma * Math.Sqrt(2.0 * Math.PI));
+                double norm = weight / area;
                 for (int i = lo; i <= hi; i++)
                 {
-                    double d = (i - p) / sigma;
-                    template[i] += norm * Math.Exp(-0.5 * d * d);
+                    template[i] += norm * shape[i - full0];
                 }
 
                 any = true;
