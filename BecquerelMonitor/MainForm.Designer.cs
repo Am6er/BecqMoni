@@ -88,6 +88,7 @@ namespace BecquerelMonitor
             this.NuclideDefinitionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.NuclideSetToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.NucDB = new System.Windows.Forms.ToolStripMenuItem();
+            this.efficiencyMakerToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.OpenConfigNToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator5 = new System.Windows.Forms.ToolStripSeparator();
             this.basicSettingsBToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -557,6 +558,7 @@ namespace BecquerelMonitor
             this.roiDefinitionRToolStripMenuItem,
             this.NuclideDefinitionToolStripMenuItem,
             this.NuclideSetToolStripMenuItem,
+            this.efficiencyMakerToolStripMenuItem,
             this.NucDB,
             this.OpenConfigNToolStripMenuItem,
             this.toolStripSeparator5,
@@ -587,9 +589,16 @@ namespace BecquerelMonitor
             this.NuclideSetToolStripMenuItem.Name = "NuclideSetToolStripMenuItem";
             resources.ApplyResources(this.NuclideSetToolStripMenuItem, "NuclideSetToolStripMenuItem");
             this.NuclideSetToolStripMenuItem.Click += new System.EventHandler(this.NuclideSetToolStripMenuItem_Click);
-            // 
+            //
+            // efficiencyMakerToolStripMenuItem
+            //
+            this.efficiencyMakerToolStripMenuItem.Name = "efficiencyMakerToolStripMenuItem";
+            this.efficiencyMakerToolStripMenuItem.Size = new System.Drawing.Size(224, 22);
+            this.efficiencyMakerToolStripMenuItem.Text = BecquerelMonitor.Properties.Resources.EfficiencyMakerMenu;
+            this.efficiencyMakerToolStripMenuItem.Click += new System.EventHandler(this.efficiencyMakerToolStripMenuItem_Click);
+            //
             // NucDB
-            // 
+            //
             this.NucDB.Name = "NucDB";
             resources.ApplyResources(this.NucDB, "NucDB");
             this.NucDB.Click += new System.EventHandler(this.NucDB_Click);
@@ -880,6 +889,8 @@ namespace BecquerelMonitor
 		global::System.Windows.Forms.ToolStripMenuItem OpenConfigNToolStripMenuItem;
 
 		global::System.Windows.Forms.ToolStripMenuItem NucDB;
+
+		global::System.Windows.Forms.ToolStripMenuItem efficiencyMakerToolStripMenuItem;
 
 		// Token: 0x040005B5 RID: 1461
 		global::System.Windows.Forms.ToolStripMenuItem forFwhmToolStripMenuItem;

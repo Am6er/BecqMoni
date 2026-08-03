@@ -42162,4 +42162,112 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="Lq_counts" xml:space="preserve">
     <value>Lq counts</value>
   </data>
+  <data name="EfficiencyMakerMenu" xml:space="preserve">
+    <value>Efficiency maker...</value>
+  </data>
+  <data name="EfficiencyMakerNoSpectra" xml:space="preserve">
+    <value>No spectra selected.</value>
+  </data>
+  <data name="EfficiencyMakerNoChains" xml:space="preserve">
+    <value>No nuclide sets with yields found: chains cannot be built.</value>
+  </data>
+  <data name="EfficiencyMakerNoChainsChecked" xml:space="preserve">
+    <value>No chain is checked.</value>
+  </data>
+  <data name="EfficiencyMakerCancelled" xml:space="preserve">
+    <value>Stopped by user.</value>
+  </data>
+  <data name="EfficiencyMakerTooFewLines" xml:space="preserve">
+    <value>Only {0} usable lines: not enough to fit a curve.</value>
+  </data>
+  <data name="EfficiencyMakerNoLiveTime" xml:space="preserve">
+    <value>{0}: no live time, skipped.</value>
+  </data>
+  <data name="EfficiencyMakerSpectrumDone" xml:space="preserve">
+    <value>{0}: {1} lines measured, live {2:F0} s</value>
+  </data>
+  <data name="EfficiencyMakerFitDone" xml:space="preserve">
+    <value>Fit: {0} lines, {1} series, chi2/ndf {2:F2}, range {3:F0}-{4:F0} keV</value>
+  </data>
+  <data name="EfficiencyMakerSingular" xml:space="preserve">
+    <value>Normal equations are singular.</value>
+  </data>
+  <data name="EfficiencyMakerNoDeviceConfig" xml:space="preserve">
+    <value>Device config not found: {0}</value>
+  </data>
+  <data name="EfficiencyMakerNoFwhm" xml:space="preserve">
+    <value>No FWHM calibration for this spectrum.</value>
+  </data>
+  <data name="EfficiencyMakerReasonBlend" xml:space="preserve">
+    <value>blend with {0} {1:F1} keV</value>
+  </data>
+  <data name="EfficiencyMakerReasonWindow" xml:space="preserve">
+    <value>window too narrow</value>
+  </data>
+  <data name="EfficiencyMakerReasonNoPeak" xml:space="preserve">
+    <value>no peak</value>
+  </data>
+  <data name="EfficiencyMakerReasonWeak" xml:space="preserve">
+    <value>weak, z={0:F1}</value>
+  </data>
+  <data name="EfficiencyMakerReasonLoneLine" xml:space="preserve">
+    <value>lone line in the series</value>
+  </data>
+  <data name="EfficiencyMakerRun" xml:space="preserve">
+    <value>Build curve</value>
+  </data>
+  <data name="EfficiencyMakerStop" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="EfficiencyMakerRunning" xml:space="preserve">
+    <value>Measuring lines...</value>
+  </data>
+  <data name="EfficiencyMakerStatus" xml:space="preserve">
+    <value>{0} lines, {1} series, chi2/ndf {2:F2}. Level: {3}</value>
+  </data>
+  <data name="EfficiencyMakerLevelReference" xml:space="preserve">
+    <value>from the source curve</value>
+  </data>
+  <data name="EfficiencyMakerLevelAnchor" xml:space="preserve">
+    <value>from the anchor point</value>
+  </data>
+  <data name="EfficiencyMakerLevelShapeOnly" xml:space="preserve">
+    <value>SHAPE ONLY, level is arbitrary</value>
+  </data>
+  <data name="EfficiencyMakerReferenceLoaded" xml:space="preserve">
+    <value>Source curve {0}: {1} points</value>
+  </data>
+  <data name="EfficiencyMakerSaved" xml:space="preserve">
+    <value>Saved: {0}</value>
+  </data>
+  <data name="EfficiencyMakerRoiFilter" xml:space="preserve">
+    <value>ROI configuration (*.xml)|*.xml|All files (*.*)|*.*</value>
+  </data>
+  <data name="EfficiencyMakerSpectrumFilter" xml:space="preserve">
+    <value>Spectra (*.xml)|*.xml|All files (*.*)|*.*</value>
+  </data>
+  <data name="EfficiencyMakerCsvFilter" xml:space="preserve">
+    <value>CSV (*.csv)|*.csv|All files (*.*)|*.*</value>
+  </data>
+  <data name="EfficiencyMakerGraphEmpty" xml:space="preserve">
+    <value>No curve yet</value>
+  </data>
+  <data name="EfficiencyMakerGraphXAxis" xml:space="preserve">
+    <value>E, keV</value>
+  </data>
+  <data name="EfficiencyMakerReasonSeriesScatter" xml:space="preserve">
+    <value>series scatter x{0:F1}</value>
+  </data>
+  <data name="EfficiencyMakerReasonOutlier" xml:space="preserve">
+    <value>outlier {0:F1} sigma</value>
+  </data>
+  <data name="EfficiencyMakerSeriesDropped" xml:space="preserve">
+    <value>series dropped: {0} (scatter x{1:F1})</value>
+  </data>
+  <data name="EfficiencyMakerReasonImpossible" xml:space="preserve">
+    <value>impossible eps={0:F2}</value>
+  </data>
+  <data name="EfficiencyMakerReasonImpossibleLog" xml:space="preserve">
+    <value>{0}: {1:F1} keV dropped, eps={2:F2} &gt; 1</value>
+  </data>
 </root>
