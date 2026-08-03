@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
@@ -81,6 +81,18 @@
   </data>
   <data name="spectraRemoveButton.Text" xml:space="preserve">
     <value>Убрать выбранные</value>
+  </data>
+  <data name="geometryLabel.Text" xml:space="preserve">
+    <value>Геометрия детектора (файл .in LSRM) — чтобы посчитать кривую:</value>
+  </data>
+  <data name="geometryBrowseButton.Text" xml:space="preserve">
+    <value>Обзор...</value>
+  </data>
+  <data name="geometryClearButton.Text" xml:space="preserve">
+    <value>Очистить</value>
+  </data>
+  <data name="calculateButton.Text" xml:space="preserve">
+    <value>Посчитать из геометрии</value>
   </data>
   <data name="spectraClearButton.Text" xml:space="preserve">
     <value>Очистить список</value>

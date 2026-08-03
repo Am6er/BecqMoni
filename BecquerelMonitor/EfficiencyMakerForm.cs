@@ -23,14 +23,30 @@ namespace BecquerelMonitor
     /// поглощения зависит от телесного угла и самопоглощения в пробе. Пачка
     /// спектров разных геометрий даст бессмысленную среднюю кривую, и форма об
     /// этом предупреждает в заголовке списка.
+    ///
+    /// Второй путь — «Посчитать из геометрии»: кривая берётся не из измерений,
+    /// а из файла геометрии `.in`, монте-карловским переносом
+    /// (<see cref="EfficiencyCalculation"/>). Спектры для него не нужны вовсе, и
+    /// уровень получается АБСОЛЮТНЫЙ, а не подогнанный: восстановление из
+    /// равновесия даёт только форму. Оба пути кладут результат в одно и то же
+    /// место, так что кривую можно посмотреть на графике и сохранить одинаково.
     /// </summary>
     public partial class EfficiencyMakerForm : Form
     {
         readonly List<string> spectrumFiles = new List<string>();
         List<ROIEfficiencyData> referenceCurve;
         EfficiencyFitResult lastResult;
+        GeometryModel geometry;
         BackgroundWorker worker;
         volatile bool cancelRequested;
+
+        /// <summary>
+        /// Историй на точку кривой при расчёте из геометрии. Погрешность идёт
+        /// как 1/√N: на 200 тысячах это около процента в середине шкалы и
+        /// несколько процентов на её верху, где эффективность мала. Больше
+        /// смысла имеет мало — систематика модели крупнее.
+        /// </summary>
+        const int SimulationHistories = 200000;
 
         public EfficiencyMakerForm()
         {
@@ -156,6 +172,47 @@ namespace BecquerelMonitor
             }
         }
 
+        void geometryBrowseButton_Click(object sender, EventArgs e)
+        {
+            using (OpenFileDialog dialog = new OpenFileDialog())
+            {
+                dialog.Filter = Resources.EfficiencyMakerGeometryFilter;
+                if (dialog.ShowDialog(this) != DialogResult.OK)
+                {
+                    return;
+                }
+
+                GeometryModel model;
+                try
+                {
+                    model = GeometryModel.Load(dialog.FileName);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(this, ex.Message, this.Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                this.geometry = model;
+                this.geometryTextBox.Text = dialog.FileName;
+                this.calculateButton.Enabled = true;
+                AppendLog(string.Format(Resources.EfficiencyMakerGeometryLoaded, model.Describe()));
+                if (string.IsNullOrEmpty(this.outputTextBox.Text))
+                {
+                    this.outputTextBox.Text = Path.Combine(
+                        Path.GetDirectoryName(dialog.FileName),
+                        Path.GetFileNameWithoutExtension(dialog.FileName) + " (calculated).xml");
+                }
+            }
+        }
+
+        void geometryClearButton_Click(object sender, EventArgs e)
+        {
+            this.geometry = null;
+            this.geometryTextBox.Text = "";
+            this.calculateButton.Enabled = false;
+        }
+
         static string RoiConfigDirectory()
         {
             try
@@ -176,7 +233,7 @@ namespace BecquerelMonitor
 
         void runButton_Click(object sender, EventArgs e)
         {
-            if (this.worker != null && this.worker.IsBusy)
+            if (Busy())
             {
                 this.cancelRequested = true;
                 return;
@@ -195,13 +252,56 @@ namespace BecquerelMonitor
                 return;
             }
 
+            Start(this.runButton, this.calculateButton, Resources.EfficiencyMakerRunning,
+                  (log, cancelled) => EfficiencyFitter.Run(input, log, cancelled));
+        }
+
+        /// <summary>
+        /// Второй путь к кривой: посчитать её из геометрии, а не восстановить из
+        /// измерений. Спектры для этого не нужны вовсе — нужен файл геометрии.
+        /// </summary>
+        void calculateButton_Click(object sender, EventArgs e)
+        {
+            if (Busy())
+            {
+                this.cancelRequested = true;
+                return;
+            }
+
+            if (this.geometry == null)
+            {
+                MessageBox.Show(this, Resources.EfficiencyMakerNoGeometry, this.Text,
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            GeometryModel model = this.geometry;
+            Start(this.calculateButton, this.runButton, Resources.EfficiencyMakerCalculating,
+                  (log, cancelled) => EfficiencyCalculation.Run(
+                      model, SimulationHistories, log, cancelled));
+        }
+
+        bool Busy()
+        {
+            return this.worker != null && this.worker.IsBusy;
+        }
+
+        /// <summary>
+        /// Общая обвязка обоих прогонов: кнопка запуска становится «Стоп»,
+        /// вторая гаснет, счёт идёт в фоне, отмена опрашивается заданием.
+        /// </summary>
+        void Start(Button trigger, Button other, string status,
+                   Func<Action<string>, Func<bool>, EfficiencyFitResult> job)
+        {
             this.logTextBox.Clear();
             this.cancelRequested = false;
-            this.runButton.Text = Resources.EfficiencyMakerStop;
+            string caption = trigger.Text;
+            trigger.Text = Resources.EfficiencyMakerStop;
+            other.Enabled = false;
             this.saveButton.Enabled = false;
             this.exportButton.Enabled = false;
             this.progressBar.Visible = true;
-            this.statusLabel.Text = Resources.EfficiencyMakerRunning;
+            this.statusLabel.Text = status;
 
             // Язык интерфейса выставлен только на потоке формы (MainForm), а
             // счёт идёт на потоке BackgroundWorker: без переноса культуры все
@@ -211,6 +311,9 @@ namespace BecquerelMonitor
             // десятичный разделитель на точку, а числа в лог печатает фиттер.
             CultureInfo ui = CultureInfo.CurrentUICulture;
             CultureInfo formatting = CultureInfo.CurrentCulture;
+            bool otherWasEnabled = other == this.calculateButton
+                ? this.geometry != null
+                : true;
 
             this.worker = new BackgroundWorker { WorkerReportsProgress = true };
             this.worker.DoWork += (s, args) =>
@@ -218,9 +321,8 @@ namespace BecquerelMonitor
                 Thread.CurrentThread.CurrentUICulture = ui;
                 Thread.CurrentThread.CurrentCulture = formatting;
                 BackgroundWorker self = (BackgroundWorker)s;
-                args.Result = EfficiencyFitter.Run(input,
-                    message => self.ReportProgress(0, message),
-                    () => this.cancelRequested);
+                args.Result = job(message => self.ReportProgress(0, message),
+                                  () => this.cancelRequested);
             };
             this.worker.ProgressChanged += (s, args) => AppendLog((string)args.UserState);
             this.worker.RunWorkerCompleted += (s, args) =>
@@ -235,7 +337,8 @@ namespace BecquerelMonitor
                 }
 
                 this.progressBar.Visible = false;
-                this.runButton.Text = Resources.EfficiencyMakerRun;
+                trigger.Text = caption;
+                other.Enabled = otherWasEnabled;
                 if (args.Error != null)
                 {
                     this.statusLabel.Text = args.Error.Message;
@@ -313,13 +416,22 @@ namespace BecquerelMonitor
                 case EfficiencyLevelSource.Anchor:
                     level = Resources.EfficiencyMakerLevelAnchor;
                     break;
+                case EfficiencyLevelSource.Simulation:
+                    level = Resources.EfficiencyMakerLevelSimulation;
+                    break;
                 default:
                     level = Resources.EfficiencyMakerLevelShapeOnly;
                     break;
             }
 
-            this.statusLabel.Text = string.Format(Resources.EfficiencyMakerStatus,
-                result.AcceptedCount, result.SeriesKeys.Count, result.Chi2Ndf, level);
+            // У расчёта из геометрии нет ни серий, ни χ²: там нечего подгонять,
+            // и итог другой — сколько точек и в каком диапазоне.
+            this.statusLabel.Text = result.LevelSource == EfficiencyLevelSource.Simulation
+                ? string.Format(Resources.EfficiencyMakerCalcStatus, result.Curve.Count,
+                                (int)result.MinEnergy, (int)result.MaxEnergy, level)
+                : string.Format(Resources.EfficiencyMakerStatus,
+                                result.AcceptedCount, result.SeriesKeys.Count,
+                                result.Chi2Ndf, level);
 
             AppendLog("");
             AppendLog(this.statusLabel.Text);
@@ -359,11 +471,18 @@ namespace BecquerelMonitor
 
             try
             {
-                string note = string.Format(CultureInfo.InvariantCulture,
-                    "Efficiency maker: {0} lines, {1} series, chi2/ndf {2:F2}, {3}-{4} keV, level: {5}",
-                    this.lastResult.AcceptedCount, this.lastResult.SeriesKeys.Count,
-                    this.lastResult.Chi2Ndf, (int)this.lastResult.MinEnergy,
-                    (int)this.lastResult.MaxEnergy, this.lastResult.LevelSource);
+                string note = this.lastResult.LevelSource == EfficiencyLevelSource.Simulation
+                    ? string.Format(CultureInfo.InvariantCulture,
+                        "Efficiency maker: calculated from geometry {0}, {1} points, {2}-{3} keV, "
+                        + "{4} histories per point",
+                        Path.GetFileName(this.geometryTextBox.Text), this.lastResult.Curve.Count,
+                        (int)this.lastResult.MinEnergy, (int)this.lastResult.MaxEnergy,
+                        SimulationHistories)
+                    : string.Format(CultureInfo.InvariantCulture,
+                        "Efficiency maker: {0} lines, {1} series, chi2/ndf {2:F2}, {3}-{4} keV, level: {5}",
+                        this.lastResult.AcceptedCount, this.lastResult.SeriesKeys.Count,
+                        this.lastResult.Chi2Ndf, (int)this.lastResult.MinEnergy,
+                        (int)this.lastResult.MaxEnergy, this.lastResult.LevelSource);
                 EfficiencyFitter.SaveCurve(path, this.referenceTextBox.Text,
                     Path.GetFileNameWithoutExtension(path), this.lastResult.Curve, note);
                 this.statusLabel.Text = string.Format(Resources.EfficiencyMakerSaved, path);

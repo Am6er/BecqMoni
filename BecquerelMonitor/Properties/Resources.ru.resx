@@ -789,6 +789,69 @@
   <data name="EfficiencyMakerNoChainsChecked" xml:space="preserve">
     <value>Не отмечена ни одна цепочка.</value>
   </data>
+  <data name="EfficiencyMakerNoGeometry" xml:space="preserve">
+    <value>Файл геометрии не выбран.</value>
+  </data>
+  <data name="EfficiencyMakerGeometryNotScintillator" xml:space="preserve">
+    <value>Эта геометрия не сцинтилляционная: расчёт умеет только сцинтилляторы.</value>
+  </data>
+  <data name="EfficiencyMakerGeometryUnknownElement" xml:space="preserve">
+    <value>Нет данных об ослаблении для элемента Z = {0}.</value>
+  </data>
+  <data name="EfficiencyMakerGeometryNoCurve" xml:space="preserve">
+    <value>Расчёт не дал ни одной годной точки.</value>
+  </data>
+  <data name="EfficiencyMakerGeometryLoaded" xml:space="preserve">
+    <value>Загружена геометрия: {0}</value>
+  </data>
+  <data name="EfficiencyMakerGeometryFilter" xml:space="preserve">
+    <value>Геометрия LSRM (*.in)|*.in|Все файлы (*.*)|*.*</value>
+  </data>
+  <data name="EfficiencyMakerCalculating" xml:space="preserve">
+    <value>Считаю кривую из геометрии...</value>
+  </data>
+  <data name="EfficiencyMakerCrossSections" xml:space="preserve">
+    <value>Сечения</value>
+  </data>
+  <data name="EfficiencyMakerCrossSectionsPartial" xml:space="preserve">
+    <value>парциальные, по элементам</value>
+  </data>
+  <data name="EfficiencyMakerCrossSectionsApprox" xml:space="preserve">
+    <value>приближение (элемента нет в таблице)</value>
+  </data>
+  <data name="EfficiencyMakerBremsstrahlung" xml:space="preserve">
+    <value>вылет тормозного излучения</value>
+  </data>
+  <data name="EfficiencyMakerBremsstrahlungNoData" xml:space="preserve">
+    <value>нет данных для этого кристалла</value>
+  </data>
+  <data name="EfficiencyMakerHistories" xml:space="preserve">
+    <value>историй на точку: {0:N0}</value>
+  </data>
+  <data name="EfficiencyMakerLevelSimulation" xml:space="preserve">
+    <value>уровень: посчитан из геометрии</value>
+  </data>
+  <data name="EfficiencyMakerCalcStatus" xml:space="preserve">
+    <value>Посчитано из геометрии: точек {0}, {1}-{2} кэВ, {3}</value>
+  </data>
+  <data name="GeometrySourcePoint" xml:space="preserve">
+    <value>точка, {0:F2} см</value>
+  </data>
+  <data name="GeometrySourceCylinder" xml:space="preserve">
+    <value>цилиндр D={0:F2} H={1:F2} на {2:F2} см</value>
+  </data>
+  <data name="GeometrySourceMarinelli" xml:space="preserve">
+    <value>Маринелли D={0:F2} Dhole={1:F2} H={2:F2} на {3:F2} см</value>
+  </data>
+  <data name="GeometryCrystalBox" xml:space="preserve">
+    <value>брусок {0:F2}x{1:F2}x{2:F2}</value>
+  </data>
+  <data name="GeometryCrystalCylinder" xml:space="preserve">
+    <value>цилиндр {0:F3}x{1:F3}</value>
+  </data>
+  <data name="GeometryDescription" xml:space="preserve">
+    <value>{0}: кристалл {1} {2} см, ро {3:F3}; источник — {4}, {5}</value>
+  </data>
   <data name="EfficiencyMakerCancelled" xml:space="preserve">
     <value>Остановлено пользователем.</value>
   </data>

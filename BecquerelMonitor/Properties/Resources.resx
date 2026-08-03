@@ -42174,6 +42174,69 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="EfficiencyMakerNoChainsChecked" xml:space="preserve">
     <value>No chain is checked.</value>
   </data>
+  <data name="EfficiencyMakerNoGeometry" xml:space="preserve">
+    <value>No geometry file loaded.</value>
+  </data>
+  <data name="EfficiencyMakerGeometryNotScintillator" xml:space="preserve">
+    <value>This geometry is not a scintillator: only scintillation detectors are simulated.</value>
+  </data>
+  <data name="EfficiencyMakerGeometryUnknownElement" xml:space="preserve">
+    <value>No attenuation data for element Z = {0}.</value>
+  </data>
+  <data name="EfficiencyMakerGeometryNoCurve" xml:space="preserve">
+    <value>The calculation produced no usable points.</value>
+  </data>
+  <data name="EfficiencyMakerGeometryLoaded" xml:space="preserve">
+    <value>Geometry loaded: {0}</value>
+  </data>
+  <data name="EfficiencyMakerGeometryFilter" xml:space="preserve">
+    <value>LSRM geometry (*.in)|*.in|All files (*.*)|*.*</value>
+  </data>
+  <data name="EfficiencyMakerCalculating" xml:space="preserve">
+    <value>Calculating the curve from geometry...</value>
+  </data>
+  <data name="EfficiencyMakerCrossSections" xml:space="preserve">
+    <value>Cross sections</value>
+  </data>
+  <data name="EfficiencyMakerCrossSectionsPartial" xml:space="preserve">
+    <value>partial, per element</value>
+  </data>
+  <data name="EfficiencyMakerCrossSectionsApprox" xml:space="preserve">
+    <value>approximation (element missing from the table)</value>
+  </data>
+  <data name="EfficiencyMakerBremsstrahlung" xml:space="preserve">
+    <value>bremsstrahlung escape</value>
+  </data>
+  <data name="EfficiencyMakerBremsstrahlungNoData" xml:space="preserve">
+    <value>no data for this crystal</value>
+  </data>
+  <data name="EfficiencyMakerHistories" xml:space="preserve">
+    <value>{0:N0} histories per point</value>
+  </data>
+  <data name="EfficiencyMakerLevelSimulation" xml:space="preserve">
+    <value>level: calculated from geometry</value>
+  </data>
+  <data name="EfficiencyMakerCalcStatus" xml:space="preserve">
+    <value>Calculated from geometry: {0} points, {1}-{2} keV, {3}</value>
+  </data>
+  <data name="GeometrySourcePoint" xml:space="preserve">
+    <value>point, {0:F2} cm</value>
+  </data>
+  <data name="GeometrySourceCylinder" xml:space="preserve">
+    <value>cylinder D={0:F2} H={1:F2} at {2:F2} cm</value>
+  </data>
+  <data name="GeometrySourceMarinelli" xml:space="preserve">
+    <value>Marinelli D={0:F2} Dhole={1:F2} H={2:F2} at {3:F2} cm</value>
+  </data>
+  <data name="GeometryCrystalBox" xml:space="preserve">
+    <value>box {0:F2}x{1:F2}x{2:F2}</value>
+  </data>
+  <data name="GeometryCrystalCylinder" xml:space="preserve">
+    <value>cylinder {0:F3}x{1:F3}</value>
+  </data>
+  <data name="GeometryDescription" xml:space="preserve">
+    <value>{0}: crystal {1} {2} cm, rho {3:F3}; source - {4}, {5}</value>
+  </data>
   <data name="EfficiencyMakerCancelled" xml:space="preserve">
     <value>Stopped by user.</value>
   </data>

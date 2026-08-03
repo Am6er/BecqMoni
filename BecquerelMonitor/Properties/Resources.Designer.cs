@@ -2927,6 +2927,132 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string EfficiencyMakerNoGeometry {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerNoGeometry", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerGeometryNotScintillator {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGeometryNotScintillator", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerGeometryUnknownElement {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGeometryUnknownElement", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerGeometryNoCurve {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGeometryNoCurve", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerGeometryLoaded {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGeometryLoaded", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerGeometryFilter {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGeometryFilter", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerCalculating {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerCalculating", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerCrossSections {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerCrossSections", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerCrossSectionsPartial {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerCrossSectionsPartial", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerCrossSectionsApprox {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerCrossSectionsApprox", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerBremsstrahlung {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerBremsstrahlung", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerBremsstrahlungNoData {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerBremsstrahlungNoData", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerHistories {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerHistories", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerLevelSimulation {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerLevelSimulation", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerCalcStatus {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerCalcStatus", resourceCulture);
+            }
+        }
+        
+        public static string GeometrySourcePoint {
+            get {
+                return ResourceManager.GetString("GeometrySourcePoint", resourceCulture);
+            }
+        }
+        
+        public static string GeometrySourceCylinder {
+            get {
+                return ResourceManager.GetString("GeometrySourceCylinder", resourceCulture);
+            }
+        }
+        
+        public static string GeometrySourceMarinelli {
+            get {
+                return ResourceManager.GetString("GeometrySourceMarinelli", resourceCulture);
+            }
+        }
+        
+        public static string GeometryCrystalBox {
+            get {
+                return ResourceManager.GetString("GeometryCrystalBox", resourceCulture);
+            }
+        }
+        
+        public static string GeometryCrystalCylinder {
+            get {
+                return ResourceManager.GetString("GeometryCrystalCylinder", resourceCulture);
+            }
+        }
+        
+        public static string GeometryDescription {
+            get {
+                return ResourceManager.GetString("GeometryDescription", resourceCulture);
+            }
+        }
+        
         public static string EfficiencyMakerCancelled {
             get {
                 return ResourceManager.GetString("EfficiencyMakerCancelled", resourceCulture);

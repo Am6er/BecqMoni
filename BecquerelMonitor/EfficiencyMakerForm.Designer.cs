@@ -1,4 +1,4 @@
-namespace BecquerelMonitor
+﻿namespace BecquerelMonitor
 {
     partial class EfficiencyMakerForm
     {
@@ -28,6 +28,11 @@ namespace BecquerelMonitor
             this.spectraAddButton = new System.Windows.Forms.Button();
             this.spectraRemoveButton = new System.Windows.Forms.Button();
             this.spectraClearButton = new System.Windows.Forms.Button();
+            this.geometryLabel = new System.Windows.Forms.Label();
+            this.geometryTextBox = new System.Windows.Forms.TextBox();
+            this.geometryBrowseButton = new System.Windows.Forms.Button();
+            this.geometryClearButton = new System.Windows.Forms.Button();
+            this.calculateButton = new System.Windows.Forms.Button();
             this.optionsGroupBox = new System.Windows.Forms.GroupBox();
             this.chainsLabel = new System.Windows.Forms.Label();
             this.chainsCheckedListBox = new System.Windows.Forms.CheckedListBox();
@@ -78,9 +83,13 @@ namespace BecquerelMonitor
             this.inputGroupBox.Controls.Add(this.spectraAddButton);
             this.inputGroupBox.Controls.Add(this.spectraRemoveButton);
             this.inputGroupBox.Controls.Add(this.spectraClearButton);
+            this.inputGroupBox.Controls.Add(this.geometryLabel);
+            this.inputGroupBox.Controls.Add(this.geometryTextBox);
+            this.inputGroupBox.Controls.Add(this.geometryBrowseButton);
+            this.inputGroupBox.Controls.Add(this.geometryClearButton);
             this.inputGroupBox.Location = new System.Drawing.Point(12, 12);
             this.inputGroupBox.Name = "inputGroupBox";
-            this.inputGroupBox.Size = new System.Drawing.Size(600, 214);
+            this.inputGroupBox.Size = new System.Drawing.Size(600, 240);
             this.inputGroupBox.TabIndex = 0;
             this.inputGroupBox.TabStop = false;
             this.inputGroupBox.Text = "Input";
@@ -187,6 +196,63 @@ namespace BecquerelMonitor
             this.spectraClearButton.UseVisualStyleBackColor = true;
             this.spectraClearButton.Click += new System.EventHandler(this.spectraClearButton_Click);
             //
+            // geometryLabel
+            //
+            this.geometryLabel.AutoSize = true;
+            this.geometryLabel.Location = new System.Drawing.Point(10, 193);
+            this.geometryLabel.Name = "geometryLabel";
+            this.geometryLabel.Size = new System.Drawing.Size(300, 13);
+            this.geometryLabel.TabIndex = 9;
+            this.geometryLabel.Text = "Detector geometry (LSRM .in) - to calculate the curve instead:";
+            //
+            // geometryTextBox
+            //
+            this.geometryTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)
+                (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left
+                | System.Windows.Forms.AnchorStyles.Right));
+            this.geometryTextBox.Location = new System.Drawing.Point(13, 210);
+            this.geometryTextBox.Name = "geometryTextBox";
+            this.geometryTextBox.ReadOnly = true;
+            this.geometryTextBox.Size = new System.Drawing.Size(415, 20);
+            this.geometryTextBox.TabIndex = 10;
+            //
+            // geometryBrowseButton
+            //
+            this.geometryBrowseButton.Anchor = ((System.Windows.Forms.AnchorStyles)
+                (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right));
+            this.geometryBrowseButton.Location = new System.Drawing.Point(434, 208);
+            this.geometryBrowseButton.Name = "geometryBrowseButton";
+            this.geometryBrowseButton.Size = new System.Drawing.Size(80, 23);
+            this.geometryBrowseButton.TabIndex = 11;
+            this.geometryBrowseButton.Text = "Browse...";
+            this.geometryBrowseButton.UseVisualStyleBackColor = true;
+            this.geometryBrowseButton.Click += new System.EventHandler(this.geometryBrowseButton_Click);
+            //
+            // geometryClearButton
+            //
+            this.geometryClearButton.Anchor = ((System.Windows.Forms.AnchorStyles)
+                (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right));
+            this.geometryClearButton.Location = new System.Drawing.Point(518, 208);
+            this.geometryClearButton.Name = "geometryClearButton";
+            this.geometryClearButton.Size = new System.Drawing.Size(70, 23);
+            this.geometryClearButton.TabIndex = 12;
+            this.geometryClearButton.Text = "Clear";
+            this.geometryClearButton.UseVisualStyleBackColor = true;
+            this.geometryClearButton.Click += new System.EventHandler(this.geometryClearButton_Click);
+            //
+            // calculateButton
+            //
+            this.calculateButton.Anchor = ((System.Windows.Forms.AnchorStyles)
+                (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left));
+            this.calculateButton.Enabled = false;
+            this.calculateButton.Location = new System.Drawing.Point(138, 289);
+            this.calculateButton.Name = "calculateButton";
+            this.calculateButton.Size = new System.Drawing.Size(160, 26);
+            this.calculateButton.TabIndex = 6;
+            this.calculateButton.Text = "Calculate from geometry";
+            this.calculateButton.UseVisualStyleBackColor = true;
+            this.calculateButton.Click += new System.EventHandler(this.calculateButton_Click);
+            //
             // optionsGroupBox
             //
             this.optionsGroupBox.Anchor = ((System.Windows.Forms.AnchorStyles)
@@ -206,7 +272,7 @@ namespace BecquerelMonitor
             this.optionsGroupBox.Controls.Add(this.anchorHintLabel);
             this.optionsGroupBox.Location = new System.Drawing.Point(624, 12);
             this.optionsGroupBox.Name = "optionsGroupBox";
-            this.optionsGroupBox.Size = new System.Drawing.Size(330, 214);
+            this.optionsGroupBox.Size = new System.Drawing.Size(330, 240);
             this.optionsGroupBox.TabIndex = 1;
             this.optionsGroupBox.TabStop = false;
             this.optionsGroupBox.Text = "Settings";
@@ -352,7 +418,7 @@ namespace BecquerelMonitor
             this.outputTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)
                 (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left
                 | System.Windows.Forms.AnchorStyles.Right));
-            this.outputTextBox.Location = new System.Drawing.Point(98, 233);
+            this.outputTextBox.Location = new System.Drawing.Point(98, 259);
             this.outputTextBox.Name = "outputTextBox";
             this.outputTextBox.Size = new System.Drawing.Size(690, 20);
             this.outputTextBox.TabIndex = 3;
@@ -361,7 +427,7 @@ namespace BecquerelMonitor
             //
             this.outputBrowseButton.Anchor = ((System.Windows.Forms.AnchorStyles)
                 (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right));
-            this.outputBrowseButton.Location = new System.Drawing.Point(794, 231);
+            this.outputBrowseButton.Location = new System.Drawing.Point(794, 257);
             this.outputBrowseButton.Name = "outputBrowseButton";
             this.outputBrowseButton.Size = new System.Drawing.Size(80, 23);
             this.outputBrowseButton.TabIndex = 4;
@@ -373,7 +439,7 @@ namespace BecquerelMonitor
             //
             this.runButton.Anchor = ((System.Windows.Forms.AnchorStyles)
                 (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left));
-            this.runButton.Location = new System.Drawing.Point(12, 263);
+            this.runButton.Location = new System.Drawing.Point(12, 289);
             this.runButton.Name = "runButton";
             this.runButton.Size = new System.Drawing.Size(120, 26);
             this.runButton.TabIndex = 5;
@@ -386,10 +452,10 @@ namespace BecquerelMonitor
             this.saveButton.Anchor = ((System.Windows.Forms.AnchorStyles)
                 (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left));
             this.saveButton.Enabled = false;
-            this.saveButton.Location = new System.Drawing.Point(138, 263);
+            this.saveButton.Location = new System.Drawing.Point(304, 289);
             this.saveButton.Name = "saveButton";
             this.saveButton.Size = new System.Drawing.Size(120, 26);
-            this.saveButton.TabIndex = 6;
+            this.saveButton.TabIndex = 7;
             this.saveButton.Text = "Save curve";
             this.saveButton.UseVisualStyleBackColor = true;
             this.saveButton.Click += new System.EventHandler(this.saveButton_Click);
@@ -399,10 +465,10 @@ namespace BecquerelMonitor
             this.exportButton.Anchor = ((System.Windows.Forms.AnchorStyles)
                 (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left));
             this.exportButton.Enabled = false;
-            this.exportButton.Location = new System.Drawing.Point(264, 263);
+            this.exportButton.Location = new System.Drawing.Point(430, 289);
             this.exportButton.Name = "exportButton";
             this.exportButton.Size = new System.Drawing.Size(120, 26);
-            this.exportButton.TabIndex = 7;
+            this.exportButton.TabIndex = 8;
             this.exportButton.Text = "Export CSV...";
             this.exportButton.UseVisualStyleBackColor = true;
             this.exportButton.Click += new System.EventHandler(this.exportButton_Click);
@@ -411,11 +477,11 @@ namespace BecquerelMonitor
             //
             this.progressBar.Anchor = ((System.Windows.Forms.AnchorStyles)
                 (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right));
-            this.progressBar.Location = new System.Drawing.Point(794, 266);
+            this.progressBar.Location = new System.Drawing.Point(794, 292);
             this.progressBar.Name = "progressBar";
             this.progressBar.Size = new System.Drawing.Size(160, 20);
             this.progressBar.Style = System.Windows.Forms.ProgressBarStyle.Marquee;
-            this.progressBar.TabIndex = 8;
+            this.progressBar.TabIndex = 9;
             this.progressBar.Visible = false;
             //
             // statusLabel
@@ -424,24 +490,24 @@ namespace BecquerelMonitor
                 (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left
                 | System.Windows.Forms.AnchorStyles.Right));
             this.statusLabel.AutoEllipsis = true;
-            this.statusLabel.Location = new System.Drawing.Point(396, 269);
+            this.statusLabel.Location = new System.Drawing.Point(556, 295);
             this.statusLabel.Name = "statusLabel";
-            this.statusLabel.Size = new System.Drawing.Size(392, 16);
-            this.statusLabel.TabIndex = 9;
+            this.statusLabel.Size = new System.Drawing.Size(232, 16);
+            this.statusLabel.TabIndex = 10;
             //
             // splitContainer
             //
             this.splitContainer.Anchor = ((System.Windows.Forms.AnchorStyles)
                 (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom
                 | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right));
-            this.splitContainer.Location = new System.Drawing.Point(12, 298);
+            this.splitContainer.Location = new System.Drawing.Point(12, 324);
             this.splitContainer.Name = "splitContainer";
             this.splitContainer.Orientation = System.Windows.Forms.Orientation.Horizontal;
             this.splitContainer.Panel1.Controls.Add(this.graph);
             this.splitContainer.Panel2.Controls.Add(this.logTextBox);
-            this.splitContainer.Size = new System.Drawing.Size(942, 412);
+            this.splitContainer.Size = new System.Drawing.Size(942, 386);
             this.splitContainer.SplitterDistance = 300;
-            this.splitContainer.TabIndex = 10;
+            this.splitContainer.TabIndex = 11;
             //
             // graph
             //
@@ -474,12 +540,13 @@ namespace BecquerelMonitor
             this.Controls.Add(this.outputTextBox);
             this.Controls.Add(this.outputBrowseButton);
             this.Controls.Add(this.runButton);
+            this.Controls.Add(this.calculateButton);
             this.Controls.Add(this.saveButton);
             this.Controls.Add(this.exportButton);
             this.Controls.Add(this.statusLabel);
             this.Controls.Add(this.progressBar);
             this.Controls.Add(this.splitContainer);
-            this.MinimumSize = new System.Drawing.Size(820, 560);
+            this.MinimumSize = new System.Drawing.Size(880, 600);
             this.Name = "EfficiencyMakerForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Efficiency maker";
@@ -494,7 +561,9 @@ namespace BecquerelMonitor
                 this.chainsLabel, this.orderLabel, this.minIntensityLabel,
                 this.minSignificanceLabel, this.backgroundCheckBox, this.anchorLabel,
                 this.anchorHintLabel, this.outputLabel, this.outputBrowseButton,
-                this.runButton, this.saveButton, this.exportButton })
+                this.runButton, this.saveButton, this.exportButton,
+                this.geometryLabel, this.geometryBrowseButton, this.geometryClearButton,
+                this.calculateButton })
             {
                 resources.ApplyResources(control, control.Name);
             }
@@ -524,6 +593,11 @@ namespace BecquerelMonitor
         System.Windows.Forms.Button spectraAddButton;
         System.Windows.Forms.Button spectraRemoveButton;
         System.Windows.Forms.Button spectraClearButton;
+        System.Windows.Forms.Label geometryLabel;
+        System.Windows.Forms.TextBox geometryTextBox;
+        System.Windows.Forms.Button geometryBrowseButton;
+        System.Windows.Forms.Button geometryClearButton;
+        System.Windows.Forms.Button calculateButton;
         System.Windows.Forms.GroupBox optionsGroupBox;
         System.Windows.Forms.Label chainsLabel;
         System.Windows.Forms.CheckedListBox chainsCheckedListBox;

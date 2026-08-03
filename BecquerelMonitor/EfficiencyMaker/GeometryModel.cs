@@ -1,3 +1,4 @@
+using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -286,35 +287,40 @@ namespace BecquerelMonitor.EfficiencyMaker
             return m;
         }
 
+        /// <summary>
+        /// Разбор геометрии одной строкой. Строка попадает в журнал прогона в
+        /// окне конструктора кривой, поэтому она переводится: раньше была
+        /// жёстко по-русски и в английском интерфейсе выглядела чужой.
+        /// </summary>
         public string Describe()
         {
             string source;
             switch (this.SourceType)
             {
                 case GeometrySourceType.Point:
-                    source = string.Format(CultureInfo.InvariantCulture, "точка, {0:F2} см", this.PointDistance);
+                    source = string.Format(CultureInfo.InvariantCulture,
+                        Resources.GeometrySourcePoint, this.PointDistance);
                     break;
                 case GeometrySourceType.Cylinder:
                     source = string.Format(CultureInfo.InvariantCulture,
-                        "цилиндр D={0:F2} H={1:F2} на {2:F2} см", this.BeakerDiameter,
+                        Resources.GeometrySourceCylinder, this.BeakerDiameter,
                         this.SourceHeight, this.BeakerToDetectorDistance);
                     break;
                 default:
                     source = string.Format(CultureInfo.InvariantCulture,
-                        "Маринелли D={0:F2} Dhole={1:F2} H={2:F2} на {3:F2} см",
+                        Resources.GeometrySourceMarinelli,
                         this.MarinelliBeakerDiameter, this.MarinelliHoleDiameter,
                         this.MarinelliSourceHeight, this.MarinelliToDetectorDistance);
                     break;
             }
 
             string crystal = this.Shape == CrystalShape.Box
-                ? string.Format(CultureInfo.InvariantCulture, "брусок {0:F2}x{1:F2}x{2:F2}",
+                ? string.Format(CultureInfo.InvariantCulture, Resources.GeometryCrystalBox,
                                 this.CrystalBoxX, this.CrystalBoxY, this.CrystalBoxZ)
-                : string.Format(CultureInfo.InvariantCulture, "цилиндр {0:F3}x{1:F3}",
+                : string.Format(CultureInfo.InvariantCulture, Resources.GeometryCrystalCylinder,
                                 this.CrystalDiameter, this.CrystalHeight);
 
-            return string.Format(CultureInfo.InvariantCulture,
-                "{0}: кристалл {1} {2} см, ро {3:F3}; источник — {4}, {5}",
+            return string.Format(CultureInfo.InvariantCulture, Resources.GeometryDescription,
                 this.Name, this.Crystal.Name, crystal, this.Crystal.Density, source, this.Source.Name);
         }
     }
