@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using BecquerelMonitor.Properties;
 
 namespace BecquerelMonitor.EfficiencyMaker
 {
@@ -222,10 +223,29 @@ namespace BecquerelMonitor.EfficiencyMaker
     /// </summary>
     public static class EfficiencyLibrary
     {
+        /// <summary>
+        /// Набор, который в кривую не годится, и ПОЧЕМУ. Раньше такие наборы
+        /// просто не появлялись в списке, и созданный пользователем набор
+        /// пропадал молча — ни в списке, ни в журнале. Причина всегда одна из
+        /// трёх, и все три чинятся руками, если о них сказать.
+        /// </summary>
+        public sealed class SetReject
+        {
+            public string Name;
+            public string Reason;
+        }
+
         public static Dictionary<string, List<EfficiencyLine>> BuildChains()
+        {
+            List<SetReject> ignored;
+            return BuildChains(out ignored);
+        }
+
+        public static Dictionary<string, List<EfficiencyLine>> BuildChains(out List<SetReject> rejected)
         {
             Dictionary<string, List<EfficiencyLine>> chains =
                 new Dictionary<string, List<EfficiencyLine>>(StringComparer.OrdinalIgnoreCase);
+            rejected = new List<SetReject>();
             NuclideDefinitionManager manager = NuclideDefinitionManager.GetInstance();
             if (manager == null || manager.NuclideSets == null)
             {
@@ -248,16 +268,29 @@ namespace BecquerelMonitor.EfficiencyMaker
                 string name = set.Name.Split('|')[0].Trim();
                 if (chains.ContainsKey(name))
                 {
+                    rejected.Add(new SetReject
+                    {
+                        Name = set.Name,
+                        Reason = Resources.EfficiencyMakerSetDuplicateName
+                    });
                     continue;
                 }
 
+                int inSet = 0;
+                int withoutIntensity = 0;
                 List<EfficiencyLine> lines = new List<EfficiencyLine>();
                 foreach (NuclideDefinition definition in manager.NuclideDefinitions)
                 {
                     if (definition == null || definition.Sets == null
-                        || !definition.Sets.Contains(set.Id)
-                        || definition.Intencity <= 0.0 || definition.Energy <= 0.0)
+                        || !definition.Sets.Contains(set.Id))
                     {
+                        continue;
+                    }
+
+                    inSet++;
+                    if (definition.Intencity <= 0.0 || definition.Energy <= 0.0)
+                    {
+                        withoutIntensity++;
                         continue;
                     }
 
@@ -273,7 +306,20 @@ namespace BecquerelMonitor.EfficiencyMaker
                 {
                     lines.Sort((a, b) => a.Energy.CompareTo(b.Energy));
                     chains[name] = lines;
+                    continue;
                 }
+
+                // Метод стоит на отношении площадей линий к их выходам: без
+                // выхода линия в кривую не входит, а одной линии мало — сравнить
+                // не с чем. Оба случая называются вслух, с числами.
+                rejected.Add(new SetReject
+                {
+                    Name = name,
+                    Reason = withoutIntensity > 0
+                        ? string.Format(Resources.EfficiencyMakerSetNoIntensity,
+                                        withoutIntensity, inSet)
+                        : string.Format(Resources.EfficiencyMakerSetTooFewLines, lines.Count)
+                });
             }
 
             return chains;

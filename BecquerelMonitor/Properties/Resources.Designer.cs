@@ -1752,6 +1752,12 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("MSGDeleteNuclideDefinition", resourceCulture);
             }
         }
+
+        public static string MSGDeleteNuclideDefinitions {
+            get {
+                return ResourceManager.GetString("MSGDeleteNuclideDefinitions", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Remove ROI configuration &quot;{0}&quot;?.
@@ -3632,6 +3638,66 @@ namespace BecquerelMonitor.Properties {
         public static string GeometryEditorPresetPrompt {
             get {
                 return ResourceManager.GetString("GeometryEditorPresetPrompt", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerSetSkipped {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerSetSkipped", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerSetNoIntensity {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerSetNoIntensity", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerSetTooFewLines {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerSetTooFewLines", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerSetDuplicateName {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerSetDuplicateName", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerSetGone {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerSetGone", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerTipOrder {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerTipOrder", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerTipMinIntensity {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerTipMinIntensity", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerTipMinSignificance {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerTipMinSignificance", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerTipAnchorEnergy {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerTipAnchorEnergy", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerTipAnchorEfficiency {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerTipAnchorEfficiency", resourceCulture);
             }
         }
 }

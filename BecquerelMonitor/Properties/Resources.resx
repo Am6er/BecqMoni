@@ -3738,6 +3738,11 @@
   <data name="MSGDeleteNuclideDefinition" xml:space="preserve">
     <value>Delete nuclide definition "{0}"?</value>
   </data>
+  <data name="MSGDeleteNuclideDefinitions" xml:space="preserve">
+    <value>Delete {0} nuclide definitions?
+
+{1}{2}</value>
+  </data>
   <data name="LibraryLicensesMessage" xml:space="preserve">
     <value>BecqMoni icons from Maks Vasilev
 https://github.com/MaksVasilev/BecqMoniResources
@@ -42527,5 +42532,35 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="GeometryEditorPresetPrompt" xml:space="preserve">
     <value>(choose to fill in)</value>
+  </data>
+  <data name="EfficiencyMakerSetSkipped" xml:space="preserve">
+    <value>Nuclide set "{0}" cannot be used: {1}</value>
+  </data>
+  <data name="EfficiencyMakerSetNoIntensity" xml:space="preserve">
+    <value>{0} of its {1} lines have no yield. The curve is built from peak area divided by yield, so a line without a yield cannot be used. Fill the yield in the nuclide editor.</value>
+  </data>
+  <data name="EfficiencyMakerSetTooFewLines" xml:space="preserve">
+    <value>it holds {0} usable line(s), and at least two are needed - one line has nothing to be compared with.</value>
+  </data>
+  <data name="EfficiencyMakerSetDuplicateName" xml:space="preserve">
+    <value>another set with the same name comes first.</value>
+  </data>
+  <data name="EfficiencyMakerSetGone" xml:space="preserve">
+    <value>Nuclide set "{0}" is gone from the config; the rows that used it fall back to the whole library.</value>
+  </data>
+  <data name="EfficiencyMakerTipOrder" xml:space="preserve">
+    <value>How bendy the curve is allowed to be. 1 is a straight line in log-log axes, 3 is a gentle S. Higher orders follow the measured points more closely, but with few lines they start to swing wildly between them - if the fit is refused as impossible, lower this first.</value>
+  </data>
+  <data name="EfficiencyMakerTipMinIntensity" xml:space="preserve">
+    <value>Weak lines are skipped. The number is the yield: how many gammas of this energy are emitted per 100 decays. At 1% a line emitted once per hundred decays still counts; raise the value if faint lines are dragging the curve around.</value>
+  </data>
+  <data name="EfficiencyMakerTipMinSignificance" xml:space="preserve">
+    <value>How far a peak must stand out of the background noise to be measured, in units of that noise. 4 means four times the noise - roughly "certainly a peak, not a bump". Lower it to catch weak lines at the cost of chance ones, raise it to keep only the solid peaks.</value>
+  </data>
+  <data name="EfficiencyMakerTipAnchorEnergy" xml:space="preserve">
+    <value>Energy of the point whose efficiency you know, in keV - for example 662 for a Cs-137 source. Left empty together with the field on the right, the curve keeps its shape but has no absolute level.</value>
+  </data>
+  <data name="EfficiencyMakerTipAnchorEfficiency" xml:space="preserve">
+    <value>Efficiency at that energy, as a fraction rather than a percentage: 0.01 means one gamma out of a hundred emitted lands in the full-absorption peak. This single number sets the level of the whole curve; the measurements alone give only its shape.</value>
   </data>
 </root>

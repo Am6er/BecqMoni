@@ -54,6 +54,46 @@ namespace BecquerelMonitor
             InitializeComponent();
             LoadChains();
             UpdateGraphMode();
+            SetUpHints();
+        }
+
+        /// <summary>
+        /// Подсказки к настройкам. Пишутся для того, кто спектрометрией не
+        /// занимается: что это число делает с кривой и что будет, если его
+        /// подвинуть, — без слов «полином», «сигма» и «квантовый выход» там,
+        /// где без них можно обойтись.
+        ///
+        /// Подсказка висит и на подписи, и на самом поле: мышь ведут к тому,
+        /// что читают, а читают подпись.
+        /// </summary>
+        void SetUpHints()
+        {
+            // Тексты длинные, и пяти секунд по умолчанию на них не хватает:
+            // подсказка гаснет на середине фразы.
+            this.hints.AutoPopDelay = 30000;
+            this.hints.InitialDelay = 400;
+            this.hints.ReshowDelay = 100;
+
+            Action<Control, Control, string> hint = (label, field, text) =>
+            {
+                if (label != null)
+                {
+                    this.hints.SetToolTip(label, text);
+                }
+
+                if (field != null)
+                {
+                    this.hints.SetToolTip(field, text);
+                }
+            };
+
+            hint(this.orderLabel, this.orderNumericUpDown, Resources.EfficiencyMakerTipOrder);
+            hint(this.minIntensityLabel, this.minIntensityNumericUpDown,
+                 Resources.EfficiencyMakerTipMinIntensity);
+            hint(this.minSignificanceLabel, this.minSignificanceNumericUpDown,
+                 Resources.EfficiencyMakerTipMinSignificance);
+            hint(this.anchorLabel, this.anchorEnergyTextBox, Resources.EfficiencyMakerTipAnchorEnergy);
+            hint(null, this.anchorEfficiencyTextBox, Resources.EfficiencyMakerTipAnchorEfficiency);
         }
 
         /// <summary>
@@ -77,15 +117,47 @@ namespace BecquerelMonitor
 
         void LoadChains()
         {
-            this.chainNames.Clear();
-            Dictionary<string, List<EfficiencyLine>> chains = EfficiencyLibrary.BuildChains();
-            foreach (string name in chains.Keys.OrderBy(n => n, StringComparer.OrdinalIgnoreCase))
-            {
-                this.chainNames.Add(name);
-            }
-
             this.spectrumColumn.HeaderText = Resources.EfficiencyMakerColumnSpectrum;
             this.nuclideSetColumn.HeaderText = Resources.EfficiencyMakerColumnNuclideSet;
+            this.ReloadNuclideSets(true);
+        }
+
+        /// <summary>
+        /// Перечитать наборы нуклидов из конфига и обновить выпадающий список.
+        ///
+        /// Список строился один раз при открытии формы, а наборы заводят в
+        /// соседнем окне, не закрывая эту: только что созданный набор в списке
+        /// не появлялся. Теперь список перечитывается ещё и в тот момент, когда
+        /// его раскрывают, — это единственный момент, когда он кому-то нужен.
+        ///
+        /// Наборы, которые в кривую не годятся, НАЗЫВАЮТСЯ в журнале с причиной.
+        /// Молчаливое исчезновение неотличимо от «программа не видит мой набор»,
+        /// а причина всегда чинится руками: дописать выходы, добавить вторую
+        /// линию, развести одинаковые имена.
+        /// </summary>
+        /// <param name="verbose">Писать ли причины в журнал.</param>
+        void ReloadNuclideSets(bool verbose)
+        {
+            List<EfficiencyLibrary.SetReject> rejected;
+            Dictionary<string, List<EfficiencyLine>> chains = EfficiencyLibrary.BuildChains(out rejected);
+            List<string> fresh = chains.Keys.OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList();
+            if (fresh.SequenceEqual(this.chainNames, StringComparer.Ordinal) && !verbose)
+            {
+                return;
+            }
+
+            this.chainNames.Clear();
+            this.chainNames.AddRange(fresh);
+
+            // Значения ячеек запоминаются до подмены списка: у ячейки
+            // выпадающего списка значение обязано быть среди его строк, иначе
+            // таблица ругается на каждую отрисовку.
+            List<string> chosen = new List<string>();
+            foreach (DataGridViewRow row in this.spectraGrid.Rows)
+            {
+                chosen.Add(row.Cells[1].Value as string);
+            }
+
             this.nuclideSetColumn.Items.Clear();
             // Первая строка — вся библиотека: в спектре ищутся линии всех
             // наборов, и каждый набор входит своей серией со своей свободной
@@ -100,19 +172,85 @@ namespace BecquerelMonitor
                 this.nuclideSetColumn.Items.Add(name);
             }
 
+            for (int i = 0; i < this.spectraGrid.Rows.Count; i++)
+            {
+                // Набор мог исчезнуть из конфига, пока форма открыта. Строка не
+                // теряется, но выбор в ней сбрасывается, и об этом говорится.
+                bool known = !string.IsNullOrEmpty(chosen[i])
+                             && this.nuclideSetColumn.Items.Contains(chosen[i]);
+                this.spectraGrid.Rows[i].Cells[1].Value =
+                    known ? chosen[i] : Resources.EfficiencyMakerWholeLibrary;
+                if (!known && !string.IsNullOrEmpty(chosen[i]))
+                {
+                    AppendLog(string.Format(Resources.EfficiencyMakerSetGone, chosen[i]));
+                }
+            }
+
+            if (!verbose)
+            {
+                return;
+            }
+
             if (this.chainNames.Count == 0)
             {
                 AppendLog(Resources.EfficiencyMakerNoChains);
             }
+
+            foreach (EfficiencyLibrary.SetReject reject in rejected)
+            {
+                AppendLog(string.Format(Resources.EfficiencyMakerSetSkipped,
+                                        reject.Name, reject.Reason));
+            }
+        }
+
+        /// <summary>
+        /// Список раскрывают — самое время перечитать наборы: соседнее окно
+        /// могло завести новый, пока эта форма открыта.
+        /// </summary>
+        void spectraGrid_CellBeginEdit(object sender, DataGridViewCellCancelEventArgs e)
+        {
+            if (e.ColumnIndex == 1)
+            {
+                this.ReloadNuclideSets(false);
+            }
+        }
+
+        /// <summary>
+        /// Возврат в окно — тоже повод перечитать. Набор заводят в соседнем
+        /// окне и возвращаются сюда; ждать, пока раскроют список, незачем, а
+        /// подмена состава списка вне режима правки ячейки безопаснее.
+        /// </summary>
+        protected override void OnActivated(EventArgs e)
+        {
+            base.OnActivated(e);
+            this.ReloadNuclideSets(false);
+        }
+
+        /// <summary>
+        /// Своя обработка вместо стандартного окна с ошибкой. Расхождение
+        /// значения ячейки со списком — не повод показывать пользователю
+        /// диалог с трассировкой; строка чинится на месте.
+        /// </summary>
+        void spectraGrid_DataError(object sender, DataGridViewDataErrorEventArgs e)
+        {
+            if (e.ColumnIndex == 1 && e.RowIndex >= 0 && e.RowIndex < this.spectraGrid.Rows.Count)
+            {
+                this.spectraGrid.Rows[e.RowIndex].Cells[1].Value =
+                    Resources.EfficiencyMakerWholeLibrary;
+            }
+
+            e.ThrowException = false;
         }
 
         /// <summary>
         /// Набор, угаданный по имени файла: «ASN16_Th232.xml» -> «Th-232».
         ///
-        /// Только по точному совпадению без разделителей, и только если
-        /// подходит РОВНО один набор. Пачку в двадцать файлов иначе размечать
-        /// руками, а угадать неправильно хуже, чем не угадать: выбор виден в
-        /// ячейке, но проверять его станут не все.
+        /// Имя набора ищется в имени файла как подстрока, у обоих выброшены
+        /// разделители: «Th-232» -> «th232» находится в «asn16th232». Совпадение
+        /// короче трёх знаков не в счёт, и подойти должен РОВНО один набор —
+        /// иначе остаётся вся библиотека. Пачку в двадцать файлов иначе
+        /// размечать руками, а угадать неправильно хуже, чем не угадать: выбор
+        /// виден в ячейке, но проверять его станут не все.
         /// </summary>
         string GuessChain(string path)
         {
@@ -518,6 +656,16 @@ namespace BecquerelMonitor
             // Правка ячейки могла остаться незакрытой — без этого выбор в
             // последней тронутой строке в модель не попадёт.
             this.spectraGrid.EndEdit();
+
+            // Пустой список спектров называется своим именем. Раньше он
+            // доходил до счётчика наборов и получал «набор не выбран» — жалоба
+            // не на то, чего не хватает.
+            if (this.spectrumFiles.Count == 0)
+            {
+                MessageBox.Show(this, Resources.EfficiencyMakerNoSpectra, this.Text,
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return null;
+            }
 
             EfficiencyFitInput input = new EfficiencyFitInput();
             input.SpectrumFiles.AddRange(this.spectrumFiles);
