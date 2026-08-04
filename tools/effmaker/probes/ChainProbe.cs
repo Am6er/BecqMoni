@@ -3,9 +3,11 @@ using BecquerelMonitor.EfficiencyMaker;
 using BecquerelMonitor.FullSpectrumAnalysis;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Xml.Serialization;
 
 namespace ChainProbe
@@ -41,10 +43,21 @@ namespace ChainProbe
         static int Main()
         {
             Console.OutputEncoding = Encoding.UTF8;
+            // То же, что делает MainForm при запуске (MainForm.cs:144). Числа
+            // базы нуклидов разбираются ТЕКУЩЕЙ культурой, и на русской машине
+            // без этой подмены «0.353» — не число: getDecayRad ловит
+            // FormatException, показывает окно с ошибкой и возвращает null.
+            // Проба без подмены висит на этом окне, а не падает.
+            CultureInfo culture = (CultureInfo)Thread.CurrentThread.CurrentCulture.Clone();
+            culture.NumberFormat.NumberDecimalSeparator = ".";
+            Thread.CurrentThread.CurrentCulture = culture;
+
             int bad = 0;
             bad += CheckParsing();
             bad += CheckPersistence();
             bad += CheckConsumers();
+            bad += CheckBranches();
+            bad += CheckSearch();
             bad += CheckForm();
 
             Console.WriteLine();
@@ -229,6 +242,137 @@ namespace ChainProbe
             Console.WriteLine("  конструктор кривой: цепочек {0}, линий {1}", chains.Count, checkedLines);
             Console.WriteLine("  нуклидов в конфиге: {0}", manager.NuclideDefinitions.Count);
             return bad;
+        }
+
+        /// <summary>
+        /// Ветвление от корня ряда. Числа сверяются с `chains.py` — НЕЗАВИСИМОЙ
+        /// реализацией того же обхода, по которой собран корпус спектров. Две
+        /// разные программы, сошедшиеся на 0.3594 у Tl-208, — это проверка, а
+        /// повтор своей же формулы проверкой не был бы.
+        /// </summary>
+        static int CheckBranches()
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== ветвление от корня ===");
+            int bad = 0;
+            BecquerelMonitor.NucBase.NucBaseFramework fw = new BecquerelMonitor.NucBase.NucBaseFramework();
+
+            Dictionary<string, double> th232 = fw.GetChainBranches("232TH");
+            bad += Same("Th-232: членов ряда", 12, th232.Count);
+            bad += Near("Th-232: сам корень", 1.0, Branch(th232, "232TH"));
+            bad += Near("Th-232: Ac-228 весь", 1.0, Branch(th232, "228AC"));
+            bad += Near("Th-232: Pb-212 весь", 1.0, Branch(th232, "212PB"));
+            // Развилка Bi-212: 35.94 % на Tl-208, остальное на Po-212. Ровно
+            // здесь врал бы обход по верхнему уровню — там у той же ветки 67 %.
+            bad += Near("Th-232: Tl-208 через Bi-212", 0.3594, Branch(th232, "208TL"));
+            bad += Near("Th-232: Po-212 вторая ветка", 0.6406, Branch(th232, "212PO"));
+
+            Dictionary<string, double> th228 = fw.GetChainBranches("228TH");
+            bad += Same("Th-228: членов ряда", 9, th228.Count);
+            bad += Near("Th-228: Tl-208 та же развилка", 0.3594, Branch(th228, "208TL"));
+            bad += Near("Th-228: Ac-228 в ряд не входит", 0.0, Branch(th228, "228AC"));
+
+            Dictionary<string, double> ra226 = fw.GetChainBranches("226RA");
+            bad += Near("Ra-226: Bi-214 весь", 1.0, Branch(ra226, "214BI"));
+            bad += Near("Ra-226: Pb-214 почти весь", 0.9998, Branch(ra226, "214PB"));
+            bad += Near("Ra-226: Tl-210 боковая ветка", 0.0002, Branch(ra226, "210TL"));
+
+            // Выход линии на распад корня: 99.754 % своего нуклида через
+            // ветвление 0.3594 дают 35.85 % — самая известная линия ториевого
+            // ряда, и её число знают наизусть.
+            double own = LineIntensity(fw, "208TL", 2614.51);
+            bad += Near("Tl-208 2614.51: свой выход", 99.754, own);
+            bad += Near("Tl-208 2614.51: на распад Th-232", 35.852, own * Branch(th232, "208TL"));
+
+            return bad;
+        }
+
+        /// <summary>
+        /// Поиск по ряду в самой форме базы: то, что видит пользователь и что
+        /// уходит во ввоз. Считать отдельно и надеяться, что форма считает так
+        /// же, — это ровно тот разрыв, из-за которого заводилось поле цепочки.
+        /// </summary>
+        static int CheckSearch()
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== поиск по ряду ===");
+            int bad = 0;
+            using (BecquerelMonitor.NucBase.NucBase form = new BecquerelMonitor.NucBase.NucBase())
+            {
+                Set(form, "IsotopeTextBox", "Th-232");
+                ((System.Windows.Forms.CheckBox)Field(form, "IncludeDecayChainCheckBox")).Checked = true;
+                Set(form, "IntencityTextBox", "1");
+                Call(form, "DoSearch");
+
+                System.Windows.Forms.DataGridView grid =
+                    (System.Windows.Forms.DataGridView)Field(form, "ResultDataGridView");
+                double tl2614 = Cell(grid, 2614.51);
+                double ac911 = Cell(grid, 911.20);
+                bad += Near("Tl-208 2614.51 в таблице", 35.852, tl2614);
+                // Линия нуклида, который весь получается из корня, не должна
+                // измениться ни на сколько: домножение на единицу.
+                bad += Near("Ac-228 911.20 не тронута", 25.8, ac911);
+                Console.WriteLine("  строк при пороге 1 %: {0}", grid.Rows.Count);
+
+                // Тот же ряд без галочки — выходы свои, не рядовые.
+                ((System.Windows.Forms.CheckBox)Field(form, "IncludeDecayChainCheckBox")).Checked = false;
+                Set(form, "IsotopeTextBox", "Tl-208");
+                Call(form, "DoSearch");
+                bad += Near("без ряда: Tl-208 2614.51 свой выход", 99.754, Cell(grid, 2614.51));
+            }
+
+            return bad;
+        }
+
+        static double Branch(Dictionary<string, double> branches, string nucid)
+        {
+            double value;
+            return branches.TryGetValue(nucid, out value) ? value : 0.0;
+        }
+
+        static double LineIntensity(BecquerelMonitor.NucBase.NucBaseFramework fw, string nucid, double energy)
+        {
+            List<BecquerelMonitor.NucBase.DecayRad> lines = fw.getDecayRad(nucid);
+            if (lines == null)
+            {
+                return 0.0;
+            }
+
+            foreach (BecquerelMonitor.NucBase.DecayRad line in lines)
+            {
+                if (Math.Abs(line.Energy - energy) < 0.05)
+                {
+                    return line.Intensity;
+                }
+            }
+
+            return 0.0;
+        }
+
+        static double Cell(System.Windows.Forms.DataGridView grid, double energy)
+        {
+            foreach (System.Windows.Forms.DataGridViewRow row in grid.Rows)
+            {
+                if (row.Cells[3].Value is double && Math.Abs((double)row.Cells[3].Value - energy) < 0.05)
+                {
+                    return (double)row.Cells[4].Value;
+                }
+            }
+
+            return 0.0;
+        }
+
+        static void Set(object form, string name, string text)
+        {
+            ((System.Windows.Forms.Control)Field(form, name)).Text = text;
+        }
+
+        static int Near(string what, double expected, double got)
+        {
+            bool ok = Math.Abs(got - expected) <= 0.002 * Math.Max(1.0, Math.Abs(expected));
+            Console.WriteLine("  {0,-44} {1} {2:G6}{3}", what, ok ? "=" : "!!", got,
+                              ok ? "" : string.Format(" вместо {0:G6}", expected));
+            return ok ? 0 : 1;
         }
 
         /// <summary>
