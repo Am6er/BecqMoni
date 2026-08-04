@@ -54,6 +54,7 @@ namespace BecquerelMonitor
             this.columnModelSets = new XPTable.Models.ColumnModel();
             this.columnSetName = new XPTable.Models.TextColumn();
             this.columnSetHideUnknown = new XPTable.Models.CheckBoxColumn();
+            this.columnSetIntensityLines = new XPTable.Models.CheckBoxColumn();
             this.tableModelSets = new XPTable.Models.TableModel();
             this.groupBoxEdit.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.tableNuclides)).BeginInit();
@@ -191,7 +192,8 @@ namespace BecquerelMonitor
             // 
             this.columnModelSets.Columns.AddRange(new XPTable.Models.Column[] {
             this.columnSetName,
-            this.columnSetHideUnknown});
+            this.columnSetHideUnknown,
+            this.columnSetIntensityLines});
             // 
             // columnSetName
             // 
@@ -205,7 +207,14 @@ namespace BecquerelMonitor
             this.columnSetHideUnknown.DrawText = false;
             this.columnSetHideUnknown.IsTextTrimmed = false;
             resources.ApplyResources(this.columnSetHideUnknown, "columnSetHideUnknown");
-            // 
+            //
+            // columnSetIntensityLines
+            //
+            this.columnSetIntensityLines.Alignment = XPTable.Models.ColumnAlignment.Center;
+            this.columnSetIntensityLines.DrawText = false;
+            this.columnSetIntensityLines.IsTextTrimmed = false;
+            resources.ApplyResources(this.columnSetIntensityLines, "columnSetIntensityLines");
+            //
             // NuclideSetForm
             // 
             resources.ApplyResources(this, "$this");
@@ -244,6 +253,7 @@ namespace BecquerelMonitor
         private XPTable.Models.TableModel tableModelSets;
         private XPTable.Models.TableModel tableModelNuclides;
         private XPTable.Models.CheckBoxColumn columnSetHideUnknown;
+        private XPTable.Models.CheckBoxColumn columnSetIntensityLines;
         private System.Windows.Forms.TextBox textBoxFilter;
         private System.Windows.Forms.Label labelFilter;
     }

@@ -27,8 +27,9 @@ namespace IntensityLinesProbe
     /// 2. ЦВЕТ — свой у каждого нуклида, а не общий на набор;
     /// 3. ОТБОР: погашенный нуклид, нуклид без выхода и нуклид чужого набора не
     ///    рисуются;
-    /// 4. НАБОР НЕ ВЫБРАН — не рисуется ничего. Библиотека целиком закрыла бы
-    ///    график частоколом, и это отдельное решение, а не побочный эффект;
+    /// 4. НАБОР НЕ ВЫБРАН либо у набора СНЯТА ГАЛКА «линии интенсивностей» —
+    ///    не рисуется ничего. Набор выбирают ради поиска пиков, и частокол в
+    ///    тридцать линий не обязан появляться заодно;
     /// 5. ЛИНИЯ ЗА КРАЕМ КАРТИНКИ не мешает следующим за ней.
     ///
     /// Ожидание: «ВСЕ СОШЛИСЬ».
@@ -52,7 +53,10 @@ namespace IntensityLinesProbe
             // Набор заводится СВОЙ, а не берётся из конфига: проба обязана
             // знать ожидаемые числа наперёд, а чужой набор меняется без неё.
             // В файл ничего не пишется — SaveDefinitionFile не зовётся.
-            NuclideSet set = new NuclideSet { Id = Guid.NewGuid(), Name = "~проба" };
+            NuclideSet set = new NuclideSet
+            {
+                Id = Guid.NewGuid(), Name = "~проба", ShowIntensityLines = true
+            };
             NuclideSet other = new NuclideSet { Id = Guid.NewGuid(), Name = "~проба-чужой" };
             manager.NuclideSets.Add(set);
             manager.NuclideSets.Add(other);
@@ -101,9 +105,74 @@ namespace IntensityLinesProbe
                 bad += Same("набор не выбран: линий нет", 0, Painted(image));
             }
 
+            // Тот же набор с той же начинкой, но галка снята: набор выбирают
+            // ради поиска пиков, и линии не обязаны появляться заодно.
+            set.ShowIntensityLines = false;
+            manager.ActiveNuclideSet = set;
+            using (EnergySpectrumView view = Chart())
+            using (Bitmap image = new Bitmap(Width, Height))
+            {
+                Draw(view, image);
+                bad += Same("галка набора снята: линий нет", 0, Painted(image));
+            }
+
+            bad += CheckPersistence();
+
             Console.WriteLine();
             Console.WriteLine(bad == 0 ? "ВСЕ СОШЛИСЬ" : string.Format("НЕ СОШЛОСЬ: {0}", bad));
             return bad == 0 ? 0 : 1;
+        }
+
+        /// <summary>
+        /// Галка живёт у набора и обязана пережить файл. Отдельно — файл БЕЗ
+        /// неё: такие у всех, кто заводил наборы раньше, и читаться они должны
+        /// как «линии не показывать», а не отказом.
+        /// </summary>
+        static int CheckPersistence()
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== хранение галки ===");
+            int bad = 0;
+
+            NuclideDefinitionFile file = new NuclideDefinitionFile();
+            file.NuclideSets.Add(new NuclideSet
+            {
+                Id = Guid.NewGuid(), Name = "с линиями", ShowIntensityLines = true
+            });
+            file.NuclideSets.Add(new NuclideSet
+            {
+                Id = Guid.NewGuid(), Name = "без линий", ShowIntensityLines = false
+            });
+
+            System.Xml.Serialization.XmlSerializer serializer =
+                new System.Xml.Serialization.XmlSerializer(typeof(NuclideDefinitionFile));
+            System.Text.StringBuilder text = new System.Text.StringBuilder();
+            using (System.IO.StringWriter writer = new System.IO.StringWriter(text))
+            {
+                serializer.Serialize(writer, file);
+            }
+
+            NuclideDefinitionFile back;
+            using (System.IO.StringReader reader = new System.IO.StringReader(text.ToString()))
+            {
+                back = (NuclideDefinitionFile)serializer.Deserialize(reader);
+            }
+
+            bad += Same("включённая пережила запись", true, back.NuclideSets[0].ShowIntensityLines);
+            bad += Same("снятая пережила запись", false, back.NuclideSets[1].ShowIntensityLines);
+
+            string legacy = text.ToString()
+                .Replace("<ShowIntensityLines>true</ShowIntensityLines>", "")
+                .Replace("<ShowIntensityLines>false</ShowIntensityLines>", "");
+            NuclideDefinitionFile old;
+            using (System.IO.StringReader reader = new System.IO.StringReader(legacy))
+            {
+                old = (NuclideDefinitionFile)serializer.Deserialize(reader);
+            }
+
+            bad += Same("старый файл: наборов", 2, old.NuclideSets.Count);
+            bad += Same("старый файл: линии не показываются", false, old.NuclideSets[0].ShowIntensityLines);
+            return bad;
         }
 
         static NuclideDefinition Line(NuclideDefinitionManager manager, NuclideSet set,

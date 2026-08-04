@@ -77,12 +77,15 @@ namespace BecquerelMonitor
         /// <summary>
         /// Линии выбранного набора, у которых есть чем рисовать: заданный выход
         /// и энергия. Пустой список — рисовать нечего, и это не ошибка.
+        ///
+        /// Спрашивается ещё и галка самого набора: набор выбирают ради поиска
+        /// пиков, и линии не обязаны появляться заодно.
         /// </summary>
         public List<NuclideDefinition> ActiveSetLines()
         {
             List<NuclideDefinition> lines = new List<NuclideDefinition>();
             NuclideSet set = this.activeNuclideSet;
-            if (set == null || this.nuclideDefinitionFile == null)
+            if (set == null || !set.ShowIntensityLines || this.nuclideDefinitionFile == null)
             {
                 return lines;
             }

@@ -148,6 +148,12 @@
   <data name="labelSets.Text" xml:space="preserve">
     <value>Выбрать набор изотопов</value>
   </data>
+  <data name="columnSetIntensityLines.Text" xml:space="preserve">
+    <value>Линии интенс.</value>
+  </data>
+  <data name="columnSetIntensityLines.ToolTipText" xml:space="preserve">
+    <value>Рисовать линии этого набора поверх спектра: энергия даёт положение, выход высоту, цвет нуклида цвет.</value>
+  </data>
   <data name="columnSetName.Text" xml:space="preserve">
     <value>Имя</value>
   </data>
