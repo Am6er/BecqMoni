@@ -1374,5 +1374,79 @@ namespace BecquerelMonitor.EfficiencyMaker
             double b = calibration.ChannelToEnergy(channel + 0.5);
             return b - a;
         }
+
+        /// <summary>
+        /// Кривая из файла конфигурации эффективности.
+        ///
+        /// В ПРИЛОЖЕНИИ этим никто не пользуется и пользоваться не должен:
+        /// кривая живёт в конфигурации прибора, и переносить её между машинами
+        /// файлом решено не давать. Файловый вход и выход остались ради
+        /// офлайн-харнесса `tools/effmaker`, который считает кривые пачкой, без
+        /// окон и без конфигурации прибора вовсе.
+        /// </summary>
+        public static List<ROIEfficiencyData> LoadReferenceCurve(string path)
+        {
+            XmlSerializer serializer = new XmlSerializer(typeof(EfficiencyConfigData));
+            using (FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                EfficiencyConfigData config = (EfficiencyConfigData)serializer.Deserialize(stream);
+                if (config.Curve == null)
+                {
+                    return new List<ROIEfficiencyData>();
+                }
+
+                return config.Curve
+                    .Where(p => p != null && p.Energy > 0.0 && p.Efficiency > 0.0)
+                    .OrderBy(p => p.Energy)
+                    .ToList();
+            }
+        }
+
+        /// <summary>
+        /// Записать кривую в файл конфигурации эффективности. Исходный, если он
+        /// был, читается целиком — имя и заметка не теряются.
+        ///
+        /// Только для офлайн-харнесса, см. <see cref="LoadReferenceCurve"/>.
+        /// </summary>
+        public static void SaveCurve(string path, string referencePath, string name,
+                                     List<ROIEfficiencyData> curve, string note)
+        {
+            XmlSerializer serializer = new XmlSerializer(typeof(EfficiencyConfigData));
+            EfficiencyConfigData config;
+            if (!string.IsNullOrEmpty(referencePath) && File.Exists(referencePath))
+            {
+                using (FileStream stream = new FileStream(referencePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    config = (EfficiencyConfigData)serializer.Deserialize(stream);
+                }
+            }
+            else
+            {
+                config = new EfficiencyConfigData(name ?? "");
+            }
+
+            if (!string.IsNullOrEmpty(name))
+            {
+                config.Name = name;
+            }
+
+            config.Curve = curve;
+            config.LastUpdated = DateTime.Now;
+            if (!string.IsNullOrEmpty(note))
+            {
+                config.Note = new CDATA(note);
+            }
+
+            string directory = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            using (FileStream stream = new FileStream(path, FileMode.Create, FileAccess.Write))
+            {
+                serializer.Serialize(stream, config);
+            }
+        }
     }
 }

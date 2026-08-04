@@ -107,6 +107,14 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         public List<ROIEfficiencyData> Reference;
 
+        /// <summary>
+        /// Откуда взята исходная кривая. Нужен только офлайн-харнессу
+        /// `tools/effmaker`: он дописывает результат в тот же файл, сохраняя
+        /// имя и заметку. В приложении кривая приходит из конфигурации прибора,
+        /// и файла у неё нет.
+        /// </summary>
+        public string ReferencePath;
+
         public int ResultIndex;
 
         /// <summary>
