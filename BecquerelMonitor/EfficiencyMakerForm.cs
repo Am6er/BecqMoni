@@ -36,11 +36,9 @@ namespace BecquerelMonitor
     {
         readonly List<string> spectrumFiles = new List<string>();
         /// <summary>
-        /// Исходная кривая, по которой берётся АБСОЛЮТНЫЙ уровень подгонки.
-        ///
-        /// Пока пуста всегда: строку выбора ROI-файла убрали, а из текущей
-        /// конфигурации кривая ещё не подставляется — это следующий шаг. До
-        /// него уровень можно взять только опорной точкой, иначе подгонка даёт
+        /// Исходная кривая, по которой берётся АБСОЛЮТНЫЙ уровень подгонки, —
+        /// кривая привязанной конфигурации прибора (см. <see cref="BindTo"/>).
+        /// Её нет — уровень остаётся взять опорной точкой, иначе подгонка даёт
         /// одну форму, и так и написано в отчёте.
         /// </summary>
         List<ROIEfficiencyData> referenceCurve = null;
@@ -647,30 +645,6 @@ namespace BecquerelMonitor
         }
 
 
-        static string RoiConfigDirectory()
-        {
-            try
-            {
-                string dir = Path.Combine(Environment.GetFolderPath(
-                    Environment.SpecialFolder.ApplicationData), "BecqMoni", "config", "ROI");
-                return Directory.Exists(dir) ? dir : "";
-            }
-            catch (Exception)
-            {
-                return "";
-            }
-        }
-
-        static string AskSavePath()
-        {
-            using (SaveFileDialog dialog = new SaveFileDialog())
-            {
-                dialog.Filter = Resources.EfficiencyMakerRoiFilter;
-                dialog.InitialDirectory = RoiConfigDirectory();
-                return dialog.ShowDialog() == DialogResult.OK ? dialog.FileName : "";
-            }
-        }
-
         void runButton_Click(object sender, EventArgs e)
         {
             if (Busy())
@@ -862,7 +836,6 @@ namespace BecquerelMonitor
             input.MinSignificance = (double)this.minSignificanceNumericUpDown.Value;
             input.SubtractBackground = this.backgroundCheckBox.Checked;
             input.Reference = this.referenceCurve;
-            input.ReferencePath = "";
 
             double anchorEnergy, anchorEfficiency;
             if (TryParse(this.anchorEnergyTextBox.Text, out anchorEnergy)
@@ -946,61 +919,28 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// Сохранить — значит положить в привязанную конфигурацию прибора.
+        /// Другого места у кривой нет: окно открывается только из списка
+        /// конфигураций эффективности и только с готовой конфигурацией.
+        ///
+        /// Кривой при этом может и не быть: правка геометрии сохраняется сама
+        /// по себе, и кнопка на неё включается (см. UpdateSaveState). Здесь
+        /// стояла проверка «нет кривой — выйти», и нажатие после правки одной
+        /// геометрии не делало НИЧЕГО: кнопка доступна, звёздочка в заголовке
+        /// не гаснет, сказать об этом некому.
+        /// </summary>
         void saveButton_Click(object sender, EventArgs e)
         {
-            if (this.lastResult == null || !this.lastResult.Ok)
+            if (this.boundConfig == null)
             {
                 return;
             }
 
-            // Привязанная конфигурация — обычный путь. Файл остаётся только
-            // для окна, открытого без неё.
-            if (this.boundConfig != null)
+            if (this.SaveIntoConfig())
             {
-                if (this.SaveIntoConfig())
-                {
-                    AppendLog(string.Format(Resources.EfficiencyMakerSavedToConfig,
-                                            this.boundConfig.Name));
-                }
-
-                return;
-            }
-
-            string path = AskSavePath();
-            if (path.Length == 0)
-            {
-                return;
-            }
-
-            try
-            {
-                // Исходный ROI-файл копируется целиком (зоны и заметка не
-                // теряются) только когда кривая ЕГО и поправляет. У расчёта из
-                // геометрии своя кривая с абсолютным уровнем: подкладывать под
-                // неё чужие зоны нельзя — файл геометрии и файл кривой на
-                // вкладке подгонки относятся к разным приборам сплошь и рядом.
-                bool fromGeometry = this.lastResult.LevelSource == EfficiencyLevelSource.Simulation;
-                string basedOn = "";
-                string note = fromGeometry
-                    ? string.Format(CultureInfo.InvariantCulture,
-                        "Efficiency maker: calculated from geometry {0}, {1} points, {2}-{3} keV, "
-                        + "{4} histories per point",
-                        this.geometry == null ? "" : this.geometry.Name, this.lastResult.Curve.Count,
-                        (int)this.lastResult.MinEnergy, (int)this.lastResult.MaxEnergy,
-                        SimulationHistories)
-                    : string.Format(CultureInfo.InvariantCulture,
-                        "Efficiency maker: {0} lines, {1} series, chi2/ndf {2:F2}, {3}-{4} keV, level: {5}",
-                        this.lastResult.AcceptedCount, this.lastResult.SeriesKeys.Count,
-                        this.lastResult.Chi2Ndf, (int)this.lastResult.MinEnergy,
-                        (int)this.lastResult.MaxEnergy, this.lastResult.LevelSource);
-                EfficiencyFitter.SaveCurve(path, basedOn,
-                    Path.GetFileNameWithoutExtension(path), this.lastResult.Curve, note);
-                this.statusLabel.Text = string.Format(Resources.EfficiencyMakerSaved, path);
-                AppendLog(this.statusLabel.Text);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, ex.Message, this.Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                AppendLog(string.Format(Resources.EfficiencyMakerSavedToConfig,
+                                        this.boundConfig.Name));
             }
         }
 

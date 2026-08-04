@@ -42302,14 +42302,8 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="EfficiencyMakerLevelShapeOnly" xml:space="preserve">
     <value>SHAPE ONLY, level is arbitrary</value>
   </data>
-  <data name="EfficiencyMakerReferenceLoaded" xml:space="preserve">
-    <value>Source curve {0}: {1} points</value>
-  </data>
   <data name="EfficiencyMakerSaved" xml:space="preserve">
     <value>Saved: {0}</value>
-  </data>
-  <data name="EfficiencyMakerRoiFilter" xml:space="preserve">
-    <value>ROI configuration (*.xml)|*.xml|All files (*.*)|*.*</value>
   </data>
   <data name="EfficiencyMakerSpectrumFilter" xml:space="preserve">
     <value>Spectra (*.xml)|*.xml|All files (*.*)|*.*</value>

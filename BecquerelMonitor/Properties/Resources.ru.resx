@@ -917,14 +917,8 @@
   <data name="EfficiencyMakerLevelShapeOnly" xml:space="preserve">
     <value>ТОЛЬКО ФОРМА, уровень произвольный</value>
   </data>
-  <data name="EfficiencyMakerReferenceLoaded" xml:space="preserve">
-    <value>Исходная кривая {0}: точек {1}</value>
-  </data>
   <data name="EfficiencyMakerSaved" xml:space="preserve">
     <value>Сохранено: {0}</value>
-  </data>
-  <data name="EfficiencyMakerRoiFilter" xml:space="preserve">
-    <value>Конфигурация ROI (*.xml)|*.xml|Все файлы (*.*)|*.*</value>
   </data>
   <data name="EfficiencyMakerSpectrumFilter" xml:space="preserve">
     <value>Спектры (*.xml)|*.xml|Все файлы (*.*)|*.*</value>
