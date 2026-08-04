@@ -616,15 +616,16 @@ namespace BecquerelMonitor
         /// недоступно: K — уже не число, а функция кривой и параметров зоны, и
         /// правка поля ничего бы не изменила, только соврала бы.
         ///
-        /// Строка под полем обязана называть причину отката поимённо: кривая не
-        /// выбрана и энергия за её краем — разные беды с разным лечением, а
-        /// молча подставленное старое число выглядит одинаково.
+        /// Причина отката называется поимённо: кривая не выбрана и энергия за
+        /// её краем — разные беды с разным лечением, а молча подставленное
+        /// старое число выглядит одинаково. Живёт эта строка в подсказке самой
+        /// галочки, а не отдельной надписью на форме.
         /// </summary>
         void ShowBecquerelCoefficient(ROIDefinitionData roi)
         {
             if (roi == null)
             {
-                this.bqCoeffStatusLabel.Text = "";
+                this.hints.SetToolTip(this.autoBqCheckBox, "");
                 return;
             }
 
@@ -637,12 +638,12 @@ namespace BecquerelMonitor
 
             if (!auto)
             {
-                this.bqCoeffStatusLabel.Text = "";
+                this.hints.SetToolTip(this.autoBqCheckBox, "");
                 return;
             }
 
-            this.bqCoeffStatusLabel.Text = k.Problem ?? string.Format(
-                CultureInfo.CurrentCulture, Resources.BqCoeffFromCurve, k.Value, k.Error);
+            this.hints.SetToolTip(this.autoBqCheckBox, k.Problem ?? string.Format(
+                CultureInfo.CurrentCulture, Resources.BqCoeffFromCurve, k.Value, k.Error));
 
             // В полях показывается ДЕЙСТВУЮЩЕЕ значение, а не сохранённое:
             // иначе рядом с надписью «K посчитан по кривой» стояло бы другое

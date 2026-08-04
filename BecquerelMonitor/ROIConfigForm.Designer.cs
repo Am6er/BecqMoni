@@ -16,6 +16,7 @@
 		// Token: 0x060008EE RID: 2286 RVA: 0x00031D9C File Offset: 0x0002FF9C
 		void InitializeComponent()
 		{
+            this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ROIConfigForm));
             XPTable.Models.DataSourceColumnBinder dataSourceColumnBinder1 = new XPTable.Models.DataSourceColumnBinder();
             XPTable.Renderers.DragDropRenderer dragDropRenderer1 = new XPTable.Renderers.DragDropRenderer();
@@ -55,7 +56,7 @@
             this.doubleTextBox4 = new BecquerelMonitor.DoubleTextBox();
             this.doubleTextBox3 = new BecquerelMonitor.DoubleTextBox();
             this.autoBqCheckBox = new System.Windows.Forms.CheckBox();
-            this.bqCoeffStatusLabel = new System.Windows.Forms.Label();
+            this.hints = new System.Windows.Forms.ToolTip(this.components);
             this.checkBox1 = new System.Windows.Forms.CheckBox();
             this.label12 = new System.Windows.Forms.Label();
             this.label10 = new System.Windows.Forms.Label();
@@ -219,7 +220,6 @@
             this.groupBox1.Controls.Add(this.doubleTextBox6);
             this.groupBox1.Controls.Add(this.doubleTextBox7);
             this.groupBox1.Controls.Add(this.autoBqCheckBox);
-            this.groupBox1.Controls.Add(this.bqCoeffStatusLabel);
             this.groupBox1.Controls.Add(this.doubleTextBox4);
             this.groupBox1.Controls.Add(this.doubleTextBox3);
             this.groupBox1.Controls.Add(this.checkBox1);
@@ -325,12 +325,13 @@
             this.autoBqCheckBox.UseVisualStyleBackColor = true;
             this.autoBqCheckBox.CheckedChanged += new System.EventHandler(this.autoBqCheckBox_CheckedChanged);
             //
-            // bqCoeffStatusLabel
+            // hints
             //
-            resources.ApplyResources(this.bqCoeffStatusLabel, "bqCoeffStatusLabel");
-            this.bqCoeffStatusLabel.AutoEllipsis = true;
-            this.bqCoeffStatusLabel.ForeColor = System.Drawing.Color.DimGray;
-            this.bqCoeffStatusLabel.Name = "bqCoeffStatusLabel";
+            // Строка состояния коэффициента переехала с формы в подсказку этой
+            // галочки: место под ней уходило на текст, который нужен не всегда.
+            this.hints.AutoPopDelay = 30000;
+            this.hints.InitialDelay = 400;
+            this.hints.ReshowDelay = 100;
             //
             // doubleTextBox4
             //
@@ -862,7 +863,7 @@
 		// Token: 0x040004E2 RID: 1250
 		global::BecquerelMonitor.DoubleTextBox doubleTextBox3;
 		System.Windows.Forms.CheckBox autoBqCheckBox;
-		System.Windows.Forms.Label bqCoeffStatusLabel;
+		System.Windows.Forms.ToolTip hints;
 
 		// Token: 0x040004E3 RID: 1251
 		global::System.Windows.Forms.Label label14;

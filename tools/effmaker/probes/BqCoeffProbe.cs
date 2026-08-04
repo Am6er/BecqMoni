@@ -1,12 +1,15 @@
 using BecquerelMonitor;
 using BecquerelMonitor.EfficiencyMaker;
 using BecquerelMonitor.FullSpectrumAnalysis;
+using BecquerelMonitor.Properties;
 using BecquerelMonitor.Utils;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Reflection;
 using System.Text;
+using System.Windows.Forms;
 using System.Xml.Serialization;
 
 namespace BqCoeffProbe
@@ -30,27 +33,30 @@ namespace BqCoeffProbe
     ///    копирования, — ошибка, на которой сегодня уже попались кривые в
     ///    конфиге прибора.
     ///
-    ///     bqprobe [ROI-конфиг.xml ...]
+    /// 4. ГДЕ ПРИЧИНА ВИДНА. Отдельной надписи под полем больше нет — текст
+    ///    переехал в подсказку самой галочки, — и подсказка проверяется тем же
+    ///    впрыском: пустая подсказка от отсутствующей глазами неотличима.
     ///
-    /// С файлами конфигураций проба ещё и печатает, НАСКОЛЬКО активность
-    /// изменится, если включить расчёт по кривой: у зон, где заполнено и K, и
-    /// кривая, сравнивается сохранённое число с посчитанным.
+    ///     bqprobe
     ///
     /// Ожидание: «ВСЕ СОШЛИСЬ».
+    ///
+    /// Измерение «насколько изменится активность, если включить расчёт по
+    /// кривой» отсюда убрано: оно читало кривую из ROI-конфига, а кривая из
+    /// наборов зон переехала в конфигурацию прибора и в этих файлах её больше
+    /// нет.
     /// </summary>
     static class Program
     {
-        static int Main(string[] args)
+        [STAThread]
+        static int Main()
         {
             Console.OutputEncoding = Encoding.UTF8;
             int bad = 0;
             bad += CheckFormula();
             bad += CheckFallbacks();
             bad += CheckPersistence();
-            foreach (string path in args)
-            {
-                Report(path);
-            }
+            bad += CheckHint();
 
             Console.WriteLine();
             Console.WriteLine(bad == 0 ? "ВСЕ СОШЛИСЬ" : string.Format("НЕ СОШЛОСЬ: {0}", bad));
@@ -162,6 +168,72 @@ namespace BqCoeffProbe
             return bad;
         }
 
+        /// <summary>
+        /// Где причина отката показывается пользователю. Отдельной надписи под
+        /// полем больше нет — текст переехал в подсказку самой галочки, — и
+        /// проверяется именно это: подсказка непустая и несёт ту самую строку.
+        ///
+        /// Проверять глазами дорого: подсказку видно только под мышью, а пустая
+        /// подсказка от отсутствующей ничем не отличается.
+        /// </summary>
+        static int CheckHint()
+        {
+            Console.WriteLine("=== подсказка на галочке ===");
+            int bad = 0;
+            // Список примитивов зоны заводит MainForm при запуске, а формы он
+            // нужен уже конструктору. Без этого проба падает на первой строке
+            // конструктора, не дойдя до проверки.
+            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
+            using (ROIConfigForm form = new ROIConfigForm())
+            {
+                CheckBox check = (CheckBox)Field(form, "autoBqCheckBox");
+                ToolTip hints = (ToolTip)Field(form, "hints");
+
+                bad += Same("надписи под полем больше нет", null,
+                            form.GetType().GetField("bqCoeffStatusLabel",
+                                BindingFlags.Instance | BindingFlags.NonPublic));
+
+                // Выход не задан: причина известна и обязана дойти до мыши.
+                ROIDefinitionData noYield = Zone(662.0, 0.0, 777.0, 7.0);
+                Show(form, noYield);
+                bad += Same("нет выхода: подсказка та самая",
+                            Resources.BqCoeffNoIntensity, hints.GetToolTip(check));
+
+                // Галочка снята — причины нет, и подсказки быть не должно:
+                // висящий текст «K посчитан по кривой» на снятой галочке врал бы.
+                ROIDefinitionData manual = Zone(662.0, 85.1, 777.0, 7.0);
+                manual.AutoBecquerelCoefficient = false;
+                Show(form, manual);
+                bad += Same("галочка снята: подсказки нет", "", hints.GetToolTip(check));
+            }
+
+            return bad;
+        }
+
+        static void Show(ROIConfigForm form, ROIDefinitionData roi)
+        {
+            MethodInfo method = typeof(ROIConfigForm).GetMethod("ShowBecquerelCoefficient",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            if (method == null)
+            {
+                throw new InvalidOperationException("нет ROIConfigForm.ShowBecquerelCoefficient");
+            }
+
+            method.Invoke(form, new object[] { roi });
+        }
+
+        static object Field(object target, string name)
+        {
+            FieldInfo field = target.GetType().GetField(name,
+                BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+            if (field == null)
+            {
+                throw new InvalidOperationException("нет поля " + name);
+            }
+
+            return field.GetValue(target);
+        }
+
         static int CheckPersistence()
         {
             Console.WriteLine("=== хранение признака ===");
@@ -213,53 +285,6 @@ namespace BqCoeffProbe
             bad += Same("копия зоны несёт признак", false, copy.AutoBecquerelCoefficient);
 
             return bad;
-        }
-
-        /// <summary>
-        /// Что станет с числами пользователя, если включить расчёт по кривой.
-        /// Не проверка, а измерение: у зон, где заполнено и K, и кривая,
-        /// печатается отношение посчитанного к сохранённому.
-        /// </summary>
-        static void Report(string path)
-        {
-            Console.WriteLine();
-            Console.WriteLine("=== {0}", Path.GetFileName(path));
-            ROIConfigData config;
-            XmlSerializer serializer = new XmlSerializer(typeof(ROIConfigData));
-            using (FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read))
-            {
-                config = (ROIConfigData)serializer.Deserialize(stream);
-            }
-
-            EfficiencyConfigData asEfficiency = new EfficiencyConfigData("из ROI");
-            asEfficiency.Curve = config.ROIEfficiency;
-            if (FsaEfficiency.FromConfig(asEfficiency) == null)
-            {
-                Console.WriteLine("    кривой нет — сравнивать не с чем");
-                return;
-            }
-
-            foreach (ROIDefinitionData zone in config.ROIDefinitions)
-            {
-                if (!(zone.BecquerelCoefficient > 0.0))
-                {
-                    continue;
-                }
-
-                ROIDefinitionData probe = zone.Clone();
-                probe.AutoBecquerelCoefficient = true;
-                BecquerelCoefficient.Result k = BecquerelCoefficient.Resolve(probe, asEfficiency);
-                if (k.From != BecquerelCoefficient.Source.Efficiency)
-                {
-                    Console.WriteLine("    {0,-22} {1}", zone.Name, k.Problem);
-                    continue;
-                }
-
-                Console.WriteLine("    {0,-22} E={1,-8:0.##} I={2,-6:0.##} сохранено {3,-12:G6} по кривой {4,-12:G6} x{5:0.000}",
-                                  zone.Name, zone.PeakEnergy, zone.Intencity,
-                                  zone.BecquerelCoefficient, k.Value,
-                                  k.Value / zone.BecquerelCoefficient);
-            }
         }
 
         static int Near(string what, double expected, double got, double tolerance)
