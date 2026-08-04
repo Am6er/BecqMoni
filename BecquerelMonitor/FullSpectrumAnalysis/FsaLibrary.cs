@@ -140,14 +140,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Имя нуклида без хвоста вида «(Th-232)».</summary>
         static string NuclideToken(string name)
         {
-            if (string.IsNullOrEmpty(name))
-            {
-                return "";
-            }
-
-            int space = name.IndexOf(' ');
-            string token = space > 0 ? name.Substring(0, space) : name;
-            return token.Trim();
+            return NuclideDefinition.NuclideNameOf(name);
         }
 
         static Dictionary<string, FsaComponent> BuiltinSingles()

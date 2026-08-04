@@ -145,6 +145,76 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// Родитель ряда, на распад которого дан выход <see cref="Intencity"/>:
+        /// «Ra-226» у линии Bi-214 из радиевого равновесия. Пусто — линия сама
+        /// по себе, и выход дан на распад её собственного нуклида.
+        ///
+        /// До этого поля принадлежность линии к ряду жила ТОЛЬКО в хвосте имени
+        /// («Bi-214 (Ra-226)»), и разбирали этот хвост порознь конструктор
+        /// кривой и сборка библиотеки образов. Хвост никуда не делся — он
+        /// подпись на графике, — но решает теперь поле.
+        /// </summary>
+        public string Chain
+        {
+            get
+            {
+                return this.chain;
+            }
+            set
+            {
+                this.chain = value ?? "";
+            }
+        }
+
+        /// <summary>Имя без хвоста с рядом: «Bi-214 (Ra-226)» -&gt; «Bi-214».</summary>
+        [XmlIgnore]
+        public string NuclideName
+        {
+            get
+            {
+                return NuclideNameOf(this.name);
+            }
+        }
+
+        /// <summary>
+        /// Имя нуклида из подписи: всё до первого пробела. Разделение по
+        /// пробелу, а не по скобке, — так это делалось и раньше в обоих местах
+        /// разбора, и подписи без скобок («Ac-228 серия») читаются так же.
+        /// </summary>
+        public static string NuclideNameOf(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return "";
+            }
+
+            int space = name.IndexOf(' ');
+            return (space > 0 ? name.Substring(0, space) : name).Trim();
+        }
+
+        /// <summary>
+        /// Родитель ряда из хвоста подписи: «Bi-214 (Ra-226)» -&gt; «Ra-226».
+        /// Запасной источник — им заполняется <see cref="Chain"/> у файлов,
+        /// заведённых до появления поля.
+        /// </summary>
+        public static string ChainOf(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return "";
+            }
+
+            int open = name.IndexOf('(');
+            int close = name.LastIndexOf(')');
+            if (open < 0 || close <= open + 1)
+            {
+                return "";
+            }
+
+            return name.Substring(open + 1, close - open - 1).Trim();
+        }
+
         // Token: 0x040009B1 RID: 2481
         string name = "";
 
@@ -167,5 +237,7 @@ namespace BecquerelMonitor
         SerializableColor nuclideColor = Color.Gray;
 
         HashSet<Guid> sets = new HashSet<Guid>();
+
+        string chain = "";
     }
 }
