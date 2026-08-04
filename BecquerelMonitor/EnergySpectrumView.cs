@@ -1939,7 +1939,7 @@ namespace BecquerelMonitor
                         g.PixelOffsetMode = PixelOffsetMode.Default;
                     }
                 }
-                this.ShowROIReferencePeak(g);
+                this.ShowNuclideSetIntensities(g);
             }
             this.ShowStopwatch(g);
             if (this.drawingMode == DrawingMode.HighDefinition)
@@ -2806,80 +2806,97 @@ namespace BecquerelMonitor
             }
         }
 
-        void ShowROIReferencePeak(Graphics g)
+        /// <summary>
+        /// Вертикальные линии интенсивностей — по ВЫБРАННОМУ НАБОРУ НУКЛИДОВ.
+        ///
+        /// Раньше их рисовали зоны: под каждый ряд заводился ROI-конфиг вида
+        /// «Ra-226 Intensities», у зон которого ничего не измерялось — ни
+        /// примитивов, ни коэффициента, только энергия, выход и цвет. Ровно эти
+        /// три величины и есть у линии набора, а набор к тому же уже выбран в
+        /// панели поиска пиков: те же линии, которыми подписываются пики, и
+        /// рисуются под ними. Второго списка одних и тех же линий больше нет.
+        ///
+        /// Набор не выбран («все нуклиды») — линий нет: библиотека целиком
+        /// закрыла бы график частоколом.
+        /// </summary>
+        void ShowNuclideSetIntensities(Graphics g)
         {
-            if (this.roiConfig == null)
+            if (this.nuclideManager == null)
             {
                 return;
             }
 
-            List<double> intencityScale = new List<double>();
-
-            foreach (ROIDefinitionData roidefinitionData in this.roiConfig.ROIDefinitions)
+            List<NuclideDefinition> lines = this.nuclideManager.ActiveSetLines();
+            if (lines.Count == 0)
             {
-                if (roidefinitionData.Enabled && (roidefinitionData.Intencity < 100.0 || roidefinitionData.Intencity > 0.0))
+                return;
+            }
+
+            double intencityMax = 0.0;
+            foreach (NuclideDefinition line in lines)
+            {
+                if (line.Intencity > intencityMax)
                 {
-                    intencityScale.Add(roidefinitionData.Intencity);
+                    intencityMax = line.Intencity;
                 }
             }
 
-            if (intencityScale.Count == 0)
+            // Единственная линия набора рисовалась бы в полный рост при любом
+            // выходе: делить нечем. Высота от максимума и есть смысл картинки —
+            // относительные высоты линий, — поэтому масштаб берётся от 100 %.
+            if (lines.Count == 1)
             {
-                return;
+                intencityMax = 100.0;
             }
 
-            intencityScale.Sort();
-            double intencityMax = intencityScale[intencityScale.Count - 1];
-
-
-            foreach (ROIDefinitionData roidefinitionData in this.roiConfig.ROIDefinitions)
+            foreach (NuclideDefinition line in lines)
             {
-                if (roidefinitionData.Enabled)
+                double intencityscale;
+                if (this.verticalScaleType == VerticalScaleType.LinearScale)
                 {
-                    if (roidefinitionData.Intencity == 0.0)
+                    intencityscale = 0.8 * line.Intencity / intencityMax;
+                }
+                else if (this.verticalScaleType == VerticalScaleType.PowerScale)
+                {
+                    intencityscale = 0.8 * Pow(line.Intencity) / Pow(intencityMax);
+                }
+                else
+                {
+                    intencityscale = 0.8 * Log10(line.Intencity) / Log10(intencityMax);
+                }
+
+                float num;
+                if (this.horizontalUnit == HorizontalUnit.Channel)
+                {
+                    try
                     {
+                        num = (float)(this.energyCalibration.EnergyToChannel(line.Energy, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                    }
+                    catch (OutofChannelException)
+                    {
+                        // Линия за пределами шкалы гасит ЕЁ, а не всё
+                        // остальное: раньше здесь стоял break, и одна такая
+                        // линия убирала с графика все следующие. Ветка сейчас
+                        // недостижима — EnergyToChannel зажимает вместо того,
+                        // чтобы бросать, — но исключение объявлено, и молчаливо
+                        // терять на нём половину набора нельзя.
                         continue;
                     }
-                    double referencepeak = roidefinitionData.PeakEnergy;
-                    double intencityscale;
-                    if (this.verticalScaleType == VerticalScaleType.LinearScale)
+                }
+                else
+                {
+                    num = (float)((line.Energy - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + (float)this.scrollX + (float)this.left;
+                }
+
+                if (num > (float)this.left)
+                {
+                    // using: this runs per-line per-paint and used to leak a GDI Pen
+                    // handle on every line drawn.
+                    using (Pen pen = new Pen(line.NuclideColor.Color, 2))
                     {
-                        intencityscale = 0.8 * roidefinitionData.Intencity / intencityMax;
+                        g.DrawLine(pen, num, (float)((1.0 - intencityscale) * (this.height - 1)), num, (float)(this.height - 1));
                     }
-                    else if (this.verticalScaleType == VerticalScaleType.PowerScale)
-                    {
-                        intencityscale = 0.8 * Pow(roidefinitionData.Intencity) / Pow(intencityMax);
-                    }
-                    else
-                    {
-                        intencityscale = 0.8 * Log10(roidefinitionData.Intencity) / Log10(intencityMax);
-                    }
-                    
-                    float num;
-                    if (this.horizontalUnit == HorizontalUnit.Channel)
-                    {
-                        try
-                        {
-                            num = (float)(this.energyCalibration.EnergyToChannel(referencepeak, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                        }
-                        catch (OutofChannelException)
-                        {
-                            break;
-                        }
-                    } else
-                    {
-                        num = (float)((referencepeak - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                    }
-                    if (num > (float)this.left)
-                    {
-                        // using: this runs per-ROI per-paint and used to leak a GDI Pen
-                        // handle on every line drawn.
-                        using (Pen pen = new Pen(roidefinitionData.Color.Color, 2))
-                        {
-                            g.DrawLine(pen, num, (float)((1.0 - intencityscale) * (this.height - 1)), num, (float)(this.height - 1));
-                        }
-                    }
-            }
+                }
             }
         }
 
