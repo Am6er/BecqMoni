@@ -442,7 +442,6 @@
     <Compile Include="NuclideSetForm.Designer.cs">
       <DependentUpon>NuclideSetForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="OutofChannelException.cs" />
     <Compile Include="Package.cs" />
     <Compile Include="Peak.cs" />
     <Compile Include="PeakDetectionMethodConfig.cs" />
