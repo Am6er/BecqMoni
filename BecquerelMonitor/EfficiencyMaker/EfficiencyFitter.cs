@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using BecquerelMonitor.Properties;
 using System.Collections.Generic;
 using System.Globalization;
@@ -1294,18 +1294,24 @@ namespace BecquerelMonitor.EfficiencyMaker
             return data;
         }
 
+        /// <summary>
+        /// Кривая из файла конфигурации эффективности. Раньше кривые лежали в
+        /// ROI-конфигурациях, и читалось оттуда; кривая переехала в конфигурацию
+        /// прибора, и переносной файл теперь свой — та же структура, что и в
+        /// приборе, без набора зон вокруг.
+        /// </summary>
         public static List<ROIEfficiencyData> LoadReferenceCurve(string path)
         {
-            XmlSerializer serializer = new XmlSerializer(typeof(ROIConfigData));
+            XmlSerializer serializer = new XmlSerializer(typeof(EfficiencyConfigData));
             using (FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
-                ROIConfigData config = (ROIConfigData)serializer.Deserialize(stream);
-                if (config.ROIEfficiency == null)
+                EfficiencyConfigData config = (EfficiencyConfigData)serializer.Deserialize(stream);
+                if (config.Curve == null)
                 {
                     return new List<ROIEfficiencyData>();
                 }
 
-                return config.ROIEfficiency
+                return config.Curve
                     .Where(p => p != null && p.Energy > 0.0 && p.Efficiency > 0.0)
                     .OrderBy(p => p.Energy)
                     .ToList();
@@ -1313,26 +1319,24 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
-        /// Записать кривую в ROI-конфигурацию. Исходный файл, если он был,
-        /// копируется целиком — зоны, имя и заметка пользователя не теряются,
-        /// меняется только таблица эффективности.
+        /// Записать кривую в переносной файл конфигурации эффективности.
+        /// Исходный, если он был, читается целиком — имя и заметка не теряются.
         /// </summary>
         public static void SaveCurve(string path, string referencePath, string name,
                                      List<ROIEfficiencyData> curve, string note)
         {
-            XmlSerializer serializer = new XmlSerializer(typeof(ROIConfigData));
-            ROIConfigData config;
+            XmlSerializer serializer = new XmlSerializer(typeof(EfficiencyConfigData));
+            EfficiencyConfigData config;
             if (!string.IsNullOrEmpty(referencePath) && File.Exists(referencePath))
             {
                 using (FileStream stream = new FileStream(referencePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
-                    config = (ROIConfigData)serializer.Deserialize(stream);
+                    config = (EfficiencyConfigData)serializer.Deserialize(stream);
                 }
             }
             else
             {
-                config = new ROIConfigData();
-                config.Guid = System.Guid.NewGuid().ToString();
+                config = new EfficiencyConfigData(name ?? "");
             }
 
             if (!string.IsNullOrEmpty(name))
@@ -1340,7 +1344,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 config.Name = name;
             }
 
-            config.ROIEfficiency = curve;
+            config.Curve = curve;
             config.LastUpdated = DateTime.Now;
             if (!string.IsNullOrEmpty(note))
             {

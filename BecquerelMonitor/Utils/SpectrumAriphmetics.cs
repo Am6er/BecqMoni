@@ -301,22 +301,23 @@ namespace BecquerelMonitor.Utils
             return substractedEnergySpectrum;
         }
 
-        public static EnergySpectrum NormalizeSpectrum(EnergySpectrum spectrum, ROIConfigData roi)
+        /// <summary>
+        /// Спектр, поделённый на эффективность поканально. Кривая приходит СВОЯ
+        /// у спектра: раньше её брали из набора зон, но кривая оттуда уехала в
+        /// конфигурацию прибора, и набор зон о ней больше ничего не знает.
+        /// </summary>
+        public static EnergySpectrum NormalizeSpectrum(EnergySpectrum spectrum, EfficiencyConfigData efficiency)
         {
             EnergySpectrum normalizedSpectrum = spectrum.Clone();
-            if (roi == null)
+            FullSpectrumAnalysis.FsaEfficiency curve =
+                FullSpectrumAnalysis.FsaEfficiency.FromConfig(efficiency);
+            if (curve == null)
             {
                 return normalizedSpectrum;
             }
 
-            ROIAriphmetics roiAriphmetics = new ROIAriphmetics(roi);
-            if (!roiAriphmetics.HasValidCurve)
-            {
-                return normalizedSpectrum;
-            }
-
-            int minChannel = Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(roiAriphmetics.MinEnergy, maxChannels: normalizedSpectrum.NumberOfChannels));
-            int maxChannel = Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(roiAriphmetics.MaxEnergy, maxChannels: normalizedSpectrum.NumberOfChannels));
+            int minChannel = Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(curve.MinEnergy, maxChannels: normalizedSpectrum.NumberOfChannels));
+            int maxChannel = Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(curve.MaxEnergy, maxChannels: normalizedSpectrum.NumberOfChannels));
             normalizedSpectrum.TotalPulseCount = 0;
             Parallel.For(0, normalizedSpectrum.NumberOfChannels, i =>
             {
@@ -327,10 +328,10 @@ namespace BecquerelMonitor.Utils
                 else
                 {
                     double enrg = normalizedSpectrum.EnergyCalibration.ChannelToEnergy(i);
-                    ROIEfficiencyData effData = roiAriphmetics.CalculateEfficiency(enrg);
-                    if (effData != null && effData.Efficiency > 0)
+                    double eps, errorPercent;
+                    if (curve.TryEval(enrg, out eps, out errorPercent) && eps > 0)
                     {
-                        double normChannelValue = normalizedSpectrum.Spectrum[i] / effData.Efficiency;
+                        double normChannelValue = normalizedSpectrum.Spectrum[i] / eps;
                         if (normChannelValue < 0 || normChannelValue >= int.MaxValue) 
                         { 
                             normalizedSpectrum.Spectrum[i] = 0; 

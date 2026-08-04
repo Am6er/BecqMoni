@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
@@ -137,10 +137,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             EnergySpectrum spectrum = resultData.EnergySpectrum;
             EnergySpectrum background = subtractBackground ? resultData.BackgroundEnergySpectrum : null;
             FwhmCalibration fwhmCalibration = resultData.FwhmCalibration;
-            // Кривая эффективности: сначала выбранная пользователем область,
-            // иначе та, что привязана к самому спектру.
-            FsaEfficiency efficiency = FsaEfficiency.FromRoiConfig(efficiencyRoi)
-                                       ?? FsaEfficiency.FromRoiConfig(resultData.ROIConfig);
+            // Кривая эффективности: сначала СВОЯ кривая спектра — та, что
+            // выбрана в панели измерения и лежит в его файле. Кривая переехала
+            // из набора зон в конфигурацию прибора, и разложение обязано брать
+            // её оттуда же, откуда её берёт активность: две разные кривые в
+            // одном спектре — два разных ответа на один вопрос.
+            FsaEfficiency efficiency = FsaEfficiency.FromConfig(resultData.Efficiency);
 
             // Снимок списков: их правит UI-поток (конструктор сетов, NucBase),
             // а перечисление живого списка в фоне ловит «Collection was modified».
