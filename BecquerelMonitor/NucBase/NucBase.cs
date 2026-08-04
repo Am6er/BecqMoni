@@ -100,18 +100,31 @@ namespace BecquerelMonitor.NucBase
             }
             else
             {
-                List<string> daughters = fw.GetDaughters(isotope, intensity);
-                if (!daughters.Contains(isotope)) daughters.Add(isotope);
-                if (daughters.Count > 0)
+                // Выбран ряд — значит и выходы показываются НА РАСПАД КОРНЯ
+                // ряда, а не на распад своего нуклида: у Tl-208 в ториевом ряду
+                // это 35.85 % вместо 99.75 %. Ровно эти числа и ввозятся, и
+                // ровно их ждёт всё, что стоит на вековом равновесии, —
+                // конструктор кривой и разложение спектра.
+                Dictionary<string, double> branches = fw.GetChainBranches(isotope);
+                if (branches.Count > 0)
                 {
                     this.ResultDataGridView.Rows.Clear();
-                    foreach (string daughter in daughters)
+                    foreach (KeyValuePair<string, double> member in branches.OrderByDescending(m => m.Value))
                     {
-                        List<DecayRad> decayRads = fw.getDecayRad(daughter, intensity: intensity, lowEnergy: lowEnergy, highEnergy: highEnergy, half_life_sec: half_life);
+                        // Порог выхода прикладывается к ПОКАЗАННОМУ числу, а не
+                        // к базовому: иначе «не ниже 1 %» отсеивало бы по
+                        // величине, которой на экране нет.
+                        List<DecayRad> decayRads = fw.getDecayRad(member.Key, intensity: 0.0, lowEnergy: lowEnergy, highEnergy: highEnergy, half_life_sec: half_life);
                         if (decayRads != null)
                         {
                             foreach (DecayRad decrad in decayRads)
                             {
+                                decrad.Intensity *= member.Value;
+                                if (decrad.Intensity < intensity)
+                                {
+                                    continue;
+                                }
+
                                 AddRow(decrad);
                                 Trace.WriteLine($"{this.ResultDataGridView.Rows.Count} rows added");
                             }

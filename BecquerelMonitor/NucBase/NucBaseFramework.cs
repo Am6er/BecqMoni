@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using Microsoft.Data.Sqlite;
 using System.Linq;
 using System.Windows.Forms;
@@ -136,46 +137,89 @@ namespace BecquerelMonitor.NucBase
             return decayRads;
         }
 
-        List<string> daughters = new List<string>();
-        int depth = 0;
-
-        public List<string> GetDaughters(string nucname, double instencity)
+        /// <summary>
+        /// Ряд от корня: {нуклид -> накопленная доля ветвления}, у корня 1.0.
+        ///
+        /// Нужна для выходов НА РАСПАД РОДИТЕЛЯ РЯДА. В базе выход линии дан на
+        /// распад своего нуклида: у Tl-208 линия 2614 кэВ стоит 99.75 %, но сам
+        /// Tl-208 получается лишь из 35.94 % распадов Bi-212, и на распад Th-232
+        /// та же линия даёт 35.85 %. Векового равновесия иначе не посчитать —
+        /// именно на распад родителя даны все выходы, которыми пользуется и
+        /// конструктор кривой, и разложение спектра.
+        ///
+        /// Две тонкости, без которых числа врут:
+        ///
+        /// * идти только по НИЖНЕМУ уровню родителя (`l_seqno`): строки с
+        ///   большим номером описывают распад возбуждённого уровня и дублируют
+        ///   тот же переход с другим ветвлением — у Bi-212 на Tl-208 есть
+        ///   35.94 % при уровне 0 и 67 % при уровне 5. Изомер, если он живёт
+        ///   сам по себе, имеет собственный nucid (234PAM1);
+        /// * пропускать петлю на себя: у 238U в базе есть такая строка.
+        /// </summary>
+        public Dictionary<string, double> GetChainBranches(string rootNucid, double minFraction = 1e-6)
         {
-            daughters.Clear();
-            GetRecursiveDaughters(nucname, instencity);
-            return daughters.Distinct().ToList();
-        }
+            Dictionary<string, double> fraction = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+            List<string> order = new List<string>();
+            fraction[rootNucid] = 1.0;
+            order.Add(rootNucid);
 
-        private void GetRecursiveDaughters(string nucname, double intencity)
-        {
             DataBase db = new DataBase();
-            SqliteDataReader reader = db.ReadData("select daughter_nucid from decay_chain where nucid = '" + nucname +
-                "' and perc not null and cast(perc as float) >= " + intencity + ";");
-            int count = 1;
             try
             {
-                while (count > 0)
+                for (int i = 0; i < order.Count && order.Count <= 100; i++)
                 {
-                    List<string> d_count = new List<string>();
+                    string current = order[i];
+                    List<KeyValuePair<string, string>> rows = new List<KeyValuePair<string, string>>();
+                    // Строки вычитываются целиком до следующего запроса: обходу
+                    // нужен ещё один читатель на том же соединении.
+                    SqliteDataReader reader = db.ReadData(
+                        "select daughter_nucid, perc from decay_chain d where nucid = '" + current +
+                        "' and perc not null and l_seqno = (select min(l_seqno) from decay_chain x " +
+                        "where x.nucid = d.nucid and x.daughter_nucid = d.daughter_nucid " +
+                        "and x.dec_type = d.dec_type)");
                     while (reader.Read())
                     {
-                        d_count.Add(reader.GetString(0));
-                        daughters.Add(reader.GetString(0));
+                        rows.Add(new KeyValuePair<string, string>(reader.GetString(0), reader.GetString(1)));
                     }
-                    count = d_count.Count;
-                    depth++;
-                    if (depth > 100) break;
-                    foreach (string d in d_count)
+
+                    reader.Close();
+
+                    foreach (KeyValuePair<string, string> row in rows)
                     {
-                        GetRecursiveDaughters(d, intencity);
+                        double percent;
+                        if (string.Equals(row.Key, current, StringComparison.OrdinalIgnoreCase)
+                            || !double.TryParse(row.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out percent))
+                        {
+                            continue;
+                        }
+
+                        double add = fraction[current] * percent / 100.0;
+                        if (add < minFraction)
+                        {
+                            continue;
+                        }
+
+                        if (fraction.ContainsKey(row.Key))
+                        {
+                            fraction[row.Key] += add;
+                        }
+                        else
+                        {
+                            fraction[row.Key] = add;
+                            order.Add(row.Key);
+                        }
                     }
                 }
-            } catch (Exception ex)
-            {
-                MessageBox.Show(String.Format(Resources.NucBase_DaughtersFetchError, nucname, ex.Message),
-                Resources.ErrorExclamation, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
+            catch (Exception ex)
+            {
+                MessageBox.Show(String.Format(Resources.NucBase_DaughtersFetchError, rootNucid, ex.Message),
+                    Resources.ErrorExclamation, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+
             db.Close();
+            return fraction;
         }
+
     }
 }
