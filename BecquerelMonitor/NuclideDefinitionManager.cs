@@ -53,54 +53,50 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Набор, выбранный в панели поиска пиков. Живёт у менеджера, а не у
-        /// панели, потому что спрашивают его двое: сам поиск пиков и отрисовка
-        /// вертикальных линий интенсивностей на графике. У графика ссылки на
-        /// панель нет и быть не должно — а набор нуклидов и так общий, как и
-        /// весь остальной список.
+        /// Линии наборов, у которых стоит галка «показывать линии», — по
+        /// списку на набор: высота считается от самой сильной линии СВОЕГО
+        /// набора, и мешать их в одну кучу нельзя.
         ///
-        /// В файл не пишется: это выбор на сеанс, а не часть определений.
-        /// null — «все нуклиды».
-        /// </summary>
-        public NuclideSet ActiveNuclideSet
-        {
-            get
-            {
-                return this.activeNuclideSet;
-            }
-            set
-            {
-                this.activeNuclideSet = value;
-            }
-        }
-
-        /// <summary>
-        /// Линии выбранного набора, у которых есть чем рисовать: заданный выход
-        /// и энергия. Пустой список — рисовать нечего, и это не ошибка.
+        /// Решает ровно галка. Выбор набора в панели поиска пиков тут ни при
+        /// чём: это разные вещи, и первая же проверка на живом спектре
+        /// показала, что связывать их нельзя — галка стояла, набор для поиска
+        /// был «все нуклиды», и линии не появлялись.
         ///
-        /// Спрашивается ещё и галка самого набора: набор выбирают ради поиска
-        /// пиков, и линии не обязаны появляться заодно.
+        /// Пустой список — рисовать нечего, и это не ошибка.
         /// </summary>
-        public List<NuclideDefinition> ActiveSetLines()
+        public List<List<NuclideDefinition>> IntensityLineSets()
         {
-            List<NuclideDefinition> lines = new List<NuclideDefinition>();
-            NuclideSet set = this.activeNuclideSet;
-            if (set == null || !set.ShowIntensityLines || this.nuclideDefinitionFile == null)
+            List<List<NuclideDefinition>> groups = new List<List<NuclideDefinition>>();
+            if (this.nuclideDefinitionFile == null || this.NuclideSets == null)
             {
-                return lines;
+                return groups;
             }
 
-            foreach (NuclideDefinition definition in this.NuclideDefinitions)
+            foreach (NuclideSet set in this.NuclideSets)
             {
-                if (definition != null && definition.Visible
-                    && definition.Energy > 0.0 && definition.Intencity > 0.0
-                    && definition.Sets != null && definition.Sets.Contains(set.Id))
+                if (set == null || !set.ShowIntensityLines)
                 {
-                    lines.Add(definition);
+                    continue;
+                }
+
+                List<NuclideDefinition> lines = new List<NuclideDefinition>();
+                foreach (NuclideDefinition definition in this.NuclideDefinitions)
+                {
+                    if (definition != null && definition.Visible
+                        && definition.Energy > 0.0 && definition.Intencity > 0.0
+                        && definition.Sets != null && definition.Sets.Contains(set.Id))
+                    {
+                        lines.Add(definition);
+                    }
+                }
+
+                if (lines.Count > 0)
+                {
+                    groups.Add(lines);
                 }
             }
 
-            return lines;
+            return groups;
         }
 
         // Token: 0x06000932 RID: 2354 RVA: 0x00035750 File Offset: 0x00033950
@@ -234,7 +230,5 @@ namespace BecquerelMonitor
 
         // Token: 0x04000515 RID: 1301
         bool isLoaded;
-
-        NuclideSet activeNuclideSet;
     }
 }

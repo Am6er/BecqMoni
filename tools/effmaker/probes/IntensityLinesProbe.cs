@@ -27,9 +27,11 @@ namespace IntensityLinesProbe
     /// 2. ЦВЕТ — свой у каждого нуклида, а не общий на набор;
     /// 3. ОТБОР: погашенный нуклид, нуклид без выхода и нуклид чужого набора не
     ///    рисуются;
-    /// 4. НАБОР НЕ ВЫБРАН либо у набора СНЯТА ГАЛКА «линии интенсивностей» —
-    ///    не рисуется ничего. Набор выбирают ради поиска пиков, и частокол в
-    ///    тридцать линий не обязан появляться заодно;
+    /// 4. РЕШАЕТ ГАЛКА набора, и только она. Наборов с галкой может быть
+    ///    несколько — рисуются все, каждый со своей нормировкой. Галки сняты —
+    ///    не рисуется ничего. Выбор набора для поиска пиков к линиям
+    ///    отношения не имеет: на живом спектре галка стояла, набор для поиска
+    ///    был «все нуклиды», и линии не появлялись;
     /// 5. ЛИНИЯ ЗА КРАЕМ КАРТИНКИ не мешает следующим за ней.
     ///
     /// Ожидание: «ВСЕ СОШЛИСЬ».
@@ -68,11 +70,20 @@ namespace IntensityLinesProbe
             hidden.Visible = false;
             Line(manager, set, "Pr-104", 400.0, 0.0, Color.Cyan);
             NuclideDefinition stranger = Line(manager, other, "Pr-105", 500.0, 90.0, Color.Yellow);
+            // Чужой набор с галкой рисуется ТОЖЕ и со своей нормировкой: 20 %
+            // при максимуме 40 % в своём наборе дают половину, а не пятую
+            // часть, как было бы при общем максимуме в 100 %.
+            NuclideSet second = new NuclideSet
+            {
+                Id = Guid.NewGuid(), Name = "~проба-второй", ShowIntensityLines = true
+            };
+            manager.NuclideSets.Add(second);
+            NuclideDefinition secondTop = Line(manager, second, "Pr-108", 200.0, 40.0, Color.Orange);
+            NuclideDefinition secondHalf = Line(manager, second, "Pr-109", 250.0, 20.0, Color.Aqua);
             // За правым краем картинки: раньше такая линия гасила все следующие.
-            Line(manager, set, "Pr-106", 5000.0, 70.0, Color.Orange);
+            Line(manager, set, "Pr-106", 5000.0, 70.0, Color.Gray);
             NuclideDefinition afterFar = Line(manager, set, "Pr-107", 650.0, 10.0, Color.White);
 
-            manager.ActiveNuclideSet = set;
             using (EnergySpectrumView view = Chart())
             using (Bitmap image = new Bitmap(Width, Height))
             {
@@ -86,9 +97,15 @@ namespace IntensityLinesProbe
                 bad += Line(image, "Pr-102 600 кэВ, выход 25 %", 600, weak.NuclideColor.Color, 0.2);
                 bad += Line(image, "Pr-107 650 кэВ, после ушедшей за край", 650, afterFar.NuclideColor.Color, 0.08);
 
+                // Второй набор с галкой рисуется тоже, и нормировка у него
+                // СВОЯ: 40 % — его максимум, значит полный рост, а 20 % —
+                // половина. При общем максимуме в 100 % вышло бы 0.32 и 0.16.
+                bad += Line(image, "второй набор: 40 % — его максимум", 200, secondTop.NuclideColor.Color, 0.8);
+                bad += Line(image, "второй набор: 20 % — его половина", 250, secondHalf.NuclideColor.Color, 0.4);
+
                 bad += Missing(image, "погашенный нуклид не рисуется", 200, hidden.NuclideColor.Color);
                 bad += Missing(image, "нуклид без выхода не рисуется", 400, Color.Cyan);
-                bad += Missing(image, "нуклид чужого набора не рисуется", 500, stranger.NuclideColor.Color);
+                bad += Missing(image, "набор без галки не рисуется", 500, stranger.NuclideColor.Color);
 
                 if (args.Length > 0)
                 {
@@ -97,23 +114,17 @@ namespace IntensityLinesProbe
                 }
             }
 
-            manager.ActiveNuclideSet = null;
-            using (EnergySpectrumView view = Chart())
-            using (Bitmap image = new Bitmap(Width, Height))
-            {
-                Draw(view, image);
-                bad += Same("набор не выбран: линий нет", 0, Painted(image));
-            }
-
-            // Тот же набор с той же начинкой, но галка снята: набор выбирают
-            // ради поиска пиков, и линии не обязаны появляться заодно.
+            // Те же наборы с той же начинкой, но галки сняты. Решает ровно
+            // галка: выбор набора для поиска пиков на линии не влияет, и
+            // проверять это надо именно так — на живом спектре галка стояла,
+            // набор для поиска был «все нуклиды», и линии не появлялись.
             set.ShowIntensityLines = false;
-            manager.ActiveNuclideSet = set;
+            second.ShowIntensityLines = false;
             using (EnergySpectrumView view = Chart())
             using (Bitmap image = new Bitmap(Width, Height))
             {
                 Draw(view, image);
-                bad += Same("галка набора снята: линий нет", 0, Painted(image));
+                bad += Same("галки сняты: линий нет", 0, Painted(image));
             }
 
             bad += CheckPersistence();

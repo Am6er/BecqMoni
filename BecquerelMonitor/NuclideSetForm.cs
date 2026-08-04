@@ -257,7 +257,12 @@ namespace BecquerelMonitor
                 }
             }
 
-            this.mainForm.RefresNuclideSetList();
+            // Конструктор без MainForm существует (его зовёт дизайнер форм и
+            // проба, снимающая окно) — и на закрытии окна это падало NRE.
+            if (this.mainForm != null)
+            {
+                this.mainForm.RefresNuclideSetList();
+            }
         }
 
         private void tableSets_EditingStopped(object sender, XPTable.Events.CellEditEventArgs e)
