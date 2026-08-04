@@ -217,6 +217,11 @@
   <data name="MSGDeleteNuclideDefinition" xml:space="preserve">
     <value>Удалить изотоп "{0}"?</value>
   </data>
+  <data name="MSGDeleteNuclideDefinitions" xml:space="preserve">
+    <value>Удалить изотопов: {0}?
+
+{1}{2}</value>
+  </data>
   <data name="ChartHeaderBGCounts" xml:space="preserve">
     <value>Фоновых имп:</value>
   </data>
@@ -1142,5 +1147,35 @@
   </data>
   <data name="GeometryEditorPresetPrompt" xml:space="preserve">
     <value>(выбрать и подставить)</value>
+  </data>
+  <data name="EfficiencyMakerSetSkipped" xml:space="preserve">
+    <value>Набор нуклидов «{0}» использовать нельзя: {1}</value>
+  </data>
+  <data name="EfficiencyMakerSetNoIntensity" xml:space="preserve">
+    <value>у {0} из {1} его линий не заполнен выход. Кривая строится как площадь пика, делённая на выход, поэтому линия без выхода в счёт не идёт. Выход задаётся в редакторе нуклидов.</value>
+  </data>
+  <data name="EfficiencyMakerSetTooFewLines" xml:space="preserve">
+    <value>в нём годных линий {0}, а нужно хотя бы две — одну сравнить не с чем.</value>
+  </data>
+  <data name="EfficiencyMakerSetDuplicateName" xml:space="preserve">
+    <value>раньше него идёт другой набор с тем же именем.</value>
+  </data>
+  <data name="EfficiencyMakerSetGone" xml:space="preserve">
+    <value>Набор нуклидов «{0}» исчез из конфига; строки, где он стоял, переведены на всю библиотеку.</value>
+  </data>
+  <data name="EfficiencyMakerTipOrder" xml:space="preserve">
+    <value>Насколько кривой позволено гнуться. 1 — прямая в логарифмических осях, 3 — пологая волна. Чем больше, тем ближе кривая к измеренным точкам, но на малом числе линий она начинает мотаться между ними — если фит отказал как невозможный, снижать надо в первую очередь это.</value>
+  </data>
+  <data name="EfficiencyMakerTipMinIntensity" xml:space="preserve">
+    <value>Слабые линии пропускаются. Число — это выход: сколько квантов такой энергии вылетает на 100 распадов. При 1 % считается и линия, которая испускается раз на сотню распадов; поднимайте, если еле заметные линии таскают кривую.</value>
+  </data>
+  <data name="EfficiencyMakerTipMinSignificance" xml:space="preserve">
+    <value>Насколько пик обязан подняться над шумом фона, чтобы его измеряли, в единицах этого шума. 4 — вчетверо выше шума, то есть «это точно пик, а не бугор». Ниже — поймаются слабые линии ценой случайных, выше — останутся только надёжные пики.</value>
+  </data>
+  <data name="EfficiencyMakerTipAnchorEnergy" xml:space="preserve">
+    <value>Энергия точки, эффективность в которой известна, в кэВ — например, 662 для источника Cs-137. Если оставить пустым вместе с полем справа, кривая сохранит форму, но абсолютного уровня у неё не будет.</value>
+  </data>
+  <data name="EfficiencyMakerTipAnchorEfficiency" xml:space="preserve">
+    <value>Эффективность в этой энергии — долей, а не процентами: 0.01 значит, что в пик полного поглощения попадает один квант из ста испущенных. Это единственное число задаёт уровень всей кривой; сами измерения дают только её форму.</value>
   </data>
 </root>

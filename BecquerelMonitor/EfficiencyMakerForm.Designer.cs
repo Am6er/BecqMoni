@@ -315,6 +315,10 @@ namespace BecquerelMonitor
             this.spectraGrid.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.CellSelect;
             this.spectraGrid.Size = new System.Drawing.Size(480, 130);
             this.spectraGrid.TabIndex = 5;
+            this.spectraGrid.CellBeginEdit +=
+                new System.Windows.Forms.DataGridViewCellCancelEventHandler(this.spectraGrid_CellBeginEdit);
+            this.spectraGrid.DataError +=
+                new System.Windows.Forms.DataGridViewDataErrorEventHandler(this.spectraGrid_DataError);
             //
             // spectrumColumn
             //
@@ -693,6 +697,8 @@ namespace BecquerelMonitor
         System.Windows.Forms.Button referenceBrowseButton;
         System.Windows.Forms.Button referenceClearButton;
         System.Windows.Forms.Label spectraLabel;
+        /// <summary>Подсказки к настройкам; тексты ставит SetUpHints.</summary>
+        readonly System.Windows.Forms.ToolTip hints = new System.Windows.Forms.ToolTip();
         System.Windows.Forms.DataGridView spectraGrid;
         System.Windows.Forms.DataGridViewTextBoxColumn spectrumColumn;
         System.Windows.Forms.DataGridViewComboBoxColumn nuclideSetColumn;
