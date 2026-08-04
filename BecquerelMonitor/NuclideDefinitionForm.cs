@@ -1,5 +1,7 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Windows.Forms;
 using XPTable.Events;
 using XPTable.Models;
@@ -116,24 +118,64 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x060000C8 RID: 200 RVA: 0x0000406C File Offset: 0x0000226C
+        /// <summary>
+        /// Удалить выделенное. Строк может быть несколько (Ctrl/Shift), и тогда
+        /// спрашивается один раз на все: подтверждение на каждый нуклид из
+        /// тридцати — это не защита, а препятствие, его прощёлкивают не глядя.
+        /// </summary>
         void button4_Click(object sender, EventArgs e)
         {
-            if (this.activeNuclide == null)
+            List<NuclideDefinition> doomed = this.SelectedNuclides();
+            if (doomed.Count == 0)
             {
                 return;
             }
-            DialogResult dialogResult = MessageBox.Show(string.Format(Resources.MSGDeleteNuclideDefinition, this.activeNuclide.Name), Resources.ConfirmationDialogTitle, MessageBoxButtons.OKCancel, MessageBoxIcon.Exclamation);
+
+            string question = doomed.Count == 1
+                ? string.Format(Resources.MSGDeleteNuclideDefinition, doomed[0].Name)
+                : string.Format(Resources.MSGDeleteNuclideDefinitions, doomed.Count,
+                                string.Join(", ", doomed.Take(5).Select(n => n.Name)),
+                                doomed.Count > 5 ? "…" : "");
+            DialogResult dialogResult = MessageBox.Show(question, Resources.ConfirmationDialogTitle, MessageBoxButtons.OKCancel, MessageBoxIcon.Exclamation);
             if (dialogResult == DialogResult.OK)
             {
-                this.manager.NuclideDefinitions.Remove(this.activeNuclide);
-                this.manager.SaveDefinitionFile();
-                if (this.manager.NuclideDefinitions.Count > 0)
+                foreach (NuclideDefinition nuclide in doomed)
                 {
-                    this.activeNuclide = this.manager.NuclideDefinitions[0];
+                    this.manager.NuclideDefinitions.Remove(nuclide);
                 }
+
+                this.manager.SaveDefinitionFile();
+                this.activeNuclide = this.manager.NuclideDefinitions.Count > 0
+                    ? this.manager.NuclideDefinitions[0]
+                    : null;
                 this.ListupNuclideDefinitions();
                 this.UpdatePeakDetectionResult();
             }
+        }
+
+        /// <summary>
+        /// Нуклиды выделенных строк, по одному на строку. SelectedItems при
+        /// FullRowSelect отдаёт строку на каждую выделенную ячейку, так что
+        /// повторы отсеиваются.
+        /// </summary>
+        List<NuclideDefinition> SelectedNuclides()
+        {
+            List<NuclideDefinition> list = new List<NuclideDefinition>();
+            foreach (Row row in this.table1.SelectedItems)
+            {
+                NuclideDefinition nuclide = row.Tag as NuclideDefinition;
+                if (nuclide != null && !list.Contains(nuclide))
+                {
+                    list.Add(nuclide);
+                }
+            }
+
+            if (list.Count == 0 && this.activeNuclide != null)
+            {
+                list.Add(this.activeNuclide);
+            }
+
+            return list;
         }
 
         // Token: 0x060000C9 RID: 201 RVA: 0x00004110 File Offset: 0x00002310
@@ -188,9 +230,12 @@ namespace BecquerelMonitor
             }
             if (nuclideDefinition != null)
             {
+                // Выделение НЕ сводится обратно к одной ячейке: раньше здесь
+                // стояли Selections.Clear() + AddCell, и Ctrl/Shift не работали
+                // — таблица сама умеет несколько строк, а форма их гасила.
+                // В полях правки по-прежнему один нуклид, первый выделенный:
+                // редактировать два разом нечем.
                 this.activeNuclide = nuclideDefinition;
-                this.tableModel1.Selections.Clear();
-                this.tableModel1.Selections.AddCell(row.Index, 0);
                 this.LoadFormContents(this.activeNuclide);
                 this.button4.Enabled = true;
                 this.EnableForm();

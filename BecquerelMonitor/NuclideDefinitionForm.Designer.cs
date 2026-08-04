@@ -97,6 +97,9 @@ namespace BecquerelMonitor
             this.table1.FullRowSelect = true;
             this.table1.GridLines = XPTable.Models.GridLines.Both;
             this.table1.GridLinesContrainedToData = false;
+            // Ctrl/Shift выделяют несколько строк — иначе список чистят по
+            // одному нуклиду за раз, с подтверждением на каждый.
+            this.table1.MultiSelect = true;
             this.table1.HeaderFont = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.table1.Name = "table1";
             this.table1.SortedColumnBackColor = System.Drawing.Color.White;
