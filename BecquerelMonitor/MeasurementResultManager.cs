@@ -235,15 +235,8 @@ namespace BecquerelMonitor
                     double upperLimit = roisimpleDifferenceData.UpperLimit;
                     int lowerLimitChannel;
                     int upperLimitChannel;
-                    try
-                    {
-                        lowerLimitChannel = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(lowerLimit, maxChannels: this.energySpectrum.NumberOfChannels));
-                        upperLimitChannel = (int)Math.Floor(this.energyCalibration.EnergyToChannel(upperLimit, maxChannels: this.energySpectrum.NumberOfChannels));
-                    }
-                    catch (OutofChannelException)
-                    {
-                        return false;
-                    }
+                    lowerLimitChannel = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(lowerLimit, maxChannels: this.energySpectrum.NumberOfChannels));
+                    upperLimitChannel = (int)Math.Floor(this.energyCalibration.EnergyToChannel(upperLimit, maxChannels: this.energySpectrum.NumberOfChannels));
                     double fgRegionCounts = 0.0;
                     double bgRegionCounts = 0.0;
                     for (int i = lowerLimitChannel; i <= upperLimitChannel; i++)
@@ -292,15 +285,8 @@ namespace BecquerelMonitor
                     double upperLimit2 = roicovellMethodData.UpperLimit;
                     int lowerLimitChannelIndex;
                     int upperLimitChannelIndex;
-                    try
-                    {
-                        lowerLimitChannelIndex = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(lowerLimit2, maxChannels: this.energySpectrum.NumberOfChannels));
-                        upperLimitChannelIndex = (int)Math.Floor(this.energyCalibration.EnergyToChannel(upperLimit2, maxChannels: this.energySpectrum.NumberOfChannels));
-                    }
-                    catch (OutofChannelException)
-                    {
-                        return false;
-                    }
+                    lowerLimitChannelIndex = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(lowerLimit2, maxChannels: this.energySpectrum.NumberOfChannels));
+                    upperLimitChannelIndex = (int)Math.Floor(this.energyCalibration.EnergyToChannel(upperLimit2, maxChannels: this.energySpectrum.NumberOfChannels));
                     double leftRegionCenter = roicovellMethodData.LeftRegionCenter;
                     double rightRegionCenter = roicovellMethodData.RightRegionCenter;
                     double leftRegionWidth = roicovellMethodData.LeftRegionWidth;
@@ -309,17 +295,10 @@ namespace BecquerelMonitor
                     int num18;
                     int num19;
                     int num20;
-                    try
-                    {
-                        num17 = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(leftRegionCenter - leftRegionWidth / 2.0, maxChannels: this.energySpectrum.NumberOfChannels));
-                        num18 = (int)Math.Floor(this.energyCalibration.EnergyToChannel(leftRegionCenter + leftRegionWidth / 2.0, maxChannels: this.energySpectrum.NumberOfChannels));
-                        num19 = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(rightRegionCenter - rightRegionWidth / 2.0, maxChannels: this.energySpectrum.NumberOfChannels));
-                        num20 = (int)Math.Floor(this.energyCalibration.EnergyToChannel(rightRegionCenter + rightRegionWidth / 2.0, maxChannels: this.energySpectrum.NumberOfChannels));
-                    }
-                    catch (OutofChannelException)
-                    {
-                        return false;
-                    }
+                    num17 = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(leftRegionCenter - leftRegionWidth / 2.0, maxChannels: this.energySpectrum.NumberOfChannels));
+                    num18 = (int)Math.Floor(this.energyCalibration.EnergyToChannel(leftRegionCenter + leftRegionWidth / 2.0, maxChannels: this.energySpectrum.NumberOfChannels));
+                    num19 = (int)Math.Ceiling(this.energyCalibration.EnergyToChannel(rightRegionCenter - rightRegionWidth / 2.0, maxChannels: this.energySpectrum.NumberOfChannels));
+                    num20 = (int)Math.Floor(this.energyCalibration.EnergyToChannel(rightRegionCenter + rightRegionWidth / 2.0, maxChannels: this.energySpectrum.NumberOfChannels));
                     double num21 = 0.0;
                     for (int j = lowerLimitChannelIndex; j <= upperLimitChannelIndex; j++)
                     {

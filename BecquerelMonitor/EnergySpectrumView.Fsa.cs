@@ -319,11 +319,6 @@ namespace BecquerelMonitor
             for (int x = firstPixel; x <= maxPixel; x++)
             {
                 int channel = pixelChannels[x - firstPixel];
-                if (channel == PixelChannelMapOutOfRange)
-                {
-                    break;
-                }
-
                 if (channel < 0 || channel >= lower.Length)
                 {
                     continue;
@@ -401,11 +396,6 @@ namespace BecquerelMonitor
             for (int x = firstPixel; x <= maxPixel; x++)
             {
                 int channel = pixelChannels[x - firstPixel];
-                if (channel == PixelChannelMapOutOfRange)
-                {
-                    break;
-                }
-
                 bool broken = channel < 0 || channel >= values.Length;
                 int y = 0;
                 if (!broken)

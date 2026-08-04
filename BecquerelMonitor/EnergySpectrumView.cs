@@ -796,27 +796,20 @@ namespace BecquerelMonitor
                 return false;
             }
 
-            try
+            if (this.horizontalUnit == HorizontalUnit.Energy)
             {
-                if (this.horizontalUnit == HorizontalUnit.Energy)
-                {
-                    double energy = (double)(pixelX - this.scrollX - this.left) / this.horizontalScale / this.pixelPerEnergy + this.energyViewOffset;
-                    channel = (int)calibration.EnergyToChannel(energy, maxChannels: spectrum.NumberOfChannels);
-                }
-                else if (isBackground && this.backgroundEnergyCalibration != null && !this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
-                {
-                    double baseChannel = (double)(pixelX - this.scrollX - this.left) / this.horizontalScale;
-                    double energy = this.baseEnergyCalibration.ChannelToEnergy(baseChannel);
-                    channel = (int)this.backgroundEnergyCalibration.EnergyToChannel(energy, maxChannels: spectrum.NumberOfChannels);
-                }
-                else
-                {
-                    channel = (int)((double)(pixelX - this.scrollX - this.left) / this.horizontalScale);
-                }
+                double energy = (double)(pixelX - this.scrollX - this.left) / this.horizontalScale / this.pixelPerEnergy + this.energyViewOffset;
+                channel = (int)calibration.EnergyToChannel(energy, maxChannels: spectrum.NumberOfChannels);
             }
-            catch (OutofChannelException)
+            else if (isBackground && this.backgroundEnergyCalibration != null && !this.baseEnergyCalibration.Equals(this.backgroundEnergyCalibration))
             {
-                return false;
+                double baseChannel = (double)(pixelX - this.scrollX - this.left) / this.horizontalScale;
+                double energy = this.baseEnergyCalibration.ChannelToEnergy(baseChannel);
+                channel = (int)this.backgroundEnergyCalibration.EnergyToChannel(energy, maxChannels: spectrum.NumberOfChannels);
+            }
+            else
+            {
+                channel = (int)((double)(pixelX - this.scrollX - this.left) / this.horizontalScale);
             }
 
             if (channel < 0)
@@ -1326,14 +1319,7 @@ namespace BecquerelMonitor
                 {
                     double e = this.energyCalibration.ChannelToEnergy((double)i);
                     int bgChannel;
-                    try
-                    {
-                        bgChannel = (int)this.backgroundEnergyCalibration.EnergyToChannel(e, maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
-                    }
-                    catch (OutofChannelException)
-                    {
-                        continue;
-                    }
+                    bgChannel = (int)this.backgroundEnergyCalibration.EnergyToChannel(e, maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
 
                     if (bgChannel < 0 || bgChannel >= this.backgroundEnergySpectrum.NumberOfChannels)
                     {
@@ -1420,15 +1406,7 @@ namespace BecquerelMonitor
                 {
                     double e2 = this.energyCalibration.ChannelToEnergy((double)k);
                     int bgChannel;
-                    try
-                    {
-                        bgChannel = (int)this.backgroundEnergyCalibration.EnergyToChannel(e2, maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
-                    }
-                    catch (OutofChannelException)
-                    {
-                        // skip this channel when background mapping is out of range
-                        continue;
-                    }
+                    bgChannel = (int)this.backgroundEnergyCalibration.EnergyToChannel(e2, maxChannels: this.backgroundEnergySpectrum.NumberOfChannels);
 
                     if (bgChannel < 0 || bgChannel >= this.backgroundEnergySpectrum.NumberOfChannels)
                     {
@@ -2191,15 +2169,8 @@ namespace BecquerelMonitor
                 int num3;
                 if (this.horizontalUnit == HorizontalUnit.Energy)
                 {
-                    try
-                    {
-                        double num2 = (double)(i - this.scrollX - this.left) / this.horizontalScale;
-                        num3 = (int)calibration.EnergyToChannel(num2 / this.pixelPerEnergy + this.energyViewOffset, maxChannels: spectrum.NumberOfChannels);
-                    }
-                    catch (OutofChannelException)
-                    {
-                        break;
-                    }
+                    double num2 = (double)(i - this.scrollX - this.left) / this.horizontalScale;
+                    num3 = (int)calibration.EnergyToChannel(num2 / this.pixelPerEnergy + this.energyViewOffset, maxChannels: spectrum.NumberOfChannels);
                 }
                 else
                 {
@@ -2333,10 +2304,6 @@ namespace BecquerelMonitor
             return this.height - (int)((valueLog - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
         }
 
-        // Канал, за которым EnergyToChannel бросает OutofChannelException:
-        // дальше по X рисовать нечего, отрисовка пика на нём обрывается.
-        const int PixelChannelMapOutOfRange = -1;
-
         int[] pixelChannelMap;
         int pixelChannelMapFirstPixel;
         int pixelChannelMapLength;
@@ -2361,22 +2328,14 @@ namespace BecquerelMonitor
                 this.pixelChannelMap = new int[length];
             }
 
-            int filled = 0;
-            while (filled < length)
+            for (int filled = 0; filled < length; filled++)
             {
                 int pixel = firstPixel + filled;
                 int channel;
                 if (this.horizontalUnit == HorizontalUnit.Energy)
                 {
-                    try
-                    {
-                        double offset = (double)(pixel - this.scrollX - this.left) / this.horizontalScale;
-                        channel = (int)calibration.EnergyToChannel(offset / this.pixelPerEnergy + this.energyViewOffset, maxChannels: spectrum.NumberOfChannels);
-                    }
-                    catch (OutofChannelException)
-                    {
-                        break;
-                    }
+                    double offset = (double)(pixel - this.scrollX - this.left) / this.horizontalScale;
+                    channel = (int)calibration.EnergyToChannel(offset / this.pixelPerEnergy + this.energyViewOffset, maxChannels: spectrum.NumberOfChannels);
                 }
                 else
                 {
@@ -2384,14 +2343,6 @@ namespace BecquerelMonitor
                 }
 
                 this.pixelChannelMap[filled] = channel;
-                filled++;
-            }
-
-            // Хвост за точкой обрыва помечается целиком: посегментный вариант
-            // прекращал рисовать пик именно с этого пикселя.
-            for (int k = filled; k < length; k++)
-            {
-                this.pixelChannelMap[k] = PixelChannelMapOutOfRange;
             }
 
             this.pixelChannelMapSpectrum = spectrum;
@@ -2434,11 +2385,6 @@ namespace BecquerelMonitor
             while (i <= maxPixel)
             {
                 int num3 = pixelChannels[i - firstPixel];
-                if (num3 == PixelChannelMapOutOfRange)
-                {
-                    break;
-                }
-
                 if (num3 >= min_ch && num3 < max_ch)
                 {
                     double peakv = spectrum.DrawingSpectrum[num3] + peakSpectrum[num3];
@@ -2775,25 +2721,9 @@ namespace BecquerelMonitor
 
                     if (this.horizontalUnit == HorizontalUnit.Channel)
                     {
-                        try
-                        {
-                            leftX = (float)(this.energyCalibration.EnergyToChannel(lowerLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                        }
-                        catch (OutofChannelException)
-                        {
-                            // original behavior: stop processing further ROIs when lower limit is out of channel range
-                            break;
-                        }
+                        leftX = (float)(this.energyCalibration.EnergyToChannel(lowerLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
 
-                        try
-                        {
-                            rightX = (float)(this.energyCalibration.EnergyToChannel(upperLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                        }
-                        catch (OutofChannelException)
-                        {
-                            // if upper limit is out of range, clamp to last channel
-                            rightX = (float)((double)(this.numberOfChannels - 1) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                        }
+                        rightX = (float)(this.energyCalibration.EnergyToChannel(upperLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
                     }
                     else
                     {
@@ -2868,20 +2798,7 @@ namespace BecquerelMonitor
                 float num;
                 if (this.horizontalUnit == HorizontalUnit.Channel)
                 {
-                    try
-                    {
-                        num = (float)(this.energyCalibration.EnergyToChannel(line.Energy, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                    }
-                    catch (OutofChannelException)
-                    {
-                        // Линия за пределами шкалы гасит ЕЁ, а не всё
-                        // остальное: раньше здесь стоял break, и одна такая
-                        // линия убирала с графика все следующие. Ветка сейчас
-                        // недостижима — EnergyToChannel зажимает вместо того,
-                        // чтобы бросать, — но исключение объявлено, и молчаливо
-                        // терять на нём половину набора нельзя.
-                        continue;
-                    }
+                    num = (float)(this.energyCalibration.EnergyToChannel(line.Energy, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
                 }
                 else
                 {
@@ -2924,25 +2841,9 @@ namespace BecquerelMonitor
 
                     if (this.horizontalUnit == HorizontalUnit.Channel)
                     {
-                        try
-                        {
-                            num = (float)(this.energyCalibration.EnergyToChannel(lowerLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                        }
-                        catch (OutofChannelException)
-                        {
-                            // lower limit is out of channel range -> stop processing further ROIs (original behavior)
-                            break;
-                        }
+                        num = (float)(this.energyCalibration.EnergyToChannel(lowerLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
 
-                        try
-                        {
-                            num2 = (float)(this.energyCalibration.EnergyToChannel(upperLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                        }
-                        catch (OutofChannelException)
-                        {
-                            // clamp upper limit to last channel when out of range
-                            num2 = (float)((double)(this.numberOfChannels - 1) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                        }
+                        num2 = (float)(this.energyCalibration.EnergyToChannel(upperLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
                     }
                     else
                     {
@@ -2986,25 +2887,9 @@ namespace BecquerelMonitor
 
                     if (this.horizontalUnit == HorizontalUnit.Channel)
                     {
-                        try
-                        {
-                            leftX = (float)(this.energyCalibration.EnergyToChannel(lowerLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                        }
-                        catch (OutofChannelException)
-                        {
-                            // Original behavior returned from method when lower limit is out of range
-                            return;
-                        }
+                        leftX = (float)(this.energyCalibration.EnergyToChannel(lowerLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
 
-                        try
-                        {
-                            rightX = (float)(this.energyCalibration.EnergyToChannel(upperLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                        }
-                        catch (OutofChannelException)
-                        {
-                            // clamp to last channel when upper limit is out of range
-                            rightX = (float)((double)(this.numberOfChannels - 1) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
-                        }
+                        rightX = (float)(this.energyCalibration.EnergyToChannel(upperLimit, maxChannels: this.energySpectrum.NumberOfChannels) * this.horizontalScale) + (float)this.scrollX + (float)this.left;
                     }
                     else
                     {
@@ -3027,15 +2912,7 @@ namespace BecquerelMonitor
                         if (this.horizontalUnit == HorizontalUnit.Energy)
                         {
                             double pixelEnergyPos = (double)(i - this.scrollX - this.left) / this.horizontalScale;
-                            try
-                            {
-                                channelIndex = this.energyCalibration.EnergyToChannel(pixelEnergyPos / this.pixelPerEnergy + this.energyViewOffset, maxChannels: this.energySpectrum.NumberOfChannels);
-                            }
-                            catch (OutofChannelException)
-                            {
-                                // when mapping from pixel/energy to channel goes out of range, stop scanning this ROI
-                                break;
-                            }
+                            channelIndex = this.energyCalibration.EnergyToChannel(pixelEnergyPos / this.pixelPerEnergy + this.energyViewOffset, maxChannels: this.energySpectrum.NumberOfChannels);
                         }
                         else
                         {
@@ -3246,15 +3123,7 @@ namespace BecquerelMonitor
                     if (this.horizontalUnit == HorizontalUnit.Energy)
                     {
                         double pixelEnergyPos = (double)(i - this.scrollX - this.left) / this.horizontalScale;
-                        try
-                        {
-                            channelIndex = this.energyCalibration.EnergyToChannel(pixelEnergyPos / this.pixelPerEnergy + this.energyViewOffset, maxChannels: this.energySpectrum.NumberOfChannels);
-                        }
-                        catch (OutofChannelException)
-                        {
-                            // mapping from pixel to channel went out of range -> stop scanning selection
-                            break;
-                        }
+                        channelIndex = this.energyCalibration.EnergyToChannel(pixelEnergyPos / this.pixelPerEnergy + this.energyViewOffset, maxChannels: this.energySpectrum.NumberOfChannels);
                     }
                     else
                     {
@@ -4328,14 +4197,7 @@ namespace BecquerelMonitor
                 {
                     double num2 = (double)(this.cursorX - this.left - this.scrollX) / this.horizontalScale;
                     this.cursorEnergy = num2 / this.pixelPerEnergy + this.energyViewOffset;
-                    try
-                    {
-                        this.cursorChannel = (int)this.energyCalibration.EnergyToChannel(this.cursorEnergy, maxChannels: this.energySpectrum.NumberOfChannels);
-                    }
-                    catch (OutofChannelException)
-                    {
-                        this.cursorChannel = -1;
-                    }
+                    this.cursorChannel = (int)this.energyCalibration.EnergyToChannel(this.cursorEnergy, maxChannels: this.energySpectrum.NumberOfChannels);
                 }
                 else
                 {
