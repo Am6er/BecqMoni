@@ -383,15 +383,6 @@ namespace BecquerelMonitor
             }
 
             this.UpdatePeakDetectionResult();
-
-            // График перерисовывается отдельно: набор задаёт не только подписи
-            // пиков, но и вертикальные линии интенсивностей, а поиск пиков
-            // умеет отказаться от работы (нет документа, нет калибровки ПШПВ,
-            // уже идёт другой проход) — и тогда перерисовки бы не случилось.
-            if (this.mainForm.ActiveDocument != null)
-            {
-                this.mainForm.ActiveDocument.EnergySpectrumView.Invalidate();
-            }
         }
 
         // Token: 0x040001B3 RID: 435
@@ -406,16 +397,7 @@ namespace BecquerelMonitor
 
         string comboBoxNuclSetAllNuclidesText = null;
 
-        /// <summary>
-        /// Выбранный набор хранится у менеджера нуклидов: кроме поиска пиков
-        /// его спрашивает отрисовка вертикальных линий интенсивностей, а до
-        /// этой панели ей не дотянуться.
-        /// </summary>
-        private NuclideSet selectedNuclideSet
-        {
-            get { return this.nuclideManager.ActiveNuclideSet; }
-            set { this.nuclideManager.ActiveNuclideSet = value; }
-        }
+        private NuclideSet selectedNuclideSet = null;
 
         private bool isProcessing = false;
 
