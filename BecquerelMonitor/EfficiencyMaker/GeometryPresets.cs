@@ -34,19 +34,6 @@ namespace BecquerelMonitor.EfficiencyMaker
             get { return All; }
         }
 
-        public static Preset ByName(string name)
-        {
-            foreach (Preset preset in All)
-            {
-                if (string.Equals(preset.Name, name, StringComparison.OrdinalIgnoreCase))
-                {
-                    return preset;
-                }
-            }
-
-            return null;
-        }
-
         static List<Preset> Build()
         {
             List<Preset> list = new List<Preset>();

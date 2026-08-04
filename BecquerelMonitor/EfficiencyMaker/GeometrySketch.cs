@@ -316,14 +316,21 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 default:
                 {
+                    // Границы обязаны совпадать с тем, что рисует DrawSource,
+                    // иначе тело уезжает за край поля. Верх стакана — донышко
+                    // под пробой: zSrc0 - endWall, где zSrc0 отсчитан от потолка
+                    // колодца через ЕГО стенку (the), а не через донышко.
                     double rOut = 0.5 * Math.Max(m.MarinelliBeakerDiameter, 0.0);
                     double zCeiling = zFace - Math.Max(m.MarinelliToDetectorDistance, 0.0);
                     double hs = Math.Max(m.MarinelliSourceHeight, 0.0);
                     double hh = Math.Max(m.MarinelliHoleHeight, 0.0);
+                    double the = Math.Max(m.MarinelliHoleEndWallThickness, 0.0);
+                    double endWall = Math.Max(m.MarinelliEndWallThickness, 0.0);
+                    double zSrc0 = zCeiling - the - Math.Max(hs - hh, 0.0);
                     left = -rOut;
                     right = rOut;
-                    top = zCeiling - Math.Max(m.MarinelliEndWallThickness, 0.0) - Math.Max(hs - hh, 0.0);
-                    bottom = Math.Max(zCeiling + Math.Max(m.MarinelliBeakerHeight, 0.0), zFace);
+                    top = zSrc0 - endWall;
+                    bottom = Math.Max(zSrc0 - endWall + Math.Max(m.MarinelliBeakerHeight, 0.0), zFace);
                     return;
                 }
             }
@@ -376,6 +383,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     double ths = Math.Max(m.MarinelliHoleSideThickness, 0.0);
                     double the = Math.Max(m.MarinelliHoleEndWallThickness, 0.0);
                     double side = Math.Max(m.MarinelliSideThickness, 0.0);
+                    double endWall = Math.Max(m.MarinelliEndWallThickness, 0.0);
                     double hs = Math.Max(m.MarinelliSourceHeight, 0.0);
                     double hh = Math.Max(m.MarinelliHoleHeight, 0.0);
                     double zCeiling = zFace - Math.Max(m.MarinelliToDetectorDistance, 0.0);
@@ -383,7 +391,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                     double zSrc0 = zCeiling - the - cap;
                     double body = Math.Max(m.MarinelliBeakerHeight, 0.0);
 
-                    Fill(g, WallColor, -rOut, zSrc0 - side, 2.0 * rOut, body + side);
+                    // Дно стакана — толщина ДОНЫШКА, а не борта: у стакана это
+                    // разные поля, и рисовать дно бортом значило бы, что
+                    // подсветка донышка показывает пустое место.
+                    //
+                    // Высота стакана — ПОЛНАЯ, снаружи: у RadiaCode 0.5 л это
+                    // 8.9 при пробе 8.5 и донышке 0.2. Прежде тело рисовалось
+                    // на `side` выше самого себя.
+                    Fill(g, WallColor, -rOut, zSrc0 - endWall, 2.0 * rOut, body);
                     double rSrcOut = Math.Max(rh + ths, rOut - side);
                     Fill(g, SampleColor, -rSrcOut, zSrc0, 2.0 * rSrcOut, hs);
                     // колодец: вырез в пробе, стенка колодца и пустота внутри
@@ -392,7 +407,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                     using (Pen pen = new Pen(Ink, 1.2f))
                     {
-                        Outline(g, pen, -rOut, zSrc0 - side, 2.0 * rOut, body + side);
+                        Outline(g, pen, -rOut, zSrc0 - endWall, 2.0 * rOut, body);
                         Outline(g, pen, -rh, zCeiling, 2.0 * rh, hh);
                     }
 
@@ -453,14 +468,24 @@ namespace BecquerelMonitor.EfficiencyMaker
                                   2.0 * rOut, "MarinelliBeakerDiameter");
                         this.DimH(g, pen, ink, -rh, rh, zCeiling + hh * 0.55, 2.0 * rh,
                                   "MarinelliHoleDiameter");
-                        this.DimV(g, pen, ink, this.LeftOf(-rOut, 30), zSrc0, zSrc0 + hs, hs,
+                        // 40 точек, а не 30: число DimV пишет СПРАВА от своей
+                        // линии, то есть в зазор до стенки стакана. Тридцати
+                        // хватало на «5», но не на «12.35» — оно налезало на
+                        // тело. В поле (MarginX = 78) сорок помещается.
+                        this.DimV(g, pen, ink, this.LeftOf(-rOut, 40), zSrc0, zSrc0 + hs, hs,
                                   "MarinelliSourceHeight");
                         this.DimV(g, pen, ink, rh * 0.55, zCeiling, zCeiling + hh, hh, "MarinelliHoleHeight");
-                        this.DimV(g, pen, ink, this.RightOf(rOut, 26), zSrc0 - side, zSrc0 - side + body,
-                                  body, "MarinelliBeakerHeight");
+                        // Корпус рисуется от zSrc0 - endWall высотой body
+                        // (см. DrawSource), выноска обязана мерить ровно то же и
+                        // показывать само поле, а не сумму с чем-нибудь.
+                        this.DimV(g, pen, ink, this.RightOf(rOut, 26), zSrc0 - endWall,
+                                  zSrc0 - endWall + body, body, "MarinelliBeakerHeight");
                         this.DimH(g, pen, ink, -rOut, -(rOut - side), zSrc0 + hs * 0.28, side,
                                   "MarinelliSideThickness");
-                        this.DimV(g, pen, ink, -rOut * 0.72, zSrc0 - side, zSrc0, side,
+                        // Донышко — своя толщина, а не боковая. Раньше здесь
+                        // стояло side: поле подсвечивалось, а число показывало
+                        // соседний размер.
+                        this.DimV(g, pen, ink, -rOut * 0.72, zSrc0 - endWall, zSrc0, endWall,
                                   "MarinelliEndWallThickness");
                         // Стенки колодца разведены по высоте и по стороне: при
                         // общем 0.2 их подписи иначе налезают друг на друга и
