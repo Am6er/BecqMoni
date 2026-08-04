@@ -10,13 +10,20 @@ using System.Windows.Forms;
 namespace EditorProbe
 {
     /// <summary>
-    /// Проверка формы конструктора геометрии БЕЗ кликов: модель загружается в
-    /// форму и тут же собирается обратно. Всё, что форма показала неверно или
-    /// не показала вовсе, вылезет расхождением.
+    /// Проверка конструктора геометрии БЕЗ кликов: модель загружается в панель
+    /// и тут же собирается обратно. Всё, что панель показала неверно или не
+    /// показала вовсе, вылезет расхождением.
     ///
     /// Именно так ловится ошибка, найденная руками: поле «расстояние от стакана
     /// Маринелли до детектора» заводилось и писалось, но не читалось — правка
     /// готового файла молча обнуляла его.
+    ///
+    /// Конструктор переехал из формы `GeometryEditorForm` в панель
+    /// `GeometryEditorPanel` (вкладка «Geometry Editor» конструктора кривой), и
+    /// геометрия теперь въезжает в него не конструктором, а `SetModel`.
+    /// Проверяются оба следствия переезда: что `SetModel` доносит все поля и
+    /// что панель не объявляет чужую геометрию изменённой, ничего не изменив, —
+    /// на этом флаге висит кнопка «Сохранить».
     /// </summary>
     static class Program
     {
@@ -47,12 +54,19 @@ namespace EditorProbe
             Dictionary<string, double> was = Snapshot(before);
 
             GeometryModel after;
-            using (GeometryEditorForm form = new GeometryEditorForm(GeometryModel.Load(path)))
+            bool dirty;
+            string invalid;
+            using (GeometryEditorPanel panel = new GeometryEditorPanel())
             {
-                form.CreateControl();
-                MethodInfo build = typeof(GeometryEditorForm).GetMethod(
-                    "BuildModel", BindingFlags.Instance | BindingFlags.NonPublic);
-                after = (GeometryModel)build.Invoke(form, null);
+                panel.CreateControl();
+                panel.SetModel(GeometryModel.Load(path));
+                dirty = panel.Dirty;
+
+                // BuildModel и Validate закрыты — зовём отражением. Открытый
+                // TryCommit для пробы не годится: на ошибке он показывает
+                // MessageBox и проба повисает без человека у экрана.
+                after = (GeometryModel)Invoke(panel, "BuildModel");
+                invalid = (string)Invoke(panel, "Validate", after);
             }
 
             Dictionary<string, double> now = Snapshot(after);
@@ -70,13 +84,43 @@ namespace EditorProbe
                 }
             }
 
-            Console.WriteLine(ok ? "    все поля прошли форму без потерь" : "    РАСХОЖДЕНИЕ");
+            if (dirty)
+            {
+                Console.WriteLine("    ЗАГРУЗКА ОБЪЯВЛЕНА ПРАВКОЙ: Dirty=true сразу после SetModel");
+                ok = false;
+            }
+
+            if (invalid != null)
+            {
+                Console.WriteLine("    ПАНЕЛЬ НЕ ПРИНИМАЕТ СВОЮ ЖЕ ГЕОМЕТРИЮ: {0}", invalid);
+                ok = false;
+            }
+
+            Console.WriteLine(ok ? "    все поля прошли панель без потерь" : "    РАСХОЖДЕНИЕ");
             return ok;
+        }
+
+        static object Invoke(GeometryEditorPanel panel, string name, params object[] args)
+        {
+            MethodInfo method = typeof(GeometryEditorPanel).GetMethod(
+                name, BindingFlags.Instance | BindingFlags.NonPublic);
+            if (method == null)
+            {
+                throw new MissingMethodException("GeometryEditorPanel." + name);
+            }
+
+            return method.Invoke(panel, args);
         }
 
         static Dictionary<string, double> Snapshot(GeometryModel g)
         {
             Dictionary<string, double> map = new Dictionary<string, double>(StringComparer.Ordinal);
+            // Не только размеры: тип источника и форма кристалла решают, КАКИЕ
+            // размеры вообще читаются. Потерянный тип источника превращает
+            // маринелли в точку на девяноста сантиметрах, и все числа при этом
+            // остаются на местах — расхождения по ним не будет.
+            map["SourceType"] = (double)(int)g.SourceType;
+            map["Shape"] = (double)(int)g.Shape;
             map["CrystalBoxX"] = g.CrystalBoxX;
             map["CrystalBoxY"] = g.CrystalBoxY;
             map["CrystalBoxZ"] = g.CrystalBoxZ;
