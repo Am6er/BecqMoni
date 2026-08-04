@@ -3942,5 +3942,59 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+
+        public static string PickOneAccept {
+            get {
+                return ResourceManager.GetString("PickOneAccept", resourceCulture);
+            }
+        }
+
+        public static string PickOneCancel {
+            get {
+                return ResourceManager.GetString("PickOneCancel", resourceCulture);
+            }
+        }
+
+        public static string FsaNoFwhmTitle {
+            get {
+                return ResourceManager.GetString("FsaNoFwhmTitle", resourceCulture);
+            }
+        }
+
+        public static string FsaNoFwhmQuestion {
+            get {
+                return ResourceManager.GetString("FsaNoFwhmQuestion", resourceCulture);
+            }
+        }
+
+        public static string FsaNoEfficiencyTitle {
+            get {
+                return ResourceManager.GetString("FsaNoEfficiencyTitle", resourceCulture);
+            }
+        }
+
+        public static string FsaNoEfficiencyQuestion {
+            get {
+                return ResourceManager.GetString("FsaNoEfficiencyQuestion", resourceCulture);
+            }
+        }
+
+        public static string FsaNoFwhmSource {
+            get {
+                return ResourceManager.GetString("FsaNoFwhmSource", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerDeviceGoneTitle {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerDeviceGoneTitle", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerDeviceGoneQuestion {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerDeviceGoneQuestion", resourceCulture);
+            }
+        }
 }
 }

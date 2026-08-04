@@ -1298,4 +1298,31 @@
   <data name="EfficiencyMakerSavedToConfig" xml:space="preserve">
     <value>Сохранено в конфигурацию эффективности «{0}».</value>
   </data>
+  <data name="PickOneAccept" xml:space="preserve">
+    <value>Выбрать</value>
+  </data>
+  <data name="PickOneCancel" xml:space="preserve">
+    <value>Отмена</value>
+  </data>
+  <data name="FsaNoFwhmTitle" xml:space="preserve">
+    <value>Полноспектральное разложение: нет калибровки ПШПВ</value>
+  </data>
+  <data name="FsaNoFwhmQuestion" xml:space="preserve">
+    <value>У этого спектра нет калибровки ПШПВ, а разложению она нужна — по ней строится форма линий. Взять калибровку из конфигурации прибора:</value>
+  </data>
+  <data name="FsaNoEfficiencyTitle" xml:space="preserve">
+    <value>Полноспектральное разложение: нет кривой эффективности</value>
+  </data>
+  <data name="FsaNoEfficiencyQuestion" xml:space="preserve">
+    <value>У этого спектра не выбрана кривая эффективности. Без неё относительные веса линий внутри образа неверны и низкоэнергетическая часть перекашивается. Выберите кривую — или откажитесь от неё осознанно:</value>
+  </data>
+  <data name="FsaNoFwhmSource" xml:space="preserve">
+    <value>У конфигурации прибора «{0}» калибровки ПШПВ тоже нет.</value>
+  </data>
+  <data name="EfficiencyMakerDeviceGoneTitle" xml:space="preserve">
+    <value>Спектры без конфигурации прибора</value>
+  </data>
+  <data name="EfficiencyMakerDeviceGoneQuestion" xml:space="preserve">
+    <value>У {0} выбранных спектров нет калибровки ПШПВ, а конфигурации прибора, на которую они ссылаются, в вашем конфиге нет ({1}). От неё зависят обе калибровки, поэтому замену называете вы:</value>
+  </data>
 </root>

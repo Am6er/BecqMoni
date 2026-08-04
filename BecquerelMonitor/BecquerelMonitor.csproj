@@ -443,6 +443,8 @@
       <DependentUpon>NuclideSetForm.cs</DependentUpon>
     </Compile>
     <Compile Include="Package.cs" />
+    <Compile Include="PickOneForm.cs" />
+    <Compile Include="Utils\SpectrumScout.cs" />
     <Compile Include="Peak.cs" />
     <Compile Include="PeakDetectionMethodConfig.cs" />
     <Compile Include="PeakDetector.cs" />
