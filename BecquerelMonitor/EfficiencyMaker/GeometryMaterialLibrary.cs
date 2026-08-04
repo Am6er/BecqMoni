@@ -55,21 +55,6 @@ namespace BecquerelMonitor.EfficiencyMaker
             Source
         }
 
-        static readonly string[] Symbols =
-        {
-            "n",
-            "H",  "He", "Li", "Be", "B",  "C",  "N",  "O",  "F",  "Ne",
-            "Na", "Mg", "Al", "Si", "P",  "S",  "Cl", "Ar", "K",  "Ca",
-            "Sc", "Ti", "V",  "Cr", "Mn", "Fe", "Co", "Ni", "Cu", "Zn",
-            "Ga", "Ge", "As", "Se", "Br", "Kr", "Rb", "Sr", "Y",  "Zr",
-            "Nb", "Mo", "Tc", "Ru", "Rh", "Pd", "Ag", "Cd", "In", "Sn",
-            "Sb", "Te", "I",  "Xe", "Cs", "Ba", "La", "Ce", "Pr", "Nd",
-            "Pm", "Sm", "Eu", "Gd", "Tb", "Dy", "Ho", "Er", "Tm", "Yb",
-            "Lu", "Hf", "Ta", "W",  "Re", "Os", "Ir", "Pt", "Au", "Hg",
-            "Tl", "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra", "Ac", "Th",
-            "Pa", "U"
-        };
-
         static readonly List<Entry> All = Build();
 
         static List<Entry> Build()
@@ -152,22 +137,18 @@ namespace BecquerelMonitor.EfficiencyMaker
             return null;
         }
 
+        // Символы элементов больше не переписаны сюда списком: они есть в
+        // `nucdb.sqlite` (таблица нуклидов), и второй список означал бы второй
+        // источник правды. Сверено перед переносом: 92 символа в коде против
+        // 119 в базе, расхождений ноль.
         public static int ZOf(string symbol)
         {
-            for (int z = 1; z < Symbols.Length; z++)
-            {
-                if (string.Equals(Symbols[z], symbol, StringComparison.Ordinal))
-                {
-                    return z;
-                }
-            }
-
-            return 0;
+            return MaterialDatabase.ZOf(symbol);
         }
 
         public static string SymbolOf(int z)
         {
-            return z > 0 && z < Symbols.Length ? Symbols[z] : z.ToString(CultureInfo.InvariantCulture);
+            return MaterialDatabase.SymbolOf(z);
         }
 
         /// <summary>
