@@ -42683,4 +42683,31 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="EfficiencyMakerSavedToConfig" xml:space="preserve">
     <value>Saved into efficiency configuration "{0}".</value>
   </data>
+  <data name="PickOneAccept" xml:space="preserve">
+    <value>Choose</value>
+  </data>
+  <data name="PickOneCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="FsaNoFwhmTitle" xml:space="preserve">
+    <value>Full-spectrum analysis: no FWHM calibration</value>
+  </data>
+  <data name="FsaNoFwhmQuestion" xml:space="preserve">
+    <value>This spectrum carries no FWHM calibration, and the decomposition needs it to build line shapes. Take the calibration from a device configuration:</value>
+  </data>
+  <data name="FsaNoEfficiencyTitle" xml:space="preserve">
+    <value>Full-spectrum analysis: no efficiency curve</value>
+  </data>
+  <data name="FsaNoEfficiencyQuestion" xml:space="preserve">
+    <value>No efficiency curve is chosen for this spectrum. Without one the relative weights of lines inside a template are wrong and the low-energy part gets skewed. Choose a curve, or leave it out deliberately:</value>
+  </data>
+  <data name="FsaNoFwhmSource" xml:space="preserve">
+    <value>Device configuration "{0}" has no FWHM calibration either.</value>
+  </data>
+  <data name="EfficiencyMakerDeviceGoneTitle" xml:space="preserve">
+    <value>Spectra without a device configuration</value>
+  </data>
+  <data name="EfficiencyMakerDeviceGoneQuestion" xml:space="preserve">
+    <value>{0} of the chosen spectra carry no FWHM calibration, and the device configuration they refer to is not in your config ({1}). Both calibrations come from it, so the substitute is yours to name:</value>
+  </data>
 </root>

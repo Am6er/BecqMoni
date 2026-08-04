@@ -831,6 +831,11 @@ namespace BecquerelMonitor
                 return null;
             }
 
+            if (!this.AskFallbackDevice(input))
+            {
+                return null;
+            }
+
             input.PolynomialOrder = (int)this.orderNumericUpDown.Value;
             input.MinIntensity = (double)this.minIntensityNumericUpDown.Value;
             input.MinSignificance = (double)this.minSignificanceNumericUpDown.Value;
@@ -846,6 +851,59 @@ namespace BecquerelMonitor
             }
 
             return input;
+        }
+
+        /// <summary>
+        /// Спектр без своей калибровки ПШПВ берёт её у конфигурации прибора, на
+        /// которую ссылается. Ссылка может никуда не вести: так бывает у файлов,
+        /// переживших переименование прибора. Прежде такой спектр просто
+        /// выпадал из прогона с сообщением, и сделать с этим было нечего —
+        /// подставить конфигурацию было нечем.
+        ///
+        /// Теперь спрашиваем. Именно спрашиваем, а не подставляем: от
+        /// конфигурации зависят обе калибровки, и молча взятая чужая даёт
+        /// правдоподобные и неверные площади.
+        ///
+        /// false — от выбора отказались, прогон не начинаем.
+        /// </summary>
+        bool AskFallbackDevice(EfficiencyFitInput input)
+        {
+            List<DeviceConfigInfo> devices = DeviceConfigManager.GetInstance().DeviceConfigList;
+            HashSet<string> missing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            int count = 0;
+            foreach (string path in input.SpectrumFiles)
+            {
+                string device;
+                if (Utils.SpectrumScout.NeedsDeviceConfig(path, out device)
+                    && !devices.Exists(d => string.Equals(d.Guid, device, StringComparison.OrdinalIgnoreCase)))
+                {
+                    count++;
+                    missing.Add(device);
+                }
+            }
+
+            if (count == 0)
+            {
+                return true;
+            }
+
+            string[] names = new string[missing.Count];
+            missing.CopyTo(names);
+            DeviceConfigInfo chosen = (DeviceConfigInfo)PickOneForm.Ask(this,
+                Resources.EfficiencyMakerDeviceGoneTitle,
+                string.Format(CultureInfo.CurrentCulture, Resources.EfficiencyMakerDeviceGoneQuestion,
+                              count, string.Join(", ", names)),
+                devices.ConvertAll<object>(d => d), null);
+            if (chosen == null)
+            {
+                return false;
+            }
+
+            input.FallbackDeviceGuid = chosen.Guid;
+            AppendLog(string.Format(CultureInfo.CurrentCulture,
+                                    Resources.EfficiencyMakerDeviceGoneQuestion, count,
+                                    string.Join(", ", names)) + " " + chosen.Name);
+            return true;
         }
 
         static bool TryParse(string text, out double value)

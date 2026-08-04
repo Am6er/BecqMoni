@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.IO;
@@ -820,7 +821,11 @@ namespace BecquerelMonitor
         // в фоне (см. FsaOverlay), поэтому нажатие не подвешивает окно.
         void ShowFsaToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            this.EnsureFsaEfficiencyCurve();
+            if (!this.EnsureFsaInputs())
+            {
+                return;
+            }
+
             this.view.BackgroundMode = BackgroundMode.ShowFSA;
             this.toolStripSplitButtonBgMode.Image = Properties.Resources.CONT;
             this.UpdateDetectedPeaks = true;
@@ -829,17 +834,114 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Без кривой эффективности относительные веса линий внутри образа
-        /// неверны, и разложение перекашивает низкоэнергетическую часть. Кривую
-        /// выбирают у спектра, в панели измерения; если её там нет, разложение
-        /// просто считается без кривой — легенда об этом скажет отсутствием
-        /// пометки eff.
+        /// Двух вещей разложению может не хватать, и обеим есть замена, но
+        /// назвать её должен человек.
         ///
-        /// Раньше здесь предлагалось выбрать ЧУЖОЙ набор зон с кривой. Кривая
-        /// из наборов зон ушла, и предлагать больше нечего.
+        /// Калибровка ПШПВ задаёт форму линий; без неё считать нечего. Взять её
+        /// можно у любой конфигурации прибора — только у КАКОЙ, знает
+        /// пользователь: подставленная молча чужая ширина даёт правдоподобные и
+        /// неверные площади.
+        ///
+        /// Кривая эффективности задаёт относительные веса линий внутри образа;
+        /// без неё разложение считается, но низкоэнергетическая часть
+        /// перекашивается. Отказаться от кривой можно — но ОСОЗНАННО, отдельным
+        /// пунктом списка, а не потому, что её забыли выбрать.
+        ///
+        /// false — от выбора отказались, режим не включаем: молча включённое
+        /// разложение на чужих числах хуже невключённого.
         /// </summary>
-        void EnsureFsaEfficiencyCurve()
+        bool EnsureFsaInputs()
         {
+            ResultData active = this.ActiveResultData;
+            if (active == null)
+            {
+                return false;
+            }
+
+            return this.EnsureFsaFwhm(active) && this.EnsureFsaEfficiency(active);
+        }
+
+        bool EnsureFsaFwhm(ResultData active)
+        {
+            if (active.FwhmCalibration != null)
+            {
+                return true;
+            }
+
+            List<DeviceConfigInfo> devices = this.deviceConfigManager.DeviceConfigList;
+            DeviceConfigInfo chosen = (DeviceConfigInfo)PickOneForm.Ask(this,
+                Properties.Resources.FsaNoFwhmTitle,
+                Properties.Resources.FsaNoFwhmQuestion,
+                devices.ConvertAll<object>(d => d),
+                active.DeviceConfig);
+            if (chosen == null)
+            {
+                return false;
+            }
+
+            FWHMPeakDetectionMethodConfig peakConfig =
+                chosen.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
+            FwhmCalibration calibration = peakConfig == null
+                ? null
+                : (peakConfig.FwhmCalibration != null
+                    ? peakConfig.FwhmCalibration.Clone()
+                    : FwhmCalibration.DefaultCalibration(peakConfig,
+                        active.EnergySpectrum.EnergyCalibration));
+            if (calibration == null)
+            {
+                // Выбранная конфигурация не помогла — сказать об этом, а не
+                // включать режим и оставлять человека гадать.
+                MessageBox.Show(this,
+                    string.Format(Properties.Resources.FsaNoFwhmSource, chosen.Name),
+                    Properties.Resources.FsaNoFwhmTitle,
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return false;
+            }
+
+            active.FwhmCalibration = calibration;
+            this.Dirty = true;
+            return true;
+        }
+
+        bool EnsureFsaEfficiency(ResultData active)
+        {
+            if (active.Efficiency != null)
+            {
+                return true;
+            }
+
+            // Список — у конфигурации прибора этого спектра: кривая привязана к
+            // прибору и геометрии, чужие предлагать нельзя. Первым пунктом —
+            // отказ от кривой, тот самый осознанный.
+            List<object> items = new List<object> { Properties.Resources.EfficiencyTabNone };
+            DeviceConfigInfo device = active.DeviceConfig;
+            if (device != null && device.EfficiencyConfigs != null)
+            {
+                foreach (EfficiencyConfigData item in device.EfficiencyConfigs)
+                {
+                    items.Add(item);
+                }
+            }
+
+            object chosen = PickOneForm.Ask(this,
+                Properties.Resources.FsaNoEfficiencyTitle,
+                Properties.Resources.FsaNoEfficiencyQuestion,
+                items, items[0]);
+            if (chosen == null)
+            {
+                return false;
+            }
+
+            EfficiencyConfigData curve = chosen as EfficiencyConfigData;
+            if (curve != null)
+            {
+                // Копия, а не ссылка, — как и в панели измерения: спектр уносит
+                // кривую с собой.
+                active.Efficiency = curve.Copy();
+                this.Dirty = true;
+            }
+
+            return true;
         }
 
         void NormByEffToolStripMenuItem_Click(object sender, EventArgs e)
