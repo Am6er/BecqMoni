@@ -36,6 +36,9 @@ namespace BecquerelMonitor
             this.stopBtn = new System.Windows.Forms.Button();
             this.clearBtn = new System.Windows.Forms.Button();
             this.roiConfigComboBox = new System.Windows.Forms.ComboBox();
+            this.efficiencyComboBox = new System.Windows.Forms.ComboBox();
+            this.clearEfficiencyBtn = new System.Windows.Forms.Button();
+            this.efficiencyLbl = new System.Windows.Forms.Label();
             this.devConfigComboBox = new System.Windows.Forms.ComboBox();
             this.realTimeLimitTextBox = new BecquerelMonitor.IntegerTextBox();
             this.percentageProgressBar1 = new BecquerelMonitor.PercentageProgressBar();
@@ -98,9 +101,32 @@ namespace BecquerelMonitor
             this.toolTip1.SetToolTip(this.clearRoiBtn, resources.GetString("clearRoiBtn.ToolTip"));
             this.clearRoiBtn.UseVisualStyleBackColor = true;
             this.clearRoiBtn.Click += new System.EventHandler(this.button9_Click);
-            // 
+            //
+            // clearEfficiencyBtn
+            //
+            resources.ApplyResources(this.clearEfficiencyBtn, "clearEfficiencyBtn");
+            this.clearEfficiencyBtn.ImageList = this.imageList1;
+            this.clearEfficiencyBtn.Name = "clearEfficiencyBtn";
+            this.toolTip1.SetToolTip(this.clearEfficiencyBtn, resources.GetString("clearEfficiencyBtn.ToolTip"));
+            this.clearEfficiencyBtn.UseVisualStyleBackColor = true;
+            this.clearEfficiencyBtn.Click += new System.EventHandler(this.clearEfficiencyBtn_Click);
+            //
+            // efficiencyComboBox
+            //
+            resources.ApplyResources(this.efficiencyComboBox, "efficiencyComboBox");
+            this.efficiencyComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.efficiencyComboBox.FormattingEnabled = true;
+            this.efficiencyComboBox.Name = "efficiencyComboBox";
+            this.toolTip1.SetToolTip(this.efficiencyComboBox, resources.GetString("efficiencyComboBox.ToolTip"));
+            this.efficiencyComboBox.SelectedIndexChanged += new System.EventHandler(this.efficiencyComboBox_SelectedIndexChanged);
+            //
+            // efficiencyLbl
+            //
+            resources.ApplyResources(this.efficiencyLbl, "efficiencyLbl");
+            this.efficiencyLbl.Name = "efficiencyLbl";
+            //
             // clearBgBtn
-            // 
+            //
             resources.ApplyResources(this.clearBgBtn, "clearBgBtn");
             this.clearBgBtn.ImageList = this.imageList1;
             this.clearBgBtn.Name = "clearBgBtn";
@@ -368,6 +394,9 @@ namespace BecquerelMonitor
             this.Controls.Add(this.roiConfigEditBtn);
             this.Controls.Add(this.roiConfigComboBox);
             this.Controls.Add(this.roiConfigLbl);
+            this.Controls.Add(this.clearEfficiencyBtn);
+            this.Controls.Add(this.efficiencyComboBox);
+            this.Controls.Add(this.efficiencyLbl);
             this.Controls.Add(this.selectBgBtn);
             this.Controls.Add(this.bachgroundLbl);
             this.Controls.Add(this.textBox1);
@@ -412,6 +441,9 @@ namespace BecquerelMonitor
 		System.Windows.Forms.Label roiConfigLbl;
 		System.Windows.Forms.ComboBox roiConfigComboBox;
 		System.Windows.Forms.Button roiConfigEditBtn;
+		System.Windows.Forms.Label efficiencyLbl;
+		System.Windows.Forms.ComboBox efficiencyComboBox;
+		System.Windows.Forms.Button clearEfficiencyBtn;
 		System.Windows.Forms.GroupBox groupBox1;
 		System.Windows.Forms.ImageList imageList1;
 		System.Windows.Forms.Button reloadFromConfigBtn;

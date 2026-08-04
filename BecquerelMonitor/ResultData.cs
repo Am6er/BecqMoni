@@ -108,6 +108,30 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// Кривая эффективности, по которой считается активность ЭТОГО спектра.
+        /// Пусто — не выбрана: тогда активность не считается, и об этом
+        /// говорится, а не подставляется что попало.
+        ///
+        /// Хранится ПОЛНОЙ КОПИЕЙ, а не ссылкой, — в отличие от конфигурации
+        /// прибора и набора зон рядом, которые ссылками и остались. Причина не
+        /// в единообразии, а в том, что файл спектра отправляют другому
+        /// человеку: конфигурации этого прибора у него нет вовсе, и по ссылке
+        /// он не восстановит ни кривую, ни геометрию, в которой она получена.
+        /// Ссылка тут молча превратилась бы в «эффективности нет».
+        /// </summary>
+        public EfficiencyConfigData Efficiency
+        {
+            get
+            {
+                return this.efficiency;
+            }
+            set
+            {
+                this.efficiency = value;
+            }
+        }
+
         public string BackgroundSpectrumFile
         {
             get
@@ -397,6 +421,10 @@ namespace BecquerelMonitor
                 DeviceConfigReference = this.DeviceConfigReference,
                 ROIConfigReference = this.ROIConfigReference,
                 ROIConfig = this.ROIConfig,
+                // Своя копия, а не общий объект: два спектра с одной кривой
+                // правились бы за одно, а кривая у спектра — снимок на момент
+                // измерения и меняться следом за прибором не должна.
+                Efficiency = this.Efficiency != null ? this.Efficiency.Copy() : null,
                 StartTime = this.StartTime,
                 EndTime = this.EndTime,
                 PresetTime = this.PresetTime,
@@ -426,6 +454,8 @@ namespace BecquerelMonitor
         ROIConfigData roiConfig = new ROIConfigData();
 
         ROIConfigReference roiConfigReference = new ROIConfigReference();
+
+        EfficiencyConfigData efficiency;
 
         DateTime startTime = DateTime.Now;
 

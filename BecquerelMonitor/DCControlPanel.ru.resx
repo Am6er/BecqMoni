@@ -186,6 +186,15 @@
   <data name="roiConfigLbl.Text" xml:space="preserve">
     <value>Настр. ROI</value>
   </data>
+  <data name="efficiencyLbl.Text" xml:space="preserve">
+    <value>Эффективн.</value>
+  </data>
+  <data name="efficiencyComboBox.ToolTip" xml:space="preserve">
+    <value>Кривая эффективности, по которой считается активность этого спектра</value>
+  </data>
+  <data name="clearEfficiencyBtn.ToolTip" xml:space="preserve">
+    <value>Сбросить кривую эффективности</value>
+  </data>
   <data name="countRateLbl.Text" xml:space="preserve">
     <value>Скор. счета cps</value>
   </data>
