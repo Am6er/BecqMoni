@@ -210,7 +210,7 @@
     <value>NoControl</value>
   </data>
   <data name="clearRoiBtn.Location" type="System.Drawing.Point, System.Drawing">
-    <value>400, 80</value>
+    <value>400, 106</value>
   </data>
   <data name="clearRoiBtn.Size" type="System.Drawing.Size, System.Drawing">
     <value>26, 24</value>
@@ -243,7 +243,7 @@
     <value>NoControl</value>
   </data>
   <data name="clearBgBtn.Location" type="System.Drawing.Point, System.Drawing">
-    <value>400, 106</value>
+    <value>400, 132</value>
   </data>
   <data name="clearBgBtn.Size" type="System.Drawing.Size, System.Drawing">
     <value>26, 24</value>
@@ -447,7 +447,7 @@
     <value>Top, Left, Right</value>
   </data>
   <data name="roiConfigComboBox.Location" type="System.Drawing.Point, System.Drawing">
-    <value>95, 82</value>
+    <value>95, 108</value>
   </data>
   <data name="roiConfigComboBox.MaxDropDownItems" type="System.Int32, mscorlib">
     <value>16</value>
@@ -472,6 +472,99 @@
   </data>
   <data name="&gt;&gt;roiConfigComboBox.ZOrder" xml:space="preserve">
     <value>7</value>
+  </data>
+  <data name="efficiencyLbl.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="efficiencyLbl.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="efficiencyLbl.Location" type="System.Drawing.Point, System.Drawing">
+    <value>13, 85</value>
+  </data>
+  <data name="efficiencyLbl.Size" type="System.Drawing.Size, System.Drawing">
+    <value>53, 13</value>
+  </data>
+  <data name="efficiencyLbl.TabIndex" type="System.Int32, mscorlib">
+    <value>70</value>
+  </data>
+  <data name="efficiencyLbl.Text" xml:space="preserve">
+    <value>Efficiency</value>
+  </data>
+  <data name="&gt;&gt;efficiencyLbl.Name" xml:space="preserve">
+    <value>efficiencyLbl</value>
+  </data>
+  <data name="&gt;&gt;efficiencyLbl.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;efficiencyLbl.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;efficiencyLbl.ZOrder" xml:space="preserve">
+    <value>17</value>
+  </data>
+  <data name="efficiencyComboBox.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Top, Left, Right</value>
+  </data>
+  <data name="efficiencyComboBox.Location" type="System.Drawing.Point, System.Drawing">
+    <value>95, 82</value>
+  </data>
+  <data name="efficiencyComboBox.MaxDropDownItems" type="System.Int32, mscorlib">
+    <value>16</value>
+  </data>
+  <data name="efficiencyComboBox.Size" type="System.Drawing.Size, System.Drawing">
+    <value>247, 21</value>
+  </data>
+  <data name="efficiencyComboBox.TabIndex" type="System.Int32, mscorlib">
+    <value>71</value>
+  </data>
+  <data name="efficiencyComboBox.ToolTip" xml:space="preserve">
+    <value>Efficiency curve used to calculate activity for this spectrum</value>
+  </data>
+  <data name="&gt;&gt;efficiencyComboBox.Name" xml:space="preserve">
+    <value>efficiencyComboBox</value>
+  </data>
+  <data name="&gt;&gt;efficiencyComboBox.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;efficiencyComboBox.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;efficiencyComboBox.ZOrder" xml:space="preserve">
+    <value>18</value>
+  </data>
+  <data name="clearEfficiencyBtn.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Top, Right</value>
+  </data>
+  <data name="clearEfficiencyBtn.ImageIndex" type="System.Int32, mscorlib">
+    <value>2</value>
+  </data>
+  <data name="clearEfficiencyBtn.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="clearEfficiencyBtn.Location" type="System.Drawing.Point, System.Drawing">
+    <value>348, 80</value>
+  </data>
+  <data name="clearEfficiencyBtn.Size" type="System.Drawing.Size, System.Drawing">
+    <value>26, 24</value>
+  </data>
+  <data name="clearEfficiencyBtn.TabIndex" type="System.Int32, mscorlib">
+    <value>72</value>
+  </data>
+  <data name="clearEfficiencyBtn.ToolTip" xml:space="preserve">
+    <value>Reset efficiency curve</value>
+  </data>
+  <data name="&gt;&gt;clearEfficiencyBtn.Name" xml:space="preserve">
+    <value>clearEfficiencyBtn</value>
+  </data>
+  <data name="&gt;&gt;clearEfficiencyBtn.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;clearEfficiencyBtn.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;clearEfficiencyBtn.ZOrder" xml:space="preserve">
+    <value>19</value>
   </data>
   <data name="devConfigComboBox.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Left, Right</value>
@@ -966,7 +1059,7 @@
     <value>18</value>
   </data>
   <data name="groupBox1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>12, 131</value>
+    <value>12, 157</value>
   </data>
   <data name="groupBox1.Size" type="System.Drawing.Size, System.Drawing">
     <value>414, 149</value>
@@ -993,7 +1086,7 @@
     <value>NoControl</value>
   </data>
   <data name="roiConfigEditBtn.Location" type="System.Drawing.Point, System.Drawing">
-    <value>348, 80</value>
+    <value>348, 106</value>
   </data>
   <data name="roiConfigEditBtn.Size" type="System.Drawing.Size, System.Drawing">
     <value>50, 24</value>
@@ -1023,7 +1116,7 @@
     <value>NoControl</value>
   </data>
   <data name="roiConfigLbl.Location" type="System.Drawing.Point, System.Drawing">
-    <value>13, 85</value>
+    <value>13, 111</value>
   </data>
   <data name="roiConfigLbl.Size" type="System.Drawing.Size, System.Drawing">
     <value>62, 13</value>
@@ -1053,7 +1146,7 @@
     <value>NoControl</value>
   </data>
   <data name="selectBgBtn.Location" type="System.Drawing.Point, System.Drawing">
-    <value>348, 106</value>
+    <value>348, 132</value>
   </data>
   <data name="selectBgBtn.Size" type="System.Drawing.Size, System.Drawing">
     <value>50, 24</value>
@@ -1083,7 +1176,7 @@
     <value>NoControl</value>
   </data>
   <data name="bachgroundLbl.Location" type="System.Drawing.Point, System.Drawing">
-    <value>13, 111</value>
+    <value>13, 137</value>
   </data>
   <data name="bachgroundLbl.Size" type="System.Drawing.Size, System.Drawing">
     <value>65, 13</value>
@@ -1110,7 +1203,7 @@
     <value>Top, Left, Right</value>
   </data>
   <data name="textBox1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>95, 108</value>
+    <value>95, 134</value>
   </data>
   <data name="textBox1.Size" type="System.Drawing.Size, System.Drawing">
     <value>247, 20</value>

@@ -310,6 +310,7 @@ namespace BecquerelMonitor
             {
                 this.roiConfigComboBox.SelectedIndex = -1;
             }
+            this.UpdateEfficiencyList(activeResultData);
             this.textBox1.Text = Path.GetFileName(activeResultData.BackgroundSpectrumFile);
             this.realTimeLimitTextBox.Text = resultDataStatus.PresetTime.ToString();
             if (resultDataStatus.Recording)
@@ -485,6 +486,91 @@ namespace BecquerelMonitor
                 activeDocument.UpdateEnergySpectrum();
                 this.mainForm.ShowMeasurementResult(true);
             }
+        }
+
+        /// <summary>
+        /// Наполнить список кривых эффективности и показать в нём ту, по
+        /// которой считается активность этого спектра.
+        ///
+        /// Список берётся у АКТИВНОЙ конфигурации прибора: кривая привязана к
+        /// прибору и геометрии, и предлагать чужие значило бы предлагать
+        /// заведомо неверную активность.
+        ///
+        /// Кривая самого спектра добавляется в список, даже если у прибора её
+        /// нет. Файл спектра несёт СВОЮ копию и приходит от человека, у
+        /// которого этой конфигурации прибора нет вовсе; выбросить её молча
+        /// значило бы потерять единственное, по чему активность в этом файле
+        /// вообще считается.
+        /// </summary>
+        void UpdateEfficiencyList(ResultData activeResultData)
+        {
+            this.efficiencyComboBox.Items.Clear();
+            this.efficiencyComboBox.Items.Add(Resources.EfficiencyTabNone);
+
+            EfficiencyConfigData current = activeResultData.Efficiency;
+            DeviceConfigInfo device = activeResultData.DeviceConfig;
+            int selected = 0;
+            bool found = false;
+            if (device != null && device.EfficiencyConfigs != null)
+            {
+                foreach (EfficiencyConfigData item in device.EfficiencyConfigs)
+                {
+                    int i = this.efficiencyComboBox.Items.Add(item);
+                    if (current != null && item.Guid == current.Guid)
+                    {
+                        selected = i;
+                        found = true;
+                    }
+                }
+            }
+
+            if (current != null && !found)
+            {
+                selected = this.efficiencyComboBox.Items.Add(current);
+            }
+
+            this.efficiencyComboBox.SelectedIndex = selected;
+            this.clearEfficiencyBtn.Enabled = current != null;
+        }
+
+        void efficiencyComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (this.formUpdating)
+            {
+                return;
+            }
+            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+            if (activeDocument == null || this.efficiencyComboBox.SelectedIndex == -1)
+            {
+                return;
+            }
+            ResultData activeResultData = activeDocument.ActiveResultData;
+            EfficiencyConfigData chosen = this.efficiencyComboBox.SelectedItem as EfficiencyConfigData;
+            // Копия, а не ссылка, — см. ResultData.Efficiency: спектр уносит
+            // кривую с собой, и правка её у прибора задним числом менять
+            // измеренную активность не должна.
+            activeResultData.Efficiency = chosen == null ? null : chosen.Copy();
+            this.clearEfficiencyBtn.Enabled = activeResultData.Efficiency != null;
+            activeDocument.Dirty = true;
+            this.mainForm.ShowMeasurementResult(true);
+        }
+
+        void clearEfficiencyBtn_Click(object sender, EventArgs e)
+        {
+            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+            if (activeDocument == null)
+            {
+                return;
+            }
+            ResultData activeResultData = activeDocument.ActiveResultData;
+            if (activeResultData.Efficiency == null)
+            {
+                return;
+            }
+            activeResultData.Efficiency = null;
+            activeDocument.Dirty = true;
+            this.ShowDocumentStatus();
+            this.mainForm.ShowMeasurementResult(true);
         }
 
         // Token: 0x0600029C RID: 668 RVA: 0x0000BD6C File Offset: 0x00009F6C
