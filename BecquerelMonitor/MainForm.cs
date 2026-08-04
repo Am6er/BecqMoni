@@ -1223,23 +1223,6 @@ namespace BecquerelMonitor
             ShowNucBaseView();
         }
 
-        // Конструктор кривой эффективности: пачка спектров одной геометрии на
-        // вход, ROI-файл с кривой на выход. Окно немодальное — прогон по пачке
-        // долгий, и держать за него приложение нельзя.
-        void efficiencyMakerToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            if (this.efficiencyMakerForm == null || this.efficiencyMakerForm.IsDisposed)
-            {
-                this.efficiencyMakerForm = new EfficiencyMakerForm();
-                this.efficiencyMakerForm.Show(this);
-            }
-            else
-            {
-                this.efficiencyMakerForm.BringToFront();
-            }
-        }
-
-        EfficiencyMakerForm efficiencyMakerForm;
 
         void ShowNucBaseView()
         {
@@ -1405,34 +1388,27 @@ namespace BecquerelMonitor
 
         void NormalizeSpectrum(DocEnergySpectrum docEnergySpectrum)
         {
-            ROIConfigData rOIConfigData = null;
-            DeviceConfigInfo deviceConfigInfo = null;
-
-            if (this.deviceConfigManager.DeviceConfigMap.ContainsKey(this.ActiveDocument.ActiveResultData.DeviceConfigReference.Guid))
+            // Кривую больше не выбирают отдельным диалогом из наборов зон: она
+            // своя у спектра, её выбирают в панели измерения. Спрашивать здесь
+            // второй раз значило бы позволить поделить спектр на одну кривую, а
+            // активность в нём считать по другой.
+            EfficiencyConfigData efficiency = docEnergySpectrum.ActiveResultData.Efficiency;
+            if (FullSpectrumAnalysis.FsaEfficiency.FromConfig(efficiency) == null)
             {
-                deviceConfigInfo = this.deviceConfigManager.DeviceConfigMap[this.ActiveDocument.ActiveResultData.DeviceConfigReference.Guid];
+                MessageBox.Show(Resources.BqCoeffNoCurve, Resources.ErrorDialogTitle,
+                                MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
             }
-
-            using (SelectROIDialog dialog = new SelectROIDialog(this))
-            {
-                dialog.ShowDialog();
-                string roiGUID = dialog.SendData();
-                if (roiGUID == null) return;
-                rOIConfigData = roiConfigManager.ROIConfigMap[roiGUID];
-            }
-
-
-            if (rOIConfigData == null || rOIConfigData.Guid == null) return;
 
             CreateDocument();
             this.activeDocument.ActiveResultData.ROIConfigReference = null;
             this.activeDocument.ActiveResultData.ROIConfig = null;
-            this.activeDocument.ActiveResultData.EnergySpectrum = SpectrumAriphmetics.NormalizeSpectrum(docEnergySpectrum.ActiveResultData.EnergySpectrum, rOIConfigData);
+            this.activeDocument.ActiveResultData.EnergySpectrum = SpectrumAriphmetics.NormalizeSpectrum(docEnergySpectrum.ActiveResultData.EnergySpectrum, efficiency);
             this.activeDocument.ActiveResultData.DeviceConfigReference = null;
             this.activeDocument.ActiveResultData.DeviceConfig = new DeviceConfigInfo();
             if (docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum != null && docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum.MeasurementTime != 0)
             {
-                this.activeDocument.ActiveResultData.BackgroundEnergySpectrum = SpectrumAriphmetics.NormalizeSpectrum(docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum, rOIConfigData);
+                this.activeDocument.ActiveResultData.BackgroundEnergySpectrum = SpectrumAriphmetics.NormalizeSpectrum(docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum, efficiency);
                 this.activeDocument.ActiveResultData.BackgroundSpectrumFile = docEnergySpectrum.ActiveResultData.BackgroundSpectrumFile;
             }
             this.activeDocument.ActiveResultData.ResultDataStatus = docEnergySpectrum.ActiveResultData.ResultDataStatus.Clone();
@@ -2425,32 +2401,6 @@ namespace BecquerelMonitor
             }
         }
 
-        void EffCalcMCFileToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Title = Resources.EffCalcMCImportDialogTitle;
-            openFileDialog.Filter = Resources.EffCalcMCFileFilter;
-            openFileDialog.FilterIndex = 1;
-            openFileDialog.RestoreDirectory = true;
-            if (openFileDialog.ShowDialog() != DialogResult.OK)
-            {
-                return;
-            }
-            using (EffCalcMCDialog dialog = new EffCalcMCDialog(this))
-            {
-                dialog.ShowDialog();
-                string roiName = dialog.SendData();
-                if (roiName == null) return;
-                if (this.roiConfigManager.ImportEffCalcMCtoROI(roiName, openFileDialog.FileName))
-                {
-                    if (this.dcControlPanel != null)
-                    {
-                        this.dcControlPanel.UpdateROIConfigList();
-                    }
-                    MessageBox.Show(Resources.ROICreationSucces);
-                }
-            }
-        }
 
         void GBSFileToolStripMenuItem_Click(object sender, EventArgs e)
         {

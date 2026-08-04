@@ -44,6 +44,7 @@ namespace BecquerelMonitor
             base.Icon = Resources.becqmoni;
             this.expGaussExpLeftLabelText = this.leftSkewlabel.Text;
             this.expGaussExpRightLabelText = this.rightSkewlabel.Text;
+            this.BuildEfficiencyTab();
             this.HideTempcoTabPage();
             this.button4.Enabled = false;
             this.DisableForm();
@@ -421,6 +422,7 @@ namespace BecquerelMonitor
         void LoadFormContents(DeviceConfigInfo config)
         {
             this.contentsLoading = true;
+            this.LoadEfficiencyTab(config);
             this.textBox1.Text = config.Name;
             this.doubleTextBox5.Text = config.DefaultMeasurementTime.ToString();
             this.integerTextBox1.Text = config.NumberOfChannels.ToString();
@@ -600,29 +602,6 @@ namespace BecquerelMonitor
             List<ROIConfigData> rOIConfigDatas = ROIConfigManager.GetInstance().ROIConfigList;
             if (rOIConfigDatas != null || rOIConfigDatas.Count > 0) 
             {
-                effROIdic.Clear();
-                selectEffROI.Items.Clear();
-                selectEffROI.SelectedIndex = -1;
-
-                string roiGuid = null;
-                if (config.EfficencyROIGuid != null && ROIConfigManager.GetInstance().ROIConfigMap.ContainsKey(config.EfficencyROIGuid))
-                {
-                    roiGuid = ROIConfigManager.GetInstance().ROIConfigMap[config.EfficencyROIGuid].Guid;
-                }
-
-                for (int i = 0; i < rOIConfigDatas.Count; i++)
-                {
-                    if (rOIConfigDatas[i].HasEfficiency)
-                    {
-                        selectEffROI.Items.Add(rOIConfigDatas[i].Name);
-                        effROIdic.Add(selectEffROI.Items.Count - 1, rOIConfigDatas[i].Guid);
-                        if (roiGuid != null && rOIConfigDatas[i].Guid == roiGuid)
-                        {
-                            selectEffROI.SelectedIndex = selectEffROI.Items.Count - 1;
-                        }
-                    }
-                }
-
             }
 
             this.contentsLoading = false;
@@ -751,6 +730,7 @@ namespace BecquerelMonitor
                 config.NumberOfChannels = int.Parse(this.integerTextBox1.Text);
                 config.ChannelPitch = double.Parse(this.doubleTextBox6.Text);
                 config.Note = this.textBox19.Text;
+                this.SaveEfficiencyTab(config);
                 if (config.InputDeviceConfig is RadiaCodeDeviceConfig)
                 {
                     PolynomialEnergyCalibration cal = (PolynomialEnergyCalibration)config.EnergyCalibration;
@@ -1669,19 +1649,9 @@ namespace BecquerelMonitor
 
         void clearEffROI_Click(object sender, EventArgs e)
         {
-            this.activeDeviceConfig.EfficencyROIGuid = null;
-            this.selectEffROI.SelectedIndex = -1;
             this.SetActiveDeviceConfigDirty();
         }
 
-        void selectEffROI_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (this.selectEffROI.SelectedIndex < 0 || this.contentsLoading) return;
-            if (this.effROIdic.TryGetValue(this.selectEffROI.SelectedIndex, out string roiGuid)) {
-                this.activeDeviceConfig.EfficencyROIGuid = roiGuid;
-                this.SetActiveDeviceConfigDirty();
-            }
-        }
 
         // Token: 0x06000532 RID: 1330 RVA: 0x00021958 File Offset: 0x0001FB58
         public void SetActiveDeviceConfigDirty()
@@ -2355,7 +2325,6 @@ namespace BecquerelMonitor
 
         PolynomialEnergyCalibration rc_EnergyCalibration;
 
-        Dictionary<int, string> effROIdic = new Dictionary<int, string>();
 
         private EnergySpectrum doseRateSpectrum;
         private IInterpolation efficiencyCurve;

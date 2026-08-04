@@ -34,7 +34,6 @@ namespace BecquerelMonitor
             this.AtomSpectraStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.N42StripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.cSVFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.EffCalcMCFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.cSVEnFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.GBSFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.SpecUtilsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -88,7 +87,6 @@ namespace BecquerelMonitor
             this.NuclideDefinitionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.NuclideSetToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.NucDB = new System.Windows.Forms.ToolStripMenuItem();
-            this.efficiencyMakerToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.OpenConfigNToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator5 = new System.Windows.Forms.ToolStripSeparator();
             this.basicSettingsBToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -196,7 +194,6 @@ namespace BecquerelMonitor
             this.AtomSpectraStripMenuItem,
             this.N42StripMenuItem,
             this.cSVFileToolStripMenuItem,
-            this.EffCalcMCFileToolStripMenuItem,
             this.cSVEnFileToolStripMenuItem,
             this.GBSFileToolStripMenuItem,
             this.SpecUtilsToolStripMenuItem,
@@ -222,11 +219,7 @@ namespace BecquerelMonitor
             resources.ApplyResources(this.cSVFileToolStripMenuItem, "cSVFileToolStripMenuItem");
             this.cSVFileToolStripMenuItem.Click += new System.EventHandler(this.csvFileImportToolStripMenuItem_Click);
             // 
-            // EffCalcMCFileToolStripMenuItem
             // 
-            this.EffCalcMCFileToolStripMenuItem.Name = "EffCalcMCFileToolStripMenuItem";
-            resources.ApplyResources(this.EffCalcMCFileToolStripMenuItem, "EffCalcMCFileToolStripMenuItem");
-            this.EffCalcMCFileToolStripMenuItem.Click += new System.EventHandler(this.EffCalcMCFileToolStripMenuItem_Click);
             // 
             // cSVEnFileToolStripMenuItem
             // 
@@ -558,7 +551,6 @@ namespace BecquerelMonitor
             this.roiDefinitionRToolStripMenuItem,
             this.NuclideDefinitionToolStripMenuItem,
             this.NuclideSetToolStripMenuItem,
-            this.efficiencyMakerToolStripMenuItem,
             this.NucDB,
             this.OpenConfigNToolStripMenuItem,
             this.toolStripSeparator5,
@@ -590,12 +582,6 @@ namespace BecquerelMonitor
             resources.ApplyResources(this.NuclideSetToolStripMenuItem, "NuclideSetToolStripMenuItem");
             this.NuclideSetToolStripMenuItem.Click += new System.EventHandler(this.NuclideSetToolStripMenuItem_Click);
             //
-            // efficiencyMakerToolStripMenuItem
-            //
-            this.efficiencyMakerToolStripMenuItem.Name = "efficiencyMakerToolStripMenuItem";
-            this.efficiencyMakerToolStripMenuItem.Size = new System.Drawing.Size(224, 22);
-            this.efficiencyMakerToolStripMenuItem.Text = BecquerelMonitor.Properties.Resources.EfficiencyMakerMenu;
-            this.efficiencyMakerToolStripMenuItem.Click += new System.EventHandler(this.efficiencyMakerToolStripMenuItem_Click);
             //
             // NucDB
             //
@@ -861,7 +847,6 @@ namespace BecquerelMonitor
 		// Token: 0x040005AF RID: 1455
 		global::System.Windows.Forms.ToolStripMenuItem stopMeasurementTToolStripMenuItem;
 
-		global::System.Windows.Forms.ToolStripMenuItem EffCalcMCFileToolStripMenuItem;
 
         global::System.Windows.Forms.ToolStripMenuItem GBSFileToolStripMenuItem;
 
@@ -890,7 +875,6 @@ namespace BecquerelMonitor
 
 		global::System.Windows.Forms.ToolStripMenuItem NucDB;
 
-		global::System.Windows.Forms.ToolStripMenuItem efficiencyMakerToolStripMenuItem;
 
 		// Token: 0x040005B5 RID: 1461
 		global::System.Windows.Forms.ToolStripMenuItem forFwhmToolStripMenuItem;

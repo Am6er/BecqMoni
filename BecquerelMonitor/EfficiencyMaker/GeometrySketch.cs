@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.Windows.Forms;
+using BecquerelMonitor.Properties;
 
 namespace BecquerelMonitor.EfficiencyMaker
 {
@@ -26,7 +27,19 @@ namespace BecquerelMonitor.EfficiencyMaker
         public enum SketchMode
         {
             Detector,
-            Source
+            Source,
+
+            /// <summary>
+            /// Сводная миниатюра: детектор и образец на одном чертеже, из
+            /// размеров — только габаритные.
+            ///
+            /// Двадцать выносок, осмысленные в редакторе, на миниатюре
+            /// сливаются в кашу, поэтому размеры здесь названы СЛОВАМИ в углу:
+            /// на маленьком поле подпись читается, а стрелка длиной в три
+            /// точки — нет. Задача миниатюры одна — дать узнать конфигурацию,
+            /// не открывая её.
+            /// </summary>
+            Overview
         }
 
         // Палитра взята с чертежа GMaster, чтобы слои узнавались с первого
@@ -172,7 +185,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             double zBack = height + tm;
 
             double left = -outerHalf, right = outerHalf, top = zFace, bottom = zBack;
-            if (this.Mode == SketchMode.Source)
+            if (this.Mode != SketchMode.Detector)
             {
                 double sl, sr, st, sb;
                 this.SourceBounds(m, zFace, out sl, out sr, out st, out sb);
@@ -187,7 +200,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             // Поля под выноски: сверху помещается размерная линия с подписью
             // (22 точки отступа плюс высота строки), по бокам — подпись с
             // числом.
-            const int MarginX = 78, MarginTop = 42, MarginBottom = 30;
+            // Миниатюре широкие поля не нужны — выносок на ней нет, а место
+            // дорого: чертёж и так мелкий.
+            int MarginX = this.Mode == SketchMode.Overview ? 10 : 78;
+            int MarginTop = this.Mode == SketchMode.Overview ? 8 : 42;
+            int MarginBottom = this.Mode == SketchMode.Overview ? 8 : 30;
             double worldWidth = Math.Max(right - left, 1e-6);
             double worldHeight = Math.Max(bottom - top, 1e-6);
             double sx = (this.Width - 2.0 * MarginX) / worldWidth;
@@ -204,7 +221,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.padTop = MarginTop + (int)((this.Height - MarginTop - MarginBottom
                                              - worldHeight * this.scale) / 2.0);
 
-            if (this.Mode == SketchMode.Source)
+            if (this.Mode != SketchMode.Detector)
             {
                 this.DrawSource(g, m, zFace);
             }
@@ -214,9 +231,72 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 this.Annotate(g, m, halfWidth, height, tfr, tsr, tfc, tsc, tm);
             }
-            else
+            else if (this.Mode == SketchMode.Source)
             {
                 this.AnnotateSource(g, m, zFace);
+            }
+            else
+            {
+                this.AnnotateOverview(g, m);
+            }
+        }
+
+        /// <summary>
+        /// Подписи миниатюры: габариты детектора с названием формы и привязка
+        /// образца. Всё словами, в левом верхнем углу, на подложке — иначе
+        /// текст теряется на цветной заливке.
+        /// </summary>
+        void AnnotateOverview(Graphics g, GeometryModel m)
+        {
+            List<string> lines = new List<string>();
+            lines.Add(m.Shape == CrystalShape.Box
+                ? string.Format(CultureInfo.InvariantCulture, "{0}: {1:G4} x {2:G4} x {3:G4} cm",
+                                Resources.EfficiencySketchBox, m.CrystalBoxX, m.CrystalBoxY, m.CrystalBoxZ)
+                : string.Format(CultureInfo.InvariantCulture, "{0}: {1}{2:G4} x {3:G4} cm",
+                                Resources.EfficiencySketchCylinder, "⌀", m.CrystalDiameter, m.CrystalHeight));
+
+            switch (m.SourceType)
+            {
+                case GeometrySourceType.Point:
+                    lines.Add(string.Format(CultureInfo.InvariantCulture, "{0}: {1:G4} cm",
+                                            Resources.EfficiencySketchPoint,
+                                            Math.Max(m.PointDistance, 0.0)));
+                    break;
+
+                case GeometrySourceType.Cylinder:
+                    lines.Add(string.Format(CultureInfo.InvariantCulture, "{0}: {1}{2:G4} x {3:G4} cm",
+                                            Resources.EfficiencySketchBeaker, "⌀",
+                                            Math.Max(m.BeakerDiameter, 0.0),
+                                            Math.Max(m.SourceHeight, 0.0)));
+                    lines.Add(string.Format(CultureInfo.InvariantCulture, "{0}: {1:G4} cm",
+                                            Resources.EfficiencySketchDistance,
+                                            Math.Max(m.BeakerToDetectorDistance, 0.0)));
+                    break;
+
+                default:
+                    lines.Add(string.Format(CultureInfo.InvariantCulture, "{0}: {1}{2:G4} x {3:G4} cm",
+                                            Resources.EfficiencySketchMarinelli, "⌀",
+                                            Math.Max(m.MarinelliBeakerDiameter, 0.0),
+                                            Math.Max(m.MarinelliBeakerHeight, 0.0)));
+                    break;
+            }
+
+            float width = 0f, lineHeight = 0f;
+            foreach (string line in lines)
+            {
+                SizeF size = g.MeasureString(line, this.Font);
+                width = Math.Max(width, size.Width);
+                lineHeight = Math.Max(lineHeight, size.Height);
+            }
+
+            using (Brush plate = new SolidBrush(Color.FromArgb(0xC8, 0xFF, 0xFF, 0xFF)))
+            using (Brush ink = new SolidBrush(Ink))
+            {
+                g.FillRectangle(plate, 4f, 4f, width + 8f, lineHeight * lines.Count + 6f);
+                for (int i = 0; i < lines.Count; i++)
+                {
+                    g.DrawString(lines[i], this.Font, ink, 8f, 6f + i * lineHeight);
+                }
             }
         }
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Xml.Serialization;
 
 namespace BecquerelMonitor
@@ -331,6 +332,77 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// Кривые эффективности этого прибора. Их может быть много: один и тот
+        /// же кристалл меряют и в маринелли, и точечным источником, и на пяти
+        /// сантиметрах — это разные геометрии и разные кривые, а прибор один.
+        ///
+        /// Раньше кривая лежала секцией в ROI-конфиге, а прибор ссылался на неё
+        /// через <see cref="EfficencyROIGuid"/> — одной штукой на прибор и в
+        /// чужой сущности.
+        /// </summary>
+        public List<EfficiencyConfigData> EfficiencyConfigs
+        {
+            get
+            {
+                return this.efficiencyConfigs;
+            }
+            set
+            {
+                this.efficiencyConfigs = value;
+            }
+        }
+
+        /// <summary>
+        /// Какая из них сейчас действует. Пусто — ни одна: тогда активность не
+        /// считается, и об этом говорится, а не подставляется что попало.
+        /// </summary>
+        public string ActiveEfficiencyGuid
+        {
+            get
+            {
+                return this.activeEfficiencyGuid;
+            }
+            set
+            {
+                this.activeEfficiencyGuid = value;
+            }
+        }
+
+        /// <summary>Конфигурация по идентификатору, или null.</summary>
+        public EfficiencyConfigData FindEfficiency(string guid)
+        {
+            if (string.IsNullOrEmpty(guid) || this.efficiencyConfigs == null)
+            {
+                return null;
+            }
+
+            foreach (EfficiencyConfigData config in this.efficiencyConfigs)
+            {
+                if (config != null && config.Guid == guid)
+                {
+                    return config;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Действующая конфигурация. Молчаливой подстановки «первой попавшейся»
+        /// здесь нет нарочно: именно так вела себя привязка через ROI —
+        /// <c>ROIConfigList[0]</c> при непроставленном Guid, — и активность
+        /// считалась по чужой кривой, ничем это не обозначая.
+        /// </summary>
+        [XmlIgnore]
+        public EfficiencyConfigData ActiveEfficiency
+        {
+            get
+            {
+                return this.FindEfficiency(this.activeEfficiencyGuid);
+            }
+        }
+
         // Token: 0x1700033B RID: 827
         // (get) Token: 0x06000C21 RID: 3105 RVA: 0x00048224 File Offset: 0x00046424
         // (set) Token: 0x06000C22 RID: 3106 RVA: 0x0004822C File Offset: 0x0004642C
@@ -406,6 +478,21 @@ namespace BecquerelMonitor
             {
                 this.efficencyROIGuid = string.Copy(info.efficencyROIGuid);
             }
+            // Копия ГЛУБОКАЯ, как и всё выше. Форма конфигураций правит не
+            // объект менеджера, а его копию (ListupConfigFiles кладёт Clone() в
+            // строку таблицы), и общий список означал бы, что правка кривой
+            // переживает «Отмена». Пропуск же этих двух полей означал обратное
+            // и худшее: список кривых пуст уже при открытии формы, а сохранение
+            // уносит пустоту на диск.
+            this.efficiencyConfigs = new List<EfficiencyConfigData>();
+            if (info.efficiencyConfigs != null)
+            {
+                foreach (EfficiencyConfigData config in info.efficiencyConfigs)
+                {
+                    this.efficiencyConfigs.Add(config == null ? null : config.Copy());
+                }
+            }
+            this.activeEfficiencyGuid = info.activeEfficiencyGuid;
         }
 
         // Token: 0x06000C26 RID: 3110 RVA: 0x0004854C File Offset: 0x0004674C
@@ -536,5 +623,9 @@ namespace BecquerelMonitor
         string backgroundSpectrumPathname = "";
 
         string efficencyROIGuid;
+
+        List<EfficiencyConfigData> efficiencyConfigs = new List<EfficiencyConfigData>();
+
+        string activeEfficiencyGuid;
     }
 }

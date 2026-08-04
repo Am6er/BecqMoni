@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -290,12 +290,6 @@
     </Compile>
     <Compile Include="DrawingMode.cs" />
     <Compile Include="EasyControlConfig.cs" />
-    <Compile Include="EffCalcMCDialog.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="EffCalcMCDialog.Designer.cs">
-      <DependentUpon>EffCalcMCDialog.cs</DependentUpon>
-    </Compile>
     <Compile Include="EnergyCalibration.cs" />
     <Compile Include="EnergyCalibrationChangedEventArgs.cs" />
     <Compile Include="EnergyResolutionCalculator.cs" />
@@ -314,6 +308,7 @@
     <Compile Include="EfficiencyMaker\EfficiencyFitter.cs" />
     <Compile Include="EfficiencyMaker\EfficiencySimulator.cs" />
     <Compile Include="EfficiencyMaker\GeometryModel.cs" />
+    <Compile Include="EfficiencyMaker\MaterialDatabase.cs" />
     <Compile Include="EfficiencyMaker\PartialCrossSections.cs" />
     <Compile Include="EfficiencyMaker\EfficiencyModel.cs" />
     <Compile Include="EfficiencyMaker\GeometryMaterialLibrary.cs" />
@@ -322,8 +317,12 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="EfficiencyMaker\GeometryWriter.cs" />
-    <Compile Include="GeometryEditorForm.cs">
+    <Compile Include="EfficiencyConfigData.cs" />
+    <Compile Include="DeviceConfigForm.Efficiency.cs">
       <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="GeometryEditorPanel.cs">
+      <SubType>Component</SubType>
     </Compile>
     <Compile Include="EfficiencyMakerForm.cs">
       <SubType>Form</SubType>
@@ -525,12 +524,6 @@
       <DependentUpon>ROICovellMethodControl.cs</DependentUpon>
     </Compile>
     <Compile Include="ROICovellMethodData.cs" />
-    <Compile Include="ROIEditEfficiencyDialog.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="ROIEditEfficiencyDialog.Designer.cs">
-      <DependentUpon>ROIEditEfficiencyDialog.cs</DependentUpon>
-    </Compile>
     <Compile Include="ROIEfficiencyData.cs" />
     <Compile Include="ROIDefinitionData.cs" />
     <Compile Include="ROIPrimitiveControl.cs">
@@ -562,12 +555,6 @@
     </Compile>
     <Compile Include="SelectDeviceDialog.Designer.cs">
       <DependentUpon>SelectDeviceDialog.cs</DependentUpon>
-    </Compile>
-    <Compile Include="SelectROIDialog.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="SelectROIDialog.Designer.cs">
-      <DependentUpon>SelectROIDialog.cs</DependentUpon>
     </Compile>
     <Compile Include="SerialInputDeviceConfig.cs" />
     <Compile Include="SerializableColor.cs" />
@@ -653,6 +640,7 @@
     </Compile>
     <Compile Include="Utils\LiveTime.cs" />
     <Compile Include="Utils\PeakShapeModel.cs" />
+    <Compile Include="Utils\BecquerelCoefficient.cs" />
     <Compile Include="Utils\ROIAriphmetics.cs" />
     <Compile Include="Utils\PseudoVoigtProfile.cs" />
     <Compile Include="Utils\SpectrumAriphmetics.cs" />
@@ -1008,13 +996,6 @@
       <DependentUpon>DocEnergySpectrum.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
-    <EmbeddedResource Include="EffCalcMCDialog.resx">
-      <DependentUpon>EffCalcMCDialog.cs</DependentUpon>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="EffCalcMCDialog.ru.resx">
-      <DependentUpon>EffCalcMCDialog.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="EnergySpectrumView.resx">
       <DependentUpon>EnergySpectrumView.cs</DependentUpon>
       <SubType>Designer</SubType>
@@ -1107,13 +1088,6 @@
     <EmbeddedResource Include="EfficiencyMakerForm.ru.resx">
       <DependentUpon>EfficiencyMakerForm.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="ROIEditEfficiencyDialog.resx">
-      <DependentUpon>ROIEditEfficiencyDialog.cs</DependentUpon>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="ROIEditEfficiencyDialog.ru.resx">
-      <DependentUpon>ROIEditEfficiencyDialog.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="ROIPrimitiveControl.resx">
       <DependentUpon>ROIPrimitiveControl.cs</DependentUpon>
       <SubType>Designer</SubType>
@@ -1137,12 +1111,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="SelectDeviceDialog.ru.resx">
       <DependentUpon>SelectDeviceDialog.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="SelectROIDialog.resx">
-      <DependentUpon>SelectROIDialog.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="SelectROIDialog.ru.resx">
-      <DependentUpon>SelectROIDialog.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="SpectrumCutOffDialog.resx">
       <DependentUpon>SpectrumCutOffDialog.cs</DependentUpon>

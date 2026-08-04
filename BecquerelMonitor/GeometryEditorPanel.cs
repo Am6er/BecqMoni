@@ -10,7 +10,11 @@ using BecquerelMonitor.Properties;
 namespace BecquerelMonitor
 {
     /// <summary>
-    /// Конструктор файла геометрии `.in`.
+    /// Редактор геометрии — вкладка конструктора кривой эффективности.
+    ///
+    /// Был отдельной формой, писавшей файл `.in`. Стал контролом, потому что
+    /// геометрия переехала в конфигурацию прибора: файла у неё нет, сохранять
+    /// нечего и некуда, а правится она там же, где и кривая.
     ///
     /// Зачем свой, когда есть GMaster: формат LSRM умеет только цилиндрические
     /// кристаллы, а у половины наших детекторов кристалл прямоугольный, и
@@ -22,7 +26,7 @@ namespace BecquerelMonitor
     /// расставленный контрол однажды уже потерялся вовсе — не появился ни на
     /// экране, ни в дереве UI Automation.
     /// </summary>
-    public class GeometryEditorForm : Form
+    public sealed class GeometryEditorPanel : UserControl
     {
         readonly Dictionary<string, TextBox> fields =
             new Dictionary<string, TextBox>(StringComparer.Ordinal);
@@ -38,21 +42,107 @@ namespace BecquerelMonitor
         Label equivalentLabel;
         ComboBox sourceTypeCombo;
         Panel pointPanel, cylinderPanel, marinelliPanel;
+        Panel sourceMaterialsPanel;
         Panel cylinderSizePanel, boxSizePanel;
-        TextBox pathTextBox;
         ComboBox presetCombo;
         GeometrySketch detectorSketch, sourceSketch;
 
         GeometryModel model;
 
-        /// <summary>Путь сохранённого файла или null, если отменили.</summary>
-        public string SavedPath { get; private set; }
-
-        public GeometryEditorForm(GeometryModel source)
+        /// <summary>
+        /// Геометрия как её оставили. Панель правит СВОЮ копию: пока не нажали
+        /// «Сохранить», чужая конфигурация остаётся нетронутой.
+        /// </summary>
+        public GeometryModel Model
         {
-            this.model = source ?? Blank();
+            get { return this.model; }
+        }
+
+        /// <summary>Правили ли что-нибудь с последней загрузки.</summary>
+        public bool Dirty { get; private set; }
+
+        /// <summary>Сообщить наружу, что править начали, — для кнопки «Сохранить».</summary>
+        public event EventHandler Changed;
+
+        public GeometryEditorPanel()
+        {
+            this.model = Blank();
             this.BuildLayout();
-            this.LoadFromModel();
+            // Через SetModel, а не напрямую: заготовка заезжает в поля тем же
+            // путём, что и чужая геометрия, и так же не считается правкой.
+            // Прямой вызов LoadFromModel объявлял панель изменённой сразу при
+            // создании — до того, как пользователь её увидел.
+            this.SetModel(null);
+        }
+
+        /// <summary>
+        /// Показать другую геометрию. Пустая означает «геометрии нет» —
+        /// подставляется заготовка, а не нули: от нулевой толщины отражателя
+        /// расчёт молча меняет смысл.
+        /// </summary>
+        public void SetModel(GeometryModel source)
+        {
+            // Загрузка проходит через те же обработчики, что и правка руками, и
+            // хвост LoadFromModel перерисовывает чертёж уже со снятым флагом
+            // loading. Без своей заглушки открытие конфигурации объявляло бы её
+            // изменённой, ничего не изменив.
+            this.suppressChanged = true;
+            try
+            {
+                this.model = source == null ? Blank() : source.Clone();
+                this.LoadFromModel();
+            }
+            finally
+            {
+                this.suppressChanged = false;
+            }
+
+            this.Dirty = false;
+        }
+
+        bool suppressChanged;
+
+        /// <summary>
+        /// Забрать отредактированное. false — в полях ошибка, о ней уже
+        /// сказано пользователю.
+        /// </summary>
+        public bool TryCommit()
+        {
+            if (!this.MarkBadValues())
+            {
+                MessageBox.Show(this, Resources.GeometryEditorErrorNumber,
+                                Resources.GeometryEditorTitle,
+                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            GeometryModel g = this.BuildModel();
+            string error = this.Validate(g);
+            if (error != null)
+            {
+                MessageBox.Show(this, error, Resources.GeometryEditorTitle,
+                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            this.model = g;
+            this.Dirty = false;
+            return true;
+        }
+
+        void RaiseChanged()
+        {
+            if (this.suppressChanged)
+            {
+                return;
+            }
+
+            this.Dirty = true;
+            EventHandler handler = this.Changed;
+            if (handler != null)
+            {
+                handler(this, EventArgs.Empty);
+            }
         }
 
         /// <summary>
@@ -116,18 +206,9 @@ namespace BecquerelMonitor
 
         void BuildLayout()
         {
-            this.Text = Resources.GeometryEditorTitle;
-            this.ClientSize = new Size(1060, 650);
-            this.MinimumSize = new Size(1076, 689);
-            this.StartPosition = FormStartPosition.CenterParent;
-            this.Icon = Resources.becqmoni;
-
-            TabControl tabs = new TabControl
-            {
-                Location = new Point(12, 12),
-                Size = new Size(1036, 540),
-                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom,
-            };
+            // Панель, а не окно: ни заголовка, ни размера, ни кнопок «ОК» и
+            // «Отмена» — их место занимает общая кнопка сохранения конструктора.
+            TabControl tabs = new TabControl { Dock = DockStyle.Fill };
 
             TabPage detector = new TabPage(Resources.GeometryEditorTabDetector) { UseVisualStyleBackColor = true };
             TabPage source = new TabPage(Resources.GeometryEditorTabSource) { UseVisualStyleBackColor = true };
@@ -138,57 +219,6 @@ namespace BecquerelMonitor
             this.BuildDetectorTab(detector);
             this.BuildSourceTab(source);
 
-            Label pathLabel = new Label
-            {
-                AutoSize = true,
-                Location = new Point(12, 566),
-                Text = Resources.GeometryEditorFile,
-                Anchor = AnchorStyles.Bottom | AnchorStyles.Left,
-            };
-
-            this.pathTextBox = new TextBox
-            {
-                Location = new Point(12, 584),
-                Size = new Size(930, 20),
-                Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
-            };
-
-            Button browse = new Button
-            {
-                Location = new Point(948, 582),
-                Size = new Size(100, 24),
-                Text = Resources.GeometryEditorBrowse,
-                Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
-                UseVisualStyleBackColor = true,
-            };
-            browse.Click += this.BrowseClick;
-
-            Button ok = new Button
-            {
-                Location = new Point(828, 614),
-                Size = new Size(106, 26),
-                Text = Resources.GeometryEditorSave,
-                Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
-                UseVisualStyleBackColor = true,
-            };
-            ok.Click += this.SaveClick;
-
-            Button cancel = new Button
-            {
-                Location = new Point(942, 614),
-                Size = new Size(106, 26),
-                Text = Resources.GeometryEditorCancel,
-                DialogResult = DialogResult.Cancel,
-                Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
-                UseVisualStyleBackColor = true,
-            };
-
-            this.Controls.Add(pathLabel);
-            this.Controls.Add(this.pathTextBox);
-            this.Controls.Add(browse);
-            this.Controls.Add(ok);
-            this.Controls.Add(cancel);
-            this.CancelButton = cancel;
         }
 
         void BuildDetectorTab(TabPage tab)
@@ -365,13 +395,19 @@ namespace BecquerelMonitor
             this.Row(this.marinelliPanel, ref y, "MarinelliToDetectorDistance", Resources.GeometryEditorBeakerToDetector);
             page.Controls.Add(this.marinelliPanel);
 
-            Panel mats = new Panel { Location = new Point(0, 336), Size = new Size(620, 100) };
+            // Вещества стоят под ТЕМ, что сейчас показано, а не под самым
+            // высоким из трёх: у точечного источника одно поле, у маринелли
+            // одиннадцать, и место под маринелли оставляло у точки пустую
+            // полосу в три сотни точек.
+            this.sourceMaterialsPanel = new Panel { Location = new Point(0, 336), Size = new Size(620, 100) };
             y = 0;
-            this.MaterialRow(mats, ref y, "BeakerWall", Resources.GeometryEditorWallMaterial,
+            this.MaterialRow(this.sourceMaterialsPanel, ref y, "BeakerWall",
+                             Resources.GeometryEditorWallMaterial,
                              GeometryMaterialLibrary.MaterialKind.BeakerWall);
-            this.MaterialRow(mats, ref y, "Source", Resources.GeometryEditorSourceMaterial,
+            this.MaterialRow(this.sourceMaterialsPanel, ref y, "Source",
+                             Resources.GeometryEditorSourceMaterial,
                              GeometryMaterialLibrary.MaterialKind.Source);
-            page.Controls.Add(mats);
+            page.Controls.Add(this.sourceMaterialsPanel);
         }
 
         /// <summary>Строка «подпись — поле — см».</summary>
@@ -628,6 +664,18 @@ namespace BecquerelMonitor
             GeometryModel g = this.BuildModel();
             this.detectorSketch.SetModel(g);
             this.sourceSketch.SetModel(g);
+
+            // Признак правки взводится ЗДЕСЬ, а не в каждом обработчике: через
+            // перерисовку чертежа проходит любое изменение геометрии — поле,
+            // форма кристалла, тип источника, вещество, готовый детектор. Точка
+            // одна, и добавленное завтра поле попадёт в неё само.
+            //
+            // Загрузка модели чертёж тоже обновляет, но правкой не является,
+            // поэтому под флагом.
+            if (!this.loading)
+            {
+                this.RaiseChanged();
+            }
         }
 
         void SelectMaterial(string key, GeometryMaterial material)
@@ -763,6 +811,18 @@ namespace BecquerelMonitor
             this.pointPanel.Visible = index == 0;
             this.cylinderPanel.Visible = index == 1;
             this.marinelliPanel.Visible = index == 2;
+
+            // Вещества подтягиваются под видимый набор полей: стенка сосуда у
+            // точечного источника не спрашивается вовсе, но само вещество пробы
+            // нужно всегда.
+            Panel shown = index == 1 ? this.cylinderPanel
+                        : index == 2 ? this.marinelliPanel
+                        : this.pointPanel;
+            if (this.sourceMaterialsPanel != null)
+            {
+                this.sourceMaterialsPanel.Top = shown.Bottom + 16;
+            }
+
             this.RefreshSketch();
         }
 
@@ -826,7 +886,16 @@ namespace BecquerelMonitor
 
         GeometryModel BuildModel()
         {
-            GeometryModel g = this.model;
+            // КОПИЯ, а не this.model. Собирать поверх своей же модели нельзя:
+            // чертёж пересобирается на каждое изменение поля, а загрузка эти
+            // изменения и порождает — и первое же поле переписывало только что
+            // загруженную модель тем, что ЕЩЁ стоит в полях. Числа это
+            // переживало (загрузка идёт дальше и дописывает их), а тип источника
+            // и форма кристалла — нет: их LoadFromModel читает из модели ПОСЛЕ
+            // полей, то есть уже из затёртой. Маринелли молча превращался в
+            // точку на девяноста сантиметрах — все размеры на месте, сцена
+            // другая.
+            GeometryModel g = this.model.Clone();
             g.IsScintillator = true;
             g.Shape = this.boxRadio.Checked ? CrystalShape.Box : CrystalShape.Cylinder;
             foreach (FieldMap field in Map)
@@ -897,69 +966,5 @@ namespace BecquerelMonitor
             return null;
         }
 
-        // ------------------------------------------------------------------
-
-        void BrowseClick(object sender, EventArgs e)
-        {
-            using (SaveFileDialog dialog = new SaveFileDialog())
-            {
-                dialog.Filter = Resources.EfficiencyMakerGeometryFilter;
-                dialog.FileName = this.pathTextBox.Text;
-                if (dialog.ShowDialog(this) == DialogResult.OK)
-                {
-                    this.pathTextBox.Text = dialog.FileName;
-                }
-            }
-        }
-
-        void SaveClick(object sender, EventArgs e)
-        {
-            if (!this.MarkBadValues())
-            {
-                MessageBox.Show(this, Resources.GeometryEditorErrorNumber, this.Text,
-                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            GeometryModel g = this.BuildModel();
-            string error = this.Validate(g);
-            if (error != null)
-            {
-                MessageBox.Show(this, error, this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            string path = (this.pathTextBox.Text ?? "").Trim();
-            if (path.Length == 0)
-            {
-                this.BrowseClick(sender, e);
-                path = (this.pathTextBox.Text ?? "").Trim();
-                if (path.Length == 0)
-                {
-                    return;
-                }
-            }
-
-            try
-            {
-                GeometryWriter.Save(g, path);
-                // Перечитать своим же загрузчиком: если записанное не читается,
-                // это должно выясниться здесь, а не при расчёте кривой.
-                GeometryModel back = GeometryModel.Load(path);
-                if (!back.IsScintillator)
-                {
-                    throw new InvalidOperationException(Resources.EfficiencyMakerGeometryNotScintillator);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, ex.Message, this.Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
-            this.SavedPath = path;
-            this.DialogResult = DialogResult.OK;
-            this.Close();
-        }
     }
 }
