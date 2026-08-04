@@ -126,7 +126,7 @@
   </data>
   <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
   <data name="buttonClose.Location" type="System.Drawing.Point, System.Drawing">
-    <value>517, 425</value>
+    <value>597, 425</value>
   </data>
   <data name="buttonClose.Size" type="System.Drawing.Size, System.Drawing">
     <value>82, 23</value>
@@ -160,7 +160,7 @@
     <value>NoControl</value>
   </data>
   <data name="buttonSave.Location" type="System.Drawing.Point, System.Drawing">
-    <value>423, 425</value>
+    <value>503, 425</value>
   </data>
   <data name="buttonSave.Size" type="System.Drawing.Size, System.Drawing">
     <value>88, 23</value>
@@ -286,7 +286,7 @@
     <value>12, 5</value>
   </data>
   <data name="groupBoxEdit.Size" type="System.Drawing.Size, System.Drawing">
-    <value>587, 410</value>
+    <value>667, 410</value>
   </data>
   <data name="groupBoxEdit.TabIndex" type="System.Int32, mscorlib">
     <value>10</value>
@@ -313,7 +313,7 @@
     <value>NoControl</value>
   </data>
   <data name="labelFilter.Location" type="System.Drawing.Point, System.Drawing">
-    <value>355, 37</value>
+    <value>435, 37</value>
   </data>
   <data name="labelFilter.Size" type="System.Drawing.Size, System.Drawing">
     <value>32, 13</value>
@@ -340,7 +340,7 @@
     <value>Top, Right</value>
   </data>
   <data name="textBoxFilter.Location" type="System.Drawing.Point, System.Drawing">
-    <value>406, 34</value>
+    <value>486, 34</value>
   </data>
   <data name="textBoxFilter.Size" type="System.Drawing.Size, System.Drawing">
     <value>169, 20</value>
@@ -367,7 +367,7 @@
     <value>17, 17</value>
   </metadata>
   <data name="tableNuclides.Location" type="System.Drawing.Point, System.Drawing">
-    <value>293, 59</value>
+    <value>373, 59</value>
   </data>
   <data name="tableNuclides.Size" type="System.Drawing.Size, System.Drawing">
     <value>282, 341</value>
@@ -430,7 +430,7 @@
     <value>NoControl</value>
   </data>
   <data name="buttonDeleteSet.Location" type="System.Drawing.Point, System.Drawing">
-    <value>167, 375</value>
+    <value>207, 375</value>
   </data>
   <data name="buttonDeleteSet.Size" type="System.Drawing.Size, System.Drawing">
     <value>105, 23</value>
@@ -463,7 +463,7 @@
     <value>NoControl</value>
   </data>
   <data name="labelNuclides.Location" type="System.Drawing.Point, System.Drawing">
-    <value>355, 18</value>
+    <value>435, 18</value>
   </data>
   <data name="labelNuclides.Size" type="System.Drawing.Size, System.Drawing">
     <value>144, 13</value>
@@ -493,7 +493,7 @@
     <value>NoControl</value>
   </data>
   <data name="buttonAddSet.Location" type="System.Drawing.Point, System.Drawing">
-    <value>54, 375</value>
+    <value>94, 375</value>
   </data>
   <data name="buttonAddSet.Size" type="System.Drawing.Size, System.Drawing">
     <value>107, 23</value>
@@ -556,7 +556,7 @@
     <value>6, 34</value>
   </data>
   <data name="tableSets.Size" type="System.Drawing.Size, System.Drawing">
-    <value>266, 335</value>
+    <value>346, 335</value>
   </data>
   <data name="tableSets.TabIndex" type="System.Int32, mscorlib">
     <value>9</value>
@@ -578,6 +578,15 @@
   </data>
   <data name="&gt;&gt;tableSets.ZOrder" xml:space="preserve">
     <value>7</value>
+  </data>
+  <data name="columnSetIntensityLines.Text" xml:space="preserve">
+    <value>Intensity lines</value>
+  </data>
+  <data name="columnSetIntensityLines.ToolTipText" xml:space="preserve">
+    <value>Draw the lines of this set over the spectrum: energy gives the position, yield the height, the nuclide colour the colour.</value>
+  </data>
+  <data name="columnSetIntensityLines.Width" type="System.Int32, mscorlib">
+    <value>100</value>
   </data>
   <data name="columnSetName.Text" xml:space="preserve">
     <value>Name</value>
@@ -604,7 +613,7 @@
     <value>6, 13</value>
   </data>
   <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
-    <value>611, 457</value>
+    <value>691, 457</value>
   </data>
   <data name="$this.Icon" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
@@ -4919,6 +4928,12 @@
   </data>
   <data name="&gt;&gt;columnModelSets.Type" xml:space="preserve">
     <value>XPTable.Models.ColumnModel, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;columnSetIntensityLines.Name" xml:space="preserve">
+    <value>columnSetIntensityLines</value>
+  </data>
+  <data name="&gt;&gt;columnSetIntensityLines.Type" xml:space="preserve">
+    <value>XPTable.Models.CheckBoxColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;columnSetName.Name" xml:space="preserve">
     <value>columnSetName</value>

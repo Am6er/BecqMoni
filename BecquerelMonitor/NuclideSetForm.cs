@@ -11,6 +11,7 @@ namespace BecquerelMonitor
         private const int NuclideCheckboxColumnIndex = 0;
         private const int SetNameColumnIndex = 0;
         private const int SetHidePeaksColumnIndex = 1;
+        private const int SetIntensityLinesColumnIndex = 2;
 
         bool dirty = false;
         NuclideSet selectedSet = null;
@@ -105,6 +106,7 @@ namespace BecquerelMonitor
             Row row = new Row();
             row.Cells.Add(new Cell(set.Name));
             row.Cells.Add(new Cell() { Checked = set.HideUnknownPeaks });
+            row.Cells.Add(new Cell() { Checked = set.ShowIntensityLines });
             return row;
         }
 
@@ -283,6 +285,28 @@ namespace BecquerelMonitor
             {
                 this.selectedSet.HideUnknownPeaks = e.Cell.Checked;
                 this.MarkAsDirty();
+            }
+            else if (e.Cell.Index == SetIntensityLinesColumnIndex)
+            {
+                this.selectedSet.ShowIntensityLines = e.Cell.Checked;
+                this.MarkAsDirty();
+                // График перерисовывается сразу: окно немодальное, оно стоит
+                // рядом со спектром, и галка, действующая только после
+                // закрытия, читалась бы как неработающая.
+                this.RefreshActiveChart();
+            }
+        }
+
+        /// <summary>
+        /// Перерисовать спектр открытого документа. Набор, галку которого
+        /// щёлкнули, может быть и не выбран в панели поиска пиков — тогда на
+        /// картинке ничего не изменится, и это правильно.
+        /// </summary>
+        private void RefreshActiveChart()
+        {
+            if (this.mainForm != null && this.mainForm.ActiveDocument != null)
+            {
+                this.mainForm.ActiveDocument.EnergySpectrumView.Invalidate();
             }
         }
 
