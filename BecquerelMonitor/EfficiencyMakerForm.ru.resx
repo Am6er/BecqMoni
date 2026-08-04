@@ -107,7 +107,7 @@
     <value>Порядок полинома:</value>
   </data>
   <data name="minIntensityLabel.Text" xml:space="preserve">
-    <value>Мин. выход, %:</value>
+    <value>Мин. Intensity, %:</value>
   </data>
   <data name="minSignificanceLabel.Text" xml:space="preserve">
     <value>Мин. z линии:</value>

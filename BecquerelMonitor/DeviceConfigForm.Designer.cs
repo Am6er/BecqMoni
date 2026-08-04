@@ -140,7 +140,6 @@ namespace BecquerelMonitor
             this.label23 = new System.Windows.Forms.Label();
             this.textBox17 = new System.Windows.Forms.TextBox();
             this.effROIText = new System.Windows.Forms.Label();
-            this.selectEffROI = new System.Windows.Forms.ComboBox();
             this.clearEffROI = new System.Windows.Forms.Button();
             this.tabPage7 = new System.Windows.Forms.TabPage();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
@@ -976,7 +975,6 @@ namespace BecquerelMonitor
             this.tabPage4.Controls.Add(this.label23);
             this.tabPage4.Controls.Add(this.textBox17);
             this.tabPage4.Controls.Add(this.effROIText);
-            this.tabPage4.Controls.Add(this.selectEffROI);
             this.tabPage4.Controls.Add(this.clearEffROI);
             resources.ApplyResources(this.tabPage4, "tabPage4");
             this.tabPage4.Name = "tabPage4";
@@ -1014,13 +1012,7 @@ namespace BecquerelMonitor
             resources.ApplyResources(this.effROIText, "effROIText");
             this.effROIText.Name = "effROIText";
             // 
-            // selectEffROI
             // 
-            this.selectEffROI.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.selectEffROI.FormattingEnabled = true;
-            resources.ApplyResources(this.selectEffROI, "selectEffROI");
-            this.selectEffROI.Name = "selectEffROI";
-            this.selectEffROI.SelectedIndexChanged += new System.EventHandler(this.selectEffROI_SelectedIndexChanged);
             // 
             // clearEffROI
             // 
@@ -1621,7 +1613,6 @@ namespace BecquerelMonitor
         XPTable.Models.NumberColumn numberColumn8;
 		System.Windows.Forms.Label effROIText;
 		System.Windows.Forms.Button clearEffROI;
-		System.Windows.Forms.ComboBox selectEffROI;
 
 		// dose rate calculation
         private System.Windows.Forms.Button buttonLoadDoseRateSpectrum;

@@ -3653,6 +3653,48 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string BqCoeffAuto {
+            get {
+                return ResourceManager.GetString("BqCoeffAuto", resourceCulture);
+            }
+        }
+
+        public static string BqCoeffNoIntensity {
+            get {
+                return ResourceManager.GetString("BqCoeffNoIntensity", resourceCulture);
+            }
+        }
+
+        public static string BqCoeffNoEnergy {
+            get {
+                return ResourceManager.GetString("BqCoeffNoEnergy", resourceCulture);
+            }
+        }
+
+        public static string BqCoeffNoCurve {
+            get {
+                return ResourceManager.GetString("BqCoeffNoCurve", resourceCulture);
+            }
+        }
+
+        public static string BqCoeffOutOfRange {
+            get {
+                return ResourceManager.GetString("BqCoeffOutOfRange", resourceCulture);
+            }
+        }
+
+        public static string BqCoeffFromCurve {
+            get {
+                return ResourceManager.GetString("BqCoeffFromCurve", resourceCulture);
+            }
+        }
+
+        public static string BqCoeffTipAuto {
+            get {
+                return ResourceManager.GetString("BqCoeffTipAuto", resourceCulture);
+            }
+        }
+
         public static string EfficiencyMakerSetTooFewLines {
             get {
                 return ResourceManager.GetString("EfficiencyMakerSetTooFewLines", resourceCulture);
@@ -3700,5 +3742,215 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("EfficiencyMakerTipAnchorEfficiency", resourceCulture);
             }
         }
+        public static string EfficiencySketchCylinder {
+            get {
+                return ResourceManager.GetString("EfficiencySketchCylinder", resourceCulture);
+            }
+        }
+
+        public static string EfficiencySketchBox {
+            get {
+                return ResourceManager.GetString("EfficiencySketchBox", resourceCulture);
+            }
+        }
+
+        public static string EfficiencySketchPoint {
+            get {
+                return ResourceManager.GetString("EfficiencySketchPoint", resourceCulture);
+            }
+        }
+
+        public static string EfficiencySketchBeaker {
+            get {
+                return ResourceManager.GetString("EfficiencySketchBeaker", resourceCulture);
+            }
+        }
+
+        public static string EfficiencySketchDistance {
+            get {
+                return ResourceManager.GetString("EfficiencySketchDistance", resourceCulture);
+            }
+        }
+
+        public static string EfficiencySketchMarinelli {
+            get {
+                return ResourceManager.GetString("EfficiencySketchMarinelli", resourceCulture);
+            }
+        }
+
+        public static string DeviceConfigEfficiencyTab {
+            get {
+                return ResourceManager.GetString("DeviceConfigEfficiencyTab", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabList {
+            get {
+                return ResourceManager.GetString("EfficiencyTabList", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabNew {
+            get {
+                return ResourceManager.GetString("EfficiencyTabNew", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabEdit {
+            get {
+                return ResourceManager.GetString("EfficiencyTabEdit", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabRename {
+            get {
+                return ResourceManager.GetString("EfficiencyTabRename", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabDuplicate {
+            get {
+                return ResourceManager.GetString("EfficiencyTabDuplicate", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabDelete {
+            get {
+                return ResourceManager.GetString("EfficiencyTabDelete", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabImport {
+            get {
+                return ResourceManager.GetString("EfficiencyTabImport", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabNone {
+            get {
+                return ResourceManager.GetString("EfficiencyTabNone", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabEmpty {
+            get {
+                return ResourceManager.GetString("EfficiencyTabEmpty", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabNoGeometry {
+            get {
+                return ResourceManager.GetString("EfficiencyTabNoGeometry", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabSummary {
+            get {
+                return ResourceManager.GetString("EfficiencyTabSummary", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabRenameTitle {
+            get {
+                return ResourceManager.GetString("EfficiencyTabRenameTitle", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabDeleteConfirm {
+            get {
+                return ResourceManager.GetString("EfficiencyTabDeleteConfirm", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabCopySuffix {
+            get {
+                return ResourceManager.GetString("EfficiencyTabCopySuffix", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabNewName {
+            get {
+                return ResourceManager.GetString("EfficiencyTabNewName", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyImportGeometryTitle {
+            get {
+                return ResourceManager.GetString("EfficiencyImportGeometryTitle", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyImportCurveTitle {
+            get {
+                return ResourceManager.GetString("EfficiencyImportCurveTitle", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyImportGeometryFilter {
+            get {
+                return ResourceManager.GetString("EfficiencyImportGeometryFilter", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyImportCurveFilter {
+            get {
+                return ResourceManager.GetString("EfficiencyImportCurveFilter", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyImportEmpty {
+            get {
+                return ResourceManager.GetString("EfficiencyImportEmpty", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyImportDone {
+            get {
+                return ResourceManager.GetString("EfficiencyImportDone", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyImportDropped {
+            get {
+                return ResourceManager.GetString("EfficiencyImportDropped", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyImportDroppedItem {
+            get {
+                return ResourceManager.GetString("EfficiencyImportDroppedItem", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyImportFailed {
+            get {
+                return ResourceManager.GetString("EfficiencyImportFailed", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerTabGeometry {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerTabGeometry", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerDirtyMark {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerDirtyMark", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerTitle {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerTitle", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerSavedToConfig {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerSavedToConfig", resourceCulture);
+            }
+        }
+
 }
 }

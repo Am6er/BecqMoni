@@ -35,7 +35,15 @@ namespace BecquerelMonitor
     public partial class EfficiencyMakerForm : Form
     {
         readonly List<string> spectrumFiles = new List<string>();
-        List<ROIEfficiencyData> referenceCurve;
+        /// <summary>
+        /// Исходная кривая, по которой берётся АБСОЛЮТНЫЙ уровень подгонки.
+        ///
+        /// Пока пуста всегда: строку выбора ROI-файла убрали, а из текущей
+        /// конфигурации кривая ещё не подставляется — это следующий шаг. До
+        /// него уровень можно взять только опорной точкой, иначе подгонка даёт
+        /// одну форму, и так и написано в отчёте.
+        /// </summary>
+        List<ROIEfficiencyData> referenceCurve = null;
         EfficiencyFitResult lastResult;
         GeometryModel geometry;
         BackgroundWorker worker;
@@ -52,9 +60,301 @@ namespace BecquerelMonitor
         public EfficiencyMakerForm()
         {
             InitializeComponent();
+            BuildGeometryTab();
+            // Считать есть по чему сразу: в редакторе всегда лежит геометрия —
+            // либо заготовка, либо конфигурация, либо импортированный файл.
+            // Прежде кнопку включал только импорт, и выбранный готовый детектор
+            // посчитать было нельзя.
+            this.calculateButton.Enabled = true;
             LoadChains();
             UpdateGraphMode();
+            UpdateGeometryLayout();
             SetUpHints();
+        }
+
+        GeometryEditorPanel geometryPanel;
+
+        TabPage geometryTabPage;
+
+        /// <summary>
+        /// Правили ли что-нибудь с последнего сохранения: геометрию руками или
+        /// кривую пересчётом. Отражается звёздочкой в заголовке.
+        /// </summary>
+        bool dirty;
+
+        /// <summary>
+        /// Редактор геометрии — ПЕРВОЙ вкладкой: с геометрии начинается и
+        /// расчёт, и импорт, а прежде она была строкой пути к чужому файлу.
+        /// </summary>
+        void BuildGeometryTab()
+        {
+            this.geometryPanel = new GeometryEditorPanel { Dock = DockStyle.Fill };
+            this.geometryPanel.Changed += this.GeometryChanged;
+
+            this.geometryTabPage = new TabPage(Resources.EfficiencyMakerTabGeometry)
+            {
+                UseVisualStyleBackColor = true,
+                Padding = new Padding(3),
+            };
+
+            // Импорт чужой геометрии — здесь, а не строкой пути на вкладке
+            // расчёта: файл `.in` не «выбирают на время», его СОДЕРЖИМОЕ
+            // заезжает в поля и дальше живёт в конфигурации прибора. Обратной
+            // записи в `.in` больше нет, поэтому и пути хранить незачем.
+            Button import = new Button
+            {
+                Dock = DockStyle.Top,
+                Height = 26,
+                Text = Resources.EfficiencyTabImport,
+                UseVisualStyleBackColor = true,
+            };
+
+            import.Click += this.ImportGeometryClick;
+
+            Panel importRow = new Panel { Dock = DockStyle.Top, Height = 34, Padding = new Padding(0, 4, 0, 4) };
+            import.Dock = DockStyle.None;
+            import.Width = 200;
+            import.Location = new System.Drawing.Point(0, 4);
+            importRow.Controls.Add(import);
+
+            this.geometryTabPage.Controls.Add(this.geometryPanel);
+            this.geometryTabPage.Controls.Add(importRow);
+
+            // Не Insert: TabPages.Insert до создания дескриптора окна кладёт
+            // страницу только в Controls, а на форме её нет — молча, без
+            // исключения. Снимаем хвост и возвращаем следом.
+            List<TabPage> tail = new List<TabPage>();
+            while (this.tabControl.TabPages.Count > 0)
+            {
+                tail.Add(this.tabControl.TabPages[0]);
+                this.tabControl.TabPages.RemoveAt(0);
+            }
+
+            this.tabControl.TabPages.Add(this.geometryTabPage);
+            foreach (TabPage page in tail)
+            {
+                this.tabControl.TabPages.Add(page);
+            }
+        }
+
+        /// <summary>
+        /// Загрузить геометрию из файла LSRM `.in` прямо в поля редактора.
+        /// Предупреждения разбора идут в журнал сразу: слой без вещества там не
+        /// исчезает, а замещается соседним, и кривая выходит правдоподобной и
+        /// чужой.
+        /// </summary>
+        void ImportGeometryClick(object sender, EventArgs e)
+        {
+            using (OpenFileDialog dialog = new OpenFileDialog())
+            {
+                dialog.Filter = Resources.EfficiencyMakerGeometryFilter;
+                if (dialog.ShowDialog(this) != DialogResult.OK)
+                {
+                    return;
+                }
+
+                try
+                {
+                    GeometryModel model = GeometryModel.Load(dialog.FileName);
+                    this.geometryPanel.SetModel(model);
+                    this.geometry = model;
+                    this.calculateButton.Enabled = true;
+                    AppendLog(string.Format(Resources.EfficiencyMakerGeometryLoaded, model.Describe()));
+                    foreach (string warning in model.Warnings)
+                    {
+                        AppendLog(warning);
+                    }
+
+                    this.SetDirty();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(this, ex.Message, this.Text,
+                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        void GeometryChanged(object sender, EventArgs e)
+        {
+            this.SetDirty();
+        }
+
+        DeviceConfigInfo boundDevice;
+
+        EfficiencyConfigData boundConfig;
+
+        /// <summary>
+        /// Привязать окно к конфигурации эффективности конкретного прибора.
+        /// С этого момента «Сохранить» пишет В НЕЁ, а не в файл, и она же даёт
+        /// исходную кривую — ту, с которой берётся абсолютный уровень подгонки.
+        /// Раньше её выбирали ROI-файлом; выбирать больше нечего, кривая своя.
+        ///
+        /// Конфигурация правится НА МЕСТЕ, и это осознанно: список на вкладке
+        /// прибора и это окно смотрят на один объект, поэтому «Сохранить»
+        /// достаточно нажать здесь.
+        /// </summary>
+        public void BindTo(DeviceConfigInfo device, EfficiencyConfigData config)
+        {
+            this.boundDevice = device;
+            this.boundConfig = config;
+            if (config == null)
+            {
+                return;
+            }
+
+            if (config.Geometry != null)
+            {
+                this.geometryPanel.SetModel(config.Geometry);
+                this.geometry = config.Geometry;
+                this.calculateButton.Enabled = true;
+            }
+
+            // Кривая конфигурации становится исходной: по ней подгонка получает
+            // уровень, и по ней же график рисует полосу отличий.
+            this.referenceCurve = config.HasCurve ? config.Curve : null;
+            this.graph.SetData(this.referenceCurve, this.lastResult);
+            this.dirty = false;
+            this.UpdateTitle();
+            this.UpdateSaveState();
+        }
+
+        /// <summary>
+        /// Положить посчитанное в привязанную конфигурацию. false — сохранять
+        /// некуда либо геометрия в полях неверна, о чём уже сказано.
+        /// </summary>
+        bool SaveIntoConfig()
+        {
+            if (this.boundConfig == null)
+            {
+                return false;
+            }
+
+            // Геометрия забирается из полей, а не из this.geometry: правку в
+            // полях, не нажав ничего больше, иначе потеряли бы молча.
+            if (!this.geometryPanel.TryCommit())
+            {
+                return false;
+            }
+
+            this.boundConfig.Geometry = this.geometryPanel.Model;
+            if (this.lastResult != null && this.lastResult.Ok)
+            {
+                List<ROIEfficiencyData> curve = new List<ROIEfficiencyData>();
+                foreach (ROIEfficiencyData point in this.lastResult.Curve)
+                {
+                    curve.Add(point.Clone());
+                }
+
+                this.boundConfig.Curve = curve;
+                this.boundConfig.Origin = this.lastResult.LevelSource == EfficiencyLevelSource.Simulation
+                    ? EfficiencyOrigin.Simulation
+                    : EfficiencyOrigin.Measurement;
+            }
+
+            this.boundConfig.LastUpdated = DateTime.Now;
+            this.referenceCurve = this.boundConfig.HasCurve ? this.boundConfig.Curve : null;
+            this.dirty = false;
+            this.UpdateTitle();
+            this.UpdateSaveState();
+            return true;
+        }
+
+        /// <summary>
+        /// На вкладке редактора геометрии всё, что ниже её, лишнее: график
+        /// кривой и журнал прогона относятся к РАСЧЁТУ, а не к правке
+        /// геометрии. Освободившуюся высоту
+        /// забирает сама вкладка — в 282 точки её поля не помещались, и половина
+        /// обвязки кристалла оказывалась за краем.
+        /// </summary>
+        void UpdateGeometryLayout()
+        {
+            // Кнопки сохранения, статус и полоса хода — ОБЩИЕ для всех вкладок
+            // и стоят внизу формы, а не внутри вкладки: сохраняют они одно и то
+            // же, с какой бы вкладки на них ни нажали.
+            bool geometry = this.tabControl.SelectedTab == this.geometryTabPage;
+            this.splitContainer.Visible = !geometry;
+
+            // Высота у каждой вкладки СВОЯ, по её содержимому. Общая по самой
+            // высокой оставляла на вкладке расчёта пустую полосу в полтораста
+            // точек: там всего подсказка и одна кнопка.
+            int height;
+            if (geometry)
+            {
+                height = this.saveButton.Top - this.tabControl.Top - 12;
+            }
+            else if (this.tabControl.SelectedTab == this.tabPageCalculate)
+            {
+                height = CalculateTabHeight;
+            }
+            else
+            {
+                height = FitTabHeight;
+            }
+
+            this.tabControl.Height = height;
+
+            // График с журналом идут следом, а не стоят на месте: иначе на
+            // низкой вкладке между ними и вкладками зиял бы тот же провал.
+            if (!geometry)
+            {
+                int top = this.tabControl.Bottom + 12;
+                this.splitContainer.Top = top;
+                this.splitContainer.Height = this.saveButton.Top - top - 12;
+            }
+        }
+
+        /// <summary>Подсказка и одна кнопка — больше на вкладке расчёта нет.</summary>
+        const int CalculateTabHeight = 116;
+
+        /// <summary>Список спектров и рамка настроек — по самой высокой из них.</summary>
+        const int FitTabHeight = 282;
+
+        /// <summary>
+        /// Когда «Сохранить» доступна. Правка геометрии сохраняется САМА ПО
+        /// СЕБЕ, без пересчёта кривой: геометрию правят и сохраняют отдельно, а
+        /// требовать ради этого прогона монте-карло значило бы отнимать минуты
+        /// за чужой счёт.
+        /// </summary>
+        void UpdateSaveState()
+        {
+            bool haveCurve = this.lastResult != null && this.lastResult.Ok;
+            this.saveButton.Enabled = this.boundConfig != null
+                ? (this.dirty || haveCurve)
+                : haveCurve;
+            this.exportButton.Enabled = haveCurve;
+        }
+
+        /// <summary>
+        /// Взвести признак правки и показать его в заголовке. Пока общей кнопки
+        /// сохранения нет, звёздочка — единственный видимый признак того, что
+        /// сделанное ещё никуда не легло.
+        /// </summary>
+        void SetDirty()
+        {
+            if (this.dirty)
+            {
+                return;
+            }
+
+            this.dirty = true;
+            this.UpdateTitle();
+            this.UpdateSaveState();
+        }
+
+        void UpdateTitle()
+        {
+            string title = this.boundConfig == null
+                ? Resources.EfficiencyMakerTitle
+                : string.Format("{0} - {1}",
+                                this.boundDevice == null ? "" : this.boundDevice.Name,
+                                this.boundConfig.Name);
+            if (this.dirty)
+            {
+                title = Resources.EfficiencyMakerDirtyMark + title;
+            }
+
+            this.Text = title;
         }
 
         /// <summary>
@@ -110,6 +410,7 @@ namespace BecquerelMonitor
         void tabControl_SelectedIndexChanged(object sender, EventArgs e)
         {
             UpdateGraphMode();
+            UpdateGeometryLayout();
         }
 
         /// <summary>Наборы нуклидов, доступные в выпадающем списке строки.</summary>
@@ -291,47 +592,6 @@ namespace BecquerelMonitor
         // Ввод
         // ------------------------------------------------------------------
 
-        void referenceBrowseButton_Click(object sender, EventArgs e)
-        {
-            using (OpenFileDialog dialog = new OpenFileDialog())
-            {
-                dialog.Filter = Resources.EfficiencyMakerRoiFilter;
-                dialog.InitialDirectory = RoiConfigDirectory();
-                if (dialog.ShowDialog(this) != DialogResult.OK)
-                {
-                    return;
-                }
-
-                try
-                {
-                    this.referenceCurve = EfficiencyFitter.LoadReferenceCurve(dialog.FileName);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(this, ex.Message, this.Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
-
-                this.referenceTextBox.Text = dialog.FileName;
-                AppendLog(string.Format(Resources.EfficiencyMakerReferenceLoaded,
-                    Path.GetFileName(dialog.FileName), this.referenceCurve.Count));
-                if (string.IsNullOrEmpty(this.outputTextBox.Text))
-                {
-                    this.outputTextBox.Text = Path.Combine(
-                        Path.GetDirectoryName(dialog.FileName),
-                        Path.GetFileNameWithoutExtension(dialog.FileName) + " (fitted).xml");
-                }
-
-                this.graph.SetData(this.referenceCurve, this.lastResult);
-            }
-        }
-
-        void referenceClearButton_Click(object sender, EventArgs e)
-        {
-            this.referenceCurve = null;
-            this.referenceTextBox.Text = "";
-            this.graph.SetData(null, this.lastResult);
-        }
 
         void spectraAddButton_Click(object sender, EventArgs e)
         {
@@ -386,132 +646,6 @@ namespace BecquerelMonitor
             this.spectraGrid.Rows.Clear();
         }
 
-        void outputBrowseButton_Click(object sender, EventArgs e)
-        {
-            using (SaveFileDialog dialog = new SaveFileDialog())
-            {
-                dialog.Filter = Resources.EfficiencyMakerRoiFilter;
-                dialog.FileName = this.outputTextBox.Text;
-                if (dialog.ShowDialog(this) == DialogResult.OK)
-                {
-                    this.outputTextBox.Text = dialog.FileName;
-                }
-            }
-        }
-
-        void geometryBrowseButton_Click(object sender, EventArgs e)
-        {
-            using (OpenFileDialog dialog = new OpenFileDialog())
-            {
-                dialog.Filter = Resources.EfficiencyMakerGeometryFilter;
-                if (dialog.ShowDialog(this) != DialogResult.OK)
-                {
-                    return;
-                }
-
-                GeometryModel model;
-                try
-                {
-                    model = GeometryModel.Load(dialog.FileName);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(this, ex.Message, this.Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
-
-                this.geometry = model;
-                this.geometryTextBox.Text = dialog.FileName;
-                this.calculateButton.Enabled = true;
-                this.geometryEditButton.Enabled = true;
-                AppendLog(string.Format(Resources.EfficiencyMakerGeometryLoaded, model.Describe()));
-                // Предупреждения разбора видны сразу при выборе файла, а не
-                // только когда дойдёт до счёта: подмена слоя или атомные доли
-                // меняют результат, и знать о них надо до запуска.
-                foreach (string warning in model.Warnings)
-                {
-                    AppendLog(warning);
-                }
-                if (string.IsNullOrEmpty(this.outputTextBox.Text))
-                {
-                    this.outputTextBox.Text = Path.Combine(
-                        Path.GetDirectoryName(dialog.FileName),
-                        Path.GetFileNameWithoutExtension(dialog.FileName) + " (calculated).xml");
-                }
-            }
-        }
-
-        void geometryClearButton_Click(object sender, EventArgs e)
-        {
-            this.geometry = null;
-            this.geometryTextBox.Text = "";
-            this.calculateButton.Enabled = false;
-            this.geometryEditButton.Enabled = false;
-        }
-
-        /// <summary>
-        /// Своя геометрия. Формат `.in` умеет только цилиндры, а у половины
-        /// наших детекторов кристалл прямоугольный — конструктор задаёт форму
-        /// честно и попутно кладёт в файл равноценный цилиндр по правилу
-        /// самого LSRM, чтобы файл открывался и их программой.
-        /// </summary>
-        void geometryNewButton_Click(object sender, EventArgs e)
-        {
-            this.OpenEditor(null);
-        }
-
-        void geometryEditButton_Click(object sender, EventArgs e)
-        {
-            if (this.geometry == null)
-            {
-                return;
-            }
-
-            this.OpenEditor(this.geometry);
-        }
-
-        void OpenEditor(GeometryModel source)
-        {
-            using (GeometryEditorForm editor = new GeometryEditorForm(source))
-            {
-                if (editor.ShowDialog(this) != DialogResult.OK || string.IsNullOrEmpty(editor.SavedPath))
-                {
-                    return;
-                }
-
-                // Сохранённый файл сразу становится выбранным: иначе после
-                // конструктора пришлось бы искать его же кнопкой «Обзор».
-                GeometryModel model;
-                try
-                {
-                    model = GeometryModel.Load(editor.SavedPath);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(this, ex.Message, this.Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
-
-                this.geometry = model;
-                this.geometryTextBox.Text = editor.SavedPath;
-                this.calculateButton.Enabled = true;
-                this.geometryEditButton.Enabled = true;
-                AppendLog(string.Format(Resources.EfficiencyMakerGeometryLoaded, model.Describe()));
-                // Предупреждения разбора видны сразу при выборе файла, а не
-                // только когда дойдёт до счёта: подмена слоя или атомные доли
-                // меняют результат, и знать о них надо до запуска.
-                foreach (string warning in model.Warnings)
-                {
-                    AppendLog(warning);
-                }
-                if (string.IsNullOrEmpty(this.outputTextBox.Text))
-                {
-                    this.outputTextBox.Text = Path.Combine(
-                        Path.GetDirectoryName(editor.SavedPath),
-                        Path.GetFileNameWithoutExtension(editor.SavedPath) + " (calculated).xml");
-                }
-            }
-        }
 
         static string RoiConfigDirectory()
         {
@@ -527,9 +661,15 @@ namespace BecquerelMonitor
             }
         }
 
-        // ------------------------------------------------------------------
-        // Счёт
-        // ------------------------------------------------------------------
+        static string AskSavePath()
+        {
+            using (SaveFileDialog dialog = new SaveFileDialog())
+            {
+                dialog.Filter = Resources.EfficiencyMakerRoiFilter;
+                dialog.InitialDirectory = RoiConfigDirectory();
+                return dialog.ShowDialog() == DialogResult.OK ? dialog.FileName : "";
+            }
+        }
 
         void runButton_Click(object sender, EventArgs e)
         {
@@ -568,6 +708,16 @@ namespace BecquerelMonitor
                 return;
             }
 
+            // Геометрия берётся ИЗ ПОЛЕЙ редактора, а не из того, что когда-то
+            // загрузили файлом. Иначе выбор готового детектора или правка руками
+            // на расчёт не влияли: считалась бы прежняя геометрия, а результат
+            // выглядел бы законным.
+            if (!this.geometryPanel.TryCommit())
+            {
+                return;
+            }
+
+            this.geometry = this.geometryPanel.Model;
             if (this.geometry == null)
             {
                 MessageBox.Show(this, Resources.EfficiencyMakerNoGeometry, this.Text,
@@ -593,7 +743,17 @@ namespace BecquerelMonitor
         void Start(Button trigger, Button other, string status,
                    Func<Action<string>, Func<bool>, EfficiencyFitResult> job)
         {
-            this.logTextBox.Clear();
+            // Журнал НЕ чистится — ни здесь, ни где-либо ещё, пока окно не
+            // закрыли. Он общий на обе вкладки, и причины отбраковки наборов
+            // нуклидов попадают в него при разборе набора, задолго до прогона;
+            // очистка перед расчётом из геометрии стирала разбор, к которому
+            // расчёт вообще не относится, и понять, почему набор не виден,
+            // становилось не по чему.
+            if (this.logTextBox.TextLength > 0)
+            {
+                AppendLog("");
+            }
+
             this.cancelRequested = false;
             string caption = trigger.Text;
             trigger.Text = Resources.EfficiencyMakerStop;
@@ -702,7 +862,7 @@ namespace BecquerelMonitor
             input.MinSignificance = (double)this.minSignificanceNumericUpDown.Value;
             input.SubtractBackground = this.backgroundCheckBox.Checked;
             input.Reference = this.referenceCurve;
-            input.ReferencePath = this.referenceTextBox.Text;
+            input.ReferencePath = "";
 
             double anchorEnergy, anchorEfficiency;
             if (TryParse(this.anchorEnergyTextBox.Text, out anchorEnergy)
@@ -734,8 +894,13 @@ namespace BecquerelMonitor
             }
 
             this.graph.SetData(this.referenceCurve, result);
-            this.saveButton.Enabled = result.Ok && this.outputTextBox.Text.Trim().Length > 0;
-            this.exportButton.Enabled = result.Ok;
+            // Пересчитанная кривая — тоже правка: она ещё нигде не сохранена.
+            if (result.Ok)
+            {
+                this.SetDirty();
+            }
+
+            this.UpdateSaveState();
 
             string level;
             switch (result.LevelSource)
@@ -788,15 +953,23 @@ namespace BecquerelMonitor
                 return;
             }
 
-            string path = this.outputTextBox.Text.Trim();
+            // Привязанная конфигурация — обычный путь. Файл остаётся только
+            // для окна, открытого без неё.
+            if (this.boundConfig != null)
+            {
+                if (this.SaveIntoConfig())
+                {
+                    AppendLog(string.Format(Resources.EfficiencyMakerSavedToConfig,
+                                            this.boundConfig.Name));
+                }
+
+                return;
+            }
+
+            string path = AskSavePath();
             if (path.Length == 0)
             {
-                outputBrowseButton_Click(sender, e);
-                path = this.outputTextBox.Text.Trim();
-                if (path.Length == 0)
-                {
-                    return;
-                }
+                return;
             }
 
             try
@@ -807,12 +980,12 @@ namespace BecquerelMonitor
                 // неё чужие зоны нельзя — файл геометрии и файл кривой на
                 // вкладке подгонки относятся к разным приборам сплошь и рядом.
                 bool fromGeometry = this.lastResult.LevelSource == EfficiencyLevelSource.Simulation;
-                string basedOn = fromGeometry ? "" : this.referenceTextBox.Text;
+                string basedOn = "";
                 string note = fromGeometry
                     ? string.Format(CultureInfo.InvariantCulture,
                         "Efficiency maker: calculated from geometry {0}, {1} points, {2}-{3} keV, "
                         + "{4} histories per point",
-                        Path.GetFileName(this.geometryTextBox.Text), this.lastResult.Curve.Count,
+                        this.geometry == null ? "" : this.geometry.Name, this.lastResult.Curve.Count,
                         (int)this.lastResult.MinEnergy, (int)this.lastResult.MaxEnergy,
                         SimulationHistories)
                     : string.Format(CultureInfo.InvariantCulture,

@@ -107,7 +107,7 @@
     <value>Polynomial order:</value>
   </data>
   <data name="minIntensityLabel.Text" xml:space="preserve">
-    <value>Min. yield, %:</value>
+    <value>Min. Intensity, %:</value>
   </data>
   <data name="minSignificanceLabel.Text" xml:space="preserve">
     <value>Min. z of a line:</value>

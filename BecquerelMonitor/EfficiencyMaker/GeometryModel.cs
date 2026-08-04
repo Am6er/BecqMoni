@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Xml.Serialization;
 
 namespace BecquerelMonitor.EfficiencyMaker
 {
@@ -12,6 +13,16 @@ namespace BecquerelMonitor.EfficiencyMaker
     /// ослабления смеси — сумма по элементам с массовыми весами (правило
     /// аддитивности Брэгга).
     /// </summary>
+    /// <summary>Массовая доля одного элемента — форма записи для XML.</summary>
+    public sealed class GeometryElementFraction
+    {
+        [XmlAttribute]
+        public int Z;
+
+        [XmlAttribute]
+        public double Fraction;
+    }
+
     public sealed class GeometryMaterial
     {
         public string Name = "";
@@ -19,7 +30,66 @@ namespace BecquerelMonitor.EfficiencyMaker
         public double Density;                       // г/см3
 
         /// <summary>Z -> массовая доля.</summary>
+        [XmlIgnore]
         public readonly Dictionary<int, double> Fractions = new Dictionary<int, double>();
+
+        /// <summary>
+        /// Тот же состав списком — потому что вещество теперь ХРАНИТСЯ, а не
+        /// разбирается каждый раз из файла `.in`.
+        ///
+        /// `XmlSerializer` не умеет ни `Dictionary`, ни `readonly`, а состав
+        /// восстановить больше не из чего: у вещества нет поля формулы, и
+        /// вещество из чужого файла в библиотеке материалов может не значиться.
+        /// Поэтому доли пишутся как есть.
+        /// </summary>
+        [XmlArray("Fractions")]
+        [XmlArrayItem("Element")]
+        public GeometryElementFraction[] FractionList
+        {
+            get
+            {
+                List<GeometryElementFraction> list = new List<GeometryElementFraction>();
+                foreach (KeyValuePair<int, double> pair in this.Fractions)
+                {
+                    list.Add(new GeometryElementFraction { Z = pair.Key, Fraction = pair.Value });
+                }
+
+                list.Sort((a, b) => a.Z.CompareTo(b.Z));
+                return list.ToArray();
+            }
+            set
+            {
+                this.Fractions.Clear();
+                if (value == null)
+                {
+                    return;
+                }
+
+                foreach (GeometryElementFraction item in value)
+                {
+                    if (item != null && item.Z > 0)
+                    {
+                        this.Fractions[item.Z] = item.Fraction;
+                    }
+                }
+            }
+        }
+
+        public GeometryMaterial Clone()
+        {
+            GeometryMaterial copy = new GeometryMaterial
+            {
+                Name = this.Name,
+                Density = this.Density,
+            };
+
+            foreach (KeyValuePair<int, double> pair in this.Fractions)
+            {
+                copy.Fractions[pair.Key] = pair.Value;
+            }
+
+            return copy;
+        }
 
         /// <summary>Линейный коэффициент ослабления, 1/см.</summary>
         public double LinearAttenuation(double energyKev)
@@ -159,14 +229,42 @@ namespace BecquerelMonitor.EfficiencyMaker
         public GeometryMaterial Source = new GeometryMaterial();
 
         /// <summary>
+        /// Полная копия. Нужна там, где геометрию РАЗМНОЖАЮТ: дублирование
+        /// конфигурации эффективности и копия её в файл спектра. Копируются и
+        /// вещества — иначе две конфигурации правились бы за одно.
+        ///
+        /// Разбор файла (Raw, Warnings) не копируется: он к сохранённой
+        /// геометрии не относится.
+        /// </summary>
+        public GeometryModel Clone()
+        {
+            // MemberwiseClone — чтобы не забыть ни одного из сорока полей при
+            // следующей правке модели. Всё, что ссылка, перекрывается ниже.
+            GeometryModel copy = (GeometryModel)this.MemberwiseClone();
+            copy.Crystal = this.Crystal.Clone();
+            copy.Reflector = this.Reflector.Clone();
+            copy.Cladding = this.Cladding.Clone();
+            copy.BeakerWall = this.BeakerWall.Clone();
+            copy.Source = this.Source.Clone();
+            copy.Raw = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            copy.Warnings = new List<string>();
+            return copy;
+        }
+
+        /// <summary>
         /// Все пары «ключ = значение» разобранного файла как есть.
         ///
         /// Нужны при ЗАПИСИ: редактор правит сцинтилляционную ветвь, а в файле
         /// есть ещё коаксиальная и описания воздуха, которые мы не читаем и не
         /// показываем. Перегенерировать их из ничего значило бы подменить чужие
         /// числа своими умолчаниями, поэтому они переносятся отсюда дословно.
+        ///
+        /// НЕ ХРАНЯТСЯ. Живут ровно столько, сколько длится сеанс разбора файла:
+        /// геометрия переехала в конфиг устройства, обратной записи в `.in`
+        /// больше нет, и тащить в конфиг три сотни чужих ключей незачем.
         /// </summary>
-        public readonly Dictionary<string, string> Raw =
+        [XmlIgnore]
+        public Dictionary<string, string> Raw =
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         static readonly Regex Line = new Regex(@"^\s*([A-Za-z_][A-Za-z0-9_\[\]\.]*)\s*=\s*(.+?)\s*$",
@@ -261,8 +359,11 @@ namespace BecquerelMonitor.EfficiencyMaker
         ///
         /// Заводится не «на всякий случай»: у обеих проверок ниже есть читатель
         /// — расчёт печатает это в журнал прогона, а конструктор кривой в свой.
+        ///
+        /// Не хранится: это итог РАЗБОРА файла, а не свойство геометрии.
         /// </summary>
-        public readonly List<string> Warnings = new List<string>();
+        [XmlIgnore]
+        public List<string> Warnings = new List<string>();
 
         /// <summary>
         /// Слой с толщиной, но без вещества. Разбирать это молча нельзя: области

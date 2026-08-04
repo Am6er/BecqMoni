@@ -1,4 +1,4 @@
-namespace BecquerelMonitor
+﻿namespace BecquerelMonitor
 {
     partial class EfficiencyMakerForm
     {
@@ -20,19 +20,9 @@ namespace BecquerelMonitor
                 new System.ComponentModel.ComponentResourceManager(typeof(EfficiencyMakerForm));
             this.tabControl = new System.Windows.Forms.TabControl();
             this.tabPageCalculate = new System.Windows.Forms.TabPage();
-            this.geometryLabel = new System.Windows.Forms.Label();
-            this.geometryTextBox = new System.Windows.Forms.TextBox();
-            this.geometryBrowseButton = new System.Windows.Forms.Button();
-            this.geometryClearButton = new System.Windows.Forms.Button();
             this.calcHintLabel = new System.Windows.Forms.Label();
             this.calculateButton = new System.Windows.Forms.Button();
-            this.geometryNewButton = new System.Windows.Forms.Button();
-            this.geometryEditButton = new System.Windows.Forms.Button();
             this.tabPageFit = new System.Windows.Forms.TabPage();
-            this.referenceLabel = new System.Windows.Forms.Label();
-            this.referenceTextBox = new System.Windows.Forms.TextBox();
-            this.referenceBrowseButton = new System.Windows.Forms.Button();
-            this.referenceClearButton = new System.Windows.Forms.Button();
             this.spectraLabel = new System.Windows.Forms.Label();
             this.spectraGrid = new System.Windows.Forms.DataGridView();
             this.spectrumColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
@@ -53,9 +43,6 @@ namespace BecquerelMonitor
             this.anchorEnergyTextBox = new System.Windows.Forms.TextBox();
             this.anchorEfficiencyTextBox = new System.Windows.Forms.TextBox();
             this.anchorHintLabel = new System.Windows.Forms.Label();
-            this.outputLabel = new System.Windows.Forms.Label();
-            this.outputTextBox = new System.Windows.Forms.TextBox();
-            this.outputBrowseButton = new System.Windows.Forms.Button();
             this.saveButton = new System.Windows.Forms.Button();
             this.exportButton = new System.Windows.Forms.Button();
             this.statusLabel = new System.Windows.Forms.Label();
@@ -92,20 +79,14 @@ namespace BecquerelMonitor
             this.tabControl.Location = new System.Drawing.Point(12, 12);
             this.tabControl.Name = "tabControl";
             this.tabControl.SelectedIndex = 0;
-            this.tabControl.Size = new System.Drawing.Size(942, 282);
+            this.tabControl.Size = new System.Drawing.Size(942, 236);
             this.tabControl.TabIndex = 0;
             this.tabControl.SelectedIndexChanged += new System.EventHandler(this.tabControl_SelectedIndexChanged);
             //
             // tabPageCalculate
             //
-            this.tabPageCalculate.Controls.Add(this.geometryLabel);
-            this.tabPageCalculate.Controls.Add(this.geometryTextBox);
-            this.tabPageCalculate.Controls.Add(this.geometryBrowseButton);
-            this.tabPageCalculate.Controls.Add(this.geometryClearButton);
             this.tabPageCalculate.Controls.Add(this.calcHintLabel);
             this.tabPageCalculate.Controls.Add(this.calculateButton);
-            this.tabPageCalculate.Controls.Add(this.geometryNewButton);
-            this.tabPageCalculate.Controls.Add(this.geometryEditButton);
             this.tabPageCalculate.Location = new System.Drawing.Point(4, 22);
             this.tabPageCalculate.Name = "tabPageCalculate";
             this.tabPageCalculate.Padding = new System.Windows.Forms.Padding(3);
@@ -113,50 +94,6 @@ namespace BecquerelMonitor
             this.tabPageCalculate.TabIndex = 0;
             this.tabPageCalculate.Text = BecquerelMonitor.Properties.Resources.EfficiencyMakerTabCalculate;
             this.tabPageCalculate.UseVisualStyleBackColor = true;
-            //
-            // geometryLabel
-            //
-            this.geometryLabel.AutoSize = true;
-            this.geometryLabel.Location = new System.Drawing.Point(10, 14);
-            this.geometryLabel.Name = "geometryLabel";
-            this.geometryLabel.Size = new System.Drawing.Size(300, 13);
-            this.geometryLabel.TabIndex = 0;
-            this.geometryLabel.Text = "Detector geometry (LSRM .in) - to calculate the curve instead:";
-            //
-            // geometryTextBox
-            //
-            this.geometryTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)
-                (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left
-                | System.Windows.Forms.AnchorStyles.Right));
-            this.geometryTextBox.Location = new System.Drawing.Point(13, 33);
-            this.geometryTextBox.Name = "geometryTextBox";
-            this.geometryTextBox.ReadOnly = true;
-            this.geometryTextBox.Size = new System.Drawing.Size(747, 20);
-            this.geometryTextBox.TabIndex = 1;
-            //
-            // geometryBrowseButton
-            //
-            this.geometryBrowseButton.Anchor = ((System.Windows.Forms.AnchorStyles)
-                (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right));
-            this.geometryBrowseButton.Location = new System.Drawing.Point(766, 31);
-            this.geometryBrowseButton.Name = "geometryBrowseButton";
-            this.geometryBrowseButton.Size = new System.Drawing.Size(80, 23);
-            this.geometryBrowseButton.TabIndex = 2;
-            this.geometryBrowseButton.Text = "Browse...";
-            this.geometryBrowseButton.UseVisualStyleBackColor = true;
-            this.geometryBrowseButton.Click += new System.EventHandler(this.geometryBrowseButton_Click);
-            //
-            // geometryClearButton
-            //
-            this.geometryClearButton.Anchor = ((System.Windows.Forms.AnchorStyles)
-                (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right));
-            this.geometryClearButton.Location = new System.Drawing.Point(850, 31);
-            this.geometryClearButton.Name = "geometryClearButton";
-            this.geometryClearButton.Size = new System.Drawing.Size(70, 23);
-            this.geometryClearButton.TabIndex = 3;
-            this.geometryClearButton.Text = "Clear";
-            this.geometryClearButton.UseVisualStyleBackColor = true;
-            this.geometryClearButton.Click += new System.EventHandler(this.geometryClearButton_Click);
             //
             // calcHintLabel
             //
@@ -168,7 +105,7 @@ namespace BecquerelMonitor
             // другой длины опять её обрежет.
             this.calcHintLabel.AutoSize = true;
             this.calcHintLabel.ForeColor = System.Drawing.Color.DimGray;
-            this.calcHintLabel.Location = new System.Drawing.Point(10, 68);
+            this.calcHintLabel.Location = new System.Drawing.Point(10, 12);
             this.calcHintLabel.MaximumSize = new System.Drawing.Size(600, 0);
             this.calcHintLabel.Name = "calcHintLabel";
             this.calcHintLabel.TabIndex = 4;
@@ -179,7 +116,7 @@ namespace BecquerelMonitor
             this.calculateButton.Anchor = ((System.Windows.Forms.AnchorStyles)
                 (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left));
             this.calculateButton.Enabled = false;
-            this.calculateButton.Location = new System.Drawing.Point(13, 120);
+            this.calculateButton.Location = new System.Drawing.Point(13, 56);
             this.calculateButton.Name = "calculateButton";
             this.calculateButton.Size = new System.Drawing.Size(200, 26);
             this.calculateButton.TabIndex = 5;
@@ -187,37 +124,8 @@ namespace BecquerelMonitor
             this.calculateButton.UseVisualStyleBackColor = true;
             this.calculateButton.Click += new System.EventHandler(this.calculateButton_Click);
             //
-            // geometryNewButton
-            //
-            this.geometryNewButton.Anchor = ((System.Windows.Forms.AnchorStyles)
-                (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left));
-            this.geometryNewButton.Location = new System.Drawing.Point(223, 120);
-            this.geometryNewButton.Name = "geometryNewButton";
-            this.geometryNewButton.Size = new System.Drawing.Size(110, 26);
-            this.geometryNewButton.TabIndex = 6;
-            this.geometryNewButton.Text = BecquerelMonitor.Properties.Resources.GeometryEditorNew;
-            this.geometryNewButton.UseVisualStyleBackColor = true;
-            this.geometryNewButton.Click += new System.EventHandler(this.geometryNewButton_Click);
-            //
-            // geometryEditButton
-            //
-            this.geometryEditButton.Anchor = ((System.Windows.Forms.AnchorStyles)
-                (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left));
-            this.geometryEditButton.Enabled = false;
-            this.geometryEditButton.Location = new System.Drawing.Point(339, 120);
-            this.geometryEditButton.Name = "geometryEditButton";
-            this.geometryEditButton.Size = new System.Drawing.Size(110, 26);
-            this.geometryEditButton.TabIndex = 7;
-            this.geometryEditButton.Text = BecquerelMonitor.Properties.Resources.GeometryEditorEdit;
-            this.geometryEditButton.UseVisualStyleBackColor = true;
-            this.geometryEditButton.Click += new System.EventHandler(this.geometryEditButton_Click);
-            //
             // tabPageFit
             //
-            this.tabPageFit.Controls.Add(this.referenceLabel);
-            this.tabPageFit.Controls.Add(this.referenceTextBox);
-            this.tabPageFit.Controls.Add(this.referenceBrowseButton);
-            this.tabPageFit.Controls.Add(this.referenceClearButton);
             this.tabPageFit.Controls.Add(this.spectraLabel);
             this.tabPageFit.Controls.Add(this.spectraGrid);
             this.tabPageFit.Controls.Add(this.spectraAddButton);
@@ -233,54 +141,10 @@ namespace BecquerelMonitor
             this.tabPageFit.Text = BecquerelMonitor.Properties.Resources.EfficiencyMakerTabFit;
             this.tabPageFit.UseVisualStyleBackColor = true;
             //
-            // referenceLabel
-            //
-            this.referenceLabel.AutoSize = true;
-            this.referenceLabel.Location = new System.Drawing.Point(10, 10);
-            this.referenceLabel.Name = "referenceLabel";
-            this.referenceLabel.Size = new System.Drawing.Size(200, 13);
-            this.referenceLabel.TabIndex = 0;
-            this.referenceLabel.Text = "Efficiency curve (ROI file, optional):";
-            //
-            // referenceTextBox
-            //
-            this.referenceTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)
-                (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left
-                | System.Windows.Forms.AnchorStyles.Right));
-            this.referenceTextBox.Location = new System.Drawing.Point(13, 27);
-            this.referenceTextBox.Name = "referenceTextBox";
-            this.referenceTextBox.ReadOnly = true;
-            this.referenceTextBox.Size = new System.Drawing.Size(392, 20);
-            this.referenceTextBox.TabIndex = 1;
-            //
-            // referenceBrowseButton
-            //
-            this.referenceBrowseButton.Anchor = ((System.Windows.Forms.AnchorStyles)
-                (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left));
-            this.referenceBrowseButton.Location = new System.Drawing.Point(411, 25);
-            this.referenceBrowseButton.Name = "referenceBrowseButton";
-            this.referenceBrowseButton.Size = new System.Drawing.Size(80, 23);
-            this.referenceBrowseButton.TabIndex = 2;
-            this.referenceBrowseButton.Text = "Browse...";
-            this.referenceBrowseButton.UseVisualStyleBackColor = true;
-            this.referenceBrowseButton.Click += new System.EventHandler(this.referenceBrowseButton_Click);
-            //
-            // referenceClearButton
-            //
-            this.referenceClearButton.Anchor = ((System.Windows.Forms.AnchorStyles)
-                (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left));
-            this.referenceClearButton.Location = new System.Drawing.Point(495, 25);
-            this.referenceClearButton.Name = "referenceClearButton";
-            this.referenceClearButton.Size = new System.Drawing.Size(70, 23);
-            this.referenceClearButton.TabIndex = 3;
-            this.referenceClearButton.Text = "Clear";
-            this.referenceClearButton.UseVisualStyleBackColor = true;
-            this.referenceClearButton.Click += new System.EventHandler(this.referenceClearButton_Click);
-            //
             // spectraLabel
             //
             this.spectraLabel.AutoSize = true;
-            this.spectraLabel.Location = new System.Drawing.Point(10, 58);
+            this.spectraLabel.Location = new System.Drawing.Point(10, 10);
             this.spectraLabel.Name = "spectraLabel";
             this.spectraLabel.Size = new System.Drawing.Size(200, 13);
             this.spectraLabel.TabIndex = 4;
@@ -308,7 +172,7 @@ namespace BecquerelMonitor
             // Раскрывать список по первому щелчку, а не по второму: иначе на
             // пачке в двадцать строк каждый выбор стоит лишнего клика.
             this.spectraGrid.EditMode = System.Windows.Forms.DataGridViewEditMode.EditOnEnter;
-            this.spectraGrid.Location = new System.Drawing.Point(13, 75);
+            this.spectraGrid.Location = new System.Drawing.Point(13, 27);
             this.spectraGrid.MultiSelect = true;
             this.spectraGrid.Name = "spectraGrid";
             this.spectraGrid.RowHeadersVisible = false;
@@ -340,7 +204,7 @@ namespace BecquerelMonitor
             //
             this.spectraAddButton.Anchor = ((System.Windows.Forms.AnchorStyles)
                 (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left));
-            this.spectraAddButton.Location = new System.Drawing.Point(499, 75);
+            this.spectraAddButton.Location = new System.Drawing.Point(499, 27);
             this.spectraAddButton.Name = "spectraAddButton";
             this.spectraAddButton.Size = new System.Drawing.Size(110, 23);
             this.spectraAddButton.TabIndex = 6;
@@ -352,7 +216,7 @@ namespace BecquerelMonitor
             //
             this.spectraRemoveButton.Anchor = ((System.Windows.Forms.AnchorStyles)
                 (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left));
-            this.spectraRemoveButton.Location = new System.Drawing.Point(499, 104);
+            this.spectraRemoveButton.Location = new System.Drawing.Point(499, 56);
             this.spectraRemoveButton.Name = "spectraRemoveButton";
             this.spectraRemoveButton.Size = new System.Drawing.Size(110, 23);
             this.spectraRemoveButton.TabIndex = 7;
@@ -364,7 +228,7 @@ namespace BecquerelMonitor
             //
             this.spectraClearButton.Anchor = ((System.Windows.Forms.AnchorStyles)
                 (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left));
-            this.spectraClearButton.Location = new System.Drawing.Point(499, 133);
+            this.spectraClearButton.Location = new System.Drawing.Point(499, 85);
             this.spectraClearButton.Name = "spectraClearButton";
             this.spectraClearButton.Size = new System.Drawing.Size(110, 23);
             this.spectraClearButton.TabIndex = 8;
@@ -376,7 +240,7 @@ namespace BecquerelMonitor
             //
             this.runButton.Anchor = ((System.Windows.Forms.AnchorStyles)
                 (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left));
-            this.runButton.Location = new System.Drawing.Point(13, 214);
+            this.runButton.Location = new System.Drawing.Point(13, 166);
             this.runButton.Name = "runButton";
             this.runButton.Size = new System.Drawing.Size(200, 26);
             this.runButton.TabIndex = 9;
@@ -432,7 +296,7 @@ namespace BecquerelMonitor
             this.minIntensityLabel.Name = "minIntensityLabel";
             this.minIntensityLabel.Size = new System.Drawing.Size(100, 13);
             this.minIntensityLabel.TabIndex = 4;
-            this.minIntensityLabel.Text = "Min. yield, %:";
+            this.minIntensityLabel.Text = "Min. Intensity, %:";
             //
             // minIntensityNumericUpDown
             //
@@ -513,45 +377,11 @@ namespace BecquerelMonitor
             this.anchorHintLabel.Text = "Measurements give the shape only; the absolute level comes"
                 + " from the source curve or from this anchor.";
             //
-            // outputLabel
-            //
-            this.outputLabel.Anchor = ((System.Windows.Forms.AnchorStyles)
-                (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left));
-            this.outputLabel.AutoSize = true;
-            this.outputLabel.Location = new System.Drawing.Point(12, 305);
-            this.outputLabel.Name = "outputLabel";
-            this.outputLabel.Size = new System.Drawing.Size(80, 13);
-            this.outputLabel.TabIndex = 1;
-            this.outputLabel.Text = "Output file:";
-            //
-            // outputTextBox
-            //
-            this.outputTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)
-                (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left
-                | System.Windows.Forms.AnchorStyles.Right));
-            this.outputTextBox.Location = new System.Drawing.Point(98, 302);
-            this.outputTextBox.Name = "outputTextBox";
-            this.outputTextBox.Size = new System.Drawing.Size(690, 20);
-            this.outputTextBox.TabIndex = 2;
-            //
-            // outputBrowseButton
-            //
-            this.outputBrowseButton.Anchor = ((System.Windows.Forms.AnchorStyles)
-                (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right));
-            this.outputBrowseButton.Location = new System.Drawing.Point(794, 300);
-            this.outputBrowseButton.Name = "outputBrowseButton";
-            this.outputBrowseButton.Size = new System.Drawing.Size(80, 23);
-            this.outputBrowseButton.TabIndex = 3;
-            this.outputBrowseButton.Text = "Browse...";
-            this.outputBrowseButton.UseVisualStyleBackColor = true;
-            this.outputBrowseButton.Click += new System.EventHandler(this.outputBrowseButton_Click);
-            //
             // saveButton
             //
-            this.saveButton.Anchor = ((System.Windows.Forms.AnchorStyles)
-                (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left));
+            this.saveButton.Anchor = ((System.Windows.Forms.AnchorStyles)(System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left));
             this.saveButton.Enabled = false;
-            this.saveButton.Location = new System.Drawing.Point(12, 332);
+            this.saveButton.Location = new System.Drawing.Point(12, 762);
             this.saveButton.Name = "saveButton";
             this.saveButton.Size = new System.Drawing.Size(120, 26);
             this.saveButton.TabIndex = 4;
@@ -561,10 +391,9 @@ namespace BecquerelMonitor
             //
             // exportButton
             //
-            this.exportButton.Anchor = ((System.Windows.Forms.AnchorStyles)
-                (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left));
+            this.exportButton.Anchor = ((System.Windows.Forms.AnchorStyles)(System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left));
             this.exportButton.Enabled = false;
-            this.exportButton.Location = new System.Drawing.Point(138, 332);
+            this.exportButton.Location = new System.Drawing.Point(138, 762);
             this.exportButton.Name = "exportButton";
             this.exportButton.Size = new System.Drawing.Size(120, 26);
             this.exportButton.TabIndex = 5;
@@ -574,20 +403,17 @@ namespace BecquerelMonitor
             //
             // statusLabel
             //
-            this.statusLabel.Anchor = ((System.Windows.Forms.AnchorStyles)
-                (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left
-                | System.Windows.Forms.AnchorStyles.Right));
+            this.statusLabel.Anchor = ((System.Windows.Forms.AnchorStyles)(System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right));
             this.statusLabel.AutoEllipsis = true;
-            this.statusLabel.Location = new System.Drawing.Point(266, 338);
+            this.statusLabel.Location = new System.Drawing.Point(266, 768);
             this.statusLabel.Name = "statusLabel";
             this.statusLabel.Size = new System.Drawing.Size(520, 16);
             this.statusLabel.TabIndex = 6;
             //
             // progressBar
             //
-            this.progressBar.Anchor = ((System.Windows.Forms.AnchorStyles)
-                (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right));
-            this.progressBar.Location = new System.Drawing.Point(794, 335);
+            this.progressBar.Anchor = ((System.Windows.Forms.AnchorStyles)(System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right));
+            this.progressBar.Location = new System.Drawing.Point(794, 765);
             this.progressBar.Name = "progressBar";
             this.progressBar.Size = new System.Drawing.Size(160, 20);
             this.progressBar.Style = System.Windows.Forms.ProgressBarStyle.Marquee;
@@ -596,17 +422,15 @@ namespace BecquerelMonitor
             //
             // splitContainer
             //
-            this.splitContainer.Anchor = ((System.Windows.Forms.AnchorStyles)
-                (System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom
-                | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right));
-            this.splitContainer.Location = new System.Drawing.Point(12, 366);
+            this.splitContainer.Anchor = ((System.Windows.Forms.AnchorStyles)(System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right));
+            this.splitContainer.Location = new System.Drawing.Point(12, 260);
             this.splitContainer.Name = "splitContainer";
             this.splitContainer.Orientation = System.Windows.Forms.Orientation.Horizontal;
             this.splitContainer.Panel1.Controls.Add(this.graph);
             this.splitContainer.Panel2.Controls.Add(this.logTextBox);
             // Графику отдано больше места, чем прежде: под ним живёт полоса
             // отличий, и при 220 точках на неё не оставалось высоты.
-            this.splitContainer.Size = new System.Drawing.Size(942, 422);
+            this.splitContainer.Size = new System.Drawing.Size(942, 490);
             this.splitContainer.SplitterDistance = 262;
             this.splitContainer.TabIndex = 8;
             //
@@ -636,16 +460,13 @@ namespace BecquerelMonitor
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(966, 800);
             this.Controls.Add(this.tabControl);
-            this.Controls.Add(this.outputLabel);
-            this.Controls.Add(this.outputTextBox);
-            this.Controls.Add(this.outputBrowseButton);
             this.Controls.Add(this.saveButton);
             this.Controls.Add(this.exportButton);
             this.Controls.Add(this.statusLabel);
             this.Controls.Add(this.progressBar);
             this.Controls.Add(this.splitContainer);
             this.Icon = BecquerelMonitor.Properties.Resources.becqmoni;
-            this.MinimumSize = new System.Drawing.Size(900, 780);
+            this.MinimumSize = new System.Drawing.Size(900, 560);
             this.Name = "EfficiencyMakerForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Efficiency maker";
@@ -657,14 +478,11 @@ namespace BecquerelMonitor
             // русская пара.
             resources.ApplyResources(this, "$this");
             foreach (System.Windows.Forms.Control control in new System.Windows.Forms.Control[] {
-                this.referenceLabel, this.referenceBrowseButton,
-                this.referenceClearButton, this.spectraLabel, this.spectraAddButton,
+                this.spectraLabel, this.spectraAddButton,
                 this.spectraRemoveButton, this.spectraClearButton, this.optionsGroupBox,
                 this.orderLabel, this.minIntensityLabel,
                 this.minSignificanceLabel, this.backgroundCheckBox, this.anchorLabel,
-                this.anchorHintLabel, this.outputLabel, this.outputBrowseButton,
-                this.runButton, this.saveButton, this.exportButton,
-                this.geometryLabel, this.geometryBrowseButton, this.geometryClearButton,
+                this.anchorHintLabel, this.runButton, this.saveButton, this.exportButton,
                 this.calculateButton })
             {
                 resources.ApplyResources(control, control.Name);
@@ -692,10 +510,6 @@ namespace BecquerelMonitor
         System.Windows.Forms.TabControl tabControl;
         System.Windows.Forms.TabPage tabPageCalculate;
         System.Windows.Forms.TabPage tabPageFit;
-        System.Windows.Forms.Label referenceLabel;
-        System.Windows.Forms.TextBox referenceTextBox;
-        System.Windows.Forms.Button referenceBrowseButton;
-        System.Windows.Forms.Button referenceClearButton;
         System.Windows.Forms.Label spectraLabel;
         /// <summary>Подсказки к настройкам; тексты ставит SetUpHints.</summary>
         readonly System.Windows.Forms.ToolTip hints = new System.Windows.Forms.ToolTip();
@@ -705,14 +519,8 @@ namespace BecquerelMonitor
         System.Windows.Forms.Button spectraAddButton;
         System.Windows.Forms.Button spectraRemoveButton;
         System.Windows.Forms.Button spectraClearButton;
-        System.Windows.Forms.Label geometryLabel;
-        System.Windows.Forms.TextBox geometryTextBox;
-        System.Windows.Forms.Button geometryBrowseButton;
-        System.Windows.Forms.Button geometryClearButton;
         System.Windows.Forms.Label calcHintLabel;
         System.Windows.Forms.Button calculateButton;
-        System.Windows.Forms.Button geometryNewButton;
-        System.Windows.Forms.Button geometryEditButton;
         System.Windows.Forms.GroupBox optionsGroupBox;
         System.Windows.Forms.Label orderLabel;
         System.Windows.Forms.NumericUpDown orderNumericUpDown;
@@ -725,9 +533,6 @@ namespace BecquerelMonitor
         System.Windows.Forms.TextBox anchorEnergyTextBox;
         System.Windows.Forms.TextBox anchorEfficiencyTextBox;
         System.Windows.Forms.Label anchorHintLabel;
-        System.Windows.Forms.Label outputLabel;
-        System.Windows.Forms.TextBox outputTextBox;
-        System.Windows.Forms.Button outputBrowseButton;
         System.Windows.Forms.Button runButton;
         System.Windows.Forms.Button saveButton;
         System.Windows.Forms.Button exportButton;

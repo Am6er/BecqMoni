@@ -42174,7 +42174,7 @@ Device channels: {0}, spectrum files channels: {1}</value>
     <value>No spectra selected.</value>
   </data>
   <data name="EfficiencyMakerNoChains" xml:space="preserve">
-    <value>No nuclide sets with yields found: chains cannot be built.</value>
+    <value>No nuclide sets with Intensity found: chains cannot be built.</value>
   </data>
   <data name="EfficiencyMakerNoChainsChecked" xml:space="preserve">
     <value>No chain is checked.</value>
@@ -42537,7 +42537,7 @@ Device channels: {0}, spectrum files channels: {1}</value>
     <value>Nuclide set "{0}" cannot be used: {1}</value>
   </data>
   <data name="EfficiencyMakerSetNoIntensity" xml:space="preserve">
-    <value>{0} of its {1} lines have no yield. The curve is built from peak area divided by yield, so a line without a yield cannot be used. Fill the yield in the nuclide editor.</value>
+    <value>{0} of its {1} lines have no Intensity: {2}. The curve is built from peak area divided by Intensity, so such a line cannot be used - {3} usable of {1} left, and at least 2 are needed. Fill Intensity in the nuclide editor.</value>
   </data>
   <data name="EfficiencyMakerSetTooFewLines" xml:space="preserve">
     <value>it holds {0} usable line(s), and at least two are needed - one line has nothing to be compared with.</value>
@@ -42548,11 +42548,32 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="EfficiencyMakerSetGone" xml:space="preserve">
     <value>Nuclide set "{0}" is gone from the config; the rows that used it fall back to the whole library.</value>
   </data>
+  <data name="BqCoeffAuto" xml:space="preserve">
+    <value>Auto from efficiency</value>
+  </data>
+  <data name="BqCoeffNoIntensity" xml:space="preserve">
+    <value>Intensity of the line is not set for this zone, so K cannot be computed from the curve. The stored value is used.</value>
+  </data>
+  <data name="BqCoeffNoEnergy" xml:space="preserve">
+    <value>Peak energy is not set for this zone, so K cannot be computed from the curve. The stored value is used.</value>
+  </data>
+  <data name="BqCoeffNoCurve" xml:space="preserve">
+    <value>No efficiency curve is chosen for this spectrum. The stored value is used.</value>
+  </data>
+  <data name="BqCoeffOutOfRange" xml:space="preserve">
+    <value>{0:0.##} keV is outside the curve ({1:0.##} to {2:0.##} keV): the curve is not continued past its ends. The stored value is used.</value>
+  </data>
+  <data name="BqCoeffFromCurve" xml:space="preserve">
+    <value>K = {0:G6} +/- {1:G3} from the curve</value>
+  </data>
+  <data name="BqCoeffTipAuto" xml:space="preserve">
+    <value>K converts the count rate into becquerels: Bq = cps * K. Ticked, it is computed from the efficiency curve chosen for the spectrum and the Intensity of this zone: K = 100 / (efficiency * Intensity). Unticked, the number in the field is used, as before. The stored number stays either way and is used when there is no curve.</value>
+  </data>
   <data name="EfficiencyMakerTipOrder" xml:space="preserve">
     <value>How bendy the curve is allowed to be. 1 is a straight line in log-log axes, 3 is a gentle S. Higher orders follow the measured points more closely, but with few lines they start to swing wildly between them - if the fit is refused as impossible, lower this first.</value>
   </data>
   <data name="EfficiencyMakerTipMinIntensity" xml:space="preserve">
-    <value>Weak lines are skipped. The number is the yield: how many gammas of this energy are emitted per 100 decays. At 1% a line emitted once per hundred decays still counts; raise the value if faint lines are dragging the curve around.</value>
+    <value>Weak lines are skipped. The number is Intensity: how many gammas of this energy are emitted per 100 decays. At 1% a line emitted once per hundred decays still counts; raise the value if faint lines are dragging the curve around.</value>
   </data>
   <data name="EfficiencyMakerTipMinSignificance" xml:space="preserve">
     <value>How far a peak must stand out of the background noise to be measured, in units of that noise. 4 means four times the noise - roughly "certainly a peak, not a bump". Lower it to catch weak lines at the cost of chance ones, raise it to keep only the solid peaks.</value>
@@ -42562,5 +42583,110 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="EfficiencyMakerTipAnchorEfficiency" xml:space="preserve">
     <value>Efficiency at that energy, as a fraction rather than a percentage: 0.01 means one gamma out of a hundred emitted lands in the full-absorption peak. This single number sets the level of the whole curve; the measurements alone give only its shape.</value>
+  </data>
+  <data name="EfficiencySketchCylinder" xml:space="preserve">
+    <value>Cylinder</value>
+  </data>
+  <data name="EfficiencySketchBox" xml:space="preserve">
+    <value>Box</value>
+  </data>
+  <data name="EfficiencySketchPoint" xml:space="preserve">
+    <value>Point source, distance</value>
+  </data>
+  <data name="EfficiencySketchBeaker" xml:space="preserve">
+    <value>Beaker</value>
+  </data>
+  <data name="EfficiencySketchDistance" xml:space="preserve">
+    <value>Distance to detector</value>
+  </data>
+  <data name="EfficiencySketchMarinelli" xml:space="preserve">
+    <value>Marinelli beaker</value>
+  </data>
+  <data name="DeviceConfigEfficiencyTab" xml:space="preserve">
+    <value>Efficiency</value>
+  </data>
+  <data name="EfficiencyTabList" xml:space="preserve">
+    <value>Efficiency configuration:</value>
+  </data>
+  <data name="EfficiencyTabNew" xml:space="preserve">
+    <value>New...</value>
+  </data>
+  <data name="EfficiencyTabEdit" xml:space="preserve">
+    <value>Edit...</value>
+  </data>
+  <data name="EfficiencyTabRename" xml:space="preserve">
+    <value>Rename...</value>
+  </data>
+  <data name="EfficiencyTabDuplicate" xml:space="preserve">
+    <value>Duplicate</value>
+  </data>
+  <data name="EfficiencyTabDelete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="EfficiencyTabImport" xml:space="preserve">
+    <value>Import from LSRM...</value>
+  </data>
+  <data name="EfficiencyTabNone" xml:space="preserve">
+    <value>(none)</value>
+  </data>
+  <data name="EfficiencyTabEmpty" xml:space="preserve">
+    <value>This device has no efficiency configuration. Activity is not calculated until one is created or imported.</value>
+  </data>
+  <data name="EfficiencyTabNoGeometry" xml:space="preserve">
+    <value>Curve without geometry: it can be used, but not recomputed.</value>
+  </data>
+  <data name="EfficiencyTabSummary" xml:space="preserve">
+    <value>{0} curve points, {1} to {2} keV</value>
+  </data>
+  <data name="EfficiencyTabRenameTitle" xml:space="preserve">
+    <value>Configuration name</value>
+  </data>
+  <data name="EfficiencyTabDeleteConfirm" xml:space="preserve">
+    <value>Delete efficiency configuration "{0}"?</value>
+  </data>
+  <data name="EfficiencyTabCopySuffix" xml:space="preserve">
+    <value>{0} (copy)</value>
+  </data>
+  <data name="EfficiencyTabNewName" xml:space="preserve">
+    <value>New configuration</value>
+  </data>
+  <data name="EfficiencyImportGeometryTitle" xml:space="preserve">
+    <value>LSRM geometry file (.in)</value>
+  </data>
+  <data name="EfficiencyImportCurveTitle" xml:space="preserve">
+    <value>Exported efficiency curve (.txt)</value>
+  </data>
+  <data name="EfficiencyImportGeometryFilter" xml:space="preserve">
+    <value>LSRM geometry (*.in)|*.in|All files (*.*)|*.*</value>
+  </data>
+  <data name="EfficiencyImportCurveFilter" xml:space="preserve">
+    <value>Exported curve (*.txt)|*.txt|All files (*.*)|*.*</value>
+  </data>
+  <data name="EfficiencyImportEmpty" xml:space="preserve">
+    <value>No usable points in "{0}".</value>
+  </data>
+  <data name="EfficiencyImportDone" xml:space="preserve">
+    <value>Imported: {0} points, {1} to {2} keV.</value>
+  </data>
+  <data name="EfficiencyImportDropped" xml:space="preserve">
+    <value>Dropped {0} point(s) as impossible: {1}</value>
+  </data>
+  <data name="EfficiencyImportDroppedItem" xml:space="preserve">
+    <value>{0:F0} keV (efficiency {1:G4}, uncertainty {2:F0} %)</value>
+  </data>
+  <data name="EfficiencyImportFailed" xml:space="preserve">
+    <value>Cannot read "{0}": {1}</value>
+  </data>
+  <data name="EfficiencyMakerTabGeometry" xml:space="preserve">
+    <value>Geometry editor</value>
+  </data>
+  <data name="EfficiencyMakerDirtyMark" xml:space="preserve">
+    <value>*</value>
+  </data>
+  <data name="EfficiencyMakerTitle" xml:space="preserve">
+    <value>Efficiency maker</value>
+  </data>
+  <data name="EfficiencyMakerSavedToConfig" xml:space="preserve">
+    <value>Saved into efficiency configuration "{0}".</value>
   </data>
 </root>
