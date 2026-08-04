@@ -107,8 +107,6 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         public List<ROIEfficiencyData> Reference;
 
-        public string ReferencePath;
-
         public int ResultIndex;
 
         /// <summary>

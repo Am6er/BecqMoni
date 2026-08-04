@@ -3179,11 +3179,6 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
-        public static string EfficiencyMakerReferenceLoaded {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerReferenceLoaded", resourceCulture);
-            }
-        }
 
         public static string EfficiencyMakerSaved {
             get {
@@ -3191,11 +3186,6 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
-        public static string EfficiencyMakerRoiFilter {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerRoiFilter", resourceCulture);
-            }
-        }
 
         public static string EfficiencyMakerSpectrumFilter {
             get {
