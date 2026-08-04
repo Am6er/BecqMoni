@@ -29,7 +29,6 @@
             this.button4 = new System.Windows.Forms.Button();
             this.buttonSave = new System.Windows.Forms.Button();
             this.button6 = new System.Windows.Forms.Button();
-            this.buttonEfficiency = new System.Windows.Forms.Button();
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.label1 = new System.Windows.Forms.Label();
             this.textBox1 = new System.Windows.Forms.TextBox();
@@ -55,6 +54,8 @@
             this.doubleTextBox7 = new BecquerelMonitor.DoubleTextBox();
             this.doubleTextBox4 = new BecquerelMonitor.DoubleTextBox();
             this.doubleTextBox3 = new BecquerelMonitor.DoubleTextBox();
+            this.autoBqCheckBox = new System.Windows.Forms.CheckBox();
+            this.bqCoeffStatusLabel = new System.Windows.Forms.Label();
             this.checkBox1 = new System.Windows.Forms.CheckBox();
             this.label12 = new System.Windows.Forms.Label();
             this.label10 = new System.Windows.Forms.Label();
@@ -104,7 +105,6 @@
             this.columnModel3 = new XPTable.Models.ColumnModel();
             this.textColumn1 = new XPTable.Models.TextColumn();
             this.textColumn12 = new XPTable.Models.TextColumn();
-            this.checkBoxColumnEff = new XPTable.Models.CheckBoxColumn();
             this.tableModel3 = new XPTable.Models.TableModel();
             this.groupBox1.SuspendLayout();
             this.groupBox3.SuspendLayout();
@@ -157,13 +157,6 @@
             this.button6.Name = "button6";
             this.button6.UseVisualStyleBackColor = true;
             this.button6.Click += new System.EventHandler(this.button6_Click);
-            // 
-            // buttonEfficiency
-            // 
-            resources.ApplyResources(this.buttonEfficiency, "buttonEfficiency");
-            this.buttonEfficiency.Name = "buttonEfficiency";
-            this.buttonEfficiency.UseVisualStyleBackColor = true;
-            this.buttonEfficiency.Click += new System.EventHandler(this.buttonEfficiency_Click);
             // 
             // tabControl1
             // 
@@ -225,6 +218,8 @@
             this.groupBox1.Controls.Add(this.label26);
             this.groupBox1.Controls.Add(this.doubleTextBox6);
             this.groupBox1.Controls.Add(this.doubleTextBox7);
+            this.groupBox1.Controls.Add(this.autoBqCheckBox);
+            this.groupBox1.Controls.Add(this.bqCoeffStatusLabel);
             this.groupBox1.Controls.Add(this.doubleTextBox4);
             this.groupBox1.Controls.Add(this.doubleTextBox3);
             this.groupBox1.Controls.Add(this.checkBox1);
@@ -323,8 +318,22 @@
             this.doubleTextBox7.Name = "doubleTextBox7";
             this.doubleTextBox7.TextChanged += new System.EventHandler(this.doubleTextBox7_TextChanged);
             // 
+            // autoBqCheckBox
+            //
+            resources.ApplyResources(this.autoBqCheckBox, "autoBqCheckBox");
+            this.autoBqCheckBox.Name = "autoBqCheckBox";
+            this.autoBqCheckBox.UseVisualStyleBackColor = true;
+            this.autoBqCheckBox.CheckedChanged += new System.EventHandler(this.autoBqCheckBox_CheckedChanged);
+            //
+            // bqCoeffStatusLabel
+            //
+            resources.ApplyResources(this.bqCoeffStatusLabel, "bqCoeffStatusLabel");
+            this.bqCoeffStatusLabel.AutoEllipsis = true;
+            this.bqCoeffStatusLabel.ForeColor = System.Drawing.Color.DimGray;
+            this.bqCoeffStatusLabel.Name = "bqCoeffStatusLabel";
+            //
             // doubleTextBox4
-            // 
+            //
             resources.ApplyResources(this.doubleTextBox4, "doubleTextBox4");
             this.doubleTextBox4.Name = "doubleTextBox4";
             this.doubleTextBox4.TextChanged += new System.EventHandler(this.doubleTextBox4_TextChanged);
@@ -461,7 +470,6 @@
             this.panel1.Controls.Add(this.label7);
             this.panel1.Controls.Add(this.button4);
             this.panel1.Controls.Add(this.comboBox1);
-            this.panel1.Controls.Add(this.buttonEfficiency);
             this.panel1.Name = "panel1";
             // 
             // label24
@@ -675,8 +683,7 @@
             // 
             this.columnModel3.Columns.AddRange(new XPTable.Models.Column[] {
             this.textColumn1,
-            this.textColumn12,
-            this.checkBoxColumnEff});
+            this.textColumn12});
             // 
             // textColumn1
             // 
@@ -689,14 +696,6 @@
             this.textColumn12.Editable = false;
             this.textColumn12.IsTextTrimmed = false;
             resources.ApplyResources(this.textColumn12, "textColumn12");
-            // 
-            // checkBoxColumnEff
-            // 
-            this.checkBoxColumnEff.Alignment = XPTable.Models.ColumnAlignment.Center;
-            this.checkBoxColumnEff.DrawText = false;
-            this.checkBoxColumnEff.Editable = false;
-            this.checkBoxColumnEff.IsTextTrimmed = false;
-            resources.ApplyResources(this.checkBoxColumnEff, "checkBoxColumnEff");
             // 
             // ROIConfigForm
             // 
@@ -862,6 +861,8 @@
 
 		// Token: 0x040004E2 RID: 1250
 		global::BecquerelMonitor.DoubleTextBox doubleTextBox3;
+		System.Windows.Forms.CheckBox autoBqCheckBox;
+		System.Windows.Forms.Label bqCoeffStatusLabel;
 
 		// Token: 0x040004E3 RID: 1251
 		global::System.Windows.Forms.Label label14;
@@ -911,7 +912,6 @@
 		// Token: 0x040004F2 RID: 1266
 		global::XPTable.Models.TextColumn textColumn12;
 
-		global::XPTable.Models.CheckBoxColumn checkBoxColumnEff;
 
         // Token: 0x040004F3 RID: 1267
         global::XPTable.Models.TextColumn textColumn13;
@@ -977,6 +977,5 @@
 		// Token: 0x04000506 RID: 1286
 		global::System.Windows.Forms.Label label25;
 
-		private System.Windows.Forms.Button buttonEfficiency;
     }
 }

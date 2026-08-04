@@ -3,6 +3,7 @@ using BecquerelMonitor.Utils;
 using ColorComboBox;
 using System;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
 using System.Windows.Forms;
 using XPTable.Events;
@@ -103,10 +104,6 @@ namespace BecquerelMonitor
                 Row row = new Row();
                 row.Cells.Add(new Cell(roiconfigData2.Name));
                 row.Cells.Add(new Cell(roiconfigData2.LastUpdated.ToShortDateString() + " " + roiconfigData2.LastUpdated.ToLongTimeString()));
-                if (roiconfigData2.HasEfficiency)
-                {
-                    row.Cells.Add(new Cell("", true));
-                }
                 row.Tag = roiconfigData2;
                 this.tableModel3.Rows.Add(row);
                 if (this.activeROIConfig != null && this.activeROIConfig.Guid == roiconfigData2.Guid)
@@ -608,8 +605,120 @@ namespace BecquerelMonitor
             this.colorComboBox1.SelectedColor = roi.Color.Color;
             this.colorComboBox1.Refresh();
             this.textBox2.Text = roi.Note;
+            this.autoBqCheckBox.Checked = roi.AutoBecquerelCoefficient;
             this.ShowPrimitiveList(roi);
             this.contentsLoading = false;
+            this.ShowBecquerelCoefficient(roi);
+        }
+
+        /// <summary>
+        /// Показать, какой коэффициент действует на самом деле. С галочкой поле
+        /// недоступно: K — уже не число, а функция кривой и параметров зоны, и
+        /// правка поля ничего бы не изменила, только соврала бы.
+        ///
+        /// Строка под полем обязана называть причину отката поимённо: кривая не
+        /// выбрана и энергия за её краем — разные беды с разным лечением, а
+        /// молча подставленное старое число выглядит одинаково.
+        /// </summary>
+        void ShowBecquerelCoefficient(ROIDefinitionData roi)
+        {
+            if (roi == null)
+            {
+                this.bqCoeffStatusLabel.Text = "";
+                return;
+            }
+
+            Utils.BecquerelCoefficient.Result k =
+                Utils.BecquerelCoefficient.Resolve(roi, this.ActiveEfficiency());
+
+            bool auto = roi.AutoBecquerelCoefficient;
+            this.doubleTextBox3.Enabled = !auto;
+            this.doubleTextBox4.Enabled = !auto;
+
+            if (!auto)
+            {
+                this.bqCoeffStatusLabel.Text = "";
+                return;
+            }
+
+            this.bqCoeffStatusLabel.Text = k.Problem ?? string.Format(
+                CultureInfo.CurrentCulture, Resources.BqCoeffFromCurve, k.Value, k.Error);
+
+            // В полях показывается ДЕЙСТВУЮЩЕЕ значение, а не сохранённое:
+            // иначе рядом с надписью «K посчитан по кривой» стояло бы другое
+            // число, и какое из них попало в активность — не понять.
+            this.contentsLoading = true;
+            try
+            {
+                this.doubleTextBox3.Text = k.Value.ToString(CultureInfo.CurrentCulture);
+                this.doubleTextBox4.Text = k.Error.ToString(CultureInfo.CurrentCulture);
+            }
+            finally
+            {
+                this.contentsLoading = false;
+            }
+        }
+
+        /// <summary>
+        /// Кривая активного спектра. Форма зон — не хозяйка спектра, поэтому
+        /// добирается до него через владельца; нет документа — нет и кривой.
+        /// </summary>
+        EfficiencyConfigData ActiveEfficiency()
+        {
+            MainForm owner = this.Owner as MainForm;
+            if (owner == null || owner.ActiveDocument == null)
+            {
+                return null;
+            }
+
+            ResultData active = owner.ActiveDocument.ActiveResultData;
+            return active == null ? null : active.Efficiency;
+        }
+
+        /// <summary>
+        /// Кривую спектра выбирают в панели измерения, а она рядом и окно зон
+        /// немодальное: пользователь меняет кривую, возвращается сюда — и видит
+        /// прежний коэффициент. Пока этого не было, поймать несоответствие
+        /// можно было единственным способом: закрыть окно и открыть заново.
+        /// </summary>
+        protected override void OnActivated(EventArgs e)
+        {
+            base.OnActivated(e);
+            if (this.activeROIDefinition != null)
+            {
+                this.ShowBecquerelCoefficient(this.activeROIDefinition);
+            }
+        }
+
+        void autoBqCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (this.contentsLoading || this.activeROIDefinition == null)
+            {
+                return;
+            }
+
+            this.activeROIDefinition.AutoBecquerelCoefficient = this.autoBqCheckBox.Checked;
+            if (!this.autoBqCheckBox.Checked)
+            {
+                // Снятая галочка возвращает СОХРАНЁННОЕ число, а не оставляет в
+                // поле последнее посчитанное: оно и есть запасное значение, и
+                // переписывать его расчётом молча нельзя.
+                this.contentsLoading = true;
+                try
+                {
+                    this.doubleTextBox3.Text = this.activeROIDefinition.BecquerelCoefficient
+                        .ToString(CultureInfo.CurrentCulture);
+                    this.doubleTextBox4.Text = this.activeROIDefinition.BecquerelCoefficientError
+                        .ToString(CultureInfo.CurrentCulture);
+                }
+                finally
+                {
+                    this.contentsLoading = false;
+                }
+            }
+
+            this.ShowBecquerelCoefficient(this.activeROIDefinition);
+            this.SetActiveROIConfigDirty();
         }
 
         // Token: 0x06000910 RID: 2320 RVA: 0x00034B7C File Offset: 0x00032D7C
@@ -948,19 +1057,10 @@ namespace BecquerelMonitor
             roidefinitionData.UpperLimit = Math.Round(nuclideDefinition.Energy + nuclideDefinition.Energy * num / 2.0);
             roidefinitionData.HalfLife = nuclideDefinition.HalfLife;
             roidefinitionData.Intencity = nuclideDefinition.Intencity;
-            if (this.activeROIConfig.HasEfficiency && nuclideDefinition.Intencity > 0)
-            {
-                ROIAriphmetics roiAriphmetics = new ROIAriphmetics(this.activeROIConfig);
-                ROIEfficiencyData effData = roiAriphmetics.CalculateEfficiency(nuclideDefinition.Energy);
-                if (effData != null && effData.Efficiency > 0)
-                {
-                    roidefinitionData.BecquerelCoefficient = (1 / effData.Efficiency) / (nuclideDefinition.Intencity / 100);
-                    if (effData.ErrorPercent > 0)
-                    {
-                        roidefinitionData.BecquerelCoefficientError = roidefinitionData.BecquerelCoefficient * (effData.ErrorPercent / 100);
-                    }
-                }
-            }
+            // K здесь больше не заполняется разово: зона заводится с
+            // включённой галочкой «считать по эффективности», и коэффициент
+            // берётся из кривой спектра при каждом счёте. Вписанное однажды
+            // число устаревало молча, стоило кривой смениться.
 
             this.activeROIConfig.ROIDefinitions.Add(roidefinitionData);
             this.ListupROIDefinitions(this.activeROIConfig);
@@ -1006,21 +1106,5 @@ namespace BecquerelMonitor
         // Token: 0x0400050D RID: 1293
         bool reenter;
 
-        private void buttonEfficiency_Click(object sender, EventArgs e)
-        {
-            if (this.activeROIConfig == null)
-            {
-                return;
-            }
-
-            using (ROIEditEfficiencyDialog dialog = new ROIEditEfficiencyDialog(this))
-            {
-                dialog.ShowDialog();
-                if (this.activeROIConfig.Dirty)
-                {
-                    this.buttonSave.Enabled = true;
-                }
-            }
-        }
     }
 }
