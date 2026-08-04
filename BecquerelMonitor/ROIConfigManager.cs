@@ -287,67 +287,6 @@ namespace BecquerelMonitor
             }
         }
 
-        public bool ImportEffCalcMCtoROI(string ROIName, string filename)
-        {
-            List<ROIEfficiencyData> points = new List<ROIEfficiencyData>();
-            try
-            {
-                // read file
-                using (StreamReader streamReader = new StreamReader(filename, Encoding.GetEncoding(65001)))
-                {
-                    // skip first line like "Energy, keV	Efficiency	Uncertainty, %"
-                    streamReader.ReadLine();
-                    while (streamReader.Peek() != -1)
-                    {
-                        List<string> lineList = streamReader.ReadLine().Split(new char[] { '\t' }).ToList<string>();
-                        if (lineList.Count > 5)
-                        {
-                            for (int i = 0; i < lineList.Count; i++)
-                            {
-                                if (lineList[i] == "")
-                                {
-                                    lineList.RemoveAt(i);
-                                    i--;
-                                    if (i > lineList.Count - 1) break;
-                                }
-                            }
-                            points.Add(new ROIEfficiencyData() 
-                            { 
-                                Energy = Convert.ToDouble(lineList[0]),
-                                Efficiency = Convert.ToDouble(lineList[1]),
-                                ErrorPercent = Convert.ToDouble(lineList[2])
-                            });
-                        }
-                    }
-
-                    // add this points to ROI config
-                    ROIConfigData roiconfigData = new ROIConfigData();
-                    roiconfigData.InitFormatVersion();
-                    roiconfigData.Guid = Guid.NewGuid().ToString();
-                    roiconfigData.Name = ROIName;
-                    roiconfigData.Filename = ROIName + ".xml";
-                    roiconfigData.OriginalFilename = roiconfigData.Filename;
-                    roiconfigData.LastUpdated = DateTime.Now;
-                    roiconfigData.Dirty = false;
-                    roiconfigData.ROIEfficiency = points;
-                    string path = configROI + ROIName + ".xml";
-                    Utils.AtomicFileWriter.Write(path, fileStream =>
-                    {
-                        XmlSerializer xmlSerializer = new XmlSerializer(typeof(ROIConfigData));
-                        xmlSerializer.Serialize(fileStream, roiconfigData);
-                    });
-                    this.roiConfigList.Add(roiconfigData);
-                    this.roiConfigMap.Add(roiconfigData.Guid, roiconfigData);
-                    this.roiConfigList.Sort();
-                    return true;
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message));
-            }
-            return false;
-        }
 
 
         string configROI = Package.GetInstance().ROI;

@@ -747,11 +747,16 @@ namespace BecquerelMonitor
             this.RefreshView();
         }
 
+        /// <summary>
+        /// Пункт включается по ТОЙ ЖЕ кривой, на которую спектр потом делится, —
+        /// по своей кривой спектра. Проверять здесь набор зон, а делить на
+        /// кривую прибора значило бы включать режим тогда, когда делить нечем,
+        /// и не включать, когда есть чем.
+        /// </summary>
         private bool IsNormalizeByEfficiencyAvailable()
         {
-            return this.ActiveResultData != null 
-                && this.ActiveResultData.ROIConfig != null 
-                && this.ActiveResultData.ROIConfig.HasEfficiency;
+            return this.ActiveResultData != null
+                && FullSpectrumAnalysis.FsaEfficiency.FromConfig(this.ActiveResultData.Efficiency) != null;
         }
 
         private bool IsBackgroundExists()
@@ -825,84 +830,16 @@ namespace BecquerelMonitor
 
         /// <summary>
         /// Без кривой эффективности относительные веса линий внутри образа
-        /// неверны, и разложение перекашивает низкоэнергетическую часть. Если у
-        /// спектра своей кривой нет, предлагаем выбрать область, у которой она
-        /// есть, — тем же диалогом, что и для нормировки по эффективности.
-        /// Отказ не блокирует разложение: оно просто считается без кривой.
+        /// неверны, и разложение перекашивает низкоэнергетическую часть. Кривую
+        /// выбирают у спектра, в панели измерения; если её там нет, разложение
+        /// просто считается без кривой — легенда об этом скажет отсутствием
+        /// пометки eff.
+        ///
+        /// Раньше здесь предлагалось выбрать ЧУЖОЙ набор зон с кривой. Кривая
+        /// из наборов зон ушла, и предлагать больше нечего.
         /// </summary>
         void EnsureFsaEfficiencyCurve()
         {
-            ResultData resultData = this.ActiveResultData;
-            if (resultData == null)
-            {
-                return;
-            }
-
-            if (FullSpectrumAnalysis.FsaEfficiency.FromRoiConfig(this.view.FsaEfficiencyRoi) != null
-                || FullSpectrumAnalysis.FsaEfficiency.FromRoiConfig(resultData.ROIConfig) != null)
-            {
-                return;
-            }
-
-            bool hasCandidates = false;
-            System.Collections.Generic.List<ROIConfigData> roiConfigs = ROIConfigManager.GetInstance().ROIConfigList;
-            if (roiConfigs != null)
-            {
-                foreach (ROIConfigData roi in roiConfigs)
-                {
-                    if (roi != null && roi.HasEfficiency)
-                    {
-                        hasCandidates = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!hasCandidates)
-            {
-                // Предлагать нечего — разложение пойдёт без кривой, о чём
-                // говорит легенда (в ней не будет пометки eff).
-                return;
-            }
-
-            // Диалог берёт умолчания из активного документа главной формы, а
-            // документ может висеть в плавающем окне — форму ищем и по дереву,
-            // и среди открытых.
-            MainForm mainForm = this.FindForm() as MainForm;
-            if (mainForm == null)
-            {
-                foreach (Form opened in Application.OpenForms)
-                {
-                    mainForm = opened as MainForm;
-                    if (mainForm != null)
-                    {
-                        break;
-                    }
-                }
-            }
-
-            if (mainForm == null || mainForm.ActiveDocument == null
-                || mainForm.ActiveDocument.ActiveResultData == null
-                || mainForm.ActiveDocument.ActiveResultData.DeviceConfigReference == null)
-            {
-                return;
-            }
-
-            using (SelectROIDialog dialog = new SelectROIDialog(mainForm))
-            {
-                dialog.ShowDialog(this);
-                string guid = dialog.SendData();
-                if (string.IsNullOrEmpty(guid))
-                {
-                    return;
-                }
-
-                ROIConfigData selected;
-                if (ROIConfigManager.GetInstance().ROIConfigMap.TryGetValue(guid, out selected))
-                {
-                    this.view.FsaEfficiencyRoi = selected;
-                }
-            }
         }
 
         void NormByEffToolStripMenuItem_Click(object sender, EventArgs e)

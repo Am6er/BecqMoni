@@ -714,10 +714,11 @@ namespace BecquerelMonitor
                         analytics.Ld = ROIAriphmetics.CalculateLd(bgCounts, bgTime, fgTime, limitsConfidenceLevel);
                         analytics.Lq = ROIAriphmetics.CalculateLqCounts(bgCounts, bgTime, fgTime, limitsConfidenceLevel);
 
+                        // Кривая берётся у САМОГО СПЕКТРА. Раньше её искали в
+                        // наборе зон — там она больше не живёт.
                         if (this.peakMode == PeakMode.Visible && analytics.SelectionFWHM > 0.0 &&
                             this.activeResultData.Visible &&
-                            this.roiConfig != null &&
-                            this.roiConfig.HasEfficiency)
+                            this.activeResultData.Efficiency != null)
                         {
                             int numberOfPeaks = 0;
                             Peak detectedPeak = null;
@@ -731,15 +732,12 @@ namespace BecquerelMonitor
                             }
                             if (numberOfPeaks == 1 && detectedPeak != null && detectedPeak.Nuclide != null && detectedPeak.Nuclide.Intencity > 0)
                             {
-                                ROIAriphmetics roiAriphmetics = new ROIAriphmetics(this.roiConfig);
-                                ROIEfficiencyData effData = roiAriphmetics.CalculateEfficiency(detectedPeak.Energy);
-                                if (effData != null && effData.Efficiency > 0)
+                                double bqCoeff, bqCoeffError;
+                                if (BecquerelCoefficient.TryForLine(detectedPeak.Energy,
+                                                                   detectedPeak.Nuclide.Intencity,
+                                                                   this.activeResultData.Efficiency,
+                                                                   out bqCoeff, out bqCoeffError))
                                 {
-                                    double bqCoeff = (1 / effData.Efficiency) / (detectedPeak.Nuclide.Intencity / 100.0);
-                                    double bqCoeffError = effData.ErrorPercent > 0
-                                        ? bqCoeff * (effData.ErrorPercent / 100)
-                                        : 0;
-
                                     analytics.Activity = ROIAriphmetics.CalculateActivity(bqCoeff, fgCounts, fgTime, bgCounts, bgTime);
                                     analytics.ActivityError = ROIAriphmetics.CalculateActivityError(bqCoeff, bqCoeffError, fgCounts, fgTime, bgCounts, bgTime, errorLevel);
                                     analytics.ActivityUpperLimit = ROIAriphmetics.CalculateActivityUpperLimit(bqCoeff, bqCoeffError, fgCounts, fgTime, bgCounts, bgTime, limitsConfidenceLevel);
@@ -1235,17 +1233,17 @@ namespace BecquerelMonitor
 
             if (this.backgroundMode == BackgroundMode.NormalizeByEfficiency)
             {
-                ROIConfigData roi = this.activeResultData.ROIConfig;
+                EfficiencyConfigData efficiency = this.activeResultData.Efficiency;
                 if (this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0)
                 {
-                    this.normByEffBgEnergySpectrum = SpectrumAriphmetics.NormalizeSpectrum(this.backgroundEnergySpectrum, roi);
+                    this.normByEffBgEnergySpectrum = SpectrumAriphmetics.NormalizeSpectrum(this.backgroundEnergySpectrum, efficiency);
                 }
                 else
                 {
                     this.normByEffBgEnergySpectrum = this.backgroundEnergySpectrum;
                 }
 
-                this.normByEffEnergySpectrum = SpectrumAriphmetics.NormalizeSpectrum(this.energySpectrum, roi);
+                this.normByEffEnergySpectrum = SpectrumAriphmetics.NormalizeSpectrum(this.energySpectrum, efficiency);
             }
         }
 
@@ -1734,7 +1732,7 @@ namespace BecquerelMonitor
                     }
                     else
                     {                        
-                        source = SpectrumAriphmetics.NormalizeSpectrum(resultData.EnergySpectrum, resultData.ROIConfig);
+                        source = SpectrumAriphmetics.NormalizeSpectrum(resultData.EnergySpectrum, resultData.Efficiency);
                     }
                 }
                 else
