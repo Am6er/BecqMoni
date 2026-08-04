@@ -41,8 +41,14 @@ namespace BecquerelMonitor
                     double resultValue2 = 0.0;
                     double resultError2 = 0.0;
                     double mda2 = 0.0;
-                    double becquerelCoefficient = roidefinition.BecquerelCoefficient;
-                    double becquerelCoefficientError = roidefinition.BecquerelCoefficientError;
+                    // Точка счёта K одна, и она здесь. Раньше это было просто
+                    // поле зоны; теперь оно может быть функцией активной кривой
+                    // эффективности, и разводить эту развилку по вызывающим
+                    // значило бы иметь в программе две разные активности.
+                    Utils.BecquerelCoefficient.Result coefficient =
+                        Utils.BecquerelCoefficient.Resolve(roidefinition, this.resultData.Efficiency);
+                    double becquerelCoefficient = coefficient.Value;
+                    double becquerelCoefficientError = coefficient.Error;
                     double resultCps = resultValue / this.measurementTime;
                     double resultErrorCps = Math.Abs(resultError) / this.measurementTime;
                     double resultBq = resultCps * becquerelCoefficient;

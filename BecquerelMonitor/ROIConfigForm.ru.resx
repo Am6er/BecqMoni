@@ -228,6 +228,12 @@
   <data name="label9.Text" xml:space="preserve">
     <value>Коэф. эффект.</value>
   </data>
+  <data name="autoBqCheckBox.Text" xml:space="preserve">
+    <value>Считать по эффективности</value>
+  </data>
+  <data name="autoBqCheckBox.Size" type="System.Drawing.Size, System.Drawing">
+    <value>168, 17</value>
+  </data>
   <data name="table1.NoItemsText" xml:space="preserve">
     <value>Нет определений ROI</value>
   </data>

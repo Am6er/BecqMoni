@@ -912,6 +912,57 @@
   <data name="doubleTextBox3.Location" type="System.Drawing.Point, System.Drawing">
     <value>99, 72</value>
   </data>
+  <data name="autoBqCheckBox.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="autoBqCheckBox.Location" type="System.Drawing.Point, System.Drawing">
+    <value>99, 50</value>
+  </data>
+  <data name="autoBqCheckBox.Size" type="System.Drawing.Size, System.Drawing">
+    <value>133, 17</value>
+  </data>
+  <data name="autoBqCheckBox.TabIndex" type="System.Int32, mscorlib">
+    <value>40</value>
+  </data>
+  <data name="autoBqCheckBox.Text" xml:space="preserve">
+    <value>Auto from efficiency</value>
+  </data>
+  <data name="&gt;&gt;autoBqCheckBox.Name" xml:space="preserve">
+    <value>autoBqCheckBox</value>
+  </data>
+  <data name="&gt;&gt;autoBqCheckBox.Type" xml:space="preserve">
+    <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;autoBqCheckBox.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;autoBqCheckBox.ZOrder" xml:space="preserve">
+    <value>40</value>
+  </data>
+  <data name="bqCoeffStatusLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>11, 89</value>
+  </data>
+  <data name="bqCoeffStatusLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>495, 13</value>
+  </data>
+  <data name="bqCoeffStatusLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>41</value>
+  </data>
+  <data name="bqCoeffStatusLabel.Text" xml:space="preserve">
+    <value />
+  </data>
+  <data name="&gt;&gt;bqCoeffStatusLabel.Name" xml:space="preserve">
+    <value>bqCoeffStatusLabel</value>
+  </data>
+  <data name="&gt;&gt;bqCoeffStatusLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;bqCoeffStatusLabel.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;bqCoeffStatusLabel.ZOrder" xml:space="preserve">
+    <value>41</value>
+  </data>
   <data name="doubleTextBox3.Size" type="System.Drawing.Size, System.Drawing">
     <value>55, 20</value>
   </data>

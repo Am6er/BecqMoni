@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using BecquerelMonitor.Properties;
 
@@ -277,7 +278,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
 
                 int inSet = 0;
-                int withoutIntensity = 0;
+                // Не счётчик, а поимённый список: «одна линия из двух» не
+                // говорит, КАКАЯ, а искать её глазами в наборе из тридцати
+                // строк — отдельная работа.
+                List<string> withoutIntensity = new List<string>();
                 List<EfficiencyLine> lines = new List<EfficiencyLine>();
                 foreach (NuclideDefinition definition in manager.NuclideDefinitions)
                 {
@@ -290,7 +294,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                     inSet++;
                     if (definition.Intencity <= 0.0 || definition.Energy <= 0.0)
                     {
-                        withoutIntensity++;
+                        withoutIntensity.Add(string.Format(CultureInfo.InvariantCulture,
+                            "{0} {1:0.###} keV", (definition.Name ?? "").Trim(), definition.Energy));
                         continue;
                     }
 
@@ -315,9 +320,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                 rejected.Add(new SetReject
                 {
                     Name = name,
-                    Reason = withoutIntensity > 0
+                    Reason = withoutIntensity.Count > 0
                         ? string.Format(Resources.EfficiencyMakerSetNoIntensity,
-                                        withoutIntensity, inSet)
+                                        withoutIntensity.Count, inSet,
+                                        string.Join("; ", withoutIntensity.ToArray()),
+                                        lines.Count)
                         : string.Format(Resources.EfficiencyMakerSetTooFewLines, lines.Count)
                 });
             }
