@@ -986,25 +986,36 @@ namespace BecquerelMonitor.EfficiencyMaker
             // геометрии. Единица недостижима ни для какой настоящей геометрии:
             // это значило бы, что в пик полного поглощения попадает каждый
             // испущенный квант.
-            double worst = 0.0;
-            double worstEnergy = 0.0;
-            foreach (ROIEfficiencyData point in result.Curve)
+            //
+            // Спрашивать это МОЖНО ТОЛЬКО ТАМ, ГДЕ УРОВЕНЬ ФИЗИЧЕСКИЙ. В режиме
+            // «только форма» уровень условный: Shape не имеет свободного члена,
+            // Level = 0, и кривая по построению равна единице на опорных 662
+            // кэВ, а ниже её и подавно превышает — потому BuildCurve там и не
+            // режет по единице. Безусловная проверка отвергала В КАЖДОМ таком
+            // прогоне заведомо годную кривую, называя условный уровень
+            // невозможной физикой.
+            if (result.LevelSource != EfficiencyLevelSource.ShapeOnly)
             {
-                bool broken = double.IsNaN(point.Efficiency) || double.IsInfinity(point.Efficiency);
-                if (broken || point.Efficiency > worst)
+                double worst = 0.0;
+                double worstEnergy = 0.0;
+                foreach (ROIEfficiencyData point in result.Curve)
                 {
-                    worst = broken ? double.PositiveInfinity : point.Efficiency;
-                    worstEnergy = point.Energy;
+                    bool broken = double.IsNaN(point.Efficiency) || double.IsInfinity(point.Efficiency);
+                    if (broken || point.Efficiency > worst)
+                    {
+                        worst = broken ? double.PositiveInfinity : point.Efficiency;
+                        worstEnergy = point.Energy;
+                    }
                 }
-            }
 
-            if (!(worst < 1.0))
-            {
-                result.Curve = new List<ROIEfficiencyData>();
-                result.Error = string.Format(Resources.EfficiencyMakerImpossibleCurve,
-                                             worstEnergy, worst, used.Count,
-                                             result.SeriesKeys.Count + Math.Max(1, input.PolynomialOrder));
-                return;
+                if (!(worst < 1.0))
+                {
+                    result.Curve = new List<ROIEfficiencyData>();
+                    result.Error = string.Format(Resources.EfficiencyMakerImpossibleCurve,
+                                                 worstEnergy, worst, used.Count,
+                                                 result.SeriesKeys.Count + Math.Max(1, input.PolynomialOrder));
+                    return;
+                }
             }
 
             log(string.Format(Resources.EfficiencyMakerFitDone,
