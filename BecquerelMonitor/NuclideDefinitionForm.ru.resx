@@ -138,6 +138,9 @@
   <data name="label2.Text" xml:space="preserve">
     <value>Энергия</value>
   </data>
+  <data name="chainLabel.Text" xml:space="preserve">
+    <value>Цепочка</value>
+  </data>
   <data name="label3.Text" xml:space="preserve">
     <value>Полураспад</value>
   </data>

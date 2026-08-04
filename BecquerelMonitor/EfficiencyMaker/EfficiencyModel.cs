@@ -301,7 +301,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                     lines.Add(new EfficiencyLine
                     {
-                        Nuclide = (definition.Name ?? "").Split(' ')[0],
+                        Nuclide = definition.NuclideName,
                         Energy = definition.Energy,
                         Intensity = definition.Intencity
                     });

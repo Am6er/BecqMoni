@@ -65,6 +65,7 @@ namespace BecquerelMonitor
         {
             this.contentsLoading = true;
             this.textBox1.Text = nuclide.Name;
+            this.chainTextBox.Text = nuclide.Chain;
             this.doubleTextBox1.Text = nuclide.Energy.ToString();
             this.doubleTextBox2.Text = nuclide.HalfLife.ToString();
             this.intensityTextBox.Text = nuclide.Intencity.ToString();
@@ -81,6 +82,7 @@ namespace BecquerelMonitor
             try
             {
                 nuclide.Name = this.textBox1.Text;
+                nuclide.Chain = this.chainTextBox.Text.Trim();
                 nuclide.Energy = this.doubleTextBox1.GetValue();
                 nuclide.HalfLife = this.doubleTextBox2.GetValue();
                 nuclide.Intencity = this.intensityTextBox.GetValue();
@@ -348,6 +350,11 @@ namespace BecquerelMonitor
 
         // Token: 0x060000D3 RID: 211 RVA: 0x00004380 File Offset: 0x00002580
         void textBox1_TextChanged(object sender, EventArgs e)
+        {
+            this.SetActiveNuclideDirty();
+        }
+
+        void chainTextBox_TextChanged(object sender, EventArgs e)
         {
             this.SetActiveNuclideDirty();
         }

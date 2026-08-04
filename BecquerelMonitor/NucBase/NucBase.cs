@@ -395,6 +395,15 @@ namespace BecquerelMonitor.NucBase
                 int updatedCount = 0;
                 int createdCount = 0;
                 NuclideDefinitionManager defManager = NuclideDefinitionManager.GetInstance();
+                // Ряд у всех ввозимых линий один — тот, по которому шёл поиск.
+                // Пишется НЕЗАВИСИМО от «дописать имя родителя»: та галочка
+                // решает, как линия подписана на графике, а поле — на чей
+                // распад дан выход. Раньше это было одно и то же, и выключенная
+                // галочка молча теряла принадлежность к ряду.
+                string chain = this.IncludeDecayChainCheckBox.Checked
+                               && !string.IsNullOrEmpty(this.SearchedIsotope)
+                    ? FormatIsotopeName(this.SearchedIsotope)
+                    : "";
                 foreach (DataGridViewRow row in this.ResultDataGridView.Rows)
                 {
                     if ((bool)row.Cells[CheckedColumnIdx].Value == true)
@@ -420,6 +429,7 @@ namespace BecquerelMonitor.NucBase
                             existingDef.Name = formattedName;
                             existingDef.Intencity = intencity;
                             existingDef.HalfLife = halfLifeYears;
+                            existingDef.Chain = chain;
                             updatedCount++;
                         }
                         
@@ -428,6 +438,7 @@ namespace BecquerelMonitor.NucBase
                             defManager.NuclideDefinitions.Add(new NuclideDefinition()
                             {
                                 Name = formattedName,
+                                Chain = chain,
                                 Energy = energy,
                                 Intencity = intencity,
                                 HalfLife = halfLifeYears,

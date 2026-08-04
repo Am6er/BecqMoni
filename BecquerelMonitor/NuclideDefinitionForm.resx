@@ -270,6 +270,54 @@
   <data name="&gt;&gt;textBox1.ZOrder" xml:space="preserve">
     <value>15</value>
   </data>
+  <data name="chainLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="chainLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>17, 54</value>
+  </data>
+  <data name="chainLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>35, 13</value>
+  </data>
+  <data name="chainLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>26</value>
+  </data>
+  <data name="chainLabel.Text" xml:space="preserve">
+    <value>Chain</value>
+  </data>
+  <data name="&gt;&gt;chainLabel.Name" xml:space="preserve">
+    <value>chainLabel</value>
+  </data>
+  <data name="&gt;&gt;chainLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;chainLabel.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;chainLabel.ZOrder" xml:space="preserve">
+    <value>16</value>
+  </data>
+  <data name="chainTextBox.Location" type="System.Drawing.Point, System.Drawing">
+    <value>101, 51</value>
+  </data>
+  <data name="chainTextBox.Size" type="System.Drawing.Size, System.Drawing">
+    <value>210, 20</value>
+  </data>
+  <data name="chainTextBox.TabIndex" type="System.Int32, mscorlib">
+    <value>15</value>
+  </data>
+  <data name="&gt;&gt;chainTextBox.Name" xml:space="preserve">
+    <value>chainTextBox</value>
+  </data>
+  <data name="&gt;&gt;chainTextBox.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;chainTextBox.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;chainTextBox.ZOrder" xml:space="preserve">
+    <value>17</value>
+  </data>
   <data name="button6.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Bottom, Right</value>
   </data>
@@ -334,7 +382,7 @@
     <value>NoControl</value>
   </data>
   <data name="checkBox1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>101, 278</value>
+    <value>101, 303</value>
   </data>
   <data name="checkBox1.Size" type="System.Drawing.Size, System.Drawing">
     <value>56, 17</value>
@@ -358,7 +406,7 @@
     <value>0</value>
   </data>
   <data name="textBox2.Location" type="System.Drawing.Point, System.Drawing">
-    <value>101, 151</value>
+    <value>101, 176</value>
   </data>
   <data name="textBox2.Multiline" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -385,7 +433,7 @@
     <value>True</value>
   </data>
   <data name="label7.Location" type="System.Drawing.Point, System.Drawing">
-    <value>17, 154</value>
+    <value>17, 179</value>
   </data>
   <data name="label7.Size" type="System.Drawing.Size, System.Drawing">
     <value>35, 13</value>
@@ -412,7 +460,7 @@
     <value>True</value>
   </data>
   <data name="label8.Location" type="System.Drawing.Point, System.Drawing">
-    <value>17, 104</value>
+    <value>17, 129</value>
   </data>
   <data name="label8.Size" type="System.Drawing.Size, System.Drawing">
     <value>59, 13</value>
@@ -436,7 +484,7 @@
     <value>3</value>
   </data>
   <data name="colorComboBox1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>100, 101</value>
+    <value>100, 126</value>
   </data>
   <data name="colorComboBox1.Margin" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>2, 2, 2, 2</value>
@@ -460,7 +508,7 @@
     <value>4</value>
   </data>
   <data name="doubleTextBox2.Location" type="System.Drawing.Point, System.Drawing">
-    <value>101, 76</value>
+    <value>101, 101</value>
   </data>
   <data name="doubleTextBox2.Size" type="System.Drawing.Size, System.Drawing">
     <value>80, 20</value>
@@ -484,7 +532,7 @@
     <value>5</value>
   </data>
   <data name="doubleTextBox1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>101, 51</value>
+    <value>101, 76</value>
   </data>
   <data name="doubleTextBox1.Size" type="System.Drawing.Size, System.Drawing">
     <value>80, 20</value>
@@ -511,7 +559,7 @@
     <value>True</value>
   </data>
   <data name="intensityLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>17, 131</value>
+    <value>17, 156</value>
   </data>
   <data name="intensityLabel.Size" type="System.Drawing.Size, System.Drawing">
     <value>46, 13</value>
@@ -538,7 +586,7 @@
     <value>True</value>
   </data>
   <data name="intensitypercentLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>184, 131</value>
+    <value>184, 156</value>
   </data>
   <data name="intensitypercentLabel.Size" type="System.Drawing.Size, System.Drawing">
     <value>15, 13</value>
@@ -562,7 +610,7 @@
     <value>8</value>
   </data>
   <data name="intensityTextBox.Location" type="System.Drawing.Point, System.Drawing">
-    <value>101, 129</value>
+    <value>101, 154</value>
   </data>
   <data name="intensityTextBox.Size" type="System.Drawing.Size, System.Drawing">
     <value>80, 20</value>
@@ -589,7 +637,7 @@
     <value>True</value>
   </data>
   <data name="label6.Location" type="System.Drawing.Point, System.Drawing">
-    <value>187, 79</value>
+    <value>187, 104</value>
   </data>
   <data name="label6.Size" type="System.Drawing.Size, System.Drawing">
     <value>32, 13</value>
@@ -616,7 +664,7 @@
     <value>True</value>
   </data>
   <data name="label4.Location" type="System.Drawing.Point, System.Drawing">
-    <value>187, 54</value>
+    <value>187, 79</value>
   </data>
   <data name="label4.Size" type="System.Drawing.Size, System.Drawing">
     <value>26, 13</value>
@@ -643,7 +691,7 @@
     <value>True</value>
   </data>
   <data name="label3.Location" type="System.Drawing.Point, System.Drawing">
-    <value>17, 79</value>
+    <value>17, 104</value>
   </data>
   <data name="label3.Size" type="System.Drawing.Size, System.Drawing">
     <value>42, 13</value>
@@ -670,7 +718,7 @@
     <value>True</value>
   </data>
   <data name="label2.Location" type="System.Drawing.Point, System.Drawing">
-    <value>17, 54</value>
+    <value>17, 79</value>
   </data>
   <data name="label2.Size" type="System.Drawing.Size, System.Drawing">
     <value>40, 13</value>

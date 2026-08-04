@@ -61,6 +61,8 @@ namespace BecquerelMonitor
             this.label3 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
+            this.chainLabel = new System.Windows.Forms.Label();
+            this.chainTextBox = new System.Windows.Forms.TextBox();
             ((System.ComponentModel.ISupportInitialize)(this.table1)).BeginInit();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
@@ -176,6 +178,8 @@ namespace BecquerelMonitor
             this.tabPage1.Controls.Add(this.label2);
             this.tabPage1.Controls.Add(this.label1);
             this.tabPage1.Controls.Add(this.textBox1);
+            this.tabPage1.Controls.Add(this.chainLabel);
+            this.tabPage1.Controls.Add(this.chainTextBox);
             resources.ApplyResources(this.tabPage1, "tabPage1");
             this.tabPage1.Name = "tabPage1";
             // 
@@ -261,10 +265,21 @@ namespace BecquerelMonitor
             this.label2.Name = "label2";
             // 
             // label1
-            // 
+            //
             resources.ApplyResources(this.label1, "label1");
             this.label1.Name = "label1";
-            // 
+            //
+            // chainLabel
+            //
+            resources.ApplyResources(this.chainLabel, "chainLabel");
+            this.chainLabel.Name = "chainLabel";
+            //
+            // chainTextBox
+            //
+            resources.ApplyResources(this.chainTextBox, "chainTextBox");
+            this.chainTextBox.Name = "chainTextBox";
+            this.chainTextBox.TextChanged += new System.EventHandler(this.chainTextBox_TextChanged);
+            //
             // NuclideDefinitionForm
             // 
             resources.ApplyResources(this, "$this");
@@ -319,5 +334,7 @@ namespace BecquerelMonitor
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Label chainLabel;
+        private System.Windows.Forms.TextBox chainTextBox;
     }
 }

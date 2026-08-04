@@ -96,7 +96,36 @@ namespace BecquerelMonitor
                 return false;
             }
             this.isLoaded = true;
+            FillChainsFromNames(this.nuclideDefinitionFile);
             return true;
+        }
+
+        /// <summary>
+        /// Ряд у линий, заведённых до поля <c>Chain</c>: до сих пор родитель
+        /// жил только в хвосте имени, и разбирали этот хвост в двух местах
+        /// порознь. Разбирается один раз, здесь.
+        ///
+        /// Файл при этом НЕ переписывается: поле уедет на диск при первом
+        /// сохранении из формы. Молча переписать чужой конфиг на открытии —
+        /// цена, которой эта миграция не стоит, а пустое поле у линии без
+        /// скобок в имени и есть правильное значение.
+        /// </summary>
+        static void FillChainsFromNames(NuclideDefinitionFile file)
+        {
+            if (file == null || file.NuclideDefinitions == null)
+            {
+                return;
+            }
+
+            foreach (NuclideDefinition definition in file.NuclideDefinitions)
+            {
+                if (definition == null || !string.IsNullOrEmpty(definition.Chain))
+                {
+                    continue;
+                }
+
+                definition.Chain = NuclideDefinition.ChainOf(definition.Name);
+            }
         }
 
         // Token: 0x06000935 RID: 2357 RVA: 0x0003586C File Offset: 0x00033A6C
