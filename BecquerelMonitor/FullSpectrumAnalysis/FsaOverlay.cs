@@ -152,6 +152,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 : new List<Peak>();
 
             FsaAnalyzer analyzer = new FsaAnalyzer();
+
+            // Матрица отклика берётся у ТОЙ ЖЕ кривой, что и эффективность, и
+            // только если её отпечаток сходится с нынешней геометрией. Не
+            // сошёлся — работаем без неё, старым путём: посчитать спектр по
+            // матрице чужой геометрии хуже, чем не посчитать вовсе.
+            if (resultData.Efficiency != null && resultData.Efficiency.HasGeometry)
+            {
+                EfficiencyMaker.ResponseMatrix matrix =
+                    EfficiencyMaker.ResponseMatrixStore.Load(resultData.Efficiency.Guid);
+                if (matrix != null && matrix.IsValidFor(resultData.Efficiency.Geometry))
+                {
+                    analyzer.ResponseMatrix = matrix;
+                }
+            }
+
             if (resultData.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig peakConfig)
             {
                 // Диапазон поиска пиков передаётся анализатору, но при

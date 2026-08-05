@@ -905,9 +905,55 @@ namespace BecquerelMonitor.EfficiencyMaker
                               double ux, double uy, double uz,
                               double energyKev, double tauKill)
         {
-            if (!this.SingleScatter || !(tauKill > 1e-6))
+            double weight, scattered, escaped;
+            if (!this.ScatteredContribution(x, y, z, ux, uy, uz, energyKev, tauKill,
+                                            out weight, out scattered, out escaped))
             {
                 return 0.0;
+            }
+
+            if (escaped > this.PeakHalfWidthKev)
+            {
+                return 0.0;
+            }
+
+            // Событие попадает в пик РАССЕЯННОЙ энергии, а не исходной: в пик
+            // полного поглощения линии оно годится только тогда, когда потеря
+            // укладывается в ЕГО ШИРИНУ. Отсюда важное: при нулевом допуске
+            // (<see cref="PeakHalfWidthKev"/> = 0) эта поправка не даёт ничего
+            // вовсе, и так и должно быть — у детектора с бесконечным
+            // разрешением рассеянный квант в пик линии не попадает. Величина
+            // поправки зависит от разрешения прибора, а его в модели геометрии
+            // нет.
+            if (energyKev - scattered > this.PeakHalfWidthKev)
+            {
+                return 0.0;
+            }
+
+            return weight;
+        }
+
+        /// <summary>
+        /// Тот же однократно рассеявшийся квант, но без отсечек по допуску:
+        /// возвращает вес, энергию ПОСЛЕ рассеяния и то, сколько из неё
+        /// вылетело. Пиковая ветвь (<see cref="ScatteredScore"/>) навешивает
+        /// свои две отсечки поверх, отклик — раскладывает по бинам поглощённой
+        /// энергии `scattered - escaped`. Разделение нужно потому, что
+        /// «попало в пик» и «сколько поглотилось» — разные вопросы к одной
+        /// истории, а розыгрыш у них обязан быть один.
+        /// </summary>
+        bool ScatteredContribution(double x, double y, double z,
+                                   double ux, double uy, double uz,
+                                   double energyKev, double tauKill,
+                                   out double weight, out double scatteredEnergy,
+                                   out double escapedEnergy)
+        {
+            weight = 0.0;
+            scatteredEnergy = 0.0;
+            escapedEnergy = 0.0;
+            if (!this.SingleScatter || !(tauKill > 1e-6))
+            {
+                return false;
             }
 
             double interacted = 1.0 - Math.Exp(-tauKill);
@@ -924,13 +970,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                 here = this.At(px, py, pz);
                 if (here != null && here.IsCrystal)
                 {
-                    return 0.0;               // до кристалла не рассеялся
+                    return false;             // до кристалла не рассеялся
                 }
 
                 double step = this.StepToBoundary(px, py, pz, ux, uy, uz);
                 if (step >= double.MaxValue || travelled + step > limit)
                 {
-                    return 0.0;
+                    return false;
                 }
 
                 if (here != null)
@@ -948,7 +994,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         double share = incoherent / mu;
                         if (!(share > 0.0))
                         {
-                            return 0.0;       // взаимодействие было, но не комптон
+                            return false;     // взаимодействие было, но не комптон
                         }
 
                         double cos = this.ComptonCosine(energyKev);
@@ -960,30 +1006,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                         double tau2;
                         if (!this.ToCrystal(ref px, ref py, ref pz, sx, sy, sz, scattered, out tau2))
                         {
-                            return 0.0;
+                            return false;
                         }
 
-                        double escaped = this.InCrystal(px, py, pz, sx, sy, sz, scattered, 0);
-                        if (escaped > this.PeakHalfWidthKev)
-                        {
-                            return 0.0;
-                        }
-
-                        // Событие попадает в пик РАССЕЯННОЙ энергии, а не
-                        // исходной: в пик полного поглощения линии оно годится
-                        // только тогда, когда потеря укладывается в ЕГО ШИРИНУ.
-                        // Отсюда важное: при нулевом допуске
-                        // (<see cref="PeakHalfWidthKev"/> = 0) эта поправка не
-                        // даёт ничего вовсе, и так и должно быть — у детектора с
-                        // бесконечным разрешением рассеянный квант в пик линии
-                        // не попадает. Величина поправки зависит от разрешения
-                        // прибора, а его в модели геометрии нет.
-                        if (energyKev - scattered > this.PeakHalfWidthKev)
-                        {
-                            return 0.0;
-                        }
-
-                        return interacted * share * Math.Exp(-tau2);
+                        weight = interacted * share * Math.Exp(-tau2);
+                        scatteredEnergy = scattered;
+                        escapedEnergy = this.InCrystal(px, py, pz, sx, sy, sz, scattered, 0);
+                        return true;
                     }
 
                     accumulated += mu * step;
@@ -996,7 +1025,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 travelled += next;
             }
 
-            return 0.0;
+            return false;
         }
 
         /// <summary>Длина пути внутри кристалла от точки в направлении.</summary>
@@ -1372,6 +1401,80 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>Эффективность в пике полного поглощения и её погрешность, доля.</summary>
         public double Efficiency(double energyKev, out double relativeError)
         {
+            return this.Run(energyKev, null, 0.0, out relativeError);
+        }
+
+        /// <summary>
+        /// Отклик детектора: распределение ПОГЛОЩЁННОЙ энергии, доля на бин, за
+        /// ОДИН прогон историй.
+        ///
+        /// Длина массива считается ПО ТОМУ ЖЕ ПРАВИЛУ, по которому раскладка
+        /// выбирает бин, поэтому последний бин — всегда пик полного поглощения.
+        /// Раньше длина бралась как `ceil(E/шаг)+1`, а бин пика — как
+        /// `(int)(E/шаг + 0.5)`; у энергии, не кратной шагу, это разные индексы,
+        /// и последний бин оставался пустым. Ошибка проявлялась не всегда: при
+        /// удачно легших энергиях узлов оба правила давали одно и то же.
+        ///
+        /// Зачем отдельный метод, а не сканирование порога `PeakHalfWidthKev`:
+        /// сканирование даёт то же самое (условие `вылетело ≤ w` — это функция
+        /// распределения), но повторяет перенос на каждый бин. При полутора
+        /// тысячах бинов это полторы тысячи прогонов вместо одного.
+        /// </summary>
+        public double[] Response(double energyKev, double binKev, out double relativeError)
+        {
+            if (!(energyKev > 0.0) || !(binKev > 0.0))
+            {
+                throw new ArgumentOutOfRangeException("binKev");
+            }
+
+            double[] histogram = new double[PeakBin(energyKev, binKev) + 1];
+            this.Run(energyKev, histogram, binKev, out relativeError);
+            return histogram;
+        }
+
+        /// <summary>
+        /// Номер бина, в который попадает полное поглощение. Тем же правилом
+        /// пользуется <see cref="Deposit"/> — иначе пик оказывается не в
+        /// последнем бине.
+        /// </summary>
+        public static int PeakBin(double energyKev, double binKev)
+        {
+            return (int)(energyKev / binKev + 0.5);
+        }
+
+        /// <summary>
+        /// Вклад в бин поглощённой энергии. Ноль отбрасывается: история, из
+        /// которой вылетело всё, отсчёта не даёт вовсе, и класть её в нулевой
+        /// бин значило бы считать несобытие событием.
+        /// </summary>
+        static void Deposit(double[] histogram, double binKev, double deposited, double weight)
+        {
+            if (!(deposited > 0.0) || !(weight > 0.0))
+            {
+                return;
+            }
+
+            int bin = (int)(deposited / binKev + 0.5);
+            if (bin < 0)
+            {
+                bin = 0;
+            }
+
+            if (bin >= histogram.Length)
+            {
+                bin = histogram.Length - 1;
+            }
+
+            histogram[bin] += weight;
+        }
+
+        /// <summary>
+        /// Общий цикл историй. `histogram == null` — считается только пик, и это
+        /// в точности прежнее поведение; иначе та же история дополнительно
+        /// раскладывается по бинам поглощённой энергии.
+        /// </summary>
+        double Run(double energyKev, double[] histogram, double binKev, out double relativeError)
+        {
             this.EnsureBuilt();
             double sum = 0.0, sum2 = 0.0;
             int n = Math.Max(1000, this.Histories);
@@ -1413,6 +1516,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                         {
                             score = weight * Math.Exp(-tau);
                         }
+
+                        // Отклик берёт ту же историю целиком, а не один бит
+                        // «попало в пик»: сколько энергии осталось в кристалле,
+                        // уже посчитано, и раскладывание по бинам стоит одного
+                        // сложения. Розыгрыш от этого не меняется — гистограмма
+                        // не тянет ни одного случайного числа, поэтому кривая
+                        // остаётся побитово прежней.
+                        if (histogram != null)
+                        {
+                            Deposit(histogram, binKev, energyKev - escaped,
+                                    weight * Math.Exp(-tau));
+                        }
                     }
 
                     // Прямой вклад — это доля exp(-tau), не провзаимодействовавшая
@@ -1420,7 +1535,22 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // часть его — комптон на малый угол, и такой квант доходит.
                     if (!this.ScoreEntranceOnly)
                     {
-                        score += weight * this.ScatteredScore(x, y, z, ux, uy, uz, energyKev, tau);
+                        if (histogram == null)
+                        {
+                            score += weight * this.ScatteredScore(x, y, z, ux, uy, uz, energyKev, tau);
+                        }
+                        else
+                        {
+                            double sw, scattered, sEscaped;
+                            if (this.ScatteredContribution(x, y, z, ux, uy, uz, energyKev, tau,
+                                                           out sw, out scattered, out sEscaped))
+                            {
+                                // Рассеявшийся квант приносит СВОЮ энергию, а не
+                                // энергию линии: в отклике он и должен лечь ниже
+                                // по шкале, а не в пик.
+                                Deposit(histogram, binKev, scattered - sEscaped, weight * sw);
+                            }
+                        }
                     }
                 }
 
@@ -1431,6 +1561,18 @@ namespace BecquerelMonitor.EfficiencyMaker
             double mean = sum / n;
             double variance = Math.Max(0.0, sum2 / n - mean * mean);
             relativeError = mean > 0.0 ? Math.Sqrt(variance / n) / mean * 100.0 : 0.0;
+
+            // Бины копят сумму весов, а величина отклика — среднее по историям,
+            // ровно как возвращаемая эффективность. Без этого деления отклик
+            // выходит больше единицы и вообще не вероятность.
+            if (histogram != null)
+            {
+                for (int b = 0; b < histogram.Length; b++)
+                {
+                    histogram[b] /= n;
+                }
+            }
+
             return mean;
         }
 

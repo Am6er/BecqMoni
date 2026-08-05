@@ -4,6 +4,7 @@ using System.Globalization;
 using Microsoft.Data.Sqlite;
 using System.Linq;
 using System.Windows.Forms;
+using BecquerelMonitor.EfficiencyMaker;
 using BecquerelMonitor.Properties;
 
 namespace BecquerelMonitor.NucBase
@@ -136,6 +137,71 @@ namespace BecquerelMonitor.NucBase
             db.Close();
             return decayRads;
         }
+
+        /// <summary>
+        /// Характеристический рентген ЭЛЕМЕНТА: «W», «Pb» — символ без
+        /// массового числа. Это не распад: атом отвечает квантом на дырку в
+        /// K-оболочке, откуда бы та ни взялась — от фотопоглощения в электроде,
+        /// в свинцовом домике, в корпусе. Поэтому и берётся не из
+        /// <c>decay_radiations</c>, а из <c>xray_fluorescence</c>
+        /// (<see cref="MaterialDatabase"/>): энергии Kα1, Kα2 и Kβ посчитаны по
+        /// краям поглощения XCOM, веса — доли внутри K-серии.
+        ///
+        /// Выход на распад у таких линий не определён вовсе, поэтому в колонке
+        /// интенсивности стоит доля внутри серии, в сумме 100 %.
+        ///
+        /// Пустой список — про этот элемент в таблице ничего нет: она
+        /// заполнена от Z = 30, у более лёгких нет пары краёв L2/L3, по разности
+        /// с которыми считаются энергии линий.
+        /// </summary>
+        public List<DecayRad> GetFluorescence(string symbol, double intensity = 0.0,
+                                              double lowEnergy = 0.0, double highEnergy = 0.0)
+        {
+            List<DecayRad> lines = new List<DecayRad>();
+            int z = MaterialDatabase.ZOf(symbol);
+            MaterialDatabase.Fluorescence fluorescence = z > 0 ? MaterialDatabase.FluorescenceOf(z) : null;
+            if (fluorescence == null)
+            {
+                return lines;
+            }
+
+            string[] labels = { "KA1", "KA2", "KB" };
+            for (int i = 0; i < fluorescence.LineKev.Length && i < labels.Length; i++)
+            {
+                double energy = fluorescence.LineKev[i];
+                double percent = fluorescence.LineWeight[i] * 100.0;
+                if (energy <= 0.0 || percent < intensity
+                    || (lowEnergy > 0.0 && energy < lowEnergy)
+                    || (highEnergy > 0.0 && energy > highEnergy))
+                {
+                    continue;
+                }
+
+                lines.Add(new DecayRad
+                {
+                    Name = symbol,
+                    Energy = energy,
+                    Intensity = percent,
+                    DecayLine = FluorescenceLine,
+                    XrayType = labels[i],
+                    // Периода полураспада у элемента нет: светит он не сам, а в
+                    // ответ на облучение. Ноль здесь и означает «не применимо» —
+                    // и с ним же уходит в определение при ввозе.
+                    HalfLife = 0.0,
+                    HalfLifeUnit = "s",
+                    DecayTypeText = Resources.NucBase_Fluorescence
+                });
+            }
+
+            return lines;
+        }
+
+        /// <summary>
+        /// Метка строки характеристического рентгена в колонке типа излучения.
+        /// По ней же ввоз узнаёт такую строку: у неё нет ни родителя, ни ряда,
+        /// ни периода полураспада.
+        /// </summary>
+        public const string FluorescenceLine = "XF";
 
         /// <summary>
         /// Ряд от корня: {нуклид -> накопленная доля ветвления}, у корня 1.0.

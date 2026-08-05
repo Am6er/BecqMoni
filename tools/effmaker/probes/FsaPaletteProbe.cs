@@ -1,4 +1,5 @@
 using BecquerelMonitor;
+using BecquerelMonitor.EfficiencyMaker;
 using BecquerelMonitor.FullSpectrumAnalysis;
 using System;
 using System.Collections.Generic;
@@ -48,7 +49,7 @@ namespace FsaPaletteProbe
             Console.OutputEncoding = Encoding.UTF8;
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
-            string spectrumPath = null, backgroundPath = null, outDir = ".";
+            string spectrumPath = null, backgroundPath = null, outDir = ".", geometryPath = null;
             int width = 1400, height = 760;
             foreach (string a in args)
             {
@@ -57,6 +58,7 @@ namespace FsaPaletteProbe
                 else if (a.StartsWith("--out=", StringComparison.Ordinal)) outDir = a.Substring(6);
                 else if (a.StartsWith("--width=", StringComparison.Ordinal)) width = int.Parse(a.Substring(8));
                 else if (a.StartsWith("--height=", StringComparison.Ordinal)) height = int.Parse(a.Substring(9));
+                else if (a.StartsWith("--geometry=", StringComparison.Ordinal)) geometryPath = a.Substring(11);
             }
             if (spectrumPath == null)
             {
@@ -86,6 +88,80 @@ namespace FsaPaletteProbe
             }
 
             FsaAnalyzer analyzer = new FsaAnalyzer();
+
+            // Сравнение «с матрицей и без»: библиотека, спектр и фон одни и те
+            // же, разница только в том, есть ли у образа компонента континуум.
+            if (geometryPath != null)
+            {
+                ResponseMatrix matrix;
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                if (geometryPath == "self")
+                {
+                    // Геометрия и матрица берутся так же, как их берёт
+                    // приложение: у кривой ЭТОГО спектра и из хранилища по её
+                    // Guid, с проверкой отпечатка.
+                    matrix = ResponseMatrixStore.Load(rd.Efficiency != null ? rd.Efficiency.Guid : null);
+                    bool valid = matrix != null && rd.Efficiency != null && rd.Efficiency.HasGeometry
+                                 && matrix.IsValidFor(rd.Efficiency.Geometry);
+                    Console.WriteLine("матрица из хранилища: {0}, отпечаток {1}",
+                                      matrix == null ? "нет" : "есть", valid ? "сошёлся" : "НЕ сошёлся");
+                    if (!valid)
+                    {
+                        return 1;
+                    }
+                }
+                else
+                {
+                    GeometryModel geometry = GeometryModel.Load(geometryPath);
+                    var options = new ResponseMatrixOptions { NodeCount = 60, Histories = 60000, BinKev = 2.0 };
+                    Console.WriteLine("считаю матрицу отклика по {0}...", Path.GetFileName(geometryPath));
+                    matrix = ResponseMatrixBuilder.Build(geometry, options, null,
+                                                        System.Threading.CancellationToken.None);
+                }
+
+                Console.WriteLine("  {0:F1} с, {1} узлов, {2:F0} КБ",
+                                  sw.Elapsed.TotalSeconds, matrix.NodeCount, matrix.DataBytes / 1024.0);
+
+                sw.Restart();
+                FsaResult without = analyzer.Analyze(rd.EnergySpectrum, background, rd.FwhmCalibration,
+                                                     library, FsaEfficiency.FromConfig(rd.Efficiency));
+                double withoutMs = sw.Elapsed.TotalMilliseconds;
+
+                analyzer.ResponseMatrix = matrix;
+                sw.Restart();
+                FsaResult with = analyzer.Analyze(rd.EnergySpectrum, background, rd.FwhmCalibration,
+                                                  library, FsaEfficiency.FromConfig(rd.Efficiency));
+                double withMs = sw.Elapsed.TotalMilliseconds;
+
+                Console.WriteLine();
+                Console.WriteLine("{0,-16} {1,12} {2,12}", "", "без матрицы", "с матрицей");
+                Console.WriteLine("{0,-16} {1,12:F2} {2,12:F2}", "chi2/ndf",
+                                  without != null ? without.Chi2Ndf : 0.0,
+                                  with != null ? with.Chi2Ndf : 0.0);
+                Console.WriteLine("{0,-16} {1,12:F0} {2,12:F0}", "мс", withoutMs, withMs);
+                if (without != null && with != null)
+                {
+                    var a = without.BuildStackedLayers(6);
+                    var b = with.BuildStackedLayers(6);
+                    foreach (var layer in a)
+                    {
+                        var mate = b.Find(l => l.Name == layer.Name);
+                        Console.WriteLine("{0,-16} {1,12:F2} {2,12}", layer.Name, layer.SharePercent,
+                                          mate != null ? mate.SharePercent.ToString("F2") : "-");
+                    }
+
+                    foreach (var layer in b)
+                    {
+                        if (a.Find(l => l.Name == layer.Name) == null)
+                        {
+                            Console.WriteLine("{0,-16} {1,12} {2,12:F2}", layer.Name, "-", layer.SharePercent);
+                        }
+                    }
+                }
+
+                Console.WriteLine();
+            }
+
             FsaResult result = analyzer.Analyze(rd.EnergySpectrum, background, rd.FwhmCalibration,
                                                 library, FsaEfficiency.FromConfig(rd.Efficiency));
             if (result == null)
@@ -142,20 +218,20 @@ namespace FsaPaletteProbe
 
             public static readonly Style[] All =
             {
-                new Style { Name = "now", Comment = "как сейчас", Assign = AssignNow },
-                new Style { Name = "named", Comment = "производные образы названы в палитре", Assign = AssignNamed },
-                new Style { Name = "free", Comment = "плюс fallback без пересечений", Assign = AssignFree },
-                new Style { Name = "category", Comment = "плюс категория различается видом заливки", Assign = AssignCategory }
+                new Style { Name = "app", Comment = "палитра приложения", Assign = AssignApp }
             };
         }
 
-        /// <summary>Рабочая палитра приложения — контрольный снимок.</summary>
-        static Dictionary<string, Look> AssignNow(List<FsaStackLayer> layers)
+        /// <summary>Палитра приложения — та самая, что рисует график.</summary>
+        static Dictionary<string, Look> AssignApp(List<FsaStackLayer> layers)
         {
             var map = new Dictionary<string, Look>(StringComparer.OrdinalIgnoreCase);
-            for (int k = 0; k < layers.Count; k++)
+            Dictionary<string, Color> colors = FsaPalette.Assign(layers.ConvertAll(l => l.Name));
+            foreach (FsaStackLayer layer in layers)
             {
-                map[layers[k].Name] = new Look { Fill = FsaPalette.ColorOf(layers[k].Name, k) };
+                Color color;
+                colors.TryGetValue(layer.Name, out color);
+                map[layer.Name] = new Look { Fill = color };
             }
 
             return map;

@@ -218,6 +218,47 @@ namespace BecquerelMonitor
             return new FWHMPeakDetectionMethodConfig(this);
         }
 
+        /// <summary>
+        /// Настройки поиска пиков из конфигурации ПРИБОРА — в спектр, с
+        /// сохранением того, что принадлежит спектру.
+        ///
+        /// У спектра эти настройки свои: в панели поиска пиков SNR и допуск
+        /// правятся для одного спектра, а не для всех разом. Копия снималась
+        /// один раз, при открытии документа (см. DocumentManager), и правка на
+        /// вкладке Analysis до уже открытого спектра не доходила вовсе.
+        ///
+        /// Две вещи правка прибора не отменяет:
+        ///
+        /// * <see cref="FwhmCalibration"/> вместе с формой пика — она
+        ///   подбирается ПО ЭТОМУ спектру своим редактором и лежит в его файле;
+        ///   ровно так же её сохраняет <c>DocEnergySpectrum.CreateResultData</c>,
+        ///   перекрывая ею калибровку из конфигурации прибора;
+        /// * <see cref="Enabled"/> — это состояние кнопки показа пиков на панели
+        ///   спектра, а не настройка прибора.
+        /// </summary>
+        public static FWHMPeakDetectionMethodConfig AdoptFrom(FWHMPeakDetectionMethodConfig device,
+                                                              FWHMPeakDetectionMethodConfig spectrum)
+        {
+            if (device == null)
+            {
+                return spectrum;
+            }
+
+            FWHMPeakDetectionMethodConfig adopted = (FWHMPeakDetectionMethodConfig)device.Clone();
+            if (spectrum == null)
+            {
+                return adopted;
+            }
+
+            if (spectrum.FwhmCalibration != null)
+            {
+                adopted.FwhmCalibration = spectrum.FwhmCalibration.Clone();
+            }
+
+            adopted.Enabled = spectrum.Enabled;
+            return adopted;
+        }
+
         double tolerance = 10.0;
 
         double fwhm_at_0 = 15.0;

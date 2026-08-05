@@ -185,7 +185,48 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 layer.SharePercent = total > 0.0 ? 100.0 * Sum(layer.Curve) / total : 0.0;
             }
 
+            // Порядок: сначала нуклиды, потом всё остальное — приборные образы
+            // (рассеяние, вылеты, рентген), «прочее» и подложка. Список задаёт и
+            // стопку, и легенду разом, поэтому раскладывать их порознь нельзя:
+            // легенда, идущая не в том порядке, в каком нарисованы ленты, —
+            // отдельный способ ошибиться. Внутри каждой группы порядок прежний,
+            // по убыванию высоты.
+            // Порядок внутри группы держится на исходном номере: List.Sort
+            // неустойчива, и без него слои равного ранга перемешивались бы от
+            // запуска к запуску.
+            int[] order = new int[layers.Count];
+            for (int k = 0; k < order.Length; k++)
+            {
+                order[k] = k;
+            }
+
+            List<FsaStackLayer> source = new List<FsaStackLayer>(layers);
+            Array.Sort(order, (x, y) =>
+            {
+                int rx = LayerRank(source[x]), ry = LayerRank(source[y]);
+                return rx != ry ? rx.CompareTo(ry) : x.CompareTo(y);
+            });
+
+            layers.Clear();
+            for (int k = 0; k < order.Length; k++)
+            {
+                layers.Add(source[order[k]]);
+            }
+
             return layers;
+        }
+
+        /// <summary>0 — нуклид, 1 — приборный образ и «прочее», 2 — подложка.</summary>
+        static int LayerRank(FsaStackLayer layer)
+        {
+            if (string.Equals(layer.Name, ContinuumLayerName, StringComparison.Ordinal))
+            {
+                return 2;
+            }
+
+            return layer.Kind == FsaComponentKind.Nuisance
+                   || string.Equals(layer.Name, OtherLayerName, StringComparison.Ordinal)
+                ? 1 : 0;
         }
 
         public const string OtherLayerName = "other";

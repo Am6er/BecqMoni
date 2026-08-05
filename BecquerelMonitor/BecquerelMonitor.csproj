@@ -307,6 +307,15 @@
     <Compile Include="EfficiencyMaker\EfficiencyCalculation.cs" />
     <Compile Include="EfficiencyMaker\EfficiencyFitter.cs" />
     <Compile Include="EfficiencyMaker\EfficiencySimulator.cs" />
+    <Compile Include="ResponseMatrixForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ResponseMatrixForm.Layout.cs">
+      <DependentUpon>ResponseMatrixForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="EfficiencyMaker\ResponseMatrix.cs" />
+    <Compile Include="EfficiencyMaker\ResponseMatrixBuilder.cs" />
+    <Compile Include="EfficiencyMaker\ResponseMatrixStore.cs" />
     <Compile Include="EfficiencyMaker\GeometryModel.cs" />
     <Compile Include="EfficiencyMaker\MaterialDatabase.cs" />
     <Compile Include="EfficiencyMaker\PartialCrossSections.cs" />

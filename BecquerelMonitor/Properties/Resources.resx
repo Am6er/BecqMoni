@@ -41886,7 +41886,16 @@ Device channels: {0}, spectrum files channels: {1}</value>
     <value>β+</value>
   </data>
   <data name="NucBase.IsotopeTextBoxTooltip1" xml:space="preserve">
-    <value>Example: AM-241, AM241, 241AM. Isomer: PA234m1, 234PAm1, PA-234m1</value>
+    <value>Example: AM-241, AM241, 241AM. Isomer: PA234m1, 234PAm1, PA-234m1. An element symbol without a mass number (W, Pb) gives its characteristic X-rays</value>
+  </data>
+  <data name="NucBase.Fluorescence" xml:space="preserve">
+    <value>X-ray fluorescence</value>
+  </data>
+  <data name="NucBase.FluorescenceTitle" xml:space="preserve">
+    <value>Characteristic X-rays</value>
+  </data>
+  <data name="NucBase.NoFluorescence" xml:space="preserve">
+    <value>The database has no K-shell fluorescence for {0}. The table covers elements from Z = 30: below that there is no L2/L3 edge pair to compute the line energies from.</value>
   </data>
   <data name="CombineEmptySpectrum" xml:space="preserve">
     <value>Open spectrum first, then select Combine menu to another spectrum file.</value>
@@ -42557,6 +42566,9 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="EfficiencyMakerSetTooFewLines" xml:space="preserve">
     <value>it holds {0} usable line(s), and at least two are needed - one line has nothing to be compared with.</value>
   </data>
+  <data name="EfficiencyMakerSetElementXray" xml:space="preserve">
+    <value>Another {0} line(s) are element X-ray fluorescence: {1}. Their intensity is a share within the K series, not a yield per decay, so the curve does not use them.</value>
+  </data>
   <data name="EfficiencyMakerSetDuplicateName" xml:space="preserve">
     <value>another set with the same name comes first.</value>
   </data>
@@ -42736,5 +42748,91 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="EfficiencyMakerDeviceGoneQuestion" xml:space="preserve">
     <value>{0} of the chosen spectra carry no FWHM calibration, and the device configuration they refer to is not in your config ({1}). Both calibrations come from it, so the substitute is yours to name:</value>
+  </data>
+  <data name="EfficiencyTabResponseMatrix" xml:space="preserve">
+    <value>Response matrix...</value>
+  </data>
+  <data name="ResponseMatrixTitle" xml:space="preserve">
+    <value>Response matrix</value>
+  </data>
+  <data name="ResponseMatrixStateMissing" xml:space="preserve">
+    <value>Not computed for this geometry.</value>
+  </data>
+  <data name="ResponseMatrixStateStale" xml:space="preserve">
+    <value>Out of date: the geometry or the settings have changed since it was computed. Recompute it.</value>
+  </data>
+  <data name="ResponseMatrixStateValid" xml:space="preserve">
+    <value>Valid for the current geometry.</value>
+  </data>
+  <data name="ResponseMatrixNoGeometry" xml:space="preserve">
+    <value>This efficiency curve has no geometry, so a response matrix cannot be computed.</value>
+  </data>
+  <data name="ResponseMatrixDetails" xml:space="preserve">
+    <value>Nodes: {0} from {1:F0} to {2:F0} keV
+Bin: {3:F0} keV, histories per node: {4}
+Data: {5:F0} KB, file: {6:F0} KB
+Computed: {7}, took {8:F0} s</value>
+  </data>
+  <data name="ResponseMatrixParameters" xml:space="preserve">
+    <value>Parameters</value>
+  </data>
+  <data name="ResponseMatrixMinEnergy" xml:space="preserve">
+    <value>From, keV:</value>
+  </data>
+  <data name="ResponseMatrixMaxEnergy" xml:space="preserve">
+    <value>to, keV:</value>
+  </data>
+  <data name="ResponseMatrixNodes" xml:space="preserve">
+    <value>Nodes:</value>
+  </data>
+  <data name="ResponseMatrixBin" xml:space="preserve">
+    <value>Bin, keV:</value>
+  </data>
+  <data name="ResponseMatrixHistories" xml:space="preserve">
+    <value>Histories per node:</value>
+  </data>
+  <data name="ResponseMatrixThreads" xml:space="preserve">
+    <value>Threads:</value>
+  </data>
+  <data name="ResponseMatrixEstimate" xml:space="preserve">
+    <value>Estimated time: about {0}</value>
+  </data>
+  <data name="ResponseMatrixEstimating" xml:space="preserve">
+    <value>Estimating...</value>
+  </data>
+  <data name="ResponseMatrixCompute" xml:space="preserve">
+    <value>Compute</value>
+  </data>
+  <data name="ResponseMatrixRecompute" xml:space="preserve">
+    <value>Recompute</value>
+  </data>
+  <data name="ResponseMatrixCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="ResponseMatrixSave" xml:space="preserve">
+    <value>Save to the current geometry</value>
+  </data>
+  <data name="ResponseMatrixClose" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="ResponseMatrixProgress" xml:space="preserve">
+    <value>Node {0} of {1}, {2:F0} keV. Elapsed {3}, about {4} left.</value>
+  </data>
+  <data name="ResponseMatrixDone" xml:space="preserve">
+    <value>Done in {0}. Not saved yet.</value>
+  </data>
+  <data name="ResponseMatrixCancelled" xml:space="preserve">
+    <value>Cancelled.</value>
+  </data>
+  <data name="ResponseMatrixSaved" xml:space="preserve">
+    <value>Saved: {0}</value>
+  </data>
+  <data name="ResponseMatrixFailed" xml:space="preserve">
+    <value>Could not compute the matrix: {0}</value>
+  </data>
+  <data name="ResponseMatrixWhatFor" xml:space="preserve">
+    <value>The matrix describes how the detector spreads the energy of a photon that hits it: the full-energy peak, the Compton plateau, the escape peaks. Full-spectrum analysis uses it to model the continuum of each nuclide instead of leaving it to a free baseline.
+
+The matrix is stored next to the device configuration, one file per geometry, and does not travel inside spectrum files.</value>
   </data>
 </root>

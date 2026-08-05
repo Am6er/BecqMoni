@@ -1,6 +1,7 @@
 using BecquerelMonitor;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text;
 
 namespace EfficiencyListProbe
@@ -22,6 +23,15 @@ namespace EfficiencyListProbe
     ///     показывалась строка ПРИБОРА с его именем, а стоило переключиться на
     ///     другую — родная исчезала совсем, и вернуться к ней было нечем.
     ///
+    ///  3. Список кривых спрашивает не только панель измерения: диалог «нет
+    ///     кривой эффективности» перед разложением (FSA) составлял свой,
+    ///     который не знал ни родной кривой спектра, ни живой конфигурации
+    ///     прибора — у спектра с кривой ИЗ ФАЙЛА и прибором без кривых выбирать
+    ///     было не из чего вовсе. Оба места теперь зовут один составитель и
+    ///     один <see cref="DCControlPanel.EfficiencyFromItem"/>; здесь
+    ///     проверяется и он: способ присвоения (та же ссылка против копии) и
+    ///     есть вся разница между «родной» и «кривой прибора».
+    ///
     ///   efflistprobe
     /// </summary>
     static class Program
@@ -36,8 +46,11 @@ namespace EfficiencyListProbe
             SameGuidStillDistinct();
             SwitchingAwayKeepsOwn();
             DeviceCurveShownWhenSpectrumHasNone();
+            OwnCurveShownWhenDeviceHasNone();
             ForeignCurveSurvives();
             NoCurveAtAll();
+            ChosenItemBecomesEfficiency();
+            PanelHearsTheDocument();
 
             Console.WriteLine();
             Console.WriteLine(failed == 0 ? "ВСЕ СОШЛИСЬ" : "РАСХОЖДЕНИЙ: " + failed);
@@ -150,6 +163,28 @@ namespace EfficiencyListProbe
         }
 
         /// <summary>
+        /// Обратный случай, и на нём поймали диалог разложения: кривая есть
+        /// только В ФАЙЛЕ спектра, у прибора её нет вовсе. Список обязан
+        /// показать родную — иначе выбирать не из чего, а кривая-то есть.
+        ///
+        /// Спектр при этом БЕЗ выбранной кривой (current == null): именно так и
+        /// приходят в диалог, он для того и открывается.
+        /// </summary>
+        static void OwnCurveShownWhenDeviceHasNone()
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== Кривая только в файле, у прибора ни одной");
+            EfficiencyConfigData own = Curve("7c7ed64b", "Точка");
+            int selected;
+            List<object> items = DCControlPanel.BuildEfficiencyItems(
+                null, own, Device(), out selected);
+
+            Same("строк в списке", items.Count, 2);
+            IsOwn("родная кривая предложена", items[1], "Точка");
+            Same("выбрано «нет»", selected, 0);
+        }
+
+        /// <summary>
         /// Кривая, которой нет ни в файле, ни у прибора, — по ней всё равно
         /// сейчас считается активность, и молча выбросить её нельзя.
         /// </summary>
@@ -175,6 +210,133 @@ namespace EfficiencyListProbe
             List<object> items = DCControlPanel.BuildEfficiencyItems(null, null, null, out selected);
             Same("строк в списке", items.Count, 1);
             Same("выбрано «нет»", selected, 0);
+        }
+
+        /// <summary>
+        /// Что ложится в спектр по выбранной строке. Проверяется способ
+        /// присвоения, а не значения: родная кривая — ТА ЖЕ ссылка (по ней и
+        /// узнают «выбрана родная»), кривая прибора — копия (правка её у
+        /// прибора не должна задним числом менять посчитанную активность).
+        /// Строки списка берутся у самого составителя — так проверяется вся
+        /// связка, а не выдуманные объекты.
+        /// </summary>
+        static void ChosenItemBecomesEfficiency()
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== Выбранная строка — в спектр");
+            EfficiencyConfigData own = Curve("7c7ed64b", "Точка");
+            EfficiencyConfigData device = Curve("aaaa", "Цилиндр1");
+            int selected;
+            List<object> items = DCControlPanel.BuildEfficiencyItems(
+                null, own, Device(device), out selected);
+
+            if (DCControlPanel.EfficiencyFromItem(items[0]) != null)
+            {
+                Fail("строка «нет кривой» дала кривую");
+            }
+            else
+            {
+                Console.WriteLine("    ок: «нет кривой» — кривой нет");
+            }
+
+            EfficiencyConfigData got = DCControlPanel.EfficiencyFromItem(items[1]);
+            if (!object.ReferenceEquals(got, own))
+            {
+                Fail("родная кривая пришла копией — признак «выбрана родная» потерян,"
+                     + " спектр будет помечен изменённым на пустом месте");
+            }
+            else
+            {
+                Console.WriteLine("    ок: родная кривая — тем же объектом");
+            }
+
+            got = DCControlPanel.EfficiencyFromItem(items[2]);
+            if (got == null || object.ReferenceEquals(got, device))
+            {
+                Fail("кривая прибора пришла ссылкой — правка у прибора меняла бы"
+                     + " активность уже измеренного спектра");
+            }
+            else if (got.Guid != device.Guid)
+            {
+                Fail("кривая прибора пришла не той: " + got.Guid);
+            }
+            else
+            {
+                Console.WriteLine("    ок: кривая прибора — копией");
+            }
+        }
+
+        /// <summary>
+        /// У сигнала есть потребитель. Кривую можно сменить и из документа —
+        /// диалогом перед разложением, — а панель управления измерением
+        /// обновляет ряд «Efficiency» только по <c>ShowDocumentStatus</c>, на
+        /// своих же событиях. Поэтому документ говорит событием
+        /// <c>EfficiencyChanged</c>, а `MainForm` обязан на него подписаться и
+        /// отписаться. Заведённое событие, на которое никто не подписан, —
+        /// ошибка того же вида, что и здесь чинилась: на экране «(none)» при
+        /// работающей кривой, и ни компилятор, ни глаз кода этого не видят.
+        ///
+        /// Проверка грубая: в теле <c>SubscribeDocumentEvent</c> ищется вызов
+        /// <c>add_EfficiencyChanged</c>, в <c>UnsubscribeDocumentEvent</c> —
+        /// <c>remove_</c>. Собрать `MainForm` без окна нельзя, а больше о
+        /// подписке спросить негде.
+        /// </summary>
+        static void PanelHearsTheDocument()
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== Событие смены кривой слышит панель");
+            if (typeof(DocEnergySpectrum).GetEvent("EfficiencyChanged") == null)
+            {
+                Fail("события EfficiencyChanged у документа нет");
+                return;
+            }
+
+            Console.WriteLine("    ок: событие у документа есть");
+            Type main = typeof(DocEnergySpectrum).Assembly.GetType("BecquerelMonitor.MainForm");
+            Calls(main, "SubscribeDocumentEvent", "add_EfficiencyChanged");
+            Calls(main, "UnsubscribeDocumentEvent", "remove_EfficiencyChanged");
+        }
+
+        /// <summary>
+        /// Зовёт ли метод <paramref name="callee"/>. Тело читается как байты, и
+        /// токены разбираются подряд — разметку IL проба не строит: ложное
+        /// совпадение должно было бы разрешиться в метод РОВНО с этим именем,
+        /// чего случайным числом не бывает.
+        /// </summary>
+        static void Calls(Type type, string method, string callee)
+        {
+            MethodInfo info = type == null ? null : type.GetMethod(method,
+                BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+            if (info == null)
+            {
+                Fail("метода " + method + " в MainForm нет");
+                return;
+            }
+
+            byte[] il = info.GetMethodBody().GetILAsByteArray();
+            for (int i = 0; i + 4 < il.Length; i++)
+            {
+                if (il[i] != 0x28 && il[i] != 0x6F)
+                {
+                    continue;   // не call и не callvirt
+                }
+
+                try
+                {
+                    MethodBase target = type.Module.ResolveMethod(BitConverter.ToInt32(il, i + 1));
+                    if (target != null && target.Name == callee)
+                    {
+                        Console.WriteLine("    ок: {0} зовёт {1}", method, callee);
+                        return;
+                    }
+                }
+                catch (Exception)
+                {
+                    // Не всякая четвёрка байт — токен: смещение угадано неверно.
+                }
+            }
+
+            Fail(method + " не зовёт " + callee + " — сигнал заведён, читателя нет");
         }
 
         // --------------------------------------------------------------

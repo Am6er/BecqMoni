@@ -1,4 +1,5 @@
 using BecquerelMonitor.EfficiencyMaker;
+using GadrasShared;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -85,10 +86,10 @@ namespace GadrasProbe
             foreach (string sub in Directory.GetDirectories(dir))
             {
                 string name = Path.GetFileName(sub);
-                Detector det;
+                GadrasDetector det;
                 try
                 {
-                    det = Detector.Read(sub, name);
+                    det = GadrasDetector.Read(sub, name);
                 }
                 catch (Exception e)
                 {
@@ -118,10 +119,8 @@ namespace GadrasProbe
                 }
                 var sim = new EfficiencySimulator(model) { Histories = histories };
 
-                double rDet = 0.5 * det.CrystalWidthCm;
                 double dSrc = det.DistanceCm + det.SetbackCm;
-                // Доля телесного угла диска радиуса rDet с оси на расстоянии d.
-                double omega = 0.5 * (1.0 - dSrc / Math.Sqrt(dSrc * dSrc + rDet * rDet));
+                double omega = det.SolidAngleFraction;
 
                 Console.WriteLine();
                 Console.WriteLine("=== {0}: {1}, D {2:F2} см, H {3:F2} см, окно {4:F2} г/см2 (Z {5}),"
@@ -132,7 +131,7 @@ namespace GadrasProbe
 
                 foreach (double e in Grid)
                 {
-                    double refPct = det.Reference(e);
+                    double refPct = det.Reference(GadrasDetector.Column.Peak, e);
                     if (double.IsNaN(refPct))
                         continue;
 
@@ -159,159 +158,5 @@ namespace GadrasProbe
             return 0;
         }
 
-        /// <summary>Типовой детектор GADRAS: параметры плюс эталонная кривая.</summary>
-        sealed class Detector
-        {
-            public string Name;
-            public string CrystalName;
-            public double CrystalLengthCm;   // строка 10 Detector.dat: det. length
-            public double CrystalWidthCm;    // строка 11: det. width — это ДИАМЕТР
-            public double WindowZ;           // строка 14: attenuator Z (бывает дробным)
-            public double WindowArealDensity;// строка 15: attenuator g/cm2
-            public double DistanceCm;        // строка 17: distance
-            public double SetbackCm;         // строка 40: det setback
-
-            readonly List<double> energies = new List<double>();
-            readonly List<double> peakPct = new List<double>();
-
-            public static Detector Read(string dir, string name)
-            {
-                var d = new Detector { Name = name };
-
-                // Detector.dat: «номер  значение  флаг  подпись», фиксированной
-                // ширины. Разбираем по номеру строки — подписи в разных файлах
-                // обрезаны по-разному.
-                foreach (string line in File.ReadAllLines(Path.Combine(dir, "Detector.dat")))
-                {
-                    string[] parts = line.Split(new[] { ' ', '\t' },
-                                                StringSplitOptions.RemoveEmptyEntries);
-                    int idx;
-                    double val;
-                    if (parts.Length < 2
-                        || !int.TryParse(parts[0], NumberStyles.Integer,
-                                         CultureInfo.InvariantCulture, out idx)
-                        || !double.TryParse(parts[1], NumberStyles.Float,
-                                            CultureInfo.InvariantCulture, out val))
-                        continue;
-
-                    switch (idx)
-                    {
-                        case 10: d.CrystalLengthCm = val; break;
-                        case 11: d.CrystalWidthCm = val; break;
-                        case 14: d.WindowZ = val; break;
-                        case 15: d.WindowArealDensity = val; break;
-                        case 17: d.DistanceCm = val; break;
-                        case 40: d.SetbackCm = val; break;
-                    }
-                }
-
-                // Efficiency.csv: две строки шапки, дальше энергия и проценты;
-                // второй столбец — пик полного поглощения.
-                string[] rows = File.ReadAllLines(Path.Combine(dir, "Efficiency.csv"));
-                for (int i = 2; i < rows.Length; i++)
-                {
-                    string[] cells = rows[i].Split(',');
-                    double e, p;
-                    if (cells.Length < 2
-                        || !double.TryParse(cells[0], NumberStyles.Float,
-                                            CultureInfo.InvariantCulture, out e)
-                        || !double.TryParse(cells[1], NumberStyles.Float,
-                                            CultureInfo.InvariantCulture, out p))
-                        continue;
-                    d.energies.Add(e);
-                    d.peakPct.Add(p);
-                }
-                if (d.energies.Count == 0)
-                    throw new InvalidDataException("пустая Efficiency.csv");
-
-                d.CrystalName = CrystalOf(name);
-                return d;
-            }
-
-            /// <summary>Эталон в узле сетки: линейная вставка по логарифму энергии.</summary>
-            public double Reference(double energyKev)
-            {
-                if (energyKev < energies[0] || energyKev > energies[energies.Count - 1])
-                    return double.NaN;
-                for (int i = 1; i < energies.Count; i++)
-                {
-                    if (energyKev > energies[i])
-                        continue;
-                    double t = (Math.Log(energyKev) - Math.Log(energies[i - 1]))
-                             / (Math.Log(energies[i]) - Math.Log(energies[i - 1]));
-                    return peakPct[i - 1] + t * (peakPct[i] - peakPct[i - 1]);
-                }
-                return peakPct[peakPct.Count - 1];
-            }
-
-            static string CrystalOf(string name)
-            {
-                if (name.StartsWith("NaI", StringComparison.OrdinalIgnoreCase)) return "NaI";
-                if (name.StartsWith("LaBr", StringComparison.OrdinalIgnoreCase)) return "LaBr3";
-                if (name.StartsWith("HPGe", StringComparison.OrdinalIgnoreCase)) return "HPGe";
-                throw new InvalidDataException("неизвестный кристалл в имени «" + name + "»");
-            }
-
-            public GeometryModel ToModel()
-            {
-                var m = new GeometryModel
-                {
-                    Name = "GADRAS " + Name,
-                    // Сплошной цилиндр всегда, в том числе у германия: коаксиальную
-                    // ветвь модель не разбирает (см. GeometryModel), а у настоящего
-                    // коаксиала внутри дырка. Значит германиевые числа здесь —
-                    // ВЕРХНЯЯ оценка, и расхождение с GADRAS ожидаемо в эту сторону.
-                    IsScintillator = true,
-                    SourceType = GeometrySourceType.Point,
-                    Shape = CrystalShape.Cylinder,
-                    // Модель — в МИЛЛИМЕТРАХ (см. GeometryModel.MmPerCm).
-                    CrystalDiameter = CrystalWidthCm * GeometryModel.MmPerCm,
-                    CrystalHeight = CrystalLengthCm * GeometryModel.MmPerCm,
-                    PointDistance = (DistanceCm + SetbackCm) * GeometryModel.MmPerCm
-                };
-
-                // ByName ищет по ПОЛНОМУ имени («Sodium iodide»), а у нас на руках
-                // сокращение — берём из списка кристаллов по Abbr.
-                GeometryMaterialLibrary.Entry crystal = null;
-                foreach (GeometryMaterialLibrary.Entry entry in
-                         GeometryMaterialLibrary.Of(GeometryMaterialLibrary.MaterialKind.Crystal))
-                {
-                    if (string.Equals(entry.Abbr, CrystalName, StringComparison.OrdinalIgnoreCase))
-                    {
-                        crystal = entry;
-                        break;
-                    }
-                }
-                if (crystal == null)
-                    throw new InvalidDataException("нет вещества «" + CrystalName + "» в библиотеке");
-                m.Crystal = GeometryMaterialLibrary.Make(crystal, crystal.Density);
-
-                // Входное окно. У GADRAS оно задано эффективным Z и
-                // поверхностной плотностью; дробный Z (10.3, 13.6) — усреднение
-                // по составу корпуса, целого вещества за ним нет. Берём ближайший
-                // целый Z и собираем однокомпонентное вещество прямо здесь.
-                //
-                // Плотность взята условной: ослабление зависит только от
-                // произведения ρ·t, а оно и есть заданная поверхностная
-                // плотность, поэтому любое ρ с согласованной толщиной даёт ту же
-                // физику. Единственное, на что ρ ещё влияет, — где именно внутри
-                // окна произошло взаимодействие, а окно тонкое.
-                int z = (int)Math.Round(WindowZ);
-                if (z > 0 && WindowArealDensity > 0.0)
-                {
-                    const double windowDensity = 2.7;   // г/см3, условная
-                    var win = new GeometryMaterial
-                    {
-                        Name = GeometryMaterialLibrary.SymbolOf(z) ?? ("Z" + z),
-                        Density = windowDensity
-                    };
-                    win.Fractions[z] = 1.0;
-                    m.Cladding = win;
-                    m.FrontCladdingThickness =
-                        WindowArealDensity / windowDensity * GeometryModel.MmPerCm;
-                }
-                return m;
-            }
-        }
     }
 }
