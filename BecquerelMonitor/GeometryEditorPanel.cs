@@ -605,6 +605,29 @@ namespace BecquerelMonitor
             add("MarinelliSourceHeight", g => g.MarinelliSourceHeight, (g, v) => g.MarinelliSourceHeight = v);
             add("MarinelliToDetectorDistance", g => g.MarinelliToDetectorDistance,
                 (g, v) => g.MarinelliToDetectorDistance = v);
+
+            // Прямоугольная кювета. Пока её размеров в модели нет, поля
+            // открываются цилиндрическими — так же, как брусок кристалла
+            // подставляет габариты цилиндра: иначе переключение типа источника
+            // показывает пустые поля, а первое же сохранение делает из них нули.
+            // Сторона по умолчанию равна диаметру, а не стороне равной площади:
+            // пользователь меряет кювету линейкой, и подсказка должна быть той
+            // величиной, которую он в неё впишет.
+            add("BoxSourceX", g => g.BoxSourceX > 0.0 ? g.BoxSourceX : g.BeakerDiameter,
+                (g, v) => g.BoxSourceX = v);
+            add("BoxSourceY", g => g.BoxSourceY > 0.0 ? g.BoxSourceY : g.BeakerDiameter,
+                (g, v) => g.BoxSourceY = v);
+            add("BoxSourceHeight", g => g.BoxSourceHeight > 0.0 ? g.BoxSourceHeight : g.SourceHeight,
+                (g, v) => g.BoxSourceHeight = v);
+            add("BoxSideWallThickness",
+                g => g.BoxSideWallThickness > 0.0 ? g.BoxSideWallThickness : g.BeakerSideWallThickness,
+                (g, v) => g.BoxSideWallThickness = v);
+            add("BoxEndWallThickness",
+                g => g.BoxEndWallThickness > 0.0 ? g.BoxEndWallThickness : g.BeakerEndWallThickness,
+                (g, v) => g.BoxEndWallThickness = v);
+            add("BoxToDetectorDistance",
+                g => g.BoxToDetectorDistance > 0.0 ? g.BoxToDetectorDistance : g.BeakerToDetectorDistance,
+                (g, v) => g.BoxToDetectorDistance = v);
             return map;
         }
 
