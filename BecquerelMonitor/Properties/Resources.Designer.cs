@@ -3062,6 +3062,36 @@ namespace BecquerelMonitor.Properties {
             }
         }
         
+        public static string GeometrySourceBox {
+            get {
+                return ResourceManager.GetString("GeometrySourceBox", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorSourceBox {
+            get {
+                return ResourceManager.GetString("GeometryEditorSourceBox", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorBoxSourceX {
+            get {
+                return ResourceManager.GetString("GeometryEditorBoxSourceX", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorBoxSourceY {
+            get {
+                return ResourceManager.GetString("GeometryEditorBoxSourceY", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencySketchBoxSource {
+            get {
+                return ResourceManager.GetString("EfficiencySketchBoxSource", resourceCulture);
+            }
+        }
+        
         public static string GeometrySourceMarinelli {
             get {
                 return ResourceManager.GetString("GeometrySourceMarinelli", resourceCulture);

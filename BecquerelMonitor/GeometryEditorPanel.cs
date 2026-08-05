@@ -48,7 +48,7 @@ namespace BecquerelMonitor
         RadioButton boxRadio;
         Label equivalentLabel;
         ComboBox sourceTypeCombo;
-        Panel pointPanel, cylinderPanel, marinelliPanel;
+        Panel pointPanel, cylinderPanel, marinelliPanel, boxPanel;
         Panel sourceMaterialsPanel;
         Panel cylinderSizePanel, boxSizePanel;
         ComboBox presetCombo;
@@ -372,6 +372,7 @@ namespace BecquerelMonitor
             this.sourceTypeCombo.Items.Add(Resources.GeometryEditorSourcePoint);
             this.sourceTypeCombo.Items.Add(Resources.GeometryEditorSourceCylinder);
             this.sourceTypeCombo.Items.Add(Resources.GeometryEditorSourceMarinelli);
+            this.sourceTypeCombo.Items.Add(Resources.GeometryEditorSourceBox);
             this.sourceTypeCombo.SelectedIndexChanged += this.SourceTypeChanged;
             page.Controls.Add(typeLabel);
             page.Controls.Add(this.sourceTypeCombo);
@@ -404,6 +405,18 @@ namespace BecquerelMonitor
             this.Row(this.marinelliPanel, ref y, "MarinelliSourceHeight", Resources.GeometryEditorSourceHeight);
             this.Row(this.marinelliPanel, ref y, "MarinelliToDetectorDistance", Resources.GeometryEditorBeakerToDetector);
             page.Controls.Add(this.marinelliPanel);
+
+            // Прямоугольная кювета. Поля те же, что у цилиндрической, только
+            // вместо диаметра две стороны — их и меряют на приборе, полными.
+            this.boxPanel = new Panel { Location = new Point(0, 44), Size = new Size(620, 170), Visible = false };
+            y = 0;
+            this.Row(this.boxPanel, ref y, "BoxSourceX", Resources.GeometryEditorBoxSourceX);
+            this.Row(this.boxPanel, ref y, "BoxSourceY", Resources.GeometryEditorBoxSourceY);
+            this.Row(this.boxPanel, ref y, "BoxSideWallThickness", Resources.GeometryEditorBeakerSideWall);
+            this.Row(this.boxPanel, ref y, "BoxEndWallThickness", Resources.GeometryEditorBeakerEndWall);
+            this.Row(this.boxPanel, ref y, "BoxSourceHeight", Resources.GeometryEditorSourceHeight);
+            this.Row(this.boxPanel, ref y, "BoxToDetectorDistance", Resources.GeometryEditorBeakerToDetector);
+            page.Controls.Add(this.boxPanel);
 
             // Вещества стоят под ТЕМ, что сейчас показано, а не под самым
             // высоким из трёх: у точечного источника одно поле, у маринелли
@@ -628,7 +641,8 @@ namespace BecquerelMonitor
                 this.boxRadio.Checked = g.Shape == CrystalShape.Box;
                 this.cylinderRadio.Checked = g.Shape != CrystalShape.Box;
                 this.sourceTypeCombo.SelectedIndex =
-                    g.SourceType == GeometrySourceType.Marinelli ? 2
+                    g.SourceType == GeometrySourceType.Box ? 3
+                    : g.SourceType == GeometrySourceType.Marinelli ? 2
                     : g.SourceType == GeometrySourceType.Cylinder ? 1 : 0;
             }
             finally
@@ -846,12 +860,14 @@ namespace BecquerelMonitor
             this.pointPanel.Visible = index == 0;
             this.cylinderPanel.Visible = index == 1;
             this.marinelliPanel.Visible = index == 2;
+            this.boxPanel.Visible = index == 3;
 
             // Вещества подтягиваются под видимый набор полей: стенка сосуда у
             // точечного источника не спрашивается вовсе, но само вещество пробы
             // нужно всегда.
             Panel shown = index == 1 ? this.cylinderPanel
                         : index == 2 ? this.marinelliPanel
+                        : index == 3 ? this.boxPanel
                         : this.pointPanel;
             if (this.sourceMaterialsPanel != null)
             {
@@ -975,7 +991,8 @@ namespace BecquerelMonitor
                 field.Write(g, this.Get(field.Key));
             }
 
-            g.SourceType = this.sourceTypeCombo.SelectedIndex == 2 ? GeometrySourceType.Marinelli
+            g.SourceType = this.sourceTypeCombo.SelectedIndex == 3 ? GeometrySourceType.Box
+                : this.sourceTypeCombo.SelectedIndex == 2 ? GeometrySourceType.Marinelli
                 : this.sourceTypeCombo.SelectedIndex == 1 ? GeometrySourceType.Cylinder
                 : GeometrySourceType.Point;
 
@@ -1031,6 +1048,12 @@ namespace BecquerelMonitor
             }
             else if (g.SourceType == GeometrySourceType.Cylinder
                      && (!(g.BeakerDiameter > 0.0) || !(g.SourceHeight > 0.0)))
+            {
+                return Resources.GeometryEditorErrorSourceSize;
+            }
+            else if (g.SourceType == GeometrySourceType.Box
+                     && (!(g.BoxSourceX > 0.0) || !(g.BoxSourceY > 0.0)
+                         || !(g.BoxSourceHeight > 0.0)))
             {
                 return Resources.GeometryEditorErrorSourceSize;
             }

@@ -42239,6 +42239,21 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="GeometrySourceCylinder" xml:space="preserve">
     <value>cylinder D={0:F1} H={1:F1} at {2:F1} mm</value>
   </data>
+  <data name="GeometrySourceBox" xml:space="preserve">
+    <value>box {0:F1}x{1:F1} H={2:F1} at {3:F1} mm</value>
+  </data>
+  <data name="GeometryEditorSourceBox" xml:space="preserve">
+    <value>Rectangular box</value>
+  </data>
+  <data name="GeometryEditorBoxSourceX" xml:space="preserve">
+    <value>Box side X</value>
+  </data>
+  <data name="GeometryEditorBoxSourceY" xml:space="preserve">
+    <value>Box side Y</value>
+  </data>
+  <data name="EfficiencySketchBoxSource" xml:space="preserve">
+    <value>Box</value>
+  </data>
   <data name="GeometrySourceMarinelli" xml:space="preserve">
     <value>Marinelli D={0:F1} Dhole={1:F1} H={2:F1} at {3:F1} mm</value>
   </data>
