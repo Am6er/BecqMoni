@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -37,7 +37,11 @@ namespace BecquerelMonitor.EfficiencyMaker
     public sealed class ResponseMatrix
     {
         /// <summary>Версия формата файла. Растёт при несовместимом изменении.</summary>
-        public const int FormatVersion = 2;
+        // 3 — строки узлов разложены по каналам исхода. Версия 2 не читается
+        // намеренно: в ней каналов нет, а достроить их из суммы нельзя, и
+        // матрица, молча притворившаяся годной, рисовала бы весь непиковый
+        // отклик одним слоем. Форма увидит «устарела» и пересчитает.
+        public const int FormatVersion = 3;
 
         /// <summary>
         /// Версия ФИЗИКИ. Поднимать при любой правке переноса, меняющей числа:
@@ -54,7 +58,21 @@ namespace BecquerelMonitor.EfficiencyMaker
         public double BinKev { get; set; }
 
         /// <summary>Строки: на узел — доли на бин. Длина строки своя у каждого узла.</summary>
+        /// <summary>
+        /// Отклик узлов, суммарный по каналам. В файле НЕ хранится — считается
+        /// из каналов при загрузке (<see cref="RebuildTotals"/>): держать в
+        /// файле и части, и их сумму значило бы однажды получить файл, где они
+        /// друг другу не отвечают.
+        /// </summary>
         public float[][] Rows { get; set; }
+
+        /// <summary>
+        /// Отклик, разложенный по каналам исхода: `[канал][узел][бин]`, канал —
+        /// <see cref="EfficiencySimulator.ResponseChannel"/>. Пустой канал
+        /// (скажем, вылет 511 у матрицы, не достающей до порога пар) хранится
+        /// как строки нулевой длины и места не занимает.
+        /// </summary>
+        public float[][][] ChannelRows { get; set; }
 
         /// <summary>Историй на узел — по нему судят о статистике бина.</summary>
         public int Histories { get; set; }
@@ -289,8 +307,32 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public void Accumulate(double[] target, double energyKev, double weight)
         {
+            this.Accumulate(target, energyKev, weight, -1);
+        }
+
+        /// <summary>
+        /// Отклик ОДНОГО канала исхода: пик, комптон, вылет 511 или вылет
+        /// K-рентгена. <paramref name="channel"/> = −1 — весь отклик разом.
+        /// </summary>
+        public void AccumulateChannel(double[] target, double energyKev, double weight, int channel)
+        {
+            this.Accumulate(target, energyKev, weight, channel);
+        }
+
+        /// <summary>Есть ли у матрицы раскладка по каналам.</summary>
+        public bool HasChannels
+        {
+            get { return this.ChannelRows != null && this.ChannelRows.Length > 0; }
+        }
+
+        void Accumulate(double[] target, double energyKev, double weight, int channel)
+        {
+            float[][] rows = channel >= 0 && this.HasChannels && channel < this.ChannelRows.Length
+                ? this.ChannelRows[channel]
+                : this.Rows;
+
             if (target == null || !(weight > 0.0) || !(energyKev > 0.0)
-                || this.Rows == null || this.Energies == null || this.Energies.Length == 0)
+                || rows == null || this.Energies == null || this.Energies.Length == 0)
             {
                 return;
             }
@@ -298,29 +340,78 @@ namespace BecquerelMonitor.EfficiencyMaker
             int hi = Array.BinarySearch(this.Energies, energyKev);
             if (hi >= 0)
             {
-                this.Stretch(this.Rows[hi], this.Energies[hi], energyKev, weight, target);
+                this.Stretch(rows[hi], this.Energies[hi], energyKev, weight, target);
                 return;
             }
 
             hi = ~hi;
             if (hi <= 0)
             {
-                this.Stretch(this.Rows[0], this.Energies[0], energyKev, weight, target);
+                this.Stretch(rows[0], this.Energies[0], energyKev, weight, target);
                 return;
             }
 
             if (hi >= this.Energies.Length)
             {
                 int last = this.Energies.Length - 1;
-                this.Stretch(this.Rows[last], this.Energies[last], energyKev, weight, target);
+                this.Stretch(rows[last], this.Energies[last], energyKev, weight, target);
                 return;
             }
 
             int lo = hi - 1;
             double span = this.Energies[hi] - this.Energies[lo];
             double t = span > 0.0 ? (energyKev - this.Energies[lo]) / span : 0.0;
-            this.Stretch(this.Rows[lo], this.Energies[lo], energyKev, weight * (1.0 - t), target);
-            this.Stretch(this.Rows[hi], this.Energies[hi], energyKev, weight * t, target);
+            this.Stretch(rows[lo], this.Energies[lo], energyKev, weight * (1.0 - t), target);
+            this.Stretch(rows[hi], this.Energies[hi], energyKev, weight * t, target);
+        }
+
+        /// <summary>
+        /// Пересчитать суммарные строки из каналов. Зовётся после построения и
+        /// после чтения файла — <see cref="Rows"/> в файле не лежит.
+        ///
+        /// Перенос строки канала на шкалу линии обязан идти по ЕЁ длине, а не
+        /// по длине суммы: длины у всех каналов узла одинаковы (все они —
+        /// раскладка одной гистограммы), и это здесь же проверяется зажимом.
+        /// </summary>
+        public void RebuildTotals()
+        {
+            if (!this.HasChannels || this.Energies == null)
+            {
+                return;
+            }
+
+            int nodes = this.Energies.Length;
+            float[][] totals = new float[nodes][];
+            for (int i = 0; i < nodes; i++)
+            {
+                int length = 0;
+                foreach (float[][] channel in this.ChannelRows)
+                {
+                    if (channel != null && i < channel.Length && channel[i] != null && channel[i].Length > length)
+                    {
+                        length = channel[i].Length;
+                    }
+                }
+
+                float[] total = new float[length];
+                foreach (float[][] channel in this.ChannelRows)
+                {
+                    if (channel == null || i >= channel.Length || channel[i] == null)
+                    {
+                        continue;
+                    }
+
+                    float[] row = channel[i];
+                    for (int b = 0; b < row.Length && b < length; b++)
+                    {
+                        total[b] += row[b];
+                    }
+                }
+
+                totals[i] = total;
+            }
+
+            this.Rows = totals;
         }
 
         /// <summary>Вклад в бин с зажатием по краям — площадь не теряется.</summary>
@@ -375,12 +466,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                     writer.Write(e);
                 }
 
-                foreach (float[] row in this.Rows)
+                // Каналы, а не сумма: сумма восстанавливается из них точно, а
+                // обратно — нет. Пустой канал занимает по четыре байта на узел.
+                writer.Write(this.ChannelRows.Length);
+                foreach (float[][] channel in this.ChannelRows)
                 {
-                    writer.Write(row.Length);
-                    foreach (float v in row)
+                    foreach (float[] row in channel)
                     {
-                        writer.Write(v);
+                        writer.Write(row.Length);
+                        foreach (float v in row)
+                        {
+                            writer.Write(v);
+                        }
                     }
                 }
             }
@@ -467,19 +564,27 @@ namespace BecquerelMonitor.EfficiencyMaker
                         matrix.Energies[i] = reader.ReadDouble();
                     }
 
-                    matrix.Rows = new float[nodes][];
-                    for (int i = 0; i < nodes; i++)
+                    int channels = reader.ReadInt32();
+                    matrix.ChannelRows = new float[channels][][];
+                    for (int c = 0; c < channels; c++)
                     {
-                        int length = reader.ReadInt32();
-                        float[] row = new float[length];
-                        for (int b = 0; b < length; b++)
+                        float[][] rows = new float[nodes][];
+                        for (int i = 0; i < nodes; i++)
                         {
-                            row[b] = reader.ReadSingle();
+                            int length = reader.ReadInt32();
+                            float[] row = new float[length];
+                            for (int b = 0; b < length; b++)
+                            {
+                                row[b] = reader.ReadSingle();
+                            }
+
+                            rows[i] = row;
                         }
 
-                        matrix.Rows[i] = row;
+                        matrix.ChannelRows[c] = rows;
                     }
 
+                    matrix.RebuildTotals();
                     return matrix;
                 }
             }

@@ -265,7 +265,10 @@ namespace BecquerelMonitor
             bool has = this.activeDeviceConfig != null
                        && this.activeDeviceConfig.EfficiencyConfigs.Count > 0;
 
-            this.efficiencyEditButton.Enabled = config != null && config.HasGeometry;
+            // «Изменить» доступно и без геометрии: это единственный способ её
+            // ДОПИСАТЬ. У кривой, восстановленной по измерениям, геометрии нет,
+            // и запертая кнопка оставляла такую кривую навсегда непересчитываемой.
+            this.efficiencyEditButton.Enabled = config != null;
             this.efficiencyRenameButton.Enabled = config != null;
             this.efficiencyDuplicateButton.Enabled = config != null;
             this.efficiencyDeleteButton.Enabled = config != null;
@@ -342,13 +345,14 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Изменить выбранную. По существу это правка её геометрии, поэтому
-        /// кнопка и доступна только у конфигурации с геометрией.
+        /// Изменить выбранную. По существу это правка её геометрии — и правка
+        /// в том числе ОТСУТСТВУЮЩЕЙ: у кривой без геометрии конструктор
+        /// открывается на заготовке, чтобы её было где дописать.
         /// </summary>
         void efficiencyEditButton_Click(object sender, EventArgs e)
         {
             EfficiencyConfigData config = this.SelectedEfficiency();
-            if (config == null || !config.HasGeometry)
+            if (config == null)
             {
                 return;
             }

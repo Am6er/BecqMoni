@@ -1,4 +1,4 @@
-using BecquerelMonitor;
+﻿using BecquerelMonitor;
 using BecquerelMonitor.EfficiencyMaker;
 using BecquerelMonitor.FullSpectrumAnalysis;
 using System;
@@ -51,8 +51,10 @@ namespace FsaPaletteProbe
 
             string spectrumPath = null, backgroundPath = null, outDir = ".", geometryPath = null;
             int width = 1400, height = 760;
+            bool rebuild = false;
             foreach (string a in args)
             {
+                if (a == "--rebuild") { rebuild = true; continue; }
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) spectrumPath = a.Substring(11);
                 else if (a.StartsWith("--background=", StringComparison.Ordinal)) backgroundPath = a.Substring(13);
                 else if (a.StartsWith("--out=", StringComparison.Ordinal)) outDir = a.Substring(6);
@@ -105,6 +107,21 @@ namespace FsaPaletteProbe
                                  && matrix.IsValidFor(rd.Efficiency.Geometry);
                     Console.WriteLine("матрица из хранилища: {0}, отпечаток {1}",
                                       matrix == null ? "нет" : "есть", valid ? "сошёлся" : "НЕ сошёлся");
+                    if (!valid && rebuild && rd.Efficiency != null && rd.Efficiency.HasGeometry)
+                    {
+                        // Пересчёт по геометрии ТОЙ ЖЕ кривой и запись в то же
+                        // хранилище — ровно то, что делает форма матрицы в
+                        // приложении. Нужно после смены формата файла: старая
+                        // матрица не читается, а считать её вручную негде.
+                        Console.WriteLine("пересчитываю матрицу по геометрии кривой...");
+                        matrix = ResponseMatrixBuilder.Build(rd.Efficiency.Geometry, new ResponseMatrixOptions(),
+                                                             null, System.Threading.CancellationToken.None);
+                        ResponseMatrixStore.Save(rd.Efficiency.Guid, matrix);
+                        valid = matrix.IsValidFor(rd.Efficiency.Geometry);
+                        Console.WriteLine("  пересчитано за {0:F0} с, отпечаток {1}",
+                                          matrix.BuildSeconds, valid ? "сошёлся" : "НЕ сошёлся");
+                    }
+
                     if (!valid)
                     {
                         return 1;

@@ -42666,7 +42666,7 @@ Device channels: {0}, spectrum files channels: {1}</value>
     <value>This device has no efficiency configuration. Activity is not calculated until one is created or imported.</value>
   </data>
   <data name="EfficiencyTabNoGeometry" xml:space="preserve">
-    <value>Curve without geometry: it can be used, but not recomputed.</value>
+    <value>Curve without geometry: add it with Edit... to recompute.</value>
   </data>
   <data name="EfficiencyTabSummary" xml:space="preserve">
     <value>{0} curve points, {1} to {2} keV</value>
