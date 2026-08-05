@@ -2768,6 +2768,9 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("FSALegendContinuum", resourceCulture);
             }
         }
+
+
+
         
         /// <summary>
         ///   Looks up a localized string similar to (no eff).

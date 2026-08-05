@@ -1105,9 +1105,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                     {
                         double kx, ky, kz;
                         this.Isotropic(out kx, out ky, out kz);
-                        return lost
-                               + this.ElectronLoss(x, y, z, e - xray, depth)
-                               + this.InCrystal(x, y, z, kx, ky, kz, xray, depth + 1);
+                        // Порядок вызовов ТОТ ЖЕ, что был до раскладки по
+                        // каналам: сначала электрон, потом рентгеновский квант.
+                        // Оба тянут случайные числа, и перестановка уводит
+                        // поток — матрица выходит другой, а кривая
+                        // эффективности перестаёт быть побитово прежней.
+                        double electron = this.ElectronLoss(x, y, z, e - xray, depth);
+                        double gone = this.InCrystal(x, y, z, kx, ky, kz, xray, depth + 1);
+                        this.lossXray += gone;
+                        return lost + electron + gone;
                     }
 
                     // фотоэлектрон уносит почти всю энергию кванта
@@ -1138,9 +1144,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 double escaped = lost + this.ElectronLoss(x, y, z, e - 2.0 * ElectronMassKev, depth);
                 double ax, ay, az;
                 this.Isotropic(out ax, out ay, out az);
-                escaped += this.InCrystal(x, y, z, ax, ay, az, ElectronMassKev, depth + 1);
-                escaped += this.InCrystal(x, y, z, -ax, -ay, -az, ElectronMassKev, depth + 1);
-                return escaped;
+                double first = this.InCrystal(x, y, z, ax, ay, az, ElectronMassKev, depth + 1);
+                double second = this.InCrystal(x, y, z, -ax, -ay, -az, ElectronMassKev, depth + 1);
+                this.lossAnnihilation += first + second;
+                return escaped + first + second;
             }
 
             return lost + e;
@@ -1433,6 +1440,95 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
+        /// Каналы отклика: по какой ПРИЧИНЕ история не попала в пик полного
+        /// поглощения. Порядок — номер строки в <see cref="ResponseByChannel"/>.
+        /// </summary>
+        public enum ResponseChannel
+        {
+            /// <summary>Полное поглощение: не вылетело ничего.</summary>
+            Peak = 0,
+            /// <summary>Утечка рассеянного кванта, электрона или тормозного.</summary>
+            Compton = 1,
+            /// <summary>Ушёл хотя бы один аннигиляционный квант 511 кэВ.</summary>
+            Escape511 = 2,
+            /// <summary>Ушёл характеристический K-рентген кристалла.</summary>
+            EscapeXray = 3
+        }
+
+        /// <summary>Сколько каналов у отклика.</summary>
+        public const int ResponseChannelCount = 4;
+
+        /// <summary>
+        /// Тот же отклик, разложенный по каналам исхода: `[канал][бин]`. Сумма
+        /// каналов побитово равна обычному <see cref="Response"/> — история
+        /// кладётся ровно в один канал, а розыгрыш от разложения не меняется.
+        ///
+        /// Канал выбирается НЕ по величине вылетевшей энергии, а по метке,
+        /// поставленной в точке события: комптон способен унести ровно 511 кэВ
+        /// случайно, и такая история села бы в чужой канал. Метки копятся по
+        /// статьям расхода, и берётся та, что унесла больше, — история, где
+        /// ушли и рентген, и рассеянный квант, принадлежит тому, чей вклад в
+        /// недобор больше.
+        /// </summary>
+        public double[][] ResponseByChannel(double energyKev, double binKev, out double relativeError)
+        {
+            if (!(energyKev > 0.0) || !(binKev > 0.0))
+            {
+                throw new ArgumentOutOfRangeException("binKev");
+            }
+
+            int bins = PeakBin(energyKev, binKev) + 1;
+            double[][] channels = new double[ResponseChannelCount][];
+            for (int c = 0; c < ResponseChannelCount; c++)
+            {
+                channels[c] = new double[bins];
+            }
+
+            this.channelHistograms = channels;
+            try
+            {
+                double[] total = new double[bins];
+                this.Run(energyKev, total, binKev, out relativeError);
+            }
+            finally
+            {
+                this.channelHistograms = null;
+            }
+
+            return channels;
+        }
+
+        // Раскладка по каналам включается на время прогона. Поле, а не
+        // параметр: раскладка нужна только матрице отклика, а `Run` зовут ещё
+        // кривая и сканирование порога, и тащить сквозь них лишний аргумент
+        // значило бы менять три подписи ради одного потребителя.
+        double[][] channelHistograms;
+
+        // Метки исхода текущей истории, кэВ. Обнуляются перед каждой.
+        double lossAnnihilation;
+        double lossXray;
+
+        /// <summary>
+        /// Канал текущей истории по меткам, набранным в точках событий.
+        /// Ничего не вылетело — пик; иначе побеждает статья, унёсшая больше.
+        /// </summary>
+        ResponseChannel ChannelOf(double escaped)
+        {
+            if (!(escaped > this.PeakHalfWidthKev))
+            {
+                return ResponseChannel.Peak;
+            }
+
+            double rest = escaped - this.lossAnnihilation - this.lossXray;
+            if (this.lossAnnihilation >= this.lossXray && this.lossAnnihilation >= rest)
+            {
+                return ResponseChannel.Escape511;
+            }
+
+            return this.lossXray >= rest ? ResponseChannel.EscapeXray : ResponseChannel.Compton;
+        }
+
+        /// <summary>
         /// Номер бина, в который попадает полное поглощение. Тем же правилом
         /// пользуется <see cref="Deposit"/> — иначе пик оказывается не в
         /// последнем бине.
@@ -1511,6 +1607,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                     }
                     else
                     {
+                        this.lossAnnihilation = 0.0;
+                        this.lossXray = 0.0;
                         double escaped = this.InCrystal(px, py, pz, ux, uy, uz, energyKev, 0);
                         if (escaped <= this.PeakHalfWidthKev)
                         {
@@ -1525,8 +1623,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                         // остаётся побитово прежней.
                         if (histogram != null)
                         {
-                            Deposit(histogram, binKev, energyKev - escaped,
-                                    weight * Math.Exp(-tau));
+                            double share = weight * Math.Exp(-tau);
+                            Deposit(histogram, binKev, energyKev - escaped, share);
+                            if (this.channelHistograms != null)
+                            {
+                                Deposit(this.channelHistograms[(int)this.ChannelOf(escaped)],
+                                        binKev, energyKev - escaped, share);
+                            }
                         }
                     }
 
@@ -1541,6 +1644,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                         }
                         else
                         {
+                            this.lossAnnihilation = 0.0;
+                            this.lossXray = 0.0;
                             double sw, scattered, sEscaped;
                             if (this.ScatteredContribution(x, y, z, ux, uy, uz, energyKev, tau,
                                                            out sw, out scattered, out sEscaped))
@@ -1549,6 +1654,23 @@ namespace BecquerelMonitor.EfficiencyMaker
                                 // энергию линии: в отклике он и должен лечь ниже
                                 // по шкале, а не в пик.
                                 Deposit(histogram, binKev, scattered - sEscaped, weight * sw);
+                                if (this.channelHistograms != null)
+                                {
+                                    // Квант рассеялся ДО кристалла и принёс
+                                    // меньше энергии линии — в пик он не попадёт
+                                    // при любом исходе внутри. Канал берётся по
+                                    // тем же меткам: если внутри ушёл рентген
+                                    // или аннигиляционный квант, история
+                                    // принадлежит им, иначе это недобор.
+                                    ResponseChannel channel = this.ChannelOf(sEscaped);
+                                    if (channel == ResponseChannel.Peak)
+                                    {
+                                        channel = ResponseChannel.Compton;
+                                    }
+
+                                    Deposit(this.channelHistograms[(int)channel],
+                                            binKev, scattered - sEscaped, weight * sw);
+                                }
                             }
                         }
                     }
@@ -1570,6 +1692,17 @@ namespace BecquerelMonitor.EfficiencyMaker
                 for (int b = 0; b < histogram.Length; b++)
                 {
                     histogram[b] /= n;
+                }
+            }
+
+            if (this.channelHistograms != null)
+            {
+                foreach (double[] channel in this.channelHistograms)
+                {
+                    for (int b = 0; b < channel.Length; b++)
+                    {
+                        channel[b] /= n;
+                    }
                 }
             }
 

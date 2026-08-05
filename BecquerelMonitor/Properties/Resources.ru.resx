@@ -1281,7 +1281,7 @@
     <value>У прибора нет ни одной конфигурации эффективности. Пока её не создадут или не импортируют, активность не считается.</value>
   </data>
   <data name="EfficiencyTabNoGeometry" xml:space="preserve">
-    <value>Кривая без геометрии: пользоваться можно, пересчитать нельзя.</value>
+    <value>Кривая без геометрии: задайте её кнопкой «Изменить…» для пересчёта.</value>
   </data>
   <data name="EfficiencyTabSummary" xml:space="preserve">
     <value>точек кривой {0}, от {1} до {2} кэВ</value>

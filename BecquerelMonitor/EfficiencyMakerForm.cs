@@ -201,12 +201,15 @@ namespace BecquerelMonitor
                 return;
             }
 
-            if (config.Geometry != null)
-            {
-                this.geometryPanel.SetModel(config.Geometry);
-                this.geometry = config.Geometry;
-                this.calculateButton.Enabled = true;
-            }
+            // Геометрии может не быть — так открывается и новая конфигурация, и
+            // кривая, восстановленная по измерениям. Тогда в поля заезжает
+            // ЗАГОТОВКА (SetModel(null) — сцинтиллятор в типичной обвязке), и
+            // считать разрешено сразу: расчёт всё равно берёт геометрию из полей,
+            // а не из того, что когда-то загрузили. Запертая кнопка означала бы,
+            // что заполнить два десятка полей можно, а нажать «Посчитать» нельзя.
+            this.geometryPanel.SetModel(config.Geometry);
+            this.geometry = this.geometryPanel.Model;
+            this.calculateButton.Enabled = true;
 
             // Кривая конфигурации становится исходной: по ней подгонка получает
             // уровень, и по ней же график рисует полосу отличий.

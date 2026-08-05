@@ -61,7 +61,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             double[] grid = options.BuildGrid();
-            float[][] rows = new float[grid.Length][];
+            float[][][] channelRows = new float[EfficiencySimulator.ResponseChannelCount][][];
+            for (int c = 0; c < channelRows.Length; c++)
+            {
+                channelRows[c] = new float[grid.Length][];
+            }
             var watch = Stopwatch.StartNew();
             int done = 0;
 
@@ -81,15 +85,28 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 EfficiencySimulator sim = MakeSimulator(geometry, options, index);
                 double relativeError;
-                double[] histogram = sim.Response(grid[index], options.BinKev, out relativeError);
+                double[][] histograms = sim.ResponseByChannel(grid[index], options.BinKev, out relativeError);
 
-                float[] row = new float[histogram.Length];
-                for (int b = 0; b < histogram.Length; b++)
+                for (int c = 0; c < histograms.Length; c++)
                 {
-                    row[b] = (float)histogram[b];
-                }
+                    double[] histogram = histograms[c];
+                    // Пустой канал (вылет 511 ниже порога пар) кладётся строкой
+                    // нулевой длины: в файле он занимает четыре байта, а не
+                    // полторы тысячи нулей на каждый узел.
+                    bool any = false;
+                    for (int b = 0; b < histogram.Length && !any; b++)
+                    {
+                        any = histogram[b] > 0.0;
+                    }
 
-                rows[index] = row;
+                    float[] row = new float[any ? histogram.Length : 0];
+                    for (int b = 0; b < row.Length; b++)
+                    {
+                        row[b] = (float)histogram[b];
+                    }
+
+                    channelRows[c][index] = row;
+                }
 
                 if (progress != null)
                 {
@@ -109,17 +126,20 @@ namespace BecquerelMonitor.EfficiencyMaker
             });
 
             watch.Stop();
-            return new ResponseMatrix
+            ResponseMatrix matrix = new ResponseMatrix
             {
                 Energies = grid,
                 BinKev = options.BinKev,
-                Rows = rows,
+                ChannelRows = channelRows,
                 Histories = options.Histories,
                 Options = options.Clone(),
                 Stamp = ResponseMatrix.ComputeStamp(geometry, options),
                 CreatedUtc = DateTime.UtcNow,
                 BuildSeconds = watch.Elapsed.TotalSeconds
             };
+
+            matrix.RebuildTotals();
+            return matrix;
         }
 
         /// <summary>
