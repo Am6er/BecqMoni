@@ -849,8 +849,16 @@ namespace BecquerelMonitor
             {
                 roi.Name = this.textBox1.Text;
                 roi.Enabled = this.checkBox1.Checked;
-                roi.BecquerelCoefficient = double.Parse(this.doubleTextBox3.Text);
-                roi.BecquerelCoefficientError = double.Parse(this.doubleTextBox4.Text);
+                // При включённом «авто» поля K показывают ДЕЙСТВУЮЩЕЕ, то есть
+                // посчитанное по кривой число (см. ShowBecquerelCoefficient).
+                // Парсить их обратно значило бы затереть сохранённый ручной K
+                // расчётным при любом сохранении конфигурации — а сохранённый
+                // и есть запасное значение на случай, когда кривой не станет.
+                if (!roi.AutoBecquerelCoefficient)
+                {
+                    roi.BecquerelCoefficient = double.Parse(this.doubleTextBox3.Text);
+                    roi.BecquerelCoefficientError = double.Parse(this.doubleTextBox4.Text);
+                }
                 roi.PeakEnergy = double.Parse(this.doubleTextBox5.Text);
                 roi.HalfLife = double.Parse(this.doubleTextBox6.Text);
                 roi.Intencity = double.Parse(this.doubleTextBox7.Text);

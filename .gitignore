@@ -5,3 +5,5 @@ BecquerelMonitor/obj/*
 *.csproj.user
 AGENTS.md
 CLAUDE.md
+__pycache__/
+*.pyc

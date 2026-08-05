@@ -56,6 +56,9 @@ namespace BecquerelMonitor
             this.columnSetHideUnknown = new XPTable.Models.CheckBoxColumn();
             this.columnSetIntensityLines = new XPTable.Models.CheckBoxColumn();
             this.tableModelSets = new XPTable.Models.TableModel();
+            this.labelAssignColor = new System.Windows.Forms.Label();
+            this.assignColorComboBox = new global::ColorComboBox.ColorComboBox();
+            this.buttonAssignColor = new System.Windows.Forms.Button();
             this.groupBoxEdit.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.tableNuclides)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.tableSets)).BeginInit();
@@ -86,6 +89,9 @@ namespace BecquerelMonitor
             this.groupBoxEdit.Controls.Add(this.buttonAddSet);
             this.groupBoxEdit.Controls.Add(this.labelSets);
             this.groupBoxEdit.Controls.Add(this.tableSets);
+            this.groupBoxEdit.Controls.Add(this.labelAssignColor);
+            this.groupBoxEdit.Controls.Add(this.assignColorComboBox);
+            this.groupBoxEdit.Controls.Add(this.buttonAssignColor);
             this.groupBoxEdit.Name = "groupBoxEdit";
             this.groupBoxEdit.TabStop = false;
             // 
@@ -206,6 +212,7 @@ namespace BecquerelMonitor
             this.columnSetHideUnknown.Alignment = XPTable.Models.ColumnAlignment.Center;
             this.columnSetHideUnknown.DrawText = false;
             this.columnSetHideUnknown.IsTextTrimmed = false;
+            this.columnSetHideUnknown.Sortable = false;
             resources.ApplyResources(this.columnSetHideUnknown, "columnSetHideUnknown");
             //
             // columnSetIntensityLines
@@ -213,10 +220,38 @@ namespace BecquerelMonitor
             this.columnSetIntensityLines.Alignment = XPTable.Models.ColumnAlignment.Center;
             this.columnSetIntensityLines.DrawText = false;
             this.columnSetIntensityLines.IsTextTrimmed = false;
+            this.columnSetIntensityLines.Sortable = false;
             resources.ApplyResources(this.columnSetIntensityLines, "columnSetIntensityLines");
             //
+            // labelAssignColor, assignColorComboBox, buttonAssignColor
+            //
+            // Ряд стоит под таблицей наборов и размечен здесь числами, а не
+            // через resources.ApplyResources: подписи берутся из общих ресурсов,
+            // где у них уже есть русская пара, и правка не требует трогать оба
+            // resx формы. Привязка Bottom|Left — та же, что у кнопок ниже:
+            // таблица растёт вместе с окном, а ряд остаётся при ней.
+            this.labelAssignColor.AutoSize = true;
+            this.labelAssignColor.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
+            this.labelAssignColor.Location = new System.Drawing.Point(6, 344);
+            this.labelAssignColor.Name = "labelAssignColor";
+            this.labelAssignColor.Text = Resources.NuclideSetAssignColor;
+            this.assignColorComboBox.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
+            this.assignColorComboBox.Location = new System.Drawing.Point(140, 340);
+            this.assignColorComboBox.Name = "assignColorComboBox";
+            this.assignColorComboBox.Size = new System.Drawing.Size(103, 23);
+            this.assignColorComboBox.Extended = true;
+            this.buttonAssignColor.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
+            this.buttonAssignColor.Location = new System.Drawing.Point(250, 340);
+            this.buttonAssignColor.Size = new System.Drawing.Size(102, 23);
+            this.buttonAssignColor.Name = "buttonAssignColor";
+            // Красить некого, пока набор не выбран, — как и у «Удалить набор».
+            this.buttonAssignColor.Enabled = false;
+            this.buttonAssignColor.Text = Resources.NuclideSetAssignColorButton;
+            this.buttonAssignColor.UseVisualStyleBackColor = true;
+            this.buttonAssignColor.Click += new System.EventHandler(this.buttonAssignColor_Click);
+            //
             // NuclideSetForm
-            // 
+            //
             resources.ApplyResources(this, "$this");
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Controls.Add(this.groupBoxEdit);
@@ -256,5 +291,8 @@ namespace BecquerelMonitor
         private XPTable.Models.CheckBoxColumn columnSetIntensityLines;
         private System.Windows.Forms.TextBox textBoxFilter;
         private System.Windows.Forms.Label labelFilter;
+        private System.Windows.Forms.Label labelAssignColor;
+        private global::ColorComboBox.ColorComboBox assignColorComboBox;
+        private System.Windows.Forms.Button buttonAssignColor;
     }
 }

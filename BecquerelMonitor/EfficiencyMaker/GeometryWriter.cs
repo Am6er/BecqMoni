@@ -102,6 +102,10 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         public static string Render(GeometryModel model)
         {
+            // Формат `.in` записан в САНТИМЕТРАХ — так его читает GMaster, и
+            // единица стоит в самой строке («= 5.03 cm»). Модель держит
+            // миллиметры, поэтому пересчёт здесь, один раз на входе.
+            model = model.InCentimeters();
             StringBuilder text = new StringBuilder();
             Action<string> line = value => text.Append(value).Append("\r\n");
             Action<string, double> cm = (key, value) => line(string.Format(

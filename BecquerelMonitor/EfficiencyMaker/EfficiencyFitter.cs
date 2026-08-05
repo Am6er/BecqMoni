@@ -1251,7 +1251,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                 file = (ResultDataFile)serializer.Deserialize(stream);
             }
 
-            ResultData data = resultIndex < file.ResultDataList.Count
+            if (file.ResultDataList == null || file.ResultDataList.Count == 0)
+            {
+                // Пустой список результатов — сказать словами, а не голым
+                // ArgumentOutOfRangeException из запасного [0].
+                throw new InvalidOperationException(string.Format(
+                    CultureInfo.CurrentCulture, Resources.ERRFileOpenFailure, path));
+            }
+
+            ResultData data = resultIndex >= 0 && resultIndex < file.ResultDataList.Count
                 ? file.ResultDataList[resultIndex]
                 : file.ResultDataList[0];
 

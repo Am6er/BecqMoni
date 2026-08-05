@@ -103,6 +103,50 @@ namespace BecquerelMonitor.EfficiencyMaker
             return massAttenuation * this.Density;
         }
 
+        /// <summary>
+        /// Ослабление БЕЗ когерентного рассеяния, 1/см. Для вещества, стоящего
+        /// на пути кванта к кристаллу.
+        ///
+        /// Полное ослабление — это формула узкого пучка: она считает только те
+        /// кванты, которые ни разу не провзаимодействовали. Для эффективности
+        /// в пике так можно ровно тогда, когда взаимодействие выводит квант из
+        /// дела. У рэлеевского рассеяния это не так: **энергия не меняется
+        /// вовсе**, и если квант после него попал в кристалл, он даст точно
+        /// такой же отсчёт в пике полного поглощения. Считать его поглощённым —
+        /// прямая ошибка, а не приближение.
+        ///
+        /// Попадёт ли он в кристалл, решает геометрия: рассеиватель в
+        /// миллиметрах от кристалла (окно, оболочка, отражатель) виден из точки
+        /// рассеяния под большим углом, и почти всё рассеянное вперёд туда и
+        /// приходит. Для дальней пробы это уже не так, и там поправка завышает
+        /// — но она мала: доля когерентного в воде падает с 13 % на 28 кэВ до
+        /// 1 % на 200.
+        ///
+        /// Малоугловой комптон из пика тоже выводит не сразу (на 60 кэВ угол
+        /// 10° отнимает 0.2 % энергии), но здесь он НЕ учитывается: для этого
+        /// нужен розыгрыш рассеяния, а не поправка к коэффициенту.
+        ///
+        /// Если парциальных сечений для элемента нет, берётся полное
+        /// ослабление: занизить пропускание безопаснее, чем угадать вычет.
+        /// </summary>
+        public double LinearAttenuationWithoutCoherent(double energyKev)
+        {
+            double massAttenuation = 0.0;
+            foreach (KeyValuePair<int, double> pair in this.Fractions)
+            {
+                double value = AttenuationData.MassAttenuation(pair.Key, energyKev);
+                if (PartialCrossSections.HasElement(pair.Key))
+                {
+                    value -= PartialCrossSections.MassCrossSection(
+                        pair.Key, energyKev, PhotonProcess.Coherent);
+                }
+
+                massAttenuation += pair.Value * Math.Max(0.0, value);
+            }
+
+            return massAttenuation * this.Density;
+        }
+
         /// <summary>Электронов на см³ — для сечения Клейна — Нишины.</summary>
         public double ElectronDensity()
         {
@@ -166,13 +210,26 @@ namespace BecquerelMonitor.EfficiencyMaker
     /// </summary>
     public sealed class GeometryModel
     {
+        /// <summary>
+        /// Сколько миллиметров в сантиметре. Все размеры модели — МИЛЛИМЕТРЫ:
+        /// так их задаёт производитель детектора и так их набирает человек
+        /// (0.13 см отражателя читаются как 1.3 мм без запинки). Плотности
+        /// остаются в г/см3 — это единица самих таблиц ослабления, и
+        /// пересчитывать её значило бы менять числа NIST.
+        ///
+        /// Сантиметры остались ровно на двух границах, и обе явные: расчёт
+        /// переноса (<see cref="EfficiencySimulator"/>) и формат `.in`
+        /// конструктора геометрий LSRM. Обе зовут <see cref="InCentimeters"/>.
+        /// </summary>
+        public const double MmPerCm = 10.0;
+
         public string Name = "";
 
         public bool IsScintillator;
 
         public GeometrySourceType SourceType;
 
-        // Кристалл, см
+        // Кристалл, мм
         public double CrystalDiameter;
         public double CrystalHeight;
 
@@ -201,7 +258,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         public double SideCladdingThickness;
         public double MountingThickness;
 
-        // Источник, см
+        // Источник, мм
         public double PointDistance;
 
         public double BeakerToDetectorDistance;
@@ -252,6 +309,75 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
+        /// Копия, у которой ВСЕ длины домножены на коэффициент. Плотности и
+        /// составы остаются как есть — они не длины.
+        ///
+        /// Перечисление полей здесь ручное, и это осознанно: MemberwiseClone
+        /// в <see cref="Clone"/> прикрывает от забытого поля при копировании, а
+        /// здесь забытое поле — это размер, который останется в чужих единицах,
+        /// и расчёт молча выдаст кривую другой геометрии. Единственная защита —
+        /// держать список рядом с объявлением полей; при добавлении размера
+        /// дописывать надо оба места.
+        /// </summary>
+        public GeometryModel Scaled(double factor)
+        {
+            GeometryModel g = this.Clone();
+
+            // Clone разбор файла намеренно не переносит, а здесь он нужен:
+            // пересчёт в сантиметры делается ровно перед записью `.in`, и
+            // писатель берёт из Raw чужие блоки файла, которых мы не показываем.
+            // Потерять их значило бы подменить их своими умолчаниями.
+            foreach (KeyValuePair<string, string> pair in this.Raw)
+            {
+                g.Raw[pair.Key] = pair.Value;
+            }
+
+            g.Warnings.AddRange(this.Warnings);
+
+            g.CrystalDiameter *= factor;
+            g.CrystalHeight *= factor;
+            g.CrystalBoxX *= factor;
+            g.CrystalBoxY *= factor;
+            g.CrystalBoxZ *= factor;
+            g.FrontReflectorThickness *= factor;
+            g.SideReflectorThickness *= factor;
+            g.FrontCladdingThickness *= factor;
+            g.SideCladdingThickness *= factor;
+            g.MountingThickness *= factor;
+
+            g.PointDistance *= factor;
+
+            g.BeakerToDetectorDistance *= factor;
+            g.BeakerDiameter *= factor;
+            g.BeakerHeight *= factor;
+            g.BeakerSideWallThickness *= factor;
+            g.BeakerEndWallThickness *= factor;
+            g.SourceHeight *= factor;
+
+            g.MarinelliBeakerDiameter *= factor;
+            g.MarinelliBeakerHeight *= factor;
+            g.MarinelliHoleDiameter *= factor;
+            g.MarinelliHoleHeight *= factor;
+            g.MarinelliSideThickness *= factor;
+            g.MarinelliEndWallThickness *= factor;
+            g.MarinelliHoleSideThickness *= factor;
+            g.MarinelliHoleEndWallThickness *= factor;
+            g.MarinelliSourceHeight *= factor;
+            g.MarinelliToDetectorDistance *= factor;
+            return g;
+        }
+
+        /// <summary>
+        /// Та же геометрия в сантиметрах. Зовут двое: расчёт переноса (сечения
+        /// в см²/г, плотности в г/см³) и запись файла `.in`, где единица см по
+        /// формату. Больше нигде сантиметров быть не должно.
+        /// </summary>
+        public GeometryModel InCentimeters()
+        {
+            return this.Scaled(1.0 / MmPerCm);
+        }
+
+        /// <summary>
         /// Все пары «ключ = значение» разобранного файла как есть.
         ///
         /// Нужны при ЗАПИСИ: редактор правит сцинтилляционную ветвь, а в файле
@@ -298,43 +424,46 @@ namespace BecquerelMonitor.EfficiencyMaker
                 : source.StartsWith("CYLINDER") ? GeometrySourceType.Cylinder
                 : GeometrySourceType.Point;
 
-            g.CrystalDiameter = Num(kv, "DS_CrystalDiameter");
-            g.CrystalHeight = Num(kv, "DS_CrystalHeight");
-            g.FrontReflectorThickness = Num(kv, "DS_CrystalFrontReflectorThickness");
-            g.SideReflectorThickness = Num(kv, "DS_CrystalSideReflectorThickness");
-            g.FrontCladdingThickness = Num(kv, "DS_CrystalFrontCladdingThickness");
-            g.SideCladdingThickness = Num(kv, "DS_CrystalSideCladdingThickness");
-            g.MountingThickness = Num(kv, "DS_DetectorMountingThickness");
+            // Размеры читаются через Len: в файле они в сантиметрах, а модель
+            // держит миллиметры. Обычный Num остаётся для того, что длиной не
+            // является, — номеров элементов и массовых долей.
+            g.CrystalDiameter = Len(kv, "DS_CrystalDiameter");
+            g.CrystalHeight = Len(kv, "DS_CrystalHeight");
+            g.FrontReflectorThickness = Len(kv, "DS_CrystalFrontReflectorThickness");
+            g.SideReflectorThickness = Len(kv, "DS_CrystalSideReflectorThickness");
+            g.FrontCladdingThickness = Len(kv, "DS_CrystalFrontCladdingThickness");
+            g.SideCladdingThickness = Len(kv, "DS_CrystalSideCladdingThickness");
+            g.MountingThickness = Len(kv, "DS_DetectorMountingThickness");
 
-            g.CrystalBoxX = Num(kv, "DS_CrystalBoxX");
-            g.CrystalBoxY = Num(kv, "DS_CrystalBoxY");
-            g.CrystalBoxZ = Num(kv, "DS_CrystalBoxZ");
+            g.CrystalBoxX = Len(kv, "DS_CrystalBoxX");
+            g.CrystalBoxY = Len(kv, "DS_CrystalBoxY");
+            g.CrystalBoxZ = Len(kv, "DS_CrystalBoxZ");
             if (g.CrystalBoxX > 0.0 && g.CrystalBoxY > 0.0 && g.CrystalBoxZ > 0.0)
             {
                 g.Shape = CrystalShape.Box;
             }
 
-            g.PointDistance = Num(kv, "pdistance");
+            g.PointDistance = Len(kv, "pdistance");
 
-            g.BeakerToDetectorDistance = Num(kv, "SC_BeakerToDetectorFrontDistance");
-            g.BeakerDiameter = Num(kv, "SC_BeakerDiameter");
-            g.BeakerHeight = Num(kv, "SC_BeakerHeight");
-            g.BeakerSideWallThickness = Num(kv, "SC_BeakerSideWallThickness");
-            g.BeakerEndWallThickness = Num(kv, "SC_BeakerEndWallThickness");
-            g.SourceHeight = Num(kv, "SC_SourceHeight");
+            g.BeakerToDetectorDistance = Len(kv, "SC_BeakerToDetectorFrontDistance");
+            g.BeakerDiameter = Len(kv, "SC_BeakerDiameter");
+            g.BeakerHeight = Len(kv, "SC_BeakerHeight");
+            g.BeakerSideWallThickness = Len(kv, "SC_BeakerSideWallThickness");
+            g.BeakerEndWallThickness = Len(kv, "SC_BeakerEndWallThickness");
+            g.SourceHeight = Len(kv, "SC_SourceHeight");
 
-            g.MarinelliBeakerDiameter = Num(kv, "SM_BeakerDiameter");
-            g.MarinelliBeakerHeight = Num(kv, "SM_BeakerHeight");
-            g.MarinelliHoleDiameter = Num(kv, "SM_BeakerHoleDiameter");
-            g.MarinelliHoleHeight = Num(kv, "SM_BeakerHoleHeight");
-            g.MarinelliSideThickness = Num(kv, "SM_BeakerSideThickness");
-            g.MarinelliEndWallThickness = Num(kv, "SM_BeakerEndWallThickness");
-            g.MarinelliHoleSideThickness = Num(kv, "SM_BeakerHoleSideThickness");
-            g.MarinelliHoleEndWallThickness = Num(kv, "SM_BeakerHoleEndWallThickness");
-            g.MarinelliSourceHeight = Num(kv, "SM_SourceHeight");
+            g.MarinelliBeakerDiameter = Len(kv, "SM_BeakerDiameter");
+            g.MarinelliBeakerHeight = Len(kv, "SM_BeakerHeight");
+            g.MarinelliHoleDiameter = Len(kv, "SM_BeakerHoleDiameter");
+            g.MarinelliHoleHeight = Len(kv, "SM_BeakerHoleHeight");
+            g.MarinelliSideThickness = Len(kv, "SM_BeakerSideThickness");
+            g.MarinelliEndWallThickness = Len(kv, "SM_BeakerEndWallThickness");
+            g.MarinelliHoleSideThickness = Len(kv, "SM_BeakerHoleSideThickness");
+            g.MarinelliHoleEndWallThickness = Len(kv, "SM_BeakerHoleEndWallThickness");
+            g.MarinelliSourceHeight = Len(kv, "SM_SourceHeight");
             // У Маринелли своё расстояние до детектора: в файле есть оба ключа,
             // и брать цилиндрический для маринеллевской геометрии нельзя.
-            g.MarinelliToDetectorDistance = Num(kv, "SM_BeakerToDetectorFrontDistance");
+            g.MarinelliToDetectorDistance = Len(kv, "SM_BeakerToDetectorFrontDistance");
 
             // Ключ типа долей у отражателя называется DS_FractionTypeReflector,
             // без Crystal, — в отличие от остальных. Так в формате.
@@ -406,7 +535,16 @@ namespace BecquerelMonitor.EfficiencyMaker
             return kv.TryGetValue(key, out v) ? v : "";
         }
 
-        /// <summary>Значение с единицей: «5.03 cm» -> 5.03. Единица всегда см.</summary>
+        /// <summary>
+        /// Размер из файла в миллиметрах: «5.03 cm» -> 50.3. Единица в файле
+        /// всегда см — так задан формат LSRM.
+        /// </summary>
+        static double Len(Dictionary<string, string> kv, string key)
+        {
+            return Num(kv, key) * MmPerCm;
+        }
+
+        /// <summary>Значение с единицей: «5.03 cm» -> 5.03, как записано.</summary>
         static double Num(Dictionary<string, string> kv, string key)
         {
             string v = Get(kv, key);

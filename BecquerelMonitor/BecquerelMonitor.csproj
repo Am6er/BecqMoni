@@ -319,6 +319,7 @@
     <Compile Include="EfficiencyMaker\GeometryWriter.cs" />
     <Compile Include="EfficiencyConfigData.cs" />
     <Compile Include="DeviceConfigForm.Efficiency.cs">
+      <DependentUpon>DeviceConfigForm.cs</DependentUpon>
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="GeometryEditorPanel.cs">

@@ -745,9 +745,6 @@ namespace BecquerelMonitor
             // десятичный разделитель на точку, а числа в лог печатает фиттер.
             CultureInfo ui = CultureInfo.CurrentUICulture;
             CultureInfo formatting = CultureInfo.CurrentCulture;
-            bool otherWasEnabled = other == this.calculateButton
-                ? this.geometry != null
-                : true;
 
             this.worker = new BackgroundWorker { WorkerReportsProgress = true };
             this.worker.DoWork += (s, args) =>
@@ -772,11 +769,19 @@ namespace BecquerelMonitor
 
                 this.progressBar.Visible = false;
                 trigger.Text = caption;
-                other.Enabled = otherWasEnabled;
+                // Обе кнопки запуска доступны всегда: в редакторе всегда лежит
+                // геометрия (см. конструктор). Прежний возврат «как было»
+                // гасил расчёт навсегда, если первым прошёл фит, — this.geometry
+                // до первого импорта пуст, хотя считать есть по чему.
+                other.Enabled = true;
                 if (args.Error != null)
                 {
                     this.statusLabel.Text = args.Error.Message;
                     AppendLog(args.Error.ToString());
+                    // Кнопки сохранения гасились на время прогона; ошибка
+                    // счёта не повод оставить несохранённую правку геометрии
+                    // без кнопки «Сохранить».
+                    this.UpdateSaveState();
                     return;
                 }
 
@@ -921,6 +926,10 @@ namespace BecquerelMonitor
                 this.statusLabel.Text = result.Error;
                 AppendLog(result.Error);
                 this.graph.SetData(this.referenceCurve, null);
+                // Кнопки сохранения гасились на время прогона — вернуть их
+                // по фактическому состоянию, иначе правка геометрии остаётся
+                // без «Сохранить» до первого удачного счёта.
+                this.UpdateSaveState();
                 return;
             }
 

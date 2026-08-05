@@ -84,6 +84,17 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// Имя прибора. Конфигурация попадает в списки выбора как есть
+        /// (PickOneForm при недостающей ПШПВ-калибровке, выбор запасной
+        /// конфигурации в конструкторе кривой), и без этого там стояло бы имя
+        /// типа на каждой строке.
+        /// </summary>
+        public override string ToString()
+        {
+            return this.name ?? "";
+        }
+
         // Token: 0x1700032C RID: 812
         // (get) Token: 0x06000C03 RID: 3075 RVA: 0x000480F8 File Offset: 0x000462F8
         // (set) Token: 0x06000C04 RID: 3076 RVA: 0x00048100 File Offset: 0x00046300

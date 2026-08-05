@@ -30,7 +30,6 @@ namespace BecquerelMonitor
         bool fsaCompletedSubscribed;
         List<FsaStackLayer> fsaLayers;
         FsaResult fsaLayersSource;
-        ROIConfigData fsaEfficiencyRoi;
 
         // Всё, что зависит только от разложения, а не от вьюпорта, считается
         // один раз на результат: кумулятивные кривые стека (низ и верх каждой
@@ -40,24 +39,6 @@ namespace BecquerelMonitor
         double[][] fsaCumulative;
         double[] fsaZeroLevel;
         double[] fsaNetSpectrum;
-
-        /// <summary>
-        /// Область с кривой эффективности, выбранная пользователем для
-        /// разложения. Нужна, когда у самого спектра кривой нет: без неё
-        /// относительные веса линий в образе неверны, и низкоэнергетическая
-        /// часть уходит фантомам.
-        /// </summary>
-        public ROIConfigData FsaEfficiencyRoi
-        {
-            get
-            {
-                return this.fsaEfficiencyRoi;
-            }
-            set
-            {
-                this.fsaEfficiencyRoi = value;
-            }
-        }
 
         bool IsFsaMode()
         {
@@ -128,7 +109,7 @@ namespace BecquerelMonitor
                 this.fsaCompletedSubscribed = true;
             }
 
-            this.fsaOverlay.EnsureUpToDate(this.activeResultData, this.backgroundEnergySpectrum != null, this.fsaEfficiencyRoi);
+            this.fsaOverlay.EnsureUpToDate(this.activeResultData, this.backgroundEnergySpectrum != null);
         }
 
         /// <summary>
@@ -526,30 +507,16 @@ namespace BecquerelMonitor
         // ------------------------------------------------------------------
 
         const int FsaTableRowHeight = 16;
-        const int FsaTableGroupGap = 6;
 
         /// <summary>Сколько строк займёт разложение в таблице курсора.</summary>
-        int FsaTableRowCount()
+        int FsaTableRowCount(FsaResult result, string status)
         {
-            if (!this.IsFsaMode())
-            {
-                return 0;
-            }
-
-            FsaResult result = this.fsaOverlay.Result;
             if (result == null)
             {
-                return string.IsNullOrEmpty(this.fsaOverlay.Status) ? 0 : 1;
+                return string.IsNullOrEmpty(status) ? 0 : 1;
             }
 
             return this.GetFsaLayers(result).Count + 1;
-        }
-
-        /// <summary>На сколько вырастет высота таблицы курсора.</summary>
-        int FsaTableHeight()
-        {
-            int rows = this.FsaTableRowCount();
-            return rows > 0 ? rows * FsaTableRowHeight + FsaTableGroupGap : 0;
         }
 
         /// <summary>
@@ -558,12 +525,11 @@ namespace BecquerelMonitor
         /// качество описания, с пометками об отсутствии кривой эффективности и
         /// об упёршемся в границу сетки дрейфе.
         /// </summary>
-        void DrawFsaRows(Graphics g, Rectangle r)
+        void DrawFsaRows(Graphics g, Rectangle r, FsaResult result, string status)
         {
-            FsaResult result = this.fsaOverlay.Result;
             if (result == null)
             {
-                g.DrawString(this.fsaOverlay.Status, this.Font, Brushes.Black, r);
+                g.DrawString(status, this.Font, Brushes.Black, r);
                 return;
             }
 
@@ -604,7 +570,12 @@ namespace BecquerelMonitor
         /// </summary>
         void DrawFsaOwnTable(Graphics g, int x, int y, int width)
         {
-            int rows = this.FsaTableRowCount();
+            // Один снимок на кадр: фон публикует результат в любой момент, и
+            // таблица, размеченная по одному состоянию, заполняется по нему же,
+            // а не по успевшему смениться.
+            FsaResult result = this.fsaOverlay.Result;
+            string status = this.fsaOverlay.Status;
+            int rows = this.FsaTableRowCount(result, status);
             if (rows == 0)
             {
                 return;
@@ -616,7 +587,7 @@ namespace BecquerelMonitor
             g.DrawRectangle(Pens.Black, x, y, width, height);
 
             Rectangle r = new Rectangle(x + 8, y + 4, width - 12, 32);
-            this.DrawFsaRows(g, r);
+            this.DrawFsaRows(g, r, result, status);
         }
     }
 }

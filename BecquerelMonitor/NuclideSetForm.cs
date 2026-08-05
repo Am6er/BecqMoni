@@ -130,7 +130,91 @@ namespace BecquerelMonitor
             }
 
             this.buttonDeleteSet.Enabled = this.selectedSet != null;
+            this.buttonAssignColor.Enabled = this.selectedSet != null;
+            this.ShowSetColor();
             this.UpdateTableNuclides();
+        }
+
+        /// <summary>
+        /// Показать в поле выбора цвет набора, если он у набора один. Разные
+        /// цвета внутри набора оставляют поле как есть: подставить любой из них
+        /// значило бы назвать его цветом набора, которым он не является.
+        /// </summary>
+        void ShowSetColor()
+        {
+            if (this.selectedSet == null)
+            {
+                return;
+            }
+
+            bool first = true;
+            System.Drawing.Color common = System.Drawing.Color.Empty;
+            foreach (NuclideDefinition nuclideDefinition in this.nuclideManager.NuclideDefinitions)
+            {
+                if (!nuclideDefinition.Sets.Contains(this.selectedSet.Id))
+                {
+                    continue;
+                }
+
+                System.Drawing.Color color = nuclideDefinition.NuclideColor.Color;
+                if (first)
+                {
+                    common = color;
+                    first = false;
+                }
+                else if (common != color)
+                {
+                    return;
+                }
+            }
+
+            if (!first)
+            {
+                this.assignColorComboBox.SelectedColor = common;
+            }
+        }
+
+        /// <summary>
+        /// Покрасить все нуклиды выбранного набора в один цвет.
+        ///
+        /// Цвет хранится у НУКЛИДА (<see cref="NuclideDefinition.NuclideColor"/>),
+        /// а не у набора: им же красятся пики и вертикальные линии интенсивностей,
+        /// и второго источника цвета заводить не за чем. Набор здесь — способ
+        /// выбрать, кого красить, разом: ввозимые из NucBase определения все
+        /// получают зелёный, и в зелёной заливке спектра их линии не видно.
+        /// </summary>
+        void buttonAssignColor_Click(object sender, EventArgs e)
+        {
+            if (this.selectedSet == null)
+            {
+                return;
+            }
+
+            System.Drawing.Color color = this.assignColorComboBox.SelectedColor;
+            int painted = 0;
+            foreach (NuclideDefinition nuclideDefinition in this.nuclideManager.NuclideDefinitions)
+            {
+                if (!nuclideDefinition.Sets.Contains(this.selectedSet.Id))
+                {
+                    continue;
+                }
+
+                nuclideDefinition.NuclideColor.Color = color;
+                painted++;
+            }
+
+            if (painted == 0)
+            {
+                MessageBox.Show(this, Resources.NuclideSetAssignColorEmpty,
+                                Resources.ConfirmationDialogTitle,
+                                MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            this.MarkAsDirty();
+            // Цветом красятся линии интенсивностей и подписи пиков — перерисовать
+            // сразу, иначе действие выглядит несработавшим.
+            this.RefreshActiveChart();
         }
 
         private void tableNuclides_CellClick(object sender, XPTable.Events.CellMouseEventArgs e)
@@ -227,6 +311,16 @@ namespace BecquerelMonitor
             if (indexToRemove > -1)
             {
                 this.nuclideManager.NuclideSets.RemoveAt(indexToRemove);
+                // Удалённый набор мог быть выбран для поиска пиков. Оставить на
+                // него ссылку значило бы искать по набору, которого нет, и
+                // прятать линии всех остальных: выбор непустой, а совпасть с ним
+                // уже некому.
+                if (this.nuclideManager.ActiveSet != null
+                    && this.nuclideManager.ActiveSet.Id == this.selectedSet.Id)
+                {
+                    this.nuclideManager.ActiveSet = null;
+                }
+
                 foreach (NuclideDefinition nuclide in this.nuclideManager.NuclideDefinitions)
                 {
                     nuclide.Sets.Remove(this.selectedSet.Id);
@@ -238,6 +332,9 @@ namespace BecquerelMonitor
 
                 this.selectedSet = null;
                 this.MarkAsDirty();
+                // Удалённый сет мог рисовать линии интенсивностей — убрать их
+                // с графика сразу, как это делает и сама галка.
+                this.RefreshActiveChart();
             }
         }
 
@@ -295,9 +392,10 @@ namespace BecquerelMonitor
             {
                 this.selectedSet.ShowIntensityLines = e.Cell.Checked;
                 this.MarkAsDirty();
-                // График перерисовывается сразу: окно немодальное, оно стоит
-                // рядом со спектром, и галка, действующая только после
-                // закрытия, читалась бы как неработающая.
+                // График перерисовывается сразу: окно стоит рядом со спектром
+                // (перерисовка доходит и под модальным диалогом), и галка,
+                // действующая только после закрытия, читалась бы как
+                // неработающая.
                 this.RefreshActiveChart();
             }
         }

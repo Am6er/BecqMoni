@@ -418,12 +418,6 @@
   <data name="label23.Text" xml:space="preserve">
     <value>Фоновый спектр</value>
   </data>
-  <data name="effROIText.Text" xml:space="preserve">
-    <value>Выберите ROI с данными по кривой эффективности:</value>
-  </data>
-  <data name="clearEffROI.Text" xml:space="preserve">
-    <value>Очистить</value>
-  </data>
   <data name="tabPage7.Text" xml:space="preserve">
     <value>МЭД</value>
   </data>

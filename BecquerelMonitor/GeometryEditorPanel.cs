@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
@@ -36,6 +36,13 @@ namespace BecquerelMonitor
 
         readonly Dictionary<string, Label> compositions =
             new Dictionary<string, Label>(StringComparer.Ordinal);
+
+        // Вещества из файла, которых нет в библиотеке. Пока пользователь не
+        // выбрал замену из списка, в модель идёт ровно то, что пришло из файла:
+        // подстановка первой строки библиотеки означала бы, что майлар молча
+        // становится фторопластом — размеры целы, кривая чужая.
+        readonly Dictionary<string, GeometryMaterial> foreignMaterials =
+            new Dictionary<string, GeometryMaterial>(StringComparer.Ordinal);
 
         RadioButton cylinderRadio;
         RadioButton boxRadio;
@@ -149,7 +156,7 @@ namespace BecquerelMonitor
         /// Заготовка для новой геометрии: сцинтиллятор в типичной обвязке.
         /// Числа — не «ноль», а правдоподобные: пустая форма заставляет
         /// заполнять двадцать полей вслепую, а от нулевой толщины отражателя
-        /// расчёт молча меняет смысл.
+        /// расчёт молча меняет смысл. Единица — МИЛЛИМЕТР, как и везде в модели.
         /// </summary>
         static GeometryModel Blank()
         {
@@ -158,30 +165,30 @@ namespace BecquerelMonitor
                 Name = "geometry",
                 IsScintillator = true,
                 SourceType = GeometrySourceType.Point,
-                CrystalDiameter = 2.54,
-                CrystalHeight = 2.54,
-                FrontReflectorThickness = 0.1,
-                SideReflectorThickness = 0.1,
-                FrontCladdingThickness = 0.05,
-                SideCladdingThickness = 0.05,
-                MountingThickness = 0.1,
-                PointDistance = 10.0,
-                BeakerToDetectorDistance = 0.5,
-                BeakerDiameter = 4.0,
-                BeakerHeight = 2.0,
-                BeakerSideWallThickness = 0.1,
-                BeakerEndWallThickness = 0.1,
-                SourceHeight = 2.0,
-                MarinelliToDetectorDistance = 0.1,
-                MarinelliBeakerDiameter = 11.4,
-                MarinelliBeakerHeight = 8.9,
-                MarinelliHoleDiameter = 6.1,
-                MarinelliHoleHeight = 5.3,
-                MarinelliSideThickness = 0.2,
-                MarinelliEndWallThickness = 0.2,
-                MarinelliHoleSideThickness = 0.2,
-                MarinelliHoleEndWallThickness = 0.2,
-                MarinelliSourceHeight = 8.5,
+                CrystalDiameter = 25.4,
+                CrystalHeight = 25.4,
+                FrontReflectorThickness = 1.0,
+                SideReflectorThickness = 1.0,
+                FrontCladdingThickness = 0.5,
+                SideCladdingThickness = 0.5,
+                MountingThickness = 1.0,
+                PointDistance = 100.0,
+                BeakerToDetectorDistance = 5.0,
+                BeakerDiameter = 40.0,
+                BeakerHeight = 20.0,
+                BeakerSideWallThickness = 1.0,
+                BeakerEndWallThickness = 1.0,
+                SourceHeight = 20.0,
+                MarinelliToDetectorDistance = 1.0,
+                MarinelliBeakerDiameter = 114.0,
+                MarinelliBeakerHeight = 89.0,
+                MarinelliHoleDiameter = 61.0,
+                MarinelliHoleHeight = 53.0,
+                MarinelliSideThickness = 2.0,
+                MarinelliEndWallThickness = 2.0,
+                MarinelliHoleSideThickness = 2.0,
+                MarinelliHoleEndWallThickness = 2.0,
+                MarinelliSourceHeight = 85.0,
             };
 
             g.Crystal = Make("Cesium iodide");
@@ -276,7 +283,10 @@ namespace BecquerelMonitor
             this.Row(this.cylinderSizePanel, ref y, "CrystalHeight", Resources.GeometryEditorCrystalHeight);
             page.Controls.Add(this.cylinderSizePanel);
 
-            this.boxSizePanel = new Panel { Location = new Point(0, 70), Size = new Size(620, 106), Visible = false };
+            // Высоты хватает на ДВЕ строки подписи о равноценном цилиндре: в
+            // русском она в одну не помещается, а панель детей обрезает — и
+            // строка с объёмом кристалла пропадала под соседним полем.
+            this.boxSizePanel = new Panel { Location = new Point(0, 70), Size = new Size(620, 130), Visible = false };
             y = 0;
             this.Row(this.boxSizePanel, ref y, "CrystalBoxX", Resources.GeometryEditorBoxX);
             this.Row(this.boxSizePanel, ref y, "CrystalBoxY", Resources.GeometryEditorBoxY);
@@ -291,7 +301,7 @@ namespace BecquerelMonitor
             this.boxSizePanel.Controls.Add(this.equivalentLabel);
             page.Controls.Add(this.boxSizePanel);
 
-            Panel rest = new Panel { Location = new Point(0, 182), Size = new Size(620, 152) };
+            Panel rest = new Panel { Location = new Point(0, 206), Size = new Size(620, 152) };
             y = 0;
             this.Row(rest, ref y, "FrontReflectorThickness", Resources.GeometryEditorFrontReflector);
             this.Row(rest, ref y, "SideReflectorThickness", Resources.GeometryEditorSideReflector);
@@ -300,7 +310,7 @@ namespace BecquerelMonitor
             this.Row(rest, ref y, "MountingThickness", Resources.GeometryEditorMounting);
             page.Controls.Add(rest);
 
-            Panel mats = new Panel { Location = new Point(0, 340), Size = new Size(620, 150) };
+            Panel mats = new Panel { Location = new Point(0, 364), Size = new Size(620, 150) };
             y = 0;
             this.MaterialRow(mats, ref y, "Crystal", Resources.GeometryEditorCrystalMaterial,
                              GeometryMaterialLibrary.MaterialKind.Crystal);
@@ -449,7 +459,7 @@ namespace BecquerelMonitor
                 AutoSize = true,
                 ForeColor = Color.DimGray,
                 Location = new Point(396, y + 4),
-                Text = Resources.GeometryEditorUnitCm,
+                Text = Resources.GeometryEditorUnitMm,
             });
 
             y += 28;
@@ -693,22 +703,40 @@ namespace BecquerelMonitor
             }
 
             // Вещество из файла может не значиться в библиотеке — тогда оно
-            // остаётся как есть, а список показывает первую строку только для
-            // того, чтобы его можно было заменить осознанно.
-            combo.SelectedIndex = index >= 0 ? index : (combo.Items.Count > 0 ? 0 : -1);
+            // остаётся как есть: список пустеет (выбирать его строку значило бы
+            // врать), состав из файла написан рядом, а первый осознанный выбор
+            // из списка вещество заменяет. Раньше здесь выбиралась первая
+            // строка библиотеки, и первый же коммит подменял состав файла ею.
+            if (index < 0 && material != null && material.Fractions.Count > 0)
+            {
+                this.foreignMaterials[key] = material.Clone();
+                combo.SelectedIndex = -1;
+            }
+            else
+            {
+                this.foreignMaterials.Remove(key);
+                combo.SelectedIndex = index >= 0 ? index : (combo.Items.Count > 0 ? 0 : -1);
+            }
+
             double density = material != null && material.Density > 0.0
                 ? material.Density
                 : (combo.SelectedIndex >= 0
                    ? ((GeometryMaterialLibrary.Entry)combo.Items[combo.SelectedIndex]).Density : 0.0);
             this.Set(key + ".Density", density);
             this.compositions[key].Text = GeometryMaterialLibrary.Describe(
-                index >= 0 || material == null || material.Fractions.Count == 0
-                    ? this.MaterialOf(key, density)
-                    : material);
+                this.MaterialOf(key, density));
         }
 
         GeometryMaterial MaterialOf(string key, double density)
         {
+            GeometryMaterial foreign;
+            if (this.foreignMaterials.TryGetValue(key, out foreign))
+            {
+                GeometryMaterial copy = foreign.Clone();
+                copy.Density = density > 0.0 ? density : foreign.Density;
+                return copy;
+            }
+
             ComboBox combo = this.materials[key];
             if (combo.SelectedIndex < 0)
             {
@@ -729,6 +757,9 @@ namespace BecquerelMonitor
             ComboBox combo = this.materials[key];
             if (combo.SelectedIndex >= 0)
             {
+                // Выбор из списка — осознанная замена: вещество из файла с
+                // этого момента забыто.
+                this.foreignMaterials.Remove(key);
                 GeometryMaterialLibrary.Entry entry = (GeometryMaterialLibrary.Entry)combo.Items[combo.SelectedIndex];
                 this.Set(key + ".Density", entry.Density);
             }
@@ -758,7 +789,11 @@ namespace BecquerelMonitor
         void UpdateEquivalent()
         {
             double d = GeometryWriter.EquivalentDiameter(this.Get("CrystalBoxX"), this.Get("CrystalBoxY"));
-            double volume = this.Get("CrystalBoxX") * this.Get("CrystalBoxY") * this.Get("CrystalBoxZ");
+            // Диаметр — в миллиметрах, как и поля рядом. Объём кристалла
+            // остаётся в см³: так его называют в паспорте детектора, и 16.2 см³
+            // читаются, а 16200 мм³ — нет.
+            double volume = this.Get("CrystalBoxX") * this.Get("CrystalBoxY") * this.Get("CrystalBoxZ")
+                            / (GeometryModel.MmPerCm * GeometryModel.MmPerCm * GeometryModel.MmPerCm);
             this.equivalentLabel.Text = string.Format(CultureInfo.InvariantCulture,
                 Resources.GeometryEditorEquivalent, d, volume);
         }
@@ -867,21 +902,58 @@ namespace BecquerelMonitor
         /// </summary>
         bool MarkBadValues()
         {
+            // Не участвуют в модели ровно поля невыбранной формы кристалла и
+            // невыбранных типов источника. Определять это по Visible нельзя:
+            // видимость эффективная, и когда коммит приходит с ДРУГОЙ вкладки
+            // конструктора (кнопка расчёта, общий Save), скрыта вся панель —
+            // каждое поле отчитывалось «не относится», и опечатки снова молча
+            // превращались в ноль.
+            List<Control> inactive = new List<Control>
+            {
+                this.boxRadio.Checked ? this.cylinderSizePanel : this.boxSizePanel,
+            };
+            int source = this.sourceTypeCombo.SelectedIndex;
+            if (source != 0)
+            {
+                inactive.Add(this.pointPanel);
+            }
+
+            if (source != 1)
+            {
+                inactive.Add(this.cylinderPanel);
+            }
+
+            if (source != 2)
+            {
+                inactive.Add(this.marinelliPanel);
+            }
+
             bool ok = true;
             foreach (KeyValuePair<string, TextBox> pair in this.fields)
             {
                 double value;
                 bool good = TryGet(pair.Key, out value);
                 pair.Value.BackColor = good ? SystemColors.Window : BadValueColor;
-                // Поля скрытой вкладки источника к делу не относятся: в модель
-                // пойдёт только выбранный тип.
-                if (!good && pair.Value.Parent != null && pair.Value.Parent.Visible)
+                if (!good && !IsUnder(pair.Value, inactive))
                 {
                     ok = false;
                 }
             }
 
             return ok;
+        }
+
+        static bool IsUnder(Control control, List<Control> containers)
+        {
+            for (Control c = control; c != null; c = c.Parent)
+            {
+                if (containers.Contains(c))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         GeometryModel BuildModel()

@@ -262,6 +262,14 @@ namespace BecquerelMonitor
 
         public void RefreshNuclideSets()
         {
+            // Выбор запоминается ДО очистки списка. Items.Clear() сбрасывает
+            // SelectedIndex в -1 и поднимает SelectedIndexChanged, а тот кладёт
+            // в выбор null — то есть к строке восстановления ниже восстанавливать
+            // было уже нечего. Список обновляют по закрытии редактора наборов,
+            // и набор для поиска молча слетал на «все нуклиды» после каждого
+            // захода туда.
+            NuclideSet wanted = this.selectedNuclideSet;
+
             this.comboBoxNuclSet.Items.Clear();
             string allNuclidesText = this.comboBoxNuclSetAllNuclidesText;
             if (string.IsNullOrEmpty(allNuclidesText))
@@ -274,14 +282,15 @@ namespace BecquerelMonitor
             {
                 this.comboBoxNuclSet.Items.Add(set.Name);
             }
-            if (this.selectedNuclideSet != null)
-            {
-                this.comboBoxNuclSet.SelectedIndex = this.nuclideManager.NuclideSets.IndexOf(this.selectedNuclideSet) + 1;
-            }
-            else
-            {
-                this.comboBoxNuclSet.SelectedIndex = 0;
-            }
+
+            // Набор мог быть удалён в редакторе — тогда IndexOf даёт -1, и
+            // выбор честно возвращается к «всем нуклидам», а не остаётся
+            // указывать на то, чего больше нет.
+            int index = wanted == null ? -1 : this.nuclideManager.NuclideSets.IndexOf(wanted);
+            this.comboBoxNuclSet.SelectedIndex = index >= 0 ? index + 1 : 0;
+            // Присвоение того же индекса события не поднимает, а выбор к этому
+            // моменту уже сбит очисткой списка — вернуть его надо руками.
+            this.selectedNuclideSet = index >= 0 ? wanted : null;
         }
 
         // Token: 0x06000440 RID: 1088 RVA: 0x00014468 File Offset: 0x00012668
@@ -383,6 +392,16 @@ namespace BecquerelMonitor
             }
 
             this.UpdatePeakDetectionResult();
+
+            // От выбора зависит не только таблица пиков, но и картинка: линии
+            // интенсивностей рисуются по выбранному набору. Поиск пиков идёт в
+            // фоне и перерисует график когда-нибудь потом (а при пустом
+            // документе не перерисует вовсе), линиям же ждать нечего.
+            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+            if (activeDocument != null)
+            {
+                activeDocument.EnergySpectrumView.Invalidate();
+            }
         }
 
         // Token: 0x040001B3 RID: 435
@@ -397,7 +416,18 @@ namespace BecquerelMonitor
 
         string comboBoxNuclSetAllNuclidesText = null;
 
-        private NuclideSet selectedNuclideSet = null;
+        /// <summary>
+        /// Набор для поиска пиков. Своего поля у панели больше нет: тот же
+        /// выбор решает, чьи линии интенсивностей рисовать на графике, а график
+        /// до панели не дотягивается. Второе поле рядом рано или поздно
+        /// разошлось бы с этим, поэтому оно одно —
+        /// <see cref="NuclideDefinitionManager.ActiveSet"/>.
+        /// </summary>
+        private NuclideSet selectedNuclideSet
+        {
+            get { return this.nuclideManager.ActiveSet; }
+            set { this.nuclideManager.ActiveSet = value; }
+        }
 
         private bool isProcessing = false;
 

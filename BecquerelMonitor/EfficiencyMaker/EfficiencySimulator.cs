@@ -33,6 +33,10 @@ namespace BecquerelMonitor.EfficiencyMaker
     /// * вылет характеристического рентгена кристалла после фотопоглощения не
     ///   моделируется: у иода это 28-33 кэВ, заметно только у самых тонких
     ///   кристаллов и у самых низких энергий.
+    ///
+    /// Один экземпляр — один поток: и генератор (state), и ленивая сборка
+    /// сцены (EnsureBuilt) без замков. Параллельный счёт заводит по
+    /// экземпляру на поток (см. EfficiencyCalculation.Run).
     /// </summary>
     public sealed class EfficiencySimulator
     {
@@ -129,6 +133,41 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public double PeakHalfWidthKev;
 
+        /// <summary>
+        /// Учитывать вылет характеристического рентгена. Выше K-края квант
+        /// выбивает электрон именно с K-оболочки, атом отвечает квантом Kα или
+        /// Kβ, и тот может уйти наружу — событие покидает пик полного
+        /// поглощения и садится в escape-пик.
+        ///
+        /// Эффект узкий по шкале, но крупный: у иодида цезия он включается
+        /// скачком на 33.2 кэВ (край иода) и на 36.0 (край цезия), на 40 кэВ
+        /// снимает четверть событий, к 200 кэВ сходит на нет. Ровно там стоят
+        /// опорные линии калибровки — 59.5 америция, 81 бария, 122 кобальта.
+        ///
+        /// Считается только K: L-рентген тяжёлых сцинтилляторов — это 4-5 кэВ,
+        /// его пробег десятки микрон, и наружу он не выходит ниоткуда, кроме
+        /// самой поверхности.
+        /// </summary>
+        public bool XrayEscape = true;
+
+        /// <summary>
+        /// Не считать когерентное рассеяние потерей на пути к кристаллу.
+        ///
+        /// Рэлеевское рассеяние энергию не меняет: квант после него даёт тот же
+        /// отсчёт в пике полного поглощения, если попал в кристалл. А попадает
+        /// он почти наверняка, когда рассеялся в окне или оболочке — они в
+        /// миллиметрах от кристалла и видны из точки рассеяния под большим
+        /// углом. Убивать такой квант, как делает формула узкого пучка, —
+        /// ошибка известного знака: она занижает эффективность, и тем сильнее,
+        /// чем ниже энергия и толще окно.
+        ///
+        /// Что осталось за скобками: малоугловой комптон (тоже не сразу выводит
+        /// из пика) и то, что для ДАЛЬНЕГО рассеивателя поправка завышает — там
+        /// рассеянное в кристалл уже не возвращается. Второе мало: доля
+        /// когерентного в воде падает с 13 % на 28 кэВ до 1 % на 200.
+        /// </summary>
+        public bool CoherentPassesThrough = true;
+
         readonly GeometryModel geometry;
         readonly List<Region> regions = new List<Region>();
         Region crystal;
@@ -138,9 +177,19 @@ namespace BecquerelMonitor.EfficiencyMaker
         bool crystalHasPartials;
         ElectronData.Material electron;
 
+        /// <summary>Элементы кристалла, у которых есть данные о K-флуоресценции.</summary>
+        int[] fluoZ;
+        double[] fluoFraction;
+        MaterialDatabase.Fluorescence[] fluoData;
+
         public EfficiencySimulator(GeometryModel model)
         {
-            this.geometry = model;
+            // Сцена строится в САНТИМЕТРАХ, а модель хранит миллиметры. Пересчёт
+            // здесь, один раз и на входе: весь расчёт стоит на массовых
+            // коэффициентах ослабления в см²/г и плотностях в г/см³, и путать
+            // единицы длины внутри нельзя — пробег в миллиметрах при сечении на
+            // сантиметр даёт кристалл, прозрачный вдесятеро.
+            this.geometry = model == null ? null : model.InCentimeters();
         }
 
         /// <summary>
@@ -157,6 +206,41 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.Build();
             this.crystalHasPartials = this.CrystalHasPartials();
             this.electron = ElectronData.Match(this.geometry.Crystal);
+            this.BuildFluorescence();
+        }
+
+        /// <summary>
+        /// Собрать список элементов кристалла, у которых есть K-флуоресценция.
+        /// Лёгких (кислород, натрий, кремний) в нём нет и быть не должно:
+        /// K-край у них ниже сетки сечений, а рентген в килоэлектронвольт
+        /// поглощается в микронах от места рождения.
+        /// </summary>
+        void BuildFluorescence()
+        {
+            List<int> zs = new List<int>();
+            List<double> fractions = new List<double>();
+            List<MaterialDatabase.Fluorescence> data = new List<MaterialDatabase.Fluorescence>();
+            foreach (KeyValuePair<int, double> pair in this.geometry.Crystal.Fractions)
+            {
+                if (!(pair.Value > 0.0))
+                {
+                    continue;
+                }
+
+                MaterialDatabase.Fluorescence f = MaterialDatabase.FluorescenceOf(pair.Key);
+                if (f == null)
+                {
+                    continue;
+                }
+
+                zs.Add(pair.Key);
+                fractions.Add(pair.Value);
+                data.Add(f);
+            }
+
+            this.fluoZ = zs.ToArray();
+            this.fluoFraction = fractions.ToArray();
+            this.fluoData = data.ToArray();
         }
 
         /// <summary>
@@ -719,7 +803,9 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 if (here != null)
                 {
-                    tau += here.Material.LinearAttenuation(energyKev) * step;
+                    tau += (this.CoherentPassesThrough
+                            ? here.Material.LinearAttenuationWithoutCoherent(energyKev)
+                            : here.Material.LinearAttenuation(energyKev)) * step;
                     if (tau > 60.0)
                     {
                         return false;      // exp(-60) — заведомо ноль
@@ -803,6 +889,21 @@ namespace BecquerelMonitor.EfficiencyMaker
                 double pick = this.Uniform() * total;
                 if (pick < photo)
                 {
+                    // Энергия делится надвое: характеристический квант, если
+                    // атом ответил им, и всё остальное — на электроны (сам
+                    // фотоэлектрон, оже-каскад, мягкие линии). Сумма всегда
+                    // равна энергии поглощённого кванта, ничего не теряется и
+                    // не появляется.
+                    double xray = this.SampleFluorescence(e);
+                    if (xray > 0.0)
+                    {
+                        double kx, ky, kz;
+                        this.Isotropic(out kx, out ky, out kz);
+                        return lost
+                               + this.ElectronLoss(x, y, z, e - xray, depth)
+                               + this.InCrystal(x, y, z, kx, ky, kz, xray, depth + 1);
+                    }
+
                     // фотоэлектрон уносит почти всю энергию кванта
                     return lost + this.ElectronLoss(x, y, z, e, depth);
                 }
@@ -823,15 +924,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
 
                 // рождение пары: 1022 кэВ уходит в два кванта аннигиляции,
-                // остальное достаётся паре электрон-позитрон
+                // остальное достаётся паре электрон-позитрон. Кванты летят
+                // СТРОГО в противоположные стороны (импульс покоящейся пары
+                // нулевой): разыгранные независимо, они завышали бы совпадение
+                // «оба поглотились»/«оба вылетели» и портили соотношение
+                // одиночного и двойного вылета.
                 double escaped = lost + this.ElectronLoss(x, y, z, e - 2.0 * ElectronMassKev, depth);
-                for (int k = 0; k < 2; k++)
-                {
-                    double ax, ay, az;
-                    this.Isotropic(out ax, out ay, out az);
-                    escaped += this.InCrystal(x, y, z, ax, ay, az, ElectronMassKev, depth + 1);
-                }
-
+                double ax, ay, az;
+                this.Isotropic(out ax, out ay, out az);
+                escaped += this.InCrystal(x, y, z, ax, ay, az, ElectronMassKev, depth + 1);
+                escaped += this.InCrystal(x, y, z, -ax, -ay, -az, ElectronMassKev, depth + 1);
                 return escaped;
             }
 
@@ -903,6 +1005,88 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             return lost;
+        }
+
+        /// <summary>
+        /// Разыграть характеристический квант при фотопоглощении кванта энергии
+        /// <paramref name="energyKev"/>. Ноль — атом ответил оже-электроном,
+        /// поглощение на другой оболочке или элементе без данных.
+        ///
+        /// Розыгрыш в три шага, и первый — самый важный: сначала выбирается,
+        /// НА КАКОМ элементе произошло поглощение, с весом w·σ_фото(E). Брать
+        /// просто массовую долю нельзя — у иодида цезия доли почти равны, а
+        /// края разнесены на 2.8 кэВ, и между ними поглощает только цезий.
+        /// Дальше — попала ли дырка в K-оболочку (доля из скачка сечения на
+        /// крае) и ответил ли атом квантом (выход флуоресценции).
+        /// </summary>
+        double SampleFluorescence(double energyKev)
+        {
+            if (!this.XrayEscape || this.fluoZ == null || this.fluoZ.Length == 0)
+            {
+                return 0.0;
+            }
+
+            // вес элемента — его вклад в фотопоглощение на этой энергии
+            double sum = 0.0;
+            double[] weight = new double[this.fluoZ.Length];
+            for (int i = 0; i < this.fluoZ.Length; i++)
+            {
+                if (energyKev <= this.fluoData[i].KEdgeKev)
+                {
+                    continue;               // K-оболочка ещё недоступна
+                }
+
+                weight[i] = this.fluoFraction[i] * PartialCrossSections.MassCrossSection(
+                    this.fluoZ[i], energyKev, PhotonProcess.Photoelectric);
+                sum += weight[i];
+            }
+
+            if (!(sum > 0.0))
+            {
+                return 0.0;
+            }
+
+            // Знаменатель — полное фотопоглощение вещества, включая элементы без
+            // K-края на этой энергии: они тоже поглощают, и их доля обязана
+            // уменьшать вероятность рентгена, а не выпадать из счёта.
+            double all = 0.0;
+            foreach (KeyValuePair<int, double> pair in this.geometry.Crystal.Fractions)
+            {
+                all += pair.Value * PartialCrossSections.MassCrossSection(
+                    pair.Key, energyKev, PhotonProcess.Photoelectric);
+            }
+
+            if (!(all > 0.0) || this.Uniform() * all >= sum)
+            {
+                return 0.0;
+            }
+
+            double pick = this.Uniform() * sum;
+            int k = 0;
+            while (k < weight.Length - 1 && pick >= weight[k])
+            {
+                pick -= weight[k];
+                k++;
+            }
+
+            MaterialDatabase.Fluorescence f = this.fluoData[k];
+            if (this.Uniform() >= f.KFraction * f.OmegaK)
+            {
+                return 0.0;                 // не K-оболочка или оже-электрон
+            }
+
+            double line = this.Uniform();
+            double acc = 0.0;
+            for (int i = 0; i < f.LineWeight.Length; i++)
+            {
+                acc += f.LineWeight[i];
+                if (line < acc)
+                {
+                    return f.LineKev[i];
+                }
+            }
+
+            return f.LineKev[f.LineKev.Length - 1];
         }
 
         /// <summary>Пуассон по Кнуту: среднее у нас всегда меньше единицы.</summary>
@@ -1131,7 +1315,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                     r.Material.Name, shape, r.ZMin, r.ZMax, r.IsCrystal ? " *" : ""));
             }
 
-            return string.Join("; ", parts.ToArray());
+            // Единица названа явно: сцена строится в сантиметрах, а геометрию
+            // выше в том же журнале печатают в миллиметрах, и два ряда чисел,
+            // отличающихся вдесятеро, без подписи читаются как ошибка.
+            return "cm: " + string.Join("; ", parts.ToArray());
         }
     }
 }

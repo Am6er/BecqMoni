@@ -132,6 +132,34 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// Та же кривая, но как она пришла В ФАЙЛЕ, — ТОТ ЖЕ объект, что лежал
+        /// в <see cref="Efficiency"/> сразу после чтения (и после сохранения:
+        /// с этого момента в файле именно он).
+        ///
+        /// Заведена ради списка кривых в панели измерения. Без неё родную
+        /// кривую спектра было не отличить: она либо совпадала по Guid с
+        /// кривой прибора и показывалась ЕЁ именем (прибор кривую с тех пор
+        /// переименовали или пересчитали), либо, стоило переключиться на
+        /// другую, исчезала из списка вовсе — и вернуться к ней было нечем.
+        ///
+        /// Не сохраняется: в файле она и так есть, в поле Efficiency. Тождество
+        /// ссылок здесь и есть признак «выбрана родная»: чужая приходит копией
+        /// (см. DCControlPanel), и совпасть ссылкой ей не с чем.
+        /// </summary>
+        [XmlIgnore]
+        public EfficiencyConfigData FileEfficiency
+        {
+            get
+            {
+                return this.fileEfficiency;
+            }
+            set
+            {
+                this.fileEfficiency = value;
+            }
+        }
+
         public string BackgroundSpectrumFile
         {
             get
@@ -414,17 +442,22 @@ namespace BecquerelMonitor
 
         public ResultData Clone()
         {
-            return new ResultData
+            // Своя копия, а не общий объект: два спектра с одной кривой
+            // правились бы за одно, а кривая у спектра — снимок на момент
+            // измерения и меняться следом за прибором не должна.
+            EfficiencyConfigData efficiencyCopy = this.Efficiency != null ? this.Efficiency.Copy() : null;
+
+            // Признак «выбрана родная» — тождество ссылок, и в копии оно должно
+            // сохраниться: иначе дубль спектра терял бы пометку «из файла» и
+            // строку, по которой к своей кривой можно вернуться.
+            ResultData copy = new ResultData
             {
                 SampleInfo = this.SampleInfo.Clone(),
                 DeviceConfig = this.DeviceConfig,
                 DeviceConfigReference = this.DeviceConfigReference,
                 ROIConfigReference = this.ROIConfigReference,
                 ROIConfig = this.ROIConfig,
-                // Своя копия, а не общий объект: два спектра с одной кривой
-                // правились бы за одно, а кривая у спектра — снимок на момент
-                // измерения и меняться следом за прибором не должна.
-                Efficiency = this.Efficiency != null ? this.Efficiency.Copy() : null,
+                Efficiency = efficiencyCopy,
                 StartTime = this.StartTime,
                 EndTime = this.EndTime,
                 PresetTime = this.PresetTime,
@@ -437,6 +470,11 @@ namespace BecquerelMonitor
                 // on a non-monotonic default curve).
                 FwhmCalibration = this.FwhmCalibration != null ? this.FwhmCalibration.Clone() : null
             };
+
+            copy.FileEfficiency = object.ReferenceEquals(this.Efficiency, this.FileEfficiency)
+                ? efficiencyCopy
+                : (this.FileEfficiency != null ? this.FileEfficiency.Copy() : null);
+            return copy;
         }
 
         ResultDataStatus resultDataStatus = new ResultDataStatus();
@@ -456,6 +494,8 @@ namespace BecquerelMonitor
         ROIConfigReference roiConfigReference = new ROIConfigReference();
 
         EfficiencyConfigData efficiency;
+
+        EfficiencyConfigData fileEfficiency;
 
         DateTime startTime = DateTime.Now;
 

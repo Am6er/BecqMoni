@@ -95,6 +95,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         continue;
                     }
 
+                    // Одна линия может быть записана в базе дважды: своя запись
+                    // и запись «в цепочке», либо ручная копия с округлённой
+                    // энергией. Обе в образе удваивают вес линии — амплитуда
+                    // компонента падает вдвое, доли между нуклидами едут.
+                    // Порог 0.05 кэВ: реальных раздельных линий ближе не
+                    // бывает, а дубль с иной точностью записи — та же линия.
+                    bool duplicate = false;
+                    foreach (FsaLine line in component.Lines)
+                    {
+                        if (Math.Abs(line.Energy - definition.Energy) < 0.05)
+                        {
+                            duplicate = true;
+                            break;
+                        }
+                    }
+
+                    if (duplicate)
+                    {
+                        continue;
+                    }
+
                     component.Lines.Add(new FsaLine(nuclide, definition.Energy, definition.Intencity));
                 }
 
@@ -125,12 +146,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
-            foreach (string name in AlwaysPresent)
+            // Мешающие образы добавляются только К ЧЕМУ-ТО: спектр без единого
+            // подписанного пика должен получить «нет компонентов», а не тихое
+            // разложение из одних пиков вылета и континуума. В харнессе так же:
+            // служебные образы дописываются к непустому составу оператора.
+            if (result.Count > 0)
             {
-                FsaComponent component;
-                if (builtin.TryGetValue(name, out component) && taken.Add(name))
+                foreach (string name in AlwaysPresent)
                 {
-                    result.Add(component);
+                    FsaComponent component;
+                    if (builtin.TryGetValue(name, out component) && taken.Add(name))
+                    {
+                        result.Add(component);
+                    }
                 }
             }
 

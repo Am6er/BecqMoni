@@ -46,10 +46,38 @@ namespace BecquerelMonitor.EfficiencyMaker
             public double[] Total;
         }
 
+        /// <summary>
+        /// Чем атом отвечает на дырку в K-оболочке. Нужно для вылета
+        /// характеристического рентгена: выше K-края квант выбивает электрон
+        /// оттуда, атом излучает Kα или Kβ, и этот квант может уйти из
+        /// кристалла — событие покидает пик полного поглощения.
+        ///
+        /// Есть не у всех: у лёгких элементов K-край лежит ниже сетки XCOM
+        /// (1 кэВ), да и рентген в килоэлектронвольт поглощается на месте.
+        /// </summary>
+        public sealed class Fluorescence
+        {
+            /// <summary>Энергия K-края, кэВ. Ниже неё K-оболочка недоступна.</summary>
+            public double KEdgeKev;
+
+            /// <summary>Доля фотопоглощений, приходящаяся на K-оболочку.</summary>
+            public double KFraction;
+
+            /// <summary>Вероятность ответить квантом, а не оже-электроном.</summary>
+            public double OmegaK;
+
+            /// <summary>Энергии линий, кэВ: Kα1, Kα2, Kβ.</summary>
+            public double[] LineKev;
+
+            /// <summary>Веса линий, в сумме единица.</summary>
+            public double[] LineWeight;
+        }
+
         static readonly object Gate = new object();
         static Dictionary<int, Element> elements;
         static Dictionary<int, double> atomicMass;
         static Dictionary<int, string> symbols;
+        static Dictionary<int, Fluorescence> fluorescence;
 
         /// <summary>Атомные массы, г/моль, по Z. Ключ есть у всех ста элементов.</summary>
         public static Dictionary<int, double> AtomicMass
@@ -65,6 +93,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         {
             Load();
             return elements.TryGetValue(z, out element);
+        }
+
+        /// <summary>Ответ атома на дырку в K-оболочке; null, если данных нет.</summary>
+        public static Fluorescence FluorescenceOf(int z)
+        {
+            Load();
+            Fluorescence value;
+            return fluorescence.TryGetValue(z, out value) ? value : null;
         }
 
         public static bool Has(int z)
@@ -130,6 +166,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 Dictionary<int, Element> loaded = new Dictionary<int, Element>();
                 Dictionary<int, double> masses = new Dictionary<int, double>();
                 Dictionary<int, string> names = new Dictionary<int, string>();
+                Dictionary<int, Fluorescence> fluo = new Dictionary<int, Fluorescence>();
 
                 using (SqliteConnection connection = new SqliteConnection(
                     "Data Source=" + path + ";Mode=ReadOnly;Cache=Shared;"))
@@ -157,6 +194,32 @@ namespace BecquerelMonitor.EfficiencyMaker
                             while (reader.Read())
                             {
                                 names[reader.GetInt32(0)] = reader.GetString(1).Trim();
+                            }
+                        }
+
+                        command.CommandText =
+                            "select z, k_edge_ev, k_fraction, omega_k, ka1_ev, ka1_weight," +
+                            " ka2_ev, ka2_weight, kb_ev, kb_weight from xray_fluorescence";
+                        using (SqliteDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                fluo[reader.GetInt32(0)] = new Fluorescence
+                                {
+                                    KEdgeKev = reader.GetDouble(1) / 1000.0,
+                                    KFraction = reader.GetDouble(2),
+                                    OmegaK = reader.GetDouble(3),
+                                    LineKev = new double[]
+                                    {
+                                        reader.GetDouble(4) / 1000.0,
+                                        reader.GetDouble(6) / 1000.0,
+                                        reader.GetDouble(8) / 1000.0,
+                                    },
+                                    LineWeight = new double[]
+                                    {
+                                        reader.GetDouble(5), reader.GetDouble(7), reader.GetDouble(9),
+                                    },
+                                };
                             }
                         }
 
@@ -242,6 +305,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 atomicMass = masses;
                 symbols = names;
+                fluorescence = fluo;
                 elements = loaded;
             }
         }
