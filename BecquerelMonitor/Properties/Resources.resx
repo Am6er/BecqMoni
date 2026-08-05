@@ -148,6 +148,15 @@
   <data name="MSGSavingNuclideSet" xml:space="preserve">
     <value>Nuclide set(s) has been modified. Save?</value>
   </data>
+  <data name="NuclideSetAssignColor" xml:space="preserve">
+    <value>Assign peak color:</value>
+  </data>
+  <data name="NuclideSetAssignColorButton" xml:space="preserve">
+    <value>Assign</value>
+  </data>
+  <data name="NuclideSetAssignColorEmpty" xml:space="preserve">
+    <value>The set contains no nuclides - there is nothing to paint.</value>
+  </data>
   <data name="ERRDeviceConfigNotSelected" xml:space="preserve">
     <value>Device configuration is not selected.</value>
   </data>
@@ -42225,22 +42234,22 @@ Device channels: {0}, spectrum files channels: {1}</value>
     <value>Calculated from geometry: {0} points, {1}-{2} keV, {3}</value>
   </data>
   <data name="GeometrySourcePoint" xml:space="preserve">
-    <value>point, {0:F2} cm</value>
+    <value>point, {0:F1} mm</value>
   </data>
   <data name="GeometrySourceCylinder" xml:space="preserve">
-    <value>cylinder D={0:F2} H={1:F2} at {2:F2} cm</value>
+    <value>cylinder D={0:F1} H={1:F1} at {2:F1} mm</value>
   </data>
   <data name="GeometrySourceMarinelli" xml:space="preserve">
-    <value>Marinelli D={0:F2} Dhole={1:F2} H={2:F2} at {3:F2} cm</value>
+    <value>Marinelli D={0:F1} Dhole={1:F1} H={2:F1} at {3:F1} mm</value>
   </data>
   <data name="GeometryCrystalBox" xml:space="preserve">
-    <value>box {0:F2}x{1:F2}x{2:F2}</value>
+    <value>box {0:F1}x{1:F1}x{2:F1}</value>
   </data>
   <data name="GeometryCrystalCylinder" xml:space="preserve">
-    <value>cylinder {0:F3}x{1:F3}</value>
+    <value>cylinder {0:F2}x{1:F2}</value>
   </data>
   <data name="GeometryDescription" xml:space="preserve">
-    <value>{0}: crystal {1} {2} cm, rho {3:F3}; source - {4}, {5}</value>
+    <value>{0}: crystal {1} {2} mm, rho {3:F3}; source - {4}, {5}</value>
   </data>
   <data name="EfficiencyMakerCancelled" xml:space="preserve">
     <value>Stopped by user.</value>
@@ -42396,7 +42405,7 @@ Device channels: {0}, spectrum files channels: {1}</value>
     <value>Crystal Z (along the axis)</value>
   </data>
   <data name="GeometryEditorEquivalent" xml:space="preserve">
-    <value>Equivalent cylinder for the .in file: D = {0:F4} cm (equal face area, the LSRM rule). Crystal volume {1:F3} cm3.</value>
+    <value>Equivalent cylinder for the .in file: D = {0:F3} mm (equal face area, the LSRM rule). Crystal volume {1:F3} cm3.</value>
   </data>
   <data name="GeometryEditorFrontReflector" xml:space="preserve">
     <value>Crystal front reflector thickness</value>
@@ -42473,8 +42482,8 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="GeometryEditorSourceMaterial" xml:space="preserve">
     <value>Sample</value>
   </data>
-  <data name="GeometryEditorUnitCm" xml:space="preserve">
-    <value>cm</value>
+  <data name="GeometryEditorUnitMm" xml:space="preserve">
+    <value>mm</value>
   </data>
   <data name="GeometryEditorUnitDensity" xml:space="preserve">
     <value>g/cm3</value>
@@ -42495,7 +42504,7 @@ Device channels: {0}, spectrum files channels: {1}</value>
     <value>Some values are not numbers - they are highlighted. An unreadable value would silently become zero.</value>
   </data>
   <data name="GeometryWarningNoMaterial" xml:space="preserve">
-    <value>WARNING - {0}: thickness {1} cm is set, but the material has no density or composition. The layer is treated as vacuum; otherwise the surrounding layer would silently fill its place.</value>
+    <value>WARNING - {0}: thickness {1} mm is set, but the material has no density or composition. The layer is treated as vacuum; otherwise the surrounding layer would silently fill its place.</value>
   </data>
   <data name="GeometryWarningAtomFractions" xml:space="preserve">
     <value>{0}: fractions are atomic (FractionType = ATOM), converted to mass fractions.</value>
@@ -42622,6 +42631,9 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="EfficiencyTabNone" xml:space="preserve">
     <value>(none)</value>
+  </data>
+  <data name="EfficiencyFromFile" xml:space="preserve">
+    <value>{0} - from the spectrum file</value>
   </data>
   <data name="EfficiencyTabEmpty" xml:space="preserve">
     <value>This device has no efficiency configuration. Activity is not calculated until one is created or imported.</value>

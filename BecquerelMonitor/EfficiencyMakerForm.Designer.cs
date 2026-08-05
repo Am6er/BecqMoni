@@ -450,8 +450,13 @@
             this.logTextBox.Multiline = true;
             this.logTextBox.Name = "logTextBox";
             this.logTextBox.ReadOnly = true;
-            this.logTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.logTextBox.WordWrap = false;
+            // Перенос по словам: в журнале есть строки в полторы сотни знаков
+            // (разбор геометрии, состав сцены), и с горизонтальной прокруткой
+            // конец такой строки не виден вовсе — а именно там стоит то, из-за
+            // чего строку и напечатали. Прокрутка остаётся только вертикальная:
+            // при переносе горизонтальной нечего показывать.
+            this.logTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.logTextBox.WordWrap = true;
             this.logTextBox.TabIndex = 0;
             //
             // EfficiencyMakerForm

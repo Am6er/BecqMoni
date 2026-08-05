@@ -258,7 +258,7 @@ namespace BecquerelMonitor
             List<string> parts = new List<string>();
             if (config.HasCurve)
             {
-                parts.Add(string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyTabSummary,
+                parts.Add(string.Format(CultureInfo.CurrentCulture, Resources.EfficiencyTabSummary,
                                         config.Curve.Count,
                                         (int)config.Curve[0].Energy,
                                         (int)config.Curve[config.Curve.Count - 1].Energy));
@@ -331,6 +331,29 @@ namespace BecquerelMonitor
             this.OpenEfficiencyMaker(config);
         }
 
+        // Открытые конструкторы кривой. Форма прибора правит КЛОН конфигурации,
+        // и при смене строки списка (или отказе от сохранения) клон выбрасывается —
+        // привязанный к нему конструктор писал бы своё «Сохранить» в объект,
+        // до которого больше никому нет дела. Такие конструкторы закрываются
+        // вместе с клоном (см. CloseEfficiencyMakers).
+        readonly List<EfficiencyMakerForm> openEfficiencyMakers = new List<EfficiencyMakerForm>();
+
+        /// <summary>
+        /// Закрыть конструкторы, привязанные к выбрасываемому клону конфигурации.
+        /// Молчаливая альтернатива хуже: окно оставалось бы живым, а его
+        /// «Сохранить» уходило бы в сироту — часы монте-карло пропадали бы без
+        /// единого признака.
+        /// </summary>
+        void CloseEfficiencyMakers()
+        {
+            foreach (EfficiencyMakerForm maker in this.openEfficiencyMakers.ToArray())
+            {
+                maker.Close();
+            }
+
+            this.openEfficiencyMakers.Clear();
+        }
+
         /// <summary>
         /// Открыть конструктор кривой для этой конфигурации. Окно немодальное —
         /// прогон по пачке спектров долгий, и держать за него конфигурацию
@@ -348,9 +371,20 @@ namespace BecquerelMonitor
             // эскиз — при том что и кривая, и геометрия уже лежали в
             // конфигурации. Обманывал только вид, и заметить это можно было
             // единственным способом: переключить список туда и обратно.
+            DeviceConfigInfo boundDevice = this.activeDeviceConfig;
             maker.FormClosed += delegate
             {
                 if (this.IsDisposed)
+                {
+                    return;
+                }
+
+                this.openEfficiencyMakers.Remove(maker);
+
+                // Клон, к которому был привязан конструктор, уже заменён
+                // (смена строки списка): обновлять вкладку не по чему, а
+                // дирти-флажок относился бы к ЧУЖОЙ конфигурации.
+                if (!object.ReferenceEquals(boundDevice, this.activeDeviceConfig))
                 {
                     return;
                 }
@@ -359,6 +393,7 @@ namespace BecquerelMonitor
                 this.SetActiveDeviceConfigDirty();
             };
 
+            this.openEfficiencyMakers.Add(maker);
             maker.Show(this);
         }
 

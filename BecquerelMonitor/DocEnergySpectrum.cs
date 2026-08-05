@@ -869,11 +869,18 @@ namespace BecquerelMonitor
             }
 
             List<DeviceConfigInfo> devices = this.deviceConfigManager.DeviceConfigList;
+            // Предвыбор — по Guid: у документа лежит КЛОН конфигурации
+            // (DocumentManager.PrepareDeviceConfig), по ссылке он ни с одной
+            // строкой списка не совпадёт, и выбор молча падал на первую.
+            DeviceConfigInfo current = active.DeviceConfig;
+            DeviceConfigInfo preselect = current == null
+                ? null
+                : devices.Find(d => string.Equals(d.Guid, current.Guid, StringComparison.OrdinalIgnoreCase));
             DeviceConfigInfo chosen = (DeviceConfigInfo)PickOneForm.Ask(this,
                 Properties.Resources.FsaNoFwhmTitle,
                 Properties.Resources.FsaNoFwhmQuestion,
                 devices.ConvertAll<object>(d => d),
-                active.DeviceConfig);
+                preselect);
             if (chosen == null)
             {
                 return false;

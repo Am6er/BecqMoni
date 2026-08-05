@@ -1947,7 +1947,34 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("MSGSavingNuclideSet", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Assign peak color:.
+        /// </summary>
+        public static string NuclideSetAssignColor {
+            get {
+                return ResourceManager.GetString("NuclideSetAssignColor", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Assign.
+        /// </summary>
+        public static string NuclideSetAssignColorButton {
+            get {
+                return ResourceManager.GetString("NuclideSetAssignColorButton", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The set contains no nuclides - there is nothing to paint.
+        /// </summary>
+        public static string NuclideSetAssignColorEmpty {
+            get {
+                return ResourceManager.GetString("NuclideSetAssignColorEmpty", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Changing thermometer type causes initialization of input fields. OK?.
         /// </summary>
@@ -3523,9 +3550,9 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
-        public static string GeometryEditorUnitCm {
+        public static string GeometryEditorUnitMm {
             get {
-                return ResourceManager.GetString("GeometryEditorUnitCm", resourceCulture);
+                return ResourceManager.GetString("GeometryEditorUnitMm", resourceCulture);
             }
         }
 
@@ -3819,6 +3846,15 @@ namespace BecquerelMonitor.Properties {
         public static string EfficiencyTabNone {
             get {
                 return ResourceManager.GetString("EfficiencyTabNone", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} - from the spectrum file.
+        /// </summary>
+        public static string EfficiencyFromFile {
+            get {
+                return ResourceManager.GetString("EfficiencyFromFile", resourceCulture);
             }
         }
 

@@ -875,6 +875,10 @@ namespace BecquerelMonitor
             if (deviceConfigInfo != this.activeDeviceConfig)
             {
                 this.calibrationPoints.Clear();
+                // Конструкторы кривой привязаны к прежнему клону конфигурации:
+                // вместе с ним они и уходят, иначе их «Сохранить» писало бы в
+                // объект, который больше ниоткуда не достижим.
+                this.CloseEfficiencyMakers();
             }
             if (!this.ConfirmSaveDeviceConfig())
             {
@@ -935,6 +939,9 @@ namespace BecquerelMonitor
                 }
                 else
                 {
+                    // Правки отвергнуты, клон заменяется свежим — открытые на
+                    // прежнем клоне конструкторы кривой закрываются вместе с ним.
+                    this.CloseEfficiencyMakers();
                     this.activeDeviceConfig = this.manager.DeviceConfigMap[this.activeDeviceConfig.Guid].Clone();
                 }
                 this.ResetActiveDeviceConfigDirty();
@@ -1646,12 +1653,6 @@ namespace BecquerelMonitor
             this.textBox17.Text = openFileDialog.FileName;
             this.SetActiveDeviceConfigDirty();
         }
-
-        void clearEffROI_Click(object sender, EventArgs e)
-        {
-            this.SetActiveDeviceConfigDirty();
-        }
-
 
         // Token: 0x06000532 RID: 1330 RVA: 0x00021958 File Offset: 0x0001FB58
         public void SetActiveDeviceConfigDirty()

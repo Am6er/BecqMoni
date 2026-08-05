@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace BecquerelMonitor.EfficiencyMaker
@@ -13,6 +13,9 @@ namespace BecquerelMonitor.EfficiencyMaker
     /// своей вкладке. Кристалл один и тот же меряют и в маринелли, и точечным
     /// источником, и подменять заодно геометрию пробы значило бы стирать
     /// работу пользователя.
+    ///
+    /// Размеры — в МИЛЛИМЕТРАХ, как и вся модель; в файлах `.in`, откуда они
+    /// взяты, стоят сантиметры.
     /// </summary>
     public static class GeometryPresets
     {
@@ -42,24 +45,24 @@ namespace BecquerelMonitor.EfficiencyMaker
             // формат .in этого не умеет, у нас умеет.
             list.Add(Make("Atom Spectra Nano 16", g =>
             {
-                Box(g, 1.5, 1.8, 6.0);
-                Wrapping(g, 0.13, 0.1, 0.18, 0.2, 0.2);
+                Box(g, 15.0, 18.0, 60.0);
+                Wrapping(g, 1.3, 1.0, 1.8, 2.0, 2.0);
                 Crystal(g, "Cesium iodide");
             }));
 
             // RadiaCode-101/103 — из RadiaCode_Marinelli0.5.in: куб 1 см.
             list.Add(Make("RadiaCode-101 / 103", g =>
             {
-                Box(g, 1.0, 1.0, 1.0);
-                Wrapping(g, 0.1, 0.1, 0.1, 0.1, 0.1);
+                Box(g, 10.0, 10.0, 10.0);
+                Wrapping(g, 1.0, 1.0, 1.0, 1.0, 1.0);
                 Crystal(g, "Cesium iodide");
             }));
 
             // Obsidian — из «Obsidian Marinelli 0.5.in».
             list.Add(Make("Obsidian", g =>
             {
-                Box(g, 0.7, 0.7, 3.0);
-                Wrapping(g, 0.1, 0.1, 0.1, 0.1, 0.1);
+                Box(g, 7.0, 7.0, 30.0);
+                Wrapping(g, 1.0, 1.0, 1.0, 1.0, 1.0);
                 Crystal(g, "Cesium iodide");
             }));
 
@@ -70,15 +73,15 @@ namespace BecquerelMonitor.EfficiencyMaker
             // их надо отдельно.
             list.Add(Make("Atom Spectra Pro 80x80", g =>
             {
-                Cylinder(g, 8.0, 8.0);
-                Wrapping(g, 0.13, 0.1, 0.18, 0.2, 0.2);
+                Cylinder(g, 80.0, 80.0);
+                Wrapping(g, 1.3, 1.0, 1.8, 2.0, 2.0);
                 Crystal(g, "Sodium iodide");
             }));
 
             list.Add(Make("Atom Spectra Pro 40x40", g =>
             {
-                Cylinder(g, 4.0, 4.0);
-                Wrapping(g, 0.13, 0.1, 0.18, 0.2, 0.2);
+                Cylinder(g, 40.0, 40.0);
+                Wrapping(g, 1.3, 1.0, 1.8, 2.0, 2.0);
                 Crystal(g, "Sodium iodide");
             }));
 

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -250,31 +250,31 @@ namespace BecquerelMonitor.EfficiencyMaker
         {
             List<string> lines = new List<string>();
             lines.Add(m.Shape == CrystalShape.Box
-                ? string.Format(CultureInfo.InvariantCulture, "{0}: {1:G4} x {2:G4} x {3:G4} cm",
+                ? string.Format(CultureInfo.InvariantCulture, "{0}: {1:G4} x {2:G4} x {3:G4} mm",
                                 Resources.EfficiencySketchBox, m.CrystalBoxX, m.CrystalBoxY, m.CrystalBoxZ)
-                : string.Format(CultureInfo.InvariantCulture, "{0}: {1}{2:G4} x {3:G4} cm",
+                : string.Format(CultureInfo.InvariantCulture, "{0}: {1}{2:G4} x {3:G4} mm",
                                 Resources.EfficiencySketchCylinder, "⌀", m.CrystalDiameter, m.CrystalHeight));
 
             switch (m.SourceType)
             {
                 case GeometrySourceType.Point:
-                    lines.Add(string.Format(CultureInfo.InvariantCulture, "{0}: {1:G4} cm",
+                    lines.Add(string.Format(CultureInfo.InvariantCulture, "{0}: {1:G4} mm",
                                             Resources.EfficiencySketchPoint,
                                             Math.Max(m.PointDistance, 0.0)));
                     break;
 
                 case GeometrySourceType.Cylinder:
-                    lines.Add(string.Format(CultureInfo.InvariantCulture, "{0}: {1}{2:G4} x {3:G4} cm",
+                    lines.Add(string.Format(CultureInfo.InvariantCulture, "{0}: {1}{2:G4} x {3:G4} mm",
                                             Resources.EfficiencySketchBeaker, "⌀",
                                             Math.Max(m.BeakerDiameter, 0.0),
                                             Math.Max(m.SourceHeight, 0.0)));
-                    lines.Add(string.Format(CultureInfo.InvariantCulture, "{0}: {1:G4} cm",
+                    lines.Add(string.Format(CultureInfo.InvariantCulture, "{0}: {1:G4} mm",
                                             Resources.EfficiencySketchDistance,
                                             Math.Max(m.BeakerToDetectorDistance, 0.0)));
                     break;
 
                 default:
-                    lines.Add(string.Format(CultureInfo.InvariantCulture, "{0}: {1}{2:G4} x {3:G4} cm",
+                    lines.Add(string.Format(CultureInfo.InvariantCulture, "{0}: {1}{2:G4} x {3:G4} mm",
                                             Resources.EfficiencySketchMarinelli, "⌀",
                                             Math.Max(m.MarinelliBeakerDiameter, 0.0),
                                             Math.Max(m.MarinelliBeakerHeight, 0.0)));
@@ -357,7 +357,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 if (box)
                 {
                     string text = string.Format(CultureInfo.InvariantCulture,
-                        "Y = {0:G4} cm", m.CrystalBoxY);
+                        "Y = {0:G4} mm", m.CrystalBoxY);
                     bool lit = this.Lit("CrystalBoxY");
                     using (Brush litInk = lit ? new SolidBrush(LitColor) : null)
                     {
@@ -678,10 +678,14 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
         }
 
-        /// <summary>Число на выноске. Имя не Text: так называется свойство Control.</summary>
+        /// <summary>
+        /// Число на выноске, миллиметры. Имя не Text: так называется свойство
+        /// Control. Четыре значащих на всех: в миллиметрах обычные размеры —
+        /// десятки и сотни, и прежних трёх на 114.5 или 18.54 не хватало.
+        /// </summary>
         static string Format(double value)
         {
-            return value.ToString(value >= 10.0 ? "G4" : "G3", CultureInfo.InvariantCulture);
+            return value.ToString("G4", CultureInfo.InvariantCulture);
         }
     }
 }

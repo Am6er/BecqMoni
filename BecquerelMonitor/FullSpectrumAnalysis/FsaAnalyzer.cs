@@ -209,7 +209,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 int[] backgroundSnip = this.Mode == ContinuumMode.Snip ? Snip(fwhmCalibration, background) : null;
                 for (int i = 0; i < channels; i++)
                 {
-                    double value = background.Spectrum[i] * backgroundScale;
+                    double full = background.Spectrum[i] * backgroundScale;
+                    double value = full;
                     if (backgroundSnip != null)
                     {
                         // в режиме SNIP континуум фона уже сидит внутри оценки
@@ -219,7 +220,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                     backgroundCurve[i] = value;
                     y[i] -= value;
-                    variance[i] += Math.Max(Math.Abs(value) * backgroundScale, backgroundScale * backgroundScale);
+                    // Дисперсия — от ПОЛНОГО фона, как в харнессе: шум отсчёта
+                    // фона не уменьшается оттого, что его континуум учтён в
+                    // другом слагаемом модели.
+                    variance[i] += Math.Max(Math.Abs(full) * backgroundScale, backgroundScale * backgroundScale);
                 }
             }
 

@@ -1708,9 +1708,18 @@ namespace BecquerelMonitor
                     {
                         source = this.normByEffEnergySpectrum;
                     }
-                    else
-                    {                        
+                    else if (FullSpectrumAnalysis.FsaEfficiency.FromConfig(resultData.Efficiency) != null)
+                    {
                         source = SpectrumAriphmetics.NormalizeSpectrum(resultData.EnergySpectrum, resultData.Efficiency);
+                    }
+                    else
+                    {
+                        // У спектра сравнения нет своей кривой: делить не на
+                        // что, а рисовать его СЫРЫМ рядом с counts/ε значит
+                        // молча класть на одну шкалу разные величины. Пустая
+                        // кривая — «нет значения»: спектр уходит в ноль, пока
+                        // кривую не выберут.
+                        source = null;
                     }
                 }
                 else
@@ -1720,7 +1729,7 @@ namespace BecquerelMonitor
 
                 Parallel.For(0, resultData.EnergySpectrum.NumberOfChannels, l =>
                 {
-                    resultData.EnergySpectrum.DrawingSpectrum[l] = (double)source.Spectrum[l];
+                    resultData.EnergySpectrum.DrawingSpectrum[l] = source != null ? (double)source.Spectrum[l] : 0.0;
                 });
             }
         }
@@ -2745,9 +2754,12 @@ namespace BecquerelMonitor
         /// три величины и есть у линии набора. Второго списка одних и тех же
         /// линий больше нет.
         ///
-        /// Что показывать, решает галка «Линии интенс.» У НАБОРА, а не выбор
-        /// набора для поиска пиков: это разные вещи. Наборов с галкой может
-        /// быть несколько — рисуются все, каждый со своей нормировкой.
+        /// Что показывать, решают ДВОЕ: галка «Линии интенс.» у набора — это
+        /// выключатель, — и выбор набора в панели поиска пиков. Выбран
+        /// конкретный набор — рисуется только он; выбраны «все нуклиды» —
+        /// рисуются все, у кого стоит галка, каждый со своей нормировкой.
+        /// Разбор условия и почему оно такое — в
+        /// <see cref="NuclideDefinitionManager.IntensityLineSets"/>.
         /// </summary>
         void ShowNuclideSetIntensities(Graphics g)
         {

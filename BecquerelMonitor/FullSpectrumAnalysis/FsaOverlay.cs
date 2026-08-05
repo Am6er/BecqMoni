@@ -88,14 +88,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// расчёт, если нет. Вызывать с UI-потока: снимок списка нуклидов и
         /// конфигураций снимается здесь, в фон уходят уже копии.
         /// </summary>
-        public void EnsureUpToDate(ResultData resultData, bool subtractBackground, ROIConfigData efficiencyRoi)
+        public void EnsureUpToDate(ResultData resultData, bool subtractBackground)
         {
             if (resultData == null || resultData.EnergySpectrum == null || resultData.EnergySpectrum.Spectrum == null)
             {
                 return;
             }
 
-            string currentStamp = BuildStamp(resultData, subtractBackground, efficiencyRoi);
+            string currentStamp = BuildStamp(resultData, subtractBackground);
             int myGeneration;
             lock (this.sync)
             {
@@ -117,7 +117,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // отрисовку, у которой обработчика нет.
             try
             {
-                this.Launch(resultData, subtractBackground, efficiencyRoi, myGeneration);
+                this.Launch(resultData, subtractBackground, myGeneration);
             }
             catch (Exception ex)
             {
@@ -131,8 +131,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
         }
 
-        void Launch(ResultData resultData, bool subtractBackground, ROIConfigData efficiencyRoi,
-                    int myGeneration)
+        void Launch(ResultData resultData, bool subtractBackground, int myGeneration)
         {
             EnergySpectrum spectrum = resultData.EnergySpectrum;
             EnergySpectrum background = subtractBackground ? resultData.BackgroundEnergySpectrum : null;
@@ -155,8 +154,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             FsaAnalyzer analyzer = new FsaAnalyzer();
             if (resultData.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig peakConfig)
             {
-                // Диапазон берётся тот же, в котором работает поиск пиков;
-                // ниже LowEnergyFloorKev его опустит не даст сам анализатор.
+                // Диапазон поиска пиков передаётся анализатору, но при
+                // FitWholeSpectrum (умолчание) он им не пользуется — читает его
+                // только запасной знаменатель при вырожденной калибровке.
                 analyzer.MinEnergy = peakConfig.Min_Range;
                 analyzer.MaxEnergy = peakConfig.Max_Range;
             }
@@ -211,7 +211,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             });
         }
 
-        static string BuildStamp(ResultData resultData, bool subtractBackground, ROIConfigData efficiencyRoi)
+        static string BuildStamp(ResultData resultData, bool subtractBackground)
         {
             EnergySpectrum spectrum = resultData.EnergySpectrum;
             EnergySpectrum background = resultData.BackgroundEnergySpectrum;
@@ -236,8 +236,59 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 "|", spectrum.MeasurementTime.ToString("F1"),
                 "|", subtractBackground ? "bg" : "nobg",
                 "|", background != null ? background.TotalPulseCount.ToString() : "-",
-                "|", efficiencyRoi != null ? efficiencyRoi.Guid : "-",
+                "|", EfficiencyStamp(resultData.Efficiency),
+                "|", CalibrationStamp(spectrum, resultData.FwhmCalibration),
                 "|", peakStamp.ToString());
+        }
+
+        /// <summary>
+        /// Кривая эффективности в отпечатке. Счёт берёт её из
+        /// resultData.Efficiency, значит и устаревание обязано на неё смотреть:
+        /// выбранная в панели измерения кривая раньше в отпечаток не входила, и
+        /// разложение «без кривой» держалось на экране, пока не менялось
+        /// что-нибудь постороннее.
+        /// </summary>
+        static string EfficiencyStamp(EfficiencyConfigData efficiency)
+        {
+            if (efficiency == null)
+            {
+                return "-";
+            }
+
+            return string.Concat(
+                efficiency.Guid,
+                ":", efficiency.LastUpdated.Ticks.ToString(),
+                ":", efficiency.Curve != null ? efficiency.Curve.Count.ToString() : "0");
+        }
+
+        /// <summary>
+        /// Обе калибровки в отпечатке — от них зависят и положения, и ширины
+        /// линий образа. Энергетическая снимается пробами по трём каналам, а не
+        /// коэффициентами: у неё несколько представлений (полином, нелинейная),
+        /// и пробы покрывают любое.
+        /// </summary>
+        static string CalibrationStamp(EnergySpectrum spectrum, FwhmCalibration fwhmCalibration)
+        {
+            StringBuilder sb = new StringBuilder();
+            EnergyCalibration energy = spectrum.EnergyCalibration;
+            int channels = spectrum.NumberOfChannels;
+            if (energy != null && channels > 0)
+            {
+                sb.Append(energy.ChannelToEnergy(0.0).ToString("R"));
+                sb.Append(',').Append(energy.ChannelToEnergy(channels / 2.0).ToString("R"));
+                sb.Append(',').Append(energy.ChannelToEnergy(channels - 1.0).ToString("R"));
+            }
+
+            double[] fwhm = fwhmCalibration != null ? fwhmCalibration.Coefficients : null;
+            if (fwhm != null)
+            {
+                foreach (double coefficient in fwhm)
+                {
+                    sb.Append(';').Append(coefficient.ToString("R"));
+                }
+            }
+
+            return sb.ToString();
         }
     }
 }

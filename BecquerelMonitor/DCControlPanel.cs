@@ -1,5 +1,6 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -504,33 +505,137 @@ namespace BecquerelMonitor
         /// </summary>
         void UpdateEfficiencyList(ResultData activeResultData)
         {
-            this.efficiencyComboBox.Items.Clear();
-            this.efficiencyComboBox.Items.Add(Resources.EfficiencyTabNone);
+            int selected;
+            List<object> items = BuildEfficiencyItems(
+                activeResultData.Efficiency, activeResultData.FileEfficiency,
+                this.CurrentDeviceConfig(activeResultData), out selected);
 
-            EfficiencyConfigData current = activeResultData.Efficiency;
-            DeviceConfigInfo device = activeResultData.DeviceConfig;
-            int selected = 0;
+            this.efficiencyComboBox.Items.Clear();
+            foreach (object item in items)
+            {
+                this.efficiencyComboBox.Items.Add(item);
+            }
+
+            this.efficiencyComboBox.SelectedIndex = selected;
+            this.clearEfficiencyBtn.Enabled = activeResultData.Efficiency != null;
+        }
+
+        /// <summary>
+        /// Что показать в списке и что в нём выбрать. Вынесено из
+        /// <see cref="UpdateEfficiencyList"/> и сделано статическим, потому что
+        /// здесь вся логика, а там осталось одно присвоение: панель без
+        /// MainForm не собрать, и проверить составление списка иначе нечем.
+        ///
+        /// Порядок: «нет кривой», родная кривая спектра, кривые прибора,
+        /// и последней — та, что не нашлась нигде.
+        /// </summary>
+        public static List<object> BuildEfficiencyItems(EfficiencyConfigData current,
+                                                        EfficiencyConfigData own,
+                                                        DeviceConfigInfo device,
+                                                        out int selected)
+        {
+            List<object> items = new List<object> { Resources.EfficiencyTabNone };
+            selected = 0;
+
+            // Родная кривая спектра идёт своей строкой — даже когда её Guid
+            // совпадает с кривой прибора. Совпадение Guid ничего не обещает: у
+            // прибора кривую с тех пор могли переименовать и пересчитать, а в
+            // файле лежит та, по которой активность этого спектра и посчитана.
+            if (own != null)
+            {
+                items.Add(new SpectrumEfficiencyItem(own));
+                if (object.ReferenceEquals(current, own))
+                {
+                    selected = items.Count - 1;
+                }
+            }
+
+            bool foreign = current != null && !object.ReferenceEquals(current, own);
             bool found = false;
             if (device != null && device.EfficiencyConfigs != null)
             {
                 foreach (EfficiencyConfigData item in device.EfficiencyConfigs)
                 {
-                    int i = this.efficiencyComboBox.Items.Add(item);
-                    if (current != null && item.Guid == current.Guid)
+                    items.Add(item);
+                    if (foreign && item.Guid == current.Guid)
                     {
-                        selected = i;
+                        selected = items.Count - 1;
                         found = true;
                     }
                 }
             }
 
-            if (current != null && !found)
+            // Кривая, которой нет ни в файле, ни у прибора: так бывает после
+            // смены конфигурации прибора на форме. Показать её всё равно надо —
+            // по ней сейчас считается активность.
+            if (foreign && !found)
             {
-                selected = this.efficiencyComboBox.Items.Add(current);
+                items.Add(current);
+                selected = items.Count - 1;
             }
 
-            this.efficiencyComboBox.SelectedIndex = selected;
-            this.clearEfficiencyBtn.Enabled = current != null;
+            return items;
+        }
+
+        /// <summary>
+        /// Конфигурация прибора этого спектра, взятая из менеджера по Guid.
+        ///
+        /// Именно из менеджера, а не из самого спектра: сохранение конфигурации
+        /// прибора заменяет её объект целиком (DeviceConfigManager.SaveConfig
+        /// кладёт в список клон), и копия, на которую ссылается спектр,
+        /// остаётся той, что была на момент открытия документа. Только что
+        /// созданной кривой в ней нет, и в списке она не появлялась до
+        /// перезапуска.
+        ///
+        /// Не нашлась — остаётся копия из самого спектра: файл пришёл от
+        /// человека, у которого этот прибор есть, а у нас его нет.
+        /// </summary>
+        public static DeviceConfigInfo CurrentDeviceConfig(DeviceConfigInfo own,
+                                                          List<DeviceConfigInfo> known)
+        {
+            if (own == null)
+            {
+                return null;
+            }
+
+            if (known != null)
+            {
+                foreach (DeviceConfigInfo config in known)
+                {
+                    if (config.Guid == own.Guid)
+                    {
+                        return config;
+                    }
+                }
+            }
+
+            return own;
+        }
+
+        DeviceConfigInfo CurrentDeviceConfig(ResultData activeResultData)
+        {
+            return CurrentDeviceConfig(activeResultData.DeviceConfig,
+                                       this.deviceConfigManager.DeviceConfigList);
+        }
+
+        /// <summary>
+        /// Строка списка для РОДНОЙ кривой спектра. Отдельный тип нужен только
+        /// ради подписи: без пометки две строки с одинаковым именем ничем не
+        /// отличались бы, а выбор между ними меняет посчитанную активность.
+        /// </summary>
+        public sealed class SpectrumEfficiencyItem
+        {
+            public readonly EfficiencyConfigData Config;
+
+            public SpectrumEfficiencyItem(EfficiencyConfigData config)
+            {
+                this.Config = config;
+            }
+
+            public override string ToString()
+            {
+                return string.Format(Resources.EfficiencyFromFile, this.Config.Name);
+            }
         }
 
         void efficiencyComboBox_SelectedIndexChanged(object sender, EventArgs e)
@@ -545,14 +650,37 @@ namespace BecquerelMonitor
                 return;
             }
             ResultData activeResultData = activeDocument.ActiveResultData;
-            EfficiencyConfigData chosen = this.efficiencyComboBox.SelectedItem as EfficiencyConfigData;
-            // Копия, а не ссылка, — см. ResultData.Efficiency: спектр уносит
-            // кривую с собой, и правка её у прибора задним числом менять
-            // измеренную активность не должна.
-            activeResultData.Efficiency = chosen == null ? null : chosen.Copy();
+            SpectrumEfficiencyItem own = this.efficiencyComboBox.SelectedItem as SpectrumEfficiencyItem;
+            if (own != null)
+            {
+                // Возврат к родной — ТЕМ ЖЕ объектом: тождество ссылок и есть
+                // признак «выбрана родная» (см. ResultData.FileEfficiency).
+                activeResultData.Efficiency = own.Config;
+            }
+            else
+            {
+                EfficiencyConfigData chosen = this.efficiencyComboBox.SelectedItem as EfficiencyConfigData;
+                // Копия, а не ссылка, — см. ResultData.Efficiency: спектр уносит
+                // кривую с собой, и правка её у прибора задним числом менять
+                // измеренную активность не должна.
+                activeResultData.Efficiency = chosen == null ? null : chosen.Copy();
+            }
+
             this.clearEfficiencyBtn.Enabled = activeResultData.Efficiency != null;
-            activeDocument.Dirty = true;
+            // Спектр помечается изменённым, только если выбрана НЕ родная
+            // кривая: в файл она попадёт лишь при сохранении, и отказ от
+            // сохранения оставляет спектр с той, что в нём лежит. Возврат к
+            // родной изменением не является — файл от него не меняется.
+            if (!object.ReferenceEquals(activeResultData.Efficiency, activeResultData.FileEfficiency))
+            {
+                activeDocument.Dirty = true;
+            }
+
             this.mainForm.ShowMeasurementResult(true);
+            // От кривой зависит и сам график: нормировка по эффективности
+            // делится на неё, разложение FSA берёт её в образ. Без перерисовки
+            // на экране оставался спектр, посчитанный по прежней кривой.
+            activeDocument.RefreshView();
         }
 
         void clearEfficiencyBtn_Click(object sender, EventArgs e)
@@ -571,6 +699,9 @@ namespace BecquerelMonitor
             activeDocument.Dirty = true;
             this.ShowDocumentStatus();
             this.mainForm.ShowMeasurementResult(true);
+            // Снятая кривая обязана уйти и с графика: режим нормировки по
+            // эффективности возвращается к обычному виду внутри RefreshView.
+            activeDocument.RefreshView();
         }
 
         // Token: 0x0600029C RID: 668 RVA: 0x0000BD6C File Offset: 0x00009F6C

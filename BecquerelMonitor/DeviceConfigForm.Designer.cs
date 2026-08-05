@@ -139,8 +139,6 @@ namespace BecquerelMonitor
             this.button7 = new System.Windows.Forms.Button();
             this.label23 = new System.Windows.Forms.Label();
             this.textBox17 = new System.Windows.Forms.TextBox();
-            this.effROIText = new System.Windows.Forms.Label();
-            this.clearEffROI = new System.Windows.Forms.Button();
             this.tabPage7 = new System.Windows.Forms.TabPage();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.table4 = new XPTable.Models.Table();
@@ -974,8 +972,6 @@ namespace BecquerelMonitor
             this.tabPage4.Controls.Add(this.button7);
             this.tabPage4.Controls.Add(this.label23);
             this.tabPage4.Controls.Add(this.textBox17);
-            this.tabPage4.Controls.Add(this.effROIText);
-            this.tabPage4.Controls.Add(this.clearEffROI);
             resources.ApplyResources(this.tabPage4, "tabPage4");
             this.tabPage4.Name = "tabPage4";
             // 
@@ -1006,21 +1002,7 @@ namespace BecquerelMonitor
             resources.ApplyResources(this.textBox17, "textBox17");
             this.textBox17.Name = "textBox17";
             this.textBox17.TextChanged += new System.EventHandler(this.textBox17_TextChanged);
-            // 
-            // effROIText
-            // 
-            resources.ApplyResources(this.effROIText, "effROIText");
-            this.effROIText.Name = "effROIText";
-            // 
-            // 
-            // 
-            // clearEffROI
-            // 
-            resources.ApplyResources(this.clearEffROI, "clearEffROI");
-            this.clearEffROI.Name = "clearEffROI";
-            this.clearEffROI.UseVisualStyleBackColor = true;
-            this.clearEffROI.Click += new System.EventHandler(this.clearEffROI_Click);
-            // 
+            //
             // tabPage7
             // 
             this.tabPage7.BackColor = System.Drawing.SystemColors.Control;
@@ -1611,8 +1593,6 @@ namespace BecquerelMonitor
         XPTable.Models.NumberColumn numberColumn6;
         XPTable.Models.NumberColumn numberColumn7;
         XPTable.Models.NumberColumn numberColumn8;
-		System.Windows.Forms.Label effROIText;
-		System.Windows.Forms.Button clearEffROI;
 
 		// dose rate calculation
         private System.Windows.Forms.Button buttonLoadDoseRateSpectrum;

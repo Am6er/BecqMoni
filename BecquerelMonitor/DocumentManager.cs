@@ -322,6 +322,7 @@ namespace BecquerelMonitor
             docEnergySpectrum2.IsNamed = true;
             this.documentList.Add(docEnergySpectrum2);
             this.PrepareDeviceConfig(docEnergySpectrum2.ResultDataFile);
+            this.PrepareEfficiency(docEnergySpectrum2.ResultDataFile);
             this.PrepareROIConfig(docEnergySpectrum2.ResultDataFile);
             foreach (ResultData resultData2 in docEnergySpectrum2.ResultDataFile.ResultDataList)
             {
@@ -402,6 +403,7 @@ namespace BecquerelMonitor
             }
             Cursor.Current = Cursors.Default;
             this.PrepareDeviceConfig(resultDataFile);
+            this.PrepareEfficiency(resultDataFile);
             this.PrepareROIConfig(resultDataFile);
             foreach (ResultData resultData2 in resultDataFile.ResultDataList)
             {
@@ -496,6 +498,7 @@ namespace BecquerelMonitor
             docEnergySpectrum2.IsNamed = true;
             this.documentList.Add(docEnergySpectrum2);
             this.PrepareDeviceConfig(docEnergySpectrum2.ResultDataFile);
+            this.PrepareEfficiency(docEnergySpectrum2.ResultDataFile);
             this.PrepareROIConfig(docEnergySpectrum2.ResultDataFile);
             foreach (ResultData resultData in docEnergySpectrum2.ResultDataFile.ResultDataList)
             {
@@ -1308,6 +1311,11 @@ namespace BecquerelMonitor
             {
                 Cursor.Current = Cursors.Default;
             }
+            // Выбранная кривая уехала в файл — теперь родная для спектра именно
+            // она. Без этого строка «из файла» в списке продолжала бы называть
+            // прежнюю, которой в файле уже нет, и «вернуться к родной» вернуло
+            // бы не то, что лежит на диске.
+            this.PrepareEfficiency(resultDataFile);
             // A document stays dirty if ANY of its spectra is still recording,
             // not only the active one.
             doc.Dirty = resultDataFile.ResultDataList.Any(rd => rd.ResultDataStatus.Recording);
@@ -1368,6 +1376,24 @@ namespace BecquerelMonitor
                         break;
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// Запомнить кривую, с которой файл спектра пришёл.
+        ///
+        /// Зовётся рядом с <see cref="PrepareDeviceConfig"/> — там же, где
+        /// разбираются остальные ссылки прочитанного файла. Кривая в отличие от
+        /// них лежит в файле целиком, и «подготовка» здесь одна: пометить, что
+        /// это РОДНАЯ кривая спектра. По этой пометке она попадает в список
+        /// панели измерения отдельной строкой и остаётся в нём, даже когда на
+        /// спектре выбрали другую (см. ResultData.FileEfficiency).
+        /// </summary>
+        void PrepareEfficiency(ResultDataFile resultDataFile)
+        {
+            foreach (ResultData resultData in resultDataFile.ResultDataList)
+            {
+                resultData.FileEfficiency = resultData.Efficiency;
             }
         }
 

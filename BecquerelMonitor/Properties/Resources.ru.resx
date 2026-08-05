@@ -148,6 +148,15 @@
   <data name="MSGSavingNuclideSet" xml:space="preserve">
     <value>Набор(ы) изотопов был изменен. Сохранить?</value>
   </data>
+  <data name="NuclideSetAssignColor" xml:space="preserve">
+    <value>Цвет пиков набора:</value>
+  </data>
+  <data name="NuclideSetAssignColorButton" xml:space="preserve">
+    <value>Присвоить</value>
+  </data>
+  <data name="NuclideSetAssignColorEmpty" xml:space="preserve">
+    <value>В наборе нет нуклидов — красить нечего.</value>
+  </data>
   <data name="ERRDeviceConfigNotSelected" xml:space="preserve">
     <value>Не выбрана конфигурация устройства.</value>
   </data>
@@ -840,22 +849,22 @@
     <value>Посчитано из геометрии: точек {0}, {1}-{2} кэВ, {3}</value>
   </data>
   <data name="GeometrySourcePoint" xml:space="preserve">
-    <value>точка, {0:F2} см</value>
+    <value>точка, {0:F1} мм</value>
   </data>
   <data name="GeometrySourceCylinder" xml:space="preserve">
-    <value>цилиндр D={0:F2} H={1:F2} на {2:F2} см</value>
+    <value>цилиндр D={0:F1} H={1:F1} на {2:F1} мм</value>
   </data>
   <data name="GeometrySourceMarinelli" xml:space="preserve">
-    <value>Маринелли D={0:F2} Dhole={1:F2} H={2:F2} на {3:F2} см</value>
+    <value>Маринелли D={0:F1} Dhole={1:F1} H={2:F1} на {3:F1} мм</value>
   </data>
   <data name="GeometryCrystalBox" xml:space="preserve">
-    <value>брусок {0:F2}x{1:F2}x{2:F2}</value>
+    <value>брусок {0:F1}x{1:F1}x{2:F1}</value>
   </data>
   <data name="GeometryCrystalCylinder" xml:space="preserve">
-    <value>цилиндр {0:F3}x{1:F3}</value>
+    <value>цилиндр {0:F2}x{1:F2}</value>
   </data>
   <data name="GeometryDescription" xml:space="preserve">
-    <value>{0}: кристалл {1} {2} см, ро {3:F3}; источник — {4}, {5}</value>
+    <value>{0}: кристалл {1} {2} мм, ро {3:F3}; источник — {4}, {5}</value>
   </data>
   <data name="EfficiencyMakerCancelled" xml:space="preserve">
     <value>Остановлено пользователем.</value>
@@ -1011,7 +1020,7 @@
     <value>Кристалл Z (вдоль оси)</value>
   </data>
   <data name="GeometryEditorEquivalent" xml:space="preserve">
-    <value>Равноценный цилиндр для файла .in: D = {0:F4} см (равная площадь торца, правило LSRM). Объём кристалла {1:F3} см3.</value>
+    <value>Равноценный цилиндр для файла .in: D = {0:F3} мм (равная площадь торца, правило LSRM). Объём кристалла {1:F3} см3.</value>
   </data>
   <data name="GeometryEditorFrontReflector" xml:space="preserve">
     <value>Отражатель с торца</value>
@@ -1088,8 +1097,8 @@
   <data name="GeometryEditorSourceMaterial" xml:space="preserve">
     <value>Проба</value>
   </data>
-  <data name="GeometryEditorUnitCm" xml:space="preserve">
-    <value>см</value>
+  <data name="GeometryEditorUnitMm" xml:space="preserve">
+    <value>мм</value>
   </data>
   <data name="GeometryEditorUnitDensity" xml:space="preserve">
     <value>г/см3</value>
@@ -1110,7 +1119,7 @@
     <value>Некоторые значения не числа - они подсвечены. Непрочитанное значение молча стало бы нулём.</value>
   </data>
   <data name="GeometryWarningNoMaterial" xml:space="preserve">
-    <value>ВНИМАНИЕ — {0}: толщина {1} см задана, а плотности или состава у вещества нет. Слой считается пустотой; иначе его место молча занял бы слой снаружи.</value>
+    <value>ВНИМАНИЕ — {0}: толщина {1} мм задана, а у вещества нет плотности или состава. Слой считается вакуумом; иначе его место молча занял бы слой снаружи.</value>
   </data>
   <data name="GeometryWarningAtomFractions" xml:space="preserve">
     <value>{0}: доли атомные (FractionType = ATOM), пересчитаны в массовые.</value>
@@ -1237,6 +1246,9 @@
   </data>
   <data name="EfficiencyTabNone" xml:space="preserve">
     <value>(нет)</value>
+  </data>
+  <data name="EfficiencyFromFile" xml:space="preserve">
+    <value>{0} — из файла спектра</value>
   </data>
   <data name="EfficiencyTabEmpty" xml:space="preserve">
     <value>У прибора нет ни одной конфигурации эффективности. Пока её не создадут или не импортируют, активность не считается.</value>
