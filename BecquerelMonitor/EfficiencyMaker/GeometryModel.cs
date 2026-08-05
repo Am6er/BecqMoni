@@ -147,6 +147,29 @@ namespace BecquerelMonitor.EfficiencyMaker
             return massAttenuation * this.Density;
         }
 
+        /// <summary>
+        /// Только некогерентное (комптоновское) рассеяние, 1/см. Нужно, чтобы
+        /// разыграть ОДНО рассеяние на пути к кристаллу: квант после него не
+        /// потерян, он летит дальше с другой энергией и может дойти.
+        ///
+        /// Если парциальных сечений для элемента нет, его вклад считается
+        /// нулевым: лучше не разыграть рассеяние, чем разыграть выдуманное.
+        /// </summary>
+        public double LinearIncoherent(double energyKev)
+        {
+            double massAttenuation = 0.0;
+            foreach (KeyValuePair<int, double> pair in this.Fractions)
+            {
+                if (PartialCrossSections.HasElement(pair.Key))
+                {
+                    massAttenuation += pair.Value * PartialCrossSections.MassCrossSection(
+                        pair.Key, energyKev, PhotonProcess.Incoherent);
+                }
+            }
+
+            return massAttenuation * this.Density;
+        }
+
         /// <summary>Электронов на см³ — для сечения Клейна — Нишины.</summary>
         public double ElectronDensity()
         {

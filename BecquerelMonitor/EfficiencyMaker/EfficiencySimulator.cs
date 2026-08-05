@@ -168,6 +168,24 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public bool CoherentPassesThrough = true;
 
+        /// <summary>
+        /// Разыгрывать ОДНО комптоновское рассеяние на пути к кристаллу.
+        ///
+        /// Формула узкого пучка `exp(-tau)` считает потерянным всё, что
+        /// провзаимодействовало. Для когерентного это чинится вычетом канала
+        /// (<see cref="CoherentPassesThrough"/>), но комптон на малый угол тоже
+        /// из пика не выводит: при 60 кэВ рассеяние на 10° отнимает 0.2 %
+        /// энергии. А главное — рассеиватель в миллиметрах от кристалла (окно,
+        /// оболочка, стенка стакана) виден из точки рассеяния под большим углом,
+        /// и рассеянное вперёд туда и приходит.
+        ///
+        /// Считается ОДНО рассеяние: после него квант ведётся до кристалла уже
+        /// поглощающей проводкой. Второе и дальше отброшены сознательно — их
+        /// вклад меньше и знак у него тот же, так что поправка остаётся НИЖНЕЙ
+        /// оценкой, а не подгонкой.
+        /// </summary>
+        public bool SingleScatter = true;
+
         readonly GeometryModel geometry;
         readonly List<Region> regions = new List<Region>();
         Region crystal;
@@ -866,6 +884,121 @@ namespace BecquerelMonitor.EfficiencyMaker
             return false;
         }
 
+        /// <summary>
+        /// Вклад историй, рассеявшихся ОДИН раз по дороге к кристаллу.
+        ///
+        /// Прямой вклад считается весом `exp(-tau)`, где tau — оптическая
+        /// толщина по каналам, которые квант убивают. Значит доля
+        /// `1 - exp(-tau)` — это те истории, что провзаимодействовали, и они
+        /// сейчас просто теряются. Часть из них — комптон, и такой квант никуда
+        /// не делся: он летит дальше с другой энергией.
+        ///
+        /// Точка взаимодействия разыгрывается по той же экспоненте, но
+        /// нормированной на условие «взаимодействие произошло»; в этой точке
+        /// доля комптона равна mu_неког/mu_убив. Дальше — угол по Клейну —
+        /// Нишине, новая энергия и обычная проводка до кристалла.
+        ///
+        /// Возвращает добавку к счёту (0, если рассеяние не состоялось или
+        /// рассеянный квант до кристалла не дошёл либо не поглотился целиком).
+        /// </summary>
+        double ScatteredScore(double x, double y, double z,
+                              double ux, double uy, double uz,
+                              double energyKev, double tauKill)
+        {
+            if (!this.SingleScatter || !(tauKill > 1e-6))
+            {
+                return 0.0;
+            }
+
+            double interacted = 1.0 - Math.Exp(-tauKill);
+            // точка первого взаимодействия: tau_целевое из усечённой экспоненты
+            double tauTarget = -Math.Log(1.0 - this.Uniform() * interacted);
+
+            double px = x, py = y, pz = z;
+            double accumulated = 0.0;
+            Region here = null;
+            double travelled = 0.0;
+            double limit = 40.0 * this.sphereR + 200.0;
+            for (int guard = 0; guard < 200; guard++)
+            {
+                here = this.At(px, py, pz);
+                if (here != null && here.IsCrystal)
+                {
+                    return 0.0;               // до кристалла не рассеялся
+                }
+
+                double step = this.StepToBoundary(px, py, pz, ux, uy, uz);
+                if (step >= double.MaxValue || travelled + step > limit)
+                {
+                    return 0.0;
+                }
+
+                if (here != null)
+                {
+                    double mu = this.CoherentPassesThrough
+                        ? here.Material.LinearAttenuationWithoutCoherent(energyKev)
+                        : here.Material.LinearAttenuation(energyKev);
+                    if (mu > 0.0 && accumulated + mu * step >= tauTarget)
+                    {
+                        double advance = (tauTarget - accumulated) / mu;
+                        px += ux * advance;
+                        py += uy * advance;
+                        pz += uz * advance;
+                        double incoherent = here.Material.LinearIncoherent(energyKev);
+                        double share = incoherent / mu;
+                        if (!(share > 0.0))
+                        {
+                            return 0.0;       // взаимодействие было, но не комптон
+                        }
+
+                        double cos = this.ComptonCosine(energyKev);
+                        double scattered = energyKev
+                            / (1.0 + energyKev / ElectronMassKev * (1.0 - cos));
+                        double sx = ux, sy = uy, sz = uz;
+                        this.Rotate(ref sx, ref sy, ref sz, cos);
+
+                        double tau2;
+                        if (!this.ToCrystal(ref px, ref py, ref pz, sx, sy, sz, scattered, out tau2))
+                        {
+                            return 0.0;
+                        }
+
+                        double escaped = this.InCrystal(px, py, pz, sx, sy, sz, scattered, 0);
+                        if (escaped > this.PeakHalfWidthKev)
+                        {
+                            return 0.0;
+                        }
+
+                        // Событие попадает в пик РАССЕЯННОЙ энергии, а не
+                        // исходной: в пик полного поглощения линии оно годится
+                        // только тогда, когда потеря укладывается в ЕГО ШИРИНУ.
+                        // Отсюда важное: при нулевом допуске
+                        // (<see cref="PeakHalfWidthKev"/> = 0) эта поправка не
+                        // даёт ничего вовсе, и так и должно быть — у детектора с
+                        // бесконечным разрешением рассеянный квант в пик линии
+                        // не попадает. Величина поправки зависит от разрешения
+                        // прибора, а его в модели геометрии нет.
+                        if (energyKev - scattered > this.PeakHalfWidthKev)
+                        {
+                            return 0.0;
+                        }
+
+                        return interacted * share * Math.Exp(-tau2);
+                    }
+
+                    accumulated += mu * step;
+                }
+
+                double next = step + 1e-7;
+                px += ux * next;
+                py += uy * next;
+                pz += uz * next;
+                travelled += next;
+            }
+
+            return 0.0;
+        }
+
         /// <summary>Длина пути внутри кристалла от точки в направлении.</summary>
         double CrystalPath(double x, double y, double z, double ux, double uy, double uz)
         {
@@ -1280,6 +1413,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                         {
                             score = weight * Math.Exp(-tau);
                         }
+                    }
+
+                    // Прямой вклад — это доля exp(-tau), не провзаимодействовавшая
+                    // по дороге. Остаток 1 - exp(-tau) сейчас теряется целиком, а
+                    // часть его — комптон на малый угол, и такой квант доходит.
+                    if (!this.ScoreEntranceOnly)
+                    {
+                        score += weight * this.ScatteredScore(x, y, z, ux, uy, uz, energyKev, tau);
                     }
                 }
 
