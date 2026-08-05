@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Globalization;
 using BecquerelMonitor;
+using BecquerelMonitor.EfficiencyMaker;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
@@ -16,9 +17,18 @@ namespace BecquerelMonitor.NucBase
     {
         private const int CheckedColumnIdx = 0;
         private const int NameColumnIdx = 1;
+        private const int LineColumnIdx = 2;
         private const int EnergyColumnIdx = 3;
         private const int IntencityColumnIdx = 4;
         private const int HalfLifeColumnIdx = 7;
+
+        /// <summary>
+        /// Хвост подписи у характеристического рентгена элемента: «W x-ray».
+        /// Не переводится: подпись стоит в файле определений и читается тем же
+        /// разбором на обоих языках.
+        /// </summary>
+        private const string XrayNameSuffix = "x-ray";
+
         private string SearchedIsotope;
 
         public NucBase()
@@ -84,6 +94,36 @@ namespace BecquerelMonitor.NucBase
             }
 
             NucBaseFramework fw = new NucBaseFramework();
+
+            // Символ элемента без массового числа («W», «Pb») — запрос не про
+            // распад, а про характеристический рентген: чем светит вольфрам
+            // электрода или свинец домика, когда в нём выбило K-электрон. Ряда
+            // и родителей у такого запроса нет, поэтому ветка своя и короткая.
+            string element = ElementSymbol(isotopeTextBox);
+            if (element != null)
+            {
+                this.SearchedIsotope = element;
+                List<DecayRad> fluorescence = fw.GetFluorescence(
+                    element, intensity: intensity, lowEnergy: lowEnergy, highEnergy: highEnergy);
+                this.ResultDataGridView.Rows.Clear();
+                foreach (DecayRad line in fluorescence)
+                {
+                    AddRow(line);
+                }
+
+                RestoreSorting();
+                ClearIsotopeCard();
+                if (fluorescence.Count == 0)
+                {
+                    MessageBox.Show(this,
+                        string.Format(Resources.NucBase_NoFluorescence, element),
+                        Resources.NucBase_FluorescenceTitle,
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+
+                UpdateNuclideDefinitionControlsState();
+                return;
+            }
 
             if (!incDecayChain)
             {
@@ -164,6 +204,44 @@ namespace BecquerelMonitor.NucBase
             UpdateNuclideDefinitionControlsState();
         }
 
+        /// <summary>
+        /// Символ элемента, если в запросе нет массового числа: «w» -&gt; «W»,
+        /// «PB» -&gt; «Pb». Иначе null — искать надо нуклид, как и раньше.
+        ///
+        /// Регистр приводится здесь, а не в поиске нуклида: тот всё поднимает в
+        /// верхний («137CS»), а символ элемента пишется «Pb», и по «PB» в
+        /// таблице ничего не найдётся.
+        /// </summary>
+        public static string ElementSymbol(string query)
+        {
+            string letters = Regex.Match(query ?? "", @"^[a-zA-Z]{1,2}$").Value;
+            if (letters.Length == 0)
+            {
+                return null;
+            }
+
+            string symbol = letters.Substring(0, 1).ToUpperInvariant()
+                            + letters.Substring(1).ToLowerInvariant();
+            return MaterialDatabase.ZOf(symbol) > 0 ? symbol : null;
+        }
+
+        /// <summary>
+        /// Карточка нуклида — про распад, а у элемента распада нет. Оставленная
+        /// от прошлого поиска, она подписала бы рентген вольфрама периодом
+        /// полураспада того, кого искали до него.
+        /// </summary>
+        private void ClearIsotopeCard()
+        {
+            this.IsotopeNameLabel.Text = this.SearchedIsotope;
+            this.IsotopeZLabel.Text = MaterialDatabase.ZOf(this.SearchedIsotope).ToString();
+            this.IsotopeNLabel.Text = "";
+            this.IsotopeHLLabel.Text = "";
+            this.IsotopeSpecActivity.Text = "";
+            this.IsotopeAbundance.Text = "";
+            this.ParentsDataGridView.Rows.Clear();
+            this.DaughtersDataGridView.Rows.Clear();
+        }
+
         private void UpdateNuclideDefinitionControlsState()
         {
             bool hasRows = this.ResultDataGridView.Rows.Count > 0;
@@ -176,7 +254,37 @@ namespace BecquerelMonitor.NucBase
             labelNameFormat.Enabled = hasRows;
         }
 
-        private double ConvertHalfLifeToSeconds(double value, string unit)
+        /// <summary>
+        /// Подпись определения для линии характеристического рентгена: «W» -&gt;
+        /// «W x-ray». Массового числа в ней нет и быть не может — по этому и
+        /// отличают рентген от нуклида те, кто читает файл определений
+        /// (см. <see cref="NuclideDefinition.IsElementXrayName"/>).
+        /// </summary>
+        public static string XrayDefinitionName(string symbol)
+        {
+            return (symbol ?? "").Trim() + " " + XrayNameSuffix;
+        }
+
+        /// <summary>
+        /// Период полураспада в годах из ячейки таблицы вида «5.75(Y)».
+        ///
+        /// Вынесено из обработчика ввоза вместе с <see cref="XrayDefinitionName"/>:
+        /// форму можно собрать и без главного окна, но ввоз кончается модальным
+        /// сообщением, и проба на нём повисла бы. У рентгена периода нет вовсе —
+        /// в ячейке ноль, и разбор обязан его пережить, а не уронить весь ввоз.
+        /// </summary>
+        public static double HalfLifeYearsFromCell(string cell)
+        {
+            string[] parts = (cell ?? "").Split('(');
+            double value;
+            double.TryParse(parts[0], NumberStyles.Float, CultureInfo.CurrentCulture, out value);
+            // Take the full unit, not the first character: Substring(0,1) turned
+            // "ms" into "m" (minutes, a x60000 error) and "us"/"ns" into unknown units.
+            string unit = parts.Length > 1 ? parts[1].TrimEnd(')') : "s";
+            return ConvertHalfLifeToSeconds(value, unit) / 31536000;
+        }
+
+        private static double ConvertHalfLifeToSeconds(double value, string unit)
         {
             double coeff;
 
@@ -217,7 +325,10 @@ namespace BecquerelMonitor.NucBase
         private void AddRow(DecayRad decrad)
         {
             // TODO: use data binding?
-            bool isGamma = decrad.DecayLine == "G";
+            // Галочка стоит у того, за чем пришли: у гамма-линий распада и у
+            // всех линий рентгена, когда искали именно рентген элемента.
+            bool isGamma = decrad.DecayLine == "G"
+                           || decrad.DecayLine == NucBaseFramework.FluorescenceLine;
             string hl = decrad.HalfLife.ToString() + "(" + decrad.HalfLifeUnit + ")";
             this.ResultDataGridView.Rows.Add(isGamma, decrad.Name, decrad.DecayLine, decrad.Energy, decrad.Intensity, decrad.XrayType, decrad.DecayTypeString, hl);
         }
@@ -422,19 +533,31 @@ namespace BecquerelMonitor.NucBase
                     if ((bool)row.Cells[CheckedColumnIdx].Value == true)
                     {
                         string name = (string)row.Cells[NameColumnIdx].Value;
-                        string formattedName = FormatIsotopeName(name);
+                        bool fluorescence = NucBaseFramework.FluorescenceLine.Equals(
+                            row.Cells[LineColumnIdx].Value as string, StringComparison.Ordinal);
+                        // Формат имени — про нуклиды («137CS» -> «Cs-137»), у
+                        // символа элемента ему не за что зацепиться. Подпись
+                        // складывается своя: «W x-ray». Слово в ней не украшение
+                        // — по отсутствию массового числа в имени рентген и
+                        // отличается потом от нуклида (NuclideDefinition).
+                        string formattedName = fluorescence
+                            ? XrayDefinitionName(name)
+                            : FormatIsotopeName(name);
                         double energy = (double)row.Cells[EnergyColumnIdx].Value;
                         double intencity = (double)row.Cells[IntencityColumnIdx].Value;
-                        double halfLife = Convert.ToDouble(((string)row.Cells[HalfLifeColumnIdx].Value).Split('(')[0]);
-                        // Take the full unit, not the first character: Substring(0,1) turned
-                        // "ms" into "m" (minutes, a x60000 error) and "us"/"ns" into unknown units.
-                        string halfLifeUnit = ((string)row.Cells[HalfLifeColumnIdx].Value).Split('(')[1].TrimEnd(')');
-                        double halfLifeYears = ConvertHalfLifeToSeconds(halfLife, halfLifeUnit) / 31536000;
+                        double halfLifeYears = HalfLifeYearsFromCell(
+                            (string)row.Cells[HalfLifeColumnIdx].Value);
 
-                        if (IncludeDecayChainCheckBox.Checked && checkBoxAppendRootName.Checked && this.SearchedIsotope != name)
+                        if (!fluorescence && IncludeDecayChainCheckBox.Checked
+                            && checkBoxAppendRootName.Checked && this.SearchedIsotope != name)
                         {
                             formattedName += " (" + FormatIsotopeName(this.SearchedIsotope) + ")";
                         }
+
+                        // Ряда у рентгена нет: выход дан не на распад родителя, а
+                        // долей внутри K-серии, и вписанный сюда родитель означал
+                        // бы, что линию можно ставить на вековое равновесие.
+                        string rowChain = fluorescence ? "" : chain;
 
                         NuclideDefinition existingDef = defManager.NuclideDefinitions.FirstOrDefault(def => def.Energy == energy);
                         if (existingDef != null && checkBoxOverwriteDef.Checked)
@@ -442,16 +565,16 @@ namespace BecquerelMonitor.NucBase
                             existingDef.Name = formattedName;
                             existingDef.Intencity = intencity;
                             existingDef.HalfLife = halfLifeYears;
-                            existingDef.Chain = chain;
+                            existingDef.Chain = rowChain;
                             updatedCount++;
                         }
-                        
+
                         if (existingDef == null)
                         {
                             defManager.NuclideDefinitions.Add(new NuclideDefinition()
                             {
                                 Name = formattedName,
-                                Chain = chain,
+                                Chain = rowChain,
                                 Energy = energy,
                                 Intencity = intencity,
                                 HalfLife = halfLifeYears,

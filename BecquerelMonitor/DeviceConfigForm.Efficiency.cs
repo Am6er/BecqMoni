@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
@@ -29,7 +29,7 @@ namespace BecquerelMonitor
         Label efficiencySummaryLabel;
         Panel efficiencyHeader;
         Button efficiencyNewButton, efficiencyEditButton, efficiencyRenameButton;
-        Button efficiencyDuplicateButton, efficiencyDeleteButton;
+        Button efficiencyDuplicateButton, efficiencyDeleteButton, efficiencyMatrixButton;
 
         /// <summary>
         /// Собрать вкладку и вставить её СРАЗУ ЗА калибровкой энергии: кривая —
@@ -74,12 +74,15 @@ namespace BecquerelMonitor
                 Resources.EfficiencyTabDuplicate, Margin, y, ButtonWidth);
             this.efficiencyDeleteButton = this.EfficiencyButton(
                 Resources.EfficiencyTabDelete, Margin + ButtonWidth + Gap, y, ButtonWidth);
+            this.efficiencyMatrixButton = this.EfficiencyButton(
+                Resources.EfficiencyTabResponseMatrix, Margin + 2 * (ButtonWidth + Gap), y, ButtonWidth);
 
             this.efficiencyNewButton.Click += this.efficiencyNewButton_Click;
             this.efficiencyEditButton.Click += this.efficiencyEditButton_Click;
             this.efficiencyRenameButton.Click += this.efficiencyRenameButton_Click;
             this.efficiencyDuplicateButton.Click += this.efficiencyDuplicateButton_Click;
             this.efficiencyDeleteButton.Click += this.efficiencyDeleteButton_Click;
+            this.efficiencyMatrixButton.Click += this.efficiencyMatrixButton_Click;
 
             // Подпись отдельной строкой над списком, а не слева от него:
             // «Конфигурация эффективности:» съедает треть ширины, и списку
@@ -237,6 +240,25 @@ namespace BecquerelMonitor
         /// называть ровно то, что мешает: «конфигураций нет» и «кривая без
         /// геометрии» — разные беды с разным лечением.
         /// </summary>
+        /// <summary>
+        /// Матрица отклика для геометрии выбранной кривой. Форма работает с той
+        /// же копией конфигурации, что и вкладка, поэтому геометрия в ней —
+        /// ровно та, что человек видит в чертеже.
+        /// </summary>
+        void efficiencyMatrixButton_Click(object sender, EventArgs e)
+        {
+            EfficiencyConfigData config = this.SelectedEfficiency();
+            if (config == null || !config.HasGeometry)
+            {
+                return;
+            }
+
+            using (ResponseMatrixForm form = new ResponseMatrixForm(config))
+            {
+                form.ShowDialog(this);
+            }
+        }
+
         void UpdateEfficiencyView()
         {
             EfficiencyConfigData config = this.SelectedEfficiency();
@@ -247,6 +269,9 @@ namespace BecquerelMonitor
             this.efficiencyRenameButton.Enabled = config != null;
             this.efficiencyDuplicateButton.Enabled = config != null;
             this.efficiencyDeleteButton.Enabled = config != null;
+            // Матрица считается ИЗ ГЕОМЕТРИИ: у кривой, восстановленной по
+            // измерениям, её нет, и считать не из чего.
+            this.efficiencyMatrixButton.Enabled = config != null && config.HasGeometry;
 
             if (config == null)
             {

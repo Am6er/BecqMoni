@@ -195,7 +195,12 @@ namespace BecquerelMonitor
             g.Reflector = Make("Polytetrafluoroethylene");
             g.Cladding = Make("Aluminum");
             g.BeakerWall = Make("Polyethylene");
-            g.Source = Make("Water, liquid");
+            // Воздух, а не вода: заготовка открывается с точечным источником, и
+            // вещество пробы в ней — то, чего у пользователя ЕЩЁ нет. Вода
+            // самопоглощением молча съедает низ шкалы, и заметить это в готовой
+            // кривой нечем; воздух не поглощает ничего, и всё, что стоит в
+            // сумме, поставил человек.
+            g.Source = Make("Air, dry");
             return g;
         }
 

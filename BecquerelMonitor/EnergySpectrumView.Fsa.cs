@@ -1,4 +1,4 @@
-using BecquerelMonitor.FullSpectrumAnalysis;
+﻿using BecquerelMonitor.FullSpectrumAnalysis;
 using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
@@ -29,6 +29,7 @@ namespace BecquerelMonitor
 
         bool fsaCompletedSubscribed;
         List<FsaStackLayer> fsaLayers;
+        Dictionary<string, Color> fsaColors;
         FsaResult fsaLayersSource;
 
         // Всё, что зависит только от разложения, а не от вьюпорта, считается
@@ -121,6 +122,7 @@ namespace BecquerelMonitor
         {
             this.fsaOverlay.Reset();
             this.fsaLayers = null;
+            this.fsaColors = null;
             this.fsaLayersSource = null;
             this.fsaCumulative = null;
             this.fsaZeroLevel = null;
@@ -153,10 +155,24 @@ namespace BecquerelMonitor
             {
                 this.fsaLayers = result.BuildStackedLayers(FsaMaxNamedLayers);
                 this.fsaLayersSource = result;
+                // Цвет зависит от состава кадра: место в палитре берётся по
+                // имени, а занятое отдаётся следующему свободному. Значит
+                // раздавать цвета надо один раз на весь список, иначе отрисовка
+                // и легенда разрешили бы столкновения по-разному.
+                this.fsaColors = FsaPalette.Assign(this.fsaLayers.ConvertAll(l => l.Name));
                 this.BuildFsaFrameData(result);
             }
 
             return this.fsaLayers;
+        }
+
+        /// <summary>Цвет слоя из раздачи, посчитанной для этого разложения.</summary>
+        Color FsaColorOf(string name)
+        {
+            Color color;
+            return this.fsaColors != null && name != null && this.fsaColors.TryGetValue(name, out color)
+                ? color
+                : Color.Gray;
         }
 
         /// <summary>
@@ -243,7 +259,7 @@ namespace BecquerelMonitor
                 for (int k = 0; k < layers.Count; k++)
                 {
                     double[] lower = k > 0 ? this.fsaCumulative[k - 1] : this.fsaZeroLevel;
-                    Color color = FsaPalette.ColorOf(layers[k].Name, k);
+                    Color color = this.FsaColorOf(layers[k].Name);
                     using (Brush brush = new SolidBrush(Color.FromArgb(230, color)))
                     {
                         this.DrawFsaBand(g, brush, lower, this.fsaCumulative[k]);
@@ -537,7 +553,7 @@ namespace BecquerelMonitor
             Rectangle nameRect = new Rectangle(r.X + 14, r.Y, r.Width - 14, r.Height);
             for (int k = 0; k < layers.Count; k++)
             {
-                using (Brush swatch = new SolidBrush(FsaPalette.ColorOf(layers[k].Name, k)))
+                using (Brush swatch = new SolidBrush(this.FsaColorOf(layers[k].Name)))
                 {
                     g.FillRectangle(swatch, r.Left, r.Top + 4, 10, 8);
                 }

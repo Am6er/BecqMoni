@@ -1743,6 +1743,7 @@ namespace BecquerelMonitor
             doc.SetUpperThreshold += this.DocEnergySpectrum_SetUpperThreshold;
             doc.ShowEnergyCalibrationView += this.DocEnergySpectrum_ShowEnergyCalibrationView;
             doc.AddSpectrumToDocument += this.DocEnergySpectrum_AddSpectrumToDocument;
+            doc.EfficiencyChanged += this.DocEnergySpectrum_EfficiencyChanged;
             foreach (ResultData resultData in doc.ResultDataFile.ResultDataList)
             {
                 MeasurementController measurementController = resultData.MeasurementController;
@@ -1766,10 +1767,28 @@ namespace BecquerelMonitor
             doc.SetUpperThreshold -= this.DocEnergySpectrum_SetUpperThreshold;
             doc.ShowEnergyCalibrationView -= this.DocEnergySpectrum_ShowEnergyCalibrationView;
             doc.AddSpectrumToDocument -= this.DocEnergySpectrum_AddSpectrumToDocument;
+            doc.EfficiencyChanged -= this.DocEnergySpectrum_EfficiencyChanged;
             foreach (ResultData resultData in doc.ResultDataFile.ResultDataList)
             {
                 this.CleanupMeasurementController(resultData.MeasurementController);
             }
+        }
+
+        /// <summary>
+        /// Кривую эффективности сменили из документа — диалогом перед
+        /// разложением. Панель управления измерением показывает ту кривую, по
+        /// которой считается активность, и обновляется только отсюда; вместе с
+        /// ней пересчитывается и сама активность — она от кривой и зависит.
+        /// Ровно то же делает ряд «Efficiency» самой панели.
+        /// </summary>
+        void DocEnergySpectrum_EfficiencyChanged(object sender, EventArgs e)
+        {
+            if (sender != this.activeDocument)
+            {
+                return;
+            }
+            this.dcControlPanel.ShowDocumentStatus();
+            this.ShowMeasurementResult(true);
         }
 
         // Tear down a MeasurementController: unsubscribe our event, release any device lease,
@@ -2517,6 +2536,74 @@ namespace BecquerelMonitor
             if (easyControlConfig.DeviceConfigReference != null)
             {
                 easyControlConfig.DeviceConfig = this.deviceConfigManager.DeviceConfigMap[easyControlConfig.DeviceConfigReference.Guid];
+            }
+
+            this.ApplyDeviceConfigToDocuments(e.Guid);
+        }
+
+        /// <summary>
+        /// Сохранение конфигурации прибора — открытым спектрам, которые на ней
+        /// стоят. Так же поступает <see cref="manager_ROIConfigListChanged"/>.
+        ///
+        /// Открытый спектр держит СВОЮ копию: и объекта конфигурации (сохранение
+        /// кладёт в менеджер клон, а документ остаётся при прежнем), и настроек
+        /// поиска пиков (они правятся для одного спектра в панели поиска). Копии
+        /// снимались один раз, при открытии документа, и правка на вкладке
+        /// Analysis до открытого спектра не доходила: на экране оставались пики,
+        /// найденные по старому SNR, а сказать об этом было нечему.
+        ///
+        /// Что спектр не отдаёт — перечислено в
+        /// <see cref="FWHMPeakDetectionMethodConfig.AdoptFrom"/>. Калибровки,
+        /// энергетическая и ПШПВ, здесь тоже не трогаются: они принадлежат
+        /// спектру и подбираются по нему, а перенести их из прибора можно
+        /// нарочно — выбором конфигурации в панели управления измерением.
+        /// </summary>
+        void ApplyDeviceConfigToDocuments(string guid)
+        {
+            DeviceConfigInfo saved;
+            if (string.IsNullOrEmpty(guid)
+                || !this.deviceConfigManager.DeviceConfigMap.TryGetValue(guid, out saved))
+            {
+                // Конфигурацию удалили: подставлять спектру нечего, и пусть он
+                // остаётся при своей копии — по ней он и посчитан.
+                return;
+            }
+
+            bool activeTouched = false;
+            foreach (DocEnergySpectrum document in this.documentManager.DocumentList)
+            {
+                bool touched = false;
+                foreach (ResultData resultData in document.ResultDataFile.ResultDataList)
+                {
+                    if (resultData.DeviceConfigReference == null
+                        || resultData.DeviceConfigReference.Guid != guid)
+                    {
+                        continue;
+                    }
+
+                    resultData.DeviceConfig = saved;
+                    resultData.DeviceConfigReference = saved.CreateReference();
+                    resultData.PeakDetectionMethodConfig = FWHMPeakDetectionMethodConfig.AdoptFrom(
+                        saved.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig,
+                        resultData.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig);
+                    touched = true;
+                }
+
+                if (!touched)
+                {
+                    continue;
+                }
+
+                document.UpdateDetectedPeaks = true;
+                document.UpdateEnergySpectrum();
+                activeTouched |= document == this.activeDocument;
+            }
+
+            if (activeTouched)
+            {
+                // Пересчёт сразу, а не по таймеру: пользователь только что нажал
+                // «Сохранить» и смотрит на этот спектр.
+                this.UpdateDetectedPeakView();
             }
         }
 

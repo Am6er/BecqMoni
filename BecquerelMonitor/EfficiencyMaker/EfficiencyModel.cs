@@ -288,6 +288,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // говорит, КАКАЯ, а искать её глазами в наборе из тридцати
                 // строк — отдельная работа.
                 List<string> withoutIntensity = new List<string>();
+                List<string> elementXray = new List<string>();
                 List<EfficiencyLine> lines = new List<EfficiencyLine>();
                 foreach (NuclideDefinition definition in manager.NuclideDefinitions)
                 {
@@ -298,6 +299,17 @@ namespace BecquerelMonitor.EfficiencyMaker
                     }
 
                     inSet++;
+                    // Характеристический рентген элемента в кривую не идёт, даже
+                    // когда выход у него заполнен: там доля внутри K-серии, а
+                    // метод делит площадь пика на выход НА РАСПАД. Молча — но
+                    // названо в отказе, если из-за этого линий не осталось.
+                    if (definition.IsElementXray)
+                    {
+                        elementXray.Add(string.Format(CultureInfo.InvariantCulture,
+                            "{0} {1:0.###} keV", (definition.Name ?? "").Trim(), definition.Energy));
+                        continue;
+                    }
+
                     if (definition.Intencity <= 0.0 || definition.Energy <= 0.0)
                     {
                         withoutIntensity.Add(string.Format(CultureInfo.InvariantCulture,
@@ -323,15 +335,23 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // Метод стоит на отношении площадей линий к их выходам: без
                 // выхода линия в кривую не входит, а одной линии мало — сравнить
                 // не с чем. Оба случая называются вслух, с числами.
+                string reason = withoutIntensity.Count > 0
+                    ? string.Format(Resources.EfficiencyMakerSetNoIntensity,
+                                    withoutIntensity.Count, inSet,
+                                    string.Join("; ", withoutIntensity.ToArray()),
+                                    lines.Count)
+                    : string.Format(Resources.EfficiencyMakerSetTooFewLines, lines.Count);
+                if (elementXray.Count > 0)
+                {
+                    reason += " " + string.Format(Resources.EfficiencyMakerSetElementXray,
+                                                  elementXray.Count,
+                                                  string.Join("; ", elementXray.ToArray()));
+                }
+
                 rejected.Add(new SetReject
                 {
                     Name = name,
-                    Reason = withoutIntensity.Count > 0
-                        ? string.Format(Resources.EfficiencyMakerSetNoIntensity,
-                                        withoutIntensity.Count, inSet,
-                                        string.Join("; ", withoutIntensity.ToArray()),
-                                        lines.Count)
-                        : string.Format(Resources.EfficiencyMakerSetTooFewLines, lines.Count)
+                    Reason = reason
                 });
             }
 

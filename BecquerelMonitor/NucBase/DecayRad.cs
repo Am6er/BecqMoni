@@ -69,10 +69,32 @@ namespace BecquerelMonitor.NucBase
             }
         }
 
+        /// <summary>
+        /// Что писать в колонке типа распада, когда распада нет вовсе:
+        /// характеристический рентген элемента (см. NucBaseFramework).
+        /// Пусто — тип берётся из кода <see cref="DecayType"/>, как и был.
+        /// </summary>
+        public string DecayTypeText
+        {
+            get
+            {
+                return this.decayTypeText;
+            }
+            set
+            {
+                this.decayTypeText = value ?? "";
+            }
+        }
+
         public string DecayTypeString
         {
             get
             {
+                if (this.decayTypeText.Length > 0)
+                {
+                    return this.decayTypeText;
+                }
+
                 switch (this.dectype)
                 {
                     case 0:
@@ -138,5 +160,6 @@ namespace BecquerelMonitor.NucBase
         int dectype;
         double halfLife;
         string halfLifeUnit;
+        string decayTypeText = "";
     }
 }

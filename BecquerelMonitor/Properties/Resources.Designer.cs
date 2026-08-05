@@ -4062,5 +4062,273 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("EfficiencyMakerDeviceGoneQuestion", resourceCulture);
             }
         }
-}
+
+        public static string NucBase_Fluorescence {
+            get {
+                return ResourceManager.GetString("NucBase.Fluorescence", resourceCulture);
+            }
+        }
+
+        public static string NucBase_FluorescenceTitle {
+            get {
+                return ResourceManager.GetString("NucBase.FluorescenceTitle", resourceCulture);
+            }
+        }
+
+        public static string NucBase_NoFluorescence {
+            get {
+                return ResourceManager.GetString("NucBase.NoFluorescence", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerSetElementXray {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerSetElementXray", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to EfficiencyTabResponseMatrix.
+        /// </summary>
+        public static string EfficiencyTabResponseMatrix {
+            get {
+                return ResourceManager.GetString("EfficiencyTabResponseMatrix", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixTitle.
+        /// </summary>
+        public static string ResponseMatrixTitle {
+            get {
+                return ResourceManager.GetString("ResponseMatrixTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixStateMissing.
+        /// </summary>
+        public static string ResponseMatrixStateMissing {
+            get {
+                return ResourceManager.GetString("ResponseMatrixStateMissing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixStateStale.
+        /// </summary>
+        public static string ResponseMatrixStateStale {
+            get {
+                return ResourceManager.GetString("ResponseMatrixStateStale", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixStateValid.
+        /// </summary>
+        public static string ResponseMatrixStateValid {
+            get {
+                return ResourceManager.GetString("ResponseMatrixStateValid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixNoGeometry.
+        /// </summary>
+        public static string ResponseMatrixNoGeometry {
+            get {
+                return ResourceManager.GetString("ResponseMatrixNoGeometry", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixDetails.
+        /// </summary>
+        public static string ResponseMatrixDetails {
+            get {
+                return ResourceManager.GetString("ResponseMatrixDetails", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixParameters.
+        /// </summary>
+        public static string ResponseMatrixParameters {
+            get {
+                return ResourceManager.GetString("ResponseMatrixParameters", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixMinEnergy.
+        /// </summary>
+        public static string ResponseMatrixMinEnergy {
+            get {
+                return ResourceManager.GetString("ResponseMatrixMinEnergy", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixMaxEnergy.
+        /// </summary>
+        public static string ResponseMatrixMaxEnergy {
+            get {
+                return ResourceManager.GetString("ResponseMatrixMaxEnergy", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixNodes.
+        /// </summary>
+        public static string ResponseMatrixNodes {
+            get {
+                return ResourceManager.GetString("ResponseMatrixNodes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixBin.
+        /// </summary>
+        public static string ResponseMatrixBin {
+            get {
+                return ResourceManager.GetString("ResponseMatrixBin", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixHistories.
+        /// </summary>
+        public static string ResponseMatrixHistories {
+            get {
+                return ResourceManager.GetString("ResponseMatrixHistories", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixThreads.
+        /// </summary>
+        public static string ResponseMatrixThreads {
+            get {
+                return ResourceManager.GetString("ResponseMatrixThreads", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixEstimate.
+        /// </summary>
+        public static string ResponseMatrixEstimate {
+            get {
+                return ResourceManager.GetString("ResponseMatrixEstimate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixEstimating.
+        /// </summary>
+        public static string ResponseMatrixEstimating {
+            get {
+                return ResourceManager.GetString("ResponseMatrixEstimating", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixCompute.
+        /// </summary>
+        public static string ResponseMatrixCompute {
+            get {
+                return ResourceManager.GetString("ResponseMatrixCompute", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixRecompute.
+        /// </summary>
+        public static string ResponseMatrixRecompute {
+            get {
+                return ResourceManager.GetString("ResponseMatrixRecompute", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixCancel.
+        /// </summary>
+        public static string ResponseMatrixCancel {
+            get {
+                return ResourceManager.GetString("ResponseMatrixCancel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixSave.
+        /// </summary>
+        public static string ResponseMatrixSave {
+            get {
+                return ResourceManager.GetString("ResponseMatrixSave", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixClose.
+        /// </summary>
+        public static string ResponseMatrixClose {
+            get {
+                return ResourceManager.GetString("ResponseMatrixClose", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixProgress.
+        /// </summary>
+        public static string ResponseMatrixProgress {
+            get {
+                return ResourceManager.GetString("ResponseMatrixProgress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixDone.
+        /// </summary>
+        public static string ResponseMatrixDone {
+            get {
+                return ResourceManager.GetString("ResponseMatrixDone", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixCancelled.
+        /// </summary>
+        public static string ResponseMatrixCancelled {
+            get {
+                return ResourceManager.GetString("ResponseMatrixCancelled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixSaved.
+        /// </summary>
+        public static string ResponseMatrixSaved {
+            get {
+                return ResourceManager.GetString("ResponseMatrixSaved", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixFailed.
+        /// </summary>
+        public static string ResponseMatrixFailed {
+            get {
+                return ResourceManager.GetString("ResponseMatrixFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixWhatFor.
+        /// </summary>
+        public static string ResponseMatrixWhatFor {
+            get {
+                return ResourceManager.GetString("ResponseMatrixWhatFor", resourceCulture);
+            }
+        }
+        
+    }
 }

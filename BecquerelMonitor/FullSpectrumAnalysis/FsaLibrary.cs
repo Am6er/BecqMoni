@@ -32,6 +32,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Нуклиды, у которых в базе есть линии, но нет интенсивностей
         /// (характеристический рентген): подписать пик база позволяет, а
         /// построить по ней образ — нет, поэтому берётся встроенный.
+        ///
+        /// Запасной путь, а не основной: линии рентгена элемента ввозятся в
+        /// набор из NucBase вместе с долями внутри K-серии, и образ тогда
+        /// строится по ним, как у любого другого компонента. Подстановка
+        /// остаётся для наборов, заведённых до этого — там у «W» и «X-ray»
+        /// выходы пустые.
         /// </summary>
         static readonly Dictionary<string, string> BuiltinSubstitutes =
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -86,7 +92,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             HashSet<string> taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (string nuclide in order)
             {
-                FsaComponent component = new FsaComponent(nuclide, FsaComponentKind.Single);
+                // Характеристический рентген элемента — мешающий образ, а не
+                // нуклид: его линии в спектре есть, а активности за ними нет.
+                // Амплитуда у него своя и свободная, в «пирог» долей он не
+                // входит — как пики вылета. Признак — отсутствие массового
+                // числа в подписи, см. NuclideDefinition.IsElementXrayName.
+                FsaComponentKind kind = NuclideDefinition.IsElementXrayName(nuclide)
+                    ? FsaComponentKind.Nuisance
+                    : FsaComponentKind.Single;
+                FsaComponent component = new FsaComponent(nuclide, kind);
                 foreach (NuclideDefinition definition in definitions)
                 {
                     if (definition.Intencity <= 0.0

@@ -581,7 +581,16 @@
     <value>Откл.</value>
   </data>
   <data name="NucBase.IsotopeTextBoxTooltip1" xml:space="preserve">
-    <value>Пример: AM-241, AM241, 241AM. Изомер: PA234m1, 234PAm1, PA-234m1</value>
+    <value>Пример: AM-241, AM241, 241AM. Изомер: PA234m1, 234PAm1, PA-234m1. Символ элемента без массового числа (W, Pb) даёт его характеристический рентген</value>
+  </data>
+  <data name="NucBase.Fluorescence" xml:space="preserve">
+    <value>флуоресценция</value>
+  </data>
+  <data name="NucBase.FluorescenceTitle" xml:space="preserve">
+    <value>Характеристический рентген</value>
+  </data>
+  <data name="NucBase.NoFluorescence" xml:space="preserve">
+    <value>Флуоресценции K-оболочки для {0} в базе нет. Таблица заполнена от Z = 30: ниже нет пары краёв L2/L3, по разности с которыми считаются энергии линий.</value>
   </data>
   <data name="CombineEmptySpectrum" xml:space="preserve">
     <value>Откройте сначала файл спектра, а потом выберите опцию Объединение для другого файла спектра.</value>
@@ -1172,6 +1181,9 @@
   <data name="EfficiencyMakerSetTooFewLines" xml:space="preserve">
     <value>в нём годных линий {0}, а нужно хотя бы две — одну сравнить не с чем.</value>
   </data>
+  <data name="EfficiencyMakerSetElementXray" xml:space="preserve">
+    <value>Ещё {0} линий — характеристический рентген элемента: {1}. Их интенсивность — доля внутри K-серии, а не выход на распад, и в кривую они не идут.</value>
+  </data>
   <data name="EfficiencyMakerSetDuplicateName" xml:space="preserve">
     <value>раньше него идёт другой набор с тем же именем.</value>
   </data>
@@ -1351,5 +1363,91 @@
   </data>
   <data name="EfficiencyMakerDeviceGoneQuestion" xml:space="preserve">
     <value>У {0} выбранных спектров нет калибровки ПШПВ, а конфигурации прибора, на которую они ссылаются, в вашем конфиге нет ({1}). От неё зависят обе калибровки, поэтому замену называете вы:</value>
+  </data>
+  <data name="EfficiencyTabResponseMatrix" xml:space="preserve">
+    <value>Матрица отклика...</value>
+  </data>
+  <data name="ResponseMatrixTitle" xml:space="preserve">
+    <value>Матрица отклика</value>
+  </data>
+  <data name="ResponseMatrixStateMissing" xml:space="preserve">
+    <value>Для этой геометрии не посчитана.</value>
+  </data>
+  <data name="ResponseMatrixStateStale" xml:space="preserve">
+    <value>Устарела: геометрия или параметры изменились после расчёта. Нужно пересчитать.</value>
+  </data>
+  <data name="ResponseMatrixStateValid" xml:space="preserve">
+    <value>Годна для текущей геометрии.</value>
+  </data>
+  <data name="ResponseMatrixNoGeometry" xml:space="preserve">
+    <value>У этой кривой эффективности нет геометрии, поэтому матрицу отклика посчитать не из чего.</value>
+  </data>
+  <data name="ResponseMatrixDetails" xml:space="preserve">
+    <value>Узлов: {0} от {1:F0} до {2:F0} кэВ
+Бин: {3:F0} кэВ, историй на узел: {4}
+Данных: {5:F0} КБ, файл: {6:F0} КБ
+Посчитана: {7}, заняла {8:F0} с</value>
+  </data>
+  <data name="ResponseMatrixParameters" xml:space="preserve">
+    <value>Параметры</value>
+  </data>
+  <data name="ResponseMatrixMinEnergy" xml:space="preserve">
+    <value>От, кэВ:</value>
+  </data>
+  <data name="ResponseMatrixMaxEnergy" xml:space="preserve">
+    <value>до, кэВ:</value>
+  </data>
+  <data name="ResponseMatrixNodes" xml:space="preserve">
+    <value>Узлов:</value>
+  </data>
+  <data name="ResponseMatrixBin" xml:space="preserve">
+    <value>Бин, кэВ:</value>
+  </data>
+  <data name="ResponseMatrixHistories" xml:space="preserve">
+    <value>Историй на узел:</value>
+  </data>
+  <data name="ResponseMatrixThreads" xml:space="preserve">
+    <value>Потоков:</value>
+  </data>
+  <data name="ResponseMatrixEstimate" xml:space="preserve">
+    <value>Ожидаемое время: около {0}</value>
+  </data>
+  <data name="ResponseMatrixEstimating" xml:space="preserve">
+    <value>Оцениваю...</value>
+  </data>
+  <data name="ResponseMatrixCompute" xml:space="preserve">
+    <value>Посчитать</value>
+  </data>
+  <data name="ResponseMatrixRecompute" xml:space="preserve">
+    <value>Пересчитать</value>
+  </data>
+  <data name="ResponseMatrixCancel" xml:space="preserve">
+    <value>Отмена</value>
+  </data>
+  <data name="ResponseMatrixSave" xml:space="preserve">
+    <value>Сохранить в текущую геометрию</value>
+  </data>
+  <data name="ResponseMatrixClose" xml:space="preserve">
+    <value>Закрыть</value>
+  </data>
+  <data name="ResponseMatrixProgress" xml:space="preserve">
+    <value>Узел {0} из {1}, {2:F0} кэВ. Прошло {3}, осталось около {4}.</value>
+  </data>
+  <data name="ResponseMatrixDone" xml:space="preserve">
+    <value>Готово за {0}. Пока не сохранена.</value>
+  </data>
+  <data name="ResponseMatrixCancelled" xml:space="preserve">
+    <value>Отменено.</value>
+  </data>
+  <data name="ResponseMatrixSaved" xml:space="preserve">
+    <value>Сохранена: {0}</value>
+  </data>
+  <data name="ResponseMatrixFailed" xml:space="preserve">
+    <value>Не удалось посчитать матрицу: {0}</value>
+  </data>
+  <data name="ResponseMatrixWhatFor" xml:space="preserve">
+    <value>Матрица описывает, как детектор размазывает энергию попавшего в него кванта: пик полного поглощения, комптоновское плато, пики вылета. Полноспектральный разбор берёт её, чтобы моделировать континуум каждого нуклида, а не оставлять его свободной подложке.
+
+Матрица лежит рядом с конфигурацией устройства, отдельным файлом на геометрию, и внутрь файлов спектров не едет.</value>
   </data>
 </root>

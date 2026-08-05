@@ -578,6 +578,32 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
+        /// Что положить в спектр по выбранной строке списка.
+        ///
+        /// Вынесено потому, что кривую выбирают в двух местах — здесь и в
+        /// диалоге разложения (<c>DocEnergySpectrum.EnsureFsaEfficiency</c>), —
+        /// а вся разница между «родной» и «кривой прибора» держится на СПОСОБЕ
+        /// присвоения, и разойтись этим двум местам нельзя.
+        ///
+        /// Родная кривая спектра кладётся ТЕМ ЖЕ объектом: тождество ссылок и
+        /// есть признак «выбрана родная» (см. <c>ResultData.FileEfficiency</c>).
+        /// Кривая прибора — КОПИЕЙ (см. <c>ResultData.Efficiency</c>): спектр
+        /// уносит её с собой, и правка её у прибора задним числом менять
+        /// измеренную активность не должна. Строка «нет кривой» — null.
+        /// </summary>
+        public static EfficiencyConfigData EfficiencyFromItem(object item)
+        {
+            SpectrumEfficiencyItem own = item as SpectrumEfficiencyItem;
+            if (own != null)
+            {
+                return own.Config;
+            }
+
+            EfficiencyConfigData chosen = item as EfficiencyConfigData;
+            return chosen == null ? null : chosen.Copy();
+        }
+
+        /// <summary>
         /// Конфигурация прибора этого спектра, взятая из менеджера по Guid.
         ///
         /// Именно из менеджера, а не из самого спектра: сохранение конфигурации
@@ -650,21 +676,7 @@ namespace BecquerelMonitor
                 return;
             }
             ResultData activeResultData = activeDocument.ActiveResultData;
-            SpectrumEfficiencyItem own = this.efficiencyComboBox.SelectedItem as SpectrumEfficiencyItem;
-            if (own != null)
-            {
-                // Возврат к родной — ТЕМ ЖЕ объектом: тождество ссылок и есть
-                // признак «выбрана родная» (см. ResultData.FileEfficiency).
-                activeResultData.Efficiency = own.Config;
-            }
-            else
-            {
-                EfficiencyConfigData chosen = this.efficiencyComboBox.SelectedItem as EfficiencyConfigData;
-                // Копия, а не ссылка, — см. ResultData.Efficiency: спектр уносит
-                // кривую с собой, и правка её у прибора задним числом менять
-                // измеренную активность не должна.
-                activeResultData.Efficiency = chosen == null ? null : chosen.Copy();
-            }
+            activeResultData.Efficiency = EfficiencyFromItem(this.efficiencyComboBox.SelectedItem);
 
             this.clearEfficiencyBtn.Enabled = activeResultData.Efficiency != null;
             // Спектр помечается изменённым, только если выбрана НЕ родная

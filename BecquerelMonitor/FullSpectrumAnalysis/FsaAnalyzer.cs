@@ -82,6 +82,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public bool Backscatter { get; set; }
 
+        /// <summary>
+        /// Матрица отклика геометрии, если она посчитана и годна. С ней образ
+        /// компонента — это сумма ОТКЛИКОВ его линий, то есть пик вместе с
+        /// комптоновским плато, краем и пиками вылета; без неё — только пики, а
+        /// всё плато достаётся свободной подложке.
+        ///
+        /// Матрица уже несёт эффективность (она посчитана как доля на квант,
+        /// испущенный источником), поэтому кривая эффективности к её весам
+        /// ВТОРОЙ раз не применяется.
+        /// </summary>
+        public EfficiencyMaker.ResponseMatrix ResponseMatrix { get; set; }
+
         public FsaAnalyzer()
         {
             this.Mode = ContinuumMode.Spline;
@@ -120,6 +132,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 return null;
             }
+
+            // Кэши уширения живут ровно один разбор: калибровку могли изменить
+            // на месте, и тогда ссылка та же, а числа другие.
+            this.depositChannels = null;
+            this.depositChannelsCalibration = null;
+            this.kernelBank = null;
 
             EnergyCalibration calibration = spectrum.EnergyCalibration;
             int chLo = this.FitWholeSpectrum
@@ -849,10 +867,449 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return component;
         }
 
-        static double[] BuildTemplate(FsaComponent component, EnergyCalibration calibration,
+
+        /// <summary>
+        /// Образ компонента по матрице отклика: сумма откликов его линий,
+        /// уширенная разрешением спектра.
+        ///
+        /// Порядок важен для цены. Сначала складываются отклики ВСЕХ линий в
+        /// одну гистограмму по энергии поглощения — это дёшево, отклик уже
+        /// посчитан. И только потом гистограмма уширяется, один раз на
+        /// компонент, а не на линию: уширение стоит на два порядка дороже
+        /// сложения, и делать его полсотни раз вместо одного значило бы
+        /// оплатить разложение секундами вместо миллисекунд.
+        ///
+        /// Бины ниже порога пропускаются: у отклика длинный хвост, вклад
+        /// которого в канал меньше шума отсчёта, а уширение каждого стоит
+        /// столько же, сколько уширение пика.
+        ///
+        /// Уширение сделано СВЁРТКОЙ, а не суммой отдельных пиков. Гистограмма
+        /// поглощения переводится в шкалу каналов и раскладывается по ЦЕЛЫМ
+        /// каналам (площадь делится между двумя соседними линейно, отчего и
+        /// площадь, и центр тяжести сохраняются точно), а потом каждый
+        /// ненулевой канал размазывается готовым ядром из банка. Ядро зависит
+        /// только от ПШПВ, и при целом центре одно и то же ядро годится для
+        /// любого положения — поэтому профиль считается один раз на значение
+        /// ПШПВ за весь разбор, а не заново на каждую группу, каждый компонент
+        /// и каждый узел сетки дрейфа. Именно на это уходило восемь секунд из
+        /// девяти: двадцать миллионов вычислений профиля против ста тысяч.
+        /// </summary>
+        double[] BuildTemplateFromResponse(FsaComponent component, EnergyCalibration calibration,
+                                           FwhmCalibration fwhmCalibration,
+                                           double gain, double offset, int chLo, int chHi, int channels)
+        {
+            EfficiencyMaker.ResponseMatrix matrix = this.ResponseMatrix;
+            double bin = matrix.BinKev;
+            if (!(bin > 0.0))
+            {
+                return null;
+            }
+
+            double topEnergy = 0.0;
+            foreach (FsaLine line in component.Lines)
+            {
+                if (line.Energy > topEnergy && line.Intensity > 0.0)
+                {
+                    topEnergy = line.Energy;
+                }
+            }
+
+            if (!(topEnergy > 0.0))
+            {
+                return null;
+            }
+
+            double[] deposit = new double[(int)(topEnergy / bin + 0.5) + 1];
+            bool anyLine = false;
+            foreach (FsaLine line in component.Lines)
+            {
+                if (!(line.Energy > 0.0) || !(line.Intensity > 0.0))
+                {
+                    continue;
+                }
+
+                // Эффективность НЕ применяется: она уже внутри отклика.
+                matrix.Accumulate(deposit, line.Energy, line.Intensity / 100.0);
+                anyLine = true;
+            }
+
+            if (!anyLine)
+            {
+                return null;
+            }
+
+            double top = 0.0;
+            foreach (double v in deposit)
+            {
+                if (v > top)
+                {
+                    top = v;
+                }
+            }
+
+            if (!(top > 0.0))
+            {
+                return null;
+            }
+
+            double threshold = top * 1.0E-5;
+            double[] template = new double[channels];
+
+            // Перевод «энергия → канал» не зависит ни от компонента, ни от узла
+            // сетки дрейфа (усиление и ноль накладываются ПОСЛЕ), значит его
+            // достаточно посчитать один раз на разбор. У нелинейной калибровки
+            // это обращение полинома, и полторы тысячи обращений на компонент,
+            // повторённые восемьдесят один раз, стоили заметной доли счёта.
+            double[] positions = this.DepositChannels(calibration, bin, deposit.Length + 1, channels);
+            ShapeKernelBank bank = this.Kernels(fwhmCalibration);
+
+            // Источники кладутся с запасом по обе стороны шкалы: линия выше
+            // верхнего канала образа не имеет, но её левый хвост в окно фита
+            // попадает, и терять его нельзя.
+            int pad = SourcePad(fwhmCalibration, channels);
+            int size = channels + 2 * pad;
+            double[] source = this.sourceBuffer;
+            int[] bands = this.sourceBands;
+            if (source == null || source.Length < size)
+            {
+                source = this.sourceBuffer = new double[size];
+                bands = this.sourceBands = new int[size];
+            }
+
+            int srcLo = Int32.MaxValue;
+            int srcHi = Int32.MinValue;
+
+            // Бины СЛИВАЮТСЯ в группы шириной около четверти ПШПВ, и площадь
+            // группы кладётся в её центр тяжести.
+            //
+            // Это не оптимизация ради оптимизации, а приведение шага к смыслу.
+            // Держать шаг 2 кэВ там, где ПШПВ 44 кэВ, незачем: результат всё
+            // равно размажется, а свёртку пришлось бы вести по полутора тысячам
+            // источников на компонент вместо полусотни. Площадь и центр тяжести
+            // группа сохраняет, значит уширенная картина не меняется.
+            int b = 1;
+            while (b < deposit.Length)
+            {
+                if (deposit[b] <= threshold)
+                {
+                    b++;
+                    continue;
+                }
+
+                double position = positions[b];
+                double nextPosition = positions[b + 1];
+                if (Double.IsNaN(position))
+                {
+                    b++;
+                    continue;
+                }
+
+                double p = gain * position + offset;
+                double fwhm = fwhmCalibration.ChannelToFwhm(p);
+                if (!(fwhm > 0.0) || Double.IsNaN(fwhm))
+                {
+                    b++;
+                    continue;
+                }
+
+                double perBin = Double.IsNaN(nextPosition) ? 0.0 : Math.Abs(nextPosition - position);
+                int group = perBin > 0.0 ? (int)(0.25 * fwhm / perBin) : 1;
+                if (group < 1)
+                {
+                    group = 1;
+                }
+
+                double area = 0.0;
+                double moment = 0.0;
+                int end = Math.Min(deposit.Length, b + group);
+                for (int k = b; k < end; k++)
+                {
+                    double v = deposit[k];
+                    if (v <= 0.0)
+                    {
+                        continue;
+                    }
+
+                    double q = positions[k];
+                    if (Double.IsNaN(q))
+                    {
+                        continue;
+                    }
+
+                    area += v;
+                    moment += v * (gain * q + offset);
+                }
+
+                b = end;
+                if (!(area > 0.0))
+                {
+                    continue;
+                }
+
+                double center = moment / area;
+                if (Double.IsNaN(center))
+                {
+                    continue;
+                }
+
+                int band = ShapeKernelBank.Band(fwhm);
+                int channel = (int)Math.Floor(center);
+                double frac = center - channel;
+                Splat(source, bands, pad, channels, channel, area * (1.0 - frac), band, ref srcLo, ref srcHi);
+                Splat(source, bands, pad, channels, channel + 1, area * frac, band, ref srcLo, ref srcHi);
+            }
+
+            // Свёртка. Буфер источников общий и переиспользуется между
+            // компонентами — каждая ячейка гасится сразу после того, как её
+            // размазали, иначе следующий компонент унаследовал бы чужой образ.
+            bool any = false;
+            for (int idx = srcLo; idx <= srcHi; idx++)
+            {
+                double weight = source[idx];
+                if (weight == 0.0)
+                {
+                    continue;
+                }
+
+                source[idx] = 0.0;
+                double[] kernel = bank.Get(bands[idx]);
+                if (kernel == null)
+                {
+                    continue;
+                }
+
+                int full0 = idx - pad - bank.LeftSpan(bands[idx]);
+                int lo = Math.Max(chLo, full0);
+                int hi = Math.Min(chHi, full0 + kernel.Length - 1);
+                if (hi < lo)
+                {
+                    continue;
+                }
+
+                for (int i = lo; i <= hi; i++)
+                {
+                    template[i] += weight * kernel[i - full0];
+                }
+
+                any = true;
+            }
+
+            return any ? template : null;
+        }
+
+        /// <summary>
+        /// Положить площадь в целый канал источника, запомнив, каким ядром её
+        /// потом размазать. Каналы за пределами буфера отбрасываются: их пик
+        /// целиком лежит дальше своего носителя от окна фита.
+        /// </summary>
+        static void Splat(double[] source, int[] bands, int pad, int channels, int channel, double weight,
+                          int band, ref int srcLo, ref int srcHi)
+        {
+            if (!(weight > 0.0) || channel < -pad || channel > channels - 1 + pad)
+            {
+                return;
+            }
+
+            int idx = channel + pad;
+            if (source[idx] == 0.0)
+            {
+                bands[idx] = band;
+            }
+
+            source[idx] += weight;
+            if (idx < srcLo)
+            {
+                srcLo = idx;
+            }
+
+            if (idx > srcHi)
+            {
+                srcHi = idx;
+            }
+        }
+
+        /// <summary>
+        /// Запас буфера источников по обе стороны шкалы. Берётся двойной
+        /// носитель профиля у верхнего канала: ПШПВ растёт по шкале как корень,
+        /// и на длине запаса прибавить успевает единицы процентов.
+        /// </summary>
+        static int SourcePad(FwhmCalibration fwhmCalibration, int channels)
+        {
+            int pad = 64;
+            double fwhm = fwhmCalibration.ChannelToFwhm(channels - 1);
+            if (fwhm > 0.0 && !Double.IsNaN(fwhm))
+            {
+                double support = Math.Max(PeakShapeModel.GetLeftSupport(fwhmCalibration, fwhm),
+                                          PeakShapeModel.GetRightSupport(fwhmCalibration, fwhm));
+                if (support > 0.0 && !Double.IsNaN(support))
+                {
+                    pad = (int)Math.Ceiling(2.0 * support) + 8;
+                }
+            }
+
+            if (pad < 64)
+            {
+                pad = 64;
+            }
+
+            if (pad > channels)
+            {
+                pad = channels;
+            }
+
+            return pad;
+        }
+
+        /// <summary>
+        /// Таблица «номер бина отклика → канал» для текущей калибровки.
+        /// </summary>
+        double[] DepositChannels(EnergyCalibration calibration, double bin, int count, int channels)
+        {
+            if (this.depositChannels != null && this.depositChannels.Length >= count
+                && this.depositChannelsBin == bin
+                && object.ReferenceEquals(this.depositChannelsCalibration, calibration)
+                && this.depositChannelsCount == channels)
+            {
+                return this.depositChannels;
+            }
+
+            double[] table = new double[count];
+            for (int b = 0; b < count; b++)
+            {
+                table[b] = EnergyToChannelSafe(calibration, b * bin, channels);
+            }
+
+            this.depositChannels = table;
+            this.depositChannelsBin = bin;
+            this.depositChannelsCalibration = calibration;
+            this.depositChannelsCount = channels;
+            return table;
+        }
+
+        ShapeKernelBank Kernels(FwhmCalibration fwhmCalibration)
+        {
+            if (this.kernelBank == null || !object.ReferenceEquals(this.kernelBank.Calibration, fwhmCalibration))
+            {
+                this.kernelBank = new ShapeKernelBank(fwhmCalibration);
+            }
+
+            return this.kernelBank;
+        }
+
+        double[] sourceBuffer;
+        int[] sourceBands;
+        double[] depositChannels;
+        double depositChannelsBin;
+        EnergyCalibration depositChannelsCalibration;
+        int depositChannelsCount;
+        ShapeKernelBank kernelBank;
+
+        /// <summary>
+        /// Банк ядер уширения: профиль единичной площади, посчитанный в ЦЕЛЫХ
+        /// смещениях от центра, для лестницы значений ПШПВ с шагом 0.2 %.
+        ///
+        /// Ядро зависит только от ПШПВ, поэтому при целом центре одно и то же
+        /// ядро годится в любом канале — а центры целые, потому что источники
+        /// разложены по целым каналам с линейным делением площади. Лестница
+        /// нужна, чтобы ядро попадало в кэш: без округления ПШПВ у каждой
+        /// группы своя и кэш не срабатывает никогда. Шаг 0.2 % — это ошибка
+        /// ширины не более 0.1 %, вдесятеро меньше того, что вообще видно в
+        /// разложении.
+        ///
+        /// Ядро нормировано на единичную СУММУ по всему носителю, как это
+        /// делалось при отдельной укладке пика, — иначе площадь образа поехала
+        /// бы у краёв шкалы, где носитель обрезан окном фита.
+        /// </summary>
+        sealed class ShapeKernelBank
+        {
+            static readonly double LogRatio = Math.Log(1.002);
+
+            readonly FwhmCalibration calibration;
+            readonly Dictionary<int, double[]> values = new Dictionary<int, double[]>();
+            readonly Dictionary<int, int> lefts = new Dictionary<int, int>();
+
+            public ShapeKernelBank(FwhmCalibration calibration)
+            {
+                this.calibration = calibration;
+            }
+
+            public FwhmCalibration Calibration
+            {
+                get { return this.calibration; }
+            }
+
+            /// <summary>Номер ступени лестницы для заданной ПШПВ.</summary>
+            public static int Band(double fwhm)
+            {
+                return (int)Math.Floor(Math.Log(fwhm) / LogRatio + 0.5);
+            }
+
+            /// <summary>Ядро ступени или null, если профиля на ней нет.</summary>
+            public double[] Get(int band)
+            {
+                double[] kernel;
+                if (this.values.TryGetValue(band, out kernel))
+                {
+                    return kernel;
+                }
+
+                double fwhm = Math.Exp(band * LogRatio);
+                double left = PeakShapeModel.GetLeftSupport(this.calibration, fwhm);
+                double right = PeakShapeModel.GetRightSupport(this.calibration, fwhm);
+                int leftSpan = 0;
+                if (left > 0.0 && right > 0.0 && !Double.IsNaN(left) && !Double.IsNaN(right))
+                {
+                    leftSpan = (int)Math.Ceiling(left);
+                    int rightSpan = (int)Math.Ceiling(right);
+                    int span = leftSpan + rightSpan + 1;
+                    double[] shape = new double[span];
+                    double area = 0.0;
+                    for (int i = 0; i < span; i++)
+                    {
+                        double v = PeakShapeModel.RelativeValue(i - leftSpan, fwhm, this.calibration);
+                        shape[i] = v;
+                        area += v;
+                    }
+
+                    if (area > 0.0)
+                    {
+                        for (int i = 0; i < span; i++)
+                        {
+                            shape[i] /= area;
+                        }
+
+                        kernel = shape;
+                    }
+                }
+
+                if (kernel == null)
+                {
+                    leftSpan = 0;
+                }
+
+                this.values[band] = kernel;
+                this.lefts[band] = leftSpan;
+                return kernel;
+            }
+
+            /// <summary>Смещение центра ядра от его начала, в каналах.</summary>
+            public int LeftSpan(int band)
+            {
+                int left;
+                return this.lefts.TryGetValue(band, out left) ? left : 0;
+            }
+        }
+
+        double[] BuildTemplate(FsaComponent component, EnergyCalibration calibration,
                                       FwhmCalibration fwhmCalibration, FsaEfficiency efficiency,
                                       double gain, double offset, int chLo, int chHi, int channels)
         {
+            if (this.ResponseMatrix != null && !component.WeightsAreFinal)
+            {
+                return this.BuildTemplateFromResponse(component, calibration, fwhmCalibration,
+                                                      gain, offset, chLo, chHi, channels);
+            }
+
             double[] template = new double[channels];
             // Значения профиля считаются один раз на носитель и переиспользуются
             // между линиями: образ строится заново на каждом узле сетки дрейфа

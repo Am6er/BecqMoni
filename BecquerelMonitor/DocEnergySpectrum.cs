@@ -46,6 +46,19 @@ namespace BecquerelMonitor
         // (remove) Token: 0x06000307 RID: 775 RVA: 0x0000F6C8 File Offset: 0x0000D8C8
         public event AddSpectrumToDocumentEventHandler AddSpectrumToDocument;
 
+        /// <summary>
+        /// Кривую эффективности спектра сменили ОТСЮДА, из документа, а не из
+        /// панели управления измерением.
+        ///
+        /// Панель показывает ту кривую, по которой сейчас считается активность,
+        /// и обновляет список только по <c>ShowDocumentStatus</c> — на своих же
+        /// событиях. Выбор в диалоге перед разложением она пропускала, и в ряду
+        /// «Efficiency» оставалось «(none)» при работающей кривой. Документ до
+        /// панели не дотягивается (у него нет ссылки на <c>MainForm</c>), так
+        /// что говорит он событием — как и обо всём остальном.
+        /// </summary>
+        public event EventHandler EfficiencyChanged;
+
         // Token: 0x1700013F RID: 319
         // (get) Token: 0x06000308 RID: 776 RVA: 0x0000F704 File Offset: 0x0000D904
         // (set) Token: 0x06000309 RID: 777 RVA: 0x0000F70C File Offset: 0x0000D90C
@@ -917,35 +930,47 @@ namespace BecquerelMonitor
                 return true;
             }
 
-            // Список — у конфигурации прибора этого спектра: кривая привязана к
-            // прибору и геометрии, чужие предлагать нельзя. Первым пунктом —
-            // отказ от кривой, тот самый осознанный.
-            List<object> items = new List<object> { Properties.Resources.EfficiencyTabNone };
-            DeviceConfigInfo device = active.DeviceConfig;
-            if (device != null && device.EfficiencyConfigs != null)
-            {
-                foreach (EfficiencyConfigData item in device.EfficiencyConfigs)
-                {
-                    items.Add(item);
-                }
-            }
+            // Список — ТОТ ЖЕ, что в панели измерения, и составляется тем же
+            // кодом: кривая привязана к прибору и геометрии, чужие предлагать
+            // нельзя, но родная кривая самого спектра — своей строкой, и
+            // конфигурация прибора берётся живая, из менеджера, а не копия,
+            // лежащая в спектре (см. DCControlPanel.BuildEfficiencyItems и
+            // CurrentDeviceConfig). Свой список здесь не знал ни того, ни
+            // другого: у спектра с кривой из файла и прибором без кривых
+            // выбирать было не из чего вовсе. Первым пунктом — отказ от
+            // кривой, тот самый осознанный.
+            int selected;
+            List<object> items = DCControlPanel.BuildEfficiencyItems(
+                active.Efficiency, active.FileEfficiency,
+                DCControlPanel.CurrentDeviceConfig(active.DeviceConfig,
+                                                   this.deviceConfigManager.DeviceConfigList),
+                out selected);
 
             object chosen = PickOneForm.Ask(this,
                 Properties.Resources.FsaNoEfficiencyTitle,
                 Properties.Resources.FsaNoEfficiencyQuestion,
-                items, items[0]);
+                items, items[selected]);
             if (chosen == null)
             {
                 return false;
             }
 
-            EfficiencyConfigData curve = chosen as EfficiencyConfigData;
-            if (curve != null)
+            // Присвоение — тоже общее с панелью: родная кривая ложится тем же
+            // объектом, кривая прибора — копией.
+            active.Efficiency = DCControlPanel.EfficiencyFromItem(chosen);
+            // Изменённым спектр помечается, только если выбрана НЕ родная
+            // кривая: возврат к родной файла не меняет.
+            if (active.Efficiency != null
+                && !object.ReferenceEquals(active.Efficiency, active.FileEfficiency))
             {
-                // Копия, а не ссылка, — как и в панели измерения: спектр уносит
-                // кривую с собой.
-                active.Efficiency = curve.Copy();
                 this.Dirty = true;
+            }
+
+            // Панель управления измерением показывает ту кривую, по которой
+            // сейчас считается активность, — а выбрали её здесь.
+            if (this.EfficiencyChanged != null)
+            {
+                this.EfficiencyChanged(this, EventArgs.Empty);
             }
 
             return true;
