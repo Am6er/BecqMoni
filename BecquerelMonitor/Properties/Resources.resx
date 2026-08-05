@@ -42251,9 +42251,6 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="GeometryEditorBoxSourceY" xml:space="preserve">
     <value>Box side Y</value>
   </data>
-  <data name="EfficiencySketchBoxSource" xml:space="preserve">
-    <value>Box</value>
-  </data>
   <data name="GeometrySourceMarinelli" xml:space="preserve">
     <value>Marinelli D={0:F1} Dhole={1:F1} H={2:F1} at {3:F1} mm</value>
   </data>
@@ -42613,6 +42610,9 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="EfficiencySketchBeaker" xml:space="preserve">
     <value>Beaker</value>
+  </data>
+  <data name="EfficiencySketchDetector" xml:space="preserve">
+    <value>Detector</value>
   </data>
   <data name="EfficiencySketchDistance" xml:space="preserve">
     <value>Distance to detector</value>

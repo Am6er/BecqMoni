@@ -3086,12 +3086,6 @@ namespace BecquerelMonitor.Properties {
             }
         }
         
-        public static string EfficiencySketchBoxSource {
-            get {
-                return ResourceManager.GetString("EfficiencySketchBoxSource", resourceCulture);
-            }
-        }
-        
         public static string GeometrySourceMarinelli {
             get {
                 return ResourceManager.GetString("GeometrySourceMarinelli", resourceCulture);
@@ -3810,6 +3804,12 @@ namespace BecquerelMonitor.Properties {
         public static string EfficiencySketchBeaker {
             get {
                 return ResourceManager.GetString("EfficiencySketchBeaker", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencySketchDetector {
+            get {
+                return ResourceManager.GetString("EfficiencySketchDetector", resourceCulture);
             }
         }
 

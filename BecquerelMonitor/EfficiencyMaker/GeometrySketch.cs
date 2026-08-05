@@ -249,11 +249,16 @@ namespace BecquerelMonitor.EfficiencyMaker
         void AnnotateOverview(Graphics g, GeometryModel m)
         {
             List<string> lines = new List<string>();
+            // Первая строка — ДЕТЕКТОР, вторая — образец, и называются они
+            // по-разному нарочно: раньше обе начинались с формы («Box», «Box»),
+            // и по подписи нельзя было понять, где кристалл, а где проба.
             lines.Add(m.Shape == CrystalShape.Box
                 ? string.Format(CultureInfo.InvariantCulture, "{0}: {1:G4} x {2:G4} x {3:G4} mm",
-                                Resources.EfficiencySketchBox, m.CrystalBoxX, m.CrystalBoxY, m.CrystalBoxZ)
+                                Resources.EfficiencySketchDetector,
+                                m.CrystalBoxX, m.CrystalBoxY, m.CrystalBoxZ)
                 : string.Format(CultureInfo.InvariantCulture, "{0}: {1}{2:G4} x {3:G4} mm",
-                                Resources.EfficiencySketchCylinder, "⌀", m.CrystalDiameter, m.CrystalHeight));
+                                Resources.EfficiencySketchDetector, "⌀",
+                                m.CrystalDiameter, m.CrystalHeight));
 
             switch (m.SourceType)
             {
@@ -266,7 +271,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 case GeometrySourceType.Box:
                     lines.Add(string.Format(CultureInfo.InvariantCulture,
                                             "{0}: {1:G4} x {2:G4} x {3:G4} mm",
-                                            Resources.EfficiencySketchBoxSource,
+                                            Resources.EfficiencySketchBox,
                                             Math.Max(m.BoxSourceX, 0.0),
                                             Math.Max(m.BoxSourceY, 0.0),
                                             Math.Max(m.BoxSourceHeight, 0.0)));
@@ -277,7 +282,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 case GeometrySourceType.Cylinder:
                     lines.Add(string.Format(CultureInfo.InvariantCulture, "{0}: {1}{2:G4} x {3:G4} mm",
-                                            Resources.EfficiencySketchBeaker, "⌀",
+                                            Resources.EfficiencySketchCylinder, "⌀",
                                             Math.Max(m.BeakerDiameter, 0.0),
                                             Math.Max(m.SourceHeight, 0.0)));
                     lines.Add(string.Format(CultureInfo.InvariantCulture, "{0}: {1:G4} mm",
@@ -368,13 +373,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // назвать словами, иначе чертёж выглядит как цилиндр.
                 if (box)
                 {
-                    string text = string.Format(CultureInfo.InvariantCulture,
-                        "Y = {0:G4} mm", m.CrystalBoxY);
-                    bool lit = this.Lit("CrystalBoxY");
-                    using (Brush litInk = lit ? new SolidBrush(LitColor) : null)
-                    {
-                        g.DrawString(text, this.Font, lit ? litInk : ink, 6, 6);
-                    }
+                    // Рядом с телом, а не в углу: в углу лежит табличка с
+                    // размерами и накрывает надпись собой.
+                    this.Note(g, ink, m.CrystalBoxY, 0.0, height + tm, 18f, "CrystalBoxY");
                 }
             }
         }
@@ -567,6 +568,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                                   Math.Max(m.BoxToDetectorDistance, 0.0), "BoxToDetectorDistance");
                         this.DimV(g, pen, ink, -half * 0.55, zSrcTopB, zWallTopB, endB,
                                   "BoxEndWallThickness");
+                        double wallB = Math.Max(m.BoxSideWallThickness, 0.0);
+                        this.DimH(g, pen, ink, -half, -(half - wallB), zSrcTopB - hsB * 0.5,
+                                  wallB, "BoxSideWallThickness");
+                        // Слева от тела, на его середине: сверху стоит размер
+                        // стороны X, снизу по оси идёт выноска расстояния, а
+                        // внутри у левого края — толщина стенки.
+                        this.Note(g, ink, m.BoxSourceY, -half, zSrcTopB - hsB * 0.5,
+                                  -6f, "BoxSourceY", -8f);
                         return;
                     }
 
@@ -585,8 +594,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                         this.DimV(g, pen, ink, 0.0, zWallTop, zFace,
                                   Math.Max(m.BeakerToDetectorDistance, 0.0), "BeakerToDetectorDistance");
                         this.DimV(g, pen, ink, -rOut * 0.55, zSrcTop, zWallTop, end, "BeakerEndWallThickness");
-                        this.DimH(g, pen, ink, -rOut, -(rOut - wall), zSrcTop - hs * 0.5, wall,
-                                  "BeakerSideWallThickness");
+                        this.DimH(g, pen, ink, -rOut, -(rOut - wall), zSrcTop - hs * 0.5,
+                                  wall, "BeakerSideWallThickness");
                         this.DimV(g, pen, ink, rOut * 0.72, zSrcTop - hs, zWallTop,
                                   Math.Max(m.BeakerHeight, 0.0), "BeakerHeight");
                         return;
@@ -722,6 +731,31 @@ namespace BecquerelMonitor.EfficiencyMaker
                 string text = Format(value);
                 SizeF size = g.MeasureString(text, this.Font);
                 g.DrawString(text, this.Font, b2, xx + 3f, (a + b) / 2f - size.Height / 2f);
+            }
+        }
+
+        /// <summary>
+        /// Надпись «Y = ... mm» о размере, которого в разрезе не видно. Ставится
+        /// рядом с телом, к которому относится, и подсвечивается по тому же
+        /// ключу, что и обычный размер, — иначе поле в редакторе подсвечивать
+        /// нечем.
+        /// </summary>
+        void Note(Graphics g, Brush ink, double value, double x, double z,
+                  float dy, string key, float dx = 0f)
+        {
+            string text = string.Format(CultureInfo.InvariantCulture, "Y = {0:G4} mm", value);
+            SizeF size = g.MeasureString(text, this.Font);
+            // dx = 0 — по центру над точкой, отрицательное — надпись КОНЧАЕТСЯ
+            // левее её, положительное — начинается правее. Так подпись уводится
+            // от тела и от чужих выносок, не подбирая координату на глаз.
+            float px = dx < 0f ? this.X(x) + dx - size.Width
+                     : dx > 0f ? this.X(x) + dx
+                     : this.X(x) - size.Width / 2f;
+            float py = this.Y(z) + (dy >= 0f ? dy : dy - size.Height);
+            bool lit = this.Lit(key);
+            using (Brush litInk = lit ? new SolidBrush(LitColor) : null)
+            {
+                g.DrawString(text, this.Font, lit ? litInk : ink, px, py);
             }
         }
 

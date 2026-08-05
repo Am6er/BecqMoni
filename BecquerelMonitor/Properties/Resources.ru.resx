@@ -866,9 +866,6 @@
   <data name="GeometryEditorBoxSourceY" xml:space="preserve">
     <value>Сторона кюветы Y</value>
   </data>
-  <data name="EfficiencySketchBoxSource" xml:space="preserve">
-    <value>Кювета</value>
-  </data>
   <data name="GeometrySourceMarinelli" xml:space="preserve">
     <value>Маринелли D={0:F1} Dhole={1:F1} H={2:F1} на {3:F1} мм</value>
   </data>
@@ -1221,13 +1218,16 @@
     <value>Цилиндр</value>
   </data>
   <data name="EfficiencySketchBox" xml:space="preserve">
-    <value>Брусок</value>
+    <value>Кювета</value>
   </data>
   <data name="EfficiencySketchPoint" xml:space="preserve">
     <value>Точечный источник, дистанция</value>
   </data>
   <data name="EfficiencySketchBeaker" xml:space="preserve">
     <value>Сосуд</value>
+  </data>
+  <data name="EfficiencySketchDetector" xml:space="preserve">
+    <value>Детектор</value>
   </data>
   <data name="EfficiencySketchDistance" xml:space="preserve">
     <value>До детектора</value>
