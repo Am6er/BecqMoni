@@ -1,4 +1,4 @@
-using BecquerelMonitor.Properties;
+﻿using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -187,7 +187,15 @@ namespace BecquerelMonitor.EfficiencyMaker
     {
         Point,
         Cylinder,
-        Marinelli
+        Marinelli,
+
+        /// <summary>
+        /// Прямоугольная кювета — НАШЕ расширение формата. В файлах ЛСРМ такого
+        /// источника нет, и их программа файл с ним прочитает как точечный:
+        /// `SourceType = BOX` ей неизвестен. Всё, что относится к этой форме,
+        /// пишется ключами `SB_*` — те ЛСРМ тоже не читает.
+        /// </summary>
+        Box
     }
 
     /// <summary>Форма кристалла.</summary>
@@ -279,6 +287,16 @@ namespace BecquerelMonitor.EfficiencyMaker
         public double MarinelliSourceHeight;
         public double MarinelliToDetectorDistance;
 
+        // Прямоугольная кювета: то же, что цилиндрическая, но дно не круг, а
+        // прямоугольник. Стороны — ПОЛНЫЕ, не половины: так их меряют на
+        // приборе. Стенка одной толщины со всех четырёх сторон.
+        public double BoxSourceX;
+        public double BoxSourceY;
+        public double BoxSourceHeight;
+        public double BoxToDetectorDistance;
+        public double BoxSideWallThickness;
+        public double BoxEndWallThickness;
+
         public GeometryMaterial Crystal = new GeometryMaterial();
         public GeometryMaterial Reflector = new GeometryMaterial();
         public GeometryMaterial Cladding = new GeometryMaterial();
@@ -364,6 +382,13 @@ namespace BecquerelMonitor.EfficiencyMaker
             g.MarinelliHoleEndWallThickness *= factor;
             g.MarinelliSourceHeight *= factor;
             g.MarinelliToDetectorDistance *= factor;
+
+            g.BoxSourceX *= factor;
+            g.BoxSourceY *= factor;
+            g.BoxSourceHeight *= factor;
+            g.BoxToDetectorDistance *= factor;
+            g.BoxSideWallThickness *= factor;
+            g.BoxEndWallThickness *= factor;
             return g;
         }
 
@@ -422,6 +447,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             string source = Get(kv, "SourceType").ToUpperInvariant();
             g.SourceType = source.StartsWith("MARINELLI") ? GeometrySourceType.Marinelli
                 : source.StartsWith("CYLINDER") ? GeometrySourceType.Cylinder
+                : source.StartsWith("BOX") ? GeometrySourceType.Box
                 : GeometrySourceType.Point;
 
             // Размеры читаются через Len: в файле они в сантиметрах, а модель
@@ -464,6 +490,16 @@ namespace BecquerelMonitor.EfficiencyMaker
             // У Маринелли своё расстояние до детектора: в файле есть оба ключа,
             // и брать цилиндрический для маринеллевской геометрии нельзя.
             g.MarinelliToDetectorDistance = Len(kv, "SM_BeakerToDetectorFrontDistance");
+
+            // Прямоугольная кювета — наше расширение, ключей SB_ в файлах ЛСРМ
+            // нет. Если их нет и здесь, поля останутся нулями, а тип источника
+            // прочитается как точечный: BOX им тоже неизвестен.
+            g.BoxSourceX = Len(kv, "SB_SourceX");
+            g.BoxSourceY = Len(kv, "SB_SourceY");
+            g.BoxSourceHeight = Len(kv, "SB_SourceHeight");
+            g.BoxToDetectorDistance = Len(kv, "SB_BoxToDetectorFrontDistance");
+            g.BoxSideWallThickness = Len(kv, "SB_BoxSideWallThickness");
+            g.BoxEndWallThickness = Len(kv, "SB_BoxEndWallThickness");
 
             // Ключ типа долей у отражателя называется DS_FractionTypeReflector,
             // без Crystal, — в отличие от остальных. Так в формате.
@@ -518,14 +554,29 @@ namespace BecquerelMonitor.EfficiencyMaker
             check(Math.Max(this.FrontCladdingThickness, this.SideCladdingThickness),
                   this.Cladding, Properties.Resources.GeometryEditorCladdingMaterial);
 
-            double wall = this.SourceType == GeometrySourceType.Marinelli
-                ? Math.Max(this.MarinelliSideThickness, this.MarinelliHoleSideThickness)
-                : Math.Max(this.BeakerSideWallThickness, this.BeakerEndWallThickness);
-            check(wall, this.BeakerWall, Properties.Resources.GeometryEditorWallMaterial);
+            double wall;
+            double sample;
+            switch (this.SourceType)
+            {
+                case GeometrySourceType.Marinelli:
+                    wall = Math.Max(this.MarinelliSideThickness, this.MarinelliHoleSideThickness);
+                    sample = this.MarinelliSourceHeight;
+                    break;
+                case GeometrySourceType.Box:
+                    wall = Math.Max(this.BoxSideWallThickness, this.BoxEndWallThickness);
+                    sample = this.BoxSourceHeight;
+                    break;
+                case GeometrySourceType.Cylinder:
+                    wall = Math.Max(this.BeakerSideWallThickness, this.BeakerEndWallThickness);
+                    sample = this.SourceHeight;
+                    break;
+                default:
+                    wall = 0.0;
+                    sample = 0.0;      // точечный источник вещества не имеет
+                    break;
+            }
 
-            double sample = this.SourceType == GeometrySourceType.Marinelli
-                ? this.MarinelliSourceHeight
-                : this.SourceType == GeometrySourceType.Cylinder ? this.SourceHeight : 0.0;
+            check(wall, this.BeakerWall, Properties.Resources.GeometryEditorWallMaterial);
             check(sample, this.Source, Properties.Resources.GeometryEditorSourceMaterial);
         }
 
@@ -674,6 +725,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                     source = string.Format(CultureInfo.InvariantCulture,
                         Resources.GeometrySourceCylinder, this.BeakerDiameter,
                         this.SourceHeight, this.BeakerToDetectorDistance);
+                    break;
+                case GeometrySourceType.Box:
+                    source = string.Format(CultureInfo.InvariantCulture,
+                        Resources.GeometrySourceBox, this.BoxSourceX, this.BoxSourceY,
+                        this.BoxSourceHeight, this.BoxToDetectorDistance);
                     break;
                 default:
                     source = string.Format(CultureInfo.InvariantCulture,

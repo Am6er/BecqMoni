@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace BecquerelMonitor.EfficiencyMaker
@@ -448,6 +448,25 @@ namespace BecquerelMonitor.EfficiencyMaker
                     this.source = new PointSampler(zFace - g.PointDistance);
                     break;
 
+                case GeometrySourceType.Box:
+                {
+                    // Прямоугольная кювета: та же раскладка, что у цилиндра, но
+                    // дно прямоугольное. Стороны в модели ПОЛНЫЕ, области
+                    // строятся по половинам.
+                    double axOut = 0.5 * g.BoxSourceX, ayOut = 0.5 * g.BoxSourceY;
+                    double axIn = Math.Max(0.0, axOut - g.BoxSideWallThickness);
+                    double ayIn = Math.Max(0.0, ayOut - g.BoxSideWallThickness);
+                    double zWallTop = zFace - g.BoxToDetectorDistance;
+                    double zWallBottom = zWallTop - g.BoxEndWallThickness;
+                    double zSrcTop = zWallBottom;
+                    double zSrcBottom = zSrcTop - g.BoxSourceHeight;
+                    this.AddBox(axOut, ayOut, zWallBottom, zWallTop, beakerWall, false);
+                    this.AddBox(axOut, ayOut, zSrcBottom, zSrcTop, beakerWall, false);
+                    this.AddBox(axIn, ayIn, zSrcBottom, zSrcTop, sample, false);
+                    this.source = new BoxSampler(axIn, ayIn, zSrcBottom, zSrcTop);
+                    break;
+                }
+
                 case GeometrySourceType.Cylinder:
                 {
                     double rOut = 0.5 * g.BeakerDiameter;
@@ -515,6 +534,31 @@ namespace BecquerelMonitor.EfficiencyMaker
                 x = 0.0;
                 y = 0.0;
                 z = this.z;
+            }
+        }
+
+        /// <summary>
+        /// Точка внутри прямоугольной кюветы. Равномерно по объёму — здесь это
+        /// просто три независимых равномерных числа, в отличие от цилиндра, где
+        /// радиус приходится брать корнем.
+        /// </summary>
+        sealed class BoxSampler : Sampler
+        {
+            readonly double ax, ay, z0, z1;
+
+            public BoxSampler(double ax, double ay, double z0, double z1)
+            {
+                this.ax = ax;
+                this.ay = ay;
+                this.z0 = z0;
+                this.z1 = z1;
+            }
+
+            public override void Next(EfficiencySimulator s, out double x, out double y, out double z)
+            {
+                x = this.ax * (2.0 * s.Uniform() - 1.0);
+                y = this.ay * (2.0 * s.Uniform() - 1.0);
+                z = this.z0 + (this.z1 - this.z0) * s.Uniform();
             }
         }
 

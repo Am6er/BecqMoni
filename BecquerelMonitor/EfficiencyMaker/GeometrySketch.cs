@@ -263,6 +263,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                                             Math.Max(m.PointDistance, 0.0)));
                     break;
 
+                case GeometrySourceType.Box:
+                    lines.Add(string.Format(CultureInfo.InvariantCulture,
+                                            "{0}: {1:G4} x {2:G4} x {3:G4} mm",
+                                            Resources.EfficiencySketchBoxSource,
+                                            Math.Max(m.BoxSourceX, 0.0),
+                                            Math.Max(m.BoxSourceY, 0.0),
+                                            Math.Max(m.BoxSourceHeight, 0.0)));
+                    lines.Add(string.Format(CultureInfo.InvariantCulture, "{0}: {1:G4} mm",
+                                            Resources.EfficiencySketchDistance,
+                                            Math.Max(m.BoxToDetectorDistance, 0.0)));
+                    break;
+
                 case GeometrySourceType.Cylinder:
                     lines.Add(string.Format(CultureInfo.InvariantCulture, "{0}: {1}{2:G4} x {3:G4} mm",
                                             Resources.EfficiencySketchBeaker, "⌀",
@@ -383,6 +395,19 @@ namespace BecquerelMonitor.EfficiencyMaker
                     bottom = zFace;
                     return;
 
+                case GeometrySourceType.Box:
+                {
+                    // Разрез идёт по оси X, поэтому в кадр берётся сторона X.
+                    double half = 0.5 * Math.Max(m.BoxSourceX, 0.0);
+                    double zTop = zFace - Math.Max(m.BoxToDetectorDistance, 0.0);
+                    left = -half;
+                    right = half;
+                    top = zTop - Math.Max(m.BoxEndWallThickness, 0.0)
+                          - Math.Max(m.BoxSourceHeight, 0.0);
+                    bottom = zFace;
+                    return;
+                }
+
                 case GeometrySourceType.Cylinder:
                 {
                     double rOut = 0.5 * Math.Max(m.BeakerDiameter, 0.0);
@@ -431,6 +456,25 @@ namespace BecquerelMonitor.EfficiencyMaker
                     using (Pen pen = new Pen(Ink, 1f) { DashStyle = DashStyle.Dash })
                     {
                         g.DrawLine(pen, x, y, x, this.Y(zFace));
+                    }
+
+                    return;
+                }
+
+                case GeometrySourceType.Box:
+                {
+                    double half = 0.5 * Math.Max(m.BoxSourceX, 0.0);
+                    double wallB = Math.Max(m.BoxSideWallThickness, 0.0);
+                    double endB = Math.Max(m.BoxEndWallThickness, 0.0);
+                    double hsB = Math.Max(m.BoxSourceHeight, 0.0);
+                    double zWallTopB = zFace - Math.Max(m.BoxToDetectorDistance, 0.0);
+                    double zSrcTopB = zWallTopB - endB;
+                    Fill(g, WallColor, -half, zSrcTopB - hsB, 2.0 * half, hsB + endB);
+                    Fill(g, SampleColor, -(half - wallB), zSrcTopB - hsB,
+                         2.0 * (half - wallB), hsB);
+                    using (Pen pen = new Pen(Ink, 1.2f))
+                    {
+                        Outline(g, pen, -half, zSrcTopB - hsB, 2.0 * half, hsB + endB);
                     }
 
                     return;
@@ -507,6 +551,24 @@ namespace BecquerelMonitor.EfficiencyMaker
                         this.DimV(g, pen, ink, 0.6, zFace - Math.Max(m.PointDistance, 0.0), zFace,
                                   Math.Max(m.PointDistance, 0.0), "PointDistance");
                         return;
+
+                    case GeometrySourceType.Box:
+                    {
+                        double half = 0.5 * Math.Max(m.BoxSourceX, 0.0);
+                        double endB = Math.Max(m.BoxEndWallThickness, 0.0);
+                        double hsB = Math.Max(m.BoxSourceHeight, 0.0);
+                        double zWallTopB = zFace - Math.Max(m.BoxToDetectorDistance, 0.0);
+                        double zSrcTopB = zWallTopB - endB;
+                        this.DimH(g, pen, ink, -half, half, this.AboveTop(22),
+                                  2.0 * half, "BoxSourceX");
+                        this.DimV(g, pen, ink, this.RightOf(half, 26), zSrcTopB - hsB, zSrcTopB,
+                                  hsB, "BoxSourceHeight");
+                        this.DimV(g, pen, ink, 0.0, zWallTopB, zFace,
+                                  Math.Max(m.BoxToDetectorDistance, 0.0), "BoxToDetectorDistance");
+                        this.DimV(g, pen, ink, -half * 0.55, zSrcTopB, zWallTopB, endB,
+                                  "BoxEndWallThickness");
+                        return;
+                    }
 
                     case GeometrySourceType.Cylinder:
                     {

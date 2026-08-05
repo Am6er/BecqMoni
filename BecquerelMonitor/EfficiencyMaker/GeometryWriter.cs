@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -152,10 +152,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             line("//---------------------------------");
             line("//SOURCE PARAMETERS BLOCK:");
             line("//---------------------------------");
-            line("//Source types: POINT, CYLINDER, MARINELLI");
+            line("//Source types: POINT, CYLINDER, MARINELLI, BOX");
             line("");
             line("SourceType = " + (model.SourceType == GeometrySourceType.Marinelli ? "MARINELLI"
-                                    : model.SourceType == GeometrySourceType.Cylinder ? "CYLINDER" : "POINT"));
+                                    : model.SourceType == GeometrySourceType.Cylinder ? "CYLINDER"
+                                    : model.SourceType == GeometrySourceType.Box ? "BOX" : "POINT"));
             line("");
             line("//Point source");
             cm("pdistance", model.PointDistance);
@@ -179,6 +180,17 @@ namespace BecquerelMonitor.EfficiencyMaker
             cm("SM_BeakerHoleSideThickness", model.MarinelliHoleSideThickness);
             cm("SM_BeakerHoleEndWallThickness", model.MarinelliHoleEndWallThickness);
             cm("SM_SourceHeight", model.MarinelliSourceHeight);
+            line("");
+            // Прямоугольная кювета — НАШЕ расширение формата, как и
+            // DS_CrystalBox*. Программа ЛСРМ этих ключей не знает и такой файл
+            // прочитает как точечный источник: `SourceType = BOX` ей неизвестен.
+            line("//Box source (extension, not read by LSRM)");
+            cm("SB_BoxToDetectorFrontDistance", model.BoxToDetectorDistance);
+            cm("SB_SourceX", model.BoxSourceX);
+            cm("SB_SourceY", model.BoxSourceY);
+            cm("SB_BoxSideWallThickness", model.BoxSideWallThickness);
+            cm("SB_BoxEndWallThickness", model.BoxEndWallThickness);
+            cm("SB_SourceHeight", model.BoxSourceHeight);
             line("");
             line("");
             line("//---------------------------------");
