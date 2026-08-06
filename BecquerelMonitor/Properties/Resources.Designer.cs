@@ -3721,6 +3721,24 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string ResultNoCoefficient {
+            get {
+                return ResourceManager.GetString("ResultNoCoefficient", resourceCulture);
+            }
+        }
+
+        public static string ResultNoWeight {
+            get {
+                return ResourceManager.GetString("ResultNoWeight", resourceCulture);
+            }
+        }
+
+        public static string ResultNoVolume {
+            get {
+                return ResourceManager.GetString("ResultNoVolume", resourceCulture);
+            }
+        }
+
         public static string BqCoeffOutOfRange {
             get {
                 return ResourceManager.GetString("BqCoeffOutOfRange", resourceCulture);

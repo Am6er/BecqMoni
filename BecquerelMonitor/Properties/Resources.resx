@@ -42587,6 +42587,15 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="BqCoeffNoCurve" xml:space="preserve">
     <value>No efficiency curve is chosen for this spectrum. The stored value is used.</value>
   </data>
+  <data name="ResultNoCoefficient" xml:space="preserve">
+    <value>no K</value>
+  </data>
+  <data name="ResultNoWeight" xml:space="preserve">
+    <value>no weight</value>
+  </data>
+  <data name="ResultNoVolume" xml:space="preserve">
+    <value>no volume</value>
+  </data>
   <data name="BqCoeffOutOfRange" xml:space="preserve">
     <value>{0:0.##} keV is outside the curve ({1:0.##} to {2:0.##} keV): the curve is not continued past its ends. The stored value is used.</value>
   </data>

@@ -78,6 +78,24 @@
             }
         }
 
+        /// <summary>
+        /// Почему результата нет, когда <see cref="IsValid"/> = false.
+        /// Пусто — показывается общее «Ошибка». Нужен, чтобы «нет K» в
+        /// таблице отличалось и от нуля беккерелей, и от ошибки счёта:
+        /// раньше зона без коэффициента молча печатала 0 Бк (TODO G7).
+        /// </summary>
+        public string StatusText
+        {
+            get
+            {
+                return this.statusText;
+            }
+            set
+            {
+                this.statusText = value;
+            }
+        }
+
         // Token: 0x06000B39 RID: 2873 RVA: 0x00046114 File Offset: 0x00044314
         public MeasurementResult(ROIDefinitionData roiDefinition, double resultValue, double resultError)
         {
@@ -109,5 +127,7 @@
 
         // Token: 0x04000758 RID: 1880
         bool isValid = true;
+
+        string statusText;
     }
 }
