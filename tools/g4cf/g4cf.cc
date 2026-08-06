@@ -15,7 +15,9 @@
 // (/process/had/deex/correlatedGamma false) — то есть ион-режим отвечает
 // ровно на вопрос нашей формулы (изотропные совпадения), без примеси N5.
 //
-// Сборка и прогон — build_run.ps1 рядом.
+// Сборка — build_g4cf.bat рядом (vcvars64 обязан звать bat, не ps1: %PATH%
+// в cmd разворачивается при разборе строки). Прогон — run_g4cf.bat (env на
+// датасеты поставки). Сборка CF из логов — g4_cf.py, родные p_k — g4_pk.py.
 
 #include "G4RunManagerFactory.hh"
 #include "G4VUserDetectorConstruction.hh"
