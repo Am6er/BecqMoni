@@ -37,7 +37,8 @@ namespace EffSim
                 int n = 200000;
                 bool mountFront = false;
                 bool electron = false, brems = true, xray = true, cohPass = true, scatter = true;
-                double detour = 1.0, halfWidth = 0.0, halfWidthFraction = 0.0;
+                bool kfracEnergy = true;
+                double detour = 1.0, halfWidth = 0.0, halfWidthFraction = 0.0, fwhm662 = 0.0;
                 double point = -1.0;
                 string list = null;
                 foreach (string arg in args)
@@ -59,6 +60,13 @@ namespace EffSim
                         case "--no-xray": xray = false; break;
                         case "--no-coherent-pass": cohPass = false; break;
                         case "--no-scatter": scatter = false; break;
+                        // доля K-оболочки константой со скачка на крае, как до
+                        // пооболочечных сечений EPICS2017 — измерительный ключ
+                        case "--no-kfrac-e": kfracEnergy = false; break;
+                        // разрешение прибора: ПШПВ на 662 кэВ в процентах; даёт
+                        // допуск пика по энергии, как DS_Fwhm662 в геометрии
+                        case "--fwhm662":
+                            fwhm662 = double.Parse(value, CultureInfo.InvariantCulture); break;
                         case "--detour": detour = double.Parse(value, CultureInfo.InvariantCulture); break;
                         case "--peak-halfwidth":
                             halfWidth = double.Parse(value, CultureInfo.InvariantCulture); break;
@@ -80,7 +88,7 @@ namespace EffSim
                     {
                         RunOne(Path.Combine(all, Pairs[i, 0]),
                                refDir == null ? null : Path.Combine(refDir, Pairs[i, 1]),
-                               null, n, mountFront, electron, brems, xray, cohPass, scatter, detour, halfWidth, halfWidthFraction, point, list);
+                               null, n, mountFront, electron, brems, xray, cohPass, scatter, kfracEnergy, detour, halfWidth, halfWidthFraction, fwhm662, point, list);
                         Console.WriteLine();
                     }
 
@@ -93,7 +101,7 @@ namespace EffSim
                     return 1;
                 }
 
-                RunOne(geometry, reference, outPath, n, mountFront, electron, brems, xray, cohPass, scatter, detour, halfWidth, halfWidthFraction, point, list);
+                RunOne(geometry, reference, outPath, n, mountFront, electron, brems, xray, cohPass, scatter, kfracEnergy, detour, halfWidth, halfWidthFraction, fwhm662, point, list);
                 return 0;
             }
             catch (Exception ex)
@@ -104,14 +112,19 @@ namespace EffSim
         }
 
         static void RunOne(string geometryPath, string referencePath, string outPath, int n,
-                           bool mountFront, bool electron, bool brems, bool xray, bool cohPass, bool scatter, double detour, double halfWidth,
-                           double halfWidthFraction, double point, string list)
+                           bool mountFront, bool electron, bool brems, bool xray, bool cohPass, bool scatter, bool kfracEnergy, double detour, double halfWidth,
+                           double halfWidthFraction, double fwhm662, double point, string list)
         {
             GeometryModel g = GeometryModel.Load(geometryPath);
             if (point >= 0.0)
             {
                 g.SourceType = GeometrySourceType.Point;
                 g.PointDistance = point;
+            }
+
+            if (fwhm662 > 0.0)
+            {
+                g.FwhmAt662Percent = fwhm662;
             }
 
             Console.WriteLine("=== {0}", Path.GetFileNameWithoutExtension(geometryPath));
@@ -131,14 +144,16 @@ namespace EffSim
                 XrayEscape = xray,
                 CoherentPassesThrough = cohPass,
                 SingleScatter = scatter,
+                KFractionByEnergy = kfracEnergy,
                 ElectronDetour = detour,
                 PeakHalfWidthKev = halfWidth,
             };
             Console.WriteLine("    сцена: {0}", sim.DescribeScene());
-            Console.WriteLine("    электрон: {0}, вылет {1}, тормозное {2}, detour {3:F2}, допуск {4}, рентген {5}, когерентное сквозь {6}, рассеяние {7} ",
+            Console.WriteLine("    электрон: {0}, вылет {1}, тормозное {2}, detour {3:F2}, допуск {4}, рентген {5}, когерентное сквозь {6}, рассеяние {7}, доля K по энергии {8} ",
                               sim.ElectronMaterialName == "" ? "состава нет в ESTAR" : sim.ElectronMaterialName,
                               electron ? "да" : "нет", brems ? "да" : "нет", detour, halfWidth,
-                              xray ? "да" : "нет", cohPass ? "да" : "нет", scatter ? "да" : "нет");
+                              xray ? "да" : "нет", cohPass ? "да" : "нет", scatter ? "да" : "нет",
+                              kfracEnergy ? "да" : "нет");
 
             List<double> energies;
             Dictionary<double, double> truth = null;
@@ -168,7 +183,9 @@ namespace EffSim
             Console.WriteLine("    {0,7}  {1,12}  {2,7}  {3,12}  {4,7}", "E,кэВ", "расчёт", "±%", "эталон", "отн.");
             foreach (double e in energies)
             {
-                sim.PeakHalfWidthKev = halfWidthFraction > 0.0 ? halfWidthFraction * e : halfWidth;
+                sim.PeakHalfWidthKev = halfWidthFraction > 0.0 ? halfWidthFraction * e
+                    : halfWidth > 0.0 ? halfWidth
+                    : g.PeakHalfWidthKev(e);
                 double err;
                 double eps = sim.Efficiency(e, out err);
                 double refValue = 0.0;
