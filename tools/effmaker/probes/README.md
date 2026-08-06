@@ -26,6 +26,17 @@
 обрезанному поиску). Собираются все `tools\effmaker\probes\*.cs` и
 `tools\effmaker\*.cs`.
 
+## `CoincCfProbe.cs` — каскадное суммирование, первая версия (F1)
+
+CF детерминированно, путём EFFTRAN: полная эффективность из суммы гистограммы
+`Response`, пары совпадений из `gamma_coincidence`, CF = 1/(1 − Σ P·ε_T).
+Сумм-влёта и γ-рентгеновских пар нет сознательно — см. шапку пробы. Сверка с
+новой TCCFCALC (настоящие нуклиды): `tools/tccfcalc2/README.md`, §8 — на 5 см
+в шуме, на упоре недобор 20–30 % от величины поправки. Собирать с
+`/r:Microsoft.Data.Sqlite.dll` и netstandard-фасадом, рядом с exe нужен
+`CoincCfProbe.exe.config` (копия конфига приложения — binding redirect
+SQLitePCLRaw).
+
 ## `RoundTrip.cs` — запись файла `.in`
 
 Читает модель, пишет её `GeometryWriter`'ом, читает снова и считает
