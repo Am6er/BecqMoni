@@ -36,13 +36,16 @@ namespace EffSim
                 string geometry = null, reference = null, outPath = null, all = null, refDir = null;
                 int n = 200000;
                 bool mountFront = false;
-                bool electron = false, brems = true, xray = true, cohPass = true, scatter = true;
+                bool electron = true, brems = true, xray = true, cohPass = true, scatter = true;
                 bool kfracEnergy = true;
                 double detour = 1.0, halfWidth = 0.0, halfWidthFraction = 0.0, fwhm662 = 0.0;
                 double point = -1.0;
                 string list = null;
                 bool total = false;
                 bool dumpScene = false;
+                double histBin = 0.0;
+                double escSlope = -1.0;         // < 0 — умолчание симулятора
+                double escT0 = -1.0;
                 foreach (string arg in args)
                 {
                     int eq = arg.IndexOf('=');
@@ -58,6 +61,7 @@ namespace EffSim
                         case "--refdir": refDir = value; break;
                         case "--mount-front": mountFront = true; break;
                         case "--electron": electron = true; break;
+                        case "--no-electron": electron = false; break;
                         case "--no-brems": brems = false; break;
                         case "--no-xray": xray = false; break;
                         case "--no-coherent-pass": cohPass = false; break;
@@ -70,6 +74,12 @@ namespace EffSim
                         case "--fwhm662":
                             fwhm662 = double.Parse(value, CultureInfo.InvariantCulture); break;
                         case "--detour": detour = double.Parse(value, CultureInfo.InvariantCulture); break;
+                        // наклон эффективной глубины вылета электрона, 1/МэВ
+                        case "--esc-slope":
+                            escSlope = double.Parse(value, CultureInfo.InvariantCulture); break;
+                        // порог включения вылета, кэВ
+                        case "--esc-t0":
+                            escT0 = double.Parse(value, CultureInfo.InvariantCulture); break;
                         case "--peak-halfwidth":
                             halfWidth = double.Parse(value, CultureInfo.InvariantCulture); break;
                         // допуск как доля энергии: пик имеет ширину, и она
@@ -83,6 +93,11 @@ namespace EffSim
                         case "--total": total = true; break;
                         // напечатать машинный дамп сцены для g4cf --scene и выйти
                         case "--dump-scene": dumpScene = true; break;
+                        // напечатать гистограмму отклика (шаг в кэВ) по списку
+                        // --energies — для сверки с g4cf hist. Свет выключен:
+                        // сверка идёт в шкале ПОГЛОЩЁННОЙ энергии.
+                        case "--hist":
+                            histBin = double.Parse(value, CultureInfo.InvariantCulture); break;
                         case "--hw-frac":
                             halfWidthFraction = double.Parse(value, CultureInfo.InvariantCulture); break;
                         default: throw new ArgumentException("Unknown option: " + arg);
@@ -95,7 +110,7 @@ namespace EffSim
                     {
                         RunOne(Path.Combine(all, Pairs[i, 0]),
                                refDir == null ? null : Path.Combine(refDir, Pairs[i, 1]),
-                               null, n, mountFront, electron, brems, xray, cohPass, scatter, kfracEnergy, detour, halfWidth, halfWidthFraction, fwhm662, point, list, total);
+                               null, n, mountFront, electron, brems, xray, cohPass, scatter, kfracEnergy, detour, halfWidth, halfWidthFraction, fwhm662, point, list, total, escSlope, escT0);
                         Console.WriteLine();
                     }
 
@@ -121,7 +136,52 @@ namespace EffSim
                     return 0;
                 }
 
-                RunOne(geometry, reference, outPath, n, mountFront, electron, brems, xray, cohPass, scatter, kfracEnergy, detour, halfWidth, halfWidthFraction, fwhm662, point, list, total);
+                if (histBin > 0.0)
+                {
+                    if (string.IsNullOrEmpty(list))
+                    {
+                        Console.Error.WriteLine("--hist требует --energies");
+                        return 1;
+                    }
+
+                    GeometryModel hg = GeometryModel.Load(geometry);
+                    EfficiencySimulator hsim = new EfficiencySimulator(hg)
+                    {
+                        Histories = n,
+                        ElectronEscape = electron,
+                        Bremsstrahlung = brems,
+                        XrayEscape = xray,
+                        CoherentPassesThrough = cohPass,
+                        SingleScatter = scatter,
+                        KFractionByEnergy = kfracEnergy,
+                        ElectronDetour = detour,
+                        // сверка с Geant4 — в шкале ПОГЛОЩЁННОЙ энергии
+                        LightNonproportionality = false,
+                    };
+                    foreach (string one in list.Split(','))
+                    {
+                        double e = double.Parse(one, CultureInfo.InvariantCulture);
+                        double relErr;
+                        double[] h = hsim.Response(e, histBin, out relErr);
+                        Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                            "OURHISTBEGIN e_kev={0:R} bins={1} bin_kev={2:R} hist={3}",
+                            e, h.Length, histBin, n));
+                        for (int i = 0; i < h.Length; i++)
+                        {
+                            if (h[i] > 0.0)
+                            {
+                                Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                                                                "OURHIST {0} {1:E6}", i, h[i]));
+                            }
+                        }
+
+                        Console.WriteLine("OURHISTEND");
+                    }
+
+                    return 0;
+                }
+
+                RunOne(geometry, reference, outPath, n, mountFront, electron, brems, xray, cohPass, scatter, kfracEnergy, detour, halfWidth, halfWidthFraction, fwhm662, point, list, total, escSlope, escT0);
                 return 0;
             }
             catch (Exception ex)
@@ -134,7 +194,7 @@ namespace EffSim
         static void RunOne(string geometryPath, string referencePath, string outPath, int n,
                            bool mountFront, bool electron, bool brems, bool xray, bool cohPass, bool scatter, bool kfracEnergy, double detour, double halfWidth,
                            double halfWidthFraction, double fwhm662, double point, string list,
-                           bool total = false)
+                           bool total = false, double escSlope = -1.0, double escT0 = -1.0)
         {
             GeometryModel g = GeometryModel.Load(geometryPath);
             if (point >= 0.0)
@@ -169,6 +229,16 @@ namespace EffSim
                 ElectronDetour = detour,
                 PeakHalfWidthKev = halfWidth,
             };
+            if (escSlope >= 0.0)
+            {
+                sim.ElectronEscapeSlope = escSlope;
+            }
+
+            if (escT0 >= 0.0)
+            {
+                sim.ElectronEscapeT0Kev = escT0;
+            }
+
             Console.WriteLine("    сцена: {0}", sim.DescribeScene());
             Console.WriteLine("    электрон: {0}, вылет {1}, тормозное {2}, detour {3:F2}, допуск {4}, рентген {5}, когерентное сквозь {6}, рассеяние {7}, доля K по энергии {8} ",
                               sim.ElectronMaterialName == "" ? "состава нет в ESTAR" : sim.ElectronMaterialName,

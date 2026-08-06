@@ -164,38 +164,54 @@ namespace
             return false;
         }
 
-        // Проверка пересечений: сёстры Geant4 обязаны не перекрываться, а наша
-        // сцена разрешает «первую победившую». Найдено перекрытие — ОТКАЗ,
-        // молча строить нечестную сцену нельзя.
-        for (size_t i = 0; i < gSceneRegions.size(); ++i)
-        {
-            for (size_t j = i + 1; j < gSceneRegions.size(); ++j)
-            {
-                const SceneRegion& p = gSceneRegions[i];
-                const SceneRegion& q = gSceneRegions[j];
-                if (p.z1 <= q.z0 + 1e-9 || q.z1 <= p.z0 + 1e-9)
-                {
-                    continue;
-                }
-
-                double pLo = p.box ? 0.0 : p.a;
-                double pHi = p.box ? std::sqrt(p.a * p.a + p.b * p.b) : p.b;
-                double qLo = q.box ? 0.0 : q.a;
-                double qHi = q.box ? std::sqrt(q.a * q.a + q.b * q.b) : q.b;
-                if (pHi <= qLo + 1e-9 || qHi <= pLo + 1e-9)
-                {
-                    continue;
-                }
-
-                std::fprintf(stderr,
-                             "перекрытие областей %zu и %zu (z и радиусы пересекаются) — "
-                             "сцену в Geant4 так строить нельзя\n", i, j);
-                return false;
-            }
-        }
-
         gSceneLoaded = true;
         return true;
+    }
+
+    // ---- Геометрические предикаты коаксиальной сцены (всё центрировано).
+
+    // i целиком внутри j (для вложенной расстановки и сброса затенённых)
+    bool Inside(const SceneRegion& i, const SceneRegion& j)
+    {
+        const double eps = 1e-9;
+        if (i.z0 < j.z0 - eps || i.z1 > j.z1 + eps)
+        {
+            return false;
+        }
+
+        if (!i.box && !j.box)
+        {
+            return i.a >= j.a - eps && i.b <= j.b + eps;
+        }
+
+        if (i.box && j.box)
+        {
+            return i.a <= j.a + eps && i.b <= j.b + eps;
+        }
+
+        if (i.box && !j.box)     // брус внутри кольца: только в сплошном
+        {
+            return j.a <= eps && std::sqrt(i.a * i.a + i.b * i.b) <= j.b + eps;
+        }
+
+        // кольцо внутри бруса: наружный радиус в полуразмерах
+        return i.b <= std::min(j.a, j.b) + eps;
+    }
+
+    // Грубое «могут пересекаться»: z-диапазоны и латеральные охваты
+    bool MayOverlap(const SceneRegion& p, const SceneRegion& q)
+    {
+        const double eps = 1e-9;
+        if (p.z1 <= q.z0 + eps || q.z1 <= p.z0 + eps)
+        {
+            return false;
+        }
+
+        double pLo = p.box ? 0.0 : p.a;
+        double pHi = p.box ? std::sqrt(p.a * p.a + p.b * p.b) : p.b;
+        double qLo = q.box ? 0.0 : q.a;
+        double qHi = q.box ? std::sqrt(q.a * q.a + q.b * q.b) : q.b;
+        return pHi > qLo + eps && qHi > pLo + eps;
     }
 }
 
@@ -266,24 +282,123 @@ public:
             mats[entry.first] = m;
         }
 
-        int regionIndex = 0;
-        for (const SceneRegion& r : gSceneRegions)
+        // Сцена симулятора — «первая победившая», области перекрываются
+        // ВЛОЖЕНИЕМ (кристалл поверх сплошной оболочки). У Geant4 та же
+        // семантика достигается расстановкой мать-дочь: дочерний объём
+        // перекрывает материнский. Ранняя область — дочь самой МАЛОЙ из
+        // более поздних, целиком её содержащих.
+        size_t count = gSceneRegions.size();
+
+        // 1. Область, целиком накрытая БОЛЕЕ РАННЕЙ, не выигрывает нигде —
+        // выбросить (так наша сцена и считает: до неё поиск не доходит).
+        std::vector<bool> dead(count, false);
+        for (size_t j = 0; j < count; ++j)
         {
-            std::string name = "r" + std::to_string(regionIndex++);
+            for (size_t i = 0; i < j && !dead[j]; ++i)
+            {
+                if (!dead[i] && Inside(gSceneRegions[j], gSceneRegions[i]))
+                {
+                    std::fprintf(stderr,
+                                 "область %zu целиком затенена областью %zu — выброшена "
+                                 "(в сцене симулятора она тоже недостижима)\n", j, i);
+                    dead[j] = true;
+                }
+            }
+        }
+
+        // 2. Мать каждой области; частичное пересечение без вложения — отказ.
+        std::vector<int> mother(count, -1);
+        for (size_t i = 0; i < count; ++i)
+        {
+            if (dead[i])
+            {
+                continue;
+            }
+
+            double best = 1e300;
+            for (size_t j = i + 1; j < count; ++j)
+            {
+                if (dead[j] || !Inside(gSceneRegions[i], gSceneRegions[j]))
+                {
+                    continue;
+                }
+
+                const SceneRegion& m = gSceneRegions[j];
+                double volume = (m.z1 - m.z0)
+                    * (m.box ? 4.0 * m.a * m.b : CLHEP::pi * (m.b * m.b - m.a * m.a));
+                if (volume < best)
+                {
+                    best = volume;
+                    mother[i] = int(j);
+                }
+            }
+        }
+
+        for (size_t i = 0; i < count; ++i)
+        {
+            for (size_t j = i + 1; j < count; ++j)
+            {
+                if (dead[i] || dead[j] || mother[i] == int(j) || mother[j] == int(i))
+                {
+                    continue;
+                }
+
+                if (MayOverlap(gSceneRegions[i], gSceneRegions[j])
+                    && !Inside(gSceneRegions[i], gSceneRegions[j])
+                    && !Inside(gSceneRegions[j], gSceneRegions[i]))
+                {
+                    std::fprintf(stderr,
+                                 "области %zu и %zu пересекаются, но не вложены — "
+                                 "сцену в Geant4 честно не построить, ОТКАЗ\n", i, j);
+                    std::exit(2);
+                }
+            }
+        }
+
+        // 3. Расстановка: сначала матери (обход от конца списка), потом дети.
+        std::vector<G4LogicalVolume*> logicals(count, nullptr);
+        for (size_t k = count; k-- > 0;)
+        {
+            if (dead[k])
+            {
+                continue;
+            }
+
+            const SceneRegion& r = gSceneRegions[k];
+            std::string name = "r" + std::to_string(k);
             G4VSolid* solid = r.box
                 ? static_cast<G4VSolid*>(new G4Box(name, r.a * cm, r.b * cm,
                                                    0.5 * (r.z1 - r.z0) * cm))
                 : static_cast<G4VSolid*>(new G4Tubs(name, r.a * cm, r.b * cm,
                                                     0.5 * (r.z1 - r.z0) * cm,
                                                     0.0, 360.0 * deg));
-            auto logical = new G4LogicalVolume(solid, mats[r.mat], name);
-            // checkOverlaps=true: вторая линия обороны после своей проверки
-            new G4PVPlacement(nullptr, G4ThreeVector(0, 0, 0.5 * (r.z0 + r.z1) * cm),
-                              logical, name, worldL, false, 0, true);
+            logicals[k] = new G4LogicalVolume(solid, mats[r.mat], name);
             if (r.crystal)
             {
-                fCrystal = logical;
+                fCrystal = logicals[k];
             }
+        }
+
+        for (size_t k = count; k-- > 0;)
+        {
+            if (dead[k])
+            {
+                continue;
+            }
+
+            const SceneRegion& r = gSceneRegions[k];
+            double zc = 0.5 * (r.z0 + r.z1);
+            G4LogicalVolume* into = worldL;
+            if (mother[k] >= 0)
+            {
+                const SceneRegion& m = gSceneRegions[mother[k]];
+                into = logicals[mother[k]];
+                zc -= 0.5 * (m.z0 + m.z1);      // сдвиг относительно матери
+            }
+
+            // checkOverlaps=true: вторая линия обороны после своей проверки
+            new G4PVPlacement(nullptr, G4ThreeVector(0, 0, zc * cm),
+                              logicals[k], "r" + std::to_string(k), into, false, 0, true);
         }
 
         return worldP;
