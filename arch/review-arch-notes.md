@@ -1,4 +1,9 @@
-# Критическое заключение по becqmoni-arch-notes
+﻿# Критическое заключение по becqmoni-arch-notes
+
+
+> 🔨 **Нашли проблему — строкой в [`TODO.md`](../TODO.md) в корне.** Сюда пишут
+> подробности, туда — строку с приоритетом и ссылкой сюда. И то, и другое,
+> всегда: проблема, которая живёт только в журнале, будет потеряна.
 
 Дата: 30.07.2026. Предмет: репозиторий `VibeEngineering-LLC/becqmoni-arch-notes` @ `1819e17`
 (README, bm-arch-tz, best-solutions, comparison, arch-map, menu-map, spectraline, nuclidemaster)
