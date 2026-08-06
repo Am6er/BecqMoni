@@ -636,6 +636,9 @@ namespace BecquerelMonitor.EfficiencyMaker
         abstract class Sampler
         {
             public abstract void Next(EfficiencySimulator s, out double x, out double y, out double z);
+
+            /// <summary>Машинная строка для дампа сцены (см, ось сцены).</summary>
+            public abstract string Describe();
         }
 
         sealed class PointSampler : Sampler
@@ -652,6 +655,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                 x = 0.0;
                 y = 0.0;
                 z = this.z;
+            }
+
+            public override string Describe()
+            {
+                return string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                                     "source point {0:R}", this.z);
             }
         }
 
@@ -678,6 +687,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                 y = this.ay * (2.0 * s.Uniform() - 1.0);
                 z = this.z0 + (this.z1 - this.z0) * s.Uniform();
             }
+
+            public override string Describe()
+            {
+                return string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                                     "source box {0:R} {1:R} {2:R} {3:R}",
+                                     this.ax, this.ay, this.z0, this.z1);
+            }
         }
 
         sealed class CylinderSampler : Sampler
@@ -699,6 +715,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                 x = rr * Math.Cos(phi);
                 y = rr * Math.Sin(phi);
                 z = this.z0 + (this.z1 - this.z0) * s.Uniform();
+            }
+
+            public override string Describe()
+            {
+                return string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                                     "source cyl {0:R} {1:R} {2:R}",
+                                     this.r, this.z0, this.z1);
             }
         }
 
@@ -739,6 +762,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                 x = rr * Math.Cos(phi);
                 y = rr * Math.Sin(phi);
                 z = zz;
+            }
+
+            public override string Describe()
+            {
+                return string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                                     "source marinelli {0:R} {1:R} {2:R} {3:R} {4:R}",
+                                     this.rIn, this.rOut, this.z0, this.z1, this.zCap);
             }
         }
 
@@ -2392,6 +2422,66 @@ namespace BecquerelMonitor.EfficiencyMaker
             // выше в том же журнале печатают в миллиметрах, и два ряда чисел,
             // отличающихся вдесятеро, без подписи читаются как ошибка.
             return "cm: " + string.Join("; ", parts.ToArray());
+        }
+
+        /// <summary>
+        /// Машинный дамп сцены для внешнего арбитра (`tools/g4cf --scene`):
+        /// материалы составом (Z:массовая доля) и плотностью, области в
+        /// порядке поиска (первая победившая — как в <see cref="At"/>) и
+        /// источник. Всё в сантиметрах, ось — ось сцены. Формат построчный:
+        ///
+        ///     SCENE
+        ///     mat m0 плотность Z:доля Z:доля ...
+        ///     region tub|box m0 (rIn rOut | ax ay) z0 z1 crystal|-
+        ///     source point z | cyl r z0 z1 | box ax ay z0 z1
+        ///            | marinelli rIn rOut z0 z1 zCap
+        ///     END
+        ///
+        /// Перекрытия областей здесь НЕ разрешаются: наша сцена ищет «первую
+        /// победившую», у Geant4 сёстры обязаны не пересекаться — проверка и
+        /// отказ на его стороне.
+        /// </summary>
+        public string DumpScene()
+        {
+            this.EnsureBuilt();
+            var ci = System.Globalization.CultureInfo.InvariantCulture;
+            var lines = new List<string> { "SCENE" };
+            var materialId = new Dictionary<GeometryMaterial, string>();
+            foreach (Region r in this.regions)
+            {
+                if (!materialId.ContainsKey(r.Material))
+                {
+                    string id = "m" + materialId.Count.ToString(ci);
+                    materialId[r.Material] = id;
+                    var comp = new List<string>();
+                    foreach (KeyValuePair<int, double> f in r.Material.Fractions)
+                    {
+                        if (f.Value > 0.0)
+                        {
+                            comp.Add(string.Format(ci, "{0}:{1:R}", f.Key, f.Value));
+                        }
+                    }
+
+                    lines.Add(string.Format(ci, "mat {0} {1:R} {2}", id,
+                                            r.Material.Density,
+                                            string.Join(" ", comp.ToArray())));
+                }
+            }
+
+            foreach (Region r in this.regions)
+            {
+                lines.Add(r.IsBox
+                    ? string.Format(ci, "region box {0} {1:R} {2:R} {3:R} {4:R} {5}",
+                                    materialId[r.Material], r.AX, r.AY, r.ZMin, r.ZMax,
+                                    r.IsCrystal ? "crystal" : "-")
+                    : string.Format(ci, "region tub {0} {1:R} {2:R} {3:R} {4:R} {5}",
+                                    materialId[r.Material], r.RIn, r.ROut, r.ZMin, r.ZMax,
+                                    r.IsCrystal ? "crystal" : "-"));
+            }
+
+            lines.Add(this.source.Describe());
+            lines.Add("END");
+            return string.Join("\n", lines.ToArray());
         }
     }
 }

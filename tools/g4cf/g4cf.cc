@@ -36,6 +36,7 @@
 #include "G4LogicalVolume.hh"
 #include "G4PVPlacement.hh"
 #include "G4GeneralParticleSource.hh"
+#include "G4Gamma.hh"
 #include "G4Event.hh"
 #include "G4Step.hh"
 #include "G4Run.hh"
@@ -44,10 +45,20 @@
 #include "G4AccumulableManager.hh"
 #include "G4Accumulable.hh"
 #include "globals.hh"
+#include "G4Element.hh"
+#include "G4Material.hh"
+#include "G4PrimaryParticle.hh"
+#include "G4PrimaryVertex.hh"
+#include "G4IonTable.hh"
+#include "Randomize.hh"
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
+#include <map>
+#include <sstream>
+#include <string>
 #include <vector>
 
 namespace
@@ -55,6 +66,137 @@ namespace
     // Окна счёта, кэВ. Заполняются в main до старта, дальше только чтение.
     std::vector<double> gWindows;
     const double kHalfWindowKev = 0.5;
+
+    // Режим hist: шаг бина, кэВ (0 — выключен) и число бинов. Правило бина —
+    // ТО ЖЕ, что у раскладки отклика в EfficiencySimulator.Deposit:
+    // bin = (int)(edep/шаг + 0.5), последний бин — пик полного поглощения.
+    double gHistBinKev = 0.0;
+    int gHistBins = 0;
+
+    // ---- Сцена из файла (effsim --dump-scene): материалы, области, источник.
+    struct SceneMat
+    {
+        double density = 0.0;                      // г/см³
+        std::vector<std::pair<int, double>> parts; // Z, массовая доля
+    };
+
+    struct SceneRegion
+    {
+        bool box = false;
+        std::string mat;
+        double a = 0.0, b = 0.0;   // tub: rIn,rOut; box: ax,ay (полуразмеры)
+        double z0 = 0.0, z1 = 0.0;
+        bool crystal = false;
+    };
+
+    struct SceneSource
+    {
+        // point | cyl | box | marinelli — как у сэмплеров EfficiencySimulator
+        std::string kind;
+        double p[5] = { 0, 0, 0, 0, 0 };
+    };
+
+    bool gSceneLoaded = false;
+    std::map<std::string, SceneMat> gSceneMats;
+    std::vector<SceneRegion> gSceneRegions;
+    SceneSource gSceneSource;
+
+    bool LoadScene(const char* path)
+    {
+        std::ifstream in(path);
+        if (!in)
+        {
+            std::fprintf(stderr, "сцена не читается: %s\n", path);
+            return false;
+        }
+
+        std::string line;
+        bool inside = false;
+        while (std::getline(in, line))
+        {
+            std::istringstream ss(line);
+            std::string word;
+            if (!(ss >> word))
+            {
+                continue;
+            }
+
+            if (word == "SCENE") { inside = true; continue; }
+            if (word == "END") { break; }
+            if (!inside) { continue; }
+
+            if (word == "mat")
+            {
+                std::string id;
+                SceneMat m;
+                ss >> id >> m.density;
+                std::string part;
+                while (ss >> part)
+                {
+                    size_t colon = part.find(':');
+                    m.parts.emplace_back(std::atoi(part.substr(0, colon).c_str()),
+                                         std::atof(part.substr(colon + 1).c_str()));
+                }
+
+                gSceneMats[id] = m;
+            }
+            else if (word == "region")
+            {
+                SceneRegion r;
+                std::string shape, flag;
+                ss >> shape >> r.mat >> r.a >> r.b >> r.z0 >> r.z1 >> flag;
+                r.box = shape == "box";
+                r.crystal = flag == "crystal";
+                gSceneRegions.push_back(r);
+            }
+            else if (word == "source")
+            {
+                ss >> gSceneSource.kind;
+                for (int i = 0; i < 5 && (ss >> gSceneSource.p[i]); ++i)
+                {
+                }
+            }
+        }
+
+        if (gSceneRegions.empty() || gSceneSource.kind.empty())
+        {
+            std::fprintf(stderr, "сцена пуста или без источника: %s\n", path);
+            return false;
+        }
+
+        // Проверка пересечений: сёстры Geant4 обязаны не перекрываться, а наша
+        // сцена разрешает «первую победившую». Найдено перекрытие — ОТКАЗ,
+        // молча строить нечестную сцену нельзя.
+        for (size_t i = 0; i < gSceneRegions.size(); ++i)
+        {
+            for (size_t j = i + 1; j < gSceneRegions.size(); ++j)
+            {
+                const SceneRegion& p = gSceneRegions[i];
+                const SceneRegion& q = gSceneRegions[j];
+                if (p.z1 <= q.z0 + 1e-9 || q.z1 <= p.z0 + 1e-9)
+                {
+                    continue;
+                }
+
+                double pLo = p.box ? 0.0 : p.a;
+                double pHi = p.box ? std::sqrt(p.a * p.a + p.b * p.b) : p.b;
+                double qLo = q.box ? 0.0 : q.a;
+                double qHi = q.box ? std::sqrt(q.a * q.a + q.b * q.b) : q.b;
+                if (pHi <= qLo + 1e-9 || qHi <= pLo + 1e-9)
+                {
+                    continue;
+                }
+
+                std::fprintf(stderr,
+                             "перекрытие областей %zu и %zu (z и радиусы пересекаются) — "
+                             "сцену в Geant4 так строить нельзя\n", i, j);
+                return false;
+            }
+        }
+
+        gSceneLoaded = true;
+        return true;
+    }
 }
 
 class Detector : public G4VUserDetectorConstruction
@@ -62,6 +204,11 @@ class Detector : public G4VUserDetectorConstruction
 public:
     G4VPhysicalVolume* Construct() override
     {
+        if (gSceneLoaded)
+        {
+            return ConstructFromScene();
+        }
+
         auto nist = G4NistManager::Instance();
         auto air = nist->FindOrBuildMaterial("G4_AIR");
         auto csi = nist->FindOrBuildMaterial("G4_CESIUM_IODIDE");
@@ -95,6 +242,53 @@ public:
         return worldP;
     }
 
+    /// Сцена из файла effsim --dump-scene: те же области, тот же порядок.
+    G4VPhysicalVolume* ConstructFromScene()
+    {
+        auto nist = G4NistManager::Instance();
+        auto air = nist->FindOrBuildMaterial("G4_AIR");
+        auto worldS = new G4Box("world", 60 * cm, 60 * cm, 60 * cm);
+        auto worldL = new G4LogicalVolume(worldS, air, "world");
+        auto worldP = new G4PVPlacement(nullptr, {}, worldL, "world", nullptr, false, 0);
+
+        std::map<std::string, G4Material*> mats;
+        int matIndex = 0;
+        for (auto& entry : gSceneMats)
+        {
+            auto m = new G4Material("scene_mat_" + std::to_string(matIndex++),
+                                    entry.second.density * g / cm3,
+                                    int(entry.second.parts.size()));
+            for (auto& part : entry.second.parts)
+            {
+                m->AddElement(nist->FindOrBuildElement(part.first), part.second);
+            }
+
+            mats[entry.first] = m;
+        }
+
+        int regionIndex = 0;
+        for (const SceneRegion& r : gSceneRegions)
+        {
+            std::string name = "r" + std::to_string(regionIndex++);
+            G4VSolid* solid = r.box
+                ? static_cast<G4VSolid*>(new G4Box(name, r.a * cm, r.b * cm,
+                                                   0.5 * (r.z1 - r.z0) * cm))
+                : static_cast<G4VSolid*>(new G4Tubs(name, r.a * cm, r.b * cm,
+                                                    0.5 * (r.z1 - r.z0) * cm,
+                                                    0.0, 360.0 * deg));
+            auto logical = new G4LogicalVolume(solid, mats[r.mat], name);
+            // checkOverlaps=true: вторая линия обороны после своей проверки
+            new G4PVPlacement(nullptr, G4ThreeVector(0, 0, 0.5 * (r.z0 + r.z1) * cm),
+                              logical, name, worldL, false, 0, true);
+            if (r.crystal)
+            {
+                fCrystal = logical;
+            }
+        }
+
+        return worldP;
+    }
+
     static G4LogicalVolume* fCrystal;
 };
 
@@ -120,6 +314,94 @@ private:
     G4GeneralParticleSource fGps;
 };
 
+namespace
+{
+    // Параметры первички сценного генератора; заполняются в main.
+    double gSceneEnergyKev = 0.0;
+    bool gSceneIon = false;
+    int gSceneZ = 0, gSceneA = 0;
+}
+
+/// Генератор сценного режима: положение — ТОЧНАЯ копия сэмплеров
+/// EfficiencySimulator (равномерно по объёму, радиус корнем, у маринелли
+/// крышка долей объёма), направление изотропно, частица — гамма или ион.
+class SceneGenerator : public G4VUserPrimaryGeneratorAction
+{
+public:
+    void GeneratePrimaries(G4Event* event) override
+    {
+        const SceneSource& s = gSceneSource;
+        double x = 0.0, y = 0.0, z = 0.0;
+        if (s.kind == "point")
+        {
+            z = s.p[0];
+        }
+        else if (s.kind == "cyl")
+        {
+            double rr = s.p[0] * std::sqrt(G4UniformRand());
+            double phi = 2.0 * CLHEP::pi * G4UniformRand();
+            x = rr * std::cos(phi);
+            y = rr * std::sin(phi);
+            z = s.p[1] + (s.p[2] - s.p[1]) * G4UniformRand();
+        }
+        else if (s.kind == "box")
+        {
+            x = s.p[0] * (2.0 * G4UniformRand() - 1.0);
+            y = s.p[1] * (2.0 * G4UniformRand() - 1.0);
+            z = s.p[2] + (s.p[3] - s.p[2]) * G4UniformRand();
+        }
+        else                                        // marinelli
+        {
+            double rIn = s.p[0], rOut = s.p[1], z0 = s.p[2], z1 = s.p[3], zCap = s.p[4];
+            double annulus = (rOut * rOut - rIn * rIn) * (z1 - z0);
+            double cap = rIn * rIn * std::max(0.0, zCap - z0);
+            double capFraction = (annulus + cap) > 0.0 ? cap / (annulus + cap) : 0.0;
+            double rr, zz;
+            if (G4UniformRand() < capFraction)
+            {
+                rr = rIn * std::sqrt(G4UniformRand());
+                zz = z0 + (zCap - z0) * G4UniformRand();
+            }
+            else
+            {
+                double a = rIn * rIn, b = rOut * rOut;
+                rr = std::sqrt(a + (b - a) * G4UniformRand());
+                zz = z0 + (z1 - z0) * G4UniformRand();
+            }
+
+            double phi = 2.0 * CLHEP::pi * G4UniformRand();
+            x = rr * std::cos(phi);
+            y = rr * std::sin(phi);
+            z = zz;
+        }
+
+        auto vertex = new G4PrimaryVertex(
+            G4ThreeVector(x * cm, y * cm, z * cm), 0.0);
+        if (gSceneIon)
+        {
+            auto ion = G4IonTable::GetIonTable()->GetIon(gSceneZ, gSceneA, 0.0);
+            auto particle = new G4PrimaryParticle(ion);
+            particle->SetKineticEnergy(0.0);
+            particle->SetCharge(0.0);
+            vertex->SetPrimary(particle);
+        }
+        else
+        {
+            double cosT = 2.0 * G4UniformRand() - 1.0;
+            double sinT = std::sqrt(std::max(0.0, 1.0 - cosT * cosT));
+            double phi = 2.0 * CLHEP::pi * G4UniformRand();
+            auto particle = new G4PrimaryParticle(
+                G4Gamma::GammaDefinition(),
+                sinT * std::cos(phi) * gSceneEnergyKev * keV,
+                sinT * std::sin(phi) * gSceneEnergyKev * keV,
+                cosT * gSceneEnergyKev * keV);
+            vertex->SetPrimary(particle);
+        }
+
+        event->AddPrimaryVertex(vertex);
+    }
+};
+
 /// Счётчики — канонический паттерн B1: экземпляр и у мастера, и у каждого
 /// потока; Merge в конце сливает, мастер печатает.
 class RunAction : public G4UserRunAction
@@ -133,6 +415,12 @@ public:
         {
             fPeaks.push_back(new G4Accumulable<G4int>("w" + std::to_string(i), 0));
             manager->Register(*fPeaks.back());
+        }
+
+        for (int i = 0; i < gHistBins; ++i)
+        {
+            fHist.push_back(new G4Accumulable<G4int>("h" + std::to_string(i), 0));
+            manager->Register(*fHist.back());
         }
     }
 
@@ -160,6 +448,21 @@ public:
                         decays > 0 ? double(fPeaks[i]->GetValue()) / decays : 0.0);
         }
 
+        if (gHistBins > 0)
+        {
+            std::printf("HISTBEGIN bins=%d bin_kev=%.6f decays=%ld\n",
+                        gHistBins, gHistBinKev, decays);
+            for (int i = 0; i < gHistBins; ++i)
+            {
+                if (fHist[i]->GetValue() > 0)
+                {
+                    std::printf("HIST %d %d\n", i, fHist[i]->GetValue());
+                }
+            }
+
+            std::printf("HISTEND\n");
+        }
+
         std::fflush(stdout);
     }
 
@@ -177,11 +480,23 @@ public:
                 *fPeaks[i] += 1;
             }
         }
+
+        if (gHistBins > 0 && edepKev > 1e-3)
+        {
+            int bin = int(edepKev / gHistBinKev + 0.5);
+            if (bin >= gHistBins)
+            {
+                bin = gHistBins - 1;
+            }
+
+            *fHist[bin] += 1;
+        }
     }
 
 private:
     G4Accumulable<G4int> fAny;
     std::vector<G4Accumulable<G4int>*> fPeaks;
+    std::vector<G4Accumulable<G4int>*> fHist;
 };
 
 class EventAction : public G4UserEventAction
@@ -223,7 +538,15 @@ class Actions : public G4VUserActionInitialization
 public:
     void Build() const override
     {
-        SetUserAction(new Generator());
+        if (gSceneLoaded)
+        {
+            SetUserAction(new SceneGenerator());
+        }
+        else
+        {
+            SetUserAction(new Generator());
+        }
+
         auto run = new RunAction();
         SetUserAction(run);
         auto event = new EventAction(run);
@@ -236,15 +559,31 @@ public:
 
 int main(int argc, char** argv)
 {
-    // g4cf mono <E_кэВ> <N>  |  g4cf ion <Z> <A> <N> <окно1_кэВ> [окно2 ...]
-    if (argc < 4)
+    // g4cf [scene <файл>] mono <E_кэВ> <N>
+    //      | g4cf [scene <файл>] ion <Z> <A> <N> <окно1_кэВ> [окно2 ...]
+    //      | g4cf [scene <файл>] hist <E_кэВ> <N> <шаг_бина_кэВ>
+    // Файл сцены — вывод effsim --dump-scene; без него сцена вшитая (tube).
+    int base = 1;
+    if (argc > 2 && std::strcmp(argv[1], "scene") == 0)
     {
-        std::fprintf(stderr, "g4cf mono <E_keV> <N> | g4cf ion <Z> <A> <N> <windows...>\n");
+        if (!LoadScene(argv[2]))
+        {
+            return 2;
+        }
+
+        base = 3;
+    }
+
+    if (argc < base + 3)
+    {
+        std::fprintf(stderr, "g4cf [scene <file>] mono <E_keV> <N> | ion <Z> <A> <N> <windows...>"
+                             " | hist <E_keV> <N> <bin_keV>\n");
         return 2;
     }
 
-    bool ion = std::strcmp(argv[1], "ion") == 0;
-    int argAt = 2;
+    bool ion = std::strcmp(argv[base], "ion") == 0;
+    bool hist = std::strcmp(argv[base], "hist") == 0;
+    int argAt = base + 1;
     double energyKev = 0.0;
     int z = 0, a = 0;
     if (ion)
@@ -259,6 +598,19 @@ int main(int argc, char** argv)
     }
 
     long decays = std::atol(argv[argAt++]);
+    if (hist)
+    {
+        if (argAt >= argc)
+        {
+            std::fprintf(stderr, "hist: нужен шаг бина, кэВ\n");
+            return 2;
+        }
+
+        gHistBinKev = std::atof(argv[argAt++]);
+        // Длина по правилу раскладки отклика: последний бин — пик.
+        gHistBins = int(energyKev / gHistBinKev + 0.5) + 1;
+    }
+
     for (; argAt < argc; ++argAt)
     {
         gWindows.push_back(std::atof(argv[argAt]));
@@ -275,26 +627,37 @@ int main(int argc, char** argv)
     // Иначе Geant4 11.x молча считает стабильными нуклиды с периодом длиннее
     // порога (по умолчанию ~1 год): Co-60 (5.3 г) просто не распадался.
     ui->ApplyCommand("/process/had/rdm/thresholdForVeryLongDecayTime 1.0e+60 year");
-    // Источник — объём пробы, изотропно.
-    ui->ApplyCommand("/gps/pos/type Volume");
-    ui->ApplyCommand("/gps/pos/shape Cylinder");
-    ui->ApplyCommand("/gps/pos/centre 0 0 -0.81 cm");
-    ui->ApplyCommand("/gps/pos/radius 1.25 cm");
-    ui->ApplyCommand("/gps/pos/halfz 0.3 cm");
-    ui->ApplyCommand("/gps/ang/type iso");
     char buffer[64];
-    if (ion)
+    if (gSceneLoaded)
     {
-        ui->ApplyCommand("/gps/particle ion");
-        std::snprintf(buffer, sizeof buffer, "/gps/ion %d %d", z, a);
-        ui->ApplyCommand(buffer);
-        ui->ApplyCommand("/gps/energy 0 keV");
+        // Первичку целиком делает SceneGenerator — GPS не настраивается.
+        gSceneEnergyKev = energyKev;
+        gSceneIon = ion;
+        gSceneZ = z;
+        gSceneA = a;
     }
     else
     {
-        ui->ApplyCommand("/gps/particle gamma");
-        std::snprintf(buffer, sizeof buffer, "/gps/energy %f keV", energyKev);
-        ui->ApplyCommand(buffer);
+        // Источник — объём пробы вшитой сцены tube, изотропно.
+        ui->ApplyCommand("/gps/pos/type Volume");
+        ui->ApplyCommand("/gps/pos/shape Cylinder");
+        ui->ApplyCommand("/gps/pos/centre 0 0 -0.81 cm");
+        ui->ApplyCommand("/gps/pos/radius 1.25 cm");
+        ui->ApplyCommand("/gps/pos/halfz 0.3 cm");
+        ui->ApplyCommand("/gps/ang/type iso");
+        if (ion)
+        {
+            ui->ApplyCommand("/gps/particle ion");
+            std::snprintf(buffer, sizeof buffer, "/gps/ion %d %d", z, a);
+            ui->ApplyCommand(buffer);
+            ui->ApplyCommand("/gps/energy 0 keV");
+        }
+        else
+        {
+            ui->ApplyCommand("/gps/particle gamma");
+            std::snprintf(buffer, sizeof buffer, "/gps/energy %f keV", energyKev);
+            ui->ApplyCommand(buffer);
+        }
     }
 
     std::snprintf(buffer, sizeof buffer, "/run/beamOn %ld", decays);
