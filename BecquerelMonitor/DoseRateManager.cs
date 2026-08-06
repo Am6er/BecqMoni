@@ -17,27 +17,26 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x060002B0 RID: 688 RVA: 0x0000D214 File Offset: 0x0000B414
-        public DoseRate Calculate(ResultData resultData, DoseRateConfig config, BackgroundMode mode)
+        public DoseRate Calculate(ResultData resultData, DoseRateConfig config)
         {
-            EnergySpectrum energySpectrum;
-            if (mode == BackgroundMode.Substract && resultData.BackgroundEnergySpectrum != null)
-            {
-                SpectrumAriphmetics sa = new SpectrumAriphmetics(resultData.EnergySpectrum);
-                energySpectrum = sa.Substract(resultData.BackgroundEnergySpectrum);
-                sa.Dispose();
-            } else
-            {
-                energySpectrum = resultData.EnergySpectrum;
-            }
-            PolynomialEnergyCalibration calibration = (PolynomialEnergyCalibration)energySpectrum.EnergyCalibration;
+            // Доза — свойство ИЗМЕРЕННОГО спектра. Раньше сюда передавался
+            // режим отображения графика, и при «фон вычтен» доза считалась по
+            // разности — показание дозиметра менялось от галки отрисовки
+            // (TODO G6). Дозиметр так себя не ведёт: фон — тоже доза.
+            EnergySpectrum energySpectrum = resultData.EnergySpectrum;
+
+            // Базовый тип, не каст к PolynomialEnergyCalibration: у спектра
+            // может стоять NonlinearEnergyCalibration — она сестра, а не
+            // наследник, и каст валил расчёт InvalidCastException (TODO G5).
+            EnergyCalibration calibration = energySpectrum.EnergyCalibration;
             DoseRate doseRate = new DoseRate();
 
             List<double> errors = new List<double>();
             List<double> doseRates = new List<double>();
             foreach (DoseRateCalibrationPoint point in config.DoseRateCalibrationPoints)
             {
-                int startch = (int)calibration.EnergyToChannel(point.LowerBound, maxCh: energySpectrum.NumberOfChannels);
-                int endch = (int)calibration.EnergyToChannel(point.UpperBound, maxCh: energySpectrum.NumberOfChannels);
+                int startch = (int)calibration.EnergyToChannel(point.LowerBound, energySpectrum.NumberOfChannels);
+                int endch = (int)calibration.EnergyToChannel(point.UpperBound, energySpectrum.NumberOfChannels);
                 if (startch < 0) startch = 0;
                 if (endch >= energySpectrum.Spectrum.Length) endch = energySpectrum.Spectrum.Length - 1;
                 double counts = 0.0;

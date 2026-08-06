@@ -1202,6 +1202,15 @@
   <data name="BqCoeffNoCurve" xml:space="preserve">
     <value>Для спектра не выбрана кривая эффективности. Взято сохранённое значение.</value>
   </data>
+  <data name="ResultNoCoefficient" xml:space="preserve">
+    <value>нет K</value>
+  </data>
+  <data name="ResultNoWeight" xml:space="preserve">
+    <value>нет массы</value>
+  </data>
+  <data name="ResultNoVolume" xml:space="preserve">
+    <value>нет объёма</value>
+  </data>
   <data name="BqCoeffOutOfRange" xml:space="preserve">
     <value>{0:0.##} кэВ вне кривой ({1:0.##}–{2:0.##} кэВ): за краями кривая не продолжается. Взято сохранённое значение.</value>
   </data>

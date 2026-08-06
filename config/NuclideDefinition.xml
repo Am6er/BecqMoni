@@ -24,6 +24,7 @@
       <NuclideColor>Violet</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>2.27</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>x-rays</Name>
@@ -48,6 +49,7 @@
       <NuclideColor>Orange</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>4.25</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>x-rays</Name>
@@ -64,6 +66,7 @@
       <NuclideColor>Red</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>35.9</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Am-243/x-rays</Name>
@@ -72,6 +75,7 @@
       <NuclideColor>Red</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>67.2</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>x-rays</Name>
@@ -104,6 +108,7 @@
       <NuclideColor>Red</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>25.34</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>U-238/U-234</Name>
@@ -112,6 +117,7 @@
       <NuclideColor>Orange</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>0.0102</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Eu-152</Name>
@@ -120,6 +126,7 @@
       <NuclideColor>Red</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>28.53</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Ac-228/Pu-239</Name>
@@ -128,6 +135,7 @@
       <NuclideColor>Orange</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>2.42</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>U-235</Name>
@@ -136,6 +144,7 @@
       <NuclideColor>Olive</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>10.96</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Pu-238</Name>
@@ -144,6 +153,7 @@
       <NuclideColor>Red</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>0.0009</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Ra-226/U-235</Name>
@@ -152,6 +162,7 @@
       <NuclideColor>Orange</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>3.64</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Lu-176</Name>
@@ -160,6 +171,7 @@
       <NuclideColor>Olive</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>77.9688</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>U-237/Am-241</Name>
@@ -168,6 +180,7 @@
       <NuclideColor>Orange</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>21.2</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Ac-228</Name>
@@ -176,6 +189,7 @@
       <NuclideColor>Olive</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>3.89</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Np-239</Name>
@@ -192,6 +206,7 @@
       <NuclideColor>Orange</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>43.6</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Pb-214</Name>
@@ -200,6 +215,7 @@
       <NuclideColor>Orange</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>7.2629</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Eu-152</Name>
@@ -208,6 +224,7 @@
       <NuclideColor>Red</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>7.55</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Np-239</Name>
@@ -216,6 +233,7 @@
       <NuclideColor>Orange</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>14.505</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>I-131</Name>
@@ -224,6 +242,7 @@
       <NuclideColor>Red</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>6.1207</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Pb-214</Name>
@@ -232,6 +251,7 @@
       <NuclideColor>#808000</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>18.4709</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Lu-176</Name>
@@ -240,6 +260,7 @@
       <NuclideColor>Olive</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>93.6</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Np-239</Name>
@@ -248,6 +269,7 @@
       <NuclideColor>Red</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>1.6</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Am-241</Name>
@@ -264,6 +286,7 @@
       <NuclideColor>#808000</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>11.27</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Eu-152</Name>
@@ -272,6 +295,7 @@
       <NuclideColor>Red</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>26.59</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Pb-214</Name>
@@ -280,6 +304,7 @@
       <NuclideColor>#808000</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>35.7237</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Ba-133</Name>
@@ -288,6 +313,7 @@
       <NuclideColor>Red</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>62.05</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>I-131</Name>
@@ -296,6 +322,7 @@
       <NuclideColor>Red</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>81.5</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Pu-239</Name>
@@ -304,6 +331,7 @@
       <NuclideColor>Gray</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>0.0016</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Pu-241</Name>
@@ -320,6 +348,7 @@
       <NuclideColor>Olive</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>1.92</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Ag-108m</Name>
@@ -336,6 +365,7 @@
       <NuclideColor>Olive</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>4.4</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Tl-208</Name>
@@ -344,6 +374,7 @@
       <NuclideColor>Olive</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>22.6</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Annihilation</Name>
@@ -360,6 +391,7 @@
       <NuclideColor>#808000</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>85</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Bi-214</Name>
@@ -368,6 +400,7 @@
       <NuclideColor>#808000</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>45.44</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Ag-108m</Name>
@@ -384,6 +417,7 @@
       <NuclideColor>Red</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>7.1557</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Cs-137</Name>
@@ -392,6 +426,7 @@
       <NuclideColor>Red</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>85.1</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>I-131</Name>
@@ -400,6 +435,7 @@
       <NuclideColor>Red</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>1.7686</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Bi-212/Ac-228</Name>
@@ -408,6 +444,7 @@
       <NuclideColor>Orange</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>6.67</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Pa-234m</Name>
@@ -432,6 +469,7 @@
       <NuclideColor>Red</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>12.93</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Ac-228</Name>
@@ -440,6 +478,7 @@
       <NuclideColor>#808000</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>4.25</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Cs-134</Name>
@@ -448,6 +487,7 @@
       <NuclideColor>Red</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>85.46</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Ac-228</Name>
@@ -456,6 +496,7 @@
       <NuclideColor>#808000</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>1.61</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Ac-228</Name>
@@ -464,6 +505,7 @@
       <NuclideColor>#808000</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>25.8</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Ac-228</Name>
@@ -472,6 +514,7 @@
       <NuclideColor>#808000</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>4.99</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Ac-228</Name>
@@ -480,6 +523,7 @@
       <NuclideColor>#808000</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>15.8</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Pa-234m</Name>
@@ -496,6 +540,7 @@
       <NuclideColor>Red</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>13.67</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Bi-214</Name>
@@ -504,6 +549,7 @@
       <NuclideColor>#808000</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>14.9</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Co-60</Name>
@@ -512,6 +558,7 @@
       <NuclideColor>Red</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>99.85</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Bi-214</Name>
@@ -520,6 +567,7 @@
       <NuclideColor>#808000</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>5.83</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Co-60</Name>
@@ -528,6 +576,7 @@
       <NuclideColor>Red</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>99.9826</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Bi-214</Name>
@@ -536,6 +585,7 @@
       <NuclideColor>#808000</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>3.985</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>K40</Name>
@@ -544,6 +594,7 @@
       <NuclideColor>#808000</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>10.66</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Ac-228</Name>
@@ -552,6 +603,7 @@
       <NuclideColor>#808000</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>3.22</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Bi-214</Name>
@@ -560,6 +612,7 @@
       <NuclideColor>#808000</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>15.29</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Tl-208 SE</Name>
@@ -576,6 +629,7 @@
       <NuclideColor>#808000</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>4.92</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Bi-214</Name>
@@ -584,6 +638,7 @@
       <NuclideColor>#808000</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>1.545</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Tl-208</Name>
@@ -592,6 +647,7 @@
       <NuclideColor>#808000</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>99.754</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Be-9 (α, nγ) DE</Name>

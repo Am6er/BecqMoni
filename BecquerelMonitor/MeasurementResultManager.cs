@@ -31,6 +31,20 @@ namespace BecquerelMonitor
                 double resultValue = measurementResult.ResultValue;
                 double resultError = measurementResult.ResultError;
                 double mda = measurementResult.MDA;
+                // Невалидный результат обязан остаться невалидным: перевод
+                // единиц создаёт НОВЫЕ объекты, и без переноса флага строка
+                // «Ошибка» превращалась в молчаливый честный ноль.
+                if (!measurementResult.IsValid)
+                {
+                    measurementResultCollection.ResultList.Add(
+                        new MeasurementResult(roidefinition, 0.0, 0.0)
+                        {
+                            IsValid = false,
+                            StatusText = measurementResult.StatusText,
+                        });
+                    continue;
+                }
+
                 if (this.measurementTime == 0.0)
                 {
                     MeasurementResult item = new MeasurementResult(roidefinition, 0.0, 0.0);
@@ -49,6 +63,40 @@ namespace BecquerelMonitor
                         Utils.BecquerelCoefficient.Resolve(roidefinition, this.resultData.Efficiency);
                     double becquerelCoefficient = coefficient.Value;
                     double becquerelCoefficientError = coefficient.Error;
+
+                    // Беккерели без K не считаются. Раньше нулевой коэффициент
+                    // молча давал 0 Бк — неотличимо от настоящего нуля
+                    // активности (TODO G7). Теперь строка получает статус.
+                    bool needsCoefficient =
+                        resultTranslation == ResultTranslation.Becquerels
+                        || resultTranslation == ResultTranslation.BecquerelsPerKilogram
+                        || resultTranslation == ResultTranslation.BecquerelsPerLiter;
+                    string cannot = null;
+                    if (needsCoefficient && !(becquerelCoefficient > 0.0))
+                    {
+                        cannot = Properties.Resources.ResultNoCoefficient;
+                    }
+                    else if (resultTranslation == ResultTranslation.BecquerelsPerKilogram
+                             && !(this.resultData.SampleInfo.Weight > 0.0))
+                    {
+                        cannot = Properties.Resources.ResultNoWeight;
+                    }
+                    else if (resultTranslation == ResultTranslation.BecquerelsPerLiter
+                             && !(this.resultData.SampleInfo.Volume > 0.0))
+                    {
+                        cannot = Properties.Resources.ResultNoVolume;
+                    }
+
+                    if (cannot != null)
+                    {
+                        measurementResultCollection.ResultList.Add(
+                            new MeasurementResult(roidefinition, 0.0, 0.0)
+                            {
+                                IsValid = false,
+                                StatusText = cannot,
+                            });
+                        continue;
+                    }
                     double resultCps = resultValue / this.measurementTime;
                     double resultErrorCps = Math.Abs(resultError) / this.measurementTime;
                     double resultBq = resultCps * becquerelCoefficient;
@@ -120,6 +168,19 @@ namespace BecquerelMonitor
             }
             foreach (MeasurementResult measurementResult in resultCollection.ResultList)
             {
+                // Тот же перенос невалидности, что в Translate: поправка на
+                // распад создаёт новые объекты и теряла флаг.
+                if (!measurementResult.IsValid)
+                {
+                    measurementResultCollection.ResultList.Add(
+                        new MeasurementResult(measurementResult.ROIDefinition, 0.0, 0.0)
+                        {
+                            IsValid = false,
+                            StatusText = measurementResult.StatusText,
+                        });
+                    continue;
+                }
+
                 ROIDefinitionData roidefinition = measurementResult.ROIDefinition;
                 double resultValue = measurementResult.ResultValue;
                 double resultError = measurementResult.ResultError;

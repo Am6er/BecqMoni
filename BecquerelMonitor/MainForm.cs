@@ -633,8 +633,7 @@ namespace BecquerelMonitor
                 this.activeDocument.ActiveResultData.DeviceConfig.DoseRateConfig.DoseRateCalibrationPoints.Count > 0)
             {
                 DoseRate doseRate = this.doseRateManager.Calculate(this.activeDocument.ActiveResultData,
-                    this.activeDocument.ActiveResultData.DeviceConfig.DoseRateConfig,
-                    this.activeDocument.EnergySpectrumView.BackgroundMode);
+                    this.activeDocument.ActiveResultData.DeviceConfig.DoseRateConfig);
                 SetStatusTextRight(Resources.DoseRate + " " + doseRate.ToString());
             } else
             {

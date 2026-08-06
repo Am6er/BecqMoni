@@ -28,9 +28,9 @@
 
 | # | задача | детали |
 |---|---|---|
-| B1 | Реорганизовать корпус: задать геометрии, построить матрицу на каждую, разделить на понятные и непонятные спектры. До этого ВСЕ прогоны по корпусу остановлены | [tools/CORPUS/README.md](tools/CORPUS/README.md), блок «⛔ БЛОКЕР»; [scheme.md](database/scheme.md) §9а C-5 |
+| B1 | Реорганизовать корпус: задать геометрии, построить матрицу на каждую, разделить на понятные и непонятные спектры. До этого ВСЕ прогоны по корпусу остановлены. **Обход на время блокера (решение Amber 06.08.2026): мерило — НОВАЯ TCCFCALC** (NuclideMasterPlus 2.10): `run_tccf2.py` считает эталон по любой геометрии и сетке без спектров корпуса; наш/новая на цилиндре 0.98–1.07 | [tools/CORPUS/README.md](tools/CORPUS/README.md), блок «⛔ БЛОКЕР»; [tools/tccfcalc2/README.md](tools/tccfcalc2/README.md), §7 |
 | B2 | Выбрать формат снапшота — без него этап 5 рефакторинга не оценить, а от него зависят этапы 2, 7, 8 | [arch/review-arch-notes.md](arch/review-arch-notes.md), §2.4 |
-| B3 | Завести конфигурацию «RC-103 (282)» и починить ПШПВ-калибровку RC-103 (только руками Amber) | [tools/effmaker/README.md](tools/effmaker/README.md), «Открытые пункты» |
+| B3 | ~~Завести конфигурацию «RC-103 (282)»~~ (появилась в поставке 06.08.2026, ПШПВ-точка разумная — канал 266 при 1024) и починить ПШПВ-калибровку RC-103 (только руками Amber); дальше — E5 | [tools/effmaker/README.md](tools/effmaker/README.md), «Открытые пункты» |
 
 ## P0 — продукт не работает из коробки
 
@@ -40,19 +40,19 @@
 
 | # | задача | детали |
 |---|---|---|
-| **G1** | В поставочном `config/NuclideDefinition.xml` **ноль тегов `Sets`, ноль `IsAnchor`, ноль `Intencity`** — гейт `LibraryPeakFitter.cs:479-486` срабатывает всегда, библиотечный фит не стартует НИКОГДА | [arch/review-arch-notes.md](arch/review-arch-notes.md); [scheme.md](database/scheme.md) §9а F-1 |
-| **G2** | `EfficencyROIGuid` не проставлен ни в одном из девяти поставочных device-конфигов — `DocEnergySpectrum.cs:449-460` всегда уходит в fallback `ROIConfigList[0]`, и активность считается по произвольной ЧУЖОЙ кривой | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
+| **G1** | В поставочном `config/NuclideDefinition.xml` ноль тегов `Sets`/`IsAnchor` — гейт `LibraryPeakFitter` (ветка конструктора, на `pie` класса нет) не пускает библиотечный фит. **Половина закрыта 06.08.2026: `Intencity` проставлен из базы (см. ~~N8~~), FSA на `pie` работает от файла.** Остаток `Sets`/`IsAnchor` — чинится на ветке `roi-wizard-reworked` | [arch/review-arch-notes.md](arch/review-arch-notes.md); [scheme.md](database/scheme.md) §9а F-1 |
+| **G2** | `EfficencyROIGuid` не проставлен ни в одном из девяти поставочных device-конфигов — fallback `ROIConfigList[0]` подставляет ЧУЖИЕ зоны. **Сужена 06.08.2026:** для КРИВОЙ вред снят переездом эффективности в конфиг прибора (`ActiveEfficiencyGuid`, пусто = не считается + статус «нет K», G7); остались чужие ЗОНЫ. Разметка прибор→ROI — только руками Amber, кандидаты неоднозначны (Nano 15 Pro: «Atom Nano 3» или «Atom Nano 8»; RC-101/RC-103: «RadiaCode Cs-137» или «RadiaCode Marinelli 0.5»; личный выбор Amber «RadiaCode - cilinder» в поставке отсутствует) | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
 
 ## P1 — дефекты продукта
 
 | # | задача | детали |
 |---|---|---|
-| G3 | `config/ROI/Obsidian Marinelli 0.5.xml:60`: точка `Energy=20, Efficiency=1471.85, ErrorPercent=554` — ε > 1 физически невозможна, сплайн утаскивает левый край | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
-| G4 | `SetExporter.BuildRoiConfig` не пишет `BecquerelCoefficient` — любой набор из мастера даёт 0 Бк | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
-| G5 | `DoseRateManager.cs:32` — жёсткий каст к `PolynomialEnergyCalibration`; `NonlinearEnergyCalibration` ей сестра, не наследник → `InvalidCastException` | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
-| G6 | Доза зависит от галки отображения фона (`DoseRateManager.cs:23-31` ← `MainForm.cs:639-641`) — показание меняется от режима графика | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
-| G7 | Тихий нуль K вместо статуса (`ROIConfigForm.cs:951,955` → `MeasurementResultManager.cs:48`) — 0 Бк неотличим от «не посчитано» | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
-| G8 | `EnergySpectrumView.cs:2879` — `break` на `OutofChannelException`: одна плохая область гасит отрисовку всех последующих | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
+| ~~G3~~ | ~~Точка ε > 1 в `Obsidian Marinelli 0.5.xml`~~ — уже вылечена ранее: кривая в файле заменена (максимум 5.1·10⁻³, точек ε > 1 нет ни в одном ROI-файле поставки; проверено 06.08.2026) | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
+| G4 | `SetExporter.BuildRoiConfig` не пишет `BecquerelCoefficient` — любой набор из мастера даёт 0 Бк. **На `pie` не чинится: класса здесь нет, он на ветке `roi-wizard-reworked`** | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
+| ~~G5~~ | ~~Жёсткий каст к `PolynomialEnergyCalibration` в `DoseRateManager`~~ — исправлено 06.08.2026: базовый тип, `EnergyToChannel` абстрактный | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
+| ~~G6~~ | ~~Доза зависит от галки отображения фона~~ — исправлено 06.08.2026: доза всегда по измеренному спектру, параметр режима убран | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
+| ~~G7~~ | ~~Тихий нуль K вместо статуса~~ — исправлено 06.08.2026: перевод в Бк без K/массы/объёма даёт строку «нет K»/«нет массы»/«нет объёма» вместо 0; заодно починено, что `Translate`/`Correct` ТЕРЯЛИ `IsValid=false` и строка «Ошибка» не доживала до таблицы | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
+| ~~G8~~ | ~~`break` на `OutofChannelException` в отрисовке областей~~ — уже вылечена ранее: исключение и `break` исчезли вместе с переводом `EnergyToChannel` на явное число каналов (проверено 06.08.2026: в `ShowROIBorderLine` ни try, ни break) | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
 | G9 | Стабильные индексы линий nucdb — закрывает класс поломок при пересборке базы | [arch/review-arch-notes.md](arch/review-arch-notes.md), «Волна 1» |
 | G10 | Санитария ссылок: резолвы по имени (`ROIReferenceData`, `SelectROIDialog`) и по индексу комбобокса ломаются чаще Guid | [arch/review-arch-notes.md](arch/review-arch-notes.md), этап 0 |
 
@@ -61,13 +61,15 @@
 | # | задача | детали |
 |---|---|---|
 | F1 | Каскадное суммирование: разыгрывать распад по схеме уровней, складывать кванты одного распада, сверить CF с `TCCFCALC.dll` | [handover-response-matrix.md](tools/effmaker/handover-response-matrix.md), §10 п. 0б |
-| F2 | Малоугловой комптон в ближних слоях — последнее физическое расхождение с ЛСРМ | [tools/tccfcalc/README.md](tools/tccfcalc/README.md), §6 п. 1 |
-| F3 | Регрессия маринелли с мелким кристаллом (+25…50 % против ЛСРМ) | [handover-2026-08-05.md](tools/effmaker/handover-2026-08-05.md), §6, строка R |
-| F4 | Ввести разрешение в `GeometryModel` — от него зависит допуск поправки на рассеяние | [handover-2026-08-05.md](tools/effmaker/handover-2026-08-05.md), §6, «A1 вскрыл ограничение»; [scheme.md](database/scheme.md) §9а C-4 |
+| F2 | Малоугловой комптон в ближних слоях: поправка `SingleScatter` отперта допуском (см. ~~F4~~). **Пересчёт на новой версии:** недобор 0.87–0.94 на 28–33 кэВ был свойством СТАРОЙ DLL — против новой мы там 0.96–1.06 при допуске 0. Осталось честное: ВЕС события по форме пика вместо ящика ±0.5 ПШПВ (ящик двигает середину шкалы на ±5 %) | [tools/tccfcalc2/README.md](tools/tccfcalc2/README.md), §7; [tools/tccfcalc/README.md](tools/tccfcalc/README.md), §8 |
+| ~~F3~~ | ~~Регрессия маринелли с мелким кристаллом~~ — снята 06.08.2026: свежий `TCCFCALC.dll` по тем же `.in` выше старых экспортов на 17–43 % на всех четырёх кривых, наш расчёт против него — 0.90–1.02. Эталоны устарели, как раньше `Nano 16 - marinelli.txt`. Остаток: E1 (пересчитать экспорты) и V7 (абсолютный уровень) | [tools/tccfcalc/README.md](tools/tccfcalc/README.md), §8 |
+| ~~F4~~ | ~~Ввести разрешение в `GeometryModel`~~ — сделано 06.08.2026: `FwhmAt662Percent` (ключ `DS_Fwhm662`, ход √E), допуск ставится на точку кривой; файлы без ключа считаются как раньше | [tools/tccfcalc/README.md](tools/tccfcalc/README.md), журнал 06.08.2026 |
 | F5 | Формы ПШПВ GADRAS и `√(A0+A1E+A2/E)` | [interspec/handover-2026-08-05.md](tools/interspec/handover-2026-08-05.md), §10 п. 1 |
-| F6 | Доля K-оболочки по энергии, а не константой | [handover-2026-08-05.md](tools/effmaker/handover-2026-08-05.md), §6, строка A3 |
-| F7 | Разобрать остаток на 2600 кэВ (канал рождения пар) | [tools/tccfcalc/README.md](tools/tccfcalc/README.md), §6 п. 2 |
-| F8 | Проверить L-флуоресценцию тяжёлых кристаллов (LaBr₃, CeBr₃, GSO) | [tools/tccfcalc/README.md](tools/tccfcalc/README.md), §6 п. 5 |
+| ~~F6~~ | ~~Доля K-оболочки по энергии, а не константой~~ — сделано 06.08.2026: `MaterialDatabase.PhotoShellModel` из `epics_photo_*`, ключ `--no-kfrac-e`; цена −0.1…−0.4 % эффективности на 45–200 кэВ | [tools/tccfcalc/README.md](tools/tccfcalc/README.md), журнал 06.08.2026 |
+| ~~F7~~ | ~~Разобрать остаток на 2600 кэВ~~ — закрыт 06.08.2026: остаток был отсутствием тормозного у СТАРОЙ версии; против новой (у которой `Ttb` есть) наш расчёт на цилиндре даёт 1.07 ± 0.05 — расхождения нет. Остаток на маринелли — край самой новой (см. F10) | [tools/tccfcalc2/README.md](tools/tccfcalc2/README.md), §7 |
+| F9 | Новая TCCFCALC ниже старой на низу шкалы: 0.898 в цилиндре и **0.665** в маринелли на 28 кэВ. Ни `calc_electron_ttb`, ни `useEPDL97`/`useGLECS` этого не двигают, причина не найдена. **06.08.2026:** на цилиндре новая согласна с НАМИ (наш/новая 0.96–1.06 на 28–50 кэВ) — под подозрением именно её маринелли: мы там между версиями (наш/старая 0.92, наш/новая 1.36) | [tools/tccfcalc2/README.md](tools/tccfcalc2/README.md), §3, §7 |
+| F10 | Выяснить, какое вещество новая TCCFCALC берёт для электронов и тормозного, когда кристалла нет в её восьми: `Ttb` — z13, z32, air, nai, mgo, c2h4, labr, cdznte, `Elib` — только z13 и z32. Иодистого цезия нет, а ключ двигал результат на 23 % | [tools/tccfcalc2/README.md](tools/tccfcalc2/README.md), §4 |
+| ~~F8~~ | ~~Проверить L-флуоресценцию тяжёлых кристаллов~~ — проверено 06.08.2026 числами из `eadl_*`: вылет 0.17–0.30 % на 40 кэВ (LaBr₃/CeBr₃/GSO), моделировать незачем | [tools/tccfcalc/README.md](tools/tccfcalc/README.md), §6 п. 5 |
 
 ## P1 — полноспектральный разбор
 
@@ -105,18 +107,19 @@
 | V4 | Превышение около 460 кэВ — происхождение не установлено | [tools/pie/README.md](tools/pie/README.md), разбор недобора |
 | V5 | Вылет электрона выключен: прямолинейный CSDA завышает его неизвестно во сколько раз, обратного рассеяния электрона в тяжёлом веществе ESTAR не публикует | [tools/effmaker/README.md](tools/effmaker/README.md), про `--electron` |
 | V6 | На RC103, RC101 и OBS библиотечный фит почти не запускается — 45, 20 и 10 предъявленных линий против 475 у ASN16; упирается в базу финдера | [tools/CORPUS/README.md](tools/CORPUS/README.md) |
+| V7 | Абсолютный уровень МК в маринелли с мелким кристаллом не сверен с измерением: Geant4-модель в этих геометриях требовала нормировки 0.795/0.833 к паспортным активностям — возможно, сырой МК (наш, Geant4 и TCCFCALC разом) завышает на четверть; решается только паспортным источником | [tools/tccfcalc/README.md](tools/tccfcalc/README.md), §8 |
 
 ## P1 — прочее открытое, найденное в журналах
 
 | # | задача | детали |
 |---|---|---|
-| W1 | Найти, какая из правок вызвала регрессию маринелли — прогоны `out/effsim_all_2026-08-05_{on,off}.txt` есть, виновник не назван | [tools/effmaker/README.md](tools/effmaker/README.md), «Открытый пункт» |
-| W2 | Парциальные сечения нужны ещё для девяти элементов кристаллов (I, Cs, Na, Bi, Ge, O…) — страницы NIST `ElemTab` публикуют только сумму | [tools/effmaker/README.md](tools/effmaker/README.md), «Чего не хватает — по пунктам» |
+| ~~W1~~ | ~~Найти правку, вызвавшую регрессию маринелли~~ — закрыто 06.08.2026: виновной правки нет, расхождение объяснено устаревшими экспортами (см. ~~F3~~) | [tools/tccfcalc/README.md](tools/tccfcalc/README.md), §8 |
+| ~~W2~~ | ~~Парциальные сечения ещё для девяти элементов~~ — устарела: с переезда на nucdb `PartialCrossSections` берёт из базы все сто элементов | [scheme.md](database/scheme.md), §3 |
 | W3 | Германий: не разобрано, дело в настройках финдера, в форме его ядра на узких пиках или в ПШПВ-калибровке. Связано с P1 | [tools/effmaker/probes/README.md](tools/effmaker/probes/README.md), «Германий выпал целиком» |
 | W4 | Ещё четыре группы (CZT_TECD, RC101, RC103g, ASN3) пики находят, но ни одного объяснимого | [tools/effmaker/probes/README.md](tools/effmaker/probes/README.md) |
 | W5 | Отношение эманации к суммированию: геометрический вклад не отделён, поэтому «встроенной проверкой равновесия» пользоваться нельзя | [tools/pie/README.md](tools/pie/README.md) |
 | W6 | Калибровка выше 4-й степени: `EnrgToChannel` бросала `NotImplementedException`, шкала уезжала на 5.6 кэВ без единого сообщения — проверить, что починено везде | [tools/CORPUS/README.md](tools/CORPUS/README.md) |
-| W7 | Голова `ECCBINDX.BIN` (записи по 25 doubles) не расколота — там подоболочечные энергии связи от 13.6 эВ | [database/scheme.md](database/scheme.md), §10 |
+| ~~W7~~ | ~~Голова `ECCBINDX.BIN` не расколота~~ — снято 06.08.2026: подоболочечные связи взяты из EADL (`eadl_binding`), колоть незачем | [database/scheme.md](database/scheme.md), §5б, §10 |
 | W8 | Записи продолжения ENSDF, комментарии и структурные `S` не разбираются вовсе — там свободный текст | [database/scheme.md](database/scheme.md), §7 |
 | W9 | Наборы ENSDF дублируются по нуклиду: выбирать надо по родителю и его периоду, а не по имени дочернего — потребитель этого пока не учитывает | [database/scheme.md](database/scheme.md), §7 |
 | W10 | Поставка STAR старше веба: тормозная протона в воде расходится на 1.3 % с сегодняшним PSTAR | [database/scheme.md](database/scheme.md), §5 |
@@ -126,13 +129,15 @@
 
 | # | задача | детали |
 |---|---|---|
-| E1 | Пересчитать эталоны `EffCalcMC` по семи поставочным геометриям | [tools/tccfcalc/README.md](tools/tccfcalc/README.md), §6 п. 3 |
+| E1 | Пересчитать эталоны `EffCalcMC` по семи поставочным геометриям (руками Amber). **Стало срочным 06.08.2026:** все четыре старых экспорта устарели — подтверждено ОБЕИМИ версиями DLL (ниже 700 кэВ обе выше экспортов на 8–41 % при согласии между собой); выше 1 МэВ версии расходятся между собой, и какую физику включать при пересчёте — само по себе решение (`calc_electron_ttb`, F10) | [tools/tccfcalc2/README.md](tools/tccfcalc2/README.md), §7 |
 | E2 | Прогон `effsim --all` по корпусу после правок физики. Блокируется B1 | [tools/tccfcalc/README.md](tools/tccfcalc/README.md), §6 п. 4 |
 | E3 | Привязать поправку кривой к опорной точке (форма отдельно от уровня) | [interspec/handover-2026-08-05.md](tools/interspec/handover-2026-08-05.md), §10 п. 7 |
 | E4 | Сверка с `common_drfs.tsv` — 92 реальных прибора | [interspec/handover-2026-08-05.md](tools/interspec/handover-2026-08-05.md), §10 п. 8 |
 | E5 | Расширить пачку RC103 корпуса. Блокируется B3 | [tools/effmaker/README.md](tools/effmaker/README.md), «Открытые пункты» |
 | E6 | Проверять геометрию пачки — иначе форма молча усредняет разные геометрии | [tools/effmaker/README.md](tools/effmaker/README.md), «Открытые пункты»; [scheme.md](database/scheme.md) §9а C-6 |
 | E7 | Брать площади из полноспектрального разложения, а не из локального фита | [tools/effmaker/README.md](tools/effmaker/README.md), «Открытые пункты» |
+| ~~E8~~ | ~~Прогнать `effsim` против новой TCCFCALC~~ — сделано 06.08.2026: на цилиндре наш/новая 0.98–1.07 по всей шкале (оба старых «края» F2 и F7 исчезли), на маринелли расходятся только края самой новой (её провал F9 внизу и её тормозное F10 вверху) | [tools/tccfcalc2/README.md](tools/tccfcalc2/README.md), §7 |
+| E9 | Сверить долю пика с новой TCCFCALC: `calc_full_eff = true` даёт полную эффективность рядом с пиковой (662 кэВ, CsI 1.854 × 5.9 — доля 0.322). Независимый эталон для матрицы отклика | [tools/tccfcalc2/README.md](tools/tccfcalc2/README.md), §4 |
 
 ## P2 — конструктор ROI и нуклидные сеты
 
@@ -159,32 +164,35 @@
 
 | # | задача | детали |
 |---|---|---|
-| N1 | Втянуть пооболочечные сечения фотоэффекта из `MDATX3` — снимет константную долю K-оболочки (+7 % на 40 кэВ) и откроет L-вылет | [scheme.md](database/scheme.md), §9а A-2 |
-| N2 | Завести форм-факторы F(q,Z) и функции инкогерентного рассеяния S(q,Z) — комптон сейчас чистая Клейн — Нишина, когерентное без угла | [scheme.md](database/scheme.md), §9а A-1 |
-| N3 | Заменить аппроксимацию ω_K измеренными значениями и завести ω_L | [scheme.md](database/scheme.md), §9а A-4 |
+| ~~N1~~ | ~~Втянуть пооболочечные сечения фотоэффекта~~ — сделано 06.08.2026 из EPICS2017 (богаче `MDATX3`): `epics_photo_*`; потребитель — F6 | [scheme.md](database/scheme.md), §5б |
+| ~~N2~~ | ~~Завести форм-факторы F(q,Z) и функции инкогерентного рассеяния S(q,Z)~~ — сделано 06.08.2026: `epdl_*` + профили Комптона; потребитель — N11 | [scheme.md](database/scheme.md), §5б |
+| ~~N3~~ | ~~Заменить аппроксимацию ω_K и завести ω_L~~ — сделано 06.08.2026: ω_K в `xray_fluorescence` теперь EADL, ω_L — суммы `eadl_radiative` | [scheme.md](database/scheme.md), §5а, §5б |
+| N11 | Разыгрывать углы рассеяния по данным: комптон × S(x,Z), когерентное по F²(x,Z), доплеровское размытие по профилям — данные втянуты, потребителя нет | [scheme.md](database/scheme.md), §9а A-1 |
 | N4 | Считать пробег и выход тормозного для произвольного состава (проба, оправа, стенка), а не только для десяти вшитых | [scheme.md](database/scheme.md), §9а B-1 |
 | N5 | Угловые корреляции γ-γ — без них каскадные совпадения считаются изотропными | [scheme.md](database/scheme.md), §9а D-1 |
 | N6 | Втянуть `common_drfs.tsv` — 92 прибора GADRAS как внешняя мера кривых и форм ПШПВ | [scheme.md](database/scheme.md), §9а E-2 |
 | N7 | Решить, чьи плотности веществ брать: наши или NIST | [scheme.md](database/scheme.md), §9а C-2 |
-| **N8** | **Проставить выходы линий в поставочном `config/NuclideDefinition.xml` из базы — сейчас поля `Intencity` там нет вовсе, и FSA работает на вшитом десятке нуклидов вместо 4377** | [scheme.md](database/scheme.md), §9а F-1 |
-| N9 | Читать ESTAR/STAR из базы вместо вшитой таблицы `ElectronData` на 10 веществ — пять таблиц лежат без читателя (из 23 таблиц базы читаются 5) | [scheme.md](database/scheme.md), §9а F-2, F-3 |
-| N10 | Перевести `AttenuationData.AtomicMass` на `xcom_elements` — вшитый массив был источником обеих опечаток | [scheme.md](database/scheme.md), §9а F-4 |
+| ~~N8~~ | ~~Проставить выходы линий в поставочном `config/NuclideDefinition.xml`~~ — сделано 06.08.2026: `tools/nucdb/fill_intensity.py`, 56 линий из 77 (пропуски поимённо: рентген без нуклида, изомеры — в NuclideMaster ненадёжны, вылетные пики); выходы на распад СОБСТВЕННОГО нуклида (`Chain` пуст — так задаёт семантика поля); раунд-трип через `XmlSerializer` проверен | [scheme.md](database/scheme.md), §9а F-1 |
+| N9 | Читать ESTAR/STAR из базы вместо вшитой таблицы `ElectronData` на 10 веществ — пять таблиц лежат без читателя (из 37 таблиц базы читаются 9 с учётом `epics_photo_*`; прежний счёт «5 из 23» неверен — аудит Geant4-контура, Н1/Н2) | [scheme.md](database/scheme.md), §9а F-2, F-3 |
+| ~~N10~~ | ~~Перевести `AttenuationData.AtomicMass` на `xcom_elements`~~ — уже сделано при переезде на nucdb: `AttenuationData` — фасад над `MaterialDatabase`, массы из базы | шапка [AttenuationData.cs](BecquerelMonitor/EfficiencyMaker/AttenuationData.cs) |
 
 ## P3 — база нуклидов
 
 | # | задача | детали |
 |---|---|---|
 | D1 | Правило интерполяции каналов XCOM (расхождение до 13.7 %) | [database/scheme.md](database/scheme.md), §9а A-6 |
-| D2 | Края поглощения ниже 1 кэВ и подоболочки выше N5 | [database/scheme.md](database/scheme.md), §9а A-3 |
+| ~~D2~~ | ~~Края поглощения ниже 1 кэВ и подоболочки выше N5~~ — сделано 06.08.2026: `eadl_binding`, все подоболочки от H 13.6 эВ | [database/scheme.md](database/scheme.md), §5б |
 | D3 | Пооболочечные коэффициенты конверсии из записей `S G` | [database/scheme.md](database/scheme.md), §9а D-4 |
 | D4 | Установить год и импортёр ядерной части | [database/scheme.md](database/scheme.md), §9а D-7 |
 | D5 | Сверить `ensdf_gammas.intensity` с `decay_radiations` | [database/scheme.md](database/scheme.md), §9а D-8 |
 | D6 | Расшифровать `dec_type` | [database/scheme.md](database/scheme.md), §9а D-6 |
 | D7 | Втянуть `xray_widths.xml` — закрывает часть D2 | [database/scheme.md](database/scheme.md), §9а E-1 |
-| D8 | Добрать `ADOPTED LEVELS` и привязку 17 276 гамма к конечному уровню | [scheme.md](database/scheme.md), §9а D-2, D-3 |
+| D8 | Добрать `ADOPTED LEVELS` и привязку 17 276 гамма к конечному уровню — кандидат: локальный `PhotonEvaporation6.1.2` (см. D13) | [scheme.md](database/scheme.md), §9а D-2, D-3 |
 | D9 | Дополнить ICC: Z = 4, 5, 7…13, оболочки выше M5, полный коэффициент | [scheme.md](database/scheme.md), §9а D-5 |
 | D10 | Пересобрать совпадения с меньшей отсечкой — сейчас отброшено 196 177 пар | [scheme.md](database/scheme.md), §9а E-3 |
-| D11 | Привязать 418 изомеров-родителей совпадений к нашей нумерации уровней — сейчас ищутся только по `sandia_symbol` | [scheme.md](database/scheme.md), §9а D-9 |
+| D11 | Привязать 418 изомеров-родителей совпадений к нашей нумерации уровней — сейчас ищутся только по `sandia_symbol`; энергии изомеров для сшивки есть в `G4ENSDFSTATE3.0` | [scheme.md](database/scheme.md), §9а D-9 |
+| D12 | Решить, ужимать ли новые G4-таблицы: база выросла 18.4 → 34.2 МБ (главное — `epics_photo_subshell` 370 тыс. строк и `seltzer_berger` 168 тыс.); рычаги — целочисленная укладка как у совпадений, обрезка сеток выше ~20 МэВ | [scheme.md](database/scheme.md), §5б |
+| D13 | Рассмотреть `PhotonEvaporation6.1.2` как источник для D8 (современные схемы уровней, лежит локально в `<GEANT4>`) и `RadioactiveDecay6.1.2` для D4 | [scheme.md](database/scheme.md), §9а D-2, D-7 |
 
 ## P3 — приближения в модели переноса
 
@@ -193,9 +201,9 @@
 
 | # | задача | детали |
 |---|---|---|
-| M1 | Завести выходы и энергии оже-электронов — сейчас вся неизлучённая энергия кладётся «на электроны» одним куском | [scheme.md](database/scheme.md), §9а A-5 |
+| M1 | Раздавать оже-электроны по `eadl_auger` (данные втянуты 06.08.2026) — пока вся неизлучённая энергия кладётся «на электроны» одним куском | [scheme.md](database/scheme.md), §9а A-5, §5б |
 | M2 | Направление вылета электрона взято изотропным, хотя он летит вперёд по кванту | [scheme.md](database/scheme.md), §9а B-2 |
-| M3 | Спектр тормозного — толстомишенное приближение `dN/dk = C/k`, квант испускается в точке рождения электрона, а не вдоль пути | [scheme.md](database/scheme.md), §9а B-3 |
+| M3 | Спектр тормозного — толстомишенное приближение `dN/dk = C/k`, квант испускается в точке рождения электрона, а не вдоль пути; сечения Зельцера–Бергера втянуты 06.08.2026 | [scheme.md](database/scheme.md), §9а B-3, §5б |
 | M4 | K-флуоресценция покрывает 71 элемент из 100 — у остальных нет K-края в сетке XCOM | [scheme.md](database/scheme.md), §9а A-7 |
 | M5 | Измерить насыпные плотности проб (SiO₂ 1.6, CaCO₃ 1.5) — сейчас приняты, а не измерены | [scheme.md](database/scheme.md), §9а C-3 |
 | M6 | Померить, что дают все приближения переноса ВМЕСТЕ — лестницей абляций, как делали для сверки с ЛСРМ | [tools/tccfcalc/README.md](tools/tccfcalc/README.md), §3.2 |
@@ -207,7 +215,11 @@
 | T1 | Сохранять найденные пики в файл спектра (`DetectedPeaks` помечен `[XmlIgnore]`, разбор невоспроизводим). **Отложено Amber 06.08.2026** | — |
 | T2 | Решить, где держать правила «для всех»: `CLAUDE.md` в `.gitignore` и другим не виден | — |
 | T3 | Завести проект для проб `tools/effmaker/probes` — сейчас собираются вручную, поломка молчит | [tools/effmaker/probes/README.md](tools/effmaker/probes/README.md) |
-| T4 | Обновить шапку `EfficiencySimulator`: она всё ещё утверждает, что вылет K-рентгена не моделируется и когерентное не выделено — оба сделаны | — |
+| ~~T4~~ | ~~Обновить шапку `EfficiencySimulator`~~ — сделано 06.08.2026 вместе с F6 | — |
+| T5 | Довести спектр новой TCCFCALC: `CalculateSpectrum(активность)` пишет `test_spectr.spe` в формате SpectraLine, но пустой — `TLIVE=0`, `TREAL=0`, время измерения задаётся не этим параметром | [tools/tccfcalc2/README.md](tools/tccfcalc2/README.md), §4 |
+| T6 | Разобрать `TCCFCALC_Prepare_Json` новой DLL: только через json доступны `ContainerSource` (ячейки произвольной формы с вложенностью), `ResponseMatrix`/`DetectorResponse` и коллиматор | [tools/tccfcalc2/README.md](tools/tccfcalc2/README.md), §4 |
+| T7 | Проверить, читаются ли `useEPDL97` и `useGLECS` из `tccfcalc.in`: шапка отчёта их не печатает, измеримого действия они не дают | [tools/tccfcalc2/README.md](tools/tccfcalc2/README.md), §3 |
+| T8 | Отправить Geant4-контуру ответ (сентябрь): ответы на их 6 вопросов готовы, приложить полный текст описания кривой (их вопрос 5) и разложение по каналам на их узлах 2100–3000 (`ResponseByChannel`) | [arch/geant4-contour-2026-08.md](arch/geant4-contour-2026-08.md) |
 
 ## Отложенные прогоны
 
@@ -226,5 +238,9 @@
 | Возвращаться в поставки STAR | взято всё, проверено файл за файлом | [handover-2026-08-05.md](tools/effmaker/handover-2026-08-05.md), «Чего делать НЕ надо» |
 | Брать у InterSpec `em_xs_data`, составы, SpecUtils | беднее нашего либо уже есть | [tools/interspec/README.md](tools/interspec/README.md) |
 | Обратная совместимость форматов | релизов не было | память `geometry-in-millimeters` |
+| Гонять новую TCCFCALC в несколько потоков | статистики не добавляет: при `threads_number = n` разброс отвечает `N/n` распадам, а печатаемая `dEff` занижена в √n (измерено на 12 прогонах), выигрыша по времени тоже нет. Считать в один поток | [tools/tccfcalc2/README.md](tools/tccfcalc2/README.md), §1 |
+| Добавлять в `tccfcalc.in` новой версии ОДИН ключ расчёта | стоит появиться любому — все булевы, которых нет в файле, становятся `false`, и `threads_number = 1` молча выключает половину физики. Блок пишется целиком | [tools/tccfcalc2/README.md](tools/tccfcalc2/README.md), §1 |
 | Искать I для LaBr₃, CeBr₃, SrI₂, CZT, GSO, KCl | в `FCOMP` их нет, правило Брэгга из `estar_element_potential` — приемлемая замена, сверена на элементарных веществах | [scheme.md](database/scheme.md), §9а C-1 |
 | Искать потребителя для `thermal_cross_sect` и `cumulative_fission` | это запас, а не дыра — 6828 строк лежат сознательно | [scheme.md](database/scheme.md), §9а F-5 |
+| Чинить или тянуть `brem_SB/br93…br100` из G4EMLOW | файлы 93–99 битые в самой поставке (заголовок 14×31 при теле 57×32), 100 — в грубой сетке; Z выше урана в наших веществах не бывает, взято 1…92. Там же: README каталога `doppler` врёт про формат `shell-doppler.dat` — разбор сделан по файлу, чинить чужую поставку не надо | [scheme.md](database/scheme.md), §5б |
+| Расширять `xray_fluorescence` на 29 лёгких элементов | K-рентген легче 1.8 кэВ гаснет в микронах, вылету не с чего быть; данные при нужде — в `eadl_*` | [scheme.md](database/scheme.md), §9а A-7 |
