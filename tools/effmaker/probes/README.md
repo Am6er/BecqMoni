@@ -13,6 +13,11 @@
         /r:System.Xml.dll /r:System.Drawing.dll /r:System.Windows.Forms.dll ^
         tools\effmaker\probes\<имя>.cs
 
+Трём пробам нужны ссылки сверх типовой строки (проверено сборкой всех проб
+06.08.2026): `EfficiencyListProbe` — `/r:WeifenLuo.WinFormsUI.Docking.dll`,
+`PeakOriginProbe` — `/r:Microsoft.Data.Sqlite.dll` и `/r:<Facades>\netstandard.dll`,
+`GadrasProbe` и `ResponseProbe` собираются вместе с `GadrasDetector.cs`.
+
 **Убрав что-нибудь из приложения, соберите ВСЕ пробы, а не те, что собирались
 запускать.** Проекта у них нет, компилятор про них молчит, и проба, переставшая
 собираться, выглядит ровно как проба, которую сегодня не гоняли. Так уже дважды
