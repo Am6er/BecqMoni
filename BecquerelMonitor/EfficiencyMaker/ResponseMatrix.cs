@@ -49,7 +49,10 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// это ровно тот сорт ошибки, который не проявляется, а тихо смещает
         /// результат.
         /// </summary>
-        public const int PhysicsVersion = 1;
+        // 2 — доля K-оболочки по энергии (EPICS2017) и однократное рассеяние
+        //     с лучей, прошедших мимо кристалла (06.08.2026). Первая правка
+        //     чуть меняет пик выше K-края, вторая добавляет континуум.
+        public const int PhysicsVersion = 2;
 
         /// <summary>Узлы сетки входных энергий, кэВ, по возрастанию.</summary>
         public double[] Energies { get; set; }
