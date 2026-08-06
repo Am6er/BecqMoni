@@ -41,6 +41,8 @@ namespace EffSim
                 double detour = 1.0, halfWidth = 0.0, halfWidthFraction = 0.0, fwhm662 = 0.0;
                 double point = -1.0;
                 string list = null;
+                bool total = false;
+                bool dumpScene = false;
                 foreach (string arg in args)
                 {
                     int eq = arg.IndexOf('=');
@@ -76,6 +78,11 @@ namespace EffSim
                         // так меряются заводские коэффициенты BecqMoni
                         case "--point": point = double.Parse(value, CultureInfo.InvariantCulture); break;
                         case "--energies": list = value; break;
+                        // печатать и ПОЛНУЮ эффективность (аналоговый счёт,
+                        // сфера) — для сверки с Geant4 (eps_total ион/моно)
+                        case "--total": total = true; break;
+                        // напечатать машинный дамп сцены для g4cf --scene и выйти
+                        case "--dump-scene": dumpScene = true; break;
                         case "--hw-frac":
                             halfWidthFraction = double.Parse(value, CultureInfo.InvariantCulture); break;
                         default: throw new ArgumentException("Unknown option: " + arg);
@@ -88,7 +95,7 @@ namespace EffSim
                     {
                         RunOne(Path.Combine(all, Pairs[i, 0]),
                                refDir == null ? null : Path.Combine(refDir, Pairs[i, 1]),
-                               null, n, mountFront, electron, brems, xray, cohPass, scatter, kfracEnergy, detour, halfWidth, halfWidthFraction, fwhm662, point, list);
+                               null, n, mountFront, electron, brems, xray, cohPass, scatter, kfracEnergy, detour, halfWidth, halfWidthFraction, fwhm662, point, list, total);
                         Console.WriteLine();
                     }
 
@@ -101,7 +108,20 @@ namespace EffSim
                     return 1;
                 }
 
-                RunOne(geometry, reference, outPath, n, mountFront, electron, brems, xray, cohPass, scatter, kfracEnergy, detour, halfWidth, halfWidthFraction, fwhm662, point, list);
+                if (dumpScene)
+                {
+                    GeometryModel dg = GeometryModel.Load(geometry);
+                    if (point >= 0.0)
+                    {
+                        dg.SourceType = GeometrySourceType.Point;
+                        dg.PointDistance = point;
+                    }
+
+                    Console.WriteLine(new EfficiencySimulator(dg).DumpScene());
+                    return 0;
+                }
+
+                RunOne(geometry, reference, outPath, n, mountFront, electron, brems, xray, cohPass, scatter, kfracEnergy, detour, halfWidth, halfWidthFraction, fwhm662, point, list, total);
                 return 0;
             }
             catch (Exception ex)
@@ -113,7 +133,8 @@ namespace EffSim
 
         static void RunOne(string geometryPath, string referencePath, string outPath, int n,
                            bool mountFront, bool electron, bool brems, bool xray, bool cohPass, bool scatter, bool kfracEnergy, double detour, double halfWidth,
-                           double halfWidthFraction, double fwhm662, double point, string list)
+                           double halfWidthFraction, double fwhm662, double point, string list,
+                           bool total = false)
         {
             GeometryModel g = GeometryModel.Load(geometryPath);
             if (point >= 0.0)
@@ -188,6 +209,14 @@ namespace EffSim
                     : g.PeakHalfWidthKev(e);
                 double err;
                 double eps = sim.Efficiency(e, out err);
+                if (total)
+                {
+                    double totalError;
+                    double totalEff = sim.TotalEfficiency(e, out totalError);
+                    Console.WriteLine("    {0,7:F0}  полная {1:E4} ±{2:F2} %",
+                                      e, totalEff, totalError);
+                }
+
                 double refValue = 0.0;
                 string ratio = "-";
                 if (truth != null && truth.TryGetValue(e, out refValue) && refValue > 0.0)
