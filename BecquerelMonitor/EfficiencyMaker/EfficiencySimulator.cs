@@ -195,6 +195,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// оболочка, стенка стакана) виден из точки рассеяния под большим углом,
         /// и рассеянное вперёд туда и приходит.
         ///
+        /// С 06.08.2026 рассеяние разыгрывается и у квантов, чей луч прошёл
+        /// МИМО кристалла: на упоре таких большинство, и без них полная
+        /// эффективность (сумма отклика) занижалась на ~15 % — это вскрыла
+        /// сверка каскадного суммирования с новой TCCFCALC и Geant4-арбитром
+        /// (tools/tccfcalc2/README.md, §8). В пик такие истории попадают
+        /// только при ненулевом допуске, как и прежде; выигрывает канал
+        /// континуума и всё, что на нём стоит (ε_полная, CF).
+        ///
         /// Считается ОДНО рассеяние: после него квант ведётся до кристалла уже
         /// поглощающей проводкой. Второе и дальше отброшены сознательно — их
         /// вклад меньше и знак у него тот же, так что поправка остаётся НИЖНЕЙ
@@ -1055,6 +1063,47 @@ namespace BecquerelMonitor.EfficiencyMaker
             return false;
         }
 
+        /// <summary>
+        /// Оптическая толщина убивающих каналов вдоль луча ДО ВЫХОДА из сцены.
+        /// Нужна лучам, прошедшим мимо кристалла: у них нет tau «до кристалла»,
+        /// а рассеяться в кристалл они могут из любого слоя по дороге.
+        /// </summary>
+        double KillDepthToExit(double x, double y, double z,
+                               double ux, double uy, double uz, double energyKev)
+        {
+            double tau = 0.0;
+            double travelled = 0.0;
+            double limit = 40.0 * this.sphereR + 200.0;
+            for (int guard = 0; guard < 200; guard++)
+            {
+                Region here = this.At(x, y, z);
+                double step = this.StepToBoundary(x, y, z, ux, uy, uz);
+                if (step >= double.MaxValue || travelled + step > limit)
+                {
+                    return tau;
+                }
+
+                if (here != null)
+                {
+                    tau += (this.CoherentPassesThrough
+                            ? here.Material.LinearAttenuationWithoutCoherent(energyKev)
+                            : here.Material.LinearAttenuation(energyKev)) * step;
+                    if (tau > 60.0)
+                    {
+                        return 60.0;
+                    }
+                }
+
+                double advance = step + 1e-7;
+                x += ux * advance;
+                y += uy * advance;
+                z += uz * advance;
+                travelled += advance;
+            }
+
+            return tau;
+        }
+
         /// <summary>Длина пути внутри кристалла от точки в направлении.</summary>
         double CrystalPath(double x, double y, double z, double ux, double uy, double uz)
         {
@@ -1446,6 +1495,124 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
+        /// ПОЛНАЯ эффективность: вероятность кванту оставить в кристалле хоть
+        /// что-нибудь. Нужна каскадному суммированию (F1): вынос из пика
+        /// определяется тем, что квант-партнёр ЗАДЕЛ кристалл, а не тем, что
+        /// он поглотился целиком.
+        ///
+        /// Счёт аналоговый и отдельный от пиковой ветки: квант ведётся по всем
+        /// областям с настоящими взаимодействиями — сколько угодно комптонов
+        /// подряд, в пробе, стенках и оправе, пока не поглотится, не заденет
+        /// кристалл или не уйдёт из сцены. Взвешенная проводка пиковой ветки
+        /// (exp(−τ) плюс ОДНО рассеяние) полную эффективность занижает: на
+        /// упоре сверка с Geant4 давала −12…−15 % — многократное рассеяние и
+        /// возврат из-за кристалла там не мелочь (tools/tccfcalc2/README.md §8).
+        ///
+        /// Когерентное рассеяние считается прозрачным (пролёт без отклонения):
+        /// пробег берётся по ослаблению БЕЗ когерентного, как и в проводке.
+        /// </summary>
+        public double TotalEfficiency(double energyKev, out double relativeError)
+        {
+            this.EnsureBuilt();
+            double sum = 0.0, sum2 = 0.0;
+            int n = Math.Max(1000, this.Histories);
+            double limit = 40.0 * this.sphereR + 200.0;
+            for (int i = 0; i < n; i++)
+            {
+                double x, y, z;
+                this.source.Next(this, out x, out y, out z);
+                double dz = this.sphereZ - z;
+                double dist = Math.Sqrt(x * x + y * y + dz * dz);
+                double weight = 1.0;
+                double ux, uy, uz;
+                if (dist > this.sphereR)
+                {
+                    double cosMax = Math.Sqrt(Math.Max(0.0, 1.0 - this.sphereR * this.sphereR / (dist * dist)));
+                    weight = 0.5 * (1.0 - cosMax);
+                    this.InCone(-x / dist, -y / dist, dz / dist, cosMax, out ux, out uy, out uz);
+                }
+                else
+                {
+                    this.Isotropic(out ux, out uy, out uz);
+                }
+
+                double e = energyKev;
+                double travelled = 0.0;
+                double score = 0.0;
+                for (int guard = 0; guard < 400 && e > 1.0; guard++)
+                {
+                    Region here = this.At(x, y, z);
+                    if (here != null && here.IsCrystal)
+                    {
+                        // Внутри кристалла: любое взаимодействие из каналов —
+                        // отсчёт (когерентное в каналы не входит).
+                        double photo, compton, pair;
+                        this.CrystalChannels(e, out photo, out compton, out pair);
+                        double mu = photo + compton + pair;
+                        double path = this.CrystalPath(x, y, z, ux, uy, uz);
+                        double free = mu > 0.0 ? -Math.Log(1.0 - this.Uniform()) / mu : double.MaxValue;
+                        if (free < path)
+                        {
+                            score = weight;
+                            break;
+                        }
+
+                        double advance = path + 1e-7;
+                        x += ux * advance;
+                        y += uy * advance;
+                        z += uz * advance;
+                        travelled += advance;
+                        continue;
+                    }
+
+                    double step = this.StepToBoundary(x, y, z, ux, uy, uz);
+                    if (step >= double.MaxValue || travelled + step > limit)
+                    {
+                        break;              // ушёл из сцены
+                    }
+
+                    double muKill = here == null ? 0.0
+                        : here.Material.LinearAttenuationWithoutCoherent(e);
+                    if (muKill > 0.0)
+                    {
+                        double free = -Math.Log(1.0 - this.Uniform()) / muKill;
+                        if (free < step)
+                        {
+                            x += ux * free;
+                            y += uy * free;
+                            z += uz * free;
+                            travelled += free;
+                            double incoherent = here.Material.LinearIncoherent(e);
+                            if (this.Uniform() * muKill >= incoherent)
+                            {
+                                break;      // фотопоглощение или пары вне кристалла
+                            }
+
+                            double cos = this.ComptonCosine(e);
+                            e = e / (1.0 + e / ElectronMassKev * (1.0 - cos));
+                            this.Rotate(ref ux, ref uy, ref uz, cos);
+                            continue;
+                        }
+                    }
+
+                    double next = step + 1e-7;
+                    x += ux * next;
+                    y += uy * next;
+                    z += uz * next;
+                    travelled += next;
+                }
+
+                sum += score;
+                sum2 += score * score;
+            }
+
+            double mean = sum / n;
+            double variance = Math.Max(0.0, sum2 / n - mean * mean);
+            relativeError = mean > 0.0 ? Math.Sqrt(variance / n) / mean * 100.0 : 0.0;
+            return mean;
+        }
+
+        /// <summary>
         /// Отклик детектора: распределение ПОГЛОЩЁННОЙ энергии, доля на бин, за
         /// ОДИН прогон историй.
         ///
@@ -1633,7 +1800,45 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 double px = x, py = y, pz = z, tau;
                 double score = 0.0;
-                if (this.ToCrystal(ref px, ref py, ref pz, ux, uy, uz, energyKev, out tau))
+                bool reached = this.ToCrystal(ref px, ref py, ref pz, ux, uy, uz, energyKev, out tau);
+                if (!reached && !this.ScoreEntranceOnly && this.SingleScatter)
+                {
+                    // Луч прошёл мимо кристалла. Прямого вклада нет, но квант
+                    // мог рассеяться в пробе или обвязке и завернуть в
+                    // кристалл — на упоре таких лучей большинство, и без этой
+                    // ветки полная эффективность занижалась на ~15 %
+                    // (сверка CF, tools/tccfcalc2/README.md §8). «Убивающая»
+                    // толщина здесь — весь путь луча до выхода из сцены.
+                    double tauMiss = this.KillDepthToExit(x, y, z, ux, uy, uz, energyKev);
+                    if (histogram == null)
+                    {
+                        score += weight * this.ScatteredScore(x, y, z, ux, uy, uz, energyKev, tauMiss);
+                    }
+                    else
+                    {
+                        this.lossAnnihilation = 0.0;
+                        this.lossXray = 0.0;
+                        double sw, scattered, sEscaped;
+                        if (this.ScatteredContribution(x, y, z, ux, uy, uz, energyKev, tauMiss,
+                                                       out sw, out scattered, out sEscaped))
+                        {
+                            Deposit(histogram, binKev, scattered - sEscaped, weight * sw);
+                            if (this.channelHistograms != null)
+                            {
+                                ResponseChannel channel = this.ChannelOf(sEscaped);
+                                if (channel == ResponseChannel.Peak)
+                                {
+                                    channel = ResponseChannel.Compton;
+                                }
+
+                                Deposit(this.channelHistograms[(int)channel],
+                                        binKev, scattered - sEscaped, weight * sw);
+                            }
+                        }
+                    }
+                }
+
+                if (reached)
                 {
                     if (this.ScoreEntranceOnly)
                     {

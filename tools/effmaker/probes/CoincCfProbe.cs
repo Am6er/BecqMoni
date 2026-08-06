@@ -147,20 +147,21 @@ namespace EffMakerProbes
             int index = 0;
             foreach (double e in energies)
             {
+                // Полная эффективность — АНАЛОГОВЫМ оценщиком: взвешенная
+                // проводка пиковой ветки занижала её на 12-15 % на упоре
+                // (нет многократного рассеяния), и весь недобор CF был отсюда.
                 simulator.ResetStream((ulong)simulator.Seed
                                       ^ ((ulong)(++index) * 0x9E3779B97F4A7C15UL));
-                double error;
-                double[] histogram = simulator.Response(e, 1.0, out error);
-                double total = 0.0;
-                for (int b = 0; b < histogram.Length; b++)
-                {
-                    total += histogram[b];
-                }
-
+                double totalError;
+                double total = simulator.TotalEfficiency(e, out totalError);
+                simulator.ResetStream((ulong)simulator.Seed
+                                      ^ ((ulong)(index + 1000) * 0x9E3779B97F4A7C15UL));
+                double peakError;
+                double peak = simulator.Efficiency(e, out peakError);
                 totalEff[e] = total;
-                peakEff[e] = histogram[histogram.Length - 1];
-                Console.WriteLine("    eps({0,7:F1}) полная {1:E3}  пик {2:E3}  ±{3:F1} %",
-                                  e, total, histogram[histogram.Length - 1], error);
+                peakEff[e] = peak;
+                Console.WriteLine("    eps({0,7:F1}) полная {1:E3} ±{2:F1} %  пик {3:E3} ±{4:F1} %",
+                                  e, total, totalError, peak, peakError);
             }
 
             Console.WriteLine();

@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.16)
+project(g4cf CXX)
+find_package(Geant4 REQUIRED)
+include(${Geant4_USE_FILE})
+add_executable(g4cf g4cf.cc)
+target_link_libraries(g4cf ${Geant4_LIBRARIES})
