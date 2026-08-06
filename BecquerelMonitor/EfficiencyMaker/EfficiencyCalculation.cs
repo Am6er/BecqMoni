@@ -166,6 +166,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                     int index = range.Item1;
                     worker.ResetStream((ulong)worker.Seed
                                        ^ ((ulong)(index + 1) * 0x9E3779B97F4A7C15UL));
+
+                    // Допуск пика — от разрешения прибора, если оно задано в
+                    // геометрии: без него поправка на однократное рассеяние
+                    // (SingleScatter) не даёт ничего, см. GeometryModel.FwhmAt662Percent.
+                    worker.PeakHalfWidthKev = geometry.PeakHalfWidthKev(DefaultEnergies[index]);
                     double error;
                     double efficiency = worker.Efficiency(DefaultEnergies[index], out error);
 

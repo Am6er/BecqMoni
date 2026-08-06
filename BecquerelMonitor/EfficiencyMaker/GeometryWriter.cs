@@ -297,6 +297,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                 cm("DS_CrystalBoxZ", model.CrystalBoxZ);
             }
 
+            if (model.FwhmAt662Percent > 0.0)
+            {
+                line("");
+                line("// Разрешение прибора (наше расширение формата): допуск");
+                line("// поправки на однократное рассеяние, см. GeometryModel.FwhmAt662Percent.");
+                line(string.Format(CultureInfo.InvariantCulture,
+                    "DS_Fwhm662 = {0:0.###} %", model.FwhmAt662Percent));
+            }
+
             return text.ToString();
         }
 

@@ -73,11 +73,137 @@ namespace BecquerelMonitor.EfficiencyMaker
             public double[] LineWeight;
         }
 
+        /// <summary>
+        /// Пооболочечный фотоэффект EPICS2017 (таблицы `epics_photo_*`,
+        /// втянуты из Geant4 G4EMLOW — `database/scheme.md`, §5б). Нужен,
+        /// чтобы доля K-оболочки зависела от энергии, а не бралась константой
+        /// со скачка на крае: у иода она растёт с 0.834 на краю до 0.858 к
+        /// 90 кэВ, и константа занижала вылет рентгена тем сильнее, чем выше
+        /// энергия кванта.
+        ///
+        /// Устройство то же, что в G4LivermorePhotoElectricModel: от K-края до
+        /// <see cref="lowFromKev"/> — табличные векторы по оболочкам, выше —
+        /// шестипараметрические фиты σ(E) = Σ aᵢ/Eⁱ (E в МэВ, σ в барнах),
+        /// строки которых КУМУЛЯТИВНЫ: строка 0 — K, последняя — полное
+        /// сечение фотоэффекта.
+        /// </summary>
+        public sealed class PhotoShellModel
+        {
+            internal double kEdgeKev;
+            internal double lowFromKev, highFromKev;
+            internal double[] lowK, lowTotal, highK, highTotal;   // a1..a6
+            internal double[][] tableE;    // [оболочка][узлы], кэВ
+            internal double[][] tableCs;   // барн
+
+            /// <summary>
+            /// Доля фотопоглощений на K-оболочке при энергии кванта
+            /// <paramref name="energyKev"/>. Ниже K-края — ноль.
+            /// </summary>
+            public double KFraction(double energyKev)
+            {
+                if (!(energyKev > this.kEdgeKev))
+                {
+                    return 0.0;
+                }
+
+                if (energyKev >= this.lowFromKev)
+                {
+                    bool high = energyKev >= this.highFromKev;
+                    double k = EvalFit(high ? this.highK : this.lowK, energyKev);
+                    double total = EvalFit(high ? this.highTotal : this.lowTotal, energyKev);
+                    if (!(total > 0.0) || !(k > 0.0))
+                    {
+                        return 0.0;
+                    }
+
+                    return k >= total ? 1.0 : k / total;
+                }
+
+                // Зазор между K-краем и началом фитов (у иода его нет, у свинца
+                // это 88..187 кэВ): табличные векторы по оболочкам, доля — как
+                // отношение оболочки K к сумме всех доступных.
+                double num = 0.0, den = 0.0;
+                for (int s = 0; s < this.tableE.Length; s++)
+                {
+                    double v = InterpTable(this.tableE[s], this.tableCs[s], energyKev);
+                    den += v;
+                    if (s == 0)
+                    {
+                        num = v;
+                    }
+                }
+
+                return den > 0.0 ? Math.Min(1.0, num / den) : 0.0;
+            }
+
+            /// <summary>σ(E) = Σ aᵢ/Eⁱ; E в кэВ снаружи, в МэВ внутри.</summary>
+            static double EvalFit(double[] a, double energyKev)
+            {
+                double x = 1000.0 / energyKev;      // 1/E, МэВ⁻¹
+                double sum = 0.0, p = x;
+                for (int i = 0; i < a.Length; i++)
+                {
+                    sum += a[i] * p;
+                    p *= x;
+                }
+
+                return sum;
+            }
+
+            /// <summary>
+            /// Лог-лог внутри домена таблицы, за краями — ноль слева (оболочка
+            /// ещё закрыта) и крайнее значение справа.
+            /// </summary>
+            static double InterpTable(double[] grid, double[] values, double x)
+            {
+                int n = grid.Length;
+                if (n == 0 || x < grid[0])
+                {
+                    return 0.0;
+                }
+
+                if (x >= grid[n - 1])
+                {
+                    return values[n - 1];
+                }
+
+                int lo = 0, hi = n - 1;
+                while (hi - lo > 1)
+                {
+                    int mid = (lo + hi) / 2;
+                    if (grid[mid] <= x)
+                    {
+                        lo = mid;
+                    }
+                    else
+                    {
+                        hi = mid;
+                    }
+                }
+
+                if (!(grid[hi] > grid[lo]))
+                {
+                    return values[hi];
+                }
+
+                double f = (Math.Log(x) - Math.Log(grid[lo]))
+                           / (Math.Log(grid[hi]) - Math.Log(grid[lo]));
+                if (!(values[lo] > 0.0) || !(values[hi] > 0.0))
+                {
+                    return values[lo] + f * (values[hi] - values[lo]);
+                }
+
+                return Math.Exp(Math.Log(values[lo]) + f * (Math.Log(values[hi]) - Math.Log(values[lo])));
+            }
+        }
+
         static readonly object Gate = new object();
         static Dictionary<int, Element> elements;
         static Dictionary<int, double> atomicMass;
         static Dictionary<int, string> symbols;
         static Dictionary<int, Fluorescence> fluorescence;
+        static readonly Dictionary<int, PhotoShellModel> photoShells =
+            new Dictionary<int, PhotoShellModel>();
 
         /// <summary>Атомные массы, г/моль, по Z. Ключ есть у всех ста элементов.</summary>
         public static Dictionary<int, double> AtomicMass
@@ -131,6 +257,155 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             return 0;
+        }
+
+        /// <summary>
+        /// Пооболочечный фотоэффект элемента; null, если в базе нет строки
+        /// `epics_photo_meta` для этого Z. Грузится лениво и по одному
+        /// элементу: таблица `epics_photo_subshell` — 370 тысяч строк на сто
+        /// элементов, а нужны из них только элементы кристалла.
+        /// </summary>
+        public static PhotoShellModel PhotoShellOf(int z)
+        {
+            lock (Gate)
+            {
+                PhotoShellModel cached;
+                if (photoShells.TryGetValue(z, out cached))
+                {
+                    return cached;
+                }
+
+                PhotoShellModel model = LoadPhotoShell(z);
+                photoShells[z] = model;
+                return model;
+            }
+        }
+
+        static PhotoShellModel LoadPhotoShell(int z)
+        {
+            string path = DatabasePath();
+            if (!File.Exists(path))
+            {
+                throw new FileNotFoundException(
+                    "nucdb.sqlite не найдена рядом с программой: " + path, path);
+            }
+
+            using (SqliteConnection connection = new SqliteConnection(
+                "Data Source=" + path + ";Mode=ReadOnly;Cache=Shared;"))
+            {
+                connection.Open();
+                using (SqliteCommand command = connection.CreateCommand())
+                {
+                    command.CommandText =
+                        "select n_shells, high_from_ev, low_from_ev from epics_photo_meta where z=" + z;
+                    int shells;
+                    PhotoShellModel model = new PhotoShellModel();
+                    using (SqliteDataReader reader = command.ExecuteReader())
+                    {
+                        if (!reader.Read())
+                        {
+                            return null;
+                        }
+
+                        shells = reader.GetInt32(0);
+                        model.highFromKev = reader.GetDouble(1) / 1000.0;
+                        model.lowFromKev = reader.GetDouble(2) / 1000.0;
+                    }
+
+                    // Строки фитов кумулятивны: K — строка 0, полное сечение —
+                    // последняя. Для доли K другие строки не нужны.
+                    command.CommandText =
+                        "select kind, shell_seq, edge_ev, a1_b, a2_b, a3_b, a4_b, a5_b, a6_b" +
+                        " from epics_photo_fit where z=" + z +
+                        " and shell_seq in (0, " + (shells - 1) + ")";
+                    using (SqliteDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            bool high = reader.GetString(0) == "high";
+                            bool total = reader.GetInt32(1) == shells - 1;
+                            double[] a = new double[6];
+                            for (int i = 0; i < 6; i++)
+                            {
+                                a[i] = reader.GetDouble(3 + i);
+                            }
+
+                            if (!total || shells == 1)
+                            {
+                                model.kEdgeKev = reader.GetDouble(2) / 1000.0;
+                            }
+
+                            if (high)
+                            {
+                                if (total) model.highTotal = a; else model.highK = a;
+                            }
+                            else
+                            {
+                                if (total) model.lowTotal = a; else model.lowK = a;
+                            }
+
+                            // у одноболочечных (водород, гелий) K и есть полное
+                            if (shells == 1)
+                            {
+                                if (high) model.highK = a; else model.lowK = a;
+                            }
+                        }
+                    }
+
+                    if (model.lowK == null || model.lowTotal == null
+                        || model.highK == null || model.highTotal == null)
+                    {
+                        return null;
+                    }
+
+                    // Табличные векторы нужны только в зазоре между K-краем и
+                    // началом фитов; у большинства элементов он пуст.
+                    model.tableE = new double[shells][];
+                    model.tableCs = new double[shells][];
+                    for (int s = 0; s < shells; s++)
+                    {
+                        model.tableE[s] = new double[0];
+                        model.tableCs[s] = new double[0];
+                    }
+
+                    if (model.lowFromKev > model.kEdgeKev + 1e-9)
+                    {
+                        command.CommandText =
+                            "select shell_seq, energy_ev, cs_b from epics_photo_subshell" +
+                            " where z=" + z + " order by shell_seq, energy_ev";
+                        List<double>[] es = new List<double>[shells];
+                        List<double>[] cs = new List<double>[shells];
+                        for (int s = 0; s < shells; s++)
+                        {
+                            es[s] = new List<double>();
+                            cs[s] = new List<double>();
+                        }
+
+                        using (SqliteDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                int s = reader.GetInt32(0);
+                                if (s < 0 || s >= shells)
+                                {
+                                    continue;
+                                }
+
+                                es[s].Add(reader.GetDouble(1) / 1000.0);
+                                cs[s].Add(reader.GetDouble(2));
+                            }
+                        }
+
+                        for (int s = 0; s < shells; s++)
+                        {
+                            model.tableE[s] = es[s].ToArray();
+                            model.tableCs[s] = cs[s].ToArray();
+                        }
+                    }
+
+                    return model;
+                }
+            }
         }
 
         /// <summary>

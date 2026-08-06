@@ -283,6 +283,40 @@ namespace BecquerelMonitor.EfficiencyMaker
         public double CrystalBoxX;
         public double CrystalBoxY;
         public double CrystalBoxZ;
+
+        /// <summary>
+        /// Разрешение прибора: ПШПВ на 662 кэВ, в процентах. Ноль — не задано.
+        ///
+        /// Это НЕ параметр геометрии, но без него у поправки на однократное
+        /// рассеяние (<c>EfficiencySimulator.SingleScatter</c>) нет допуска:
+        /// рассеянный на малый угол квант остаётся в пике линии только тогда,
+        /// когда потеря укладывается в ширину пика, а ширина — свойство
+        /// прибора. При нуле поправка не даёт ничего, и расчёт занижает низ
+        /// шкалы примерно на 10 % на 28 кэВ (сверка с TCCFCALC,
+        /// tools/tccfcalc/README.md, §5.2).
+        ///
+        /// Читается из необязательного ключа `DS_Fwhm662` (наше расширение
+        /// формата `.in`, в процентах; файлы LSRM его не содержат). Ход с
+        /// энергией берётся корневым: ПШПВ(E) = ПШПВ(662)·√(E/662) — обычная
+        /// статистика света сцинтиллятора; своей ПШПВ-калибровки у геометрии
+        /// нет, а для допуска поправки точной формы и не нужно.
+        /// </summary>
+        public double FwhmAt662Percent;
+
+        /// <summary>
+        /// Допуск пика для энергии: половина ПШПВ(E), кэВ. Ноль, если
+        /// разрешение не задано, — тогда счёт прежний, строгий.
+        /// </summary>
+        public double PeakHalfWidthKev(double energyKev)
+        {
+            if (!(this.FwhmAt662Percent > 0.0) || !(energyKev > 0.0))
+            {
+                return 0.0;
+            }
+
+            // ПШПВ(E) = ПШПВ%(662)/100 · 662 · √(E/662) = %/100 · √(662·E)
+            return 0.5 * this.FwhmAt662Percent / 100.0 * Math.Sqrt(662.0 * energyKev);
+        }
         public double FrontReflectorThickness;
         public double SideReflectorThickness;
         public double FrontCladdingThickness;
@@ -491,6 +525,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 g.Shape = CrystalShape.Box;
             }
+
+            // Проценты, не длина: через Num, а не Len.
+            g.FwhmAt662Percent = Num(kv, "DS_Fwhm662");
 
             g.PointDistance = Len(kv, "pdistance");
 

@@ -21,18 +21,20 @@ namespace BecquerelMonitor.EfficiencyMaker
     ///    продолжением истории, рождение пар с двумя квантами 511 кэВ. В пик
     ///    попадает история, из которой НИЧЕГО не вылетело.
     ///
+    /// Что уже снято из прежних приближений: когерентное рассеяние выделено
+    /// своим каналом и не убивает квант по дороге к кристаллу
+    /// (<see cref="CoherentPassesThrough"/>); вылет характеристического
+    /// K-рентгена моделируется (<see cref="XrayEscape"/>), и доля K-оболочки
+    /// берётся по энергии из EPICS2017, а не константой со скачка на крае;
+    /// однократный комптон в ближних слоях разыгрывается
+    /// (<see cref="SingleScatter"/>).
+    ///
     /// Что осталось приближением и где это заметно:
-    /// * когерентное (рэлеевское) рассеяние отдельно не выделено — таблица даёт
-    ///   только полное ослабление. По дороге к кристаллу оно засчитывается как
-    ///   поглощение (фотон на самом деле лишь чуть отклоняется), внутри
-    ///   кристалла — как фотопоглощение. Обе ошибки малы там, где велики: у
-    ///   низких энергий доля фотопоглощения и так близка к единице;
     /// * связь электронов в комптоновском сечении не учтена (чистая
     ///   Клейн — Нишина). Ниже 100 кэВ это завышает комптон, но там правит
     ///   фотопоглощение;
-    /// * вылет характеристического рентгена кристалла после фотопоглощения не
-    ///   моделируется: у иода это 28-33 кэВ, заметно только у самых тонких
-    ///   кристаллов и у самых низких энергий.
+    /// * L-флуоресценция не моделируется: L-рентген тяжёлых кристаллов — это
+    ///   4-6 кэВ, наружу он не выходит ниоткуда, кроме самой поверхности.
     ///
     /// Один экземпляр — один поток: и генератор (state), и ленивая сборка
     /// сцены (EnsureBuilt) без замков. Параллельный счёт заводит по
@@ -169,6 +171,20 @@ namespace BecquerelMonitor.EfficiencyMaker
         public bool CoherentPassesThrough = true;
 
         /// <summary>
+        /// Брать долю K-оболочки в фотопоглощении ПО ЭНЕРГИИ из пооболочечных
+        /// сечений EPICS2017 (<see cref="MaterialDatabase.PhotoShellOf"/>), а
+        /// не константой со скачка сечения на K-крае.
+        ///
+        /// Константа — это значение ровно НА крае, а доля с энергией растёт:
+        /// у иода 0.834 на 33.2 кэВ, 0.842 на 40, 0.858 на 90. Константа
+        /// занижала вылет рентгена на 1–3 % вероятности всюду выше края —
+        /// ровно тот остаток «+7 % на 40 кэВ», что записан в
+        /// database/scheme.md §9а A-2. Ключ измерительный: выключенный, он
+        /// возвращает прежнее поведение до последнего бита.
+        /// </summary>
+        public bool KFractionByEnergy = true;
+
+        /// <summary>
         /// Разыгрывать ОДНО комптоновское рассеяние на пути к кристаллу.
         ///
         /// Формула узкого пучка `exp(-tau)` считает потерянным всё, что
@@ -199,6 +215,12 @@ namespace BecquerelMonitor.EfficiencyMaker
         int[] fluoZ;
         double[] fluoFraction;
         MaterialDatabase.Fluorescence[] fluoData;
+
+        /// <summary>
+        /// Пооболочечный фотоэффект тех же элементов; null в ячейке — данных
+        /// EPICS для элемента нет, доля K берётся константой, как раньше.
+        /// </summary>
+        MaterialDatabase.PhotoShellModel[] fluoShells;
 
         public EfficiencySimulator(GeometryModel model)
         {
@@ -238,6 +260,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             List<int> zs = new List<int>();
             List<double> fractions = new List<double>();
             List<MaterialDatabase.Fluorescence> data = new List<MaterialDatabase.Fluorescence>();
+            List<MaterialDatabase.PhotoShellModel> shells = new List<MaterialDatabase.PhotoShellModel>();
             foreach (KeyValuePair<int, double> pair in this.geometry.Crystal.Fractions)
             {
                 if (!(pair.Value > 0.0))
@@ -254,11 +277,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                 zs.Add(pair.Key);
                 fractions.Add(pair.Value);
                 data.Add(f);
+                shells.Add(this.KFractionByEnergy
+                    ? MaterialDatabase.PhotoShellOf(pair.Key)
+                    : null);
             }
 
             this.fluoZ = zs.ToArray();
             this.fluoFraction = fractions.ToArray();
             this.fluoData = data.ToArray();
+            this.fluoShells = shells.ToArray();
         }
 
         /// <summary>
@@ -1283,7 +1310,14 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             MaterialDatabase.Fluorescence f = this.fluoData[k];
-            if (this.Uniform() >= f.KFraction * f.OmegaK)
+
+            // Доля K-оболочки: по энергии из EPICS2017, если данные есть;
+            // иначе — константа со скачка на крае, как раньше. Число случайных
+            // чисел от выбора не меняется — меняется только порог сравнения.
+            double kFraction = this.fluoShells[k] != null
+                ? this.fluoShells[k].KFraction(energyKev)
+                : f.KFraction;
+            if (this.Uniform() >= kFraction * f.OmegaK)
             {
                 return 0.0;                 // не K-оболочка или оже-электрон
             }
