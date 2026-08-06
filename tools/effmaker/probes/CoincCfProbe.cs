@@ -52,6 +52,9 @@ namespace EffMakerProbes
             string geometryPath = null, nucid = null;
             int histories = 200000;
             double minIntensity = 1.0;
+            double detour = -1.0;           // < 0 — умолчание симулятора
+            bool fullSphere = true;         // сфера — умолчание; --cone для A/B
+            bool coneSet = false;
             foreach (string arg in args)
             {
                 int eq = arg.IndexOf('=');
@@ -63,6 +66,9 @@ namespace EffMakerProbes
                     case "--nucid": nucid = value; break;
                     case "--n": histories = int.Parse(value, CultureInfo.InvariantCulture); break;
                     case "--min-i": minIntensity = double.Parse(value, CultureInfo.InvariantCulture); break;
+                    case "--detour": detour = double.Parse(value, CultureInfo.InvariantCulture); break;
+                    case "--full-sphere": fullSphere = true; break;
+                    case "--cone": fullSphere = false; coneSet = true; break;
                     default: Console.Error.WriteLine("неизвестный ключ: " + arg); return 2;
                 }
             }
@@ -192,6 +198,18 @@ namespace EffMakerProbes
             var totalEff = new Dictionary<double, double>();
             var peakEff = new Dictionary<double, double>();
             var simulator = new EfficiencySimulator(geometry) { Histories = histories };
+            if (detour >= 0.0)
+            {
+                simulator.ElectronCarryDetour = detour;
+            }
+
+            simulator.TotalFullSphere = fullSphere;
+            if (coneSet)
+            {
+                Console.WriteLine("    ε_полная: КОНУС (старый оценщик, смещён на упоре)");
+            }
+
+            Console.WriteLine("    занос электронов: detour = {0:F2}", simulator.ElectronCarryDetour);
             int index = 0;
             foreach (double e in energies)
             {

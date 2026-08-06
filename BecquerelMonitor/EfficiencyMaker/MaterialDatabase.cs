@@ -197,6 +197,63 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
         }
 
+        /// <summary>
+        /// Непропорциональность светового выхода сцинтиллятора: относительный
+        /// выход L(E)/E для электрона начальной энергии E, единица на 662 кэВ.
+        /// Кривые посчитаны из механистической модели Пейна и лежат в таблице
+        /// `scint_electron_light_yield` (tools/nucdb/import_light_yield.py —
+        /// там же источники параметров). Это шкала СВЕТА, а не потеря событий:
+        /// прибор меряет свет, и события с разным составом электронов дают
+        /// разный свет при одной поглощённой энергии (TODO F11).
+        /// </summary>
+        public sealed class LightYieldCurve
+        {
+            /// <summary>Имя материала в базе, например «CsI:Tl».</summary>
+            public string Material;
+
+            internal double[] energyKev;   // строго по возрастанию
+            internal double[] yieldRel;
+
+            /// <summary>
+            /// Относительный выход для электрона начальной энергии
+            /// <paramref name="electronKev"/>. Линейная интерполяция по log E;
+            /// за краями сетки — крайние значения (ниже 1 кэВ перенос
+            /// электроны всё равно не различает).
+            /// </summary>
+            public double Of(double electronKev)
+            {
+                double[] e = this.energyKev;
+                int n = e.Length;
+                if (!(electronKev > e[0]))
+                {
+                    return this.yieldRel[0];
+                }
+
+                if (electronKev >= e[n - 1])
+                {
+                    return this.yieldRel[n - 1];
+                }
+
+                int lo = 0, hi = n - 1;
+                while (hi - lo > 1)
+                {
+                    int mid = (lo + hi) / 2;
+                    if (e[mid] <= electronKev)
+                    {
+                        lo = mid;
+                    }
+                    else
+                    {
+                        hi = mid;
+                    }
+                }
+
+                double f = (Math.Log(electronKev) - Math.Log(e[lo]))
+                           / (Math.Log(e[hi]) - Math.Log(e[lo]));
+                return this.yieldRel[lo] + f * (this.yieldRel[hi] - this.yieldRel[lo]);
+            }
+        }
+
         static readonly object Gate = new object();
         static Dictionary<int, Element> elements;
         static Dictionary<int, double> atomicMass;
@@ -204,6 +261,8 @@ namespace BecquerelMonitor.EfficiencyMaker
         static Dictionary<int, Fluorescence> fluorescence;
         static readonly Dictionary<int, PhotoShellModel> photoShells =
             new Dictionary<int, PhotoShellModel>();
+        static readonly Dictionary<string, LightYieldCurve> lightYields =
+            new Dictionary<string, LightYieldCurve>();
 
         /// <summary>Атомные массы, г/моль, по Z. Ключ есть у всех ста элементов.</summary>
         public static Dictionary<int, double> AtomicMass
@@ -279,6 +338,72 @@ namespace BecquerelMonitor.EfficiencyMaker
                 photoShells[z] = model;
                 return model;
             }
+        }
+
+        /// <summary>
+        /// Кривая светового выхода по имени материала базы («CsI:Tl»); null,
+        /// если строк нет — тогда шкала считается пропорциональной. Грузится
+        /// лениво и кэшируется, включая отрицательный ответ.
+        /// </summary>
+        public static LightYieldCurve LightYieldOf(string material)
+        {
+            lock (Gate)
+            {
+                LightYieldCurve cached;
+                if (lightYields.TryGetValue(material, out cached))
+                {
+                    return cached;
+                }
+
+                LightYieldCurve curve = LoadLightYield(material);
+                lightYields[material] = curve;
+                return curve;
+            }
+        }
+
+        static LightYieldCurve LoadLightYield(string material)
+        {
+            string path = DatabasePath();
+            if (!File.Exists(path))
+            {
+                throw new FileNotFoundException(
+                    "nucdb.sqlite не найдена рядом с программой: " + path, path);
+            }
+
+            List<double> energies = new List<double>();
+            List<double> yields = new List<double>();
+            using (SqliteConnection connection = new SqliteConnection(
+                "Data Source=" + path + ";Mode=ReadOnly;Cache=Shared;"))
+            {
+                connection.Open();
+                using (SqliteCommand command = connection.CreateCommand())
+                {
+                    command.CommandText =
+                        "select energy_kev, yield_rel from scint_electron_light_yield" +
+                        " where material = $m order by energy_kev";
+                    command.Parameters.AddWithValue("$m", material);
+                    using (SqliteDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            energies.Add(reader.GetDouble(0));
+                            yields.Add(reader.GetDouble(1));
+                        }
+                    }
+                }
+            }
+
+            if (energies.Count < 2)
+            {
+                return null;
+            }
+
+            return new LightYieldCurve
+            {
+                Material = material,
+                energyKev = energies.ToArray(),
+                yieldRel = yields.ToArray(),
+            };
         }
 
         static PhotoShellModel LoadPhotoShell(int z)
