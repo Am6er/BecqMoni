@@ -32,6 +32,17 @@ Tl-208, см. tools/effmaker/README.md «выходы Tl-208 не приведе
 котором поля объявлены в NuclideDefinition и в котором их пишет XmlSerializer.
 Существующие ненулевые Intencity не трогаются.
 
+ВТОРОЙ ПРОХОД — ДОБОР ЛИНИЙ. Образ нуклида в полноспектральном разборе
+строится из ВСЕХ его строк файла (FsaLibrary), и образ из трёх видимых линий
+хуже встроенного из шести: первый прогон без добора СУЖАЛ образы Ba-133
+(1 линия против 6 у встроенного), Eu-152 (5 против 14), I-131 и Lu-176 —
+поймано ревизией. Поэтому каждому нуклиду, получившему хоть одну линию,
+дописываются все недостающие гамма-линии с выходом ≥ 1 % (порог из критериев
+отбора сетов) — СКРЫТЫМИ записями (`Visible=false`): на графике они не
+появляются, а образ становится полным. Период и цвет берутся у видимой
+записи того же нуклида. Прогон повторно ничего не дублирует: занятые энергии
+(±3 кэВ) пропускаются.
+
     python fill_intensity.py <nucdb.sqlite> <NuclideDefinition.xml>
 """
 import io
@@ -126,6 +137,72 @@ def main():
 
     text = re.sub(r"<Nuclide>.*?</Nuclide>", patch, text, flags=re.S)
 
+    # --- добор недостающих линий скрытыми записями -----------------------
+    # По каждому нуклиду: какие энергии уже заняты (любыми записями файла) и
+    # каковы период и цвет его видимой записи — образцы для новых блоков.
+    per_nuclide = {}
+    for m in re.finditer(r"<Nuclide>.*?</Nuclide>", text, flags=re.S):
+        block = m.group(0)
+        name = re.search(r"<Name>(.*?)</Name>", block)
+        energy = re.search(r"<Energy>([\d.]+)</Energy>", block)
+        if not name or not energy:
+            continue
+        token = name.group(1).split(" ")[0].split("/")[0].strip()
+        nucid = nucid_of(token)
+        if nucid in (None, ISOMER):
+            continue
+        entry = per_nuclide.setdefault(nucid, {
+            "token": token, "energies": [], "half_life": None, "color": None,
+            "filled": False,
+        })
+        label_e = float(energy.group(1))
+        entry["energies"].append(label_e)
+        # Занятой считается и БЛИЖАЙШАЯ к метке линия базы (в ±4 кэВ): метка
+        # округлена («Eu-152 125» несёт выход линии 121.78), и без этого добор
+        # клал бы ту же линию второй раз — двойной вес в образе. Ближайшая, а
+        # не все в окне: у Cs-134 в ±4 кэВ от метки 798 лежат ДВЕ настоящие
+        # линии (795.86 и 801.95), и вторую добор обязан доложить. Правило не
+        # зависит от того, в этом ли прогоне метка получила выход.
+        near = [le for le, _ in gamma_lines(nucid) if abs(le - label_e) <= 4.0]
+        if near:
+            entry["energies"].append(min(near, key=lambda le: abs(le - label_e)))
+        if "<Intencity>" in block:
+            entry["filled"] = True
+        if entry["half_life"] is None:
+            hl = re.search(r"<HalfLife>(.*?)</HalfLife>", block)
+            color = re.search(r"<NuclideColor>(.*?)</NuclideColor>", block)
+            entry["half_life"] = hl.group(1) if hl else "0"
+            entry["color"] = color.group(1) if color else "Gray"
+
+    added = []
+    blocks = []
+    for nucid, entry in sorted(per_nuclide.items()):
+        if not entry["filled"]:
+            continue
+        for le, i in sorted(gamma_lines(nucid)):
+            if i < 1.0:
+                continue
+            if any(abs(le - taken) <= 3.0 for taken in entry["energies"]):
+                continue
+            entry["energies"].append(le)
+            added.append((entry["token"], le, i))
+            blocks.append(
+                "    <Nuclide>\n"
+                "      <Name>%s</Name>\n"
+                "      <Energy>%g</Energy>\n"
+                "      <HalfLife>%s</HalfLife>\n"
+                "      <NuclideColor>%s</NuclideColor>\n"
+                "      <Note />\n"
+                "      <Visible>false</Visible>\n"
+                "      <Intencity>%g</Intencity>\n"
+                "    </Nuclide>\n"
+                % (entry["token"], round(le, 3), entry["half_life"],
+                   entry["color"], round(i, 4)))
+
+    if blocks:
+        text = text.replace("</NuclideDefinitions>",
+                            "".join(blocks) + "  </NuclideDefinitions>", 1)
+
     with io.open(path, "w", encoding="utf-8", newline="") as f:
         f.write(text)
 
@@ -135,6 +212,9 @@ def main():
     print("пропущено %d:" % len(skipped))
     for label, e, why in skipped:
         print("  %-24s %7.1f -> %s" % (label, e, why))
+    print("добрано скрытых линий (>=1 %%): %d" % len(added))
+    for token, le, i in added:
+        print("  %-10s %9.2f кэВ, I = %g %%" % (token, le, i))
 
 
 if __name__ == "__main__":
