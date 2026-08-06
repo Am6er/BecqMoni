@@ -185,6 +185,32 @@ namespace BecquerelMonitor.EfficiencyMaker
         public bool KFractionByEnergy = true;
 
         /// <summary>
+        /// Считать ОТКЛИК в шкале света, а не поглощённой энергии (TODO F11).
+        ///
+        /// Прибор меряет свет, и у CsI(Tl)/NaI(Tl) свет на единицу энергии
+        /// зависит от энергии КАЖДОГО электрона (кривая L(E) из nucdb,
+        /// таблица scint_electron_light_yield — модель Пейна, источники в
+        /// tools/nucdb/import_light_yield.py). События с разным составом
+        /// электронов — один фотоэлектрон против цепочки комптонов — дают
+        /// разный свет при одной поглощённой энергии, и раскладывать их в один
+        /// бин значит рисовать не тот спектр, что видит прибор.
+        ///
+        /// Шкала света привязывается к шкале прибора ПИКОМ: реальный прибор
+        /// откалиброван по пикам полного поглощения, поэтому бины отклика
+        /// пересчитываются так, чтобы средний свет пика лёг ровно на энергию
+        /// линии, а континуум, вылеты и структура у K-края сместились
+        /// ОТНОСИТЕЛЬНО пика — как в измеренном спектре. Остаток эффекта —
+        /// ход ошибки калибровки МЕЖДУ опорными линиями — требует знания
+        /// опорных линий прибора и в это приближение не входит.
+        ///
+        /// Пересчёт детерминированный и выполняется ПОСЛЕ прогона: розыгрыш
+        /// не тянет ни одного случайного числа, кривая эффективности и пиковые
+        /// величины не меняются вовсе, а с выключенным ключом (или без кривой
+        /// в базе — германий, CZT) поведение побитово прежнее.
+        /// </summary>
+        public bool LightNonproportionality = true;
+
+        /// <summary>
         /// Разыгрывать ОДНО комптоновское рассеяние на пути к кристаллу.
         ///
         /// Формула узкого пучка `exp(-tau)` считает потерянным всё, что
@@ -218,6 +244,9 @@ namespace BecquerelMonitor.EfficiencyMaker
         ulong state;
         bool crystalHasPartials;
         ElectronData.Material electron;
+
+        /// <summary>Кривая светового выхода кристалла; null — шкала пропорциональна.</summary>
+        MaterialDatabase.LightYieldCurve lightYield;
 
         /// <summary>Элементы кристалла, у которых есть данные о K-флуоресценции.</summary>
         int[] fluoZ;
@@ -255,6 +284,42 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.crystalHasPartials = this.CrystalHasPartials();
             this.electron = ElectronData.Match(this.geometry.Crystal);
             this.BuildFluorescence();
+            this.lightYield = this.LightNonproportionality && this.electron != null
+                ? MaterialDatabase.LightYieldOf(ScintillatorNameOf(this.electron))
+                : null;
+        }
+
+        /// <summary>
+        /// Имя сцинтиллятора в таблице кривых света по веществу кристалла.
+        /// Активатор в геометрии не записан (его доли процента), поэтому
+        /// берётся штатный: у CsI это Tl — приборы корпуса с CsI(Na) не
+        /// встречались, а появится такой — активатор придётся вынести в
+        /// конфигурацию устройства.
+        /// </summary>
+        static string ScintillatorNameOf(ElectronData.Material material)
+        {
+            if (material == null)
+            {
+                return "";
+            }
+
+            switch (material.Name)
+            {
+                case "CsI": return "CsI:Tl";
+                case "NaI": return "NaI:Tl";
+                case "LaBr3": return "LaBr3:Ce";
+                default: return material.Name;
+            }
+        }
+
+        /// <summary>Имя кривой света, которой считается отклик; пусто — шкала пропорциональна.</summary>
+        public string LightYieldName
+        {
+            get
+            {
+                this.EnsureBuilt();
+                return this.lightYield == null ? "" : this.lightYield.Material;
+            }
         }
 
         /// <summary>
@@ -1205,7 +1270,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                     e = scattered;
                     if (e < 1.0)
                     {
-                        return lost;                // остаток осел на месте
+                        // остаток осел на месте — по свету это электрон
+                        // той же субкэвной энергии
+                        this.AddLight(e, e);
+                        return lost;
                     }
 
                     continue;
@@ -1257,10 +1325,18 @@ namespace BecquerelMonitor.EfficiencyMaker
         {
             if (this.electron == null || !(te > 1.0) || depth > 12)
             {
+                // электрон осел целиком там, где родился
+                this.AddLight(te, te);
                 return 0.0;
             }
 
             double lost = 0.0;
+
+            // Свет электрона — по СОБСТВЕННОМУ треку: излучённое тормозным
+            // покидает трек всё, а не только вылетевшая из кристалла часть.
+            // Перепоглощённые кванты рождают свои электроны в рекурсии, и
+            // считать их энергию ещё и здесь значило бы засчитать свет дважды.
+            double radiated = 0.0;
 
             if (this.Bremsstrahlung)
             {
@@ -1274,11 +1350,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                         double k = MinKev * Math.Pow(te / MinKev, this.Uniform());
                         double ax, ay, az;
                         this.Isotropic(out ax, out ay, out az);
+                        radiated += k;
                         lost += this.InCrystal(x, y, z, ax, ay, az, k, depth + 1);
                     }
                 }
             }
 
+            double escapedSelf = 0.0;
             if (this.ElectronEscape)
             {
                 double density = this.geometry.Crystal.Density;
@@ -1289,10 +1367,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                 double used = toEdge / Math.Max(1e-6, this.ElectronDetour);
                 if (used < range)
                 {
-                    lost += ElectronData.EnergyOfRange(this.electron, (range - used) * density);
+                    escapedSelf = ElectronData.EnergyOfRange(this.electron, (range - used) * density);
+                    lost += escapedSelf;
                 }
             }
 
+            this.AddLight(te - radiated - escapedSelf, te);
             return lost;
         }
 
@@ -1525,7 +1605,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 double dist = Math.Sqrt(x * x + y * y + dz * dz);
                 double weight = 1.0;
                 double ux, uy, uz;
-                if (dist > this.sphereR)
+                if (!this.TotalFullSphere && dist > this.sphereR)
                 {
                     double cosMax = Math.Sqrt(Math.Max(0.0, 1.0 - this.sphereR * this.sphereR / (dist * dist)));
                     weight = 0.5 * (1.0 - cosMax);
@@ -1585,11 +1665,28 @@ namespace BecquerelMonitor.EfficiencyMaker
                             double incoherent = here.Material.LinearIncoherent(e);
                             if (this.Uniform() * muKill >= incoherent)
                             {
-                                break;      // фотопоглощение или пары вне кристалла
+                                // Фотопоглощение или пары вне кристалла: сам
+                                // фотон погиб, но электрон может занести (F1).
+                                if (this.ElectronReachesCrystal(x, y, z, ux, uy, uz, e))
+                                {
+                                    score = weight;
+                                }
+
+                                break;
                             }
 
                             double cos = this.ComptonCosine(e);
-                            e = e / (1.0 + e / ElectronMassKev * (1.0 - cos));
+                            double after = e / (1.0 + e / ElectronMassKev * (1.0 - cos));
+                            // Комптон-электрон: занос считается ДО поворота
+                            // фотона — направлением электрона берётся направление
+                            // налетающего кванта (см. шапку ElectronReachesCrystal).
+                            if (this.ElectronReachesCrystal(x, y, z, ux, uy, uz, e - after))
+                            {
+                                score = weight;
+                                break;
+                            }
+
+                            e = after;
                             this.Rotate(ref ux, ref uy, ref uz, cos);
                             continue;
                         }
@@ -1610,6 +1707,105 @@ namespace BecquerelMonitor.EfficiencyMaker
             double variance = Math.Max(0.0, sum2 / n - mean * mean);
             relativeError = mean > 0.0 ? Math.Sqrt(variance / n) / mean * 100.0 : 0.0;
             return mean;
+        }
+
+        /// <summary>
+        /// Доля пробега CSDA, которую заносимому электрону разрешено пройти по
+        /// прямой: многократное рассеяние укорачивает проникновение (detour
+        /// factor; практический пробег в Al на 1 МэВ ~0.7 CSDA). Отдельный от
+        /// <see cref="ElectronDetour"/> параметр: тот — верхняя оценка вылета
+        /// ИЗ кристалла, этот — калибруется по ε_полной Geant4 на шести
+        /// энергиях (tools/tccfcalc2/README.md, §9).
+        /// </summary>
+        public double ElectronCarryDetour = 0.7;
+
+        /// <summary>
+        /// ε_полная: разыгрывать НАПРАВЛЕНИЯ по всей сфере (умолчание), а не
+        /// конусом на объемлющую сферу детектора. Конус — сужение ради
+        /// дисперсии, но он молча отсекает истории «мимо узла, рассеялся в
+        /// пробе или воздухе, вернулся в кристалл» — на упоре это −4 % ε_T
+        /// (измерено против Geant4, §9 журнала tccfcalc2), и именно этот
+        /// хвост выглядел «остатком после заноса электронов». Ложь была в
+        /// оценщике, не в физике. false — старый конус: быстрее в ~1/вес по
+        /// историям, годится там, где ε_T не нужна точнее нескольких %.
+        /// </summary>
+        public bool TotalFullSphere = true;
+
+        /// <summary>
+        /// Занос электрона (F1): фотон провзаимодействовал ВНЕ кристалла, но
+        /// выбитый электрон мог долететь до кристалла и оставить там энергию —
+        /// для ПОЛНОЙ эффективности это отсчёт. Geant4 и новая ЛСРМ электроны
+        /// переносят, и без заноса наша ε_T была ниже обоих на −5…−8 % с
+        /// ростом по энергии — профиль пробегов электронов.
+        ///
+        /// Модель нарочно грубая, по одному лучу: электрон летит ПРЯМОЙ по
+        /// направлению налетающего фотона (для фотоэффекта и больших передач
+        /// комптона — верно в главном; электроны с малыми передачами до
+        /// кристалла всё равно не долетают), в каждом слое расходуя долю
+        /// СВОЕГО пробега path·ρ / R_CSDA(вещество, T); дошёл с остатком —
+        /// отсчёт. Кривизна траектории спрятана в <see cref="ElectronDetour"/>.
+        /// Вещества слоёв — по составу (ElectronData.Match: Al, PTFE, вода +
+        /// кристаллы); не опознанное вещество считается водой (в г/см² пробеги
+        /// лёгких веществ близки), пустота — воздухом на таблице воды.
+        /// </summary>
+        bool ElectronReachesCrystal(double x, double y, double z,
+                                    double ux, double uy, double uz, double energyKev)
+        {
+            if (energyKev < 20.0)
+            {
+                return false;               // пробег меньше ~10 мкм — не долетит
+            }
+
+            double used = 0.0;              // израсходованная доля пробега
+            for (int guard = 0; guard < 60; guard++)
+            {
+                Region here = this.At(x, y, z);
+                if (here != null && here.IsCrystal)
+                {
+                    return true;
+                }
+
+                double step = this.StepToBoundary(x, y, z, ux, uy, uz);
+                if (step >= double.MaxValue)
+                {
+                    return false;           // ушёл из сцены
+                }
+
+                double density = here != null ? here.Material.Density : AirDensity;
+                ElectronData.Material medium = here != null
+                    ? this.CarryMedium(here.Material) : ElectronData.ByName("Water");
+                double range = ElectronData.RangeOf(medium, energyKev)
+                               * this.ElectronCarryDetour;
+                used += step * density / Math.Max(range, 1e-12);
+                if (used >= 1.0)
+                {
+                    return false;           // пробег кончился в слое
+                }
+
+                double advance = step + 1e-7;
+                x += ux * advance;
+                y += uy * advance;
+                z += uz * advance;
+            }
+
+            return false;
+        }
+
+        const double AirDensity = 1.205e-3;             // г/см³, сухой воздух
+
+        readonly Dictionary<GeometryMaterial, ElectronData.Material> carryCache =
+            new Dictionary<GeometryMaterial, ElectronData.Material>();
+
+        ElectronData.Material CarryMedium(GeometryMaterial material)
+        {
+            ElectronData.Material found;
+            if (!this.carryCache.TryGetValue(material, out found))
+            {
+                found = ElectronData.Match(material) ?? ElectronData.ByName("Water");
+                this.carryCache[material] = found;
+            }
+
+            return found;
         }
 
         /// <summary>
@@ -1709,6 +1905,33 @@ namespace BecquerelMonitor.EfficiencyMaker
         double lossAnnihilation;
         double lossXray;
 
+        // Свет текущей истории в кэВ-эквивалентах кривой L(E): каждый
+        // электронный вклад входит с весом L(его начальной энергии).
+        // Обнуляется вместе с метками исхода.
+        double lightDeposit;
+
+        // Σ(вес·свет) по бинам поглощённой энергии — копится рядом с
+        // гистограммой отклика и после прогона даёт средний свет каждого
+        // бина для пересчёта в шкалу прибора. null — пересчёт выключен.
+        double[] lightSum;
+
+        /// <summary>
+        /// Средний свет пика полного поглощения на кэВ энергии линии из
+        /// ПОСЛЕДНЕГО прогона отклика — это и есть фотонная
+        /// непропорциональность модели (1.0 — пропорционально; сверять с
+        /// таблицей I Khodyuk 2012). Ноль, если пересчёт не выполнялся.
+        /// </summary>
+        public double LastPhotonLightScale { get; private set; }
+
+        /// <summary>Вклад электрона начальной энергии te, осевший в кристалле.</summary>
+        void AddLight(double deposited, double te)
+        {
+            if (this.lightYield != null && deposited > 0.0)
+            {
+                this.lightDeposit += deposited * this.lightYield.Of(te);
+            }
+        }
+
         /// <summary>
         /// Канал текущей истории по меткам, набранным в точках событий.
         /// Ничего не вылетело — пик; иначе побеждает статья, унёсшая больше.
@@ -1773,6 +1996,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         double Run(double energyKev, double[] histogram, double binKev, out double relativeError)
         {
             this.EnsureBuilt();
+            this.lightSum = histogram != null && this.lightYield != null
+                ? new double[histogram.Length]
+                : null;
+            if (this.lightSum != null)
+            {
+                this.LastPhotonLightScale = 0.0;
+            }
+
             double sum = 0.0, sum2 = 0.0;
             int n = Math.Max(1000, this.Histories);
             for (int i = 0; i < n; i++)
@@ -1818,11 +2049,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                     {
                         this.lossAnnihilation = 0.0;
                         this.lossXray = 0.0;
+                        this.lightDeposit = 0.0;
                         double sw, scattered, sEscaped;
                         if (this.ScatteredContribution(x, y, z, ux, uy, uz, energyKev, tauMiss,
                                                        out sw, out scattered, out sEscaped))
                         {
                             Deposit(histogram, binKev, scattered - sEscaped, weight * sw);
+                            this.ScoreLight(binKev, scattered - sEscaped, weight * sw);
                             if (this.channelHistograms != null)
                             {
                                 ResponseChannel channel = this.ChannelOf(sEscaped);
@@ -1848,6 +2081,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     {
                         this.lossAnnihilation = 0.0;
                         this.lossXray = 0.0;
+                        this.lightDeposit = 0.0;
                         double escaped = this.InCrystal(px, py, pz, ux, uy, uz, energyKev, 0);
                         if (escaped <= this.PeakHalfWidthKev)
                         {
@@ -1864,6 +2098,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         {
                             double share = weight * Math.Exp(-tau);
                             Deposit(histogram, binKev, energyKev - escaped, share);
+                            this.ScoreLight(binKev, energyKev - escaped, share);
                             if (this.channelHistograms != null)
                             {
                                 Deposit(this.channelHistograms[(int)this.ChannelOf(escaped)],
@@ -1885,6 +2120,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         {
                             this.lossAnnihilation = 0.0;
                             this.lossXray = 0.0;
+                            this.lightDeposit = 0.0;
                             double sw, scattered, sEscaped;
                             if (this.ScatteredContribution(x, y, z, ux, uy, uz, energyKev, tau,
                                                            out sw, out scattered, out sEscaped))
@@ -1893,6 +2129,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                                 // энергию линии: в отклике он и должен лечь ниже
                                 // по шкале, а не в пик.
                                 Deposit(histogram, binKev, scattered - sEscaped, weight * sw);
+                                this.ScoreLight(binKev, scattered - sEscaped, weight * sw);
                                 if (this.channelHistograms != null)
                                 {
                                     // Квант рассеялся ДО кристалла и принёс
@@ -1945,7 +2182,144 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
             }
 
+            this.RemapLightScale(energyKev, binKev, histogram, n);
             return mean;
+        }
+
+        /// <summary>
+        /// Свет текущей истории — в копилку бина её ПОГЛОЩЁННОЙ энергии. Бин
+        /// считается тем же правилом, что в <see cref="Deposit"/>, иначе
+        /// средний свет достанется чужому бину.
+        /// </summary>
+        void ScoreLight(double binKev, double deposited, double weight)
+        {
+            if (this.lightSum == null || !(deposited > 0.0) || !(weight > 0.0))
+            {
+                return;
+            }
+
+            int bin = (int)(deposited / binKev + 0.5);
+            if (bin < 0)
+            {
+                bin = 0;
+            }
+
+            if (bin >= this.lightSum.Length)
+            {
+                bin = this.lightSum.Length - 1;
+            }
+
+            this.lightSum[bin] += weight * this.lightDeposit;
+        }
+
+        /// <summary>
+        /// Пересчёт отклика из шкалы поглощённой энергии в шкалу прибора по
+        /// среднему свету каждого бина (<see cref="LightNonproportionality"/>).
+        ///
+        /// Якорь — пик полного поглощения: его средний свет объявляется
+        /// равным его же бину, как у прибора, откалиброванного по пикам.
+        /// Остальные бины встают по отношению своего среднего света к якорю,
+        /// вес делится между двумя соседними бинами линейно. Каналы отклика
+        /// переносятся ТОЙ ЖЕ картой, что и сумма, — их сумма остаётся равной
+        /// полному отклику побитово.
+        ///
+        /// Пересчёт детерминирован (ни одного случайного числа) и работает по
+        /// уже посчитанной гистограмме, поэтому с выключенным ключом или без
+        /// кривой света поведение прежнее до бита. Побочная точность: средний
+        /// свет хранит положение событий ВНУТРИ бина, так что даже
+        /// тождественная кривая слегка уточняет позиции — это не ошибка.
+        /// </summary>
+        void RemapLightScale(double energyKev, double binKev, double[] histogram, int n)
+        {
+            double[] light = this.lightSum;
+            this.lightSum = null;
+            if (light == null || histogram == null)
+            {
+                return;
+            }
+
+            int peak = histogram.Length - 1;
+            if (peak < 1)
+            {
+                return;         // однобинный отклик двигать некуда
+            }
+
+            double peakWeight = histogram[peak] * n;
+            if (!(peakWeight > 0.0) || !(light[peak] > 0.0))
+            {
+                return;         // пика нет — якоря нет, шкала остаётся энергетической
+            }
+
+            // Свет полного поглощения на кэВ линии — фотонная
+            // непропорциональность модели, наружу для сверки с измерениями.
+            double anchorPerKev = light[peak] / peakWeight / energyKev;
+            this.LastPhotonLightScale = anchorPerKev;
+
+            // Внутренний якорь берётся к ЦЕНТРУ пикового бина, а не к энергии
+            // линии: бин пика обязан остаться последним, а энергия линии не
+            // кратна шагу, и якорь по ней увёл бы половину пика в соседний бин.
+            double anchorPerBin = light[peak] / peakWeight / (peak * binKev);
+            int[] lowBin = new int[histogram.Length];
+            double[] lowShare = new double[histogram.Length];
+            for (int b = 0; b <= peak; b++)
+            {
+                double w = histogram[b] * n;
+                double index = b;
+                if (w > 0.0 && light[b] > 0.0)
+                {
+                    index = light[b] / w / anchorPerBin / binKev;
+                }
+
+                if (index <= 0.0)
+                {
+                    lowBin[b] = 0;
+                    lowShare[b] = 1.0;
+                    continue;
+                }
+
+                if (index >= peak)
+                {
+                    lowBin[b] = peak;
+                    lowShare[b] = 1.0;
+                    continue;
+                }
+
+                int lo = (int)index;
+                lowBin[b] = lo;
+                lowShare[b] = 1.0 - (index - lo);
+            }
+
+            ApplyLightMap(histogram, lowBin, lowShare);
+            if (this.channelHistograms != null)
+            {
+                foreach (double[] channel in this.channelHistograms)
+                {
+                    ApplyLightMap(channel, lowBin, lowShare);
+                }
+            }
+        }
+
+        static void ApplyLightMap(double[] histogram, int[] lowBin, double[] lowShare)
+        {
+            double[] moved = new double[histogram.Length];
+            for (int b = 0; b < histogram.Length; b++)
+            {
+                double w = histogram[b];
+                if (!(w > 0.0))
+                {
+                    continue;
+                }
+
+                int lo = lowBin[b];
+                double share = lowShare[b];
+                moved[lo] += w * share;
+                if (share < 1.0)
+                {
+                    moved[lo + 1] += w * (1.0 - share);
+                }
+            }
+
+            Array.Copy(moved, histogram, histogram.Length);
         }
 
         void InCone(double ax, double ay, double az, double cosMax,

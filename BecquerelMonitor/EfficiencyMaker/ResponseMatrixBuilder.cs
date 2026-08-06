@@ -156,6 +156,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 CoherentPassesThrough = options.CoherentPassesThrough,
                 Bremsstrahlung = options.Bremsstrahlung,
                 SingleScatter = options.SingleScatter,
+                LightNonproportionality = options.LightNonproportionality,
                 PeakHalfWidthKev = 0.0
             };
 

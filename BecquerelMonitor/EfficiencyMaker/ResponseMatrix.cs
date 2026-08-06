@@ -41,7 +41,10 @@ namespace BecquerelMonitor.EfficiencyMaker
         // намеренно: в ней каналов нет, а достроить их из суммы нельзя, и
         // матрица, молча притворившаяся годной, рисовала бы весь непиковый
         // отклик одним слоем. Форма увидит «устарела» и пересчитает.
-        public const int FormatVersion = 3;
+        // 4 — в блоке параметров появился ключ LightNonproportionality
+        //     (07.08.2026): старый файл короче на байт, и читать его новым
+        //     кодом значило бы съехать всем полем данных.
+        public const int FormatVersion = 4;
 
         /// <summary>
         /// Версия ФИЗИКИ. Поднимать при любой правке переноса, меняющей числа:
@@ -52,7 +55,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         // 2 — доля K-оболочки по энергии (EPICS2017) и однократное рассеяние
         //     с лучей, прошедших мимо кристалла (06.08.2026). Первая правка
         //     чуть меняет пик выше K-края, вторая добавляет континуум.
-        public const int PhysicsVersion = 2;
+        // 3 — занос электронов из окна/оправы в кристалл (07.08.2026): пока
+        //     влияет только на полную эффективность (TotalEfficiency, F1) —
+        //     матрицу отклика не меняет, но правило одно: правка переноса —
+        //     новая версия.
+        // 4 — отклик в шкале света (F11, 07.08.2026): электронные вклады
+        //     взвешены кривой L(E) из nucdb, бины пересчитаны с якорем по
+        //     пику. Меняет форму отклика CsI/NaI ниже ~200 кэВ.
+        public const int PhysicsVersion = 4;
 
         /// <summary>Узлы сетки входных энергий, кэВ, по возрастанию.</summary>
         public double[] Energies { get; set; }
@@ -149,6 +159,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 sb.Append("coh=").Append(options.CoherentPassesThrough ? 1 : 0).Append(';');
                 sb.Append("brem=").Append(options.Bremsstrahlung ? 1 : 0).Append(';');
                 sb.Append("scat=").Append(options.SingleScatter ? 1 : 0).Append(';');
+                sb.Append("npl=").Append(options.LightNonproportionality ? 1 : 0).Append(';');
             }
 
             sb.Append("geom=").Append(GeometryText(geometry));
@@ -509,6 +520,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             writer.Write(o.CoherentPassesThrough);
             writer.Write(o.Bremsstrahlung);
             writer.Write(o.SingleScatter);
+            writer.Write(o.LightNonproportionality);
         }
 
         static ResponseMatrixOptions ReadOptions(BinaryReader reader)
@@ -523,7 +535,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 XrayEscape = reader.ReadBoolean(),
                 CoherentPassesThrough = reader.ReadBoolean(),
                 Bremsstrahlung = reader.ReadBoolean(),
-                SingleScatter = reader.ReadBoolean()
+                SingleScatter = reader.ReadBoolean(),
+                LightNonproportionality = reader.ReadBoolean()
             };
         }
 
@@ -639,6 +652,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         public bool Bremsstrahlung = true;
 
         public bool SingleScatter = true;
+
+        /// <summary>
+        /// Отклик в шкале света (непропорциональность светового выхода,
+        /// TODO F11): каждый электронный вклад взвешивается кривой L(E) из
+        /// nucdb, бины пересчитываются с якорем по пику. Без кривой для
+        /// вещества кристалла (германий, CZT) ключ ничего не меняет.
+        /// </summary>
+        public bool LightNonproportionality = true;
 
         /// <summary>Потоков; 0 — по числу ядер минус один.</summary>
         public int Threads;
