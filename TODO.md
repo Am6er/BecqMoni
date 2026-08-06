@@ -32,6 +32,30 @@
 | B2 | Выбрать формат снапшота — без него этап 5 рефакторинга не оценить, а от него зависят этапы 2, 7, 8 | [arch/review-arch-notes.md](arch/review-arch-notes.md), §2.4 |
 | B3 | Завести конфигурацию «RC-103 (282)» и починить ПШПВ-калибровку RC-103 (только руками Amber) | [tools/effmaker/README.md](tools/effmaker/README.md), «Открытые пункты» |
 
+## P0 — продукт не работает из коробки
+
+Задевает ВСЕХ пользователей прямо сейчас, у всех новых — с первого запуска.
+Разбор и точные ссылки на строки — [arch/review-arch-notes.md](arch/review-arch-notes.md),
+таблица «Восемь правок».
+
+| # | задача | детали |
+|---|---|---|
+| **G1** | В поставочном `config/NuclideDefinition.xml` **ноль тегов `Sets`, ноль `IsAnchor`, ноль `Intencity`** — гейт `LibraryPeakFitter.cs:479-486` срабатывает всегда, библиотечный фит не стартует НИКОГДА | [arch/review-arch-notes.md](arch/review-arch-notes.md); [scheme.md](database/scheme.md) §9а F-1 |
+| **G2** | `EfficencyROIGuid` не проставлен ни в одном из девяти поставочных device-конфигов — `DocEnergySpectrum.cs:449-460` всегда уходит в fallback `ROIConfigList[0]`, и активность считается по произвольной ЧУЖОЙ кривой | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
+
+## P1 — дефекты продукта
+
+| # | задача | детали |
+|---|---|---|
+| G3 | `config/ROI/Obsidian Marinelli 0.5.xml:60`: точка `Energy=20, Efficiency=1471.85, ErrorPercent=554` — ε > 1 физически невозможна, сплайн утаскивает левый край | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
+| G4 | `SetExporter.BuildRoiConfig` не пишет `BecquerelCoefficient` — любой набор из мастера даёт 0 Бк | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
+| G5 | `DoseRateManager.cs:32` — жёсткий каст к `PolynomialEnergyCalibration`; `NonlinearEnergyCalibration` ей сестра, не наследник → `InvalidCastException` | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
+| G6 | Доза зависит от галки отображения фона (`DoseRateManager.cs:23-31` ← `MainForm.cs:639-641`) — показание меняется от режима графика | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
+| G7 | Тихий нуль K вместо статуса (`ROIConfigForm.cs:951,955` → `MeasurementResultManager.cs:48`) — 0 Бк неотличим от «не посчитано» | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
+| G8 | `EnergySpectrumView.cs:2879` — `break` на `OutofChannelException`: одна плохая область гасит отрисовку всех последующих | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
+| G9 | Стабильные индексы линий nucdb — закрывает класс поломок при пересборке базы | [arch/review-arch-notes.md](arch/review-arch-notes.md), «Волна 1» |
+| G10 | Санитария ссылок: резолвы по имени (`ROIReferenceData`, `SelectROIDialog`) и по индексу комбобокса ломаются чаще Guid | [arch/review-arch-notes.md](arch/review-arch-notes.md), этап 0 |
+
 ## P1 — физика модели детектора
 
 | # | задача | детали |
@@ -67,6 +91,36 @@
 | P3 | Вето бинарно — нужен другой источник избыточности | память `gate-binary-veto-open` |
 | P4 | Ужесточить признак обратного рассеяния | [interspec/handover-2026-08-05.md](tools/interspec/handover-2026-08-05.md), §10 п. 4 |
 | P5 | Набор нуклидов под каждый спектр в пробе опознания | [interspec/handover-2026-08-05.md](tools/interspec/handover-2026-08-05.md), §10 п. 5 |
+
+## P1 — открытое в измерениях
+
+Найдено при разборах, но в планы журналов не попадало: утверждение сделано и
+ограничено, а проверка ограничения не проведена.
+
+| # | задача | детали |
+|---|---|---|
+| V1 | «Достаточно одной кривой на модель детектора» проверено только там, где линии набора выше 200 кэВ. Для Am-241 59.5, Ba-133 и рентгена геометрия расходится в разы — **утверждение не проверено** | [tools/CORPUS/README.md](tools/CORPUS/README.md), «Главное: геометрия не нужна» |
+| V2 | Модель разрешения корпуса ниже 180 кэВ не измерена, а экстраполирована: на 59.5 кэВ десять спектров ASN16 дают от 3.1 % до 29.4 % полуширины при одном детекторе. Это не смещение, а отсутствие модели | [tools/pie/README.md](tools/pie/README.md), «Низкая точка ПШПВ» |
+| V3 | Линии 511 кэВ нет в библиотеке FSA вовсе, хотя пики вылета от 2614 есть; в ториевом спектре она есть всегда | [tools/pie/README.md](tools/pie/README.md), разбор недобора |
+| V4 | Превышение около 460 кэВ — происхождение не установлено | [tools/pie/README.md](tools/pie/README.md), разбор недобора |
+| V5 | Вылет электрона выключен: прямолинейный CSDA завышает его неизвестно во сколько раз, обратного рассеяния электрона в тяжёлом веществе ESTAR не публикует | [tools/effmaker/README.md](tools/effmaker/README.md), про `--electron` |
+| V6 | На RC103, RC101 и OBS библиотечный фит почти не запускается — 45, 20 и 10 предъявленных линий против 475 у ASN16; упирается в базу финдера | [tools/CORPUS/README.md](tools/CORPUS/README.md) |
+
+## P1 — прочее открытое, найденное в журналах
+
+| # | задача | детали |
+|---|---|---|
+| W1 | Найти, какая из правок вызвала регрессию маринелли — прогоны `out/effsim_all_2026-08-05_{on,off}.txt` есть, виновник не назван | [tools/effmaker/README.md](tools/effmaker/README.md), «Открытый пункт» |
+| W2 | Парциальные сечения нужны ещё для девяти элементов кристаллов (I, Cs, Na, Bi, Ge, O…) — страницы NIST `ElemTab` публикуют только сумму | [tools/effmaker/README.md](tools/effmaker/README.md), «Чего не хватает — по пунктам» |
+| W3 | Германий: не разобрано, дело в настройках финдера, в форме его ядра на узких пиках или в ПШПВ-калибровке. Связано с P1 | [tools/effmaker/probes/README.md](tools/effmaker/probes/README.md), «Германий выпал целиком» |
+| W4 | Ещё четыре группы (CZT_TECD, RC101, RC103g, ASN3) пики находят, но ни одного объяснимого | [tools/effmaker/probes/README.md](tools/effmaker/probes/README.md) |
+| W5 | Отношение эманации к суммированию: геометрический вклад не отделён, поэтому «встроенной проверкой равновесия» пользоваться нельзя | [tools/pie/README.md](tools/pie/README.md) |
+| W6 | Калибровка выше 4-й степени: `EnrgToChannel` бросала `NotImplementedException`, шкала уезжала на 5.6 кэВ без единого сообщения — проверить, что починено везде | [tools/CORPUS/README.md](tools/CORPUS/README.md) |
+| W7 | Голова `ECCBINDX.BIN` (записи по 25 doubles) не расколота — там подоболочечные энергии связи от 13.6 эВ | [database/scheme.md](database/scheme.md), §10 |
+| W8 | Записи продолжения ENSDF, комментарии и структурные `S` не разбираются вовсе — там свободный текст | [database/scheme.md](database/scheme.md), §7 |
+| W9 | Наборы ENSDF дублируются по нуклиду: выбирать надо по родителю и его периоду, а не по имени дочернего — потребитель этого пока не учитывает | [database/scheme.md](database/scheme.md), §7 |
+| W10 | Поставка STAR старше веба: тормозная протона в воде расходится на 1.3 % с сегодняшним PSTAR | [database/scheme.md](database/scheme.md), §5 |
+| W11 | Матрица отклика включается сама, выключателя нет — сейчас не мешает (1.37 с против 1.09), но управления нет | [handover-response-matrix.md](tools/effmaker/handover-response-matrix.md), §2 |
 
 ## P2 — кривые эффективности
 
