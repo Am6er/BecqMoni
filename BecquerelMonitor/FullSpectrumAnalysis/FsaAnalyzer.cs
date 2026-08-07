@@ -555,11 +555,32 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                double[] template = BuildTemplate(component, calibration, fwhmCalibration, efficiency,
-                                                  gain, offset, chLo, chHi, channels);
+                double[] template;
+                double[] lowTail = null;
+                if (this.ResponseMatrix != null && !component.WeightsAreFinal)
+                {
+                    template = this.BuildTemplateFromResponse(component, calibration, fwhmCalibration,
+                                                              gain, offset, chLo, chHi, channels, out lowTail);
+                }
+                else
+                {
+                    template = BuildTemplate(component, calibration, fwhmCalibration, efficiency,
+                                             gain, offset, chLo, chHi, channels);
+                }
+
                 if (template != null)
                 {
                     columns.Add(new FitColumn { Component = component, Values = template });
+
+                    // Подпороговый хвост матричного образа — своя колонка со
+                    // свободной амплитудой и БЕЗ компонента: в результате она
+                    // сливается с подложкой, в «пирог» и отсев по z не входит.
+                    // Живёт и умирает вместе с компонентом: при отсеве subset
+                    // выкидывает обоих ещё до этой ветки.
+                    if (lowTail != null)
+                    {
+                        columns.Add(new FitColumn { Component = null, Values = lowTail });
+                    }
                 }
             }
 
@@ -895,10 +916,123 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// и каждый узел сетки дрейфа. Именно на это уходило восемь секунд из
         /// девяти: двадцать миллионов вычислений профиля против ста тысяч.
         /// </summary>
+        /// <summary>
+        /// Нижняя граница доверия континууму матрицы, кэВ.
+        ///
+        /// Ниже неё в спектре живёт то, чего матрица знать не может: порог АЦП,
+        /// флуоресценция защиты и обстановки (K-серии W и Pb), возврат из
+        /// свинцового домика — матрица считает только пробу с кюветой и
+        /// кристалл. Треть статистики спектра стоит именно там, и жёсткая
+        /// связка «пик + континуум» матричного образа позволяла этому
+        /// неописуемому окну занулять компоненты с ОБНАРУЖЕННЫМИ пиками:
+        /// на граните (ASN16-цилиндр) NNLS выбрасывал Pb-212/Pb-214/Tl-208
+        /// целиком, потому что любая амплитуда, закрывающая пик, тянула свой
+        /// континуум в окно, где модель не сходится, и штраф перевешивал.
+        ///
+        /// Ниже порога континуум образа не выбрасывается, а ОТВЯЗЫВАЕТСЯ:
+        /// уходит отдельной колонкой со свободной амплитудой (в отрисовке она
+        /// сливается с подложкой). Там, где матрица права (цезий: плато
+        /// комптона ниже 100 кэВ настоящее), NNLS берёт хвост почти с той же
+        /// амплитудой и качество матрицы сохраняется — жёсткая отсечка стоила
+        /// на цезиевом спектре χ²/ndf 35.9 → 42.6. Там, где окно занято чужим
+        /// (гранит), хвост зануляется сам, не утаскивая пик.
+        ///
+        /// Величина нечувствительна: 80, 100, 120 и 150 кэВ дают один состав
+        /// с точностью до долей процента (проба S11, 07.08.2026); взято 100.
+        /// Пиковые окна линий (±2 ПШПВ) остаются в основном образе и ниже
+        /// порога — пик под порогом (рентген свинца 75 кэВ) обязан выжить.
+        /// </summary>
+        const double ResponseContinuumTrustFloorKev = 100.0;
+
+        /// <summary>
+        /// Вынуть из гистограммы поглощения бины ниже порога доверия, кроме
+        /// пиковых окон линий компонента (см. <see cref="ResponseContinuumTrustFloorKev"/>).
+        /// Возвращает вынутое отдельной гистограммой или null, если ниже
+        /// порога ничего не было.
+        /// </summary>
+        static double[] SplitContinuumBelowTrustFloor(double[] deposit, double bin, FsaComponent component,
+                                                      EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
+                                                      int channels)
+        {
+            int floorBins = (int)(ResponseContinuumTrustFloorKev / bin);
+            if (floorBins <= 0)
+            {
+                return null;
+            }
+
+            // Окна линий в кэВ: линия чуть выше порога свешивает левое плечо
+            // под порог, поэтому окна считаются для всех линий, а не только
+            // для лежащих ниже.
+            List<double> lows = new List<double>();
+            List<double> highs = new List<double>();
+            foreach (FsaLine line in component.Lines)
+            {
+                if (!(line.Energy > 0.0) || !(line.Intensity > 0.0))
+                {
+                    continue;
+                }
+
+                double channel = EnergyToChannelSafe(calibration, line.Energy, channels);
+                double half = 3.0 * bin;
+                if (!Double.IsNaN(channel))
+                {
+                    double fwhmChannels = fwhmCalibration.ChannelToFwhm(channel);
+                    if (fwhmChannels > 0.0 && !Double.IsNaN(fwhmChannels))
+                    {
+                        double fwhmKev = calibration.ChannelToEnergy(channel + fwhmChannels / 2.0)
+                                         - calibration.ChannelToEnergy(channel - fwhmChannels / 2.0);
+                        if (fwhmKev > 0.0)
+                        {
+                            half = Math.Max(half, 2.0 * fwhmKev);
+                        }
+                    }
+                }
+
+                lows.Add(line.Energy - half);
+                highs.Add(line.Energy + half);
+            }
+
+            double[] tail = null;
+            int limit = Math.Min(floorBins, deposit.Length);
+            for (int i = 0; i < limit; i++)
+            {
+                if (deposit[i] <= 0.0)
+                {
+                    continue;
+                }
+
+                double energy = (i + 0.5) * bin;
+                bool inPeakWindow = false;
+                for (int k = 0; k < lows.Count; k++)
+                {
+                    if (energy >= lows[k] && energy <= highs[k])
+                    {
+                        inPeakWindow = true;
+                        break;
+                    }
+                }
+
+                if (!inPeakWindow)
+                {
+                    if (tail == null)
+                    {
+                        tail = new double[limit];
+                    }
+
+                    tail[i] = deposit[i];
+                    deposit[i] = 0.0;
+                }
+            }
+
+            return tail;
+        }
+
         double[] BuildTemplateFromResponse(FsaComponent component, EnergyCalibration calibration,
                                            FwhmCalibration fwhmCalibration,
-                                           double gain, double offset, int chLo, int chHi, int channels)
+                                           double gain, double offset, int chLo, int chHi, int channels,
+                                           out double[] lowTail)
         {
+            lowTail = null;
             EfficiencyMaker.ResponseMatrix matrix = this.ResponseMatrix;
             double bin = matrix.BinKev;
             if (!(bin > 0.0))
@@ -939,6 +1073,32 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return null;
             }
 
+            // Подпороговый континуум отвязывается в отдельную колонку; пиковые
+            // окна линий остаются в основном образе (см. комментарий у
+            // ResponseContinuumTrustFloorKev). Хвост уширяется тем же путём:
+            // он короткий (полсотни бинов), вторая свёртка почти бесплатна.
+            double[] tailDeposit = SplitContinuumBelowTrustFloor(deposit, bin, component,
+                                                                 calibration, fwhmCalibration, channels);
+            double[] template = this.BroadenResponseDeposit(deposit, calibration, fwhmCalibration,
+                                                            bin, gain, offset, chLo, chHi, channels);
+            if (template != null && tailDeposit != null)
+            {
+                lowTail = this.BroadenResponseDeposit(tailDeposit, calibration, fwhmCalibration,
+                                                      bin, gain, offset, chLo, chHi, channels);
+            }
+
+            return template;
+        }
+
+        /// <summary>
+        /// Уширить гистограмму поглощения в образ по шкале каналов — общий хвост
+        /// пути <see cref="BuildTemplateFromResponse"/>, вынесенный ради второй
+        /// свёртки подпорогового хвоста.
+        /// </summary>
+        double[] BroadenResponseDeposit(double[] deposit, EnergyCalibration calibration,
+                                        FwhmCalibration fwhmCalibration, double bin,
+                                        double gain, double offset, int chLo, int chHi, int channels)
+        {
             double top = 0.0;
             foreach (double v in deposit)
             {
@@ -1301,16 +1461,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
         }
 
+        // Диспетчеризация «матричный образ или голые пики» живёт в FitOnce:
+        // матричный путь отдаёт ДВЕ колонки (образ и подпороговый хвост), и
+        // прятать вторую за скалярной сигнатурой значило бы её потерять.
         double[] BuildTemplate(FsaComponent component, EnergyCalibration calibration,
                                       FwhmCalibration fwhmCalibration, FsaEfficiency efficiency,
                                       double gain, double offset, int chLo, int chHi, int channels)
         {
-            if (this.ResponseMatrix != null && !component.WeightsAreFinal)
-            {
-                return this.BuildTemplateFromResponse(component, calibration, fwhmCalibration,
-                                                      gain, offset, chLo, chHi, channels);
-            }
-
             double[] template = new double[channels];
             // Значения профиля считаются один раз на носитель и переиспользуются
             // между линиями: образ строится заново на каждом узле сетки дрейфа
