@@ -603,12 +603,17 @@ namespace BecquerelMonitor
                 return;
             }
 
-            int height = rows * FsaTableRowHeight + 8;
+            // Сообщение о состоянии переносится по ширине панели на несколько
+            // строк — подложка обязана вместить фактическую высоту текста, а не
+            // одну табличную строку.
+            int height = result == null
+                ? (int)Math.Ceiling(g.MeasureString(status, this.Font, width - 12).Height) + 8
+                : rows * FsaTableRowHeight + 8;
             g.FillRectangle(Brushes.DarkGray, x + 3, y + 3, width, height);
             g.FillRectangle(Brushes.White, x, y, width, height);
             g.DrawRectangle(Pens.Black, x, y, width, height);
 
-            Rectangle r = new Rectangle(x + 8, y + 4, width - 12, 32);
+            Rectangle r = new Rectangle(x + 8, y + 4, width - 12, height - 8);
             this.DrawFsaRows(g, r, result, status);
         }
     }

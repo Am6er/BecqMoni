@@ -312,6 +312,7 @@
     </Compile>
     <Compile Include="ResponseMatrixForm.Layout.cs">
       <DependentUpon>ResponseMatrixForm.cs</DependentUpon>
+      <SubType>Form</SubType>
     </Compile>
     <Compile Include="EfficiencyMaker\ResponseMatrix.cs" />
     <Compile Include="EfficiencyMaker\ResponseMatrixBuilder.cs" />
@@ -332,7 +333,7 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="GeometryEditorPanel.cs">
-      <SubType>Component</SubType>
+      <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="EfficiencyMakerForm.cs">
       <SubType>Form</SubType>
@@ -453,7 +454,9 @@
       <DependentUpon>NuclideSetForm.cs</DependentUpon>
     </Compile>
     <Compile Include="Package.cs" />
-    <Compile Include="PickOneForm.cs" />
+    <Compile Include="PickOneForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Utils\SpectrumScout.cs" />
     <Compile Include="Peak.cs" />
     <Compile Include="PeakDetectionMethodConfig.cs" />
