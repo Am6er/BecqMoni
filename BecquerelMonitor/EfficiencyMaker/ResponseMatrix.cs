@@ -44,7 +44,12 @@ namespace BecquerelMonitor.EfficiencyMaker
         // 4 — в блоке параметров появился ключ LightNonproportionality
         //     (07.08.2026): старый файл короче на байт, и читать его новым
         //     кодом значило бы съехать всем полем данных.
-        public const int FormatVersion = 4;
+        // 5 — в блоке параметров появился ключ AnalogContinuum (08.08.2026,
+        //     физика 6): та же арифметика — файл длиннее на байт, версия
+        //     ОБЯЗАНА смениться, иначе формат-4 файл съедет полем данных.
+        //     Найдено сверкой с параллельной сессией S11: ключ был добавлен
+        //     в Options и отпечаток, но не в Write/ReadOptions.
+        public const int FormatVersion = 5;
 
         /// <summary>
         /// Версия ФИЗИКИ. Поднимать при любой правке переноса, меняющей числа:
@@ -532,6 +537,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             writer.Write(o.Bremsstrahlung);
             writer.Write(o.SingleScatter);
             writer.Write(o.LightNonproportionality);
+            writer.Write(o.AnalogContinuum);
         }
 
         static ResponseMatrixOptions ReadOptions(BinaryReader reader)
@@ -547,7 +553,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 CoherentPassesThrough = reader.ReadBoolean(),
                 Bremsstrahlung = reader.ReadBoolean(),
                 SingleScatter = reader.ReadBoolean(),
-                LightNonproportionality = reader.ReadBoolean()
+                LightNonproportionality = reader.ReadBoolean(),
+                AnalogContinuum = reader.ReadBoolean()
             };
         }
 
