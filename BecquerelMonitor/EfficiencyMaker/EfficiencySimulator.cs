@@ -594,9 +594,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                     double zWallBottom = zWallTop - g.BoxEndWallThickness;
                     double zSrcTop = zWallBottom;
                     double zSrcBottom = zSrcTop - g.BoxSourceHeight;
+                    // Проба РАНЬШЕ боковой стенки: стенка — полный брус, области
+                    // ищутся «первая победившая», и в обратном порядке стенка
+                    // затеняет пробу целиком (F13: вода считалась полиэтиленом).
+                    // Стенка нулевой толщины совпала бы с пробой — не кладётся.
                     this.AddBox(axOut, ayOut, zWallBottom, zWallTop, beakerWall, false);
-                    this.AddBox(axOut, ayOut, zSrcBottom, zSrcTop, beakerWall, false);
                     this.AddBox(axIn, ayIn, zSrcBottom, zSrcTop, sample, false);
+                    if (g.BoxSideWallThickness > Eps)
+                    {
+                        this.AddBox(axOut, ayOut, zSrcBottom, zSrcTop, beakerWall, false);
+                    }
                     this.source = new BoxSampler(axIn, ayIn, zSrcBottom, zSrcTop);
                     break;
                 }
