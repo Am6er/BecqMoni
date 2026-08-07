@@ -50,6 +50,7 @@ namespace FsaPaletteProbe
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
             string spectrumPath = null, backgroundPath = null, outDir = ".", geometryPath = null;
+            string efficiencyName = null;
             int width = 1400, height = 760;
             bool rebuild = false;
             foreach (string a in args)
@@ -61,6 +62,9 @@ namespace FsaPaletteProbe
                 else if (a.StartsWith("--width=", StringComparison.Ordinal)) width = int.Parse(a.Substring(8));
                 else if (a.StartsWith("--height=", StringComparison.Ordinal)) height = int.Parse(a.Substring(9));
                 else if (a.StartsWith("--geometry=", StringComparison.Ordinal)) geometryPath = a.Substring(11);
+                // кривая по имени из живой конфигурации прибора — для спектров,
+                // в файле которых кривой нет (как выбор в панели измерения)
+                else if (a.StartsWith("--efficiency=", StringComparison.Ordinal)) efficiencyName = a.Substring(13);
             }
             if (spectrumPath == null)
             {
@@ -73,6 +77,38 @@ namespace FsaPaletteProbe
             NuclideDefinitionManager nuclides = NuclideDefinitionManager.GetInstance();
 
             ResultData rd = Load(spectrumPath);
+            if (efficiencyName != null)
+            {
+                // Копией, как EfficiencyFromItem в панели измерения: Guid у
+                // копии тот же, значит и матрица в хранилище — та же, что
+                // увидит приложение.
+                foreach (DeviceConfigInfo device in DeviceConfigManager.GetInstance().DeviceConfigList)
+                {
+                    foreach (EfficiencyConfigData curve in device.EfficiencyConfigs)
+                    {
+                        if (string.Equals(curve.Name, efficiencyName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            rd.Efficiency = curve.Copy();
+                            Console.WriteLine("кривая «{0}» из прибора «{1}», геометрия {2}",
+                                              curve.Name, device.Name,
+                                              rd.Efficiency.HasGeometry ? "есть" : "НЕТ");
+                            break;
+                        }
+                    }
+
+                    if (rd.Efficiency != null)
+                    {
+                        break;
+                    }
+                }
+
+                if (rd.Efficiency == null)
+                {
+                    Console.Error.WriteLine("кривая «{0}» не нашлась ни в одном приборе", efficiencyName);
+                    return 2;
+                }
+            }
+
             EnergySpectrum background = backgroundPath != null
                 ? Load(backgroundPath).EnergySpectrum : null;
 
@@ -587,6 +623,24 @@ namespace FsaPaletteProbe
                 && rd.DeviceConfig.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig fromDevice)
             {
                 rd.PeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)fromDevice.Clone();
+            }
+
+            // ПШПВ-калибровка: файл может её не содержать — приложение в этом
+            // случае берёт её из конфигурации метода поиска, достраивая
+            // умолчанием (DocEnergySpectrum, тот же порядок и те же проверки).
+            if (rd.FwhmCalibration == null
+                && rd.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig cfg)
+            {
+                if (cfg.FwhmCalibration == null && rd.EnergySpectrum != null)
+                {
+                    cfg.FwhmCalibration = FwhmCalibration.DefaultCalibration(
+                        cfg, rd.EnergySpectrum.EnergyCalibration);
+                }
+
+                if (cfg.FwhmCalibration != null)
+                {
+                    rd.FwhmCalibration = cfg.FwhmCalibration.Clone();
+                }
             }
 
             return rd;
