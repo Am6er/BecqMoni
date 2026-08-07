@@ -2789,6 +2789,24 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("FSADriftEdgeMark", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to · matrix.
+        /// </summary>
+        public static string FSAMatrixMark {
+            get {
+                return ResourceManager.GetString("FSAMatrixMark", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to · no matrix.
+        /// </summary>
+        public static string FSANoMatrixMark {
+            get {
+                return ResourceManager.GetString("FSANoMatrixMark", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to (unknown).
@@ -4141,6 +4159,33 @@ namespace BecquerelMonitor.Properties {
         public static string ResponseMatrixStateStale {
             get {
                 return ResourceManager.GetString("ResponseMatrixStateStale", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixStateStaleVersions.
+        /// </summary>
+        public static string ResponseMatrixStateStaleVersions {
+            get {
+                return ResourceManager.GetString("ResponseMatrixStateStaleVersions", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixVersionsCurrent.
+        /// </summary>
+        public static string ResponseMatrixVersionsCurrent {
+            get {
+                return ResourceManager.GetString("ResponseMatrixVersionsCurrent", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixVersionsBoth.
+        /// </summary>
+        public static string ResponseMatrixVersionsBoth {
+            get {
+                return ResourceManager.GetString("ResponseMatrixVersionsBoth", resourceCulture);
             }
         }
         

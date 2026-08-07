@@ -8434,6 +8434,12 @@ http://xptable.sourceforge.net/</value>
   <data name="FSANoEfficiencyMark" xml:space="preserve">
     <value> (no eff)</value>
   </data>
+  <data name="FSAMatrixMark" xml:space="preserve">
+    <value> · matrix</value>
+  </data>
+  <data name="FSANoMatrixMark" xml:space="preserve">
+    <value> · no matrix</value>
+  </data>
   <data name="FSADriftEdgeMark" xml:space="preserve">
     <value> !</value>
   </data>
@@ -42769,6 +42775,15 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="ResponseMatrixStateStale" xml:space="preserve">
     <value>Out of date: the geometry or the settings have changed since it was computed. Recompute it.</value>
+  </data>
+  <data name="ResponseMatrixStateStaleVersions" xml:space="preserve">
+    <value>Out of date: computed by another generation of the transport code. Recompute it.</value>
+  </data>
+  <data name="ResponseMatrixVersionsCurrent" xml:space="preserve">
+    <value>Current generation: physics {0}, file format {1}.</value>
+  </data>
+  <data name="ResponseMatrixVersionsBoth" xml:space="preserve">
+    <value>Matrix generation: physics {0}, file format {1} — current code: physics {2}, format {3}.</value>
   </data>
   <data name="ResponseMatrixStateValid" xml:space="preserve">
     <value>Valid for the current geometry.</value>

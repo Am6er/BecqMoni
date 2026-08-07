@@ -32,7 +32,7 @@ namespace BecquerelMonitor
     {
         readonly EfficiencyConfigData config;
 
-        Label stateLabel, estimateLabel, progressLabel;
+        Label stateLabel, versionsLabel, estimateLabel, progressLabel;
         Panel detailsPanel;
         string detailsText = "";
         ProgressBar progressBar;
@@ -73,6 +73,7 @@ namespace BecquerelMonitor
             if (this.config == null || !this.config.HasGeometry)
             {
                 this.stateLabel.Text = Resources.ResponseMatrixNoGeometry;
+                this.ShowVersions(0, 0, false);
                 this.SetDetails("");
                 this.computeButton.Enabled = false;
                 return;
@@ -81,9 +82,26 @@ namespace BecquerelMonitor
             ResponseMatrix existing = ResponseMatrixStore.Load(this.config.Guid);
             if (existing == null)
             {
-                this.stateLabel.Text = Resources.ResponseMatrixStateMissing;
+                // Файл может лежать, но быть другого поколения — Load для него
+                // молча возвращает null, и без заглядывания в заголовок форма
+                // говорила бы «не посчитана» про матрицу, которая посчитана,
+                // просто устарела. Различие пользователю важно.
+                int fileFormat, filePhysics;
+                if (ResponseMatrix.PeekVersions(ResponseMatrixStore.PathOf(this.config.Guid),
+                                                out fileFormat, out filePhysics))
+                {
+                    this.stateLabel.Text = Resources.ResponseMatrixStateStaleVersions;
+                    this.ShowVersions(filePhysics, fileFormat, true);
+                    this.computeButton.Text = Resources.ResponseMatrixRecompute;
+                }
+                else
+                {
+                    this.stateLabel.Text = Resources.ResponseMatrixStateMissing;
+                    this.ShowVersions(0, 0, false);
+                    this.computeButton.Text = Resources.ResponseMatrixCompute;
+                }
+
                 this.SetDetails("");
-                this.computeButton.Text = Resources.ResponseMatrixCompute;
                 return;
             }
 
@@ -92,10 +110,15 @@ namespace BecquerelMonitor
             // объявлять устаревшей любую матрицу, стоило человеку тронуть
             // ползунок. Восстанавливать их из краёв сетки тоже нельзя —
             // `exp(log(30))` даёт 30.000000000000004, и отпечаток не сходится.
-            bool valid = existing.IsValidFor(this.config.Geometry);
+            int physics = ResponseMatrix.PhysicsFromStamp(existing.Stamp);
+            bool versionsMatch = physics == ResponseMatrix.PhysicsVersion;
+            bool valid = versionsMatch && existing.IsValidFor(this.config.Geometry);
             this.stateLabel.Text = valid
                 ? Resources.ResponseMatrixStateValid
-                : Resources.ResponseMatrixStateStale;
+                : versionsMatch
+                    ? Resources.ResponseMatrixStateStale
+                    : Resources.ResponseMatrixStateStaleVersions;
+            this.ShowVersions(physics, ResponseMatrix.FormatVersion, !versionsMatch);
             this.SetDetails(this.Describe(existing));
             this.computeButton.Text = Resources.ResponseMatrixRecompute;
 
@@ -109,6 +132,22 @@ namespace BecquerelMonitor
                 this.binBox.Value = (decimal)existing.Options.BinKev;
                 this.historiesBox.Value = existing.Options.Histories;
             }
+        }
+
+        /// <summary>
+        /// Строка версий генерации. Ноль в версии матрицы — матрицы нет, тогда
+        /// печатаются только текущие версии кода; несовпадение подсвечивается,
+        /// потому что именно оно браковало матрицу молча.
+        /// </summary>
+        void ShowVersions(int matrixPhysics, int matrixFormat, bool mismatch)
+        {
+            this.versionsLabel.Text = matrixPhysics > 0 || matrixFormat > 0
+                ? string.Format(CultureInfo.CurrentCulture, Resources.ResponseMatrixVersionsBoth,
+                                matrixPhysics, matrixFormat,
+                                ResponseMatrix.PhysicsVersion, ResponseMatrix.FormatVersion)
+                : string.Format(CultureInfo.CurrentCulture, Resources.ResponseMatrixVersionsCurrent,
+                                ResponseMatrix.PhysicsVersion, ResponseMatrix.FormatVersion);
+            this.versionsLabel.ForeColor = mismatch ? Color.Firebrick : SystemColors.GrayText;
         }
 
         string Describe(ResponseMatrix matrix)
@@ -202,6 +241,7 @@ namespace BecquerelMonitor
                     Resources.ResponseMatrixDone, Duration(matrix.BuildSeconds));
                 this.SetDetails(this.Describe(matrix));
                 this.stateLabel.Text = Resources.ResponseMatrixStateValid;
+                this.ShowVersions(ResponseMatrix.PhysicsVersion, ResponseMatrix.FormatVersion, false);
             }
             catch (OperationCanceledException)
             {
