@@ -66,7 +66,13 @@ namespace BecquerelMonitor.EfficiencyMaker
         //     порогово-линейная эффективная глубина, калибровка по
         //     Geant4-развёртке. Снижает пик выше ~700 кэВ (на 2614 — на 13 %)
         //     и добавляет континуум.
-        public const int PhysicsVersion = 5;
+        // 6 — континуум отклика аналоговой веткой (F14, 08.08.2026): бины ниже
+        //     пика считаются переносом ε_полной (полная сфера, многократное
+        //     рассеяние во всех областях, пролёт сквозь кристалл с возвратом,
+        //     занос электронов), пик остаётся взвешенным. Плюс F13: брусовая
+        //     кювета больше не затеняет пробу стенкой. Взвешенный континуум
+        //     недобирал 0.57–0.92 от Geant4 (журнал tccfcalc2, §11).
+        public const int PhysicsVersion = 6;
 
         /// <summary>Узлы сетки входных энергий, кэВ, по возрастанию.</summary>
         public double[] Energies { get; set; }
@@ -164,6 +170,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 sb.Append("brem=").Append(options.Bremsstrahlung ? 1 : 0).Append(';');
                 sb.Append("scat=").Append(options.SingleScatter ? 1 : 0).Append(';');
                 sb.Append("npl=").Append(options.LightNonproportionality ? 1 : 0).Append(';');
+                sb.Append("acont=").Append(options.AnalogContinuum ? 1 : 0).Append(';');
             }
 
             sb.Append("geom=").Append(GeometryText(geometry));
@@ -664,6 +671,13 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// вещества кристалла (германий, CZT) ключ ничего не меняет.
         /// </summary>
         public bool LightNonproportionality = true;
+
+        /// <summary>
+        /// Континуум строк — аналоговой веткой переноса (физика 6, F14);
+        /// выключенный ключ возвращает прежний взвешенный континуум с его
+        /// измеренным недобором 0.57–0.92 от Geant4 — только для сравнения.
+        /// </summary>
+        public bool AnalogContinuum = true;
 
         /// <summary>Потоков; 0 — по числу ядер минус один.</summary>
         public int Threads;
