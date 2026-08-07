@@ -387,6 +387,12 @@
   <data name="FSANoEfficiencyMark" xml:space="preserve">
     <value> (без кривой)</value>
   </data>
+  <data name="FSAMatrixMark" xml:space="preserve">
+    <value> · матрица</value>
+  </data>
+  <data name="FSANoMatrixMark" xml:space="preserve">
+    <value> · без матрицы</value>
+  </data>
   <data name="FSADriftEdgeMark" xml:space="preserve">
     <value> !</value>
   </data>
@@ -1384,6 +1390,15 @@
   </data>
   <data name="ResponseMatrixStateStale" xml:space="preserve">
     <value>Устарела: геометрия или параметры изменились после расчёта. Нужно пересчитать.</value>
+  </data>
+  <data name="ResponseMatrixStateStaleVersions" xml:space="preserve">
+    <value>Устарела: посчитана другим поколением переноса. Нужно пересчитать.</value>
+  </data>
+  <data name="ResponseMatrixVersionsCurrent" xml:space="preserve">
+    <value>Текущая генерация: физика {0}, формат файла {1}.</value>
+  </data>
+  <data name="ResponseMatrixVersionsBoth" xml:space="preserve">
+    <value>Генерация матрицы: физика {0}, формат файла {1} — текущий код: физика {2}, формат {3}.</value>
   </data>
   <data name="ResponseMatrixStateValid" xml:space="preserve">
     <value>Годна для текущей геометрии.</value>

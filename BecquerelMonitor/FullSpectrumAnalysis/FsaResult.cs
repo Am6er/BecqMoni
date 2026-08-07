@@ -72,6 +72,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Кривая эффективности была учтена.</summary>
         public bool EfficiencyUsed { get; set; }
 
+        /// <summary>
+        /// Образы построены по матрице отклика (S2). Без пометки «с матрицей»
+        /// и «без матрицы» неотличимы на глаз, а браковка матрицы по
+        /// отпечатку или формату файла молчалива — разложение просто тихо
+        /// становится хуже.
+        /// </summary>
+        public bool ResponseMatrixUsed { get; set; }
+
         public FsaResult()
         {
             this.Components = new List<FsaComponentResult>();

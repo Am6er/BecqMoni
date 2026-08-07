@@ -408,6 +408,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 OffsetChannels = offset,
                 LiveTime = liveTime,
                 EfficiencyUsed = efficiencyUsed,
+                ResponseMatrixUsed = this.ResponseMatrix != null,
                 DriftOnGridEdge = driftOnEdge,
                 Background = backgroundCurve,
                 Continuum = new double[channels],

@@ -50,7 +50,20 @@ namespace BecquerelMonitor
                 Font = new Font(this.Font, FontStyle.Bold)
             };
             this.Controls.Add(this.stateLabel);
-            y += this.stateLabel.Height + 4;
+            y += this.stateLabel.Height + 2;
+
+            // Версии генерации прямым текстом: физика переноса и формат файла.
+            // Браковка по ним молчалива (Load просто вернёт null), и без этой
+            // строки «нет матрицы» и «матрица есть, но другого поколения»
+            // неотличимы.
+            this.versionsLabel = new Label
+            {
+                Location = new Point(Pad, y),
+                Size = new Size(FormWidth - 2 * Pad, 18),
+                ForeColor = SystemColors.GrayText
+            };
+            this.Controls.Add(this.versionsLabel);
+            y += this.versionsLabel.Height + 4;
 
             // Подробности — не одна многострочная надпись, а строки по одной на
             // метку с явным шагом: у Label межстрочный интервал прибит к высоте

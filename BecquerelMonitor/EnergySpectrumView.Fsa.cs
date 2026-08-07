@@ -566,6 +566,12 @@ namespace BecquerelMonitor
             }
 
             string quality = "χ²/ndf";
+            // Пометка S2: с матрицей отклика образы или без — всегда, одна из
+            // двух. Молчать нельзя: матрица бракуется по отпечатку и формату
+            // файла без единого сообщения, и «без матрицы» иначе неотличимо.
+            quality += result.ResponseMatrixUsed
+                ? Resources.FSAMatrixMark
+                : Resources.FSANoMatrixMark;
             if (!result.EfficiencyUsed)
             {
                 quality += Resources.FSANoEfficiencyMark;

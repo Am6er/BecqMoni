@@ -558,6 +558,60 @@ namespace BecquerelMonitor.EfficiencyMaker
             };
         }
 
+        /// <summary>
+        /// Версии генерации из файла БЕЗ чтения матрицы целиком: версия формата
+        /// и версия физики из отпечатка (`phys=N;` — первый ключ). Заголовок
+        /// «магия, формат, отпечаток» одинаков у всех форматов, поэтому
+        /// работает и для файла, который <see cref="Load"/> читать отказался, —
+        /// ради формы, которая обязана сказать «устарела: формат N», а не
+        /// «матрицы нет». false — файла нет или он не наш; неразобранная
+        /// физика возвращается нулём (файл старше отпечатков с `phys=`).
+        /// </summary>
+        public static bool PeekVersions(string path, out int format, out int physics)
+        {
+            format = 0;
+            physics = 0;
+            if (!File.Exists(path))
+            {
+                return false;
+            }
+
+            try
+            {
+                using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+                using (var reader = new BinaryReader(stream, Encoding.UTF8))
+                {
+                    if (Encoding.ASCII.GetString(reader.ReadBytes(4)) != "BQRM")
+                    {
+                        return false;
+                    }
+
+                    format = reader.ReadInt32();
+                    physics = PhysicsFromStamp(reader.ReadString());
+                    return true;
+                }
+            }
+            catch (Exception)
+            {
+                return format > 0;      // формат прочли — уже есть что сказать
+            }
+        }
+
+        /// <summary>Версия физики из отпечатка; 0 — в отпечатке её нет.</summary>
+        public static int PhysicsFromStamp(string stamp)
+        {
+            if (string.IsNullOrEmpty(stamp) || !stamp.StartsWith("phys=", StringComparison.Ordinal))
+            {
+                return 0;
+            }
+
+            int end = stamp.IndexOf(';');
+            int value;
+            return end > 5 && int.TryParse(stamp.Substring(5, end - 5), NumberStyles.None,
+                                           CultureInfo.InvariantCulture, out value)
+                ? value : 0;
+        }
+
         /// <summary>Читает матрицу; null, если файла нет или он не наш.</summary>
         public static ResponseMatrix Load(string path)
         {
