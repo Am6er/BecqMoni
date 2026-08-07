@@ -38,6 +38,7 @@ namespace EffSim
                 bool mountFront = false;
                 bool electron = true, brems = true, xray = true, cohPass = true, scatter = true;
                 bool kfracEnergy = true;
+                bool analogContinuum = true;
                 double detour = 1.0, halfWidth = 0.0, halfWidthFraction = 0.0, fwhm662 = 0.0;
                 double point = -1.0;
                 string list = null;
@@ -69,6 +70,9 @@ namespace EffSim
                         // доля K-оболочки константой со скачка на крае, как до
                         // пооболочечных сечений EPICS2017 — измерительный ключ
                         case "--no-kfrac-e": kfracEnergy = false; break;
+                        // старый взвешенный континуум отклика вместо аналоговой
+                        // ветки (физика 6) — измерительный ключ для A/B
+                        case "--no-acont": analogContinuum = false; break;
                         // разрешение прибора: ПШПВ на 662 кэВ в процентах; даёт
                         // допуск пика по энергии, как DS_Fwhm662 в геометрии
                         case "--fwhm662":
@@ -155,6 +159,7 @@ namespace EffSim
                         SingleScatter = scatter,
                         KFractionByEnergy = kfracEnergy,
                         ElectronDetour = detour,
+                        AnalogContinuum = analogContinuum,
                         // сверка с Geant4 — в шкале ПОГЛОЩЁННОЙ энергии
                         LightNonproportionality = false,
                     };

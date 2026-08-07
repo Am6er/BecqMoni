@@ -157,6 +157,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 Bremsstrahlung = options.Bremsstrahlung,
                 SingleScatter = options.SingleScatter,
                 LightNonproportionality = options.LightNonproportionality,
+                AnalogContinuum = options.AnalogContinuum,
                 PeakHalfWidthKev = 0.0
             };
 

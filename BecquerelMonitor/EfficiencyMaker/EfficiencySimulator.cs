@@ -252,6 +252,29 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public bool SingleScatter = true;
 
+        /// <summary>
+        /// Континуум отклика — АНАЛОГОВОЙ веткой (физика 6, F14).
+        ///
+        /// Взвешенная проводка (конус + exp(−τ) + одно рассеяние) хороша для
+        /// пика, но континуум систематически недобирает: кросс-проверка строк
+        /// отклика против Geant4 на девяти геометриях дала 0.57–0.92 по полной
+        /// сумме строки, полосы малых сумм — 0.2–0.8, хуже всего маринелли
+        /// (tools/tccfcalc2/README.md, §11). Не хватает ровно того, что уже
+        /// чинилось в ε_полной: полной сферы направлений, многократного
+        /// рассеяния по всем областям, пролёта сквозь кристалл с возвратом
+        /// из-за него и заноса электронов.
+        ///
+        /// Поэтому бины НИЖЕ пика считаются отдельным аналоговым прогоном тем
+        /// же переносом, что <see cref="TotalEfficiency"/>, а бин пика остаётся
+        /// за взвешенной оценкой — у неё дисперсия пика на порядок лучше.
+        /// Классы историй не пересекаются по построению: аналоговый вклад,
+        /// округлившийся в бин пика, отбрасывается.
+        ///
+        /// На кривую эффективности ключ не влияет вовсе: аналоговая ветка
+        /// запускается только при счёте гистограммы отклика.
+        /// </summary>
+        public bool AnalogContinuum = true;
+
         readonly GeometryModel geometry;
         readonly List<Region> regions = new List<Region>();
         Region crystal;
@@ -1819,6 +1842,50 @@ namespace BecquerelMonitor.EfficiencyMaker
         bool ElectronReachesCrystal(double x, double y, double z,
                                     double ux, double uy, double uz, double energyKev)
         {
+            double used;
+            return this.ElectronWalkToCrystal(x, y, z, ux, uy, uz, energyKev, out used);
+        }
+
+        /// <summary>
+        /// Занос электрона с ЭНЕРГИЕЙ (аналоговый континуум, F14): тот же обход,
+        /// но долетевший электрон приносит остаток своей энергии, а не бит
+        /// «долетел». Остаток берётся по энергетическому эквиваленту
+        /// неизрасходованной доли пробега в таблице вещества кристалла — та же
+        /// связка энергия-пробег, что у вылета из кристалла
+        /// (<see cref="ElectronLoss"/>), только в обратную сторону. Кристалла
+        /// нет в таблицах — остаток линеен по доле, грубее, но того же порядка.
+        /// Свет заносного вклада взвешивается его же энергией входа.
+        /// </summary>
+        bool ElectronCarryDeposit(double x, double y, double z,
+                                  double ux, double uy, double uz, double energyKev,
+                                  out double depositKev)
+        {
+            depositKev = 0.0;
+            double used;
+            if (!this.ElectronWalkToCrystal(x, y, z, ux, uy, uz, energyKev, out used))
+            {
+                return false;
+            }
+
+            double left = Math.Max(0.0, 1.0 - used);
+            depositKev = this.electron != null
+                ? ElectronData.EnergyOfRange(this.electron,
+                      left * ElectronData.RangeOf(this.electron, energyKev))
+                : energyKev * left;
+            if (!(depositKev > 0.0))
+            {
+                return false;
+            }
+
+            this.AddLight(depositKev, depositKev);
+            return true;
+        }
+
+        bool ElectronWalkToCrystal(double x, double y, double z,
+                                   double ux, double uy, double uz, double energyKev,
+                                   out double usedFraction)
+        {
+            usedFraction = 0.0;
             if (energyKev < 20.0)
             {
                 return false;               // пробег меньше ~10 мкм — не долетит
@@ -1830,6 +1897,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 Region here = this.At(x, y, z);
                 if (here != null && here.IsCrystal)
                 {
+                    usedFraction = used;
                     return true;
                 }
 
@@ -2228,6 +2296,13 @@ namespace BecquerelMonitor.EfficiencyMaker
             double variance = Math.Max(0.0, sum2 / n - mean * mean);
             relativeError = mean > 0.0 ? Math.Sqrt(variance / n) / mean * 100.0 : 0.0;
 
+            // Континуум — аналоговой веткой (физика 6): бины ниже пика
+            // перезаписываются до нормировки, оба прогона на одних n.
+            if (histogram != null && histogram.Length > 1 && this.AnalogContinuum)
+            {
+                this.AnalogContinuumRun(energyKev, histogram, binKev, n);
+            }
+
             // Бины копят сумму весов, а величина отклика — среднее по историям,
             // ровно как возвращаемая эффективность. Без этого деления отклик
             // выходит больше единицы и вообще не вероятность.
@@ -2252,6 +2327,179 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             this.RemapLightScale(energyKev, binKev, histogram, n);
             return mean;
+        }
+
+        /// <summary>
+        /// Аналоговый прогон континуума (<see cref="AnalogContinuum"/>): свои
+        /// n историй полной сферой направлений и настоящими взаимодействиями во
+        /// всех областях — как в <see cref="TotalEfficiency"/>, но со счётом
+        /// ПОГЛОЩЁННОЙ энергии вместо бита «задел». Вклады одной истории
+        /// суммируются: занос комптон-электрона и его же рассеянный квант —
+        /// одно событие в детекторе, Geant4 складывает их так же.
+        ///
+        /// Судьбу кванта в кристалле решает <see cref="InCrystal"/> от точки
+        /// входа: пролёт без взаимодействия он воспроизводит сам (его первый же
+        /// розыгрыш пробега — та самая exp(−μ·путь)), и пролетевший квант
+        /// продолжает путь с дальней грани — возврат рассеянием из-за кристалла
+        /// был заметной частью недобора полос малых сумм. Квант, вылетевший из
+        /// кристалла ПОСЛЕ вклада, дальше не ведётся (повторный залёт после
+        /// вылета не смоделирован — как и во взвешенной ветке); аннигиляционные
+        /// кванты от пар ВНЕ кристалла не разыгрываются (фотон гибнет, занос
+        /// достаётся электронам) — обе оговорки записаны в журнале.
+        ///
+        /// Бины [0, пик) гистограммы, каналов и света перезаписываются суммами
+        /// весов этого прогона; вклад, округлившийся в бин пика, отбрасывается —
+        /// пик остаётся за взвешенной оценкой, и классы не пересекаются.
+        /// </summary>
+        void AnalogContinuumRun(double energyKev, double[] histogram, double binKev, int n)
+        {
+            int peak = histogram.Length - 1;
+            double[] hist = new double[histogram.Length];
+            double[][] channels = null;
+            if (this.channelHistograms != null)
+            {
+                channels = new double[ResponseChannelCount][];
+                for (int c = 0; c < ResponseChannelCount; c++)
+                {
+                    channels[c] = new double[histogram.Length];
+                }
+            }
+
+            double[] light = this.lightSum != null ? new double[histogram.Length] : null;
+            double limit = 40.0 * this.sphereR + 200.0;
+            for (int i = 0; i < n; i++)
+            {
+                double x, y, z;
+                this.source.Next(this, out x, out y, out z);
+                double ux, uy, uz;
+                this.Isotropic(out ux, out uy, out uz);
+
+                this.lossAnnihilation = 0.0;
+                this.lossXray = 0.0;
+                this.lightDeposit = 0.0;
+
+                double e = energyKev;
+                double deposited = 0.0;
+                double travelled = 0.0;
+                for (int guard = 0; guard < 400 && e > 1.0; guard++)
+                {
+                    Region here = this.At(x, y, z);
+                    if (here != null && here.IsCrystal)
+                    {
+                        double escaped = this.InCrystal(x, y, z, ux, uy, uz, e, 0);
+                        if (e - escaped > 1e-9)
+                        {
+                            deposited += e - escaped;
+                            break;
+                        }
+
+                        // пролетел насквозь без вклада — с дальней грани дальше
+                        double through = this.CrystalPath(x, y, z, ux, uy, uz) + 1e-7;
+                        x += ux * through;
+                        y += uy * through;
+                        z += uz * through;
+                        travelled += through;
+                        continue;
+                    }
+
+                    double step = this.StepToBoundary(x, y, z, ux, uy, uz);
+                    if (step >= double.MaxValue || travelled + step > limit)
+                    {
+                        break;              // ушёл из сцены
+                    }
+
+                    double muKill = here == null ? 0.0
+                        : here.Material.LinearAttenuationWithoutCoherent(e);
+                    if (muKill > 0.0)
+                    {
+                        double free = -Math.Log(1.0 - this.Uniform()) / muKill;
+                        if (free < step)
+                        {
+                            x += ux * free;
+                            y += uy * free;
+                            z += uz * free;
+                            travelled += free;
+                            double incoherent = here.Material.LinearIncoherent(e);
+                            double carried;
+                            if (this.Uniform() * muKill >= incoherent)
+                            {
+                                // Фотопоглощение или пары вне кристалла: фотон
+                                // погиб, электрон может донести остаток (F1).
+                                if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz, e, out carried))
+                                {
+                                    deposited += carried;
+                                }
+
+                                break;
+                            }
+
+                            double cos = this.ComptonCosine(e);
+                            double after = e / (1.0 + e / ElectronMassKev * (1.0 - cos));
+                            // Занос комптон-электрона — ДО поворота фотона (см.
+                            // шапку ElectronReachesCrystal); фотон летит дальше.
+                            if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz, e - after, out carried))
+                            {
+                                deposited += carried;
+                            }
+
+                            e = after;
+                            this.Rotate(ref ux, ref uy, ref uz, cos);
+                            continue;
+                        }
+                    }
+
+                    double next = step + 1e-7;
+                    x += ux * next;
+                    y += uy * next;
+                    z += uz * next;
+                    travelled += next;
+                }
+
+                if (!(deposited > 0.0))
+                {
+                    continue;
+                }
+
+                int bin = (int)(deposited / binKev + 0.5);
+                if (bin >= peak)
+                {
+                    continue;               // бин пика — за взвешенной оценкой
+                }
+
+                hist[bin] += 1.0;
+                if (light != null)
+                {
+                    light[bin] += this.lightDeposit;
+                }
+
+                if (channels != null)
+                {
+                    ResponseChannel channel = this.ChannelOf(energyKev - deposited);
+                    if (channel == ResponseChannel.Peak)
+                    {
+                        channel = ResponseChannel.Compton;
+                    }
+
+                    channels[(int)channel][bin] += 1.0;
+                }
+            }
+
+            for (int b = 0; b < peak; b++)
+            {
+                histogram[b] = hist[b];
+                if (light != null)
+                {
+                    this.lightSum[b] = light[b];
+                }
+
+                if (channels != null)
+                {
+                    for (int c = 0; c < ResponseChannelCount; c++)
+                    {
+                        this.channelHistograms[c][b] = channels[c][b];
+                    }
+                }
+            }
         }
 
         /// <summary>
