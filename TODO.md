@@ -29,32 +29,7 @@
 | # | задача | детали |
 |---|---|---|
 | B1 | Реорганизовать корпус: задать геометрии, построить матрицу на каждую, разделить на понятные и непонятные спектры. До этого ВСЕ прогоны по корпусу остановлены. **Обход на время блокера (решение Amber 06.08.2026): мерило — НОВАЯ TCCFCALC** (NuclideMasterPlus 2.10): `run_tccf2.py` считает эталон по любой геометрии и сетке без спектров корпуса; наш/новая на цилиндре 0.98–1.07 | [tools/CORPUS/README.md](tools/CORPUS/README.md), блок «⛔ БЛОКЕР»; [tools/tccfcalc2/README.md](tools/tccfcalc2/README.md), §7 |
-| B2 | Выбрать формат снапшота — без него этап 5 рефакторинга не оценить, а от него зависят этапы 2, 7, 8 | [arch/review-arch-notes.md](arch/review-arch-notes.md), §2.4 |
 | B3 | ~~Завести конфигурацию «RC-103 (282)»~~ (появилась в поставке 06.08.2026, ПШПВ-точка разумная — канал 266 при 1024) и починить ПШПВ-калибровку RC-103 (только руками Amber); дальше — E5 | [tools/effmaker/README.md](tools/effmaker/README.md), «Открытые пункты» |
-
-## P0 — продукт не работает из коробки
-
-Задевает ВСЕХ пользователей прямо сейчас, у всех новых — с первого запуска.
-Разбор и точные ссылки на строки — [arch/review-arch-notes.md](arch/review-arch-notes.md),
-таблица «Восемь правок».
-
-| # | задача | детали |
-|---|---|---|
-| **G1** | В поставочном `config/NuclideDefinition.xml` ноль тегов `Sets`/`IsAnchor` — гейт `LibraryPeakFitter` (ветка конструктора, на `pie` класса нет) не пускает библиотечный фит. **Половина закрыта 06.08.2026: `Intencity` проставлен из базы (см. ~~N8~~), FSA на `pie` работает от файла.** Остаток `Sets`/`IsAnchor` — чинится на ветке `roi-wizard-reworked` | [arch/review-arch-notes.md](arch/review-arch-notes.md); [scheme.md](database/scheme.md) §9а F-1 |
-| **G2** | `EfficencyROIGuid` не проставлен ни в одном из девяти поставочных device-конфигов — fallback `ROIConfigList[0]` подставляет ЧУЖИЕ зоны. **Сужена 06.08.2026:** для КРИВОЙ вред снят переездом эффективности в конфиг прибора (`ActiveEfficiencyGuid`, пусто = не считается + статус «нет K», G7); остались чужие ЗОНЫ. Разметка прибор→ROI — только руками Amber, кандидаты неоднозначны (Nano 15 Pro: «Atom Nano 3» или «Atom Nano 8»; RC-101/RC-103: «RadiaCode Cs-137» или «RadiaCode Marinelli 0.5»; личный выбор Amber «RadiaCode - cilinder» в поставке отсутствует) | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
-
-## P1 — дефекты продукта
-
-| # | задача | детали |
-|---|---|---|
-| ~~G3~~ | ~~Точка ε > 1 в `Obsidian Marinelli 0.5.xml`~~ — уже вылечена ранее: кривая в файле заменена (максимум 5.1·10⁻³, точек ε > 1 нет ни в одном ROI-файле поставки; проверено 06.08.2026) | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
-| G4 | `SetExporter.BuildRoiConfig` не пишет `BecquerelCoefficient` — любой набор из мастера даёт 0 Бк. **На `pie` не чинится: класса здесь нет, он на ветке `roi-wizard-reworked`** | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
-| ~~G5~~ | ~~Жёсткий каст к `PolynomialEnergyCalibration` в `DoseRateManager`~~ — исправлено 06.08.2026: базовый тип, `EnergyToChannel` абстрактный | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
-| ~~G6~~ | ~~Доза зависит от галки отображения фона~~ — исправлено 06.08.2026: доза всегда по измеренному спектру, параметр режима убран | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
-| ~~G7~~ | ~~Тихий нуль K вместо статуса~~ — исправлено 06.08.2026: перевод в Бк без K/массы/объёма даёт строку «нет K»/«нет массы»/«нет объёма» вместо 0; заодно починено, что `Translate`/`Correct` ТЕРЯЛИ `IsValid=false` и строка «Ошибка» не доживала до таблицы | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
-| ~~G8~~ | ~~`break` на `OutofChannelException` в отрисовке областей~~ — уже вылечена ранее: исключение и `break` исчезли вместе с переводом `EnergyToChannel` на явное число каналов (проверено 06.08.2026: в `ShowROIBorderLine` ни try, ни break) | [arch/review-arch-notes.md](arch/review-arch-notes.md) |
-| G9 | Стабильные индексы линий nucdb — закрывает класс поломок при пересборке базы | [arch/review-arch-notes.md](arch/review-arch-notes.md), «Волна 1» |
-| G10 | Санитария ссылок: резолвы по имени (`ROIReferenceData`, `SelectROIDialog`) и по индексу комбобокса ломаются чаще Guid | [arch/review-arch-notes.md](arch/review-arch-notes.md), этап 0 |
 
 ## P1 — физика модели детектора
 
@@ -227,7 +202,6 @@
 | T5 | Довести спектр новой TCCFCALC: `CalculateSpectrum(активность)` пишет `test_spectr.spe` в формате SpectraLine, но пустой — `TLIVE=0`, `TREAL=0`, время измерения задаётся не этим параметром | [tools/tccfcalc2/README.md](tools/tccfcalc2/README.md), §4 |
 | T6 | Разобрать `TCCFCALC_Prepare_Json` новой DLL: только через json доступны `ContainerSource` (ячейки произвольной формы с вложенностью), `ResponseMatrix`/`DetectorResponse` и коллиматор | [tools/tccfcalc2/README.md](tools/tccfcalc2/README.md), §4 |
 | T7 | Проверить, читаются ли `useEPDL97` и `useGLECS` из `tccfcalc.in`: шапка отчёта их не печатает, измеримого действия они не дают | [tools/tccfcalc2/README.md](tools/tccfcalc2/README.md), §3 |
-| T8 | Отправить Geant4-контуру ответ (сентябрь): ответы на их 6 вопросов готовы, приложить полный текст описания кривой (их вопрос 5) и разложение по каналам на их узлах 2100–3000 (`ResponseByChannel`) | [arch/geant4-contour-2026-08.md](arch/geant4-contour-2026-08.md) |
 
 ## Отложенные прогоны
 
