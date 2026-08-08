@@ -39,22 +39,35 @@
 //     на библиотеку — это разные вещи;
 //   * пятое слово — тоже строка, приписывается к пути библиотеки спереди;
 //     пустая строка означает «библиотека в <baseDir>Lib»;
-//   * шестое слово — целое, внутри `prepare_internal` идёт через `fild` в
-//     double; на прогон не влияет, оставлено нулём (см. --p6).
+//   * шестое слово — **ЗЕРНО ГСЧ** (разобрано 08.08.2026, README §13.8): в
+//     `prepare_internal` оно через `fild` уходит в конструктор `ggubfs`
+//     (Лемер 16807 mod 2³¹−1); ноль означает «взять `time(0)`». Ненулевое
+//     зерно даёт ПОБИТОВО воспроизводимый прогон — ключ `--seed`
+//     (прежнее имя `--p6` оставлено синонимом).
 //
-// Возврат `Prepare` — номер сообщения в таблице `errstr` внутри DLL:
+// Возврат `Prepare` — номер сообщения в таблице `errstr` внутри DLL
+// (выписана целиком 08.08.2026, README §13.4):
 //
-//   0 всё хорошо           5 TCCFCALC.IN file not found
-//   1 Memory allocation    6 Incorrect input geometry or material data
-//   2 Attenuation library  7 No ENSDF data found for the specified A, Z and M
-//   3 No GLECS database    8 There is no valid record in ENSDF data library
-//   4 ECCBINDX.BIN         9 Normalization record is not complete
-//                         10 ICC.BIN   11 No X- or gamma-rays emitted
-//                         12 No EPDL97  13 No Ttb  14 No Elib
-//                         15..21 разбор входного json   22 Respapprox init
+//   0 всё хорошо                          12 No EPDL97 library
+//   1 Memory allocation error             13 No Ttb library
+//   2 Unable to load Photon Attenuation…  14 No Elib library
+//   3 No GLECS database                   15 Bad input json file
+//   4 Could not find ECCBINDX.BIN         16 Error while parsing input json
+//   5 TCCFCALC.IN file not found          17 …parsing detector from json
+//   6 Incorrect input geometry/material   18 …parsing source/nuclide/ContainerSource
+//   7 No ENSDF data for the given A, Z, M 19 …parsing calc_params
+//   8 No valid record in ENSDF library    20 …parsing analyzer
+//   9 ENSDF: Normalization record …       21 Other errors while parsing json
+//  10 Could not find ICC.BIN              22 Respapprox init error
+//  11 No X- or gamma-rays are emitted
 //
 // Геометрия и вещества — `tccfcalc.in` в baseDir, отчёт — `tccfcalc.out` там
 // же. Работать только в своей копии каталога, установку ЛСРМ не трогать.
+//
+// ВХОД ЧЕРЕЗ JSON (ключ `--json=файл`) — единственный путь к `useEPDL97`,
+// `useGLECS`, `calc_electron_real`, порогам и параметрам спектра: в
+// `.in`-ветке разбора этих ключей НЕТ (README §13.3, §13.5). Схема json —
+// там же; `Prepare_Json(путь, baseDir)`, узел `Source` обязателен.
 //
 // Сборка:
 //   csc /platform:x86 /out:TccfProbe2.exe TccfProbe2.cs
@@ -68,7 +81,13 @@ static class TccfProbe2
 
     [DllImport(Dll, EntryPoint = "TCCFCALC_Prepare@24", ExactSpelling = true,
                CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Ansi)]
-    static extern int Prepare(int a, int z, int m, string baseDir, string libDir, int p6);
+    static extern int Prepare(int a, int z, int m, string baseDir, string libDir, int seed);
+
+    // Вход через json: путь к файлу и baseDir (библиотека, отчёт). Разобран
+    // 08.08.2026 — README §13.5.
+    [DllImport(Dll, EntryPoint = "TCCFCALC_Prepare_Json@8", ExactSpelling = true,
+               CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Ansi)]
+    static extern int PrepareJson(string jsonPath, string baseDir);
 
     [DllImport(Dll, EntryPoint = "TCCFCALC_Calculate@4", ExactSpelling = true,
                CallingConvention = CallingConvention.StdCall)]
@@ -102,8 +121,8 @@ static class TccfProbe2
         if (args.Length < 4)
         {
             Console.Error.WriteLine(
-                "TccfProbe2 <каталог> <A> <Z> <M> [распадов] [--lib=путь] [--p6=N]"
-                + " [--sec=S] [--spectrum=секунд[:файл]]");
+                "TccfProbe2 <каталог> <A> <Z> <M> [распадов] [--lib=путь]"
+                + " [--seed=N] [--json=файл] [--sec=S] [--spectrum=активность[:файл]]");
             return 2;
         }
 
@@ -111,7 +130,8 @@ static class TccfProbe2
         int a = int.Parse(args[1]), z = int.Parse(args[2]), m = int.Parse(args[3]);
         int decays = 100000;
         string libDir = "";
-        int p6 = 0;
+        int seed = 0;
+        string json = null;
         double seconds = -1.0;
         double spectrumSeconds = -1.0;
         string spectrumPath = "spectrum.spe";
@@ -120,7 +140,9 @@ static class TccfProbe2
         {
             string s = args[i];
             if (s.StartsWith("--lib=")) libDir = s.Substring(6);
-            else if (s.StartsWith("--p6=")) p6 = int.Parse(s.Substring(5));
+            else if (s.StartsWith("--json=")) json = s.Substring(7);
+            else if (s.StartsWith("--seed=")) seed = int.Parse(s.Substring(7));
+            else if (s.StartsWith("--p6=")) seed = int.Parse(s.Substring(5));
             else if (s.StartsWith("--sec=")) seconds = double.Parse(s.Substring(6),
                 System.Globalization.CultureInfo.InvariantCulture);
             else if (s.StartsWith("--spectrum="))
@@ -156,15 +178,26 @@ static class TccfProbe2
         Console.WriteLine("каталог: " + baseDir);
         Console.WriteLine("библиотека: " + (libDir == "" ? "<baseDir>Lib" : libDir));
         Console.WriteLine("нуклид: A=" + a + " Z=" + z + " M=" + m
-                          + ", распадов " + decays + ", p6=" + p6);
+                          + ", распадов " + decays + ", зерно=" + seed
+                          + (json == null ? "" : ", json=" + json));
 
         int rc;
         try
         {
             rc = Reset();
             Console.WriteLine("Reset -> " + rc);
-            rc = Prepare(a, z, m, baseDir, libDir, p6);
-            Console.WriteLine("Prepare -> " + rc);
+            if (json != null)
+            {
+                // Зерно через json НЕ задаётся: `Prepare_Json` шестого слова
+                // не принимает — прогон будет от `time(0)`.
+                rc = PrepareJson(Path.GetFullPath(json), baseDir);
+                Console.WriteLine("Prepare_Json -> " + rc);
+            }
+            else
+            {
+                rc = Prepare(a, z, m, baseDir, libDir, seed);
+                Console.WriteLine("Prepare -> " + rc);
+            }
             if (rc != 0)
             {
                 Console.WriteLine("Prepare отказал, считать нечего");
