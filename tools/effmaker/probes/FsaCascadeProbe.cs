@@ -39,13 +39,14 @@ namespace FsaCascadeProbe
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
             string spectrumPath = null, backgroundPath = null, efficiencyName = null, dumpGeometry = null;
-            bool rebuild = false, force = false;
+            bool rebuild = false, force = false, describe = false;
             int maxLines = 12;
             double scanFrom = 0.0, scanTo = 0.0;
             foreach (string a in args)
             {
                 if (a == "--rebuild") { rebuild = true; continue; }
                 if (a == "--force") { force = true; continue; }
+                if (a == "--describe") { describe = true; continue; }
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) spectrumPath = a.Substring(11);
                 else if (a.StartsWith("--background=", StringComparison.Ordinal)) backgroundPath = a.Substring(13);
                 else if (a.StartsWith("--efficiency=", StringComparison.Ordinal)) efficiencyName = a.Substring(13);
@@ -185,6 +186,22 @@ namespace FsaCascadeProbe
             Console.WriteLine();
             Console.WriteLine("компонентов поправлено {0} из {1}, сумм-пиков всего {2}",
                               corrected, library.Count, sumPeaks);
+
+            if (describe)
+            {
+                // Перечень «что именно посчитано суммой» — то, что у ЛСРМ
+                // печатается разделом «Coincidence sum peaks» (F25). Нужен при
+                // сверке CF: без пары, породившей сумму, и без раскладки CF на
+                // вынос и влёт два числа сравнить нельзя.
+                Console.WriteLine();
+                Console.WriteLine("=== перечень сумм-пиков и раскладка CF (F25) ===");
+                foreach (FsaComponent component in library)
+                {
+                    Console.WriteLine();
+                    Console.Write(summer.Describe(component));
+                }
+            }
+
             if (!string.IsNullOrEmpty(FsaCascadeSummer.Failure))
             {
                 Console.WriteLine("ОТКАЗ БАЗЫ: {0}", FsaCascadeSummer.Failure);
