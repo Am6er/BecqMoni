@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using Microsoft.Data.Sqlite;
 using System.Windows.Forms;
 
@@ -15,8 +16,11 @@ namespace BecquerelMonitor.NucBase
 
         SqliteConnection CreateConnection()
         {
-            string DBPath = Environment.CurrentDirectory + "\\nucdb.sqlite;";
-            sqlite_conn = new SqliteConnection("Data Source=" + DBPath + "Mode=ReadOnly;Cache=Shared;");
+            // Каталог приложения, а НЕ текущий: текущий меняет любой диалог открытия
+            // файла, после чего база просто не находится. Все остальные читатели баз
+            // берут путь так же (T23).
+            string DBPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nucdb.sqlite");
+            sqlite_conn = new SqliteConnection("Data Source=" + DBPath + ";Mode=ReadOnly;Cache=Shared;");
             try
             {
                 sqlite_conn.Open();

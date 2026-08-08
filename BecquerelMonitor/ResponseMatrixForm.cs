@@ -42,11 +42,22 @@ namespace BecquerelMonitor
 
         /// <summary>
         /// С какой ошибки интеграла континуума строки предупреждать, %.
-        /// На контактной геометрии аналоговая ветка набирает десятки тысяч
-        /// событий на узел (доли процента), так что порог молчит там, где
-        /// всё хорошо, и говорит на дальней геометрии и точечном источнике.
+        ///
+        /// Считается по ВЗВЕШЕННОЙ величине
+        /// (<see cref="EfficiencyMaker.ResponseMatrix.ContinuumWeightedError"/>), а не
+        /// по худшему узлу: довод «на контактной геометрии узел набирает доли
+        /// процента» измерением не подтвердился — верх шкалы голодает и на
+        /// контакте (11.25 % против 3.6 % на 662 той же геометрии), и порог 2 %
+        /// по худшему узлу горел ВСЕГДА. Предупреждение, которое горит всегда,
+        /// никто не читает (T15).
+        ///
+        /// Величина порога взята по замеру: цилиндр на 50 мм, умолчания (100
+        /// узлов, 300 тыс. историй) дают 4.57 % взвешенной при 20.00 % худшей.
+        /// То есть при умолчаниях на обычной геометрии порог молчит, а вчетверо
+        /// большее число историй уводит величину к 2.3 % — предупреждение
+        /// гаснет ровно от того действия, которое само же и советует.
         /// </summary>
-        const double ContinuumNoiseWarnPercent = 2.0;
+        const double ContinuumNoiseWarnPercent = 5.0;
 
         CancellationTokenSource cancellation;
         ResponseMatrix computed;
@@ -293,11 +304,11 @@ namespace BecquerelMonitor
                 // пик остаётся точным, а континуум может оказаться шумом. Без
                 // этой строки различить нечем — оценка ошибки, что стоит выше,
                 // описывает пик (F23).
-                if (matrix.ContinuumRelativeError > ContinuumNoiseWarnPercent)
+                if (matrix.ContinuumWeightedError > ContinuumNoiseWarnPercent)
                 {
                     this.progressLabel.Text += string.Format(CultureInfo.CurrentCulture,
                         Resources.ResponseMatrixContinuumNoise,
-                        matrix.ContinuumRelativeError.ToString("n1", CultureInfo.CurrentCulture));
+                        matrix.ContinuumWeightedError.ToString("n1", CultureInfo.CurrentCulture));
                 }
 
                 this.SetDetails(this.Describe(matrix));

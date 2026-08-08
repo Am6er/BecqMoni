@@ -1,0 +1,433 @@
+using BecquerelMonitor;
+using BecquerelMonitor.EfficiencyMaker;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Threading;
+
+// B1: геометрии «ПОНЯТНОЙ» части корпуса — построить их из встроенных шаблонов
+// приложения и паспортных данных самих спектров, записать файлами `.in` и
+// проверить машинно, что объём пробы у построенной сцены сходится с паспортным.
+//
+// Зачем. Корпусным спектрам геометрия не задана, поэтому образ компонента у них
+// строится старым путём (из одних пиков), и числа «с матрицей» и «без матрицы»
+// несравнимы — это и есть блокер B1. Геометрию можно восстановить не везде:
+// решение Amber 09.08.2026 — «понятными» объявляются только те спектры, у
+// которых сосуд и расстояние НАЗВАНЫ, остальные идут в «непонятные» без
+// выдумывания. Названы они у группы G1S (Гамма-1С УДС-ГЦ 63x63, паспорт лежит
+// в самом файле спектра: объём, масса, активность, расстояние) и у одного
+// спектра RC-103 (маринелли 0.5 л с 680 г KCl).
+//
+// Что откуда берётся, и это здесь главное:
+//
+//   ДЕТЕКТОР   — целиком из `GeometryPresets`, по ИМЕНИ. Ни одного размера
+//                кристалла или обвязки в этом файле не набрано.
+//   СОСУД      — «восстановлен из объёма» (решение Amber): ОДИН размер принят
+//                по виду посуды, остальные ВЫВЕДЕНЫ из паспортного объёма.
+//                Принятое помечено в печати словом «принято», выведенное —
+//                «выведено». Это ДОПУЩЕНИЕ: самопоглощение зависит от формы, а
+//                не только от объёма, и при той же вместимости плоская чашка и
+//                высокая банка дают разные кривые.
+//   ПЛОТНОСТЬ  — ИЗМЕРЕНА: паспортная масса, делённая на объём пробы той сцены,
+//                которая построена. Масса при этом сохраняется точно.
+//   МАРИНЕЛЛИ  — у RC-103 не восстанавливается вовсе: это тот самый сосуд, что
+//                лежит в поставке ЛСРМ (`RadiaCode_Marinelli0.5.in`), и его
+//                размеры слово в слово повторяет заготовка редактора. Берём
+//                заготовку.
+//
+// Объём пробы считается ТЕМИ ЖЕ формулами, по которым сцену строит
+// `EfficiencySimulator.Build` (цилиндр: π·r_вн²·h; маринелли: кольцо вокруг
+// колодца плюс шапка над его потолком). Это не второй расчёт того же, а
+// проверка: разойдись они — сойдётся и печать, и файл, а сцена будет другой.
+//
+//   corpusgeomprobe [--out=tools\CORPUS\corpus\geometries] [--dry]
+class CorpusGeomProbe
+{
+    const double Eps = 1e-9;
+
+    sealed class Geom
+    {
+        public string Key;              // имя файла без расширения
+        public string Preset;           // имя пресета детектора
+        public string Vessel;           // как названо в паспорте
+        public string[] Spectra;        // спектры корпуса, которым она принадлежит
+        public double PassportVolumeMl; // 0 — объёма в паспорте нет (или источник точечный)
+        public double PassportMassG;    // 0 — точечный источник
+        public string NominalVolume;    // назван в паспорте, но под него НЕ подгонялось
+        public string SourceMaterial;
+        public Action<GeometryModel> Shape;
+        public string Assumed;          // что ПРИНЯТО, словами
+    }
+
+    static int Main(string[] args)
+    {
+        Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+        string outDir = null;
+        bool dry = false;
+        foreach (string a in args)
+        {
+            if (a.StartsWith("--out=", StringComparison.Ordinal)) outDir = a.Substring(6);
+            else if (a == "--dry") dry = true;
+            else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
+        }
+
+        if (outDir == null)
+        {
+            outDir = Path.Combine("tools", "CORPUS", "corpus", "geometries");
+        }
+
+        // Менеджеры нужны библиотеке веществ: пресеты зовут GeometryMaterialLibrary,
+        // а она читает matdb.
+        GlobalConfigManager.GetInstance();
+
+        List<Geom> all = Build();
+        bool ok = true;
+        int written = 0;
+
+        Console.WriteLine("Геометрии «понятной» части корпуса (B1)");
+        Console.WriteLine();
+
+        foreach (Geom spec in all)
+        {
+            GeometryModel g = GeometryEditorPanel.Blank();
+            GeometryPresets.Preset preset =
+                GeometryPresets.Items.FirstOrDefault(p => p.Name == spec.Preset);
+            if (preset == null)
+            {
+                Console.Error.WriteLine("во встроенных пресетах нет «" + spec.Preset + "»: "
+                    + string.Join(", ", GeometryPresets.Items.Select(p => p.Name)));
+                return 1;
+            }
+
+            preset.Apply(g);
+            g.Name = spec.Key;
+            spec.Shape(g);
+
+            double volumeMm3 = SampleVolumeMm3(g);
+            double volumeMl = volumeMm3 / 1000.0;
+
+            if (spec.PassportMassG > 0.0)
+            {
+                // Плотность ИЗМЕРЕНА: масса паспорта на объём построенной сцены.
+                double density = spec.PassportMassG / volumeMl;
+                GeometryMaterialLibrary.Entry entry =
+                    GeometryMaterialLibrary.ByName(spec.SourceMaterial);
+                if (entry == null)
+                {
+                    Console.Error.WriteLine("в библиотеке нет вещества «"
+                                            + spec.SourceMaterial + "»");
+                    return 1;
+                }
+
+                g.Source = GeometryMaterialLibrary.Make(entry, density);
+            }
+
+            Console.WriteLine("== {0} ==", spec.Key);
+            Console.WriteLine("   детектор : пресет «{0}», ПШПВ {1:F2} % на 662",
+                              spec.Preset, g.FwhmAt662Percent);
+            Console.WriteLine("   сосуд    : {0}", spec.Vessel);
+            Console.WriteLine("   спектры  : {0}", string.Join(", ", spec.Spectra));
+            if (spec.PassportMassG > 0.0)
+            {
+                Console.WriteLine("   принято  : {0}", spec.Assumed);
+                if (spec.PassportVolumeMl > 0.0)
+                {
+                    double diff = 100.0 * (volumeMl - spec.PassportVolumeMl) / spec.PassportVolumeMl;
+                    bool fits = Math.Abs(diff) < 0.05;
+                    ok &= fits;
+                    Console.WriteLine("   объём    : сцена {0:F2} мл, паспорт {1:F2} мл,"
+                                      + " расхождение {2:F3} %  {3}",
+                                      volumeMl, spec.PassportVolumeMl, diff,
+                                      fits ? "СОШЛОСЬ" : "РАЗОШЛОСЬ");
+                }
+                else
+                {
+                    Console.WriteLine("   объём    : сцена {0:F2} мл; в паспорте назван только"
+                                      + " номинал {1} — под него НЕ подгонялось",
+                                      volumeMl, spec.NominalVolume);
+                }
+
+                Console.WriteLine("   проба    : {0}, {1:F4} г/см3 (масса паспорта {2:F1} г"
+                                  + " на объём сцены — ИЗМЕРЕНО)",
+                                  g.Source.Name, g.Source.Density, spec.PassportMassG);
+            }
+            else
+            {
+                Console.WriteLine("   принято  : ничего — точечный источник, задано только"
+                                  + " расстояние {0:F0} мм", g.PointDistance);
+            }
+
+            if (!dry)
+            {
+                Directory.CreateDirectory(outDir);
+                string path = Path.Combine(outDir, spec.Key + ".in");
+                GeometryWriter.Save(g, path);
+                written++;
+                Console.WriteLine("   файл     : {0}", path);
+            }
+
+            Console.WriteLine();
+        }
+
+        Console.WriteLine("геометрий: {0}, спектров под ними: {1}",
+                          all.Count, all.Sum(x => x.Spectra.Length));
+        if (!dry)
+        {
+            // Опись «геометрия -> спектры» пишется ЗДЕСЬ ЖЕ и тем же проходом,
+            // что и сами файлы: второй список тех же пар, набранный в скрипте
+            // раздела, разошёлся бы с файлами при первой правке. Читатель —
+            // `tools/CORPUS/scripts/split_corpus.py`.
+            string indexPath = Path.Combine(outDir, "index.csv");
+            using (StreamWriter w = new StreamWriter(indexPath, false,
+                                                     new System.Text.UTF8Encoding(false)))
+            {
+                w.WriteLine("geometry,spectrum,preset,vessel");
+                foreach (Geom spec in all)
+                {
+                    foreach (string s in spec.Spectra)
+                    {
+                        w.WriteLine("{0},{1},{2},\"{3}\"",
+                                    spec.Key, s, spec.Preset, spec.Vessel.Replace("\"", "\"\""));
+                    }
+                }
+            }
+
+            Console.WriteLine("записано файлов: {0} в {1}", written, Path.GetFullPath(outDir));
+            Console.WriteLine("опись           : {0}", indexPath);
+        }
+
+        Console.WriteLine(ok ? "ВСЕ СОШЛИСЬ" : "ЕСТЬ РАЗОШЕДШИЕСЯ");
+        return ok ? 0 : 1;
+    }
+
+    // ----------------------------------------------------------------------
+    // Объём пробы — теми же формулами, что у EfficiencySimulator.Build
+    // ----------------------------------------------------------------------
+    static double SampleVolumeMm3(GeometryModel g)
+    {
+        switch (g.SourceType)
+        {
+            case GeometrySourceType.Point:
+                return 0.0;
+
+            case GeometrySourceType.Cylinder:
+            {
+                double rOut = 0.5 * g.BeakerDiameter;
+                double rIn = Math.Max(0.0, rOut - g.BeakerSideWallThickness);
+                return Math.PI * rIn * rIn * g.SourceHeight;
+            }
+
+            case GeometrySourceType.Box:
+            {
+                double ax = Math.Max(0.0, 0.5 * g.BoxSourceX - g.BoxSideWallThickness);
+                double ay = Math.Max(0.0, 0.5 * g.BoxSourceY - g.BoxSideWallThickness);
+                return 4.0 * ax * ay * g.BoxSourceHeight;
+            }
+
+            default:
+            {
+                double rHole = 0.5 * g.MarinelliHoleDiameter + g.MarinelliHoleSideThickness;
+                double rOut = Math.Max(0.5 * g.MarinelliBeakerDiameter, rHole + 0.1);
+                double rSrcOut = Math.Max(rHole, rOut - g.MarinelliSideThickness);
+                double cap = Math.Max(0.0, g.MarinelliSourceHeight - g.MarinelliHoleHeight);
+                return Math.PI * (rSrcOut * rSrcOut - rHole * rHole) * g.MarinelliSourceHeight
+                     + Math.PI * rHole * rHole * cap;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Внешний радиус собранного детектора: кристалл плюс всё, что на нём
+    /// надето сбоку. Нужен, чтобы колодец маринелли не оказался уже прибора —
+    /// число берётся у пресета, а не набирается здесь.
+    /// </summary>
+    static double DetectorOuterRadius(GeometryModel g)
+    {
+        double rCrystal = g.Shape == CrystalShape.Box
+            ? 0.5 * Math.Sqrt(g.CrystalBoxX * g.CrystalBoxX + g.CrystalBoxY * g.CrystalBoxY)
+            : 0.5 * g.CrystalDiameter;
+        return rCrystal + g.SideReflectorThickness + g.SideCladdingThickness + g.MountingThickness;
+    }
+
+    // ----------------------------------------------------------------------
+    // Сосуды
+    // ----------------------------------------------------------------------
+
+    /// <summary>
+    /// Цилиндрический сосуд: ПРИНЯТ внутренний диаметр (по виду посуды),
+    /// ВЫВЕДЕНА высота слоя пробы — из паспортного объёма. Стенка и дно берутся
+    /// у заготовки редактора и не трогаются.
+    /// </summary>
+    static void Beaker(GeometryModel g, double innerDiameterMm, double volumeMl,
+                       double distanceMm)
+    {
+        g.SourceType = GeometrySourceType.Cylinder;
+        double rIn = 0.5 * innerDiameterMm;
+        g.BeakerDiameter = innerDiameterMm + 2.0 * g.BeakerSideWallThickness;
+        g.SourceHeight = volumeMl * 1000.0 / (Math.PI * rIn * rIn);
+        g.BeakerHeight = g.SourceHeight + g.BeakerEndWallThickness;
+        g.BeakerToDetectorDistance = distanceMm;
+    }
+
+    /// <summary>
+    /// Маринелли: ПРИНЯТЫ колодец (по внешнему размеру собранного детектора
+    /// плюс зазор) и высота слоя пробы, ВЫВЕДЕН внешний диаметр — из
+    /// паспортного объёма. Обратная задача к <see cref="SampleVolumeMm3"/>.
+    /// </summary>
+    static void Marinelli(GeometryModel g, double clearanceMm, double wellDepthMm,
+                          double sourceHeightMm, double volumeMl)
+    {
+        g.SourceType = GeometrySourceType.Marinelli;
+        g.MarinelliHoleDiameter = 2.0 * (DetectorOuterRadius(g) + clearanceMm);
+        g.MarinelliHoleHeight = wellDepthMm;
+        g.MarinelliSourceHeight = sourceHeightMm;
+
+        double rHole = 0.5 * g.MarinelliHoleDiameter + g.MarinelliHoleSideThickness;
+        double cap = Math.Max(0.0, sourceHeightMm - wellDepthMm);
+        double rSrcOut2 = (volumeMl * 1000.0 / Math.PI - rHole * rHole * cap) / sourceHeightMm
+                        + rHole * rHole;
+        double rSrcOut = Math.Sqrt(Math.Max(rSrcOut2, rHole * rHole + Eps));
+        g.MarinelliBeakerDiameter = 2.0 * (rSrcOut + g.MarinelliSideThickness);
+        g.MarinelliBeakerHeight = sourceHeightMm + g.MarinelliEndWallThickness
+                                + g.MarinelliHoleEndWallThickness;
+    }
+
+    // ----------------------------------------------------------------------
+    // Состав «понятной» части
+    // ----------------------------------------------------------------------
+    static List<Geom> Build()
+    {
+        const string G1S = "Gamma-1S UDS-GC 63x63";
+        const string RC103 = "RadiaCode-103";
+
+        // Приняты по виду посуды: банка «Дента» — 60 мм, чашка Петри — 100 мм.
+        // Всё остальное у этих двух сосудов выведено из объёма.
+        const double DentaInnerDiameter = 60.0;
+        const double PetriInnerDiameter = 100.0;
+
+        List<Geom> list = new List<Geom>();
+
+        list.Add(new Geom
+        {
+            Key = "G1S_point5",
+            Preset = G1S,
+            Vessel = "точечный источник, 5 см от торца",
+            Spectra = new[] { "G1S_Th228_5cm", "G1S_Eu152_5cm" },
+            Shape = g => { g.SourceType = GeometrySourceType.Point; g.PointDistance = 50.0; },
+        });
+
+        list.Add(new Geom
+        {
+            Key = "G1S_point25",
+            Preset = G1S,
+            Vessel = "точечный источник, 25 см от торца",
+            Spectra = new[] { "G1S_Th228_25cm", "G1S_Eu152_25cm",
+                              "G1S_Co60_25cm", "G1S_Ba133_25cm" },
+            Shape = g => { g.SourceType = GeometrySourceType.Point; g.PointDistance = 250.0; },
+        });
+
+        list.Add(new Geom
+        {
+            Key = "G1S_denta_th232",
+            Preset = G1S,
+            Vessel = "флакон «Дента» 120 мл, вплотную",
+            Spectra = new[] { "G1S_Th232_Denta" },
+            PassportVolumeMl = 120.0,
+            PassportMassG = 192.0,
+            SourceMaterial = "Silicon dioxide",
+            Assumed = "внутренний диаметр 60 мм (банка); высота слоя выведена",
+            Shape = g => Beaker(g, DentaInnerDiameter, 120.0, 0.0),
+        });
+
+        list.Add(new Geom
+        {
+            Key = "G1S_denta_ra226",
+            Preset = G1S,
+            Vessel = "флакон «Дента» 120 мл, вплотную",
+            Spectra = new[] { "G1S_Ra226_Denta" },
+            PassportVolumeMl = 120.0,
+            PassportMassG = 74.0,
+            SourceMaterial = "Silicon dioxide",
+            Assumed = "внутренний диаметр 60 мм (банка); высота слоя выведена",
+            Shape = g => Beaker(g, DentaInnerDiameter, 120.0, 0.0),
+        });
+
+        list.Add(new Geom
+        {
+            Key = "G1S_denta_k40",
+            Preset = G1S,
+            Vessel = "флакон «Дента» 120 мл, вплотную",
+            Spectra = new[] { "G1S_K40_Denta" },
+            PassportVolumeMl = 120.0,
+            PassportMassG = 79.0,
+            SourceMaterial = "Silicon dioxide",
+            Assumed = "внутренний диаметр 60 мм (банка); высота слоя выведена",
+            Shape = g => Beaker(g, DentaInnerDiameter, 120.0, 0.0),
+        });
+
+        list.Add(new Geom
+        {
+            Key = "G1S_petri_th232",
+            Preset = G1S,
+            Vessel = "чашка Петри 60 мл, вплотную",
+            Spectra = new[] { "G1S_Th232_Petri" },
+            PassportVolumeMl = 60.0,
+            PassportMassG = 96.0,
+            SourceMaterial = "Silicon dioxide",
+            Assumed = "внутренний диаметр 100 мм (плоская чашка); высота слоя выведена",
+            Shape = g => Beaker(g, PetriInnerDiameter, 60.0, 0.0),
+        });
+
+        list.Add(new Geom
+        {
+            Key = "G1S_petri_ra226",
+            Preset = G1S,
+            Vessel = "чашка Петри 60 мл, вплотную",
+            Spectra = new[] { "G1S_Ra226_Petri" },
+            PassportVolumeMl = 60.0,
+            PassportMassG = 37.0,
+            SourceMaterial = "Silicon dioxide",
+            Assumed = "внутренний диаметр 100 мм (плоская чашка); высота слоя выведена",
+            Shape = g => Beaker(g, PetriInnerDiameter, 60.0, 0.0),
+        });
+
+        list.Add(new Geom
+        {
+            Key = "G1S_marinelli1l_th232",
+            Preset = G1S,
+            Vessel = "маринелли 1 л",
+            Spectra = new[] { "G1S_Th232_Marinelli" },
+            PassportVolumeMl = 1000.0,
+            PassportMassG = 1600.0,
+            SourceMaterial = "Silicon dioxide",
+            Assumed = "колодец по внешнему размеру прибора плюс 1.5 мм зазора,"
+                      + " глубина 70 мм, слой 100 мм; внешний диаметр выведен",
+            Shape = g => Marinelli(g, 1.5, 70.0, 100.0, 1000.0),
+        });
+
+        // Единственный сосуд, который НЕ восстанавливается: маринелли 0.5 л
+        // RadiaCode лежит в поставке ЛСРМ (`RadiaCode_Marinelli0.5.in`), и
+        // заготовка редактора повторяет его размеры слово в слово. Значит взят
+        // настоящий сосуд, а не выведенный: ни одного принятого размера.
+        // Вместимость его сцены — 631.9 мл при названных «0.5 л»: налито 85 мм
+        // из 89, и паспортные 680 г KCl дают на этом объёме 1.076 г/см3 —
+        // насыпная плотность рыхлого хлорида калия, что сходится.
+        list.Add(new Geom
+        {
+            Key = "RC103_marinelli05_kcl",
+            Preset = RC103,
+            Vessel = "маринелли 0.5 л (поставка ЛСРМ, размеры не восстановлены —"
+                     + " взяты из шаблона)",
+            Spectra = new[] { "RC103_K40" },
+            NominalVolume = "0.5 л",
+            PassportMassG = 680.0,
+            SourceMaterial = "Potassium chloride",
+            Assumed = "ничего — сосуд взят целиком из заготовки редактора",
+            Shape = g => { g.SourceType = GeometrySourceType.Marinelli; },
+        });
+
+        return list;
+    }
+}

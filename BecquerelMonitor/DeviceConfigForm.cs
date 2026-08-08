@@ -2421,6 +2421,11 @@ namespace BecquerelMonitor
 
             double expectedDoseRate = (double)this.upDownDoseRateValue.Value;
             List<DoseRateCalibrationPoint> doseConfig = CalculateDoseRateConfig(doseRateSpectrum, efficiencyCurve, expectedDoseRate);
+            // Оценка ЗАМЕЩАЕТ таблицу, а не дописывается к ней. Прежде кнопка
+            // включалась только при пустой таблице (см. EvaluateButtonEstimateDRState),
+            // и чтобы пересчитать, надо было сначала нажать «Очистить» —
+            // C4(г).
+            tableModel4.Rows.Clear();
             tableModel4.Rows.AddRange(doseConfig.Select(dc =>
             {
                 Row row = new Row();
@@ -2438,7 +2443,9 @@ namespace BecquerelMonitor
 
         private void EvaluateButtonEstimateDRState()
         {
-            buttonEstimateDRConf.Enabled = doseRateSpectrum != null && efficiencyCurve != null && table4.RowCount == 0;
+            // Без «и таблица пуста»: оценка теперь заменяет содержимое таблицы
+            // целиком, поэтому пересчёт не требует предварительной очистки.
+            buttonEstimateDRConf.Enabled = doseRateSpectrum != null && efficiencyCurve != null;
         }
 
         private List<DoseRateCalibrationPoint> CalculateDoseRateConfig(EnergySpectrum spectrum, IInterpolation efficiency, double expectedDoseRate)
@@ -2469,6 +2476,9 @@ namespace BecquerelMonitor
                 rangeEffList.Add(rangeEff);
                 
                 double rangeCounts = 0;
+                // Полуоткрыто, как и в DoseRateManager: диапазоны идут встык,
+                // и граничный канал принадлежит следующему (W19).
+                if (fromChannel < 0) fromChannel = 0;
                 for (int j = fromChannel; j < toChannel; j++)
                 {
                     rangeCounts += spectrum.Spectrum[j];
@@ -2485,12 +2495,33 @@ namespace BecquerelMonitor
             List<DoseRateCalibrationPoint> doseRateCalibrationPoints = new List<DoseRateCalibrationPoint>();
             for (int i = 0; i < energies.Length - 1; i++)
             {
+                // Чувствительность диапазона — доза на один отсчёт; в точке она
+                // лежит частным Etalon/CPS. Прежде сюда клали CPS = 1, и колонка
+                // не значила ничего: посмотреть, сколько эталон реально дал в
+                // этом диапазоне, было негде. Теперь в CPS идёт ИЗМЕРЕННАЯ
+                // скорость счёта диапазона, а в Etalon — пришедшаяся на него
+                // доза; частное, то есть сама чувствительность, прежнее
+                // (C4(г), решение Amber 08.08.2026).
+                double sensitivity = doseRateCoeff * rangeDoseRateFactorList[i] / rangeEffList[i];
+                double rangeCps = rangeCpsList[i];
+                if (!(rangeCps > 0.0))
+                {
+                    // Диапазон, в котором эталон не дал ни одного отсчёта,
+                    // откалибровать по нему НЕЛЬЗЯ: частное 0/0 не определено, а
+                    // прежняя запись подставляла туда чистую модель, выдавая
+                    // измерением то, что измерением не было.
+                    Trace.WriteLine(string.Format(
+                        "Dose rate: диапазон {0}–{1} кэВ пуст в эталонном спектре, точка не заведена.",
+                        energies[i], energies[i + 1]));
+                    continue;
+                }
+
                 DoseRateCalibrationPoint point = new DoseRateCalibrationPoint()
                 {
                     LowerBound = energies[i],
                     UpperBound = energies[i + 1],
-                    CPS = 1,
-                    EtalonDoseRateValue = doseRateCoeff * rangeDoseRateFactorList[i] / rangeEffList[i],
+                    CPS = rangeCps,
+                    EtalonDoseRateValue = sensitivity * rangeCps,
                 };
                 doseRateCalibrationPoints.Add(point);
             }

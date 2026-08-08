@@ -21,7 +21,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public double[] SumPeakCurve { get; set; }
 
-        /// <summary>Отсчёты компонента в диапазоне фита.</summary>
+        /// <summary>
+        /// Отсчёты компонента в его ПИКОВЫХ ОКНАХ (±2 ПШПВ у каждой линии и
+        /// каждого сумм-пика), а не по всему образу — см.
+        /// <c>FsaAnalyzer.PeakWindowCounts</c> и решение S24в.
+        /// </summary>
         public double PeakCounts { get; set; }
 
         /// <summary>Скорость счёта компонента, имп/с.</summary>

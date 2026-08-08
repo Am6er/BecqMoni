@@ -8,3 +8,10 @@ CLAUDE.md
 __pycache__/
 *.pyc
 tools/effmaker/probes/build/
+# Матрицы отклика корпуса (B1): двоичные, полмегабайта на геометрию,
+# устаревают при каждой смене версии физики. Источники (`.in` и `index.csv`)
+# в репозитории лежат, матрица строится из них `corpusmatrixprobe` за ~3 минуты
+# и воспроизводится побитово. Решение Amber 09.08.2026 — в git не класть.
+tools/CORPUS/corpus/geometries/*.rmx
+tools/CORPUS/corpus/geometries/response/
+tools/CORPUS/corpus/geometries/build.log

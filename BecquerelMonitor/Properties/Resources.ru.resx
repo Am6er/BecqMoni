@@ -1503,7 +1503,7 @@
     <value>Готово за {0}. Пока не сохранена.</value>
   </data>
   <data name="ResponseMatrixContinuumNoise" xml:space="preserve">
-    <value> Статистики континуума мало: до {0} % на интеграл строки — пик точен, континуум шумит. Поднимите число историй.</value>
+    <value> Статистики континуума мало: {0} % на интеграл строки, в среднем по узлам с весом по их вкладу — пик точен, континуум шумит. Поднимите число историй.</value>
   </data>
   <data name="ResponseMatrixCancelled" xml:space="preserve">
     <value>Отменено.</value>

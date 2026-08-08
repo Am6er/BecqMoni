@@ -131,17 +131,30 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             watch.Stop();
             double worstContinuum = 0.0;
+            // Взвешенная по вкладу узла ошибка (T15): вес — число набранных
+            // узлом событий континуума, а оно из определения ошибки узла
+            // (err = 100/√N) выходит как 1/err². См.
+            // ResponseMatrix.ContinuumWeightedError.
+            double sumInverse = 0.0;
+            double sumWeight = 0.0;
             foreach (double e in continuumError)
             {
                 if (e > worstContinuum)
                 {
                     worstContinuum = e;
                 }
+
+                if (e > 0.0)
+                {
+                    sumInverse += 1.0 / e;
+                    sumWeight += 1.0 / (e * e);
+                }
             }
 
             ResponseMatrix matrix = new ResponseMatrix
             {
                 ContinuumRelativeError = worstContinuum,
+                ContinuumWeightedError = sumWeight > 0.0 ? sumInverse / sumWeight : 0.0,
                 Energies = grid,
                 BinKev = options.BinKev,
                 ChannelRows = channelRows,
