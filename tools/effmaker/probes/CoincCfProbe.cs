@@ -49,6 +49,9 @@ namespace EffMakerProbes
     {
         static int Main(string[] args)
         {
+            // Вывод диффается против журналов — культура фиксируется, иначе
+            // на ru-RU все числа печатаются с запятыми.
+            System.Threading.Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
             string geometryPath = null, nucid = null;
             int histories = 200000;
             double minIntensity = 1.0;
@@ -150,8 +153,8 @@ namespace EffMakerProbes
             {
                 put(pair.Item1, pair.Item2, pair.Item3);
                 double ia, ib;
-                if (lineIntensity.TryGetValue(pair.Item1, out ia)
-                    && lineIntensity.TryGetValue(pair.Item2, out ib) && ib > 0.0)
+                if (TryIntensity(lineIntensity, pair.Item1, out ia)
+                    && TryIntensity(lineIntensity, pair.Item2, out ib) && ib > 0.0)
                 {
                     put(pair.Item2, pair.Item1, pair.Item3 * ia / ib);
                 }
@@ -247,8 +250,8 @@ namespace EffMakerProbes
                     {
                         // обратная условная: P(A|B) = P(B|A)·I(A)/I(B)
                         double ia, ib;
-                        if (lineIntensity.TryGetValue(pair.Item1, out ia)
-                            && lineIntensity.TryGetValue(pair.Item2, out ib) && ib > 0.0)
+                        if (TryIntensity(lineIntensity, pair.Item1, out ia)
+                            && TryIntensity(lineIntensity, pair.Item2, out ib) && ib > 0.0)
                         {
                             loss += pair.Item3 * ia / ib * Total(totalEff, pair.Item1);
                         }
@@ -265,7 +268,7 @@ namespace EffMakerProbes
                     }
 
                     double ia;
-                    if (!lineIntensity.TryGetValue(pair.Item1, out ia))
+                    if (!TryIntensity(lineIntensity, pair.Item1, out ia))
                     {
                         continue;
                     }
@@ -343,6 +346,32 @@ namespace EffMakerProbes
         static bool Same(double a, double b)
         {
             return Math.Abs(a - b) < 0.05;
+        }
+
+        /// <summary>
+        /// Выход линии по энергии: сначала точный ключ, потом поиск в допуске
+        /// <see cref="Same"/>. Точный TryGetValue по ключу-double между двумя
+        /// представлениями базы молча терял слагаемое при расхождении энергий
+        /// в последнем знаке — CF смещался к 1.
+        /// </summary>
+        static bool TryIntensity(Dictionary<double, double> table, double e, out double value)
+        {
+            if (table.TryGetValue(e, out value))
+            {
+                return true;
+            }
+
+            foreach (var entry in table)
+            {
+                if (Same(entry.Key, e))
+                {
+                    value = entry.Value;
+                    return true;
+                }
+            }
+
+            value = 0.0;
+            return false;
         }
 
         static double Total(Dictionary<double, double> table, double e)

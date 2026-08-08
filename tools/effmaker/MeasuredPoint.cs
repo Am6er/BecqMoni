@@ -27,7 +27,7 @@ static class Real
         // --line=энергия:выход  --keep-source (не подменять источник точечным)
         bool keepSource = false;
         bool electron = false, brems = true;
-        double detour = 1.0, halfWidthFactor = -1.0;
+        double halfWidthFactor = -1.0;
         double window = 4.0;
         bool step = true;
         foreach (string a in args)
@@ -41,8 +41,6 @@ static class Real
             else if (a == "--keep-source") keepSource = true;
             else if (a == "--electron") electron = true;
             else if (a == "--no-brems") brems = false;
-            else if (a.StartsWith("--detour="))
-                detour = double.Parse(a.Substring(9), CultureInfo.InvariantCulture);
             // доля ПШПВ, которую событие может потерять и остаться в пике
             else if (a == "--no-step") step = false;
             else if (a.StartsWith("--window="))
@@ -126,17 +124,16 @@ static class Real
                 Histories = 400000,
                 ElectronEscape = electron,
                 Bremsstrahlung = brems,
-                ElectronDetour = detour,
                 PeakHalfWidthKev = halfWidthFactor > 0.0 ? halfWidthFactor * fwhmKev : 0.0,
             };
             double err;
             double calc = sim.Efficiency(Energy, out err);
             Console.WriteLine("РАСЧЁТ:    eps({3:F0}) = {0:E4}   +/-{1:F2} %   ({2})",
                               calc, err, g.Describe(), Energy);
-            Console.WriteLine("           электрон {0} ({1}), тормозное {2}, detour {3:F2}, допуск {4:F1} кэВ",
+            Console.WriteLine("           электрон {0} ({1}), тормозное {2}, допуск {3:F1} кэВ",
                               electron ? "да" : "нет",
                               sim.ElectronMaterialName == "" ? "нет в ESTAR" : sim.ElectronMaterialName,
-                              brems ? "да" : "нет", detour, sim.PeakHalfWidthKev);
+                              brems ? "да" : "нет", sim.PeakHalfWidthKev);
             Console.WriteLine();
             Console.WriteLine("расчёт / измерение = {0:F3}", calc / eps);
         }

@@ -247,6 +247,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return Properties.Resources.FSALegendContinuum;
             }
 
+            if (string.Equals(component, FsaResult.PileUpLayerName, StringComparison.Ordinal))
+            {
+                return Properties.Resources.FSAPileUpName;
+            }
+
             return component;
         }
 

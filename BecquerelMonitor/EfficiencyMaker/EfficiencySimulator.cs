@@ -120,17 +120,6 @@ namespace BecquerelMonitor.EfficiencyMaker
         public bool Bremsstrahlung = true;
 
         /// <summary>
-        /// Отношение средней глубины проникновения электрона к пробегу CSDA
-        /// (detour factor). Единица — прямолинейное торможение: электрон
-        /// уходит дальше всего, вылет получается наибольшим из возможных. У
-        /// тяжёлых сцинтилляторов настоящая величина меньше, и меньше вылет;
-        /// единица здесь стоит нарочно, чтобы поправка была ВЕРХНЕЙ оценкой, а
-        /// не подгонкой. Уменьшение до 0.3 порядка вещей не меняет: у мелкого
-        /// кристалла поправка всё равно больше, чем у крупного.
-        /// </summary>
-        public double ElectronDetour = 1.0;
-
-        /// <summary>
         /// Наклон эффективной глубины вылета электрона:
         /// t_eff = наклон·max(0, T − <see cref="ElectronEscapeT0Kev"/>)·R(T),
         /// T в МэВ. Мягкий электрон гибнет по пути и возвращается обратным
@@ -274,6 +263,25 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// запускается только при счёте гистограммы отклика.
         /// </summary>
         public bool AnalogContinuum = true;
+
+        /// <summary>
+        /// Относительная ошибка КОНТИНУУМА последнего прогона отклика, % полной
+        /// суммы континуума строки; −1 — аналоговой ветки не было (F23).
+        ///
+        /// Считается отдельно от `relativeError`, который возвращает
+        /// <see cref="Response"/>: тот описывает ВЗВЕШЕННУЮ ветку, тратящую на
+        /// детектор все истории, и о статистике континуума не знает ничего.
+        /// Аналоговая ветка идёт полной сферой (конус смещал ε_T на −4.7 %,
+        /// см. <see cref="TotalFullSphere"/>), поэтому до кристалла доходит
+        /// доля телесного угла: на контактной геометрии это почти все истории,
+        /// а на точечном источнике в 20–25 см — единицы процентов от процента.
+        /// Пик при этом остаётся точным, и разницу без этого числа не увидеть.
+        ///
+        /// Число оптимистичное: это ошибка ИНТЕГРАЛА континуума, шум в
+        /// отдельном бине во столько раз больше, во сколько бинов размазаны
+        /// события.
+        /// </summary>
+        public double LastContinuumRelativeError = -1.0;
 
         readonly GeometryModel geometry;
         readonly List<Region> regions = new List<Region>();
@@ -1088,11 +1096,6 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return 0.0;
             }
 
-            if (escaped > this.PeakHalfWidthKev)
-            {
-                return 0.0;
-            }
-
             // Событие попадает в пик РАССЕЯННОЙ энергии, а не исходной: в пик
             // полного поглощения линии оно годится только тогда, когда потеря
             // укладывается в ЕГО ШИРИНУ. Отсюда важное: при нулевом допуске
@@ -1100,8 +1103,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             // вовсе, и так и должно быть — у детектора с бесконечным
             // разрешением рассеянный квант в пик линии не попадает. Величина
             // поправки зависит от разрешения прибора, а его в модели геометрии
-            // нет.
-            if (energyKev - scattered > this.PeakHalfWidthKev)
+            // нет. Потери у истории две — недобор при рассеянии и вылет из
+            // кристалла — и в пик она годится, только когда В СУММЕ они
+            // укладываются в допуск: порознь каждая может быть меньше w, а
+            // событие отстоит от пика на величину до 2w.
+            if ((energyKev - scattered) + escaped > this.PeakHalfWidthKev)
             {
                 return 0.0;
             }
@@ -1328,8 +1334,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                         // поток — матрица выходит другой, а кривая
                         // эффективности перестаёт быть побитово прежней.
                         double electron = this.ElectronLoss(x, y, z, e - xray, depth);
+                        // Метка канала — только НЕПОМЕЧЕННЫЙ остаток вылета:
+                        // вложенная рекурсия свои вылеты уже пометила (её метка
+                        // точнее — она знает, ЧЕМ квант вылетел), и прибавка
+                        // полного gone считала бы их дважды, а rest в ChannelOf
+                        // уходил бы в минус.
+                        double markedBefore = this.lossAnnihilation + this.lossXray;
                         double gone = this.InCrystal(x, y, z, kx, ky, kz, xray, depth + 1);
-                        this.lossXray += gone;
+                        double markedInside = this.lossAnnihilation + this.lossXray - markedBefore;
+                        this.lossXray += Math.Max(0.0, gone - markedInside);
                         return lost + electron + gone;
                     }
 
@@ -1364,9 +1377,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                 double escaped = lost + this.ElectronLoss(x, y, z, e - 2.0 * ElectronMassKev, depth);
                 double ax, ay, az;
                 this.Isotropic(out ax, out ay, out az);
+                // Как и у рентгена выше: метится только непомеченный рекурсией
+                // остаток, иначе вложенные вылеты считаются дважды.
+                double pairMarkedBefore = this.lossAnnihilation + this.lossXray;
                 double first = this.InCrystal(x, y, z, ax, ay, az, ElectronMassKev, depth + 1);
                 double second = this.InCrystal(x, y, z, -ax, -ay, -az, ElectronMassKev, depth + 1);
-                this.lossAnnihilation += first + second;
+                double pairMarkedInside = this.lossAnnihilation + this.lossXray - pairMarkedBefore;
+                this.lossAnnihilation += Math.Max(0.0, first + second - pairMarkedInside);
                 return escaped + first + second;
             }
 
@@ -1435,8 +1452,20 @@ namespace BecquerelMonitor.EfficiencyMaker
                         double k = MinKev * Math.Pow(te / MinKev, this.Uniform());
                         double ax, ay, az;
                         this.Isotropic(out ax, out ay, out az);
-                        radiated += k;
-                        lost += this.InCrystal(x, y, z, ax, ay, az, k, depth + 1);
+
+                        // Сумма квантов не может превысить энергию электрона:
+                        // кванты разыгрываются независимо, и редкая история
+                        // излучала больше, чем имела. Розыгрыши (k, направление)
+                        // делаются ВСЕГДА — поток случайных чисел в нормальных
+                        // историях не сдвигается, зажимается только расход.
+                        double kUse = Math.Min(k, te - radiated);
+                        if (!(kUse > 0.0))
+                        {
+                            continue;
+                        }
+
+                        radiated += kUse;
+                        lost += this.InCrystal(x, y, z, ax, ay, az, kUse, depth + 1);
                     }
                 }
             }
@@ -1446,7 +1475,10 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 double density = this.geometry.Crystal.Density;
                 double range = ElectronData.RangeOf(this.electron, te) / density;   // см
-                // эффективная глубина вылета: порог и линейный рост по T
+                // эффективная глубина вылета: порог и линейный рост по T.
+                // Пробег и глубина сознательно считаются от ПОЛНОЙ te — так
+                // калибровался наклон (журнал tccfcalc2, §10); излучённое
+                // учитывается ниже зажимом уносимой энергии.
                 double reach = range * Math.Min(1.0, this.ElectronEscapeSlope
                     * Math.Max(0.0, te - this.ElectronEscapeT0Kev) / 1000.0);
                 double ax, ay, az;
@@ -1458,7 +1490,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // на границе (toEdge→reach) остаток нулевой, вплотную к
                     // стенке (toEdge→0) уносится почти вся энергия
                     double used = range * toEdge / reach;
-                    escapedSelf = ElectronData.EnergyOfRange(this.electron, (range - used) * density);
+                    // Унести больше, чем осталось после тормозного, нельзя:
+                    // без зажима lost превышал te, а свет уходил в минус и
+                    // молча отбрасывался — история теряла энергию из ниоткуда.
+                    escapedSelf = Math.Min(
+                        ElectronData.EnergyOfRange(this.electron, (range - used) * density),
+                        te - radiated);
                     lost += escapedSelf;
                 }
             }
@@ -1803,10 +1840,10 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>
         /// Доля пробега CSDA, которую заносимому электрону разрешено пройти по
         /// прямой: многократное рассеяние укорачивает проникновение (detour
-        /// factor; практический пробег в Al на 1 МэВ ~0.7 CSDA). Отдельный от
-        /// <see cref="ElectronDetour"/> параметр: тот — верхняя оценка вылета
-        /// ИЗ кристалла, этот — калибруется по ε_полной Geant4 на шести
-        /// энергиях (tools/tccfcalc2/README.md, §9).
+        /// factor; практический пробег в Al на 1 МэВ ~0.7 CSDA). Вылет ИЗ
+        /// кристалла считается иначе — эффективной глубиной t_eff (см.
+        /// <see cref="ElectronEscapeSlope"/>); этот параметр калибруется по
+        /// ε_полной Geant4 на шести энергиях (tools/tccfcalc2/README.md, §9).
         /// </summary>
         public double ElectronCarryDetour = 0.7;
 
@@ -1834,7 +1871,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// комптона — верно в главном; электроны с малыми передачами до
         /// кристалла всё равно не долетают), в каждом слое расходуя долю
         /// СВОЕГО пробега path·ρ / R_CSDA(вещество, T); дошёл с остатком —
-        /// отсчёт. Кривизна траектории спрятана в <see cref="ElectronDetour"/>.
+        /// отсчёт. Кривизна траектории спрятана в <see cref="ElectronCarryDetour"/>.
         /// Вещества слоёв — по составу (ElectronData.Match: Al, PTFE, вода +
         /// кристаллы); не опознанное вещество считается водой (в г/см² пробеги
         /// лёгких веществ близки), пустота — воздухом на таблице воды.
@@ -2367,6 +2404,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             double[] light = this.lightSum != null ? new double[histogram.Length] : null;
             double limit = 40.0 * this.sphereR + 200.0;
+            int scored = 0;
             for (int i = 0; i < n; i++)
             {
                 double x, y, z;
@@ -2467,6 +2505,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
 
                 hist[bin] += 1.0;
+                scored++;
                 if (light != null)
                 {
                     light[bin] += this.lightDeposit;
@@ -2483,6 +2522,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                     channels[(int)channel][bin] += 1.0;
                 }
             }
+
+            // Событий в континууме строки — столько же, сколько независимых
+            // историй его набрало: ошибка интеграла 1/√N (F23).
+            this.LastContinuumRelativeError = scored > 0 ? 100.0 / Math.Sqrt(scored) : 100.0;
 
             for (int b = 0; b < peak; b++)
             {

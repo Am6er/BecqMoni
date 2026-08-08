@@ -297,6 +297,16 @@ namespace BecquerelMonitor
                 parts.Add(Resources.EfficiencyTabNoGeometry);
             }
 
+            // Клеймо «чем посчитана» (E12) — прямым текстом: инвариантная
+            // строка из конфигурации, по ней кривые разной физики различимы
+            // на глаз. Пустое клеймо не показывается — у измерительной и
+            // ручной кривой его нет по смыслу.
+            if (!string.IsNullOrEmpty(config.ComputeStamp))
+            {
+                parts.Add(string.Format(CultureInfo.CurrentCulture,
+                                        Resources.EfficiencyTabComputeStamp, config.ComputeStamp));
+            }
+
             this.efficiencySummaryLabel.Text = string.Join("   ", parts.ToArray());
             this.efficiencySketch.SetModel(config.Geometry);
         }

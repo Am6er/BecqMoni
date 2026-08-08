@@ -121,12 +121,27 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>Сколько всего заняло построение — для показа в форме.</summary>
         public double BuildSeconds { get; set; }
 
+        /// <summary>
+        /// Худшая по узлам относительная ошибка КОНТИНУУМА строки, % (F23);
+        /// 0 — не считалось. В ФАЙЛ НЕ ПИШЕТСЯ и у прочитанной матрицы равна
+        /// нулю: это свойство прогона, а не матрицы, и ради него не стоит
+        /// поднимать версию формата — форма показывает его сразу после счёта,
+        /// то есть тогда, когда на него можно ответить числом историй.
+        /// См. <see cref="EfficiencySimulator.LastContinuumRelativeError"/>.
+        /// </summary>
+        public double ContinuumRelativeError { get; set; }
+
         public int NodeCount
         {
             get { return this.Energies != null ? this.Energies.Length : 0; }
         }
 
-        /// <summary>Размер в памяти/на диске, байт (только числа откликов).</summary>
+        /// <summary>
+        /// Размер в памяти, байт (только числа откликов). Считаются И каналы,
+        /// И суммарные строки: в памяти живут оба набора (суммы
+        /// восстанавливаются из каналов при загрузке), и счёт по одним лишь
+        /// суммам занижал показанное «в памяти, КБ» примерно вдвое.
+        /// </summary>
         public long DataBytes
         {
             get
@@ -137,6 +152,22 @@ namespace BecquerelMonitor.EfficiencyMaker
                     foreach (float[] row in this.Rows)
                     {
                         cells += row != null ? row.Length : 0;
+                    }
+                }
+
+                if (this.ChannelRows != null)
+                {
+                    foreach (float[][] channel in this.ChannelRows)
+                    {
+                        if (channel == null)
+                        {
+                            continue;
+                        }
+
+                        foreach (float[] row in channel)
+                        {
+                            cells += row != null ? row.Length : 0;
+                        }
                     }
                 }
 
@@ -153,6 +184,12 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// том же формате, в каком она пишется на диск: так в него попадают все
         /// поля модели разом, и добавленное завтра поле не окажется молча вне
         /// проверки. Плюс ключи физики, сетка и версия переноса.
+        ///
+        /// Версия физики стоит ПЕРЕД хешем открытым текстом (`phys=N;хеш`):
+        /// хеш необратим, и спрятанную в него версию <see cref="PhysicsFromStamp"/>
+        /// уже никак не достанет — форма показывала «физика 0» про только что
+        /// посчитанную матрицу. В сравнение отпечатков префикс входит наравне
+        /// с хешем.
         /// </summary>
         public static string ComputeStamp(GeometryModel geometry, ResponseMatrixOptions options)
         {
@@ -189,43 +226,29 @@ namespace BecquerelMonitor.EfficiencyMaker
                     hex.Append(b.ToString("x2", CultureInfo.InvariantCulture));
                 }
 
-                return hex.ToString();
+                return "phys=" + PhysicsVersion.ToString(CultureInfo.InvariantCulture)
+                       + ";" + hex;
             }
         }
 
         /// <summary>
-        /// Текст геометрии для отпечатка. Пишется тем же `GeometryWriter`, что
-        /// сохраняет модель на диск, — во временный файл, потому что другого
-        /// входа у него нет. Если запись почему-либо не удалась, откатываемся на
-        /// <see cref="GeometryModel.Describe"/>: хуже, но лучше, чем отпечаток,
-        /// не зависящий от геометрии вовсе.
+        /// Текст геометрии для отпечатка. Собирается тем же `GeometryWriter`,
+        /// что сохраняет модель на диск, — но в памяти (`Render`), без
+        /// временного файла: проверка годности зовётся с UI-потока на каждый
+        /// тик живого набора, и файловая пара запись/чтение/удаление там —
+        /// лишний ввод-вывод на ровном месте. Если сборка почему-либо не
+        /// удалась, откатываемся на <see cref="GeometryModel.Describe"/>:
+        /// хуже, но лучше, чем отпечаток, не зависящий от геометрии вовсе.
         /// </summary>
         static string GeometryText(GeometryModel geometry)
         {
-            string path = null;
             try
             {
-                path = Path.Combine(Path.GetTempPath(), "bqm_stamp_" + Guid.NewGuid().ToString("N") + ".in");
-                GeometryWriter.Save(geometry, path);
-                return File.ReadAllText(path);
+                return GeometryWriter.Render(geometry);
             }
             catch (Exception)
             {
                 return geometry.Describe();
-            }
-            finally
-            {
-                try
-                {
-                    if (path != null && File.Exists(path))
-                    {
-                        File.Delete(path);
-                    }
-                }
-                catch (Exception)
-                {
-                    // временный файл — не повод падать
-                }
             }
         }
 
@@ -357,9 +380,23 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         void Accumulate(double[] target, double energyKev, double weight, int channel)
         {
-            float[][] rows = channel >= 0 && this.HasChannels && channel < this.ChannelRows.Length
-                ? this.ChannelRows[channel]
-                : this.Rows;
+            // Просили КОНКРЕТНЫЙ канал, а такого нет (матрица без каналов или
+            // чужой номер) — вклад пустой. Молчаливый откат на суммарные
+            // строки давал бы вызывающему, перебирающему каналы, двойной счёт
+            // всего отклика вместо пустого канала.
+            float[][] rows;
+            if (channel < 0)
+            {
+                rows = this.Rows;
+            }
+            else if (this.HasChannels && channel < this.ChannelRows.Length)
+            {
+                rows = this.ChannelRows[channel];
+            }
+            else
+            {
+                return;
+            }
 
             if (target == null || !(weight > 0.0) || !(energyKev > 0.0)
                 || rows == null || this.Energies == null || this.Energies.Length == 0)

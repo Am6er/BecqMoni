@@ -1872,12 +1872,6 @@
   <data name="textColumn12.Width" type="System.Int32, mscorlib">
     <value>120</value>
   </data>
-  <data name="checkBoxColumnEff.Text" xml:space="preserve">
-    <value>Eff. ROI</value>
-  </data>
-  <data name="checkBoxColumnEff.Width" type="System.Int32, mscorlib">
-    <value>60</value>
-  </data>
   <data name="table3.Location" type="System.Drawing.Point, System.Drawing">
     <value>6, 38</value>
   </data>
@@ -6308,12 +6302,6 @@
   </data>
   <data name="&gt;&gt;textColumn12.Type" xml:space="preserve">
     <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;checkBoxColumnEff.Name" xml:space="preserve">
-    <value>checkBoxColumnEff</value>
-  </data>
-  <data name="&gt;&gt;checkBoxColumnEff.Type" xml:space="preserve">
-    <value>XPTable.Models.CheckBoxColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;tableModel3.Name" xml:space="preserve">
     <value>tableModel3</value>

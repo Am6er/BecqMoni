@@ -1,0 +1,803 @@
+using BecquerelMonitor.EfficiencyMaker;
+using Microsoft.Data.Sqlite;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+
+namespace BecquerelMonitor.FullSpectrumAnalysis
+{
+    /// <summary>
+    /// Каскадное суммирование поверх фотонной матрицы отклика (TODO F1, п. «г»).
+    ///
+    /// ЗАЧЕМ. Матрица отвечает на вопрос «что оставит в кристалле ОДИН квант
+    /// энергии E», и этого достаточно, пока кванты независимы. В каскаде они не
+    /// независимы: вместе с квантом линии k из того же распада вылетает партнёр,
+    /// и если партнёр тоже что-то оставил в кристалле, событие уезжает из пика k
+    /// вверх по шкале. Линейной комбинацией столбцов матрицы это невыразимо —
+    /// эффект принадлежит нуклиду и схеме распада, а не фотону. Поэтому он
+    /// вносится множителем на площадь пика (CF) и отдельными сумм-пиками, а
+    /// матрица остаётся тем, чем была.
+    ///
+    /// ФОРМУЛЫ — детерминированный путь EFFTRAN, тот же, что в пробе
+    /// `CoincCfProbe` (сверен с ион-режимом Geant4: все линии в ≤2.2σ,
+    /// Cs-134 1365.2 — 0.8515 против 0.8516):
+    ///
+    ///     CF(k) = 1 / [ (1 − L_out) + Σ_in / (p_k · ε_p(k)) ]
+    ///     L_out = Σ_j P(j|k) · ε_T(E_j)
+    ///     Σ_in  = Σ_{(i,j): E_i+E_j ≈ E_k} p_ij · ε_p(i) · ε_p(j) · S_ij
+    ///     S_ij  = 1 − Σ_{m∉{i,j}} max(P(m|i), P(m|j)) · ε_T(m)
+    ///
+    /// ОТКУДА ЭФФЕКТИВНОСТИ. Из САМОЙ матрицы, а не вторым розыгрышем:
+    /// ε_p(E) — сумма строки канала <see cref="EfficiencySimulator.ResponseChannel.Peak"/>
+    /// (полное поглощение), ε_T(E) — сумма всей строки узла (вероятность
+    /// оставить в кристалле хоть что-нибудь). Обе нормированы на квант,
+    /// испущенный источником в 4π, — ровно то, что нужно формулам. Второй
+    /// розыгрыш дал бы те же числа с другим шумом ГСЧ и стоил бы минуты счёта.
+    ///
+    /// ЧТО ПОПРАВКА ТРОГАЕТ. Только канал ПИКА. Вынос из пика — чистая потеря,
+    /// а континуум одновременно теряет свои события и получает чужие суммы, и
+    /// в первом порядке остаётся при своём; красить его тем же множителем
+    /// значило бы выдумать потерю, которой нет. Пики вылета (511, K-рентген)
+    /// теряют наравне с пиком, но их поправка здесь НЕ применяется — они малы,
+    /// а разделять правило на три случая ради этого рано.
+    ///
+    /// ЧЕГО НЕТ, сознательно (наследуется от пробы):
+    ///   * тройных влётов (E_i+E_j+E_m = E_k) — на два порядка мельче;
+    ///   * рентгена и аннигиляционных квантов в парах: пары только γ-γ, у
+    ///     EC-нуклидов (Ba-133) CF занижен;
+    ///   * угловых корреляций (`database/scheme.md`, D-1) — совпадения изотропны;
+    ///   * изомеров: у них своя нумерация Sandia, искать надо по `sandia_symbol`
+    ///     (§8 схемы базы), поэтому имена вида «Ba-137m» пропускаются;
+    ///   * сумм-континуума (полное + частичное поглощение пары): сумм-пик
+    ///     ставится только на полное поглощение обоих квантов.
+    /// </summary>
+    public sealed class FsaCascadeSummer
+    {
+        /// <summary>Сумм-пик: энергия и площадь в долях на распад родителя.</summary>
+        public sealed class SumPeak
+        {
+            public SumPeak(double energy, double area)
+            {
+                this.Energy = energy;
+                this.Area = area;
+            }
+
+            public double Energy { get; private set; }
+
+            /// <summary>
+            /// Площадь пика полного поглощения СУММЫ, уже с обеими пиковыми
+            /// эффективностями внутри: `p_ij · ε_p(i) · ε_p(j) · S_ij`. Второй
+            /// раз эффективность к ней применяться не должна.
+            /// </summary>
+            public double Area { get; private set; }
+        }
+
+        /// <summary>Поправки одного компонента: множители линий и его сумм-пики.</summary>
+        public sealed class Correction
+        {
+            /// <summary>
+            /// Множитель на площадь пика В ОБРАЗЕ, параллельно `component.Lines`.
+            /// Это НАБЛЮДАЕМАЯ площадь, делённая на идеальную, то есть 1/CF, а
+            /// не сам CF: образ моделирует то, что детектор видит, а CF по
+            /// принятому смыслу восстанавливает истинную площадь из
+            /// наблюдённой (A_ист = A_набл · CF). Знак путается на раз — при
+            /// первом же прогоне множитель стоял вверх ногами и приподнимал
+            /// пики вместо того, чтобы их срезать.
+            /// </summary>
+            public double[] LineFactors { get; set; }
+
+            public List<SumPeak> SumPeaks { get; set; }
+
+            /// <summary>Есть ли вообще что применять — иначе быстрый путь.</summary>
+            public bool Any { get; set; }
+        }
+
+        /// <summary>Пары и выходы одного нуклида, как они лежат в базе.</summary>
+        sealed class NuclideData
+        {
+            public Dictionary<double, double> Intensity;                        // E → I, %
+            public List<double[]> Pairs;                                        // {E, Ecoinc, P(Ecoinc|E)}
+            public Dictionary<double, Dictionary<double, double>> Partners;     // P(m|a), обе стороны
+        }
+
+        /// <summary>
+        /// Сумма пары попадает в окно линии — тогда влёт учитывается её CF, а
+        /// отдельного сумм-пика ставить нельзя (двойной счёт). Полуширина как
+        /// у `g4cf` и пробы: ±0.5 кэВ.
+        /// </summary>
+        const double SumWindowKev = 0.5;
+
+        /// <summary>
+        /// Энергии одной линии внутри таблиц совпадений совпадают до 0.001 кэВ —
+        /// это одна поставка данных.
+        /// </summary>
+        const double SamePairLineKev = 0.05;
+
+        /// <summary>
+        /// А вот линия КОМПОНЕНТА приходит из справочника нуклидов пользователя,
+        /// и там та же линия записана со своим округлением: у Lu-176 сильнейшая
+        /// 306.78 против 306.880 в таблицах совпадений — 0.10 кэВ. С допуском
+        /// 0.05 она не сходилась, и САМАЯ СИЛЬНАЯ линия нуклида (I = 93.6 %)
+        /// молча оставалась без поправки. 0.3 кэВ покрывает такие разночтения и
+        /// остаётся много меньше ПШПВ любого сцинтиллятора; ближайшая из
+        /// подошедших всё равно выбирается по минимуму расхождения.
+        /// </summary>
+        const double SameLineKev = 0.3;
+
+        /// <summary>
+        /// Сумм-пик ниже этой доли от самого сильного пика компонента не
+        /// ставится: он не виден, а массив поглощения ради него тянулся бы до
+        /// удвоенной энергии.
+        /// </summary>
+        const double SumPeakFloor = 1.0E-4;
+
+        /// <summary>Больше этого числа сумм-пиков на компонент не берём.</summary>
+        const int MaxSumPeaks = 24;
+
+        static readonly object Gate = new object();
+
+        static readonly Dictionary<string, NuclideData> Cache =
+            new Dictionary<string, NuclideData>(StringComparer.OrdinalIgnoreCase);
+
+        static bool databaseChecked;
+        static bool databasePresent;
+
+        /// <summary>
+        /// Почему база не отдала данные, если не отдала. Пусто — отказов не
+        /// было. Читатель — пробы и журнал: без него отказ выглядит как
+        /// «у нуклида нет каскадов», и поломка живёт незамеченной.
+        /// </summary>
+        public static string Failure { get; private set; }
+
+        readonly ResponseMatrix matrix;
+        readonly double[] peakAtNode;
+        readonly double[] totalAtNode;
+        readonly Dictionary<FsaComponent, Correction> corrections =
+            new Dictionary<FsaComponent, Correction>();
+
+        FsaCascadeSummer(ResponseMatrix matrix, double[] peakAtNode, double[] totalAtNode)
+        {
+            this.matrix = matrix;
+            this.peakAtNode = peakAtNode;
+            this.totalAtNode = totalAtNode;
+        }
+
+        /// <summary>
+        /// Суммирователь для этой матрицы; null — считать нечем: матрицы нет,
+        /// у неё нет раскладки по каналам (формат старше 3) или рядом с
+        /// программой нет `nucdb.sqlite`.
+        /// </summary>
+        public static FsaCascadeSummer Create(ResponseMatrix matrix)
+        {
+            if (matrix == null || !matrix.HasChannels || matrix.Energies == null
+                || matrix.Energies.Length == 0 || matrix.Rows == null)
+            {
+                return null;
+            }
+
+            if (!DatabasePresent())
+            {
+                return null;
+            }
+
+            float[][] peakRows = matrix.ChannelRows[(int)EfficiencySimulator.ResponseChannel.Peak];
+            int nodes = matrix.Energies.Length;
+            double[] peak = new double[nodes];
+            double[] total = new double[nodes];
+            for (int i = 0; i < nodes; i++)
+            {
+                peak[i] = Sum(peakRows != null && i < peakRows.Length ? peakRows[i] : null);
+                total[i] = Sum(i < matrix.Rows.Length ? matrix.Rows[i] : null);
+            }
+
+            return new FsaCascadeSummer(matrix, peak, total);
+        }
+
+        /// <summary>
+        /// Сколько пар совпадений известно про этот нуклид. Ноль значит либо
+        /// «имя не разбирается», либо «каскадов у нуклида нет» — но эти два
+        /// случая для отчёта различает <see cref="Nucid"/>. Заведено ради проб:
+        /// «поправка ничего не сделала» без такого различения — сигнал, по
+        /// которому нельзя понять, сломано что-то или так и должно быть.
+        /// </summary>
+        public int PairCount(string nuclide)
+        {
+            NuclideData data = Data(nuclide);
+            return data != null ? data.Pairs.Count : 0;
+        }
+
+        /// <summary>
+        /// Есть ли у нуклида линия с такой энергией в таблицах совпадений —
+        /// то есть сойдётся ли линия компонента с линией базы. Разъезд имён и
+        /// округлений здесь тише всего: поправка просто не применяется.
+        /// </summary>
+        public bool HasLine(string nuclide, double energyKev)
+        {
+            NuclideData data = Data(nuclide);
+            double found;
+            return data != null && Match(data.Intensity, energyKev, out found);
+        }
+
+        /// <summary>
+        /// Поправки компонента; null — этому компоненту поправлять нечего
+        /// (нуклид не разбирается, пар нет, всё вышло единицей).
+        /// </summary>
+        public Correction For(FsaComponent component)
+        {
+            if (component == null || component.Lines == null || component.Lines.Count == 0)
+            {
+                return null;
+            }
+
+            Correction correction;
+            if (this.corrections.TryGetValue(component, out correction))
+            {
+                return correction;
+            }
+
+            correction = this.Compute(component);
+            this.corrections[component] = correction;
+            return correction;
+        }
+
+        // ------------------------------------------------------------------
+        // Счёт
+        // ------------------------------------------------------------------
+
+        Correction Compute(FsaComponent component)
+        {
+            int count = component.Lines.Count;
+            double[] factors = new double[count];
+            for (int i = 0; i < count; i++)
+            {
+                factors[i] = 1.0;
+            }
+
+            List<SumPeak> sumPeaks = new List<SumPeak>();
+            bool any = false;
+
+            // Пары совпадений живут ВНУТРИ одного нуклида: у компонента-цепочки
+            // линии разных дочерних, и мешать их каскады нельзя.
+            foreach (string nuclide in DistinctNuclides(component))
+            {
+                NuclideData data = Data(nuclide);
+                if (data == null)
+                {
+                    continue;
+                }
+
+                // Масштаб нормировки: интенсивности компонента даны на распад
+                // РОДИТЕЛЯ цепочки, база — на распад самого нуклида. Отношение
+                // берётся по самой сильной сошедшейся линии; в CF оно
+                // сокращается, а площади сумм-пиков без него уехали бы.
+                double scale = Scale(component, nuclide, data);
+                double strongest = 0.0;
+                for (int i = 0; i < count; i++)
+                {
+                    FsaLine line = component.Lines[i];
+                    if (!Belongs(line, nuclide))
+                    {
+                        continue;
+                    }
+
+                    double area = line.Intensity / 100.0 * this.PeakEfficiency(line.Energy);
+                    if (area > strongest)
+                    {
+                        strongest = area;
+                    }
+
+                    double baseEnergy;
+                    if (!Match(data.Intensity, line.Energy, out baseEnergy))
+                    {
+                        continue;
+                    }
+
+                    // В образ идёт ОБРАТНАЯ величина: см. Correction.LineFactors.
+                    double cf = this.CoincidenceFactor(data, baseEnergy);
+                    if (cf > 0.0 && Math.Abs(cf - 1.0) > 1.0E-6)
+                    {
+                        factors[i] = 1.0 / cf;
+                        any = true;
+                    }
+                }
+
+                this.CollectSumPeaks(component, nuclide, data, scale, strongest, sumPeaks);
+            }
+
+            if (sumPeaks.Count > 0)
+            {
+                any = true;
+                sumPeaks.Sort((a, b) => b.Area.CompareTo(a.Area));
+                if (sumPeaks.Count > MaxSumPeaks)
+                {
+                    sumPeaks.RemoveRange(MaxSumPeaks, sumPeaks.Count - MaxSumPeaks);
+                }
+            }
+
+            return new Correction
+            {
+                LineFactors = factors,
+                SumPeaks = sumPeaks,
+                Any = any
+            };
+        }
+
+        /// <summary>
+        /// CF одной линии по формуле EFFTRAN — в принятом смысле: во столько
+        /// раз наблюдённая площадь МЕНЬШЕ истинной (A_ист = A_набл · CF).
+        /// Больше единицы — суммирование выносит из пика больше, чем вносит.
+        /// </summary>
+        double CoincidenceFactor(NuclideData data, double energy)
+        {
+            double intensity;
+            if (!data.Intensity.TryGetValue(energy, out intensity) || !(intensity > 0.0))
+            {
+                return 1.0;
+            }
+
+            // Вынос: любой партнёр, оставивший в кристалле хоть что-нибудь,
+            // уносит событие из пика.
+            double loss = 0.0;
+            foreach (KeyValuePair<double, double> partner in Partners(data, energy))
+            {
+                loss += partner.Value * this.TotalEfficiency(partner.Key);
+            }
+
+            // Влёт: пары, сумма которых попадает в окно этой линии.
+            double sumIn = 0.0;
+            foreach (double[] pair in data.Pairs)
+            {
+                if (Math.Abs(pair[0] + pair[1] - energy) >= SumWindowKev)
+                {
+                    continue;
+                }
+
+                sumIn += this.PairArea(data, pair);
+            }
+
+            double direct = intensity / 100.0 * this.PeakEfficiency(energy);
+            double inShare = direct > 0.0 ? sumIn / direct : 0.0;
+            double denominator = (1.0 - loss) + inShare;
+            return denominator > 0.0 ? 1.0 / denominator : 1.0;
+        }
+
+        /// <summary>
+        /// Сумм-пики нуклида: пары, чья сумма НЕ попала ни в одну линию этого
+        /// компонента. Попавшие уже учтены влётом в CF той линии, и ставить их
+        /// вторично значило бы посчитать одно и то же дважды.
+        /// </summary>
+        void CollectSumPeaks(FsaComponent component, string nuclide, NuclideData data,
+                             double scale, double strongest, List<SumPeak> sumPeaks)
+        {
+            if (!(scale > 0.0))
+            {
+                return;
+            }
+
+            double floor = strongest * SumPeakFloor;
+            foreach (double[] pair in data.Pairs)
+            {
+                double energy = pair[0] + pair[1];
+                if (this.PeakEfficiency(energy) <= 0.0)
+                {
+                    continue;
+                }
+
+                bool absorbed = false;
+                foreach (FsaLine line in component.Lines)
+                {
+                    if (Belongs(line, nuclide) && Math.Abs(line.Energy - energy) < SumWindowKev)
+                    {
+                        absorbed = true;
+                        break;
+                    }
+                }
+
+                if (absorbed)
+                {
+                    continue;
+                }
+
+                double area = scale * this.PairArea(data, pair);
+                if (area > floor)
+                {
+                    sumPeaks.Add(new SumPeak(energy, area));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Площадь сумм-события пары на распад: оба кванта поглощены целиком и
+        /// ТРЕТИЙ квант каскада не помешал.
+        /// </summary>
+        double PairArea(NuclideData data, double[] pair)
+        {
+            double intensity;
+            if (!data.Intensity.TryGetValue(pair[0], out intensity) || !(intensity > 0.0))
+            {
+                return 0.0;
+            }
+
+            double survive = 1.0;
+            foreach (KeyValuePair<double, double> third in MergedThird(data, pair[0], pair[1]))
+            {
+                survive -= third.Value * this.TotalEfficiency(third.Key);
+            }
+
+            if (survive <= 0.0)
+            {
+                return 0.0;
+            }
+
+            return intensity / 100.0 * pair[2]
+                   * this.PeakEfficiency(pair[0]) * this.PeakEfficiency(pair[1]) * survive;
+        }
+
+        /// <summary>
+        /// Третий квант каскада для пары (i, j): тройная условная из парных
+        /// данных невосстановима, берётся P(m|i∧j) ≈ max(P(m|i), P(m|j)) — для
+        /// каскада i→j квант ниже j воспроизводится точно, выше i консервативно.
+        /// </summary>
+        static Dictionary<double, double> MergedThird(NuclideData data, double i, double j)
+        {
+            Dictionary<double, double> merged = new Dictionary<double, double>();
+            foreach (double side in new[] { i, j })
+            {
+                foreach (KeyValuePair<double, double> entry in Partners(data, side))
+                {
+                    if (Math.Abs(entry.Key - i) < SamePairLineKev || Math.Abs(entry.Key - j) < SamePairLineKev)
+                    {
+                        continue;
+                    }
+
+                    double have;
+                    if (!merged.TryGetValue(entry.Key, out have) || entry.Value > have)
+                    {
+                        merged[entry.Key] = entry.Value;
+                    }
+                }
+            }
+
+            return merged;
+        }
+
+        static Dictionary<double, double> Partners(NuclideData data, double energy)
+        {
+            Dictionary<double, double> bag;
+            return data.Partners.TryGetValue(energy, out bag)
+                ? bag
+                : new Dictionary<double, double>();
+        }
+
+        /// <summary>
+        /// Отношение «выход в компоненте / выход в базе» по самой сильной
+        /// сошедшейся линии нуклида.
+        /// </summary>
+        static double Scale(FsaComponent component, string nuclide, NuclideData data)
+        {
+            double best = 0.0;
+            double scale = 1.0;
+            foreach (FsaLine line in component.Lines)
+            {
+                double baseEnergy;
+                if (!Belongs(line, nuclide) || !(line.Intensity > 0.0)
+                    || !Match(data.Intensity, line.Energy, out baseEnergy))
+                {
+                    continue;
+                }
+
+                double baseIntensity = data.Intensity[baseEnergy];
+                if (baseIntensity > best && baseIntensity > 0.0)
+                {
+                    best = baseIntensity;
+                    scale = line.Intensity / baseIntensity;
+                }
+            }
+
+            return scale;
+        }
+
+        static IEnumerable<string> DistinctNuclides(FsaComponent component)
+        {
+            List<string> names = new List<string>();
+            foreach (FsaLine line in component.Lines)
+            {
+                string name = line.Nuclide ?? "";
+                if (name.Length > 0 && !names.Contains(name, StringComparer.OrdinalIgnoreCase))
+                {
+                    names.Add(name);
+                }
+            }
+
+            return names;
+        }
+
+        static bool Belongs(FsaLine line, string nuclide)
+        {
+            return string.Equals(line.Nuclide ?? "", nuclide, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>Линия компонента и линия базы — одна и та же?</summary>
+        static bool Match(Dictionary<double, double> table, double energy, out double found)
+        {
+            found = 0.0;
+            double best = SameLineKev;
+            bool ok = false;
+            foreach (double key in table.Keys)
+            {
+                double delta = Math.Abs(key - energy);
+                if (delta < best)
+                {
+                    best = delta;
+                    found = key;
+                    ok = true;
+                }
+            }
+
+            return ok;
+        }
+
+        // ------------------------------------------------------------------
+        // Эффективности из матрицы
+        // ------------------------------------------------------------------
+
+        /// <summary>Пиковая эффективность: сумма строки канала полного поглощения.</summary>
+        public double PeakEfficiency(double energyKev)
+        {
+            return this.Interpolate(this.peakAtNode, energyKev);
+        }
+
+        /// <summary>Полная эффективность: сумма всей строки узла.</summary>
+        public double TotalEfficiency(double energyKev)
+        {
+            return this.Interpolate(this.totalAtNode, energyKev);
+        }
+
+        /// <summary>
+        /// Между узлами — логарифмическая интерполяция: сетка узлов
+        /// логарифмическая, и эффективность на ней ложится почти прямой, а
+        /// линейная по энергии заметно врала бы внизу шкалы. За краями
+        /// ЗАЖИМАЕТСЯ: экстраполировать степенным ходом на энергии, где физика
+        /// другая (ниже порога, выше сетки), — верный способ получить ерунду.
+        /// </summary>
+        double Interpolate(double[] values, double energyKev)
+        {
+            double[] grid = this.matrix.Energies;
+            if (!(energyKev > 0.0) || grid.Length == 0)
+            {
+                return 0.0;
+            }
+
+            if (energyKev <= grid[0])
+            {
+                return values[0];
+            }
+
+            int last = grid.Length - 1;
+            if (energyKev >= grid[last])
+            {
+                return values[last];
+            }
+
+            int hi = Array.BinarySearch(grid, energyKev);
+            if (hi >= 0)
+            {
+                return values[hi];
+            }
+
+            hi = ~hi;
+            int lo = hi - 1;
+            double a = values[lo], b = values[hi];
+            double t = (Math.Log(energyKev) - Math.Log(grid[lo]))
+                       / (Math.Log(grid[hi]) - Math.Log(grid[lo]));
+            if (a > 0.0 && b > 0.0)
+            {
+                return Math.Exp(Math.Log(a) + t * (Math.Log(b) - Math.Log(a)));
+            }
+
+            return a + t * (b - a);
+        }
+
+        static double Sum(float[] row)
+        {
+            if (row == null)
+            {
+                return 0.0;
+            }
+
+            double total = 0.0;
+            foreach (float value in row)
+            {
+                total += value;
+            }
+
+            return total;
+        }
+
+        // ------------------------------------------------------------------
+        // База
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Пары и выходы нуклида; null — имя не разбирается (рентген, пики
+        /// вылета, изомер) или совпадений у нуклида нет (Cs-137, K-40).
+        /// </summary>
+        static NuclideData Data(string nuclide)
+        {
+            string nucid = Nucid(nuclide);
+            if (nucid == null)
+            {
+                return null;
+            }
+
+            lock (Gate)
+            {
+                NuclideData data;
+                if (Cache.TryGetValue(nucid, out data))
+                {
+                    return data;
+                }
+
+                data = Load(nucid);
+                Cache[nucid] = data;
+                return data;
+            }
+        }
+
+        static NuclideData Load(string nucid)
+        {
+            NuclideData data = new NuclideData
+            {
+                Intensity = new Dictionary<double, double>(),
+                Pairs = new List<double[]>(),
+                Partners = new Dictionary<double, Dictionary<double, double>>()
+            };
+
+            try
+            {
+                using (SqliteConnection connection = new SqliteConnection(
+                    "Data Source=" + DatabasePath() + ";Mode=ReadOnly;Cache=Shared;"))
+                {
+                    connection.Open();
+                    using (SqliteCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText =
+                            "select energy_kev, intensity_pct from v_gamma_coincidence_line"
+                            + " where nucid = $n and isomer = 0";
+                        command.Parameters.AddWithValue("$n", nucid);
+                        using (SqliteDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                data.Intensity[reader.GetDouble(0)] = reader.GetDouble(1);
+                            }
+                        }
+
+                        command.CommandText =
+                            "select energy_kev, coinc_energy_kev, fraction from v_gamma_coincidence"
+                            + " where nucid = $n and isomer = 0";
+                        using (SqliteDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                data.Pairs.Add(new[]
+                                {
+                                    reader.GetDouble(0), reader.GetDouble(1), reader.GetDouble(2)
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception error)
+            {
+                // База читается только ради поправки: не прочлась — работаем
+                // без неё, как работали до неё. Но МОЛЧА этого делать нельзя:
+                // «поправка ничего не сделала» и «поправка не смогла» с виду
+                // одно и то же, и без записанной причины разница теряется.
+                Failure = nucid + ": " + error.Message;
+                return null;
+            }
+
+            if (data.Pairs.Count == 0)
+            {
+                return null;
+            }
+
+            // Пара лежит в базе ОДИН раз и направленно; обратная условная
+            // считается через отношение выходов: P(A|B) = P(B|A)·I(A)/I(B)
+            // (database/scheme.md, §8).
+            foreach (double[] pair in data.Pairs)
+            {
+                Put(data, pair[0], pair[1], pair[2]);
+                double ia, ib;
+                if (data.Intensity.TryGetValue(pair[0], out ia)
+                    && data.Intensity.TryGetValue(pair[1], out ib) && ib > 0.0)
+                {
+                    Put(data, pair[1], pair[0], pair[2] * ia / ib);
+                }
+            }
+
+            return data;
+        }
+
+        static void Put(NuclideData data, double from, double to, double probability)
+        {
+            Dictionary<double, double> bag;
+            if (!data.Partners.TryGetValue(from, out bag))
+            {
+                data.Partners[from] = bag = new Dictionary<double, double>();
+            }
+
+            bag[to] = probability;
+        }
+
+        /// <summary>
+        /// Имя нуклида в наш `nucid`: «Pb-214» → «214PB». Изомеры («Ba-137m»)
+        /// возвращают null: у совпадений своя нумерация Sandia, искать их надо
+        /// по `sandia_symbol`, а не по нашему номеру уровня.
+        /// </summary>
+        public static string Nucid(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return null;
+            }
+
+            int dash = name.IndexOf('-');
+            if (dash <= 0 || dash + 1 >= name.Length)
+            {
+                return null;
+            }
+
+            string element = name.Substring(0, dash);
+            string mass = name.Substring(dash + 1);
+            foreach (char c in element)
+            {
+                if (!char.IsLetter(c))
+                {
+                    return null;
+                }
+            }
+
+            foreach (char c in mass)
+            {
+                if (!char.IsDigit(c))
+                {
+                    return null;
+                }
+            }
+
+            int number;
+            if (!int.TryParse(mass, NumberStyles.None, CultureInfo.InvariantCulture, out number)
+                || number <= 0)
+            {
+                return null;
+            }
+
+            return number.ToString(CultureInfo.InvariantCulture)
+                   + element.ToUpperInvariant();
+        }
+
+        static string DatabasePath()
+        {
+            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nucdb.sqlite");
+        }
+
+        static bool DatabasePresent()
+        {
+            lock (Gate)
+            {
+                if (!databaseChecked)
+                {
+                    databasePresent = File.Exists(DatabasePath());
+                    databaseChecked = true;
+                }
+
+                return databasePresent;
+            }
+        }
+    }
+}

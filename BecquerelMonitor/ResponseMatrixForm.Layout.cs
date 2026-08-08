@@ -148,13 +148,15 @@ namespace BecquerelMonitor
             this.Controls.Add(this.cancelButton);
             y += 26;
 
+            // Три строки, а не две: к «готово за …» дописывается предупреждение
+            // о статистике континуума (F23), и оно длинное.
             this.progressLabel = new Label
             {
                 Location = new Point(Pad, y),
-                Size = new Size(FormWidth - 2 * Pad, 32)
+                Size = new Size(FormWidth - 2 * Pad, 48)
             };
             this.Controls.Add(this.progressLabel);
-            y += 38;
+            y += 54;
 
             // --- кнопки ----------------------------------------------------
             this.computeButton = new Button

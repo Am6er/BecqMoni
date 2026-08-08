@@ -61,6 +61,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             double[] grid = options.BuildGrid();
+            // Ошибка континуума по узлам — своей ячейкой на узел, без общей
+            // переменной: Parallel.For, а максимум нужен один раз в конце.
+            double[] continuumError = new double[grid.Length];
             float[][][] channelRows = new float[EfficiencySimulator.ResponseChannelCount][][];
             for (int c = 0; c < channelRows.Length; c++)
             {
@@ -86,6 +89,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 EfficiencySimulator sim = MakeSimulator(geometry, options, index);
                 double relativeError;
                 double[][] histograms = sim.ResponseByChannel(grid[index], options.BinKev, out relativeError);
+                continuumError[index] = sim.LastContinuumRelativeError;
 
                 for (int c = 0; c < histograms.Length; c++)
                 {
@@ -126,8 +130,18 @@ namespace BecquerelMonitor.EfficiencyMaker
             });
 
             watch.Stop();
+            double worstContinuum = 0.0;
+            foreach (double e in continuumError)
+            {
+                if (e > worstContinuum)
+                {
+                    worstContinuum = e;
+                }
+            }
+
             ResponseMatrix matrix = new ResponseMatrix
             {
+                ContinuumRelativeError = worstContinuum,
                 Energies = grid,
                 BinKev = options.BinKev,
                 ChannelRows = channelRows,

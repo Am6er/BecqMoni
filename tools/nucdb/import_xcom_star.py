@@ -446,9 +446,20 @@ def build_fluorescence(db):
                 continue
             borrowed.append(z)
         w1, w2, wb, kb_kev, count = got
-        # энергия Kβ у элементов без измерений: K − M3, оболочка, с которой
-        # идёт основная часть Kβ1
-        kb = kb_kev * 1000.0 if kb_kev else (k_edge - shells.get("M3", shells["L2"]))
+        # энергия Kβ у элементов без измерений: K − M3 (оболочка, с которой
+        # идёт основная часть Kβ1); нет M3 — соседние M2/M1, они в долях
+        # процента. Прежний запасной вариант K − L2 давал РОВНО энергию Kα2
+        # (~10 % ошибки положения линии) и включался молча — лучше выбросить
+        # элемент вслух, чем тихо соврать.
+        if kb_kev:
+            kb = kb_kev * 1000.0
+        else:
+            m_shell = next((shells[s] for s in ("M3", "M2", "M1") if s in shells), None)
+            if m_shell is None:
+                print("Флуоресценция: у Z=%d нет M-оболочек для энергии Kβ —"
+                      " элемент пропущен" % z)
+                continue
+            kb = k_edge - m_shell
         rows.append((z, k_edge, jump, 1.0 - 1.0 / jump, omega,
                      ka1, w1, ka2, w2, kb, wb, count))
 

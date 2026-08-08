@@ -499,6 +499,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public static double EnergyOfRange(Material m, double range)
         {
+            // Нулевой остаточный пробег — нулевая энергия. Общий LogLog при
+            // v <= 0 возвращает ПЕРВЫЙ УЗЕЛ (для таблиц пробегов это ~10 кэВ),
+            // и полагаться на него здесь значило бы выдумать электрону энергию.
+            if (!(range > 0.0))
+            {
+                return 0.0;
+            }
+
             return LogLog(m.Range, m.Energy, range) * 1e3;
         }
 

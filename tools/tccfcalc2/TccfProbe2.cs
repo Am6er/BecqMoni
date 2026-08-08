@@ -183,16 +183,18 @@ static class TccfProbe2
             if (rc == 0 && spectrumSeconds >= 0)
             {
                 // Спектр складывается отдельным вызовом: `calc_spectrum = true`
-                // в файле сам по себе ничего не пишет.
-                rc = ResetSpectrum();
-                Console.WriteLine("Reset_Spectrum -> " + rc);
-                rc = CalculateSpectrum(spectrumSeconds);
-                Console.WriteLine("CalculateSpectrum -> " + rc);
+                // в файле сам по себе ничего не пишет. Коды спектральных
+                // вызовов в rc НЕ попадают: CalcSpectrumFile заведомо отвечает
+                // 7 (TODO T5), и он затирал бы успешный код самого расчёта.
+                int src = ResetSpectrum();
+                Console.WriteLine("Reset_Spectrum -> " + src);
+                src = CalculateSpectrum(spectrumSeconds);
+                Console.WriteLine("CalculateSpectrum -> " + src);
                 // `CalcSpectrumFile` отвечает 7 и ничего не пишет — что она
                 // ждёт первым словом, не разобрано (TODO T5). Вызов оставлен,
                 // чтобы это было видно, а не забыто.
-                rc = CalcSpectrumFile(Path.Combine(dir, spectrumPath), spectrumSeconds);
-                Console.WriteLine("CalcSpectrumFile -> " + rc
+                src = CalcSpectrumFile(Path.Combine(dir, spectrumPath), spectrumSeconds);
+                Console.WriteLine("CalcSpectrumFile -> " + src
                                   + " (спектр пишет CalculateSpectrum: test_spectr.spe)");
             }
         }
@@ -212,6 +214,9 @@ static class TccfProbe2
             Console.WriteLine("отчёта нет");
         }
 
-        return 0;
+        // Код DLL наружу: возврат 0 при отказе Prepare/Calculate заставлял
+        // вызывающих ловить отказ числом строк отчёта. run_tccf2.py проверяет
+        // ещё и печать «... -> 0» — она работает и со старыми копиями exe.
+        return rc;
     }
 }

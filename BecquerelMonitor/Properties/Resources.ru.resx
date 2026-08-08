@@ -393,6 +393,15 @@
   <data name="FSANoMatrixMark" xml:space="preserve">
     <value> · без матрицы</value>
   </data>
+  <data name="FSACascadeMark" xml:space="preserve">
+    <value> · суммирование</value>
+  </data>
+  <data name="FSASumPeakRow" xml:space="preserve">
+    <value>{0} — сумм-пик</value>
+  </data>
+  <data name="FSAPileUpName" xml:space="preserve">
+    <value>Наложения</value>
+  </data>
   <data name="FSADriftEdgeMark" xml:space="preserve">
     <value> !</value>
   </data>
@@ -977,6 +986,24 @@
   <data name="EfficiencyMakerCalcHint" xml:space="preserve">
     <value>Кривая считается из файла геометрии монте-карловским переносом — спектры не нужны. В отличие от подгонки, уровень получается АБСОЛЮТНЫЙ, а не только форма.</value>
   </data>
+  <data name="EfficiencyMakerGrid" xml:space="preserve">
+    <value>Сетка:</value>
+  </data>
+  <data name="EfficiencyMakerGridStandard" xml:space="preserve">
+    <value>Штатная</value>
+  </data>
+  <data name="EfficiencyMakerGridLogarithmic" xml:space="preserve">
+    <value>Логарифмическая</value>
+  </data>
+  <data name="EfficiencyMakerGridSummary" xml:space="preserve">
+    <value>сетка: {0} точек, {1:F0}–{2:F0} кэВ ({3}); потоков: {4}</value>
+  </data>
+  <data name="EfficiencyMakerPoints" xml:space="preserve">
+    <value>Точек:</value>
+  </data>
+  <data name="EfficiencyMakerHistoriesLabel" xml:space="preserve">
+    <value>Историй на точку:</value>
+  </data>
   <data name="EfficiencyMakerGraphDiffAxis" xml:space="preserve">
     <value>новая / исходная − 1, %</value>
   </data>
@@ -1126,6 +1153,15 @@
   </data>
   <data name="GeometryEditorUnitMm" xml:space="preserve">
     <value>мм</value>
+  </data>
+  <data name="GeometryEditorUnitPercent" xml:space="preserve">
+    <value>%</value>
+  </data>
+  <data name="GeometryEditorFwhm662" xml:space="preserve">
+    <value>ПШПВ на 662 кэВ (допуск рассеяния)</value>
+  </data>
+  <data name="GeometryEditorFwhmFromDevice" xml:space="preserve">
+    <value>Из калибровки прибора</value>
   </data>
   <data name="GeometryEditorUnitDensity" xml:space="preserve">
     <value>г/см3</value>
@@ -1301,6 +1337,9 @@
   <data name="EfficiencyTabSummary" xml:space="preserve">
     <value>точек кривой {0}, от {1} до {2} кэВ</value>
   </data>
+  <data name="EfficiencyTabComputeStamp" xml:space="preserve">
+    <value>посчитана: {0}</value>
+  </data>
   <data name="EfficiencyTabRenameTitle" xml:space="preserve">
     <value>Имя конфигурации</value>
   </data>
@@ -1459,6 +1498,9 @@
   </data>
   <data name="ResponseMatrixDone" xml:space="preserve">
     <value>Готово за {0}. Пока не сохранена.</value>
+  </data>
+  <data name="ResponseMatrixContinuumNoise" xml:space="preserve">
+    <value> Статистики континуума мало: до {0} % на интеграл строки — пик точен, континуум шумит. Поднимите число историй.</value>
   </data>
   <data name="ResponseMatrixCancelled" xml:space="preserve">
     <value>Отменено.</value>

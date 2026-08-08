@@ -252,8 +252,38 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 "|", subtractBackground ? "bg" : "nobg",
                 "|", background != null ? background.TotalPulseCount.ToString() : "-",
                 "|", EfficiencyStamp(resultData.Efficiency),
+                "|", MatrixFileStamp(resultData.Efficiency),
                 "|", CalibrationStamp(spectrum, resultData.FwhmCalibration),
                 "|", peakStamp.ToString());
+        }
+
+        /// <summary>
+        /// Файл матрицы отклика в отпечатке. Счёт решает «с матрицей или без»
+        /// по файлу `.rmx` кривой — значит, устаревание обязано видеть его
+        /// появление, пересчёт и удаление, иначе разложение «без матрицы»
+        /// висит на экране и после того, как матрицу посчитали (и наоборот).
+        /// Сам файл не читается — в отпечаток идут время записи и размер.
+        /// </summary>
+        static string MatrixFileStamp(EfficiencyConfigData efficiency)
+        {
+            if (efficiency == null || !efficiency.HasGeometry)
+            {
+                return "-";
+            }
+
+            try
+            {
+                var file = new System.IO.FileInfo(
+                    EfficiencyMaker.ResponseMatrixStore.PathOf(efficiency.Guid));
+                return file.Exists
+                    ? file.LastWriteTimeUtc.Ticks.ToString() + ":" + file.Length.ToString()
+                    : "-";
+            }
+            catch (Exception)
+            {
+                // недоступный файл — то же, что отсутствующий: счёт его не прочтёт
+                return "-";
+            }
         }
 
         /// <summary>

@@ -309,13 +309,28 @@ namespace BecquerelMonitor.EfficiencyMaker
             Load();
             foreach (KeyValuePair<int, string> pair in symbols)
             {
-                if (string.Equals(pair.Value, symbol, StringComparison.Ordinal))
+                // Без учёта регистра: хранение каноническое, но формулы веществ
+                // исторически писались и «TI», и «Ti» — регистр не должен
+                // молча превращать элемент в «не найден».
+                if (string.Equals(pair.Value, symbol, StringComparison.OrdinalIgnoreCase))
                 {
                     return pair.Key;
                 }
             }
 
             return 0;
+        }
+
+        /// <summary>Каноническое написание символа: «TI» и «ti» → «Ti».</summary>
+        static string CanonicalSymbol(string symbol)
+        {
+            if (string.IsNullOrEmpty(symbol))
+            {
+                return symbol;
+            }
+
+            return char.ToUpperInvariant(symbol[0])
+                + (symbol.Length > 1 ? symbol.Substring(1).ToLowerInvariant() : "");
         }
 
         /// <summary>
@@ -588,12 +603,25 @@ namespace BecquerelMonitor.EfficiencyMaker
                         // Символы — из таблицы нуклидов: она про те же элементы,
                         // и заводить второй список значило бы завести второй
                         // источник правды.
-                        command.CommandText = "select z, symbol from nuclides where symbol is not null group by z";
+                        //
+                        // Без GROUP BY по «голой» колонке: в базе у одного z
+                        // лежат разные написания (Li/LI, Ti/TI, Ni/NI), и SQLite
+                        // отдавал символ произвольной строки группы — после
+                        // пересборки базы элемент мог тихо сменить регистр и
+                        // выпасть из разбора формул. Написание приводится к
+                        // каноническому здесь. z = 0 (нейтрон, «n»/«NN»)
+                        // исключён: его «N» столкнулся бы с азотом.
+                        command.CommandText = "select z, symbol from nuclides"
+                            + " where symbol is not null and z > 0 order by z, symbol";
                         using (SqliteDataReader reader = command.ExecuteReader())
                         {
                             while (reader.Read())
                             {
-                                names[reader.GetInt32(0)] = reader.GetString(1).Trim();
+                                int z = reader.GetInt32(0);
+                                if (!names.ContainsKey(z))
+                                {
+                                    names[z] = CanonicalSymbol(reader.GetString(1).Trim());
+                                }
                             }
                         }
 

@@ -44,7 +44,10 @@ def parse_beta(path, mode="BetaMinus"):
             continue
         parts = line.split()
         if in_parent and parts and parts[0] == mode and len(parts) >= 4:
-            feeds[float(parts[1])] = float(parts[3])      # Ex, '-', I, Q
+            # НАКОПЛЕНИЕ, не присваивание: две ветви на один уровень
+            # (разные записи с одним Ex) перезаписывали друг друга.
+            ex = float(parts[1])
+            feeds[ex] = feeds.get(ex, 0.0) + float(parts[3])   # Ex, '-', I, Q
     return feeds
 
 
@@ -56,6 +59,11 @@ def populations(levels, feeds):
         best = min(levels, key=lambda i: abs(levels[i][0] - ex))
         if abs(levels[best][0] - ex) < 0.5:
             pop[best] += intensity
+        else:
+            # Молчаливый выброс ветви занижал p_k без следа — для Co-60 и
+            # Cs-134 сверено измерением, для прочих нуклидов гарантии не было.
+            sys.stderr.write("g4_pk: ветвь Ex=%.1f (I=%.3f%%) без уровня ближе "
+                             "0.5 кэВ — выброшена\n" % (ex, intensity))
     gammas = {}
     for idx in sorted(levels, reverse=True):
         if pop[idx] <= 0.0 or idx == 0:

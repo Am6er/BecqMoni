@@ -13,6 +13,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Вклад компонента по каналам, отсчёты (амплитуда x образ).</summary>
         public double[] Curve { get; set; }
 
+        /// <summary>
+        /// Та ЧАСТЬ <see cref="Curve"/>, что пришла от сумм-пиков каскада;
+        /// null — их нет. Не отдельный компонент: в фите это одна колонка с
+        /// нуклидом, и свободной амплитуды у сумм-пиков нет нарочно. Здесь
+        /// лежит только ради отрисовки подслоем.
+        /// </summary>
+        public double[] SumPeakCurve { get; set; }
+
         /// <summary>Отсчёты компонента в диапазоне фита.</summary>
         public double PeakCounts { get; set; }
 
@@ -35,6 +43,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>Вклад слоя по каналам с разнесённой на него подложкой.</summary>
         public double[] Curve { get; set; }
+
+        /// <summary>
+        /// Часть <see cref="Curve"/> от сумм-пиков каскада; null — их нет.
+        /// Рисуется ВНУТРИ ленты слоя штриховкой того же цвета: сумм-пик
+        /// принадлежит своему нуклиду, отдельной строки в легенде и отдельной
+        /// доли в «пироге» у него быть не должно. Подложка сюда не
+        /// разносится — это чистый пиковый вклад.
+        /// </summary>
+        public double[] SumPeakCurve { get; set; }
 
         /// <summary>Доля слоя в полном счёте модели, %.</summary>
         public double SharePercent { get; set; }
@@ -79,6 +96,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// становится хуже.
         /// </summary>
         public bool ResponseMatrixUsed { get; set; }
+
+        /// <summary>
+        /// Каскадное суммирование СРАБОТАЛО: хоть одной линии состава поправлен
+        /// пик или добавлен сумм-пик. Пометка ставится по факту, а не по
+        /// включённому ключу: у состава из Cs-137 и K-40 каскадов нет вовсе, и
+        /// «с суммированием» там значило бы, что поправка что-то сделала.
+        /// </summary>
+        public bool CascadeSummingUsed { get; set; }
 
         public FsaResult()
         {
@@ -147,18 +172,37 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     Name = component.Name,
                     Kind = component.Kind,
-                    Curve = (double[])component.Curve.Clone()
+                    Curve = PositivePart(component.Curve),
+                    SumPeakCurve = component.SumPeakCurve != null
+                        ? (double[])component.SumPeakCurve.Clone()
+                        : null
                 });
             }
 
             if (rest.Count > 0)
             {
                 double[] other = new double[channels];
+                double[] otherSums = null;
                 foreach (FsaComponentResult component in rest)
                 {
                     for (int i = 0; i < channels && i < component.Curve.Length; i++)
                     {
                         other[i] += component.Curve[i];
+                    }
+
+                    if (component.SumPeakCurve == null)
+                    {
+                        continue;
+                    }
+
+                    if (otherSums == null)
+                    {
+                        otherSums = new double[channels];
+                    }
+
+                    for (int i = 0; i < channels && i < component.SumPeakCurve.Length; i++)
+                    {
+                        otherSums[i] += component.SumPeakCurve[i];
                     }
                 }
 
@@ -166,7 +210,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     Name = OtherLayerName,
                     Kind = FsaComponentKind.Single,
-                    Curve = other
+                    Curve = other,
+                    SumPeakCurve = otherSums
                 });
             }
 
@@ -241,6 +286,31 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>Имя слоя подложки в стеке отрисовки.</summary>
         public const string ContinuumLayerName = "continuum";
+
+        /// <summary>
+        /// Имя образа случайных наложений (pile-up). Служебное и НЕ переводится:
+        /// по нему раздаётся цвет и его же ищет проба. Человеку показывается
+        /// перевод — см. <see cref="FsaPalette.DisplayName"/>.
+        /// </summary>
+        public const string PileUpLayerName = "pile-up";
+
+        /// <summary>
+        /// Копия кривой без отрицательной части. У ленты стека не бывает
+        /// отрицательной высоты, а знакопеременные образы есть: наложения
+        /// ПЕРЕНОСЯТ счёт — снизу убыль, сверху приход. Рисуется приход,
+        /// убыль (доли процента) остаётся в модели, но не в стеке; из-за этого
+        /// верх стека расходится с суммой модели на ту же долю процента.
+        /// </summary>
+        static double[] PositivePart(double[] curve)
+        {
+            double[] copy = new double[curve.Length];
+            for (int i = 0; i < curve.Length; i++)
+            {
+                copy[i] = curve[i] > 0.0 ? curve[i] : 0.0;
+            }
+
+            return copy;
+        }
 
         /// <summary>
         /// Разнести континуум по компонентам. Возвращает остаток — ту часть

@@ -2791,8 +2791,10 @@ namespace BecquerelMonitor
             }
 
             // Единственная линия набора рисовалась бы в полный рост при любом
-            // выходе: делить нечем. Тогда масштаб берётся от 100 %.
-            if (lines.Count == 1)
+            // выходе: делить нечем. Тогда масштаб берётся от 100 %. То же —
+            // набор из одних линий без выхода: 0/0 в ветках масштаба давал бы
+            // NaN в DrawLine.
+            if (lines.Count == 1 || !(intencityMax > 0.0))
             {
                 intencityMax = 100.0;
             }
@@ -2810,7 +2812,24 @@ namespace BecquerelMonitor
                 }
                 else
                 {
-                    intencityscale = 0.8 * Log10(line.Intencity) / Log10(intencityMax);
+                    // Лог-шкала: высота — логарифмическое расстояние линии до
+                    // самой сильной, три декады на весь рост, пол 5 % — линия
+                    // набора не должна пропадать вовсе. Прежняя формула
+                    // 0.8·Log10(I)/Log10(Imax) делила на ноль при Imax = 1
+                    // (NaN в DrawLine — исключение в OnPaint), линиям I < 1 %
+                    // давала отрицательную высоту, а при Imax < 1 инвертировала
+                    // порядок высот; после нормировки выходов на корень ряда и
+                    // добора скрытых линий значения меньше 1 % обычны.
+                    if (line.Intencity > 0.0 && intencityMax > 0.0)
+                    {
+                        const double decades = 3.0;
+                        intencityscale = 0.8 * Math.Max(
+                            0.05, 1.0 + Math.Log10(line.Intencity / intencityMax) / decades);
+                    }
+                    else
+                    {
+                        intencityscale = 0.0;
+                    }
                 }
 
                 float num;

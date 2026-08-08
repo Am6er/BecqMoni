@@ -225,24 +225,36 @@ namespace BecquerelMonitor.NucBase
         public Dictionary<string, double> GetChainBranches(string rootNucid, double minFraction = 1e-6)
         {
             Dictionary<string, double> fraction = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
-            List<string> order = new List<string>();
+            // Обход разносит ДЕЛЬТЫ, а не посещает нуклиды по разу: пути разной
+            // длины сходятся в один нуклид (234U из 234Th через 234mPa и через
+            // IT-ветку 234Pa), и вклад, пришедший к уже пройденному узлу,
+            // раньше терялся для его потомков. Каждая запись очереди — «этому
+            // нуклиду добавилось столько-то», и добавка проходит вниз ровно
+            // один раз независимо от порядка обхода. Отсечка minFraction гасит
+            // и хвосты, и циклы грязных данных; ограничение длины очереди —
+            // страховка от цикла со 100-процентной веткой.
+            List<KeyValuePair<string, double>> queue = new List<KeyValuePair<string, double>>();
             fraction[rootNucid] = 1.0;
-            order.Add(rootNucid);
+            queue.Add(new KeyValuePair<string, double>(rootNucid, 1.0));
 
             DataBase db = new DataBase();
             try
             {
-                for (int i = 0; i < order.Count && order.Count <= 100; i++)
+                for (int i = 0; i < queue.Count && queue.Count <= 1000; i++)
                 {
-                    string current = order[i];
+                    string current = queue[i].Key;
+                    double share = queue[i].Value;
                     List<KeyValuePair<string, string>> rows = new List<KeyValuePair<string, string>>();
                     // Строки вычитываются целиком до следующего запроса: обходу
                     // нужен ещё один читатель на том же соединении.
+                    // Минимальный l_seqno ищется среди строк С ЧИСЛОМ: если у
+                    // самой ранней записи perc пуст, дочка бралась бы из неё и
+                    // выпадала из ряда целиком, хотя число есть строкой ниже.
                     SqliteDataReader reader = db.ReadData(
                         "select daughter_nucid, perc from decay_chain d where nucid = '" + current +
                         "' and perc not null and l_seqno = (select min(l_seqno) from decay_chain x " +
                         "where x.nucid = d.nucid and x.daughter_nucid = d.daughter_nucid " +
-                        "and x.dec_type = d.dec_type)");
+                        "and x.dec_type = d.dec_type and x.perc not null)");
                     while (reader.Read())
                     {
                         rows.Add(new KeyValuePair<string, string>(reader.GetString(0), reader.GetString(1)));
@@ -259,7 +271,7 @@ namespace BecquerelMonitor.NucBase
                             continue;
                         }
 
-                        double add = fraction[current] * percent / 100.0;
+                        double add = share * percent / 100.0;
                         if (add < minFraction)
                         {
                             continue;
@@ -272,8 +284,9 @@ namespace BecquerelMonitor.NucBase
                         else
                         {
                             fraction[row.Key] = add;
-                            order.Add(row.Key);
                         }
+
+                        queue.Add(new KeyValuePair<string, double>(row.Key, add));
                     }
                 }
             }
