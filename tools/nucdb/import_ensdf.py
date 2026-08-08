@@ -31,6 +31,20 @@
 Записи продолжения (непробел в колонке 6), комментарии (C/D/T в колонке 7) и
 записи S (структурные ссылки) не разбираются: там свободный текст.
 
+НОМЕР УРОВНЯ В КОЛОНКАХ 1-5 — не только цифры. Перед номером стоит
+однобуквенная пометка (`?` у неуверенного уровня, латинские буквы у полос), и
+поле выглядит как `'?   4'` или `'  A 1'`. Разбор снимал только `M` и на всём
+остальном отдавал пусто — **4558 уровней из 35415 (13 %) не писались вовсе**, а
+печаталось при этом число РАЗОБРАННЫХ (W17). Номер берётся хвостовыми цифрами
+поля, пометка отбрасывается. Что это правильно, проверено машинно: нумерация
+внутри набора выходит сплошной 1..N во ВСЕХ 3323 наборах с уровнями, и
+восстановленные номера не сталкиваются ни с уже читавшимися, ни между собой —
+ни одного случая. То есть счётчик у формата один, а буква — только пометка.
+
+Уровни, помеченные ОДНОЙ БУКВОЙ БЕЗ НОМЕРА (`'    A'`, `'    B'`, … — таких
+195), номера не получают и не пишутся: ключ таблицы целочисленный. Они
+считаются отдельно и печатаются, а не пропадают молча.
+
 Привязка гаммы к уровням. Гамма принадлежит ПОСЛЕДНЕМУ встреченному уровню —
 это и есть начальный уровень. Конечный ищется по энергии: E(нач) - E(гамма) с
 допуском. Допуск НЕ фиксированный: берём максимум из 1.5 кэВ и суммы заявленных
@@ -115,8 +129,10 @@ def parse_file(path):
         if current is None or cont != " " or line[6] not in " ":
             continue
 
-        seq = line[:5].strip().lstrip("M").strip()
-        seq = int(seq) if seq.isdigit() else None
+        # Хвостовые цифры поля 1-5: пометка перед номером (`?`, буква полосы,
+        # `M` у метастабильного) к номеру не относится — см. шапку, W17.
+        seq = re.search(r"(\d+)\s*$", line[:5])
+        seq = int(seq.group(1)) if seq else None
 
         if kind == "L":
             level_seq = seq
@@ -264,11 +280,21 @@ def main():
     """)
 
     ds_id = 0
-    n_lev = n_gam = n_feed = n_unlinked = 0
+    # Счётчики РАЗОБРАННОГО и ЗАЛИТОГО ведутся порознь и печатаются оба.
+    # Пока была одна цифра, она считала разобранное, а в таблицу ложилось на
+    # 13 % меньше, и разошедшееся число уехало из печати в scheme.md (W17).
+    n_lev = n_lev_written = n_lev_unnumbered = 0
+    n_gam = n_feed = n_unlinked = n_fake = 0
     for name in sorted(os.listdir(ensdf_dir)):
         if not name.upper().endswith(".ENX"):
             continue
         for ds in parse_file(os.path.join(ensdf_dir, name)):
+            # Тестовая заглушка поставки ЛСРМ: нуклида 290XX не существует, а в
+            # базе он выглядел как данные — 2 набора, 22 уровня, 20 гамма и 20
+            # питаний (D17, вычищено 08.08.2026). Лежит в 290.ENX и 291.ENX.
+            if ds["nucid"].upper().startswith("290XX") or "FAKE" in ds["dsid"].upper():
+                n_fake += 1
+                continue
             ds_id += 1
             n_unlinked += link_gammas(ds)
             parent = ds.get("parent") or {}
@@ -276,11 +302,18 @@ def main():
                        (ds_id, ds["nucid"], ds["dsid"], ds["ref"], ds["date"], name,
                         parent.get("nucid"), parent.get("half_life_sec"),
                         parent.get("q_value")))
+            numbered = [l for l in ds["levels"] if l["seq"] is not None]
             db.executemany("insert or replace into ensdf_levels values (?,?,?,?,?,?,?,?)",
                            [(ds_id, l["seq"], l["energy"], l["energy_unc"], l["jpi"],
                              l["half_life"], l["half_life_sec"], l["metastable"])
-                            for l in ds["levels"] if l["seq"] is not None])
+                            for l in numbered])
             n_lev += len(ds["levels"])
+            # Залито — по ЧИСЛУ РАЗЛИЧНЫХ номеров: ключ таблицы (набор, seq), и
+            # `insert or replace` при столкновении затирает молча. Сегодня
+            # столкновений нет ни одного, и разница между этими двумя числами
+            # ровно это и покажет, если формат однажды подсунет повтор.
+            n_lev_written += len(set(l["seq"] for l in numbered))
+            n_lev_unnumbered += len(ds["levels"]) - len(numbered)
             db.executemany("insert into ensdf_gammas"
                            " values (null,?,?,?,?,?,?,?,?,?,?,?)",
                            [(ds_id, g["from_level"], g["to_level"], g["energy"],
@@ -295,10 +328,19 @@ def main():
             n_feed += len(ds["feedings"])
 
     db.commit()
-    print("ENSDF: наборов %d, уровней %d, гамма %d (без привязки к конечному "
-          "уровню %d, %.1f%%), питаний %d"
-          % (ds_id, n_lev, n_gam, n_unlinked, 100.0 * n_unlinked / max(1, n_gam),
-             n_feed))
+    print("ENSDF: наборов %d, гамма %d (без привязки к конечному уровню %d, "
+          "%.1f%%), питаний %d; отброшено тестовых заглушек %d"
+          % (ds_id, n_gam, n_unlinked, 100.0 * n_unlinked / max(1, n_gam),
+             n_feed, n_fake))
+    # Уровни — ДВУМЯ цифрами. Число разобранного в таблицу не годится: это оно
+    # однажды уехало в scheme.md как число строк (W17).
+    print("ENSDF: уровней разобрано %d, ЗАЛИТО %d; без номера (пометка буквой "
+          "без цифры) %d, затёрто столкновениями номеров %d"
+          % (n_lev, n_lev_written, n_lev_unnumbered,
+             n_lev - n_lev_written - n_lev_unnumbered))
+    real = db.execute("select count(*) from ensdf_levels").fetchone()[0]
+    print("ENSDF: в таблице ensdf_levels строк %d — %s"
+          % (real, "сходится" if real == n_lev_written else "НЕ СХОДИТСЯ со счётчиком"))
     db.close()
 
 
