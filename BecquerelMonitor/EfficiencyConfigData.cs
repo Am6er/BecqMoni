@@ -105,6 +105,19 @@ namespace BecquerelMonitor
             set { this.computeStamp = value; }
         }
 
+        /// <summary>
+        /// Пускать ли матрицу отклика этой кривой в полноспектральный разбор
+        /// (W11): раньше годная матрица включалась сама и выключателя не было.
+        /// Галка живёт в форме «Матрица отклика» (решение Amber 08.08.2026).
+        /// Умолчание — да: у кого матрица посчитана, тот её и хотел; файлов
+        /// без ключа это тоже касается (сериализация оставит true).
+        /// </summary>
+        public bool UseResponseMatrix
+        {
+            get { return this.useResponseMatrix; }
+            set { this.useResponseMatrix = value; }
+        }
+
         [XmlIgnore]
         public bool HasCurve
         {
@@ -157,6 +170,7 @@ namespace BecquerelMonitor
                 origin = this.origin,
                 note = this.note,
                 computeStamp = this.computeStamp,
+                useResponseMatrix = this.useResponseMatrix,
                 geometry = this.geometry == null ? null : this.geometry.Clone(),
                 curve = new List<ROIEfficiencyData>(),
             };
@@ -186,6 +200,8 @@ namespace BecquerelMonitor
         EfficiencyOrigin origin = EfficiencyOrigin.Manual;
 
         string computeStamp = "";
+
+        bool useResponseMatrix = true;
 
         List<ROIEfficiencyData> curve = new List<ROIEfficiencyData>();
 

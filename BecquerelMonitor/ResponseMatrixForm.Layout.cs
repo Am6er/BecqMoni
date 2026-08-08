@@ -76,6 +76,22 @@ namespace BecquerelMonitor
             this.Controls.Add(this.detailsPanel);
             y += this.detailsPanel.Height + 10;
 
+            // --- выключатель использования (W11) ---------------------------
+            // Раньше годная матрица включалась в разбор сама и выключателя не
+            // было вовсе. Галка пишет в конфигурацию кривой
+            // (EfficiencyConfigData.UseResponseMatrix) и действует на все
+            // спектры с этой кривой; место ей здесь по решению Amber.
+            this.useMatrixCheck = new CheckBox
+            {
+                Text = Resources.ResponseMatrixUseInFsa,
+                Location = new Point(Pad, y),
+                Size = new Size(FormWidth - 2 * Pad, 22),
+                Checked = this.config == null || this.config.UseResponseMatrix,
+            };
+            this.useMatrixCheck.CheckedChanged += this.UseMatrixChanged;
+            this.Controls.Add(this.useMatrixCheck);
+            y += this.useMatrixCheck.Height + 6;
+
             // --- параметры -------------------------------------------------
             var box = new GroupBox
             {

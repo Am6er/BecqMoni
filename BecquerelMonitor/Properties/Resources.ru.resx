@@ -1340,6 +1340,9 @@
   <data name="EfficiencyTabComputeStamp" xml:space="preserve">
     <value>посчитана: {0}</value>
   </data>
+  <data name="ResponseMatrixUseInFsa" xml:space="preserve">
+    <value>Использовать матрицу в полноспектральном разборе (FSA)</value>
+  </data>
   <data name="EfficiencyTabRenameTitle" xml:space="preserve">
     <value>Имя конфигурации</value>
   </data>

@@ -42725,6 +42725,9 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="EfficiencyTabComputeStamp" xml:space="preserve">
     <value>computed with: {0}</value>
   </data>
+  <data name="ResponseMatrixUseInFsa" xml:space="preserve">
+    <value>Use the matrix in full-spectrum analysis (FSA)</value>
+  </data>
   <data name="EfficiencyTabRenameTitle" xml:space="preserve">
     <value>Configuration name</value>
   </data>
