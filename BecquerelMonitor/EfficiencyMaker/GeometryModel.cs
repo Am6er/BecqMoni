@@ -170,6 +170,31 @@ namespace BecquerelMonitor.EfficiencyMaker
             return massAttenuation * this.Density;
         }
 
+        /// <summary>
+        /// Только КОГЕРЕНТНОЕ (рэлеевское) рассеяние, 1/см. Нужно, чтобы
+        /// разыграть его отдельным каналом: энергия не меняется, направление
+        /// меняется на угол по форм-фактору
+        /// (<see cref="EfficiencySimulator.RayleighScatter"/>).
+        ///
+        /// Если парциальных сечений для элемента нет, его вклад нулевой — как
+        /// и у <see cref="LinearIncoherent"/>: лучше не разыграть рассеяние,
+        /// чем разыграть выдуманное.
+        /// </summary>
+        public double LinearCoherent(double energyKev)
+        {
+            double massAttenuation = 0.0;
+            foreach (KeyValuePair<int, double> pair in this.Fractions)
+            {
+                if (PartialCrossSections.HasElement(pair.Key))
+                {
+                    massAttenuation += pair.Value * PartialCrossSections.MassCrossSection(
+                        pair.Key, energyKev, PhotonProcess.Coherent);
+                }
+            }
+
+            return massAttenuation * this.Density;
+        }
+
         /// <summary>Электронов на см³ — для сечения Клейна — Нишины.</summary>
         public double ElectronDensity()
         {
