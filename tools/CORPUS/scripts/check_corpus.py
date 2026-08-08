@@ -111,6 +111,67 @@ def check(entry, verbose=False):
     return out
 
 
+def check_parts():
+    """Раздел корпуса (B1): у каждого спектра назван part, у понятного —
+    существующая геометрия и посчитанная под неё матрица.
+
+    Проверяется не «файл есть», а покрытие: спектр без строки в `parts.csv`
+    попадёт в сводку неизвестно какой половиной, и заметить это будет нечем.
+    """
+    import csv
+    parts_path = os.path.join(LAB, 'corpus', 'parts.csv')
+    geom_dir = os.path.join(LAB, 'corpus', 'geometries')
+    print('\n== раздел корпуса ==')
+    if not os.path.isfile(parts_path):
+        print('НЕТ %s — прогоните scripts/split_corpus.py' % parts_path)
+        return False
+
+    with open(parts_path, encoding='utf-8-sig', newline='') as f:
+        rows = list(csv.DictReader(f))
+
+    keys = {e['key'] for e in corpus_def.ALL}
+    named = {r['spectrum'] for r in rows}
+    missing = sorted(keys - named)
+    extra = sorted(named - keys)
+
+    counts, bad, need_matrix = {}, [], set()
+    for r in rows:
+        counts[r['part']] = counts.get(r['part'], 0) + 1
+        if r['part'] != 'known':
+            if r['geometry']:
+                bad.append('%s: не known, а геометрия названа' % r['spectrum'])
+            continue
+        if not r['geometry']:
+            bad.append('%s: known без геометрии' % r['spectrum'])
+            continue
+        if not os.path.isfile(os.path.join(geom_dir, r['geometry'] + '.in')):
+            bad.append('%s: нет геометрии %s.in' % (r['spectrum'], r['geometry']))
+        # Матрица в репозиторий НЕ кладётся (решение Amber 09.08.2026): она
+        # двоичная, весит полмегабайта на геометрию, пересчитывается заново при
+        # каждой смене версии физики и воспроизводится побитово — зерно узла не
+        # зависит от порядка счёта. Поэтому её отсутствие не отказ приёмки, а
+        # напоминание прогнать `corpusmatrixprobe`: у свежего клона её и не
+        # может быть.
+        elif not os.path.isfile(os.path.join(geom_dir, r['geometry'] + '.rmx')):
+            need_matrix.add(r['geometry'])
+
+    for part in ('known', 'unknown', 'excluded'):
+        print('  %-9s %3d' % (part, counts.get(part, 0)))
+    if missing:
+        print('  БЕЗ СТРОКИ В parts.csv: %s' % ', '.join(missing))
+    if extra:
+        print('  ЛИШНИЕ В parts.csv: %s' % ', '.join(extra))
+    for line in bad:
+        print('  %s' % line)
+    if need_matrix:
+        print('  матрицы нет у %d геометрий (%s) — прогоните corpusmatrixprobe;'
+              ' в репозитории их нет нарочно'
+              % (len(need_matrix), ', '.join(sorted(need_matrix))))
+    ok = not (missing or extra or bad)
+    print('  %s' % ('СОШЛОСЬ' if ok else 'РАЗОШЛОСЬ'))
+    return ok
+
+
 def main():
     only = None
     verbose = '--verbose' in sys.argv
@@ -144,6 +205,8 @@ def main():
             r['width_med'], verdict))
     print('\nплохих: %d %s' % (len(bad), ', '.join(bad)))
     print('спорных/непроверенных: %d %s' % (len(warn), ', '.join(warn)))
+    if not only:
+        check_parts()
 
 
 if __name__ == '__main__':

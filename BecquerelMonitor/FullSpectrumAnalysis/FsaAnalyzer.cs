@@ -545,7 +545,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     Kind = column.Component.Kind,
                     Curve = curve,
                     SumPeakCurve = sumOnly,
-                    PeakCounts = fit.PeakCounts[k],
+                    PeakCounts = this.PeakWindowCounts(column.Component, curve, calibration,
+                                                       fwhmCalibration, gain, offset,
+                                                       chLo, chHi, channels),
                     CountRate = amplitude / liveTime,
                     Z = fit.Z[k]
                 };
@@ -578,6 +580,138 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return result;
         }
 
+        /// <summary>
+        /// Отсчёты компонента в его ПИКОВЫХ ОКНАХ (±2 ПШПВ вокруг каждой линии
+        /// и каждого сумм-пика), а не по всему образу.
+        ///
+        /// Так решено (S24в, Amber 08.08.2026), потому что по всему образу доля
+        /// в «пироге» несравнима между нуклидами: подпороговый континуум образа
+        /// отвязывается в свою колонку со своей свободной амплитудой
+        /// (<see cref="ResponseContinuumTrustFloorKev"/>), и урезано у разных
+        /// нуклидов по-разному — у высокоэнергичных под порогом континуума
+        /// больше. Приписать хвост обратно нельзя: его амплитуда своя. Пиковые
+        /// окна разрезом НЕ трогаются никогда (они нарочно остаются в основном
+        /// образе), поэтому счёт по ним от порога не зависит вовсе и правило
+        /// выходит одинаковым для всех строк.
+        ///
+        /// Число перестало быть «долей спектра» и стало «долей пиковых
+        /// отсчётов» — это разные величины, и подпись у него своя.
+        ///
+        /// Окна берутся тем же ±2 ПШПВ, что и в
+        /// <see cref="SplitContinuumBelowTrustFloor"/>: два места, считающие
+        /// «пиковое окно» по-своему, однажды разойдутся. Перекрытия
+        /// складываются один раз — маска по каналам, а не сумма по линиям.
+        /// </summary>
+        double PeakWindowCounts(FsaComponent component, double[] curve, EnergyCalibration calibration,
+                                FwhmCalibration fwhmCalibration, double gain, double offset,
+                                int chLo, int chHi, int channels)
+        {
+            if (component == null || curve == null)
+            {
+                return 0.0;
+            }
+
+            bool[] inWindow = new bool[channels];
+            bool any = false;
+
+            foreach (FsaLine line in component.Lines)
+            {
+                if (line.Intensity > 0.0
+                    && MarkPeakWindow(inWindow, line.Energy, calibration, fwhmCalibration,
+                                      gain, offset, chLo, chHi, channels))
+                {
+                    any = true;
+                }
+            }
+
+            // Сумм-пик принадлежит своему нуклиду и стоит там, где линии нет
+            // вовсе; без него у плотных каскадов (Lu-176) пиковый счёт терял бы
+            // то, что каскадная поправка вынесла из линий.
+            FsaCascadeSummer.Correction correction =
+                this.cascade != null && this.CascadeSumPeaks ? this.cascade.For(component) : null;
+            if (correction != null && correction.SumPeaks != null)
+            {
+                foreach (FsaCascadeSummer.SumPeak peak in correction.SumPeaks)
+                {
+                    if (MarkPeakWindow(inWindow, peak.Energy, calibration, fwhmCalibration,
+                                       gain, offset, chLo, chHi, channels))
+                    {
+                        any = true;
+                    }
+                }
+            }
+
+            // Ни одна линия не легла в окно фита (весь компонент за краем) —
+            // счёт по всему образу был бы не «пиковым», а случайным остатком.
+            if (!any)
+            {
+                return 0.0;
+            }
+
+            double counts = 0.0;
+            for (int i = chLo; i <= chHi; i++)
+            {
+                if (inWindow[i])
+                {
+                    counts += curve[i];
+                }
+            }
+
+            return counts;
+        }
+
+        /// <summary>
+        /// Пометить в маске каналы окна ±2 ПШПВ вокруг линии с учётом дрейфа
+        /// шкалы. Возвращает false, если линия за краем окна фита или ПШПВ там
+        /// не определена.
+        /// </summary>
+        bool MarkPeakWindow(bool[] inWindow, double energy, EnergyCalibration calibration,
+                            FwhmCalibration fwhmCalibration, double gain, double offset,
+                            int chLo, int chHi, int channels)
+        {
+            if (!(energy > 0.0))
+            {
+                return false;
+            }
+
+            double position = EnergyToChannelSafe(calibration, energy, channels);
+            if (Double.IsNaN(position))
+            {
+                return false;
+            }
+
+            double p = gain * position + offset;
+            double fwhm = fwhmCalibration.ChannelToFwhm(p);
+            if (!(fwhm > 0.0) || Double.IsNaN(fwhm))
+            {
+                return false;
+            }
+
+            int from = (int)Math.Floor(p - 2.0 * fwhm);
+            int to = (int)Math.Ceiling(p + 2.0 * fwhm);
+            if (from < chLo)
+            {
+                from = chLo;
+            }
+
+            if (to > chHi)
+            {
+                to = chHi;
+            }
+
+            if (from > to)
+            {
+                return false;
+            }
+
+            for (int i = from; i <= to; i++)
+            {
+                inWindow[i] = true;
+            }
+
+            return true;
+        }
+
         // ------------------------------------------------------------------
         // Модель и решатель
         // ------------------------------------------------------------------
@@ -594,7 +728,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public double[] Amplitude;
             public double[] Sigma;
             public double[] Z;
-            public double[] PeakCounts;
             public double Chi2;
             public double Chi2Ndf;
             public double[] Residual;
@@ -809,19 +942,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 z[k] = sigma[k] > 0.0 ? x[k] / sigma[k] : 0.0;
             }
 
-            double[] peakCounts = new double[m];
-            for (int k = 0; k < m; k++)
-            {
-                peakCounts[k] = x[k] * SumRange(columns[k].Values, chLo, chHi);
-            }
-
+            // Отсчёты компонента считаются НЕ здесь: по всему образу они
+            // несравнимы между нуклидами (S24в), и единственное место, где они
+            // берутся, — PeakWindowCounts на готовом результате.
             return new FitResult
             {
                 Columns = columns,
                 Amplitude = x,
                 Sigma = sigma,
                 Z = z,
-                PeakCounts = peakCounts,
                 Chi2 = chi2,
                 Chi2Ndf = chi2ndf,
                 Residual = residual,
@@ -2352,17 +2481,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return inverse;
-        }
-
-        static double SumRange(double[] values, int lo, int hi)
-        {
-            double sum = 0.0;
-            for (int i = lo; i <= hi; i++)
-            {
-                sum += values[i];
-            }
-
-            return sum;
         }
 
         static double EnergyToChannelSafe(EnergyCalibration calibration, double energy, int channels)

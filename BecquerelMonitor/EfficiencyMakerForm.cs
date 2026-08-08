@@ -374,7 +374,7 @@ namespace BecquerelMonitor
             this.geometry = this.geometryPanel.Model;
             this.calculateButton.Enabled = true;
 
-            // Подсказка разрешения из ПШПВ-калибровки прибора (E11): у
+            // Подсказка разрешения из ПШПВ-калибровки прибора (E14): у
             // геометрии из редактора FwhmAt662Percent нулевой, а с нулём
             // допуск пика нулевой и поправка SingleScatter не даёт ничего.
             this.geometryPanel.SetFwhmSuggestion(FwhmPercentAt662(device));

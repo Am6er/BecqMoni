@@ -40,7 +40,14 @@ namespace BecquerelMonitor
                 if (startch < 0) startch = 0;
                 if (endch >= energySpectrum.Spectrum.Length) endch = energySpectrum.Spectrum.Length - 1;
                 double counts = 0.0;
-                for (int i = startch; i <= endch; i++)
+                // Полуоткрыто, [startch, endch): диапазоны в конфигурациях идут
+                // ВСТЫК (у поставочной RC-103 их 36, верх одного равен низу
+                // следующего), и замкнутая сумма считала граничный канал каждого
+                // диапазона дважды — 35 лишних каналов из ~900 на 1024-канальном
+                // спектре, доза завышалась. Генератор точек в DeviceConfigForm
+                // всегда суммировал полуоткрыто; расходились именно эти два
+                // места (W19, решение Amber 08.08.2026 — полуоткрыто везде).
+                for (int i = startch; i < endch; i++)
                 {
                     counts += energySpectrum.Spectrum[i];
                 }

@@ -65,6 +65,8 @@ namespace BecquerelMonitor
             this.roiConfigList.Clear();
             this.roiConfigMap.Clear();
             XmlSerializer xmlSerializer = new XmlSerializer(typeof(ROIConfigData));
+            string loadingPath = null;
+            xmlSerializer.UnknownElement += (s, e) => TraceDroppedElement(loadingPath, e);
             try
             {
                 string[] files = Directory.GetFiles(configROI, "*.xml");
@@ -75,6 +77,7 @@ namespace BecquerelMonitor
                     try
                     {
                         ROIConfigData roiconfigData;
+                        loadingPath = path;
                         using (FileStream fileStream = new FileStream(path, FileMode.Open))
                         {
                             roiconfigData = (ROIConfigData)xmlSerializer.Deserialize(fileStream);
@@ -193,6 +196,7 @@ namespace BecquerelMonitor
             {
                 string path = configROI + roiconfigData.OriginalFilename;
                 XmlSerializer xmlSerializer = new XmlSerializer(typeof(ROIConfigData));
+                xmlSerializer.UnknownElement += (s, e) => TraceDroppedElement(path, e);
                 using (FileStream fileStream = new FileStream(path, FileMode.Open))
                 {
                     roiconfigData = (ROIConfigData)xmlSerializer.Deserialize(fileStream);
@@ -288,6 +292,20 @@ namespace BecquerelMonitor
         }
 
 
+
+        // Совместимости форматов в проекте не делаем, но молча терять данные тоже
+        // нельзя: XmlSerializer выбрасывает всё, чему нет свойства в ROIConfigData,
+        // и при первом же сохранении элемент исчезает из файла. Так уходили старые
+        // кривые <ROIEfficiency> — кривая переехала в конфигурацию прибора, а
+        // потерю никто не видел (W15). Решение Amber 08.08.2026: только строка в
+        // лог, без диалога. Ловится любой неизвестный элемент, не только кривая.
+        static void TraceDroppedElement(string path, XmlElementEventArgs e)
+        {
+            System.Diagnostics.Trace.WriteLine(string.Format(
+                "ROI config \"{0}\": элемент <{1}> (строка {2}) программе неизвестен, " +
+                "он не прочитан и будет потерян при первом сохранении конфигурации.",
+                path, e.Element != null ? e.Element.Name : "?", e.LineNumber));
+        }
 
         string configROI = Package.GetInstance().ROI;
         string configROIDir = Package.GetInstance().ROIDir;

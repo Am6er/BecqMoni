@@ -42888,7 +42888,7 @@ Computed: {7}, took {8:F0} s</value>
     <value>Done in {0}. Not saved yet.</value>
   </data>
   <data name="ResponseMatrixContinuumNoise" xml:space="preserve">
-    <value> Continuum statistics are thin: up to {0} % on the row integral — the peak is fine, the continuum is noisy. Raise the number of histories.</value>
+    <value> Continuum statistics are thin: {0} % on the row integral, averaged over nodes by their contribution — the peak is fine, the continuum is noisy. Raise the number of histories.</value>
   </data>
   <data name="ResponseMatrixCancelled" xml:space="preserve">
     <value>Cancelled.</value>

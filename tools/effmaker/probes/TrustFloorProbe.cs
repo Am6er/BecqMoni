@@ -76,10 +76,12 @@ class TrustFloorProbe
         var clock = System.Diagnostics.Stopwatch.StartNew();
         ResponseMatrix matrix = ResponseMatrixBuilder.Build(
             rd.Efficiency.Geometry, options, null, CancellationToken.None);
-        Console.WriteLine("  за {0:F0} с, физика {1}, ошибка континуума {2:F2} %",
+        Console.WriteLine("  за {0:F0} с, физика {1}, ошибка континуума {2:F2} % (худший узел),"
+                          + " {3:F2} % (взвешенная по вкладу узла)",
                           clock.Elapsed.TotalSeconds,
                           ResponseMatrix.PhysicsFromStamp(matrix.Stamp),
-                          matrix.ContinuumRelativeError);
+                          matrix.ContinuumRelativeError,
+                          matrix.ContinuumWeightedError);
 
         FsaEfficiency efficiency = FsaEfficiency.FromConfig(rd.Efficiency);
 
