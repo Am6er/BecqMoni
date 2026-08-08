@@ -52,8 +52,16 @@ class Material(object):
 def from_formula(db, name, formula, density, potential_ev=None):
     """«Cs1 I1» -> массовые доли. Веса — из xcom_elements, как ATB у ESTAR."""
     weights = dict(db.execute("select z, atomic_weight from xcom_elements"))
+    # Символы — из `xcom_elements`, а НЕ из `nuclides`: после разреза базы
+    # (D25, 08.08.2026) `nuclides` уехала в `nucdb.sqlite`, и запрос к ней
+    # ронял estar.py на первом же веществе — «no such table: nuclides».
+    # Шапка модуля всё это время утверждала, что читается `xcom_elements`, так
+    # что расходились не поставки, а код и его же описание. Заодно это лучший
+    # источник: `xcom_elements.symbol` заполнен у всех ста элементов и
+    # канонизирован разрезом, тогда как в `nuclides` написания конфликтовали
+    # (`TI` против `Ti`, N12).
     symbols = {s.upper(): z for z, s in db.execute(
-        "select distinct z, symbol from nuclides where symbol is not null")}
+        "select z, symbol from xcom_elements where symbol is not null")}
     atoms = {}
     for part in formula.split():
         i = 0
@@ -256,8 +264,22 @@ WANTED = [
     ("Ge", "Ge1", 5.323),
 ]
 
-# Сетка ElectronData.Grid — первые 39 значений стандартного списка ENG.ELE.
+# Сетка ElectronData.Grid — стандартный список ENG.ELE от 1 кэВ до 3 МэВ.
+#
+# ДО 09.08.2026 она начиналась с 10 кэВ, и этот обрез был причиной M7:
+# интеграл тормозного по пути торможения не добирал того, что излучается на
+# последних десяти килоэлектронвольтах, а это ровно `Y(10 кэВ) / Y(T)` —
+# 11.4 % от полного выхода при T = 100 кэВ и 0.97 % при 2614 кэВ. Измеренная
+# подтяжка к ESTAR была 1.089 и 1.010: на верху шкалы совпадает в сотых долях
+# процента. Внутренняя сетка `estar.py` и так идёт от 1 кэВ, обрезалась только
+# выдача.
+#
+# Первые 16 значений — та же решётка на декаду (1.00, 1.25, 1.50, 1.75, 2.00,
+# 2.50 … 9.00), что и во всех остальных декадах списка.
 OUT_GRID = [
+    1.000e-03, 1.250e-03, 1.500e-03, 1.750e-03, 2.000e-03, 2.500e-03,
+    3.000e-03, 3.500e-03, 4.000e-03, 4.500e-03, 5.000e-03, 5.500e-03,
+    6.000e-03, 7.000e-03, 8.000e-03, 9.000e-03,
     1.000e-02, 1.250e-02, 1.500e-02, 1.750e-02, 2.000e-02, 2.500e-02,
     3.000e-02, 3.500e-02, 4.000e-02, 4.500e-02, 5.000e-02, 5.500e-02,
     6.000e-02, 7.000e-02, 8.000e-02, 9.000e-02, 1.000e-01, 1.250e-01,
@@ -284,17 +306,25 @@ def main():
 
     if mode == "check":
         import reference
+        # Эталон NIST снят на СТАРОЙ сетке от 10 кэВ (39 точек). Сетка выдачи
+        # с 09.08.2026 длиннее, поэтому сверяется общий хвост, а не начало:
+        # подставить 55 наших значений под 39 эталонных значило бы сверять
+        # сдвинутые энергии и получить красивую бессмыслицу.
         for name, formula, density, potential in CHECK:
             rg, yield_, used = compute(db, name, formula, density, potential)
             ref_rg, ref_yield = reference.DATA[name]
+            n = len(ref_rg)
+            if len(rg) < n:
+                sys.exit(u"эталон длиннее выдачи: %d против %d" % (n, len(rg)))
+            rg, yield_ = rg[-n:], yield_[-n:]
             dr = 100.0 * (rg / np.array(ref_rg) - 1.0)
             dy = 100.0 * (yield_ / np.array(ref_yield) - 1.0)
             print("%-6s I=%6.1f эВ | пробег: медиана %+.3f%%, макс |%.3f%%| при "
                   "%g МэВ | выход: медиана %+.3f%%, макс |%.3f%%| при %g МэВ"
                   % (name, used, np.median(dr), np.max(np.abs(dr)),
-                     OUT_GRID[int(np.argmax(np.abs(dr)))],
+                     OUT_GRID[-n:][int(np.argmax(np.abs(dr)))],
                      np.median(dy), np.max(np.abs(dy)),
-                     OUT_GRID[int(np.argmax(np.abs(dy)))]))
+                     OUT_GRID[-n:][int(np.argmax(np.abs(dy)))]))
     else:
         for name, formula, density in WANTED:
             rg, yield_, used = compute(db, name, formula, density)
