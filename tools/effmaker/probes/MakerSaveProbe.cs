@@ -2,6 +2,7 @@ using BecquerelMonitor;
 using BecquerelMonitor.EfficiencyMaker;
 using System;
 using System.Globalization;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
@@ -51,7 +52,7 @@ namespace MakerSaveProbe
             EfficiencyConfigData config = new EfficiencyConfigData("проба-геометрия")
             {
                 Origin = EfficiencyOrigin.Measurement,
-                Geometry = Preset(0),
+                Geometry = Preset("Atom Spectra Nano 16"),
             };
             config.Curve.Add(new ROIEfficiencyData { Energy = 100.0, Efficiency = 1e-2, ErrorPercent = 5.0 });
             config.Curve.Add(new ROIEfficiencyData { Energy = 1000.0, Efficiency = 1e-3, ErrorPercent = 7.0 });
@@ -68,7 +69,7 @@ namespace MakerSaveProbe
                 // Правка геометрии руками: в поля редактора кладётся ДРУГОЙ
                 // детектор, и форме сообщается, что её правили, — ровно то
                 // состояние, в котором пользователь жмёт «Сохранить».
-                GeometryModel other = Preset(2);
+                GeometryModel other = Preset("Obsidian");
                 Panel(form).SetModel(other);
                 Set(form, "dirty", true);
 
@@ -90,11 +91,27 @@ namespace MakerSaveProbe
             return bad == 0 ? 0 : 1;
         }
 
-        static GeometryModel Preset(int index)
+        /// <summary>
+        /// Пресет ПО ИМЕНИ, а не по номеру в списке (T24). Номер молча меняет
+        /// смысл: когда пресет RadiaCode разрезали на 101 и 103 (E11), индекс 2
+        /// перестал быть «Obsidian» и стал «RadiaCode-103» — проба продолжала
+        /// проходить только потому, что ей нужен просто ДРУГОЙ детектор.
+        /// Отсутствующее имя валит пробу сразу, а не подсовывает соседа.
+        /// </summary>
+        static GeometryModel Preset(string name)
         {
+            GeometryPresets.Preset preset =
+                GeometryPresets.Items.FirstOrDefault(p => p.Name == name);
+            if (preset == null)
+            {
+                throw new InvalidOperationException(
+                    "нет пресета «" + name + "»; есть: "
+                    + string.Join(", ", GeometryPresets.Items.Select(p => p.Name)));
+            }
+
             GeometryModel model = new GeometryModel();
-            GeometryPresets.Items[index].Apply(model);
-            model.Name = GeometryPresets.Items[index].Name;
+            preset.Apply(model);
+            model.Name = preset.Name;
             return model;
         }
 
