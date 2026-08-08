@@ -20,6 +20,12 @@ u"""Машинная проверка реестра задач: `TODO.md` и `D
 не всегда ошибка (строка может рассказывать, как его удаляли), поэтому
 печатается списком к глазам, а не валит прогон.
 
+Отдельно и ГРОМЧЕ: файл, который на диске есть, а в репозитории НЕТ. Первая
+редакция проверки такие пропускала — искала по дереву каталогов, — и это была
+та же слепота, что у N8: работа лежит у одного человека на машине, реестр на
+неё ссылается, а из репозитория её не видно вовсе. Проверяется по
+`git ls-files`, потому что «есть на диске» и «есть в проекте» — разные вещи.
+
 **3. Имена из кода.** Каждое имя в обратных кавычках, похожее на символ
 (класс, метод, поле, ключ), должно где-то в дереве встречаться. Имя, которого
 нет, — признак либо закрытия без правки, либо переименования, за которым
@@ -57,6 +63,16 @@ SYMBOL = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$")
 FOREIGN = {"Ttb", "Elib", "ENSDF2", "MDATX3", "FCOMP", "Epdl97", "Glecs",
            "ECCBINDX", "NuclideMaster", "TCCFCALC", "SpecUtils"}
 
+# Вне репозитория НАРОЧНО — и почему именно. Причина обязательна: исключение
+# без причины через полгода неотличимо от забытой недоделки, а это ровно тот
+# способ потерять проблему, против которого заведена вся проверка.
+OUTSIDE_ON_PURPOSE = {
+    "claude.md": u"личные указания агенту, в .gitignore; T2 как раз про то, "
+                 u"что правила «для всех» так хранить нельзя",
+    "agents.md": u"личные указания сборки у сопровождающего, в .gitignore "
+                 u"(CLAUDE.md, «Build»)",
+}
+
 
 def read_rows(path):
     rows = []
@@ -77,6 +93,18 @@ def build_index(root):
         for f in files:
             names[f.lower()].append(os.path.relpath(os.path.join(base, f), root))
     return names
+
+
+def tracked_set(root):
+    """Пути, которые ЗНАЕТ git, — в нижнем регистре, и путём, и именем."""
+    out = subprocess.check_output(["git", "ls-files"], cwd=root)
+    paths, names = set(), set()
+    for name in out.decode("utf-8", "replace").split("\n"):
+        name = name.strip()
+        if name:
+            paths.add(name.lower())
+            names.add(os.path.basename(name).lower())
+    return paths, names
 
 
 def tracked_text(root):
@@ -138,6 +166,8 @@ def main():
 
     # --- 2. ссылки на файлы ---------------------------------------------
     index = build_index(root)
+    tracked_paths, tracked_names = tracked_set(root)
+    untracked = collections.defaultdict(set)
     out.write(u"# Ссылки на файлы, которых нет в дереве\n\n")
     missing_any = False
     for name, rows in files.items():
@@ -153,10 +183,15 @@ def main():
                     targets.add(c)
             lost = []
             for t in targets:
-                direct = os.path.join(root, t.replace("/", os.sep))
-                if os.path.exists(direct):
+                key = t.replace("\\", "/").lstrip("./").lower()
+                base = os.path.basename(t).lower()
+                known_to_git = key in tracked_paths or base in tracked_names
+                on_disk = (os.path.exists(os.path.join(root, t.replace("/", os.sep)))
+                           or base in index)
+                if known_to_git or base in OUTSIDE_ON_PURPOSE:
                     continue
-                if os.path.basename(t).lower() in index:
+                if on_disk:
+                    untracked[name].add((num, line, t))
                     continue
                 lost.append(t)
             if lost:
@@ -165,6 +200,21 @@ def main():
                           % (name, num, line, u", ".join(sorted(lost))))
     if not missing_any:
         out.write(u"  нет\n")
+
+    out.write(u"\n# Ссылки на файлы, которых НЕТ В РЕПОЗИТОРИИ (лежат только на диске)\n\n")
+    if untracked:
+        out.write(u"  Это случай N8: реестр ссылается на работу, которой из\n"
+                  u"  репозитория не видно. Либо закоммитить, либо не ссылаться.\n")
+        for name in sorted(untracked):
+            for num, line, t in sorted(untracked[name], key=lambda r: r[1]):
+                out.write(u"  %-8s %-5s строка %-4d %s\n" % (name, num, line, t))
+        bad += sum(len(v) for v in untracked.values())
+    else:
+        out.write(u"  нет\n")
+
+    out.write(u"\n# Вне репозитория НАРОЧНО\n\n")
+    for name in sorted(OUTSIDE_ON_PURPOSE):
+        out.write(u"  %-12s %s\n" % (name, OUTSIDE_ON_PURPOSE[name]))
     out.write(u"\n")
 
     # --- 3. имена из кода -----------------------------------------------
