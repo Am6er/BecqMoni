@@ -1192,8 +1192,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// с точностью до долей процента (проба S11, 07.08.2026); взято 100.
         /// Пиковые окна линий (±2 ПШПВ) остаются в основном образе и ниже
         /// порога — пик под порогом (рентген свинца 75 кэВ) обязан выжить.
+        ///
+        /// ПОЛЕ, а не константа (S13, 08.08.2026): это программная ручка для
+        /// проб — A/B «жёсткая связка против отвязки» (0 — отвязки нет, весь
+        /// континуум образа остаётся привязанным к пику) и скан порога 80–150
+        /// на матрице физики 6. В UI и конфигурацию НЕ выводится сознательно:
+        /// это инструмент замера, а не настройка пользователя, и приложение
+        /// всегда работает с умолчанием.
         /// </summary>
-        const double ResponseContinuumTrustFloorKev = 100.0;
+        public double ResponseContinuumTrustFloorKev = 100.0;
 
         /// <summary>
         /// Вынуть из гистограммы поглощения бины ниже порога доверия, кроме
@@ -1201,11 +1208,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Возвращает вынутое отдельной гистограммой или null, если ниже
         /// порога ничего не было.
         /// </summary>
-        static double[] SplitContinuumBelowTrustFloor(double[] deposit, double bin, FsaComponent component,
-                                                      EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
-                                                      int channels)
+        double[] SplitContinuumBelowTrustFloor(double[] deposit, double bin, FsaComponent component,
+                                               EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
+                                               int channels)
         {
-            int floorBins = (int)(ResponseContinuumTrustFloorKev / bin);
+            int floorBins = (int)(this.ResponseContinuumTrustFloorKev / bin);
             if (floorBins <= 0)
             {
                 return null;
