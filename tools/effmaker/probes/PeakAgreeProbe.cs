@@ -109,6 +109,33 @@ class PeakAgreeProbe
             }
 
             Console.WriteLine();
+
+            // ОКНО ПИКА (F29). Одиночный бин пика строки заведомо меньше пика
+            // кривой при ненулевом допуске: кривая считает пиком всё, что
+            // недобрало не больше допуска, а строка кладёт такую историю в бин
+            // её поглощённой энергии — то есть на несколько бинов ниже. Но
+            // никуда эти события не делись: они лежат в окне [E − допуск, E], и
+            // уширение настоящей ПШПВ прибора, которое накладывается на образ
+            // позже, сводит их в тот же фотопик. Сумма окна и есть та величина,
+            // которую надо сравнивать с пиком кривой.
+            Console.Write("{0,10}", " окно");
+            for (int i = 0; i < energies.Length; i++)
+            {
+                double e = energies[i];
+                double w = geometry.PeakHalfWidthKev(e);
+                double[] histogram = Make(geometry, histories, e).Response(e, bin, out rowError[i]);
+                int peakBin = histogram.Length - 1;
+                int from = (int)Math.Floor((e - w) / bin + 0.5);
+                if (from < 0) from = 0;
+                double window = 0.0;
+                for (int b = from; b <= peakBin; b++) window += histogram[b];
+                Console.Write("{0,22}", curve[i] > 0.0
+                    ? string.Format(CultureInfo.InvariantCulture, "{0:F3} ({1:+0.00;-0.00} %)",
+                                    window / curve[i], 100.0 * (window / curve[i] - 1.0))
+                    : "—");
+            }
+
+            Console.WriteLine();
         }
 
         Console.WriteLine();
@@ -119,6 +146,14 @@ class PeakAgreeProbe
         Console.WriteLine("кладёт историю в бин ПОГЛОЩЁННОЙ энергии — недобравшая 17 кэВ при");
         Console.WriteLine("допуске 22 идёт в свой бин, а не в пиковый. Величина расхождения");
         Console.WriteLine("должна оставаться независимой от шага бина (F29).");
+        Console.WriteLine();
+        Console.WriteLine("Строка «окно» — сумма строки по [E − допуск, E], то есть по тем же");
+        Console.WriteLine("историям, которые кривая считает пиком. Она и есть ответ на F29:");
+        Console.WriteLine("события никуда не делись, они разложены по поглощённой энергии, и");
+        Console.WriteLine("уширение настоящей ПШПВ прибора сводит их в тот же фотопик.");
+        Console.WriteLine("Тождества тут не будет: бины ниже пика ПЕРЕЗАПИСЫВАЕТ аналоговый");
+        Console.WriteLine("континуум своим прогоном, так что окно проверяет то, что реально");
+        Console.WriteLine("лежит в матрице, а не равенство двух формул.");
         Console.WriteLine("Строка «δ» — погрешность счёта «кривая / отклик»: два пути считают");
         Console.WriteLine("ОДНУ величину, и числа обязаны сойтись (F28).");
         return 0;
