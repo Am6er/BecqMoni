@@ -147,8 +147,21 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public double ElectronEscapeSlope = 0.4;
 
-        /// <summary>Порог включения вылета, кэВ кинетической энергии.</summary>
-        public double ElectronEscapeT0Kev = 300.0;
+        /// <summary>
+        /// Порог включения вылета, кэВ кинетической энергии.
+        ///
+        /// Здесь стояло 300, а док, сообщение коммита и §10 журнала говорили
+        /// 350; артефактов, различающих их, не сохранилось — оба числа родились
+        /// в одном коммите, а развёртка снималась ключами, которые тогда до
+        /// симулятора не доезжали (F18). Разрешено ПОВТОРОМ точки развёртки
+        /// 08.08.2026 (`esc_scan.py --t0s=300,350`, Nano16Pro_tube, физика 8,
+        /// 8 млн историй, одно зерно — прогоны парные): наш/Geant4 при 300 —
+        /// 1.017/1.025/0.952 на 662/1461/2614 кэВ, при 350 — 1.018/1.027/0.958
+        /// при своём разбросе 0.002/0.003/0.004. Порог не решает НИЧЕГО на
+        /// 662 и 1461 и стоит 1.5 σ на 2614, где 350 ближе к единице.
+        /// Оставлено 350 — то, что написано в трёх документах из четырёх.
+        /// </summary>
+        public double ElectronEscapeT0Kev = 350.0;
 
         /// <summary>
         /// Сколько энергии событие может потерять и всё-таки остаться в пике,
@@ -1179,45 +1192,84 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// доля комптона равна mu_неког/mu_убив. Дальше — угол по Клейну —
         /// Нишине, новая энергия и обычная проводка до кристалла.
         ///
-        /// Возвращает добавку к счёту (0, если рассеяние не состоялось или
-        /// рассеянный квант до кристалла не дошёл либо не поглотился целиком).
+        /// Один розыгрыш даёт ОБА ответа сразу — сколько история приносит в пик
+        /// и в какой бин отклика ложится, — потому что вопросы разные, а
+        /// случайные числа у них обязаны быть одни и те же.
+        ///
+        /// Событие попадает в пик РАССЕЯННОЙ энергии, а не исходной: в пик
+        /// полного поглощения линии оно годится только тогда, когда потеря
+        /// укладывается в ЕГО ШИРИНУ. Отсюда важное: при нулевом допуске
+        /// (<see cref="PeakHalfWidthKev"/> = 0) эта поправка не даёт ничего
+        /// вовсе, и так и должно быть — у детектора с бесконечным
+        /// разрешением рассеянный квант в пик линии не попадает. Величина
+        /// поправки зависит от разрешения прибора, а его в модели геометрии
+        /// нет. Потери у истории две — недобор при рассеянии и вылет из
+        /// кристалла — и в пик она годится, только когда В СУММЕ они
+        /// укладываются в допуск: порознь каждая может быть меньше w, а
+        /// событие отстоит от пика на величину до 2w. Это ровно то же
+        /// `E − deposited`, которым пользуется <see cref="Deposit"/>, и
+        /// записано оно один раз — в <see cref="InPeak"/>.
+        ///
+        /// Возвращает добавку к счёту (0, если рассеяние не состоялось,
+        /// рассеянный квант до кристалла не дошёл или в пик не годится).
+        ///
+        /// До 08.08.2026 счёт и гистограмма стояли в РАЗНЫХ ветках `Run`: при
+        /// `histogram == null` добавка в счёт была, при `histogram != null` —
+        /// нет, и возвращаемая `Run` эффективность значила разное в
+        /// зависимости от аргумента (F28). Розыгрыш от объединения не
+        /// изменился: обе ветки и раньше звали
+        /// <see cref="ScatteredContribution"/> ровно один раз за историю.
         /// </summary>
-        double ScatteredScore(double x, double y, double z,
-                              double ux, double uy, double uz,
-                              double energyKev, double tauKill)
+        double ScatteredRun(double[] histogram, double binKev,
+                            double x, double y, double z,
+                            double ux, double uy, double uz,
+                            double energyKev, double tauKill, double weight)
         {
-            double weight, scattered, escaped;
+            this.lossAnnihilation = 0.0;
+            this.lossXray = 0.0;
+            this.lightDeposit = 0.0;
+
+            double sw, scattered, sEscaped;
             if (!this.ScatteredContribution(x, y, z, ux, uy, uz, energyKev, tauKill,
-                                            out weight, out scattered, out escaped))
+                                            out sw, out scattered, out sEscaped))
             {
                 return 0.0;
             }
 
-            // Событие попадает в пик РАССЕЯННОЙ энергии, а не исходной: в пик
-            // полного поглощения линии оно годится только тогда, когда потеря
-            // укладывается в ЕГО ШИРИНУ. Отсюда важное: при нулевом допуске
-            // (<see cref="PeakHalfWidthKev"/> = 0) эта поправка не даёт ничего
-            // вовсе, и так и должно быть — у детектора с бесконечным
-            // разрешением рассеянный квант в пик линии не попадает. Величина
-            // поправки зависит от разрешения прибора, а его в модели геометрии
-            // нет. Потери у истории две — недобор при рассеянии и вылет из
-            // кристалла — и в пик она годится, только когда В СУММЕ они
-            // укладываются в допуск: порознь каждая может быть меньше w, а
-            // событие отстоит от пика на величину до 2w.
-            if ((energyKev - scattered) + escaped > this.PeakHalfWidthKev)
+            // Рассеявшийся квант приносит СВОЮ энергию, а не энергию линии: в
+            // отклике он и должен лечь ниже по шкале, а не в пик.
+            double deposited = scattered - sEscaped;
+            double share = weight * sw;
+            if (histogram != null)
             {
-                return 0.0;
+                this.Deposit(histogram, binKev, energyKev, deposited, share);
+                this.ScoreLight(binKev, deposited, share);
+                if (this.channelHistograms != null)
+                {
+                    // Квант рассеялся ДО кристалла и принёс меньше энергии
+                    // линии — в пик он не попадёт при любом исходе внутри.
+                    // Канал берётся по тем же меткам: если внутри ушёл рентген
+                    // или аннигиляционный квант, история принадлежит им, иначе
+                    // это недобор.
+                    ResponseChannel channel = this.ChannelOf(sEscaped);
+                    if (channel == ResponseChannel.Peak)
+                    {
+                        channel = ResponseChannel.Compton;
+                    }
+
+                    this.Deposit(this.channelHistograms[(int)channel],
+                            binKev, energyKev, deposited, share);
+                }
             }
 
-            return weight;
+            return this.InPeak(energyKev, deposited) ? share : 0.0;
         }
 
         /// <summary>
         /// Тот же однократно рассеявшийся квант, но без отсечек по допуску:
         /// возвращает вес, энергию ПОСЛЕ рассеяния и то, сколько из неё
-        /// вылетело. Пиковая ветвь (<see cref="ScatteredScore"/>) навешивает
-        /// свои две отсечки поверх, отклик — раскладывает по бинам поглощённой
-        /// энергии `scattered - escaped`. Разделение нужно потому, что
+        /// вылетело. Отсечку «годится в пик» и раскладку по бинам навешивает
+        /// поверх <see cref="ScatteredRun"/>. Разделение нужно потому, что
         /// «попало в пик» и «сколько поглотилось» — разные вопросы к одной
         /// истории, а розыгрыш у них обязан быть один.
         /// </summary>
@@ -1517,11 +1569,18 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// 2. Вылет самого электрона. Направление изотропно (длинный трек
         ///    изотропизуется многократным рассеянием), но вылет считается не с
         ///    полного пробега CSDA, а с ЭФФЕКТИВНОЙ ГЛУБИНЫ
-        ///    t_eff = <see cref="ElectronEscapeSlope"/>·T·R(T): мягкий электрон
+        ///    t_eff = <see cref="ElectronEscapeSlope"/>·max(0, T − <see
+        ///    cref="ElectronEscapeT0Kev"/>)·R(T), T в МэВ: мягкий электрон
         ///    гибнет по пути и возвращается обратным рассеянием, и доля
         ///    пробега, с которой вылет реально уносит энергию, растёт с T.
-        ///    Форма и наклон откалиброваны по Geant4-развёртке 662–2614 кэВ
-        ///    (журнал tccfcalc2, §9): t_eff/R = 0.06 (662) → 0.33 (2614).
+        ///    Форма, наклон и порог откалиброваны по Geant4-развёртке
+        ///    662–2614 кэВ (журнал tccfcalc2, §9, §15).
+        ///
+        ///    Здесь стояла формула БЕЗ порога, и её числа (t_eff/R = 0.06 на
+        ///    662 → 0.33 на 2614) отвечали наклону ~0.15, а не зашитому 0.4 —
+        ///    описание расходилось с кодом на всю величину порога (F18). При
+        ///    сегодняшних 0.4 и 350 кэВ выходит t_eff/R = 0.12 (662) → 0.91
+        ///    (2614).
         ///
         ///    Прежние модели не прошли сверку ОБЕ: изотропная с полным CSDA —
         ///    верхняя оценка, снимала 6–14 % на 662 (см. memory
@@ -2581,7 +2640,42 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// которой вылетело всё, отсчёта не даёт вовсе, и класть её в нулевой
         /// бин значило бы считать несобытие событием.
         /// </summary>
-        static void Deposit(double[] histogram, double binKev, double deposited, double weight)
+        /// <summary>
+        /// Положить вклад в бин поглощённой энергии.
+        ///
+        /// В БИН ПИКА попадает только то, что пиковой ветвью СЧИТАЕТСЯ пиком —
+        /// то есть недобравшее не больше <see cref="PeakHalfWidthKev"/>. Правило
+        /// у обеих ветвей одно и то же и здесь записано один раз: у прямого
+        /// попадания недобор равен вылетевшему (`escaped`), у рассеянного —
+        /// `(E − scattered) + escaped`, и оба выражаются как `E − deposited`.
+        ///
+        /// Раньше бин выбирался только округлением, и вклад с потерей меньше
+        /// ПОЛУБИНА попадал в пик гистограммы, хотя пиковая ветвь при допуске 0
+        /// такую историю пиком не считала: пик матрицы и пик кривой расходились
+        /// на величину, зависящую от шага бина (F21). Собственный комментарий
+        /// рассеянной ветки при этом утверждал обратное — «в пик он не попадёт
+        /// при любом исходе внутри».
+        ///
+        /// Недобравшее больше допуска кладётся в СОСЕДНИЙ бин, а не
+        /// отбрасывается: энергия в кристалле осталась, и терять её нельзя.
+        /// </summary>
+        /// <summary>
+        /// Годится ли история в пик полного поглощения линии. Недобор — это
+        /// всё, что до энергии линии не дошло, чем бы оно ни было: у прямого
+        /// попадания это вылетевшее из кристалла, у рассеянного — недобор при
+        /// рассеянии ПЛЮС вылетевшее, и оба выражаются как `E − deposited`.
+        ///
+        /// Правило одно на все ветки и записано ЗДЕСЬ один раз: пока оно
+        /// стояло в трёх местах, пик кривой и пик отклика расходились (F21), а
+        /// возвращаемая эффективность значила разное на двух путях (F28).
+        /// </summary>
+        bool InPeak(double energyKev, double deposited)
+        {
+            return energyKev - deposited <= this.PeakHalfWidthKev + 1e-9;
+        }
+
+        void Deposit(double[] histogram, double binKev, double energyKev,
+                     double deposited, double weight)
         {
             if (!(deposited > 0.0) || !(weight > 0.0))
             {
@@ -2594,9 +2688,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                 bin = 0;
             }
 
-            if (bin >= histogram.Length)
+            int peak = histogram.Length - 1;
+            if (bin >= peak)
             {
-                bin = histogram.Length - 1;
+                bin = this.InPeak(energyKev, deposited)
+                    ? peak
+                    : Math.Max(0, peak - 1);
             }
 
             histogram[bin] += weight;
@@ -2606,6 +2703,16 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Общий цикл историй. `histogram == null` — считается только пик, и это
         /// в точности прежнее поведение; иначе та же история дополнительно
         /// раскладывается по бинам поглощённой энергии.
+        ///
+        /// ВОЗВРАЩАЕМОЕ значение значит одно и то же при любом аргументе —
+        /// пиковую эффективность со ВСЕМИ вкладами, прямыми и рассеянными
+        /// (F28, 08.08.2026). Раньше рассеянный вклад попадал в счёт только на
+        /// пути без гистограммы, а на упоре он — заметная часть (без него
+        /// полная эффективность занижалась на ~15 %), так что прогон с
+        /// гистограммой молча возвращал другую величину. Сегодняшние читатели
+        /// (<see cref="Response"/>, <see cref="ResponseByChannel"/>) её
+        /// выбрасывают, но `relativeError` считается по тому же счёту и им
+        /// нужен.
         /// </summary>
         double Run(double energyKev, double[] histogram, double binKev, out double relativeError)
         {
@@ -2655,34 +2762,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // (сверка CF, tools/tccfcalc2/README.md §8). «Убивающая»
                     // толщина здесь — весь путь луча до выхода из сцены.
                     double tauMiss = this.KillDepthToExit(x, y, z, ux, uy, uz, energyKev);
-                    if (histogram == null)
-                    {
-                        score += weight * this.ScatteredScore(x, y, z, ux, uy, uz, energyKev, tauMiss);
-                    }
-                    else
-                    {
-                        this.lossAnnihilation = 0.0;
-                        this.lossXray = 0.0;
-                        this.lightDeposit = 0.0;
-                        double sw, scattered, sEscaped;
-                        if (this.ScatteredContribution(x, y, z, ux, uy, uz, energyKev, tauMiss,
-                                                       out sw, out scattered, out sEscaped))
-                        {
-                            Deposit(histogram, binKev, scattered - sEscaped, weight * sw);
-                            this.ScoreLight(binKev, scattered - sEscaped, weight * sw);
-                            if (this.channelHistograms != null)
-                            {
-                                ResponseChannel channel = this.ChannelOf(sEscaped);
-                                if (channel == ResponseChannel.Peak)
-                                {
-                                    channel = ResponseChannel.Compton;
-                                }
-
-                                Deposit(this.channelHistograms[(int)channel],
-                                        binKev, scattered - sEscaped, weight * sw);
-                            }
-                        }
-                    }
+                    score += this.ScatteredRun(histogram, binKev, x, y, z, ux, uy, uz,
+                                               energyKev, tauMiss, weight);
                 }
 
                 if (reached)
@@ -2697,7 +2778,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         this.lossXray = 0.0;
                         this.lightDeposit = 0.0;
                         double escaped = this.InCrystal(px, py, pz, ux, uy, uz, energyKev, 0);
-                        if (escaped <= this.PeakHalfWidthKev)
+                        if (this.InPeak(energyKev, energyKev - escaped))
                         {
                             score = weight * Math.Exp(-tau);
                         }
@@ -2711,12 +2792,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                         if (histogram != null)
                         {
                             double share = weight * Math.Exp(-tau);
-                            Deposit(histogram, binKev, energyKev - escaped, share);
+                            this.Deposit(histogram, binKev, energyKev, energyKev - escaped, share);
                             this.ScoreLight(binKev, energyKev - escaped, share);
                             if (this.channelHistograms != null)
                             {
-                                Deposit(this.channelHistograms[(int)this.ChannelOf(escaped)],
-                                        binKev, energyKev - escaped, share);
+                                this.Deposit(this.channelHistograms[(int)this.ChannelOf(escaped)],
+                                        binKev, energyKev, energyKev - escaped, share);
                             }
                         }
                     }
@@ -2726,43 +2807,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // часть его — комптон на малый угол, и такой квант доходит.
                     if (!this.ScoreEntranceOnly)
                     {
-                        if (histogram == null)
-                        {
-                            score += weight * this.ScatteredScore(x, y, z, ux, uy, uz, energyKev, tau);
-                        }
-                        else
-                        {
-                            this.lossAnnihilation = 0.0;
-                            this.lossXray = 0.0;
-                            this.lightDeposit = 0.0;
-                            double sw, scattered, sEscaped;
-                            if (this.ScatteredContribution(x, y, z, ux, uy, uz, energyKev, tau,
-                                                           out sw, out scattered, out sEscaped))
-                            {
-                                // Рассеявшийся квант приносит СВОЮ энергию, а не
-                                // энергию линии: в отклике он и должен лечь ниже
-                                // по шкале, а не в пик.
-                                Deposit(histogram, binKev, scattered - sEscaped, weight * sw);
-                                this.ScoreLight(binKev, scattered - sEscaped, weight * sw);
-                                if (this.channelHistograms != null)
-                                {
-                                    // Квант рассеялся ДО кристалла и принёс
-                                    // меньше энергии линии — в пик он не попадёт
-                                    // при любом исходе внутри. Канал берётся по
-                                    // тем же меткам: если внутри ушёл рентген
-                                    // или аннигиляционный квант, история
-                                    // принадлежит им, иначе это недобор.
-                                    ResponseChannel channel = this.ChannelOf(sEscaped);
-                                    if (channel == ResponseChannel.Peak)
-                                    {
-                                        channel = ResponseChannel.Compton;
-                                    }
-
-                                    Deposit(this.channelHistograms[(int)channel],
-                                            binKev, scattered - sEscaped, weight * sw);
-                                }
-                            }
-                        }
+                        score += this.ScatteredRun(histogram, binKev, x, y, z, ux, uy, uz,
+                                                   energyKev, tau, weight);
                     }
                 }
 

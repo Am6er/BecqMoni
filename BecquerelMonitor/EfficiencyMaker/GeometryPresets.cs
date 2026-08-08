@@ -16,6 +16,20 @@ namespace BecquerelMonitor.EfficiencyMaker
     ///
     /// Размеры — в МИЛЛИМЕТРАХ, как и вся модель; в файлах `.in`, откуда они
     /// взяты, стоят сантиметры.
+    ///
+    /// РАЗРЕШЕНИЕ пресет тоже задаёт (E11, 08.08.2026), и это не украшение:
+    /// без <see cref="GeometryModel.FwhmAt662Percent"/> допуск пика нулевой, а
+    /// при нулевом допуске поправка на однократное рассеяние
+    /// (<see cref="EfficiencySimulator.SingleScatter"/>) не даёт НИЧЕГО —
+    /// рассеянный на малый угол квант в пик не возвращается, и низ шкалы
+    /// занижен примерно на десятую часть на 28 кэВ. Человек, выбравший пресет
+    /// и посчитавший кривую, терял эту поправку молча.
+    ///
+    /// Числа — ИЗМЕРЕННЫЕ полуширины на 662 кэВ по группам корпуса
+    /// (`tools/CORPUS/corpus/detectors.csv`, колонка `fwhm_662_pct`), решение
+    /// Amber 08.08.2026. Это средние по группе, а не паспорт конкретного
+    /// экземпляра: у своего прибора разрешение берётся из его ПШПВ-калибровки
+    /// кнопкой «из прибора» в редакторе геометрии.
     /// </summary>
     public static class GeometryPresets
     {
@@ -48,14 +62,27 @@ namespace BecquerelMonitor.EfficiencyMaker
                 Box(g, 15.0, 18.0, 60.0);
                 Wrapping(g, 1.3, 1.0, 1.8, 2.0, 2.0);
                 Crystal(g, "Cesium iodide");
+                Fwhm(g, 6.66);                        // корпус, группа ASN16
             }));
 
             // RadiaCode-101/103 — из RadiaCode_Marinelli0.5.in: куб 1 см.
-            list.Add(Make("RadiaCode-101 / 103", g =>
+            // Кристалл и обвязка у них одни, разрешение РАЗНОЕ (10.85 против
+            // 8.49 % — четверть), поэтому строк две: одним числом обслужить оба
+            // прибора нечестно, а разрешение теперь часть пресета.
+            list.Add(Make("RadiaCode-101", g =>
             {
                 Box(g, 10.0, 10.0, 10.0);
                 Wrapping(g, 1.0, 1.0, 1.0, 1.0, 1.0);
                 Crystal(g, "Cesium iodide");
+                Fwhm(g, 10.85);                       // корпус, группа RC101
+            }));
+
+            list.Add(Make("RadiaCode-103", g =>
+            {
+                Box(g, 10.0, 10.0, 10.0);
+                Wrapping(g, 1.0, 1.0, 1.0, 1.0, 1.0);
+                Crystal(g, "Cesium iodide");
+                Fwhm(g, 8.49);                        // корпус, группа RC103
             }));
 
             // Obsidian — из «Obsidian Marinelli 0.5.in».
@@ -64,6 +91,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 Box(g, 7.0, 7.0, 30.0);
                 Wrapping(g, 1.0, 1.0, 1.0, 1.0, 1.0);
                 Crystal(g, "Cesium iodide");
+                Fwhm(g, 15.08);                       // корпус, группа OBS
             }));
 
             // Два «Pro» своего файла не имеют. Кристалл — иодид натрия,
@@ -76,13 +104,23 @@ namespace BecquerelMonitor.EfficiencyMaker
                 Cylinder(g, 80.0, 80.0);
                 Wrapping(g, 1.3, 1.0, 1.8, 2.0, 2.0);
                 Crystal(g, "Sodium iodide");
+                Fwhm(g, 7.65);                        // корпус, группа AS80x80
             }));
 
+            // Разрешения у этого нет: группы 40x40 в корпусе не измерено, а
+            // взять «как у 80x80» нельзя — размер кристалла на полуширину
+            // влияет, и заимствование обвязки к разрешению не относится.
+            // Ноль ставится ЯВНО, а не пропуском строки: пресет накладывается
+            // на то, что уже набрано в полях, и молчаливый пропуск оставил бы
+            // здесь разрешение предыдущего детектора — 6.66 % от Nano 16 у
+            // прибора, который никто не мерил. Ноль виден в поле и честно
+            // выключает поправку на однократное рассеяние.
             list.Add(Make("Atom Spectra Pro 40x40", g =>
             {
                 Cylinder(g, 40.0, 40.0);
                 Wrapping(g, 1.3, 1.0, 1.8, 2.0, 2.0);
                 Crystal(g, "Sodium iodide");
+                Fwhm(g, 0.0);
             }));
 
             return list;
@@ -128,6 +166,12 @@ namespace BecquerelMonitor.EfficiencyMaker
         static void Crystal(GeometryModel g, string name)
         {
             g.Crystal = Material(name);
+        }
+
+        /// <summary>Полуширина пика 662 кэВ, % — см. заголовок класса (E11).</summary>
+        static void Fwhm(GeometryModel g, double percent)
+        {
+            g.FwhmAt662Percent = percent;
         }
 
         static GeometryMaterial Material(string name)
