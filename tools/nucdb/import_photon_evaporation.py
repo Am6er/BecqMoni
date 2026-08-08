@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Втягивает в nucdb.sqlite схемы уровней Geant4 PhotonEvaporation (проверено
+Втягивает в schemedb.sqlite схемы уровней Geant4 PhotonEvaporation (проверено
 на 6.1.2, 3364 файла `zZ.aA`).
 
 ЗАЧЕМ. Три дыры §9а базы закрываются ОДНИМ источником (database/scheme.md):
@@ -93,11 +93,13 @@ import os
 import re
 import sqlite3
 import sys
+import pieces
+
 
 DEFAULT_SOURCE = r"C:\Users\moroz\source\repos\GEANT4\PhotonEvaporation6.1.2"
 DEFAULT_DB = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "..", "..",
-    "BecquerelMonitor", "nucdb.sqlite")
+    "BecquerelMonitor", "schemedb.sqlite")
 
 # Ниже этого коэффициента конверсии разбиение по оболочкам в расчёте не
 # значит ничего: сам канал конверсии даёт меньше промилле переходов.
@@ -487,7 +489,9 @@ def main():
         return 2
 
     before = os.path.getsize(db)
-    connection = sqlite3.connect(db)
+    # Схемы уровней — свой кусок, но символы элементов берутся из `nuclides`,
+    # а те с 08.08.2026 в `nucdb.sqlite`. Присоединяем: запросы не меняются.
+    connection = pieces.open_with(db, ["nucdb.sqlite"])
     try:
         connection.executescript(SCHEMA)
         connection.execute("delete from g4_level")

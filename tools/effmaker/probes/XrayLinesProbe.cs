@@ -1,4 +1,4 @@
-using BecquerelMonitor;
+﻿using BecquerelMonitor;
 using BecquerelMonitor.FullSpectrumAnalysis;
 using BecquerelMonitor.NucBase;
 using System;
@@ -38,7 +38,7 @@ namespace XrayLinesProbe
     ///     xrayprobe
     ///
     /// Ожидание: «ВСЕ СОШЛИСЬ». Собирать с `WeifenLuo.WinFormsUI.Docking.dll`;
-    /// рядом с exe нужна `nucdb.sqlite` — из неё читаются линии.
+    /// рядом с exe нужна `matdb.sqlite` — из неё читаются линии.
     /// </summary>
     static class Program
     {

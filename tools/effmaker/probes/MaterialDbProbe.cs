@@ -1,4 +1,4 @@
-using BecquerelMonitor.EfficiencyMaker;
+﻿using BecquerelMonitor.EfficiencyMaker;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -6,7 +6,7 @@ using System.Text;
 namespace MaterialDbProbe
 {
     /// <summary>
-    /// Данные о веществе после переезда в `nucdb.sqlite`.
+    /// Данные о веществе после переезда в `matdb.sqlite`.
     ///
     /// Проверяются три вещи, каждая молчит у компилятора:
     ///

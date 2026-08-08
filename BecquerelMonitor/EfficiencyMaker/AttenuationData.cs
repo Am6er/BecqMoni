@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace BecquerelMonitor.EfficiencyMaker
@@ -7,7 +7,7 @@ namespace BecquerelMonitor.EfficiencyMaker
     /// Массовые коэффициенты ослабления гамма-излучения, см2/г.
     ///
     /// Источник — NIST XCOM 3.1 (Berger, Hubbell, Seltzer). Числа больше не
-    /// лежат в этом файле: полная поставка втянута в `nucdb.sqlite`, откуда её
+    /// лежат в этом файле: полная поставка втянута в `matdb.sqlite`, откуда её
     /// и берёт <see cref="MaterialDatabase"/>. Здесь остался только вход,
     /// которым пользуется остальная программа.
     ///

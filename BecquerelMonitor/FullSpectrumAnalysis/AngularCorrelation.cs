@@ -458,9 +458,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
         }
 
+        // Схемы уровней лежат в `schemedb.sqlite` — своём файле с 08.08.2026
+        // (`tools/nucdb/split_db.py`): `g4_level`/`g4_gamma` весят 27 МБ и
+        // меняются только при смене версии поставки PhotonEvaporation.
         static string DatabasePath()
         {
-            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nucdb.sqlite");
+            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "schemedb.sqlite");
         }
 
         static Scheme Load(int z, int a)

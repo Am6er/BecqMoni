@@ -14,14 +14,14 @@
 по исходнику, а не по учебнику: расхождение в мелочи вроде ALF последней
 оболочки видно только по коду.
 
-Все входные данные берутся из `nucdb.sqlite`: `estar_shells`,
+Все входные данные берутся из `matdb.sqlite`: `estar_shells`,
 `estar_radiative_stopping`, `estar_element_potential`, `star_materials`,
 `xcom_elements`.
 
 Проверка даровая: четыре вшитых вещества — эталон, снятый с настоящего ESTAR.
 
-    python estar.py <nucdb.sqlite> check        # сверка с четырьмя эталонами
-    python estar.py <nucdb.sqlite> table        # выдать таблицу для C#
+    python estar.py <matdb.sqlite> check        # сверка с четырьмя эталонами
+    python estar.py <matdb.sqlite> table        # выдать таблицу для C#
 """
 import math
 import sqlite3
