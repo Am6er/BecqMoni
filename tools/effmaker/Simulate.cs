@@ -39,6 +39,11 @@ namespace EffSim
                 bool electron = true, brems = true, xray = true, cohPass = true, scatter = true;
                 bool kfracEnergy = true;
                 bool analogContinuum = true;
+                bool bound = true;              // физика 7: связанное рассеяние
+                // три части физики 7 порознь — для поиска виновника избытка
+                // в пике (F26): по умолчанию идут вместе с `bound`
+                bool sCompton = true, doppler = true, rayleigh = true;
+                bool bremFromData = true;       // физика 8: спектр по Зельцеру — Бергеру
                 double halfWidth = 0.0, halfWidthFraction = 0.0, fwhm662 = 0.0;
                 double point = -1.0;
                 string list = null;
@@ -73,6 +78,15 @@ namespace EffSim
                         // старый взвешенный континуум отклика вместо аналоговой
                         // ветки (физика 6) — измерительный ключ для A/B
                         case "--no-acont": analogContinuum = false; break;
+                        // голый Клейн — Нишина без S(x,Z), без доплера и с
+                        // когерентным «насквозь» — физика 6 в этой части
+                        case "--no-bound": bound = false; break;
+                        case "--no-scompton": sCompton = false; break;
+                        case "--no-doppler": doppler = false; break;
+                        case "--no-rayleigh": rayleigh = false; break;
+                        // спектр тормозного прежним приближением Крамерса
+                        // dN/dk = C/k вместо сечений Зельцера — Бергера
+                        case "--no-brem-sb": bremFromData = false; break;
                         // разрешение прибора: ПШПВ на 662 кэВ в процентах; даёт
                         // допуск пика по энергии, как DS_Fwhm662 в геометрии
                         case "--fwhm662":
@@ -113,7 +127,7 @@ namespace EffSim
                     {
                         RunOne(Path.Combine(all, Pairs[i, 0]),
                                refDir == null ? null : Path.Combine(refDir, Pairs[i, 1]),
-                               null, n, mountFront, electron, brems, xray, cohPass, scatter, kfracEnergy, halfWidth, halfWidthFraction, fwhm662, point, list, total, escSlope, escT0);
+                               null, n, mountFront, electron, brems, xray, cohPass, scatter, kfracEnergy, halfWidth, halfWidthFraction, fwhm662, point, list, total, escSlope, escT0, bound, bremFromData, sCompton, doppler, rayleigh);
                         Console.WriteLine();
                     }
 
@@ -169,6 +183,10 @@ namespace EffSim
                         SingleScatter = scatter,
                         KFractionByEnergy = kfracEnergy,
                         AnalogContinuum = analogContinuum,
+                        BoundCompton = bound && sCompton,
+                        DopplerBroadening = bound && doppler,
+                        RayleighScatter = bound && rayleigh,
+                        BremFromData = bremFromData,
                         // сверка с Geant4 — в шкале ПОГЛОЩЁННОЙ энергии
                         LightNonproportionality = false,
                     };
@@ -204,7 +222,7 @@ namespace EffSim
                     return 0;
                 }
 
-                RunOne(geometry, reference, outPath, n, mountFront, electron, brems, xray, cohPass, scatter, kfracEnergy, halfWidth, halfWidthFraction, fwhm662, point, list, total, escSlope, escT0);
+                RunOne(geometry, reference, outPath, n, mountFront, electron, brems, xray, cohPass, scatter, kfracEnergy, halfWidth, halfWidthFraction, fwhm662, point, list, total, escSlope, escT0, bound, bremFromData, sCompton, doppler, rayleigh);
                 return 0;
             }
             catch (Exception ex)
@@ -217,7 +235,10 @@ namespace EffSim
         static void RunOne(string geometryPath, string referencePath, string outPath, int n,
                            bool mountFront, bool electron, bool brems, bool xray, bool cohPass, bool scatter, bool kfracEnergy, double halfWidth,
                            double halfWidthFraction, double fwhm662, double point, string list,
-                           bool total = false, double escSlope = -1.0, double escT0 = -1.0)
+                           bool total = false, double escSlope = -1.0, double escT0 = -1.0,
+                           bool bound = true, bool bremFromData = true,
+                           bool sCompton = true, bool doppler = true,
+                           bool rayleigh = true)
         {
             GeometryModel g = GeometryModel.Load(geometryPath);
             if (point >= 0.0)
@@ -249,6 +270,10 @@ namespace EffSim
                 CoherentPassesThrough = cohPass,
                 SingleScatter = scatter,
                 KFractionByEnergy = kfracEnergy,
+                BoundCompton = bound && sCompton,
+                DopplerBroadening = bound && doppler,
+                RayleighScatter = bound && rayleigh,
+                BremFromData = bremFromData,
                 PeakHalfWidthKev = halfWidth,
             };
             if (escSlope >= 0.0)
