@@ -175,6 +175,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 BoundCompton = options.BoundScattering,
                 DopplerBroadening = options.BoundScattering,
                 RayleighScatter = options.BoundScattering,
+                BremFromData = options.BremFromData,
                 PeakHalfWidthKev = 0.0
             };
 

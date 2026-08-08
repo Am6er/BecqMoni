@@ -113,11 +113,29 @@ namespace BecquerelMonitor.EfficiencyMaker
         public bool ElectronEscape = true;
 
         /// <summary>
-        /// Учитывать вылет тормозного кванта, рождённого электроном. Спектр —
-        /// толстомишенный, dN/dk ~ 1/k, нормировка привязана к выходу излучения
-        /// из ESTAR, так что средняя излучённая энергия равна табличной.
+        /// Учитывать вылет тормозного кванта, рождённого электроном. Форму
+        /// спектра задаёт <see cref="BremFromData"/>.
         /// </summary>
         public bool Bremsstrahlung = true;
+
+        /// <summary>
+        /// Спектр тормозного — из СЕЧЕНИЙ Зельцера — Бергера, а не приближением
+        /// Крамерса (TODO M3).
+        ///
+        /// Прежде спектр брался как dN/dk = C/k на [5 кэВ, T] с нормировкой на
+        /// радиационный выход ESTAR: средняя излучённая энергия выходила
+        /// табличной, а форма — угаданной. Теперь она считается —
+        /// <see cref="ThickTargetBrem"/> интегрирует dσ/dk по пути торможения
+        /// электрона, беря сечения из `seltzer_berger` и пробег из ESTAR.
+        ///
+        /// У ЛСРМ на этом месте готовые таблицы толстой мишени на девять
+        /// веществ, и иодистого цезия среди них нет (наш F10); здесь спектр
+        /// считается для любого состава, лишь бы элементы были в поставке
+        /// Зельцера — Бергера (Z = 1…92).
+        ///
+        /// Выключенный ключ возвращает приближение Крамерса — для абляции.
+        /// </summary>
+        public bool BremFromData = true;
 
         /// <summary>
         /// Наклон эффективной глубины вылета электрона:
@@ -348,6 +366,13 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>Кривая светового выхода кристалла; null — шкала пропорциональна.</summary>
         MaterialDatabase.LightYieldCurve lightYield;
 
+        /// <summary>
+        /// Спектр тормозного толстой мишени для вещества кристалла; null —
+        /// ключ выключен или сечений для состава нет, тогда работает
+        /// приближение Крамерса.
+        /// </summary>
+        ThickTargetBrem bremTable;
+
         /// <summary>Элементы кристалла, у которых есть данные о K-флуоресценции.</summary>
         int[] fluoZ;
         double[] fluoFraction;
@@ -402,6 +427,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.BuildFluorescence();
             this.lightYield = this.LightNonproportionality && this.electron != null
                 ? MaterialDatabase.LightYieldOf(ScintillatorNameOf(this.electron))
+                : null;
+            this.bremTable = this.Bremsstrahlung && this.BremFromData && this.electron != null
+                ? ThickTargetBrem.For(this.geometry.Crystal, this.electron, 5.0)
                 : null;
         }
 
@@ -1477,12 +1505,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         ///
         /// Две независимые статьи расхода:
         ///
-        /// 1. Тормозное излучение. Полная излучённая энергия задана выходом из
-        ///    ESTAR: &lt;E_rad&gt; = Y(Te)·Te. Спектр берётся толстомишенный,
-        ///    dN/dk = C/k на [k_min, Te]; из условия на среднюю энергию
-        ///    C = Y·Te/(Te - k_min), число квантов = C·ln(Te/k_min). Каждый
-        ///    разыгранный квант ведётся дальше обычной трассировкой и может
-        ///    вылететь, а может поглотиться.
+        /// 1. Тормозное излучение. Спектр — из сечений Зельцера — Бергера,
+        ///    проинтегрированных по пути торможения
+        ///    (<see cref="ThickTargetBrem"/>, ключ <see cref="BremFromData"/>);
+        ///    выключенный ключ возвращает прежнее приближение Крамерса
+        ///    dN/dk = C/k на [k_min, Te] с нормировкой на радиационный выход
+        ///    ESTAR (C = Y·Te/(Te − k_min), число квантов = C·ln(Te/k_min)).
+        ///    Каждый разыгранный квант ведётся дальше обычной трассировкой и
+        ///    может вылететь, а может поглотиться.
         ///
         /// 2. Вылет самого электрона. Направление изотропно (длинный трек
         ///    изотропизуется многократным рассеянием), но вылет считается не с
@@ -1526,11 +1556,22 @@ namespace BecquerelMonitor.EfficiencyMaker
                 const double MinKev = 5.0;      // ниже кванту не выйти ниоткуда
                 if (te > MinKev)
                 {
-                    double c = ElectronData.YieldOf(this.electron, te) * te / (te - MinKev);
-                    int n = this.Poisson(c * Math.Log(te / MinKev));
+                    // Форма спектра — либо по сечениям Зельцера — Бергера,
+                    // проинтегрированным по пути торможения (`BremFromData`),
+                    // либо прежним приближением Крамерса dN/dk = C/k с
+                    // нормировкой на радиационный выход ESTAR. Оба дают ЧИСЛО
+                    // квантов и их энергии; всё остальное ниже общее.
+                    ThickTargetBrem table = this.BremFromData ? this.bremTable : null;
+                    double mean = table != null
+                        ? table.Photons(te)
+                        : ElectronData.YieldOf(this.electron, te) * te / (te - MinKev)
+                          * Math.Log(te / MinKev);
+                    int n = this.Poisson(mean);
                     for (int i = 0; i < n; i++)
                     {
-                        double k = MinKev * Math.Pow(te / MinKev, this.Uniform());
+                        double k = table != null
+                            ? table.SampleKev(te, this.Uniform())
+                            : MinKev * Math.Pow(te / MinKev, this.Uniform());
                         double ax, ay, az;
                         this.Isotropic(out ax, out ay, out az);
 

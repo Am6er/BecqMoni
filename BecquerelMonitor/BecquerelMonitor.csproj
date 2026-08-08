@@ -321,6 +321,7 @@
     <Compile Include="EfficiencyMaker\MaterialDatabase.cs" />
     <Compile Include="EfficiencyMaker\PartialCrossSections.cs" />
     <Compile Include="EfficiencyMaker\ScatteringData.cs" />
+    <Compile Include="EfficiencyMaker\BremsstrahlungData.cs" />
     <Compile Include="EfficiencyMaker\EfficiencyModel.cs" />
     <Compile Include="EfficiencyMaker\GeometryMaterialLibrary.cs" />
     <Compile Include="EfficiencyMaker\GeometryPresets.cs" />
