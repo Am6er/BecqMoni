@@ -58,12 +58,34 @@ M (M1-5), внешние — и лежат колонками в самой ст
 пока L-флуоресценция не моделируется. Понадобится разбиение тоньше —
 поднимать из поставки заново, она лежит локально (строка в TODO).
 
-    python tools/nucdb/import_photon_evaporation.py [--db X.sqlite]
-           [--source <каталог PhotonEvaporation>] [--dry]
+ЧЕМ ДОБИРАЕТСЯ НЕДОСТАЮЩЕЕ (указание Amber 08.08.2026: «если для 3 чего-то
+нет, возьми это из ЛСРМ»). У Geant4 спин-чётность стоит не у всех уровней
+(73.3 %), мультипольность — не у всех переходов (68.5 %), а коэффициент
+смешивания печатается только там, где он в ENSDF есть (4.9 %). Библиотека
+ЛСРМ `TCCFCALC\\LIB\\ENSDF2` **уже втянута** в таблицы `ensdf_*`, и её
+покрытие ДРУГОЕ: спин у 79 % уровней, коэффициент смешивания у 6.7 %.
+Поэтому вторым проходом пустые места Geant4 заполняются из неё — по нуклиду
+и энергии, с допуском `MATCH_KEV`, и только при ОДНОЗНАЧНОМ совпадении.
+Откуда взято значение, видно в колонке `filled_from`: NULL — Geant4,
+`ensdf` — добрано.
 
-`--dry` разбирает и печатает сводку, ничего не записывая: база лежит в
-репозитории и ходит в поставке, и рост её размера — решение, а не побочный
-эффект запуска.
+Что при этом НЕ добирается и почему:
+
+  * ICC ЛСРМ (`Lib\\ICC`) — там те же 93 значения Z (нет 4, 5, 7…13) и те же
+    оболочки K…M5, что уже лежат в `icc_coefficients`. Новая поставка
+    2.10.1844 в этом месте не отличается от старой ничем; пробел D-5
+    заполняется не ЛСРМ, а полным α из Geant4;
+  * неоднозначные записи ENSDF — `M1,E2` (либо то, либо это), `D`, `Q`,
+    `1,2+`: подставить одно из двух значило бы выдумать данные. Записи в
+    скобках и квадратных скобках (`(E2)`, `[M1]`) берутся: это оценка
+    составителя, а не неоднозначность;
+  * мультипольности выше E3/M3: кодировка Geant4 их не описывает
+    (README поставки перечисляет ровно E0…M3).
+
+    python tools/nucdb/import_photon_evaporation.py [--db X.sqlite]
+           [--source <каталог PhotonEvaporation>] [--dry] [--no-fill]
+
+`--dry` разбирает и печатает сводку, ничего не записывая.
 """
 
 import argparse
@@ -100,6 +122,7 @@ create table if not exists g4_level (
     energy_ev  integer not null,
     half_life_sec real,            -- null = стабильно (в файле -1)
     jpi        real,               -- знак = чётность; null = в ENSDF нет (99)
+    jpi_from   text,               -- NULL — из Geant4, 'ensdf' — добрано
     primary key (z, a, seq)
 ) without rowid;
 
@@ -123,6 +146,9 @@ create table if not exists g4_gamma (
     icc_l_ppm  integer,            -- миллионные; NULL — alpha ниже порога
     icc_m_ppm  integer,
     icc_outer_ppm integer,
+    -- Откуда взяты мультипольность и коэффициент смешивания: NULL — из
+    -- Geant4, 'ensdf' — добраны из библиотеки ЛСРМ вторым проходом.
+    filled_from text,
     primary key (z, a, from_seq, idx)
 ) without rowid;
 
@@ -186,7 +212,8 @@ def parse_file(path, z, a):
                                int(round(energy * 1000.0)),
                                int(round(intensity * 1e4)),
                                mult, zero_as_int(mixing), zero_as_int(icc),
-                               groups[0], groups[1], groups[2], groups[3]))
+                               groups[0], groups[1], groups[2], groups[3],
+                               None))
                 expect -= 1
                 index += 1
                 continue
@@ -205,7 +232,8 @@ def parse_file(path, z, a):
                            None if floating == "-" else floating,
                            int(round(energy * 1000.0)),
                            None if half_life < 0 else zero_as_int(half_life),
-                           None if abs(abs(jpi) - 99.0) < 1e-9 else zero_as_int(jpi)))
+                           None if abs(abs(jpi) - 99.0) < 1e-9 else zero_as_int(jpi),
+                           None))
             current = seq
             expect = n_gammas
             index = 0
@@ -217,11 +245,199 @@ def parse_file(path, z, a):
     return levels, gammas
 
 
+# ----------------------------------------------------------------------
+# Второй проход: добор недостающего из библиотеки ЛСРМ (таблицы ensdf_*)
+# ----------------------------------------------------------------------
+
+# Допуск сопоставления уровня и перехода по энергии, кэВ. Источник у обеих
+# библиотек в конечном счёте один (ENSDF), расходятся они округлением.
+MATCH_KEV = 0.3
+
+# Кодировка мультипольности Geant4 (README поставки): 1..7 = E0,E1,M1,E2,M2,E3,M3.
+MULT_CODE = {"E0": 1, "E1": 2, "M1": 3, "E2": 4, "M2": 5, "E3": 6, "M3": 7}
+
+JPI_RE = re.compile(r"^(\d+)(?:/2)?([+-])$")
+
+
+def parse_jpi(text):
+    """
+    Спин-чётность ENSDF («2+», «3/2-», «(5/2+)») → число со знаком чётности,
+    как хранит Geant4. None — запись неоднозначна и подставлять нечего.
+    """
+    if not text:
+        return None
+
+    s = text.strip().replace("[", "").replace("]", "")
+    s = s.replace("(", "").replace(")", "").replace(" ", "")
+    if not s or any(ch in s for ch in ",&:"):
+        return None                       # «1,2+», «2+ TO 4+» — не одно значение
+
+    half = "/2" in s
+    m = JPI_RE.match(s)
+    if not m:
+        return None
+
+    value = float(m.group(1)) / (2.0 if half else 1.0)
+    return value if m.group(2) == "+" else -value
+
+
+def parse_multipolarity(text):
+    """
+    Мультипольность ENSDF → код Geant4. «E2» → 4, «M1+E2» → 304,
+    «M1(+E2)» → 304 (примесь в скобках — та же смесь). None — либо
+    неоднозначно («M1,E2», «D», «Q»), либо выше E3/M3, чего кодировка
+    Geant4 не описывает.
+    """
+    if not text:
+        return None
+
+    s = text.strip().upper().replace("[", "").replace("]", "")
+    s = s.replace("(", "").replace(")", "").replace(" ", "")
+    if not s or "," in s:
+        return None
+
+    parts = s.split("+")
+    if not 1 <= len(parts) <= 2:
+        return None
+
+    codes = []
+    for part in parts:
+        if part not in MULT_CODE:
+            return None                   # D, Q, E4, M4, мусор
+
+        codes.append(MULT_CODE[part])
+
+    return codes[0] if len(codes) == 1 else 100 * codes[0] + codes[1]
+
+
+def nuclide_index(connection):
+    """nucid библиотеки ЛСРМ («100Ag») → (z, a) по таблице `nuclides`."""
+    symbols = {}
+    for symbol, z in connection.execute(
+            "select distinct symbol, z from nuclides where symbol is not null"):
+        symbols[symbol.strip().upper()] = z
+
+    index = {}
+    for (nucid,) in connection.execute("select distinct nucid from ensdf_datasets"):
+        if not nucid:
+            continue
+
+        m = re.match(r"^(\d+)([A-Za-z]+)$", nucid.strip())
+        if not m:
+            continue
+
+        z = symbols.get(m.group(2).upper())
+        if z is not None:
+            index[nucid] = (z, int(m.group(1)))
+
+    return index
+
+
+def unique_near(table, energy_kev):
+    """
+    Однозначное значение таблицы `{энергия: значение}` в допуске; None, если
+    записей нет или они РАСХОДЯТСЯ. Подставлять «первую подошедшую» из двух
+    разных — именно тот способ, каким в базу попадают чужие числа.
+
+    Согласные повторы при этом отбрасывать нельзя: наборы ENSDF дублируются
+    по нуклиду (TODO W9), одна и та же линия перечислена в схеме распада
+    каждого родителя, и требование «ровно одна запись» выкашивало 97 %
+    доступного (измерено: 544 мультипольности вместо 15 тысяч).
+    """
+    hits = [v for e, v in table if abs(e - energy_kev) <= MATCH_KEV]
+    if not hits:
+        return None
+
+    first = hits[0]
+    for value in hits[1:]:
+        if abs(value - first) > 1e-9 * max(1.0, abs(first)):
+            return None                   # библиотека сама себе противоречит
+
+    return first
+
+
+def fill_from_ensdf(connection):
+    """Добирает спин, мультипольность и коэффициент смешивания из `ensdf_*`."""
+    index = nuclide_index(connection)
+    if not index:
+        print("  добор пропущен: таблиц ensdf_* в базе нет")
+        return
+
+    # Библиотека ЛСРМ по (z, a). Наборов на нуклид бывает несколько (W9):
+    # сливаем их в один список, а неоднозначность снимает `unique_near`.
+    levels = {}
+    gammas = {}
+    for nucid, dataset_id in connection.execute(
+            "select nucid, id from ensdf_datasets"):
+        key = index.get(nucid)
+        if key is None:
+            continue
+
+        for energy, jpi in connection.execute(
+                "select energy_kev, jpi from ensdf_levels where dataset_id=?"
+                " and energy_kev is not null and jpi is not null", (dataset_id,)):
+            value = parse_jpi(jpi)
+            if value is not None:
+                levels.setdefault(key, []).append((energy, value))
+
+        for energy, mult, mixing in connection.execute(
+                "select energy_kev, multipolarity, mixing_ratio from ensdf_gammas"
+                " where dataset_id=? and energy_kev is not null", (dataset_id,)):
+            gammas.setdefault(key, []).append(
+                (energy, parse_multipolarity(mult), mixing))
+
+    level_updates = []
+    for z, a, seq, energy_ev in connection.execute(
+            "select z, a, seq, energy_ev from g4_level where jpi is null"):
+        table = levels.get((z, a))
+        if not table:
+            continue
+
+        value = unique_near(table, energy_ev / 1000.0)
+        if value is not None:
+            level_updates.append((value, z, a, seq))
+
+    mult_updates, mixing_updates = [], []
+    for z, a, from_seq, idx, energy_ev, mult, mixing in connection.execute(
+            "select z, a, from_seq, idx, energy_ev, multipolarity, mixing_ratio"
+            " from g4_gamma where multipolarity = 0 or mixing_ratio = 0"):
+        table = gammas.get((z, a))
+        if not table:
+            continue
+
+        energy = energy_ev / 1000.0
+        if mult == 0:
+            value = unique_near([(e, m) for e, m, _ in table if m is not None], energy)
+            if value is not None:
+                mult_updates.append((value, z, a, from_seq, idx))
+
+        if mixing == 0:
+            value = unique_near(
+                [(e, d) for e, _, d in table if d is not None and d != 0.0], energy)
+            if value is not None:
+                mixing_updates.append((value, z, a, from_seq, idx))
+
+    connection.executemany(
+        "update g4_level set jpi=?, jpi_from='ensdf' where z=? and a=? and seq=?",
+        level_updates)
+    connection.executemany(
+        "update g4_gamma set multipolarity=?, filled_from='ensdf'"
+        " where z=? and a=? and from_seq=? and idx=?", mult_updates)
+    connection.executemany(
+        "update g4_gamma set mixing_ratio=?, filled_from='ensdf'"
+        " where z=? and a=? and from_seq=? and idx=?", mixing_updates)
+
+    print("  добор из ЛСРМ: спин у %d уровней, мультипольность у %d переходов,"
+          " коэффициент смешивания у %d"
+          % (len(level_updates), len(mult_updates), len(mixing_updates)))
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--db", default=DEFAULT_DB)
     parser.add_argument("--source", default=DEFAULT_SOURCE)
     parser.add_argument("--dry", action="store_true")
+    parser.add_argument("--no-fill", action="store_true")
     args = parser.parse_args()
 
     if not os.path.isdir(args.source):
@@ -277,10 +493,13 @@ def main():
         connection.execute("delete from g4_level")
         connection.execute("delete from g4_gamma")
         connection.executemany(
-            "insert into g4_level values (?,?,?,?,?,?,?)", all_levels)
+            "insert into g4_level values (?,?,?,?,?,?,?,?)", all_levels)
         connection.executemany(
-            "insert into g4_gamma values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "insert into g4_gamma values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             all_gammas)
+        if not args.no_fill:
+            fill_from_ensdf(connection)
+
         connection.commit()
         # Без сжатия страниц прирост читается вдвое больше настоящего:
         # удалённые старые строки остаются в файле свободными страницами.
