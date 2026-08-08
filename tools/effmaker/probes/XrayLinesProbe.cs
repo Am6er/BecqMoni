@@ -258,6 +258,59 @@ namespace XrayLinesProbe
             {
                 Console.WriteLine("    ок: без выходов взят встроенный образ, тоже мешающий");
             }
+
+            // Ключ подстановки — ТОКЕН имени, всё до первого пробела: «W x-ray»
+            // ищется как «W», «Pb x-ray» как «Pb», а «X-ray» — целиком, пробела
+            // в нём нет. Проверяются все три написания сразу, потому что строка
+            // S29 утверждала, что не совпадает ни одно, и проверить это глазами
+            // уже не вышло.
+            Substitutes("W x-ray", "Xray-W");
+            Substitutes("Pb x-ray", "Xray-Pb");
+            Substitutes("X-ray", "Xray-Pb");
+
+            // А эти НЕ должны подставляться ничем: 15…55 кэВ на K-серию свинца
+            // или вольфрама не похожи, и образ там был бы фантомом.
+            Substitutes("x-rays", null);
+            Substitutes("Low Bremsstrahlung x-rays", null);
+        }
+
+        /// <summary>
+        /// Имя без выходов подставляет ожидаемый встроенный образ (или не
+        /// подставляет ничего, если <paramref name="expected"/> пуст).
+        /// </summary>
+        static void Substitutes(string name, string expected)
+        {
+            List<NuclideDefinition> definitions = new List<NuclideDefinition>
+            {
+                Definition(name, 60.0, 0.0),
+                Definition("Cs-137", 661.657, 85.1),
+            };
+            List<FsaComponent> library = FsaLibrary.BuildFromPeaks(
+                new List<Peak> { Peak(definitions[0]), Peak(definitions[1]) }, definitions);
+
+            if (expected == null)
+            {
+                foreach (FsaComponent component in library)
+                {
+                    if (component.Name.StartsWith("Xray-", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Fail("«" + name + "» подставил " + component.Name + " — это фантом");
+                        return;
+                    }
+                }
+
+                Console.WriteLine("    ок: «" + name + "» не подставляет ничего");
+                return;
+            }
+
+            if (Find(library, expected) == null)
+            {
+                Fail("«" + name + "» не подставил " + expected + ": " + Names(library));
+            }
+            else
+            {
+                Console.WriteLine("    ок: «" + name + "» -> " + expected);
+            }
         }
 
         /// <summary>
