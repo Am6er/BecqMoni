@@ -754,7 +754,7 @@ ROI-конфигов, шаг сравнения 1 %):
 **Что вынесено наружу и почему именно это.** Наружу вышла цена счёта и сетка, на
 которой он ведётся, — то, чего программа знать не может: до какой энергии меряет
 прибор и сколько человек готов ждать. Ключи физики переноса
-(`EfficiencySimulator`: `ElectronEscapeSlope`, `ElectronDetour`,
+(`EfficiencySimulator`: `ElectronEscapeSlope`,
 `ElectronCarryDetour`, `TotalFullSphere`, `SingleScatter`, `XrayEscape`,
 `KFractionByEnergy`, `CoherentPassesThrough`, `AnalogContinuum`) остались
 внутри. Каждый из них калиброван сверкой с Geant4 и новой TCCFCALC
