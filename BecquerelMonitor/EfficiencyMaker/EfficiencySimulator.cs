@@ -265,6 +265,59 @@ namespace BecquerelMonitor.EfficiencyMaker
         public bool AnalogContinuum = true;
 
         /// <summary>
+        /// Комптоновский угол — на СВЯЗАННОМ электроне: к Клейну — Нишине
+        /// добавляется множитель отбора S(x,Z) из EPDL97 (таблица
+        /// `epdl_scattering_function`, см. <see cref="ScatteringData"/>).
+        ///
+        /// Голая формула Клейна — Нишины описывает рассеяние на СВОБОДНОМ
+        /// покоящемся электроне. У связанного электрона рассеяние на малый
+        /// угол подавлено: переданный импульс меньше импульса связи, атом
+        /// такую передачу «не принимает», и S(x,Z) → 0 при x → 0. Завышенное
+        /// рассеяние вперёд — это завышенный континуум сразу под пиком и
+        /// заниженный обратный ход.
+        ///
+        /// ПОЛНОЕ сечение при этом не меняется: оно остаётся из XCOM, где
+        /// связанность уже учтена. S(x,Z) входит только множителем отбора,
+        /// то есть меняет форму распределения, а не его нормировку — иначе
+        /// связанность учлась бы дважды.
+        /// </summary>
+        public bool BoundCompton = true;
+
+        /// <summary>
+        /// Доплеровское размытие рассеянной энергии по профилям Комптона
+        /// (таблицы `compton_profile*`, профили Биггса по оболочкам).
+        ///
+        /// Электрон, на котором рассеялись, не покоится: проекция его импульса
+        /// на направление передачи сдвигает энергию рассеянного кванта. Без
+        /// этого комптоновский край и пик обратного рассеяния выходят
+        /// бесконечно резкими, а в измеренном спектре они размыты, и размыты
+        /// НЕ только разрешением прибора.
+        ///
+        /// Оболочка выбирается по заселённости, импульс — по её профилю,
+        /// энергия — из точного кинематического уравнения (импульсное
+        /// приближение). Оболочка, энергия связи которой больше энергии кванта,
+        /// недоступна и переразыгрывается.
+        /// </summary>
+        public bool DopplerBroadening = true;
+
+        /// <summary>
+        /// Когерентное (рэлеевское) рассеяние — настоящим каналом с углом по
+        /// форм-фактору F²(x,Z) (таблица `epdl_form_factor`).
+        ///
+        /// До сих пор когерентное либо молча числилось поглощением, либо
+        /// проходило насквозь БЕЗ отклонения
+        /// (<see cref="CoherentPassesThrough"/>). Оба — крайние случаи: оно
+        /// меняет направление, не трогая энергию, а значит и уводит квант мимо
+        /// кристалла, и заводит его туда, куда он сам не летел.
+        ///
+        /// Ключ работает в АНАЛОГОВЫХ ветках переноса (розыгрыш в кристалле,
+        /// ε_полная, континуум отклика). Взвешенная проводка к кристаллу
+        /// (пиковая ветвь) устроена на exp(−τ) и угла не разыгрывает вовсе —
+        /// там по-прежнему решает <see cref="CoherentPassesThrough"/>.
+        /// </summary>
+        public bool RayleighScatter = true;
+
+        /// <summary>
         /// Относительная ошибка КОНТИНУУМА последнего прогона отклика, % полной
         /// суммы континуума строки; −1 — аналоговой ветки не было (F23).
         ///
@@ -305,6 +358,22 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// EPICS для элемента нет, доля K берётся константой, как раньше.
         /// </summary>
         MaterialDatabase.PhotoShellModel[] fluoShells;
+
+        /// <summary>
+        /// Угловые данные рассеяния по веществам сцены. Кэш на ЭКЗЕМПЛЯР, без
+        /// замка: один экземпляр — один поток (см. шапку класса), а сама
+        /// <see cref="ScatteringData"/> общий кэш стережёт своим.
+        /// </summary>
+        readonly Dictionary<GeometryMaterial, Scatterers> scatterers =
+            new Dictionary<GeometryMaterial, Scatterers>();
+
+        /// <summary>Элементы вещества с их угловыми данными рассеяния.</summary>
+        sealed class Scatterers
+        {
+            public int[] Z;
+            public double[] MassFraction;
+            public ScatteringData.Atom[] Atom;
+        }
 
         public EfficiencySimulator(GeometryModel model)
         {
@@ -1179,9 +1248,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                             return false;     // взаимодействие было, но не комптон
                         }
 
-                        double cos = this.ComptonCosine(energyKev);
-                        double scattered = energyKev
-                            / (1.0 + energyKev / ElectronMassKev * (1.0 - cos));
+                        double cos;
+                        double scattered = this.ComptonScatter(here.Material, energyKev, out cos);
                         double sx = ux, sy = uy, sz = uz;
                         this.Rotate(ref sx, ref sy, ref sz, cos);
 
@@ -1298,7 +1366,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 double photo, compton, pair;
                 this.CrystalChannels(e, out photo, out compton, out pair);
-                double total = photo + compton + pair;
+                // Когерентное — отдельным каналом: энергии не оставляет, но
+                // поворачивает квант, а значит меняет и путь до выхода.
+                double coherent = this.RayleighScatter
+                    ? this.geometry.Crystal.LinearCoherent(e) : 0.0;
+                double total = photo + compton + pair + coherent;
                 if (!(total > 0.0))
                 {
                     return lost + e;
@@ -1352,8 +1424,8 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 if (pick < photo + compton)
                 {
-                    double cos = this.ComptonCosine(e);
-                    double scattered = e / (1.0 + e / ElectronMassKev * (1.0 - cos));
+                    double cos;
+                    double scattered = this.ComptonScatter(this.geometry.Crystal, e, out cos);
                     this.Rotate(ref ux, ref uy, ref uz, cos);
                     lost += this.ElectronLoss(x, y, z, e - scattered, depth);
                     e = scattered;
@@ -1365,6 +1437,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                         return lost;
                     }
 
+                    continue;
+                }
+
+                if (pick < photo + compton + coherent)
+                {
+                    // Когерентное рассеяние: энергия та же, направление другое.
+                    // Ни отсчёта, ни потери — только новый путь до выхода.
+                    this.Rotate(ref ux, ref uy, ref uz,
+                                this.RayleighCosine(this.geometry.Crystal, e));
                     continue;
                 }
 
@@ -1622,6 +1703,314 @@ namespace BecquerelMonitor.EfficiencyMaker
             return k;
         }
 
+        // ------------------------------------------------------------------
+        // Углы рассеяния
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Ослабление, по которому АНАЛОГОВАЯ ветка разыгрывает длину свободного
+        /// пробега вне кристалла.
+        ///
+        /// С <see cref="RayleighScatter"/> когерентное входит в него наравне с
+        /// прочим и разыгрывается своим каналом — поворотом без потери энергии.
+        /// Без ключа оно вычтено: квант проходит слой, будто его не было, и это
+        /// прежнее приближение <see cref="CoherentPassesThrough"/>. Обе крайности
+        /// — «убить» и «не заметить» — заменяются розыгрышем только здесь;
+        /// взвешенная проводка к кристаллу углов не разыгрывает вовсе.
+        /// </summary>
+        double AnalogMu(GeometryMaterial material, double energyKev)
+        {
+            return this.RayleighScatter
+                ? material.LinearAttenuation(energyKev)
+                : material.LinearAttenuationWithoutCoherent(energyKev);
+        }
+
+        /// <summary>Угловые данные элементов вещества; строится один раз на вещество.</summary>
+        Scatterers ScatterersOf(GeometryMaterial material)
+        {
+            Scatterers found;
+            if (this.scatterers.TryGetValue(material, out found))
+            {
+                return found;
+            }
+
+            List<int> zs = new List<int>();
+            List<double> mass = new List<double>();
+            List<ScatteringData.Atom> atoms = new List<ScatteringData.Atom>();
+            foreach (KeyValuePair<int, double> pair in material.Fractions)
+            {
+                if (!(pair.Value > 0.0))
+                {
+                    continue;
+                }
+
+                ScatteringData.Atom atom = ScatteringData.Of(pair.Key);
+                if (atom == null)
+                {
+                    continue;
+                }
+
+                zs.Add(pair.Key);
+                mass.Add(pair.Value);
+                atoms.Add(atom);
+            }
+
+            Scatterers built = new Scatterers
+            {
+                Z = zs.ToArray(),
+                MassFraction = mass.ToArray(),
+                Atom = atoms.ToArray()
+            };
+            this.scatterers[material] = built;
+            return built;
+        }
+
+        /// <summary>
+        /// На КАКОМ элементе вещества произошло рассеяние: розыгрыш по вкладам
+        /// элементов в сечение канала. Угловые данные принадлежат атому, и для
+        /// соединения выбрать атом надо раньше, чем угол; null — данных нет
+        /// ни у одного элемента (тогда остаётся голый Клейн — Нишина).
+        /// </summary>
+        ScatteringData.Atom PickAtom(GeometryMaterial material, double energyKev,
+                                     PhotonProcess process)
+        {
+            Scatterers s = this.ScatterersOf(material);
+            int n = s.Atom.Length;
+            if (n == 0)
+            {
+                return null;
+            }
+
+            if (n == 1)
+            {
+                return s.Atom[0];
+            }
+
+            double total = 0.0;
+            for (int i = 0; i < n; i++)
+            {
+                total += s.MassFraction[i]
+                         * PartialCrossSections.MassCrossSection(s.Z[i], energyKev, process);
+            }
+
+            if (!(total > 0.0))
+            {
+                return s.Atom[0];
+            }
+
+            double pick = this.Uniform() * total;
+            double running = 0.0;
+            for (int i = 0; i < n; i++)
+            {
+                running += s.MassFraction[i]
+                           * PartialCrossSections.MassCrossSection(s.Z[i], energyKev, process);
+                if (pick <= running)
+                {
+                    return s.Atom[i];
+                }
+            }
+
+            return s.Atom[n - 1];
+        }
+
+        /// <summary>
+        /// Комптоновское рассеяние в веществе <paramref name="material"/>:
+        /// возвращает энергию рассеянного кванта, косинус угла — наружу.
+        ///
+        /// Три слоя, каждый отпирается своим ключом: угол по Клейну — Нишине
+        /// всегда, множитель отбора S(x,Z) при <see cref="BoundCompton"/>,
+        /// доплеровский сдвиг энергии при <see cref="DopplerBroadening"/>.
+        /// С выключенными обоими результат побитово прежний.
+        ///
+        /// Открыт наружу ради пробы `BoundScatterProbe`: розыгрыш надо мерить
+        /// тем же кодом, каким он идёт в расчёте, а не его копией.
+        /// </summary>
+        public double ComptonScatter(GeometryMaterial material, double energyKev, out double cos)
+        {
+            ScatteringData.Atom atom = null;
+            if ((this.BoundCompton || this.DopplerBroadening) && material != null)
+            {
+                atom = this.PickAtom(material, energyKev, PhotonProcess.Incoherent);
+            }
+
+            cos = this.ComptonCosine(energyKev, this.BoundCompton ? atom : null);
+            double free = energyKev / (1.0 + energyKev / ElectronMassKev * (1.0 - cos));
+            if (!this.DopplerBroadening || atom == null || atom.ShellCount == 0)
+            {
+                return free;
+            }
+
+            return this.DopplerEnergy(atom, energyKev, cos, free);
+        }
+
+        /// <summary>
+        /// Энергия рассеянного кванта с учётом импульса связанного электрона
+        /// (импульсное приближение). Оболочка — по заселённости, проекция
+        /// импульса p_z — по профилю Комптона этой оболочки.
+        ///
+        /// Кинематика: при p_z = q·m_e·c и ε = E'/E выполняется
+        /// ε²·(v₂² − q²) − 2ε·(v₂ − q²·cosθ) + (1 − q²) = 0, где
+        /// v₂ = 1 + (E/m_e c²)(1 − cosθ). Из двух корней годится тот, у
+        /// которого знак (1 − ε·v₂) совпадает со знаком q: второй появился при
+        /// возведении в квадрат и отвечает противоположной проекции.
+        ///
+        /// Рассеянная энергия ограничена сверху E − E_св: связь оболочки
+        /// оплачивается из энергии кванта, и без этой границы синий сдвиг
+        /// давал бы электрону отрицательную энергию.
+        /// </summary>
+        double DopplerEnergy(ScatteringData.Atom atom, double energyKev,
+                             double cos, double free)
+        {
+            double a = energyKev / ElectronMassKev;
+            double var2 = 1.0 + a * (1.0 - cos);
+            for (int guard = 0; guard < 64; guard++)
+            {
+                int shell = atom.SelectShell(this.Uniform());
+                double binding = atom.ShellBindingKev(shell);
+                if (binding >= energyKev)
+                {
+                    continue;                  // оболочка кванту не по зубам
+                }
+
+                double q = ScatteringData.FineStructure
+                           * atom.SampleMomentumAu(shell, this.Uniform());
+                if (this.Uniform() < 0.5)
+                {
+                    q = -q;
+                }
+
+                double q2 = q * q;
+                double var3 = var2 * var2 - q2;
+                double var4 = var2 - q2 * cos;
+                double disc = var4 * var4 - var3 + q2 * var3;
+                if (!(var3 > 0.0) || !(disc >= 0.0))
+                {
+                    continue;
+                }
+
+                double root = Math.Sqrt(disc);
+                double eps = Consistent((var4 - root) / var3, var2, q);
+                if (!(eps > 0.0))
+                {
+                    eps = Consistent((var4 + root) / var3, var2, q);
+                }
+
+                if (!(eps > 0.0) || eps > 1.0)
+                {
+                    continue;
+                }
+
+                double scattered = eps * energyKev;
+                if (scattered > energyKev - binding)
+                {
+                    continue;
+                }
+
+                return scattered;
+            }
+
+            return free;
+        }
+
+        /// <summary>
+        /// Доплеровская энергия при ЗАДАННОМ угле — только для пробы
+        /// `BoundScatterProbe`: она меряет размытие отдельно от розыгрыша
+        /// угла, иначе ширина края мешалась бы с шириной углового
+        /// распределения. В самом расчёте не участвует.
+        /// </summary>
+        public double DopplerAt(GeometryMaterial material, double energyKev, double cos)
+        {
+            ScatteringData.Atom atom =
+                this.PickAtom(material, energyKev, PhotonProcess.Incoherent);
+            double free = energyKev / (1.0 + energyKev / ElectronMassKev * (1.0 - cos));
+            if (atom == null || atom.ShellCount == 0)
+            {
+                return free;
+            }
+
+            return this.DopplerEnergy(atom, energyKev, cos, free);
+        }
+
+        /// <summary>
+        /// Корень, отвечающий разыгранному знаку проекции импульса: −1, если
+        /// корень посторонний (появился при возведении уравнения в квадрат).
+        /// </summary>
+        static double Consistent(double eps, double var2, double q)
+        {
+            if (!(eps > 0.0))
+            {
+                return -1.0;
+            }
+
+            double residual = 1.0 - eps * var2;
+            if (Math.Abs(residual) < 1e-12)
+            {
+                return eps;                    // q ≈ 0, оба корня совпали
+            }
+
+            return (residual > 0.0) == (q > 0.0) ? eps : -1.0;
+        }
+
+        /// <summary>
+        /// Косинус угла КОГЕРЕНТНОГО рассеяния по форм-фактору: сначала
+        /// разыгрывается квадрат переданного импульса по F²(x,Z), затем
+        /// доигрывается томсоновский множитель (1 + cos²θ)/2 отбором.
+        /// Энергия при этом не меняется вовсе. Открыт наружу по той же
+        /// причине, что <see cref="ComptonScatter"/>.
+        /// </summary>
+        public double RayleighCosine(GeometryMaterial material, double energyKev)
+        {
+            ScatteringData.Atom atom = this.PickAtom(material, energyKev, PhotonProcess.Coherent);
+            double xMax = ScatteringData.InverseCmPerKev * energyKev;
+            double tMax = xMax * xMax;
+            if (atom == null || !(tMax > 0.0))
+            {
+                return 2.0 * this.Uniform() - 1.0;
+            }
+
+            for (int guard = 0; guard < 1000; guard++)
+            {
+                double t = atom.SampleMomentumTransferSq(this.Uniform(), tMax);
+                double cos = 1.0 - 2.0 * t / tMax;
+                if (cos < -1.0) cos = -1.0;
+                if (cos > 1.0) cos = 1.0;
+                if (this.Uniform() <= 0.5 * (1.0 + cos * cos))
+                {
+                    return cos;
+                }
+            }
+
+            return 1.0;
+        }
+
+        /// <summary>
+        /// Косинус угла комптоновского рассеяния, метод Кана. С непустым
+        /// <paramref name="atom"/> к нему добавляется отбор по функции
+        /// некогерентного рассеяния: принимается доля S(x,Z)/Z, где
+        /// x = (E/hc)·sin(θ/2). Полное сечение от этого не меняется — оно
+        /// берётся из XCOM, а отбор перераспределяет углы внутри канала.
+        /// </summary>
+        double ComptonCosine(double energyKev, ScatteringData.Atom atom)
+        {
+            if (atom == null)
+            {
+                return this.ComptonCosine(energyKev);
+            }
+
+            double k = ScatteringData.InverseCmPerKev * energyKev;
+            for (int guard = 0; guard < 1000; guard++)
+            {
+                double cos = this.ComptonCosine(energyKev);
+                double x = k * Math.Sqrt(Math.Max(0.0, 0.5 * (1.0 - cos)));
+                if (this.Uniform() * atom.Z <= atom.ScatteringFunction(x))
+                {
+                    return cos;
+                }
+            }
+
+            return -1.0;
+        }
+
         /// <summary>Косинус угла комптоновского рассеяния, метод Кана.</summary>
         double ComptonCosine(double energyKev)
         {
@@ -1779,8 +2168,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         break;              // ушёл из сцены
                     }
 
-                    double muKill = here == null ? 0.0
-                        : here.Material.LinearAttenuationWithoutCoherent(e);
+                    double muKill = here == null ? 0.0 : this.AnalogMu(here.Material, e);
                     if (muKill > 0.0)
                     {
                         double free = -Math.Log(1.0 - this.Uniform()) / muKill;
@@ -1791,7 +2179,19 @@ namespace BecquerelMonitor.EfficiencyMaker
                             z += uz * free;
                             travelled += free;
                             double incoherent = here.Material.LinearIncoherent(e);
-                            if (this.Uniform() * muKill >= incoherent)
+                            double coherent = this.RayleighScatter
+                                ? here.Material.LinearCoherent(e) : 0.0;
+                            double channel = this.Uniform() * muKill;
+                            if (channel < coherent)
+                            {
+                                // Когерентное: энергия та же, направление другое.
+                                // Ни отсчёта, ни потери — квант летит дальше.
+                                this.Rotate(ref ux, ref uy, ref uz,
+                                            this.RayleighCosine(here.Material, e));
+                                continue;
+                            }
+
+                            if (channel >= coherent + incoherent)
                             {
                                 // Фотопоглощение или пары вне кристалла: сам
                                 // фотон погиб, но электрон может занести (F1).
@@ -1803,8 +2203,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                                 break;
                             }
 
-                            double cos = this.ComptonCosine(e);
-                            double after = e / (1.0 + e / ElectronMassKev * (1.0 - cos));
+                            double cos;
+                            double after = this.ComptonScatter(here.Material, e, out cos);
                             // Комптон-электрон: занос считается ДО поворота
                             // фотона — направлением электрона берётся направление
                             // налетающего кванта (см. шапку ElectronReachesCrystal).
@@ -2446,8 +2846,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         break;              // ушёл из сцены
                     }
 
-                    double muKill = here == null ? 0.0
-                        : here.Material.LinearAttenuationWithoutCoherent(e);
+                    double muKill = here == null ? 0.0 : this.AnalogMu(here.Material, e);
                     if (muKill > 0.0)
                     {
                         double free = -Math.Log(1.0 - this.Uniform()) / muKill;
@@ -2458,8 +2857,19 @@ namespace BecquerelMonitor.EfficiencyMaker
                             z += uz * free;
                             travelled += free;
                             double incoherent = here.Material.LinearIncoherent(e);
+                            double coherent = this.RayleighScatter
+                                ? here.Material.LinearCoherent(e) : 0.0;
                             double carried;
-                            if (this.Uniform() * muKill >= incoherent)
+                            double channel = this.Uniform() * muKill;
+                            if (channel < coherent)
+                            {
+                                // Когерентное: только поворот, энергия та же.
+                                this.Rotate(ref ux, ref uy, ref uz,
+                                            this.RayleighCosine(here.Material, e));
+                                continue;
+                            }
+
+                            if (channel >= coherent + incoherent)
                             {
                                 // Фотопоглощение или пары вне кристалла: фотон
                                 // погиб, электрон может донести остаток (F1).
@@ -2471,8 +2881,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                                 break;
                             }
 
-                            double cos = this.ComptonCosine(e);
-                            double after = e / (1.0 + e / ElectronMassKev * (1.0 - cos));
+                            double cos;
+                            double after = this.ComptonScatter(here.Material, e, out cos);
                             // Занос комптон-электрона — ДО поворота фотона (см.
                             // шапку ElectronReachesCrystal); фотон летит дальше.
                             if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz, e - after, out carried))

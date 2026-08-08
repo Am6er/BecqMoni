@@ -49,7 +49,9 @@ namespace BecquerelMonitor.EfficiencyMaker
         //     ОБЯЗАНА смениться, иначе формат-4 файл съедет полем данных.
         //     Найдено сверкой с параллельной сессией S11: ключ был добавлен
         //     в Options и отпечаток, но не в Write/ReadOptions.
-        public const int FormatVersion = 5;
+        // 6 — в блоке параметров появился ключ BoundScattering (08.08.2026,
+        //     физика 7): та же арифметика, файл длиннее ещё на байт.
+        public const int FormatVersion = 6;
 
         /// <summary>
         /// Версия ФИЗИКИ. Поднимать при любой правке переноса, меняющей числа:
@@ -77,7 +79,12 @@ namespace BecquerelMonitor.EfficiencyMaker
         //     занос электронов), пик остаётся взвешенным. Плюс F13: брусовая
         //     кювета больше не затеняет пробу стенкой. Взвешенный континуум
         //     недобирал 0.57–0.92 от Geant4 (журнал tccfcalc2, §11).
-        public const int PhysicsVersion = 6;
+        // 7 — рассеяние на СВЯЗАННОМ электроне (N11, 08.08.2026): угол
+        //     комптона с множителем отбора S(x,Z), доплеровское размытие
+        //     рассеянной энергии по профилям Комптона, когерентное — своим
+        //     каналом с углом по F²(x,Z) вместо «проходит насквозь».
+        //     Данные лежали в базе с 06.08.2026 без потребителя.
+        public const int PhysicsVersion = 7;
 
         /// <summary>Узлы сетки входных энергий, кэВ, по возрастанию.</summary>
         public double[] Energies { get; set; }
@@ -213,6 +220,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 sb.Append("scat=").Append(options.SingleScatter ? 1 : 0).Append(';');
                 sb.Append("npl=").Append(options.LightNonproportionality ? 1 : 0).Append(';');
                 sb.Append("acont=").Append(options.AnalogContinuum ? 1 : 0).Append(';');
+                sb.Append("bound=").Append(options.BoundScattering ? 1 : 0).Append(';');
             }
 
             sb.Append("geom=").Append(GeometryText(geometry));
@@ -575,6 +583,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             writer.Write(o.SingleScatter);
             writer.Write(o.LightNonproportionality);
             writer.Write(o.AnalogContinuum);
+            writer.Write(o.BoundScattering);
         }
 
         static ResponseMatrixOptions ReadOptions(BinaryReader reader)
@@ -591,7 +600,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 Bremsstrahlung = reader.ReadBoolean(),
                 SingleScatter = reader.ReadBoolean(),
                 LightNonproportionality = reader.ReadBoolean(),
-                AnalogContinuum = reader.ReadBoolean()
+                AnalogContinuum = reader.ReadBoolean(),
+                BoundScattering = reader.ReadBoolean()
             };
         }
 
@@ -776,6 +786,18 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// измеренным недобором 0.57–0.92 от Geant4 — только для сравнения.
         /// </summary>
         public bool AnalogContinuum = true;
+
+        /// <summary>
+        /// Рассеяние на СВЯЗАННОМ электроне (N11, физика 7): угол комптона с
+        /// множителем отбора S(x,Z), доплеровское размытие по профилям
+        /// Комптона и когерентное отдельным каналом с углом по F²(x,Z).
+        /// Один ключ на три части сознательно: в матрице они не разделяются,
+        /// а по отдельности их отпирают поля симулятора — для абляций
+        /// (<see cref="EfficiencySimulator.BoundCompton"/>,
+        /// <see cref="EfficiencySimulator.DopplerBroadening"/>,
+        /// <see cref="EfficiencySimulator.RayleighScatter"/>).
+        /// </summary>
+        public bool BoundScattering = true;
 
         /// <summary>Потоков; 0 — по числу ядер минус один.</summary>
         public int Threads;

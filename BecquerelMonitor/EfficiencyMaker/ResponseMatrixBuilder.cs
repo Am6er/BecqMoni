@@ -172,6 +172,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                 SingleScatter = options.SingleScatter,
                 LightNonproportionality = options.LightNonproportionality,
                 AnalogContinuum = options.AnalogContinuum,
+                BoundCompton = options.BoundScattering,
+                DopplerBroadening = options.BoundScattering,
+                RayleighScatter = options.BoundScattering,
                 PeakHalfWidthKev = 0.0
             };
 
