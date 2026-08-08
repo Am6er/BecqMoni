@@ -64,7 +64,7 @@ PIECES = {
         "compton_profile", "compton_profile_shell", "compton_profile_momentum",
         "seltzer_berger", "seltzer_berger_grid",
         "eadl_binding", "eadl_radiative", "eadl_auger",
-        "xray_fluorescence",
+        "xray_fluorescence", "fluorescence_yield", "fluorescence_k",
         "scint_npsm_params", "scint_electron_light_yield",
         "estar_shells", "estar_radiative_stopping", "estar_element_potential",
         "estar_collision_stopping",

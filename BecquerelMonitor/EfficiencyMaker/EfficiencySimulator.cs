@@ -221,6 +221,23 @@ namespace BecquerelMonitor.EfficiencyMaker
         public bool KFractionByEnergy = true;
 
         /// <summary>
+        /// Брать выход K-флуоресценции ИЗМЕРЕННЫЙ (`fluorescence_yield`,
+        /// поставка xraylib = Krause ORNL-5399 с заменами Campbell-2009 и
+        /// опытами 2021 года), а не расчётный EADL (TODO N15, физика 11).
+        ///
+        /// EADL расходится с измерениями не случайно, а систематикой: на
+        /// Z = 20…35 он занижен на 4–9 % (Fe 0.948, Cu 0.956, Zn 0.959,
+        /// Ge 0.966 от измеренного), выше Z = 50 сходится на 0.3–0.5 %
+        /// (I 1.004, Cs 1.005). Для CsI и NaI цена поэтому мала, а вот для
+        /// пробы и обвязки из железа, меди и цинка — нет (F16).
+        ///
+        /// Ключ измерительный: выключенный, возвращает прежнее поведение до
+        /// последнего бита. Числа и вывод — в
+        /// database/omega-vs-measurement-2026-08-09.md.
+        /// </summary>
+        public bool MeasuredFluorescenceYield = true;
+
+        /// <summary>
         /// Считать ОТКЛИК в шкале света, а не поглощённой энергии (TODO F11).
         ///
         /// Прибор меряет свет, и у CsI(Tl)/NaI(Tl) свет на единицу энергии
@@ -1755,7 +1772,12 @@ namespace BecquerelMonitor.EfficiencyMaker
             double kFraction = this.fluoShells[k] != null
                 ? this.fluoShells[k].KFraction(energyKev)
                 : f.KFraction;
-            if (this.Uniform() >= kFraction * f.OmegaK)
+
+            // Выход флуоресценции: измеренный, если он есть и ключ включён,
+            // иначе расчётный EADL. Число случайных чисел от выбора не
+            // меняется — меняется только порог сравнения.
+            double omega = f.Omega(this.MeasuredFluorescenceYield);
+            if (this.Uniform() >= kFraction * omega)
             {
                 return 0.0;                 // не K-оболочка или оже-электрон
             }
