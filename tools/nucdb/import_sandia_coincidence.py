@@ -35,13 +35,18 @@
 3. **Метастабильные у Sandia — отдельные нуклиды, и с нашими они не сходятся.**
    У Cs-137 у них нет ни одной значимой гаммы: 661.657 принадлежит Ba-137m,
    который стоит следом в цепочке. У нас всё сложено на 137CS, а под 137BA в
-   `decay_radiations` нет вообще ни строки. Хуже того, наш `l_seqno` — это
-   НОМЕР УРОВНЯ в схеме NuclideMaster, а не порядковый номер изомера: значения
-   доходят до 200. Проверено: ни один из 418 изомеров Sandia не сошёлся с нашей
-   парой `(nucid, l_seqno)` — сошлись ровно 1225 основных состояний, то есть
-   все. Поэтому изомерам `l_seqno` НЕ приписывается: у них он `null`, а
-   порядковый номер Sandia лежит в отдельном поле `isomer`. Придумывать здесь
-   соответствие нельзя — на нём держится вся привязка линий.
+   `decay_radiations` нет вообще ни строки. Наш `l_seqno` — это НОМЕР УРОВНЯ
+   в схеме NuclideMaster, а не порядковый номер изомера: значения доходят до
+   200, и порядковый номер Sandia лежит отдельным полем `isomer`.
+
+   ⚠ **Вывод «ни один из 418 изомеров не сошёлся» был НЕВЕРЕН (D11,
+   09.08.2026).** Сверка делалась по БАЗОВОМУ имени (`108AG`), а изомер лежит
+   в `nuclides` отдельной строкой С СУФФИКСОМ — `108AGm`, `234PAm1`. По
+   полному имени находятся 236 изомеров из 418, и номер берётся у них
+   ГОТОВЫМ, а не вычисляется. Остальные 182 — нуклиды, которых у нас нет
+   вовсе; им `l_seqno` остаётся `null`, потому что нашей нумерации для этого
+   состояния не существует, а придумывать её нельзя: на ней держится вся
+   привязка линий.
 
 Отсечка и укладка. Без отсечки пар 334 382 и база пухнет на 20 МБ. Берём пары,
 где обе линии дают не меньше 0.1 % на распад, а доля совпадения не меньше 0.1 %:
@@ -90,20 +95,24 @@ def ppm(fraction):
 
 
 def to_nucid(symbol):
-    """`Ba137m` -> `('137BA', 1)`; `Co60` -> `('60CO', 0)`.
+    """`Ba137m` -> `('137BA', 1, '137BAm')`; `Co60` -> `('60CO', 0, '60CO')`.
 
     Второе — порядковый номер изомера У SANDIA, а не наш `l_seqno`; см. шапку.
-    Возвращает `(None, None)`, если символ не разбирается (нейтрон `n1` и
-    прочая экзотика).
+    Третье — наш `nucid` ВМЕСТЕ С СУФФИКСОМ состояния: изомер лежит в
+    `nuclides` отдельной строкой (`108AGm`, `234PAm1`), и искать его по
+    базовому имени бессмысленно — на этом и споткнулась первая версия (D11).
+    Возвращает `(None, None, None)`, если символ не разбирается (нейтрон `n1`
+    и прочая экзотика).
     """
     m = ELEMENT.match(symbol or "")
     if not m:
-        return None, None
+        return None, None, None
     el, mass, iso = m.group(1), m.group(2), m.group(3)
     isomer = 0
     if iso:
         isomer = int(iso[1:]) if len(iso) > 1 else 1
-    return "%s%s" % (mass, el.upper()), isomer
+    base = "%s%s" % (mass, el.upper())
+    return base, isomer, base + (iso or "")
 
 
 def collect(xml_path):
@@ -216,8 +225,12 @@ def main():
     """)
 
     n_pairs = n_lines = n_parents = n_unmapped = 0
+    n_isomer_linked = n_isomer_unlinked = 0
     dropped = 0
     parent_id = 0
+    # Наши номера уровней по ПОЛНОМУ имени состояния — читаются один раз.
+    our_levels = {n: s for n, s in db.execute(
+        "select nucid, l_seqno from nuclides where l_seqno is not null")}
     for symbol in sorted(pairs):
         kept = []
         for (e1, e2), fraction in pairs[symbol].items():
@@ -233,14 +246,23 @@ def main():
 
         parent_id += 1
         n_parents += 1
-        nucid, isomer = to_nucid(symbol)
+        nucid, isomer, state_nucid = to_nucid(symbol)
         if nucid is None:
             n_unmapped += 1
-        # `l_seqno` только у основного состояния: у изомеров наша нумерация
-        # уровней с порядковым номером Sandia не совпадает (см. шапку).
+        # `l_seqno` у основного состояния — ноль; у изомера берётся ГОТОВЫМ из
+        # `nuclides` по имени С СУФФИКСОМ (`108AGm`), а не вычисляется. Если
+        # такой строки у нас нет, остаётся null: нашей нумерации для этого
+        # состояния не существует, и придумывать её нельзя (D11).
+        if isomer == 0:
+            l_seqno = 0
+        else:
+            l_seqno = our_levels.get(state_nucid)
+            if l_seqno is None:
+                n_isomer_unlinked += 1
+            else:
+                n_isomer_linked += 1
         db.execute("insert into gamma_coincidence_parent values (?,?,?,?,?)",
-                   (parent_id, symbol, nucid, isomer,
-                    0 if isomer == 0 else None))
+                   (parent_id, symbol, nucid, isomer, l_seqno))
         db.executemany("insert into gamma_coincidence values (?,?,?,?)",
                        [(parent_id, mkev(e1), mkev(e2), ppm(f))
                         for e1, e2, f, _, _ in sorted(kept)])
@@ -255,11 +277,22 @@ def main():
                         for e, i in sorted(involved.items())])
         n_lines += len(involved)
 
-    # Указатель заведён только на родителях: их 1643 и он ничего не стоит. На
-    # самих парах указателя нарочно нет — он весил бы почти два мегабайта, а
-    # таблицы всё равно грузятся в память целиком (`MaterialDatabase.cs`).
+    # Указатели: на родителях (их 1643, он ничего не стоит) и на parent_id
+    # обеих больших таблиц.
+    #
+    # Прежде на самих парах указателя нарочно не было — довод «весит два
+    # мегабайта, а таблицы всё равно грузятся в память целиком» оказался
+    # НЕВЕРЕН: `FsaCascadeSummer` спрашивает их через представления с фильтром
+    # по нуклиду, план запроса был `SCAN` — полный проход на КАЖДЫЙ нуклид
+    # библиотеки, 9.2 мс на пары и 2.9 мс на линии, ≈0.36 с на библиотеке из
+    # тридцати. С указателем план стал `SEARCH` (T22, 08.08.2026); цена — 1.6 МБ
+    # на базу.
     db.execute("create index ix_gamma_coincidence_parent"
                " on gamma_coincidence_parent(nucid, l_seqno)")
+    db.execute("create index ix_gamma_coincidence_parent_id"
+               " on gamma_coincidence(parent_id)")
+    db.execute("create index ix_gamma_coincidence_line_parent_id"
+               " on gamma_coincidence_line(parent_id)")
     db.commit()
 
     # Сколько родителей нашлось в нашей ядерной части — это не проверка данных,
@@ -278,8 +311,10 @@ def main():
     print("совпадения: %d пар и %d линий у %d родителей (отброшено по отсечке %d)"
           % (n_pairs, n_lines, n_parents, dropped))
     print("основных состояний %d, из них есть в nuclides %d; изомеров %d"
-          " (нашей нумерации уровней не приписаны); символ не разобран у %d"
-          % (ground, known, n_parents - ground, n_unmapped))
+          " — привязано к нашей нумерации %d, нуклида нет у нас у %d;"
+          " символ не разобран у %d"
+          % (ground, known, n_parents - ground, n_isomer_linked,
+             n_isomer_unlinked, n_unmapped))
     print("размер базы: %.2f МБ" % (os.path.getsize(db_path) / 1e6))
 
 
