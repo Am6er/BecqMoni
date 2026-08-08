@@ -63,8 +63,36 @@ namespace BecquerelMonitor.EfficiencyMaker
             /// <summary>Доля фотопоглощений, приходящаяся на K-оболочку.</summary>
             public double KFraction;
 
-            /// <summary>Вероятность ответить квантом, а не оже-электроном.</summary>
+            /// <summary>
+            /// Вероятность ответить квантом, а не оже-электроном — по EADL:
+            /// сумма `eadl_radiative` по вакансии K, то есть РАСЧЁТ.
+            /// </summary>
             public double OmegaK;
+
+            /// <summary>
+            /// Она же по ИЗМЕРЕНИЯМ (`fluorescence_yield`, поставка xraylib =
+            /// Krause ORNL-5399 с заменами Campbell-2009 и опытами 2021 года).
+            /// Ноль — измерения на этот элемент нет.
+            ///
+            /// Держится отдельным полем, а не подменяет <see cref="OmegaK"/>,
+            /// потому что расчёт и измерение расходятся не случайно, а
+            /// систематикой: на Z = 20…35 EADL занижен на 4–9 % (Fe 0.948,
+            /// Cu 0.956, Zn 0.959 от измеренного), выше Z = 50 сходится на
+            /// 0.3–0.5 % (I 1.004, Cs 1.005). Выбор делает расчёт, а не
+            /// загрузчик — `database/omega-vs-measurement-2026-08-09.md`.
+            /// </summary>
+            public double OmegaKMeasured;
+
+            /// <summary>
+            /// Выход, которым считать: измеренный, если он есть, иначе EADL.
+            /// Разделено так, чтобы ключ расчёта переключал ОДНО место.
+            /// </summary>
+            public double Omega(bool measured)
+            {
+                return measured && this.OmegaKMeasured > 0.0
+                    ? this.OmegaKMeasured
+                    : this.OmegaK;
+            }
 
             /// <summary>Энергии линий, кэВ: Kα1, Kα2, Kβ.</summary>
             public double[] LineKev;
@@ -661,6 +689,75 @@ namespace BecquerelMonitor.EfficiencyMaker
                                         reader.GetDouble(5), reader.GetDouble(7), reader.GetDouble(9),
                                     },
                                 };
+                            }
+                        }
+
+                        // Измеренная K-запись (`fluorescence_k`, 87 элементов от
+                        // Z = 12). Делает две разные вещи, и обе нужны:
+                        //
+                        //  * у элемента, который в `xray_fluorescence` есть,
+                        //    берётся ТОЛЬКО выход — край и линии остаются
+                        //    прежними, из XCOM, чтобы выключенный ключ возвращал
+                        //    ровно прежний счёт;
+                        //  * элемента, которого там НЕТ, запись заводит целиком.
+                        //    Старая таблица обрывалась на Z = 30, потому что
+                        //    энергии линий считались по разности краёв L2/L3, а
+                        //    ниже тридцати этой пары в XCOM нет — и железа, меди,
+                        //    кальция у расчёта не было ВОВСЕ. Ровно тех, ради
+                        //    которых измеренный выход и понадобился (F16).
+                        //    Выход у таких элементов есть и по EADL, поэтому
+                        //    ключ работает и на них.
+                        command.CommandText =
+                            "select z, k_edge_ev, k_fraction, omega_k, ka1_ev, ka1_weight," +
+                            " ka2_ev, ka2_weight, kb_ev, kb_weight from fluorescence_k";
+                        using (SqliteDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                int z = reader.GetInt32(0);
+                                Fluorescence f;
+                                if (fluo.TryGetValue(z, out f))
+                                {
+                                    f.OmegaKMeasured = reader.GetDouble(3);
+                                    continue;
+                                }
+
+                                fluo[z] = new Fluorescence
+                                {
+                                    KEdgeKev = reader.GetDouble(1) / 1000.0,
+                                    KFraction = reader.GetDouble(2),
+                                    OmegaKMeasured = reader.GetDouble(3),
+                                    LineKev = new double[]
+                                    {
+                                        reader.GetDouble(4) / 1000.0,
+                                        reader.GetDouble(6) / 1000.0,
+                                        reader.GetDouble(8) / 1000.0,
+                                    },
+                                    LineWeight = new double[]
+                                    {
+                                        reader.GetDouble(5), reader.GetDouble(7), reader.GetDouble(9),
+                                    },
+                                };
+                            }
+                        }
+
+                        // Расчётный выход EADL — второй источник у ключа. У
+                        // элементов из `xray_fluorescence` он уже стоит в
+                        // `omega_k`; у заведённых только что его надо взять там
+                        // же, откуда его брала та таблица, — суммой по вакансии.
+                        command.CommandText =
+                            "select z, sum(probability) from eadl_radiative" +
+                            " where vacancy_shell = 1 group by z";
+                        using (SqliteDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                Fluorescence f;
+                                if (fluo.TryGetValue(reader.GetInt32(0), out f)
+                                    && !(f.OmegaK > 0.0))
+                                {
+                                    f.OmegaK = reader.GetDouble(1);
+                                }
                             }
                         }
 

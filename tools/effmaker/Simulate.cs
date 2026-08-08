@@ -38,6 +38,7 @@ namespace EffSim
                 bool mountFront = false;
                 bool electron = true, brems = true, xray = true, cohPass = true, scatter = true;
                 bool kfracEnergy = true;
+                bool omegaMeasured = true;      // физика 11: ω_K по измерениям
                 bool analogContinuum = true;
                 bool bound = true;              // физика 7: связанное рассеяние
                 // три части физики 7 порознь — для поиска виновника избытка
@@ -75,6 +76,9 @@ namespace EffSim
                         // доля K-оболочки константой со скачка на крае, как до
                         // пооболочечных сечений EPICS2017 — измерительный ключ
                         case "--no-kfrac-e": kfracEnergy = false; break;
+                        // выход K-флуоресценции расчётный (EADL) вместо
+                        // измеренного (Krause) — измерительный ключ для N15
+                        case "--no-omega-meas": omegaMeasured = false; break;
                         // старый взвешенный континуум отклика вместо аналоговой
                         // ветки (физика 6) — измерительный ключ для A/B
                         case "--no-acont": analogContinuum = false; break;
@@ -127,7 +131,7 @@ namespace EffSim
                     {
                         RunOne(Path.Combine(all, Pairs[i, 0]),
                                refDir == null ? null : Path.Combine(refDir, Pairs[i, 1]),
-                               null, n, mountFront, electron, brems, xray, cohPass, scatter, kfracEnergy, halfWidth, halfWidthFraction, fwhm662, point, list, total, escSlope, escT0, bound, bremFromData, sCompton, doppler, rayleigh);
+                               null, n, mountFront, electron, brems, xray, cohPass, scatter, kfracEnergy, omegaMeasured, halfWidth, halfWidthFraction, fwhm662, point, list, total, escSlope, escT0, bound, bremFromData, sCompton, doppler, rayleigh);
                         Console.WriteLine();
                     }
 
@@ -182,6 +186,7 @@ namespace EffSim
                         CoherentPassesThrough = cohPass,
                         SingleScatter = scatter,
                         KFractionByEnergy = kfracEnergy,
+                        MeasuredFluorescenceYield = omegaMeasured,
                         AnalogContinuum = analogContinuum,
                         BoundCompton = bound && sCompton,
                         DopplerBroadening = bound && doppler,
@@ -222,7 +227,7 @@ namespace EffSim
                     return 0;
                 }
 
-                RunOne(geometry, reference, outPath, n, mountFront, electron, brems, xray, cohPass, scatter, kfracEnergy, halfWidth, halfWidthFraction, fwhm662, point, list, total, escSlope, escT0, bound, bremFromData, sCompton, doppler, rayleigh);
+                RunOne(geometry, reference, outPath, n, mountFront, electron, brems, xray, cohPass, scatter, kfracEnergy, omegaMeasured, halfWidth, halfWidthFraction, fwhm662, point, list, total, escSlope, escT0, bound, bremFromData, sCompton, doppler, rayleigh);
                 return 0;
             }
             catch (Exception ex)
@@ -233,7 +238,7 @@ namespace EffSim
         }
 
         static void RunOne(string geometryPath, string referencePath, string outPath, int n,
-                           bool mountFront, bool electron, bool brems, bool xray, bool cohPass, bool scatter, bool kfracEnergy, double halfWidth,
+                           bool mountFront, bool electron, bool brems, bool xray, bool cohPass, bool scatter, bool kfracEnergy, bool omegaMeasured, double halfWidth,
                            double halfWidthFraction, double fwhm662, double point, string list,
                            bool total = false, double escSlope = -1.0, double escT0 = -1.0,
                            bool bound = true, bool bremFromData = true,
@@ -270,6 +275,7 @@ namespace EffSim
                 CoherentPassesThrough = cohPass,
                 SingleScatter = scatter,
                 KFractionByEnergy = kfracEnergy,
+                MeasuredFluorescenceYield = omegaMeasured,
                 BoundCompton = bound && sCompton,
                 DopplerBroadening = bound && doppler,
                 RayleighScatter = bound && rayleigh,
@@ -287,12 +293,13 @@ namespace EffSim
             }
 
             Console.WriteLine("    сцена: {0}", sim.DescribeScene());
-            Console.WriteLine("    электрон: {0}, вылет {1} (наклон {2:F2}, порог {3:F0} кэВ), тормозное {4}, допуск {5}, рентген {6}, когерентное сквозь {7}, рассеяние {8}, доля K по энергии {9} ",
+            Console.WriteLine("    электрон: {0}, вылет {1} (наклон {2:F2}, порог {3:F0} кэВ), тормозное {4}, допуск {5}, рентген {6}, когерентное сквозь {7}, рассеяние {8}, доля K по энергии {9}, выход K {10} ",
                               sim.ElectronMaterialName == "" ? "состава нет в ESTAR" : sim.ElectronMaterialName,
                               electron ? "да" : "нет", sim.ElectronEscapeSlope, sim.ElectronEscapeT0Kev,
                               brems ? "да" : "нет", halfWidth,
                               xray ? "да" : "нет", cohPass ? "да" : "нет", scatter ? "да" : "нет",
-                              kfracEnergy ? "да" : "нет");
+                              kfracEnergy ? "да" : "нет",
+                              omegaMeasured ? "измеренный" : "EADL");
 
             List<double> energies;
             Dictionary<double, double> truth = null;
