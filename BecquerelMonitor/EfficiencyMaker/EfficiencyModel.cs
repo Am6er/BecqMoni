@@ -207,6 +207,13 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         public List<ROIEfficiencyData> Curve = new List<ROIEfficiencyData>();
 
+        /// <summary>
+        /// Клеймо «чем посчитана» кривой из геометрии (E12): версия физики
+        /// переноса, историй на узел, сетка. Пусто у кривой, восстановленной
+        /// по измерениям, — у неё физики переноса нет.
+        /// </summary>
+        public string ComputeStamp = "";
+
         /// <summary>Исходная кривая: по ней продолжается форма за краями измерений.</summary>
         public List<ROIEfficiencyData> ReferenceCurve;
 

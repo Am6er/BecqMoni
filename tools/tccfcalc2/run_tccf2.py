@@ -109,13 +109,22 @@ def upgrade_in(src_path, dst_path, variant="full", threads=1, overrides=None,
     overrides = overrides or {}
     out = []
     present = set()
+    # Повторный вход: блок параметров расчёта прежнего прогона вычищается,
+    # иначе ключи задваивались с неопределённым победителем — а пишется он
+    # ниже всегда целиком (см. ЛОВУШКУ в шапке).
+    param_names = set(name for name, _ in BASE_PARAMS)
+    param_names.add(u"threads_number")
     with io.open(src_path, encoding="latin-1") as f:
         for line in f:
             stripped = line.strip()
             if drop_box and stripped.startswith("DS_CrystalBox"):
                 continue
+            if stripped.startswith(u"// --- calculation parameters"):
+                continue
             m = re.match(r"^\s*([A-Za-z_][A-Za-z0-9_\[\].]*)\s*=\s*(\S+)(.*)$", line)
             if m:
+                if m.group(1) in param_names:
+                    continue
                 present.add(m.group(1))
                 if m.group(1) in overrides:
                     tail = m.group(3).rstrip("\r\n")
@@ -127,6 +136,9 @@ def upgrade_in(src_path, dst_path, variant="full", threads=1, overrides=None,
     text = u"".join(out)
     if "DS_DetectorFrontPackagingThickness" not in present:
         text += NEW_KEYS
+    # Хвостовые пустые строки срезаются, иначе каждый повторный вход
+    # добавлял бы по одной перед блоком параметров.
+    text = text.rstrip(u"\r\n \t") + u"\n"
     text += params_block(variant, threads)
     with io.open(dst_path, "w", encoding="latin-1", newline="") as f:
         f.write(text)
@@ -177,6 +189,13 @@ def run(workdir, geometry, decays, energies, tag="", variant="full", threads=1,
     if "Prepare -> 0" not in proc.stdout:
         sys.stderr.write(proc.stdout)
         raise SystemExit(u"Prepare отказал")
+    # Проверка по ПЕЧАТИ, а не по коду процесса: TccfProbe2 исторически
+    # возвращал 0 и при отказе Calculate (отказ ловился лишь числом строк
+    # отчёта, то есть поздно и невнятно). По печати работает и со старыми
+    # копиями exe в рабочих каталогах.
+    if not re.search(r"^Calculate(_n_sec)? -> 0\s*$", proc.stdout, re.M):
+        sys.stderr.write(proc.stdout)
+        raise SystemExit(u"Calculate отказал")
 
     out = os.path.join(workdir, "tccfcalc.out")
     rows = parse_out(out)

@@ -92,6 +92,19 @@ namespace BecquerelMonitor
             set { this.note = value; }
         }
 
+        /// <summary>
+        /// Клеймо «чем посчитана» для кривой из геометрии (E12): версия физики
+        /// переноса, историй на узел, сетка — инвариантной строкой вида
+        /// `phys=6; hist=200000; grid=40-3000 keV/34 std`. Пусто у кривой,
+        /// восстановленной по измерениям или введённой руками. Без клейма
+        /// кривая в конфигурации неотличима от посчитанной другой физикой.
+        /// </summary>
+        public string ComputeStamp
+        {
+            get { return this.computeStamp; }
+            set { this.computeStamp = value; }
+        }
+
         [XmlIgnore]
         public bool HasCurve
         {
@@ -143,6 +156,7 @@ namespace BecquerelMonitor
                 lastUpdated = this.lastUpdated,
                 origin = this.origin,
                 note = this.note,
+                computeStamp = this.computeStamp,
                 geometry = this.geometry == null ? null : this.geometry.Clone(),
                 curve = new List<ROIEfficiencyData>(),
             };
@@ -170,6 +184,8 @@ namespace BecquerelMonitor
         DateTime lastUpdated = DateTime.Now;
 
         EfficiencyOrigin origin = EfficiencyOrigin.Manual;
+
+        string computeStamp = "";
 
         List<ROIEfficiencyData> curve = new List<ROIEfficiencyData>();
 

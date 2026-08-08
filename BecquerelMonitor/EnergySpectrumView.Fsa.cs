@@ -38,6 +38,15 @@ namespace BecquerelMonitor
         // массивы аллоцировались и суммировались на КАЖДЫЙ кадр — при 8192
         // каналах и семи слоях это сотни килобайт и лишние проходы на кадр.
         double[][] fsaCumulative;
+
+        /// <summary>
+        /// Верх подслоя сумм-пиков внутри ленты каждого слоя; null у слоя —
+        /// сумм-пиков у него нет. Каскадные суммы принадлежат своему нуклиду,
+        /// поэтому не отдельная лента, а штриховка внутри его же ленты: в
+        /// легенде и в «пироге» они остаются частью нуклида.
+        /// </summary>
+        double[][] fsaSumPeakLevel;
+
         double[] fsaZeroLevel;
         double[] fsaNetSpectrum;
 
@@ -125,6 +134,7 @@ namespace BecquerelMonitor
             this.fsaColors = null;
             this.fsaLayersSource = null;
             this.fsaCumulative = null;
+            this.fsaSumPeakLevel = null;
             this.fsaZeroLevel = null;
             this.fsaNetSpectrum = null;
         }
@@ -187,6 +197,8 @@ namespace BecquerelMonitor
             this.fsaZeroLevel = new double[channels];
             this.fsaCumulative = new double[count][];
 
+            this.fsaSumPeakLevel = new double[count][];
+
             double[] running = this.fsaZeroLevel;
             for (int k = 0; k < count; k++)
             {
@@ -195,6 +207,25 @@ namespace BecquerelMonitor
                 for (int i = 0; i < channels; i++)
                 {
                     level[i] = running[i] + (i < curve.Length ? curve[i] : 0.0);
+                }
+
+                // Подслой сумм-пиков кладётся на НИЗ ленты: так его высота
+                // читается от границы со слоем ниже, а не висит в середине.
+                double[] sums = this.fsaLayers[k].SumPeakCurve;
+                if (sums != null)
+                {
+                    double[] sumLevel = new double[channels];
+                    for (int i = 0; i < channels; i++)
+                    {
+                        double top = running[i] + (i < sums.Length ? sums[i] : 0.0);
+
+                        // Выше собственной ленты подслой не поднимается: доли
+                        // сумм-пиков считаны отдельно от фитированной кривой, и
+                        // на краю округления они могли бы её обогнать.
+                        sumLevel[i] = top < level[i] ? top : level[i];
+                    }
+
+                    this.fsaSumPeakLevel[k] = sumLevel;
                 }
 
                 this.fsaCumulative[k] = level;
@@ -264,6 +295,20 @@ namespace BecquerelMonitor
                     {
                         this.DrawFsaBand(g, brush, lower, this.fsaCumulative[k]);
                     }
+
+                    // Каскадные суммы — штриховкой поверх собственной ленты, в
+                    // её же цвете: это не другой компонент, а часть этого же
+                    // нуклида, и своей строки в легенде у них нет.
+                    double[] sumLevel = this.fsaSumPeakLevel != null ? this.fsaSumPeakLevel[k] : null;
+                    if (sumLevel != null)
+                    {
+                        using (Brush hatch = new HatchBrush(HatchStyle.DarkUpwardDiagonal,
+                                                            FsaSumPeakHatchColor(color),
+                                                            Color.FromArgb(230, color)))
+                        {
+                            this.DrawFsaBand(g, hatch, lower, sumLevel);
+                        }
+                    }
                 }
             }
             finally
@@ -295,6 +340,23 @@ namespace BecquerelMonitor
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Цвет штриха для подслоя сумм-пиков: тот же цвет, но заметно темнее
+        /// или светлее — смотря что видно на этом. На тёмной ленте штрих
+        /// осветляется, на светлой затемняется, иначе на половине палитры
+        /// штриховка сливается с заливкой и подслоя не видно вовсе.
+        /// </summary>
+        static Color FsaSumPeakHatchColor(Color color)
+        {
+            int brightness = (color.R * 299 + color.G * 587 + color.B * 114) / 1000;
+            double factor = brightness < 128 ? 1.55 : 0.55;
+            return Color.FromArgb(
+                230,
+                Math.Min(255, (int)(color.R * factor)),
+                Math.Min(255, (int)(color.G * factor)),
+                Math.Min(255, (int)(color.B * factor)));
         }
 
         /// <summary>Лента между двумя кривыми — тем же способом, что заливка пиков.</summary>
@@ -532,7 +594,29 @@ namespace BecquerelMonitor
                 return string.IsNullOrEmpty(status) ? 0 : 1;
             }
 
-            return this.GetFsaLayers(result).Count + 1;
+            // +1 — строка качества, плюс по строке на каждый слой со своими
+            // сумм-пиками.
+            return this.GetFsaLayers(result).Count + 1 + this.FsaSumPeakLayers(result).Count;
+        }
+
+        /// <summary>
+        /// Слои, у которых есть свои сумм-пики. Каждый получает в легенде СВОЮ
+        /// строку с именем нуклида: общее «заштриховано — сумм-пик» не отвечало
+        /// на вопрос, чьи это суммы, а при двух нуклидах с каскадами ответить
+        /// на него по одной картинке нечем.
+        /// </summary>
+        List<FsaStackLayer> FsaSumPeakLayers(FsaResult result)
+        {
+            List<FsaStackLayer> found = new List<FsaStackLayer>();
+            foreach (FsaStackLayer layer in this.GetFsaLayers(result))
+            {
+                if (layer.SumPeakCurve != null)
+                {
+                    found.Add(layer);
+                }
+            }
+
+            return found;
         }
 
         /// <summary>
@@ -565,6 +649,29 @@ namespace BecquerelMonitor
                 nameRect.Y += FsaTableRowHeight;
             }
 
+            // По строке на каждый нуклид со своими сумм-пиками: образец узора
+            // в ЕГО цвете и его имя. Узор в легенде обязателен — читатель ищет
+            // на графике узор, а не текст; цвет обязателен — иначе при двух
+            // нуклидах с каскадами непонятно, чья штриховка какая.
+            // Доля не печатается нарочно: сумм-пики уже посчитаны внутри доли
+            // своего нуклида, и второе число рядом складывали бы с первым.
+            foreach (FsaStackLayer layer in this.FsaSumPeakLayers(result))
+            {
+                Color color = this.FsaColorOf(layer.Name);
+                using (Brush swatch = new HatchBrush(HatchStyle.DarkUpwardDiagonal,
+                                                     FsaSumPeakHatchColor(color), color))
+                {
+                    g.FillRectangle(swatch, r.Left, r.Top + 4, 10, 8);
+                }
+
+                g.DrawString(string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                                           Resources.FSASumPeakRow,
+                                           FsaPalette.DisplayName(layer.Name)),
+                             this.Font, Brushes.Black, nameRect);
+                r.Y += FsaTableRowHeight;
+                nameRect.Y += FsaTableRowHeight;
+            }
+
             string quality = "χ²/ndf";
             // Пометка S2: с матрицей отклика образы или без — всегда, одна из
             // двух. Молчать нельзя: матрица бракуется по отпечатку и формату
@@ -572,6 +679,15 @@ namespace BecquerelMonitor
             quality += result.ResponseMatrixUsed
                 ? Resources.FSAMatrixMark
                 : Resources.FSANoMatrixMark;
+
+            // Каскадное суммирование отмечается только когда оно СРАБОТАЛО:
+            // у состава без каскадов (Cs-137, K-40) поправка возвращает
+            // единицы, и пометка сказала бы о работе, которой не было.
+            if (result.CascadeSummingUsed)
+            {
+                quality += Resources.FSACascadeMark;
+            }
+
             if (!result.EfficiencyUsed)
             {
                 quality += Resources.FSANoEfficiencyMark;

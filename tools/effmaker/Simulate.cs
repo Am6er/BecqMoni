@@ -39,7 +39,7 @@ namespace EffSim
                 bool electron = true, brems = true, xray = true, cohPass = true, scatter = true;
                 bool kfracEnergy = true;
                 bool analogContinuum = true;
-                double detour = 1.0, halfWidth = 0.0, halfWidthFraction = 0.0, fwhm662 = 0.0;
+                double halfWidth = 0.0, halfWidthFraction = 0.0, fwhm662 = 0.0;
                 double point = -1.0;
                 string list = null;
                 bool total = false;
@@ -77,7 +77,6 @@ namespace EffSim
                         // допуск пика по энергии, как DS_Fwhm662 в геометрии
                         case "--fwhm662":
                             fwhm662 = double.Parse(value, CultureInfo.InvariantCulture); break;
-                        case "--detour": detour = double.Parse(value, CultureInfo.InvariantCulture); break;
                         // наклон эффективной глубины вылета электрона, 1/МэВ
                         case "--esc-slope":
                             escSlope = double.Parse(value, CultureInfo.InvariantCulture); break;
@@ -114,7 +113,7 @@ namespace EffSim
                     {
                         RunOne(Path.Combine(all, Pairs[i, 0]),
                                refDir == null ? null : Path.Combine(refDir, Pairs[i, 1]),
-                               null, n, mountFront, electron, brems, xray, cohPass, scatter, kfracEnergy, detour, halfWidth, halfWidthFraction, fwhm662, point, list, total, escSlope, escT0);
+                               null, n, mountFront, electron, brems, xray, cohPass, scatter, kfracEnergy, halfWidth, halfWidthFraction, fwhm662, point, list, total, escSlope, escT0);
                         Console.WriteLine();
                     }
 
@@ -149,20 +148,39 @@ namespace EffSim
                     }
 
                     GeometryModel hg = GeometryModel.Load(geometry);
+                    // Постановка та же, что у RunOne и --dump-scene: точечный
+                    // источник, оправа и параметры вылета обязаны доехать и до
+                    // гистограммы — иначе сцена для Geant4 снимается с одними
+                    // параметрами, а «наша» сторона сверки молча с другими.
+                    if (point >= 0.0)
+                    {
+                        hg.SourceType = GeometrySourceType.Point;
+                        hg.PointDistance = point;
+                    }
+
                     EfficiencySimulator hsim = new EfficiencySimulator(hg)
                     {
                         Histories = n,
+                        MountingInFront = mountFront,
                         ElectronEscape = electron,
                         Bremsstrahlung = brems,
                         XrayEscape = xray,
                         CoherentPassesThrough = cohPass,
                         SingleScatter = scatter,
                         KFractionByEnergy = kfracEnergy,
-                        ElectronDetour = detour,
                         AnalogContinuum = analogContinuum,
                         // сверка с Geant4 — в шкале ПОГЛОЩЁННОЙ энергии
                         LightNonproportionality = false,
                     };
+                    if (escSlope >= 0.0)
+                    {
+                        hsim.ElectronEscapeSlope = escSlope;
+                    }
+
+                    if (escT0 >= 0.0)
+                    {
+                        hsim.ElectronEscapeT0Kev = escT0;
+                    }
                     foreach (string one in list.Split(','))
                     {
                         double e = double.Parse(one, CultureInfo.InvariantCulture);
@@ -186,7 +204,7 @@ namespace EffSim
                     return 0;
                 }
 
-                RunOne(geometry, reference, outPath, n, mountFront, electron, brems, xray, cohPass, scatter, kfracEnergy, detour, halfWidth, halfWidthFraction, fwhm662, point, list, total, escSlope, escT0);
+                RunOne(geometry, reference, outPath, n, mountFront, electron, brems, xray, cohPass, scatter, kfracEnergy, halfWidth, halfWidthFraction, fwhm662, point, list, total, escSlope, escT0);
                 return 0;
             }
             catch (Exception ex)
@@ -197,7 +215,7 @@ namespace EffSim
         }
 
         static void RunOne(string geometryPath, string referencePath, string outPath, int n,
-                           bool mountFront, bool electron, bool brems, bool xray, bool cohPass, bool scatter, bool kfracEnergy, double detour, double halfWidth,
+                           bool mountFront, bool electron, bool brems, bool xray, bool cohPass, bool scatter, bool kfracEnergy, double halfWidth,
                            double halfWidthFraction, double fwhm662, double point, string list,
                            bool total = false, double escSlope = -1.0, double escT0 = -1.0)
         {
@@ -231,7 +249,6 @@ namespace EffSim
                 CoherentPassesThrough = cohPass,
                 SingleScatter = scatter,
                 KFractionByEnergy = kfracEnergy,
-                ElectronDetour = detour,
                 PeakHalfWidthKev = halfWidth,
             };
             if (escSlope >= 0.0)
@@ -245,9 +262,10 @@ namespace EffSim
             }
 
             Console.WriteLine("    сцена: {0}", sim.DescribeScene());
-            Console.WriteLine("    электрон: {0}, вылет {1}, тормозное {2}, detour {3:F2}, допуск {4}, рентген {5}, когерентное сквозь {6}, рассеяние {7}, доля K по энергии {8} ",
+            Console.WriteLine("    электрон: {0}, вылет {1} (наклон {2:F2}, порог {3:F0} кэВ), тормозное {4}, допуск {5}, рентген {6}, когерентное сквозь {7}, рассеяние {8}, доля K по энергии {9} ",
                               sim.ElectronMaterialName == "" ? "состава нет в ESTAR" : sim.ElectronMaterialName,
-                              electron ? "да" : "нет", brems ? "да" : "нет", detour, halfWidth,
+                              electron ? "да" : "нет", sim.ElectronEscapeSlope, sim.ElectronEscapeT0Kev,
+                              brems ? "да" : "нет", halfWidth,
                               xray ? "да" : "нет", cohPass ? "да" : "нет", scatter ? "да" : "нет",
                               kfracEnergy ? "да" : "нет");
 

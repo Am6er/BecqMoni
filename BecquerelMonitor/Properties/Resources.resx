@@ -8440,6 +8440,15 @@ http://xptable.sourceforge.net/</value>
   <data name="FSANoMatrixMark" xml:space="preserve">
     <value> · no matrix</value>
   </data>
+  <data name="FSACascadeMark" xml:space="preserve">
+    <value> · summing</value>
+  </data>
+  <data name="FSASumPeakRow" xml:space="preserve">
+    <value>{0} — sum peak</value>
+  </data>
+  <data name="FSAPileUpName" xml:space="preserve">
+    <value>Pile-up</value>
+  </data>
   <data name="FSADriftEdgeMark" xml:space="preserve">
     <value> !</value>
   </data>
@@ -42362,6 +42371,24 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="EfficiencyMakerCalcHint" xml:space="preserve">
     <value>The curve is computed from the geometry file by Monte-Carlo transport - no spectra needed. Unlike the fit, this gives the ABSOLUTE level, not just the shape.</value>
   </data>
+  <data name="EfficiencyMakerGrid" xml:space="preserve">
+    <value>Grid:</value>
+  </data>
+  <data name="EfficiencyMakerGridStandard" xml:space="preserve">
+    <value>Standard</value>
+  </data>
+  <data name="EfficiencyMakerGridLogarithmic" xml:space="preserve">
+    <value>Logarithmic</value>
+  </data>
+  <data name="EfficiencyMakerGridSummary" xml:space="preserve">
+    <value>grid: {0} points, {1:F0}-{2:F0} keV ({3}); threads: {4}</value>
+  </data>
+  <data name="EfficiencyMakerPoints" xml:space="preserve">
+    <value>Points:</value>
+  </data>
+  <data name="EfficiencyMakerHistoriesLabel" xml:space="preserve">
+    <value>Histories per point:</value>
+  </data>
   <data name="EfficiencyMakerGraphDiffAxis" xml:space="preserve">
     <value>new / source - 1, %</value>
   </data>
@@ -42511,6 +42538,15 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="GeometryEditorUnitMm" xml:space="preserve">
     <value>mm</value>
+  </data>
+  <data name="GeometryEditorUnitPercent" xml:space="preserve">
+    <value>%</value>
+  </data>
+  <data name="GeometryEditorFwhm662" xml:space="preserve">
+    <value>FWHM at 662 keV (scatter tolerance)</value>
+  </data>
+  <data name="GeometryEditorFwhmFromDevice" xml:space="preserve">
+    <value>From device calibration</value>
   </data>
   <data name="GeometryEditorUnitDensity" xml:space="preserve">
     <value>g/cm3</value>
@@ -42686,6 +42722,9 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="EfficiencyTabSummary" xml:space="preserve">
     <value>{0} curve points, {1} to {2} keV</value>
   </data>
+  <data name="EfficiencyTabComputeStamp" xml:space="preserve">
+    <value>computed with: {0}</value>
+  </data>
   <data name="EfficiencyTabRenameTitle" xml:space="preserve">
     <value>Configuration name</value>
   </data>
@@ -42844,6 +42883,9 @@ Computed: {7}, took {8:F0} s</value>
   </data>
   <data name="ResponseMatrixDone" xml:space="preserve">
     <value>Done in {0}. Not saved yet.</value>
+  </data>
+  <data name="ResponseMatrixContinuumNoise" xml:space="preserve">
+    <value> Continuum statistics are thin: up to {0} % on the row integral — the peak is fine, the continuum is noisy. Raise the number of histories.</value>
   </data>
   <data name="ResponseMatrixCancelled" xml:space="preserve">
     <value>Cancelled.</value>

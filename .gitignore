@@ -7,3 +7,4 @@ AGENTS.md
 CLAUDE.md
 __pycache__/
 *.pyc
+tools/effmaker/probes/build/

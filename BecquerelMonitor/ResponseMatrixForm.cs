@@ -39,9 +39,22 @@ namespace BecquerelMonitor
         Button computeButton, cancelButton, saveButton, closeButton;
         NumericUpDown minEnergyBox, maxEnergyBox, nodesBox, binBox, historiesBox, threadsBox;
 
+        /// <summary>
+        /// С какой ошибки интеграла континуума строки предупреждать, %.
+        /// На контактной геометрии аналоговая ветка набирает десятки тысяч
+        /// событий на узел (доли процента), так что порог молчит там, где
+        /// всё хорошо, и говорит на дальней геометрии и точечном источнике.
+        /// </summary>
+        const double ContinuumNoiseWarnPercent = 2.0;
+
         CancellationTokenSource cancellation;
         ResponseMatrix computed;
         bool busy;
+
+        // Номер ПОСЛЕДНЕГО запроса оценки времени. Загрузка формы дёргает
+        // ValueChanged у пяти полей подряд, и без номера ярлык доставался
+        // последней ФИНИШИРОВАВШЕЙ задаче, а не последней запрошенной.
+        int estimateRequest;
 
         public ResponseMatrixForm(EfficiencyConfigData config)
         {
@@ -123,15 +136,24 @@ namespace BecquerelMonitor
             this.computeButton.Text = Resources.ResponseMatrixRecompute;
 
             // Поля выставляются по тому, чем матрица посчитана, — чтобы
-            // «Пересчитать» повторяло её, а не умолчания формы.
+            // «Пересчитать» повторяло её, а не умолчания формы. С зажимом в
+            // границы контролов: `.rmx` с параметрами вне диапазонов UI (чужой
+            // или посчитанный другой сборкой) ронял форму
+            // ArgumentOutOfRangeException, и матрицу нельзя было даже
+            // пересчитать.
             if (existing.Options != null)
             {
-                this.minEnergyBox.Value = (decimal)existing.Options.MinEnergyKev;
-                this.maxEnergyBox.Value = (decimal)existing.Options.MaxEnergyKev;
-                this.nodesBox.Value = existing.Options.NodeCount;
-                this.binBox.Value = (decimal)existing.Options.BinKev;
-                this.historiesBox.Value = existing.Options.Histories;
+                SetClamped(this.minEnergyBox, (decimal)existing.Options.MinEnergyKev);
+                SetClamped(this.maxEnergyBox, (decimal)existing.Options.MaxEnergyKev);
+                SetClamped(this.nodesBox, existing.Options.NodeCount);
+                SetClamped(this.binBox, (decimal)existing.Options.BinKev);
+                SetClamped(this.historiesBox, existing.Options.Histories);
             }
+        }
+
+        static void SetClamped(NumericUpDown box, decimal value)
+        {
+            box.Value = Math.Min(box.Maximum, Math.Max(box.Minimum, value));
         }
 
         /// <summary>
@@ -176,6 +198,7 @@ namespace BecquerelMonitor
                 return;
             }
 
+            int request = ++this.estimateRequest;
             this.estimateLabel.Text = Resources.ResponseMatrixEstimating;
             GeometryModel geometry = this.config.Geometry.Clone();
             ResponseMatrixOptions options = this.CurrentOptions();
@@ -186,11 +209,17 @@ namespace BecquerelMonitor
             }
             catch (Exception)
             {
-                this.estimateLabel.Text = "";
+                if (!this.IsDisposed && request == this.estimateRequest)
+                {
+                    this.estimateLabel.Text = "";
+                }
+
                 return;
             }
 
-            if (!this.IsDisposed)
+            // Пишет только последний запрошенный: устаревшая задача, финишировав
+            // позже, перетёрла бы свежую оценку своей.
+            if (!this.IsDisposed && request == this.estimateRequest)
             {
                 this.estimateLabel.Text = string.Format(CultureInfo.CurrentCulture,
                     Resources.ResponseMatrixEstimate, Duration(seconds));
@@ -239,6 +268,19 @@ namespace BecquerelMonitor
                 this.progressBar.Value = this.progressBar.Maximum;
                 this.progressLabel.Text = string.Format(CultureInfo.CurrentCulture,
                     Resources.ResponseMatrixDone, Duration(matrix.BuildSeconds));
+
+                // Континуум набирается аналоговой веткой полной сферой, и на
+                // дальней геометрии до кристалла доходит доля телесного угла:
+                // пик остаётся точным, а континуум может оказаться шумом. Без
+                // этой строки различить нечем — оценка ошибки, что стоит выше,
+                // описывает пик (F23).
+                if (matrix.ContinuumRelativeError > ContinuumNoiseWarnPercent)
+                {
+                    this.progressLabel.Text += string.Format(CultureInfo.CurrentCulture,
+                        Resources.ResponseMatrixContinuumNoise,
+                        matrix.ContinuumRelativeError.ToString("n1", CultureInfo.CurrentCulture));
+                }
+
                 this.SetDetails(this.Describe(matrix));
                 this.stateLabel.Text = Resources.ResponseMatrixStateValid;
                 this.ShowVersions(ResponseMatrix.PhysicsVersion, ResponseMatrix.FormatVersion, false);

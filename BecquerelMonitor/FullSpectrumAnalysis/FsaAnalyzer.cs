@@ -94,6 +94,46 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public EfficiencyMaker.ResponseMatrix ResponseMatrix { get; set; }
 
+        /// <summary>
+        /// Вносить каскадное суммирование (<see cref="FsaCascadeSummer"/>):
+        /// множитель CF на площадь пика и отдельные сумм-пики. Работает только
+        /// вместе с матрицей отклика — эффективности берутся из неё.
+        ///
+        /// Выключатель нужен не для пользователя, а для измерения: без него
+        /// «с поправкой» и «без поправки» на одном спектре не снять, а
+        /// утверждение о пользе, не подкреплённое таким A/B, уже однажды
+        /// оказалось непроверяемым (S13, порог континуума).
+        /// </summary>
+        public bool CascadeSumming { get; set; }
+
+        /// <summary>
+        /// Ставить ли СУММ-ПИКИ (E_i + E_j) — вторая половина суммирования,
+        /// отдельно от множителя на пик. Две половины делают разное: множитель
+        /// срезает пик, сумм-пик добавляет структуру там, где её в образе не
+        /// было, — и мерить их надо порознь, иначе выигрыш одной спишется на
+        /// проигрыш другой.
+        /// </summary>
+        public bool CascadeSumPeaks { get; set; }
+
+        /// <summary>
+        /// Добавлять образ случайных наложений (pile-up) — автосвёртку самого
+        /// спектра со свободной амплитудой. См.
+        /// <see cref="BuildPileUpComponent"/>: это НЕ каскад, а свойство
+        /// загрузки, и без него пик 662+662 у Cs-137 модели описать нечем.
+        /// </summary>
+        public bool PileUp { get; set; }
+
+        /// <summary>Живёт один разбор: матрицу могли подменить между вызовами.</summary>
+        FsaCascadeSummer cascade;
+
+        /// <summary>
+        /// Поправка хоть где-то СРАБОТАЛА — не «включена», а изменила образ.
+        /// Это разные вещи: суммирователь молча возвращает единицы, когда у
+        /// нуклидов состава нет каскадов вовсе (Cs-137, K-40), и пометка
+        /// «с суммированием» на таком спектре была бы враньём.
+        /// </summary>
+        bool cascadeApplied;
+
         public FsaAnalyzer()
         {
             this.Mode = ContinuumMode.Spline;
@@ -108,6 +148,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.OffsetRangeKev = 3.0;
             this.OffsetSteps = 9;
             this.Backscatter = true;
+            this.CascadeSumming = true;
+            this.CascadeSumPeaks = true;
+            this.PileUp = true;
         }
 
         /// <summary>
@@ -118,11 +161,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             EnergySpectrum spectrum,
             EnergySpectrum backgroundSpectrum,
             FwhmCalibration fwhmCalibration,
-            List<FsaComponent> library,
+            List<FsaComponent> originalLibrary,
             FsaEfficiency efficiency)
         {
             if (spectrum == null || spectrum.Spectrum == null || fwhmCalibration == null
-                || spectrum.EnergyCalibration == null || library == null || library.Count == 0)
+                || spectrum.EnergyCalibration == null || originalLibrary == null || originalLibrary.Count == 0)
             {
                 return null;
             }
@@ -138,6 +181,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.depositChannels = null;
             this.depositChannelsCalibration = null;
             this.kernelBank = null;
+
+            // Каскадные поправки — на ту же матрицу, что и образы: она даёт им
+            // обе эффективности. Кэш поправок внутри живёт один разбор, потому
+            // что матрица между вызовами могла смениться.
+            this.cascade = this.CascadeSumming
+                ? FsaCascadeSummer.Create(this.ResponseMatrix)
+                : null;
+            this.cascadeApplied = false;
 
             EnergyCalibration calibration = spectrum.EnergyCalibration;
             int chLo = this.FitWholeSpectrum
@@ -249,6 +300,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             if (this.Mode == ContinuumMode.Spline)
             {
                 fixedColumns.AddRange(BuildHatBasis(fwhmCalibration, chLo, chHi, channels));
+            }
+
+            // Наложения участвуют с САМОГО начала, вместе с сеткой дрейфа:
+            // на загруженном спектре они держат целый пик (662+662 у цезия), и
+            // подбирать по нему дрейф без образа значит подбирать по мусору.
+            // Список вызывающего не трогаем — он его собирал и переиспользует.
+            List<FsaComponent> library = originalLibrary;
+            if (this.PileUp)
+            {
+                FsaComponent pileUp = this.BuildPileUpComponent(raw, calibration, chLo, chHi, channels);
+                if (pileUp != null)
+                {
+                    library = new List<FsaComponent>(originalLibrary);
+                    library.Add(pileUp);
+                }
             }
 
             double[] baseWeights = new double[channels];
@@ -389,16 +455,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
-            return BuildResult(best, spectrum, backgroundCurve, snipContinuum, chLo, chHi, channels,
+            return BuildResult(best, spectrum, fwhmCalibration, backgroundCurve, snipContinuum,
+                               chLo, chHi, channels,
                                bestGain, bestOffset, liveTime, efficiency != null,
                                (gainSteps > 1 && (bestGainIndex == 0 || bestGainIndex == gainSteps - 1))
                                || (offsetSteps > 1 && (bestOffsetIndex == 0 || bestOffsetIndex == offsetSteps - 1)));
         }
 
-        FsaResult BuildResult(FitResult fit, EnergySpectrum spectrum, double[] backgroundCurve, int[] snipContinuum,
+        FsaResult BuildResult(FitResult fit, EnergySpectrum spectrum, FwhmCalibration fwhmCalibration,
+                              double[] backgroundCurve, int[] snipContinuum,
                               int chLo, int chHi, int channels, double gain, double offset, double liveTime,
                               bool efficiencyUsed, bool driftOnEdge)
         {
+            // Калибровка — та же, по которой строились образы; берётся у
+            // спектра, как в Analyze. ПШПВ приходит параметром: у спектра её
+            // может не быть вовсе, она достраивается выше.
+            EnergyCalibration calibration = spectrum.EnergyCalibration;
+
             FsaResult result = new FsaResult
             {
                 FirstChannel = chLo,
@@ -408,7 +481,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 OffsetChannels = offset,
                 LiveTime = liveTime,
                 EfficiencyUsed = efficiencyUsed,
-                ResponseMatrixUsed = this.ResponseMatrix != null,
+                ResponseMatrixUsed = fit.FromResponseMatrix,
+                CascadeSummingUsed = this.cascadeApplied,
                 DriftOnGridEdge = driftOnEdge,
                 Background = backgroundCurve,
                 Continuum = new double[channels],
@@ -453,11 +527,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     curve[i] = amplitude * column.Values[i];
                 }
 
+                // Та часть кривой, что пришла от сумм-пиков: та же амплитуда,
+                // тот же дрейф — отличается только состав образа.
+                double[] sumOnly = this.BuildSumPeakCurve(column.Component, calibration, fwhmCalibration,
+                                                          gain, offset, chLo, chHi, channels);
+                if (sumOnly != null)
+                {
+                    for (int i = 0; i < channels; i++)
+                    {
+                        sumOnly[i] *= amplitude;
+                    }
+                }
+
                 FsaComponentResult component = new FsaComponentResult
                 {
                     Name = column.Component.Name,
                     Kind = column.Component.Kind,
                     Curve = curve,
+                    SumPeakCurve = sumOnly,
                     PeakCounts = fit.PeakCounts[k],
                     CountRate = amplitude / liveTime,
                     Z = fit.Z[k]
@@ -511,6 +598,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public double Chi2;
             public double Chi2Ndf;
             public double[] Residual;
+
+            /// <summary>Хоть один образ этого фита построен матрицей отклика.</summary>
+            public bool FromResponseMatrix;
         }
 
         FitResult FitHuber(List<FsaComponent> library, List<double[]> fixedColumns,
@@ -548,6 +638,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                           double[] y, double[] weights, List<FsaComponent> subset)
         {
             List<FitColumn> columns = new List<FitColumn>();
+            bool fromMatrix = false;
             foreach (FsaComponent component in library)
             {
                 if (subset != null && !subset.Contains(component))
@@ -557,10 +648,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 double[] template;
                 double[] lowTail = null;
-                if (this.ResponseMatrix != null && !component.WeightsAreFinal)
+                if (component.FixedTemplate != null)
+                {
+                    // Готовый образ (наложения): ни линий, ни дрейфа.
+                    template = component.FixedTemplate;
+                }
+                else if (this.ResponseMatrix != null && !component.WeightsAreFinal)
                 {
                     template = this.BuildTemplateFromResponse(component, calibration, fwhmCalibration,
                                                               gain, offset, chLo, chHi, channels, out lowTail);
+                    // Пометка «· матрица» ставится по ФАКТУ построенного матрицей
+                    // образа, а не по наличию матрицы: библиотека из одних
+                    // готовых образов (наложения) и производных компонентов
+                    // (обратное рассеяние) матрицу не трогает вовсе.
+                    fromMatrix |= template != null;
                 }
                 else
                 {
@@ -723,7 +824,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 PeakCounts = peakCounts,
                 Chi2 = chi2,
                 Chi2Ndf = chi2ndf,
-                Residual = residual
+                Residual = residual,
+                FromResponseMatrix = fromMatrix
             };
         }
 
@@ -768,6 +870,181 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// эффективность) — это поток, которому есть чем рассеиваться, — и
         /// второй раз эффективность не применяется (WeightsAreFinal).
         /// </summary>
+        /// <summary>
+        /// Образ случайных наложений (pile-up, TODO S22): два кванта РАЗНЫХ
+        /// распадов пришли в пределах разрешающего времени тракта и сложились
+        /// в один импульс.
+        ///
+        /// ПОЧЕМУ ЭТО НЕ КАСКАД. Каскадное суммирование — свойство одного
+        /// распада, оно считается по схеме уровней и геометрии
+        /// (<see cref="FsaCascadeSummer"/>). Наложение — свойство ЗАГРУЗКИ: у
+        /// Cs-137 на распад вылетает один квант, каскадных пар нет вовсе, а
+        /// пик 662+662 в спектре есть. Ни фотонная матрица, ни нуклидная его
+        /// дать не могут.
+        ///
+        /// ФОРМА БЕРЁТСЯ ИЗ САМОГО СПЕКТРА. Распределение суммы двух
+        /// независимых событий есть свёртка распределения с самим собой,
+        /// поэтому образ наложений — АВТОСВЁРТКА измеренного спектра. Никакой
+        /// новой физики не нужно, и ширина получается правильной сама:
+        /// свёртка двух пиков с ПШПВ w даёт w·√2, как и положено сумме.
+        ///
+        /// СОБЫТИЯ ПЕРЕНОСЯТСЯ, А НЕ ДОБАВЛЯЮТСЯ. Наложившаяся пара уходит с
+        /// обеих своих энергий и приходит на сумму, поэтому образ равен
+        /// `(s⊗s)/N − s`: приход автосвёрткой И убыль самим спектром. Колонка
+        /// получается знакопеременной с НУЛЕВЫМ интегралом — как и положено
+        /// переносу. Одна убыль без прихода (или наоборот) — не приближение, а
+        /// другая физика: первая версия считала только приход, и фит,
+        /// получив колонку, которая умеет только добавлять счёт, разъехался —
+        /// χ²/ndf 34.1 → 87.6, а τ вышло 1.37 мкс вместо измеренных 0.37.
+        ///
+        /// СВОБОДНАЯ АМПЛИТУДА ЗДЕСЬ ПРАВОМЕРНА — в отличие от сумм-пиков
+        /// каскада, которым свободная колонка запрещена. Разница в том, чем
+        /// задана величина: у каскада геометрией и схемой распада (значит она
+        /// ИЗВЕСТНА, и свобода позволила бы подогнать её под континуум), у
+        /// наложений — произведением 2τR, где разрешающее время τ не записано
+        /// нигде. Фит его и находит: амплитуда колонки равна ровно 2τR.
+        ///
+        /// Считается ОДИН раз на разбор: от сетки дрейфа не зависит.
+        /// </summary>
+        FsaComponent BuildPileUpComponent(int[] raw, EnergyCalibration calibration,
+                                          int chLo, int chHi, int channels)
+        {
+            const double BinKev = 4.0;
+
+            double topEnergy = EnergyAt(calibration, channels - 1);
+            if (!(topEnergy > 0.0))
+            {
+                return null;
+            }
+
+            // Спектр в равномерную шкалу энергии: свёртка складывает ЭНЕРГИИ, а
+            // шкала каналов у нелинейной калибровки неравномерна, и складывать
+            // номера каналов было бы просто неверно.
+            int bins = (int)(topEnergy / BinKev) + 1;
+            double[] byEnergy = new double[bins];
+            double total = 0.0;
+            for (int ch = 0; ch < channels; ch++)
+            {
+                if (raw[ch] <= 0)
+                {
+                    continue;
+                }
+
+                int bin = (int)(EnergyAt(calibration, ch) / BinKev);
+                if (bin >= 0 && bin < bins)
+                {
+                    byEnergy[bin] += raw[ch];
+                    total += raw[ch];
+                }
+            }
+
+            if (!(total > 0.0))
+            {
+                return null;
+            }
+
+            // Автосвёртка. Отсекаем пустые бины: у спектра с 8192 каналами
+            // заполненных бинов немного, а квадрат их числа — это вся цена.
+            var filled = new List<int>();
+            double floor = total * 1.0E-9;
+            for (int k = 0; k < bins; k++)
+            {
+                if (byEnergy[k] > floor)
+                {
+                    filled.Add(k);
+                }
+            }
+
+            double[] pile = new double[bins];
+            foreach (int a in filled)
+            {
+                double va = byEnergy[a] / total;
+                foreach (int b in filled)
+                {
+                    int s = a + b;
+                    if (s >= bins)
+                    {
+                        break;      // filled упорядочен, дальше только выше
+                    }
+
+                    pile[s] += va * byEnergy[b];
+                }
+            }
+
+            // Убыль: пара ушла с обеих своих энергий. Интеграл колонки после
+            // этого равен нулю — перенос, а не добавка.
+            //
+            // И сразу ДЕЛИМ НА ПОЛНЫЙ СЧЁТ. Без этого колонка идёт в единицах
+            // отсчётов (до миллиона на канал), а образы линий — в долях на
+            // распад (порядка 1e-3): матрица Грама получает разброс норм в
+            // десятки порядков и NNLS разъезжается. Первая версия без деления
+            // давала χ²/ndf 34.1 → 87.8 на ровном месте. Цена нормировки —
+            // амплитуда колонки равна теперь 2τR·N, а не 2τR.
+            for (int k = 0; k < bins; k++)
+            {
+                pile[k] = (pile[k] - byEnergy[k]) / total;
+            }
+
+            // Обратно на шкалу каналов, с сохранением площади: в канал идёт та
+            // доля бина, которая на него приходится.
+            double[] template = new double[channels];
+            bool any = false;
+            for (int ch = chLo; ch <= chHi; ch++)
+            {
+                double lo = EnergyAt(calibration, ch - 0.5);
+                double hi = EnergyAt(calibration, ch + 0.5);
+                if (!(hi > lo))
+                {
+                    continue;
+                }
+
+                double sum = 0.0;
+                int first = (int)(lo / BinKev);
+                int last = (int)(hi / BinKev);
+                for (int k = first; k <= last; k++)
+                {
+                    if (k < 0 || k >= bins || pile[k] == 0.0)
+                    {
+                        continue;
+                    }
+
+                    double binLo = k * BinKev, binHi = binLo + BinKev;
+                    double overlap = Math.Min(hi, binHi) - Math.Max(lo, binLo);
+                    if (overlap > 0.0)
+                    {
+                        sum += pile[k] * overlap / BinKev;
+                    }
+                }
+
+                // Ноль здесь не «пусто», а «приход сошёлся с убылью»: значения
+                // колонки знакопеременные, и отбрасывать отрицательные нельзя.
+                if (sum != 0.0)
+                {
+                    template[ch] = sum;
+                    any = true;
+                }
+            }
+
+            if (!any)
+            {
+                return null;
+            }
+
+            var component = new FsaComponent(FsaResult.PileUpLayerName, FsaComponentKind.Nuisance)
+            {
+                FixedTemplate = template,
+                WeightsAreFinal = true
+            };
+            return component;
+        }
+
+        /// <summary>Энергия канала, с защитой от вырожденной калибровки.</summary>
+        static double EnergyAt(EnergyCalibration calibration, double channel)
+        {
+            double energy = calibration.ChannelToEnergy(channel);
+            return energy > 0.0 ? energy : 0.0;
+        }
+
         static List<FsaComponent> BuildBackscatterComponents(FitResult fit, FsaEfficiency efficiency)
         {
             List<FsaComponent> made = new List<FsaComponent>();
@@ -891,32 +1168,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
 
         /// <summary>
-        /// Образ компонента по матрице отклика: сумма откликов его линий,
-        /// уширенная разрешением спектра.
-        ///
-        /// Порядок важен для цены. Сначала складываются отклики ВСЕХ линий в
-        /// одну гистограмму по энергии поглощения — это дёшево, отклик уже
-        /// посчитан. И только потом гистограмма уширяется, один раз на
-        /// компонент, а не на линию: уширение стоит на два порядка дороже
-        /// сложения, и делать его полсотни раз вместо одного значило бы
-        /// оплатить разложение секундами вместо миллисекунд.
-        ///
-        /// Бины ниже порога пропускаются: у отклика длинный хвост, вклад
-        /// которого в канал меньше шума отсчёта, а уширение каждого стоит
-        /// столько же, сколько уширение пика.
-        ///
-        /// Уширение сделано СВЁРТКОЙ, а не суммой отдельных пиков. Гистограмма
-        /// поглощения переводится в шкалу каналов и раскладывается по ЦЕЛЫМ
-        /// каналам (площадь делится между двумя соседними линейно, отчего и
-        /// площадь, и центр тяжести сохраняются точно), а потом каждый
-        /// ненулевой канал размазывается готовым ядром из банка. Ядро зависит
-        /// только от ПШПВ, и при целом центре одно и то же ядро годится для
-        /// любого положения — поэтому профиль считается один раз на значение
-        /// ПШПВ за весь разбор, а не заново на каждую группу, каждый компонент
-        /// и каждый узел сетки дрейфа. Именно на это уходило восемь секунд из
-        /// девяти: двадцать миллионов вычислений профиля против ста тысяч.
-        /// </summary>
-        /// <summary>
         /// Нижняя граница доверия континууму матрицы, кэВ.
         ///
         /// Ниже неё в спектре живёт то, чего матрица знать не может: порог АЦП,
@@ -1001,7 +1252,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                double energy = (i + 0.5) * bin;
+                // Центр бина — i·bin: сетка поглощения округляющая (PeakBin и
+                // DepositChannels считают от целого номера), а не floor-овая.
+                double energy = i * bin;
                 bool inPeakWindow = false;
                 for (int k = 0; k < lows.Count; k++)
                 {
@@ -1027,6 +1280,36 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return tail;
         }
 
+        /// <summary>
+        /// Образ компонента по матрице отклика: сумма откликов его линий,
+        /// уширенная разрешением спектра.
+        ///
+        /// Порядок важен для цены. Сначала складываются отклики ВСЕХ линий в
+        /// одну гистограмму по энергии поглощения — это дёшево, отклик уже
+        /// посчитан. И только потом гистограмма уширяется, один раз на
+        /// компонент, а не на линию: уширение стоит на два порядка дороже
+        /// сложения, и делать его полсотни раз вместо одного значило бы
+        /// оплатить разложение секундами вместо миллисекунд.
+        ///
+        /// Бины ниже порога пропускаются: у отклика длинный хвост, вклад
+        /// которого в канал меньше шума отсчёта, а уширение каждого стоит
+        /// столько же, сколько уширение пика.
+        ///
+        /// Уширение сделано СВЁРТКОЙ, а не суммой отдельных пиков. Гистограмма
+        /// поглощения переводится в шкалу каналов и раскладывается по ЦЕЛЫМ
+        /// каналам (площадь делится между двумя соседними линейно, отчего и
+        /// площадь, и центр тяжести сохраняются точно), а потом каждый
+        /// ненулевой канал размазывается готовым ядром из банка. Ядро зависит
+        /// только от ПШПВ, и при целом центре одно и то же ядро годится для
+        /// любого положения — поэтому профиль считается один раз на значение
+        /// ПШПВ за весь разбор, а не заново на каждую группу, каждый компонент
+        /// и каждый узел сетки дрейфа. Именно на это уходило восемь секунд из
+        /// девяти: двадцать миллионов вычислений профиля против ста тысяч.
+        ///
+        /// Подпороговый континуум образа уходит отдельной колонкой (см.
+        /// <see cref="ResponseContinuumTrustFloorKev"/>) — она отдаётся
+        /// вторым выходом <paramref name="lowTail"/>.
+        /// </summary>
         double[] BuildTemplateFromResponse(FsaComponent component, EnergyCalibration calibration,
                                            FwhmCalibration fwhmCalibration,
                                            double gain, double offset, int chLo, int chHi, int channels,
@@ -1040,12 +1323,35 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return null;
             }
 
+            // Каскадные поправки компонента считаются один раз и переживают всю
+            // сетку дрейфа: от усиления и нуля шкалы они не зависят.
+            FsaCascadeSummer.Correction correction =
+                this.cascade != null ? this.cascade.For(component) : null;
+            if (correction != null && !correction.Any)
+            {
+                correction = null;
+            }
+
             double topEnergy = 0.0;
             foreach (FsaLine line in component.Lines)
             {
                 if (line.Energy > topEnergy && line.Intensity > 0.0)
                 {
                     topEnergy = line.Energy;
+                }
+            }
+
+            bool sumPeaks = correction != null && this.CascadeSumPeaks;
+            if (sumPeaks)
+            {
+                // Сумм-пик стоит ВЫШЕ любой своей линии — массив поглощения
+                // обязан до него доставать, иначе пик молча упрётся в край.
+                foreach (FsaCascadeSummer.SumPeak peak in correction.SumPeaks)
+                {
+                    if (peak.Energy > topEnergy)
+                    {
+                        topEnergy = peak.Energy;
+                    }
                 }
             }
 
@@ -1056,21 +1362,48 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             double[] deposit = new double[(int)(topEnergy / bin + 0.5) + 1];
             bool anyLine = false;
-            foreach (FsaLine line in component.Lines)
+            for (int i = 0; i < component.Lines.Count; i++)
             {
+                FsaLine line = component.Lines[i];
                 if (!(line.Energy > 0.0) || !(line.Intensity > 0.0))
                 {
                     continue;
                 }
 
                 // Эффективность НЕ применяется: она уже внутри отклика.
-                matrix.Accumulate(deposit, line.Energy, line.Intensity / 100.0);
+                double weight = line.Intensity / 100.0;
+                double cf = correction != null ? correction.LineFactors[i] : 1.0;
+                if (Math.Abs(cf - 1.0) < 1.0E-6)
+                {
+                    matrix.Accumulate(deposit, line.Energy, weight);
+                }
+                else
+                {
+                    // Поправка ложится ТОЛЬКО на канал пика: вынос из пика —
+                    // чистая потеря, а континуум столько же теряет своих
+                    // событий, сколько получает чужих сумм, и в первом порядке
+                    // остаётся при своём.
+                    for (int c = 0; c < EfficiencyMaker.EfficiencySimulator.ResponseChannelCount; c++)
+                    {
+                        bool peakChannel = c == (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak;
+                        matrix.AccumulateChannel(deposit, line.Energy,
+                                                 peakChannel ? weight * cf : weight, c);
+                    }
+
+                    this.cascadeApplied = true;
+                }
+
                 anyLine = true;
             }
 
             if (!anyLine)
             {
                 return null;
+            }
+
+            if (sumPeaks && this.AccumulateSumPeaks(deposit, correction))
+            {
+                this.cascadeApplied = true;
             }
 
             // Подпороговый континуум отвязывается в отдельную колонку; пиковые
@@ -1088,6 +1421,90 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return template;
+        }
+
+        /// <summary>
+        /// Уложить сумм-пики в гистограмму поглощения. Общий для образа и для
+        /// его отдельной сумм-кривой (отрисовка): два места, кладущие одно и то
+        /// же по своей копии кода, однажды разойдутся, и на графике окажется
+        /// не то, что в фите.
+        ///
+        /// Площадь сумм-пика посчитана целиком — обе пиковые эффективности уже
+        /// внутри неё. Вес подбирается так, чтобы канал пика дал ровно её и ни
+        /// на что больше не разошёлся.
+        /// </summary>
+        bool AccumulateSumPeaks(double[] deposit, FsaCascadeSummer.Correction correction)
+        {
+            bool any = false;
+            foreach (FsaCascadeSummer.SumPeak peak in correction.SumPeaks)
+            {
+                double peakEfficiency = this.cascade.PeakEfficiency(peak.Energy);
+                if (!(peakEfficiency > 0.0))
+                {
+                    continue;
+                }
+
+                this.ResponseMatrix.AccumulateChannel(
+                    deposit, peak.Energy, peak.Area / peakEfficiency,
+                    (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak);
+                any = true;
+            }
+
+            return any;
+        }
+
+        /// <summary>
+        /// Образ из ОДНИХ сумм-пиков компонента — для отрисовки подслоем.
+        /// В фит не идёт и идти не должен: доли сумм-пиков заданы геометрией и
+        /// схемой распада, а свободная колонка позволила бы подогнать их под
+        /// остаток континуума, оторвав от собственного нуклида (то же правило,
+        /// что у каналов отклика). Строится ОДИН раз на готовый результат, на
+        /// выигравшей точке дрейфа, — сетку дрейфа он не удорожает.
+        /// </summary>
+        double[] BuildSumPeakCurve(FsaComponent component, EnergyCalibration calibration,
+                                   FwhmCalibration fwhmCalibration,
+                                   double gain, double offset, int chLo, int chHi, int channels)
+        {
+            if (this.cascade == null || !this.CascadeSumPeaks || this.ResponseMatrix == null
+                || component == null || component.WeightsAreFinal)
+            {
+                return null;
+            }
+
+            FsaCascadeSummer.Correction correction = this.cascade.For(component);
+            if (correction == null || correction.SumPeaks == null || correction.SumPeaks.Count == 0)
+            {
+                return null;
+            }
+
+            double bin = this.ResponseMatrix.BinKev;
+            if (!(bin > 0.0))
+            {
+                return null;
+            }
+
+            double topEnergy = 0.0;
+            foreach (FsaCascadeSummer.SumPeak peak in correction.SumPeaks)
+            {
+                if (peak.Energy > topEnergy)
+                {
+                    topEnergy = peak.Energy;
+                }
+            }
+
+            if (!(topEnergy > 0.0))
+            {
+                return null;
+            }
+
+            double[] deposit = new double[(int)(topEnergy / bin + 0.5) + 1];
+            if (!this.AccumulateSumPeaks(deposit, correction))
+            {
+                return null;
+            }
+
+            return this.BroadenResponseDeposit(deposit, calibration, fwhmCalibration,
+                                               bin, gain, offset, chLo, chHi, channels);
         }
 
         /// <summary>

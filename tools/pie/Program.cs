@@ -152,7 +152,7 @@ namespace Pie
         }
 
         static readonly string[] NuisanceComponents =
-            { "Xray-W", "Xray-Pb", "SE-2614", "DE-2614" };
+            { "Xray-W", "Xray-Pb", "SE-2614", "DE-2614", "Ann-511" };
 
         static int Failures;
         static int KnotDiv;                          // --knot-div, 0 = без предела
@@ -1465,10 +1465,15 @@ namespace Pie
             // внутри ториевого образа.
             add("SE-2614", new double[,] { { 2103.5, 100.0 } });
             add("DE-2614", new double[,] { { 1592.5, 100.0 } });
+            // Аннигиляционная 511 (V3): рождение пар в защите/обвязке и
+            // β⁺-примеси; в ториевом спектре есть всегда, нуклиду не
+            // принадлежит — свободный мешающий образ, как пики вылета.
+            add("Ann-511", new double[,] { { 511.0, 100.0 } });
             d["Xray-W"].Kind = "nuisance";
             d["Xray-Pb"].Kind = "nuisance";
             d["SE-2614"].Kind = "nuisance";
             d["DE-2614"].Kind = "nuisance";
+            d["Ann-511"].Kind = "nuisance";
             return d;
         }
 
@@ -1767,7 +1772,7 @@ namespace Pie
             {
                 "Th-232", "Ra-226", "U-238", "U-235",
                 "K-40", "Cs-137", "Am-241", "Co-60", "I-131", "Eu-152", "Ba-133",
-                "Xray-W", "Xray-Pb", "SE-2614", "DE-2614",
+                "Xray-W", "Xray-Pb", "SE-2614", "DE-2614", "Ann-511",
             };
             public double EMin = 40;
             public double EMax = 2800;

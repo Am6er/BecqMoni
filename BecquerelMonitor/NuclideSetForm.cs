@@ -104,6 +104,10 @@ namespace BecquerelMonitor
         private Row CreateNuclideSetRow(NuclideSet set)
         {
             Row row = new Row();
+            // Набор — в Tag строки: обработчики галок и правки имени должны
+            // брать набор ИЗ СТРОКИ СОБЫТИЯ, а не из выделения — событие может
+            // прийти по строке, которая выделенной не является.
+            row.Tag = set;
             row.Cells.Add(new Cell(set.Name));
             row.Cells.Add(new Cell() { Checked = set.HideUnknownPeaks });
             row.Cells.Add(new Cell() { Checked = set.ShowIntensityLines });
@@ -362,35 +366,49 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// Набор строки события — из её Tag. Писать в <see cref="selectedSet"/>
+        /// нельзя: XPTable может поднять событие ячейки до смены выделения, и
+        /// значение легло бы на чужой набор.
+        /// </summary>
+        private NuclideSet SetOfRow(int rowIndex)
+        {
+            return rowIndex >= 0 && rowIndex < this.tableModelSets.Rows.Count
+                ? this.tableModelSets.Rows[rowIndex].Tag as NuclideSet
+                : null;
+        }
+
         private void tableSets_EditingStopped(object sender, XPTable.Events.CellEditEventArgs e)
         {
-            if (this.selectedSet == null)
+            NuclideSet set = this.SetOfRow(e.Row);
+            if (set == null)
             {
                 return;
             }
 
             if (e.Cell.Index == SetNameColumnIndex)
             {
-                this.selectedSet.Name = e.Cell.Text;
+                set.Name = e.Cell.Text;
                 this.MarkAsDirty();
             }
         }
 
         private void tableSets_CellCheckChanged(object sender, XPTable.Events.CellCheckBoxEventArgs e)
         {
-            if (this.selectedSet == null)
+            NuclideSet set = this.SetOfRow(e.Row);
+            if (set == null)
             {
                 return;
             }
 
             if (e.Cell.Index == SetHidePeaksColumnIndex)
             {
-                this.selectedSet.HideUnknownPeaks = e.Cell.Checked;
+                set.HideUnknownPeaks = e.Cell.Checked;
                 this.MarkAsDirty();
             }
             else if (e.Cell.Index == SetIntensityLinesColumnIndex)
             {
-                this.selectedSet.ShowIntensityLines = e.Cell.Checked;
+                set.ShowIntensityLines = e.Cell.Checked;
                 this.MarkAsDirty();
                 // График перерисовывается сразу: окно стоит рядом со спектром
                 // (перерисовка доходит и под модальным диалогом), и галка,

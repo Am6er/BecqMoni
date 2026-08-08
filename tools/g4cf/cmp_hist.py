@@ -53,8 +53,13 @@ for e, ours in sorted(ours_all.items()):
           % (peak_o, peak_g, peak_o / peak_g if peak_g else float("nan")))
     tot_o, tot_g = sum(oh.values()), sum(gh.values())
     print("  полная: наша %.4e  G4 %.4e  отн. %.3f" % (tot_o, tot_g, tot_o / tot_g))
-    for lo, hi in ((0.0, 0.25), (0.25, 0.5), (0.5, 0.75), (0.75, 0.999)):
-        a, b = band(oh, int(lo * n), int(hi * n)), band(gh, int(lo * n), int(hi * n))
+    # Границы полос — в долях БИНА ПИКА (n-1): полной энергии E отвечает
+    # он, а не число бинов n. Прежние границы int(f*n) были сдвинуты на
+    # долю бина вверх, а полоса до 0.999 не совпадала с «всё, кроме пика».
+    p = n - 1
+    for lo, hi in ((0.0, 0.25), (0.25, 0.5), (0.5, 0.75), (0.75, 1.0)):
+        lo_i, hi_i = int(lo * p), min(int(hi * p), p)
+        a, b = band(oh, lo_i, hi_i), band(gh, lo_i, hi_i)
         print("  [%3.0f..%3.0f%%E): наша %.4e  G4 %.4e  отн. %s"
               % (100 * lo, 100 * hi, a, b, "%.3f" % (a / b) if b else "-"))
     if e > 1022.0:

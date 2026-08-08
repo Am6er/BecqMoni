@@ -162,6 +162,23 @@ namespace BecquerelMonitor
             {
                 return this.coefficients[2] * Math.Pow(n, 2) + this.coefficients[1] * n + this.coefficients[0];
             }
+            // Степени выше четвёртой: раньше они молча проваливались в линейную
+            // ветку ниже. Спектр с калибровкой 5-й степени (их пишет SpectraLine
+            // ЛСРМ) открывался с неверной шкалой по всему диапазону и без единого
+            // сообщения. Отбрасывание старшего члена не спасает: на канале 8192
+            // ошибка 53 кэВ на германии и более 14 000 кэВ на изогнутой
+            // NaI-калибровке. Считаем схемой Горнера по всем коэффициентам,
+            // которые реально есть.
+            if (this.polynomialOrder > 4)
+            {
+                int top = Math.Min(this.polynomialOrder, this.coefficients.Length - 1);
+                double value = 0.0;
+                for (int i = top; i >= 0; i--)
+                {
+                    value = value * n + this.coefficients[i];
+                }
+                return value;
+            }
             return this.coefficients[1] * n + this.coefficients[0];
         }
 
@@ -297,6 +314,33 @@ namespace BecquerelMonitor
                 {
                     //System.Windows.Forms.MessageBox.Show("Calibration coefficients are incorrect channels for Energy: " + enrg);
                     //throw new Exception(String.Format("Calibration coefficients are incorrect channels for Energy: " + enrg));
+                    return 0;
+                }
+            }
+
+            // Обратное преобразование для степеней выше четвёртой. Раньше здесь
+            // летело исключение, а DetectPeak вызывается под catch-all в
+            // DCPeakDetectionView — то есть на спектре с калибровкой 5-й степени
+            // поиск пиков молча не работал вовсе. Корень ищем тем же способом,
+            // что для 3-й и 4-й степени.
+            if (this.polynomialOrder > 4)
+            {
+                int top = Math.Min(this.polynomialOrder, this.coefficients.Length - 1);
+                Func<double, double> poly = x =>
+                {
+                    double value = 0.0;
+                    for (int i = top; i >= 0; i--)
+                    {
+                        value = value * x + this.coefficients[i];
+                    }
+                    return value - enrg;
+                };
+                try
+                {
+                    return FindRoots.OfFunction(poly, 0, maxCh);
+                }
+                catch
+                {
                     return 0;
                 }
             }

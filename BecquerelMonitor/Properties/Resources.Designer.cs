@@ -2807,6 +2807,33 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("FSANoMatrixMark", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to · summing.
+        /// </summary>
+        public static string FSACascadeMark {
+            get {
+                return ResourceManager.GetString("FSACascadeMark", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} — sum peak.
+        /// </summary>
+        public static string FSASumPeakRow {
+            get {
+                return ResourceManager.GetString("FSASumPeakRow", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Pile-up.
+        /// </summary>
+        public static string FSAPileUpName {
+            get {
+                return ResourceManager.GetString("FSAPileUpName", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to (unknown).
@@ -3301,6 +3328,42 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string EfficiencyMakerGrid {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGrid", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerGridStandard {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGridStandard", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerGridLogarithmic {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGridLogarithmic", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerGridSummary {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGridSummary", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerPoints {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerPoints", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerHistoriesLabel {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerHistoriesLabel", resourceCulture);
+            }
+        }
+
         public static string EfficiencyMakerGraphDiffAxis {
             get {
                 return ResourceManager.GetString("EfficiencyMakerGraphDiffAxis", resourceCulture);
@@ -3598,6 +3661,24 @@ namespace BecquerelMonitor.Properties {
         public static string GeometryEditorUnitMm {
             get {
                 return ResourceManager.GetString("GeometryEditorUnitMm", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorUnitPercent {
+            get {
+                return ResourceManager.GetString("GeometryEditorUnitPercent", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorFwhm662 {
+            get {
+                return ResourceManager.GetString("GeometryEditorFwhm662", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorFwhmFromDevice {
+            get {
+                return ResourceManager.GetString("GeometryEditorFwhmFromDevice", resourceCulture);
             }
         }
 
@@ -3936,6 +4017,12 @@ namespace BecquerelMonitor.Properties {
         public static string EfficiencyTabNoGeometry {
             get {
                 return ResourceManager.GetString("EfficiencyTabNoGeometry", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabComputeStamp {
+            get {
+                return ResourceManager.GetString("EfficiencyTabComputeStamp", resourceCulture);
             }
         }
 
@@ -4360,6 +4447,15 @@ namespace BecquerelMonitor.Properties {
             }
         }
         
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixContinuumNoise.
+        /// </summary>
+        public static string ResponseMatrixContinuumNoise {
+            get {
+                return ResourceManager.GetString("ResponseMatrixContinuumNoise", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to ResponseMatrixCancelled.
         /// </summary>

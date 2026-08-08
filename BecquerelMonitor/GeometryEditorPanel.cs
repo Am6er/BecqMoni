@@ -46,6 +46,8 @@ namespace BecquerelMonitor
 
         RadioButton cylinderRadio;
         RadioButton boxRadio;
+        Button fwhmSuggestButton;
+        double fwhmSuggestionPercent;
         Label equivalentLabel;
         ComboBox sourceTypeCombo;
         Panel pointPanel, cylinderPanel, marinelliPanel, boxPanel;
@@ -108,6 +110,22 @@ namespace BecquerelMonitor
         }
 
         bool suppressChanged;
+
+        /// <summary>
+        /// Подсказка разрешения из ПШПВ-калибровки привязанного прибора, % на
+        /// 662 кэВ (E11). Ноль — подсказки нет, кнопка прячется. Считает её
+        /// ФОРМА: панель редактирует геометрию и про прибор не знает, а тянуть
+        /// сюда конфигурацию ради одного числа значило бы связать редактор со
+        /// всем деревом конфигов.
+        /// </summary>
+        public void SetFwhmSuggestion(double percent)
+        {
+            this.fwhmSuggestionPercent = percent > 0.0 ? percent : 0.0;
+            if (this.fwhmSuggestButton != null)
+            {
+                this.fwhmSuggestButton.Visible = this.fwhmSuggestionPercent > 0.0;
+            }
+        }
 
         /// <summary>
         /// Забрать отредактированное. false — в полях ошибка, о ней уже
@@ -306,16 +324,44 @@ namespace BecquerelMonitor
             this.boxSizePanel.Controls.Add(this.equivalentLabel);
             page.Controls.Add(this.boxSizePanel);
 
-            Panel rest = new Panel { Location = new Point(0, 206), Size = new Size(620, 152) };
+            Panel rest = new Panel { Location = new Point(0, 206), Size = new Size(620, 180) };
             y = 0;
             this.Row(rest, ref y, "FrontReflectorThickness", Resources.GeometryEditorFrontReflector);
             this.Row(rest, ref y, "SideReflectorThickness", Resources.GeometryEditorSideReflector);
             this.Row(rest, ref y, "FrontCladdingThickness", Resources.GeometryEditorFrontCladding);
             this.Row(rest, ref y, "SideCladdingThickness", Resources.GeometryEditorSideCladding);
             this.Row(rest, ref y, "MountingThickness", Resources.GeometryEditorMounting);
+
+            // Разрешение прибора (E11): без него допуск пика нулевой и поправка
+            // на однократное рассеяние не даёт ничего — а ввести его раньше
+            // было негде, ключ DS_Fwhm662 читался только из файла. Кнопка
+            // подставляет число из ПШПВ-калибровки привязанного прибора; сама
+            // подстановка живёт у формы — панель прибора не знает.
+            int fwhmRowY = y;
+            this.Row(rest, ref y, "FwhmAt662Percent", Resources.GeometryEditorFwhm662,
+                     Resources.GeometryEditorUnitPercent);
+            this.fwhmSuggestButton = new Button
+            {
+                Location = new Point(430, fwhmRowY - 1),
+                Size = new Size(150, 23),
+                Text = Resources.GeometryEditorFwhmFromDevice,
+                UseVisualStyleBackColor = true,
+                Visible = false,
+            };
+            this.fwhmSuggestButton.Click += (s, e) =>
+            {
+                if (this.fwhmSuggestionPercent > 0.0)
+                {
+                    // Присваивание текстом, как правка руками: TextChanged
+                    // поднимет Changed, и «Сохранить» оживёт.
+                    this.fields["FwhmAt662Percent"].Text =
+                        this.fwhmSuggestionPercent.ToString("0.###", CultureInfo.InvariantCulture);
+                }
+            };
+            rest.Controls.Add(this.fwhmSuggestButton);
             page.Controls.Add(rest);
 
-            Panel mats = new Panel { Location = new Point(0, 364), Size = new Size(620, 150) };
+            Panel mats = new Panel { Location = new Point(0, 392), Size = new Size(620, 150) };
             y = 0;
             this.MaterialRow(mats, ref y, "Crystal", Resources.GeometryEditorCrystalMaterial,
                              GeometryMaterialLibrary.MaterialKind.Crystal);
@@ -441,6 +487,11 @@ namespace BecquerelMonitor
         /// <summary>Строка «подпись — поле — см».</summary>
         void Row(Control parent, ref int y, string key, string caption)
         {
+            this.Row(parent, ref y, key, caption, null);
+        }
+
+        void Row(Control parent, ref int y, string key, string caption, string unit)
+        {
             if (Find(key) == null)
             {
                 // Поле без места в модели: оно бы заполнялось пользователем и
@@ -477,7 +528,7 @@ namespace BecquerelMonitor
                 AutoSize = true,
                 ForeColor = Color.DimGray,
                 Location = new Point(396, y + 4),
-                Text = Resources.GeometryEditorUnitMm,
+                Text = unit ?? Resources.GeometryEditorUnitMm,
             });
 
             y += 28;
@@ -585,6 +636,9 @@ namespace BecquerelMonitor
             add("FrontCladdingThickness", g => g.FrontCladdingThickness, (g, v) => g.FrontCladdingThickness = v);
             add("SideCladdingThickness", g => g.SideCladdingThickness, (g, v) => g.SideCladdingThickness = v);
             add("MountingThickness", g => g.MountingThickness, (g, v) => g.MountingThickness = v);
+
+            // Проценты, не миллиметры: Scaled() это поле сознательно не трогает.
+            add("FwhmAt662Percent", g => g.FwhmAt662Percent, (g, v) => g.FwhmAt662Percent = v);
 
             add("PointDistance", g => g.PointDistance, (g, v) => g.PointDistance = v);
 
@@ -970,6 +1024,11 @@ namespace BecquerelMonitor
             if (source != 2)
             {
                 inactive.Add(this.marinelliPanel);
+            }
+
+            if (source != 3)
+            {
+                inactive.Add(this.boxPanel);
             }
 
             bool ok = true;

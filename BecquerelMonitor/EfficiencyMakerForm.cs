@@ -47,18 +47,11 @@ namespace BecquerelMonitor
         BackgroundWorker worker;
         volatile bool cancelRequested;
 
-        /// <summary>
-        /// Историй на точку кривой при расчёте из геометрии. Погрешность идёт
-        /// как 1/√N: на 200 тысячах это около процента в середине шкалы и
-        /// несколько процентов на её верху, где эффективность мала. Больше
-        /// смысла имеет мало — систематика модели крупнее.
-        /// </summary>
-        const int SimulationHistories = 200000;
-
         public EfficiencyMakerForm()
         {
             InitializeComponent();
             BuildGeometryTab();
+            BuildCalcOptions();
             // Считать есть по чему сразу: в редакторе всегда лежит геометрия —
             // либо заготовка, либо конфигурация, либо импортированный файл.
             // Прежде кнопку включал только импорт, и выбранный готовый детектор
@@ -133,6 +126,176 @@ namespace BecquerelMonitor
             {
                 this.tabControl.TabPages.Add(page);
             }
+        }
+
+        // ------------------------------------------------------------------
+        // Параметры расчёта из геометрии
+        // ------------------------------------------------------------------
+
+        GroupBox calcOptionsGroup;
+
+        NumericUpDown calcMinEnergyBox, calcMaxEnergyBox, calcPointsBox,
+                      calcHistoriesBox, calcThreadsBox;
+
+        ComboBox calcGridBox;
+
+        const int CalcLabelWidth = 130;
+
+        const int CalcFieldWidth = 90;
+
+        /// <summary>
+        /// Панель параметров расчёта. Собирается кодом, а не дизайнером, — как
+        /// и вкладка геометрии выше: подписи тогда берутся прямо из общих
+        /// ресурсов, где у них уже есть русская пара, без прохода
+        /// `ApplyResources` по списку контролов.
+        ///
+        /// Наружу вынесены ЦЕНА счёта и сетка, на которой он ведётся, — то,
+        /// чего программа знать не может: до какой энергии меряет прибор и
+        /// сколько человек готов ждать. Ключи физики переноса остаются внутри
+        /// (<see cref="EfficiencySimulator"/>): каждый из них калиброван
+        /// сверкой с Geant4 и новой TCCFCALC, и свободной крутилкой в окне
+        /// абсолютный уровень кривой превратился бы в подгоночный, а кривая,
+        /// посчитанная чужой физикой, попала бы в конфигурацию прибора
+        /// неотличимой от штатной.
+        ///
+        /// Умолчания — ровно то, чем считалось до появления полей: 40…3000 кэВ
+        /// штатной сеткой в 34 точки, 200 000 историй, все ядра кроме одного.
+        /// </summary>
+        void BuildCalcOptions()
+        {
+            // Верх — от НИЖНЕГО КРАЯ подсказки, а не числом: подсказка
+            // авторазмерная, и по-русски она на строку длиннее, чем
+            // по-английски. Прибитая координата наехала бы на неё в одном из
+            // двух языков.
+            this.calcOptionsGroup = new GroupBox
+            {
+                Text = Resources.ResponseMatrixParameters,
+                Location = new System.Drawing.Point(13, this.calcHintLabel.Bottom + 10),
+                Size = new System.Drawing.Size(790, 84),
+                TabIndex = 5,
+            };
+
+            this.tabPageCalculate.Controls.Add(this.calcOptionsGroup);
+
+            int c1 = 12;
+            int c2 = c1 + CalcLabelWidth + CalcFieldWidth + 24;
+            int c3 = c2 + CalcLabelWidth + CalcFieldWidth + 24;
+
+            this.calcMinEnergyBox = CalcField(Resources.ResponseMatrixMinEnergy, c1, 22, 1, 5000, 40);
+            this.calcMaxEnergyBox = CalcField(Resources.ResponseMatrixMaxEnergy, c2, 22, 10, 10000, 3000);
+
+            this.calcOptionsGroup.Controls.Add(new Label
+            {
+                Text = Resources.EfficiencyMakerGrid,
+                Location = new System.Drawing.Point(c3, 25),
+                Size = new System.Drawing.Size(CalcLabelWidth, 18),
+                TextAlign = System.Drawing.ContentAlignment.MiddleLeft,
+            });
+
+            this.calcGridBox = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Location = new System.Drawing.Point(c3 + CalcLabelWidth, 22),
+                Size = new System.Drawing.Size(146, 21),
+            };
+
+            this.calcGridBox.Items.Add(Resources.EfficiencyMakerGridStandard);
+            this.calcGridBox.Items.Add(Resources.EfficiencyMakerGridLogarithmic);
+            this.calcGridBox.SelectedIndex = 0;
+            this.calcGridBox.SelectedIndexChanged += this.CalcGridChanged;
+            this.calcOptionsGroup.Controls.Add(this.calcGridBox);
+
+            this.calcPointsBox = CalcField(Resources.EfficiencyMakerPoints, c1, 50, 2, 500, 34);
+            this.calcHistoriesBox = CalcField(Resources.EfficiencyMakerHistoriesLabel, c2, 50,
+                                              1000, 10000000, 200000);
+            this.calcThreadsBox = CalcField(Resources.ResponseMatrixThreads, c3, 50,
+                                            1, 64, Math.Max(1, Environment.ProcessorCount - 1));
+
+            this.calcHistoriesBox.Increment = 50000;
+            this.calcHistoriesBox.ThousandsSeparator = true;
+
+            // Число точек штатная сетка считает сама — поле при ней заперто, а
+            // не игнорируется молча: выставленное и ни на что не влияющее число
+            // читается как обещание.
+            this.calcPointsBox.Enabled = false;
+
+            this.calcMinEnergyBox.ValueChanged += this.CalcRangeChanged;
+            this.calcMaxEnergyBox.ValueChanged += this.CalcRangeChanged;
+
+            // Кнопка съезжает под панель — её место в дизайнере было занято
+            // ещё до появления параметров.
+            this.calculateButton.Location =
+                new System.Drawing.Point(13, this.calcOptionsGroup.Bottom + 12);
+        }
+
+        NumericUpDown CalcField(string caption, int x, int y,
+                                decimal min, decimal max, decimal value)
+        {
+            this.calcOptionsGroup.Controls.Add(new Label
+            {
+                Text = caption,
+                Location = new System.Drawing.Point(x, y + 3),
+                Size = new System.Drawing.Size(CalcLabelWidth, 18),
+                TextAlign = System.Drawing.ContentAlignment.MiddleLeft,
+            });
+
+            NumericUpDown box = new NumericUpDown
+            {
+                Location = new System.Drawing.Point(x + CalcLabelWidth, y),
+                Size = new System.Drawing.Size(CalcFieldWidth, 20),
+                Minimum = min,
+                Maximum = max,
+                DecimalPlaces = 0,
+                Value = value,
+            };
+
+            this.calcOptionsGroup.Controls.Add(box);
+            return box;
+        }
+
+        void CalcGridChanged(object sender, EventArgs e)
+        {
+            this.calcPointsBox.Enabled = this.calcGridBox.SelectedIndex == 1;
+        }
+
+        /// <summary>
+        /// Верх ниже низа развести сразу, а не при запуске: расчёт всё равно
+        /// раздвинул бы такой диапазон сам, и увидеть это человек смог бы уже
+        /// только в журнале, посчитанным.
+        /// </summary>
+        void CalcRangeChanged(object sender, EventArgs e)
+        {
+            if (this.calcMaxEnergyBox.Value > this.calcMinEnergyBox.Value)
+            {
+                return;
+            }
+
+            if (sender == this.calcMinEnergyBox)
+            {
+                this.calcMaxEnergyBox.Value = Math.Min(this.calcMaxEnergyBox.Maximum,
+                                                       this.calcMinEnergyBox.Value + 10m);
+            }
+            else
+            {
+                this.calcMinEnergyBox.Value = Math.Max(this.calcMinEnergyBox.Minimum,
+                                                       this.calcMaxEnergyBox.Value - 10m);
+            }
+        }
+
+        /// <summary>Параметры расчёта, как они выставлены в полях.</summary>
+        EfficiencyCalculationOptions CurrentCalcOptions()
+        {
+            return new EfficiencyCalculationOptions
+            {
+                MinEnergyKev = (double)this.calcMinEnergyBox.Value,
+                MaxEnergyKev = (double)this.calcMaxEnergyBox.Value,
+                GridMode = this.calcGridBox.SelectedIndex == 1
+                    ? EfficiencyGridMode.Logarithmic
+                    : EfficiencyGridMode.Standard,
+                NodeCount = (int)this.calcPointsBox.Value,
+                Histories = (int)this.calcHistoriesBox.Value,
+                Threads = (int)this.calcThreadsBox.Value,
+            };
         }
 
         /// <summary>
@@ -211,6 +374,11 @@ namespace BecquerelMonitor
             this.geometry = this.geometryPanel.Model;
             this.calculateButton.Enabled = true;
 
+            // Подсказка разрешения из ПШПВ-калибровки прибора (E11): у
+            // геометрии из редактора FwhmAt662Percent нулевой, а с нулём
+            // допуск пика нулевой и поправка SingleScatter не даёт ничего.
+            this.geometryPanel.SetFwhmSuggestion(FwhmPercentAt662(device));
+
             // Кривая конфигурации становится исходной: по ней подгонка получает
             // уровень, и по ней же график рисует полосу отличий.
             this.referenceCurve = config.HasCurve ? config.Curve : null;
@@ -218,6 +386,42 @@ namespace BecquerelMonitor
             this.dirty = false;
             this.UpdateTitle();
             this.UpdateSaveState();
+        }
+
+        /// <summary>
+        /// Разрешение прибора на 662 кэВ, % — из ПШПВ-калибровки его настроек
+        /// поиска пиков сквозь энергетическую калибровку (ПШПВ там в КАНАЛАХ).
+        /// Ноль — калибровки нет или она не отвечает числом; подсказки тогда
+        /// не будет, и это правильнее выдуманного числа.
+        /// </summary>
+        static double FwhmPercentAt662(DeviceConfigInfo device)
+        {
+            FWHMPeakDetectionMethodConfig fwhmConfig =
+                device == null ? null : device.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
+            FwhmCalibration fwhm = fwhmConfig == null ? null : fwhmConfig.FwhmCalibration;
+            EnergyCalibration energy = device == null ? null : device.EnergyCalibration;
+            if (fwhm == null || energy == null)
+            {
+                return 0.0;
+            }
+
+            try
+            {
+                double channel = energy.EnergyToChannel(662.0, device.NumberOfChannels);
+                double fwhmChannels = fwhm.ChannelToFwhm(channel);
+                if (!(fwhmChannels > 0.0) || double.IsNaN(fwhmChannels))
+                {
+                    return 0.0;
+                }
+
+                double fwhmKev = energy.ChannelToEnergy(channel + fwhmChannels / 2.0)
+                                 - energy.ChannelToEnergy(channel - fwhmChannels / 2.0);
+                return fwhmKev > 0.0 ? fwhmKev / 662.0 * 100.0 : 0.0;
+            }
+            catch (Exception)
+            {
+                return 0.0;
+            }
         }
 
         /// <summary>
@@ -251,6 +455,9 @@ namespace BecquerelMonitor
                 this.boundConfig.Origin = this.lastResult.LevelSource == EfficiencyLevelSource.Simulation
                     ? EfficiencyOrigin.Simulation
                     : EfficiencyOrigin.Measurement;
+                // Клеймо едет вместе с кривой (E12): у измерительной кривой
+                // оно пустое, и это тоже правда — физики переноса в ней нет.
+                this.boundConfig.ComputeStamp = this.lastResult.ComputeStamp ?? "";
             }
 
             this.boundConfig.LastUpdated = DateTime.Now;
@@ -286,7 +493,12 @@ namespace BecquerelMonitor
             }
             else if (this.tabControl.SelectedTab == this.tabPageCalculate)
             {
-                height = CalculateTabHeight;
+                // По СОДЕРЖИМОМУ, а не числом: панель параметров стоит под
+                // подсказкой, подсказка авторазмерная и по-русски на строку
+                // длиннее, а кнопка съезжает вслед за панелью. Прежняя
+                // константа была снята с прежнего содержимого — подсказки и
+                // одной кнопки — и панель параметров она обрезала.
+                height = this.calculateButton.Bottom + 12 + this.TabChromeHeight;
             }
             else
             {
@@ -305,8 +517,15 @@ namespace BecquerelMonitor
             }
         }
 
-        /// <summary>Подсказка и одна кнопка — больше на вкладке расчёта нет.</summary>
-        const int CalculateTabHeight = 116;
+        /// <summary>
+        /// Во что обходятся сами корешки вкладок и рамка: разница между высотой
+        /// таб-контрола и высотой места под страницу. Считается, а не пишется
+        /// числом, — при другом размере шрифта или масштабе экрана она другая.
+        /// </summary>
+        int TabChromeHeight
+        {
+            get { return this.tabControl.Height - this.tabControl.DisplayRectangle.Height; }
+        }
 
         /// <summary>Список спектров и рамка настроек — по самой высокой из них.</summary>
         const int FitTabHeight = 282;
@@ -703,9 +922,10 @@ namespace BecquerelMonitor
             }
 
             GeometryModel model = this.geometry;
+            EfficiencyCalculationOptions options = CurrentCalcOptions();
             Start(this.calculateButton, this.runButton, Resources.EfficiencyMakerCalculating,
                   (log, cancelled) => EfficiencyCalculation.Run(
-                      model, SimulationHistories, log, cancelled));
+                      model, options, log, cancelled));
         }
 
         bool Busy()
@@ -735,6 +955,10 @@ namespace BecquerelMonitor
             string caption = trigger.Text;
             trigger.Text = Resources.EfficiencyMakerStop;
             other.Enabled = false;
+            // Параметры запираются на любой прогон, а не только на свой: они
+            // сняты в начале счёта, и правка в полях по ходу дела относилась бы
+            // уже к следующему разу — а выглядела бы как относящаяся к этому.
+            this.calcOptionsGroup.Enabled = false;
             this.saveButton.Enabled = false;
             this.exportButton.Enabled = false;
             this.progressBar.Visible = true;
@@ -772,6 +996,7 @@ namespace BecquerelMonitor
 
                 this.progressBar.Visible = false;
                 trigger.Text = caption;
+                this.calcOptionsGroup.Enabled = true;
                 // Обе кнопки запуска доступны всегда: в редакторе всегда лежит
                 // геометрия (см. конструктор). Прежний возврат «как было»
                 // гасил расчёт навсегда, если первым прошёл фит, — this.geometry
