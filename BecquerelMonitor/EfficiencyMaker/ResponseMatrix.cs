@@ -49,8 +49,9 @@ namespace BecquerelMonitor.EfficiencyMaker
         //     ОБЯЗАНА смениться, иначе формат-4 файл съедет полем данных.
         //     Найдено сверкой с параллельной сессией S11: ключ был добавлен
         //     в Options и отпечаток, но не в Write/ReadOptions.
-        // 6 — в блоке параметров появился ключ BoundScattering (08.08.2026,
-        //     физика 7): та же арифметика, файл длиннее ещё на байт.
+        // 6 — в блоке параметров появились ключи BoundScattering и
+        //     BremFromData (08.08.2026, физика 7 и 8): та же арифметика,
+        //     файл длиннее ещё на два байта.
         public const int FormatVersion = 6;
 
         /// <summary>
@@ -84,7 +85,11 @@ namespace BecquerelMonitor.EfficiencyMaker
         //     рассеянной энергии по профилям Комптона, когерентное — своим
         //     каналом с углом по F²(x,Z) вместо «проходит насквозь».
         //     Данные лежали в базе с 06.08.2026 без потребителя.
-        public const int PhysicsVersion = 7;
+        // 8 — спектр тормозного из сечений Зельцера — Бергера вместо
+        //     приближения Крамерса dN/dk = C/k (M3, 08.08.2026): сечения
+        //     интегрируются по пути торможения, пробег — ESTAR. Меняет форму
+        //     спектра вылетающих квантов, а значит и континуум наверху шкалы.
+        public const int PhysicsVersion = 8;
 
         /// <summary>Узлы сетки входных энергий, кэВ, по возрастанию.</summary>
         public double[] Energies { get; set; }
@@ -221,6 +226,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 sb.Append("npl=").Append(options.LightNonproportionality ? 1 : 0).Append(';');
                 sb.Append("acont=").Append(options.AnalogContinuum ? 1 : 0).Append(';');
                 sb.Append("bound=").Append(options.BoundScattering ? 1 : 0).Append(';');
+                sb.Append("bremsb=").Append(options.BremFromData ? 1 : 0).Append(';');
             }
 
             sb.Append("geom=").Append(GeometryText(geometry));
@@ -584,6 +590,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             writer.Write(o.LightNonproportionality);
             writer.Write(o.AnalogContinuum);
             writer.Write(o.BoundScattering);
+            writer.Write(o.BremFromData);
         }
 
         static ResponseMatrixOptions ReadOptions(BinaryReader reader)
@@ -601,7 +608,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 SingleScatter = reader.ReadBoolean(),
                 LightNonproportionality = reader.ReadBoolean(),
                 AnalogContinuum = reader.ReadBoolean(),
-                BoundScattering = reader.ReadBoolean()
+                BoundScattering = reader.ReadBoolean(),
+                BremFromData = reader.ReadBoolean()
             };
         }
 
@@ -798,6 +806,13 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <see cref="EfficiencySimulator.RayleighScatter"/>).
         /// </summary>
         public bool BoundScattering = true;
+
+        /// <summary>
+        /// Спектр тормозного из сечений Зельцера — Бергера (M3, физика 8)
+        /// вместо приближения Крамерса dN/dk = C/k. Выключенный ключ
+        /// возвращает приближение — для абляции.
+        /// </summary>
+        public bool BremFromData = true;
 
         /// <summary>Потоков; 0 — по числу ядер минус один.</summary>
         public int Threads;
