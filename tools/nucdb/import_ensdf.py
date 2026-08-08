@@ -341,7 +341,44 @@ def main():
     real = db.execute("select count(*) from ensdf_levels").fetchone()[0]
     print("ENSDF: в таблице ensdf_levels строк %d — %s"
           % (real, "сходится" if real == n_lev_written else "НЕ СХОДИТСЯ со счётчиком"))
+
+    check_dataset_key(db)
     db.close()
+
+
+def check_dataset_key(db):
+    """Чем набор отличается от набора (W9).
+
+    Именем ДОЧЕРНЕГО нуклида набор не определяется: у 52.7 % дочерних ядер
+    наборов несколько — у 24Mg и 208Pb по семь, от разных родителей. Потребитель,
+    выбирающий схему по `nucid`, возьмёт чужую больше чем в половине случаев.
+
+    Ключ — (`nucid`, `dsid`, `parent_hl_sec`). Периода в ключе мало кто ждёт, но
+    без него не разводится `185Au / 185HG EC DECAY`: это ДВА разных родителя,
+    Hg-185 (49.1 с) и Hg-185m (21.6 с), а `dsid` называет дочку и потому у них
+    один. Аудит принял их за дубль именно поэтому.
+
+    Проверяется КАЖДЫЙ раз: столкновение ключа означает, что поставка завела
+    набор, который ничем не отличить, и молча пропустить это нельзя — дальше
+    любой выбор схемы станет случайным.
+    """
+    rows = db.execute(
+        "select nucid, dsid, parent_hl_sec, count(*) from ensdf_datasets"
+        " group by nucid, dsid, parent_hl_sec having count(*) > 1").fetchall()
+    total = db.execute("select count(*) from ensdf_datasets").fetchone()[0]
+    many = db.execute(
+        "select count(*) from (select nucid from ensdf_datasets"
+        " group by nucid having count(*) > 1)").fetchone()[0]
+    kinds = db.execute("select count(distinct nucid) from ensdf_datasets").fetchone()[0]
+    print("ENSDF: ключ набора — (nucid, dsid, период родителя); наборов %d, "
+          "дочерних ядер %d, из них с несколькими наборами %d (%.1f %%)"
+          % (total, kinds, many, 100.0 * many / max(1, kinds)))
+    if rows:
+        print("ENSDF: СТОЛКНОВЕНИЙ КЛЮЧА %d — наборы неразличимы:" % len(rows))
+        for nucid, dsid, hl, n in rows:
+            print("        %s / %s / период %s — %d наборов" % (nucid, dsid, hl, n))
+    else:
+        print("ENSDF: столкновений ключа нет")
 
 
 if __name__ == "__main__":
