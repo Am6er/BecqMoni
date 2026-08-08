@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -7,7 +7,7 @@ using System.IO;
 namespace BecquerelMonitor.EfficiencyMaker
 {
     /// <summary>
-    /// Данные о ВЕЩЕСТВЕ из `nucdb.sqlite`: атомные веса, сечения
+    /// Данные о ВЕЩЕСТВЕ из `matdb.sqlite`: атомные веса, сечения
     /// взаимодействия фотона по каналам, символы элементов.
     ///
     /// Раньше всё это лежало таблицами прямо в исходнике — 92 элемента полного
@@ -23,7 +23,7 @@ namespace BecquerelMonitor.EfficiencyMaker
     /// значений, худшее 0.098 % — то есть округление до четырёх знаков, с
     /// которым числа и вписывали в исходник.
     ///
-    /// Запасного пути нет нарочно. `nucdb.sqlite` идёт в поставке и лежит в
+    /// Запасного пути нет нарочно. `matdb.sqlite` идёт в поставке и лежит в
     /// репозитории; если её нет, считать не по чему, и молчаливый откат на
     /// вшитую копию означал бы расчёт по данным, о происхождении которых никто
     /// уже не скажет.
@@ -382,7 +382,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             if (!File.Exists(path))
             {
                 throw new FileNotFoundException(
-                    "nucdb.sqlite не найдена рядом с программой: " + path, path);
+                    "matdb.sqlite не найдена рядом с программой: " + path, path);
             }
 
             List<double> energies = new List<double>();
@@ -427,7 +427,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             if (!File.Exists(path))
             {
                 throw new FileNotFoundException(
-                    "nucdb.sqlite не найдена рядом с программой: " + path, path);
+                    "matdb.sqlite не найдена рядом с программой: " + path, path);
             }
 
             using (SqliteConnection connection = new SqliteConnection(
@@ -551,10 +551,17 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>
         /// База лежит рядом с программой, а не в текущем каталоге: пробы и
         /// харнессы запускаются откуда попало, а файл всегда рядом с их exe.
+        ///
+        /// Данные о веществе живут в `matdb.sqlite` — своём файле с 08.08.2026
+        /// (`tools/nucdb/split_db.py`). Единая база резалась на три куска
+        /// потому, что SQLite бинарный и git кладёт в историю полную копию на
+        /// каждый коммит; куски разведены по скорости изменения, а граница
+        /// проведена по потребителю — этому классу не нужен ни один из
+        /// двух других файлов.
         /// </summary>
         static string DatabasePath()
         {
-            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nucdb.sqlite");
+            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "matdb.sqlite");
         }
 
         static void Load()
@@ -575,7 +582,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 if (!File.Exists(path))
                 {
                     throw new FileNotFoundException(
-                        "nucdb.sqlite не найдена рядом с программой: " + path, path);
+                        "matdb.sqlite не найдена рядом с программой: " + path, path);
                 }
 
                 Dictionary<int, Element> loaded = new Dictionary<int, Element>();
@@ -600,19 +607,25 @@ namespace BecquerelMonitor.EfficiencyMaker
                             }
                         }
 
-                        // Символы — из таблицы нуклидов: она про те же элементы,
-                        // и заводить второй список значило бы завести второй
-                        // источник правды.
+                        // Символы раньше брались прямо из таблицы нуклидов —
+                        // она про те же элементы, и второй список значил бы
+                        // второй источник правды. С разрезом базы на три файла
+                        // (08.08.2026) нуклиды уехали в `nucdb.sqlite`, и ради
+                        // ста символов пришлось бы открывать второй файл —
+                        // тогда «вещество» перестало бы быть самодостаточным.
+                        // Поэтому символ теперь лежит в `xcom_elements`, а
+                        // ВЫВОДИТСЯ он всё из тех же нуклидов при разрезе, тем
+                        // же правилом отбора (`tools/nucdb/split_db.py`,
+                        // `add_symbols`): источник правды остался один, просто
+                        // перенос делается на сборке, а не на каждой загрузке.
                         //
-                        // Без GROUP BY по «голой» колонке: в базе у одного z
-                        // лежат разные написания (Li/LI, Ti/TI, Ni/NI), и SQLite
-                        // отдавал символ произвольной строки группы — после
-                        // пересборки базы элемент мог тихо сменить регистр и
-                        // выпасть из разбора формул. Написание приводится к
-                        // каноническому здесь. z = 0 (нейтрон, «n»/«NN»)
-                        // исключён: его «N» столкнулся бы с азотом.
-                        command.CommandText = "select z, symbol from nuclides"
-                            + " where symbol is not null and z > 0 order by z, symbol";
+                        // Правило то же, что было здесь: у одного z в базе
+                        // лежат разные написания (Li/LI, Ti/TI, Ni/NI), берётся
+                        // первое по возрастанию; z = 0 (нейтрон, «n»/«NN»)
+                        // исключён — его «N» столкнулся бы с азотом.
+                        // Написание приводится к каноническому здесь же.
+                        command.CommandText = "select z, symbol from xcom_elements"
+                            + " where symbol is not null and z > 0 order by z";
                         using (SqliteDataReader reader = command.ExecuteReader())
                         {
                             while (reader.Read())

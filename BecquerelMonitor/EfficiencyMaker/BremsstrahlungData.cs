@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,7 +7,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 {
     /// <summary>
     /// Дифференциальные сечения тормозного излучения Зельцера — Бергера из
-    /// `nucdb.sqlite` (таблицы `seltzer_berger`, `seltzer_berger_grid`,
+    /// `matdb.sqlite` (таблицы `seltzer_berger`, `seltzer_berger_grid`,
     /// `database/scheme.md` §5б).
     ///
     /// Хранится безразмерная χ(Z, T, κ) = (β²/Z²)·k·dσ/dk в миллибарнах, где
@@ -125,9 +125,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
         }
 
+        // Вещество лежит в `matdb.sqlite` — своём файле с 08.08.2026
+        // (`tools/nucdb/split_db.py`).
         static string DatabasePath()
         {
-            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nucdb.sqlite");
+            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "matdb.sqlite");
         }
 
         static Element Load(int z)
@@ -136,7 +138,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             if (!File.Exists(path))
             {
                 throw new FileNotFoundException(
-                    "nucdb.sqlite не найдена рядом с программой: " + path, path);
+                    "matdb.sqlite не найдена рядом с программой: " + path, path);
             }
 
             using (SqliteConnection connection = new SqliteConnection(

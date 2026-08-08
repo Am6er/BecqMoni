@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -6,7 +6,7 @@ using System.IO;
 namespace BecquerelMonitor.EfficiencyMaker
 {
     /// <summary>
-    /// Угловые данные рассеяния из `nucdb.sqlite`: функция некогерентного
+    /// Угловые данные рассеяния из `matdb.sqlite`: функция некогерентного
     /// рассеяния S(x,Z), атомный форм-фактор F(x,Z) и профили Комптона по
     /// оболочкам (`database/scheme.md`, §5б).
     ///
@@ -362,9 +362,11 @@ namespace BecquerelMonitor.EfficiencyMaker
         // Чтение базы
         // ------------------------------------------------------------------
 
+        // Вещество лежит в `matdb.sqlite` — своём файле с 08.08.2026
+        // (`tools/nucdb/split_db.py`).
         static string DatabasePath()
         {
-            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nucdb.sqlite");
+            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "matdb.sqlite");
         }
 
         static Atom Load(int z)
@@ -373,7 +375,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             if (!File.Exists(path))
             {
                 throw new FileNotFoundException(
-                    "nucdb.sqlite не найдена рядом с программой: " + path, path);
+                    "matdb.sqlite не найдена рядом с программой: " + path, path);
             }
 
             Atom atom = new Atom { Z = z };

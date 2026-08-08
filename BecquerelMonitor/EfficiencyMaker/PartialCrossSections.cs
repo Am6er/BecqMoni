@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace BecquerelMonitor.EfficiencyMaker
 {
@@ -17,7 +17,7 @@ namespace BecquerelMonitor.EfficiencyMaker
     /// <summary>
     /// Парциальные сечения по каналам взаимодействия, см2/г.
     ///
-    /// Источник — NIST XCOM 3.1. Числа лежат в `nucdb.sqlite`, берутся через
+    /// Источник — NIST XCOM 3.1. Числа лежат в `matdb.sqlite`, берутся через
     /// <see cref="MaterialDatabase"/>.
     ///
     /// ЗАЧЕМ ОНИ НУЖНЫ ОТДЕЛЬНО. Полного ослабления для переноса мало.

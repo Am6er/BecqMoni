@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Втягивает в nucdb.sqlite данные о ВЕЩЕСТВЕ из двух поставок NIST:
+Втягивает в matdb.sqlite данные о ВЕЩЕСТВЕ из двух поставок NIST:
 
   XCOM 3.1 (Berger, Hubbell, Seltzer, 1999) — сечения взаимодействия фотона
     по каналам для Z = 1..100, файлы MDATX3.xxx;
@@ -50,12 +50,14 @@ M1..M4.
 из них берутся FALPH и FPROT (тормозная способность, пробег и извилистость для
 альфа-частиц и протонов, 74 вещества).
 
-    python import_xcom_star.py <nucdb.sqlite> <каталог XCOM> <FCOMP> [каталог ICC]
+    python import_xcom_star.py <matdb.sqlite> <каталог XCOM> <FCOMP> [каталог ICC]
 """
 import io
 import os
 import sqlite3
 import sys
+import pieces
+
 
 
 def read_mdatx3(path):
@@ -526,7 +528,11 @@ def main():
     estar_f_path = os.path.join(estar_dir, "ESTAR.f")
     mats_path = os.path.join(estar_dir, "MATS")
     material_txt_path = os.path.join(estar_dir, "material.txt")
-    db = sqlite3.connect(db_path)
+    # Кусок этого импортёра — вещество, но `xray_fluorescence` он строит по
+    # линиям рентгена из `decay_radiations`, а те с 08.08.2026 лежат в
+    # `nucdb.sqlite`. Присоединяем — запросы от этого не меняются, SQLite
+    # находит таблицу в присоединённом файле сам.
+    db = pieces.open_with(db_path, ["nucdb.sqlite"])
     db.executescript("""
         drop table if exists xcom_elements;
         drop table if exists xcom_cross_sections;

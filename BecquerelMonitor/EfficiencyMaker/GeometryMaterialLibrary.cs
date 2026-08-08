@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
@@ -138,7 +138,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         // Символы элементов больше не переписаны сюда списком: они есть в
-        // `nucdb.sqlite` (таблица нуклидов), и второй список означал бы второй
+        // `matdb.sqlite` (символы элементов), и второй список означал бы второй
         // источник правды. Сверено перед переносом: 92 символа в коде против
         // 119 в базе, расхождений ноль.
         public static int ZOf(string symbol)

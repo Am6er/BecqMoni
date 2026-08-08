@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Втягивает в nucdb.sqlite данные из поставки Geant4 G4EMLOW (проверено на 8.8).
+Втягивает в matdb.sqlite данные из поставки Geant4 G4EMLOW (проверено на 8.8).
 
 Что берём и зачем (нумерация дыр — database/scheme.md, §9а):
 
@@ -63,7 +63,7 @@ Bambynek 1972 из import_xcom_star.py) на суммы радиационных
 Поэтому порядок пересборки базы: сначала import_xcom_star.py, потом этот
 скрипт — иначе ω_K останется аппроксимацией.
 
-    python import_geant4.py <nucdb.sqlite> <каталог G4EMLOW>
+    python import_geant4.py <matdb.sqlite> <каталог G4EMLOW>
 """
 import math
 import os

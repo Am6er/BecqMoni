@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Втягивает в nucdb.sqlite схемы распада из поставки ЛСРМ
+Втягивает в schemedb.sqlite схемы распада из поставки ЛСРМ
 `C:\\LSRM\\NuclideMaster\\TCCFCALC\\LIB\\ENSDF2` — 272 файла по массовым
 цепочкам, издание 2015 года.
 
@@ -38,7 +38,7 @@
 это видно счётчиком. Придумывать привязку там, где её нет, нельзя: на ней
 держится весь каскад.
 
-    python import_ensdf.py <nucdb.sqlite> <каталог ENSDF2>
+    python import_ensdf.py <schemedb.sqlite> <каталог ENSDF2>
 """
 import io
 import os
