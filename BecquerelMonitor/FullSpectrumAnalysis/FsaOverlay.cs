@@ -157,7 +157,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // только если её отпечаток сходится с нынешней геометрией. Не
             // сошёлся — работаем без неё, старым путём: посчитать спектр по
             // матрице чужой геометрии хуже, чем не посчитать вовсе.
-            if (resultData.Efficiency != null && resultData.Efficiency.HasGeometry)
+            // UseResponseMatrix — выключатель пользователя (W11, галка в форме
+            // «Матрица отклика»): выключено — считаем без матрицы, файл даже
+            // не читаем.
+            if (resultData.Efficiency != null && resultData.Efficiency.HasGeometry
+                && resultData.Efficiency.UseResponseMatrix)
             {
                 EfficiencyMaker.ResponseMatrix matrix =
                     EfficiencyMaker.ResponseMatrixStore.Load(resultData.Efficiency.Guid);
@@ -269,6 +273,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             if (efficiency == null || !efficiency.HasGeometry)
             {
                 return "-";
+            }
+
+            // Выключатель (W11) — часть отпечатка: переключение галки обязано
+            // устаревать готовое разложение, иначе «с матрицей» висит на
+            // экране и после выключения (и наоборот).
+            if (!efficiency.UseResponseMatrix)
+            {
+                return "off";
             }
 
             try

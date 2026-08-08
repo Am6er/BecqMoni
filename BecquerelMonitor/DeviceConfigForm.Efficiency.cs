@@ -256,6 +256,12 @@ namespace BecquerelMonitor
             using (ResponseMatrixForm form = new ResponseMatrixForm(config))
             {
                 form.ShowDialog(this);
+                // Выключатель матрицы (W11) пишет в ту же копию конфигурации —
+                // осталось пометить её изменённой, чтобы «Сохранить» ожило.
+                if (form.UseMatrixTouched)
+                {
+                    this.SetActiveDeviceConfigDirty();
+                }
             }
         }
 

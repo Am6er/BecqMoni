@@ -33,6 +33,7 @@ namespace BecquerelMonitor
         readonly EfficiencyConfigData config;
 
         Label stateLabel, versionsLabel, estimateLabel, progressLabel;
+        CheckBox useMatrixCheck;
         Panel detailsPanel;
         string detailsText = "";
         ProgressBar progressBar;
@@ -55,6 +56,22 @@ namespace BecquerelMonitor
         // ValueChanged у пяти полей подряд, и без номера ярлык доставался
         // последней ФИНИШИРОВАВШЕЙ задаче, а не последней запрошенной.
         int estimateRequest;
+
+        /// <summary>
+        /// Трогали ли выключатель матрицы (W11). Форма пишет в ту же копию
+        /// конфигурации, что и вкладка Efficiency, — вкладке остаётся пометить
+        /// конфигурацию изменённой, чтобы «Сохранить» ожило.
+        /// </summary>
+        public bool UseMatrixTouched { get; private set; }
+
+        void UseMatrixChanged(object sender, EventArgs e)
+        {
+            if (this.config != null && this.config.UseResponseMatrix != this.useMatrixCheck.Checked)
+            {
+                this.config.UseResponseMatrix = this.useMatrixCheck.Checked;
+                this.UseMatrixTouched = true;
+            }
+        }
 
         public ResponseMatrixForm(EfficiencyConfigData config)
         {
@@ -89,6 +106,8 @@ namespace BecquerelMonitor
                 this.ShowVersions(0, 0, false);
                 this.SetDetails("");
                 this.computeButton.Enabled = false;
+                // Без геометрии матрицы не бывает — выключателю нечего включать.
+                this.useMatrixCheck.Enabled = false;
                 return;
             }
 
