@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace BecquerelMonitor.FullSpectrumAnalysis
 {
@@ -58,6 +59,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Сумм-пик: энергия и площадь в долях на распад родителя.</summary>
         public sealed class SumPeak
         {
+            public SumPeak(double energy, double area, string nuclide,
+                           double fromKev, double withKev)
+                : this(energy, area)
+            {
+                this.Nuclide = nuclide ?? "";
+                this.FromKev = fromKev;
+                this.WithKev = withKev;
+            }
+
+            /// <summary>Нуклид, чей это каскад; пусто — конструктор без разбора.</summary>
+            public string Nuclide { get; private set; }
+
+            /// <summary>Первая линия пары, кэВ.</summary>
+            public double FromKev { get; private set; }
+
+            /// <summary>Вторая линия пары, кэВ.</summary>
+            public double WithKev { get; private set; }
+
             public SumPeak(double energy, double area)
             {
                 this.Energy = energy;
@@ -90,8 +109,40 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             public List<SumPeak> SumPeaks { get; set; }
 
+            /// <summary>
+            /// Разбор поправки по линиям — только для отчёта
+            /// (<see cref="FsaCascadeSummer.Describe"/>). В счёте не участвует:
+            /// счёт идёт по <see cref="LineFactors"/>.
+            /// </summary>
+            public List<LineNote> Notes { get; set; }
+
             /// <summary>Есть ли вообще что применять — иначе быстрый путь.</summary>
             public bool Any { get; set; }
+        }
+
+        /// <summary>
+        /// Что именно сделано с одной линией: сам CF и обе его половины —
+        /// вынос (партнёр задел кристалл) и влёт (сумма пары попала в окно
+        /// линии). Без этой раскладки CF есть одно число, и увидеть, почему
+        /// оно такое, нельзя — ровно то, чего не хватало при сверке с ЛСРМ.
+        /// </summary>
+        public sealed class LineNote
+        {
+            public string Nuclide { get; set; }
+
+            public double EnergyKev { get; set; }
+
+            /// <summary>CF в принятом смысле: A_ист = A_набл · CF.</summary>
+            public double Cf { get; set; }
+
+            /// <summary>Доля событий, вынесенных из пика партнёром.</summary>
+            public double Loss { get; set; }
+
+            /// <summary>Влёт: площадь сумм-событий в окне линии, к прямой площади.</summary>
+            public double InShare { get; set; }
+
+            /// <summary>Прямая площадь линии на распад родителя.</summary>
+            public double DirectArea { get; set; }
         }
 
         /// <summary>Пары и выходы одного нуклида, как они лежат в базе.</summary>
@@ -242,6 +293,85 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return correction;
         }
 
+        /// <summary>
+        /// Перечень того, что каскадное суммирование сделало с компонентом:
+        /// сумм-пики с породившими их парами и раскладка CF по линиям.
+        ///
+        /// ЗАЧЕМ ОТДЕЛЬНЫМ ВЫХОДОМ. Сумм-пики у нас считаются формулой, и
+        /// наружу выходит только их действие — подправленный образ. При сверке
+        /// с ЛСРМ этого мало: у них в отчёте есть разделы «Coincidence sum
+        /// peaks» и «xray_peaks», то есть видно, ЧТО именно они посчитали
+        /// суммой, а у нас видно было только «на сколько всё съехало» (наш
+        /// F25). Сравнивать два числа, пришедших разными путями, без такого
+        /// перечня нельзя.
+        ///
+        /// Печатается всё, что посчитано, включая отброшенное порогом
+        /// (`SumPeakFloor`) и срезанное `MaxSumPeaks`: в `Correction` попадает
+        /// только выжившее, а знать надо и то, что не выжило.
+        ///
+        /// Рентгеновских линий здесь нет и быть пока не может: библиотека FSA
+        /// не различает γ и рентген (у `FsaLine` нет вида линии, см. TODO R2),
+        /// так что раздела «xray_peaks» у нас нет не потому, что его не
+        /// напечатали, а потому, что его нечем наполнить.
+        /// </summary>
+        public string Describe(FsaComponent component)
+        {
+            Correction correction = this.For(component);
+            var sb = new StringBuilder();
+            sb.Append("компонент: ").Append(component == null ? "(нет)" : component.Name)
+              .AppendLine();
+            if (correction == null)
+            {
+                sb.AppendLine("поправлять нечего: нуклид не разбирается или пар нет");
+                return sb.ToString();
+            }
+
+            sb.AppendLine();
+            sb.AppendLine("Coincidence sum peaks — площади на распад родителя цепочки");
+            sb.AppendLine("(площадь уже с обеими пиковыми эффективностями и с множителем");
+            sb.AppendLine(" выживания третьего кванта S_ij; второй раз эффективность не применять)");
+            sb.AppendLine();
+            if (correction.SumPeaks == null || correction.SumPeaks.Count == 0)
+            {
+                sb.AppendLine("  нет: либо пары не нашлись, либо все суммы попали в окна линий");
+                sb.AppendLine("  (попавшая сумма учтена влётом в CF своей линии — см. ниже)");
+            }
+            else
+            {
+                sb.AppendLine("   E сумм, кэВ        пара, кэВ        нуклид        площадь");
+                foreach (SumPeak peak in correction.SumPeaks)
+                {
+                    sb.AppendFormat(CultureInfo.InvariantCulture,
+                        "  {0,11:F2}   {1,9:F2} + {2,-9:F2}  {3,-10}  {4,12:E4}",
+                        peak.Energy, peak.FromKev, peak.WithKev, peak.Nuclide, peak.Area);
+                    sb.AppendLine();
+                }
+            }
+
+            sb.AppendLine();
+            sb.AppendLine("Раскладка CF по линиям (A_ист = A_набл · CF)");
+            sb.AppendLine("вынос — партнёр задел кристалл; влёт — сумма пары попала в окно линии");
+            sb.AppendLine();
+            if (correction.Notes == null || correction.Notes.Count == 0)
+            {
+                sb.AppendLine("  нет линий, сошедшихся с базой совпадений");
+            }
+            else
+            {
+                sb.AppendLine("     E, кэВ   нуклид          CF     вынос     влёт   прямая площадь");
+                foreach (LineNote note in correction.Notes)
+                {
+                    sb.AppendFormat(CultureInfo.InvariantCulture,
+                        "  {0,9:F2}   {1,-10}  {2,8:F4}  {3,8:F4} {4,8:F4}   {5,12:E4}",
+                        note.EnergyKev, note.Nuclide, note.Cf, note.Loss,
+                        note.InShare, note.DirectArea);
+                    sb.AppendLine();
+                }
+            }
+
+            return sb.ToString();
+        }
+
         // ------------------------------------------------------------------
         // Счёт
         // ------------------------------------------------------------------
@@ -256,6 +386,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             List<SumPeak> sumPeaks = new List<SumPeak>();
+            List<LineNote> notes = new List<LineNote>();
             bool any = false;
 
             // Пары совпадений живут ВНУТРИ одного нуклида: у компонента-цепочки
@@ -295,7 +426,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
 
                     // В образ идёт ОБРАТНАЯ величина: см. Correction.LineFactors.
-                    double cf = this.CoincidenceFactor(data, baseEnergy);
+                    double loss, inShare, direct;
+                    double cf = this.CoincidenceFactor(data, baseEnergy,
+                                                       out loss, out inShare, out direct);
+                    notes.Add(new LineNote
+                    {
+                        Nuclide = nuclide,
+                        EnergyKev = line.Energy,
+                        Cf = cf,
+                        Loss = loss,
+                        InShare = inShare,
+                        DirectArea = direct
+                    });
+
                     if (cf > 0.0 && Math.Abs(cf - 1.0) > 1.0E-6)
                     {
                         factors[i] = 1.0 / cf;
@@ -320,6 +463,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 LineFactors = factors,
                 SumPeaks = sumPeaks,
+                Notes = notes,
                 Any = any
             };
         }
@@ -331,6 +475,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         double CoincidenceFactor(NuclideData data, double energy)
         {
+            double loss, inShare, direct;
+            return this.CoincidenceFactor(data, energy, out loss, out inShare, out direct);
+        }
+
+        /// <summary>
+        /// То же с раскладкой на составляющие — для отчёта
+        /// (<see cref="Describe"/>). Один и тот же счёт, две подписи: копия
+        /// формулы ради печати однажды разошлась бы с той, по которой считают.
+        /// </summary>
+        double CoincidenceFactor(NuclideData data, double energy,
+                                 out double loss, out double inShare, out double direct)
+        {
+            loss = 0.0;
+            inShare = 0.0;
+            direct = 0.0;
+
             double intensity;
             if (!data.Intensity.TryGetValue(energy, out intensity) || !(intensity > 0.0))
             {
@@ -339,7 +499,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             // Вынос: любой партнёр, оставивший в кристалле хоть что-нибудь,
             // уносит событие из пика.
-            double loss = 0.0;
             foreach (KeyValuePair<double, double> partner in Partners(data, energy))
             {
                 loss += partner.Value * this.TotalEfficiency(partner.Key);
@@ -357,8 +516,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 sumIn += this.PairArea(data, pair);
             }
 
-            double direct = intensity / 100.0 * this.PeakEfficiency(energy);
-            double inShare = direct > 0.0 ? sumIn / direct : 0.0;
+            direct = intensity / 100.0 * this.PeakEfficiency(energy);
+            inShare = direct > 0.0 ? sumIn / direct : 0.0;
             double denominator = (1.0 - loss) + inShare;
             return denominator > 0.0 ? 1.0 / denominator : 1.0;
         }
@@ -403,7 +562,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double area = scale * this.PairArea(data, pair);
                 if (area > floor)
                 {
-                    sumPeaks.Add(new SumPeak(energy, area));
+                    sumPeaks.Add(new SumPeak(energy, area, nuclide, pair[0], pair[1]));
                 }
             }
         }
