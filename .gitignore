@@ -13,5 +13,9 @@ tools/effmaker/probes/build/
 # в репозитории лежат, матрица строится из них `corpusmatrixprobe` за ~3 минуты
 # и воспроизводится побитово. Решение Amber 09.08.2026 — в git не класть.
 tools/CORPUS/corpus/geometries/*.rmx
+tools/CORPUS/corpus/geometries/*.rmx.*
 tools/CORPUS/corpus/geometries/response/
 tools/CORPUS/corpus/geometries/build.log
+# Журналы прогонов матриц и кривых — того же рода, что build.log: числа из них
+# идут в README, а сами файлы пересоздаются (12.08.2026).
+tools/CORPUS/corpus/geometries/build-*.log
