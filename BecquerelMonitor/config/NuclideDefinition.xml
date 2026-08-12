@@ -203,6 +203,7 @@
       <NuclideColor>Orange</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>10.73</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Pb-212</Name>
@@ -522,18 +523,6 @@
         <guid>f5142516-7182-4394-9ea5-1a2b3c4d5e65</guid>
       </Sets>
       <Chain>U-238</Chain>
-    </Nuclide>
-    <Nuclide>
-      <Name>Bi-214</Name>
-      <Energy>775</Energy>
-      <HalfLife>3.614916286149E-05</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Sets>
-        <guid>c2e1b2d3-4e5f-4061-8b72-8d9e0f1a2b32</guid>
-        <guid>f5142516-7182-4394-9ea5-1a2b3c4d5e65</guid>
-      </Sets>
     </Nuclide>
     <Nuclide>
       <Name>Eu-152</Name>
@@ -1199,7 +1188,7 @@
       <HalfLife>3.614916286149E-05</HalfLife>
       <NuclideColor>#808000</NuclideColor>
       <Note />
-      <Visible>false</Visible>
+      <Visible>true</Visible>
       <Intencity>4.89</Intencity>
       <Sets>
         <guid>c2e1b2d3-4e5f-4061-8b72-8d9e0f1a2b32</guid>
