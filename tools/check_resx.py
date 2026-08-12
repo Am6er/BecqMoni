@@ -87,6 +87,19 @@ def load(path):
     return out
 
 
+def duplicates(path):
+    """Ключи, лежащие в файле ДВАЖДЫ. Побеждает последний — молча."""
+    seen, dup = {}, {}
+    for node in ET.parse(path).getroot().findall('data'):
+        name = node.get('name')
+        value = node.findtext('value')
+        if name in seen:
+            dup.setdefault(name, set()).add(seen[name])
+            dup[name].add(value)
+        seen[name] = value
+    return dup
+
+
 def main(argv):
     show = '--list' in argv
     rest = [a for a in argv if not a.startswith('--')]
@@ -122,8 +135,28 @@ def main(argv):
     print('файлов с расхождением: %d' % len(rows))
     print('непереведённых осмысленных строк: %d' % total)
     print('ключей, которых нет в английской паре: %d' % extra_total)
-    print('РАЗОШЛОСЬ' if total or extra_total else 'СОШЛОСЬ')
-    return 1 if total or extra_total else 0
+
+    # Повторы ключей внутри файла: пока значения совпадают, это только лишний
+    # вес, но стоит одной копии разойтись — победит последняя, и молча.
+    dup_files, dup_conflict = 0, 0
+    for path in sorted(glob.glob(os.path.join(root, '**', '*.resx'), recursive=True)):
+        dup = duplicates(path)
+        if not dup:
+            continue
+        dup_files += 1
+        conflict = {k: v for k, v in dup.items() if len(v) > 1}
+        dup_conflict += len(conflict)
+        print('повторы ключей: %-34s %3d шт., из них с разными значениями %d'
+              % (os.path.basename(path), len(dup), len(conflict)))
+        if show:
+            for k in sorted(conflict):
+                print('      %s: %s' % (k, sorted(conflict[k])))
+    if dup_files:
+        print('файлов с повторами ключей: %d (расхождение значений: %d)'
+              % (dup_files, dup_conflict))
+
+    print('РАЗОШЛОСЬ' if total or extra_total or dup_conflict else 'СОШЛОСЬ')
+    return 1 if total or extra_total or dup_conflict else 0
 
 
 if __name__ == '__main__':
