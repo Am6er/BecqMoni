@@ -42904,4 +42904,7 @@ Computed: {7}, took {8:F0} s</value>
 
 The matrix is stored next to the device configuration, one file per geometry, and does not travel inside spectrum files.</value>
   </data>
+  <data name="NuclideSetAllNuclides" xml:space="preserve">
+    <value>--- All Nuclides ---</value>
+  </data>
 </root>

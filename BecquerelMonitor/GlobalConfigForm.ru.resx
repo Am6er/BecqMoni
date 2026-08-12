@@ -5619,4 +5619,91 @@
   <data name="$this.ToolTip" xml:space="preserve">
     <value />
   </data>
+  <data name="button1.Text" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="label28.Text" xml:space="preserve">
+    <value>мс</value>
+  </data>
+  <data name="label29.Text" xml:space="preserve">
+    <value>Спектр 1</value>
+  </data>
+  <data name="label30.Text" xml:space="preserve">
+    <value>Спектр 2</value>
+  </data>
+  <data name="label31.Text" xml:space="preserve">
+    <value>Спектр 3</value>
+  </data>
+  <data name="label32.Text" xml:space="preserve">
+    <value>Спектр 4</value>
+  </data>
+  <data name="label33.Text" xml:space="preserve">
+    <value>Спектр 5</value>
+  </data>
+  <data name="label34.Text" xml:space="preserve">
+    <value>Спектр 6</value>
+  </data>
+  <data name="label35.Text" xml:space="preserve">
+    <value>Спектр 7</value>
+  </data>
+  <data name="label36.Text" xml:space="preserve">
+    <value>Спектр 8</value>
+  </data>
+  <data name="label49.Text" xml:space="preserve">
+    <value>σ</value>
+  </data>
+  <data name="label50.Text" xml:space="preserve">
+    <value>σ</value>
+  </data>
+  <data name="label56.Text" xml:space="preserve">
+    <value>Спектр 9</value>
+  </data>
+  <data name="label57.Text" xml:space="preserve">
+    <value>Спектр 10</value>
+  </data>
+  <data name="label58.Text" xml:space="preserve">
+    <value>Спектр 16</value>
+  </data>
+  <data name="label59.Text" xml:space="preserve">
+    <value>Спектр 15</value>
+  </data>
+  <data name="label60.Text" xml:space="preserve">
+    <value>Спектр 14</value>
+  </data>
+  <data name="label61.Text" xml:space="preserve">
+    <value>Спектр 13</value>
+  </data>
+  <data name="label62.Text" xml:space="preserve">
+    <value>Спектр 12</value>
+  </data>
+  <data name="label63.Text" xml:space="preserve">
+    <value>Спектр 11</value>
+  </data>
+  <data name="label66.Text" xml:space="preserve">
+    <value>Папка спектров</value>
+  </data>
+  <data name="label68.Text" xml:space="preserve">
+    <value>Выделение 1</value>
+  </data>
+  <data name="label69.Text" xml:space="preserve">
+    <value>Выделение 2</value>
+  </data>
+  <data name="label70.Text" xml:space="preserve">
+    <value>Выделение 3</value>
+  </data>
+  <data name="label71.Text" xml:space="preserve">
+    <value>Выделение 4</value>
+  </data>
+  <data name="label72.Text" xml:space="preserve">
+    <value>Выделение 4</value>
+  </data>
+  <data name="label73.Text" xml:space="preserve">
+    <value>Выделение 3</value>
+  </data>
+  <data name="label74.Text" xml:space="preserve">
+    <value>Выделение 2</value>
+  </data>
+  <data name="label75.Text" xml:space="preserve">
+    <value>Выделение 1</value>
+  </data>
 </root>

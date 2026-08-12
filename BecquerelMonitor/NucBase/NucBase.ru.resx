@@ -4631,4 +4631,28 @@
   <data name="$this.ToolTip" xml:space="preserve">
     <value />
   </data>
+  <data name="CheckBoxColumn.HeaderText" xml:space="preserve">
+    <value>X</value>
+  </data>
+  <data name="XRayTypeColumn.HeaderText" xml:space="preserve">
+    <value>Рентген</value>
+  </data>
+  <data name="abundanceLbl.Text" xml:space="preserve">
+    <value>Распространённость:</value>
+  </data>
+  <data name="label11.Text" xml:space="preserve">
+    <value>кэВ</value>
+  </data>
+  <data name="label12.Text" xml:space="preserve">
+    <value>λ &gt;</value>
+  </data>
+  <data name="label13.Text" xml:space="preserve">
+    <value>Удельная активность:</value>
+  </data>
+  <data name="label3.Text" xml:space="preserve">
+    <value>Z:</value>
+  </data>
+  <data name="label4.Text" xml:space="preserve">
+    <value>N:</value>
+  </data>
 </root>

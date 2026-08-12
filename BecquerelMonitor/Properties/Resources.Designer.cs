@@ -1949,6 +1949,15 @@ namespace BecquerelMonitor.Properties {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to --- All Nuclides ---.
+        /// </summary>
+        public static string NuclideSetAllNuclides {
+            get {
+                return ResourceManager.GetString("NuclideSetAllNuclides", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Assign peak color:.
         /// </summary>
         public static string NuclideSetAssignColor {

@@ -177,4 +177,7 @@
     <data name="intensityLabel.Text" xml:space="preserve">
     <value>Интенсивность</value>
   </data>
+  <data name="label4.Text" xml:space="preserve">
+    <value>кэВ</value>
+  </data>
 </root>

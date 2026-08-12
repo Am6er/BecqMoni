@@ -159,21 +159,6 @@
   <data name="roiDefinitionRToolStripMenuItem.Text" xml:space="preserve">
     <value>Редактировать конфигурации &amp;ROI...</value>
   </data>
-  <data name="toolStripMenuItem1.Text" xml:space="preserve">
-    <value>&amp;Экспорт спектра в файл</value>
-  </data>
-  <data name="toolStripMenuItem2.Text" xml:space="preserve">
-    <value>Отчёт...</value>
-  </data>
-  <data name="toolStripMenuItem3.Text" xml:space="preserve">
-    <value>Статус измерений</value>
-  </data>
-  <data name="toolStripMenuItem4.Text" xml:space="preserve">
-    <value>&amp;Калибровка энергии</value>
-  </data>
-  <data name="toolStripMenuItem5.Text" xml:space="preserve">
-    <value>Скорость С&amp;чёта</value>
-  </data>
   <data name="toolStripMenuItem7.Text" xml:space="preserve">
     <value>Расположение</value>
   </data>
@@ -317,5 +302,23 @@
   </data>
   <data name="SpecUtilsToolStripMenuItem.Text" xml:space="preserve">
     <value>Импорт при помощи SpectUtils..</value>
+  </data>
+  <data name="EffCalcMCFileToolStripMenuItem.Text" xml:space="preserve">
+    <value>ЛСРМ EffCalcMC.txt → ROI</value>
+  </data>
+  <data name="GBSFileToolStripMenuItem.Text" xml:space="preserve">
+    <value>SpectraLine GBS</value>
+  </data>
+  <data name="exportToFileStripMenuItem.Text" xml:space="preserve">
+    <value>&amp;Экспорт спектра в файл</value>
+  </data>
+  <data name="jaJPToolStripMenuItem.Text" xml:space="preserve">
+    <value>Русский</value>
+  </data>
+  <data name="neutralToolStripMenuItem.Text" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="oSDefaultToolStripMenuItem.Text" xml:space="preserve">
+    <value>(Как в системе)</value>
   </data>
 </root>

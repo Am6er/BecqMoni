@@ -135,9 +135,6 @@
   <data name="button4.Text" xml:space="preserve">
     <value>Удалить</value>
   </data>
-  <data name="button5.Text" xml:space="preserve">
-    <value>Сохранить</value>
-  </data>
   <data name="button6.Text" xml:space="preserve">
     <value>Закрыть</value>
   </data>
@@ -281,5 +278,29 @@
   </data>
   <data name="buttonEfficiency.Text" xml:space="preserve">
     <value>Кривая эфф.</value>
+  </data>
+  <data name="buttonSave.Text" xml:space="preserve">
+    <value>Сохранить</value>
+  </data>
+  <data name="label10.Text" xml:space="preserve">
+    <value>±</value>
+  </data>
+  <data name="label12.Text" xml:space="preserve">
+    <value>Бк/cps</value>
+  </data>
+  <data name="label14.Text" xml:space="preserve">
+    <value>кэВ</value>
+  </data>
+  <data name="label24.Text" xml:space="preserve">
+    <value>%)</value>
+  </data>
+  <data name="label5.Text" xml:space="preserve">
+    <value>кэВ</value>
+  </data>
+  <data name="label6.Text" xml:space="preserve">
+    <value>кэВ</value>
+  </data>
+  <data name="textColumn13.Text" xml:space="preserve">
+    <value>#</value>
   </data>
 </root>
