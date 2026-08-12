@@ -294,7 +294,4 @@
   <data name="closeCToolStripMenuItem.Text" xml:space="preserve">
     <value>Закрыть(&amp;C)</value>
   </data>
-  <data name="toolStripSplitButton7.ToolTipText" xml:space="preserve">
-    <value>Выбрать отображение фона</value>
-  </data>
 </root>

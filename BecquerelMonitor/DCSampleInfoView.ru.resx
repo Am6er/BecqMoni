@@ -144,4 +144,10 @@
   <data name="label9.Text" xml:space="preserve">
     <value>Дата измерения</value>
   </data>
+  <data name="label5.Text" xml:space="preserve">
+    <value>кг</value>
+  </data>
+  <data name="label6.Text" xml:space="preserve">
+    <value>л</value>
+  </data>
 </root>

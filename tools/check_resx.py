@@ -16,9 +16,36 @@ WinForms есть пара resx. Проверить её глазами нель
 2600 строк, из которых почти все были `button1.Location`. Число, которое ничего
 не значит, хуже отсутствия числа.
 
+Второй такой же случай — ЗАГЛУШКИ КОНСТРУКТОРА: `table1.Text` со значением
+`table1`, `toolStripButton1.Text` со значением `toolStripButton1`. Конструктор
+форм заводит их сам, пользователю они не видны никогда (у `Table`, `ToolStrip`,
+`MenuStrip`, `StatusStrip`, `ToolStripContainer` свойство `Text` не рисуется), и
+перевод у них был бы переводом имени переменной. Такие пропускаются: значение
+либо совпадает с именем контрола (`toolStripSplitButtonBgMode.Text` =
+`toolStripSplitButton7` — след переименования), либо само имеет вид
+конструкторского имени `<вид><номер>`. Решение Amber 12.08.2026, W18.
+
     python tools/check_resx.py [--list] [путь]
 
 Возвращает 1, если непереведённое есть.
+
+## Проход 12.08.2026 (W18): проверка сошлась
+
+Было 142 непереведённых и 10 ключей без английской пары, стало 0 и 0. Разбор:
+30 заглушек конструктора (правило выше), 112 переводов, 10 «сирот» — разобраны
+поимённо, и половина из них оказалась не мусором, а ЖИВЫМ переводом под старым
+именем контрола: `toolStripMenuItem1` держал «&Экспорт спектра в файл» для
+переименованного `exportToFileStripMenuItem`, `SPEFileFilter` — фильтр открытия
+для `GBSFileFilter`. То есть переименование контрола молча роняет русскую
+подпись, а пара при этом выглядит полной с обеих сторон.
+
+**Чего эта проверка НЕ ловит** (все три случая найдены чтением, не ею — W20):
+перевод, у которого нет читателя (`--- Все изотопы ---` лежал в паре, а поле,
+из которого его брали, не присваивалось никогда); `ResXNullRef` с пустым
+значением — русский файл не переводит строку, а ГАСИТ её; и строку, которой нет
+в английском файле, потому что её там не завели вовсе (заголовок `AboutForm`).
+Ключи, одинаковые по-русски и по-английски, заводятся в паре с тем же значением
+сознательно — это отметка «смотрели, по-русски так же» (решение Amber).
 """
 import glob
 import os
@@ -28,6 +55,10 @@ import xml.etree.ElementTree as ET
 
 TEXTY = ('.Text', '.ToolTipText', '.HeaderText', '.TabText', '.Title', '.Caption')
 NUMERIC = re.compile(r'[-0-9.,:%\s]+')
+# Имя, какое конструктор форм даёт контролу сам: вид плюс номер.
+DESIGNER = re.compile(r'(?:table|tableSets|textColumn|numberColumn|checkColumn|imageColumn'
+                      r'|toolStrip\w*?|menuStrip|statusStrip|contextMenuStrip|panel|splitContainer'
+                      r'|tabPage|tabControl|groupBox|dataGridView)\d*$')
 
 
 def wanted(name, node):
@@ -36,6 +67,14 @@ def wanted(name, node):
     if any(name.endswith(s) for s in TEXTY):
         return True
     return '.' not in name and not node.get('type')
+
+
+def placeholder(name, value):
+    """Заглушка конструктора: переводить её нечего, она не показывается."""
+    if not name.endswith('.Text'):
+        return False
+    value = value.strip()
+    return value == name[:-len('.Text')] or bool(DESIGNER.fullmatch(value))
 
 
 def load(path):
@@ -62,7 +101,8 @@ def main(argv):
         eng, rus = load(en), load(ru)
         missing = sorted(k for k in eng
                          if k not in rus and eng[k].strip()
-                         and not NUMERIC.fullmatch(eng[k].strip()))
+                         and not NUMERIC.fullmatch(eng[k].strip())
+                         and not placeholder(k, eng[k]))
         orphan = sorted(k for k in rus if k not in eng)
         if missing or orphan:
             rows.append((len(missing), os.path.basename(en), missing, orphan))

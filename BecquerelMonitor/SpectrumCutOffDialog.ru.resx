@@ -135,4 +135,7 @@
   <data name="label2.Text" xml:space="preserve">
     <value>канал</value>
   </data>
+  <data name="label1.Text" xml:space="preserve">
+    <value>кэВ</value>
+  </data>
 </root>

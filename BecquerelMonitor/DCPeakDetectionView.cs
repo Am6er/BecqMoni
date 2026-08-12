@@ -271,7 +271,13 @@ namespace BecquerelMonitor
             NuclideSet wanted = this.selectedNuclideSet;
 
             this.comboBoxNuclSet.Items.Clear();
-            string allNuclidesText = this.comboBoxNuclSetAllNuclidesText;
+            // Строка берётся из ресурсов: русский перевод для неё лежал в
+            // `DCPeakDetectionView.ru.resx` с 2024 года, но читателя у него не
+            // было — поле ниже объявлялось и НИКОГДА не присваивалось, и в
+            // русском окне всегда стояло английское «--- All Nuclides ---»
+            // (W18, 12.08.2026). Ключ переехал в `Properties/Resources`, где
+            // лежат все строки, нужные коду.
+            string allNuclidesText = Properties.Resources.NuclideSetAllNuclides;
             if (string.IsNullOrEmpty(allNuclidesText))
             {
                 allNuclidesText = "--- All Nuclides ---";
@@ -413,8 +419,6 @@ namespace BecquerelMonitor
         NuclideDefinitionManager nuclideManager = NuclideDefinitionManager.GetInstance();
 
         bool FormLoading = false;
-
-        string comboBoxNuclSetAllNuclidesText = null;
 
         /// <summary>
         /// Набор для поиска пиков. Своего поля у панели больше нет: тот же

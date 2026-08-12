@@ -138,4 +138,13 @@
   <data name="label8.Text" xml:space="preserve">
     <value>Коэффициент</value>
   </data>
+  <data name="label4.Text" xml:space="preserve">
+    <value>кэВ</value>
+  </data>
+  <data name="label5.Text" xml:space="preserve">
+    <value>кэВ</value>
+  </data>
+  <data name="label6.Text" xml:space="preserve">
+    <value>±</value>
+  </data>
 </root>

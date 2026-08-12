@@ -170,4 +170,7 @@
   <data name="labelFilter.Text" xml:space="preserve">
     <value>Фильтр:</value>
   </data>
+  <data name="tableNuclides.Text" xml:space="preserve">
+    <value>Нуклиды</value>
+  </data>
 </root>

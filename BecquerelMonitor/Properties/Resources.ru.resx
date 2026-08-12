@@ -808,13 +808,7 @@
   <data name="ERRDeviceBusy" xml:space="preserve">
     <value>Устройство «{0}» уже используется другим записывающим спектром. Сначала остановите то измерение.</value>
   </data>
-  <data name="SPEFileFilter" xml:space="preserve">
-    <value>Файлы SpectraLine SPE (*.spe)|*.spe|Все файлы (*.*)|*.*</value>
-  </data>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
-  <data name="Lq_counts" type="System.Resources.ResXNullRef, System.Windows.Forms">
-    <value />
-  </data>
   <data name="EfficiencyMakerMenu" xml:space="preserve">
     <value>Конструктор эффективности…</value>
   </data>
@@ -1518,5 +1512,108 @@
     <value>Матрица описывает, как детектор размазывает энергию попавшего в него кванта: пик полного поглощения, комптоновское плато, пики вылета. Полноспектральный разбор берёт её, чтобы моделировать континуум каждого нуклида, а не оставлять его свободной подложке.
 
 Матрица лежит рядом с конфигурацией устройства, отдельным файлом на геометрию, и внутрь файлов спектров не едет.</value>
+  </data>
+  <data name="2Sigma" xml:space="preserve">
+    <value>2σ</value>
+  </data>
+  <data name="ApplicationTitle" xml:space="preserve">
+    <value>BecqMoni Nuclear Edition</value>
+  </data>
+  <data name="BetaProgramExpirationDateString" xml:space="preserve">
+    <value>(Бета-программа действует до {0})</value>
+  </data>
+  <data name="Bkg" xml:space="preserve">
+    <value>Бк/г</value>
+  </data>
+  <data name="Bq" xml:space="preserve">
+    <value>Бк</value>
+  </data>
+  <data name="ChartChannelShort" xml:space="preserve">
+    <value>кан</value>
+  </data>
+  <data name="ChartHeaderCPS" xml:space="preserve">
+    <value>CPS:</value>
+  </data>
+  <data name="ChartHeaderFWHM" xml:space="preserve">
+    <value>ПШПВ:</value>
+  </data>
+  <data name="Delta" xml:space="preserve">
+    <value>Δ</value>
+  </data>
+  <data name="DeviceTypeAtomSpectraVCP" xml:space="preserve">
+    <value>AtomSpectraVCP</value>
+  </data>
+  <data name="DeviceTypeAudioInput" xml:space="preserve">
+    <value>Звуковой вход</value>
+  </data>
+  <data name="DeviceTypeLEMCA" xml:space="preserve">
+    <value>LEMCA USB адаптер</value>
+  </data>
+  <data name="DeviceTypeRadiaCode" xml:space="preserve">
+    <value>RadiaCode</value>
+  </data>
+  <data name="EffCalcMCFileFilter" xml:space="preserve">
+    <value>EffCalcMC.txt|EffCalcMC.txt|*.txt|*.txt</value>
+  </data>
+  <data name="EffCalcMCImportDialogTitle" xml:space="preserve">
+    <value>ЛСРМ EffCalcMC.txt → ROI</value>
+  </data>
+  <data name="GBSFileFilter" xml:space="preserve">
+    <value>Спектры Spectraline GBS (*.spe)|*.spe|Все файлы (*.*)|*.*</value>
+  </data>
+  <data name="Lc_counts" xml:space="preserve">
+    <value>Отсчёты Lc:</value>
+  </data>
+  <data name="Ld_counts" xml:space="preserve">
+    <value>Отсчёты Ld:</value>
+  </data>
+  <data name="LibraryLicensesMessage" xml:space="preserve">
+    <value>Значки BecqMoni — Maks Vasilev
+https://github.com/MaksVasilev/BecqMoniResources
+
+на основе алгоритма отбора по форме импульса PRA для звуковых входов
+https://gammaspectacular.com/marek/pra/index.html
+
+используется библиотека DockPanel Suite
+http://sourceforge.net/projects/dockpanelsuite/
+
+используется библиотека WinMM.Net
+http://winmm.codeplex.com/
+
+используется библиотека XPTable
+http://xptable.sourceforge.net/</value>
+  </data>
+  <data name="Lq_counts" xml:space="preserve">
+    <value>Отсчёты Lq</value>
+  </data>
+  <data name="Lu_counts" xml:space="preserve">
+    <value>Отсчёты Lu:</value>
+  </data>
+  <data name="NuclideSetAllNuclides" xml:space="preserve">
+    <value>--- Все изотопы ---</value>
+  </data>
+  <data name="PeakShapeExpGaussExp" xml:space="preserve">
+    <value>Эксп-Гаусс-Эксп</value>
+  </data>
+  <data name="PeakShapeGaussian" xml:space="preserve">
+    <value>Гауссиана</value>
+  </data>
+  <data name="PeakShapeVoigt" xml:space="preserve">
+    <value>Фойгт</value>
+  </data>
+  <data name="PlusMinus" xml:space="preserve">
+    <value>±</value>
+  </data>
+  <data name="ProgressString" xml:space="preserve">
+    <value> ({0}%)</value>
+  </data>
+  <data name="Sigma" xml:space="preserve">
+    <value>σ</value>
+  </data>
+  <data name="SpecUtilsFileFilter" xml:space="preserve">
+    <value>N42 2006/2012 (*.n42;*.xml;*.icd1;*.icd)|*.n42;*.xml;*.icd1;*.icd|SPC, текстовый или двоичный (целые и с плавающей точкой) (*.spc)|*.spc|Exploranium GR-130, GR-135, двоичный v1 или v2 (*.gr130;*.gr135;*.dat)|*.gr130;*.gr135;*.dat|GADRAS PCF, двоичный (*.pcf)|*.pcf|ORTEC CHN, двоичный (*.chn)|*.chn|IAEA SPE, текстовый (*.spe)|*.spe|CSV, TSV, TXT и подобные (*.txt;*.csv;*.tsv)|*.txt;*.csv;*.tsv|Canberra CNF, двоичный (*.cnf)|*.cnf|Tracs MPS, двоичный (*.mps)|*.mps|Aram, TXT и XML вперемешку (*.gam;*.neu)|*.gam;*.neu|Суточный файл портального монитора (*.txt)|*.txt|Amptek MCA, текстовый (*.mca)|*.mca|Microraider, на основе XML (*.xml)|*.xml|RadiaCode/BecqMoni XML (*.xml)|*.xml|ORTEC, режим списка (*.lis)|*.lis|ЛСРМ, текстовый (*.spe;*.txt;*.sps;*.spef;*.spex)|*.spe;*.txt;*.sps;*.spef;*.spex|TKA, текстовый (*.tka;*.jac)|*.tka;*.jac|MultiAct, двоичный (*.spm)|*.spm|PHD, текстовый (*.phd)|*.phd|LabZY, на основе XML (*.lzs;*.xml)|*.lzs;*.xml|Scan Data XML (*.xml)|*.xml|Bridgeport MCA-3000, JSON (*.json)|*.json|CAEN Hexagon MCA gxml (*.gxml)|*.gxml|Все файлы (*.*)|*.*</value>
+  </data>
+  <data name="kev" xml:space="preserve">
+    <value>кэВ</value>
   </data>
 </root>

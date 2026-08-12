@@ -139,4 +139,7 @@
   <data name="DeadTimeLbl.Text" xml:space="preserve">
     <value>Мёртвое время</value>
   </data>
+  <data name="label4.Text" xml:space="preserve">
+    <value>cps</value>
+  </data>
 </root>

@@ -4741,4 +4741,10 @@
   <data name="$this.Text" xml:space="preserve">
     <value>Редактировать конфигурацию устройства</value>
   </data>
+  <data name="numberColumn7.Text" xml:space="preserve">
+    <value>CPS</value>
+  </data>
+  <data name="textColumn3.Text" xml:space="preserve">
+    <value>#</value>
+  </data>
 </root>

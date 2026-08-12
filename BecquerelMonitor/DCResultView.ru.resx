@@ -141,4 +141,10 @@
   <data name="textColumn3.Text" xml:space="preserve">
     <value>Неопред.</value>
   </data>
+  <data name="textColumn1.Text" xml:space="preserve">
+    <value>ROI</value>
+  </data>
+  <data name="textColumn4.Text" xml:space="preserve">
+    <value>МДА</value>
+  </data>
 </root>
