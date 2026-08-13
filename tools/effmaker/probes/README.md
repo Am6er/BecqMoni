@@ -177,7 +177,8 @@ Pb-212, Tl-208), и без разворота цепочки манифеста 
 
 Ключи: `--part=known|unknown|all`, `--groups=`, `--only=`, `--mode=spline|snip`,
 `--no-matrix` (тот же прогон без матрицы — честный A/B на одних спектрах),
-`--no-cascade`, `--no-pileup`, `--no-background`, `--limit=`, `--quiet`, а также
+`--no-cascade`, `--no-pileup`, `--no-backscatter`, `--no-background`, `--limit=`,
+`--quiet`, а также
 сетка дрейфа целиком — `--offset-range=`, `--offset-steps=`, `--gain-range=`,
 `--gain-steps=` (S6: расширять её вслепую было нельзя, теперь мерится ключами, а
 не пересборкой). Итоговая таблица считает края УСИЛЕНИЯ и НУЛЯ порознь — одним

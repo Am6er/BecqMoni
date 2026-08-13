@@ -58,6 +58,7 @@ namespace CorpusFsaProbe
                 if (a == "--no-matrix") { o.Matrix = false; continue; }
                 if (a == "--no-cascade") { o.Cascade = false; continue; }
                 if (a == "--no-pileup") { o.PileUp = false; continue; }
+                if (a == "--no-backscatter") { o.Backscatter = false; continue; }
                 if (a == "--no-background") { o.Background = false; continue; }
                 if (a == "--quiet") { o.Quiet = true; continue; }
                 if (a.StartsWith("--corpus=", StringComparison.Ordinal)) o.Corpus = a.Substring(9);
@@ -134,9 +135,10 @@ namespace CorpusFsaProbe
             Console.WriteLine("корпус: {0}", Path.GetFullPath(o.Corpus));
             Console.WriteLine("спектров под отбор: {0} (часть: {1}, режим: {2})",
                               samples.Count, o.Part, o.Mode);
-            Console.WriteLine("матрица {0}, суммирование {1}, наложения {2}, фон {3}",
+            Console.WriteLine("матрица {0}, суммирование {1}, наложения {2}, рассеяние {3}, фон {4}",
                               o.Matrix ? "по спектру" : "ВЫКЛЮЧЕНА",
                               o.Cascade ? "вкл" : "выкл", o.PileUp ? "вкл" : "выкл",
+                              o.Backscatter ? "вкл" : "выкл",
                               o.Background ? "вычитается, если есть" : "НЕ вычитается");
             Console.WriteLine("сетка дрейфа: ноль ±{0:F2} кэВ, узлов {1} (шаг {2:F3} кэВ);"
                               + " усиление ±{3:P2}, узлов {4}",
@@ -205,6 +207,7 @@ namespace CorpusFsaProbe
                 analyzer.CascadeSumming = o.Cascade;
                 analyzer.CascadeSumPeaks = o.Cascade;
                 analyzer.PileUp = o.PileUp;
+                analyzer.Backscatter = o.Backscatter;
 
                 // Сетка дрейфа — ключами, а не пересборкой (S6): расширять её
                 // вслепую нельзя, потому что при том же числе узлов вдвое более
@@ -641,6 +644,7 @@ namespace CorpusFsaProbe
             public bool Matrix = true;
             public bool Cascade = true;
             public bool PileUp = true;
+            public bool Backscatter = true;
             public bool Background = true;
             public bool Quiet;
             public int Limit;
