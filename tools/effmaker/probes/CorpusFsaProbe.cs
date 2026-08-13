@@ -61,6 +61,7 @@ namespace CorpusFsaProbe
                 if (a == "--no-backscatter") { o.Backscatter = false; continue; }
                 if (a == "--no-background") { o.Background = false; continue; }
                 if (a == "--quiet") { o.Quiet = true; continue; }
+                if (a == "--peaks") { o.Peaks = true; continue; }
                 if (a.StartsWith("--corpus=", StringComparison.Ordinal)) o.Corpus = a.Substring(9);
                 else if (a.StartsWith("--out=", StringComparison.Ordinal)) o.Out = a.Substring(6);
                 else if (a.StartsWith("--part=", StringComparison.Ordinal)) o.Part = a.Substring(7);
@@ -188,6 +189,28 @@ namespace CorpusFsaProbe
 
                 List<FsaComponent> library = FsaLibrary.BuildFromPeaks(peaks, nuclides.NuclideDefinitions);
                 row.LibrarySize = library.Count;
+
+                // Состав ДО фита: без него «компонента нет в разложении» значит
+                // разом три разных случая — финдер не нашёл пика, финдер нашёл
+                // и подписал ЧУЖИМ именем, гейт выбросил после фита. Числа
+                // прогона различить их не позволяют, а разбор S36 упёрся ровно
+                // в это.
+                if (o.Peaks)
+                {
+                    Console.WriteLine("  {0}: пиков {1}, компонентов {2}",
+                                      sample.Key, peaks.Count, library.Count);
+                    foreach (Peak peak in peaks)
+                    {
+                        Console.WriteLine("      пик {0,9:F2} кэВ  {1}", peak.Energy,
+                                          peak.Nuclide != null ? peak.Nuclide.Name : "(без подписи)");
+                    }
+
+                    foreach (FsaComponent component in library)
+                    {
+                        Console.WriteLine("      образ {0,-14} {1,-9} линий {2}",
+                                          component.Name, component.Kind, component.Lines.Count);
+                    }
+                }
                 if (library.Count == 0)
                 {
                     // Пустая библиотека — не «ошибка счёта», а результат: финдер
@@ -649,6 +672,7 @@ namespace CorpusFsaProbe
             public bool Backscatter = true;
             public bool Background = true;
             public bool Quiet;
+            public bool Peaks;
             public int Limit;
             public double OffsetRangeKev;   // 0 — умолчание анализатора (3.0)
             public int OffsetSteps;         // 0 — умолчание анализатора (9)
