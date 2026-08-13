@@ -76,6 +76,22 @@ namespace CorpusFsaProbe
                 {
                     o.Limit = int.Parse(a.Substring(8), CultureInfo.InvariantCulture);
                 }
+                else if (a.StartsWith("--offset-range=", StringComparison.Ordinal))
+                {
+                    o.OffsetRangeKev = double.Parse(a.Substring(15), CultureInfo.InvariantCulture);
+                }
+                else if (a.StartsWith("--offset-steps=", StringComparison.Ordinal))
+                {
+                    o.OffsetSteps = int.Parse(a.Substring(15), CultureInfo.InvariantCulture);
+                }
+                else if (a.StartsWith("--gain-range=", StringComparison.Ordinal))
+                {
+                    o.GainRange = double.Parse(a.Substring(13), CultureInfo.InvariantCulture);
+                }
+                else if (a.StartsWith("--gain-steps=", StringComparison.Ordinal))
+                {
+                    o.GainSteps = int.Parse(a.Substring(13), CultureInfo.InvariantCulture);
+                }
                 else
                 {
                     Console.Error.WriteLine("неизвестный ключ: " + a);
@@ -122,6 +138,14 @@ namespace CorpusFsaProbe
                               o.Matrix ? "по спектру" : "ВЫКЛЮЧЕНА",
                               o.Cascade ? "вкл" : "выкл", o.PileUp ? "вкл" : "выкл",
                               o.Background ? "вычитается, если есть" : "НЕ вычитается");
+            Console.WriteLine("сетка дрейфа: ноль ±{0:F2} кэВ, узлов {1} (шаг {2:F3} кэВ);"
+                              + " усиление ±{3:P2}, узлов {4}",
+                              o.OffsetRangeKev > 0.0 ? o.OffsetRangeKev : 3.0,
+                              o.OffsetSteps > 0 ? o.OffsetSteps : 9,
+                              2.0 * (o.OffsetRangeKev > 0.0 ? o.OffsetRangeKev : 3.0)
+                              / ((o.OffsetSteps > 0 ? o.OffsetSteps : 9) - 1),
+                              o.GainRange > 0.0 ? o.GainRange : 0.008,
+                              o.GainSteps > 0 ? o.GainSteps : 9);
             Console.WriteLine();
 
             var rows = new List<Row>();
@@ -181,6 +205,30 @@ namespace CorpusFsaProbe
                 analyzer.CascadeSumming = o.Cascade;
                 analyzer.CascadeSumPeaks = o.Cascade;
                 analyzer.PileUp = o.PileUp;
+
+                // Сетка дрейфа — ключами, а не пересборкой (S6): расширять её
+                // вслепую нельзя, потому что при том же числе узлов вдвое более
+                // широкая сетка вдвое грубее, и цену обеих половин надо мерить
+                // вместе.
+                if (o.OffsetRangeKev > 0.0)
+                {
+                    analyzer.OffsetRangeKev = o.OffsetRangeKev;
+                }
+
+                if (o.OffsetSteps > 0)
+                {
+                    analyzer.OffsetSteps = o.OffsetSteps;
+                }
+
+                if (o.GainRange > 0.0)
+                {
+                    analyzer.GainRange = o.GainRange;
+                }
+
+                if (o.GainSteps > 0)
+                {
+                    analyzer.GainSteps = o.GainSteps;
+                }
                 if (rd.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig peakConfig)
                 {
                     analyzer.MinEnergy = peakConfig.Min_Range;
@@ -238,7 +286,8 @@ namespace CorpusFsaProbe
                 row.Chi2Ndf = result.Chi2Ndf;
                 row.Gain = result.Gain;
                 row.OffsetChannels = result.OffsetChannels;
-                row.DriftOnGridEdge = result.DriftOnGridEdge;
+                row.GainOnGridEdge = result.GainOnGridEdge;
+                row.OffsetOnGridEdge = result.OffsetOnGridEdge;
                 row.MatrixUsed = result.ResponseMatrixUsed;
                 row.CascadeUsed = result.CascadeSummingUsed;
                 row.EfficiencyUsed = result.EfficiencyUsed;
@@ -271,7 +320,9 @@ namespace CorpusFsaProbe
                               + "  матрица: {6,-18} {7,6:F0} мс{8}",
                               row.Key, row.Det, row.Part, row.Chi2Ndf, row.Peaks, row.LibrarySize,
                               row.MatrixNote, row.Ms,
-                              row.DriftOnGridEdge ? "  ДРЕЙФ НА КРАЮ СЕТКИ" : "");
+                              row.GainOnGridEdge && row.OffsetOnGridEdge ? "  КРАЙ: усиление И ноль"
+                              : row.GainOnGridEdge ? "  КРАЙ: усиление"
+                              : row.OffsetOnGridEdge ? "  КРАЙ: ноль шкалы" : "");
         }
 
         /// <summary>
@@ -284,8 +335,9 @@ namespace CorpusFsaProbe
         {
             Console.WriteLine();
             Console.WriteLine("=== итог по частям корпуса ({0:n0} с) ===", seconds);
-            Console.WriteLine("{0,-10} {1,8} {2,8} {3,10} {4,10} {5,8} {6,8}",
-                              "часть", "спектров", "с матр.", "sum chi2", "медиана", "ошибок", "край");
+            Console.WriteLine("{0,-10} {1,8} {2,8} {3,10} {4,10} {5,8} {6,8} {7,8}",
+                              "часть", "спектров", "с матр.", "sum chi2", "медиана", "ошибок",
+                              "кр.усил", "кр.ноль");
             foreach (string part in new[] { "known", "unknown" })
             {
                 var of = new List<Row>();
@@ -302,7 +354,7 @@ namespace CorpusFsaProbe
                     continue;
                 }
 
-                int errors = 0, matrix = 0, edge = 0;
+                int errors = 0, matrix = 0, gainEdge = 0, offsetEdge = 0;
                 var chi = new List<double>();
                 foreach (Row r in of)
                 {
@@ -317,9 +369,14 @@ namespace CorpusFsaProbe
                         matrix++;
                     }
 
-                    if (r.DriftOnGridEdge)
+                    if (r.GainOnGridEdge)
                     {
-                        edge++;
+                        gainEdge++;
+                    }
+
+                    if (r.OffsetOnGridEdge)
+                    {
+                        offsetEdge++;
                     }
 
                     chi.Add(r.Chi2Ndf);
@@ -335,8 +392,8 @@ namespace CorpusFsaProbe
                 double median = chi.Count == 0 ? 0.0
                     : (chi.Count % 2 == 1 ? chi[chi.Count / 2]
                        : 0.5 * (chi[chi.Count / 2 - 1] + chi[chi.Count / 2]));
-                Console.WriteLine("{0,-10} {1,8} {2,8} {3,10:F1} {4,10:F2} {5,8} {6,8}",
-                                  part, of.Count, matrix, sum, median, errors, edge);
+                Console.WriteLine("{0,-10} {1,8} {2,8} {3,10:F1} {4,10:F2} {5,8} {6,8} {7,8}",
+                                  part, of.Count, matrix, sum, median, errors, gainEdge, offsetEdge);
             }
 
             Console.WriteLine();
@@ -365,7 +422,8 @@ namespace CorpusFsaProbe
                 using (var runs = new StreamWriter(prefix + "_runs.csv", false, new UTF8Encoding(true)))
                 using (var comps = new StreamWriter(prefix + "_components.csv", false, new UTF8Encoding(true)))
                 {
-                    runs.WriteLine("spectrum,det,part,chi2ndf,gain,offset_ch,drift_edge,matrix,"
+                    runs.WriteLine("spectrum,det,part,chi2ndf,gain,offset_ch,drift_edge,gain_edge,"
+                                   + "offset_edge,matrix,"
                                    + "matrix_note,cascade,efficiency,background,peaks,components,ms,error");
                     comps.WriteLine("spectrum,det,part,component,kind,share_pct,z,count_rate,peak_counts");
                     foreach (Row r in rows)
@@ -380,6 +438,7 @@ namespace CorpusFsaProbe
                             r.Error != null ? "ERROR" : F(r.Chi2Ndf, "F4"),
                             F(r.Gain, "F6"), F(r.OffsetChannels, "F3"),
                             r.DriftOnGridEdge ? "1" : "0",
+                            r.GainOnGridEdge ? "1" : "0", r.OffsetOnGridEdge ? "1" : "0",
                             r.MatrixUsed ? "1" : "0", Csv(r.MatrixNote),
                             r.CascadeUsed ? "1" : "0", r.EfficiencyUsed ? "1" : "0",
                             r.HasBackground ? "1" : "0",
@@ -585,6 +644,10 @@ namespace CorpusFsaProbe
             public bool Background = true;
             public bool Quiet;
             public int Limit;
+            public double OffsetRangeKev;   // 0 — умолчание анализатора (3.0)
+            public int OffsetSteps;         // 0 — умолчание анализатора (9)
+            public double GainRange;        // 0 — умолчание анализатора (0.008)
+            public int GainSteps;           // 0 — умолчание анализатора (9)
             public List<string> Groups;
             public List<string> Only;
         }
@@ -610,7 +673,14 @@ namespace CorpusFsaProbe
             public double Gain;
             public double OffsetChannels;
             public double Ms;
-            public bool DriftOnGridEdge;
+            public bool GainOnGridEdge;
+            public bool OffsetOnGridEdge;
+
+            /// <summary>Любой из двух краёв — для итоговой таблицы.</summary>
+            public bool DriftOnGridEdge
+            {
+                get { return this.GainOnGridEdge || this.OffsetOnGridEdge; }
+            }
             public bool MatrixUsed;
             public bool CascadeUsed;
             public bool EfficiencyUsed;

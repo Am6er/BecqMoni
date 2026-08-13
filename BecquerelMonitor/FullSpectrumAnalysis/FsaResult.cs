@@ -85,8 +85,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         public double OffsetChannels { get; set; }
 
-        /// <summary>Оптимум дрейфа упёрся в границу сетки — шкале верить нельзя.</summary>
-        public bool DriftOnGridEdge { get; set; }
+        /// <summary>
+        /// Оптимум дрейфа упёрся в границу сетки — шкале верить нельзя. Это ИЛИ
+        /// двух признаков ниже; порознь они появились 13.08.2026, когда
+        /// корпусный прогон (S1, S6) показал, что одним словом «дрейф» названы
+        /// два разных отказа, и читатель предупреждения расширял не ту сетку.
+        /// </summary>
+        public bool DriftOnGridEdge
+        {
+            get { return this.GainOnGridEdge || this.OffsetOnGridEdge; }
+        }
+
+        /// <summary>Упёрлось УСИЛЕНИЕ: оптимум на краю сетки <c>GainRange</c>.</summary>
+        public bool GainOnGridEdge { get; set; }
+
+        /// <summary>Упёрся НОЛЬ шкалы: оптимум на краю сетки <c>OffsetRangeKev</c>.</summary>
+        public bool OffsetOnGridEdge { get; set; }
 
         public double LiveTime { get; set; }
 
