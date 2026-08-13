@@ -127,6 +127,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool CascadeSumPeaks { get; set; }
 
         /// <summary>
+        /// Идёт ли сумм-КОНТИНУУМ (S19) в подслой отрисовки. В МОДЕЛЬ он идёт
+        /// всегда — это вопрос только про штриховку внутри ленты нуклида.
+        ///
+        /// Техническая преграда снята: подслой строится тем же кодом, что и
+        /// лента, и выше неё не поднимается по построению (S37). Осталась
+        /// смысловая, и она не про счёт: подслой читается как «вот эти пики —
+        /// суммы», а широкая полка, нарисованная так же, читалась бы как пик,
+        /// которого нет. Поэтому умолчание — только пики; поле оставлено
+        /// ручкой для проб, в UI не выводится (как
+        /// <see cref="ResponseContinuumTrustFloorKev"/>).
+        /// </summary>
+        public bool SumLayerIncludesContinuum;
+
+        /// <summary>
         /// Добавлять образ случайных наложений (pile-up) — автосвёртку самого
         /// спектра со свободной амплитудой. См.
         /// <see cref="BuildPileUpComponent"/>: это НЕ каскад, а свойство
@@ -164,6 +178,35 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// «с суммированием» на таком спектре была бы враньём.
         /// </summary>
         bool cascadeApplied;
+
+        /// <summary>
+        /// Гистограммы поглощения компонентов, посчитанные ОДИН раз на разбор.
+        ///
+        /// От узла сетки дрейфа гистограмма не зависит вовсе: усиление и ноль
+        /// шкалы накладываются позже, при уширении, а сложение откликов линий,
+        /// сумм-пиков и сумм-континуума знает только энергии. До 13.08.2026 её
+        /// тем не менее строили заново на каждом из 81 узла — и с приходом
+        /// тройных сумм и сумм-континуума (S19) это стало главной статьёй
+        /// расхода: корпусный прогон подорожал с 50 с до 236 с.
+        ///
+        /// Живёт ровно один разбор, как и остальные кэши: между вызовами могли
+        /// смениться и матрица, и калибровка.
+        /// </summary>
+        readonly Dictionary<FsaComponent, Deposit> deposits = new Dictionary<FsaComponent, Deposit>();
+
+        /// <summary>
+        /// Гистограмма поглощения компонента и всё, что от неё отрезано:
+        /// подпороговый хвост отдельной колонкой и доля сумм для подслоя.
+        /// Ножи применены ДО кэширования, поэтому все три части согласованы
+        /// поканально при любом числе обращений.
+        /// </summary>
+        sealed class Deposit
+        {
+            public double[] Values;
+            public double[] Tail;
+            public double[] SumPart;
+            public bool CascadeApplied;
+        }
 
         public FsaAnalyzer()
         {
@@ -212,6 +255,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.depositChannels = null;
             this.depositChannelsCalibration = null;
             this.kernelBank = null;
+            this.deposits.Clear();
 
             // Каскадные поправки — на ту же матрицу, что и образы: она даёт им
             // обе эффективности. Кэш поправок внутри живёт один разбор, потому
@@ -1373,6 +1417,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                                EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
                                                int channels)
         {
+            return this.SplitContinuumBelowTrustFloor(deposit, null, bin, component, calibration,
+                                                      fwhmCalibration, channels);
+        }
+
+        /// <summary>
+        /// То же, но заодно вынимает те же бины из ПАРАЛЛЕЛЬНОЙ гистограммы
+        /// <paramref name="part"/> — доли образа, которую потом рисуют подслоем.
+        /// Нож обязан быть один: бин, ушедший из ленты в отдельную колонку,
+        /// обязан уйти и из подслоя, иначе подслой окажется выше ленты ровно на
+        /// вынутое (S37).
+        /// </summary>
+        double[] SplitContinuumBelowTrustFloor(double[] deposit, double[] part, double bin,
+                                               FsaComponent component,
+                                               EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
+                                               int channels)
+        {
             int floorBins = (int)(this.ResponseContinuumTrustFloorKev / bin);
             if (floorBins <= 0)
             {
@@ -1442,6 +1502,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                     tail[i] = deposit[i];
                     deposit[i] = 0.0;
+                    if (part != null)
+                    {
+                        part[i] = 0.0;
+                    }
                 }
             }
 
@@ -1484,6 +1548,91 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                            out double[] lowTail)
         {
             lowTail = null;
+            Deposit deposit = this.DepositOf(component, calibration, fwhmCalibration, channels);
+            if (deposit == null)
+            {
+                return null;
+            }
+
+            double bin = this.ResponseMatrix.BinKev;
+            double[] template = this.BroadenResponseDeposit(deposit.Values, calibration, fwhmCalibration,
+                                                            bin, gain, offset, chLo, chHi, channels);
+            if (template != null && deposit.Tail != null)
+            {
+                lowTail = this.BroadenResponseDeposit(deposit.Tail, calibration, fwhmCalibration,
+                                                      bin, gain, offset, chLo, chHi, channels);
+            }
+
+            return template;
+        }
+
+        /// <summary>
+        /// Гистограмма поглощения компонента — из кэша или посчитанная сейчас.
+        /// Оба ножа (подпороговый хвост и доля сумм) применяются ЗДЕСЬ, до
+        /// того как её положат в кэш: разрезать её потом означало бы снова
+        /// завести два места, режущих одно и то же по своей копии (S37).
+        /// </summary>
+        Deposit DepositOf(FsaComponent component, EnergyCalibration calibration,
+                          FwhmCalibration fwhmCalibration, int channels)
+        {
+            Deposit cached;
+            if (this.deposits.TryGetValue(component, out cached))
+            {
+                if (cached != null && cached.CascadeApplied)
+                {
+                    this.cascadeApplied = true;
+                }
+
+                return cached;
+            }
+
+            double bin = this.ResponseMatrix.BinKev;
+            bool before = this.cascadeApplied;
+            this.cascadeApplied = false;
+
+            double[] sumPart;
+            double[] values = this.BuildResponseDeposit(component, true, out sumPart);
+            Deposit deposit = null;
+            if (values != null)
+            {
+                // Подпороговый континуум отвязывается в отдельную колонку;
+                // пиковые окна линий остаются в основном образе (см.
+                // комментарий у ResponseContinuumTrustFloorKev). Хвост уширяется
+                // тем же путём: он короткий (полсотни бинов), вторая свёртка
+                // почти бесплатна.
+                deposit = new Deposit
+                {
+                    Values = values,
+                    SumPart = sumPart,
+                    Tail = this.SplitContinuumBelowTrustFloor(values, sumPart, bin, component,
+                                                              calibration, fwhmCalibration, channels),
+                    CascadeApplied = this.cascadeApplied
+                };
+            }
+
+            this.cascadeApplied = before || this.cascadeApplied;
+            this.deposits[component] = deposit;
+            return deposit;
+        }
+
+        /// <summary>
+        /// Гистограмма поглощения компонента — ОДНА на оба пути: образ, который
+        /// идёт в фит, и подслой сумм, который рисуется внутри его ленты.
+        ///
+        /// Раздельные копии этого кода и были дефектом S37: подслой строился
+        /// своим массивом, своим порогом и своей группировкой, и выходил ВЫШЕ
+        /// собственной ленты — на 0.01 отсчёта в зачаточном виде и на 5–11,
+        /// когда в него добавили сумм-континуум. Подслой не может быть «почти
+        /// частью» ленты: он либо построен тем же ножом, либо врёт.
+        ///
+        /// <paramref name="sumPart"/> — та же гистограмма, но в ней ТОЛЬКО
+        /// каскадные добавки; по построению она поканально не больше основной,
+        /// потому что в основную кладётся то же самое плюс неотрицательные
+        /// линии.
+        /// </summary>
+        double[] BuildResponseDeposit(FsaComponent component, bool needSumPart, out double[] sumPart)
+        {
+            sumPart = null;
             EfficiencyMaker.ResponseMatrix matrix = this.ResponseMatrix;
             double bin = matrix.BinKev;
             if (!(bin > 0.0))
@@ -1558,45 +1707,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 this.cascadeApplied = true;
             }
 
-            // Подпороговый континуум отвязывается в отдельную колонку; пиковые
-            // окна линий остаются в основном образе (см. комментарий у
-            // ResponseContinuumTrustFloorKev). Хвост уширяется тем же путём:
-            // он короткий (полсотни бинов), вторая свёртка почти бесплатна.
-            double[] tailDeposit = SplitContinuumBelowTrustFloor(deposit, bin, component,
-                                                                 calibration, fwhmCalibration, channels);
-            double[] template = this.BroadenResponseDeposit(deposit, calibration, fwhmCalibration,
-                                                            bin, gain, offset, chLo, chHi, channels);
-            if (template != null && tailDeposit != null)
+            if (sumPeaks && needSumPart)
             {
-                lowTail = this.BroadenResponseDeposit(tailDeposit, calibration, fwhmCalibration,
-                                                      bin, gain, offset, chLo, chHi, channels);
+                // Второй проход тем же методом по пустому массиву той же длины:
+                // разность «с суммами минус без» дала бы то же число, но
+                // повторный вызов честнее — он показывает, что подслой кладёт
+                // РОВНО то же, что лента, и отличается только составом.
+                sumPart = new double[deposit.Length];
+                this.AccumulateSumPeaks(sumPart, correction, this.SumLayerIncludesContinuum);
             }
 
-            return template;
+            return deposit;
         }
 
-        /// <summary>
-        /// Уложить сумм-пики в гистограмму поглощения. Общий для образа и для
-        /// его отдельной сумм-кривой (отрисовка): два места, кладущие одно и то
-        /// же по своей копии кода, однажды разойдутся, и на графике окажется
-        /// не то, что в фите.
-        ///
-        /// Площадь сумм-пика посчитана целиком — обе пиковые эффективности уже
-        /// внутри неё. Вес подбирается так, чтобы канал пика дал ровно её и ни
-        /// на что больше не разошёлся.
-        /// </summary>
-        /// <summary>
-        /// Докуда обязан доставать массив поглощения, чтобы каскадные добавки в
-        /// него поместились: выше самого высокого сумм-пика И выше верха
-        /// сумм-континуума (сумма пары плюс вся энергия третьего кванта).
-        ///
-        /// Общий на ОБА места, где такой массив заводится, — образ компонента и
-        /// его сумм-кривая для отрисовки. Разъехаться им нельзя: `Add` в матрице
-        /// зажимает выход за край, и всё, что не поместилось, встаёт ложным
-        /// пиком в последнем бине. Проверка «подслой выше своей ленты» в
-        /// `FsaCascadeProbe` поймала ровно это, когда сумм-континуум учли в
-        /// одном месте и забыли в другом.
-        /// </summary>
         /// <summary>Самая верхняя линия компонента с ненулевым выходом, кэВ.</summary>
         static double TopLineEnergy(FsaComponent component)
         {
@@ -1612,6 +1735,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return top;
         }
 
+        /// <summary>
+        /// Докуда обязан доставать массив поглощения, чтобы каскадные добавки в
+        /// него поместились: выше самого высокого сумм-пика И выше верха
+        /// сумм-континуума (сумма пары плюс вся энергия третьего кванта).
+        ///
+        /// `Add` в матрице зажимает выход за край, и всё, что не поместилось,
+        /// встаёт ложным пиком в последнем бине — поэтому верх считается ОДНИМ
+        /// методом. С тех пор как гистограмму заводит один
+        /// <see cref="BuildResponseDeposit"/>, разъехаться ему уже не с чем.
+        /// </summary>
         static double SumTopEnergy(FsaCascadeSummer.Correction correction, double start)
         {
             double top = start;
@@ -1646,6 +1779,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return top;
         }
 
+        /// <summary>
+        /// Уложить сумм-пики в гистограмму поглощения. Общий для образа и для
+        /// его отдельной сумм-кривой (отрисовка): два места, кладущие одно и то
+        /// же по своей копии кода, однажды разойдутся, и на графике окажется
+        /// не то, что в фите.
+        ///
+        /// Площадь сумм-пика посчитана целиком — обе пиковые эффективности уже
+        /// внутри неё. Вес подбирается так, чтобы канал пика дал ровно её и ни
+        /// на что больше не разошёлся.
+        /// </summary>
         bool AccumulateSumPeaks(double[] deposit, FsaCascadeSummer.Correction correction)
         {
             return this.AccumulateSumPeaks(deposit, correction, true);
@@ -1735,33 +1878,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return null;
             }
 
-            // Верх шкалы берётся ТОТ ЖЕ, что у полного образа компонента —
-            // вместе с его линиями, хотя самих линий здесь не кладут. Иначе у
-            // подслоя массив короче, а `Add` зажимает выход за край: сумма,
-            // лежащая выше края КОРОТКОГО массива, встаёт в его последний бин и
-            // задирает подслой выше собственной ленты. Ровно это и показала
-            // проба, когда массивы считались порознь.
-            double topEnergy = SumTopEnergy(correction, TopLineEnergy(component));
-            if (!(topEnergy > 0.0))
+            // Берётся ТА ЖЕ гистограмма, по которой строилась лента, — из кэша
+            // разбора, целиком, с линиями и поправками, хотя рисовать их здесь
+            // не собираются. Она нужна как мерка: по ней берутся группы бинов,
+            // порог отсечки и центры тяжести, и только это делает подслой
+            // действительно частью ленты, а не похожей на неё кривой (S37).
+            Deposit deposit = this.DepositOf(component, calibration, fwhmCalibration, channels);
+            if (deposit == null || deposit.SumPart == null)
             {
                 return null;
             }
 
-            // ⚠ Сумм-КОНТИНУУМ в подслой НЕ идёт (S19, 13.08.2026). Причины две.
-            // Смысловая: подслой рисуется штриховкой внутри ленты нуклида и
-            // читается как «вот эти пики — суммы»; широкая полка, нарисованная
-            // так же, читалась бы как пик, которого нет. И измеренная: с ним
-            // подслой вылезал ЗА свою ленту (проба ловит это счётом) — на
-            // 5–11 отсчётов из сотен тысяч, но вылезал, а причина расхождения
-            // двух путей построения не установлена (TODO S37).
-            double[] deposit = new double[(int)(topEnergy / bin + 0.5) + 1];
-            if (!this.AccumulateSumPeaks(deposit, correction, false))
-            {
-                return null;
-            }
-
-            return this.BroadenResponseDeposit(deposit, calibration, fwhmCalibration,
-                                               bin, gain, offset, chLo, chHi, channels);
+            double[] sumCurve;
+            this.BroadenResponseDeposit(deposit.Values, deposit.SumPart, calibration, fwhmCalibration,
+                                        bin, gain, offset, chLo, chHi, channels, out sumCurve);
+            return sumCurve;
         }
 
         /// <summary>
@@ -1773,6 +1904,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                         FwhmCalibration fwhmCalibration, double bin,
                                         double gain, double offset, int chLo, int chHi, int channels)
         {
+            double[] ignored;
+            return this.BroadenResponseDeposit(deposit, null, calibration, fwhmCalibration, bin,
+                                               gain, offset, chLo, chHi, channels, out ignored);
+        }
+
+        /// <summary>
+        /// То же уширение, но заодно ведёт ЧАСТЬ гистограммы
+        /// (<paramref name="part"/>) — ту, что рисуется подслоем внутри ленты.
+        ///
+        /// Часть не уширяется отдельно, и это главное. Группы бинов, порог
+        /// отсечки, центр тяжести и ядро берутся у ПОЛНОЙ гистограммы, а часть
+        /// лишь отдаёт в тот же центр свою площадь. Отсюда поканальное
+        /// `подслой ≤ лента` следует само: веса неотрицательны, ядро общее,
+        /// свёртка линейна. Порознь это не выполнялось — порог у части свой
+        /// (`top·1e-5` от её собственного максимума, а он на порядки меньше),
+        /// группы начинались с других бинов, и подслой вылезал за ленту (S37).
+        /// </summary>
+        double[] BroadenResponseDeposit(double[] deposit, double[] part, EnergyCalibration calibration,
+                                        FwhmCalibration fwhmCalibration, double bin,
+                                        double gain, double offset, int chLo, int chHi, int channels,
+                                        out double[] partTemplate)
+        {
+            partTemplate = null;
             double top = 0.0;
             foreach (double v in deposit)
             {
@@ -1789,6 +1943,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             double threshold = top * 1.0E-5;
             double[] template = new double[channels];
+            if (part != null)
+            {
+                partTemplate = new double[channels];
+            }
 
             // Перевод «энергия → канал» не зависит ни от компонента, ни от узла
             // сетки дрейфа (усиление и ноль накладываются ПОСЛЕ), значит его
@@ -1810,6 +1968,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 source = this.sourceBuffer = new double[size];
                 bands = this.sourceBands = new int[size];
             }
+
+            // Буфер части — свой и одноразовый: подслой строится один раз на
+            // готовый результат, а не на каждом узле сетки дрейфа, и делить
+            // ради него общий буфер незачем.
+            double[] partSource = part != null ? new double[size] : null;
 
             int srcLo = Int32.MaxValue;
             int srcHi = Int32.MinValue;
@@ -1856,6 +2019,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 double area = 0.0;
                 double moment = 0.0;
+                double partArea = 0.0;
                 int end = Math.Min(deposit.Length, b + group);
                 for (int k = b; k < end; k++)
                 {
@@ -1873,6 +2037,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                     area += v;
                     moment += v * (gain * q + offset);
+                    if (part != null && k < part.Length)
+                    {
+                        partArea += part[k];
+                    }
                 }
 
                 b = end;
@@ -1892,6 +2060,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double frac = center - channel;
                 Splat(source, bands, pad, channels, channel, area * (1.0 - frac), band, ref srcLo, ref srcHi);
                 Splat(source, bands, pad, channels, channel + 1, area * frac, band, ref srcLo, ref srcHi);
+                if (partSource != null && partArea > 0.0)
+                {
+                    // Тот же канал, та же доля, то же ядро — площадь у части
+                    // своя. Границы источников и номера ядер уже записаны
+                    // полной гистограммой: часть их не расширяет, потому что
+                    // непустой быть там, где полная пуста, не может.
+                    SplatPart(partSource, pad, channels, channel, partArea * (1.0 - frac));
+                    SplatPart(partSource, pad, channels, channel + 1, partArea * frac);
+                }
             }
 
             // Свёртка. Буфер источников общий и переиспользуется между
@@ -1907,6 +2084,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 source[idx] = 0.0;
+                double partWeight = 0.0;
+                if (partSource != null)
+                {
+                    partWeight = partSource[idx];
+                    partSource[idx] = 0.0;
+                }
+
                 double[] kernel = bank.Get(bands[idx]);
                 if (kernel == null)
                 {
@@ -1923,13 +2107,32 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 for (int i = lo; i <= hi; i++)
                 {
-                    template[i] += weight * kernel[i - full0];
+                    double k = kernel[i - full0];
+                    template[i] += weight * k;
+                    if (partWeight > 0.0)
+                    {
+                        partTemplate[i] += partWeight * k;
+                    }
                 }
 
                 any = true;
             }
 
             return any ? template : null;
+        }
+
+        /// <summary>
+        /// Положить площадь ЧАСТИ в тот же канал источника, что и полная
+        /// гистограмма. Ядро и границы там уже записаны — часть их не трогает.
+        /// </summary>
+        static void SplatPart(double[] source, int pad, int channels, int channel, double weight)
+        {
+            if (!(weight > 0.0) || channel < -pad || channel > channels - 1 + pad)
+            {
+                return;
+            }
+
+            source[channel + pad] += weight;
         }
 
         /// <summary>

@@ -25,7 +25,7 @@ namespace FsaCascadeProbe
     /// одном и том же коде, а не на двух сборках.
     ///
     ///   fsacascadeprobe --spectrum=X.xml [--efficiency=Цилиндр] [--background=B.xml]
-    ///                   [--rebuild] [--lines=12]
+    ///                   [--rebuild] [--lines=12] [--sum-layer-continuum]
     ///
     /// Запускать из каталога с конфигурацией прибора и определениями нуклидов
     /// (`BecquerelMonitor\bin\Debug` или рабочий каталог корпуса).
@@ -39,7 +39,7 @@ namespace FsaCascadeProbe
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
             string spectrumPath = null, backgroundPath = null, efficiencyName = null, dumpGeometry = null;
-            bool rebuild = false, force = false, describe = false;
+            bool rebuild = false, force = false, describe = false, sumLayerContinuum = false;
             int maxLines = 12;
             double scanFrom = 0.0, scanTo = 0.0;
             foreach (string a in args)
@@ -47,6 +47,7 @@ namespace FsaCascadeProbe
                 if (a == "--rebuild") { rebuild = true; continue; }
                 if (a == "--force") { force = true; continue; }
                 if (a == "--describe") { describe = true; continue; }
+                if (a == "--sum-layer-continuum") { sumLayerContinuum = true; continue; }
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) spectrumPath = a.Substring(11);
                 else if (a.StartsWith("--background=", StringComparison.Ordinal)) backgroundPath = a.Substring(13);
                 else if (a.StartsWith("--efficiency=", StringComparison.Ordinal)) efficiencyName = a.Substring(13);
@@ -218,6 +219,12 @@ namespace FsaCascadeProbe
 
             // Наложения меряются отдельно от всего остального: они не каскад.
             analyzer.PileUp = false;
+
+            // Сумм-континуум в подслое отрисовки (S19 «а»): в МОДЕЛИ он есть
+            // всегда, ключ только про штриховку. Держится читателем проверки
+            // «подслой выше своей ленты» ниже — на этой ветке дефект S37 и
+            // проявлялся крупнее всего.
+            analyzer.SumLayerIncludesContinuum = sumLayerContinuum;
             var clock = System.Diagnostics.Stopwatch.StartNew();
             FsaResult plain = analyzer.Analyze(rd.EnergySpectrum, background, rd.FwhmCalibration,
                                                library, efficiency);
