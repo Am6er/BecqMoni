@@ -458,14 +458,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return BuildResult(best, spectrum, fwhmCalibration, backgroundCurve, snipContinuum,
                                chLo, chHi, channels,
                                bestGain, bestOffset, liveTime, efficiency != null,
-                               (gainSteps > 1 && (bestGainIndex == 0 || bestGainIndex == gainSteps - 1))
-                               || (offsetSteps > 1 && (bestOffsetIndex == 0 || bestOffsetIndex == offsetSteps - 1)));
+                               gainSteps > 1 && (bestGainIndex == 0 || bestGainIndex == gainSteps - 1),
+                               offsetSteps > 1 && (bestOffsetIndex == 0 || bestOffsetIndex == offsetSteps - 1));
         }
 
         FsaResult BuildResult(FitResult fit, EnergySpectrum spectrum, FwhmCalibration fwhmCalibration,
                               double[] backgroundCurve, int[] snipContinuum,
                               int chLo, int chHi, int channels, double gain, double offset, double liveTime,
-                              bool efficiencyUsed, bool driftOnEdge)
+                              bool efficiencyUsed, bool gainOnEdge, bool offsetOnEdge)
         {
             // Калибровка — та же, по которой строились образы; берётся у
             // спектра, как в Analyze. ПШПВ приходит параметром: у спектра её
@@ -483,7 +483,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 EfficiencyUsed = efficiencyUsed,
                 ResponseMatrixUsed = fit.FromResponseMatrix,
                 CascadeSummingUsed = this.cascadeApplied,
-                DriftOnGridEdge = driftOnEdge,
+                GainOnGridEdge = gainOnEdge,
+                OffsetOnGridEdge = offsetOnEdge,
                 Background = backgroundCurve,
                 Continuum = new double[channels],
                 Model = new double[channels]
