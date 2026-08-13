@@ -62,6 +62,21 @@ namespace CorpusFsaProbe
                 if (a == "--no-background") { o.Background = false; continue; }
                 if (a == "--quiet") { o.Quiet = true; continue; }
                 if (a == "--peaks") { o.Peaks = true; continue; }
+                if (a.StartsWith("--residuals=", StringComparison.Ordinal))
+                {
+                    o.Residuals = int.Parse(a.Substring(12), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a.StartsWith("--near=", StringComparison.Ordinal))
+                {
+                    string[] parts = a.Substring(7).Split(':');
+                    if (parts.Length == 2)
+                    {
+                        o.NearFrom = double.Parse(parts[0], CultureInfo.InvariantCulture);
+                        o.NearTo = double.Parse(parts[1], CultureInfo.InvariantCulture);
+                    }
+                    continue;
+                }
                 if (a.StartsWith("--corpus=", StringComparison.Ordinal)) o.Corpus = a.Substring(9);
                 else if (a.StartsWith("--out=", StringComparison.Ordinal)) o.Out = a.Substring(6);
                 else if (a.StartsWith("--part=", StringComparison.Ordinal)) o.Part = a.Substring(7);
@@ -330,6 +345,24 @@ namespace CorpusFsaProbe
                 row.MatrixUsed = result.ResponseMatrixUsed;
                 row.CascadeUsed = result.CascadeSummingUsed;
                 row.EfficiencyUsed = result.EfficiencyUsed;
+
+                // Карта невязки: где измерение выше модели. Правило общее с
+                // `FsaCascadeProbe` (`ResidualScan`), чтобы числа одного и того
+                // же спектра в двух пробах совпадали.
+                if (o.Residuals > 0)
+                {
+                    Console.WriteLine("  {0}: крупнейшие невязки", sample.Key);
+                    ResidualScan.Print(rd.EnergySpectrum, result, o.Residuals, "      ");
+                }
+
+                if (o.NearTo > o.NearFrom)
+                {
+                    ResidualScan.Excess near;
+                    row.NearExcess = ResidualScan.Near(rd.EnergySpectrum, result,
+                                                       o.NearFrom, o.NearTo, out near)
+                        ? near.Sigmas : double.NaN;
+                    row.NearCounts = double.IsNaN(row.NearExcess) ? 0.0 : near.Counts;
+                }
             }
             catch (Exception ex)
             {
@@ -478,7 +511,7 @@ namespace CorpusFsaProbe
                     runs.WriteLine("spectrum,det,part,chi2ndf,gain,offset_ch,drift_edge,gain_edge,"
                                    + "offset_edge,matrix,"
                                    + "matrix_note,cascade,efficiency,background,peaks,components,"
-                                   + "ms,cpu_ms,error");
+                                   + "ms,cpu_ms,near_sigmas,near_counts,error");
                     comps.WriteLine("spectrum,det,part,component,kind,share_pct,z,count_rate,peak_counts");
                     foreach (Row r in rows)
                     {
@@ -498,7 +531,9 @@ namespace CorpusFsaProbe
                             r.HasBackground ? "1" : "0",
                             r.Peaks.ToString(CultureInfo.InvariantCulture),
                             r.LibrarySize.ToString(CultureInfo.InvariantCulture),
-                            F(r.Ms, "F0"), F(r.CpuMs, "F0"), Csv(r.Error ?? "")));
+                            F(r.Ms, "F0"), F(r.CpuMs, "F0"),
+                            F(r.NearExcess, "F2"), F(r.NearCounts, "F0"),
+                            Csv(r.Error ?? "")));
 
                         if (r.Result == null)
                         {
@@ -699,6 +734,12 @@ namespace CorpusFsaProbe
             public bool Background = true;
             public bool Quiet;
             public bool Peaks;
+
+            /// <summary>Сколько крупнейших невязок печатать на спектр (0 — не печатать).</summary>
+            public int Residuals;
+
+            /// <summary>Окно энергий, про которое спрашивают отдельно (V4: ~460 кэВ).</summary>
+            public double NearFrom, NearTo;
             public int Limit;
             public double OffsetRangeKev;   // 0 — умолчание анализатора (3.0)
             public int OffsetSteps;         // 0 — умолчание анализатора (9)
@@ -737,6 +778,10 @@ namespace CorpusFsaProbe
             /// (T28, S39).
             /// </summary>
             public double CpuMs;
+
+            /// <summary>Невязка в запрошенном окне (`--near=`): сигмы и отсчёты.</summary>
+            public double NearExcess = double.NaN;
+            public double NearCounts;
             public bool GainOnGridEdge;
             public bool OffsetOnGridEdge;
 
