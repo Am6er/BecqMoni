@@ -175,7 +175,14 @@ namespace CorpusFsaProbe
                 return row;
             }
 
+            // Часы и ЦП-время порознь. Разбор однопоточный, поэтому в норме они
+            // почти совпадают — и ровно поэтому расхождение говорит о том, что
+            // машину делили, а не о том, что разбор подорожал. Сравнивать
+            // прогоны между собой надо по ЦП: T28 трое суток числилась
+            // «матрица подорожала вдвое», а подорожало ожидание, и той же
+            // ошибкой здесь не заметили вчетверо подорожавший разбор (S39).
             var clock = System.Diagnostics.Stopwatch.StartNew();
+            TimeSpan cpuBefore = System.Diagnostics.Process.GetCurrentProcess().TotalProcessorTime;
             try
             {
                 ResultData rd = Load(path);
@@ -219,6 +226,8 @@ namespace CorpusFsaProbe
                     // причина пишется отдельным словом.
                     row.Error = "библиотека пуста (пиков подписано 0)";
                     row.Ms = clock.Elapsed.TotalMilliseconds;
+                row.CpuMs = (System.Diagnostics.Process.GetCurrentProcess().TotalProcessorTime
+                             - cpuBefore).TotalMilliseconds;
                     Report(row, o);
                     return row;
                 }
@@ -303,6 +312,8 @@ namespace CorpusFsaProbe
                 FsaResult result = analyzer.Analyze(rd.EnergySpectrum, background,
                                                     rd.FwhmCalibration, library, efficiency);
                 row.Ms = clock.Elapsed.TotalMilliseconds;
+                row.CpuMs = (System.Diagnostics.Process.GetCurrentProcess().TotalProcessorTime
+                             - cpuBefore).TotalMilliseconds;
                 if (result == null)
                 {
                     row.Error = "разложение не получилось (нет калибровок или вырожденный диапазон)";
@@ -323,6 +334,8 @@ namespace CorpusFsaProbe
             catch (Exception ex)
             {
                 row.Ms = clock.Elapsed.TotalMilliseconds;
+                row.CpuMs = (System.Diagnostics.Process.GetCurrentProcess().TotalProcessorTime
+                             - cpuBefore).TotalMilliseconds;
                 row.Error = ex.GetType().Name + ": " + ex.Message;
             }
 
@@ -362,7 +375,19 @@ namespace CorpusFsaProbe
         static void Summary(List<Row> rows, Options o, double seconds)
         {
             Console.WriteLine();
-            Console.WriteLine("=== итог по частям корпуса ({0:n0} с) ===", seconds);
+            // Часы — про машину, ЦП — про код. Печатаются рядом нарочно: этот
+            // прогон уже дорожал вчетверо незамеченным (50 -> 236 с, S39),
+            // потому что «дольше» списывали на загрузку, а списать было не на
+            // чем — числа-то не менялись. Сравнивать прогоны между собой надо
+            // по ЦП-времени (T28).
+            double cpuSeconds = 0.0;
+            foreach (Row r in rows)
+            {
+                cpuSeconds += r.CpuMs / 1000.0;
+            }
+
+            Console.WriteLine("=== итог по частям корпуса ({0:n0} с на часах, {1:n0} с ЦП) ===",
+                              seconds, cpuSeconds);
             Console.WriteLine("{0,-10} {1,8} {2,8} {3,10} {4,10} {5,8} {6,8} {7,8}",
                               "часть", "спектров", "с матр.", "sum chi2", "медиана", "ошибок",
                               "кр.усил", "кр.ноль");
@@ -452,7 +477,8 @@ namespace CorpusFsaProbe
                 {
                     runs.WriteLine("spectrum,det,part,chi2ndf,gain,offset_ch,drift_edge,gain_edge,"
                                    + "offset_edge,matrix,"
-                                   + "matrix_note,cascade,efficiency,background,peaks,components,ms,error");
+                                   + "matrix_note,cascade,efficiency,background,peaks,components,"
+                                   + "ms,cpu_ms,error");
                     comps.WriteLine("spectrum,det,part,component,kind,share_pct,z,count_rate,peak_counts");
                     foreach (Row r in rows)
                     {
@@ -472,7 +498,7 @@ namespace CorpusFsaProbe
                             r.HasBackground ? "1" : "0",
                             r.Peaks.ToString(CultureInfo.InvariantCulture),
                             r.LibrarySize.ToString(CultureInfo.InvariantCulture),
-                            F(r.Ms, "F0"), Csv(r.Error ?? "")));
+                            F(r.Ms, "F0"), F(r.CpuMs, "F0"), Csv(r.Error ?? "")));
 
                         if (r.Result == null)
                         {
@@ -703,6 +729,14 @@ namespace CorpusFsaProbe
             public double Gain;
             public double OffsetChannels;
             public double Ms;
+
+            /// <summary>
+            /// Процессорное время разбора. Разбор однопоточный, поэтому в норме
+            /// оно почти равно `Ms`; расхождение значит, что машину делили, а
+            /// не что разбор подорожал. Между прогонами сравнивать надо ЭТО
+            /// (T28, S39).
+            /// </summary>
+            public double CpuMs;
             public bool GainOnGridEdge;
             public bool OffsetOnGridEdge;
 
