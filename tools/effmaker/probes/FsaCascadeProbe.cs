@@ -1,4 +1,4 @@
-using BecquerelMonitor;
+﻿using BecquerelMonitor;
 using BecquerelMonitor.EfficiencyMaker;
 using BecquerelMonitor.FullSpectrumAnalysis;
 using System;
@@ -120,7 +120,12 @@ namespace FsaCascadeProbe
             }
 
             // ---- сами поправки -------------------------------------------
-            FsaCascadeSummer summer = FsaCascadeSummer.Create(matrix);
+            string scintillator = EfficiencySimulator.ScintillatorNameOf(
+                rd.Efficiency != null ? rd.Efficiency.Geometry : null);
+            FsaCascadeSummer summer = FsaCascadeSummer.Create(matrix, scintillator);
+            Console.WriteLine("кривая света: {0}",
+                              summer != null && summer.LightYieldName.Length > 0
+                              ? summer.LightYieldName : "НЕТ — суммы по энергии");
             if (summer == null)
             {
                 Console.Error.WriteLine("суммирователь не создан: нет каналов у матрицы или нет nucdb.sqlite");
@@ -219,6 +224,7 @@ namespace FsaCascadeProbe
             double plainMs = clock.Elapsed.TotalMilliseconds;
 
             analyzer.ResponseMatrix = matrix;
+            analyzer.ScintillatorMaterial = scintillator;
             analyzer.CascadeSumming = false;
             clock.Restart();
             FsaResult withMatrix = analyzer.Analyze(rd.EnergySpectrum, background, rd.FwhmCalibration,

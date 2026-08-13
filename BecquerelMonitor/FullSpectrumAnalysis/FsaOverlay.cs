@@ -168,6 +168,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 if (matrix != null && matrix.IsValidFor(resultData.Efficiency.Geometry))
                 {
                     analyzer.ResponseMatrix = matrix;
+
+                    // Вещество кристалла идёт вместе с матрицей и только с ней:
+                    // им каскадное суммирование ставит сумм-пики по сумме СВЕТА
+                    // (S20), а без матрицы суммирования нет вовсе.
+                    analyzer.ScintillatorMaterial =
+                        EfficiencyMaker.EfficiencySimulator.ScintillatorNameOf(
+                            resultData.Efficiency.Geometry);
                 }
             }
 

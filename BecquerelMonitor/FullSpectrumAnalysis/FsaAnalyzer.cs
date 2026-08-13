@@ -142,6 +142,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public bool PileUp { get; set; }
 
+        /// <summary>
+        /// Вещество кристалла в именах таблицы кривых света («CsI:Tl», «NaI:Tl»).
+        /// Нужно каскадному суммированию: сумм-пик встаёт по сумме СВЕТА, а не
+        /// энергий (S20). Пусто — суммы ставятся по энергии, как до 13.08.2026.
+        ///
+        /// Задаётся снаружи вместе с матрицей: у матрицы вещества нет, от
+        /// геометрии в ней остаётся только необратимый отпечаток. Берётся тем
+        /// же путём, что у симулятора —
+        /// <see cref="EfficiencyMaker.EfficiencySimulator.ScintillatorNameOf(EfficiencyMaker.GeometryModel)"/>.
+        /// </summary>
+        public string ScintillatorMaterial { get; set; }
+
         /// <summary>Живёт один разбор: матрицу могли подменить между вызовами.</summary>
         FsaCascadeSummer cascade;
 
@@ -205,7 +217,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // обе эффективности. Кэш поправок внутри живёт один разбор, потому
             // что матрица между вызовами могла смениться.
             this.cascade = this.CascadeSumming
-                ? FsaCascadeSummer.Create(this.ResponseMatrix)
+                ? FsaCascadeSummer.Create(this.ResponseMatrix, this.ScintillatorMaterial)
                 : null;
             this.cascadeApplied = false;
 

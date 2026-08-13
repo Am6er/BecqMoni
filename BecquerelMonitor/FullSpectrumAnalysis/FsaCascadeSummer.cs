@@ -77,6 +77,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// <summary>Вторая линия пары, кэВ.</summary>
             public double WithKev { get; private set; }
 
+            /// <summary>
+            /// Третий квант каскада, кэВ; 0 — сумма двойная. Тройные суммы
+            /// заведены по S19: множитель выживания `S_ij` вычитал события,
+            /// у которых третий квант тоже попал в кристалл, и никуда их не
+            /// перекладывал — а полное поглощение третьего даёт СВОЙ пик.
+            /// </summary>
+            public double ThirdKev { get; private set; }
+
+            /// <summary>Сумма трёх, а не двух.</summary>
+            public bool IsTriple
+            {
+                get { return this.ThirdKev > 0.0; }
+            }
+
+            public SumPeak(double energy, double area, string nuclide,
+                           double fromKev, double withKev, double thirdKev)
+                : this(energy, area, nuclide, fromKev, withKev)
+            {
+                this.ThirdKev = thirdKev;
+            }
+
             public SumPeak(double energy, double area)
             {
                 this.Energy = energy;
@@ -205,14 +226,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         readonly ResponseMatrix matrix;
         readonly double[] peakAtNode;
         readonly double[] totalAtNode;
+        readonly MaterialDatabase.LightYieldCurve light;
         readonly Dictionary<FsaComponent, Correction> corrections =
             new Dictionary<FsaComponent, Correction>();
 
-        FsaCascadeSummer(ResponseMatrix matrix, double[] peakAtNode, double[] totalAtNode)
+        FsaCascadeSummer(ResponseMatrix matrix, double[] peakAtNode, double[] totalAtNode,
+                         MaterialDatabase.LightYieldCurve light)
         {
             this.matrix = matrix;
             this.peakAtNode = peakAtNode;
             this.totalAtNode = totalAtNode;
+            this.light = light;
+        }
+
+        /// <summary>Имя кривой света, по которой ставятся суммы; пусто — по энергии.</summary>
+        public string LightYieldName
+        {
+            get { return this.light == null ? "" : this.light.Material; }
         }
 
         /// <summary>
@@ -221,6 +251,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// программой нет `nucdb.sqlite`.
         /// </summary>
         public static FsaCascadeSummer Create(ResponseMatrix matrix)
+        {
+            return Create(matrix, null);
+        }
+
+        /// <summary>
+        /// То же, но с веществом кристалла: по нему берётся кривая светового
+        /// выхода, и суммы ставятся по СВЕТУ, а не по энергии (S20). Имя —
+        /// как в `scint_electron_light_yield` («CsI:Tl», «NaI:Tl»); пустое или
+        /// незнакомое даёт прежнее поведение, а не отказ: без кривой сумма по
+        /// энергии — приближение, а не ошибка.
+        ///
+        /// Вещество приходит СНАРУЖИ, потому что у матрицы его нет: она хранит
+        /// от геометрии только необратимый отпечаток (`ResponseMatrix.Stamp`).
+        /// </summary>
+        public static FsaCascadeSummer Create(ResponseMatrix matrix, string scintillator)
         {
             if (matrix == null || !matrix.HasChannels || matrix.Energies == null
                 || matrix.Energies.Length == 0 || matrix.Rows == null)
@@ -243,7 +288,76 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 total[i] = Sum(i < matrix.Rows.Length ? matrix.Rows[i] : null);
             }
 
-            return new FsaCascadeSummer(matrix, peak, total);
+            MaterialDatabase.LightYieldCurve curve = null;
+            if (!string.IsNullOrEmpty(scintillator))
+            {
+                try
+                {
+                    curve = MaterialDatabase.LightYieldOf(scintillator);
+                }
+                catch (Exception ex)
+                {
+                    // Отказ базы не должен ронять разбор, но и молчать о нём
+                    // нельзя: без кривой суммы поедут на единицы кэВ, а
+                    // выглядеть это будет как «модель промахнулась».
+                    Failure = "кривая света для «" + scintillator + "»: " + ex.Message;
+                }
+            }
+
+            return new FsaCascadeSummer(matrix, peak, total, curve);
+        }
+
+        /// <summary>
+        /// Где на ШКАЛЕ окажется сумма нескольких полностью поглощённых квантов.
+        ///
+        /// В сцинтилляторе шкалу задаёт свет, а он непропорционален энергии
+        /// (F11): энергетическая калибровка снята по ОДИНОЧНЫМ линиям, то есть
+        /// связывает канал с Λ(E) = L(E)·E одного кванта. У пары свет
+        /// складывается, и видимая энергия суммы решает уравнение
+        ///
+        ///     L(E_вид)·E_вид = Σ_k L(E_k)·E_k,
+        ///
+        /// а не равна Σ E_k. По кривой CsI:Tl это +2.96 кэВ на 508.61
+        /// (201.83+306.78), +3.64 на 290.17 и +6.30 на тройной 596.95 — величины
+        /// порядка десятой доли полуширины, но систематические и в одну сторону.
+        ///
+        /// ⚠ Приближение названо: L(E) — выход для ЭЛЕКТРОНА энергии E, а квант
+        /// отдаёт энергию каскадом электронов разной энергии. Точная Λ(E) есть
+        /// только у симулятора (`EfficiencySimulator.lightDeposit`), суммирователю
+        /// она недоступна. Это ровно та формула, которой мерена цена в S20.
+        /// </summary>
+        public double ApparentSum(double first, double second, double third = 0.0)
+        {
+            double plain = first + second + third;
+            if (this.light == null || !(plain > 0.0))
+            {
+                return plain;
+            }
+
+            double target = Light(first) + Light(second) + (third > 0.0 ? Light(third) : 0.0);
+
+            // Обращение Λ(E) деление пополам: кривая монотонна по построению
+            // (свет растёт с энергией), а аналитического обратного у неё нет.
+            double lo = plain * 0.5, hi = plain * 1.5;
+            for (int i = 0; i < 60; i++)
+            {
+                double mid = 0.5 * (lo + hi);
+                if (Light(mid) < target)
+                {
+                    lo = mid;
+                }
+                else
+                {
+                    hi = mid;
+                }
+            }
+
+            return 0.5 * (lo + hi);
+        }
+
+        double Light(double energyKev)
+        {
+            return this.light.Of(energyKev) * energyKev;
         }
 
         /// <summary>
@@ -338,12 +452,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
             else
             {
-                sb.AppendLine("   E сумм, кэВ        пара, кэВ        нуклид        площадь");
+                sb.AppendLine("   E сумм, кэВ        слагаемые, кэВ         нуклид        площадь");
                 foreach (SumPeak peak in correction.SumPeaks)
                 {
+                    // Энергия печатается ВИДИМАЯ (по свету), поэтому рядом с
+                    // ней стоят слагаемые: без них разница «сумма не равна
+                    // сумме» читается как опечатка, а это сдвиг S20.
+                    string parts = peak.IsTriple
+                        ? string.Format(CultureInfo.InvariantCulture, "{0:F2}+{1:F2}+{2:F2}",
+                                        peak.FromKev, peak.WithKev, peak.ThirdKev)
+                        : string.Format(CultureInfo.InvariantCulture, "{0:F2}+{1:F2}",
+                                        peak.FromKev, peak.WithKev);
                     sb.AppendFormat(CultureInfo.InvariantCulture,
-                        "  {0,11:F2}   {1,9:F2} + {2,-9:F2}  {3,-10}  {4,12:E4}",
-                        peak.Energy, peak.FromKev, peak.WithKev, peak.Nuclide, peak.Area);
+                        "  {0,11:F2}   {1,-22}  {2,-10}  {3,12:E4}",
+                        peak.Energy, parts, peak.Nuclide, peak.Area);
                     sb.AppendLine();
                 }
             }
@@ -504,11 +626,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 loss += partner.Value * this.TotalEfficiency(partner.Key);
             }
 
-            // Влёт: пары, сумма которых попадает в окно этой линии.
+            // Влёт: пары, сумма которых попадает в окно этой линии. Сравнивается
+            // ВИДИМАЯ сумма (по свету, S20) — окно задано на шкале прибора, а
+            // сумма встаёт на неё сдвинутой на единицы кэВ.
             double sumIn = 0.0;
             foreach (double[] pair in data.Pairs)
             {
-                if (Math.Abs(pair[0] + pair[1] - energy) >= SumWindowKev)
+                if (Math.Abs(this.ApparentSum(pair[0], pair[1]) - energy) >= SumWindowKev)
                 {
                     continue;
                 }
@@ -538,7 +662,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double floor = strongest * SumPeakFloor;
             foreach (double[] pair in data.Pairs)
             {
-                double energy = pair[0] + pair[1];
+                // Энергия сумм-пика — ВИДИМАЯ (по свету, S20): именно на это
+                // место шкалы событие ложится, и именно с этим местом надо
+                // сверять окна линий компонента.
+                double energy = this.ApparentSum(pair[0], pair[1]);
                 if (this.PeakEfficiency(energy) <= 0.0)
                 {
                     continue;
@@ -564,6 +691,87 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     sumPeaks.Add(new SumPeak(energy, area, nuclide, pair[0], pair[1]));
                 }
+
+                this.CollectTripleSums(component, nuclide, data, pair, scale, floor, sumPeaks);
+            }
+        }
+
+        /// <summary>
+        /// Тройные суммы пары (S19). Множитель выживания `S_ij` вычитает из пары
+        /// те случаи, когда третий квант каскада тоже попал в кристалл, и до
+        /// 13.08.2026 вычтенное просто пропадало. Между тем часть его —
+        /// ε_p(m) из ε_T(m) — это ПОЛНОЕ поглощение третьего, то есть свой пик
+        /// на E_i+E_j+E_m. Мерено на Lu-176: сумма всех трёх (88.34+201.83+306.78)
+        /// стоит отдельным пиком на пустом месте, и модель его не ставила вовсе.
+        ///
+        /// Остаток `ε_T(m) − ε_p(m)` — частичное поглощение третьего — по-прежнему
+        /// пропадает: он даёт не пик, а сплошной подъём между E_i+E_j и
+        /// E_i+E_j+E_m, и для него нужен отдельный образ (вторая половина S19).
+        /// </summary>
+        void CollectTripleSums(FsaComponent component, string nuclide, NuclideData data,
+                               double[] pair, double scale, double floor, List<SumPeak> sumPeaks)
+        {
+            double baseArea = this.PairBase(data, pair);
+            if (!(baseArea > 0.0))
+            {
+                return;
+            }
+
+            foreach (KeyValuePair<double, double> third in MergedThird(data, pair[0], pair[1]))
+            {
+                double peakThird = this.PeakEfficiency(third.Key);
+                if (!(peakThird > 0.0))
+                {
+                    continue;
+                }
+
+                double area = scale * baseArea * third.Value * peakThird;
+                if (!(area > floor))
+                {
+                    continue;
+                }
+
+                double energy = this.ApparentSum(pair[0], pair[1], third.Key);
+                if (this.PeakEfficiency(energy) <= 0.0)
+                {
+                    continue;
+                }
+
+                // Та же защита от двойного счёта, что у пар: сумма, попавшая в
+                // окно линии компонента, уже учтена влётом в CF этой линии.
+                bool absorbed = false;
+                foreach (FsaLine line in component.Lines)
+                {
+                    if (Belongs(line, nuclide) && Math.Abs(line.Energy - energy) < SumWindowKev)
+                    {
+                        absorbed = true;
+                        break;
+                    }
+                }
+
+                if (absorbed)
+                {
+                    continue;
+                }
+
+                // И защита от двойного счёта между самими тройками: пара (i,j) с
+                // третьим m и пара (i,m) с третьим j дают ОДНО И ТО ЖЕ событие.
+                // Держим первую встреченную — суммы уже стоят на одном месте
+                // шкалы, и вторая была бы чистым удвоением.
+                bool already = false;
+                foreach (SumPeak have in sumPeaks)
+                {
+                    if (have.IsTriple && Math.Abs(have.Energy - energy) < SamePairLineKev)
+                    {
+                        already = true;
+                        break;
+                    }
+                }
+
+                if (!already)
+                {
+                    sumPeaks.Add(new SumPeak(energy, area, nuclide, pair[0], pair[1], third.Key));
+                }
             }
         }
 
@@ -573,25 +781,41 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         double PairArea(NuclideData data, double[] pair)
         {
+            double survive = this.Survive(data, pair);
+            return survive > 0.0 ? this.PairBase(data, pair) * survive : 0.0;
+        }
+
+        /// <summary>
+        /// Площадь пары БЕЗ множителя выживания: оба кванта поглощены целиком, а
+        /// что делает третий — ещё не решено. Отделено от <see cref="PairArea"/>
+        /// ради S19: та часть, которую `S_ij` вычитает, не исчезает — при полном
+        /// поглощении третьего она даёт тройной сумм-пик.
+        /// </summary>
+        double PairBase(NuclideData data, double[] pair)
+        {
             double intensity;
             if (!data.Intensity.TryGetValue(pair[0], out intensity) || !(intensity > 0.0))
             {
                 return 0.0;
             }
 
+            return intensity / 100.0 * pair[2]
+                   * this.PeakEfficiency(pair[0]) * this.PeakEfficiency(pair[1]);
+        }
+
+        /// <summary>
+        /// Доля пар, которым третий квант каскада не помешал:
+        /// `S_ij = 1 − Σ_m P(m) · ε_T(m)`.
+        /// </summary>
+        double Survive(NuclideData data, double[] pair)
+        {
             double survive = 1.0;
             foreach (KeyValuePair<double, double> third in MergedThird(data, pair[0], pair[1]))
             {
                 survive -= third.Value * this.TotalEfficiency(third.Key);
             }
 
-            if (survive <= 0.0)
-            {
-                return 0.0;
-            }
-
-            return intensity / 100.0 * pair[2]
-                   * this.PeakEfficiency(pair[0]) * this.PeakEfficiency(pair[1]) * survive;
+            return survive;
         }
 
         /// <summary>

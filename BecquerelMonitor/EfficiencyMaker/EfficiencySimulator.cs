@@ -470,6 +470,18 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// встречались, а появится такой — активатор придётся вынести в
         /// конфигурацию устройства.
         /// </summary>
+        /// <summary>
+        /// То же по ГЕОМЕТРИИ — для тех, у кого симулятора нет. Понадобилось
+        /// каскадному суммированию (S20): свет складывается по кривой вещества
+        /// кристалла, а у суммирователя есть только матрица, в которой от
+        /// геометрии остался необратимый отпечаток.
+        /// </summary>
+        public static string ScintillatorNameOf(GeometryModel geometry)
+        {
+            return geometry == null || geometry.Crystal == null
+                ? "" : ScintillatorNameOf(ElectronData.Match(geometry.Crystal));
+        }
+
         static string ScintillatorNameOf(ElectronData.Material material)
         {
             if (material == null)
