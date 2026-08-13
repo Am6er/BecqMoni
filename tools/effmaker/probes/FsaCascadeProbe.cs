@@ -462,47 +462,13 @@ namespace FsaCascadeProbe
         }
 
         /// <summary>
-        /// Самые крупные превышения измерения над моделью, сгруппированные по
-        /// окнам примерно в ПШПВ, в единицах пуассоновской сигмы окна.
+        /// Самые крупные превышения измерения над моделью. Само правило живёт
+        /// в `ResidualScan` — общем файле на эту пробу и корпусную: две копии
+        /// одного счёта однажды разъедутся (S37).
         /// </summary>
         static void TopExcess(EnergySpectrum spectrum, FsaResult result, int top)
         {
-            EnergyCalibration calibration = spectrum.EnergyCalibration;
-            int[] raw = spectrum.Spectrum;
-            var windows = new List<double[]>();       // {энергия, избыток, сигм}
-
-            // Окно — 16 каналов: примерно ПШПВ в середине шкалы у 1024-канального
-            // сцинтиллятора; точная ширина здесь не важна, ищем крупное.
-            const int width = 16;
-            for (int lo = result.FirstChannel; lo + width <= result.LastChannel; lo += width)
-            {
-                double measured = 0.0, model = 0.0;
-                for (int i = lo; i < lo + width; i++)
-                {
-                    measured += raw[i];
-                    model += result.Model[i];
-                }
-
-                if (measured < 1.0)
-                {
-                    continue;
-                }
-
-                double sigma = Math.Sqrt(Math.Max(measured, 1.0));
-                windows.Add(new[]
-                {
-                    calibration.ChannelToEnergy(lo + width / 2.0),
-                    measured - model,
-                    (measured - model) / sigma
-                });
-            }
-
-            windows.Sort((x, y) => y[2].CompareTo(x[2]));
-            for (int k = 0; k < top && k < windows.Count; k++)
-            {
-                Console.WriteLine("    {0,8:F1} кэВ   избыток {1,12:F0}   {2,7:F1} сигм",
-                                  windows[k][0], windows[k][1], windows[k][2]);
-            }
+            ResidualScan.Print(spectrum, result, top, "    ");
         }
 
         /// <summary>Почему у компонента нет поправок — по каждому его нуклиду.</summary>

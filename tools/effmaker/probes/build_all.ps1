@@ -42,13 +42,18 @@ $refs = @(
 )
 
 $fail = @()
+$built = 0
 $sources = @(Get-ChildItem (Join-Path $repo 'tools\effmaker\*.cs')) +
            @(Get-ChildItem (Join-Path $PSScriptRoot '*.cs'))
 foreach ($f in $sources) {
-    if ($f.Name -eq 'GadrasDetector.cs') { continue }   # без Main, идёт довеском
+    # Файлы без `Main` идут довеском к своим пробам, а сами не собираются.
+    if ($f.Name -in @('GadrasDetector.cs', 'ResidualScan.cs')) { continue }
     $extra = @()
     if ($f.Name -in @('GadrasProbe.cs', 'ResponseProbe.cs')) {
         $extra = @(Join-Path $PSScriptRoot 'GadrasDetector.cs')
+    }
+    if ($f.Name -in @('FsaCascadeProbe.cs', 'CorpusFsaProbe.cs')) {
+        $extra = @(Join-Path $PSScriptRoot 'ResidualScan.cs')
     }
     $exe = Join-Path $Out ($f.BaseName + '.exe')
     $log = & $csc /nologo /target:exe /langversion:7.3 "/out:$exe" @refs $f.FullName @extra 2>&1
@@ -58,8 +63,11 @@ foreach ($f in $sources) {
         $log | Select-Object -First 6 | ForEach-Object { Write-Host "    $_" }
     } else {
         Write-Host "ok   $($f.Name)"
+        $built++
     }
 }
 Write-Host "----"
 if ($fail.Count) { Write-Host "СЛОМАНО: $($fail -join ', ')"; exit 1 }
-Write-Host "все собрались: $($sources.Count - 1) файлов"
+# Считаем СОБРАННОЕ, а не «всего минус один»: довесков без `Main` стало два, и
+# прежняя формула начала врать ровно в тот день, когда появился второй.
+Write-Host "все собрались: $built файлов (плюс $($sources.Count - $built) без Main, идут довеском)"
