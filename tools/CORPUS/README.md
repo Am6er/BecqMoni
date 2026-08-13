@@ -535,6 +535,30 @@ LibraryFitLab.exe --workdir=<wd> --input=tools\LibraryFitLab\corpus\spectra ^
 Проверено: 46 прогонов, 630 пиков, ни одного сбоя и ни одного пустого
 результата; у девятки число найденных пиков не изменилось.
 
+⚠ Рецепт выше — про харнесс `LibraryFitLab` и написан до переезда корпуса в
+`tools/CORPUS`; пути `tools\LibraryFitLab\corpus\…` в нём устарели (см. `T29`).
+
+### Полноспектральный разбор корпуса кодом ПРИЛОЖЕНИЯ (S1, 13.08.2026)
+
+Отдельный путь, и он теперь основной для FSA: `tools/pie` матрицу отклика не
+читает вовсе (разложение там своё, доматричное), поэтому понятную часть им не
+измерить. Каталог собирается одной командой — вместе с ПОСТАВОЧНЫМ
+`NuclideDefinition.xml` (а не сетами-обманками `mkconfig.py`), корпусными
+конфигурациями приборов и матрицами, которых в `wd_<группа>` не было никогда:
+
+```
+pwsh tools/CORPUS/scripts/mk_appwd.ps1
+cd tools/CORPUS/scripts/wd_app
+.\CorpusFsaProbe.exe --corpus=<…\tools\CORPUS\corpus> --out=<…\tools\pie\out_app>
+python tools/pie/score.py --mode=spline --out-dir=tools/pie/out_app --part=known   --members
+python tools/pie/score.py --mode=spline --out-dir=tools/pie/out_app --part=unknown --members
+```
+
+Весь корпус (61 спектр без германия) проходит за 50 с. Части печатаются врозь и
+называются в каждой строке — правило раздела соблюдается механизмом, а не
+памятью составителя отчёта. Числа первого прогона — `handover-response-matrix.md`,
+§16.
+
 ## Дефект, который вылез по дороге, и одна ложная тревога
 
 **Конфигурация устройства до поиска пиков не доходила.** В

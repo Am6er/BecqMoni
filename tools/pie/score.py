@@ -22,7 +22,23 @@ components.csv (упал — ERROR в *_runs.csv — или не был прог
 в таблицу как «НЕТ РЕЗУЛЬТАТА» и целиком считается промахом. Recall по
 молчаливому подмножеству не бывает.
 
+Часть корпуса (`--part`). С 09.08.2026 корпус разделён `corpus/parts.csv` на
+«понятную» часть (геометрия восстановлена, матрица отклика есть) и
+«непонятную» (ни того, ни другого); германий помечен `excluded` и не
+считается никогда (приказ Amber 08.08.2026). Это две разные модели, и
+общее число по ним — среднее двух разных вещей, поэтому часть печатается
+в шапке и в итоговой строке ВСЕГДА, даже когда взят весь корпус.
+
+Состав приложения (`--members`). `tools/pie` раскладывает спектр на ЦЕПОЧКИ
+(компонент «Th-232»), а полноспектральный разбор в самой программе
+(`CorpusFsaProbe`) — на ДОЧЕРНИЕ нуклиды: состав задаёт поиск пиков, а он
+подписывает пики Ac-228, Pb-212, Tl-208. Ключ разворачивает цепочку
+манифеста в её членов; цепочка засчитана, если найден хоть один из них.
+Список членов взят из `nucdb` (`tools/CORPUS/scripts/chains.py`,
+`chain_branches` с отсечкой 1e-4), а не выдуман.
+
 Запуск:  python tools/pie/score.py [--sthr 3] [--zthr 4] [--mode snip]
+                                   [--part known|unknown|all] [--members]
 """
 import argparse
 import csv
@@ -33,6 +49,7 @@ from collections import defaultdict
 HERE = os.path.dirname(os.path.abspath(__file__))
 MANIFEST = os.path.join(HERE, '..', 'CORPUS', 'corpus', 'manifest.csv')
 DETECTORS = os.path.join(HERE, '..', 'CORPUS', 'corpus', 'detectors.csv')
+PARTS = os.path.join(HERE, '..', 'CORPUS', 'corpus', 'parts.csv')
 OUT = os.path.join(HERE, 'out')
 
 # манифест -> компоненты. Компонент U-238 в pie — только голова ряда
@@ -53,9 +70,63 @@ FAMILY = {
 }
 ROOM = {'Th-232', 'Ra-226', 'K-40'}
 
+# Члены цепочек для `--members`: разбор в приложении раскладывает спектр на
+# ДОЧЕРНИЕ нуклиды, потому что состав библиотеки задаёт поиск пиков, а он
+# подписывает пики Ac-228, Pb-212, Tl-208 (см. FsaLibrary.BuildFromPeaks —
+# «разрез цепочки получается сам»). Списки сняты из nucdb:
+#
+#   python -c "import chains; print(chains.chain_branches('232TH', chains.conn(), 1e-4))"
+#
+# Радиевая ветвь у U-238 не повторяется нарочно: манифест уже разворачивает
+# равновесный «U-238» в «U-238 + Ra-226» через CHAIN_MAP, и дочерние радия
+# принадлежат семейству Ra-226 в обоих случаях. Стабильные концы (Pb-206,
+# Pb-207, Pb-208) выброшены — у них нет ни распада, ни линий.
+CHAIN_MEMBERS = {
+    'Th-232': ['Th-232', 'Ra-228', 'Ac-228', 'Th-228', 'Ra-224', 'Rn-220',
+               'Po-216', 'Pb-212', 'Bi-212', 'Tl-208', 'Po-212'],
+    'Th-228': ['Th-228', 'Ra-224', 'Rn-220', 'Po-216', 'Pb-212', 'Bi-212',
+               'Tl-208', 'Po-212'],
+    'Ra-226': ['Ra-226', 'Rn-222', 'Po-218', 'At-218', 'Pb-214', 'Bi-214',
+               'Po-214', 'Pb-210', 'Bi-210', 'Po-210', 'Tl-210'],
+    'U-238': ['U-238', 'Th-234', 'Pa-234m', 'Pa-234', 'U-234', 'Th-230'],
+    'U-235': ['U-235', 'Th-231', 'Pa-231', 'Ac-227', 'Th-227', 'Fr-223',
+              'Ra-223', 'Rn-219', 'Po-215', 'Pb-211', 'Bi-211', 'Tl-207',
+              'Po-211'],
+}
+# дочерний -> семейство цепочки; заполняется при --members
+MEMBER_FAMILY = {}
+
 
 def family(comp):
+    if MEMBER_FAMILY:
+        return MEMBER_FAMILY.get(comp, FAMILY.get(comp, comp))
     return FAMILY.get(comp, comp)
+
+
+def enable_members():
+    """Развернуть цепочки в дочерние нуклиды (состав приложения)."""
+    for chain, members in CHAIN_MEMBERS.items():
+        fam = FAMILY.get(chain, chain)
+        for member in members:
+            # Столкновений быть не должно: радиевая ветвь названа один раз.
+            # Если появится — молчать нельзя, иначе дочерний уедет в чужое
+            # семейство и станет то промахом, то фантомом.
+            if MEMBER_FAMILY.get(member, fam) != fam:
+                sys.exit('дочерний %s принадлежит двум семействам: %s и %s'
+                         % (member, MEMBER_FAMILY[member], fam))
+            MEMBER_FAMILY[member] = fam
+
+
+def load_parts():
+    """Спектр -> часть корпуса (known / unknown / excluded)."""
+    parts = {}
+    if not os.path.exists(PARTS):
+        return parts
+    with open(PARTS, encoding='utf-8-sig', newline='') as fh:
+        for row in csv.DictReader(fh):
+            if row.get('spectrum'):
+                parts[row['spectrum']] = row['part']
+    return parts
 
 
 def load_resolutions():
@@ -145,9 +216,35 @@ def main():
     # Порог 0 возвращает весь корпус.
     ap.add_argument('--min-fwhm', type=float, default=0.0,
                     help='нижняя граница ПШПВ на 662 кэВ, %% (3 — только сцинтилляторы)')
+    ap.add_argument('--part', default='all', choices=['all', 'known', 'unknown'],
+                    help='часть корпуса по corpus/parts.csv; германий (excluded) '
+                         'не считается никогда')
+    ap.add_argument('--members', action='store_true',
+                    help='состав назван ДОЧЕРНИМИ нуклидами (разбор приложения), '
+                         'а не цепочками: развернуть цепочки манифеста в их членов')
     args = ap.parse_args()
 
+    if args.members:
+        enable_members()
+
     truth = load_truth()
+
+    # Что вообще есть в манифесте — запоминается ДО отбора по части: иначе
+    # спектр, выброшенный отбором, попадает в предупреждение «есть в
+    # результатах, но не в манифесте», которое означает совсем другое (ключ
+    # разошёлся с описью). Полсотни ложных строк подряд гасят настоящую.
+    in_manifest = set(truth)
+
+    # Часть корпуса. Отбор идёт ДО скоринга, потому что покрытие считается по
+    # тем же строкам: спектр, выброшенный из истины, не должен всплыть в
+    # «НЕТ РЕЗУЛЬТАТА».
+    parts = load_parts()
+    if parts:
+        truth = {k: t for k, t in truth.items()
+                 if parts.get(k, 'unknown') != 'excluded'
+                 and (args.part == 'all' or parts.get(k, 'unknown') == args.part)}
+    elif args.part != 'all':
+        sys.exit('нет %s — часть корпуса выбрать нечем' % PARTS)
     results, groups, errors, chi2 = load_results(args.mode, args.out_dir)
     if not results:
         sys.exit('нет результатов режима %s в %s' % (args.mode, args.out_dir))
@@ -166,13 +263,15 @@ def main():
     missing = sorted(k for k, t in truth.items()
                      if t['det'] in groups and k not in results)
     for s in sorted(results):
-        if s not in truth:
+        if s not in in_manifest:
             print('ВНИМАНИЕ: %s есть в результатах, но не в манифесте — не скорится'
                   % s, file=sys.stderr)
 
     per_det = defaultdict(lambda: [0, 0, 0, 0])  # hits, truths, phantoms, spectra
     total_soft = 0
-    print('режим=%s, критерий: share>=%.1f%% и z>=%.1f' % (args.mode, args.sthr, args.zthr))
+    print('режим=%s, часть корпуса=%s%s, критерий: share>=%.1f%% и z>=%.1f'
+          % (args.mode, args.part, ', состав по дочерним' if args.members else '',
+             args.sthr, args.zthr))
     print()
     print('%-22s %-28s %-34s %s' % ('спектр', 'истина', 'найдено (доля%/z)', 'вердикт'))
     for spectrum in sorted(set(results) | set(missing)):
@@ -239,8 +338,11 @@ def main():
         h, t_, p, n = per_det[det]
         th += h; tt += t_; tp += p; ts += n
         print('%-10s %8d %9.0f%% %10d' % (det, n, 100.0 * h / t_ if t_ else 0, p))
-    print('%-10s %8d %9.0f%% %10d  (+%d комнатных)' % (
-        'итого', ts, 100.0 * th / tt if tt else 0, tp, total_soft))
+    # Итог ВСЕГДА называет свою часть: числа понятной и непонятной частей
+    # относятся к разным моделям (образ с матрицей против образа из одних
+    # пиков), и строка «итого» без имени части читается как корпусная.
+    print('%-10s %8d %9.0f%% %10d  (+%d комнатных)  часть: %s' % (
+        'итого', ts, 100.0 * th / tt if tt else 0, tp, total_soft, args.part))
 
     # χ²/ndf по тем же спектрам, что вошли в скоринг: сумма — чтобы сравнивать
     # прогоны между собой, медиана — чтобы один тяжёлый спектр не решал всё.
