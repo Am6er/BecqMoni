@@ -114,12 +114,21 @@ namespace BecquerelMonitor
 
             for (int i = 0; i < finder.centroids.Length; i++)
             {
+                // Площадь берётся у того же финдера и по тому же номеру: все
+                // его массивы параллельны и фильтруются вместе (`PeakFinder`
+                // обрезает их одним проходом). Отсутствие массива — не повод
+                // молча подставить ноль, поэтому длина проверяется.
+                double netCounts = finder.integrals != null && i < finder.integrals.Length
+                    ? finder.integrals[i]
+                    : 0.0;
+
                 Peak peak = CreatePeak(
                     energySpectrum,
                     finder.centroids[i],
                     finder.snrs[i],
                     finder.fwhms[i],
                     finder.fwhm_delta[i],
+                    netCounts,
                     sa,
                     peakConfig,
                     refineCentroid: true);
@@ -140,12 +149,27 @@ namespace BecquerelMonitor
             return peaks;
         }
 
+        /// <param name="netCounts">
+        /// Чистая площадь пика — отклик согласованного фильтра за вычетом
+        /// подложки (`PeakFinder.integrals`, то есть `signal[xbin]`).
+        ///
+        /// До 13.08.2026 сюда не приходило НИЧЕГО, и `Peak.Count` у каждого
+        /// найденного пика оставался нулём. Поле при этом читалось — в
+        /// `PeakOriginProbe` на нём стоят два отбора «пик заметный»
+        /// (родитель обратного рассеяния и слагаемые случайной суммы), и оба
+        /// сравнивали ноль с нулём: `q.Count &lt; 0.05·maxCounts` при нулевом
+        /// максимуме ложно ВСЕГДА. Отсюда и «случайных сумм ноль» в журнале
+        /// InterSpec (§6), списанное тогда на лабораторные условия, и то, что
+        /// обратное рассеяние объясняло 59 % всех пиков: родителем годился
+        /// любой пик выше по шкале (TODO P4).
+        /// </param>
         Peak CreatePeak(
             EnergySpectrum energySpectrum,
             double centroid,
             double snr,
             double fwhm,
             double fwhmDelta,
+            double netCounts,
             SpectrumAriphmetics sa,
             FWHMPeakDetectionMethodConfig config,
             bool refineCentroid)
@@ -172,6 +196,9 @@ namespace BecquerelMonitor
             peak.SNR = snr;
             peak.FWHM = fwhm;
             peak.FWHM_DELTA = fwhmDelta;
+            peak.Count = netCounts > 0.0 && !Double.IsNaN(netCounts)
+                ? (int)Math.Round(Math.Min(netCounts, Int32.MaxValue))
+                : 0;
             return peak;
         }
 
