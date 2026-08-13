@@ -79,10 +79,13 @@ class CorpusMatrixProbe
         {
             string key = Path.GetFileNameWithoutExtension(path);
             GeometryModel geometry = GeometryModel.Load(path);
+            TimeSpan cpuBefore = Process.GetCurrentProcess().TotalProcessorTime;
             var watch = Stopwatch.StartNew();
             ResponseMatrix matrix = ResponseMatrixBuilder.Build(
                 geometry, options, null, CancellationToken.None);
             watch.Stop();
+            double cpuSeconds = (Process.GetCurrentProcess().TotalProcessorTime - cpuBefore)
+                                .TotalSeconds;
 
             string outPath = Path.Combine(dir, key + ".rmx");
             matrix.Save(outPath);
@@ -91,7 +94,27 @@ class CorpusMatrixProbe
             quiet &= !noisy;
             Console.WriteLine("== {0} ==", key);
             Console.WriteLine("   клеймо   : {0}", matrix.Stamp);
-            Console.WriteLine("   время    : {0:F1} с", watch.Elapsed.TotalSeconds);
+            // Время НА ЧАСАХ про эту машину, а не про этот счёт, и путать их
+            // дорого: T28 трое суток числилась «матрица подорожала вдвое»
+            // (34.7 → 67.3 мин на девяти геометриях, результат тот же). Замер
+            // 13.08.2026 на ОДНОЙ геометрии: 106 с, 184 с и — когда рядом
+            // считалась вторая такая же — 351 с, при неизменном шуме 1.52 %.
+            // Часами тут мерить нечего.
+            //
+            // Поэтому рядом печатается ЦП-время на историю: оно про код и ни
+            // про что больше. Подорожал счёт — вырастет оно; забрал ядра
+            // сосед — вырастут только часы, а доля ядер покажет, кто виноват.
+            int threads = options.Threads > 0
+                ? options.Threads
+                : Math.Max(1, Environment.ProcessorCount - 1);
+            double share = watch.Elapsed.TotalSeconds > 0.0
+                ? cpuSeconds / watch.Elapsed.TotalSeconds : 0.0;
+            double histories = (double)options.NodeCount * options.Histories;
+            Console.WriteLine("   время    : {0:F1} с на часах, ядер {1:F1} из {2}{3}",
+                              watch.Elapsed.TotalSeconds, share, threads,
+                              share < 0.5 * threads ? "  — МАШИНУ ДЕЛИМ" : "");
+            Console.WriteLine("   счёт     : {0:F1} с ЦП, {1:F2} мкс на историю  <- сравнивать надо ЭТО",
+                              cpuSeconds, histories > 0.0 ? 1.0E6 * cpuSeconds / histories : 0.0);
             Console.WriteLine("   шум конт.: взвешенная {0:F2} %  {1}",
                               matrix.ContinuumWeightedError,
                               noisy ? "ВЫШЕ ПОРОГА 5 %" : "тихо");
