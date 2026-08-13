@@ -100,9 +100,14 @@ namespace PeakOriginProbe
             NuclideSet set = nuclides.ActiveSet;
 
             var csv = new StringBuilder();
-            csv.AppendLine("group,spectrum,energy_kev,counts,fwhm_kev,nuclide,origin,detail");
+            csv.AppendLine("group,spectrum,energy_kev,counts,fwhm_kev,fwhm_expected_kev,"
+                           + "width_ratio,width_rel,nuclide,origin,detail");
 
             int totalPeaks = 0, totalNamed = 0;
+            // Отношение «измеренная ширина / ожидаемая» по классам: у фотопика
+            // оно около единицы, у широкой структуры обязано быть выше — это и
+            // проверяется, прежде чем делать из ширины правило (P4).
+            var ratioByOrigin = new Dictionary<string, List<double>>();
             var byOrigin = new Dictionary<string, int>();
             var namedByOrigin = new Dictionary<string, int>();
 
@@ -112,9 +117,10 @@ namespace PeakOriginProbe
                 string name = Path.GetFileNameWithoutExtension(file);
                 List<Peak> peaks;
                 string settings = "";
+                ResultData rd = null;      // нужен и ниже — считать ожидаемую ширину
                 try
                 {
-                    ResultData rd = LoadResult(file);
+                    rd = LoadResult(file);
                     var cfg = (FWHMPeakDetectionMethodConfig)rd.PeakDetectionMethodConfig;
                     int nch = rd.EnergySpectrum.NumberOfChannels;
                     double ch662 = rd.EnergySpectrum.EnergyCalibration.EnergyToChannel(662.0, nch);
@@ -145,6 +151,29 @@ namespace PeakOriginProbe
                 peaks.Sort((a, b) => a.Energy.CompareTo(b.Energy));
                 double maxCounts = peaks.Max(p => (double)p.Count);
 
+                // Опорная ширина — МЕДИАНА по этому же спектру, а не единица.
+                // Абсолютное «измеренная / ожидаемая» мерит не природу пика, а
+                // ошибку ПШПВ-калибровки прибора: по корпусу медиана этого
+                // отношения гуляет от 0.35 (G1S) до 2.97 (ASN8_8192), и внутри
+                // группы все классы пиков сидят на одном значении. Сравнивать
+                // поэтому надо с соседями по спектру.
+                var spectrumRatios = new List<double>();
+                foreach (Peak q in peaks)
+                {
+                    double e = ExpectedFwhmKev(rd, q);
+                    if (e > 0.0 && q.FWHM > 0.0)
+                    {
+                        spectrumRatios.Add(q.FWHM / e);
+                    }
+                }
+
+                double medianRatio = double.NaN;
+                if (spectrumRatios.Count > 0)
+                {
+                    spectrumRatios.Sort();
+                    medianRatio = spectrumRatios[spectrumRatios.Count / 2];
+                }
+
                 foreach (Peak p in peaks)
                 {
                     totalPeaks++;
@@ -159,9 +188,13 @@ namespace PeakOriginProbe
                     Bump(byOrigin, origin);
                     if (named) Bump(namedByOrigin, origin);
 
+                    double expected = ExpectedFwhmKev(rd, p);
+                    double ratio = expected > 0.0 ? p.FWHM / expected : double.NaN;
+                    double relative = medianRatio > 0.0 ? ratio / medianRatio : double.NaN;
+                    Accumulate(ratioByOrigin, origin, relative);
                     csv.AppendLine(string.Format(CultureInfo.InvariantCulture,
-                        "{0},{1},{2:F2},{3},{4:F2},{5},{6},{7}",
-                        group, Csv(name), p.Energy, p.Count, p.FWHM,
+                        "{0},{1},{2:F2},{3},{4:F2},{5:F2},{6:F3},{7:F3},{8},{9},{10}",
+                        group, Csv(name), p.Energy, p.Count, p.FWHM, expected, ratio, relative,
                         Csv(p.Nuclide != null ? p.Nuclide.Name : ""), origin, Csv(detail)));
                 }
             }
@@ -175,7 +208,8 @@ namespace PeakOriginProbe
             {
                 int named;
                 namedByOrigin.TryGetValue(key, out named);
-                Console.WriteLine("   {0,-22} {1,4}  из них подписаны {2,4}", key, byOrigin[key], named);
+                Console.WriteLine("   {0,-22} {1,4}  из них подписаны {2,4}   ширина к соседям {3}",
+                                  key, byOrigin[key], named, Spread(ratioByOrigin, key));
             }
 
             if (csvPath != null)
@@ -199,6 +233,74 @@ namespace PeakOriginProbe
         static double Window(Peak p)
         {
             return Math.Max(1.0, Math.Min(0.5 * p.FWHM, 15.0));
+        }
+
+        /// <summary>
+        /// Какой ширины пик ЖДЁТ калибровка прибора на этой энергии, кэВ.
+        ///
+        /// Нужна ради P4: обратное рассеяние даёт не пик, а широкую структуру,
+        /// и отличить его от фотопика можно только сравнив ИЗМЕРЕННУЮ ширину с
+        /// ожидаемой. Измеренная у нас есть — финдер считает её по второй
+        /// производной (`fwhm = 2√(2·snr₀/d²snr)`) и кладёт в `Peak.FWHM`;
+        /// ожидаемую даёт ПШПВ-калибровка, но В КАНАЛАХ, поэтому её надо
+        /// перевести в кэВ по энергетической — тем же способом, каким это
+        /// делает `FsaAnalyzer.SplitContinuumBelowTrustFloor`.
+        ///
+        /// ⚠ Отношение ограничено сверху и снизу самим финдером: он берёт пик
+        /// только при `Min_FWHM_Tol·ожидаемая ≤ измеренная ≤ Max_FWHM_Tol·…`
+        /// (`PeakFinder.calculate`). Структуру шире допуска он не предъявит
+        /// вовсе — значит признак по ширине работает ВНУТРИ окна допуска, а
+        /// про то, что за окном, не говорит ничего.
+        /// </summary>
+        static double ExpectedFwhmKev(ResultData rd, Peak p)
+        {
+            if (rd == null || rd.FwhmCalibration == null || rd.EnergySpectrum == null)
+            {
+                return double.NaN;
+            }
+
+            EnergyCalibration energy = rd.EnergySpectrum.EnergyCalibration;
+            double channels = rd.FwhmCalibration.ChannelToFwhm(p.Channel);
+            if (!(channels > 0.0) || double.IsNaN(channels) || energy == null)
+            {
+                return double.NaN;
+            }
+
+            double kev = energy.ChannelToEnergy(p.Channel + channels / 2.0)
+                         - energy.ChannelToEnergy(p.Channel - channels / 2.0);
+            return kev > 0.0 ? kev : double.NaN;
+        }
+
+        /// <summary>Медиана и края отношения ширин по классу — одной строкой.</summary>
+        static string Spread(Dictionary<string, List<double>> map, string key)
+        {
+            List<double> list;
+            if (!map.TryGetValue(key, out list) || list.Count == 0)
+            {
+                return "нет";
+            }
+
+            list.Sort();
+            double median = list[list.Count / 2];
+            return string.Format(CultureInfo.InvariantCulture,
+                                 "медиана {0:F2}  ({1:F2}…{2:F2})",
+                                 median, list[0], list[list.Count - 1]);
+        }
+
+        static void Accumulate(Dictionary<string, List<double>> map, string key, double value)
+        {
+            if (double.IsNaN(value) || double.IsInfinity(value))
+            {
+                return;
+            }
+
+            List<double> list;
+            if (!map.TryGetValue(key, out list))
+            {
+                map[key] = list = new List<double>();
+            }
+
+            list.Add(value);
         }
 
         static string Classify(Peak p, List<Peak> peaks, double maxCounts,
@@ -265,6 +367,14 @@ namespace PeakOriginProbe
             }
 
             // Обратное рассеяние на 180°: E = Ep / (1 + 2 Ep / mc2).
+            //
+            // Правило самое слабое из трёх: годится ЛЮБОЙ пик выше по шкале с
+            // заметной площадью. Поэтому рядом считается, сколько таких
+            // родителей нашлось и сильнее ли рассеянный пик своего родителя —
+            // и то и другое печатается, чтобы ужесточение выбиралось числом,
+            // а не на слух (P4).
+            Peak backParent = null;
+            int backCandidates = 0;
             foreach (Peak q in peaks)
             {
                 if (q.Energy <= p.Energy) continue;
@@ -272,10 +382,22 @@ namespace PeakOriginProbe
                 double back = q.Energy / (1.0 + 2.0 * q.Energy / ElectronMassKev);
                 if (Math.Abs(back - p.Energy) <= w)
                 {
-                    detail = string.Format(CultureInfo.InvariantCulture,
-                                           "рассеяние от {0:F1}", q.Energy);
-                    return "обратное рассеяние";
+                    backCandidates++;
+                    if (backParent == null || q.Count > backParent.Count)
+                    {
+                        backParent = q;
+                    }
                 }
+            }
+
+            if (backParent != null)
+            {
+                detail = string.Format(CultureInfo.InvariantCulture,
+                                       "рассеяние от {0:F1}; родителей {1}; площадь/родителя {2:F2}",
+                                       backParent.Energy, backCandidates,
+                                       backParent.Count > 0
+                                           ? (double)p.Count / backParent.Count : double.NaN);
+                return "обратное рассеяние";
             }
 
             return null;
