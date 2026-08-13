@@ -259,6 +259,8 @@ namespace CorpusFsaProbe
                     else
                     {
                         analyzer.ResponseMatrix = matrix;
+                        analyzer.ScintillatorMaterial = EfficiencySimulator.ScintillatorNameOf(
+                            rd.Efficiency.Geometry);
                         row.MatrixNote = "есть";
                     }
                 }
