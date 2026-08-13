@@ -1,4 +1,4 @@
-using BecquerelMonitor.EfficiencyMaker;
+﻿using BecquerelMonitor.EfficiencyMaker;
 using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
@@ -114,6 +114,38 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public double Area { get; private set; }
         }
 
+        /// <summary>
+        /// Сумм-КОНТИНУУМ: пара поглощена целиком, а третий квант каскада
+        /// оставил ЧАСТЬ своей энергии. Не пик, а сплошной подъём от видимой
+        /// суммы пары до неё же плюс энергия третьего — то есть отклик третьего
+        /// кванта БЕЗ пикового канала, сдвинутый на сумму пары (S19).
+        /// </summary>
+        public sealed class SumContinuum
+        {
+            public SumContinuum(double shiftKev, double thirdKev, double weight, string nuclide)
+            {
+                this.ShiftKev = shiftKev;
+                this.ThirdKev = thirdKev;
+                this.Weight = weight;
+                this.Nuclide = nuclide ?? "";
+            }
+
+            /// <summary>Видимая сумма пары, на которую сдвинут отклик, кэВ.</summary>
+            public double ShiftKev { get; private set; }
+
+            /// <summary>Энергия третьего кванта — чей отклик берётся, кэВ.</summary>
+            public double ThirdKev { get; private set; }
+
+            /// <summary>
+            /// Вес отклика: `p_ij · ε_p(i) · ε_p(j) · P(m)`. Эффективности
+            /// третьего кванта внутри НЕТ — она придёт из самой строки матрицы,
+            /// поэтому второй раз применять её нельзя.
+            /// </summary>
+            public double Weight { get; private set; }
+
+            public string Nuclide { get; private set; }
+        }
+
         /// <summary>Поправки одного компонента: множители линий и его сумм-пики.</summary>
         public sealed class Correction
         {
@@ -129,6 +161,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public double[] LineFactors { get; set; }
 
             public List<SumPeak> SumPeaks { get; set; }
+
+            /// <summary>
+            /// Сумм-континуум (S19): частичное поглощение третьего кванта.
+            /// Отдельным списком, а не внутри <see cref="SumPeaks"/>, потому что
+            /// кладётся в образ иначе — сдвинутым откликом, а не дельтой в бин
+            /// пика, — и срез <see cref="MaxSumPeaks"/> к нему не применяется:
+            /// у него нет «высоты», по которой отбирать.
+            /// </summary>
+            public List<SumContinuum> SumContinua { get; set; }
 
             /// <summary>
             /// Разбор поправки по линиям — только для отчёта
@@ -508,6 +549,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             List<SumPeak> sumPeaks = new List<SumPeak>();
+            List<SumContinuum> continua = new List<SumContinuum>();
             List<LineNote> notes = new List<LineNote>();
             bool any = false;
 
@@ -568,7 +610,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
 
-                this.CollectSumPeaks(component, nuclide, data, scale, strongest, sumPeaks);
+                this.CollectSumPeaks(component, nuclide, data, scale, strongest, sumPeaks, continua);
             }
 
             if (sumPeaks.Count > 0)
@@ -581,10 +623,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            if (continua.Count > 0)
+            {
+                any = true;
+            }
+
             return new Correction
             {
                 LineFactors = factors,
                 SumPeaks = sumPeaks,
+                SumContinua = continua,
                 Notes = notes,
                 Any = any
             };
@@ -652,7 +700,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// вторично значило бы посчитать одно и то же дважды.
         /// </summary>
         void CollectSumPeaks(FsaComponent component, string nuclide, NuclideData data,
-                             double scale, double strongest, List<SumPeak> sumPeaks)
+                             double scale, double strongest, List<SumPeak> sumPeaks,
+                             List<SumContinuum> continua)
         {
             if (!(scale > 0.0))
             {
@@ -692,7 +741,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     sumPeaks.Add(new SumPeak(energy, area, nuclide, pair[0], pair[1]));
                 }
 
-                this.CollectTripleSums(component, nuclide, data, pair, scale, floor, sumPeaks);
+                this.CollectTripleSums(component, nuclide, data, pair, scale, floor, sumPeaks,
+                                       continua);
             }
         }
 
@@ -709,7 +759,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// E_i+E_j+E_m, и для него нужен отдельный образ (вторая половина S19).
         /// </summary>
         void CollectTripleSums(FsaComponent component, string nuclide, NuclideData data,
-                               double[] pair, double scale, double floor, List<SumPeak> sumPeaks)
+                               double[] pair, double scale, double floor, List<SumPeak> sumPeaks,
+                               List<SumContinuum> continua)
         {
             double baseArea = this.PairBase(data, pair);
             if (!(baseArea > 0.0))
@@ -717,9 +768,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return;
             }
 
+            double pairEnergy = this.ApparentSum(pair[0], pair[1]);
             foreach (KeyValuePair<double, double> third in MergedThird(data, pair[0], pair[1]))
             {
                 double peakThird = this.PeakEfficiency(third.Key);
+                double totalThird = this.TotalEfficiency(third.Key);
+
+                // Частичное поглощение третьего кванта — сумм-континуум (S19,
+                // вторая половина). Именно эту долю `S_ij` вычитал и терял:
+                // пика она не даёт, но и в нуль не обращается. Вес идёт БЕЗ
+                // эффективности третьего — она придёт из строки матрицы.
+                if (totalThird > peakThird && third.Value > 0.0 && baseArea > 0.0)
+                {
+                    continua.Add(new SumContinuum(pairEnergy, third.Key,
+                                                  scale * baseArea * third.Value, nuclide));
+                }
+
                 if (!(peakThird > 0.0))
                 {
                     continue;

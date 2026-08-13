@@ -390,6 +390,12 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         void Stretch(float[] row, double nodeEnergy, double lineEnergy, double weight, double[] target)
         {
+            this.Stretch(row, nodeEnergy, lineEnergy, weight, target, 0.0);
+        }
+
+        void Stretch(float[] row, double nodeEnergy, double lineEnergy, double weight, double[] target,
+                     double shiftBins)
+        {
             if (row == null || !(nodeEnergy > 0.0) || !(weight > 0.0))
             {
                 return;
@@ -404,7 +410,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     continue;
                 }
 
-                double position = b * scale;
+                double position = b * scale + shiftBins;
                 int at = (int)position;
                 double frac = position - at;
 
@@ -427,7 +433,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public void Accumulate(double[] target, double energyKev, double weight)
         {
-            this.Accumulate(target, energyKev, weight, -1);
+            this.Accumulate(target, energyKev, weight, -1, 0.0);
         }
 
         /// <summary>
@@ -436,7 +442,25 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public void AccumulateChannel(double[] target, double energyKev, double weight, int channel)
         {
-            this.Accumulate(target, energyKev, weight, channel);
+            this.Accumulate(target, energyKev, weight, channel, 0.0);
+        }
+
+        /// <summary>
+        /// То же, но весь отклик сдвинут вверх по шкале на
+        /// <paramref name="shiftKev"/>. Понадобилось сумм-континууму каскада
+        /// (S19): когда пара поглощена целиком, а третий квант оставил ЧАСТЬ
+        /// своей энергии, событие ложится на E_i+E_j плюс то, что оставил
+        /// третий, — то есть на его отклик, сдвинутый на сумму пары.
+        ///
+        /// Сдвиг идёт в бинах приёмника и не масштабируется вместе со строкой:
+        /// строка растягивается со своего узла на энергию третьего кванта, а
+        /// сдвиг — свойство ДРУГИХ квантов и к её масштабу отношения не имеет.
+        /// </summary>
+        public void AccumulateShifted(double[] target, double energyKev, double weight, int channel,
+                                      double shiftKev)
+        {
+            this.Accumulate(target, energyKev, weight, channel,
+                            this.BinKev > 0.0 ? shiftKev / this.BinKev : 0.0);
         }
 
         /// <summary>Есть ли у матрицы раскладка по каналам.</summary>
@@ -445,7 +469,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             get { return this.ChannelRows != null && this.ChannelRows.Length > 0; }
         }
 
-        void Accumulate(double[] target, double energyKev, double weight, int channel)
+        void Accumulate(double[] target, double energyKev, double weight, int channel,
+                        double shiftBins)
         {
             // Просили КОНКРЕТНЫЙ канал, а такого нет (матрица без каналов или
             // чужой номер) — вклад пустой. Молчаливый откат на суммарные
@@ -474,29 +499,29 @@ namespace BecquerelMonitor.EfficiencyMaker
             int hi = Array.BinarySearch(this.Energies, energyKev);
             if (hi >= 0)
             {
-                this.Stretch(rows[hi], this.Energies[hi], energyKev, weight, target);
+                this.Stretch(rows[hi], this.Energies[hi], energyKev, weight, target, shiftBins);
                 return;
             }
 
             hi = ~hi;
             if (hi <= 0)
             {
-                this.Stretch(rows[0], this.Energies[0], energyKev, weight, target);
+                this.Stretch(rows[0], this.Energies[0], energyKev, weight, target, shiftBins);
                 return;
             }
 
             if (hi >= this.Energies.Length)
             {
                 int last = this.Energies.Length - 1;
-                this.Stretch(rows[last], this.Energies[last], energyKev, weight, target);
+                this.Stretch(rows[last], this.Energies[last], energyKev, weight, target, shiftBins);
                 return;
             }
 
             int lo = hi - 1;
             double span = this.Energies[hi] - this.Energies[lo];
             double t = span > 0.0 ? (energyKev - this.Energies[lo]) / span : 0.0;
-            this.Stretch(rows[lo], this.Energies[lo], energyKev, weight * (1.0 - t), target);
-            this.Stretch(rows[hi], this.Energies[hi], energyKev, weight * t, target);
+            this.Stretch(rows[lo], this.Energies[lo], energyKev, weight * (1.0 - t), target, shiftBins);
+            this.Stretch(rows[hi], this.Energies[hi], energyKev, weight * t, target, shiftBins);
         }
 
         /// <summary>
