@@ -378,6 +378,30 @@ namespace FsaCascadeProbe
                 Console.WriteLine("    {0,-14} суммы {1,10:F0} из {2,10:F0} отсчётов = {3,5:F1} %{4}",
                                   component.Name, sums, whole, whole > 0.0 ? 100.0 * sums / whole : 0.0,
                                   over > 0.0 ? "   ВЫШЕ СВОЕЙ ЛЕНТЫ на " + over.ToString("F0") : "");
+
+                // ГДЕ именно подслой вылез за ленту: без места «на 11 отсчётов»
+                // не диагноз, а повод гадать. Печатается по убыванию превышения.
+                if (over > 0.0)
+                {
+                    var spots = new List<double[]>();
+                    for (int i = 0; i < component.Curve.Length; i++)
+                    {
+                        double diff = component.SumPeakCurve[i] - component.Curve[i];
+                        if (diff > 0.0)
+                        {
+                            spots.Add(new[] { rd.EnergySpectrum.EnergyCalibration.ChannelToEnergy(i),
+                                              diff, component.Curve[i], component.SumPeakCurve[i] });
+                        }
+                    }
+
+                    spots.Sort((x, y) => y[1].CompareTo(x[1]));
+                    for (int k = 0; k < spots.Count && k < 5; k++)
+                    {
+                        Console.WriteLine("        {0,8:F1} кэВ  лента {1,10:F2}  подслой {2,10:F2}"
+                                          + "  превышение {3,8:F2}",
+                                          spots[k][0], spots[k][2], spots[k][3], spots[k][1]);
+                    }
+                }
             }
 
             // Где модель НЕДОБИРАЕТ — там и надо искать структуру, которой в

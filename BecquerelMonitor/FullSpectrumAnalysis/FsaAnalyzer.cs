@@ -1500,27 +1500,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 correction = null;
             }
 
-            double topEnergy = 0.0;
-            foreach (FsaLine line in component.Lines)
-            {
-                if (line.Energy > topEnergy && line.Intensity > 0.0)
-                {
-                    topEnergy = line.Energy;
-                }
-            }
-
+            double topEnergy = TopLineEnergy(component);
             bool sumPeaks = correction != null && this.CascadeSumPeaks;
             if (sumPeaks)
             {
-                // Сумм-пик стоит ВЫШЕ любой своей линии — массив поглощения
-                // обязан до него доставать, иначе пик молча упрётся в край.
-                foreach (FsaCascadeSummer.SumPeak peak in correction.SumPeaks)
-                {
-                    if (peak.Energy > topEnergy)
-                    {
-                        topEnergy = peak.Energy;
-                    }
-                }
+                topEnergy = SumTopEnergy(correction, topEnergy);
             }
 
             if (!(topEnergy > 0.0))
@@ -1601,7 +1585,74 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// внутри неё. Вес подбирается так, чтобы канал пика дал ровно её и ни
         /// на что больше не разошёлся.
         /// </summary>
+        /// <summary>
+        /// Докуда обязан доставать массив поглощения, чтобы каскадные добавки в
+        /// него поместились: выше самого высокого сумм-пика И выше верха
+        /// сумм-континуума (сумма пары плюс вся энергия третьего кванта).
+        ///
+        /// Общий на ОБА места, где такой массив заводится, — образ компонента и
+        /// его сумм-кривая для отрисовки. Разъехаться им нельзя: `Add` в матрице
+        /// зажимает выход за край, и всё, что не поместилось, встаёт ложным
+        /// пиком в последнем бине. Проверка «подслой выше своей ленты» в
+        /// `FsaCascadeProbe` поймала ровно это, когда сумм-континуум учли в
+        /// одном месте и забыли в другом.
+        /// </summary>
+        /// <summary>Самая верхняя линия компонента с ненулевым выходом, кэВ.</summary>
+        static double TopLineEnergy(FsaComponent component)
+        {
+            double top = 0.0;
+            foreach (FsaLine line in component.Lines)
+            {
+                if (line.Energy > top && line.Intensity > 0.0)
+                {
+                    top = line.Energy;
+                }
+            }
+
+            return top;
+        }
+
+        static double SumTopEnergy(FsaCascadeSummer.Correction correction, double start)
+        {
+            double top = start;
+            if (correction == null)
+            {
+                return top;
+            }
+
+            if (correction.SumPeaks != null)
+            {
+                foreach (FsaCascadeSummer.SumPeak peak in correction.SumPeaks)
+                {
+                    if (peak.Energy > top)
+                    {
+                        top = peak.Energy;
+                    }
+                }
+            }
+
+            if (correction.SumContinua != null)
+            {
+                foreach (FsaCascadeSummer.SumContinuum band in correction.SumContinua)
+                {
+                    double edge = band.ShiftKev + band.ThirdKev;
+                    if (edge > top)
+                    {
+                        top = edge;
+                    }
+                }
+            }
+
+            return top;
+        }
+
         bool AccumulateSumPeaks(double[] deposit, FsaCascadeSummer.Correction correction)
+        {
+            return this.AccumulateSumPeaks(deposit, correction, true);
+        }
+
+        bool AccumulateSumPeaks(double[] deposit, FsaCascadeSummer.Correction correction,
+                                bool withContinuum)
         {
             bool any = false;
             foreach (FsaCascadeSummer.SumPeak peak in correction.SumPeaks)
@@ -1616,6 +1667,39 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     deposit, peak.Energy, peak.Area / peakEfficiency,
                     (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak);
                 any = true;
+            }
+
+            // Сумм-континуум (S19): пара поглощена целиком, третий квант оставил
+            // часть себя. Кладётся откликом ТРЕТЬЕГО кванта без пикового канала,
+            // сдвинутым на видимую сумму пары, — то есть тем же образом, каким
+            // третий квант лёг бы сам по себе, только приподнятым по шкале.
+            // Пиковый канал исключён нарочно: полное поглощение третьего уже
+            // посчитано тройным сумм-пиком, и класть его сюда значило бы
+            // задвоить.
+            if (withContinuum && correction.SumContinua != null)
+            {
+                int channels = EfficiencyMaker.EfficiencySimulator.ResponseChannelCount;
+                int peakChannel = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak;
+                foreach (FsaCascadeSummer.SumContinuum band in correction.SumContinua)
+                {
+                    if (!(band.Weight > 0.0))
+                    {
+                        continue;
+                    }
+
+                    for (int c = 0; c < channels; c++)
+                    {
+                        if (c == peakChannel)
+                        {
+                            continue;
+                        }
+
+                        this.ResponseMatrix.AccumulateShifted(
+                            deposit, band.ThirdKev, band.Weight, c, band.ShiftKev);
+                    }
+
+                    any = true;
+                }
             }
 
             return any;
@@ -1651,22 +1735,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return null;
             }
 
-            double topEnergy = 0.0;
-            foreach (FsaCascadeSummer.SumPeak peak in correction.SumPeaks)
-            {
-                if (peak.Energy > topEnergy)
-                {
-                    topEnergy = peak.Energy;
-                }
-            }
-
+            // Верх шкалы берётся ТОТ ЖЕ, что у полного образа компонента —
+            // вместе с его линиями, хотя самих линий здесь не кладут. Иначе у
+            // подслоя массив короче, а `Add` зажимает выход за край: сумма,
+            // лежащая выше края КОРОТКОГО массива, встаёт в его последний бин и
+            // задирает подслой выше собственной ленты. Ровно это и показала
+            // проба, когда массивы считались порознь.
+            double topEnergy = SumTopEnergy(correction, TopLineEnergy(component));
             if (!(topEnergy > 0.0))
             {
                 return null;
             }
 
+            // ⚠ Сумм-КОНТИНУУМ в подслой НЕ идёт (S19, 13.08.2026). Причины две.
+            // Смысловая: подслой рисуется штриховкой внутри ленты нуклида и
+            // читается как «вот эти пики — суммы»; широкая полка, нарисованная
+            // так же, читалась бы как пик, которого нет. И измеренная: с ним
+            // подслой вылезал ЗА свою ленту (проба ловит это счётом) — на
+            // 5–11 отсчётов из сотен тысяч, но вылезал, а причина расхождения
+            // двух путей построения не установлена (TODO S37).
             double[] deposit = new double[(int)(topEnergy / bin + 0.5) + 1];
-            if (!this.AccumulateSumPeaks(deposit, correction))
+            if (!this.AccumulateSumPeaks(deposit, correction, false))
             {
                 return null;
             }
