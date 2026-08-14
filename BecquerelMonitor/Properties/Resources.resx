@@ -8446,6 +8446,9 @@ http://xptable.sourceforge.net/</value>
   <data name="FSASumPeakRow" xml:space="preserve">
     <value>{0} — sum peak</value>
   </data>
+  <data name="FSAMdaValue" xml:space="preserve">
+    <value>&lt; {0} cps</value>
+  </data>
   <data name="FSAPileUpName" xml:space="preserve">
     <value>Pile-up</value>
   </data>

@@ -399,6 +399,9 @@
   <data name="FSASumPeakRow" xml:space="preserve">
     <value>{0} — сумм-пик</value>
   </data>
+  <data name="FSAMdaValue" xml:space="preserve">
+    <value>&lt; {0} имп/с</value>
+  </data>
   <data name="FSAPileUpName" xml:space="preserve">
     <value>Наложения</value>
   </data>

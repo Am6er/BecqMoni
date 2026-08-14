@@ -601,8 +601,38 @@ namespace BecquerelMonitor
             }
 
             // +1 — строка качества, плюс по строке на каждый слой со своими
-            // сумм-пиками.
-            return this.GetFsaLayers(result).Count + 1 + this.FsaSumPeakLayers(result).Count;
+            // сумм-пиками, плюс по строке «< МДА» на каждого НЕвошедшего
+            // кандидата (S9, решение Amber 14.08.2026 «показывай»).
+            return this.GetFsaLayers(result).Count + 1 + this.FsaSumPeakLayers(result).Count
+                   + FsaUndetected(result).Count;
+        }
+
+        /// <summary>
+        /// НЕ вошедшие в состав кандидаты библиотеки с определённым пределом
+        /// обнаружения (S9). Строка «Cs-137 &lt; 192 имп/с» — метрологический
+        /// ответ «не обнаружен»: без МДА он полответа, потому что «не нашли»
+        /// и «не могли найти» — разные вещи. Вырожденные и без МДА не
+        /// показываются: врать порогом, которого нет, хуже, чем молчать.
+        /// </summary>
+        static List<FsaCharacteristicLimit> FsaUndetected(FsaResult result)
+        {
+            List<FsaCharacteristicLimit> found = new List<FsaCharacteristicLimit>();
+            if (result.CharacteristicLimits == null)
+            {
+                return found;
+            }
+
+            foreach (FsaCharacteristicLimit limit in result.CharacteristicLimits)
+            {
+                if (!limit.Detected && !limit.Degenerate
+                    && !double.IsNaN(limit.DetectionLimitRate)
+                    && limit.DetectionLimitRate > 0.0)
+                {
+                    found.Add(limit);
+                }
+            }
+
+            return found;
         }
 
         /// <summary>
@@ -674,6 +704,23 @@ namespace BecquerelMonitor
                                            Resources.FSASumPeakRow,
                                            FsaPalette.DisplayName(layer.Name)),
                              this.Font, Brushes.Black, nameRect);
+                r.Y += FsaTableRowHeight;
+                nameRect.Y += FsaTableRowHeight;
+            }
+
+            // «Не обнаружен» с пределом обнаружения (S9): имя серым — у
+            // кандидата нет ленты и нет цвета, чёрное имя читалось бы как
+            // строка состава; справа «< МДА» в имп/с, той же колонкой, что
+            // доли. Формат G3 — три значащие цифры, точность пределов выше
+            // трёх цифр была бы враньём.
+            foreach (FsaCharacteristicLimit limit in FsaUndetected(result))
+            {
+                g.DrawString(FsaPalette.DisplayName(limit.Name), this.Font, Brushes.Gray, nameRect);
+                g.DrawString(string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                                           Resources.FSAMdaValue,
+                                           limit.DetectionLimitRate.ToString("G3",
+                                               System.Globalization.CultureInfo.CurrentCulture)),
+                             this.Font, Brushes.Gray, r, this.farFormat);
                 r.Y += FsaTableRowHeight;
                 nameRect.Y += FsaTableRowHeight;
             }

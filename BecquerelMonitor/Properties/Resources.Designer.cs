@@ -2836,6 +2836,15 @@ namespace BecquerelMonitor.Properties {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to &lt; {0} cps.
+        /// </summary>
+        public static string FSAMdaValue {
+            get {
+                return ResourceManager.GetString("FSAMdaValue", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Pile-up.
         /// </summary>
         public static string FSAPileUpName {
