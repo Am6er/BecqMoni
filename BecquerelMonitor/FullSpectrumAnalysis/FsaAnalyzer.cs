@@ -103,9 +103,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>
         /// (P6 «б») Гейт по парциальной невязке: исключать нуклидные
         /// компоненты с ΔD &lt; 0 (присутствие ухудшает невязку их же зоны) и
-        /// перефитивать один раз. Умолчание ВЫКЛЮЧЕНО — A/B-проверка идёт
-        /// ключом `--pr-gate` у CorpusFsaProbe; правило решения Amber
-        /// 14.08.2026: лучше → внедряем, хуже → откат без разбора причин.
+        /// перефитивать один раз. ВКЛЮЧЁН УМОЛЧАНИЕМ решением Amber
+        /// 14.08.2026 (вечер) по A/B корпуса-70: фантомы 5/37 → 4/32 (снят и
+        /// фантом понятной части, и Np-239 86.8 % на OBS), цена — один
+        /// настоящий компонент непонятной части (Bi-214 оникса) и +1.8 % Σχ².
+        /// Выключатель для A/B — `--no-pr-gate` у CorpusFsaProbe.
         /// </summary>
         public bool PartialResidualGate { get; set; }
 
@@ -270,6 +272,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.CascadeSumming = true;
             this.CascadeSumPeaks = true;
             this.PileUp = true;
+            this.PartialResidualGate = true;
         }
 
         /// <summary>

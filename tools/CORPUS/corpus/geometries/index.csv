@@ -11,4 +11,6 @@ G1S_denta_k40,G1S_K40_Denta,Gamma-1S UDS-GC 63x63,"флакон «Дента» 1
 G1S_petri_th232,G1S_Th232_Petri,Gamma-1S UDS-GC 63x63,"чашка Петри 60 мл, вплотную"
 G1S_petri_ra226,G1S_Ra226_Petri,Gamma-1S UDS-GC 63x63,"чашка Петри 60 мл, вплотную"
 G1S_marinelli1l_th232,G1S_Th232_Marinelli,Gamma-1S UDS-GC 63x63,"маринелли 1 л"
+AS80_point0,AS80_Cs137_0cm,Atom Spectra Pro 80x80,"точечный источник, вплотную к торцу"
+RC103_point0,RC103_Cs137_0cm,RadiaCode-103,"точечный источник, вплотную к торцу"
 RC103_marinelli05_kcl,RC103_K40,RadiaCode-103,"маринелли 0.5 л (поставка ЛСРМ, размеры не восстановлены — взяты из шаблона)"
