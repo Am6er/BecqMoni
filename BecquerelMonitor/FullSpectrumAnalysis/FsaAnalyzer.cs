@@ -530,11 +530,324 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
-            return BuildResult(best, spectrum, fwhmCalibration, backgroundCurve, snipContinuum,
+            FsaResult result = BuildResult(best, spectrum, fwhmCalibration, backgroundCurve, snipContinuum,
                                chLo, chHi, channels,
                                bestGain, bestOffset, liveTime, efficiency != null,
                                gainSteps > 1 && (bestGainIndex == 0 || bestGainIndex == gainSteps - 1),
                                offsetSteps > 1 && (bestOffsetIndex == 0 || bestOffsetIndex == offsetSteps - 1));
+            this.ComputeCharacteristicLimits(result, best, originalLibrary, calibration, fwhmCalibration,
+                                             efficiency, bestGain, bestOffset, chLo, chHi, channels,
+                                             variance, liveTime);
+            return result;
+        }
+
+        /// <summary>
+        /// Квантиль нормального распределения для ошибок первого и второго рода
+        /// характеристических пределов (S9): 1.6449 отвечает α = β = 5 % —
+        /// умолчание ISO 11929. Поле, а не константа, — программная ручка для
+        /// проб, в UI и конфигурацию не выводится (как
+        /// <see cref="ResponseContinuumTrustFloorKev"/>).
+        /// </summary>
+        public double LimitQuantileK = 1.6449;
+
+        /// <summary>
+        /// Характеристические пределы разложения (S9): порог решения a* и предел
+        /// обнаружения a# для КАЖДОГО нуклидного кандидата библиотеки — и
+        /// вошедшего в состав, и отброшенного отсевом. Формализм — Xu et al.,
+        /// ART 182 (2022) 110109, лучший из их тестов (w2) поверх ISO 11929.
+        ///
+        /// Оценщик амплитуды компонента j линеен: â_j = Σ_i w_i·y_i, где w —
+        /// строка j взвешенной псевдообратной Π = (ΦᵀWΦ)⁻¹ΦᵀW по активному
+        /// множеству финального фита. Для активного j строка берётся готовой из
+        /// обратной активной части Грама (H); для неактивного — дополнением
+        /// Шура по той же H: β = H·g_Aj, знаменатель g_jj − g_Ajᵀβ. Ни одного
+        /// нового обращения матрицы здесь нет нарочно: на приборах с тысячей
+        /// шапок континуума обращение на каждый нуклид стоило бы минуты.
+        ///
+        /// Под нулевой гипотезой (нуклида нет) дисперсия статистики
+        /// σ₀² = Σ w_i²·v0_i, где v0 — дисперсия канала БЕЗ отсчётов самого
+        /// компонента (у Xu — эквивалентный фон m). Порог решения a* = k·σ₀.
+        /// Предел обнаружения — наименьшее истинное a, при котором тест ещё
+        /// срабатывает с ошибкой β: a# = a* + k·σ(a#); поскольку пуассонова
+        /// дисперсия растёт линейно, σ²(a) = σ₀² + a·Σ w_i²·φ_ij, и при α = β
+        /// уравнение решается замкнуто: a# = 2·k·σ₀ + k²·γ (ISO 11929).
+        ///
+        /// Три сознательных отступления от статьи, все — консервативные:
+        ///   * веса берутся финального хуберовского прохода, а σ₀ и σ(a#)
+        ///     надуваются на √(χ²/ndf), как и сигмы амплитуд: у Xu модель верна
+        ///     по построению, у нас невязка формы реальна, и пределы без надувки
+        ///     обещали бы точность, которой у разбора нет;
+        ///   * пределы описывают ЛИНЕЙНУЮ статистику w·y — обрезание NNLS нулём
+        ///     делает фактическое решение «а ≥ a*» только консервативнее
+        ///     (у Xu тот же выбор: их тест тоже линейный);
+        ///   * у компонента, не вошедшего в финальный фит, подпороговый хвост
+        ///     образа (отвязка континуума) не моделируется — весь образ идёт
+        ///     одной колонкой, и a# у таких чуть завышен.
+        ///
+        /// Величины возвращаются в шкале скорости счёта (имп/с), как
+        /// <see cref="FsaComponentResult.CountRate"/>: перевод в Бк требует
+        /// абсолютного уровня кривой эффективности, которого у большинства
+        /// спектров нет (E1/V1), и врать беккерелями здесь нельзя.
+        /// </summary>
+        void ComputeCharacteristicLimits(FsaResult result, FitResult fit, List<FsaComponent> library,
+                                         EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
+                                         FsaEfficiency efficiency, double gain, double offset,
+                                         int chLo, int chHi, int channels,
+                                         double[] variance, double liveTime)
+        {
+            if (result == null || fit == null || fit.Weights == null || fit.Gram == null
+                || fit.ActiveIndices == null || library == null)
+            {
+                return;
+            }
+
+            List<int> A = fit.ActiveIndices;
+            double[,] H = fit.ActiveInverse;
+            double[] W = fit.Weights;
+            double inflate = Math.Sqrt(Math.Max(1.0, fit.Chi2Ndf));
+            double k1 = this.LimitQuantileK;
+            double[] projection = new double[channels];
+
+            foreach (FsaComponent component in library)
+            {
+                if (component == null || component.Kind == FsaComponentKind.Nuisance
+                    || component.Derived)
+                {
+                    continue;
+                }
+
+                // Колонка компонента в финальном фите; отброшенные отсевом или
+                // вторым кругом рассеяния строят образ заново на том же дрейфе.
+                int col = -1;
+                for (int k = 0; k < fit.Columns.Count; k++)
+                {
+                    if (ReferenceEquals(fit.Columns[k].Component, component))
+                    {
+                        col = k;
+                        break;
+                    }
+                }
+
+                double amplitude = col >= 0 ? fit.Amplitude[col] : 0.0;
+                double[] phi;
+                if (col >= 0)
+                {
+                    phi = fit.Columns[col].Values;
+                }
+                else if (this.ResponseMatrix != null && !component.WeightsAreFinal)
+                {
+                    double[] lowTail;
+                    phi = this.BuildTemplateFromResponse(component, calibration, fwhmCalibration,
+                                                         gain, offset, chLo, chHi, channels, out lowTail);
+                }
+                else
+                {
+                    phi = BuildTemplate(component, calibration, fwhmCalibration, efficiency,
+                                        gain, offset, chLo, chHi, channels);
+                }
+
+                if (phi == null)
+                {
+                    continue;
+                }
+
+                FsaCharacteristicLimit limit = new FsaCharacteristicLimit
+                {
+                    Name = component.Name,
+                    Kind = component.Kind,
+                    Detected = col >= 0 && amplitude > 0.0,
+                    CountRate = amplitude / liveTime,
+                    DecisionThresholdRate = Double.NaN,
+                    DetectionLimitRate = Double.NaN
+                };
+                result.CharacteristicLimits.Add(limit);
+
+                if (H == null || A.Count == 0)
+                {
+                    limit.Degenerate = true;
+                    limit.Collinearity = 1.0;
+                    continue;
+                }
+
+                // Проекция строки оценщика на каналы: p_i такое, что
+                // â_j = Σ_i W_i·p_i·y_i.
+                Array.Clear(projection, 0, channels);
+                bool jActive = col >= 0 && fit.Active[col];
+                if (jActive)
+                {
+                    int ja = A.IndexOf(col);
+
+                    // Коллинеарность из тех же матриц: эффективная информация
+                    // активного компонента — 1/H_jj, её доля от полной — по
+                    // дополнению Шура.
+                    double hjj = H[ja, ja];
+                    double gjjActive = fit.Gram[col, col];
+                    if (hjj > 0.0 && gjjActive > 0.0)
+                    {
+                        double share = 1.0 - 1.0 / (hjj * gjjActive);
+                        limit.Collinearity = share < 0.0 ? 0.0 : (share > 1.0 ? 1.0 : share);
+                    }
+
+                    for (int a = 0; a < A.Count; a++)
+                    {
+                        double h = H[ja, a];
+                        if (h == 0.0)
+                        {
+                            continue;
+                        }
+
+                        double[] t = fit.Columns[A[a]].Values;
+                        for (int i = chLo; i <= chHi; i++)
+                        {
+                            projection[i] += h * t[i];
+                        }
+                    }
+                }
+                else
+                {
+                    double gjj;
+                    double[] gAj = new double[A.Count];
+                    if (col >= 0)
+                    {
+                        for (int a = 0; a < A.Count; a++)
+                        {
+                            gAj[a] = fit.Gram[A[a], col];
+                        }
+
+                        gjj = fit.Gram[col, col];
+                    }
+                    else
+                    {
+                        for (int a = 0; a < A.Count; a++)
+                        {
+                            gAj[a] = DotWeighted(fit.Columns[A[a]].Values, phi, W, chLo, chHi);
+                        }
+
+                        gjj = DotWeighted(phi, phi, W, chLo, chHi);
+                    }
+
+                    double[] beta = new double[A.Count];
+                    double crossTerm = 0.0;
+                    for (int a = 0; a < A.Count; a++)
+                    {
+                        double sum = 0.0;
+                        for (int b = 0; b < A.Count; b++)
+                        {
+                            sum += H[a, b] * gAj[b];
+                        }
+
+                        beta[a] = sum;
+                        crossTerm += gAj[a] * sum;
+                    }
+
+                    double denominator = gjj - crossTerm;
+                    if (!(gjj > 0.0) || denominator <= 1.0E-10 * gjj)
+                    {
+                        limit.Degenerate = true;
+                        limit.Collinearity = 1.0;
+                        continue;
+                    }
+
+                    double shareTaken = 1.0 - denominator / gjj;
+                    limit.Collinearity = shareTaken < 0.0 ? 0.0
+                        : (shareTaken > 1.0 ? 1.0 : shareTaken);
+
+                    for (int i = chLo; i <= chHi; i++)
+                    {
+                        projection[i] = phi[i];
+                    }
+
+                    for (int a = 0; a < A.Count; a++)
+                    {
+                        double b = beta[a];
+                        if (b == 0.0)
+                        {
+                            continue;
+                        }
+
+                        double[] t = fit.Columns[A[a]].Values;
+                        for (int i = chLo; i <= chHi; i++)
+                        {
+                            projection[i] -= b * t[i];
+                        }
+                    }
+
+                    for (int i = chLo; i <= chHi; i++)
+                    {
+                        projection[i] /= denominator;
+                    }
+                }
+
+                double nullVariance = 0.0;
+                double varianceSlope = 0.0;
+                for (int i = chLo; i <= chHi; i++)
+                {
+                    double p = projection[i];
+                    if (p == 0.0)
+                    {
+                        continue;
+                    }
+
+                    double w = W[i] * p;
+                    double v0 = variance[i] - amplitude * phi[i];
+                    if (v0 < 1.0)
+                    {
+                        v0 = 1.0;
+                    }
+
+                    nullVariance += w * w * v0;
+                    varianceSlope += w * w * phi[i];
+                }
+
+                if (!(nullVariance > 0.0))
+                {
+                    limit.Degenerate = true;
+                    continue;
+                }
+
+                double s0 = inflate * Math.Sqrt(nullVariance);
+                double threshold = k1 * s0;
+                double detection = 2.0 * k1 * s0 + k1 * k1 * inflate * inflate * varianceSlope;
+                limit.DecisionThresholdRate = threshold / liveTime;
+                limit.DetectionLimitRate = detection / liveTime;
+            }
+
+            // Те же числа — на строках состава, чтобы читателю не соединять два
+            // списка по имени. Мешающим образам пределы не считаются: NaN, а не
+            // ноль, — ноль читался бы как «порог нулевой».
+            Dictionary<string, FsaCharacteristicLimit> byName =
+                new Dictionary<string, FsaCharacteristicLimit>(StringComparer.Ordinal);
+            foreach (FsaCharacteristicLimit limit in result.CharacteristicLimits)
+            {
+                byName[limit.Name] = limit;
+            }
+
+            foreach (FsaComponentResult component in result.Components)
+            {
+                FsaCharacteristicLimit limit;
+                if (byName.TryGetValue(component.Name, out limit))
+                {
+                    component.DecisionThresholdRate = limit.DecisionThresholdRate;
+                    component.DetectionLimitRate = limit.DetectionLimitRate;
+                }
+                else
+                {
+                    component.DecisionThresholdRate = Double.NaN;
+                    component.DetectionLimitRate = Double.NaN;
+                }
+            }
+        }
+
+        /// <summary>Скалярное произведение двух колонок с весами фита.</summary>
+        static double DotWeighted(double[] a, double[] b, double[] weights, int chLo, int chHi)
+        {
+            double sum = 0.0;
+            for (int i = chLo; i <= chHi; i++)
+            {
+                sum += a[i] * weights[i] * b[i];
+            }
+
+            return sum;
         }
 
         FsaResult BuildResult(FitResult fit, EnergySpectrum spectrum, FwhmCalibration fwhmCalibration,
@@ -810,6 +1123,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             /// <summary>Хоть один образ этого фита построен матрицей отклика.</summary>
             public bool FromResponseMatrix;
+
+            /// <summary>
+            /// Веса, которыми считались Gram и оценки, — они же нужны пределам
+            /// (S9): пределы описывают ТОТ оценщик, что дал амплитуды, а не
+            /// идеальный. Ссылка на массив финального хуберовского прохода.
+            /// </summary>
+            public double[] Weights;
+
+            /// <summary>Матрица нормальных уравнений всех колонок фита.</summary>
+            public double[,] Gram;
+
+            /// <summary>Флаги активного множества NNLS по колонкам.</summary>
+            public bool[] Active;
+
+            /// <summary>Номера активных колонок — порядок строк <see cref="ActiveInverse"/>.</summary>
+            public List<int> ActiveIndices;
+
+            /// <summary>Обратная активной части Gram; null — вырождена.</summary>
+            public double[,] ActiveInverse;
         }
 
         FitResult FitHuber(List<FsaComponent> library, List<double[]> fixedColumns,
@@ -986,6 +1318,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            double[,] activeInverse = null;
             if (activeIndices.Count > 0)
             {
                 double[,] activeGram = new double[activeIndices.Count, activeIndices.Count];
@@ -997,12 +1330,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
 
-                double[,] inverse = InvertSymmetric(activeGram, activeIndices.Count);
-                if (inverse != null)
+                activeInverse = InvertSymmetric(activeGram, activeIndices.Count);
+                if (activeInverse != null)
                 {
                     for (int a = 0; a < activeIndices.Count; a++)
                     {
-                        double d = inverse[a, a];
+                        double d = activeInverse[a, a];
                         sigma[activeIndices[a]] = d > 0.0 ? Math.Sqrt(d) * inflate : 0.0;
                     }
                 }
@@ -1030,7 +1363,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 Chi2 = chi2,
                 Chi2Ndf = chi2ndf,
                 Residual = residual,
-                FromResponseMatrix = fromMatrix
+                FromResponseMatrix = fromMatrix,
+                Weights = weights,
+                Gram = gram,
+                Active = active,
+                ActiveIndices = activeIndices,
+                ActiveInverse = activeInverse
             };
         }
 
