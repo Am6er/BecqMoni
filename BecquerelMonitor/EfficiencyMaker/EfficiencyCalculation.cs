@@ -28,8 +28,10 @@ namespace BecquerelMonitor.EfficiencyMaker
     ///
     /// Низ шкалы слабее: когерентное рассеяние в кристалле не выделено (вылет
     /// характеристического K-рентгена кристалла моделируется —
-    /// `EfficiencySimulator.XrayEscape`, включён умолчанием). Поэтому сетка
-    /// начинается с 40 кэВ, но доверия к первым точкам меньше, чем к середине.
+    /// `EfficiencySimulator.XrayEscape`, включён умолчанием). Поэтому штатная
+    /// сетка начинается с 40 кэВ; считать ниже не запрещено — нижняя граница
+    /// задаётся полем формы, и сетка до неё дотягивается, — но доверия к первым
+    /// точкам меньше, чем к середине шкалы.
     /// </summary>
     /// <summary>Как разложены узлы сетки энергий.</summary>
     public enum EfficiencyGridMode
@@ -132,6 +134,44 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             return grid;
+        }
+
+        /// <summary>
+        /// Дотянуть штатную сетку до границ диапазона, не трогая её собственных
+        /// узлов. Продолжение идёт ШАГОМ КРАЙНЕГО УЧАСТКА самой сетки (внизу
+        /// это 10 кэВ, вверху 200), поэтому густота узлов на стыке не прыгает, а
+        /// последней ставится сама граница — если шаг в неё не попал ровно.
+        ///
+        /// Узел вплотную к уже имеющемуся не заводится: граница ближе десятой
+        /// доли шага — это та же точка, а лишний узел стоил бы полного прогона
+        /// историй ради повторения соседа.
+        /// </summary>
+        static void Reach(List<double> picked, double lo, double hi)
+        {
+            // Оба шага сняты ДО вставок: вставка снизу сдвигает индексы, и
+            // верхний шаг после неё пришлось бы искать заново.
+            double lowStep = picked[1] - picked[0];
+            double highStep = picked[picked.Count - 1] - picked[picked.Count - 2];
+
+            for (double energy = picked[0] - lowStep; energy > lo; energy -= lowStep)
+            {
+                picked.Insert(0, energy);
+            }
+
+            if (picked[0] - lo > lowStep * 0.1)
+            {
+                picked.Insert(0, lo);
+            }
+
+            for (double energy = picked[picked.Count - 1] + highStep; energy < hi; energy += highStep)
+            {
+                picked.Add(energy);
+            }
+
+            if (hi - picked[picked.Count - 1] > highStep * 0.1)
+            {
+                picked.Add(hi);
+            }
         }
 
         public EfficiencyCalculationOptions Clone()

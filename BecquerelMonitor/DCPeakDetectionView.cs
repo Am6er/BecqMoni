@@ -25,6 +25,11 @@ namespace BecquerelMonitor
         {
             this.FormLoading = true;
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+            // Набор нуклидов этого документа встаёт в список ПЕРВЫМ делом:
+            // ниже метод не раз выходит досрочно — нет результата, нет
+            // конфигурации прибора, нет калибровки ПШПВ, — а список наборов
+            // виден всегда, и чужой выбор в нём читался бы как свой (R9).
+            this.ShowNuclideSetOf(activeDocument);
             if (activeDocument == null || activeDocument.ActiveResultData == null)
             {
                 this.tableModel1.Rows.Clear();
@@ -262,14 +267,93 @@ namespace BecquerelMonitor
 
         public void RefreshNuclideSets()
         {
-            // Выбор запоминается ДО очистки списка. Items.Clear() сбрасывает
-            // SelectedIndex в -1 и поднимает SelectedIndexChanged, а тот кладёт
-            // в выбор null — то есть к строке восстановления ниже восстанавливать
-            // было уже нечего. Список обновляют по закрытии редактора наборов,
-            // и набор для поиска молча слетал на «все нуклиды» после каждого
-            // захода туда.
+            // Выбор запоминается ДО очистки списка: Items.Clear() сбрасывает
+            // SelectedIndex в -1 и поднимает SelectedIndexChanged. Список
+            // обновляют по закрытии редактора наборов, и набор для поиска молча
+            // слетал на «все нуклиды» после каждого захода туда.
             NuclideSet wanted = this.selectedNuclideSet;
 
+            // Перестройка списка — не выбор человека, и обработчик её больше не
+            // видит вовсе. Одного восстановления в конце теперь мало: тот же
+            // обработчик пишет выбор в активный ДОКУМЕНТ, и стёртую там память
+            // никакая строка ниже не вернула бы (R9).
+            this.updatingNuclideSets = true;
+            try
+            {
+                this.FillNuclideSets(wanted);
+            }
+            finally
+            {
+                this.updatingNuclideSets = false;
+            }
+
+            // Удалённый набор обязан забыть и ДОКУМЕНТ. Иначе он держит ссылку
+            // на то, чего больше нет, до ближайшего обновления панели — а
+            // список к этому времени уже показывает «все нуклиды».
+            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+            if (activeDocument != null)
+            {
+                activeDocument.SelectedNuclideSet = this.selectedNuclideSet;
+            }
+        }
+
+        /// <summary>
+        /// Поставить в список набор ЭТОГО документа и сделать его текущим.
+        /// Зовётся из <see cref="ShowPeakDetectionResult"/>, то есть на каждой
+        /// смене активного документа и на каждом обновлении панели по таймеру,
+        /// — поэтому молчит: подстановка выбора кодом не считается выбором
+        /// человека и не запускает ни поиска пиков, ни перерисовки.
+        ///
+        /// Набор могли удалить, пока документ лежал в фоне. Тогда выбор честно
+        /// возвращается к «всем нуклидам» — и в самом документе тоже, а не
+        /// только в списке.
+        /// </summary>
+        void ShowNuclideSetOf(DocEnergySpectrum document)
+        {
+            if (document == null)
+            {
+                return;
+            }
+
+            // Выбор документа снимается ПЕРВЫМ: перестройка списка ниже
+            // приводит документ в согласие со списком, то есть кладёт в это
+            // поле выбор ПРЕДЫДУЩЕГО документа. Восстанавливать надо снятое, а
+            // не то, что осталось после неё.
+            NuclideSet wanted = document.SelectedNuclideSet;
+
+            // Список мог отстать от самих наборов: правят их в соседнем окне, а
+            // перечитывается он по его закрытии. Строка «все нуклиды» делает
+            // список на единицу длиннее — расхождение видно по счёту.
+            if (this.comboBoxNuclSet.Items.Count != this.nuclideManager.NuclideSets.Count + 1)
+            {
+                this.RefreshNuclideSets();
+            }
+
+            int index = wanted == null ? -1 : this.nuclideManager.NuclideSets.IndexOf(wanted);
+            document.SelectedNuclideSet = index >= 0 ? wanted : null;
+
+            this.updatingNuclideSets = true;
+            try
+            {
+                this.comboBoxNuclSet.SelectedIndex = index >= 0 ? index + 1 : 0;
+            }
+            finally
+            {
+                this.updatingNuclideSets = false;
+            }
+
+            // Текущий набор — набор активного документа: по нему ищет пики
+            // панель и рисует линии интенсивностей график.
+            this.selectedNuclideSet = document.SelectedNuclideSet;
+        }
+
+        /// <summary>
+        /// Собственно перестройка списка. Вынесена отдельным методом, чтобы
+        /// флаг «список меняет код» снимался ровно на выходе, каким бы он ни
+        /// был, — и чтобы у <c>try</c> было одно тело, а не половина метода.
+        /// </summary>
+        void FillNuclideSets(NuclideSet wanted)
+        {
             this.comboBoxNuclSet.Items.Clear();
             // Строка берётся из ресурсов: русский перевод для неё лежал в
             // `DCPeakDetectionView.ru.resx` с 2024 года, но читателя у него не
@@ -294,8 +378,8 @@ namespace BecquerelMonitor
             // указывать на то, чего больше нет.
             int index = wanted == null ? -1 : this.nuclideManager.NuclideSets.IndexOf(wanted);
             this.comboBoxNuclSet.SelectedIndex = index >= 0 ? index + 1 : 0;
-            // Присвоение того же индекса события не поднимает, а выбор к этому
-            // моменту уже сбит очисткой списка — вернуть его надо руками.
+            // Обработчик выбора сюда не доходит (список меняет код), поэтому
+            // поле выставляется руками — и заодно чистится, если набор удалили.
             this.selectedNuclideSet = index >= 0 ? wanted : null;
         }
 
@@ -388,6 +472,15 @@ namespace BecquerelMonitor
 
         private void comboBoxNuclSet_SelectedIndexChanged(object sender, EventArgs e)
         {
+            // Список перестраивает или подставляет КОД — при перечитывании
+            // наборов и при переходе на другой документ. Выбором человека это
+            // не является: ни пересчёта, ни записи в документ за собой не
+            // тянет, а поля выставит тот, кто эту подстановку затеял.
+            if (this.updatingNuclideSets)
+            {
+                return;
+            }
+
             if (this.comboBoxNuclSet.SelectedIndex > 0)
             {
                 this.selectedNuclideSet = this.nuclideManager.NuclideSets[this.comboBoxNuclSet.SelectedIndex - 1];
@@ -397,13 +490,21 @@ namespace BecquerelMonitor
                 this.selectedNuclideSet = null;
             }
 
+            // Выбор принадлежит ДОКУМЕНТУ и запоминается за ним: вернувшись к
+            // этому спектру, человек застанет свой набор, а не тот, что выбран
+            // для соседнего (R9).
+            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+            if (activeDocument != null)
+            {
+                activeDocument.SelectedNuclideSet = this.selectedNuclideSet;
+            }
+
             this.UpdatePeakDetectionResult();
 
             // От выбора зависит не только таблица пиков, но и картинка: линии
             // интенсивностей рисуются по выбранному набору. Поиск пиков идёт в
             // фоне и перерисует график когда-нибудь потом (а при пустом
             // документе не перерисует вовсе), линиям же ждать нечего.
-            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
             if (activeDocument != null)
             {
                 activeDocument.EnergySpectrumView.Invalidate();
@@ -421,17 +522,28 @@ namespace BecquerelMonitor
         bool FormLoading = false;
 
         /// <summary>
-        /// Набор для поиска пиков. Своего поля у панели больше нет: тот же
-        /// выбор решает, чьи линии интенсивностей рисовать на графике, а график
-        /// до панели не дотягивается. Второе поле рядом рано или поздно
-        /// разошлось бы с этим, поэтому оно одно —
+        /// Набор для поиска пиков — АКТИВНОГО документа. Своего поля у панели
+        /// больше нет: тот же выбор решает, чьи линии интенсивностей рисовать
+        /// на графике, а график до панели не дотягивается. Второе поле рядом
+        /// рано или поздно разошлось бы с этим, поэтому оно одно —
         /// <see cref="NuclideDefinitionManager.ActiveSet"/>.
+        ///
+        /// Хранится выбор при этом у документа
+        /// (<see cref="DocEnergySpectrum.SelectedNuclideSet"/>), а здесь стоит
+        /// выбор того из них, который сейчас на экране: панель одна, документов
+        /// много (R9). Держит их в согласии <see cref="ShowNuclideSetOf"/>.
         /// </summary>
         private NuclideSet selectedNuclideSet
         {
             get { return this.nuclideManager.ActiveSet; }
             set { this.nuclideManager.ActiveSet = value; }
         }
+
+        /// <summary>
+        /// Список наборов сейчас перестраивает или подставляет код — событие
+        /// <c>SelectedIndexChanged</c> в этот момент не значит выбора человека.
+        /// </summary>
+        private bool updatingNuclideSets;
 
         private bool isProcessing = false;
 
