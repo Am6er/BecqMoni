@@ -151,6 +151,15 @@
       <Visible>false</Visible>
     </Nuclide>
     <Nuclide>
+      <Name>Th-234</Name>
+      <Energy>112.81</Energy>
+      <HalfLife>0.066027397260274</HalfLife>
+      <NuclideColor>Orange</NuclideColor>
+      <Note>на место «U-238/U-234» 113.5 (решение Amber 14.08.2026, §16л)</Note>
+      <Visible>true</Visible>
+      <Intencity>0.21</Intencity>
+    </Nuclide>
+    <Nuclide>
       <Name>Eu-152</Name>
       <Energy>125</Energy>
       <HalfLife>13.5</HalfLife>
