@@ -33,7 +33,7 @@ namespace CorpusFsaProbe
     ///                  [--mode=spline|snip] [--no-matrix] [--no-cascade]
     ///                  [--no-pileup] [--no-background] [--limit=N] [--quiet]
     ///                  [--limits-mc=N [--mc-component=Имя]] [--huber=M]
-    ///                  [--partial] [--pr-gate] [--gamma=G] [--beta=B]
+    ///                  [--partial] [--no-pr-gate] [--gamma=G] [--beta=B]
     ///
     /// Файлы на выходе — того же вида, что у `tools/pie`, чтобы считал их тот же
     /// `tools/pie/score.py`: `&lt;группа&gt;_&lt;режим&gt;_components.csv` и
@@ -75,6 +75,7 @@ namespace CorpusFsaProbe
                 if (a == "--peaks") { o.Peaks = true; continue; }
                 if (a == "--partial") { o.Partial = true; continue; }
                 if (a == "--pr-gate") { o.PartialGate = true; continue; }
+                if (a == "--no-pr-gate") { o.PartialGate = false; continue; }
                 if (a.StartsWith("--residuals=", StringComparison.Ordinal))
                 {
                     o.Residuals = int.Parse(a.Substring(12), CultureInfo.InvariantCulture);
@@ -1149,8 +1150,12 @@ namespace CorpusFsaProbe
             /// <summary>(P6) Считать парциальные невязки (дорого: рефит на компонент).</summary>
             public bool Partial;
 
-            /// <summary>(P6 «б») Гейт по ΔD&lt;0 с перефитом — A/B-сторона.</summary>
-            public bool PartialGate;
+            /// <summary>
+            /// (P6 «б») Гейт по ΔD&lt;0 с перефитом. С 14.08.2026 включён в
+            /// анализаторе умолчанием (решение Amber) — A/B-сторона теперь
+            /// `--no-pr-gate`.
+            /// </summary>
+            public bool PartialGate = true;
             public List<string> Groups;
             public List<string> Only;
         }

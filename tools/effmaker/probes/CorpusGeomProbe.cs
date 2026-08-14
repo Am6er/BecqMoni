@@ -414,6 +414,29 @@ class CorpusGeomProbe
         // Вместимость его сцены — 631.9 мл при названных «0.5 л»: налито 85 мм
         // из 89, и паспортные 680 г KCl дают на этом объёме 1.076 г/см3 —
         // насыпная плотность рыхлого хлорида калия, что сходится.
+        // Два паспортных Cs-137 «впритык» (Amber, 14.08.2026 вечер, B5):
+        // точечный источник на самом торце (0 мм). Спектры в корпус ещё не
+        // добавлены — ключи назначены вперёд, добавление идёт следом за
+        // расчётом кривых и матриц. У AS80x80 кристалл — иодид цезия по
+        // прямому слову Amber (пресет нёс NaI допущением и исправлен).
+        list.Add(new Geom
+        {
+            Key = "AS80_point0",
+            Preset = "Atom Spectra Pro 80x80",
+            Vessel = "точечный источник, вплотную к торцу",
+            Spectra = new[] { "AS80_Cs137_0cm" },
+            Shape = g => { g.SourceType = GeometrySourceType.Point; g.PointDistance = 0.0; },
+        });
+
+        list.Add(new Geom
+        {
+            Key = "RC103_point0",
+            Preset = RC103,
+            Vessel = "точечный источник, вплотную к торцу",
+            Spectra = new[] { "RC103_Cs137_0cm" },
+            Shape = g => { g.SourceType = GeometrySourceType.Point; g.PointDistance = 0.0; },
+        });
+
         list.Add(new Geom
         {
             Key = "RC103_marinelli05_kcl",
