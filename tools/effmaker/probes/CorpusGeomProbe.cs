@@ -59,6 +59,7 @@ class CorpusGeomProbe
         public string SourceMaterial;
         public Action<GeometryModel> Shape;
         public string Assumed;          // что ПРИНЯТО, словами
+        public GeometryDetectorFacing Facing = GeometryDetectorFacing.Front;
     }
 
     static int Main(string[] args)
@@ -103,7 +104,13 @@ class CorpusGeomProbe
 
             preset.Apply(g);
             g.Name = spec.Key;
+            g.Facing = spec.Facing;                 // E21: сторона, обращённая к пробе
             spec.Shape(g);
+            if (!string.IsNullOrEmpty(g.FacingError))
+            {
+                Console.Error.WriteLine(spec.Key + ": " + g.FacingError);
+                return 1;
+            }
 
             double volumeMm3 = SampleVolumeMm3(g);
             double volumeMl = volumeMm3 / 1000.0;
@@ -449,6 +456,50 @@ class CorpusGeomProbe
             Vessel = "точечный источник, вплотную к торцу",
             Spectra = new[] { "RC103_Cs137_0cm" },
             Shape = g => { g.SourceType = GeometrySourceType.Point; g.PointDistance = 0.0; },
+        });
+
+        // Оксид лютеция, ОДНА банка на двух постановках одного прибора
+        // (Amber, 15.08.2026). Банка названа точно: 50 мл, Ø40 × h15;
+        // МАССА 20 г — отсюда плотность 1.061 г/см3 (рыхлый порошок, 11 % от
+        // монолитных 9.42) и активность 919.1 Бк (`scripts/lu176_activity.py`:
+        // 45.954 Бк на грамм Lu₂O₃ — точно, из периода и распространённости).
+        //
+        // Постановки РАЗНЫЕ и обе известны: `ASN16_Lu176` снят БОКОМ (§13и —
+        // отношение сумм-пика к одиночному втрое больше, чем у контрольной, и
+        // Geant4 даёт для пары «бок / торец» ровно те же 3.03),
+        // `ASN16_Lu176_P0` — с торца, так сказала Amber. Это первая в корпусе
+        // пара «то же самое, но повёрнуто», и держится она на E21.
+        //
+        // ⚠ ПРИНЯТО: зазор 5 мм — тот, что стоит в заготовке редактора. Его
+        // Amber не называла, а из отношения 511/307 он не восстанавливается:
+        // сравнимо только отношение постановок, а оно от зазора почти не
+        // зависит. Ошибка здесь двигает кривую, но не разворот.
+        const string ASN16 = "Atom Spectra Nano 16";
+        list.Add(new Geom
+        {
+            Key = "ASN16_lu_side",
+            Preset = ASN16,
+            Vessel = "банка 50 мл Ø40×h15, СБОКУ у широкой грани",
+            Spectra = new[] { "ASN16_Lu176" },
+            PassportVolumeMl = 18.85,
+            PassportMassG = 20.0,
+            SourceMaterial = "Lutetium oxide",
+            Facing = GeometryDetectorFacing.Side,
+            Assumed = "зазор 5 мм (заготовка редактора); сама банка названа точно",
+            Shape = g => Beaker(g, 40.0, 18.85, 0.0),
+        });
+
+        list.Add(new Geom
+        {
+            Key = "ASN16_lu_front",
+            Preset = ASN16,
+            Vessel = "банка 50 мл Ø40×h15, С ТОРЦА",
+            Spectra = new[] { "ASN16_Lu176_P0" },
+            PassportVolumeMl = 18.85,
+            PassportMassG = 20.0,
+            SourceMaterial = "Lutetium oxide",
+            Assumed = "зазор 5 мм (заготовка редактора); сама банка названа точно",
+            Shape = g => Beaker(g, 40.0, 18.85, 0.0),
         });
 
         list.Add(new Geom
