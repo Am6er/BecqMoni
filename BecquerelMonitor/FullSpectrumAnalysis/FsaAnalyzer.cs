@@ -717,6 +717,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                gainSteps > 1 && (bestGainIndex == 0 || bestGainIndex == gainSteps - 1),
                                offsetSteps > 1 && (bestOffsetIndex == 0 || bestOffsetIndex == offsetSteps - 1));
             result.BackgroundRejected = backgroundRejected;
+            result.BackgroundUsed = background != null && backgroundScale > 0.0;
             this.ComputeCharacteristicLimits(result, best, originalLibrary, calibration, fwhmCalibration,
                                              efficiency, bestGain, bestOffset, chLo, chHi, channels,
                                              variance, liveTime);

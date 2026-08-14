@@ -602,9 +602,11 @@ namespace BecquerelMonitor
 
             // +1 — строка качества, плюс по строке на каждый слой со своими
             // сумм-пиками, плюс по строке «< МДА» на каждого НЕвошедшего
-            // кандидата (S9, решение Amber 14.08.2026 «показывай»).
+            // кандидата (S9, решение Amber 14.08.2026 «показывай»), плюс
+            // строка «БЕЗ ФОНА», когда фон не вычитался (S44).
             return this.GetFsaLayers(result).Count + 1 + this.FsaSumPeakLayers(result).Count
-                   + FsaUndetected(result).Count;
+                   + FsaUndetected(result).Count
+                   + (result.BackgroundUsed ? 0 : 1);
         }
 
         /// <summary>
@@ -725,6 +727,21 @@ namespace BecquerelMonitor
                 nameRect.Y += FsaTableRowHeight;
             }
 
+            // «БЕЗ ФОНА» (S44, решение Amber 15.08.2026) — ОТДЕЛЬНОЙ строкой и
+            // красным, а не хвостом служебной пометки: в строке качества она
+            // не помещалась в ширину таблицы и налезала на само χ², а сказать
+            // это надо ЗАМЕТНО. Условие — по факту вычитания: фона не подали
+            // вовсе или подали и отбросили (обрезан по каналам, нет времени) —
+            // для читающего разницы нет, разбор в обоих случаях идёт по
+            // неочищенному спектру. Молчание здесь уже стоило одиннадцати
+            // спектров корпуса, разобранных без фона так, что никто не видел.
+            if (!result.BackgroundUsed)
+            {
+                g.DrawString(Resources.FSANoBackgroundMark, this.Font, Brushes.Firebrick, nameRect);
+                r.Y += FsaTableRowHeight;
+                nameRect.Y += FsaTableRowHeight;
+            }
+
             string quality = "χ²/ndf";
             // Пометка S2: с матрицей отклика образы или без — всегда, одна из
             // двух. Молчать нельзя: матрица бракуется по отпечатку и формату
@@ -745,6 +762,7 @@ namespace BecquerelMonitor
             {
                 quality += Resources.FSANoEfficiencyMark;
             }
+
 
             if (result.DriftOnGridEdge)
             {

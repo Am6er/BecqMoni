@@ -2818,6 +2818,15 @@ namespace BecquerelMonitor.Properties {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to · NO BACKGROUND.
+        /// </summary>
+        public static string FSANoBackgroundMark {
+            get {
+                return ResourceManager.GetString("FSANoBackgroundMark", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to · summing.
         /// </summary>
         public static string FSACascadeMark {
