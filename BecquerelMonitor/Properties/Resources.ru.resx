@@ -393,6 +393,9 @@
   <data name="FSANoMatrixMark" xml:space="preserve">
     <value> · без матрицы</value>
   </data>
+  <data name="FSANoBackgroundMark" xml:space="preserve">
+    <value>ФОН НЕ ВЫЧТЕН</value>
+  </data>
   <data name="FSACascadeMark" xml:space="preserve">
     <value> · суммирование</value>
   </data>

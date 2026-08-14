@@ -53,6 +53,23 @@ foreach ($dir in @('runtimes', 'ru')) {
     if (Test-Path $src) { Copy-Item $src $Wd -Recurse -Force }
 }
 
+# 1а. Прочие пробы — СВЕЖИМИ из `tools\effmaker\probes\build`, если они там
+#     собраны. Сам этот каталог строит только `CorpusFsaProbe` (ниже), а
+#     соседи (`FsaStackShot`, `RoiActivityProbe`, …) попадали сюда однажды и
+#     потом лежали месяцами: 15.08.2026 снимок таблицы FSA рисовался пробой от
+#     10:09 и показывал разбор, которого в коде уже не было. Копия обновляется
+#     тем же движением, что и приложение (грабля класса T31).
+$probeBuild = Join-Path $repo 'tools\effmaker\probes\build'
+if (Test-Path $probeBuild) {
+    Get-ChildItem (Join-Path $probeBuild '*.exe') -File |
+        Where-Object { $_.Name -ne 'BecquerelMonitor.exe' -and $_.Name -ne 'CorpusFsaProbe.exe' } |
+        ForEach-Object {
+            Copy-Item $_.FullName $Wd -Force
+            $cfg = Join-Path $Wd ($_.Name + '.config')
+            Copy-Item (Join-Path $Wd 'BecquerelMonitor.exe.config') $cfg -Force
+        }
+}
+
 # 2. Конфиг — ПОСТАВОЧНЫЙ, а не тот, что сгенерировал mkconfig.py: в рабочих
 #    каталогах `wd_<группа>` лежит `NuclideDefinition.xml` с сетами-обманками
 #    под изучение гейта (`[decoy]`), и разбор по нему мерил бы не то.
