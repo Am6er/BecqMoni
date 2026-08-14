@@ -79,6 +79,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double NoiseGamma { get; set; }
 
         /// <summary>
+        /// (S45) Перекладывать фон на шкалу спектра перед вычитанием. Умолчание
+        /// ВКЛЮЧЕНО: фон снят своим измерением и живёт в своей калибровке — у
+        /// спектров корпуса с отдельным фоном шкалы расходятся на 12–58 кэВ на
+        /// канале 1000. Выключатель нужен для A/B: «до» и «после» на ОДНОМ
+        /// составе корпуса (`CorpusFsaProbe --no-bg-rebin`), иначе эффект
+        /// правки смешается с любой другой сменой корпуса.
+        /// </summary>
+        public bool RebinBackgroundToSpectrum { get; set; }
+
+        /// <summary>
         /// (S43) Коэффициент β коррелированности вычитаемого фона: к дисперсии
         /// канала добавляется β²·B², где B — вычитаемый фон канала (уже в
         /// шкале пробы). Смысл — «фон вырос — вырос везде»: доля фона, общая
@@ -274,6 +284,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.CascadeSumPeaks = true;
             this.PileUp = true;
             this.PartialResidualGate = true;
+
+            // ВЫКЛЮЧЕНО по измерению (S45): сама перекладка верна и при
+            // совпадающих шкалах тождественна, но калибровка ФОНА в корпусе
+            // считается отдельно и по спектру, бедному линиями, — она хуже
+            // калибровки переднего плана, и перекладка по ней вносит сдвиг
+            // вместо того, чтобы его снять. A/B корпуса-58: понятная 94.1 →
+            // 97.8 (+3.9 %) и +1 фантом против непонятной 424.9 → 423.1 и
+            // +1 пункта recall. Включать — когда фон начнут калибровать в
+            // шкале переднего плана.
+            this.RebinBackgroundToSpectrum = false;
         }
 
         /// <summary>
@@ -417,17 +437,40 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 backgroundFull = new double[channels];
                 int[] backgroundSnip = this.Mode == ContinuumMode.Snip ? Snip(fwhmCalibration, background) : null;
+
+                // Фон снят СВОИМ измерением и живёт в СВОЕЙ шкале: у спектров
+                // корпуса с отдельным фоном калибровки расходятся на 12–58 кэВ
+                // на канале 1000 (S45). Поканальное вычитание при этом вынимает
+                // из-под пика соседний континуум, а пик фона оставляет рядом.
+                // Поэтому фон перекладывается на шкалу спектра по ЭНЕРГИИ —
+                // тем же способом, каким это давно делает обычное вычитание
+                // фона в приложении (`SpectrumAriphmetics`).
+                double[] own = new double[channels];
+                double[] ownPeak = new double[channels];
                 for (int i = 0; i < channels; i++)
                 {
-                    double full = background.Spectrum[i] * backgroundScale;
+                    own[i] = background.Spectrum[i];
+                    // в режиме SNIP континуум фона уже сидит внутри оценки
+                    // континуума переднего спектра — вычитается только пиковая
+                    // часть; разность берётся в СВОЕЙ шкале фона, до перекладки
+                    ownPeak[i] = backgroundSnip != null
+                        ? Math.Max(0.0, background.Spectrum[i] - backgroundSnip[i])
+                        : own[i];
+                }
+
+                double[] rebinned = this.RebinBackgroundToSpectrum
+                    ? Rebin(own, background.EnergyCalibration, calibration, channels)
+                    : own;
+                double[] rebinnedPeak = backgroundSnip == null
+                    ? rebinned
+                    : (this.RebinBackgroundToSpectrum
+                        ? Rebin(ownPeak, background.EnergyCalibration, calibration, channels)
+                        : ownPeak);
+                for (int i = 0; i < channels; i++)
+                {
+                    double full = rebinned[i] * backgroundScale;
                     backgroundFull[i] = full;
-                    double value = full;
-                    if (backgroundSnip != null)
-                    {
-                        // в режиме SNIP континуум фона уже сидит внутри оценки
-                        // континуума переднего спектра — вычитается только пиковая часть
-                        value = Math.Max(0.0, background.Spectrum[i] - backgroundSnip[i]) * backgroundScale;
-                    }
+                    double value = rebinnedPeak[i] * backgroundScale;
 
                     backgroundCurve[i] = value;
                     y[i] -= value;
@@ -1927,6 +1970,131 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>Энергия канала, с защитой от вырожденной калибровки.</summary>
+        /// <summary>
+        /// (S45) Переложить фон со СВОЕЙ шкалы на шкалу спектра, сохраняя
+        /// отсчёты: канал приёмника берёт ту долю каналов источника, что
+        /// накрыта его энергетическим окном [E(i−½), E(i+½)].
+        ///
+        /// Так, а не интерполяцией значений: отсчёты — не плотность, их надо
+        /// РАСПРЕДЕЛЯТЬ, иначе при разном шаге шкал сумма фона поедет, а с ней
+        /// и вычитаемая площадь. Каналы источника считаются равномерными по
+        /// энергии внутри себя (та же посылка, что у перекладки спектров в
+        /// <c>SpectrumAriphmetics</c>).
+        ///
+        /// Совпадающие шкалы дают тождественную копию — проверено на спектрах
+        /// со встроенным фоном: числа корпуса до и после не шевельнулись.
+        /// </summary>
+        /// <summary>
+        /// Границы каналов по энергии, выведенные из ЦЕНТРОВ: середины между
+        /// соседними каналами, края — продолжением крайнего шага. Так, а не
+        /// через <c>ChannelToEnergy(i ± ½)</c>, потому что на дробном канале
+        /// ниже нуля калибровка клампится, а отрицательные энергии обрезаются
+        /// нулём — нижние каналы схлопывались бы в точку.
+        /// </summary>
+        static double[] Edges(EnergyCalibration calibration, int channels)
+        {
+            double[] edges = new double[channels + 1];
+            if (channels <= 0)
+            {
+                return edges;
+            }
+
+            double[] centres = new double[channels];
+            for (int i = 0; i < channels; i++)
+            {
+                centres[i] = calibration.ChannelToEnergy(i);
+            }
+
+            for (int i = 1; i < channels; i++)
+            {
+                edges[i] = 0.5 * (centres[i - 1] + centres[i]);
+            }
+
+            edges[0] = channels > 1 ? centres[0] - 0.5 * (centres[1] - centres[0]) : centres[0] - 0.5;
+            edges[channels] = channels > 1
+                ? centres[channels - 1] + 0.5 * (centres[channels - 1] - centres[channels - 2])
+                : centres[0] + 0.5;
+            return edges;
+        }
+
+        static double[] Rebin(double[] source, EnergyCalibration from, EnergyCalibration to, int channels)
+        {
+            double[] result = new double[channels];
+            if (source == null || from == null || to == null)
+            {
+                return result;
+            }
+
+            // Границы каналов — из ЦЕНТРОВ, а не по ChannelToEnergy(i ± ½):
+            // у калибровок со свободным членом −10…−26 кэВ первые каналы
+            // отвечают отрицательной энергии, а <see cref="EnergyAt"/> обрезает
+            // такие нулём — границы схлопывались, ширина обнулялась, и отсчёты
+            // нижних каналов ПРОПАДАЛИ. Перекладка при совпадающих шкалах
+            // переставала быть тождественной (проверено: χ² спектра с фоном в
+            // той же шкале двигался на 9 %).
+            double[] edges = Edges(to, channels);
+
+            double[] sourceEdges = Edges(from, Math.Min(source.Length, channels));
+            bool ascending = edges[channels] >= edges[0];
+
+            // Окно приёмника ползёт вместе с каналом источника: обе шкалы
+            // монотонны, поэтому искать перекрытие с нуля каждый раз незачем —
+            // на 8192 каналах это 67 млн проверок вместо десятков тысяч.
+            int start = 0;
+            for (int j = 0; j < source.Length && j < channels; j++)
+            {
+                double value = source[j];
+                if (value == 0.0)
+                {
+                    continue;
+                }
+
+                double lo = sourceEdges[j];
+                double hi = sourceEdges[j + 1];
+                if (lo > hi)
+                {
+                    double swap = lo;
+                    lo = hi;
+                    hi = swap;
+                }
+
+                double width = hi - lo;
+                if (!(width > 0.0))
+                {
+                    continue;
+                }
+
+                if (!ascending)
+                {
+                    start = 0;
+                }
+
+                bool touched = false;
+                for (int i = start; i < channels; i++)
+                {
+                    double a = ascending ? edges[i] : edges[i + 1];
+                    double b = ascending ? edges[i + 1] : edges[i];
+                    if (ascending && a > hi)
+                    {
+                        break;
+                    }
+
+                    double overlap = Math.Min(hi, b) - Math.Max(lo, a);
+                    if (overlap > 0.0)
+                    {
+                        result[i] += value * overlap / width;
+                        if (!touched)
+                        {
+                            touched = true;
+                            start = i;   // следующий канал источника не левее
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }
+
         static double EnergyAt(EnergyCalibration calibration, double channel)
         {
             double energy = calibration.ChannelToEnergy(channel);

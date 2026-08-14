@@ -34,6 +34,7 @@ namespace CorpusFsaProbe
     ///                  [--no-pileup] [--no-background] [--limit=N] [--quiet]
     ///                  [--limits-mc=N [--mc-component=Имя]] [--huber=M]
     ///                  [--partial] [--no-pr-gate] [--gamma=G] [--beta=B]
+    ///                  [--bg-rebin]
     ///
     /// Файлы на выходе — того же вида, что у `tools/pie`, чтобы считал их тот же
     /// `tools/pie/score.py`: `&lt;группа&gt;_&lt;режим&gt;_components.csv` и
@@ -76,6 +77,7 @@ namespace CorpusFsaProbe
                 if (a == "--partial") { o.Partial = true; continue; }
                 if (a == "--pr-gate") { o.PartialGate = true; continue; }
                 if (a == "--no-pr-gate") { o.PartialGate = false; continue; }
+                if (a == "--bg-rebin") { o.RebinBackground = true; continue; }
                 if (a.StartsWith("--residuals=", StringComparison.Ordinal))
                 {
                     o.Residuals = int.Parse(a.Substring(12), CultureInfo.InvariantCulture);
@@ -300,6 +302,7 @@ namespace CorpusFsaProbe
                 analyzer.NoiseBeta = o.NoiseBeta;
                 analyzer.PartialResiduals = o.Partial;
                 analyzer.PartialResidualGate = o.PartialGate;
+                analyzer.RebinBackgroundToSpectrum = o.RebinBackground;
 
                 // Сетка дрейфа — ключами, а не пересборкой (S6): расширять её
                 // вслепую нельзя, потому что при том же числе узлов вдвое более
@@ -1171,6 +1174,13 @@ namespace CorpusFsaProbe
             /// `--no-pr-gate`.
             /// </summary>
             public bool PartialGate = true;
+
+            /// <summary>
+            /// (S45) Перекладывать фон на шкалу спектра перед вычитанием.
+            /// Умолчание — НЕТ (измерено: с нынешними калибровками фона хуже);
+            /// включатель `--bg-rebin` оставлен, чтобы замер воспроизводился.
+            /// </summary>
+            public bool RebinBackground;
             public List<string> Groups;
             public List<string> Only;
         }
