@@ -100,9 +100,18 @@ NEW_DEVICE = {
                     channels=8192, dtype='AtomSpectraVCP', lo=20.0, hi=2800.0),
     'RC103g':  dict(guid='17280748-6c91-49e6-a001-3c074db3750e', name='RC-103g 1024 (corpus)',
                     channels=1024, dtype='RadiaCode', lo=15.0, hi=2800.0),
-    # --- из spectravibe-toolkit, аттестованные источники ---
-    'G1S':     dict(guid='9e5a1c00-0007-4a00-9000-11c0de000007',
-                    name='Gamma-1S UDS-GC 63x63 1024 (corpus)',
+    # --- Гамма-1С УДС-ГЦ 63x63, поверочные эталоны ЛСРМ ---
+    # Группа делится по ЭПОХЕ поверки (решение Amber 15.08.2026): ширина линии
+    # 2024 года на 10.4 % больше ширины 2016-го при ОДНОМ И ТОМ ЖЕ приборе, а
+    # модель разрешения — одна на группу. Подробности и мера — `corpus_def.py`,
+    # раздел раздела групп, и `scripts/g1s_split_check.py`.
+    # Прежний общий `G1S` носил guid `…0007`; он отдан поверке 2016, чтобы у
+    # старших спектров группы ссылка не менялась без нужды.
+    'G1S16':   dict(guid='9e5a1c00-0007-4a00-9000-11c0de000007',
+                    name='Gamma-1S UDS-GC 63x63 1024 (corpus, поверка 2016)',
+                    channels=1024, dtype='AudioInput', lo=30.0, hi=2800.0),
+    'G1S24':   dict(guid='9e5a1c00-000c-4a00-9000-11c0de00000c',
+                    name='Gamma-1S UDS-GC 63x63 1024 (corpus, поверка 2024)',
                     channels=1024, dtype='AudioInput', lo=30.0, hi=2800.0),
     'HPGE_GMX': dict(guid='9e5a1c00-0008-4a00-9000-11c0de000008',
                      name='HPGe GMX 8192 (corpus)',

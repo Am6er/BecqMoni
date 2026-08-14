@@ -42833,6 +42833,12 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="ResponseMatrixVersionsBoth" xml:space="preserve">
     <value>Matrix generation: physics {0}, file format {1} — current code: physics {2}, format {3}.</value>
   </data>
+  <data name="ResponseMatrixRangeFromCurve" xml:space="preserve">
+    <value>Range taken from the efficiency curve of this configuration: {0:F0}–{1:F0} keV.</value>
+  </data>
+  <data name="ResponseMatrixRangeDiffers" xml:space="preserve">
+    <value>The efficiency curve covers {0:F0}–{1:F0} keV, this matrix {2:F0}–{3:F0} keV. The fields keep the matrix range, so that Recompute repeats it.</value>
+  </data>
   <data name="ResponseMatrixStateValid" xml:space="preserve">
     <value>Valid for the current geometry.</value>
   </data>

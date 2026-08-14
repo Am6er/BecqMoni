@@ -89,6 +89,7 @@ namespace FsaStackShot
             // Фон подаётся ТОТ ЖЕ, что в окне приложения. До 15.08.2026 здесь
             // стоял null, и снимок показывал разбор без вычитания фона, выдавая
             // его за настоящий: у `G1S_K40_Denta` это χ²/ndf 3.62 против 1.72.
+            // (ключ снят по B6 15.08.2026, тот же спектр — `G1S24_K40_Denta120`)
             var analyzer = new FsaAnalyzer { ResponseMatrix = matrix };
             FsaResult result = analyzer.Analyze(rd.EnergySpectrum, rd.BackgroundEnergySpectrum,
                                                 rd.FwhmCalibration,

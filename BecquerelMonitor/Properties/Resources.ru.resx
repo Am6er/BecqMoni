@@ -1442,6 +1442,12 @@
   <data name="ResponseMatrixVersionsBoth" xml:space="preserve">
     <value>Генерация матрицы: физика {0}, формат файла {1} — текущий код: физика {2}, формат {3}.</value>
   </data>
+  <data name="ResponseMatrixRangeFromCurve" xml:space="preserve">
+    <value>Диапазон взят у кривой эффективности этой конфигурации: {0:F0}–{1:F0} кэВ.</value>
+  </data>
+  <data name="ResponseMatrixRangeDiffers" xml:space="preserve">
+    <value>Кривая эффективности покрывает {0:F0}–{1:F0} кэВ, а эта матрица {2:F0}–{3:F0} кэВ. В полях оставлен диапазон матрицы, чтобы «Пересчитать» её повторило.</value>
+  </data>
   <data name="ResponseMatrixStateValid" xml:space="preserve">
     <value>Годна для текущей геометрии.</value>
   </data>

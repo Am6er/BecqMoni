@@ -144,7 +144,13 @@ namespace BecquerelMonitor
                     this.computeButton.Text = Resources.ResponseMatrixCompute;
                 }
 
-                this.SetDetails("");
+                // E18. Матрицы ещё нет — а именно за первым расчётом форму и
+                // открывают. Раньше поля стояли на умолчаниях разметки, и
+                // человек, выставивший кривой нижнюю границу 20 кэВ, молча
+                // получал матрицу с 30: кривая и матрица описывают ОДИН прибор
+                // в ОДНОЙ геометрии, и разъехавшийся диапазон — не выбор, а
+                // недосмотр. Границы берём у кривой.
+                this.SetDetails(this.ApplyCurveRange());
                 return;
             }
 
@@ -162,7 +168,6 @@ namespace BecquerelMonitor
                     ? Resources.ResponseMatrixStateStale
                     : Resources.ResponseMatrixStateStaleVersions;
             this.ShowVersions(physics, ResponseMatrix.FormatVersion, !versionsMatch);
-            this.SetDetails(this.Describe(existing));
             this.computeButton.Text = Resources.ResponseMatrixRecompute;
 
             // Поля выставляются по тому, чем матрица посчитана, — чтобы
@@ -179,11 +184,106 @@ namespace BecquerelMonitor
                 SetClamped(this.binBox, (decimal)existing.Options.BinKev);
                 SetClamped(this.historiesBox, existing.Options.Histories);
             }
+
+            // E18 (б). Матрица есть — она и выигрывает: поля обязаны повторять
+            // ТО, ЧЕМ ОНА ПОСЧИТАНА, иначе «Пересчитать» даст другую матрицу.
+            // Но кривую с тех пор могли пересчитать в другом диапазоне, и это
+            // расхождение надо НАЗЫВАТЬ, а не прятать: молчащее несогласие
+            // ровно того сорта, из-за которого и заведена эта правка.
+            this.SetDetails(this.Describe(existing) + this.DescribeRangeMismatch(existing));
         }
 
         static void SetClamped(NumericUpDown box, decimal value)
         {
             box.Value = Math.Min(box.Maximum, Math.Max(box.Minimum, value));
+        }
+
+        /// <summary>
+        /// Края кривой эффективности этой конфигурации, кэВ. Ложь — кривой нет
+        /// (<see cref="EfficiencyConfigData.HasCurve"/>) или все точки в одной
+        /// энергии, то есть диапазона из неё не выходит.
+        ///
+        /// Берётся МИНИМУМ и МАКСИМУМ, а не первая и последняя точка: порядок
+        /// списка — соглашение, а не проверяемое свойство, и кривая, введённая
+        /// руками или собранная из нескольких источников, может прийти
+        /// неотсортированной. Цена проверки — один проход по десяткам точек.
+        /// </summary>
+        bool CurveRange(out double lo, out double hi)
+        {
+            lo = 0.0;
+            hi = 0.0;
+            if (this.config == null || !this.config.HasCurve)
+            {
+                return false;
+            }
+
+            bool any = false;
+            foreach (ROIEfficiencyData point in this.config.Curve)
+            {
+                if (point == null || !(point.Energy > 0.0))
+                {
+                    continue;
+                }
+
+                if (!any || point.Energy < lo) lo = point.Energy;
+                if (!any || point.Energy > hi) hi = point.Energy;
+                any = true;
+            }
+
+            return any && hi > lo;
+        }
+
+        /// <summary>
+        /// E18 (а): подставить в поля диапазон кривой, когда матрицы ещё нет.
+        /// Возвращает строку для подробностей — пусто, если подставлять нечего.
+        ///
+        /// Берутся ТОЛЬКО границы. Число историй у кривой в клейме есть
+        /// (`hist=` в <see cref="EfficiencyConfigData.ComputeStamp"/>), а узлы и
+        /// бин выводятся из её сетки, но переносить их нельзя: кривая — один
+        /// вектор, матрица — квадрат, и та же статистика на узел стоит здесь на
+        /// порядки дороже. Умолчания формы для них подобраны замером (см.
+        /// <see cref="ContinuumNoiseWarnPercent"/>), а границы — это не цена
+        /// счёта, а постановка задачи: диапазон, в котором прибор описан.
+        /// </summary>
+        string ApplyCurveRange()
+        {
+            double lo, hi;
+            if (!this.CurveRange(out lo, out hi))
+            {
+                // (в) кривой нет вовсе — остаются прежние умолчания разметки.
+                return "";
+            }
+
+            SetClamped(this.minEnergyBox, (decimal)lo);
+            SetClamped(this.maxEnergyBox, (decimal)hi);
+            return string.Format(CultureInfo.CurrentCulture,
+                                 Resources.ResponseMatrixRangeFromCurve, lo, hi);
+        }
+
+        /// <summary>
+        /// E18 (б): строка о расхождении диапазонов кривой и готовой матрицы.
+        /// Пусто, когда кривой нет или края сходятся. Порог — полкэВ: узлы
+        /// матрицы кладутся по логарифмической сетке, и точное равенство краёв
+        /// не гарантировано даже при одинаковой постановке.
+        /// </summary>
+        string DescribeRangeMismatch(ResponseMatrix matrix)
+        {
+            double lo, hi;
+            if (matrix == null || matrix.NodeCount < 1 || !this.CurveRange(out lo, out hi))
+            {
+                return "";
+            }
+
+            double mlo = matrix.Energies[0];
+            double mhi = matrix.Energies[matrix.NodeCount - 1];
+            if (Math.Abs(mlo - lo) < 0.5 && Math.Abs(mhi - hi) < 0.5)
+            {
+                return "";
+            }
+
+            return Environment.NewLine + string.Format(CultureInfo.CurrentCulture,
+                                                       Resources.ResponseMatrixRangeDiffers,
+                                                       lo, hi, mlo, mhi);
         }
 
         /// <summary>

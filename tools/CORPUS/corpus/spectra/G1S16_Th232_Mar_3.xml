@@ -12,7 +12,7 @@
         <Note>Th-232 A=1940 Бк/кг dA=6% 17-09-2007 | ЛСРМ Маринелли, поверка 2016, УДС-ГЦ-63х63-USB №0086-16</Note>
       </SampleInfo>
       <DeviceConfigReference>
-        <Name>Gamma-1S UDS-GC 63x63 1024 (corpus)</Name>
+        <Name>Gamma-1S UDS-GC 63x63 1024 (corpus, поверка 2016)</Name>
         <Guid>9e5a1c00-0007-4a00-9000-11c0de000007</Guid>
       </DeviceConfigReference>
       <StartTime>2016-05-30T08:52:27.182000</StartTime>
@@ -2096,6 +2096,6 @@
           <DataPoint>8</DataPoint>
         </Spectrum>
       </BackgroundEnergySpectrum>
-    <BackgroundSpectrumFile>фон пустая защита_15.xml</BackgroundSpectrumFile><SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-5.348376780936608</Coefficient><Coefficient>0.9279318012119452</Coefficient><Coefficient>0.000501890970994146</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
+    <BackgroundSpectrumFile>фон пустая защита_15.xml</BackgroundSpectrumFile><SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-4.760817664909042</Coefficient><Coefficient>0.907317044448214</Coefficient><Coefficient>0.0002618374450615028</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

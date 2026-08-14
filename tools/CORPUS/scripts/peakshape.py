@@ -42,7 +42,10 @@ WD = {
     'ASN3': 'wd_ASN3', 'ASN8_1024': 'wd_ASN8_1024', 'ASN8_2048': 'wd_ASN8_2048',
     'ASN8_3000': 'wd_ASN8_3000', 'ASN8_4096': 'wd_ASN8_4096',
     'ASN8_8192': 'wd_ASN8_8192', 'CZT': 'wd_CZT', 'CZT_TECD': 'wd_CZT_TECD',
-    'G1S': 'wd_G1S', 'GS4000': 'wd_GS4000', 'HPGE': 'wd_HPGE',
+    # `G1S` разделена по эпохе поверки 15.08.2026 (см. corpus_def.py); прежнее
+    # имя оставлено на случай старых рабочих каталогов.
+    'G1S': 'wd_G1S', 'G1S16': 'wd_G1S16', 'G1S24': 'wd_G1S24',
+    'GS4000': 'wd_GS4000', 'HPGE': 'wd_HPGE',
     'HPGE_GEM': 'wd_HPGE_GEM', 'HPGE_GMX': 'wd_HPGE_GMX',
     'LABR_BRIL': 'wd_LABR_BRIL', 'LaBr3': 'wd_LaBr3', 'OBS': 'wd_OBS',
     'RC101': 'wd_RC101', 'RC103': 'wd_RC103', 'RC103g': 'wd_RC103g',

@@ -29,7 +29,7 @@ namespace CorpusFsaProbe
     /// имя части идёт в каждую строку `runs.csv`.
     ///
     ///   corpusfsaprobe --corpus=&lt;…\CORPUS\corpus&gt; [--out=out] [--part=all]
-    ///                  [--groups=G1S,ASN16] [--only=G1S_Th232_Denta]
+    ///                  [--groups=G1S,ASN16] [--only=G1S24_Th232_Denta120_2]
     ///                  [--mode=spline|snip] [--no-matrix] [--no-cascade]
     ///                  [--no-pileup] [--no-background] [--limit=N] [--quiet]
     ///                  [--limits-mc=N [--mc-component=Имя]] [--huber=M]

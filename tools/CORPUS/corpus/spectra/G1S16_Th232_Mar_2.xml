@@ -12,7 +12,7 @@
         <Note>Th-232 A=2240 Бк/кг dA=6% 24-05-2002 | ЛСРМ Маринелли, поверка 2016, УДС-ГЦ-63х63-USB №0086-16</Note>
       </SampleInfo>
       <DeviceConfigReference>
-        <Name>Gamma-1S UDS-GC 63x63 1024 (corpus)</Name>
+        <Name>Gamma-1S UDS-GC 63x63 1024 (corpus, поверка 2016)</Name>
         <Guid>9e5a1c00-0007-4a00-9000-11c0de000007</Guid>
       </DeviceConfigReference>
       <StartTime>2016-05-19T09:23:54.463000</StartTime>
@@ -22,7 +22,7 @@
         <EnergyCalibration>
           <PolynomialOrder>2</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-13.687121216188423</Coefficient><Coefficient>2.9387133074657372</Coefficient><Coefficient>6.034482319983582e-05</Coefficient></Coefficients>
+            <Coefficient>-17.941419243859333</Coefficient><Coefficient>2.9582522003611706</Coefficient><Coefficient>6.074604336455896e-05</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>1115851</ValidPulseCount>
         <TotalPulseCount>1115851</TotalPulseCount>
@@ -2096,6 +2096,6 @@
           <DataPoint>8</DataPoint>
         </Spectrum>
       </BackgroundEnergySpectrum>
-    <BackgroundSpectrumFile>фон пустая защита_15.xml</BackgroundSpectrumFile><SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-5.222618354682427</Coefficient><Coefficient>0.9298211554876653</Coefficient><Coefficient>0.0005017658309193775</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
+    <BackgroundSpectrumFile>фон пустая защита_15.xml</BackgroundSpectrumFile><SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-5.816400577095338</Coefficient><Coefficient>0.9020752244665277</Coefficient><Coefficient>0.00026228142059642586</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

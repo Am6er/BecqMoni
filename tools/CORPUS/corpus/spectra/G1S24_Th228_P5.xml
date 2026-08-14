@@ -12,8 +12,8 @@
         <Note>Th-228 A=129000 Бк dA=3% 09-10-2023 | ЛСРМ Точечная-5см, поверка 2024, УДС-ГЦ-63х63-USB №0086-16</Note>
       </SampleInfo>
       <DeviceConfigReference>
-        <Name>Gamma-1S UDS-GC 63x63 1024 (corpus)</Name>
-        <Guid>9e5a1c00-0007-4a00-9000-11c0de000007</Guid>
+        <Name>Gamma-1S UDS-GC 63x63 1024 (corpus, поверка 2024)</Name>
+        <Guid>9e5a1c00-000c-4a00-9000-11c0de00000c</Guid>
       </DeviceConfigReference>
       <StartTime>2024-10-21T14:16:05.800000</StartTime>
       <EnergySpectrum>
@@ -22,7 +22,7 @@
         <EnergyCalibration>
           <PolynomialOrder>1</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-25.588570665130355</Coefficient><Coefficient>2.9802204508766894</Coefficient></Coefficients>
+            <Coefficient>-26.64901828980202</Coefficient><Coefficient>2.981944643856428</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>36725664</ValidPulseCount>
         <TotalPulseCount>36725664</TotalPulseCount>
@@ -2096,6 +2096,6 @@
           <DataPoint>6</DataPoint>
         </Spectrum>
       </BackgroundEnergySpectrum>
-    <BackgroundSpectrumFile>Фон закр кр вода_16.xml</BackgroundSpectrumFile><SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-7.468251150575264</Coefficient><Coefficient>0.8989351959853386</Coefficient><Coefficient>0.0005894864029602926</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
+    <BackgroundSpectrumFile>Фон закр кр вода_16.xml</BackgroundSpectrumFile><SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-9.317933134655137</Coefficient><Coefficient>1.0811116070985567</Coefficient><Coefficient>0.0004804215826153288</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>
