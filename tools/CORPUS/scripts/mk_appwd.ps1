@@ -69,18 +69,20 @@ Copy-Item (Join-Path $corpus 'devices\*.xml') (Join-Path $Wd 'config\device') -F
 $rmx = Get-ChildItem (Join-Path $response '*.rmx') -File
 Copy-Item $rmx (Join-Path $Wd 'config\device\response') -Force
 
-# 4. Сама проба.
+# 4. Сама проба. `ResidualScan.cs` — довесок без Main (как в build_all.ps1):
+#    без него csc падает на карте невязок (`--residuals`/`--near`).
 if (-not $SkipBuild) {
     $csc = 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\Roslyn\csc.exe'
     $facades = 'C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.8\Facades'
     $src = Join-Path $repo 'tools\effmaker\probes\CorpusFsaProbe.cs'
+    $scan = Join-Path $repo 'tools\effmaker\probes\ResidualScan.cs'
     $exe = Join-Path $Wd 'CorpusFsaProbe.exe'
     & $csc /nologo /target:exe /platform:anycpu /langversion:7.3 "/out:$exe" `
         "/r:$Wd\BecquerelMonitor.exe" `
         /r:System.dll /r:System.Core.dll /r:System.Xml.dll `
         /r:System.Drawing.dll /r:System.Windows.Forms.dll `
         "/r:$Wd\Microsoft.Data.Sqlite.dll" "/r:$facades\netstandard.dll" `
-        $src
+        $src $scan
     if ($LASTEXITCODE -ne 0) { throw "csc failed" }
     # Пробам, читающим базы, нужен свой exe.config — иначе binding redirect
     # SQLitePCLRaw не применяется и чтение падает уже на месте.

@@ -36,6 +36,65 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>Доля в «пироге» — по объяснённым пиковым отсчётам, %.</summary>
         public double SharePercent { get; set; }
+
+        /// <summary>
+        /// Порог решения a* компонента, имп/с (S9, Xu-2022/ISO 11929): величина,
+        /// выше которой скорость счёта статистически отличима от нуля при
+        /// α = 5 %. NaN — предел не определён (вырожденная колонка).
+        /// </summary>
+        public double DecisionThresholdRate { get; set; }
+
+        /// <summary>
+        /// Предел обнаружения a# (МДА-аналог в шкале скорости счёта), имп/с:
+        /// наименьшая истинная скорость счёта, которую разбор ещё обнаруживает
+        /// с β = 5 % при пороге <see cref="DecisionThresholdRate"/>.
+        /// </summary>
+        public double DetectionLimitRate { get; set; }
+    }
+
+    /// <summary>
+    /// Характеристические пределы ОДНОГО кандидата библиотеки (S9). Строка есть
+    /// у каждого нуклидного компонента, поданного на разбор, — в том числе у НЕ
+    /// вошедших в состав: метрологический ответ «не обнаружен» без «мог ли быть
+    /// обнаружен» (МДА) — полответа. Формализм — Xu et al., ART 182 (2022)
+    /// 110109 поверх ISO 11929; расчёт — <c>FsaAnalyzer.ComputeCharacteristicLimits</c>.
+    /// </summary>
+    public sealed class FsaCharacteristicLimit
+    {
+        public string Name { get; set; }
+
+        public FsaComponentKind Kind { get; set; }
+
+        /// <summary>Компонент вошёл в состав (амплитуда фита больше нуля).</summary>
+        public bool Detected { get; set; }
+
+        /// <summary>Оценённая скорость счёта компонента, имп/с; 0 у не вошедших.</summary>
+        public double CountRate { get; set; }
+
+        /// <summary>Порог решения a*, имп/с. NaN — предел не определён.</summary>
+        public double DecisionThresholdRate { get; set; }
+
+        /// <summary>Предел обнаружения a# (МДА-аналог), имп/с. NaN — не определён.</summary>
+        public double DetectionLimitRate { get; set; }
+
+        /// <summary>
+        /// Колонка компонента коллинеарна остальной модели — информации о нём в
+        /// спектре нет, и пределы не определены. Это не ошибка счёта, а свойство
+        /// постановки (например, образ целиком закрыт другими компонентами).
+        /// </summary>
+        public bool Degenerate { get; set; }
+
+        /// <summary>
+        /// Доля образа, представимая остальной моделью, во ВЗВЕШЕННОЙ метрике
+        /// фита: 0 — образ независим, →1 — почти коллинеарен (1 − denom/g_jj по
+        /// дополнению Шура). Контекст для чтения пределов, а не гарантия:
+        /// отказ МДА, найденный МК-поверкой на `G1S_Eu152_5cm` (Pu-238, 79 %
+        /// пропусков впрыска на уровне МДА, все — нулевой оценкой), эта мера НЕ
+        /// помечает — у того компонента она 0.054, наименьшая на спектре.
+        /// Гипотеза «виновата коллинеарность» измерена и отпала; механизм не
+        /// назван, остаток записан в строке S9.
+        /// </summary>
+        public double Collinearity { get; set; }
     }
 
     /// <summary>Слой стека для отрисовки: кривая и подпись с долей.</summary>
@@ -65,6 +124,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     public sealed class FsaResult
     {
         public List<FsaComponentResult> Components { get; set; }
+
+        /// <summary>
+        /// Характеристические пределы ВСЕХ нуклидных кандидатов библиотеки —
+        /// и вошедших в состав, и нет (S9). Порядок — порядок библиотеки.
+        /// </summary>
+        public List<FsaCharacteristicLimit> CharacteristicLimits { get; set; }
 
         /// <summary>Континуум модели (шапки сплайна), отсчёты по каналам.</summary>
         public double[] Continuum { get; set; }
@@ -126,6 +191,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public FsaResult()
         {
             this.Components = new List<FsaComponentResult>();
+            this.CharacteristicLimits = new List<FsaCharacteristicLimit>();
         }
 
         /// <summary>

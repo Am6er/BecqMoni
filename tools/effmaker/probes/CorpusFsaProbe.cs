@@ -32,10 +32,20 @@ namespace CorpusFsaProbe
     ///                  [--groups=G1S,ASN16] [--only=G1S_Th232_Denta]
     ///                  [--mode=spline|snip] [--no-matrix] [--no-cascade]
     ///                  [--no-pileup] [--no-background] [--limit=N] [--quiet]
+    ///                  [--limits-mc=N [--mc-component=Имя]]
     ///
     /// Файлы на выходе — того же вида, что у `tools/pie`, чтобы считал их тот же
     /// `tools/pie/score.py`: `&lt;группа&gt;_&lt;режим&gt;_components.csv` и
-    /// `&lt;группа&gt;_&lt;режим&gt;_runs.csv`.
+    /// `&lt;группа&gt;_&lt;режим&gt;_runs.csv`; плюс свой
+    /// `&lt;группа&gt;_&lt;режим&gt;_limits.csv` — характеристические пределы S9
+    /// по ВСЕМ кандидатам библиотеки, включая не вошедших в состав.
+    ///
+    /// `--limits-mc=N` — Монте-Карло-поверка пределов (S9): для каждого
+    /// нуклида состава спектр пересобирается N раз пуассоновским розыгрышем
+    /// модели БЕЗ этого нуклида (проверка ложных срабатываний против α) и N раз
+    /// с ним на уровне МДА (проверка пропусков против β); библиотека и настройки
+    /// не меняются, поиск пиков не перезапускается. Дорого — 2·N разборов на
+    /// нуклид: запускать с `--only=` и, при нужде, `--mc-component=`.
     ///
     /// Запускать из каталога, где рядом лежат `config\NuclideDefinition.xml`
     /// (ПОСТАВОЧНЫЙ, а не сеты `mkconfig.py` с обманками), `config\device\*.xml`
@@ -65,6 +75,16 @@ namespace CorpusFsaProbe
                 if (a.StartsWith("--residuals=", StringComparison.Ordinal))
                 {
                     o.Residuals = int.Parse(a.Substring(12), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a.StartsWith("--limits-mc=", StringComparison.Ordinal))
+                {
+                    o.LimitsMc = int.Parse(a.Substring(12), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a.StartsWith("--mc-component=", StringComparison.Ordinal))
+                {
+                    o.McComponent = a.Substring(15);
                     continue;
                 }
                 if (a.StartsWith("--near=", StringComparison.Ordinal))
@@ -363,6 +383,11 @@ namespace CorpusFsaProbe
                         ? near.Sigmas : double.NaN;
                     row.NearCounts = double.IsNaN(row.NearExcess) ? 0.0 : near.Counts;
                 }
+
+                if (o.LimitsMc > 0)
+                {
+                    ValidateLimits(rd, background, library, analyzer, result, efficiency, o, sample.Key);
+                }
             }
             catch (Exception ex)
             {
@@ -374,6 +399,312 @@ namespace CorpusFsaProbe
 
             Report(row, o);
             return row;
+        }
+
+        /// <summary>
+        /// Монте-Карло-поверка характеристических пределов (S9) на живом
+        /// спектре корпуса — тем же способом, каким Xu-2022 поверяли формулы:
+        /// для каждого нуклида состава спектр разыгрывается заново пуассоном
+        ///
+        ///   * из модели БЕЗ нуклида — доля срабатываний «есть» обязана быть
+        ///     около α = 5 % (ложные срабатывания);
+        ///   * из модели С нуклидом на уровне его МДА — доля пропусков обязана
+        ///     быть около β = 5 %.
+        ///
+        /// Библиотека, настройки и дрейф-сетка не меняются, поиск пиков не
+        /// перезапускается: поверяется формула пределов, а не весь конвейер.
+        /// Вне окна фита в розыгрыш идут сами данные — фит их не трогает.
+        /// Только режим spline: в snip средние каналов не равны модели.
+        /// </summary>
+        static void ValidateLimits(ResultData rd, EnergySpectrum background, List<FsaComponent> library,
+                                   FsaAnalyzer analyzer, FsaResult result, FsaEfficiency efficiency,
+                                   Options o, string key)
+        {
+            if (o.Mode != "spline")
+            {
+                Console.WriteLine("  {0}: --limits-mc работает только с --mode=spline", key);
+                return;
+            }
+
+            // Зерно фиксировано: прогон обязан воспроизводиться до последней
+            // цифры, иначе два запуска дадут «разные» доли на одном коде.
+            var rng = new Random(20260814);
+            int channels = rd.EnergySpectrum.NumberOfChannels;
+            int[] raw = rd.EnergySpectrum.Spectrum;
+            double liveTime = result.LiveTime;
+            double k1 = analyzer.LimitQuantileK;
+
+            // НЕ вошедшие кандидаты поверяются одной серией: модель их не
+            // содержит, то есть сама и есть их нулевая гипотеза, и N розыгрышей
+            // полной модели проверяют ложные срабатывания у всех разом.
+            var absent = new List<FsaCharacteristicLimit>();
+            foreach (FsaCharacteristicLimit limit in result.CharacteristicLimits)
+            {
+                if (!limit.Detected && !limit.Degenerate
+                    && !double.IsNaN(limit.DecisionThresholdRate)
+                    && (o.McComponent == null
+                        || string.Equals(limit.Name, o.McComponent, StringComparison.Ordinal)))
+                {
+                    absent.Add(limit);
+                }
+            }
+
+            if (absent.Count > 0)
+            {
+                double[] muFull = new double[channels];
+                for (int i = 0; i < channels; i++)
+                {
+                    muFull[i] = i < result.FirstChannel || i > result.LastChannel
+                        ? raw[i]
+                        : Math.Max(0.0, result.Model[i])
+                          + (result.Background != null ? result.Background[i] : 0.0);
+                }
+
+                var falseByName = new Dictionary<string, int>(StringComparer.Ordinal);
+                int failedRuns = 0;
+                for (int run = 0; run < o.LimitsMc; run++)
+                {
+                    FsaResult replay = RunSynthetic(rd, background, library, analyzer, efficiency,
+                                                    muFull, rng);
+                    if (replay == null)
+                    {
+                        failedRuns++;
+                        continue;
+                    }
+
+                    foreach (FsaCharacteristicLimit limit in absent)
+                    {
+                        double estimate;
+                        if (Exceeded(replay, limit.Name, out estimate))
+                        {
+                            int have;
+                            falseByName.TryGetValue(limit.Name, out have);
+                            falseByName[limit.Name] = have + 1;
+                        }
+                    }
+                }
+
+                foreach (FsaCharacteristicLimit limit in absent)
+                {
+                    int fp;
+                    falseByName.TryGetValue(limit.Name, out fp);
+                    Console.WriteLine("  {0}: {1,-14} НЕ в составе; a*={2:E3} МДА={3:E3} имп/с;"
+                                      + " ложных {4}/{5} (ждём ~5 %){6}",
+                                      key, limit.Name, limit.DecisionThresholdRate,
+                                      limit.DetectionLimitRate, fp, o.LimitsMc - failedRuns,
+                                      failedRuns > 0 ? "; отказов " + failedRuns : "");
+                }
+            }
+
+            foreach (FsaComponentResult c in result.Components)
+            {
+                if (c.Kind == FsaComponentKind.Nuisance)
+                {
+                    continue;
+                }
+
+                if (o.McComponent != null
+                    && !string.Equals(c.Name, o.McComponent, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                double amplitude = c.CountRate * liveTime;
+                if (!(amplitude > 0.0) || double.IsNaN(c.DecisionThresholdRate)
+                    || double.IsNaN(c.DetectionLimitRate))
+                {
+                    Console.WriteLine("  {0}: {1} — пределов нет (вырождено или не в составе), пропуск",
+                                      key, c.Name);
+                    continue;
+                }
+
+                double mdaAmplitude = c.DetectionLimitRate * liveTime;
+                double[] mu0 = new double[channels];
+                double[] mu1 = new double[channels];
+                for (int i = 0; i < channels; i++)
+                {
+                    if (i < result.FirstChannel || i > result.LastChannel)
+                    {
+                        // Вне окна фита модель молчит — туда идут сами данные.
+                        mu0[i] = raw[i];
+                        mu1[i] = raw[i];
+                        continue;
+                    }
+
+                    double without = result.Model[i] - c.Curve[i];
+                    if (without < 0.0)
+                    {
+                        without = 0.0;
+                    }
+
+                    double bg = result.Background != null ? result.Background[i] : 0.0;
+                    mu0[i] = without + bg;
+                    mu1[i] = mu0[i] + mdaAmplitude * (c.Curve[i] / amplitude);
+                }
+
+                int falsePositives = 0, detections = 0, failed = 0;
+                var nullEstimates = new List<double>();
+                var injectedEstimates = new List<double>();
+                for (int run = 0; run < o.LimitsMc; run++)
+                {
+                    FsaResult replay = RunSynthetic(rd, background, library, analyzer, efficiency,
+                                                    mu0, rng);
+                    if (replay != null)
+                    {
+                        double estimate;
+                        bool exceeded = Exceeded(replay, c.Name, out estimate);
+                        nullEstimates.Add(estimate);
+                        if (exceeded)
+                        {
+                            falsePositives++;
+                        }
+                    }
+                    else
+                    {
+                        failed++;
+                    }
+
+                    replay = RunSynthetic(rd, background, library, analyzer, efficiency,
+                                          mu1, rng);
+                    if (replay != null)
+                    {
+                        double estimate;
+                        if (Exceeded(replay, c.Name, out estimate))
+                        {
+                            detections++;
+                        }
+
+                        injectedEstimates.Add(estimate);
+                    }
+                    else
+                    {
+                        failed++;
+                    }
+                }
+
+                // Пропуск пропуску рознь: нулевая оценка значит «отсев убил или
+                // NNLS отдал коллинеарным соседям», ненулевая ниже порога —
+                // «увидел, но мало». Формула пределов различий не знает, а
+                // чинить их пришлось бы по-разному.
+                int injectedZeros = 0;
+                foreach (double v in injectedEstimates)
+                {
+                    if (!(v > 0.0))
+                    {
+                        injectedZeros++;
+                    }
+                }
+
+                injectedEstimates.Sort();
+                double injectedMedian = injectedEstimates.Count == 0 ? 0.0
+                    : injectedEstimates[injectedEstimates.Count / 2];
+
+                double meanNull = 0.0, sdNull = 0.0;
+                foreach (double v in nullEstimates)
+                {
+                    meanNull += v;
+                }
+
+                if (nullEstimates.Count > 1)
+                {
+                    meanNull /= nullEstimates.Count;
+                    foreach (double v in nullEstimates)
+                    {
+                        sdNull += (v - meanNull) * (v - meanNull);
+                    }
+
+                    sdNull = Math.Sqrt(sdNull / (nullEstimates.Count - 1));
+                }
+
+                // Предсказание формулы: σ0 = a*/k. Сравнение с измеренным
+                // разбросом нулевых оценок — проверка самой σ0, отдельная от
+                // доли срабатываний (порог может быть верен и при перекошенной
+                // сигме, если перекос съел квантиль).
+                double predictedSigma = c.DecisionThresholdRate / k1;
+                Console.WriteLine("  {0}: {1,-14} a*={2:E3} МДА={3:E3} имп/с; ложных {4}/{5} (ждём ~5 %),"
+                                  + " пропусков {6}/{7} (ждём ~5 %); σ0: формула {8:E3}, розыгрыш"
+                                  + " {9:E3} (сред. {10:E3}); впрыск: нулевых {11}, медиана {12:E3}{13}",
+                                  key, c.Name, c.DecisionThresholdRate, c.DetectionLimitRate,
+                                  falsePositives, o.LimitsMc,
+                                  o.LimitsMc - detections, o.LimitsMc,
+                                  predictedSigma, sdNull, meanNull,
+                                  injectedZeros, injectedMedian,
+                                  failed > 0 ? "; отказов разбора " + failed : "");
+            }
+        }
+
+        /// <summary>
+        /// Один синтетический разбор: розыгрыш каналов пуассоном вокруг
+        /// заданных средних, тот же анализатор, та же библиотека. null —
+        /// разбор не удался.
+        /// </summary>
+        static FsaResult RunSynthetic(ResultData rd, EnergySpectrum background, List<FsaComponent> library,
+                                      FsaAnalyzer analyzer, FsaEfficiency efficiency,
+                                      double[] mean, Random rng)
+        {
+            EnergySpectrum synthetic = rd.EnergySpectrum.Clone();
+            int[] counts = synthetic.Spectrum;
+            for (int i = 0; i < counts.Length; i++)
+            {
+                counts[i] = SamplePoisson(rng, mean[i]);
+            }
+
+            return analyzer.Analyze(synthetic, background, rd.FwhmCalibration, library, efficiency);
+        }
+
+        /// <summary>
+        /// Решение теста по строке пределов названного компонента: оценка выше
+        /// её же порога решения. Кандидат без строки — «не обнаружен» с нулевой
+        /// оценкой: образ не построился, и это честное решение теста.
+        /// </summary>
+        static bool Exceeded(FsaResult replay, string name, out double estimate)
+        {
+            estimate = 0.0;
+            foreach (FsaCharacteristicLimit limit in replay.CharacteristicLimits)
+            {
+                if (string.Equals(limit.Name, name, StringComparison.Ordinal))
+                {
+                    estimate = limit.CountRate;
+                    return !double.IsNaN(limit.DecisionThresholdRate)
+                           && limit.CountRate > limit.DecisionThresholdRate;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Пуассонов розыгрыш: точный (Кнут) до среднего 50, дальше нормальное
+        /// приближение с округлением — на счетах корпуса (до миллионов в
+        /// канале) точный метод стоил бы дороже самого разбора.
+        /// </summary>
+        static int SamplePoisson(Random rng, double mean)
+        {
+            if (!(mean > 0.0))
+            {
+                return 0;
+            }
+
+            if (mean > 50.0)
+            {
+                double u1 = 1.0 - rng.NextDouble();
+                double u2 = rng.NextDouble();
+                double gauss = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
+                double value = Math.Round(mean + gauss * Math.Sqrt(mean));
+                return value < 0.0 ? 0 : (int)value;
+            }
+
+            double limit = Math.Exp(-mean);
+            double p = 1.0;
+            int k = 0;
+            do
+            {
+                k++;
+                p *= rng.NextDouble();
+            }
+            while (p > limit);
+
+            return k - 1;
         }
 
         static void Report(Row row, Options o)
@@ -507,12 +838,18 @@ namespace CorpusFsaProbe
                 string prefix = Path.Combine(o.Out, group + "_" + o.Mode);
                 using (var runs = new StreamWriter(prefix + "_runs.csv", false, new UTF8Encoding(true)))
                 using (var comps = new StreamWriter(prefix + "_components.csv", false, new UTF8Encoding(true)))
+                using (var limits = new StreamWriter(prefix + "_limits.csv", false, new UTF8Encoding(true)))
                 {
                     runs.WriteLine("spectrum,det,part,chi2ndf,gain,offset_ch,drift_edge,gain_edge,"
                                    + "offset_edge,matrix,"
                                    + "matrix_note,cascade,efficiency,background,peaks,components,"
                                    + "ms,cpu_ms,near_sigmas,near_counts,error");
-                    comps.WriteLine("spectrum,det,part,component,kind,share_pct,z,count_rate,peak_counts");
+                    comps.WriteLine("spectrum,det,part,component,kind,share_pct,z,count_rate,peak_counts,"
+                                    + "dt_cps,mda_cps");
+                    // Пределы S9 — по ВСЕМ кандидатам библиотеки, включая не
+                    // вошедших в состав: у «не обнаружен» без МДА нет смысла.
+                    limits.WriteLine("spectrum,det,part,component,kind,detected,count_rate,"
+                                     + "dt_cps,mda_cps,degenerate,collinearity");
                     foreach (Row r in rows)
                     {
                         if (r.Det != group)
@@ -546,7 +883,19 @@ namespace CorpusFsaProbe
                                 Csv(r.Key), Csv(r.Det), Csv(r.Part), Csv(c.Name),
                                 c.Kind.ToString().ToLowerInvariant(),
                                 F(c.SharePercent, "F3"), F(c.Z, "F2"),
-                                F(c.CountRate, "E4"), F(c.PeakCounts, "F1")));
+                                F(c.CountRate, "E4"), F(c.PeakCounts, "F1"),
+                                F(c.DecisionThresholdRate, "E4"), F(c.DetectionLimitRate, "E4")));
+                        }
+
+                        foreach (FsaCharacteristicLimit L in r.Result.CharacteristicLimits)
+                        {
+                            limits.WriteLine(string.Join(",",
+                                Csv(r.Key), Csv(r.Det), Csv(r.Part), Csv(L.Name),
+                                L.Kind.ToString().ToLowerInvariant(),
+                                L.Detected ? "1" : "0",
+                                F(L.CountRate, "E4"),
+                                F(L.DecisionThresholdRate, "E4"), F(L.DetectionLimitRate, "E4"),
+                                L.Degenerate ? "1" : "0", F(L.Collinearity, "F4")));
                         }
                     }
                 }
@@ -737,6 +1086,12 @@ namespace CorpusFsaProbe
 
             /// <summary>Сколько крупнейших невязок печатать на спектр (0 — не печатать).</summary>
             public int Residuals;
+
+            /// <summary>Розыгрышей Монте-Карло-поверки пределов S9 (0 — не поверять).</summary>
+            public int LimitsMc;
+
+            /// <summary>Поверять только этот компонент (`--limits-mc`); null — все.</summary>
+            public string McComponent;
 
             /// <summary>Окно энергий, про которое спрашивают отдельно (V4: ~460 кэВ).</summary>
             public double NearFrom, NearTo;
