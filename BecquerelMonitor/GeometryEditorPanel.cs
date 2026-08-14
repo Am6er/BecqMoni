@@ -46,6 +46,7 @@ namespace BecquerelMonitor
 
         RadioButton cylinderRadio;
         RadioButton boxRadio;
+        ComboBox facingCombo;
         Button fwhmSuggestButton;
         double fwhmSuggestionPercent;
         Label equivalentLabel;
@@ -304,6 +305,26 @@ namespace BecquerelMonitor
             this.cylinderRadio.CheckedChanged += this.ShapeChanged;
             page.Controls.Add(this.cylinderRadio);
             page.Controls.Add(this.boxRadio);
+
+            // E21: какой стороной детектор обращён к пробе. Стоит рядом с
+            // формой кристалла нарочно — это свойство той же пары «кристалл и
+            // проба», и включается оно только у бруска: у цилиндра боковая
+            // постановка не осесимметрична и сценой не выражается.
+            //
+            // Цена ошибки здесь измерена: у спектра Lu₂O₃ на Nano 16 Pro
+            // разница между «с торца» и «сбоку» — втрое по каскадной сумме, и
+            // разбор списывал её на несуществующую линию 511 (S46, §13и).
+            this.facingCombo = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Location = new Point(336, 44),
+                Size = new Size(268, 21),
+            };
+            this.facingCombo.Items.Add(Resources.GeometryEditorFacingFront);
+            this.facingCombo.Items.Add(Resources.GeometryEditorFacingSide);
+            this.facingCombo.SelectedIndex = 0;
+            this.facingCombo.SelectedIndexChanged += this.FacingChanged;
+            page.Controls.Add(this.facingCombo);
 
             this.cylinderSizePanel = new Panel { Location = new Point(0, 70), Size = new Size(620, 56) };
             int y = 0;
@@ -727,6 +748,11 @@ namespace BecquerelMonitor
 
                 this.boxRadio.Checked = g.Shape == CrystalShape.Box;
                 this.cylinderRadio.Checked = g.Shape != CrystalShape.Box;
+                // E21: сторона, обращённая к пробе. Ставится ПОСЛЕ формы —
+                // ShapeChanged гасит выбор у цилиндра, и порядок значим.
+                this.facingCombo.Enabled = g.Shape == CrystalShape.Box;
+                this.facingCombo.SelectedIndex =
+                    g.Facing == GeometryDetectorFacing.Side && g.Shape == CrystalShape.Box ? 1 : 0;
                 this.sourceTypeCombo.SelectedIndex =
                     g.SourceType == GeometrySourceType.Box ? 3
                     : g.SourceType == GeometrySourceType.Marinelli ? 2
@@ -937,8 +963,26 @@ namespace BecquerelMonitor
             {
                 this.UpdateEquivalent();
             }
+            else if (this.facingCombo != null && this.facingCombo.SelectedIndex != 0)
+            {
+                // Переключились на цилиндр — боковая постановка перестала быть
+                // выразимой, и оставлять её выбранной нельзя: сцена собралась бы
+                // передней, а в поле стояло бы «сбоку».
+                this.facingCombo.SelectedIndex = 0;
+            }
+
+            if (this.facingCombo != null)
+            {
+                this.facingCombo.Enabled = box;
+            }
 
             this.RefreshSketch();
+        }
+
+        void FacingChanged(object sender, EventArgs e)
+        {
+            this.RefreshSketch();
+            this.ValueChanged(sender, e);
         }
 
         void SourceTypeChanged(object sender, EventArgs e)
@@ -1078,6 +1122,12 @@ namespace BecquerelMonitor
             GeometryModel g = this.model.Clone();
             g.IsScintillator = true;
             g.Shape = this.boxRadio.Checked ? CrystalShape.Box : CrystalShape.Cylinder;
+            // Боковая постановка только у бруска: у цилиндра она не
+            // осесимметрична, и молча собрать сцену «как-нибудь» нельзя.
+            g.Facing = this.facingCombo != null && this.facingCombo.SelectedIndex == 1
+                       && g.Shape == CrystalShape.Box
+                ? GeometryDetectorFacing.Side
+                : GeometryDetectorFacing.Front;
             foreach (FieldMap field in Map)
             {
                 field.Write(g, this.Get(field.Key));

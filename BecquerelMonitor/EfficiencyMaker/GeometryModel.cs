@@ -255,6 +255,36 @@ namespace BecquerelMonitor.EfficiencyMaker
     }
 
     /// <summary>
+    /// Какой стороной детектор обращён к пробе — НАШЕ расширение формата (E21).
+    ///
+    /// Зачем. До 15.08.2026 проба всегда лежала на оси, лицом к переднему торцу.
+    /// Измерением показано, чего это стоит: у спектра Lu₂O₃ на Nano 16 Pro
+    /// (кристалл-брусок 15 × 18 × 60 мм) постановка «с торца» даёт отношение
+    /// сумм-пика к одиночному 0.0112, а «сбоку» — 0.0339, ВТРОЕ больше, и
+    /// измерение назвало именно второе. Ошибка в постановке шла в разы, а
+    /// разбор списывал её на несуществующую аннигиляционную линию (S46, §13и).
+    ///
+    /// В файлах ЛСРМ такого ключа нет; пишется своим `DS_Facing`, которого их
+    /// программа не читает, — тем же приёмом, что <see cref="CrystalShape.Box"/>
+    /// с ключами `SB_*`. Отсутствие ключа означает <see cref="Front"/>, то есть
+    /// прежнее поведение: старые файлы читаются как раньше.
+    /// </summary>
+    public enum GeometryDetectorFacing
+    {
+        /// <summary>Проба перед передним торцом — как было всегда.</summary>
+        Front,
+
+        /// <summary>
+        /// Проба у БОКОВОЙ грани. Осмысленно только для бруска
+        /// (<see cref="CrystalShape.Box"/>): к пробе разворачивается самая
+        /// широкая грань, а глубина кристалла вдоль оси становится наименьшим
+        /// его размером. У цилиндра боковая постановка ломает осевую симметрию
+        /// и здесь НЕ поддержана — см. <see cref="GeometryModel.FacingError"/>.
+        /// </summary>
+        Side
+    }
+
+    /// <summary>
     /// Модель геометрии из файла `.in` конструктора геометрий LSRM
     /// (GeometryMaster). Формат — плоский список `ключ = значение единица`
     /// с комментариями `//`; в файле присутствуют ВСЕ блоки (коаксиальный и
@@ -308,6 +338,91 @@ namespace BecquerelMonitor.EfficiencyMaker
         public double CrystalBoxX;
         public double CrystalBoxY;
         public double CrystalBoxZ;
+
+        /// <summary>
+        /// Какой стороной детектор обращён к пробе (E21). Умолчание — передний
+        /// торец, как было до 15.08.2026 и как читаются файлы без ключа.
+        /// </summary>
+        public GeometryDetectorFacing Facing = GeometryDetectorFacing.Front;
+
+        /// <summary>
+        /// Почему выбранная сторона не годится этой сцене; пусто — годится.
+        /// Проверяется до счёта: боковая постановка у ЦИЛИНДРИЧЕСКОГО кристалла
+        /// не осесимметрична, а вся сцена симулятора построена вдоль оси, и
+        /// молча посчитать её «как-нибудь» — верный способ получить число, за
+        /// которым ничего не стоит.
+        /// </summary>
+        public string FacingError
+        {
+            get
+            {
+                if (this.Facing != GeometryDetectorFacing.Side)
+                {
+                    return "";
+                }
+
+                return this.Shape == CrystalShape.Box
+                    ? ""
+                    : "Боковая постановка пробы задана только для кристалла-бруска:"
+                      + " у цилиндра она не осесимметрична и сценой не выражается.";
+            }
+        }
+
+        /// <summary>
+        /// Размеры кристалла в системе СЦЕНЫ: полуширины грани, обращённой к
+        /// пробе, и глубина вдоль оси. Для <see cref="GeometryDetectorFacing.Side"/>
+        /// брусок разворачивается так, чтобы к пробе смотрела САМАЯ ШИРОКАЯ
+        /// грань, а глубиной стал наименьший размер: именно это и означают
+        /// слова «проба стоит сбоку, где широкая часть кристалла». Объём при
+        /// этом сохраняется точно — кристалл тот же, повёрнут только он.
+        /// </summary>
+        public void CrystalBoxInScene(out double halfX, out double halfY, out double depth)
+        {
+            string kx, ky, kd;
+            this.CrystalBoxInScene(out halfX, out halfY, out depth, out kx, out ky, out kd);
+        }
+
+        /// <summary>
+        /// То же, но вдобавок ИМЕНА полей, попавших на каждую ось сцены. Нужны
+        /// чертежу: он подписывает размеры, и после разворота подпись
+        /// «CrystalBoxX» рядом с высотой, взятой из Y, была бы ложью. Выбор оси
+        /// живёт здесь в единственном месте — иначе модель и чертёж разойдутся
+        /// при первой же правке.
+        /// </summary>
+        public void CrystalBoxInScene(out double halfX, out double halfY, out double depth,
+                                      out string keyX, out string keyY, out string keyDepth)
+        {
+            double x = this.CrystalBoxX, y = this.CrystalBoxY, z = this.CrystalBoxZ;
+            if (this.Facing == GeometryDetectorFacing.Side)
+            {
+                // Наименьший размер уходит в глубину, два оставшихся образуют грань.
+                double min = Math.Min(x, Math.Min(y, z));
+                if (min == x)
+                {
+                    depth = x; halfX = 0.5 * y; halfY = 0.5 * z;
+                    keyDepth = "CrystalBoxX"; keyX = "CrystalBoxY"; keyY = "CrystalBoxZ";
+                }
+                else if (min == y)
+                {
+                    depth = y; halfX = 0.5 * x; halfY = 0.5 * z;
+                    keyDepth = "CrystalBoxY"; keyX = "CrystalBoxX"; keyY = "CrystalBoxZ";
+                }
+                else
+                {
+                    depth = z; halfX = 0.5 * x; halfY = 0.5 * y;
+                    keyDepth = "CrystalBoxZ"; keyX = "CrystalBoxX"; keyY = "CrystalBoxY";
+                }
+
+                return;
+            }
+
+            halfX = 0.5 * x;
+            halfY = 0.5 * y;
+            depth = z;
+            keyX = "CrystalBoxX";
+            keyY = "CrystalBoxY";
+            keyDepth = "CrystalBoxZ";
+        }
 
         /// <summary>
         /// Разрешение прибора: ПШПВ на 662 кэВ, в процентах. Ноль — не задано.
@@ -549,6 +664,16 @@ namespace BecquerelMonitor.EfficiencyMaker
             if (g.CrystalBoxX > 0.0 && g.CrystalBoxY > 0.0 && g.CrystalBoxZ > 0.0)
             {
                 g.Shape = CrystalShape.Box;
+            }
+
+            // E21: сторона, обращённая к пробе. Ключа нет — передний торец, то
+            // есть прежнее поведение; так читаются все файлы до 15.08.2026 и
+            // все файлы ЛСРМ, которые этого ключа не знают вовсе.
+            string facing;
+            if (kv.TryGetValue("DS_Facing", out facing)
+                && facing.Trim().Equals("SIDE", StringComparison.OrdinalIgnoreCase))
+            {
+                g.Facing = GeometryDetectorFacing.Side;
             }
 
             // Проценты, не длина: через Num, а не Len.

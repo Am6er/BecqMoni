@@ -1448,6 +1448,15 @@
   <data name="ResponseMatrixRangeDiffers" xml:space="preserve">
     <value>Кривая эффективности покрывает {0:F0}–{1:F0} кэВ, а эта матрица {2:F0}–{3:F0} кэВ. В полях оставлен диапазон матрицы, чтобы «Пересчитать» её повторило.</value>
   </data>
+  <data name="GeometryEditorFacingFront" xml:space="preserve">
+    <value>Проба у переднего торца</value>
+  </data>
+  <data name="GeometryEditorFacingSide" xml:space="preserve">
+    <value>Проба у широкой боковой грани</value>
+  </data>
+  <data name="EfficiencySketchFacingSide" xml:space="preserve">
+    <value>Развёрнут: проба у широкой грани кристалла</value>
+  </data>
   <data name="ResponseMatrixStateValid" xml:space="preserve">
     <value>Годна для текущей геометрии.</value>
   </data>

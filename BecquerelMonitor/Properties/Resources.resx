@@ -42839,6 +42839,15 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="ResponseMatrixRangeDiffers" xml:space="preserve">
     <value>The efficiency curve covers {0:F0}–{1:F0} keV, this matrix {2:F0}–{3:F0} keV. The fields keep the matrix range, so that Recompute repeats it.</value>
   </data>
+  <data name="GeometryEditorFacingFront" xml:space="preserve">
+    <value>Sample faces the front end</value>
+  </data>
+  <data name="GeometryEditorFacingSide" xml:space="preserve">
+    <value>Sample faces the wide side</value>
+  </data>
+  <data name="EfficiencySketchFacingSide" xml:space="preserve">
+    <value>Rotated: the sample faces the wide side of the crystal</value>
+  </data>
   <data name="ResponseMatrixStateValid" xml:space="preserve">
     <value>Valid for the current geometry.</value>
   </data>
