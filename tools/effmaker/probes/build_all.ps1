@@ -27,6 +27,19 @@ if (-not (Test-Path (Join-Path $Bin 'BecquerelMonitor.exe'))) {
 }
 New-Item -ItemType Directory -Force $Out | Out-Null
 
+# Свежий BecquerelMonitor.exe — В КАТАЛОГ ПРОБ, каждый прогон. Пробы компилируются
+# против $Bin, но ГРУЗЯТ сборку из своего каталога — и 14.08.2026 там пролежал
+# exe от 09.08 (физика 10): матрицы и кривые двух новых геометрий посчитались
+# устаревшей физикой при свежем исходнике. Копия обязана обновляться здесь же,
+# где собираются пробы, — тем же движением (грабля класса mk_appwd).
+# Базы — тем же правилом: рядом лежали matdb/nucdb/schemedb от 09.08 01:25 —
+# ДО импорта fluorescence_k (01:46), и физика 11 падала на «no such table».
+foreach ($dep in 'BecquerelMonitor.exe', 'BecquerelMonitor.pdb', 'BecquerelMonitor.exe.config',
+                 'matdb.sqlite', 'nucdb.sqlite', 'schemedb.sqlite') {
+    $src = Join-Path $Bin $dep
+    if (Test-Path $src) { Copy-Item $src (Join-Path $Out $dep) -Force }
+}
+
 $csc = 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\Roslyn\csc.exe'
 $facades = 'C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.8\Facades'
 
