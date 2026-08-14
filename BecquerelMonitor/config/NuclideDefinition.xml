@@ -23,7 +23,16 @@
       <HalfLife>432</HalfLife>
       <NuclideColor>Violet</NuclideColor>
       <Note />
+      <Visible>false</Visible>
+    </Nuclide>
+    <Nuclide>
+      <Name>Am-241</Name>
+      <Energy>26.345</Energy>
+      <HalfLife>432</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
+      <Note>разрез S33а из «Am-241/x-rays»</Note>
       <Visible>true</Visible>
+      <Intencity>2.27</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>x-rays</Name>
@@ -47,7 +56,16 @@
       <HalfLife>22.3</HalfLife>
       <NuclideColor>Orange</NuclideColor>
       <Note />
+      <Visible>false</Visible>
+    </Nuclide>
+    <Nuclide>
+      <Name>Pb-210</Name>
+      <Energy>46.539</Energy>
+      <HalfLife>22.3</HalfLife>
+      <NuclideColor>Orange</NuclideColor>
+      <Note>разрез S33а из «Pb-210/x-rays»</Note>
       <Visible>true</Visible>
+      <Intencity>4.25</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>x-rays</Name>
@@ -63,7 +81,16 @@
       <HalfLife>432</HalfLife>
       <NuclideColor>Red</NuclideColor>
       <Note />
+      <Visible>false</Visible>
+    </Nuclide>
+    <Nuclide>
+      <Name>Am-241</Name>
+      <Energy>59.541</Energy>
+      <HalfLife>432</HalfLife>
+      <NuclideColor>Red</NuclideColor>
+      <Note>разрез S33а из «Am-241/x-rays»</Note>
       <Visible>true</Visible>
+      <Intencity>35.9</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Am-243/x-rays</Name>
@@ -71,7 +98,16 @@
       <HalfLife>7370</HalfLife>
       <NuclideColor>Red</NuclideColor>
       <Note />
+      <Visible>false</Visible>
+    </Nuclide>
+    <Nuclide>
+      <Name>Am-243</Name>
+      <Energy>74.660</Energy>
+      <HalfLife>7370</HalfLife>
+      <NuclideColor>Red</NuclideColor>
+      <Note>разрез S33а из «Am-243/x-rays»</Note>
       <Visible>true</Visible>
+      <Intencity>67.2</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>x-rays</Name>
@@ -112,7 +148,7 @@
       <HalfLife>4470000000</HalfLife>
       <NuclideColor>Orange</NuclideColor>
       <Note />
-      <Visible>true</Visible>
+      <Visible>false</Visible>
     </Nuclide>
     <Nuclide>
       <Name>Eu-152</Name>
@@ -129,7 +165,7 @@
       <HalfLife>0.0007020547945205</HalfLife>
       <NuclideColor>Orange</NuclideColor>
       <Note />
-      <Visible>true</Visible>
+      <Visible>false</Visible>
     </Nuclide>
     <Nuclide>
       <Name>U-235</Name>
@@ -159,7 +195,16 @@
       <HalfLife>0</HalfLife>
       <NuclideColor>Orange</NuclideColor>
       <Note />
+      <Visible>false</Visible>
+    </Nuclide>
+    <Nuclide>
+      <Name>Ra-226</Name>
+      <Energy>186.211</Energy>
+      <HalfLife>0</HalfLife>
+      <NuclideColor>Orange</NuclideColor>
+      <Note>разрез S33а из «Ra-226/U-235»</Note>
       <Visible>true</Visible>
+      <Intencity>3.64</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Lu-176</Name>
@@ -180,7 +225,16 @@
       <HalfLife>432</HalfLife>
       <NuclideColor>Orange</NuclideColor>
       <Note />
+      <Visible>false</Visible>
+    </Nuclide>
+    <Nuclide>
+      <Name>U-237</Name>
+      <Energy>208.005</Energy>
+      <HalfLife>432</HalfLife>
+      <NuclideColor>Orange</NuclideColor>
+      <Note>разрез S33а из «U-237/Am-241»</Note>
       <Visible>true</Visible>
+      <Intencity>21.2</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Ac-228</Name>
@@ -508,7 +562,25 @@
       <HalfLife>0.000115201674277</HalfLife>
       <NuclideColor>Orange</NuclideColor>
       <Note />
+      <Visible>false</Visible>
+    </Nuclide>
+    <Nuclide>
+      <Name>Bi-212</Name>
+      <Energy>727.330</Energy>
+      <HalfLife>0.000115201674277</HalfLife>
+      <NuclideColor>Orange</NuclideColor>
+      <Note>разрез S33а из «Bi-212/Ac-228»</Note>
       <Visible>true</Visible>
+      <Intencity>6.67</Intencity>
+    </Nuclide>
+    <Nuclide>
+      <Name>Ac-228</Name>
+      <Energy>726.863</Energy>
+      <HalfLife>0.000115201674277</HalfLife>
+      <NuclideColor>Orange</NuclideColor>
+      <Note>разрез S33а из «Bi-212/Ac-228»</Note>
+      <Visible>true</Visible>
+      <Intencity>0.62</Intencity>
     </Nuclide>
     <Nuclide>
       <Name>Pa-234m</Name>
@@ -1398,7 +1470,7 @@
       <HalfLife>0.0007020547945205</HalfLife>
       <NuclideColor>Olive</NuclideColor>
       <Note />
-      <Visible>false</Visible>
+      <Visible>true</Visible>
       <Intencity>2.42</Intencity>
       <Sets>
         <guid>b1f0a1c2-3d4e-4f50-9a61-7c8d9e0f1a21</guid>
@@ -1522,7 +1594,7 @@
       <HalfLife>700000000</HalfLife>
       <NuclideColor>Olive</NuclideColor>
       <Note />
-      <Visible>false</Visible>
+      <Visible>true</Visible>
       <Intencity>57</Intencity>
       <Sets>
         <guid>c2e1b2d3-4e5f-4061-8b72-8d9e0f1a2b32</guid>
