@@ -255,9 +255,30 @@ def main():
     ap.add_argument('--verify', action='store_true')
     ap.add_argument('--all', action='store_true',
                     help='включая фоны и серии временной нестабильности')
+    ap.add_argument('--file', action='append', default=[],
+                    help='конкретный .spe (путь от --src); можно повторять. '
+                         'Нужен фонам: их серии НАКОПИТЕЛЬНЫЕ, и берётся '
+                         'последний файл, а не все подряд')
     args = ap.parse_args()
 
     src = resolve(args.src)
+    if args.file:
+        for rel in args.file:
+            path = resolve(os.path.join(src, rel))
+            head, counts = read_spe(path)
+            dest_dir = os.path.join(args.out, 'Фоны поверок')
+            dest = os.path.join(dest_dir, os.path.splitext(os.path.basename(rel))[0] + '.xml')
+            print('%-46s %5d кан, %9.1f с, %9d отсч. -> %s'
+                  % (os.path.basename(rel), len(counts),
+                     float(head.get('TLIVE', 0) or 0), sum(counts), dest))
+            if args.apply:
+                if not os.path.isdir(dest_dir):
+                    os.makedirs(dest_dir)
+                with io.open(dest, 'w', encoding='utf-8', newline='') as fh:
+                    fh.write(to_xml(head, counts, 'ЛСРМ фон поверки, последний файл накопительной серии'))
+        if not args.apply:
+            print('\n--apply не задан: файлы не записаны.')
+        return
     if args.verify:
         sys.exit(0 if verify(src) else 1)
 
