@@ -218,6 +218,34 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// Набор нуклидов, выбранный для ЭТОГО спектра в панели поиска пиков;
+        /// null — «все нуклиды». Такой же выбор на сеанс, как и прежде, только
+        /// теперь свой у каждого документа: наборов открыто несколько, спектров
+        /// тоже, и один общий выбор означал, что размеченный торием спектр
+        /// переносит торий на все соседние, а вернуться к прежнему выбору
+        /// нечем (R9).
+        ///
+        /// Живёт здесь, а не в панели: панель одна на все документы, а
+        /// закрытому документу его выбор больше не нужен — так он и уходит
+        /// вместе с ним, без отдельной уборки.
+        ///
+        /// Кто читает и держит в согласии с
+        /// <see cref="NuclideDefinitionManager.ActiveSet"/> — <see cref="DCPeakDetectionView"/>.
+        /// В файл не сохраняется: это выбор на сеанс, а не свойство спектра.
+        /// </summary>
+        public NuclideSet SelectedNuclideSet
+        {
+            get
+            {
+                return this.selectedNuclideSet;
+            }
+            set
+            {
+                this.selectedNuclideSet = value;
+            }
+        }
+
         // Token: 0x17000146 RID: 326
         // (get) Token: 0x06000316 RID: 790 RVA: 0x0000F7DC File Offset: 0x0000D9DC
         // (set) Token: 0x06000317 RID: 791 RVA: 0x0000F818 File Offset: 0x0000DA18
@@ -1718,5 +1746,11 @@ namespace BecquerelMonitor
         bool isActivating;
 
         bool autosave = false;
+
+        // Новый документ наследует набор, выбранный сейчас: спектры одной пробы
+        // открывают пачкой, и размечать каждый заново значило бы делать руками
+        // то, что до сих пор получалось само. Дальше их выборы расходятся —
+        // каждый живёт своим.
+        NuclideSet selectedNuclideSet = NuclideDefinitionManager.GetInstance().ActiveSet;
     }
 }
