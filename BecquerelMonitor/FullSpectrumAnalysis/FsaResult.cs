@@ -50,6 +50,26 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// с β = 5 % при пороге <see cref="DecisionThresholdRate"/>.
         /// </summary>
         public double DetectionLimitRate { get; set; }
+
+        /// <summary>
+        /// (P6) χ²/ndf остатка в пиковых окнах компонента (±2 ПШПВ вокруг
+        /// линий и сумм-пиков) ПРЕЖНИМИ весами. Сигма-множитель гипотезы (а)
+        /// выводится читателем: √(max(1, ZoneChi2Ndf)/max(1, χ²/ndf общего)).
+        /// NaN — не считалось (<c>FsaAnalyzer.PartialResiduals</c> выключен
+        /// или у компонента нет линий в окне фита).
+        /// </summary>
+        public double ZoneChi2Ndf { get; set; } = double.NaN;
+
+        /// <summary>
+        /// (P6) Насколько включение компонента улучшает Σw·r² его же зоны:
+        /// рефит того же состава без него при том же узле дрейфа. ≈0 — зоне
+        /// компонент не нужен, кандидат на исключение гейтом (б). NaN — не
+        /// считалось.
+        /// </summary>
+        public double ZoneDeltaD { get; set; } = double.NaN;
+
+        /// <summary>(P6) Число каналов зоны; 0 — зона не строилась.</summary>
+        public int ZoneChannels { get; set; }
     }
 
     /// <summary>
@@ -145,6 +165,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public int LastChannel { get; set; }
 
         public double Chi2Ndf { get; set; }
+
+        /// <summary>
+        /// χ²/ndf того же остатка ПРЕЖНИМИ весами (пуассон плюс шум фона) —
+        /// без хуберовского перевзвешивания и без составного шума S43. Общая
+        /// метрика: прогоны с разными весами решателя сравнимы только ею
+        /// (ловушка fsa-hypotheses-2026-08.md §1/§4). При выключенном Хубере и
+        /// γ = β = 0 совпадает с <see cref="Chi2Ndf"/>.
+        /// </summary>
+        public double Chi2NdfPoisson { get; set; }
 
         public double Gain { get; set; }
 
