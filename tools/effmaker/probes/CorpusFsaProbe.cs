@@ -32,7 +32,8 @@ namespace CorpusFsaProbe
     ///                  [--groups=G1S,ASN16] [--only=G1S_Th232_Denta]
     ///                  [--mode=spline|snip] [--no-matrix] [--no-cascade]
     ///                  [--no-pileup] [--no-background] [--limit=N] [--quiet]
-    ///                  [--limits-mc=N [--mc-component=Имя]]
+    ///                  [--limits-mc=N [--mc-component=Имя]] [--huber=M]
+    ///                  [--partial] [--pr-gate] [--gamma=G] [--beta=B]
     ///
     /// Файлы на выходе — того же вида, что у `tools/pie`, чтобы считал их тот же
     /// `tools/pie/score.py`: `&lt;группа&gt;_&lt;режим&gt;_components.csv` и
@@ -72,6 +73,8 @@ namespace CorpusFsaProbe
                 if (a == "--no-background") { o.Background = false; continue; }
                 if (a == "--quiet") { o.Quiet = true; continue; }
                 if (a == "--peaks") { o.Peaks = true; continue; }
+                if (a == "--partial") { o.Partial = true; continue; }
+                if (a == "--pr-gate") { o.PartialGate = true; continue; }
                 if (a.StartsWith("--residuals=", StringComparison.Ordinal))
                 {
                     o.Residuals = int.Parse(a.Substring(12), CultureInfo.InvariantCulture);
@@ -128,6 +131,18 @@ namespace CorpusFsaProbe
                 else if (a.StartsWith("--gain-steps=", StringComparison.Ordinal))
                 {
                     o.GainSteps = int.Parse(a.Substring(13), CultureInfo.InvariantCulture);
+                }
+                else if (a.StartsWith("--huber=", StringComparison.Ordinal))
+                {
+                    o.HuberM = double.Parse(a.Substring(8), CultureInfo.InvariantCulture);
+                }
+                else if (a.StartsWith("--gamma=", StringComparison.Ordinal))
+                {
+                    o.NoiseGamma = double.Parse(a.Substring(8), CultureInfo.InvariantCulture);
+                }
+                else if (a.StartsWith("--beta=", StringComparison.Ordinal))
+                {
+                    o.NoiseBeta = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
                 }
                 else
                 {
@@ -275,6 +290,15 @@ namespace CorpusFsaProbe
                 analyzer.CascadeSumPeaks = o.Cascade;
                 analyzer.PileUp = o.PileUp;
                 analyzer.Backscatter = o.Backscatter;
+                if (o.HuberM >= 0.0)
+                {
+                    analyzer.HuberM = o.HuberM;
+                }
+
+                analyzer.NoiseGamma = o.NoiseGamma;
+                analyzer.NoiseBeta = o.NoiseBeta;
+                analyzer.PartialResiduals = o.Partial;
+                analyzer.PartialResidualGate = o.PartialGate;
 
                 // Сетка дрейфа — ключами, а не пересборкой (S6): расширять её
                 // вслепую нельзя, потому что при том же числе узлов вдвое более
@@ -358,6 +382,7 @@ namespace CorpusFsaProbe
 
                 row.Result = result;
                 row.Chi2Ndf = result.Chi2Ndf;
+                row.Chi2NdfPoisson = result.Chi2NdfPoisson;
                 row.Gain = result.Gain;
                 row.OffsetChannels = result.OffsetChannels;
                 row.GainOnGridEdge = result.GainOnGridEdge;
@@ -840,12 +865,15 @@ namespace CorpusFsaProbe
                 using (var comps = new StreamWriter(prefix + "_components.csv", false, new UTF8Encoding(true)))
                 using (var limits = new StreamWriter(prefix + "_limits.csv", false, new UTF8Encoding(true)))
                 {
+                    // Новые колонки — только В КОНЕЦ строки: score.py читает
+                    // по именам (DictReader), но чужой разбор по номерам колонок
+                    // вставка в середину сломала бы молча.
                     runs.WriteLine("spectrum,det,part,chi2ndf,gain,offset_ch,drift_edge,gain_edge,"
                                    + "offset_edge,matrix,"
                                    + "matrix_note,cascade,efficiency,background,peaks,components,"
-                                   + "ms,cpu_ms,near_sigmas,near_counts,error");
+                                   + "ms,cpu_ms,near_sigmas,near_counts,error,chi2ndf_pois");
                     comps.WriteLine("spectrum,det,part,component,kind,share_pct,z,count_rate,peak_counts,"
-                                    + "dt_cps,mda_cps");
+                                    + "dt_cps,mda_cps,zone_chi2ndf,zone_dd,zone_n");
                     // Пределы S9 — по ВСЕМ кандидатам библиотеки, включая не
                     // вошедших в состав: у «не обнаружен» без МДА нет смысла.
                     limits.WriteLine("spectrum,det,part,component,kind,detected,count_rate,"
@@ -870,7 +898,8 @@ namespace CorpusFsaProbe
                             r.LibrarySize.ToString(CultureInfo.InvariantCulture),
                             F(r.Ms, "F0"), F(r.CpuMs, "F0"),
                             F(r.NearExcess, "F2"), F(r.NearCounts, "F0"),
-                            Csv(r.Error ?? "")));
+                            Csv(r.Error ?? ""),
+                            r.Error != null ? "" : F(r.Chi2NdfPoisson, "F4")));
 
                         if (r.Result == null)
                         {
@@ -884,7 +913,9 @@ namespace CorpusFsaProbe
                                 c.Kind.ToString().ToLowerInvariant(),
                                 F(c.SharePercent, "F3"), F(c.Z, "F2"),
                                 F(c.CountRate, "E4"), F(c.PeakCounts, "F1"),
-                                F(c.DecisionThresholdRate, "E4"), F(c.DetectionLimitRate, "E4")));
+                                F(c.DecisionThresholdRate, "E4"), F(c.DetectionLimitRate, "E4"),
+                                F(c.ZoneChi2Ndf, "F3"), F(c.ZoneDeltaD, "F2"),
+                                c.ZoneChannels.ToString(CultureInfo.InvariantCulture)));
                         }
 
                         foreach (FsaCharacteristicLimit L in r.Result.CharacteristicLimits)
@@ -1100,6 +1131,26 @@ namespace CorpusFsaProbe
             public int OffsetSteps;         // 0 — умолчание анализатора (9)
             public double GainRange;        // 0 — умолчание анализатора (0.008)
             public int GainSteps;           // 0 — умолчание анализатора (9)
+
+            /// <summary>
+            /// Порог Хубера в сигмах; отрицательный — умолчание анализатора
+            /// (3.0). Ноль ВЫКЛЮЧАЕТ перевзвешивание — это A-сторона S41:
+            /// Хубер в решателе живёт с переноса из pie и входит в базу
+            /// корпуса, так что мерится его ОТКЛЮЧЕНИЕ, а не включение.
+            /// </summary>
+            public double HuberM = -1.0;
+
+            /// <summary>(S43) γ составного шума D = F + γ²F²; 0 — выключено.</summary>
+            public double NoiseGamma;
+
+            /// <summary>(S43) β коррелированности вычитаемого фона; 0 — выключено.</summary>
+            public double NoiseBeta;
+
+            /// <summary>(P6) Считать парциальные невязки (дорого: рефит на компонент).</summary>
+            public bool Partial;
+
+            /// <summary>(P6 «б») Гейт по ΔD&lt;0 с перефитом — A/B-сторона.</summary>
+            public bool PartialGate;
             public List<string> Groups;
             public List<string> Only;
         }
@@ -1122,6 +1173,9 @@ namespace CorpusFsaProbe
             public int Peaks;
             public int LibrarySize;
             public double Chi2Ndf;
+
+            /// <summary>χ²/ndf прежними весами — общая метрика A/B (S41/S43).</summary>
+            public double Chi2NdfPoisson;
             public double Gain;
             public double OffsetChannels;
             public double Ms;

@@ -64,6 +64,51 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Порог хуберовского перевзвешивания, в сигмах. 0 — выключено.</summary>
         public double HuberM { get; set; }
 
+        /// <summary>
+        /// (S43) Коэффициент γ составного шума: дисперсия канала берётся
+        /// D = F + γ²·F², где F — отсчёты канала. На больших статистиках чистый
+        /// пуассон объявляет знание тысячных долей процента, и χ² жирных
+        /// спектров мерит систематику тракта, а не согласие; линейный член
+        /// признаёт потолок точности канала (первый кандидат смысла —
+        /// дифференциальная нелинейность). 0 — выключено (сегодняшний вес).
+        /// Отчётный χ² при этом СЧИТАЕТСЯ ПРЕЖНИМИ весами
+        /// (<see cref="FsaResult.Chi2NdfPoisson"/>) — иначе правка мерила бы
+        /// себя своей же метрикой.
+        /// </summary>
+        public double NoiseGamma { get; set; }
+
+        /// <summary>
+        /// (S43) Коэффициент β коррелированности вычитаемого фона: к дисперсии
+        /// канала добавляется β²·B², где B — вычитаемый фон канала (уже в
+        /// шкале пробы). Смысл — «фон вырос — вырос везде»: доля фона, общая
+        /// всем каналам, не давится статистикой канала. 0 — выключено; работает
+        /// только там, где фон действительно вычитается.
+        /// </summary>
+        public double NoiseBeta { get; set; }
+
+        /// <summary>
+        /// (P6) Считать парциальные невязки компонентов: χ²/ndf в пиковых
+        /// окнах каждого вошедшего компонента и ΔD — насколько присутствие
+        /// компонента улучшает невязку его же зоны (рефит без него при том же
+        /// узле дрейфа). Пост-расчёт, состав не трогает; цена — один рефит на
+        /// компонент, поэтому умолчание ВЫКЛЮЧЕНО (ручка для проб, как
+        /// <see cref="ResponseContinuumTrustFloorKev"/>). Читатель —
+        /// CorpusFsaProbe (`--partial`), поля —
+        /// <see cref="FsaComponentResult.ZoneChi2Ndf"/> /
+        /// <see cref="FsaComponentResult.ZoneDeltaD"/> /
+        /// <see cref="FsaComponentResult.ZoneChannels"/>.
+        /// </summary>
+        public bool PartialResiduals { get; set; }
+
+        /// <summary>
+        /// (P6 «б») Гейт по парциальной невязке: исключать нуклидные
+        /// компоненты с ΔD &lt; 0 (присутствие ухудшает невязку их же зоны) и
+        /// перефитивать один раз. Умолчание ВЫКЛЮЧЕНО — A/B-проверка идёт
+        /// ключом `--pr-gate` у CorpusFsaProbe; правило решения Amber
+        /// 14.08.2026: лучше → внедряем, хуже → откат без разбора причин.
+        /// </summary>
+        public bool PartialResidualGate { get; set; }
+
         /// <summary>Порог значимости для отсева перед вторым проходом. 0 — без отсева.</summary>
         public double RefitZ { get; set; }
 
@@ -348,12 +393,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // подбирается, а вычитается: свободный коэффициент фона вырожден с
             // компонентами пробы (комнатный K-40 против K-40 в образце), и NNLS
             // раздувает фон вместо образца.
+            double[] backgroundFull = null;
             if (background != null)
             {
+                backgroundFull = new double[channels];
                 int[] backgroundSnip = this.Mode == ContinuumMode.Snip ? Snip(fwhmCalibration, background) : null;
                 for (int i = 0; i < channels; i++)
                 {
                     double full = background.Spectrum[i] * backgroundScale;
+                    backgroundFull[i] = full;
                     double value = full;
                     if (backgroundSnip != null)
                     {
@@ -389,6 +437,36 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     library = new List<FsaComponent>(originalLibrary);
                     library.Add(pileUp);
+                }
+            }
+
+            // Отчётные веса — ПРЕЖНЯЯ метрика (пуассон плюс шум вычтенного
+            // фона), какой бы ни была метрика решателя: χ², посчитанный ими
+            // (Chi2NdfPoisson), сравним между прогонами с разными весами и с
+            // Хубером — величиной, которую правка весов сама оптимизирует,
+            // мерить её пользу нельзя (ловушка из fsa-hypotheses §1/§4).
+            double[] reportWeights = new double[channels];
+            for (int i = 0; i < channels; i++)
+            {
+                reportWeights[i] = 1.0 / variance[i];
+            }
+
+            // (S43) Составной шум: D = F + γ²F² + β²B². Меняются только веса
+            // РЕШАТЕЛЯ (и пределы S9 — они описывают тот же оценщик);
+            // отчётная метрика остаётся прежней.
+            if (this.NoiseGamma > 0.0 || (this.NoiseBeta > 0.0 && backgroundFull != null))
+            {
+                double g2 = this.NoiseGamma * this.NoiseGamma;
+                double b2 = this.NoiseBeta * this.NoiseBeta;
+                for (int i = 0; i < channels; i++)
+                {
+                    double extra = g2 * (double)raw[i] * raw[i];
+                    if (b2 > 0.0 && backgroundFull != null)
+                    {
+                        extra += b2 * backgroundFull[i] * backgroundFull[i];
+                    }
+
+                    variance[i] += extra;
                 }
             }
 
@@ -444,7 +522,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             FitResult best = FitHuber(library, fixedColumns, calibration, fwhmCalibration, efficiency,
-                                      bestGain, bestOffset, chLo, chHi, channels, y, variance, baseWeights, null);
+                                      bestGain, bestOffset, chLo, chHi, channels, y, variance, baseWeights, reportWeights, null);
             if (best == null)
             {
                 return null;
@@ -462,7 +540,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     List<FsaComponent> extended = new List<FsaComponent>(library);
                     extended.AddRange(derived);
                     FitResult refit = FitHuber(extended, fixedColumns, calibration, fwhmCalibration, efficiency,
-                                               bestGain, bestOffset, chLo, chHi, channels, y, variance, baseWeights, null);
+                                               bestGain, bestOffset, chLo, chHi, channels, y, variance, baseWeights, reportWeights, null);
                     if (refit != null)
                     {
                         best = refit;
@@ -495,7 +573,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 if (keep.Count > 0 && keep.Count < total)
                 {
                     FitResult refit = FitHuber(working, fixedColumns, calibration, fwhmCalibration, efficiency,
-                                               bestGain, bestOffset, chLo, chHi, channels, y, variance, baseWeights, keep);
+                                               bestGain, bestOffset, chLo, chHi, channels, y, variance, baseWeights, reportWeights, keep);
                     if (refit != null)
                     {
                         best = refit;
@@ -522,7 +600,91 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     survivors.AddRange(derived);
                     FitResult refit = FitHuber(survivors, fixedColumns, calibration, fwhmCalibration, efficiency,
-                                               bestGain, bestOffset, chLo, chHi, channels, y, variance, baseWeights, null);
+                                               bestGain, bestOffset, chLo, chHi, channels, y, variance, baseWeights, reportWeights, null);
+                    if (refit != null)
+                    {
+                        best = refit;
+                    }
+                }
+            }
+
+            // (P6 «б») Гейт по парциальной невязке: нуклидный компонент, чьё
+            // ПРИСУТСТВИЕ ухудшает невязку его же пиковых окон (ΔD < 0 — без
+            // него зоне лучше), исключается, и состав перефитивается один раз.
+            // Амплитудный тест такое не видит по построению: z фантома
+            // неотличим от z настоящего (память libraryfit-z-gate-blind), а
+            // здесь судится форма зоны, не амплитуда. Мешающие образы,
+            // производные и готовые (наложения) не судятся — гейт для
+            // нуклидных кандидатов.
+            if (this.PartialResidualGate)
+            {
+                List<FsaComponent> gateAll = new List<FsaComponent>();
+                for (int k = 0; k < best.Columns.Count; k++)
+                {
+                    if (best.Columns[k].Component != null)
+                    {
+                        gateAll.Add(best.Columns[k].Component);
+                    }
+                }
+
+                List<FsaComponent> gateKeep = new List<FsaComponent>(gateAll);
+                for (int k = 0; k < best.Columns.Count; k++)
+                {
+                    FitColumn column = best.Columns[k];
+                    FsaComponent component = column.Component;
+                    if (component == null || best.Amplitude[k] <= 0.0
+                        || component.Kind == FsaComponentKind.Nuisance
+                        || component.Derived || component.FixedTemplate != null)
+                    {
+                        continue;
+                    }
+
+                    bool[] zone = this.PeakWindowMask(component, calibration, fwhmCalibration,
+                                                      bestGain, bestOffset, chLo, chHi, channels);
+                    if (zone == null)
+                    {
+                        continue;
+                    }
+
+                    double dWith = 0.0;
+                    for (int i = chLo; i <= chHi; i++)
+                    {
+                        if (zone[i])
+                        {
+                            dWith += best.Residual[i] * best.Residual[i] * reportWeights[i];
+                        }
+                    }
+
+                    List<FsaComponent> without = new List<FsaComponent>(gateAll);
+                    without.Remove(component);
+                    FitResult probe = this.FitHuber(gateAll, fixedColumns, calibration, fwhmCalibration,
+                                                    efficiency, bestGain, bestOffset, chLo, chHi, channels,
+                                                    y, variance, baseWeights, null, without);
+                    if (probe == null || probe.Residual == null)
+                    {
+                        continue;
+                    }
+
+                    double dWithout = 0.0;
+                    for (int i = chLo; i <= chHi; i++)
+                    {
+                        if (zone[i])
+                        {
+                            dWithout += probe.Residual[i] * probe.Residual[i] * reportWeights[i];
+                        }
+                    }
+
+                    if (dWithout - dWith < 0.0)
+                    {
+                        gateKeep.Remove(component);
+                    }
+                }
+
+                if (gateKeep.Count < gateAll.Count)
+                {
+                    FitResult refit = FitHuber(gateAll, fixedColumns, calibration, fwhmCalibration, efficiency,
+                                               bestGain, bestOffset, chLo, chHi, channels,
+                                               y, variance, baseWeights, reportWeights, gateKeep);
                     if (refit != null)
                     {
                         best = refit;
@@ -538,6 +700,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.ComputeCharacteristicLimits(result, best, originalLibrary, calibration, fwhmCalibration,
                                              efficiency, bestGain, bestOffset, chLo, chHi, channels,
                                              variance, liveTime);
+            if (this.PartialResiduals)
+            {
+                this.ComputePartialResiduals(result, best, fixedColumns, calibration, fwhmCalibration,
+                                             efficiency, bestGain, bestOffset, chLo, chHi, channels,
+                                             y, variance, baseWeights, reportWeights);
+            }
+
             return result;
         }
 
@@ -865,6 +1034,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 FirstChannel = chLo,
                 LastChannel = chHi,
                 Chi2Ndf = fit.Chi2Ndf,
+                Chi2NdfPoisson = fit.Chi2NdfBase,
                 Gain = gain,
                 OffsetChannels = offset,
                 LiveTime = liveTime,
@@ -1000,6 +1170,42 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return 0.0;
             }
 
+            bool[] inWindow = this.PeakWindowMask(component, calibration, fwhmCalibration,
+                                                  gain, offset, chLo, chHi, channels);
+            if (inWindow == null)
+            {
+                return 0.0;
+            }
+
+            double counts = 0.0;
+            for (int i = chLo; i <= chHi; i++)
+            {
+                if (inWindow[i])
+                {
+                    counts += curve[i];
+                }
+            }
+
+            return counts;
+        }
+
+        /// <summary>
+        /// Маска пиковых окон компонента (±2 ПШПВ вокруг каждой линии и
+        /// каждого сумм-пика, правило <see cref="PeakWindowCounts"/>).
+        /// null — ни одна линия не легла в окно фита: счёт по такой маске был
+        /// бы не «пиковым», а случайным остатком. Одна на два потребителя
+        /// (пиковый счёт и парциальные невязки P6) нарочно: два места,
+        /// считающие «пиковое окно» по-своему, однажды разойдутся.
+        /// </summary>
+        bool[] PeakWindowMask(FsaComponent component, EnergyCalibration calibration,
+                              FwhmCalibration fwhmCalibration, double gain, double offset,
+                              int chLo, int chHi, int channels)
+        {
+            if (component == null)
+            {
+                return null;
+            }
+
             bool[] inWindow = new bool[channels];
             bool any = false;
 
@@ -1030,23 +1236,111 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
-            // Ни одна линия не легла в окно фита (весь компонент за краем) —
-            // счёт по всему образу был бы не «пиковым», а случайным остатком.
-            if (!any)
+            return any ? inWindow : null;
+        }
+
+        /// <summary>
+        /// (P6) Парциальные невязки вошедших компонентов, гипотеза
+        /// fsa-hypotheses-2026-08.md §2. Для каждой строки состава:
+        /// ZoneChi2Ndf — χ²/ndf остатка в пиковых окнах компонента ПРЕЖНИМИ
+        /// весами (у фантома с настоящими линиями z неотличим от настоящего —
+        /// амплитудный тест слеп, а форма его зоны нет); ZoneDeltaD — рефит
+        /// того же состава БЕЗ компонента при том же узле дрейфа, разница
+        /// Σw·r² по зоне: ≈0 значит «своей зоне компонент не нужен» — сигнал
+        /// соседям отдаёт NNLS, как у Pu-238 в поверке S9. Состав и амплитуды
+        /// НЕ трогаются — чистый пост-расчёт; сигма-множитель (а) выводится
+        /// читателем как √(max(1, ZoneChi2Ndf)/max(1, χ²/ndf общего)).
+        /// </summary>
+        void ComputePartialResiduals(FsaResult result, FitResult best, List<double[]> fixedColumns,
+                                     EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
+                                     FsaEfficiency efficiency, double gain, double offset,
+                                     int chLo, int chHi, int channels,
+                                     double[] y, double[] variance, double[] baseWeights,
+                                     double[] reportWeights)
+        {
+            if (result == null || best == null || best.Residual == null || best.Columns == null)
             {
-                return 0.0;
+                return;
             }
 
-            double counts = 0.0;
-            for (int i = chLo; i <= chHi; i++)
+            List<FsaComponent> components = new List<FsaComponent>();
+            for (int k = 0; k < best.Columns.Count; k++)
             {
-                if (inWindow[i])
+                if (best.Columns[k].Component != null)
                 {
-                    counts += curve[i];
+                    components.Add(best.Columns[k].Component);
                 }
             }
 
-            return counts;
+            int row = 0;
+            for (int k = 0; k < best.Columns.Count; k++)
+            {
+                FitColumn column = best.Columns[k];
+                if (column.Component == null || best.Amplitude[k] <= 0.0)
+                {
+                    continue;
+                }
+
+                if (row >= result.Components.Count)
+                {
+                    break;
+                }
+
+                FsaComponentResult target = result.Components[row++];
+                if (!string.Equals(target.Name, column.Component.Name, StringComparison.Ordinal))
+                {
+                    // Строки результата создаются BuildResult в этом же порядке
+                    // и по этим же условиям; разъехались — считать нечего.
+                    break;
+                }
+
+                bool[] zone = this.PeakWindowMask(column.Component, calibration, fwhmCalibration,
+                                                  gain, offset, chLo, chHi, channels);
+                if (zone == null)
+                {
+                    continue;
+                }
+
+                double dWith = 0.0;
+                int zoneChannels = 0;
+                for (int i = chLo; i <= chHi; i++)
+                {
+                    if (zone[i])
+                    {
+                        dWith += best.Residual[i] * best.Residual[i] * reportWeights[i];
+                        zoneChannels++;
+                    }
+                }
+
+                if (zoneChannels == 0)
+                {
+                    continue;
+                }
+
+                target.ZoneChannels = zoneChannels;
+                target.ZoneChi2Ndf = dWith / zoneChannels;
+
+                List<FsaComponent> without = new List<FsaComponent>(components);
+                without.Remove(column.Component);
+                FitResult refit = this.FitHuber(components, fixedColumns, calibration, fwhmCalibration,
+                                                efficiency, gain, offset, chLo, chHi, channels,
+                                                y, variance, baseWeights, null, without);
+                if (refit == null || refit.Residual == null)
+                {
+                    continue;
+                }
+
+                double dWithout = 0.0;
+                for (int i = chLo; i <= chHi; i++)
+                {
+                    if (zone[i])
+                    {
+                        dWithout += refit.Residual[i] * refit.Residual[i] * reportWeights[i];
+                    }
+                }
+
+                target.ZoneDeltaD = dWithout - dWith;
+            }
         }
 
         /// <summary>
@@ -1119,6 +1413,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public double[] Z;
             public double Chi2;
             public double Chi2Ndf;
+
+            /// <summary>
+            /// χ²/ndf того же остатка ПРЕЖНИМИ весами (пуассон плюс шум фона),
+            /// без Хубера и без составного шума — общая метрика для сравнения
+            /// прогонов с разными весами решателя. Считается в FitHuber.
+            /// </summary>
+            public double Chi2NdfBase;
             public double[] Residual;
 
             /// <summary>Хоть один образ этого фита построен матрицей отклика.</summary>
@@ -1147,7 +1448,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         FitResult FitHuber(List<FsaComponent> library, List<double[]> fixedColumns,
                            EnergyCalibration calibration, FwhmCalibration fwhmCalibration, FsaEfficiency efficiency,
                            double gain, double offset, int chLo, int chHi, int channels,
-                           double[] y, double[] variance, double[] baseWeights, List<FsaComponent> subset)
+                           double[] y, double[] variance, double[] baseWeights, double[] reportWeights,
+                           List<FsaComponent> subset)
         {
             double[] weights = (double[])baseWeights.Clone();
             FitResult best = null;
@@ -1168,6 +1470,28 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     double m = this.HuberM * sigma;
                     weights[i] = residual > m ? (1.0 / variance[i]) * (m / residual) : 1.0 / variance[i];
                 }
+            }
+
+            // Тот же остаток — ПРЕЖНЕЙ метрикой: единственное число, которым
+            // прогоны с разными весами решателя сравнимы между собой.
+            if (best != null && reportWeights != null)
+            {
+                double chi2Base = 0.0;
+                for (int i = chLo; i <= chHi; i++)
+                {
+                    chi2Base += best.Residual[i] * best.Residual[i] * reportWeights[i];
+                }
+
+                int activeCount = 0;
+                for (int k = 0; k < best.Active.Length; k++)
+                {
+                    if (best.Active[k])
+                    {
+                        activeCount++;
+                    }
+                }
+
+                best.Chi2NdfBase = chi2Base / Math.Max(1, (chHi - chLo + 1) - activeCount);
             }
 
             return best;
