@@ -37,6 +37,27 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 NODE = re.compile(r'<Efficiency>.*</Efficiency>', re.S)
 
+# B6 (решение Amber 15.08.2026): двенадцать ключей `G1S_*` сняты как побайтные
+# дубликаты эталонов, а геометрии и матрицы перевешены на эталоны-оригиналы.
+# Узлы `<Efficiency>` лежат в git ПОД ПРЕЖНИМИ ИМЕНАМИ, поэтому источник ищется
+# по этой таблице. Убрать её будет можно, когда узлы новых ключей окажутся
+# закоммичены хотя бы раз, — но убирать не нужно: она не мешает и объясняет,
+# откуда взялся узел.
+RENAMED = {
+    'G1S16_Th228_P5':         'G1S_Th228_5cm',
+    'G1S16_Eu152_P5':         'G1S_Eu152_5cm',
+    'G1S16_Eu152_P25':        'G1S_Eu152_25cm',
+    'G1S16_Co60_P25':         'G1S_Co60_25cm',
+    'G1S16_Ba133_P25':        'G1S_Ba133_25cm',
+    'G1S24_Th228_P25':        'G1S_Th228_25cm',
+    'G1S24_Th232_Denta120_2': 'G1S_Th232_Denta',
+    'G1S24_Ra226_Denta120':   'G1S_Ra226_Denta',
+    'G1S24_K40_Denta120':     'G1S_K40_Denta',
+    'G1S24_Th232_Petri_2':    'G1S_Th232_Petri',
+    'G1S24_Ra226_Petri':      'G1S_Ra226_Petri',
+    'G1S24_Th232_Mar_2':      'G1S_Th232_Marinelli',
+}
+
 
 def from_git(rev, rel):
     out = subprocess.run(['git', 'show', '%s:%s' % (rev, rel)],
@@ -63,6 +84,15 @@ def main():
 
         rel = os.path.relpath(os.path.abspath(path), REPO).replace(os.sep, '/')
         old = from_git(args.rev, rel)
+        src_key = key
+        if old is None or NODE.search(old) is None:
+            # переименованный ключ (B6): узел лежит в git под прежним именем
+            prev = RENAMED.get(key)
+            if prev:
+                alt = rel.rsplit('/', 1)[0] + '/' + prev + '.xml'
+                cand = from_git(args.rev, alt)
+                if cand is not None and NODE.search(cand) is not None:
+                    old, src_key = cand, prev
         if old is None:
             continue
 
@@ -80,9 +110,10 @@ def main():
 
         guid = re.search(r'<Guid>([^<]+)', node)
         name = re.search(r'<Name>([^<]+)', node)
-        print('%-22s <- %s (%s, %d символов)'
+        print('%-24s <- %s (%s, %d символов)%s'
               % (key, name.group(1) if name else '?',
-                 guid.group(1)[:8] if guid else '?', len(node)))
+                 guid.group(1)[:8] if guid else '?', len(node),
+                 '' if src_key == key else '   [из ' + src_key + ', B6]'))
         restored += 1
         if not args.apply:
             continue

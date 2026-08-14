@@ -4310,6 +4310,24 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixRangeFromCurve.
+        /// </summary>
+        public static string ResponseMatrixRangeFromCurve {
+            get {
+                return ResourceManager.GetString("ResponseMatrixRangeFromCurve", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixRangeDiffers.
+        /// </summary>
+        public static string ResponseMatrixRangeDiffers {
+            get {
+                return ResourceManager.GetString("ResponseMatrixRangeDiffers", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to ResponseMatrixStateValid.
         /// </summary>
         public static string ResponseMatrixStateValid {

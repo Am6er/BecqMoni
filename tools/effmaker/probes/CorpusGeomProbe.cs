@@ -1,4 +1,4 @@
-using BecquerelMonitor;
+﻿using BecquerelMonitor;
 using BecquerelMonitor.EfficiencyMaker;
 using System;
 using System.Collections.Generic;
@@ -309,12 +309,23 @@ class CorpusGeomProbe
 
         List<Geom> list = new List<Geom>();
 
+        // B6 (решение Amber 15.08.2026). Двенадцать прежних ключей `G1S_*`
+        // оказались ПОБАЙТНЫМИ дубликатами двенадцати поверочных эталонов —
+        // одно и то же измерение стояло в корпусе дважды, в понятной части под
+        // старым именем и в непонятной под эталонным. Копии `G1S_*` сняты, а
+        // геометрии перевешены сюда, на эталоны-оригиналы: у эталона в
+        // `SampleInfo.Note` лежит паспорт источника, у прежней копии его не было.
+        // Соответствие ключей — `tools/CORPUS/README.md`, раздел «Двенадцать
+        // прежних G1S — побайтные дубликаты». Суффикс имени — ГОД ПОВЕРКИ, и
+        // одна геометрия законно собирает спектры обоих годов: сосуд и
+        // расстояние от года не зависят, зависит только разрешение (модель
+        // разрешения делится отдельно, по группам `G1S16`/`G1S24`).
         list.Add(new Geom
         {
             Key = "G1S_point5",
             Preset = G1S,
             Vessel = "точечный источник, 5 см от торца",
-            Spectra = new[] { "G1S_Th228_5cm", "G1S_Eu152_5cm" },
+            Spectra = new[] { "G1S16_Th228_P5", "G1S16_Eu152_P5" },
             Shape = g => { g.SourceType = GeometrySourceType.Point; g.PointDistance = 50.0; },
         });
 
@@ -323,8 +334,8 @@ class CorpusGeomProbe
             Key = "G1S_point25",
             Preset = G1S,
             Vessel = "точечный источник, 25 см от торца",
-            Spectra = new[] { "G1S_Th228_25cm", "G1S_Eu152_25cm",
-                              "G1S_Co60_25cm", "G1S_Ba133_25cm" },
+            Spectra = new[] { "G1S24_Th228_P25", "G1S16_Eu152_P25",
+                              "G1S16_Co60_P25", "G1S16_Ba133_P25" },
             Shape = g => { g.SourceType = GeometrySourceType.Point; g.PointDistance = 250.0; },
         });
 
@@ -333,7 +344,7 @@ class CorpusGeomProbe
             Key = "G1S_denta_th232",
             Preset = G1S,
             Vessel = "флакон «Дента» 120 мл, вплотную",
-            Spectra = new[] { "G1S_Th232_Denta" },
+            Spectra = new[] { "G1S24_Th232_Denta120_2" },
             PassportVolumeMl = 120.0,
             PassportMassG = 192.0,
             SourceMaterial = "Silicon dioxide",
@@ -346,7 +357,7 @@ class CorpusGeomProbe
             Key = "G1S_denta_ra226",
             Preset = G1S,
             Vessel = "флакон «Дента» 120 мл, вплотную",
-            Spectra = new[] { "G1S_Ra226_Denta" },
+            Spectra = new[] { "G1S24_Ra226_Denta120" },
             PassportVolumeMl = 120.0,
             PassportMassG = 74.0,
             SourceMaterial = "Silicon dioxide",
@@ -359,7 +370,7 @@ class CorpusGeomProbe
             Key = "G1S_denta_k40",
             Preset = G1S,
             Vessel = "флакон «Дента» 120 мл, вплотную",
-            Spectra = new[] { "G1S_K40_Denta" },
+            Spectra = new[] { "G1S24_K40_Denta120" },
             PassportVolumeMl = 120.0,
             PassportMassG = 79.0,
             SourceMaterial = "Silicon dioxide",
@@ -372,7 +383,7 @@ class CorpusGeomProbe
             Key = "G1S_petri_th232",
             Preset = G1S,
             Vessel = "чашка Петри 60 мл, вплотную",
-            Spectra = new[] { "G1S_Th232_Petri" },
+            Spectra = new[] { "G1S24_Th232_Petri_2" },
             PassportVolumeMl = 60.0,
             PassportMassG = 96.0,
             SourceMaterial = "Silicon dioxide",
@@ -385,7 +396,7 @@ class CorpusGeomProbe
             Key = "G1S_petri_ra226",
             Preset = G1S,
             Vessel = "чашка Петри 60 мл, вплотную",
-            Spectra = new[] { "G1S_Ra226_Petri" },
+            Spectra = new[] { "G1S24_Ra226_Petri" },
             PassportVolumeMl = 60.0,
             PassportMassG = 37.0,
             SourceMaterial = "Silicon dioxide",
@@ -398,7 +409,7 @@ class CorpusGeomProbe
             Key = "G1S_marinelli1l_th232",
             Preset = G1S,
             Vessel = "маринелли 1 л",
-            Spectra = new[] { "G1S_Th232_Marinelli" },
+            Spectra = new[] { "G1S24_Th232_Mar_2" },
             PassportVolumeMl = 1000.0,
             PassportMassG = 1600.0,
             SourceMaterial = "Silicon dioxide",
@@ -417,8 +428,11 @@ class CorpusGeomProbe
         // Два паспортных Cs-137 «впритык» (Amber, 14.08.2026 вечер, B5):
         // точечный источник на самом торце (0 мм). Спектры в корпус ещё не
         // добавлены — ключи назначены вперёд, добавление идёт следом за
-        // расчётом кривых и матриц. У AS80x80 кристалл — иодид цезия по
-        // прямому слову Amber (пресет нёс NaI допущением и исправлен).
+        // расчётом кривых и матриц. У AS80x80 кристалл — ИОДИД НАТРИЯ: 14.08
+        // он был заменён на цезиевый по слову Amber, а 15.08 замена отменена
+        // («я ошибся, кристалл NaI»), и пресет возвращён. Файл `AS80_point0.in`
+        // всё это время оставался с натрием, поэтому матрица и кривая этой
+        // геометрии верны и пересчёта не требуют (строка `B7`).
         list.Add(new Geom
         {
             Key = "AS80_point0",

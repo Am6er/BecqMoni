@@ -12,8 +12,8 @@
         <Note>Cs-137 A=106000 Бк dA=3% 19-05-2017 | ЛСРМ Точечная-25см, поверка 2024, УДС-ГЦ-63х63-USB №0086-16</Note>
       </SampleInfo>
       <DeviceConfigReference>
-        <Name>Gamma-1S UDS-GC 63x63 1024 (corpus)</Name>
-        <Guid>9e5a1c00-0007-4a00-9000-11c0de000007</Guid>
+        <Name>Gamma-1S UDS-GC 63x63 1024 (corpus, поверка 2024)</Name>
+        <Guid>9e5a1c00-000c-4a00-9000-11c0de00000c</Guid>
       </DeviceConfigReference>
       <StartTime>2024-10-22T14:16:05.800000</StartTime>
       <EnergySpectrum>
@@ -22,7 +22,7 @@
         <EnergyCalibration>
           <PolynomialOrder>4</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-8.540585015009903</Coefficient><Coefficient>2.760155574179035</Coefficient><Coefficient>0.0009378877389547834</Coefficient><Coefficient>-1.3434827173397843e-06</Coefficient><Coefficient>6.648329357111107e-10</Coefficient></Coefficients>
+            <Coefficient>-2.978619524048691</Coefficient><Coefficient>2.7497398583783115</Coefficient><Coefficient>0.0009343485282547337</Coefficient><Coefficient>-1.338412954498189e-06</Coefficient><Coefficient>6.623241238969841e-10</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>1107180</ValidPulseCount>
         <TotalPulseCount>1107180</TotalPulseCount>
@@ -2096,6 +2096,6 @@
           <DataPoint>9</DataPoint>
         </Spectrum>
       </BackgroundEnergySpectrum>
-    <BackgroundSpectrumFile>Фон отк кр_16.xml</BackgroundSpectrumFile><SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-36.27433674005481</Coefficient><Coefficient>1.1565914027186417</Coefficient><Coefficient>0.00020915113460706825</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
+    <BackgroundSpectrumFile>Фон отк кр_16.xml</BackgroundSpectrumFile><SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-36.56034298985014</Coefficient><Coefficient>1.3555154115755201</Coefficient><Coefficient>8.058954407450773e-05</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

@@ -12,7 +12,7 @@
         <Note>Mn-54 A=224000 Бк dA=3% 01-12-2013 | ЛСРМ Точечная-25см, поверка 2016, УДС-ГЦ-63х63-USB №0086-16</Note>
       </SampleInfo>
       <DeviceConfigReference>
-        <Name>Gamma-1S UDS-GC 63x63 1024 (corpus)</Name>
+        <Name>Gamma-1S UDS-GC 63x63 1024 (corpus, поверка 2016)</Name>
         <Guid>9e5a1c00-0007-4a00-9000-11c0de000007</Guid>
       </DeviceConfigReference>
       <StartTime>2016-05-18T11:44:43.158000</StartTime>
@@ -22,7 +22,7 @@
         <EnergyCalibration>
           <PolynomialOrder>2</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-56.30670868825966</Coefficient><Coefficient>3.1446757733411737</Coefficient><Coefficient>-0.00013583890327736788</Coefficient></Coefficients>
+            <Coefficient>-45.91213403268244</Coefficient><Coefficient>3.0949522979380797</Coefficient><Coefficient>-8.371964126124186e-05</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>250040</ValidPulseCount>
         <TotalPulseCount>250040</TotalPulseCount>
@@ -2096,6 +2096,6 @@
           <DataPoint>7</DataPoint>
         </Spectrum>
       </BackgroundEnergySpectrum>
-    <BackgroundSpectrumFile>фон открытый_15.xml</BackgroundSpectrumFile><SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-9.906462329657169</Coefficient><Coefficient>0.7866956210569614</Coefficient><Coefficient>0.0008122027283662933</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
+    <BackgroundSpectrumFile>фон открытый_15.xml</BackgroundSpectrumFile><SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-10.457264063595742</Coefficient><Coefficient>0.8297226394209425</Coefficient><Coefficient>0.00044223149831001675</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

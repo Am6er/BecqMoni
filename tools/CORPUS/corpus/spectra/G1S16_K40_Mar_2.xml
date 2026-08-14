@@ -12,7 +12,7 @@
         <Note>K-40 A=1950 Бк/кг dA=6% 17-09-2007 | ЛСРМ Маринелли, поверка 2016, УДС-ГЦ-63х63-USB №0086-16</Note>
       </SampleInfo>
       <DeviceConfigReference>
-        <Name>Gamma-1S UDS-GC 63x63 1024 (corpus)</Name>
+        <Name>Gamma-1S UDS-GC 63x63 1024 (corpus, поверка 2016)</Name>
         <Guid>9e5a1c00-0007-4a00-9000-11c0de000007</Guid>
       </DeviceConfigReference>
       <StartTime>2016-05-30T12:27:22.100000</StartTime>
@@ -22,7 +22,7 @@
         <EnergyCalibration>
           <PolynomialOrder>1</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-24.04666183085416</Coefficient><Coefficient>3.011804117867503</Coefficient></Coefficients>
+            <Coefficient>-24.162487202655505</Coefficient><Coefficient>3.011720577586784</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>119600</ValidPulseCount>
         <TotalPulseCount>119600</TotalPulseCount>
@@ -1062,7 +1062,7 @@
         <EnergyCalibration>
           <PolynomialOrder>1</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-24.04666183085416</Coefficient><Coefficient>3.011804117867503</Coefficient></Coefficients>
+            <Coefficient>-24.162487202655505</Coefficient><Coefficient>3.011720577586784</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>313777</ValidPulseCount>
         <TotalPulseCount>313777</TotalPulseCount>
@@ -2096,6 +2096,6 @@
           <DataPoint>8</DataPoint>
         </Spectrum>
       </BackgroundEnergySpectrum>
-    <BackgroundSpectrumFile>фон пустая защита_15.xml</BackgroundSpectrumFile><SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-6.888949178187173</Coefficient><Coefficient>0.8902501567358501</Coefficient><Coefficient>0.00058936338727295</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
+    <BackgroundSpectrumFile>фон пустая защита_15.xml</BackgroundSpectrumFile><SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-6.809057252963643</Coefficient><Coefficient>0.8777364898090056</Coefficient><Coefficient>0.00033325069675480435</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>
