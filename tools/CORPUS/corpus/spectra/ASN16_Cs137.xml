@@ -26,7 +26,7 @@
         <EnergyCalibration>
           <PolynomialOrder>2</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-21.339274523669435</Coefficient><Coefficient>0.39194886153316744</Coefficient><Coefficient>2.8900706674365685e-06</Coefficient></Coefficients>
+            <Coefficient>-21.782519814463942</Coefficient><Coefficient>0.3926636599612368</Coefficient><Coefficient>2.723541217735091e-06</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>250626474</ValidPulseCount>
         <TotalPulseCount>250770505</TotalPulseCount>
@@ -8234,7 +8234,7 @@
         <EnergyCalibration>
           <PolynomialOrder>2</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-21.339274523669435</Coefficient><Coefficient>0.39194886153316744</Coefficient><Coefficient>2.8900706674365685e-06</Coefficient></Coefficients>
+            <Coefficient>-21.782519814463942</Coefficient><Coefficient>0.3926636599612368</Coefficient><Coefficient>2.723541217735091e-06</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>1961747</ValidPulseCount>
         <TotalPulseCount>1963315</TotalPulseCount>
@@ -16441,6 +16441,6 @@
         <Format>Base64 encoded binary</Format>
         <Pulses />
       </PulseCollection>
-      <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-322.2772990677817</Coefficient><Coefficient>7.399732399784871</Coefficient><Coefficient>-0.0001312502322655681</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
+      <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-336.0411075436665</Coefficient><Coefficient>7.396503693318873</Coefficient><Coefficient>-0.00012478269009240709</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>
