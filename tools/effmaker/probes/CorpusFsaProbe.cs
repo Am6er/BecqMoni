@@ -384,6 +384,20 @@ namespace CorpusFsaProbe
                 row.Result = result;
                 row.Chi2Ndf = result.Chi2Ndf;
                 row.Chi2NdfPoisson = result.Chi2NdfPoisson;
+
+                // Фон подан и НЕ взят — печатаем причину и снимаем признак
+                // «фон есть» (S44). Прежде колонка `background` мерила наличие
+                // узла в файле, и одиннадцать спектров G1S годами числились с
+                // фоном, который анализатор молча отбрасывал.
+                if (result.BackgroundRejected != null)
+                {
+                    row.HasBackground = false;
+                    row.BackgroundNote = result.BackgroundRejected;
+                    if (!o.Quiet)
+                    {
+                        Console.WriteLine("  {0}: ФОН НЕ ВЗЯТ — {1}", row.Key, result.BackgroundRejected);
+                    }
+                }
                 row.Gain = result.Gain;
                 row.OffsetChannels = result.OffsetChannels;
                 row.GainOnGridEdge = result.GainOnGridEdge;
@@ -872,7 +886,7 @@ namespace CorpusFsaProbe
                     runs.WriteLine("spectrum,det,part,chi2ndf,gain,offset_ch,drift_edge,gain_edge,"
                                    + "offset_edge,matrix,"
                                    + "matrix_note,cascade,efficiency,background,peaks,components,"
-                                   + "ms,cpu_ms,near_sigmas,near_counts,error,chi2ndf_pois");
+                                   + "ms,cpu_ms,near_sigmas,near_counts,error,chi2ndf_pois,bg_rejected");
                     comps.WriteLine("spectrum,det,part,component,kind,share_pct,z,count_rate,peak_counts,"
                                     + "dt_cps,mda_cps,zone_chi2ndf,zone_dd,zone_n");
                     // Пределы S9 — по ВСЕМ кандидатам библиотеки, включая не
@@ -900,7 +914,8 @@ namespace CorpusFsaProbe
                             F(r.Ms, "F0"), F(r.CpuMs, "F0"),
                             F(r.NearExcess, "F2"), F(r.NearCounts, "F0"),
                             Csv(r.Error ?? ""),
-                            r.Error != null ? "" : F(r.Chi2NdfPoisson, "F4")));
+                            r.Error != null ? "" : F(r.Chi2NdfPoisson, "F4"),
+                            Csv(r.BackgroundNote)));
 
                         if (r.Result == null)
                         {
@@ -1208,6 +1223,9 @@ namespace CorpusFsaProbe
             public bool CascadeUsed;
             public bool EfficiencyUsed;
             public bool HasBackground;
+
+            /// <summary>(S44) Причина, по которой поданный фон не взят; пусто — взят.</summary>
+            public string BackgroundNote = "";
             public FsaResult Result;
         }
     }
