@@ -38,6 +38,7 @@ and where the details are.
 
 | документ | о чём |
 |---|---|
+| [handover-2026-08-14.md](handover-2026-08-14.md) | метрология FSA (пределы), правки поставки, паспортные активности, корпус-70 |
 | [handover-2026-08-13.md](handover-2026-08-13.md) | полноспектральный разбор, цена счёта, подписи пиков; что ждёт решения |
 | [tools/effmaker/handover-response-matrix.md](tools/effmaker/handover-response-matrix.md) | матрица отклика и всё, что на ней меряно |
 | [tools/effmaker/handover-2026-08-05.md](tools/effmaker/handover-2026-08-05.md) | конструктор эффективности, сверка с чужими программами, данные |
