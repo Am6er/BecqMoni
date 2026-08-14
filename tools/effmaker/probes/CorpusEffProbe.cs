@@ -41,7 +41,8 @@ using System.Xml.Serialization;
 // `BackgroundSpectrumFile`, …), остальное не трогается.
 //
 //   corpuseffprobe [--dir=tools\CORPUS\corpus\geometries]
-//                  [--spectra=tools\CORPUS\corpus\spectra] [--n=200000] [--dry]
+//                  [--spectra=tools\CORPUS\corpus\spectra] [--n=200000]
+//                  [--only=<ключ геометрии>] [--dry]
 class CorpusEffProbe
 {
     // Порядок свойств ResultData, по которому XmlSerializer читает файл:
@@ -57,6 +58,7 @@ class CorpusEffProbe
 
         string dir = Path.Combine("tools", "CORPUS", "corpus", "geometries");
         string spectraDir = Path.Combine("tools", "CORPUS", "corpus", "spectra");
+        string only = null;
         bool dry = false;
         var options = new EfficiencyCalculationOptions();
         foreach (string a in args)
@@ -65,6 +67,7 @@ class CorpusEffProbe
             else if (a.StartsWith("--spectra=", StringComparison.Ordinal)) spectraDir = a.Substring(10);
             else if (a.StartsWith("--n=", StringComparison.Ordinal))
                 options.Histories = int.Parse(a.Substring(4), CultureInfo.InvariantCulture);
+            else if (a.StartsWith("--only=", StringComparison.Ordinal)) only = a.Substring(7);
             else if (a == "--dry") dry = true;
             else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
         }
@@ -106,6 +109,14 @@ class CorpusEffProbe
 
         foreach (string key in order)
         {
+            // --only= держит пересчёт хирургическим: кривая — Монте-Карло, и
+            // прогон «на все геометрии» ПЕРЕПИСАЛ бы уже привязанные кривые
+            // понятной части свежим шумом — база уехала бы молча.
+            if (only != null && key != only)
+            {
+                continue;
+            }
+
             string geomPath = Path.Combine(dir, key + ".in");
             string matrixPath = Path.Combine(dir, key + ".rmx");
             Console.WriteLine("== {0} ==", key);
