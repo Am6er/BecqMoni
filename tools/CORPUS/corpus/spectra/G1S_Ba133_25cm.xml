@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version='1.0' encoding='utf-8'?>
 <ResultDataFile>
   <FormatVersion>120920</FormatVersion>
   <ResultDataList>
@@ -2098,6 +2098,6 @@
         </Spectrum>
       </BackgroundEnergySpectrum>
       <Visible>true</Visible>
-    <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>5.722744776092307</Coefficient><Coefficient>0.5132251218305076</Coefficient><Coefficient>0.0013732479007131158</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
+    <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>0.9046762802110787</Coefficient><Coefficient>0.7252436082644534</Coefficient><Coefficient>0.0010512177158656935</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

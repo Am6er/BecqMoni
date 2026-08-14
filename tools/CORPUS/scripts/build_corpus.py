@@ -675,7 +675,7 @@ def main():
         if a.startswith('--only='):
             only = set(a.split('=', 1)[1].split(','))
 
-    entries = [e for e in corpus_def.NEW + corpus_def.VIBE
+    entries = [e for e in corpus_def.NEW + corpus_def.VIBE + corpus_def.ETALON
                if only is None or e['key'] in only]
     os.makedirs(OUT_SPECTRA, exist_ok=True)
 
