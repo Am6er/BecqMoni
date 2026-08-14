@@ -4328,6 +4328,33 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to GeometryEditorFacingFront.
+        /// </summary>
+        public static string GeometryEditorFacingFront {
+            get {
+                return ResourceManager.GetString("GeometryEditorFacingFront", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryEditorFacingSide.
+        /// </summary>
+        public static string GeometryEditorFacingSide {
+            get {
+                return ResourceManager.GetString("GeometryEditorFacingSide", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to EfficiencySketchFacingSide.
+        /// </summary>
+        public static string EfficiencySketchFacingSide {
+            get {
+                return ResourceManager.GetString("EfficiencySketchFacingSide", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to ResponseMatrixStateValid.
         /// </summary>
         public static string ResponseMatrixStateValid {

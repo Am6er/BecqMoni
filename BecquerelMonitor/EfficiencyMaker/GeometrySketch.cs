@@ -162,18 +162,38 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return;
             }
 
-            // Размеры детектора. У бруска в разрезе виден торец X; Y уходит в
-            // глубину и подписывается отдельно, иначе разрез врал бы о форме.
-            double halfWidth = m.Shape == CrystalShape.Box
-                ? 0.5 * Math.Max(m.CrystalBoxX, 0.0)
-                : 0.5 * Math.Max(m.CrystalDiameter, 0.0);
-            double height = m.Shape == CrystalShape.Box
-                ? Math.Max(m.CrystalBoxZ, 0.0)
-                : Math.Max(m.CrystalHeight, 0.0);
+            // Размеры детектора. У бруска в разрезе видна грань, ОБРАЩЁННАЯ К
+            // ПРОБЕ; третий размер уходит в глубину и подписывается отдельно,
+            // иначе разрез врал бы о форме. При боковой постановке (E21) брусок
+            // развёрнут, и чертёж обязан показывать именно развёрнутый: иначе
+            // человек увидит одно, а посчитается другое.
+            double halfWidth, boxDepthIntoPage, height;
+            if (m.Shape == CrystalShape.Box)
+            {
+                double hx, hy, d;
+                m.CrystalBoxInScene(out hx, out hy, out d);
+                halfWidth = Math.Max(hx, 0.0);
+                boxDepthIntoPage = Math.Max(2.0 * hy, 0.0);
+                height = Math.Max(d, 0.0);
+            }
+            else
+            {
+                halfWidth = 0.5 * Math.Max(m.CrystalDiameter, 0.0);
+                boxDepthIntoPage = 0.0;
+                height = Math.Max(m.CrystalHeight, 0.0);
+            }
+
             double tfr = Math.Max(m.FrontReflectorThickness, 0.0);
             double tsr = Math.Max(m.SideReflectorThickness, 0.0);
             double tfc = Math.Max(m.FrontCladdingThickness, 0.0);
             double tsc = Math.Max(m.SideCladdingThickness, 0.0);
+            // Та же перестановка, что в симуляторе: к пробе обращена обвязка
+            // ТОЙ стороны, у которой она стоит.
+            if (m.Facing == GeometryDetectorFacing.Side)
+            {
+                double t = tfr; tfr = tsr; tsr = t;
+                t = tfc; tfc = tsc; tsc = t;
+            }
             double tm = Math.Max(m.MountingThickness, 0.0);
             if (!(halfWidth > 0.0) || !(height > 0.0))
             {
@@ -229,7 +249,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.DrawDetector(g, m, halfWidth, height, tfr, tsr, tfc, tsc, tm);
             if (this.Mode == SketchMode.Detector)
             {
-                this.Annotate(g, m, halfWidth, height, tfr, tsr, tfc, tsc, tm);
+                this.Annotate(g, m, halfWidth, height, boxDepthIntoPage, tfr, tsr, tfc, tsc, tm);
             }
             else if (this.Mode == SketchMode.Source)
             {
@@ -259,6 +279,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                 : string.Format(CultureInfo.InvariantCulture, "{0}: {1}{2:G4} x {3:G4} mm",
                                 Resources.EfficiencySketchDetector, "⌀",
                                 m.CrystalDiameter, m.CrystalHeight));
+
+            // E21: развёрнутый брусок на разрезе выглядит как другой кристалл —
+            // размеры в первой строке те же, а пропорции иные. Без этой строки
+            // чертёж читался бы как ошибка ввода.
+            if (m.Facing == GeometryDetectorFacing.Side)
+            {
+                lines.Add(Resources.EfficiencySketchFacingSide);
+            }
 
             switch (m.SourceType)
             {
@@ -343,14 +371,23 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         void Annotate(Graphics g, GeometryModel m, double halfWidth, double height,
+                      double boxDepthIntoPage,
                       double tfr, double tsr, double tfc, double tsc, double tm)
         {
             double outerHalf = halfWidth + tsr + tsc;
             double zFace = -(tfr + tfc);
 
             bool box = m.Shape == CrystalShape.Box;
-            string widthKey = box ? "CrystalBoxX" : "CrystalDiameter";
-            string lengthKey = box ? "CrystalBoxZ" : "CrystalHeight";
+            // Подписи идут за РАЗВОРОТОМ: после боковой постановки высота на
+            // чертеже взята уже не из Z, и подпись «CrystalBoxZ» рядом с ней
+            // была бы ложью. Какое поле куда попало, решает сама модель —
+            // в одном месте, чтобы чертёж и счёт не разошлись.
+            string widthKey = "CrystalDiameter", lengthKey = "CrystalHeight", pageKey = null;
+            if (box)
+            {
+                double hx, hy, d;
+                m.CrystalBoxInScene(out hx, out hy, out d, out widthKey, out pageKey, out lengthKey);
+            }
 
             using (Pen pen = new Pen(Ink, 1f))
             using (Brush ink = new SolidBrush(Ink))
@@ -375,7 +412,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 {
                     // Рядом с телом, а не в углу: в углу лежит табличка с
                     // размерами и накрывает надпись собой.
-                    this.Note(g, ink, m.CrystalBoxY, 0.0, height + tm, 18f, "CrystalBoxY");
+                    this.Note(g, ink, boxDepthIntoPage, 0.0, height + tm, 18f, pageKey);
                 }
             }
         }

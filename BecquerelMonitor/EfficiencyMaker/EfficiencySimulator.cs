@@ -690,6 +690,22 @@ namespace BecquerelMonitor.EfficiencyMaker
             double hc = g.CrystalHeight;
             double tfr = g.FrontReflectorThickness, tsr = g.SideReflectorThickness;
             double tfc = g.FrontCladdingThickness, tsc = g.SideCladdingThickness;
+
+            // E21: когда проба стоит У БОКОВОЙ ГРАНИ, между нею и кристаллом
+            // лежит БОКОВАЯ обвязка, а не передняя. Толщины меняются местами
+            // ЗДЕСЬ, один раз, — дальше вся сцена строится прежним кодом, для
+            // которого «перёд» это просто сторона, обращённая к пробе.
+            //
+            // Оговорка, которую надо знать: остальные четыре грани в такой
+            // постановке смешанные — две из них были торцами бруска. Им тоже
+            // достаётся боковая толщина. Это ДОПУЩЕНИЕ; оно мало (разница
+            // передней и боковой обвязки у наших приборов — доли миллиметра
+            // против сантиметров кристалла) и касается только краевых путей.
+            if (g.Facing == GeometryDetectorFacing.Side)
+            {
+                double t = tfr; tfr = tsr; tsr = t;
+                t = tfc; tfc = tsc; tsc = t;
+            }
             // Оправа детектора. В файле геометрии это одна толщина без указания,
             // где она стоит; MountingInFront решает, ставить её перед торцом
             // (тогда квант её проходит) или за кристаллом. Ключ введён как
@@ -704,8 +720,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             double transverse;
             if (g.Shape == CrystalShape.Box)
             {
-                double ax = 0.5 * g.CrystalBoxX, ay = 0.5 * g.CrystalBoxY;
-                hc = g.CrystalBoxZ;
+                // E21: при боковой постановке брусок разворачивается — к пробе
+                // смотрит самая широкая грань, глубиной становится наименьший
+                // размер. Объём сохраняется точно, кристалл тот же.
+                double ax, ay;
+                g.CrystalBoxInScene(out ax, out ay, out hc);
                 this.AddBox(ax, ay, 0.0, hc, g.Crystal, true);
                 this.AddBox(ax, ay, -tfr, 0.0, reflector, false);
                 this.AddBox(ax + tsr, ay + tsr, -tfr, hc, reflector, false);
