@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using BecquerelMonitor.Utils;
 
@@ -352,9 +353,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double[] backgroundCurve = new double[channels];
             int[] snipContinuum = null;
 
+            // Фон, поданный и НЕ ВЗЯТЫЙ, — это отказ, и он обязан быть назван
+            // (S44). До 15.08.2026 обе ветки ниже молча обнуляли ссылку: у
+            // одиннадцати спектров G1S корпуса фон лежал в файле обрезанным на
+            // 12–20 верхних каналов, манифест писал «встроен», проба печатала
+            // background=1 — а вычитания не было ни в одном прогоне.
+            string backgroundRejected = null;
             EnergySpectrum background = backgroundSpectrum;
-            if (background != null && (background.Spectrum == null || background.NumberOfChannels != channels))
+            if (background != null && background.Spectrum == null)
             {
+                backgroundRejected = "у фонового спектра нет отсчётов";
+                background = null;
+            }
+            else if (background != null && background.NumberOfChannels != channels)
+            {
+                backgroundRejected = string.Format(CultureInfo.InvariantCulture,
+                    "каналов у фона {0}, у спектра {1}",
+                    background.NumberOfChannels, channels);
                 background = null;
             }
 
@@ -368,6 +383,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
                 else
                 {
+                    backgroundRejected = "у фона не задано время измерения";
                     background = null;
                 }
             }
@@ -700,6 +716,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                bestGain, bestOffset, liveTime, efficiency != null,
                                gainSteps > 1 && (bestGainIndex == 0 || bestGainIndex == gainSteps - 1),
                                offsetSteps > 1 && (bestOffsetIndex == 0 || bestOffsetIndex == offsetSteps - 1));
+            result.BackgroundRejected = backgroundRejected;
             this.ComputeCharacteristicLimits(result, best, originalLibrary, calibration, fwhmCalibration,
                                              efficiency, bestGain, bestOffset, chLo, chHi, channels,
                                              variance, liveTime);

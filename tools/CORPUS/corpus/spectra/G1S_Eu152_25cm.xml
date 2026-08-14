@@ -1058,15 +1058,15 @@
         </Spectrum>
       </EnergySpectrum>
       <BackgroundEnergySpectrum>
-        <NumberOfChannels>1004</NumberOfChannels>
+        <NumberOfChannels>1024</NumberOfChannels>
         <ChannelPitch>1</ChannelPitch>
         <EnergyCalibration>
           <PolynomialOrder>2</PolynomialOrder>
           <Coefficients>
             <Coefficient>-15.142541164058418</Coefficient><Coefficient>2.9439999078866617</Coefficient><Coefficient>6.0453380562991465e-05</Coefficient></Coefficients>
         </EnergyCalibration>
-        <ValidPulseCount>1967943</ValidPulseCount>
-        <TotalPulseCount>1967943</TotalPulseCount>
+        <ValidPulseCount>1968141</ValidPulseCount>
+        <TotalPulseCount>1968141</TotalPulseCount>
         <MeasurementTime>54023.9100</MeasurementTime>
         <LiveTime>54000.040000</LiveTime>
         <NumberOfSamples>0</NumberOfSamples>
@@ -2075,6 +2075,26 @@
           <DataPoint>14</DataPoint>
           <DataPoint>13</DataPoint>
           <DataPoint>14</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>6</DataPoint>
+          <DataPoint>10</DataPoint>
+          <DataPoint>16</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>14</DataPoint>
+          <DataPoint>11</DataPoint>
+          <DataPoint>12</DataPoint>
+          <DataPoint>10</DataPoint>
+          <DataPoint>10</DataPoint>
+          <DataPoint>10</DataPoint>
+          <DataPoint>13</DataPoint>
+          <DataPoint>13</DataPoint>
+          <DataPoint>8</DataPoint>
+          <DataPoint>12</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>7</DataPoint>
+          <DataPoint>7</DataPoint>
         </Spectrum>
       </BackgroundEnergySpectrum>
       <Visible>true</Visible>
