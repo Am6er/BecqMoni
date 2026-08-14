@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+﻿<?xml version="1.0"?>
 <NuclideDefinitionFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <NuclideDefinitions>
     <Nuclide>
@@ -15,7 +15,7 @@
       <HalfLife>0</HalfLife>
       <NuclideColor>Violet</NuclideColor>
       <Note />
-      <Visible>true</Visible>
+      <Visible>false</Visible>
     </Nuclide>
     <Nuclide>
       <Name>Am-241/x-rays</Name>
@@ -31,7 +31,7 @@
       <HalfLife>0</HalfLife>
       <NuclideColor>Violet</NuclideColor>
       <Note />
-      <Visible>true</Visible>
+      <Visible>false</Visible>
     </Nuclide>
     <Nuclide>
       <Name>x-rays</Name>
@@ -39,7 +39,7 @@
       <HalfLife>0</HalfLife>
       <NuclideColor>Violet</NuclideColor>
       <Note />
-      <Visible>true</Visible>
+      <Visible>false</Visible>
     </Nuclide>
     <Nuclide>
       <Name>Pb-210/x-rays</Name>
@@ -55,7 +55,7 @@
       <HalfLife>0</HalfLife>
       <NuclideColor>Violet</NuclideColor>
       <Note />
-      <Visible>true</Visible>
+      <Visible>false</Visible>
     </Nuclide>
     <Nuclide>
       <Name>Am-241/x-rays</Name>
@@ -79,7 +79,7 @@
       <HalfLife>0</HalfLife>
       <NuclideColor>Violet</NuclideColor>
       <Note />
-      <Visible>true</Visible>
+      <Visible>false</Visible>
     </Nuclide>
     <Nuclide>
       <Name>x-rays</Name>
@@ -87,7 +87,7 @@
       <HalfLife>0</HalfLife>
       <NuclideColor>Violet</NuclideColor>
       <Note />
-      <Visible>true</Visible>
+      <Visible>false</Visible>
     </Nuclide>
     <Nuclide>
       <Name>x-rays</Name>
@@ -95,7 +95,7 @@
       <HalfLife>0</HalfLife>
       <NuclideColor>Violet</NuclideColor>
       <Note />
-      <Visible>true</Visible>
+      <Visible>false</Visible>
     </Nuclide>
     <Nuclide>
       <Name>Np-239</Name>
@@ -302,7 +302,7 @@
       <HalfLife>432</HalfLife>
       <NuclideColor>Red</NuclideColor>
       <Note />
-      <Visible>true</Visible>
+      <Visible>false</Visible>
     </Nuclide>
     <Nuclide>
       <Name>Ac-228</Name>
@@ -1426,7 +1426,7 @@
       <HalfLife>0.0007020547945205</HalfLife>
       <NuclideColor>Olive</NuclideColor>
       <Note />
-      <Visible>false</Visible>
+      <Visible>true</Visible>
       <Intencity>2.95</Intencity>
       <Sets>
         <guid>b1f0a1c2-3d4e-4f50-9a61-7c8d9e0f1a21</guid>
