@@ -44,9 +44,6 @@ LEGACY = [
     dict(key='ASN16_Granite', det='ASN16', chains=['Th-232', 'U-238', 'U-235'],
          path=p('!ASN16', 'Гранит.xml'),
          why='все четыре цепочки сразу'),
-    dict(key='AS80_Th232WT20', det='AS80x80', chains=['Th-232'], extra='WT',
-         path=p('!AS80x80', 'Th232(WT-20).xml'),
-         why='опорный Th-232 AS80x80, 61 М отсчётов'),
     dict(key='AS80_Th232_v2', det='AS80x80', chains=['Th-232'],
          path=p('!AS80x80', '28.08.2025', 'Th-232.xml'),
          why='Th-232 с измеренным фоном'),
@@ -56,9 +53,6 @@ LEGACY = [
     dict(key='AS80_Charoite', det='AS80x80', chains=['Ra-226'],
          path=p('!AS80x80', 'Камни', 'Чароит.xml'),
          why='единственный Ra-226 у AS80x80; статистически слаб'),
-    dict(key='RC103_Th232WT20', det='RC103', chains=['Th-232'], extra='WT',
-         path=p('!КОТ-103', 'Th-232 WT-20.xml'),
-         why='1024 канала — нижняя граница по числу каналов на FWHM'),
 ]
 
 # ---------------------------------------------------------------------------
@@ -72,23 +66,6 @@ NEW = [
          why='полупроводник, 0.4 % на 662 кэВ. Единственный спектр, где линии '
              'ряда и дублет U-235 143.8/163.4/185.7/205.3 разрешены полностью: '
              'проверка, что критерий k*FWHM не разваливается, когда FWHM мал'),
-    dict(key='LaBr3_Ore', det='LaBr3', channels=8192,
-         chains=['Th-232', 'Ra-226'],
-         path=p('LaBr3', 'LaBr3_ore_9200s.xml'),
-         why='LaBr3: 3.4 % на 662 кэВ и собственная активность (138La, ряд '
-             '227Ac) — фон, которого нет ни у одного другого детектора. '
-             'Образец руды несёт обе цепочки сразу'),
-    dict(key='CZT_Th232', det='CZT', channels=4096, chains=['Th-232'],
-         path=p('CZT', 'Kromek_radanel_5x5x5_CZT.xml'), idx=0,
-         why='CdZnTe: высокое разрешение при сильном низкоэнергетическом хвосте '
-             '(дырочный шлейф) — форма пика, максимально далёкая от гауссианы'),
-    dict(key='CZT_Cs137', det='CZT', channels=4096, nuclides=['137CS'],
-         path=p('CZT', 'Kromek_radanel_5x5x5_CZT.xml'), idx=2,
-         why='негатив на том же кристалле, 70 М отсчётов: цепочек нет, '
-             'а якорям есть на чём ложно сработать'),
-    dict(key='SrI2_Th232', det='SrI2', channels=8192, chains=['Th-232'],
-         path=p('Калугин Алексей', 'Bq-2021-08-28_15-11-57-SrI_Th232_calibration.xml'),
-         why='SrI2(Eu) — ещё один сцинтиллятор с разрешением между LaBr3 и NaI'),
     dict(key='GS4000_Ra226', det='GS4000', channels=4000, chains=['Ra-226'],
          path=p('КИ от Жени', 'Ra-226 (Контрольный).xml'),
          why='ПОВЕРОЧНЫЙ источник Ra-226. В исходной девятке радий был только '
@@ -142,38 +119,13 @@ NEW = [
     dict(key='ASN8_Am241', det='ASN8_8192', channels=8192, nuclides=['241AM'],
          path=p('Am241', 'Am241-8192.xml'),
          why='негатив: одна линия 59.5 кэВ на том же детекторе'),
-    dict(key='ASN8_Background', det='ASN8_8192', channels=8192,
-         chains=['Th-232', 'Ra-226'], nuclides=['40K'],
-         path=p('Домик фон', 'Домик сутки 8192.xml'),
-         why='142 k отсчётов за 210 ks на 8192 каналах — предельно разреженный '
-             'спектр, где цепочки формально есть, но почти на уровне шума'),
-
-    # --- ось 3: 1024 канала у трёх разных производителей --------------------
-    dict(key='OBS_Th232WT20', det='OBS', channels=1024, chains=['Th-232'], extra='WT',
-         path=p('Obsidian', 'Th-232-WT20.xml'),
-         why='Obsidian — третий 1024-канальный прибор рядом с RC-103 и ASN8'),
     dict(key='OBS_UGlass', det='OBS', channels=1024, chains=['U-238u', 'U-235'],
          path=p('Obsidian', 'UGlass.xml'),
          bg=p('Obsidian', 'Фон дом.xml'),
          why='урановое стекло на 1024 каналах: голова ряда в самой тесной сетке'),
-    dict(key='OBS_Background', det='OBS', channels=1024,
-         chains=['Th-232', 'Ra-226'], nuclides=['40K'],
-         path=p('Obsidian', 'Фон деревня.xml'),
-         why='фон помещения того же прибора'),
     dict(key='RC103_K40', det='RC103', channels=1024, nuclides=['40K'],
          path=p('!КОТ-103', 'K40 маринелли.xml'),
          why='негатив на RC-103: маринелли с KCl, одна линия 1461 кэВ'),
-    dict(key='RC103_Background', det='RC103', channels=1024,
-         chains=['Th-232', 'Ra-226'], nuclides=['40K'],
-         path=p('!КОТ-103', 'Фон дома 103.xml'),
-         why='фон помещения RC-103, 848 ks'),
-    dict(key='RC103_Co60', det='RC103g', channels=1024, nuclides=['60CO'],
-         path=p('КИ от Жени', 'RC все модели Co-60.xml'), idx=1,
-         why='Co-60: две линии 1173/1332 выше всей ториевой части, но ниже '
-             '2614 — чистая проверка ложного срабатывания ториевого якоря'),
-    dict(key='RC101_Th232', det='RC101', channels=1024, chains=['Th-232'],
-         path=p('КОТ', '2Куба калибровка.xml'), idx=3,
-         why='RadiaCode-101 — предыдущее поколение, разрешение заметно хуже'),
     dict(key='RC101_I131', det='RC101', channels=1024, nuclides=['131I'],
          path=p('КОТ', 'I 131.xml'), bg=p('КОТ', 'Фон дом деревня.xml'),
          why='I-131 даёт 364.5 кэВ — в полуширине от 351.9 кэВ Bi-214. '
@@ -222,6 +174,7 @@ NEW = [
              'считать ОТ паспортной. Фон внутри файла, 35148 с'),
     dict(key='AS80_Cs137_0cm', det='AS80x80', channels=8192, nuclides=['137CS'],
          path=p('!AS80x80', 'Cs-137.xml'),
+         bg=p('!AS80x80', 'Фон дом.xml'),
          why='ОПОРНЫЙ ПАСПОРТНЫЙ (Amber, 14.08.2026 вечер, B5): тот же '
              'чек-источник Cs-137 (якорь 9.25 кБк на 02.01.2002), точечно '
              'ВПРИТЫК к торцу; на дату съёмки 10.08.2025 — 5369 Бк '
@@ -230,16 +183,12 @@ NEW = [
              'шаблона; геометрия AS80_point0'),
     dict(key='RC103_Cs137_0cm', det='RC103', channels=1024, nuclides=['137CS'],
          path=p('!КОТ-103', 'Cs-137.xml'),
+         bg=p('!КОТ-103', 'Фон дома 103.xml'),
          why='ОПОРНЫЙ ПАСПОРТНЫЙ (Amber, 14.08.2026 вечер, B5): тот же '
              'чек-источник Cs-137, точечно ВПРИТЫК; на дату съёмки '
              '23.01.2024 — 5564 Бк (T1/2 = 30.08 л). В файле LiveTime=0 — '
              'время берётся MeasurementTime (872 с); геометрия '
              'RC103_point0'),
-    dict(key='ASN16_Background', det='ASN16', channels=8192,
-         chains=['Th-232', 'Ra-226'], nuclides=['40K'],
-         path=p('!ASN16', 'Фон дома nos 25.01.2023.xml'),
-         why='фон помещения: цепочки есть, но на уровне комнаты — граница '
-             'между «нашёл образец» и «нашёл комнату»'),
     dict(key='ASN16_BrazilNuts', det='ASN16', channels=8192,
          chains=['Ra-226'], nuclides=['40K'],
          path=p('!ASN16', 'Бразильские орехи из Боливии в домике.xml'),
@@ -258,11 +207,23 @@ NEW = [
     dict(key='AS80_K40', det='AS80x80', channels=8192, nuclides=['40K'],
          path=p('!AS80x80', 'K40 Москва.xml'),
          why='негатив AS80x80, 67 М отсчётов'),
-    dict(key='AS80_Background', det='AS80x80', channels=8192,
-         chains=['Th-232', 'Ra-226'], nuclides=['40K'],
-         path=p('!AS80x80', 'Фон дом.xml'),
-         why='тот самый фон, который подмешан в пару 28.08.2025 — теперь и '
-             'сам по себе, как спектр'),
+    # Две записи ПЕРЕЕХАЛИ СЮДА ИЗ `LEGACY` 15.08.2026 (решение Amber «спектр
+    # без фона в корпусе не держим»): девятка копируется байт-в-байт и о поле
+    # `bg` не знает, а фон своей группы у обоих есть. Цена переезда — их
+    # калибровки теперь считаются конвейером наравне со всеми, а не берутся
+    # из `data/calibration.json`.
+    dict(key='AS80_Th232WT20', det='AS80x80', channels=8192, chains=['Th-232'],
+         extra='WT',
+         path=p('!AS80x80', 'Th232(WT-20).xml'),
+         bg=p('!AS80x80', 'Фон дом.xml'),
+         why='опорный Th-232 AS80x80, 61 М отсчётов; фон — комнатный того же '
+             'прибора'),
+    dict(key='RC103_Th232WT20', det='RC103', channels=1024, chains=['Th-232'],
+         extra='WT',
+         path=p('!КОТ-103', 'Th-232 WT-20.xml'),
+         bg=p('!КОТ-103', 'Фон дома 103.xml'),
+         why='1024 канала — нижняя граница по числу каналов на FWHM; фон — '
+             'комнатный того же прибора'),
 ]
 
 # ---------------------------------------------------------------------------
@@ -369,16 +330,6 @@ VIBE = [
     dict(key='LaBrBril_Eu152', det='LABR_BRIL', channels=1024, nuclides=['152EU'],
          path=p('SpectraVibe', 'LaBr3 BrilLanCe', 'Eu152 24см.xml'),
          why='европий на LaBr3: 14 линий при разрешении между NaI и германием'),
-    dict(key='LaBrBril_Background', det='LABR_BRIL', channels=1024,
-         chains=['Th-232', 'Ra-226'], nuclides=['40K'],
-         path=p('SpectraVibe', 'LaBr3 BrilLanCe', 'Фон.xml'),
-         why='фон LaBr3 — у кристалла есть собственная активность'),
-
-    dict(key='CZTTeCd_Mix', det='CZT_TECD', channels=4095,
-         nuclides=['241AM', '139CE', '137CS', '60CO', '88Y'],
-         path=p('SpectraVibe', 'CZT TeCd', 'Смесь Am-Ce-Cs-Co-Y.xml'),
-         why='второй CZT и первая в корпусе СМЕСЬ из пяти независимых нуклидов: '
-             'проверка, не примет ли фит чужие линии за свою цепочку'),
 ]
 
 # Файл `SpectraVibe/HPGe GEM20/Y88 25см (полином 5й степени).xml` в корпус НЕ
