@@ -1121,6 +1121,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             double totalPeakCounts = 0.0;
+            double allPeakCounts = 0.0;
             for (int k = 0; k < fit.Columns.Count; k++)
             {
                 FitColumn column = fit.Columns[k];
@@ -1180,12 +1181,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     totalPeakCounts += component.PeakCounts;
                 }
+
+                // Второй итог — по ВСЕМ образам, служебные вместе с нуклидными
+                // (S49). Одной суммой тут не обойтись: «пирог» отвечает на
+                // вопрос «из чего проба» и вылет с аннигиляцией в него не
+                // берёт, а «сколько занимает компонент» — вопрос другой, и на
+                // него нулём отвечать нельзя.
+                allPeakCounts += component.PeakCounts;
             }
 
             foreach (FsaComponentResult component in result.Components)
             {
                 component.SharePercent = component.Kind != FsaComponentKind.Nuisance && totalPeakCounts > 0.0
                     ? 100.0 * component.PeakCounts / totalPeakCounts
+                    : 0.0;
+                component.PeakSharePercent = allPeakCounts > 0.0
+                    ? 100.0 * component.PeakCounts / allPeakCounts
                     : 0.0;
             }
 
