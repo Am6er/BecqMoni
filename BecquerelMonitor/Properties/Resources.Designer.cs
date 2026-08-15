@@ -4570,5 +4570,356 @@ namespace BecquerelMonitor.Properties {
             }
         }
         
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryEditorMaterialsEdit.
+        /// </summary>
+        public static string GeometryEditorMaterialsEdit {
+            get {
+                return ResourceManager.GetString("GeometryEditorMaterialsEdit", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryEditorMaterialsEditHint.
+        /// </summary>
+        public static string GeometryEditorMaterialsEditHint {
+            get {
+                return ResourceManager.GetString("GeometryEditorMaterialsEditHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsTitle.
+        /// </summary>
+        public static string GeometryMaterialsTitle {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsKindAll.
+        /// </summary>
+        public static string GeometryMaterialsKindAll {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsKindAll", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsKindCrystal.
+        /// </summary>
+        public static string GeometryMaterialsKindCrystal {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsKindCrystal", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsKindReflector.
+        /// </summary>
+        public static string GeometryMaterialsKindReflector {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsKindReflector", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsKindCladding.
+        /// </summary>
+        public static string GeometryMaterialsKindCladding {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsKindCladding", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsKindBeakerWall.
+        /// </summary>
+        public static string GeometryMaterialsKindBeakerWall {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsKindBeakerWall", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsKindSource.
+        /// </summary>
+        public static string GeometryMaterialsKindSource {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsKindSource", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsKind.
+        /// </summary>
+        public static string GeometryMaterialsKind {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsKind", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsAbbr.
+        /// </summary>
+        public static string GeometryMaterialsAbbr {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsAbbr", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsName.
+        /// </summary>
+        public static string GeometryMaterialsName {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsNameHint.
+        /// </summary>
+        public static string GeometryMaterialsNameHint {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsNameHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsDensity.
+        /// </summary>
+        public static string GeometryMaterialsDensity {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsDensity", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsByFormula.
+        /// </summary>
+        public static string GeometryMaterialsByFormula {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsByFormula", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsByMixture.
+        /// </summary>
+        public static string GeometryMaterialsByMixture {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsByMixture", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsFormula.
+        /// </summary>
+        public static string GeometryMaterialsFormula {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsFormula", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsFormulaHint.
+        /// </summary>
+        public static string GeometryMaterialsFormulaHint {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsFormulaHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsMixtureHint.
+        /// </summary>
+        public static string GeometryMaterialsMixtureHint {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsMixtureHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsComponent.
+        /// </summary>
+        public static string GeometryMaterialsComponent {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsComponent", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsWeight.
+        /// </summary>
+        public static string GeometryMaterialsWeight {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsWeight", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsComposition.
+        /// </summary>
+        public static string GeometryMaterialsComposition {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsComposition", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsAdd.
+        /// </summary>
+        public static string GeometryMaterialsAdd {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsAdd", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsRemove.
+        /// </summary>
+        public static string GeometryMaterialsRemove {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsRemove", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsSave.
+        /// </summary>
+        public static string GeometryMaterialsSave {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsSave", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsCancel.
+        /// </summary>
+        public static string GeometryMaterialsCancel {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsCancel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsNewName.
+        /// </summary>
+        public static string GeometryMaterialsNewName {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsNewName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsRemoveAsk.
+        /// </summary>
+        public static string GeometryMaterialsRemoveAsk {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsRemoveAsk", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsErrorNoName.
+        /// </summary>
+        public static string GeometryMaterialsErrorNoName {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorNoName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsErrorDuplicate.
+        /// </summary>
+        public static string GeometryMaterialsErrorDuplicate {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorDuplicate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsErrorDensity.
+        /// </summary>
+        public static string GeometryMaterialsErrorDensity {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorDensity", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsErrorFormula.
+        /// </summary>
+        public static string GeometryMaterialsErrorFormula {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorFormula", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsErrorEmptyMixture.
+        /// </summary>
+        public static string GeometryMaterialsErrorEmptyMixture {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorEmptyMixture", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsErrorNoComponent.
+        /// </summary>
+        public static string GeometryMaterialsErrorNoComponent {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorNoComponent", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsErrorCycle.
+        /// </summary>
+        public static string GeometryMaterialsErrorCycle {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorCycle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsErrorInUse.
+        /// </summary>
+        public static string GeometryMaterialsErrorInUse {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorInUse", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsErrorAt.
+        /// </summary>
+        public static string GeometryMaterialsErrorAt {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorAt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsLoadFailed.
+        /// </summary>
+        public static string GeometryMaterialsLoadFailed {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsLoadFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsSaveFailed.
+        /// </summary>
+        public static string GeometryMaterialsSaveFailed {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsSaveFailed", resourceCulture);
+            }
+        }
+        
     }
 }

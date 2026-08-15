@@ -42928,4 +42928,121 @@ The matrix is stored next to the device configuration, one file per geometry, an
   <data name="NuclideSetAllNuclides" xml:space="preserve">
     <value>--- All Nuclides ---</value>
   </data>
+  <data name="GeometryEditorMaterialsEdit" xml:space="preserve">
+    <value>…</value>
+  </data>
+  <data name="GeometryEditorMaterialsEditHint" xml:space="preserve">
+    <value>Edit the material library: add your own substance, formula and density</value>
+  </data>
+  <data name="GeometryMaterialsTitle" xml:space="preserve">
+    <value>Materials</value>
+  </data>
+  <data name="GeometryMaterialsKindAll" xml:space="preserve">
+    <value>--- All materials ---</value>
+  </data>
+  <data name="GeometryMaterialsKindCrystal" xml:space="preserve">
+    <value>Crystal</value>
+  </data>
+  <data name="GeometryMaterialsKindReflector" xml:space="preserve">
+    <value>Reflector</value>
+  </data>
+  <data name="GeometryMaterialsKindCladding" xml:space="preserve">
+    <value>Housing and mounting</value>
+  </data>
+  <data name="GeometryMaterialsKindBeakerWall" xml:space="preserve">
+    <value>Beaker wall</value>
+  </data>
+  <data name="GeometryMaterialsKindSource" xml:space="preserve">
+    <value>Sample</value>
+  </data>
+  <data name="GeometryMaterialsKind" xml:space="preserve">
+    <value>Used as</value>
+  </data>
+  <data name="GeometryMaterialsAbbr" xml:space="preserve">
+    <value>Short name</value>
+  </data>
+  <data name="GeometryMaterialsName" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="GeometryMaterialsNameHint" xml:space="preserve">
+    <value>The name goes into the geometry file and identifies the material inside mixtures. Keep the LSRM spelling for the standard ones.</value>
+  </data>
+  <data name="GeometryMaterialsDensity" xml:space="preserve">
+    <value>Density</value>
+  </data>
+  <data name="GeometryMaterialsByFormula" xml:space="preserve">
+    <value>Given by a formula</value>
+  </data>
+  <data name="GeometryMaterialsByMixture" xml:space="preserve">
+    <value>Mixture of materials</value>
+  </data>
+  <data name="GeometryMaterialsFormula" xml:space="preserve">
+    <value>Formula</value>
+  </data>
+  <data name="GeometryMaterialsFormulaHint" xml:space="preserve">
+    <value>Element symbols with atom counts, separated by spaces: Bi4 Ge3 O12. Mass fractions are computed from atomic masses — they are never typed in by hand.</value>
+  </data>
+  <data name="GeometryMaterialsMixtureHint" xml:space="preserve">
+    <value>Materials of the library and their mass weights. Weights are relative: 1 and 1 mean the same as 50 and 50.</value>
+  </data>
+  <data name="GeometryMaterialsComponent" xml:space="preserve">
+    <value>Material</value>
+  </data>
+  <data name="GeometryMaterialsWeight" xml:space="preserve">
+    <value>Mass weight</value>
+  </data>
+  <data name="GeometryMaterialsComposition" xml:space="preserve">
+    <value>Composition</value>
+  </data>
+  <data name="GeometryMaterialsAdd" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="GeometryMaterialsRemove" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="GeometryMaterialsSave" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="GeometryMaterialsCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="GeometryMaterialsNewName" xml:space="preserve">
+    <value>New material</value>
+  </data>
+  <data name="GeometryMaterialsRemoveAsk" xml:space="preserve">
+    <value>Delete the material "{0}" from the library?</value>
+  </data>
+  <data name="GeometryMaterialsErrorNoName" xml:space="preserve">
+    <value>The material has no name. The name identifies it inside geometry files and mixtures.</value>
+  </data>
+  <data name="GeometryMaterialsErrorDuplicate" xml:space="preserve">
+    <value>The name "{0}" is used more than once. Names identify materials, so they must be unique.</value>
+  </data>
+  <data name="GeometryMaterialsErrorDensity" xml:space="preserve">
+    <value>Density must be greater than zero.</value>
+  </data>
+  <data name="GeometryMaterialsErrorFormula" xml:space="preserve">
+    <value>The formula yields no elements. Expected element symbols with atom counts: Cs1 I1.</value>
+  </data>
+  <data name="GeometryMaterialsErrorEmptyMixture" xml:space="preserve">
+    <value>The mixture is empty: it needs at least one material with a positive weight.</value>
+  </data>
+  <data name="GeometryMaterialsErrorNoComponent" xml:space="preserve">
+    <value>The mixture refers to "{0}", which is not in the library.</value>
+  </data>
+  <data name="GeometryMaterialsErrorCycle" xml:space="preserve">
+    <value>The mixture contains itself, directly or through another mixture.</value>
+  </data>
+  <data name="GeometryMaterialsErrorInUse" xml:space="preserve">
+    <value>"{0}" cannot be deleted: it is part of {1}. Such a mixture would then be computed without it, and no error would be raised.</value>
+  </data>
+  <data name="GeometryMaterialsErrorAt" xml:space="preserve">
+    <value>Material "{0}": {1}</value>
+  </data>
+  <data name="GeometryMaterialsLoadFailed" xml:space="preserve">
+    <value>The material library {0} could not be read ({1}). The built-in list is shown; saving will replace the file.</value>
+  </data>
+  <data name="GeometryMaterialsSaveFailed" xml:space="preserve">
+    <value>The material library could not be written to {0}: {1}</value>
+  </data>
 </root>

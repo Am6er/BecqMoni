@@ -16,6 +16,16 @@ namespace BecquerelMonitor.EfficiencyMaker
     ///
     /// Доли получаются МАССОВЫЕ — это то, чего ждёт и формат (FractionType =
     /// MASS), и наш расчёт ослабления по правилу Брэгга.
+    ///
+    /// Смесь задаётся иначе — списком ВЕЩЕСТВ с массовыми весами
+    /// (<see cref="Entry.Components"/>): так устроен формат `.in` и так
+    /// называют пробу («песок с водой пополам»), а сводить смесь к одной
+    /// формуле пришлось бы руками — то есть ровно тем счётом, ради ухода от
+    /// которого формулы здесь и появились.
+    ///
+    /// Сам список с 15.08.2026 живёт в конфигурации пользователя
+    /// (<see cref="GeometryMaterialStore"/>), а вшитый — только засев для того,
+    /// у кого файла ещё нет (`E20`).
     /// </summary>
     public static class GeometryMaterialLibrary
     {
@@ -39,6 +49,42 @@ namespace BecquerelMonitor.EfficiencyMaker
             public double Density;
             public MaterialKind Kind;
 
+            /// <summary>
+            /// Смесь: имена веществ этой же библиотеки и их массовые веса. Пуст
+            /// у вещества, заданного формулой; непуст — формула не смотрится
+            /// вовсе.
+            /// </summary>
+            public readonly List<GeometryMaterialComponent> Components =
+                new List<GeometryMaterialComponent>();
+
+            public bool IsMixture
+            {
+                get { return this.Components.Count > 0; }
+            }
+
+            public Entry Clone()
+            {
+                Entry copy = new Entry
+                {
+                    Name = this.Name,
+                    Abbr = this.Abbr,
+                    Formula = this.Formula,
+                    Density = this.Density,
+                    Kind = this.Kind,
+                };
+
+                foreach (GeometryMaterialComponent component in this.Components)
+                {
+                    copy.Components.Add(new GeometryMaterialComponent
+                    {
+                        Material = component.Material,
+                        Weight = component.Weight,
+                    });
+                }
+
+                return copy;
+            }
+
             public override string ToString()
             {
                 return string.IsNullOrEmpty(this.Abbr) ? this.Name : this.Abbr + " — " + this.Name;
@@ -55,9 +101,24 @@ namespace BecquerelMonitor.EfficiencyMaker
             Source
         }
 
-        static readonly List<Entry> All = Build();
+        /// <summary>
+        /// Действующая библиотека — та, что в конфигурации пользователя. Вшитый
+        /// список отдаётся, только пока файла нет.
+        /// </summary>
+        static List<Entry> All
+        {
+            get { return GeometryMaterialStore.Entries; }
+        }
 
-        static List<Entry> Build()
+        /// <summary>
+        /// Вшитый список — ЗАСЕВ библиотеки. Правкой этого метода вещество
+        /// пользователю больше не заводится (для этого есть редактор): сюда оно
+        /// попадает только затем, чтобы стоять в списке у того, кто программу
+        /// поставил впервые. Добавили строку — поднимите
+        /// <see cref="GeometryMaterialStore.CurrentSeedVersion"/>, иначе к тем,
+        /// у кого файл уже есть, новое вещество не доедет.
+        /// </summary>
+        public static List<Entry> Seed()
         {
             List<Entry> list = new List<Entry>();
             Action<string, string, string, double, MaterialKind> add =
@@ -108,10 +169,12 @@ namespace BecquerelMonitor.EfficiencyMaker
             add("KCl", "Potassium chloride", "K1 Cl1", 1.0, MaterialKind.Source);
 
             // Оксид лютеция — проба трёх спектров Lu-176 (ASN16, AS80x80,
-            // RC-103, одна банка 50 мл Ø40 × h15). Заведён 15.08.2026: без него
-            // геометрию этих съёмок нельзя было назвать иначе как воздухом, а
-            // цена такой подмены измерена — кривая AS80x80 завышалась в 2.6 раза
-            // (`E19`, §13ж журнала матрицы).
+            // RC-103, одна банка 50 мл Ø40 × h15). Заведён 15.08.2026 как
+            // ЗАТЫЧКА, потому что редактора веществ ещё не было; сегодня он тут
+            // на правах засева — без него геометрию этих съёмок нельзя было
+            // назвать иначе как воздухом, а цена такой подмены измерена —
+            // кривая AS80x80 завышалась в 2.6 раза (`E19`, §13ж журнала
+            // матрицы).
             //
             // ⚠ Плотность здесь — МОНОЛИТНАЯ (9.42), в отличие от остальных
             // проб этого списка, где стоит насыпная: у порошка оксида она в
@@ -165,11 +228,22 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
-        /// Готовое вещество: массовые доли посчитаны из формулы, плотность взята
-        /// заданная (её пользователь правит руками — у одного и того же вещества
-        /// она зависит от набивки).
+        /// Готовое вещество: массовые доли посчитаны из формулы (или сложены из
+        /// смеси), плотность взята заданная — у одного и того же вещества она
+        /// зависит от набивки, и правит её пользователь.
         /// </summary>
         public static GeometryMaterial Make(Entry entry, double density)
+        {
+            return Make(entry, density, ByName);
+        }
+
+        /// <summary>
+        /// То же, но состав смеси ищется НЕ в сохранённой библиотеке, а там, где
+        /// скажет вызывающий. Нужно редактору: он показывает состав вещества,
+        /// которое ещё правят, и составляющие у него — из рабочего списка, а не
+        /// из файла на диске.
+        /// </summary>
+        public static GeometryMaterial Make(Entry entry, double density, Func<string, Entry> lookup)
         {
             GeometryMaterial material = new GeometryMaterial
             {
@@ -177,32 +251,165 @@ namespace BecquerelMonitor.EfficiencyMaker
                 Density = density > 0.0 ? density : entry.Density,
             };
 
-            Dictionary<int, double> atoms = ParseFormula(entry.Formula);
-            double total = 0.0;
-            foreach (KeyValuePair<int, double> pair in atoms)
+            Dictionary<int, double> fractions = Compose(entry, lookup, new List<string>());
+            foreach (KeyValuePair<int, double> pair in fractions)
             {
-                double mass;
-                if (AttenuationData.AtomicMass.TryGetValue(pair.Key, out mass) && mass > 0.0)
-                {
-                    total += pair.Value * mass;
-                }
-            }
-
-            if (!(total > 0.0))
-            {
-                return material;
-            }
-
-            foreach (KeyValuePair<int, double> pair in atoms)
-            {
-                double mass;
-                if (AttenuationData.AtomicMass.TryGetValue(pair.Key, out mass) && mass > 0.0)
-                {
-                    material.Fractions[pair.Key] = pair.Value * mass / total;
-                }
+                material.Fractions[pair.Key] = pair.Value;
             }
 
             return material;
+        }
+
+        /// <summary>
+        /// Массовые доли элементов: из формулы, а у смеси — сложением долей
+        /// составляющих с их весами.
+        ///
+        /// <paramref name="chain"/> — имена веществ, которые уже разбираются
+        /// СЕЙЧАС. Смесь, входящая сама в себя (хоть через три звена), иначе
+        /// уводит расчёт в бесконечность; здесь такая составляющая просто
+        /// пропускается, а редактор про кольцо говорит отдельно — молчаливо
+        /// повисшая программа хуже отказа.
+        /// </summary>
+        static Dictionary<int, double> Compose(Entry entry, Func<string, Entry> lookup, List<string> chain)
+        {
+            Dictionary<int, double> result = new Dictionary<int, double>();
+            if (entry == null)
+            {
+                return result;
+            }
+
+            if (!entry.IsMixture)
+            {
+                Dictionary<int, double> atoms = ParseFormula(entry.Formula);
+                double total = 0.0;
+                foreach (KeyValuePair<int, double> pair in atoms)
+                {
+                    double mass;
+                    if (AttenuationData.AtomicMass.TryGetValue(pair.Key, out mass) && mass > 0.0)
+                    {
+                        total += pair.Value * mass;
+                    }
+                }
+
+                if (!(total > 0.0))
+                {
+                    return result;
+                }
+
+                foreach (KeyValuePair<int, double> pair in atoms)
+                {
+                    double mass;
+                    if (AttenuationData.AtomicMass.TryGetValue(pair.Key, out mass) && mass > 0.0)
+                    {
+                        result[pair.Key] = pair.Value * mass / total;
+                    }
+                }
+
+                return result;
+            }
+
+            chain.Add(entry.Name ?? "");
+            try
+            {
+                // Веса относительные — нормируются здесь. «50 и 50» и «1 и 1»
+                // обязаны дать одно и то же.
+                double weights = 0.0;
+                foreach (GeometryMaterialComponent component in entry.Components)
+                {
+                    if (component.Weight > 0.0 && !InChain(chain, component.Material))
+                    {
+                        weights += component.Weight;
+                    }
+                }
+
+                if (!(weights > 0.0))
+                {
+                    return result;
+                }
+
+                foreach (GeometryMaterialComponent component in entry.Components)
+                {
+                    if (!(component.Weight > 0.0) || InChain(chain, component.Material))
+                    {
+                        continue;
+                    }
+
+                    Entry part = lookup != null ? lookup(component.Material) : null;
+                    if (part == null)
+                    {
+                        continue;
+                    }
+
+                    double share = component.Weight / weights;
+                    foreach (KeyValuePair<int, double> pair in Compose(part, lookup, chain))
+                    {
+                        double have;
+                        result.TryGetValue(pair.Key, out have);
+                        result[pair.Key] = have + share * pair.Value;
+                    }
+                }
+            }
+            finally
+            {
+                chain.RemoveAt(chain.Count - 1);
+            }
+
+            return result;
+        }
+
+        static bool InChain(List<string> chain, string name)
+        {
+            foreach (string item in chain)
+            {
+                if (string.Equals(item, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Кольцо в составе: входит ли вещество само в себя через свои
+        /// составляющие. Вызывает редактор перед сохранением — расчёт такую
+        /// составляющую пропустит молча, и состав получится не тот, что виден.
+        /// </summary>
+        public static bool HasCycle(Entry entry, Func<string, Entry> lookup)
+        {
+            return HasCycle(entry, lookup, new List<string>());
+        }
+
+        static bool HasCycle(Entry entry, Func<string, Entry> lookup, List<string> chain)
+        {
+            if (entry == null || !entry.IsMixture)
+            {
+                return false;
+            }
+
+            if (InChain(chain, entry.Name))
+            {
+                return true;
+            }
+
+            chain.Add(entry.Name ?? "");
+            try
+            {
+                foreach (GeometryMaterialComponent component in entry.Components)
+                {
+                    Entry part = lookup != null ? lookup(component.Material) : null;
+                    if (part != null && HasCycle(part, lookup, chain))
+                    {
+                        return true;
+                    }
+                }
+            }
+            finally
+            {
+                chain.RemoveAt(chain.Count - 1);
+            }
+
+            return false;
         }
 
         /// <summary>«Bi4 Ge3 O12» -> {83:4, 32:3, 8:12}.</summary>

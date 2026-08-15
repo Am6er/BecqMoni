@@ -10,9 +10,16 @@
 #
 # Умолчания: -Bin BecquerelMonitor\bin\Debug_Codex (агентская сборка),
 # -Out tools\effmaker\probes\build (в .gitignore). Выход 1 — есть сломанные,
-# с перечнем поимённо. Пробам, читающим nucdb.sqlite, для ЗАПУСКА нужен ещё
-# <имя>.exe.config — копия BecquerelMonitor.exe.config (см. README, шапка);
-# сборке это не мешает, поэтому здесь конфиги не создаются.
+# с перечнем поимённо. Каждой собранной пробе кладётся рядом её
+# <имя>.exe.config — копия BecquerelMonitor.exe.config (T32, закрыт 16.08.2026):
+# без него инициализатор Microsoft.Data.Sqlite.SqliteConnection валит пробу
+# TypeInitializationException на первом обращении к базе, потому что редирект
+# SQLitePCLRaw.core живёт только в конфиге. Прежде конфиги здесь не делались
+# «потому что сборке они не мешают» — но собирают пробы ради ЗАПУСКА, каталог
+# build\ в .gitignore, и файл терялся при каждой чистой сборке у каждого. Цена
+# ошибки — час на §13г журнала матрицы и повтор на MatrixRangeProbe,
+# MaterialDbProbe и BoxSourceProbe 15.08.2026. Лишний конфиг у пробы, базы не
+# читающей, не стоит ничего.
 param(
     [string]$Bin = "",
     [string]$Out = ""
@@ -75,6 +82,10 @@ foreach ($f in $sources) {
         Write-Host "FAIL $($f.Name)"
         $log | Select-Object -First 6 | ForEach-Object { Write-Host "    $_" }
     } else {
+        # T32: конфиг кладётся ТУТ ЖЕ, тем же движением, что и сборка. Отдельный
+        # проход по каталогу был бы вторым местом, где о пробе надо помнить.
+        $appConfig = Join-Path $Out 'BecquerelMonitor.exe.config'
+        if (Test-Path $appConfig) { Copy-Item $appConfig "$exe.config" -Force }
         Write-Host "ok   $($f.Name)"
         $built++
     }

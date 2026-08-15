@@ -37,6 +37,14 @@ namespace BecquerelMonitor
         readonly Dictionary<string, Label> compositions =
             new Dictionary<string, Label>(StringComparer.Ordinal);
 
+        /// <summary>
+        /// Какой вид веществ показывает список этой строки. Нужен, чтобы после
+        /// правки библиотеки (E20) собрать списки заново — тем же набором, что
+        /// и при разметке.
+        /// </summary>
+        readonly Dictionary<string, GeometryMaterialLibrary.MaterialKind> materialKinds =
+            new Dictionary<string, GeometryMaterialLibrary.MaterialKind>(StringComparer.Ordinal);
+
         // Вещества из файла, которых нет в библиотеке. Пока пользователь не
         // выбрал замену из списка, в модель идёт ровно то, что пришло из файла:
         // подстановка первой строки библиотеки означала бы, что майлар молча
@@ -585,6 +593,7 @@ namespace BecquerelMonitor
             combo.SelectedIndexChanged += (s, e) => this.MaterialChanged(key);
             parent.Controls.Add(combo);
             this.materials[key] = combo;
+            this.materialKinds[key] = kind;
 
             TextBox density = new TextBox
             {
@@ -603,6 +612,20 @@ namespace BecquerelMonitor
                 Location = new Point(472, y + 4),
                 Text = Resources.GeometryEditorUnitDensity,
             });
+
+            // E20: список веществ правится отсюда. Кнопка стоит у КАЖДОЙ строки
+            // нарочно: своё вещество заводят тогда, когда в списке его не нашли,
+            // — то есть глядя ровно в этот список, а не разыскивая пункт меню.
+            Button edit = new Button
+            {
+                Location = new Point(520, y - 1),
+                Size = new Size(30, 22),
+                Text = Resources.GeometryEditorMaterialsEdit,
+                UseVisualStyleBackColor = true,
+            };
+            new ToolTip().SetToolTip(edit, Resources.GeometryEditorMaterialsEditHint);
+            edit.Click += (s, e) => this.EditMaterials(key, kind);
+            parent.Controls.Add(edit);
 
             Label composition = new Label
             {
@@ -872,6 +895,62 @@ namespace BecquerelMonitor
 
             GeometryMaterialLibrary.Entry entry = (GeometryMaterialLibrary.Entry)combo.Items[combo.SelectedIndex];
             return GeometryMaterialLibrary.Make(entry, density);
+        }
+
+        /// <summary>
+        /// Открыть библиотеку веществ (E20) и, если её сохранили, пересобрать
+        /// ВСЕ списки — не только тот, из которого пришли: правка библиотеки
+        /// общая, и вещество могло уехать из одного вида в другой.
+        ///
+        /// Выбранное запоминается ВЕЩЕСТВОМ, а не номером строки: номера после
+        /// правки чужие. Вернуть его берётся тот же `SelectMaterial`, что
+        /// работает при открытии геометрии, — и переименованное вещество он
+        /// оставит как есть, а список опустошит, вместо того чтобы молча выбрать
+        /// первое попавшееся.
+        /// </summary>
+        void EditMaterials(string key, GeometryMaterialLibrary.MaterialKind kind)
+        {
+            Dictionary<string, GeometryMaterial> was =
+                new Dictionary<string, GeometryMaterial>(StringComparer.Ordinal);
+            foreach (KeyValuePair<string, ComboBox> pair in this.materials)
+            {
+                was[pair.Key] = this.MaterialOf(pair.Key, this.Get(pair.Key + ".Density"));
+            }
+
+            using (GeometryMaterialEditorForm form = new GeometryMaterialEditorForm(kind))
+            {
+                if (form.ShowDialog(this) != DialogResult.OK)
+                {
+                    return;
+                }
+            }
+
+            bool wasLoading = this.loading;
+            this.loading = true;
+            try
+            {
+                foreach (KeyValuePair<string, ComboBox> pair in this.materials)
+                {
+                    pair.Value.Items.Clear();
+                    foreach (GeometryMaterialLibrary.Entry entry
+                             in GeometryMaterialLibrary.Of(this.materialKinds[pair.Key]))
+                    {
+                        pair.Value.Items.Add(entry);
+                    }
+
+                    this.SelectMaterial(pair.Key, was[pair.Key]);
+                }
+            }
+            finally
+            {
+                this.loading = wasLoading;
+            }
+
+            // Состав правленого вещества мог измениться — а он ХРАНИТСЯ в
+            // геометрии, долями элементов, а не именем. Значит, это правка, и
+            // «Сохранить» обязана ожить: иначе библиотека уже новая, а в
+            // конфигурации прибора остался прежний состав.
+            this.RefreshSketch();
         }
 
         void MaterialChanged(string key)
