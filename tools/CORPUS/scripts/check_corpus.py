@@ -159,11 +159,28 @@ def check_parts():
 
     counts, bad, need_matrix = {}, [], set()
     no_node = []
+    stray_node = []
     for r in rows:
         counts[r['part']] = counts.get(r['part'], 0) + 1
         if r['part'] != 'known':
             if r['geometry']:
                 bad.append('%s: не known, а геометрия названа' % r['spectrum'])
+
+            # Зеркальная ошибка к `T30`, и её не искал никто: у спектра
+            # НЕПОНЯТНОЙ части узел кривой ЕСТЬ. Определение части — «ни
+            # кривой, ни матрицы»: у остальных образ компонента строится из
+            # одних пиков, а с кривой линии перевзвешиваются по энергии, то
+            # есть модель другая. Сводка по такой части — среднее двух моделей,
+            # ровно то, ради чего раздел и заводился. Узел приезжает из
+            # исходного файла библиотеки: спектр сохранён с прикреплённой
+            # кривой, а пересборка копирует `ResultData` целиком.
+            spectrum_path = os.path.join(SPECTRA, r['spectrum'] + '.xml')
+            if r['part'] == 'unknown' and os.path.isfile(spectrum_path):
+                with open(spectrum_path, encoding='utf-8-sig') as fh:
+                    text = fh.read()
+                if has_efficiency_node(text):
+                    stray_node.append('%s (кривая «%s»)'
+                                      % (r['spectrum'], efficiency_node_name(text)))
             continue
         if not r['geometry']:
             bad.append('%s: known без геометрии' % r['spectrum'])
@@ -224,6 +241,14 @@ def check_parts():
               % (len(no_node), ', '.join(no_node)))
         print('     кривая и матрица из прогона ПРОПАЛИ; вернуть те же узлы:')
         print('     python tools/CORPUS/scripts/restore_eff_nodes.py --apply')
+    if stray_node:
+        # НАПОМИНАНИЕ, а не отказ: снять узел — значит изменить числа непонятной
+        # части, а это решение Amber, не приёмки. Молчать при этом нельзя.
+        print('  У НЕПОНЯТНОЙ ЧАСТИ ЕСТЬ УЗЕЛ КРИВОЙ: %d — %s'
+              % (len(stray_node), ', '.join(stray_node)))
+        print('     эти спектры разбираются С кривой, остальные без неё:')
+        print('     часть перестаёт быть однородной по модели (см. B11)')
+
     ok = not (missing or extra or bad or no_node)
     print('  %s' % ('СОШЛОСЬ' if ok else 'РАЗОШЛОСЬ'))
     return ok
