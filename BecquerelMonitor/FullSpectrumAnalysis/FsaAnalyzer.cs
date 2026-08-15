@@ -125,6 +125,30 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Порог значимости для отсева перед вторым проходом. 0 — без отсева.</summary>
         public double RefitZ { get; set; }
 
+        /// <summary>
+        /// (S47) Убирать свободные образы вылета `SE-2614`/`DE-2614`, когда
+        /// разбор идёт ЧЕРЕЗ МАТРИЦУ ОТКЛИКА.
+        ///
+        /// Почему это верно, и почему только с матрицей. Измерено
+        /// `EscapeGateProbe` по всем 13 матрицам корпуса: отклик линии 2614.5
+        /// кэВ содержит пики вылета на 2103.5 и 1592.5 — то есть образ Tl-208,
+        /// построенный через матрицу, УЖЕ несёт свои вылеты в физически верной
+        /// доле (крупные сцинтилляторы SE/пик 0.18…0.24, DE/пик 0.04…0.11).
+        /// Свободный столбец рядом с таким образом — ВТОРОЙ СЧЁТ того же, и
+        /// взять он может только чужое: на `!AS80x80\Lu-176.xml` `DE-2614`
+        /// держал 10.9…17.2 % при Tl-208 в 2.41 %, а на 1592.5 стоит чужая
+        /// линия Ac-228 1588.19 — в 4.3 кэВ при ПШПВ около 78.
+        ///
+        /// БЕЗ матрицы образ строится из одних пиков, вылетов в нём нет вовсе,
+        /// и свободный столбец остаётся единственным способом их выразить —
+        /// поэтому там он не трогается ни при каком значении этого ключа.
+        ///
+        /// `Ann-511` под правило НЕ попадает: аннигиляционный квант рождается
+        /// в защите и обвязке и ВЛЕТАЕТ в кристалл, а матрица описывает судьбу
+        /// кванта, который в кристалл уже попал. Её источника в матрице нет.
+        /// </summary>
+        public bool EscapeGate { get; set; }
+
         public double GainRange { get; set; }
 
         public int GainSteps { get; set; }
@@ -275,6 +299,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.Xi = 0.03;
             this.HuberM = 3.0;
             this.RefitZ = 3.0;
+            // S47: умолчание выставлено по A/B корпуса, см. описание свойства
+            // и §13с журнала матрицы. Выключатель для A/B — `--no-escape-gate`.
+            this.EscapeGate = true;
             this.GainRange = 0.008;
             this.GainSteps = 9;
             this.OffsetRangeKev = 3.0;
@@ -492,12 +519,44 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // подбирать по нему дрейф без образа значит подбирать по мусору.
             // Список вызывающего не трогаем — он его собирал и переиспользует.
             List<FsaComponent> library = originalLibrary;
+
+            // (S47) Образы вылета убираются ЗДЕСЬ, а не в `FsaLibrary`: знать,
+            // через матрицу пойдёт разбор или из одних пиков, может только
+            // анализатор, а собирателей библиотеки в дереве восемь. Убрать
+            // столбец, который матрица уже содержит, — не «улучшение фита», а
+            // прекращение второго счёта.
+            if (this.EscapeGate && this.ResponseMatrix != null)
+            {
+                List<FsaComponent> kept = new List<FsaComponent>(library.Count);
+                foreach (FsaComponent component in library)
+                {
+                    if (!FsaLibrary.IsEscapeImage(component.Name))
+                    {
+                        kept.Add(component);
+                    }
+                }
+
+                if (kept.Count < library.Count)
+                {
+                    library = kept;
+                }
+            }
+
+            // Список КАНДИДАТОВ — то, что предъявлено фиту, без служебной
+            // добавки наложений: по нему считаются характеристические пределы
+            // (S9). Наложения — образ прибора, а не кандидат библиотеки, и
+            // строки «< МДА» у них не бывает.
+            List<FsaComponent> candidates = library;
+
             if (this.PileUp)
             {
                 FsaComponent pileUp = this.BuildPileUpComponent(raw, calibration, chLo, chHi, channels);
                 if (pileUp != null)
                 {
-                    library = new List<FsaComponent>(originalLibrary);
+                    // Копия делается с `library`, а НЕ с `originalLibrary`: выше
+                    // из неё мог уйти образ вылета (S47), и копия исходника
+                    // вернула бы его молча.
+                    library = new List<FsaComponent>(library);
                     library.Add(pileUp);
                 }
             }
@@ -761,7 +820,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                offsetSteps > 1 && (bestOffsetIndex == 0 || bestOffsetIndex == offsetSteps - 1));
             result.BackgroundRejected = backgroundRejected;
             result.BackgroundUsed = background != null && backgroundScale > 0.0;
-            this.ComputeCharacteristicLimits(result, best, originalLibrary, calibration, fwhmCalibration,
+            // Пределы считаются по ТОЙ библиотеке, что пошла в фит (S47): образ,
+            // снятый гейтом вылета, кандидатом не был, и печатать ему МДА
+            // значило бы отвечать «не обнаружен» про то, чего не искали.
+            this.ComputeCharacteristicLimits(result, best, candidates, calibration, fwhmCalibration,
                                              efficiency, bestGain, bestOffset, chLo, chHi, channels,
                                              variance, liveTime);
             if (this.PartialResiduals)

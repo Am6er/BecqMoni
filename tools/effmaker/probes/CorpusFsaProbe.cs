@@ -33,6 +33,7 @@ namespace CorpusFsaProbe
     ///                  [--mode=spline|snip] [--no-matrix] [--no-cascade]
     ///                  [--no-pileup] [--no-background] [--limit=N] [--quiet]
     ///                  [--limits-mc=N [--mc-component=Имя]] [--huber=M] [--refit-z=Z]
+    ///                  [--no-escape-gate]
     ///                  [--partial] [--no-pr-gate] [--gamma=G] [--beta=B]
     ///                  [--bg-rebin]
     ///
@@ -138,6 +139,13 @@ namespace CorpusFsaProbe
                 else if (a.StartsWith("--huber=", StringComparison.Ordinal))
                 {
                     o.HuberM = double.Parse(a.Substring(8), CultureInfo.InvariantCulture);
+                }
+                else if (a == "--no-escape-gate")
+                {
+                    // S47: вернуть свободные `SE-2614`/`DE-2614` при матрице —
+                    // A-сторона A/B. Гейт с 16.08.2026 включён умолчанием,
+                    // поэтому мерится его ОТКЛЮЧЕНИЕ, как у Хубера (S41).
+                    o.EscapeGate = false;
                 }
                 else if (a.StartsWith("--refit-z=", StringComparison.Ordinal))
                 {
@@ -305,6 +313,8 @@ namespace CorpusFsaProbe
                 {
                     analyzer.RefitZ = o.RefitZ;
                 }
+
+                analyzer.EscapeGate = o.EscapeGate;
 
                 if (o.HuberM >= 0.0)
                 {
@@ -1187,6 +1197,9 @@ namespace CorpusFsaProbe
             /// (компонент выброшен и второй проход считается без него).
             /// </summary>
             public double RefitZ = -1.0;
+
+            /// <summary>(S47) Гейт образов вылета при матрице; A-сторона — `--no-escape-gate`.</summary>
+            public bool EscapeGate = true;
 
             /// <summary>(S43) γ составного шума D = F + γ²F²; 0 — выключено.</summary>
             public double NoiseGamma;
