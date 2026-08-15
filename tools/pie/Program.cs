@@ -81,7 +81,7 @@ namespace Pie
                 using (StreamWriter compWriter = new StreamWriter(options.OutPrefix + "_components.csv", false, Encoding.UTF8))
                 {
                     runsWriter.WriteLine("spectrum,mode,eff,live_s,counts_range,ncomp,nactive,chi2ndf,gain,offset_ch,bg_cps,bg_z,ms");
-                    compWriter.WriteLine("spectrum,mode,component,kind,amp_cps,damp_cps,z,share_pct,peak_counts");
+                    compWriter.WriteLine("spectrum,mode,component,kind,amp_cps,damp_cps,z,share_pct,peak_counts,peak_share_pct");
 
                     foreach (string file in ResolveSpectrumFiles(options.InputPath))
                     {
@@ -457,10 +457,17 @@ namespace Pie
             // shares over sample components only (bg, continuum and nuisance
             // X-ray series excluded)
             double totalPeakCounts = 0;
+            // S49: второй итог — по ВСЕМ образам. `share_pct` отвечает на вопрос
+            // «из чего проба» и служебные образы в него не берёт нарочно, но
+            // читают его как «сколько занимает компонент», и тогда ноль у
+            // `Ann-511` с тысячами пиковых отсчётов означает «нет компонента».
+            double allPeakCounts = 0;
             for (int k = 0; k < best.Columns.Count; k++)
             {
                 Component cc = best.Columns[k].Component;
-                if (cc != null && cc.Kind != "nuisance") totalPeakCounts += best.PeakCounts[k];
+                if (cc == null) continue;
+                if (cc.Kind != "nuisance") totalPeakCounts += best.PeakCounts[k];
+                allPeakCounts += best.PeakCounts[k];
             }
 
             double bgCps = bgFixedCps, bgZ = 0;
@@ -488,10 +495,12 @@ namespace Pie
                 double dampCps = best.Sigma[k] / liveT;
                 double share = comp.Kind != "nuisance" && totalPeakCounts > 0
                     ? 100.0 * best.PeakCounts[k] / totalPeakCounts : 0.0;
+                double peakShare = allPeakCounts > 0
+                    ? 100.0 * best.PeakCounts[k] / allPeakCounts : 0.0;
                 compWriter.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                    "{0},{1},{2},{3},{4:G6},{5:G6},{6:F2},{7:F2},{8:G6}",
+                    "{0},{1},{2},{3},{4:G6},{5:G6},{6:F2},{7:F2},{8:G6},{9:F2}",
                     Csv(name), options.Mode, Csv(comp.Name), comp.Kind,
-                    ampCps, dampCps, best.Z[k], share, best.PeakCounts[k]));
+                    ampCps, dampCps, best.Z[k], share, best.PeakCounts[k], peakShare));
                 if (best.Amp[k] > 0 || best.Z[k] != 0)
                 {
                     int bar = (int)Math.Round(share / 2.0);

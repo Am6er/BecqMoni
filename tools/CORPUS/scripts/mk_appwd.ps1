@@ -82,6 +82,15 @@ Copy-Item (Join-Path $repo 'BecquerelMonitor\config\BecquerelMonitor.xml') `
 #    не делали ни `mkconfig.py`, ни `run_corpus.ps1` (S1): `ResponseMatrixStore`
 #    ищет матрицу в `config\device\response` рабочего каталога, а раскладывает
 #    их `CorpusEffProbe` в `corpus\geometries\response`.
+#    ⚠ Каталог СНАЧАЛА ОЧИЩАЕТСЯ (T33, 16.08.2026). Копирование поверх
+#    оставляет файл, которого в корпусе больше нет, — а после переименования
+#    конфигурации (B6, раздел G1S на эпохи) старая и новая несут ОДИН GUID, и
+#    приложение встаёт на модальном окне «Одинаковые GUID в разных файлах
+#    конфигурации устройств». В прогоне без консоли это выглядит как зависание:
+#    ни строки вывода, ни кода возврата. Каталог целиком строится из корпуса,
+#    так что чистить его безопасно по построению.
+Remove-Item (Join-Path $Wd 'config\device\*.xml') -Force -ErrorAction SilentlyContinue
+Remove-Item (Join-Path $Wd 'config\device\response\*.rmx') -Force -ErrorAction SilentlyContinue
 Copy-Item (Join-Path $corpus 'devices\*.xml') (Join-Path $Wd 'config\device') -Force
 $rmx = Get-ChildItem (Join-Path $response '*.rmx') -File
 Copy-Item $rmx (Join-Path $Wd 'config\device\response') -Force

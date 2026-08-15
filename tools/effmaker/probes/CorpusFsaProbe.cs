@@ -890,8 +890,13 @@ namespace CorpusFsaProbe
                                    + "offset_edge,matrix,"
                                    + "matrix_note,cascade,efficiency,background,peaks,components,"
                                    + "ms,cpu_ms,near_sigmas,near_counts,error,chi2ndf_pois,bg_rejected");
+                    // `share_pct` — доля в «пироге», у служебных образов ноль
+                    // НАРОЧНО; `peak_share_pct` — доля пиковых отсчётов среди
+                    // ВСЕХ образов, она есть у каждого (S49). Читать «сколько
+                    // занимает компонент» надо по второй: `Ann-511` с 3.1 %
+                    // отсчётов по первой выглядела отсутствующей.
                     comps.WriteLine("spectrum,det,part,component,kind,share_pct,z,count_rate,peak_counts,"
-                                    + "dt_cps,mda_cps,zone_chi2ndf,zone_dd,zone_n");
+                                    + "dt_cps,mda_cps,zone_chi2ndf,zone_dd,zone_n,peak_share_pct");
                     // Пределы S9 — по ВСЕМ кандидатам библиотеки, включая не
                     // вошедших в состав: у «не обнаружен» без МДА нет смысла.
                     limits.WriteLine("spectrum,det,part,component,kind,detected,count_rate,"
@@ -934,7 +939,8 @@ namespace CorpusFsaProbe
                                 F(c.CountRate, "E4"), F(c.PeakCounts, "F1"),
                                 F(c.DecisionThresholdRate, "E4"), F(c.DetectionLimitRate, "E4"),
                                 F(c.ZoneChi2Ndf, "F3"), F(c.ZoneDeltaD, "F2"),
-                                c.ZoneChannels.ToString(CultureInfo.InvariantCulture)));
+                                c.ZoneChannels.ToString(CultureInfo.InvariantCulture),
+                                F(c.PeakSharePercent, "F3")));
                         }
 
                         foreach (FsaCharacteristicLimit L in r.Result.CharacteristicLimits)
