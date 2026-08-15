@@ -2918,6 +2918,33 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The pack mixes {0} devices: {1}. One curve belongs to one device and one geometry..
+        /// </summary>
+        public static string EfficiencyMakerPackDevices {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerPackDevices", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The pack mixes {0} geometries: {1}. Averaging them gives a curve that fits none..
+        /// </summary>
+        public static string EfficiencyMakerPackGeometries {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerPackGeometries", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The pack mixes {0} sample amounts: {1}. Self-absorption differs, so the curve does too..
+        /// </summary>
+        public static string EfficiencyMakerPackAmounts {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerPackAmounts", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to model residual.
         /// </summary>
         public static string FSAModelResidualRow {

@@ -8470,6 +8470,15 @@ http://xptable.sourceforge.net/</value>
   <data name="GeometryMaterialsDensityDone" xml:space="preserve">
     <value>Density from composition: {0:0.###} g/cm³.</value>
   </data>
+  <data name="EfficiencyMakerPackDevices" xml:space="preserve">
+    <value>⚠ The pack mixes {0} devices: {1}. One curve belongs to one device and one geometry.</value>
+  </data>
+  <data name="EfficiencyMakerPackGeometries" xml:space="preserve">
+    <value>⚠ The pack mixes {0} geometries: {1}. Averaging them gives a curve that fits none.</value>
+  </data>
+  <data name="EfficiencyMakerPackAmounts" xml:space="preserve">
+    <value>⚠ The pack mixes {0} sample amounts: {1}. Self-absorption differs, so the curve does too.</value>
+  </data>
   <data name="FSAModelResidualRow" xml:space="preserve">
     <value>model residual</value>
   </data>

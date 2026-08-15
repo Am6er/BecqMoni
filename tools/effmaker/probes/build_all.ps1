@@ -52,9 +52,16 @@ foreach ($dep in 'BecquerelMonitor.exe', 'BecquerelMonitor.pdb', 'BecquerelMonit
 # молча мерит английские строки дважды и говорит, что проверила две. Раньше об
 # этом было написано в README пробы FsaStackShot — предупреждение в тексте
 # читателя не заменяет.
+# ⚠ Копируются ФАЙЛЫ, а не сама папка: `Copy-Item <папка> <папка>` при уже
+# существующем назначении кладёт копию ВНУТРЬ — получается `builduu`, а
+# грузится при этом внешняя, то есть та, что лежала там с прошлого раза. Ровно
+# так 16.08.2026 проба печатала английские строки при выставленной ru-RU: свежий
+# сателлит уезжал в `ruu`, а читался лежалый.
 $ruSrc = Join-Path $Bin 'ru'
 if (Test-Path $ruSrc) {
-    Copy-Item $ruSrc (Join-Path $Out 'ru') -Recurse -Force
+    $ruDst = Join-Path $Out 'ru'
+    New-Item -ItemType Directory -Force $ruDst | Out-Null
+    Copy-Item (Join-Path $ruSrc '*') $ruDst -Recurse -Force
 }
 
 $csc = 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\Roslyn\csc.exe'
