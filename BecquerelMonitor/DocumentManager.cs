@@ -977,7 +977,6 @@ namespace BecquerelMonitor
                         string deviceInfo = streamReader.ReadLine();
 
                         int ElapsedTime = (int)XmlConvert.ToDouble(streamReader.ReadLine());
-                        energySpectrum.MeasurementTime = ElapsedTime;
                         resultDataStatus.TotalTime = TimeSpan.FromSeconds(ElapsedTime);
                         resultDataStatus.ElapsedTime = TimeSpan.FromSeconds(ElapsedTime);
                         resultDataStatus.PresetTime = ElapsedTime;
@@ -1000,6 +999,13 @@ namespace BecquerelMonitor
                         // Wipe the old spectrum only now, when the header has been parsed
                         // and channel data is about to be read.
                         energySpectrum.Initialize();
+                        // Initialize() zeroes MeasurementTime among everything else, so the
+                        // time has to be applied AFTER the wipe. It used to be assigned right
+                        // where it is read (above), which was correct only while Initialize()
+                        // still ran before the parse; moving the wipe down left every imported
+                        // Atom Spectra spectrum with MeasurementTime = 0, and the chart divides
+                        // by it in cps mode.
+                        energySpectrum.MeasurementTime = ElapsedTime;
                         long TotalPulseCount = 0;
                         for (int i = 0; i < energySpectrum.Spectrum.Length; i++)
                         {
