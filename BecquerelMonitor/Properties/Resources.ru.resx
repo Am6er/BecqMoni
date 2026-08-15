@@ -1637,4 +1637,121 @@ http://xptable.sourceforge.net/</value>
   <data name="kev" xml:space="preserve">
     <value>кэВ</value>
   </data>
+  <data name="GeometryEditorMaterialsEdit" xml:space="preserve">
+    <value>…</value>
+  </data>
+  <data name="GeometryEditorMaterialsEditHint" xml:space="preserve">
+    <value>Править библиотеку веществ: завести своё вещество, формулу и плотность</value>
+  </data>
+  <data name="GeometryMaterialsTitle" xml:space="preserve">
+    <value>Вещества</value>
+  </data>
+  <data name="GeometryMaterialsKindAll" xml:space="preserve">
+    <value>--- Все вещества ---</value>
+  </data>
+  <data name="GeometryMaterialsKindCrystal" xml:space="preserve">
+    <value>Кристалл</value>
+  </data>
+  <data name="GeometryMaterialsKindReflector" xml:space="preserve">
+    <value>Отражатель</value>
+  </data>
+  <data name="GeometryMaterialsKindCladding" xml:space="preserve">
+    <value>Корпус и оправа</value>
+  </data>
+  <data name="GeometryMaterialsKindBeakerWall" xml:space="preserve">
+    <value>Стенка сосуда</value>
+  </data>
+  <data name="GeometryMaterialsKindSource" xml:space="preserve">
+    <value>Проба</value>
+  </data>
+  <data name="GeometryMaterialsKind" xml:space="preserve">
+    <value>Где применяется</value>
+  </data>
+  <data name="GeometryMaterialsAbbr" xml:space="preserve">
+    <value>Сокращение</value>
+  </data>
+  <data name="GeometryMaterialsName" xml:space="preserve">
+    <value>Название</value>
+  </data>
+  <data name="GeometryMaterialsNameHint" xml:space="preserve">
+    <value>Название попадает в файл геометрии и по нему же вещество узнают смеси. У привычных веществ оставляйте написание ЛСРМ.</value>
+  </data>
+  <data name="GeometryMaterialsDensity" xml:space="preserve">
+    <value>Плотность</value>
+  </data>
+  <data name="GeometryMaterialsByFormula" xml:space="preserve">
+    <value>Задано формулой</value>
+  </data>
+  <data name="GeometryMaterialsByMixture" xml:space="preserve">
+    <value>Смесь веществ</value>
+  </data>
+  <data name="GeometryMaterialsFormula" xml:space="preserve">
+    <value>Формула</value>
+  </data>
+  <data name="GeometryMaterialsFormulaHint" xml:space="preserve">
+    <value>Символы элементов с числом атомов через пробел: Bi4 Ge3 O12. Массовые доли считаются из атомных масс — руками их не вписывают.</value>
+  </data>
+  <data name="GeometryMaterialsMixtureHint" xml:space="preserve">
+    <value>Вещества библиотеки и их массовые веса. Веса относительные: «1 и 1» означает то же, что «50 и 50».</value>
+  </data>
+  <data name="GeometryMaterialsComponent" xml:space="preserve">
+    <value>Вещество</value>
+  </data>
+  <data name="GeometryMaterialsWeight" xml:space="preserve">
+    <value>Массовый вес</value>
+  </data>
+  <data name="GeometryMaterialsComposition" xml:space="preserve">
+    <value>Состав</value>
+  </data>
+  <data name="GeometryMaterialsAdd" xml:space="preserve">
+    <value>Добавить</value>
+  </data>
+  <data name="GeometryMaterialsRemove" xml:space="preserve">
+    <value>Удалить</value>
+  </data>
+  <data name="GeometryMaterialsSave" xml:space="preserve">
+    <value>Сохранить</value>
+  </data>
+  <data name="GeometryMaterialsCancel" xml:space="preserve">
+    <value>Отмена</value>
+  </data>
+  <data name="GeometryMaterialsNewName" xml:space="preserve">
+    <value>Новое вещество</value>
+  </data>
+  <data name="GeometryMaterialsRemoveAsk" xml:space="preserve">
+    <value>Удалить вещество «{0}» из библиотеки?</value>
+  </data>
+  <data name="GeometryMaterialsErrorNoName" xml:space="preserve">
+    <value>У вещества нет названия. Названием оно опознаётся в файлах геометрии и в смесях.</value>
+  </data>
+  <data name="GeometryMaterialsErrorDuplicate" xml:space="preserve">
+    <value>Название «{0}» встречается не один раз. Названием вещества опознаются, поэтому они обязаны быть разными.</value>
+  </data>
+  <data name="GeometryMaterialsErrorDensity" xml:space="preserve">
+    <value>Плотность должна быть больше нуля.</value>
+  </data>
+  <data name="GeometryMaterialsErrorFormula" xml:space="preserve">
+    <value>Из формулы не вышло ни одного элемента. Ожидаются символы элементов с числом атомов: Cs1 I1.</value>
+  </data>
+  <data name="GeometryMaterialsErrorEmptyMixture" xml:space="preserve">
+    <value>Смесь пуста: нужно хотя бы одно вещество с положительным весом.</value>
+  </data>
+  <data name="GeometryMaterialsErrorNoComponent" xml:space="preserve">
+    <value>Смесь ссылается на «{0}», а такого вещества в библиотеке нет.</value>
+  </data>
+  <data name="GeometryMaterialsErrorCycle" xml:space="preserve">
+    <value>Смесь входит сама в себя — прямо или через другую смесь.</value>
+  </data>
+  <data name="GeometryMaterialsErrorInUse" xml:space="preserve">
+    <value>«{0}» не удалить: оно входит в состав {1}. Такая смесь после удаления посчиталась бы БЕЗ него, и никакой ошибки при этом не было бы.</value>
+  </data>
+  <data name="GeometryMaterialsErrorAt" xml:space="preserve">
+    <value>Вещество «{0}»: {1}</value>
+  </data>
+  <data name="GeometryMaterialsLoadFailed" xml:space="preserve">
+    <value>Библиотеку веществ {0} прочитать не удалось ({1}). Показан вшитый список; сохранение заменит файл.</value>
+  </data>
+  <data name="GeometryMaterialsSaveFailed" xml:space="preserve">
+    <value>Библиотеку веществ не удалось записать в {0}: {1}</value>
+  </data>
 </root>

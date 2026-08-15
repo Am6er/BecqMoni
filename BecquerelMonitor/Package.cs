@@ -117,6 +117,23 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// Библиотека веществ конструктора геометрий (E20). Лежит рядом с
+        /// остальной конфигурацией, одним файлом: веществ десятки, а не сотни,
+        /// и разносить их по файлам, как ROI, незачем.
+        /// </summary>
+        public string GeometryMaterials
+        {
+            get
+            {
+                if (!IsStandAlone)
+                {
+                    return Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\config\\GeometryMaterials.xml";
+                }
+                return "config\\GeometryMaterials.xml";
+            }
+        }
+
         public string ROI
         {
             get

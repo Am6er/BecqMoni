@@ -324,6 +324,10 @@
     <Compile Include="EfficiencyMaker\BremsstrahlungData.cs" />
     <Compile Include="EfficiencyMaker\EfficiencyModel.cs" />
     <Compile Include="EfficiencyMaker\GeometryMaterialLibrary.cs" />
+    <Compile Include="EfficiencyMaker\GeometryMaterialStore.cs" />
+    <Compile Include="GeometryMaterialEditorForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="EfficiencyMaker\GeometryPresets.cs" />
     <Compile Include="EfficiencyMaker\GeometrySketch.cs">
       <SubType>Component</SubType>
