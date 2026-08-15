@@ -32,7 +32,7 @@ namespace CorpusFsaProbe
     ///                  [--groups=G1S,ASN16] [--only=G1S24_Th232_Denta120_2]
     ///                  [--mode=spline|snip] [--no-matrix] [--no-cascade]
     ///                  [--no-pileup] [--no-background] [--limit=N] [--quiet]
-    ///                  [--limits-mc=N [--mc-component=Имя]] [--huber=M]
+    ///                  [--limits-mc=N [--mc-component=Имя]] [--huber=M] [--refit-z=Z]
     ///                  [--partial] [--no-pr-gate] [--gamma=G] [--beta=B]
     ///                  [--bg-rebin]
     ///
@@ -138,6 +138,14 @@ namespace CorpusFsaProbe
                 else if (a.StartsWith("--huber=", StringComparison.Ordinal))
                 {
                     o.HuberM = double.Parse(a.Substring(8), CultureInfo.InvariantCulture);
+                }
+                else if (a.StartsWith("--refit-z=", StringComparison.Ordinal))
+                {
+                    // S9 «б»: которая из двух ступеней занижает МДА слабого
+                    // компонента — первый NNLS или отсев по значимости. Ноль
+                    // снимает отсев целиком, и разница между прогонами и есть
+                    // ответ. Ключ, а не пересборка: A/B на одном коде.
+                    o.RefitZ = double.Parse(a.Substring(10), CultureInfo.InvariantCulture);
                 }
                 else if (a.StartsWith("--gamma=", StringComparison.Ordinal))
                 {
@@ -293,6 +301,11 @@ namespace CorpusFsaProbe
                 analyzer.CascadeSumPeaks = o.Cascade;
                 analyzer.PileUp = o.PileUp;
                 analyzer.Backscatter = o.Backscatter;
+                if (o.RefitZ >= 0.0)
+                {
+                    analyzer.RefitZ = o.RefitZ;
+                }
+
                 if (o.HuberM >= 0.0)
                 {
                     analyzer.HuberM = o.HuberM;
@@ -1164,6 +1177,16 @@ namespace CorpusFsaProbe
             /// корпуса, так что мерится его ОТКЛЮЧЕНИЕ, а не включение.
             /// </summary>
             public double HuberM = -1.0;
+
+            /// <summary>
+            /// (S9 «б») Порог значимости отсева перед вторым проходом;
+            /// отрицательный — умолчание анализатора (3.0), ноль ВЫКЛЮЧАЕТ
+            /// отсев целиком. Заведён, чтобы развести две ступени, каждая из
+            /// которых могла занизить МДА слабого компонента: первый NNLS
+            /// (сигнал уходит соседям) или «предварительный анализ состава»
+            /// (компонент выброшен и второй проход считается без него).
+            /// </summary>
+            public double RefitZ = -1.0;
 
             /// <summary>(S43) γ составного шума D = F + γ²F²; 0 — выключено.</summary>
             public double NoiseGamma;
