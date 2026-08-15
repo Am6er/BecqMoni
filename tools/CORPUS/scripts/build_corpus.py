@@ -562,6 +562,7 @@ def write_devices(state):
     """
     os.makedirs(OUT_DEVICES, exist_ok=True)
     written = []
+    drift = []
     for det in sorted({st['det'] for st in state.values()}):
         ref = max((st for st in state.values() if st['det'] == det),
                   key=lambda st: len(st['accepted']), default=None)
@@ -588,11 +589,78 @@ def write_devices(state):
             hi=float(cfg['Max_Range']), concat=cfg['Ch_Concat'],
             tolerance=cfg['Tolerance'], max_items=cfg['Max_Items'],
             fwhm_tol_min=cfg['Min_FWHM_Tol'], fwhm_tol_max=cfg['Max_FWHM_Tol'])
-        with open(os.path.join(OUT_DEVICES, fname), 'w', encoding='utf-8') as fh:
+        dest = os.path.join(OUT_DEVICES, fname)
+        changes = device_changes(dest, text)
+        with open(dest, 'w', encoding='utf-8') as fh:
             fh.write(text)
         written.append((det, fname, 'Ch_Concat=%d  %g..%g кэВ' % (
             cfg['Ch_Concat'], cfg['Min_Range'], cfg['Max_Range'])))
+        if changes:
+            drift.append((det, fname, changes))
+    if drift:
+        # `B8`: пять групп (ASN16, AS80x80, RC103, RC101, OBS) берут имя, guid и
+        # НАСТРОЙКИ ПОИСКА ПИКОВ из рабочего каталога сопровождающего
+        # (`COPY_DEVICE` -> `%AppData%\BecqMoni`), и любая правка прибора в
+        # приложении заезжала в корпус при первой же пересборке — без чьего-либо
+        # решения и без следа. Для FSA цена измерена и равна нулю (калибровки он
+        # берёт из самой копии спектра), а поиск пиков эти настройки читает, и
+        # там подмена меняет результат. Молчать нельзя: пусть уезжает, но вслух.
+        print()
+        print('⚠ КОНФИГУРАЦИИ ПРИБОРОВ ИЗМЕНИЛИСЬ (B8): %d из %d'
+              % (len(drift), len(written)))
+        for det, fname, changes in drift:
+            print('   %-10s %s' % (det, fname))
+            for tag, was, now in changes:
+                print('      %-24s %s -> %s' % (tag, was, now))
+        print('   Если правки не задумывалось — верните файлы: '
+              'git checkout tools/CORPUS/corpus/devices')
     return written
+
+
+# Поля, по которым сверяется конфигурация группы. Сравниваются ЗНАЧЕНИЯ тегов, а
+# не текст файла: перестановка пробелов или комментарий диффом быть не должны.
+DEVICE_WATCH = [
+    'Name', 'Guid', 'NumberOfChannels', 'DeviceType',
+    'PeakDetectionMethodConfig/Min_SNR', 'PeakDetectionMethodConfig/FWHM_AT_0',
+    'PeakDetectionMethodConfig/Ch_Fwhm', 'PeakDetectionMethodConfig/Width_Fwhm',
+    'PeakDetectionMethodConfig/Max_Items', 'PeakDetectionMethodConfig/Tolerance',
+    'PeakDetectionMethodConfig/Min_Range', 'PeakDetectionMethodConfig/Max_Range',
+    'PeakDetectionMethodConfig/Min_FWHM_Tol', 'PeakDetectionMethodConfig/Max_FWHM_Tol',
+    'PeakDetectionMethodConfig/Ch_Concat',
+]
+
+
+def device_changes(dest, text):
+    """Что изменилось в конфигурации группы против лежащей на диске (`B8`).
+
+    Пусто — файла не было (новая группа: сообщать не о чем) или всё совпало.
+    Энергокалибровка сверяется отдельно: она пишется числами с плавающей точкой,
+    и сравнивать их надо по значению, а не по записи.
+    """
+    if not os.path.isfile(dest):
+        return []
+
+    try:
+        old = ET.parse(dest).getroot()
+        new = ET.fromstring(text)
+    except ET.ParseError:
+        return [('файл', 'не разобран', 'переписан')]
+
+    changes = []
+    for tag in DEVICE_WATCH:
+        was, now = old.findtext(tag), new.findtext(tag)
+        if (was or '') != (now or ''):
+            changes.append((tag.split('/')[-1], was, now))
+
+    was = [float(c.text) for c
+           in old.findall('PolynomialEnergyCalibration/Coefficients/Coefficient')]
+    now = [float(c.text) for c
+           in new.findall('PolynomialEnergyCalibration/Coefficients/Coefficient')]
+    if len(was) != len(now) or any(abs(a - b) > 1e-12 for a, b in zip(was, now)):
+        changes.append(('энергокалибровка',
+                        ' '.join('%.6g' % v for v in was),
+                        ' '.join('%.6g' % v for v in now)))
+    return changes
 
 
 MANIFEST_COLUMNS = [
