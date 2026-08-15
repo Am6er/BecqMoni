@@ -3044,7 +3044,7 @@
         <EnergyCalibration>
           <PolynomialOrder>2</PolynomialOrder>
           <Coefficients>
-            <Coefficient>1.9554173320607817</Coefficient><Coefficient>0.9766239866185559</Coefficient><Coefficient>3.4525044507445295e-05</Coefficient></Coefficients>
+            <Coefficient>-8.65469</Coefficient><Coefficient>1.00413</Coefficient><Coefficient>2.556e-05</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>421581</ValidPulseCount>
         <TotalPulseCount>421597</TotalPulseCount>

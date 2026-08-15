@@ -600,11 +600,12 @@ namespace BecquerelMonitor
                 return string.IsNullOrEmpty(status) ? 0 : 1;
             }
 
-            // +1 — строка качества, плюс по строке на каждый слой со своими
-            // сумм-пиками, плюс по строке «< МДА» на каждого НЕвошедшего
-            // кандидата (S9, решение Amber 14.08.2026 «показывай»), плюс
-            // строка «БЕЗ ФОНА», когда фон не вычитался (S44).
-            return this.GetFsaLayers(result).Count + 1 + this.FsaSumPeakLayers(result).Count
+            // +2 — строка качества и строка невязки модели (S51), плюс по
+            // строке на каждый слой со своими сумм-пиками, плюс по строке
+            // «< МДА» на каждого НЕвошедшего кандидата (S9, решение Amber
+            // 14.08.2026 «показывай»), плюс строка «БЕЗ ФОНА», когда фон не
+            // вычитался (S44).
+            return this.GetFsaLayers(result).Count + 2 + this.FsaSumPeakLayers(result).Count
                    + FsaUndetected(result).Count
                    + (result.BackgroundUsed ? 0 : 1);
         }
@@ -741,6 +742,24 @@ namespace BecquerelMonitor
                 r.Y += FsaTableRowHeight;
                 nameRect.Y += FsaTableRowHeight;
             }
+
+            // (S51) НЕВЯЗКА МОДЕЛИ — первой строкой, потому что читать надо её,
+            // а не χ²/ndf. χ²/ndf между спектрами несравним: он растёт со
+            // статистикой, и оба его вранья измерены по корпусу — `G1S16_Y88_P25`
+            // с χ²/ndf 2.6 выглядит отличным разбором при невязке 65 % (спектр
+            // тощий, шум прячет ошибку), а `ASN16_Th232` с χ²/ndf 743 выглядит
+            // провалом при невязке 23 % (спектр жирный, модель средняя). Доля
+            // формы, которую модель не описывает, читается одинаково на германии
+            // и на обсидиане: 0 — модель согласна со статистикой, 100 % — не
+            // объясняет ничего.
+            g.DrawString(Resources.FSAModelResidualRow, this.Font, Brushes.Black, nameRect);
+            g.DrawString(string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                                       Resources.FSAModelResidualValue,
+                                       (100.0 * result.ModelResidual).ToString("n1",
+                                           System.Globalization.CultureInfo.CurrentCulture)),
+                         this.Font, Brushes.Black, r, this.farFormat);
+            r.Y += FsaTableRowHeight;
+            nameRect.Y += FsaTableRowHeight;
 
             string quality = "χ²/ndf";
             // Пометка S2: с матрицей отклика образы или без — всегда, одна из

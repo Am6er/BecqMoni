@@ -1,4 +1,4 @@
-using BecquerelMonitor;
+﻿using BecquerelMonitor;
 using BecquerelMonitor.EfficiencyMaker;
 using BecquerelMonitor.FullSpectrumAnalysis;
 using System;
@@ -79,6 +79,7 @@ namespace CorpusFsaProbe
                 if (a == "--pr-gate") { o.PartialGate = true; continue; }
                 if (a == "--no-pr-gate") { o.PartialGate = false; continue; }
                 if (a == "--bg-rebin") { o.RebinBackground = true; continue; }
+                if (a == "--no-bg-rebin") { o.RebinBackground = false; continue; }
                 if (a.StartsWith("--residuals=", StringComparison.Ordinal))
                 {
                     o.Residuals = int.Parse(a.Substring(12), CultureInfo.InvariantCulture);
@@ -410,6 +411,7 @@ namespace CorpusFsaProbe
                 row.Result = result;
                 row.Chi2Ndf = result.Chi2Ndf;
                 row.Chi2NdfPoisson = result.Chi2NdfPoisson;
+                row.ModelResidual = result.ModelResidual;
 
                 // Фон подан и НЕ взят — печатаем причину и снимаем признак
                 // «фон есть» (S44). Прежде колонка `background` мерила наличие
@@ -912,7 +914,8 @@ namespace CorpusFsaProbe
                     runs.WriteLine("spectrum,det,part,chi2ndf,gain,offset_ch,drift_edge,gain_edge,"
                                    + "offset_edge,matrix,"
                                    + "matrix_note,cascade,efficiency,background,peaks,components,"
-                                   + "ms,cpu_ms,near_sigmas,near_counts,error,chi2ndf_pois,bg_rejected");
+                                   + "ms,cpu_ms,near_sigmas,near_counts,error,chi2ndf_pois,bg_rejected,"
+                                   + "model_residual_pct");
                     // `share_pct` — доля в «пироге», у служебных образов ноль
                     // НАРОЧНО; `peak_share_pct` — доля пиковых отсчётов среди
                     // ВСЕХ образов, она есть у каждого (S49). Читать «сколько
@@ -946,7 +949,8 @@ namespace CorpusFsaProbe
                             F(r.NearExcess, "F2"), F(r.NearCounts, "F0"),
                             Csv(r.Error ?? ""),
                             r.Error != null ? "" : F(r.Chi2NdfPoisson, "F4"),
-                            Csv(r.BackgroundNote)));
+                            Csv(r.BackgroundNote),
+                            r.Error != null ? "" : F(100.0 * r.ModelResidual, "F3")));
 
                         if (r.Result == null)
                         {
@@ -1219,10 +1223,17 @@ namespace CorpusFsaProbe
 
             /// <summary>
             /// (S45) Перекладывать фон на шкалу спектра перед вычитанием.
-            /// Умолчание — НЕТ (измерено: с нынешними калибровками фона хуже);
-            /// включатель `--bg-rebin` оставлен, чтобы замер воспроизводился.
+            /// Умолчание — ДА с 16.08.2026, вслед за анализатором: после того
+            /// как фон той же настройки стал жить в шкале переднего плана
+            /// (`build_corpus.same_setting`), перекладка перестала вредить.
+            /// A/B-сторона — `--no-bg-rebin`; ключ `--bg-rebin` оставлен, чтобы
+            /// прежние замеры воспроизводились дословно.
+            ///
+            /// ⚠ Умолчание держится ЗДЕСЬ, а не наследуется от анализатора:
+            /// строка 16.08.2026 перекрывала `FsaAnalyzer` своим `false`, и
+            /// прогон «с новым умолчанием» тихо повторил старые числа.
             /// </summary>
-            public bool RebinBackground;
+            public bool RebinBackground = true;
             public List<string> Groups;
             public List<string> Only;
         }
@@ -1248,6 +1259,9 @@ namespace CorpusFsaProbe
 
             /// <summary>χ²/ndf прежними весами — общая метрика A/B (S41/S43).</summary>
             public double Chi2NdfPoisson;
+
+            /// <summary>Невязка модели ε, доля (в csv печатается в процентах) — S51.</summary>
+            public double ModelResidual;
             public double Gain;
             public double OffsetChannels;
             public double Ms;

@@ -635,8 +635,10 @@ namespace BecquerelMonitor
                     image = Properties.Resources.SUB;
                     break;
                 case BackgroundMode.ShowContinuum:
-                case BackgroundMode.ShowFSA:
                     image = Properties.Resources.CONT;
+                    break;
+                case BackgroundMode.ShowFSA:
+                    image = Properties.Resources.FSA;
                     break;
                 case BackgroundMode.NormalizeByEfficiency:
                     image = Properties.Resources.NORM;
@@ -765,6 +767,32 @@ namespace BecquerelMonitor
                     image = Properties.Resources.CONT;
                     break;
                 case BackgroundMode.ShowContinuum:
+                    // FSA стоит в цикле СРАЗУ ЗА континуумом — рядом по смыслу:
+                    // обе строят подложку, только вторая раскладывает её на
+                    // нуклиды. Прежде режима в цикле не было вовсе, и кнопка
+                    // его перепрыгивала; попасть в него можно было только через
+                    // выпадающий список.
+                    if (this.CanShowFsa())
+                    {
+                        backgroundMode = BackgroundMode.ShowFSA;
+                        image = Properties.Resources.FSA;
+                    }
+                    else if (this.IsNormalizeByEfficiencyAvailable())
+                    {
+                        backgroundMode = BackgroundMode.NormalizeByEfficiency;
+                        image = Properties.Resources.NORM;
+                    }
+                    else
+                    {
+                        backgroundMode = BackgroundMode.Visible;
+                        image = Properties.Resources.BG;
+                    }
+
+                    break;
+                case BackgroundMode.ShowFSA:
+                    // Без этой ветки кнопка, нажатая В РЕЖИМЕ FSA, попадала не
+                    // в следующий режим, а в заготовку выше по функции —
+                    // «спрятать фон». То есть цикл рвался в обе стороны.
                     if (this.IsNormalizeByEfficiencyAvailable())
                     {
                         backgroundMode = BackgroundMode.NormalizeByEfficiency;
@@ -775,7 +803,7 @@ namespace BecquerelMonitor
                         backgroundMode = BackgroundMode.Visible;
                         image = Properties.Resources.BG;
                     }
-                    
+
                     break;
                 case BackgroundMode.NormalizeByEfficiency:
                     backgroundMode = BackgroundMode.Visible;
@@ -868,7 +896,9 @@ namespace BecquerelMonitor
             }
 
             this.view.BackgroundMode = BackgroundMode.ShowFSA;
-            this.toolStripSplitButtonBgMode.Image = Properties.Resources.CONT;
+            // Своя иконка, а не CONT: с ней кнопка врала — «показан континуум»
+            // при разложенном спектре, и два разных режима выглядели одним.
+            this.toolStripSplitButtonBgMode.Image = Properties.Resources.FSA;
             this.UpdateDetectedPeaks = true;
             this.UpdateDoseRate = true;
             this.RefreshView();
@@ -891,6 +921,23 @@ namespace BecquerelMonitor
         /// false — от выбора отказались, режим не включаем: молча включённое
         /// разложение на чужих числах хуже невключённого.
         /// </summary>
+        /// <summary>
+        /// Можно ли встать в режим FSA МОЛЧА — без единого вопроса.
+        ///
+        /// Кнопка листает режимы, и вопрос посреди листания читался бы как
+        /// сбой: человек нажал «следующий вид», а получил диалог про
+        /// калибровку. Поэтому в цикл FSA входит только когда всё нужное уже
+        /// есть, а недостающее по-прежнему спрашивает пункт МЕНЮ, где выбор
+        /// режима явный. Проверяется ровно то же, что требует
+        /// <see cref="EnsureFsaInputs"/>, — иначе цикл обещал бы режим,
+        /// который тут же откажется включаться.
+        /// </summary>
+        bool CanShowFsa()
+        {
+            ResultData active = this.ActiveResultData;
+            return active != null && active.FwhmCalibration != null && active.Efficiency != null;
+        }
+
         bool EnsureFsaInputs()
         {
             ResultData active = this.ActiveResultData;

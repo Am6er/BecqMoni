@@ -402,6 +402,33 @@
   <data name="FSASumPeakRow" xml:space="preserve">
     <value>{0} — сумм-пик</value>
   </data>
+  <data name="EfficiencyMakerCalcRestored" xml:space="preserve">
+    <value>Параметры расчёта восстановлены по готовой кривой: {0}</value>
+  </data>
+  <data name="EfficiencyMakerRangeFromCurve" xml:space="preserve">
+    <value>Диапазон взят у готовой кривой: {0:0.#}–{1:0.#} кэВ</value>
+  </data>
+  <data name="GeometryMaterialsDensityFromParts" xml:space="preserve">
+    <value>Из состава</value>
+  </data>
+  <data name="GeometryMaterialsDensityNeedsMixture" xml:space="preserve">
+    <value>Плотность выводится только у СМЕСИ, у частей которой она известна. Формула задаёт состав, а не упаковку.</value>
+  </data>
+  <data name="GeometryMaterialsDensityNoPart" xml:space="preserve">
+    <value>У составляющей «{0}» плотность неизвестна.</value>
+  </data>
+  <data name="GeometryMaterialsDensityGasInSolid" xml:space="preserve">
+    <value>У «{0}» стоит плотность газа ({1:0.####} г/см³), а смесь плотная: он занял бы почти весь объём, и вышло бы {2:0.###} г/см³. Элемент связан в соединении - его и надо назвать составляющей.</value>
+  </data>
+  <data name="GeometryMaterialsDensityDone" xml:space="preserve">
+    <value>Плотность из состава: {0:0.###} г/см³.</value>
+  </data>
+  <data name="FSAModelResidualRow" xml:space="preserve">
+    <value>невязка модели</value>
+  </data>
+  <data name="FSAModelResidualValue" xml:space="preserve">
+    <value>{0} %</value>
+  </data>
   <data name="FSAMdaValue" xml:space="preserve">
     <value>&lt; {0} имп/с</value>
   </data>

@@ -8449,6 +8449,33 @@ http://xptable.sourceforge.net/</value>
   <data name="FSASumPeakRow" xml:space="preserve">
     <value>{0} — sum peak</value>
   </data>
+  <data name="EfficiencyMakerCalcRestored" xml:space="preserve">
+    <value>Calculation parameters restored from the existing curve: {0}</value>
+  </data>
+  <data name="EfficiencyMakerRangeFromCurve" xml:space="preserve">
+    <value>Energy range taken from the existing curve: {0:0.#}–{1:0.#} keV</value>
+  </data>
+  <data name="GeometryMaterialsDensityFromParts" xml:space="preserve">
+    <value>From composition</value>
+  </data>
+  <data name="GeometryMaterialsDensityNeedsMixture" xml:space="preserve">
+    <value>Density can only be derived for a mixture whose parts have known densities. A formula gives the composition, not the packing.</value>
+  </data>
+  <data name="GeometryMaterialsDensityNoPart" xml:space="preserve">
+    <value>No density known for the part «{0}».</value>
+  </data>
+  <data name="GeometryMaterialsDensityGasInSolid" xml:space="preserve">
+    <value>«{0}» is given a gas density ({1:0.####} g/cm³) inside a dense mixture: it would take almost the whole volume and the result would be {2:0.###} g/cm³. The element is bound in a compound - name that compound as the part.</value>
+  </data>
+  <data name="GeometryMaterialsDensityDone" xml:space="preserve">
+    <value>Density from composition: {0:0.###} g/cm³.</value>
+  </data>
+  <data name="FSAModelResidualRow" xml:space="preserve">
+    <value>model residual</value>
+  </data>
+  <data name="FSAModelResidualValue" xml:space="preserve">
+    <value>{0} %</value>
+  </data>
   <data name="FSAMdaValue" xml:space="preserve">
     <value>&lt; {0} cps</value>
   </data>
@@ -41935,6 +41962,9 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="Bkg" xml:space="preserve">
     <value>Bq/g</value>
+  </data>
+  <data name="FSA" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\FSA.bmp;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="CONT" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\CONT.bmp;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>

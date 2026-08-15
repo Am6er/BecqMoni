@@ -207,28 +207,90 @@ namespace BecquerelMonitor
             this.ClientSize = new Size(FormWidth, y + 26 + Pad);
         }
 
-        /// <summary>Разложить подробности по строкам с шагом.</summary>
+        /// <summary>
+        /// Разложить подробности по строкам с шагом.
+        ///
+        /// (W22) Панель РАСТЁТ под текст, а строки переносятся по словам.
+        /// Прежде и то, и другое было прибито: высота панели — место ровно под
+        /// четыре строки (`DetailsRowPitch * 4 + 6`), а сами `Label` шириной в
+        /// панель и без переноса. `ResponseMatrixDetails` — как раз четыре
+        /// строки, поэтому ПЯТАЯ уходила за нижний край и пропадала целиком, и
+        /// пятой была именно `ResponseMatrixRangeDiffers` (E18 «б») — признак
+        /// «диапазоны кривой и матрицы разошлись», ради которого всё и
+        /// заводилось. Длинное предложение при этом обрезалось бы ещё и
+        /// справа. Признак, до которого не доходит глаз, — не признак.
+        /// </summary>
         void SetDetails(string text)
         {
             this.detailsText = text ?? "";
             this.detailsPanel.Controls.Clear();
             if (this.detailsText.Length == 0)
             {
+                this.ResizeDetails(0);
                 return;
             }
 
             string[] lines = this.detailsText.Split(
                 new[] { Environment.NewLine, "\n" }, StringSplitOptions.None);
+            int width = this.detailsPanel.Width;
+            int top = 0;
             for (int i = 0; i < lines.Length; i++)
             {
+                // Высота строки меряется с переносом по словам, а не берётся
+                // шагом: одна длинная строка занимает две и обязана быть видна
+                // целиком. Шаг остаётся нижней границей — ради воздуха между
+                // строками, ради которого строки и разнесены по меткам.
+                Size need = TextRenderer.MeasureText(
+                    lines[i], this.Font, new Size(width, int.MaxValue),
+                    TextFormatFlags.WordBreak);
+                int height = Math.Max(DetailsRowPitch, need.Height + 4);
+
                 this.detailsPanel.Controls.Add(new Label
                 {
                     Text = lines[i],
-                    Location = new Point(0, i * DetailsRowPitch),
-                    Size = new Size(this.detailsPanel.Width, DetailsRowPitch),
-                    TextAlign = ContentAlignment.MiddleLeft
+                    Location = new Point(0, top),
+                    Size = new Size(width, height),
+                    TextAlign = ContentAlignment.MiddleLeft,
+                    UseMnemonic = false
                 });
+
+                top += height;
             }
+
+            this.ResizeDetails(top + 6);
+        }
+
+        /// <summary>
+        /// (W22) Подогнать высоту панели подробностей под содержимое и сдвинуть
+        /// всё, что ниже неё, вместе с нижней границей окна.
+        ///
+        /// Форма собрана абсолютными координатами, поэтому «растянуть» панель
+        /// само по себе ничего не даёт — надо развести соседей. Двигаются ВСЕ
+        /// прямые потомки формы, стоящие ниже панели, а не поимённый список:
+        /// список пришлось бы дополнять при каждой новой кнопке, и забытый
+        /// элемент наехал бы на подробности молча.
+        /// </summary>
+        void ResizeDetails(int height)
+        {
+            int wanted = Math.Max(DetailsRowPitch, height);
+            int delta = wanted - this.detailsPanel.Height;
+            if (delta == 0)
+            {
+                return;
+            }
+
+            int edge = this.detailsPanel.Bottom;
+            this.detailsPanel.Height = wanted;
+            foreach (Control control in this.Controls)
+            {
+                if (!ReferenceEquals(control, this.detailsPanel) && control.Top >= edge)
+                {
+                    control.Top += delta;
+                }
+            }
+
+            this.ClientSize = new Size(this.ClientSize.Width,
+                                       Math.Max(0, this.ClientSize.Height + delta));
         }
 
         void ParametersChanged(object sender, EventArgs e)

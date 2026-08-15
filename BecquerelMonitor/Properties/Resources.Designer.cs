@@ -486,6 +486,16 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        public static System.Drawing.Bitmap FSA {
+            get {
+                object obj = ResourceManager.GetObject("FSA", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         public static System.Drawing.Bitmap CONT {
             get {
                 object obj = ResourceManager.GetObject("CONT", resourceCulture);
@@ -2844,6 +2854,87 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        /// <summary>
+        ///   Looks up a localized string similar to Calculation parameters restored from the existing curve: {0}.
+        /// </summary>
+        public static string EfficiencyMakerCalcRestored {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerCalcRestored", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Energy range taken from the existing curve: {0}-{1} keV.
+        /// </summary>
+        public static string EfficiencyMakerRangeFromCurve {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerRangeFromCurve", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to From composition.
+        /// </summary>
+        public static string GeometryMaterialsDensityFromParts {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsDensityFromParts", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Density can only be derived for a mixture whose parts have known densities. A formula gives the composition, not the packing..
+        /// </summary>
+        public static string GeometryMaterialsDensityNeedsMixture {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsDensityNeedsMixture", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No density known for the part «{0}»..
+        /// </summary>
+        public static string GeometryMaterialsDensityNoPart {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsDensityNoPart", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to «{0}» is given a gas density ({1:0.####} g/cm³) inside a dense mixture: it would take almost the whole volume and the result would be {2:0.###} g/cm³. The element is bound in a compound - name that compound as the part..
+        /// </summary>
+        public static string GeometryMaterialsDensityGasInSolid {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsDensityGasInSolid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Density from composition: {0:0.###} g/cm³..
+        /// </summary>
+        public static string GeometryMaterialsDensityDone {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsDensityDone", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to model residual.
+        /// </summary>
+        public static string FSAModelResidualRow {
+            get {
+                return ResourceManager.GetString("FSAModelResidualRow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} %.
+        /// </summary>
+        public static string FSAModelResidualValue {
+            get {
+                return ResourceManager.GetString("FSAModelResidualValue", resourceCulture);
+            }
+        }
+        
         /// <summary>
         ///   Looks up a localized string similar to &lt; {0} cps.
         /// </summary>

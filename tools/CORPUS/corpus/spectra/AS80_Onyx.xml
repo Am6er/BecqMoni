@@ -8237,7 +8237,7 @@
         <EnergyCalibration>
           <PolynomialOrder>4</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-11.381514875467783</Coefficient><Coefficient>0.37249293660537275</Coefficient><Coefficient>-1.8129407555922213e-05</Coefficient><Coefficient>7.76833350831641e-09</Coefficient><Coefficient>-7.34030639381732e-13</Coefficient></Coefficients>
+            <Coefficient>-14.8105347832835</Coefficient><Coefficient>0.379344706765991</Coefficient><Coefficient>-2.23164703121927e-05</Coefficient><Coefficient>8.15559562184467e-09</Coefficient><Coefficient>-7.30570097982446e-13</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>33583597</ValidPulseCount>
         <TotalPulseCount>33620283</TotalPulseCount>

@@ -8502,9 +8502,9 @@
         <NumberOfChannels>8192</NumberOfChannels>
         <ChannelPitch>1</ChannelPitch>
         <EnergyCalibration>
-          <PolynomialOrder>4</PolynomialOrder>
+          <PolynomialOrder>3</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-8.223720101678644</Coefficient><Coefficient>0.37263857609796114</Coefficient><Coefficient>-1.2939147071749198e-06</Coefficient><Coefficient>1.5743680396905194e-09</Coefficient><Coefficient>-1.712404911250905e-13</Coefficient></Coefficients>
+            <Coefficient>-8.443246080545725</Coefficient><Coefficient>0.37056121873410885</Coefficient><Coefficient>2.1004698574703306e-06</Coefficient><Coefficient>-6.197887003019131e-11</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>41057941</ValidPulseCount>
         <TotalPulseCount>41102282</TotalPulseCount>

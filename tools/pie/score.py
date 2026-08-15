@@ -176,6 +176,7 @@ def load_results(mode, out_dir):
     groups = set()
     errors = set()
     chi2 = {}
+    eps = {}
     for name in sorted(os.listdir(out_dir)):
         if not name.endswith(suffix):
             continue
@@ -200,7 +201,14 @@ def load_results(mode, out_dir):
                         chi2[row['spectrum']] = float(row['chi2ndf'])
                     except (TypeError, ValueError):
                         pass
-    return results, groups, errors, chi2
+                    # S51: невязка модели. Колонка молодая — у прежних прогонов
+                    # её нет, и это не повод падать: сводка тогда печатает
+                    # только chi2/ndf, как раньше.
+                    try:
+                        eps[row['spectrum']] = float(row['model_residual_pct'])
+                    except (TypeError, ValueError, KeyError):
+                        pass
+    return results, groups, errors, chi2, eps
 
 
 def main():
@@ -245,7 +253,7 @@ def main():
                  and (args.part == 'all' or parts.get(k, 'unknown') == args.part)}
     elif args.part != 'all':
         sys.exit('нет %s — часть корпуса выбрать нечем' % PARTS)
-    results, groups, errors, chi2 = load_results(args.mode, args.out_dir)
+    results, groups, errors, chi2, eps = load_results(args.mode, args.out_dir)
     if not results:
         sys.exit('нет результатов режима %s в %s' % (args.mode, args.out_dir))
 
@@ -353,6 +361,19 @@ def main():
         # без греческих букв: консоль под cp1251 их не печатает
         print('%-10s %8d  sum chi2/ndf %.1f   медиана %.2f'
               % ('', len(scored), sum(scored), mid))
+
+    # S51: НЕВЯЗКА МОДЕЛИ — рядом с chi2/ndf, а не вместо. Сумма для неё
+    # бессмысленна (это доля, а не вклад), поэтому медиана и квартили:
+    # chi2/ndf растёт со статистикой и между спектрами несравним, невязка
+    # сравнима. Измерено по корпусу: r(lg отсчётов, lg chi2/ndf) = +0.72,
+    # r(lg отсчётов, невязка) = -0.03.
+    se = sorted(eps[s] for s in eps if s in truth)
+    if se:
+        def quant(p):
+            i = max(0, min(len(se) - 1, int(round(p * (len(se) - 1)))))
+            return se[i]
+        print('%-10s %8d  model residual медиана %.1f %%   кварт. %.1f .. %.1f %%'
+              % ('', len(se), quant(0.5), quant(0.25), quant(0.75)))
 
 
 if __name__ == '__main__':

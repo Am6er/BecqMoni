@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using BecquerelMonitor.Properties;
 
 namespace BecquerelMonitor.EfficiencyMaker
 {
@@ -221,6 +222,19 @@ namespace BecquerelMonitor.EfficiencyMaker
             // `Make(entry, density)` и считается от массы.
             add("Lu2O3", "Lutetium oxide", "Lu2 O3", 9.42, MaterialKind.Source);
 
+            // Двуокись тория — по указанию Amber 16.08.2026, в ОБЩИЙ засев.
+            // Понадобилась на «Электродах WT-20»: их 2 % тория связаны в ThO2,
+            // а в библиотеке торий и кислород лежали порознь, и кислород —
+            // ГАЗООБРАЗНЫЙ. От этого плотность из состава выходила 0.535 г/см³
+            // вместо 18.92 — 0.24 % массы занимали 97 % объёма (`E26`).
+            // С этой строкой WT-20 записывается вольфрамом 0.98 плюс ThO2 0.02
+            // и даёт 18.937 против введённых Amber 18.92.
+            //
+            // Плотность 9.86 — монолитная (кристаллическая 10.0; у спечённой
+            // керамики 9.7–9.9), вид `Source`: в наших съёмках ThO2 встречается
+            // добавкой в пробе, а не обвязкой.
+            add("ThO2", "Thorium dioxide", "Th1 O2", 9.86, MaterialKind.Source);
+
             // Таблица веществ ЛСРМ (`materials.dat` их же GeometryMaster, 2008;
             // ввоз 16.08.2026 — `tools/effmaker/import_lsrm_materials.py`).
             // Двадцать девять строк выше — НАШИ, выверенные руками, и таблица их
@@ -322,6 +336,101 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// смеси), плотность взята заданная — у одного и того же вещества она
         /// зависит от набивки, и правит её пользователь.
         /// </summary>
+        /// <summary>
+        /// Плотность СМЕСИ из плотностей её составляющих: объёмы складываются,
+        /// то есть 1/ρ = Σ w_i/ρ_i при массовых долях w_i. Ложь — вывести
+        /// нельзя, и тогда <paramref name="problem"/> говорит почему.
+        ///
+        /// Из ФОРМУЛЫ плотность не выводится вовсе, и делать вид, что выводится,
+        /// нельзя: формула задаёт состав, а плотность — упаковку, для которой
+        /// нужна кристаллическая структура или справочное значение. Поэтому
+        /// метод работает только со смесью, у которой плотность каждой части
+        /// уже известна.
+        ///
+        /// ⚠ Отдельно ловится смесь ГАЗА С ТВЁРДЫМ. Проверено на «Электроды
+        /// WT-20» из поставки: вольфрам 0.98 + торий 0.01758 + кислород
+        /// газообразный 0.00242 даёт **0.535 г/см³** вместо 18.92, потому что
+        /// 0.24 % кислорода при ρ = 0.001332 занимают 97 % объёма. Кислород там
+        /// связан в ThO₂ и газом не является: правильная запись — вольфрам 0.98
+        /// плюс двуокись тория 0.02, и она даёт **18.94** против введённых
+        /// Amber 18.92. То есть правило верное, а состав записан не тем.
+        /// Молча выдать 0.535 было бы хуже отказа.
+        /// </summary>
+        public static bool TryDensityFromComponents(Entry entry, Func<string, Entry> lookup,
+                                                    out double density, out string problem)
+        {
+            density = 0.0;
+            problem = null;
+            if (entry == null || entry.Components.Count == 0)
+            {
+                problem = Resources.GeometryMaterialsDensityNeedsMixture;
+                return false;
+            }
+
+            double weightSum = 0.0;
+            foreach (GeometryMaterialComponent component in entry.Components)
+            {
+                weightSum += Math.Max(0.0, component.Weight);
+            }
+
+            if (!(weightSum > 0.0))
+            {
+                problem = Resources.GeometryMaterialsDensityNeedsMixture;
+                return false;
+            }
+
+            double inverse = 0.0;
+            double lightest = double.MaxValue;
+            double heaviest = 0.0;
+            string gassy = null;
+            foreach (GeometryMaterialComponent component in entry.Components)
+            {
+                double weight = Math.Max(0.0, component.Weight) / weightSum;
+                if (weight <= 0.0)
+                {
+                    continue;
+                }
+
+                Entry part = lookup == null ? null : lookup(component.Material);
+                if (part == null || !(part.Density > 0.0))
+                {
+                    problem = string.Format(CultureInfo.CurrentCulture,
+                                            Resources.GeometryMaterialsDensityNoPart,
+                                            component.Material);
+                    return false;
+                }
+
+                inverse += weight / part.Density;
+                if (part.Density < lightest)
+                {
+                    lightest = part.Density;
+                    gassy = part.Name;
+                }
+
+                heaviest = Math.Max(heaviest, part.Density);
+            }
+
+            if (!(inverse > 0.0))
+            {
+                problem = Resources.GeometryMaterialsDensityNeedsMixture;
+                return false;
+            }
+
+            // Газ вперемешку с конденсированным веществом — не смесь, а ошибка
+            // записи состава. Смесь ОДНИХ газов (воздух) при этом считается
+            // как считалась: условие требует обеих крайностей сразу.
+            if (lightest < 0.05 && heaviest > 1.0)
+            {
+                problem = string.Format(CultureInfo.CurrentCulture,
+                                        Resources.GeometryMaterialsDensityGasInSolid,
+                                        gassy, lightest, 1.0 / inverse);
+                return false;
+            }
+
+            density = 1.0 / inverse;
+            return true;
+        }
+
         public static GeometryMaterial Make(Entry entry, double density)
         {
             return Make(entry, density, ByName);
