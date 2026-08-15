@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 
 // B1: геометрии «ПОНЯТНОЙ» части корпуса — построить их из встроенных шаблонов
@@ -308,6 +309,163 @@ class CorpusGeomProbe
     // ----------------------------------------------------------------------
     // Состав «понятной» части
     // ----------------------------------------------------------------------
+    /// <summary>
+    /// Сосудные сцены поверки ЛСРМ — из таблицы `data/lsrm_spectrum_geometry.csv`
+    /// (`B12`), а не из вписанного руками списка. Строка таблицы взята прямо из
+    /// заголовка исходного `.spe`: сосуд, вещество с составом, масса, объём,
+    /// расстояние. Одна сцена — на каждую тройку (сосуд, вещество, плотность):
+    /// плотность у эталонов разная, от 0.55 до 1.67, а от неё и зависит
+    /// самопоглощение.
+    ///
+    /// ⚠ Внутренние диаметры сосудов больше НЕ ПРИНЯТЫ на глаз (было: банка
+    /// 60 мм, чашка 100 мм), а ВЫВЕДЕНЫ из объёма и толщины слоя, которые
+    /// названы в поставке: D = 2·√(V/πh). Проверка сходится сама собой — у
+    /// «Денты» 120 мл при h = 33 мм и 100 мл при h = 27.2 мм получается один и
+    /// тот же диаметр, 68.0 и 68.4 мм, а это одна и та же банка.
+    /// </summary>
+    static List<Geom> VesselScenes(string preset)
+    {
+        string path = Path.Combine(CorpusRoot(), "data", "lsrm_spectrum_geometry.csv");
+        List<Geom> list = new List<Geom>();
+        if (!File.Exists(path))
+        {
+            Console.WriteLine("нет {0} — сосудные сцены не строятся (import_spe_geometry.py)", path);
+            return list;
+        }
+
+        string[] lines = File.ReadAllLines(path, Encoding.UTF8);
+        if (lines.Length < 2)
+        {
+            return list;
+        }
+
+        List<string> head = new List<string>(lines[0].TrimStart('﻿').Split(','));
+        int iKey = head.IndexOf("спектр"), iVessel = head.IndexOf("сосуд");
+        int iMat = head.IndexOf("вещество"), iMass = head.IndexOf("масса_г");
+        int iVol = head.IndexOf("объём_мл"), iRo = head.IndexOf("плотность");
+        if (iKey < 0 || iVessel < 0 || iMat < 0 || iRo < 0)
+        {
+            Console.WriteLine("в {0} нет нужных колонок", path);
+            return list;
+        }
+
+        Dictionary<string, List<string>> scenes = new Dictionary<string, List<string>>();
+        Dictionary<string, string[]> sample = new Dictionary<string, string[]>();
+        foreach (string line in lines)
+        {
+            string[] c = line.Split(',');
+            if (c.Length <= iRo || c[iKey] == "спектр" || c[iMat].Length == 0)
+            {
+                continue;
+            }
+
+            string key = SceneKey(c[iVessel], c[iMat], c[iRo]);
+            if (key == null)
+            {
+                continue;
+            }
+
+            if (!scenes.ContainsKey(key))
+            {
+                scenes[key] = new List<string>();
+                sample[key] = c;
+            }
+
+            scenes[key].Add(c[iKey]);
+        }
+
+        foreach (KeyValuePair<string, List<string>> pair in scenes)
+        {
+            string[] c = sample[pair.Key];
+            string vessel = c[iVessel];
+            double volume = Num(c[iVol]), mass = Num(c[iMass]), density = Num(c[iRo]);
+            string material = c[iMat];
+            Geom g = new Geom
+            {
+                Key = pair.Key,
+                Preset = preset,
+                Vessel = string.Format(CultureInfo.InvariantCulture,
+                                       "{0}, набивка {1} {2:0.###} г/см³, вплотную",
+                                       vessel, material, density),
+                Spectra = pair.Value.ToArray(),
+                PassportVolumeMl = volume,
+                PassportMassG = mass,
+                SourceMaterial = material,
+                Assumed = "ничего: сосуд, вещество, масса и объём взяты из заголовка `.spe`; "
+                          + "внутренний диаметр выведен из объёма и толщины слоя поставки",
+            };
+
+            double vol = volume;
+            if (vessel.StartsWith("Маринелли", StringComparison.Ordinal))
+            {
+                // Маринелли кольцевой: сцена та же, что у прежней
+                // `G1S_marinelli1l_th232` (колодец по внешнему размеру прибора
+                // плюс 1.5 мм, глубина 70 мм, слой 100 мм, внешний диаметр из
+                // объёма) — меняются только вещество и плотность.
+                g.Shape = m => Marinelli(m, 1.5, 70.0, 100.0, vol);
+            }
+            else
+            {
+                double thick = vessel.Contains("100") ? 27.2 : (vessel.Contains("Петри") ? 10.0 : 33.0);
+                double diameter = 2.0 * Math.Sqrt(vol * 1000.0 / (Math.PI * thick));
+                g.Shape = m => Beaker(m, diameter, vol, 0.0);
+            }
+
+            list.Add(g);
+        }
+
+        list.Sort((x, y) => string.CompareOrdinal(x.Key, y.Key));
+        return list;
+    }
+
+    /// <summary>Имя сцены: сосуд, набивка и плотность — всё, чем они различаются.</summary>
+    static string SceneKey(string vessel, string material, string density)
+    {
+        double ro = Num(density);
+        if (!(ro > 0.0))
+        {
+            return null;
+        }
+
+        string v = vessel.StartsWith("Маринелли", StringComparison.Ordinal) ? "mar1l"
+                 : vessel.Contains("Петри") ? "petri60"
+                 : vessel.Contains("100") ? "denta100"
+                 : vessel.Contains("120") ? "denta120" : null;
+        if (v == null)
+        {
+            return null;
+        }
+
+        string m = material.Replace("ОИСН-", "oisn").Replace("РИСН-", "risn").Replace(" ", "");
+        return string.Format(CultureInfo.InvariantCulture, "G1S_{0}_{1}_{2:000}",
+                             v, m, Math.Round(ro * 100.0));
+    }
+
+    static double Num(string text)
+    {
+        double value;
+        return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+            ? value : 0.0;
+    }
+
+    /// <summary>Корень `tools/CORPUS` — от каталога запуска вверх.</summary>
+    static string CorpusRoot()
+    {
+        string dir = Directory.GetCurrentDirectory();
+        for (int i = 0; i < 6 && dir != null; i++)
+        {
+            string cand = Path.Combine(dir, "tools", "CORPUS");
+            if (Directory.Exists(cand))
+            {
+                return cand;
+            }
+
+            dir = Path.GetDirectoryName(dir);
+        }
+
+        return Path.Combine("tools", "CORPUS");
+    }
+
     static List<Geom> Build()
     {
         const string G1S = "Gamma-1S UDS-GC 63x63";
@@ -551,6 +709,9 @@ class CorpusGeomProbe
             Assumed = "ничего — сосуд взят целиком из заготовки редактора",
             Shape = g => { g.SourceType = GeometrySourceType.Marinelli; },
         });
+
+        // Сосудные сцены поверки — из таблицы, а не отсюда (`B12`).
+        list.AddRange(VesselScenes(G1S));
 
         return list;
     }

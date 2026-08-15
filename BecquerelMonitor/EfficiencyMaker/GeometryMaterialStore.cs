@@ -111,7 +111,10 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// 3 (16.08.2026) — двуокись тория (ThO2) по указанию Amber: без неё
         ///     состав «Электродов WT-20» нечем записать так, чтобы плотность
         ///     из него считалась (`E26`).
-        public const int CurrentSeedVersion = 3;
+        /// 4 (16.08.2026) — четыре набивки поверочных эталонов ЛСРМ
+        ///     (ОИСН-06/-10/-16, РИСН-379): состав из заголовков спектров
+        ///     поверки, `B12`.
+        public const int CurrentSeedVersion = 4;
 
         static List<GeometryMaterialLibrary.Entry> entries;
         static List<string> removed = new List<string>();
