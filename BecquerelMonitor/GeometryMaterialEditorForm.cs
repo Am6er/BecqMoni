@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
@@ -46,7 +46,7 @@ namespace BecquerelMonitor
         DataGridView componentsGrid;
         DataGridViewComboBoxColumn componentColumn;
         Label compositionLabel, problemLabel, loadErrorLabel;
-        Button removeButton;
+        Button removeButton, densityFromPartsButton;
 
         bool loading;
 
@@ -87,6 +87,7 @@ namespace BecquerelMonitor
         void BuildLayout()
         {
             this.Text = Resources.GeometryMaterialsTitle;
+            this.Icon = Resources.becqmoni;
             this.FormBorderStyle = FormBorderStyle.Sizable;
             this.MinimizeBox = false;
             this.MaximizeBox = false;
@@ -257,6 +258,20 @@ namespace BecquerelMonitor
                 Location = new Point(x + 226, y + 3),
                 Text = Resources.GeometryEditorUnitDensity,
             });
+
+            // Плотность смеси выводится из плотностей её частей: объёмы
+            // складываются. Кнопка, а не автоподстановка, — плотность у одного
+            // и того же вещества зависит от набивки, и молча переписывать
+            // введённое человеком число нельзя.
+            this.densityFromPartsButton = new Button
+            {
+                Location = new Point(x + 268, y - 1),
+                Size = new Size(110, 23),
+                Text = Resources.GeometryMaterialsDensityFromParts,
+                UseVisualStyleBackColor = true,
+            };
+            this.densityFromPartsButton.Click += this.DensityFromPartsClick;
+            this.Controls.Add(this.densityFromPartsButton);
             y += 32;
 
             this.formulaRadio = new RadioButton
@@ -445,6 +460,33 @@ namespace BecquerelMonitor
             }
 
             this.LoadSelected();
+        }
+
+        /// <summary>
+        /// Посчитать плотность смеси из плотностей её частей (объёмы
+        /// складываются). Отказ — не молчание и не подстановка «примерно»:
+        /// строкой проблем, теми же словами, что и остальные отказы формы.
+        /// </summary>
+        void DensityFromPartsClick(object sender, EventArgs e)
+        {
+            GeometryMaterialLibrary.Entry entry = this.Selected();
+            if (entry == null)
+            {
+                return;
+            }
+
+            double density;
+            string problem;
+            if (!GeometryMaterialLibrary.TryDensityFromComponents(entry, this.Lookup,
+                                                                  out density, out problem))
+            {
+                this.problemLabel.Text = problem;
+                return;
+            }
+
+            this.densityBox.Text = density.ToString("0.######", CultureInfo.InvariantCulture);
+            this.problemLabel.Text = string.Format(CultureInfo.CurrentCulture,
+                                                   Resources.GeometryMaterialsDensityDone, density);
         }
 
         GeometryMaterialLibrary.Entry Selected()

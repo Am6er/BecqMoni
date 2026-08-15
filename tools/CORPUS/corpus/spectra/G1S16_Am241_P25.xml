@@ -1060,9 +1060,9 @@
         <NumberOfChannels>1024</NumberOfChannels>
         <ChannelPitch>1</ChannelPitch>
         <EnergyCalibration>
-          <PolynomialOrder>2</PolynomialOrder>
+          <PolynomialOrder>3</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-14.816890263355216</Coefficient><Coefficient>2.945909894935059</Coefficient><Coefficient>6.0492601071659896e-05</Coefficient></Coefficients>
+            <Coefficient>-10.00844518330202</Coefficient><Coefficient>2.847328473856117</Coefficient><Coefficient>0.0004322072845254867</Coefficient><Coefficient>-3.0366388985690446e-07</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>1968141</ValidPulseCount>
         <TotalPulseCount>1968141</TotalPulseCount>

@@ -1188,6 +1188,7 @@
     <None Include="Resources\pow.bmp" />
     <None Include="Resources\scale.bmp" />
     <None Include="Resources\CONT.bmp" />
+    <None Include="Resources\FSA.bmp" />
     <None Include="Resources\SUB.bmp" />
     <None Include="Resources\attach.png" />
     <None Include="app.config" />

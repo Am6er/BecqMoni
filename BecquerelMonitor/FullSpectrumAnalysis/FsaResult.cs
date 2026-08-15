@@ -218,6 +218,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public double Chi2NdfPoisson { get; set; }
 
+        /// <summary>
+        /// (S51) НЕВЯЗКА МОДЕЛИ ε — доля (не проценты), на которую модель врёт
+        /// по форме спектра: ε = √(max(χ² − ndf, 0) / Σ M_i²·w_i) отчётными
+        /// весами. В отличие от <see cref="Chi2NdfPoisson"/> сравнима МЕЖДУ
+        /// спектрами: χ²/ndf растёт со статистикой, и «34» на германии с
+        /// миллионами отсчётов и «3» на обсидиане с тысячами не говорят, какой
+        /// разбор надёжнее, — а «модель врёт на 7 % формы» говорит.
+        /// Ноль означает «модель согласна со статистикой» (χ² ≤ ndf), а не
+        /// «не считалось».
+        /// </summary>
+        public double ModelResidual { get; set; }
+
         public double Gain { get; set; }
 
         public double OffsetChannels { get; set; }

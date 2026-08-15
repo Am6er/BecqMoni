@@ -1,4 +1,4 @@
-# Сборка ВСЕХ проб и харнесс-файлов effmaker — проверка, что ничего не
+﻿# Сборка ВСЕХ проб и харнесс-файлов effmaker — проверка, что ничего не
 # сломано молча (TODO T3). Проекта у проб нет нарочно (см. README); цена
 # этого — компилятор молчит про файл, который перестал собираться, и проба
 # выглядит как «сегодня не гоняли». Этот скрипт — тот самый читатель
@@ -45,6 +45,16 @@ foreach ($dep in 'BecquerelMonitor.exe', 'BecquerelMonitor.pdb', 'BecquerelMonit
                  'matdb.sqlite', 'nucdb.sqlite', 'schemedb.sqlite') {
     $src = Join-Path $Bin $dep
     if (Test-Path $src) { Copy-Item $src (Join-Path $Out $dep) -Force }
+}
+
+# Сателлит с русскими строками — той же копией и по той же причине (W22).
+# Он лежит ОТДЕЛЬНОЙ папкой, и без неё проба, проверяющая обе локализации,
+# молча мерит английские строки дважды и говорит, что проверила две. Раньше об
+# этом было написано в README пробы FsaStackShot — предупреждение в тексте
+# читателя не заменяет.
+$ruSrc = Join-Path $Bin 'ru'
+if (Test-Path $ruSrc) {
+    Copy-Item $ruSrc (Join-Path $Out 'ru') -Recurse -Force
 }
 
 $csc = 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\Roslyn\csc.exe'

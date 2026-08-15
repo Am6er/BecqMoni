@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Xml.Serialization;
@@ -108,7 +108,10 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// вещество и его надо довезти до тех, у кого файл уже есть.
         /// </summary>
         /// 2 (16.08.2026) — ввезена таблица веществ ЛСРМ, 268 строк.
-        public const int CurrentSeedVersion = 2;
+        /// 3 (16.08.2026) — двуокись тория (ThO2) по указанию Amber: без неё
+        ///     состав «Электродов WT-20» нечем записать так, чтобы плотность
+        ///     из него считалась (`E26`).
+        public const int CurrentSeedVersion = 3;
 
         static List<GeometryMaterialLibrary.Entry> entries;
         static List<string> removed = new List<string>();

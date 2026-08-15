@@ -1,10 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
 using BecquerelMonitor.EfficiencyMaker;
@@ -282,6 +283,155 @@ namespace BecquerelMonitor
             }
         }
 
+        static void SetClamped(NumericUpDown box, decimal value)
+        {
+            box.Value = Math.Min(box.Maximum, Math.Max(box.Minimum, value));
+        }
+
+        /// <summary>
+        /// (E23) Восстановить в полях расчёта то, чем кривая была посчитана В
+        /// ПРОШЛЫЙ РАЗ. Возвращает строку для журнала; пусто — восстанавливать
+        /// нечего, поля остаются заводскими.
+        ///
+        /// До 16.08.2026 поля жили литералами конструктора (40 кэВ, 3000, 34
+        /// узла, 200 000 историй), и открытая на правку геометрия получала их
+        /// заново: кривую строили от 20 кэВ, а при следующем открытии
+        /// предлагалось 40. Прежние значения при этом не терялись — клеймо
+        /// <see cref="EfficiencyConfigData.ComputeStamp"/> (E12) хранит их все,
+        /// а края несёт и сама кривая, — их просто никто не читал обратно.
+        ///
+        /// Порядок источников: сперва клеймо (там ВСЕ параметры), при его
+        /// отсутствии — края кривой (у кривой, восстановленной по измерениям,
+        /// клейма нет по построению, но диапазон, в котором прибор описан, есть
+        /// и там). Потоки не восстанавливаются НАРОЧНО: это свойство машины, а
+        /// не постановки задачи, и число ядер у другого хозяина файла другое.
+        ///
+        /// Тем же приёмом и по тому же доводу живёт `ResponseMatrixForm.
+        /// ApplyCurveRange` (E18 «а») — с одной разницей: там переносятся
+        /// ТОЛЬКО границы, потому что матрица — другая задача со своей ценой
+        /// счёта, а здесь задача та же, пересчитать ту же кривую.
+        /// </summary>
+        string ApplyCalcOptions(EfficiencyConfigData config)
+        {
+            if (config == null)
+            {
+                return "";
+            }
+
+            double lo, hi, histories, nodes;
+            bool logGrid;
+            if (TryParseComputeStamp(config.ComputeStamp, out lo, out hi,
+                                     out histories, out nodes, out logGrid))
+            {
+                SetClamped(this.calcMinEnergyBox, (decimal)lo);
+                SetClamped(this.calcMaxEnergyBox, (decimal)hi);
+                if (histories > 0.0)
+                {
+                    SetClamped(this.calcHistoriesBox, (decimal)histories);
+                }
+
+                this.calcGridBox.SelectedIndex = logGrid ? 1 : 0;
+                if (logGrid && nodes > 0.0)
+                {
+                    SetClamped(this.calcPointsBox, (decimal)nodes);
+                }
+
+                return string.Format(CultureInfo.CurrentCulture,
+                                     Resources.EfficiencyMakerCalcRestored, config.ComputeStamp);
+            }
+
+            if (!CurveRange(config, out lo, out hi))
+            {
+                return "";
+            }
+
+            SetClamped(this.calcMinEnergyBox, (decimal)lo);
+            SetClamped(this.calcMaxEnergyBox, (decimal)hi);
+            return string.Format(CultureInfo.CurrentCulture,
+                                 Resources.EfficiencyMakerRangeFromCurve, lo, hi);
+        }
+
+        /// <summary>
+        /// Разобрать клеймо `phys=6; hist=200000; grid=20-3000 keV/34 std`.
+        /// Ложь — клейма нет или в нём нет диапазона; тогда лучше оставить поля
+        /// как есть, чем подставить половину разобранного.
+        ///
+        /// Клеймо пишется <see cref="CultureInfo.InvariantCulture"/> и читается
+        /// ею же: у хозяина файла с запятой в качестве разделителя дробной
+        /// части `20.5` иначе разобралось бы в 205.
+        /// </summary>
+        static bool TryParseComputeStamp(string stamp, out double lo, out double hi,
+                                         out double histories, out double nodes, out bool logGrid)
+        {
+            lo = hi = histories = nodes = 0.0;
+            logGrid = false;
+            if (string.IsNullOrEmpty(stamp))
+            {
+                return false;
+            }
+
+            Match grid = Regex.Match(stamp,
+                @"grid=\s*([0-9.]+)\s*-\s*([0-9.]+)\s*keV\s*/\s*([0-9]+)\s*(std|log)",
+                RegexOptions.IgnoreCase);
+            if (!grid.Success
+                || !double.TryParse(grid.Groups[1].Value, NumberStyles.Float,
+                                    CultureInfo.InvariantCulture, out lo)
+                || !double.TryParse(grid.Groups[2].Value, NumberStyles.Float,
+                                    CultureInfo.InvariantCulture, out hi)
+                || hi <= lo)
+            {
+                return false;
+            }
+
+            double parsed;
+            if (double.TryParse(grid.Groups[3].Value, NumberStyles.Float,
+                                CultureInfo.InvariantCulture, out parsed))
+            {
+                nodes = parsed;
+            }
+
+            logGrid = string.Equals(grid.Groups[4].Value, "log", StringComparison.OrdinalIgnoreCase);
+
+            Match hist = Regex.Match(stamp, @"hist=\s*([0-9]+)", RegexOptions.IgnoreCase);
+            if (hist.Success && double.TryParse(hist.Groups[1].Value, NumberStyles.Float,
+                                                CultureInfo.InvariantCulture, out parsed))
+            {
+                histories = parsed;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Края кривой конфигурации, кэВ. Минимум и максимум, а не первая и
+        /// последняя точка: порядок списка — соглашение, а не проверяемое
+        /// свойство (тот же довод, что в <c>ResponseMatrixForm.CurveRange</c>).
+        /// </summary>
+        static bool CurveRange(EfficiencyConfigData config, out double lo, out double hi)
+        {
+            lo = double.MaxValue;
+            hi = double.MinValue;
+            if (config == null || !config.HasCurve)
+            {
+                return false;
+            }
+
+            bool any = false;
+            foreach (ROIEfficiencyData point in config.Curve)
+            {
+                if (point == null || point.Energy <= 0.0)
+                {
+                    continue;
+                }
+
+                lo = Math.Min(lo, point.Energy);
+                hi = Math.Max(hi, point.Energy);
+                any = true;
+            }
+
+            return any && hi > lo;
+        }
+
         /// <summary>Параметры расчёта, как они выставлены в полях.</summary>
         EfficiencyCalculationOptions CurrentCalcOptions()
         {
@@ -383,6 +533,16 @@ namespace BecquerelMonitor
             // уровень, и по ней же график рисует полосу отличий.
             this.referenceCurve = config.HasCurve ? config.Curve : null;
             this.graph.SetData(this.referenceCurve, this.lastResult);
+
+            // (E23) Поля расчёта — тем, чем эта кривая была посчитана, а не
+            // заводским. И ВСЛУХ: молча подменённый диапазон неотличим от
+            // выбранного человеком, а именно на этом и попались — кривую
+            // строили от 20 кэВ, при следующем открытии предлагалось 40.
+            string restored = this.ApplyCalcOptions(config);
+            if (!string.IsNullOrEmpty(restored))
+            {
+                AppendLog(restored);
+            }
             this.dirty = false;
             this.UpdateTitle();
             this.UpdateSaveState();
