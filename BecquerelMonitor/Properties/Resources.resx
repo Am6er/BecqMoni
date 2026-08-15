@@ -43045,4 +43045,10 @@ The matrix is stored next to the device configuration, one file per geometry, an
   <data name="GeometryMaterialsSaveFailed" xml:space="preserve">
     <value>The material library could not be written to {0}: {1}</value>
   </data>
+  <data name="GeometryMaterialsKindOther" xml:space="preserve">
+    <value>Not assigned</value>
+  </data>
+  <data name="GeometryMaterialsByTable" xml:space="preserve">
+    <value>Fractions from the LSRM table</value>
+  </data>
 </root>

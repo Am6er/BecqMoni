@@ -1754,4 +1754,10 @@ http://xptable.sourceforge.net/</value>
   <data name="GeometryMaterialsSaveFailed" xml:space="preserve">
     <value>Библиотеку веществ не удалось записать в {0}: {1}</value>
   </data>
+  <data name="GeometryMaterialsKindOther" xml:space="preserve">
+    <value>Не назначено</value>
+  </data>
+  <data name="GeometryMaterialsByTable" xml:space="preserve">
+    <value>Доли из таблицы ЛСРМ</value>
+  </data>
 </root>

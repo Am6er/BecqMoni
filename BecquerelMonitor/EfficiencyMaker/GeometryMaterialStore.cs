@@ -48,6 +48,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         [XmlArray("Components")]
         [XmlArrayItem("Component")]
         public GeometryMaterialComponent[] Components;
+
+        /// <summary>
+        /// Массовые доли элементов, заданные прямо (ввоз таблицы ЛСРМ). Пусто у
+        /// вещества, описанного формулой или смесью.
+        /// </summary>
+        [XmlArray("Fractions")]
+        [XmlArrayItem("Element")]
+        public GeometryElementFraction[] Fractions;
     }
 
     /// <summary>Файл библиотеки веществ целиком.</summary>
@@ -99,7 +107,8 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Поколение вшитого списка. Растёт, когда в <c>Seed()</c> добавили
         /// вещество и его надо довезти до тех, у кого файл уже есть.
         /// </summary>
-        public const int CurrentSeedVersion = 1;
+        /// 2 (16.08.2026) — ввезена таблица веществ ЛСРМ, 268 строк.
+        public const int CurrentSeedVersion = 2;
 
         static List<GeometryMaterialLibrary.Entry> entries;
         static List<string> removed = new List<string>();
@@ -277,6 +286,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                     record.Components = entry.Components.ToArray();
                 }
 
+                if (entry.ElementFractions.Count > 0)
+                {
+                    List<GeometryElementFraction> fractions = new List<GeometryElementFraction>();
+                    foreach (KeyValuePair<int, double> pair in entry.ElementFractions)
+                    {
+                        fractions.Add(new GeometryElementFraction { Z = pair.Key, Fraction = pair.Value });
+                    }
+
+                    fractions.Sort((a, b) => a.Z.CompareTo(b.Z));
+                    record.Fractions = fractions.ToArray();
+                }
+
                 records.Add(record);
             }
 
@@ -305,6 +326,17 @@ namespace BecquerelMonitor.EfficiencyMaker
                             Material = component.Material,
                             Weight = component.Weight,
                         });
+                    }
+                }
+            }
+
+            if (record.Fractions != null)
+            {
+                foreach (GeometryElementFraction fraction in record.Fractions)
+                {
+                    if (fraction != null && fraction.Z > 0 && fraction.Fraction > 0.0)
+                    {
+                        entry.ElementFractions[fraction.Z] = fraction.Fraction;
                     }
                 }
             }

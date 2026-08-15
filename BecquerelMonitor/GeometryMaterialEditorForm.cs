@@ -41,7 +41,7 @@ namespace BecquerelMonitor
         ListBox list;
         ComboBox filterCombo, kindCombo;
         TextBox nameBox, abbrBox, densityBox, formulaBox;
-        RadioButton formulaRadio, mixtureRadio;
+        RadioButton formulaRadio, mixtureRadio, tableRadio;
         Panel formulaPanel, mixturePanel;
         DataGridView componentsGrid;
         DataGridViewComboBoxColumn componentColumn;
@@ -272,9 +272,25 @@ namespace BecquerelMonitor
                 Location = new Point(x + 180, y),
                 Text = Resources.GeometryMaterialsByMixture,
             };
+
+            // Третий способ — доли, ввезённые таблицей ЛСРМ. Выбрать его руками
+            // нельзя (доли с клавиатуры не вписывают), но ПОКАЗАТЬ обязательно:
+            // иначе человек правил бы формулу у вещества, состав которого от
+            // формулы не зависит, и не понимал бы, почему ничего не меняется.
+            // Переключение на формулу или смесь доли СНИМАЕТ, и состав внизу
+            // меняется сразу — отказ от таблицы виден, а не случается молча.
+            this.tableRadio = new RadioButton
+            {
+                AutoSize = true,
+                Enabled = false,
+                Location = new Point(x + 360, y),
+                Text = Resources.GeometryMaterialsByTable,
+            };
             this.formulaRadio.CheckedChanged += this.SourceKindChanged;
+            this.mixtureRadio.CheckedChanged += this.SourceKindChanged;
             this.Controls.Add(this.formulaRadio);
             this.Controls.Add(this.mixtureRadio);
+            this.Controls.Add(this.tableRadio);
             y += 26;
 
             this.formulaPanel = new Panel { Location = new Point(x, y), Size = new Size(510, 190) };
@@ -382,8 +398,10 @@ namespace BecquerelMonitor
                     return Resources.GeometryMaterialsKindCladding;
                 case GeometryMaterialLibrary.MaterialKind.BeakerWall:
                     return Resources.GeometryMaterialsKindBeakerWall;
-                default:
+                case GeometryMaterialLibrary.MaterialKind.Source:
                     return Resources.GeometryMaterialsKindSource;
+                default:
+                    return Resources.GeometryMaterialsKindOther;
             }
         }
 
@@ -464,10 +482,13 @@ namespace BecquerelMonitor
                     ? entry.Density.ToString("0.######", CultureInfo.InvariantCulture) : "";
                 this.formulaBox.Text = has ? entry.Formula ?? "" : "";
 
-                bool mixture = has && entry.IsMixture;
+                bool table = has && entry.ElementFractions.Count > 0;
+                bool mixture = has && !table && entry.IsMixture;
+                this.tableRadio.Enabled = table;
+                this.tableRadio.Checked = table;
                 this.mixtureRadio.Checked = mixture;
-                this.formulaRadio.Checked = !mixture;
-                this.formulaPanel.Visible = !mixture;
+                this.formulaRadio.Checked = !table && !mixture;
+                this.formulaPanel.Visible = !table && !mixture;
                 this.mixturePanel.Visible = mixture;
 
                 // Строки СНАЧАЛА, список выбора потом: ячейка выпадающего списка
@@ -546,6 +567,24 @@ namespace BecquerelMonitor
             entry.Density = double.TryParse(this.densityBox.Text.Trim(), NumberStyles.Float,
                                             CultureInfo.InvariantCulture, out density)
                 ? density : 0.0;
+
+            // Доли из таблицы правке не подлежат — правится всё остальное (имя,
+            // вид, плотность). А уход с таблицы на формулу или смесь есть ОТКАЗ
+            // от ввезённых долей, и он обязан быть ВИДЕН: состав внизу
+            // пересчитается сразу.
+            if (this.tableRadio.Checked)
+            {
+                if (relist)
+                {
+                    this.RefreshList(entry);
+                    return;
+                }
+
+                this.ShowComposition();
+                return;
+            }
+
+            entry.ElementFractions.Clear();
 
             if (this.mixtureRadio.Checked)
             {

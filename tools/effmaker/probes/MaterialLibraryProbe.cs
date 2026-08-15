@@ -19,8 +19,12 @@ using System.Windows.Forms;
 /// ЗНАЧЕНИЯ — доли элементов, содержимое файла, текст отказа, — а не то, что
 /// «код отработал без исключения».
 ///
-/// Семь случаев:
+/// Восемь случаев:
 ///   (а) файла нет            -> библиотека равна ВШИТОМУ засеву;
+///  (а2) таблица ЛСРМ         -> ввезена ДОЛЯМИ, а не формулой (у воды в их
+///                               файле опечатка `H20`), вещество без формулы
+///                               заводится, наши выверенные плотности целы,
+///                               строка с ρ = 0 не ввезена;
 ///   (б) круг записи-чтения   -> своё вещество переживает перечитывание;
 ///   (в) смесь                -> доли складываются с весами, и «1 и 1»
 ///                               равно «50 и 50»;
@@ -81,6 +85,7 @@ static class MaterialLibraryProbe
         try
         {
             ok &= CaseSeed();
+            ok &= CaseLsrmTable();
             ok &= CaseRoundTrip();
             ok &= CaseMixture();
             ok &= CaseRemoveSeeded();
@@ -148,6 +153,74 @@ static class MaterialLibraryProbe
         Console.WriteLine("   Lutetium oxide в списке: {0}", lu != null ? "ДА" : "НЕТ");
         Console.WriteLine("   совпало: {0}", ok ? "ДА" : "НЕТ");
         return ok && lu != null;
+    }
+
+    // ----------------------------------------------------------------------
+    // (а2) таблица ЛСРМ ввезена и считается ДОЛЯМИ, а не формулой
+    // ----------------------------------------------------------------------
+    static bool CaseLsrmTable()
+    {
+        Console.WriteLine();
+        Console.WriteLine("== (а2) таблица веществ ЛСРМ ==");
+        List<GeometryMaterialLibrary.Entry> other =
+            GeometryMaterialLibrary.Of(GeometryMaterialLibrary.MaterialKind.Other);
+        Console.WriteLine("   ввезено веществ (вид «не назначено»): {0}", other.Count);
+
+        // Вода — ловушка этого ввоза: у ЛСРМ формула записана с опечаткой,
+        // `H20`. Если бы состав брался из формулы, вышло бы двадцать
+        // водородов; берётся он из долей, и обязан совпасть с нашей водой,
+        // посчитанной из формулы.
+        GeometryMaterialLibrary.Entry lsrmWater = GeometryMaterialLibrary.ByName("Water, liquid");
+        GeometryMaterial water = lsrmWater != null
+            ? GeometryMaterialLibrary.Make(lsrmWater, lsrmWater.Density) : new GeometryMaterial();
+        double h, o;
+        water.Fractions.TryGetValue(1, out h);
+        water.Fractions.TryGetValue(8, out o);
+        Console.WriteLine("   вода: {0}", GeometryMaterialLibrary.Describe(water));
+        bool waterOk = Near(h, 0.111894, 1e-4) && Near(o, 0.888106, 1e-4);
+        Console.WriteLine("   вода не испорчена опечаткой H20: {0}", waterOk ? "ДА" : "НЕТ");
+
+        // Вещество БЕЗ формулы вовсе — ткань ICRU: описано только долями, и
+        // без прямых долей его нельзя было бы завести никак.
+        GeometryMaterialLibrary.Entry tissue = GeometryMaterialLibrary.ByName("Blood, whole (ICRU-44)");
+        bool byFractions = tissue != null && tissue.ElementFractions.Count > 0
+                           && string.IsNullOrEmpty(tissue.Formula);
+        double sum = 0.0;
+        if (tissue != null)
+        {
+            foreach (KeyValuePair<int, double> pair
+                     in GeometryMaterialLibrary.Make(tissue, tissue.Density).Fractions)
+            {
+                sum += pair.Value;
+            }
+        }
+
+        Console.WriteLine("   «Blood, whole (ICRU-44)»: долями без формулы {0}, сумма {1:F6}",
+                          byFractions ? "ДА" : "НЕТ", sum);
+
+        // Наши выверенные плотности таблица не затирает: у пробы SiO2 она
+        // НАСЫПНАЯ (1.6), а не монолитная 2.32 из файла ЛСРМ.
+        GeometryMaterialLibrary.Entry sand = null;
+        foreach (GeometryMaterialLibrary.Entry entry
+                 in GeometryMaterialLibrary.Of(GeometryMaterialLibrary.MaterialKind.Source))
+        {
+            if (string.Equals(entry.Name, "Silicon dioxide", StringComparison.Ordinal))
+            {
+                sand = entry;
+            }
+        }
+
+        bool ours = sand != null && Near(sand.Density, 1.6, 1e-9);
+        Console.WriteLine("   насыпная ρ(SiO2) = 1.6 уцелела: {0}", ours ? "ДА" : "НЕТ");
+
+        // Вещество с нулевой плотностью из файла НЕ ввезено.
+        bool noZero = GeometryMaterialLibrary.ByName("Lanthanum dioxysulfide") == null;
+        Console.WriteLine("   ρ = 0 у ЛСРМ не ввезено: {0}", noZero ? "ДА" : "НЕТ");
+
+        bool ok = other.Count >= 250 && waterOk && byFractions
+                  && Near(sum, 1.0, 1e-9) && ours && noZero;
+        Console.WriteLine("   совпало: {0}", ok ? "ДА" : "НЕТ");
+        return ok;
     }
 
     // ----------------------------------------------------------------------

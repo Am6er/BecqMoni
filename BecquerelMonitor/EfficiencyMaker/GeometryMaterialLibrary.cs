@@ -57,6 +57,25 @@ namespace BecquerelMonitor.EfficiencyMaker
             public readonly List<GeometryMaterialComponent> Components =
                 new List<GeometryMaterialComponent>();
 
+            /// <summary>
+            /// Массовые доли элементов, заданные ПРЯМО: Z -> доля. Третий способ
+            /// описать вещество, и он старше двух других — смотрится первым.
+            ///
+            /// Заведён под таблицу ЛСРМ (`materials.dat`, 287 веществ): у 39 из
+            /// них формулы нет вовсе — ткани ICRU, сплавы, воздух описаны только
+            /// долями, и вывести их не из чего. А у остальных формулу брать
+            /// НЕЛЬЗЯ ещё и потому, что записана она там для человека, а не для
+            /// разбора: полимеры стоят как `(C2F4)n`, а у воды — прямая опечатка
+            /// `H20`, которая нашим разбором формулы прочлась бы как двадцать
+            /// водородов. Доли в том же файле — величины NIST и сходятся к
+            /// единице у всех 287 строк.
+            ///
+            /// Правило «руками доли не вписывают» этим не нарушено: сюда они
+            /// попадают ИМПОРТОМ из файла поставщика, а не с клавиатуры, и
+            /// редактор их не показывает полем для правки.
+            /// </summary>
+            public readonly Dictionary<int, double> ElementFractions = new Dictionary<int, double>();
+
             public bool IsMixture
             {
                 get { return this.Components.Count > 0; }
@@ -82,6 +101,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                     });
                 }
 
+                foreach (KeyValuePair<int, double> pair in this.ElementFractions)
+                {
+                    copy.ElementFractions[pair.Key] = pair.Value;
+                }
+
                 return copy;
             }
 
@@ -98,7 +122,21 @@ namespace BecquerelMonitor.EfficiencyMaker
             Reflector,
             Cladding,
             BeakerWall,
-            Source
+            Source,
+
+            /// <summary>
+            /// Место не назначено. Сюда попадают 258 веществ таблицы ЛСРМ
+            /// (`materials.dat`): у них в файле никакого «куда годится» нет, а
+            /// разложить их по видам можно было бы только УГАДЫВАНИЕМ — свинец
+            /// это оправа или проба, стекло это сосуд или образец, зависит от
+            /// съёмки, а не от вещества.
+            ///
+            /// В списках редактора геометрии они идут ПОСЛЕ веществ своего вида,
+            /// за разделителем: короткий выверенный список остаётся сверху, а
+            /// спрятано при этом ничего. Назначить вид можно в редакторе
+            /// веществ — это одно движение, и оно запоминается.
+            /// </summary>
+            Other
         }
 
         /// <summary>
@@ -182,6 +220,58 @@ namespace BecquerelMonitor.EfficiencyMaker
             // списка — только умолчание поля; настоящая всегда подаётся в
             // `Make(entry, density)` и считается от массы.
             add("Lu2O3", "Lutetium oxide", "Lu2 O3", 9.42, MaterialKind.Source);
+
+            // Таблица веществ ЛСРМ (`materials.dat` их же GeometryMaster, 2008;
+            // ввоз 16.08.2026 — `tools/effmaker/import_lsrm_materials.py`).
+            // Двадцать девять строк выше — НАШИ, выверенные руками, и таблица их
+            // не трогает: у трёх плотность отличается НАРОЧНО (`SiO2` 1.6 и
+            // `CaCO3` 1.5 — насыпные, `M5`, против монолитных 2.32 и 2.8).
+            //
+            // Состав ввезённых задан массовыми долями, а не формулой, и вид у
+            // них `Other`: «куда годится» в файле ЛСРМ нет, а разложить 287
+            // веществ по пяти видам можно было бы только угадыванием.
+            HashSet<string> already = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (Entry entry in list)
+            {
+                already.Add(entry.Name);
+            }
+
+            foreach (string[] row in GeometryMaterialSeed.Rows)
+            {
+                if (already.Contains(row[0]))
+                {
+                    continue;
+                }
+
+                double density;
+                if (!double.TryParse(row[2], NumberStyles.Float, CultureInfo.InvariantCulture, out density)
+                    || !(density > 0.0))
+                {
+                    continue;
+                }
+
+                Entry imported = new Entry
+                {
+                    Abbr = "",
+                    Name = row[0],
+                    Formula = "",
+                    Density = density,
+                    Kind = MaterialKind.Other,
+                };
+
+                // Формула из файла кладётся ПОДПИСЬЮ, а не источником состава:
+                // разбирать её нельзя (`(C2F4)n`, опечатка `H20` у воды).
+                foreach (KeyValuePair<int, double> pair in GeometryMaterialSeed.Fractions(row[3]))
+                {
+                    imported.ElementFractions[pair.Key] = pair.Value;
+                }
+
+                if (imported.ElementFractions.Count > 0)
+                {
+                    list.Add(imported);
+                }
+            }
+
             return list;
         }
 
@@ -275,6 +365,38 @@ namespace BecquerelMonitor.EfficiencyMaker
             Dictionary<int, double> result = new Dictionary<int, double>();
             if (entry == null)
             {
+                return result;
+            }
+
+            // Прямые доли старше всего остального: если они есть, вещество ими и
+            // описано, а формула рядом — только для глаз.
+            if (entry.ElementFractions.Count > 0)
+            {
+                double weight = 0.0;
+                foreach (KeyValuePair<int, double> pair in entry.ElementFractions)
+                {
+                    if (pair.Key > 0 && pair.Value > 0.0)
+                    {
+                        weight += pair.Value;
+                    }
+                }
+
+                if (!(weight > 0.0))
+                {
+                    return result;
+                }
+
+                // Нормировка на всякий случай: у ЛСРМ суммы сходятся к единице
+                // все 287, но библиотека правится человеком, и полагаться на
+                // это нельзя.
+                foreach (KeyValuePair<int, double> pair in entry.ElementFractions)
+                {
+                    if (pair.Key > 0 && pair.Value > 0.0)
+                    {
+                        result[pair.Key] = pair.Value / weight;
+                    }
+                }
+
                 return result;
             }
 

@@ -4921,5 +4921,23 @@ namespace BecquerelMonitor.Properties {
             }
         }
         
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsKindOther.
+        /// </summary>
+        public static string GeometryMaterialsKindOther {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsKindOther", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsByTable.
+        /// </summary>
+        public static string GeometryMaterialsByTable {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsByTable", resourceCulture);
+            }
+        }
+        
     }
 }
