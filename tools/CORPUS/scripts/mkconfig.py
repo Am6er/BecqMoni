@@ -242,6 +242,54 @@ def build(det, path, kinds=('real', 'decoy')):
     return manifest, len(merged), len(sets)
 
 
+# ---------------------------------------------------------------------------
+# `T31`: копия сборки и баз в рабочем каталоге обязана обновляться ЗДЕСЬ
+# ---------------------------------------------------------------------------
+# Пробы и рабочие каталоги компилируются против `bin\Debug_Codex`, а ГРУЗЯТ
+# сборку и sqlite из СВОЕГО каталога. Разложенные однажды руками, они живут
+# своей жизнью: 14/15.08.2026 `probes/build` держал exe и базы от 09.08, и
+# матрицы считались физикой 10 при физике 11 в исходнике — день работы дважды.
+# Там это починили (`build_all.ps1`), а двадцать два `wd_<группа>` остались:
+# 16.08.2026 в них лежал exe от 13.08 и `nucdb.sqlite` от 05.08 — старше
+# РАЗДЕЛА БАЗЫ на три (08.08). Теперь копия обновляется при каждом `mkconfig.py`
+# и говорит, что заменила и насколько лежалым было прежнее.
+BIN = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(HERE))),
+                   'BecquerelMonitor', 'bin', 'Debug_Codex')
+
+WD_PAYLOAD = ('BecquerelMonitor.exe', 'BecquerelMonitor.pdb', 'BecquerelMonitor.exe.config',
+              'matdb.sqlite', 'nucdb.sqlite', 'schemedb.sqlite')
+
+
+def refresh_workdir(wd):
+    """Обновить в рабочем каталоге сборку и базы. Печатает только то, что заменил."""
+    import shutil
+    import time
+
+    if not os.path.isdir(BIN):
+        print('   ⚠ нет %s — копию сборки обновить нечем' % BIN)
+        return
+
+    replaced = []
+    for name in WD_PAYLOAD:
+        src = os.path.join(BIN, name)
+        if not os.path.isfile(src):
+            continue
+        dst = os.path.join(wd, name)
+        old = os.path.getmtime(dst) if os.path.isfile(dst) else None
+        if old is not None and abs(old - os.path.getmtime(src)) < 1.0:
+            continue
+        shutil.copy2(src, dst)
+        replaced.append((name, old))
+
+    for name, old in replaced:
+        if old is None:
+            print('   + %s' % name)
+        else:
+            days = (os.path.getmtime(os.path.join(wd, name)) - old) / 86400.0
+            print('   ~ %s (прежний был старше на %.1f сут, %s)'
+                  % (name, days, time.strftime('%d.%m %H:%M', time.localtime(old))))
+
+
 if __name__ == '__main__':
     import sys
     kinds = tuple(a.split('=')[1].split(',') for a in sys.argv[1:] if a.startswith('--kind='))
@@ -258,11 +306,13 @@ if __name__ == '__main__':
     dets = ([a.split('=', 1)[1].split(',') for a in sys.argv[1:]
              if a.startswith('--dets=')] + [sorted(DETECTORS)])[0]
 
+
     all_manifest = []
     for det in dets:
         wd = os.path.join(HERE, 'wd_%s%s' % (det, suffix))
         os.makedirs(os.path.join(wd, 'config'), exist_ok=True)
         path = os.path.join(wd, 'config', 'NuclideDefinition.xml')
+        refresh_workdir(wd)
         manifest, n_nuc, n_sets = build(det, path, kinds)
         all_manifest.extend(manifest)
         print('%-8s %4d sets, %4d nuclide rows -> %s' % (det, n_sets, n_nuc, path))
@@ -277,3 +327,18 @@ if __name__ == '__main__':
                 print('     k=%4.2f: ' % k + ' '.join('%6d' % grid[(k, i)] for i in I_GRID))
     with open(os.path.join(HERE, 'sets_manifest%s.json' % suffix), 'w') as fh:
         json.dump(all_manifest, fh)
+
+    # `T31`: каталоги групп, которых в корпусе больше НЕТ. Состав менялся семь
+    # раз, группы уходили целиком (CZT/LaBr3/SrI2 15.08.2026) и делились
+    # (`G1S` -> `G1S16`/`G1S24`), а каталоги остались лежать со своей сборкой и
+    # своим конфигом. Прогон из такого каталога измерит группу, которой в
+    # корпусе нет, и не скажет об этом ни слова.
+    import glob
+    orphans = sorted(os.path.basename(d)[3:] for d in glob.glob(os.path.join(HERE, 'wd_*'))
+                     if os.path.isdir(d)
+                     and os.path.basename(d)[3:] not in DETECTORS
+                     and os.path.basename(d)[3:] != 'app')
+    if orphans:
+        print()
+        print('⚠ каталоги групп, которых в корпусе НЕТ (T31): %s' % ', '.join(orphans))
+        print('   Их сборка и конфиг не обновляются — прогон оттуда измерит то, чего нет.')
