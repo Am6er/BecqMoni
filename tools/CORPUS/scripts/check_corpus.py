@@ -134,6 +134,111 @@ def check(entry, verbose=False):
     return out
 
 
+#: Состав набивки в сцене: `SC_`/`SM_` — цилиндр и маринелли. Точечные сцены
+#: вещества не имеют вовсе, и это не пропуск: у ОСГИ в паспорте стоит
+#: `Material=not essential`, `Mass=0`.
+SRC_PREFIX = {'CYLINDER': 'SC', 'MARINELLI': 'SM'}
+
+
+def scene_composition(path):
+    """Массовые доли по Z из файла сцены `.in` (он в cp1251)."""
+    with open(path, encoding='cp1251', errors='replace') as fh:
+        text = fh.read()
+    values = dict(re.findall(r'^\s*([A-Za-z_0-9.\[\]]+)\s*=\s*(.+?)\s*$',
+                             text, re.M))
+    prefix = SRC_PREFIX.get(values.get('SourceType', '').strip())
+    if prefix is None:
+        return None
+    try:
+        count = int(values.get('%s_nSourceElements' % prefix, '0'))
+    except ValueError:
+        return None
+    out = {}
+    for i in range(count):
+        z = values.get('%s_ZSource[%d]' % (prefix, i))
+        fraction = values.get('%s_FractionsSource[%d]' % (prefix, i))
+        if z is None or fraction is None:
+            continue
+        try:
+            out[int(z)] = float(fraction.split()[0])
+        except ValueError:
+            continue
+    return out
+
+
+def check_composition():
+    """`B13`: набивка сцены обязана быть той, что названа В ЗАГОЛОВКЕ спектра.
+
+    Сторож заведён 16.08.2026, и вот почему его не было: приёмка проверяла, что
+    геометрия НАЗВАНА и что файл на месте, но в файл не заглядывала ни разу.
+    Поставка ЛСРМ называет РАЗНЫЙ состав под ОДНИМ именем вещества в разные
+    поверки (`ОИСН-06`: без железа в 2016, Fe 0.151 в 2024; `ОИСН-16`: 0.655412
+    против 0.714), а сцена строилась по ИМЕНИ вещества — и все 24 съёмки 2024
+    года молча считались с веществом 2016-го.
+
+    Это НАПОМИНАНИЕ, а не отказ, ровно как у `B11`: привести сцены в порядок
+    значит пересчитать матрицы и СДВИНУТЬ базу, а решение о смене базы — за
+    Amber, не за приёмкой. Молчать при этом нельзя.
+    """
+    import csv
+    table = os.path.join(LAB, 'data', 'lsrm_spectrum_geometry.csv')
+    geom_dir = os.path.join(LAB, 'corpus', 'geometries')
+    index = os.path.join(geom_dir, 'index.csv')
+    print('\n== набивка сцены против заголовка спектра (B13) ==')
+    if not (os.path.isfile(table) and os.path.isfile(index)):
+        print('  нет таблицы или описи — проверка не делалась')
+        return True
+
+    wanted = {}
+    with open(table, encoding='utf-8-sig', newline='') as fh:
+        for row in csv.DictReader(fh):
+            raw = (row.get(u'состав_Z_доля') or '').strip()
+            if not raw:
+                continue
+            comp = {}
+            for part in raw.split():
+                z, _, value = part.partition(':')
+                try:
+                    comp[int(z)] = float(value)
+                except ValueError:
+                    pass
+            if comp:
+                wanted[row[u'спектр']] = comp
+
+    bad, checked = [], 0
+    with open(index, encoding='utf-8-sig', newline='') as fh:
+        for row in csv.DictReader(fh):
+            spectrum, geometry = row['spectrum'], row['geometry']
+            if spectrum not in wanted:
+                continue
+            path = os.path.join(geom_dir, geometry + '.in')
+            if not os.path.isfile(path):
+                continue
+            got = scene_composition(path)
+            if got is None:          # точечная сцена — вещества нет
+                continue
+            checked += 1
+            want = wanted[spectrum]
+            same = (set(want) == set(got)
+                    and all(abs(want[z] - got[z]) < 5e-4 for z in want))
+            if not same:
+                bad.append((spectrum, geometry, want, got))
+
+    print('  сверено сосудных спектров: %d' % checked)
+    if not bad:
+        print('  СОШЛОСЬ')
+        return True
+    print('  РАСХОДЯТСЯ: %d' % len(bad))
+    for spectrum, geometry, want, got in bad:
+        fmt = lambda c: ' '.join('%d:%.4f' % (z, c[z]) for z in sorted(c))
+        print('    %-24s -> %s' % (spectrum, geometry))
+        print('       заголовок: %s' % fmt(want))
+        print('       сцена    : %s' % fmt(got))
+    print('     сцена построена по ИМЕНИ вещества, а имя у двух поверок общее;')
+    print('     привести в порядок — пересчитать матрицы и СДВИНУТЬ базу (B13)')
+    return True
+
+
 def check_parts():
     """Раздел корпуса (B1): у каждого спектра назван part, у понятного —
     существующая геометрия и посчитанная под неё матрица.
@@ -296,7 +401,11 @@ def main():
     # это свойство спектра, а не поломка корпуса; отказом считается только
     # нарушение целостности: пропавшая строка parts.csv, лишняя строка,
     # отсутствующая геометрия, потерянный узел `<Efficiency>`.
-    return 0 if check_parts() else 1
+    ok = check_parts()
+    # Порядок намеренный: состав печатается ПОСЛЕ раздела, чтобы напоминание не
+    # тонуло выше вердикта, и в код возврата не входит (см. `check_composition`).
+    check_composition()
+    return 0 if ok else 1
 
 
 if __name__ == '__main__':

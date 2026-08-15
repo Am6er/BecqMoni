@@ -58,6 +58,22 @@ class CorpusGeomProbe
         public double PassportMassG;    // 0 — точечный источник
         public string NominalVolume;    // назван в паспорте, но под него НЕ подгонялось
         public string SourceMaterial;
+
+        /// <summary>
+        /// Состав набивки массовыми долями по Z — ИЗ ЗАГОЛОВКА САМОГО СПЕКТРА.
+        /// Пуст у сцен, вещество которых берётся из библиотеки по имени.
+        ///
+        /// ⚠ Заведено `B13` (16.08.2026), и вот зачем: библиотека держит ОДИН
+        /// состав на имя вещества, а поставка ЛСРМ называет РАЗНЫЙ состав под
+        /// одним именем в разные поверки. `ОИСН-06` в 2016 — без железа вовсе,
+        /// в 2024 — Fe 0.151; `ОИСН-16` — Fe 0.655412 против 0.714. Один и тот
+        /// же эталон (`K40_420-7-20_Маринелли`) лежит в обеих поверках с
+        /// одинаковыми массой и объёмом и РАЗНЫМ составом, то есть набивку
+        /// переобъявили, а не пересыпали. Пока состав брался по имени, все 24
+        /// съёмки 2024 года считались с веществом 2016-го: самопоглощение на
+        /// 46.5 кэВ расходится в 1.36 раза (μ/ρ — в 2.52).
+        /// </summary>
+        public Dictionary<int, double> SourceFractions;
         public Action<GeometryModel> Shape;
         public string Assumed;          // что ПРИНЯТО, словами
         public GeometryDetectorFacing Facing = GeometryDetectorFacing.Front;
@@ -120,16 +136,37 @@ class CorpusGeomProbe
             {
                 // Плотность ИЗМЕРЕНА: масса паспорта на объём построенной сцены.
                 double density = spec.PassportMassG / volumeMl;
-                GeometryMaterialLibrary.Entry entry =
-                    GeometryMaterialLibrary.ByName(spec.SourceMaterial);
-                if (entry == null)
+                if (spec.SourceFractions != null && spec.SourceFractions.Count > 0)
                 {
-                    Console.Error.WriteLine("в библиотеке нет вещества «"
-                                            + spec.SourceMaterial + "»");
-                    return 1;
-                }
+                    // Состав назван САМИМ спектром — библиотеку не спрашиваем
+                    // вовсе (`B13`): она хранит один состав на имя, а имя у
+                    // двух поверок общее. Имя оставляем родное — оно уезжает в
+                    // `.in`, и их программа узнаёт вещество по нему.
+                    GeometryMaterial source = new GeometryMaterial
+                    {
+                        Name = spec.SourceMaterial,
+                        Density = density,
+                    };
+                    foreach (KeyValuePair<int, double> pair in spec.SourceFractions)
+                    {
+                        source.Fractions[pair.Key] = pair.Value;
+                    }
 
-                g.Source = GeometryMaterialLibrary.Make(entry, density);
+                    g.Source = source;
+                }
+                else
+                {
+                    GeometryMaterialLibrary.Entry entry =
+                        GeometryMaterialLibrary.ByName(spec.SourceMaterial);
+                    if (entry == null)
+                    {
+                        Console.Error.WriteLine("в библиотеке нет вещества «"
+                                                + spec.SourceMaterial + "»");
+                        return 1;
+                    }
+
+                    g.Source = GeometryMaterialLibrary.Make(entry, density);
+                }
             }
 
             Console.WriteLine("== {0} ==", spec.Key);
@@ -343,7 +380,8 @@ class CorpusGeomProbe
         int iKey = head.IndexOf("спектр"), iVessel = head.IndexOf("сосуд");
         int iMat = head.IndexOf("вещество"), iMass = head.IndexOf("масса_г");
         int iVol = head.IndexOf("объём_мл"), iRo = head.IndexOf("плотность");
-        if (iKey < 0 || iVessel < 0 || iMat < 0 || iRo < 0)
+        int iComp = head.IndexOf("состав_Z_доля");
+        if (iKey < 0 || iVessel < 0 || iMat < 0 || iRo < 0 || iComp < 0)
         {
             Console.WriteLine("в {0} нет нужных колонок", path);
             return list;
@@ -351,15 +389,16 @@ class CorpusGeomProbe
 
         Dictionary<string, List<string>> scenes = new Dictionary<string, List<string>>();
         Dictionary<string, string[]> sample = new Dictionary<string, string[]>();
+        Dictionary<string, string> composition = new Dictionary<string, string>();
         foreach (string line in lines)
         {
             string[] c = line.Split(',');
-            if (c.Length <= iRo || c[iKey] == "спектр" || c[iMat].Length == 0)
+            if (c.Length <= iComp || c[iKey] == "спектр" || c[iMat].Length == 0)
             {
                 continue;
             }
 
-            string key = SceneKey(c[iVessel], c[iMat], c[iRo]);
+            string key = SceneKey(c[iKey], c[iVessel], c[iMat], c[iRo]);
             if (key == null)
             {
                 continue;
@@ -369,6 +408,19 @@ class CorpusGeomProbe
             {
                 scenes[key] = new List<string>();
                 sample[key] = c;
+                composition[key] = c[iComp].Trim();
+            }
+            else if (!string.Equals(composition[key], c[iComp].Trim(), StringComparison.Ordinal))
+            {
+                // ⛔ Отказ, а не предупреждение (`B13`). Две разные набивки под
+                // одним именем сцены — это ровно та ошибка, ради которой эпоха
+                // вошла в ключ: одна сцена не может быть верна для обеих, а
+                // выбранная молча окажется верной для одной. Сегодня такого
+                // нет; появится — прогон обязан встать, а не усреднить.
+                Console.Error.WriteLine(
+                    "сцена {0}: два разных состава — «{1}» у {2} и «{3}» у {4}",
+                    key, composition[key], scenes[key][0], c[iComp].Trim(), c[iKey]);
+                throw new InvalidOperationException("сцена с двумя составами: " + key);
             }
 
             scenes[key].Add(c[iKey]);
@@ -391,7 +443,8 @@ class CorpusGeomProbe
                 PassportVolumeMl = volume,
                 PassportMassG = mass,
                 SourceMaterial = material,
-                Assumed = "ничего: сосуд, вещество, масса и объём взяты из заголовка `.spe`; "
+                SourceFractions = ParseFractions(composition[pair.Key]),
+                Assumed = "ничего: сосуд, вещество, СОСТАВ, масса и объём взяты из заголовка `.spe`; "
                           + "внутренний диаметр выведен из объёма и толщины слоя поставки",
             };
 
@@ -418,8 +471,18 @@ class CorpusGeomProbe
         return list;
     }
 
-    /// <summary>Имя сцены: сосуд, набивка и плотность — всё, чем они различаются.</summary>
-    static string SceneKey(string vessel, string material, string density)
+    /// <summary>
+    /// Имя сцены: сосуд, набивка, плотность И ЭПОХА ПОВЕРКИ — всё, чем они
+    /// различаются.
+    ///
+    /// ⚠ Эпоха вошла в ключ 16.08.2026 (`B13`). Без неё семь маринелли-сцен
+    /// были ОБЩИМИ у поверок 2016 и 2024, а состав набивки у них разный —
+    /// сцена молча оказывалась верна для одной эпохи и неверна для другой.
+    /// Эпоха берётся из имени спектра корпуса (`G1S16_*` / `G1S24_*`), то есть
+    /// из того же разделения на эпохи, которым живёт весь корпус, а не
+    /// угадывается по дате.
+    /// </summary>
+    static string SceneKey(string spectrum, string vessel, string material, string density)
     {
         double ro = Num(density);
         if (!(ro > 0.0))
@@ -436,9 +499,46 @@ class CorpusGeomProbe
             return null;
         }
 
+        int cut = spectrum.IndexOf('_');
+        string epoch = cut > 0 ? spectrum.Substring(0, cut) : spectrum;
+        epoch = epoch.StartsWith("G1S", StringComparison.Ordinal)
+                ? epoch.Substring(3) : epoch;
+        if (epoch.Length == 0)
+        {
+            return null;
+        }
+
         string m = material.Replace("ОИСН-", "oisn").Replace("РИСН-", "risn").Replace(" ", "");
-        return string.Format(CultureInfo.InvariantCulture, "G1S_{0}_{1}_{2:000}",
-                             v, m, Math.Round(ro * 100.0));
+        return string.Format(CultureInfo.InvariantCulture, "G1S_{0}_{1}_{2:000}_p{3}",
+                             v, m, Math.Round(ro * 100.0), epoch);
+    }
+
+    /// <summary>
+    /// Состав из колонки `состав_Z_доля`: пары «Z:доля» через пробел. Пустая
+    /// строка — вещество назовётся библиотекой по имени, как было до `B13`.
+    /// </summary>
+    static Dictionary<int, double> ParseFractions(string text)
+    {
+        Dictionary<int, double> fractions = new Dictionary<int, double>();
+        if (string.IsNullOrEmpty(text))
+        {
+            return fractions;
+        }
+
+        foreach (string part in text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries))
+        {
+            string[] pair = part.Split(':');
+            int z;
+            double f;
+            if (pair.Length == 2
+                && int.TryParse(pair[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out z)
+                && double.TryParse(pair[1], NumberStyles.Float, CultureInfo.InvariantCulture, out f))
+            {
+                fractions[z] = f;
+            }
+        }
+
+        return fractions;
     }
 
     static double Num(string text)
