@@ -30,6 +30,30 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         static readonly string[] AlwaysPresent = { "SE-2614", "DE-2614", "Ann-511" };
 
         /// <summary>
+        /// Образы ВЫЛЕТА из кристалла — те, что матрица отклика содержит сама
+        /// (S47, гейт живёт в <see cref="FsaAnalyzer.EscapeGate"/>).
+        ///
+        /// `Ann-511` сюда НЕ входит и входить не может: аннигиляционный квант
+        /// рождается в защите и обвязке и ВЛЕТАЕТ в кристалл, а матрица
+        /// описывает судьбу кванта, который в кристалл уже попал. Разница не
+        /// формальная — на ней держится всё различение подмены §13е.
+        /// </summary>
+        static readonly string[] EscapeImages = { "SE-2614", "DE-2614" };
+
+        public static bool IsEscapeImage(string name)
+        {
+            foreach (string escape in EscapeImages)
+            {
+                if (string.Equals(name, escape, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Нуклиды, у которых в базе есть линии, но нет интенсивностей
         /// (характеристический рентген): подписать пик база позволяет, а
         /// построить по ней образ — нет, поэтому берётся встроенный.
