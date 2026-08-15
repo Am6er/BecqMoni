@@ -100,6 +100,20 @@ def main():
     args = ap.parse_args()
 
     want = wanted_geometry()
+
+    # Готовые узлы по ГЕОМЕТРИИ — донорский запас для спектров, которым
+    # геометрию назначили только что и в git их узла нет (см. ниже).
+    donors = {}
+    for path in sorted(glob.glob(os.path.join(args.spectra, '*.xml'))):
+        key = os.path.splitext(os.path.basename(path))[0]
+        need = want.get(key)
+        if not need or need in donors:
+            continue
+        text = io.open(path, encoding='utf-8-sig').read()
+        m = NODE.search(text)
+        if m is not None and node_name(text) == need:
+            donors[need] = m.group(0)
+
     restored, already, missing, foreign = 0, 0, 0, 0
     for path in sorted(glob.glob(os.path.join(args.spectra, '*.xml'))):
         key = os.path.splitext(os.path.basename(path))[0]
@@ -129,6 +143,7 @@ def main():
         rel = os.path.relpath(os.path.abspath(path), REPO).replace(os.sep, '/')
         old = from_git(args.rev, rel)
         src_key = key
+        donor_note = ''
         if old is None or NODE.search(old) is None:
             # переименованный ключ (B6): узел лежит в git под прежним именем
             prev = RENAMED.get(key)
@@ -137,14 +152,29 @@ def main():
                 cand = from_git(args.rev, alt)
                 if cand is not None and NODE.search(cand) is not None:
                     old, src_key = cand, prev
-        if old is None:
-            continue
+        node = None
+        if old is not None:
+            m = NODE.search(old)
+            if m is not None:
+                node = m.group(0)
 
-        m = NODE.search(old)
-        if m is None:
-            continue
+        if node is None:
+            # Спектра с этим узлом в git нет вовсе — так бывает у спектра,
+            # которому геометрию НАЗНАЧИЛИ ТОЛЬКО ЧТО. Берём узел у СОСЕДА по
+            # той же геометрии: узел несёт кривую геометрии, а не спектра, и у
+            # всех спектров одной геометрии он обязан быть одним и тем же.
+            # Именно так 16.08.2026 в понятную часть въехали тридцать две
+            # точечные съёмки поверки: сцена у них одна (паспорт ОСГИ —
+            # `Material=not essential`, `Mass,g=0`), а узла не было ни у одной.
+            need = want.get(key)
+            node, donor = (donors.get(need), need) if need else (None, None)
+            if node is None:
+                continue
 
-        node = m.group(0)
+            src_key = None
+            donor_note = '   [узел взят у соседа по геометрии «%s»]' % donor
+
+        m = re.search(r'<Guid>', node)
         anchor = '</ROIConfigReference>' if '</ROIConfigReference>' in text \
             else '</DeviceConfigReference>'
         if anchor not in text:
@@ -157,7 +187,8 @@ def main():
         print('%-24s <- %s (%s, %d символов)%s'
               % (key, name.group(1) if name else '?',
                  guid.group(1)[:8] if guid else '?', len(node),
-                 '' if src_key == key else '   [из ' + src_key + ', B6]'))
+                 donor_note if src_key is None
+                 else ('' if src_key == key else '   [из ' + src_key + ', B6]')))
         restored += 1
         if not args.apply:
             continue
