@@ -240,6 +240,8 @@ K-40 177 → 354 с, маринелли RadiaCode 577 → 1040 с) — **раз�
 python scripts/library_inventory.py     # опись исходной библиотеки спектров
 python scripts/library_screen.py        # отбор кандидатов
 python scripts/build_corpus.py          # сборка corpus/ (спектры, устройства, манифест)
+                                        # ⚠ печатает, если конфигурация прибора
+                                        #   поехала против лежащей в дереве (B8)
 python scripts/bg_from_spe.py --apply   # ⚠ ПОЛНЫЙ фон из оригиналов поверки (S44)
 corpusgeomprobe                         # геометрии понятной части -> corpus/geometries/*.in
 corpusmatrixprobe                       # матрица на каждую -> corpus/geometries/*.rmx
@@ -581,28 +583,36 @@ Cs-137.xml   8192ch 9.4M  Th6/6 Ra6/6 U5 2/2 U8 3/3 Cs1/1 K1/1 Am1/1 Lu3/3 Co2/2
 
 ## Как гонять
 
-Рабочий каталог собирается из сборки приложения и конфигураций корпуса:
+Прогонов ДВА, и они меряют разное:
+
+* **поиск пиков** — `scripts/wd_<группа>`, по рабочему каталогу на группу
+  детекторов (`scripts/mkconfig.py`);
+* **полноспектральный разбор** — `scripts/wd_app`, один каталог на весь корпус
+  (`scripts/mk_appwd.ps1`), см. следующий раздел. Он основной для FSA.
+
+Рабочий каталог поиска пиков собирается из сборки приложения и конфигураций
+корпуса — конфигурации приборов берутся ИЗ КОРПУСА, а не из
+`%AppData%\BecqMoni`: живой конфиг только на чтение, и подменять его нельзя.
 
 ```
-copy <build>\*                                 <wd>\
-xcopy /e %AppData%\BecqMoni\config             <wd>\config\
+copy <build>\*                              <wd>\
+xcopy /e config                             <wd>\config\
 del <wd>\config\device\*.xml
-copy tools\LibraryFitLab\corpus\devices\*.xml  <wd>\config\device\
+copy tools\CORPUS\corpus\devices\*.xml      <wd>\config\device\
+python tools\CORPUS\scripts\mkconfig.py
 ```
 
-Дальше как обычно: `mkconfig.py` кладёт туда `config\NuclideDefinition.xml`,
-прогон идёт по каталогу целиком.
-
-```
-LibraryFitLab.exe --workdir=<wd> --input=tools\LibraryFitLab\corpus\spectra ^
-                  --no-set --snr=4 --runs=runs.csv --peaks=peaks.csv
-```
-
-Проверено: 46 прогонов, 630 пиков, ни одного сбоя и ни одного пустого
-результата; у девятки число найденных пиков не изменилось.
-
-⚠ Рецепт выше — про харнесс `LibraryFitLab` и написан до переезда корпуса в
-`tools/CORPUS`; пути `tools\LibraryFitLab\corpus\…` в нём устарели (см. `T29`).
+⛔ **Харнесса `LibraryFitLab` БОЛЬШЕ НЕТ.** Он удалён вместе с переездом корпуса
+(`b75b538`, «Корпус вынесен в tools/CORPUS, LibraryFitLab удалён»), и прежний
+рецепт с `LibraryFitLab.exe --workdir=… --input=tools\LibraryFitLab\corpus\…`
+не воспроизводится: ни исполняемого файла, ни этих путей в дереве нет. Его
+числа (46 прогонов, 630 пиков) остаются в истории как СНЯТЫЕ ТОГДА и на
+нынешнем корпусе-126 ничего не значат — состав с тех пор менялся семь раз.
+⚠ И вместе с ним ушла ЕДИНСТВЕННАЯ прогонялка поиска пиков ПО ВСЕМУ КОРПУСУ:
+сегодня её нет. `tools/CORPUS/probes/PeakFinderProbe.cs` разбирает ОДИН спектр
+(диагностика «финдер не нашёл ни одного пика»), а рабочие каталоги
+`wd_<группа>` собираются, но гоняет по ним человек руками. Полноспектральный
+разбор корпуса целиком делает `CorpusFsaProbe` — следующий раздел.
 
 ### Полноспектральный разбор корпуса кодом ПРИЛОЖЕНИЯ (S1, 13.08.2026)
 
