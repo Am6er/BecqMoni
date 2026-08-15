@@ -568,6 +568,35 @@ namespace BecquerelMonitor
             y += 28;
         }
 
+        /// <summary>
+        /// Наполнить список веществ: сначала СВОЙ вид, потом «прочие».
+        ///
+        /// Прочие — 268 веществ таблицы ЛСРМ (`materials.dat`), у которых
+        /// назначения в файле нет. Разложить их по нашим пяти видам можно было
+        /// бы только угадыванием — свинец это оправа или проба, стекло сосуд
+        /// или образец, зависит от съёмки. Поэтому они идут ПОСЛЕ выверенного
+        /// короткого списка, а не вместо него и не вместо выбора человека: и
+        /// привычные вещества остаются сверху, и не спрятано ничего.
+        /// </summary>
+        static void FillMaterialCombo(ComboBox combo, GeometryMaterialLibrary.MaterialKind kind)
+        {
+            foreach (GeometryMaterialLibrary.Entry entry in GeometryMaterialLibrary.Of(kind))
+            {
+                combo.Items.Add(entry);
+            }
+
+            if (kind == GeometryMaterialLibrary.MaterialKind.Other)
+            {
+                return;
+            }
+
+            foreach (GeometryMaterialLibrary.Entry entry
+                     in GeometryMaterialLibrary.Of(GeometryMaterialLibrary.MaterialKind.Other))
+            {
+                combo.Items.Add(entry);
+            }
+        }
+
         /// <summary>Строка «вещество — плотность — состав».</summary>
         void MaterialRow(Control parent, ref int y, string key, string caption,
                          GeometryMaterialLibrary.MaterialKind kind)
@@ -585,11 +614,7 @@ namespace BecquerelMonitor
                 Size = new Size(230, 21),
                 DropDownStyle = ComboBoxStyle.DropDownList,
             };
-            foreach (GeometryMaterialLibrary.Entry entry in GeometryMaterialLibrary.Of(kind))
-            {
-                combo.Items.Add(entry);
-            }
-
+            FillMaterialCombo(combo, kind);
             combo.SelectedIndexChanged += (s, e) => this.MaterialChanged(key);
             parent.Controls.Add(combo);
             this.materials[key] = combo;
@@ -932,12 +957,7 @@ namespace BecquerelMonitor
                 foreach (KeyValuePair<string, ComboBox> pair in this.materials)
                 {
                     pair.Value.Items.Clear();
-                    foreach (GeometryMaterialLibrary.Entry entry
-                             in GeometryMaterialLibrary.Of(this.materialKinds[pair.Key]))
-                    {
-                        pair.Value.Items.Add(entry);
-                    }
-
+                    FillMaterialCombo(pair.Value, this.materialKinds[pair.Key]);
                     this.SelectMaterial(pair.Key, was[pair.Key]);
                 }
             }
