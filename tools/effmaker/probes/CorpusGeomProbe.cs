@@ -533,86 +533,7 @@ class CorpusGeomProbe
             Shape = g => { g.SourceType = GeometrySourceType.Point; g.PointDistance = 250.0; },
         });
 
-        list.Add(new Geom
-        {
-            Key = "G1S_denta_th232",
-            Preset = G1S,
-            Vessel = "флакон «Дента» 120 мл, вплотную",
-            Spectra = new[] { "G1S24_Th232_Denta120_2" },
-            PassportVolumeMl = 120.0,
-            PassportMassG = 192.0,
-            SourceMaterial = "Silicon dioxide",
-            Assumed = "внутренний диаметр 60 мм (банка); высота слоя выведена",
-            Shape = g => Beaker(g, DentaInnerDiameter, 120.0, 0.0),
-        });
-
-        list.Add(new Geom
-        {
-            Key = "G1S_denta_ra226",
-            Preset = G1S,
-            Vessel = "флакон «Дента» 120 мл, вплотную",
-            Spectra = new[] { "G1S24_Ra226_Denta120" },
-            PassportVolumeMl = 120.0,
-            PassportMassG = 74.0,
-            SourceMaterial = "Silicon dioxide",
-            Assumed = "внутренний диаметр 60 мм (банка); высота слоя выведена",
-            Shape = g => Beaker(g, DentaInnerDiameter, 120.0, 0.0),
-        });
-
-        list.Add(new Geom
-        {
-            Key = "G1S_denta_k40",
-            Preset = G1S,
-            Vessel = "флакон «Дента» 120 мл, вплотную",
-            Spectra = new[] { "G1S24_K40_Denta120" },
-            PassportVolumeMl = 120.0,
-            PassportMassG = 79.0,
-            SourceMaterial = "Silicon dioxide",
-            Assumed = "внутренний диаметр 60 мм (банка); высота слоя выведена",
-            Shape = g => Beaker(g, DentaInnerDiameter, 120.0, 0.0),
-        });
-
-        list.Add(new Geom
-        {
-            Key = "G1S_petri_th232",
-            Preset = G1S,
-            Vessel = "чашка Петри 60 мл, вплотную",
-            Spectra = new[] { "G1S24_Th232_Petri_2" },
-            PassportVolumeMl = 60.0,
-            PassportMassG = 96.0,
-            SourceMaterial = "Silicon dioxide",
-            Assumed = "внутренний диаметр 100 мм (плоская чашка); высота слоя выведена",
-            Shape = g => Beaker(g, PetriInnerDiameter, 60.0, 0.0),
-        });
-
-        list.Add(new Geom
-        {
-            Key = "G1S_petri_ra226",
-            Preset = G1S,
-            Vessel = "чашка Петри 60 мл, вплотную",
-            Spectra = new[] { "G1S24_Ra226_Petri" },
-            PassportVolumeMl = 60.0,
-            PassportMassG = 37.0,
-            SourceMaterial = "Silicon dioxide",
-            Assumed = "внутренний диаметр 100 мм (плоская чашка); высота слоя выведена",
-            Shape = g => Beaker(g, PetriInnerDiameter, 60.0, 0.0),
-        });
-
-        list.Add(new Geom
-        {
-            Key = "G1S_marinelli1l_th232",
-            Preset = G1S,
-            Vessel = "маринелли 1 л",
-            Spectra = new[] { "G1S24_Th232_Mar_2" },
-            PassportVolumeMl = 1000.0,
-            PassportMassG = 1600.0,
-            SourceMaterial = "Silicon dioxide",
-            Assumed = "колодец по внешнему размеру прибора плюс 1.5 мм зазора,"
-                      + " глубина 70 мм, слой 100 мм; внешний диаметр выведен",
-            Shape = g => Marinelli(g, 1.5, 70.0, 100.0, 1000.0),
-        });
-
-        // Единственный сосуд, который НЕ восстанавливается: маринелли 0.5 л
+                                                        // Единственный сосуд, который НЕ восстанавливается: маринелли 0.5 л
         // RadiaCode лежит в поставке ЛСРМ (`RadiaCode_Marinelli0.5.in`), и
         // заготовка редактора повторяет его размеры слово в слово. Значит взят
         // настоящий сосуд, а не выведенный: ни одного принятого размера.
@@ -709,6 +630,14 @@ class CorpusGeomProbe
             Assumed = "ничего — сосуд взят целиком из заготовки редактора",
             Shape = g => { g.SourceType = GeometrySourceType.Marinelli; },
         });
+
+        // ⚠ Шесть прежних сосудных сцен G1S (`G1S_denta_th232`, `_ra226`,
+        // `_k40`, `G1S_petri_th232`, `_ra226`, `G1S_marinelli1l_th232`) СНЯТЫ
+        // 16.08.2026 (`B12`). Их вытеснили сцены из таблицы: у прежних вещество
+        // стояло `Silicon dioxide`, а в банках две трети железа по массе, и
+        // внутренний диаметр был принят на глаз. Ни одна из шести не осталась в
+        // описи — все их спектры перешли на сцены, построенные по данным.
+        // Мёртвый код с неверным веществом опаснее отсутствующего: его копируют.
 
         // Сосудные сцены поверки — из таблицы, а не отсюда (`B12`).
         list.AddRange(VesselScenes(G1S));
