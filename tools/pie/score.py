@@ -211,6 +211,48 @@ def load_results(mode, out_dir):
     return results, groups, errors, chi2, eps
 
 
+def warn_members(results, members_on):
+    """Сказать, если состав назван ДОЧЕРНИМИ, а считают по цепочкам.
+
+    Ошибка старая и дорогая: выход `CorpusFsaProbe` называет состав дочерними
+    нуклидами (Ac-228, Pb-212, Tl-208 — так их подписывает поиск пиков), а
+    манифест — цепочками (Th-232). Без `--members` цепочка не засчитывается ни
+    разу, и recall выходит примерно вдвое хуже правды. В завещаниях это
+    записано словами трижды, но словами: сам скрипт молчал и выдавал ровные
+    неверные числа, по которым делались выводы.
+
+    Признак — прямой: среди названных компонентов есть ЧЛЕНЫ цепочек, которые
+    сами цепочками не являются. Пусто — считают выход `tools/pie` (он раскладывает
+    на цепочки), и ключ действительно не нужен.
+    """
+    if members_on:
+        return
+
+    daughters = set()
+    for chain, members in CHAIN_MEMBERS.items():
+        for member in members:
+            if member not in CHAIN_MEMBERS:
+                daughters.add(member)
+
+    seen = set()
+    for rows in results.values():
+        for row in rows:
+            name = row.get('component')
+            if name in daughters:
+                seen.add(name)
+
+    if not seen:
+        return
+
+    print('⚠ СОСТАВ НАЗВАН ДОЧЕРНИМИ, А СЧИТАЕТСЯ ПО ЦЕПОЧКАМ — добавьте --members',
+          file=sys.stderr)
+    print('   встречены: %s%s'
+          % (', '.join(sorted(seen)[:8]), ' …' if len(seen) > 8 else ''),
+          file=sys.stderr)
+    print('   без ключа цепочка не засчитывается ни разу: recall выйдет примерно '
+          'вдвое хуже правды', file=sys.stderr)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--sthr', type=float, default=3.0, help='порог доли, %%')
@@ -256,6 +298,8 @@ def main():
     results, groups, errors, chi2, eps = load_results(args.mode, args.out_dir)
     if not results:
         sys.exit('нет результатов режима %s в %s' % (args.mode, args.out_dir))
+
+    warn_members(results, args.members)
 
     resolution = load_resolutions()
     if args.min_fwhm > 0.0:
