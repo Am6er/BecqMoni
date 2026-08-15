@@ -13,6 +13,7 @@ SqrtFwhmCalibration, ничего не подгоняется заново.
 Запуск: python check_corpus.py [--key=...] [--verbose]
 """
 import os
+import re
 import sys
 import xml.etree.ElementTree as ET
 
@@ -34,6 +35,19 @@ calibrate.sample_lines = build_corpus.sample_lines
 # Порог приёмки в долях FWHM: за ним якорь перестаёт совпадать с пиком.
 TOL_OK = 0.25
 TOL_WARN = 0.40
+
+
+#: Узел привязки кривой — `<Efficiency>` с `<Guid>` внутри. Проверять НАЛИЧИЕ
+#: узла подстрокой `'<Efficiency>' in text` нельзя, и это ловушка: в файле с
+#: кривой тег встречается 35 раз — каждая точка кривой записана им же
+#: (`<Efficiency>0.00636…</Efficiency>` внутри `ROIEfficiencyData`). Ищем ровно
+#: открывающий тег узла: за ним сразу идёт `<Guid>`, по которому и находится
+#: матрица.
+EFF_NODE = re.compile(r'<Efficiency>\s*<Guid>')
+
+
+def has_efficiency_node(text):
+    return EFF_NODE.search(text) is not None
 
 
 def load(path):
@@ -135,6 +149,7 @@ def check_parts():
     extra = sorted(named - keys)
 
     counts, bad, need_matrix = {}, [], set()
+    no_node = []
     for r in rows:
         counts[r['part']] = counts.get(r['part'], 0) + 1
         if r['part'] != 'known':
@@ -144,6 +159,19 @@ def check_parts():
         if not r['geometry']:
             bad.append('%s: known без геометрии' % r['spectrum'])
             continue
+
+        # T30: геометрия на диске ЕСТЬ, а узел `<Efficiency>` в самом спектре
+        # мог пропасть — полная пересборка строит копии заново и о вставленных
+        # узлах не знает. Проверять надо ИМЕННО файл спектра: 14.08.2026 узлы
+        # исчезли у всех тринадцати понятных, геометрии при этом остались на
+        # месте, и приёмка говорила «СОШЛОСЬ», пока разбор шёл БЕЗ кривой и без
+        # матрицы.
+        spectrum_path = os.path.join(SPECTRA, r['spectrum'] + '.xml')
+        if os.path.isfile(spectrum_path):
+            with open(spectrum_path, encoding='utf-8-sig') as fh:
+                if not has_efficiency_node(fh.read()):
+                    no_node.append(r['spectrum'])
+
         if not os.path.isfile(os.path.join(geom_dir, r['geometry'] + '.in')):
             bad.append('%s: нет геометрии %s.in' % (r['spectrum'], r['geometry']))
         # Матрица в репозиторий НЕ кладётся (решение Amber 09.08.2026): она
@@ -167,7 +195,15 @@ def check_parts():
         print('  матрицы нет у %d геометрий (%s) — прогоните corpusmatrixprobe;'
               ' в репозитории их нет нарочно'
               % (len(need_matrix), ', '.join(sorted(need_matrix))))
-    ok = not (missing or extra or bad)
+    if no_node:
+        # Это ОТКАЗ, а не напоминание, в отличие от матрицы: без узла разбор
+        # понятной части идёт без кривой и без матрицы, а называет себя
+        # понятным. Тихо хуже — худший из исходов.
+        print('  БЕЗ УЗЛА <Efficiency> в самом спектре: %d — %s'
+              % (len(no_node), ', '.join(no_node)))
+        print('     кривая и матрица из прогона ПРОПАЛИ; вернуть те же узлы:')
+        print('     python tools/CORPUS/scripts/restore_eff_nodes.py --apply')
+    ok = not (missing or extra or bad or no_node)
     print('  %s' % ('СОШЛОСЬ' if ok else 'РАЗОШЛОСЬ'))
     return ok
 
@@ -205,9 +241,17 @@ def main():
             r['width_med'], verdict))
     print('\nплохих: %d %s' % (len(bad), ', '.join(bad)))
     print('спорных/непроверенных: %d %s' % (len(warn), ', '.join(warn)))
-    if not only:
-        check_parts()
+    if only:
+        return 0
+
+    # Код возврата, а не только печать (T30). Приёмка, которая ВСЕГДА выходит
+    # нулём, не читается ничем, кроме глаз: скрипт конвейера после неё
+    # продолжится как ни в чём не бывало. «Плохие» по невязке сюда не входят —
+    # это свойство спектра, а не поломка корпуса; отказом считается только
+    # нарушение целостности: пропавшая строка parts.csv, лишняя строка,
+    # отсутствующая геометрия, потерянный узел `<Efficiency>`.
+    return 0 if check_parts() else 1
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

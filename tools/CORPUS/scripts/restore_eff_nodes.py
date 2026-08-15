@@ -35,7 +35,17 @@ SPECTRA = os.path.join(HERE, os.pardir, 'corpus', 'spectra')
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 
-NODE = re.compile(r'<Efficiency>.*</Efficiency>', re.S)
+NODE = re.compile(r'<Efficiency>\s*<Guid>.*</Efficiency>', re.S)
+
+#: Тот же узел, но только его начало — для вопроса «он уже на месте?».
+#: ⚠ Спрашивать это подстрокой `'<Efficiency>' in text` НЕЛЬЗЯ, и до 16.08.2026
+#: здесь спрашивалось именно так: в файле С КРИВОЙ тег встречается 35 раз —
+#: каждая точка кривой записана им же (`<Efficiency>0.00636…</Efficiency>`
+#: внутри `ROIEfficiencyData`). Пока узел либо есть целиком, либо его нет
+#: целиком, ответ совпадал; но спектр со СВОЕЙ кривой в файле
+#: (`ResultData.FileEfficiency`) прошёл бы как «узел уже на месте», и привязка
+#: молча не вернулась бы.
+HEAD = re.compile(r'<Efficiency>\s*<Guid>')
 
 # B6 (решение Amber 15.08.2026): двенадцать ключей `G1S_*` сняты как побайтные
 # дубликаты эталонов, а геометрии и матрицы перевешены на эталоны-оригиналы.
@@ -78,7 +88,7 @@ def main():
     for path in sorted(glob.glob(os.path.join(args.spectra, '*.xml'))):
         key = os.path.splitext(os.path.basename(path))[0]
         text = io.open(path, encoding='utf-8-sig').read()
-        if '<Efficiency>' in text:
+        if HEAD.search(text) is not None:
             already += 1
             continue
 

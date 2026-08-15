@@ -25,6 +25,8 @@ scripts/spectra: их калибровки — те, на которых пос�
 Запуск:  python build_corpus.py [--only=KEY,KEY]
 """
 import csv
+import glob
+import io
 import json
 import os
 import re
@@ -887,6 +889,55 @@ def main():
     return rows
 
 
+#: Узел привязки кривой — `<Efficiency>` с `<Guid>` сразу за ним.
+#: ⚠ Спрашивать наличие узла подстрокой `'<Efficiency>' in text` НЕЛЬЗЯ: в
+#: файле с кривой тег встречается 35 раз — каждая её точка записана им же
+#: (`<Efficiency>0.00636…</Efficiency>` внутри `ROIEfficiencyData`).
+EFF_NODE = re.compile(r'<Efficiency>\s*<Guid>')
+
+
+def efficiency_keys():
+    u"""Ключи копий, у которых узел привязки сейчас ЕСТЬ."""
+    keys = set()
+    for path in glob.glob(os.path.join(OUT_SPECTRA, '*.xml')):
+        with io.open(path, encoding='utf-8-sig') as fh:
+            if EFF_NODE.search(fh.read()) is not None:
+                keys.add(os.path.splitext(os.path.basename(path))[0])
+    return keys
+
+
+def report_lost_efficiency(had):
+    u"""Назвать поимённо тех, у кого узел `<Efficiency>` БЫЛ и пропал (T30).
+
+    Пересборка строит копии заново и о вставленных узлах привязки не знает —
+    кривая и матрица понятной части исчезают МОЛЧА, а прогон после этого просто
+    тихо становится хуже. 14.08.2026 так пропали узлы всех тринадцати понятных
+    спектров, и заметили это не по отказу, а случайно.
+
+    Сравнение идёт с тем, что было ДО пересборки, а не со списком «кому
+    положено»: у непонятной части узла нет и быть не должно, и пересчёт по
+    `parts.csv` называл бы сотню спектров, у которых всё в порядке. Признак,
+    который кричит всегда, читать перестают на второй день.
+
+    Здесь не чинится, а НАЗЫВАЕТСЯ: вставка узлов — своя команда со своим
+    ключом `--apply`, и делать её молчаливым хвостом пересборки нельзя.
+    """
+    lost = sorted(had - efficiency_keys())
+    if not lost:
+        print(u'узлы <Efficiency>: сохранены все (%d)' % len(had))
+        return
+
+    print()
+    print(u'⚠ УЗЕЛ <Efficiency> ПРОПАЛ: %d из %d копий' % (len(lost), len(had)))
+    print(u'   %s' % (', '.join(lost[:12]) + (u', …' if len(lost) > 12 else '')))
+    print(u'   Это кривая и матрица понятной части: без узла разбор идёт БЕЗ')
+    print(u'   них — молча, без единой ошибки. Вернуть ТЕ ЖЕ узлы из git:')
+    print(u'       python tools/CORPUS/scripts/restore_eff_nodes.py --apply')
+    print(u'   и затем сверить: python tools/CORPUS/scripts/check_corpus.py')
+
+
 if __name__ == '__main__':
+    had = efficiency_keys()
     result = main()
     print('\nзаписано новых копий: %d' % len(result))
+    report_lost_efficiency(had)
