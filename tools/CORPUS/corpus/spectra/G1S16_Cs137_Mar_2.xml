@@ -22,7 +22,7 @@
         <EnergyCalibration>
           <PolynomialOrder>1</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-24.3817701700918</Coefficient><Coefficient>3.003135218255875</Coefficient></Coefficients>
+            <Coefficient>-24.381770170092018</Coefficient><Coefficient>3.003135218255876</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>542243</ValidPulseCount>
         <TotalPulseCount>542243</TotalPulseCount>
@@ -1062,7 +1062,7 @@
         <EnergyCalibration>
           <PolynomialOrder>1</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-24.3817701700918</Coefficient><Coefficient>3.003135218255875</Coefficient></Coefficients>
+            <Coefficient>-24.381770170092018</Coefficient><Coefficient>3.003135218255876</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>313777</ValidPulseCount>
         <TotalPulseCount>313777</TotalPulseCount>
@@ -2096,6 +2096,6 @@
           <DataPoint>8</DataPoint>
         </Spectrum>
       </BackgroundEnergySpectrum>
-    <BackgroundSpectrumFile>фон пустая защита_15.xml</BackgroundSpectrumFile><SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-6.907510570390534</Coefficient><Coefficient>0.8801753212951589</Coefficient><Coefficient>0.0003332708400675926</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
+    <BackgroundSpectrumFile>фон пустая защита_15.xml</BackgroundSpectrumFile><SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-7.100967322718867</Coefficient><Coefficient>0.9053324145690335</Coefficient><Coefficient>0.0002794896091837584</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

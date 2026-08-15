@@ -22,7 +22,7 @@
         <EnergyCalibration>
           <PolynomialOrder>3</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-15.278999628539243</Coefficient><Coefficient>2.883264172940944</Coefficient><Coefficient>0.00038931170469596937</Coefficient><Coefficient>-2.814763895770284e-07</Coefficient></Coefficients>
+            <Coefficient>-15.231704465642979</Coefficient><Coefficient>2.8743392137127564</Coefficient><Coefficient>0.00038810661529622715</Coefficient><Coefficient>-2.8060509747544136e-07</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>196903</ValidPulseCount>
         <TotalPulseCount>196903</TotalPulseCount>
@@ -2096,6 +2096,6 @@
           <DataPoint>6</DataPoint>
         </Spectrum>
       </BackgroundEnergySpectrum>
-    <BackgroundSpectrumFile>Фон закр кр вода_16.xml</BackgroundSpectrumFile><SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>34.425481369991644</Coefficient><Coefficient>0.6844170950492261</Coefficient><Coefficient>0.0009973668543209035</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
+    <BackgroundSpectrumFile>Фон закр кр вода_16.xml</BackgroundSpectrumFile><SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>35.46467547917502</Coefficient><Coefficient>0.5948972158210954</Coefficient><Coefficient>0.0011284274827790518</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

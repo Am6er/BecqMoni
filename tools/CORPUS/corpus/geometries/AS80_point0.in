@@ -27,10 +27,10 @@ DC_DetectorMountingThickness = 0 cm
 // Scintillator detector
 DS_CrystalDiameter = 8 cm
 DS_CrystalHeight = 8 cm
-DS_CrystalFrontReflectorThickness = 0.13 cm
-DS_CrystalSideReflectorThickness = 0.1 cm
-DS_CrystalFrontCladdingThickness = 0.18 cm
-DS_CrystalSideCladdingThickness = 0.2 cm
+DS_CrystalFrontReflectorThickness = 0.2 cm
+DS_CrystalSideReflectorThickness = 0.2 cm
+DS_CrystalFrontCladdingThickness = 0.3 cm
+DS_CrystalSideCladdingThickness = 0.3 cm
 DS_DetectorMountingThickness = 0.2 cm
 
 
@@ -173,15 +173,15 @@ M_DS_Crystal_Cladding.MatRelWeight[0] = 1
 
 // Reflector 
 DS_nCrystalReflectorElements = 2
-DS_RoCrystalReflector = 2.25
-DS_ZCrystalReflector[0] = 6
-DS_FractionsCrystalReflector[0] = 0.240183
-DS_ZCrystalReflector[1] = 9
-DS_FractionsCrystalReflector[1] = 0.759817
+DS_RoCrystalReflector = 0.8
+DS_ZCrystalReflector[0] = 8
+DS_FractionsCrystalReflector[0] = 0.396964
+DS_ZCrystalReflector[1] = 12
+DS_FractionsCrystalReflector[1] = 0.603036
 DS_FractionTypeReflector = MASS
-M_DS_Reflector.MName = Polytetrafluoroethylene
+M_DS_Reflector.MName = Magnesium oxide
 M_DS_Reflector.Nmaterials = 1
-M_DS_Reflector.Name[0] = Polytetrafluoroethylene                  
+M_DS_Reflector.Name[0] = Magnesium oxide                          
 M_DS_Reflector.MatRelWeight[0] = 1
 
 

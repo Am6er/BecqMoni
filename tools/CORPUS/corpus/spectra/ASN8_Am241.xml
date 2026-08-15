@@ -27,9 +27,9 @@
         <NumberOfChannels>8192</NumberOfChannels>
         <ChannelPitch>0.006</ChannelPitch>
         <EnergyCalibration>
-          <PolynomialOrder>1</PolynomialOrder>
+          <PolynomialOrder>2</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-6.192594026799709</Coefficient><Coefficient>0.3869232784439433</Coefficient></Coefficients>
+            <Coefficient>-9.40258</Coefficient><Coefficient>0.367894</Coefficient><Coefficient>3.42e-06</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>7802061</ValidPulseCount>
         <TotalPulseCount>7806275</TotalPulseCount>
@@ -8234,9 +8234,9 @@
         <NumberOfChannels>8192</NumberOfChannels>
         <ChannelPitch>0.006</ChannelPitch>
         <EnergyCalibration>
-          <PolynomialOrder>1</PolynomialOrder>
+          <PolynomialOrder>2</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-6.192594026799709</Coefficient><Coefficient>0.3869232784439433</Coefficient></Coefficients>
+            <Coefficient>-9.40258</Coefficient><Coefficient>0.367894</Coefficient><Coefficient>3.42e-06</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>142480</ValidPulseCount>
         <TotalPulseCount>142492</TotalPulseCount>
@@ -16442,6 +16442,6 @@
         <Format>Base64 encoded binary</Format>
         <Pulses />
       </PulseCollection>
-    <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-106.86905761662868</Coefficient><Coefficient>6.813012717864756</Coefficient><Coefficient>0.00035835442846053725</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
+    <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-108.10224979157262</Coefficient><Coefficient>9.229397478600259</Coefficient><Coefficient>-0.00018780494488918742</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

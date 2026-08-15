@@ -22,7 +22,7 @@
         <EnergyCalibration>
           <PolynomialOrder>2</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-16.392268322057664</Coefficient><Coefficient>2.9655516445174954</Coefficient><Coefficient>6.0895933340539755e-05</Coefficient></Coefficients>
+            <Coefficient>-8.545765930181666</Coefficient><Coefficient>2.8808447249644487</Coefficient><Coefficient>0.00022477775076583652</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>4351855</ValidPulseCount>
         <TotalPulseCount>4351855</TotalPulseCount>
@@ -1062,7 +1062,7 @@
         <EnergyCalibration>
           <PolynomialOrder>1</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-26.033008437080387</Coefficient><Coefficient>3.0162284192638884</Coefficient></Coefficients>
+            <Coefficient>-26.13208315892496</Coefficient><Coefficient>3.027707384224105</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>313777</ValidPulseCount>
         <TotalPulseCount>313777</TotalPulseCount>
@@ -2096,6 +2096,6 @@
           <DataPoint>8</DataPoint>
         </Spectrum>
       </BackgroundEnergySpectrum>
-    <BackgroundSpectrumFile>фон пустая защита_15.xml</BackgroundSpectrumFile><SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-5.344705296973085</Coefficient><Coefficient>0.9002649846926492</Coefficient><Coefficient>0.00026232021416982616</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
+    <BackgroundSpectrumFile>фон пустая защита_15.xml</BackgroundSpectrumFile><SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-2.666484649217016</Coefficient><Coefficient>0.9473696613621418</Coefficient><Coefficient>6.0052622933729854e-05</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

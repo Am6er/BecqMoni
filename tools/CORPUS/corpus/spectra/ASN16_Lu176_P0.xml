@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version='1.0' encoding='utf-8'?>
 <ResultDataFile>
   <FormatVersion>120920</FormatVersion>
   <ResultDataList>
@@ -29,7 +29,7 @@
         <EnergyCalibration>
           <PolynomialOrder>1</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-9.915455512438182</Coefficient><Coefficient>0.38687023628456463</Coefficient></Coefficients>
+            <Coefficient>-9.803186124258334</Coefficient><Coefficient>0.3865867093085934</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>47755</ValidPulseCount>
         <TotalPulseCount>47771</TotalPulseCount>
@@ -8236,7 +8236,7 @@
         <EnergyCalibration>
           <PolynomialOrder>1</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-9.915455512438182</Coefficient><Coefficient>0.38687023628456463</Coefficient></Coefficients>
+            <Coefficient>-9.803186124258334</Coefficient><Coefficient>0.3865867093085934</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>786407</ValidPulseCount>
         <TotalPulseCount>786788</TotalPulseCount>
@@ -16442,6 +16442,6 @@
         <Format>Base64 encoded binary</Format>
         <Pulses />
       </PulseCollection>
-    <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-189.92198313985924</Coefficient><Coefficient>7.597415089774874</Coefficient><Coefficient>2.406165379015524e-07</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
+    <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-113.63288661889031</Coefficient><Coefficient>4.580868289344255</Coefficient><Coefficient>0.0004950907668969746</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

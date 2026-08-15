@@ -20,9 +20,9 @@
         <NumberOfChannels>1024</NumberOfChannels>
         <ChannelPitch>1</ChannelPitch>
         <EnergyCalibration>
-          <PolynomialOrder>3</PolynomialOrder>
+          <PolynomialOrder>2</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-11.92396</Coefficient><Coefficient>2.838012</Coefficient><Coefficient>0.0004307931</Coefficient><Coefficient>-3.026703e-07</Coefficient></Coefficients>
+            <Coefficient>-36.75609311449737</Coefficient><Coefficient>3.1516468788958454</Coefficient><Coefficient>-0.0002464140907714499</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>444959</ValidPulseCount>
         <TotalPulseCount>444959</TotalPulseCount>
@@ -2096,6 +2096,6 @@
           <DataPoint>7</DataPoint>
         </Spectrum>
       </BackgroundEnergySpectrum>
-    <BackgroundSpectrumFile>фон открытый_15.xml</BackgroundSpectrumFile><SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>30.270931960620135</Coefficient><Coefficient>0.5598127985479318</Coefficient><Coefficient>0.0007594575281261986</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
+    <BackgroundSpectrumFile>фон открытый_15.xml</BackgroundSpectrumFile><SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-2.9197572040253523</Coefficient><Coefficient>0.7814686398161398</Coefficient><Coefficient>0.000650470277180727</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

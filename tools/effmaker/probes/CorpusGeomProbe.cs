@@ -138,7 +138,11 @@ class CorpusGeomProbe
             Console.WriteLine("   спектры  : {0}", string.Join(", ", spec.Spectra));
             if (spec.PassportMassG > 0.0)
             {
-                Console.WriteLine("   принято  : {0}", spec.Assumed);
+                // Пустое `Assumed` — не «забыли написать», а «принимать нечего»:
+                // всё названо. Печатать «принято : » с пустотой значило бы
+                // изображать допущение там, где его нет.
+                Console.WriteLine("   принято  : {0}",
+                                  string.IsNullOrEmpty(spec.Assumed) ? "ничего, всё названо" : spec.Assumed);
                 if (spec.PassportVolumeMl > 0.0)
                 {
                     double diff = 100.0 * (volumeMl - spec.PassportVolumeMl) / spec.PassportVolumeMl;
@@ -470,10 +474,17 @@ class CorpusGeomProbe
         // `ASN16_Lu176_P0` — с торца, так сказала Amber. Это первая в корпусе
         // пара «то же самое, но повёрнуто», и держится она на E21.
         //
-        // ⚠ ПРИНЯТО: зазор 5 мм — тот, что стоит в заготовке редактора. Его
-        // Amber не называла, а из отношения 511/307 он не восстанавливается:
-        // сравнимо только отношение постановок, а оно от зазора почти не
-        // зависит. Ошибка здесь двигает кривую, но не разворот.
+        // Зазора НЕТ: банка лежала НА детекторе — сказано Amber 16.08.2026, и
+        // ровно это здесь и стояло с самого начала (`Beaker(..., 0.0)` →
+        // `SC_BeakerToDetectorFrontDistance = 0 cm` в обоих файлах).
+        //
+        // ⚠ До 16.08.2026 в этом месте было написано «ПРИНЯТО: зазор 5 мм
+        // (заготовка редактора)» — и это была НЕПРАВДА о собственной модели:
+        // пять миллиметров стоят в `GeometryEditorPanel.Blank()`, но `Beaker`
+        // перезаписывает их нулём строкой ниже. Запись жила в поле `Assumed`,
+        // то есть попадала в сводку корпуса как честно названное допущение, а
+        // на деле называла то, чего в модели нет. Заодно она увела вопрос к
+        // Amber: у неё спрашивали зазор, который уже был выставлен верно.
         const string ASN16 = "Atom Spectra Nano 16";
         list.Add(new Geom
         {
@@ -485,7 +496,7 @@ class CorpusGeomProbe
             PassportMassG = 20.0,
             SourceMaterial = "Lutetium oxide",
             Facing = GeometryDetectorFacing.Side,
-            Assumed = "зазор 5 мм (заготовка редактора); сама банка названа точно",
+            Assumed = "",
             Shape = g => Beaker(g, 40.0, 18.85, 0.0),
         });
 
@@ -498,7 +509,7 @@ class CorpusGeomProbe
             PassportVolumeMl = 18.85,
             PassportMassG = 20.0,
             SourceMaterial = "Lutetium oxide",
-            Assumed = "зазор 5 мм (заготовка редактора); сама банка названа точно",
+            Assumed = "",
             Shape = g => Beaker(g, 40.0, 18.85, 0.0),
         });
 

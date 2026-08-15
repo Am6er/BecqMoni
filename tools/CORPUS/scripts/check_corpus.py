@@ -50,6 +50,15 @@ def has_efficiency_node(text):
     return EFF_NODE.search(text) is not None
 
 
+#: Имя кривой в узле — по нему видно, ЧЬЯ она.
+EFF_NODE_NAME = re.compile(r'<Efficiency>\s*<Guid>[^<]*</Guid>\s*<Name>([^<]*)</Name>')
+
+
+def efficiency_node_name(text):
+    m = EFF_NODE_NAME.search(text)
+    return m.group(1).strip() if m else None
+
+
 def load(path):
     root = ET.parse(path).getroot()
     rd = root.find('ResultDataList/ResultData')
@@ -169,8 +178,20 @@ def check_parts():
         spectrum_path = os.path.join(SPECTRA, r['spectrum'] + '.xml')
         if os.path.isfile(spectrum_path):
             with open(spectrum_path, encoding='utf-8-sig') as fh:
-                if not has_efficiency_node(fh.read()):
-                    no_node.append(r['spectrum'])
+                text = fh.read()
+            if not has_efficiency_node(text):
+                no_node.append(r['spectrum'])
+            else:
+                # ⚠ «Узел есть» не значит «узел ТОТ». Пересборка тянет копию из
+                # исходного файла библиотеки, а у него бывает СВОЙ узел: у
+                # `!ASN16\Lu176.xml` это кривая «Цилиндр». Матрицы под чужой
+                # guid не находится, и спектр понятной части ТИХО считается без
+                # матрицы — 16.08.2026 это заметили только по колонке «с матр.
+                # 16 из 17» в сводке прогона, а приёмка молчала.
+                name = efficiency_node_name(text)
+                if name != r['geometry']:
+                    bad.append('%s: узел кривой «%s», а геометрия назначена %s'
+                               % (r['spectrum'], name, r['geometry']))
 
         if not os.path.isfile(os.path.join(geom_dir, r['geometry'] + '.in')):
             bad.append('%s: нет геометрии %s.in' % (r['spectrum'], r['geometry']))

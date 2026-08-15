@@ -41,11 +41,26 @@ NODE = re.compile(r'<Efficiency>\s*<Guid>.*</Efficiency>', re.S)
 #: ⚠ Спрашивать это подстрокой `'<Efficiency>' in text` НЕЛЬЗЯ, и до 16.08.2026
 #: здесь спрашивалось именно так: в файле С КРИВОЙ тег встречается 35 раз —
 #: каждая точка кривой записана им же (`<Efficiency>0.00636…</Efficiency>`
-#: внутри `ROIEfficiencyData`). Пока узел либо есть целиком, либо его нет
-#: целиком, ответ совпадал; но спектр со СВОЕЙ кривой в файле
-#: (`ResultData.FileEfficiency`) прошёл бы как «узел уже на месте», и привязка
-#: молча не вернулась бы.
+#: внутри `ROIEfficiencyData`).
 HEAD = re.compile(r'<Efficiency>\s*<Guid>')
+
+#: Имя кривой в узле — по нему видно, ЧЬЯ она.
+NAME = re.compile(r'<Efficiency>\s*<Guid>[^<]*</Guid>\s*<Name>([^<]*)</Name>')
+
+
+def node_name(text):
+    m = NAME.search(text)
+    return m.group(1).strip() if m else None
+
+
+def wanted_geometry():
+    u"""Спектр -> геометрия, которую он обязан нести (`corpus/parts.csv`)."""
+    import csv
+    path = os.path.join(SPECTRA, os.pardir, 'parts.csv')
+    if not os.path.isfile(path):
+        return {}
+    with io.open(path, encoding='utf-8-sig', newline='') as fh:
+        return {r['spectrum']: r['geometry'] for r in csv.DictReader(fh) if r.get('geometry')}
 
 # B6 (решение Amber 15.08.2026): двенадцать ключей `G1S_*` сняты как побайтные
 # дубликаты эталонов, а геометрии и матрицы перевешены на эталоны-оригиналы.
@@ -84,13 +99,32 @@ def main():
     ap.add_argument('--apply', action='store_true')
     args = ap.parse_args()
 
-    restored, already, missing = 0, 0, 0
+    want = wanted_geometry()
+    restored, already, missing, foreign = 0, 0, 0, 0
     for path in sorted(glob.glob(os.path.join(args.spectra, '*.xml'))):
         key = os.path.splitext(os.path.basename(path))[0]
         text = io.open(path, encoding='utf-8-sig').read()
         if HEAD.search(text) is not None:
-            already += 1
-            continue
+            # ⚠ «Узел есть» и «узел ТОТ» — разные вещи, и 16.08.2026 разница
+            # стоила прогона. Пересборка строит копию из ИСХОДНОГО файла
+            # библиотеки, а у него бывает свой узел `<Efficiency>` — у
+            # `!ASN16\Lu176.xml` это кривая «Цилиндр». Такой узел проходил как
+            # «уже на месте», корпусный не возвращался, матрицы под чужой guid
+            # не находилось, и спектр понятной части ТИХО считался без матрицы:
+            # в сводке «с матр. 16 из 17», и всё.
+            #
+            # Поэтому спрашивается имя: узел годен, только если он несёт ТУ
+            # геометрию, которая назначена спектру в `parts.csv`.
+            name = node_name(text)
+            need = want.get(key)
+            if need is None or name == need:
+                already += 1
+                continue
+
+            print('%-24s ЧУЖОЙ узел «%s», нужен «%s» — заменяю'
+                  % (key, name, need))
+            foreign += 1
+            text = NODE.sub('', text, count=1)
 
         rel = os.path.relpath(os.path.abspath(path), REPO).replace(os.sep, '/')
         old = from_git(args.rev, rel)
@@ -133,8 +167,8 @@ def main():
             u'﻿' + text[:i] + node + text[i:])
 
     print()
-    print('вернуть узлов: %d; уже на месте: %d; без места: %d%s'
-          % (restored, already, missing,
+    print('вернуть узлов: %d (из них взамен ЧУЖИХ: %d); уже на месте: %d; без места: %d%s'
+          % (restored, foreign, already, missing,
              '' if args.apply else '  (--apply не задан, файлы не тронуты)'))
 
 

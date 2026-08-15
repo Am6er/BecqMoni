@@ -22,7 +22,7 @@
         <EnergyCalibration>
           <PolynomialOrder>2</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-17.51332136650819</Coefficient><Coefficient>2.977466299431031</Coefficient><Coefficient>3.684881257244572e-05</Coefficient></Coefficients>
+            <Coefficient>-17.513321366425572</Coefficient><Coefficient>2.9774662994310233</Coefficient><Coefficient>3.684881257235303e-05</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>1894016</ValidPulseCount>
         <TotalPulseCount>1894016</TotalPulseCount>
@@ -1062,7 +1062,7 @@
         <EnergyCalibration>
           <PolynomialOrder>2</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-17.51332136650819</Coefficient><Coefficient>2.977466299431031</Coefficient><Coefficient>3.684881257244572e-05</Coefficient></Coefficients>
+            <Coefficient>-17.513321366425572</Coefficient><Coefficient>2.9774662994310233</Coefficient><Coefficient>3.684881257235303e-05</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>313777</ValidPulseCount>
         <TotalPulseCount>313777</TotalPulseCount>
@@ -2096,6 +2096,6 @@
           <DataPoint>8</DataPoint>
         </Spectrum>
       </BackgroundEnergySpectrum>
-    <BackgroundSpectrumFile>фон пустая защита_15.xml</BackgroundSpectrumFile><SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-5.467680208987333</Coefficient><Coefficient>0.8943332811994023</Coefficient><Coefficient>0.00028923120313931666</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
+    <BackgroundSpectrumFile>фон пустая защита_15.xml</BackgroundSpectrumFile><SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-5.540594522430301</Coefficient><Coefficient>0.9186630444136015</Coefficient><Coefficient>0.0002365241816628976</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

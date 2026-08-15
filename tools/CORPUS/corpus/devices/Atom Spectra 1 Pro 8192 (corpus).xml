@@ -18,9 +18,9 @@
   <PolynomialEnergyCalibration>
     <PolynomialOrder>2</PolynomialOrder>
     <Coefficients>
-      <Coefficient>-4.316172854447541</Coefficient>
-      <Coefficient>0.3824957263914483</Coefficient>
-      <Coefficient>5.509389701296782e-06</Coefficient>
+      <Coefficient>-16.227311873565995</Coefficient>
+      <Coefficient>0.3984685930511434</Coefficient>
+      <Coefficient>1.9204325899449667e-06</Coefficient>
     </Coefficients>
   </PolynomialEnergyCalibration>
   <StabilizerConfig>
@@ -33,7 +33,7 @@
     <Min_SNR>4</Min_SNR>
     <FWHM_AT_0>0.001</FWHM_AT_0>
     <Ch_Fwhm>4096</Ch_Fwhm>
-    <Width_Fwhm>210</Width_Fwhm>
+    <Width_Fwhm>222</Width_Fwhm>
     <Max_Items>40</Max_Items>
     <Tolerance>10</Tolerance>
     <Min_Range>20.0</Min_Range>
@@ -41,7 +41,7 @@
     <Min_FWHM_Tol>1</Min_FWHM_Tol>
     <Max_FWHM_Tol>199</Max_FWHM_Tol>
     <Enabled>true</Enabled>
-    <Ch_Concat>1170</Ch_Concat>
+    <Ch_Concat>1024</Ch_Concat>
     <PeakType>0</PeakType>
     <ExpGaussExpLeftTail>1</ExpGaussExpLeftTail>
     <ExpGaussExpRightTail>1</ExpGaussExpRightTail>

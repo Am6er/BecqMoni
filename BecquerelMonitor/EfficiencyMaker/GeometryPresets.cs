@@ -108,10 +108,28 @@ namespace BecquerelMonitor.EfficiencyMaker
             // оставался с NaI (записан до подмены и заново не переписывался),
             // поэтому матрица `AS80_point0.rmx` и кривая этой геометрии верны
             // и пересчёта НЕ ТРЕБУЮТ — см. вычеркнутую строку `B7`.
+            // ⛔ ОБВЯЗКА 80x80 БОЛЬШЕ НЕ ЗАИМСТВОВАНА — названа Amber 16.08.2026:
+            // отражатель ОКСИД МАГНИЯ, порошок, 2 мм; корпус 3 мм алюминия.
+            // Прежде здесь стояла обвязка Nano 16 (фторопласт 1.3/1.0 мм и
+            // алюминий 1.8/2.0), взятая заимствованием, и оговорка «если у этих
+            // приборов отражатель или корпус другие, кривая уедет» сбылась:
+            // другие и есть.
+            //
+            // ПЛОТНОСТЬ ПОРОШКА 0.8 г/см³ — названа Amber 16.08.2026. Ставится
+            // ЯВНО, потому что в библиотеке у `Magnesium oxide` стоит 3.58 —
+            // монолит, и молчаливое её взятие завысило бы массовую толщину
+            // отражателя в 4.5 раза.
+            //
+            // Что из этого следует, чтобы не удивляться числам: новый слой
+            // ЛЕГЧЕ прежнего. Было 1.3 мм фторопласта при 2.25 = 0.29 г/см²,
+            // стало 2 мм оксида магния при 0.8 = 0.16 г/см², то есть вдвое
+            // меньше вещества между пробой и кристаллом. Зато корпус потяжелел:
+            // алюминий 1.8 -> 3 мм, 0.49 -> 0.81 г/см².
             list.Add(Make("Atom Spectra Pro 80x80", g =>
             {
                 Cylinder(g, 80.0, 80.0);
-                Wrapping(g, 1.3, 1.0, 1.8, 2.0, 2.0);
+                Wrapping(g, 2.0, 2.0, 3.0, 3.0, 2.0);
+                Reflector(g, "Magnesium oxide", 0.8);
                 Crystal(g, "Sodium iodide");
                 Fwhm(g, 7.65);                        // корпус, группа AS80x80
             }));
@@ -193,6 +211,16 @@ namespace BecquerelMonitor.EfficiencyMaker
             g.Crystal = Material(name);
         }
 
+        /// <summary>
+        /// Отражатель, отличный от фторопласта. Ставится ПОСЛЕ
+        /// <see cref="Wrapping"/>, который кладёт фторопласт всем: у большинства
+        /// приборов он и есть, а исключения называются поимённо.
+        /// </summary>
+        static void Reflector(GeometryModel g, string name, double density = 0.0)
+        {
+            g.Reflector = Material(name, density);
+        }
+
         /// <summary>Полуширина пика 662 кэВ, % — см. заголовок класса (E14).</summary>
         static void Fwhm(GeometryModel g, double percent)
         {
@@ -201,9 +229,19 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         static GeometryMaterial Material(string name)
         {
+            return Material(name, 0.0);
+        }
+
+        /// <summary>
+        /// То же, но с ЗАДАННОЙ плотностью: у порошка, засыпки и рыхлой набивки
+        /// она своя, а в библиотеке у вещества стоит монолитная. Ноль — взять
+        /// библиотечную.
+        /// </summary>
+        static GeometryMaterial Material(string name, double density)
+        {
             GeometryMaterialLibrary.Entry entry = GeometryMaterialLibrary.ByName(name);
             return entry != null
-                ? GeometryMaterialLibrary.Make(entry, entry.Density)
+                ? GeometryMaterialLibrary.Make(entry, density > 0.0 ? density : entry.Density)
                 : new GeometryMaterial();
         }
     }
