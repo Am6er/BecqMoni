@@ -20,9 +20,9 @@
         <NumberOfChannels>1024</NumberOfChannels>
         <ChannelPitch>1</ChannelPitch>
         <EnergyCalibration>
-          <PolynomialOrder>2</PolynomialOrder>
+          <PolynomialOrder>3</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-12.884661896659859</Coefficient><Coefficient>2.9158180235636366</Coefficient><Coefficient>8.393800004930492e-05</Coefficient></Coefficients>
+            <Coefficient>-8.606615592578049</Coefficient><Coefficient>2.8370694027619754</Coefficient><Coefficient>0.000430650019425915</Coefficient><Coefficient>-3.0256977322674745e-07</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>191626</ValidPulseCount>
         <TotalPulseCount>191626</TotalPulseCount>
@@ -1062,7 +1062,7 @@
         <EnergyCalibration>
           <PolynomialOrder>2</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-15.142541164058418</Coefficient><Coefficient>2.9439999078866617</Coefficient><Coefficient>6.0453380562991465e-05</Coefficient></Coefficients>
+            <Coefficient>-14.762355578820873</Coefficient><Coefficient>2.9455988030576754</Coefficient><Coefficient>6.048621297511032e-05</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>1968141</ValidPulseCount>
         <TotalPulseCount>1968141</TotalPulseCount>
@@ -2096,6 +2096,6 @@
           <DataPoint>7</DataPoint>
         </Spectrum>
       </BackgroundEnergySpectrum>
-    <BackgroundSpectrumFile>фон открытый_15.xml</BackgroundSpectrumFile><SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-4.562442597869056</Coefficient><Coefficient>0.917743218023105</Coefficient><Coefficient>0.0002355023782473396</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
+    <BackgroundSpectrumFile>фон открытый_15.xml</BackgroundSpectrumFile><SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>30.675004574212085</Coefficient><Coefficient>0.590330281794207</Coefficient><Coefficient>0.0006991103204067157</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

@@ -22,7 +22,7 @@
         <EnergyCalibration>
           <PolynomialOrder>2</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-17.941419243859333</Coefficient><Coefficient>2.9582522003611706</Coefficient><Coefficient>6.074604336455896e-05</Coefficient></Coefficients>
+            <Coefficient>-17.941108947669697</Coefficient><Coefficient>2.9582010374975596</Coefficient><Coefficient>6.074499276396067e-05</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>1115851</ValidPulseCount>
         <TotalPulseCount>1115851</TotalPulseCount>
@@ -2096,6 +2096,6 @@
           <DataPoint>8</DataPoint>
         </Spectrum>
       </BackgroundEnergySpectrum>
-    <BackgroundSpectrumFile>фон пустая защита_15.xml</BackgroundSpectrumFile><SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-5.816400577095338</Coefficient><Coefficient>0.9020752244665277</Coefficient><Coefficient>0.00026228142059642586</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
+    <BackgroundSpectrumFile>фон пустая защита_15.xml</BackgroundSpectrumFile><SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-5.851362733974097</Coefficient><Coefficient>0.9260868554216957</Coefficient><Coefficient>0.00021025174869967347</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

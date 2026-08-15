@@ -2159,6 +2159,6 @@
         <ExpGaussExpRightTail>1</ExpGaussExpRightTail>
         <Chi2pNdp>0</Chi2pNdp>
       </SimpleSqrtFwhmCalibration>
-    <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>1.7286212668983467</Coefficient><Coefficient>1.891009527898622</Coefficient><Coefficient>-0.0004494387504235783</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
+    <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-0.6911941141548353</Coefficient><Coefficient>1.6925932479618344</Coefficient><Coefficient>-0.0001890240670114554</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>
