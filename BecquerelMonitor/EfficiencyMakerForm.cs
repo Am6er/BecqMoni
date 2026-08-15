@@ -933,6 +933,106 @@ namespace BecquerelMonitor
         /// размечать руками, а угадать неправильно хуже, чем не угадать: выбор
         /// виден в ячейке, но проверять его станут не все.
         /// </summary>
+        /// <summary>
+        /// (E6) Чем спектры пачки различаются по СЪЁМКЕ. Пусто — расхождений не
+        /// нашлось (или сравнивать не по чему, и это тоже сказано).
+        ///
+        /// Сравнивается то, что в самом файле спектра и что задаёт геометрию:
+        /// прибор (разный прибор — разная съёмка заведомо), геометрия
+        /// прикреплённой кривой, масса и объём пробы. Ни одно из них не
+        /// «геометрия» целиком, но расхождение любого означает, что пачку
+        /// усредняют зря. Отказом это НЕ делается: бывает и осознанная сборная
+        /// пачка, а вот молчать нельзя.
+        ///
+        /// Файлы читаются облегчённо — без разбора калибровок и без обращения к
+        /// конфигурациям устройств: те же файлы всё равно прочтёт фиттер, а
+        /// упасть здесь на спектре, который он прочитал бы, было бы хуже
+        /// молчания. Любая беда чтения — строка в журнале, и только.
+        /// </summary>
+        List<string> PackGeometryComplaints()
+        {
+            var devices = new Dictionary<string, List<string>>();
+            var geometries = new Dictionary<string, List<string>>();
+            var amounts = new Dictionary<string, List<string>>();
+            var complaints = new List<string>();
+
+            foreach (string path in this.spectrumFiles)
+            {
+                string shown = Path.GetFileNameWithoutExtension(path);
+                ResultData data;
+                try
+                {
+                    var serializer = new System.Xml.Serialization.XmlSerializer(typeof(ResultDataFile));
+                    using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    {
+                        var file = (ResultDataFile)serializer.Deserialize(stream);
+                        data = file.ResultDataList != null && file.ResultDataList.Count > 0
+                            ? file.ResultDataList[0]
+                            : null;
+                    }
+                }
+                catch (Exception)
+                {
+                    continue;
+                }
+
+                if (data == null)
+                {
+                    continue;
+                }
+
+                Add(devices, data.DeviceConfigReference == null
+                    ? "" : data.DeviceConfigReference.Name ?? "", shown);
+
+                EfficiencyConfigData eff = data.Efficiency ?? data.FileEfficiency;
+                Add(geometries, eff != null && eff.HasGeometry ? eff.Geometry.Describe() : "", shown);
+
+                Add(amounts, data.SampleInfo == null ? "" : string.Format(
+                    CultureInfo.CurrentCulture, "{0:0.###} г / {1:0.###} мл",
+                    data.SampleInfo.Weight, data.SampleInfo.Volume), shown);
+            }
+
+            Complain(complaints, devices, Resources.EfficiencyMakerPackDevices);
+            Complain(complaints, geometries, Resources.EfficiencyMakerPackGeometries);
+            Complain(complaints, amounts, Resources.EfficiencyMakerPackAmounts);
+            return complaints;
+        }
+
+        static void Add(Dictionary<string, List<string>> map, string key, string spectrum)
+        {
+            if (string.IsNullOrEmpty(key))
+            {
+                return;
+            }
+
+            List<string> list;
+            if (!map.TryGetValue(key, out list))
+            {
+                list = new List<string>();
+                map[key] = list;
+            }
+
+            list.Add(spectrum);
+        }
+
+        static void Complain(List<string> complaints, Dictionary<string, List<string>> map, string caption)
+        {
+            if (map.Count < 2)
+            {
+                return;
+            }
+
+            var parts = new List<string>();
+            foreach (KeyValuePair<string, List<string>> pair in map)
+            {
+                parts.Add(string.Format(CultureInfo.CurrentCulture, "{0} ({1})",
+                                        pair.Key, string.Join(", ", pair.Value.ToArray())));
+            }
+
+            complaints.Add(string.Format(CultureInfo.CurrentCulture, caption,
+                                         map.Count, string.Join("; ", parts.ToArray())));
+        }
+
         string GuessChain(string path)
         {
             string name = Simplify(Path.GetFileNameWithoutExtension(path));
@@ -1192,6 +1292,16 @@ namespace BecquerelMonitor
                 MessageBox.Show(this, Resources.EfficiencyMakerNoSpectra, this.Text,
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return null;
+            }
+
+            // (E6) Пачка обязана быть ОДНОЙ геометрии: эффективность зависит от
+            // телесного угла и самопоглощения в пробе, и спектры разных съёмок
+            // дают бессмысленную среднюю кривую. Прежде форма писала об этом
+            // только в заголовке списка — предупреждением ВООБЩЕ, которое нечем
+            // соотнести с тем, что человек сейчас положил.
+            foreach (string line in this.PackGeometryComplaints())
+            {
+                AppendLog(line);
             }
 
             EfficiencyFitInput input = new EfficiencyFitInput();

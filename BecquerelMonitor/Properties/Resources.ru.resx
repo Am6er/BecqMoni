@@ -423,6 +423,15 @@
   <data name="GeometryMaterialsDensityDone" xml:space="preserve">
     <value>Плотность из состава: {0:0.###} г/см³.</value>
   </data>
+  <data name="EfficiencyMakerPackDevices" xml:space="preserve">
+    <value>⚠ В пачке {0} разных прибора: {1}. Кривая принадлежит ОДНОМУ прибору и одной геометрии.</value>
+  </data>
+  <data name="EfficiencyMakerPackGeometries" xml:space="preserve">
+    <value>⚠ В пачке {0} разных геометрии: {1}. Средняя по ним кривая не подходит ни одной.</value>
+  </data>
+  <data name="EfficiencyMakerPackAmounts" xml:space="preserve">
+    <value>⚠ В пачке {0} разных количества пробы: {1}. Самопоглощение у них разное, значит и кривая разная.</value>
+  </data>
   <data name="FSAModelResidualRow" xml:space="preserve">
     <value>невязка модели</value>
   </data>
