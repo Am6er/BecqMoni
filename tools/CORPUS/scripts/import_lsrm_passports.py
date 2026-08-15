@@ -24,8 +24,20 @@
     data/lsrm_standards.csv   строка на эталон: сосуд, объём, масса, вещество,
                               плотность, толщина, дата
     data/lsrm_materials.csv   строка на вещество: Z и массовая доля
-    data/lsrm_eff_points.csv  измеренные точки кривых: геометрия, энергия,
-                              эффективность, погрешность, нуклид
+⚠ **Точки кривых сюда НЕ пишутся, и это проверено, а не решено на глаз.** Их
+ввезли раньше: `data/eff_curve_g1s.csv` — те же 95 пар (геометрия, энергия) до
+третьего знака, ноль расхождений в обе стороны. Второй список тех же чисел
+разошёлся бы с первым при первой же правке; поэтому таблица точек убрана, а
+кривые живут в одном месте.
+
+⚠ **Все кривые поставки — поверка 2024** (`Date` в шапках 05–06.11.2024).
+Съёмок 2016 года среди них нет, и вешать их на группу `G1S16` нельзя.
+
+⚠ **Число в имени вещества — не год.** Это НАСЫПНАЯ ПЛОТНОСТЬ ×10, и это видно
+по самим паспортам: ОИСН-06 → медиана массы/объёма 0.62, ОИСН-10 → 1.00,
+ОИСН-15 → 1.60, ОИСН-16 → 1.69 г/см³. Паспорт ОИСН-16 при этом датирован
+17.09.2007. Серийный номер детектора «№0086-16» тоже содержит «16» и тоже не
+год: он стоит и в файлах 2024 года.
 
 Запуск:  python tools/CORPUS/scripts/import_lsrm_passports.py [--apply]
 """
@@ -170,6 +182,20 @@ def main():
     std = passports()
     heads, points, materials = efficiency()
 
+    # Сверка с уже ввезённой кривой, а не молчаливый дубль: если поставка
+    # когда-нибудь разойдётся с `eff_curve_g1s.csv`, об этом надо узнать здесь.
+    old = os.path.join(DATA, 'eff_curve_g1s.csv')
+    if os.path.isfile(old):
+        with io.open(old, encoding='utf-8-sig', newline='') as fh:
+            was = {(r['geometry'], round(float(r['E_keV']), 3)) for r in csv.DictReader(fh)}
+        now = {(r['геометрия'], round(r['энергия_кэВ'], 3)) for r in points}
+        if was != now:
+            print('⚠ точки кривых РАЗОШЛИСЬ с data/eff_curve_g1s.csv: '
+                  'только в поставке %d, только в корпусе %d'
+                  % (len(now - was), len(was - now)))
+        else:
+            print('точки кривых: %d пар, сошлись с data/eff_curve_g1s.csv до знака' % len(now))
+
     mat_rows = []
     for name, material in sorted(materials.items()):
         for pair in material.get('Compound', []):
@@ -181,7 +207,6 @@ def main():
     write(os.path.join(DATA, 'lsrm_standards.csv'), std, args.apply)
     write(os.path.join(DATA, 'lsrm_geometries.csv'), heads, args.apply)
     write(os.path.join(DATA, 'lsrm_materials.csv'), mat_rows, args.apply)
-    write(os.path.join(DATA, 'lsrm_eff_points.csv'), points, args.apply)
 
     print()
     print('сосуды паспортов: %s' % ', '.join(sorted({r['сосуд'] for r in std})))
