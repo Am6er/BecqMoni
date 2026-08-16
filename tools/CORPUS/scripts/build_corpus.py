@@ -26,6 +26,7 @@ scripts/spectra: их калибровки — те, на которых пос�
 """
 import csv
 import glob
+import hashlib
 import io
 import json
 import os
@@ -713,6 +714,176 @@ def write_manifest(rows):
     print('манифест: %s (%d строк)' % (path, len(rows)))
 
 
+def file_sha(path):
+    """SHA-256 файла; пустая строка, если файла нет (исходник мог уехать)."""
+    try:
+        h = hashlib.sha256()
+        with open(path, 'rb') as fh:
+            for chunk in iter(lambda: fh.read(1 << 20), b''):
+                h.update(chunk)
+        return h.hexdigest()
+    except OSError:
+        return ''
+
+
+def points_sha(pts):
+    """Отпечаток точек модели разрешения — ровно тех, по которым её и строят.
+
+    Считается по `repr` без округления НАРОЧНО: счёт детерминирован (два прогона
+    подряд дают побайтно одно), поэтому любое движение здесь настоящее, а не шум
+    последнего разряда. Огрубление скрыло бы как раз тот случай, ради которого
+    отпечаток и заведён.
+    """
+    h = hashlib.sha256()
+    for e, f, w in sorted(pts):
+        h.update(('%s|%s|%s\n' % (repr(e), repr(f), repr(w))).encode('utf-8'))
+    return h.hexdigest()
+
+
+def input_fingerprint(state, res_coef, legacy=None):
+    """Отпечаток ВХОДА пересборки: исходные файлы и принятые линии (`B10`).
+
+    Зачем. 16.08.2026 пересборка не воспроизвела вчерашнюю: у группы `AS80x80`
+    поехала модель разрешения (`res_c1` 5.6565… → 5.6494…), а назвать причину
+    было нечем — счёт детерминирован, значит поехал ВХОД, но входа никто не
+    записывал. Сторож `B8` смотрит только конфигурации приборов; исходные файлы
+    и отбор линий не сверял никто.
+
+    Отпечаток нарочно двухслойный, и в этом весь смысл: слой «исходный файл»
+    отвечает на «поехал ли файл на диске», слой «точки модели» — на «поехал ли
+    ОТБОР при том же файле». Один общий хеш сказал бы «что-то изменилось» и
+    оставил бы ровно тот вопрос, с которого началась строка.
+    """
+    rows = []
+    for key in sorted(state):
+        st = state[key]
+        e = st['entry']
+        src = resolve(e['path'])
+        try:
+            size = os.path.getsize(src)
+        except OSError:
+            size = ''
+        rows.append(dict(
+            scope='spectrum', det=st['det'], spectrum=key,
+            source=os.path.relpath(src, corpus_def.LIB),
+            sha256=file_sha(src), bytes=size, result_data=e.get('idx', 0),
+            channels=st['sp'].n, live_s=round(st['sp'].live, 1),
+            counts=int(st['sp'].counts.sum()),
+            lines=len(st['accepted']), res_c=''))
+
+    # Девятка копируется БАЙТ-В-БАЙТ и в `state` не попадает, поэтому под общий
+    # обход выше не подходит. Оставить её вне отпечатка было нельзя: дыра в
+    # семь спектров внутри сторожа, который заведён ради «назвать поехавший
+    # вход», — это ровно тот молчащий пропуск, от которого сторож и защищает.
+    # Вход у неё свой: готовая копия в `scripts/spectra` (её нет в репозитории)
+    # и коэффициенты в `data/calibration.json`, откуда берётся строка манифеста.
+    for e in (legacy or []):
+        src = os.path.join(LEGACY_DIR, e['key'] + '.xml')
+        try:
+            size = os.path.getsize(src)
+        except OSError:
+            size = ''
+        rows.append(dict(
+            scope='legacy', det=e['det'], spectrum=e['key'],
+            source=os.path.relpath(src, LAB), sha256=file_sha(src), bytes=size,
+            result_data=0, channels='', live_s='', counts='', lines='', res_c=''))
+
+    cal_path = os.path.join(LAB, 'data', 'calibration.json')
+    rows.append(dict(
+        scope='data', det='', spectrum='', source='data/calibration.json',
+        sha256=file_sha(cal_path), bytes=os.path.getsize(cal_path)
+        if os.path.isfile(cal_path) else '',
+        result_data='', channels='', live_s='', counts='', lines='', res_c=''))
+
+    for det in sorted(res_coef):
+        pts = resolution_points(state, det)
+        rows.append(dict(
+            scope='group', det=det, spectrum='',
+            source='точки модели разрешения',
+            sha256=points_sha(pts), bytes='', result_data='',
+            channels='', live_s='', counts='', lines=len(pts),
+            res_c=';'.join(repr(float(c)) for c in res_coef[det])))
+    return rows
+
+
+INPUTS_FIELDS = ['scope', 'det', 'spectrum', 'source', 'sha256', 'bytes',
+                 'result_data', 'channels', 'live_s', 'counts', 'lines', 'res_c']
+
+
+def write_inputs(state, res_coef, legacy=None):
+    """Сверить вход с записанным и переписать (`B10`).
+
+    ⚠ Сначала СВЕРКА, потом запись. Отпечаток, который молча перезаписывается,
+    не сторож, а протокол: он покажет расхождение ровно один раз — в `git diff`,
+    которого никто не открывает, пока не заподозрит. Здесь расхождение
+    называется вслух и поимённо, в тот же прогон, что его создал.
+    """
+    path = os.path.join(CORPUS, 'inputs.csv')
+    fresh = input_fingerprint(state, res_coef, legacy)
+    old = {}
+    if os.path.isfile(path):
+        with open(path, encoding='utf-8-sig', newline='') as fh:
+            for r in csv.DictReader(fh):
+                old[(r['scope'], r['det'], r['spectrum'])] = r
+
+    moved_src, moved_pts, moved_model, added, gone = [], [], [], [], []
+    for r in fresh:
+        k = (r['scope'], r['det'], r['spectrum'])
+        was = old.pop(k, None)
+        if was is None:
+            added.append(k)
+            continue
+        if r['scope'] != 'group':
+            if was['sha256'] != r['sha256'] or was['source'] != r['source']:
+                moved_src.append('%s: исходник %s (%s… → %s…)'
+                                 % (r['spectrum'] or r['scope'], r['source'],
+                                    (was['sha256'] or '?')[:8], (r['sha256'] or '?')[:8]))
+            elif r['scope'] == 'spectrum' and was['lines'] != str(r['lines']):
+                moved_pts.append('%s: принятых линий %s → %d (файл ТОТ ЖЕ)'
+                                 % (r['spectrum'], was['lines'], r['lines']))
+        else:
+            if was['sha256'] != r['sha256']:
+                moved_pts.append('%s: точки модели разрешения (%s… → %s…), линий %s → %d'
+                                 % (r['det'], was['sha256'][:8], r['sha256'][:8],
+                                    was['lines'], r['lines']))
+            # Сама модель — то, ЧЕМ `B10` себя и проявила: в `detectors.csv`
+            # поехал `res_c1`, а сказать, отчего, было нечем. Здесь она названа
+            # рядом с причиной, в одном выводе и в одном прогоне.
+            if (was.get('res_c') or '') != r['res_c']:
+                moved_model.append('%s: res_c %s → %s'
+                                   % (r['det'], was.get('res_c') or '(не записано)', r['res_c']))
+    gone = sorted(old)
+
+    print('\n== вход пересборки (B10) ==')
+    if not os.path.isfile(path):
+        print('  отпечатка ещё не было — записан впервые, сверять будет со следующего раза')
+    elif not (moved_src or moved_pts or moved_model or added or gone):
+        print('  СОШЛОСЬ: %d строк, вход не двигался' % len(fresh))
+    else:
+        # Порядок намеренный: сперва файл, потом отбор, потом модель. Поехавший
+        # исходник объясняет поехавшие точки, точки объясняют модель; обратное
+        # неверно, и читать это надо сверху вниз, как цепочку причин.
+        for line in moved_src:
+            print('  ФАЙЛ ПОЕХАЛ   %s' % line)
+        for line in moved_pts:
+            print('  ОТБОР ПОЕХАЛ  %s' % line)
+        for line in moved_model:
+            print('  МОДЕЛЬ ПОЕХАЛА %s' % line)
+        for k in added:
+            print('  НОВОЕ         %s %s %s' % k)
+        for k in gone:
+            print('  ПРОПАЛО       %s %s %s' % k)
+        if (moved_pts or moved_model) and not moved_src:
+            print('  ⚠ исходные файлы те же — поехал ОТБОР линий, а не данные')
+
+    with open(path, 'w', encoding='utf-8-sig', newline='') as fh:
+        w = csv.DictWriter(fh, fieldnames=INPUTS_FIELDS)
+        w.writeheader()
+        for r in fresh:
+            w.writerow(r)
+    return fresh
+
+
 def write_detectors(state, res_coef, rows):
     """corpus/detectors.csv — модель разрешения и рабочий диапазон на группу.
 
@@ -1072,6 +1243,10 @@ def main():
         rows = legacy_manifest(legacy_rows) + rows
         write_manifest(rows)
         write_detectors(state, res_coef, rows)
+        # `B10`: отпечаток входа пишется только при ПОЛНОЙ пересборке. При
+        # `--only` в state лежит один детектор, и запись стёрла бы остальные,
+        # превратив сторожа в источник ложных «ПРОПАЛО».
+        write_inputs(state, res_coef, legacy_rows)
 
     with open(os.path.join(HERE, 'corpus_state.json'), 'w', encoding='utf-8') as fh:
         json.dump({k: dict(det=v['det'], ecal=[float(c) for c in v['ecal'].coef],
