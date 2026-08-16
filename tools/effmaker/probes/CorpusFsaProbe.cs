@@ -1208,7 +1208,7 @@ namespace CorpusFsaProbe
 
             /// <summary>Сколько крупнейших невязок печатать на спектр (0 — не печатать).</summary>
             public int Residuals;
-            public int Knots = 64;
+            public int Knots = 128;   // B17: умолчание приложения, см. FsaAnalyzer
 
             /// <summary>Розыгрышей Монте-Карло-поверки пределов S9 (0 — не поверять).</summary>
             public int LimitsMc;
