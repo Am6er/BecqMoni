@@ -80,6 +80,17 @@ namespace CorpusFsaProbe
                 if (a == "--no-pr-gate") { o.PartialGate = false; continue; }
                 if (a == "--bg-rebin") { o.RebinBackground = true; continue; }
                 if (a == "--no-bg-rebin") { o.RebinBackground = false; continue; }
+                if (a.StartsWith("--knots=", StringComparison.Ordinal))
+                {
+                    // `B17`: делитель диапазона, задающий самый редкий шаг узлов
+                    // континуума. Больше — гуще узлы ВНИЗУ шкалы (наверху правит
+                    // 4·ПШПВ и ничего не меняется). Заведён ключом, а не правкой
+                    // умолчания, нарочно: A/B считается ОДНИМ двоичным файлом, и
+                    // разница тогда принадлежит только узлам.
+                    o.Knots = int.Parse(a.Substring(8), CultureInfo.InvariantCulture);
+                    continue;
+                }
+
                 if (a.StartsWith("--residuals=", StringComparison.Ordinal))
                 {
                     o.Residuals = int.Parse(a.Substring(12), CultureInfo.InvariantCulture);
@@ -325,6 +336,7 @@ namespace CorpusFsaProbe
                 analyzer.NoiseGamma = o.NoiseGamma;
                 analyzer.NoiseBeta = o.NoiseBeta;
                 analyzer.PartialResiduals = o.Partial;
+                analyzer.ContinuumKnotDivisor = o.Knots;
                 analyzer.PartialResidualGate = o.PartialGate;
                 analyzer.RebinBackgroundToSpectrum = o.RebinBackground;
 
@@ -1196,6 +1208,7 @@ namespace CorpusFsaProbe
 
             /// <summary>Сколько крупнейших невязок печатать на спектр (0 — не печатать).</summary>
             public int Residuals;
+            public int Knots = 64;
 
             /// <summary>Розыгрышей Монте-Карло-поверки пределов S9 (0 — не поверять).</summary>
             public int LimitsMc;

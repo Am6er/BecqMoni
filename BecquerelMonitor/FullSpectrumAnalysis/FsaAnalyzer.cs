@@ -55,6 +55,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         public ContinuumMode Mode { get; set; }
 
+        /// <summary>
+        /// Во сколько частей делится диапазон, задавая САМЫЙ РЕДКИЙ шаг узлов
+        /// континуум-сплайна (`BuildHatBasis`). Больше делитель — гуще узлы.
+        ///
+        /// ⚠ Сгущает только НИЗ шкалы, и в этом весь смысл (`B17`). Шаг узла —
+        /// `max(4·ПШПВ, minStep)`: наверху ПШПВ велика и правит она, внизу мала,
+        /// и связывает равномерный пол `minStep`. Уменьшая пол, трогаем ровно
+        /// то место, где невязка и стояла гребёнкой с шагом ≈43 кэВ.
+        ///
+        /// Умолчание 64 — то, при котором посчитана вся история измерений.
+        /// </summary>
+        public int ContinuumKnotDivisor { get; set; }
+
         public double MinEnergy { get; set; }
 
         public double MaxEnergy { get; set; }
@@ -519,7 +532,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             List<double[]> fixedColumns = new List<double[]>();
             if (this.Mode == ContinuumMode.Spline)
             {
-                fixedColumns.AddRange(BuildHatBasis(fwhmCalibration, chLo, chHi, channels));
+                fixedColumns.AddRange(BuildHatBasis(fwhmCalibration, chLo, chHi, channels,
+                                                   this.ContinuumKnotDivisor));
             }
 
             // Наложения участвуют с САМОГО начала, вместе с сеткой дрейфа:
@@ -3417,10 +3431,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// локальной ПШПВ, чтобы континуум не мог поглотить одиночный пик, но не
         /// реже чем 1/64 диапазона.
         /// </summary>
-        static List<double[]> BuildHatBasis(FwhmCalibration fwhmCalibration, int chLo, int chHi, int channels)
+        static List<double[]> BuildHatBasis(FwhmCalibration fwhmCalibration, int chLo, int chHi,
+                                            int channels, int knotDivisor)
         {
             List<int> knots = new List<int>();
-            double minStep = (chHi - chLo) / 64.0;
+            // Ноль и отрицательное — от невыставленного свойства (структура
+            // собрана не через конструктор); тогда берётся историческое 64.
+            double minStep = (chHi - chLo) / (double)(knotDivisor > 0 ? knotDivisor : 64);
             int ch = chLo;
             while (ch < chHi)
             {
