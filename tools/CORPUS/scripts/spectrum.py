@@ -22,8 +22,16 @@ class Spectrum(object):
         self.counts = np.array([int(d.text) for d in es.findall('Spectrum/DataPoint')], dtype=float)
         self.n = int(es.find('NumberOfChannels').text)
         self.ecal = np.array([float(x.text) for x in es.findall('EnergyCalibration/Coefficients/Coefficient')])
-        self.device = rd.find('DeviceConfigReference/Name').text
-        self.guid = rd.find('DeviceConfigReference/Guid').text
+        # Ссылка на прибор бывает неполной: у части файлов есть только имя, а
+        # GUID отсутствует вовсе (E5, 16.08.2026: `K-40 деревня маринелли 0.5`
+        # на RC-103 — файл писал другой инструмент). Падать здесь нельзя:
+        # рабочая копия корпуса всё равно переписывает ссылку на конфигурацию
+        # своего детектора, а до этого места дело просто не доходило.
+        def _text(node):
+            return None if node is None or node.text is None else node.text
+
+        self.device = _text(rd.find('DeviceConfigReference/Name'))
+        self.guid = _text(rd.find('DeviceConfigReference/Guid'))
         lt = es.find('LiveTime')
         self.live = float(lt.text) if lt is not None and lt.text else float(es.find('MeasurementTime').text)
         fw = rd.find('SqrtFwhmCalibration')

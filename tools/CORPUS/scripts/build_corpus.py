@@ -50,6 +50,11 @@ OUT_DEVICES = os.path.join(CORPUS, 'devices')
 RAW = os.path.join(HERE, '_corpus_raw')
 LEGACY_DIR = os.path.join(HERE, 'spectra')
 
+# Закреплённые исходники (`from_corpus`): копии, которые пересборка НЕ пишет.
+# Отдельный каталог, а не сама `corpus/spectra`, — потому что ту пересборка
+# перезаписывает, и отпечаток входа стал бы гоняться за собственным выходом.
+PINNED = os.path.join(CORPUS, 'pinned')
+
 sys.path.insert(0, HERE)
 
 import calibrate                                     # noqa: E402
@@ -310,13 +315,44 @@ def spectrum_sum(es):
     return sum(int(d.text or 0) for d in es.findall('Spectrum/DataPoint'))
 
 
+def source_path(entry):
+    """Откуда брать спектр: библиотека или СОБСТВЕННАЯ копия корпуса.
+
+    Возвращает пару «путь, номер ResultData».
+
+    ⛔ `from_corpus=True` — решение Amber 16.08.2026 по двум спектрам Lu-176.
+    Их библиотечные файлы были пересохранены в приложении (14:30 и 14:50) уже
+    ПОСЛЕ того, как корпус собран, и сторож входа это увидел. Прежних байтов
+    библиотеки не существует — файл перезаписан, — поэтому «не брать новую
+    версию» может означать ровно одно: не перечитывать их из библиотеки вовсе,
+    а взять собственную копию корпуса.
+
+    Копия равноценна старому исходнику во всём, чем пользуется конвейер: число
+    каналов, мёртвое время и полный счёт сошлись с записью сторожа ДО ЕДИНИЦЫ
+    (сверено чтением, 16.08.2026). Разница библиотечных файлов — во вшитой в
+    них кривой эффективности, которую пересборка не читает.
+
+    Копия уже прошла через `extract` однажды: в ней один `ResultData`, импульсы
+    сняты, мёртвое время проставлено, фон лежит внутри как
+    `BackgroundEnergySpectrum`. Поэтому номер `ResultData` здесь всегда 0, а
+    фон возьмётся встроенный — библиотечный файл фона не понадобится тоже.
+    """
+    if entry.get('from_corpus'):
+        path = os.path.join(PINNED, entry['key'] + '.xml')
+        if not os.path.isfile(path):
+            raise IOError('нет закреплённой копии: %s' % path)
+        return path, 0
+
+    return resolve(entry['path']), entry.get('idx', 0)
+
+
 def extract(entry):
     """Единственный ResultData в отдельном файле, без импульсов, с фоном."""
-    src = resolve(entry['path'])
+    src, which = source_path(entry)
     tree = ET.parse(src)
     root = tree.getroot()
     rds = root.findall('ResultDataList/ResultData')
-    rd = rds[entry.get('idx', 0)]
+    rd = rds[which]
     lst = root.find('ResultDataList')
     for other in list(lst):
         if other is not rd:
@@ -831,15 +867,19 @@ def input_fingerprint(state, res_coef, legacy=None):
     for key in sorted(state):
         st = state[key]
         e = st['entry']
-        src = resolve(e['path'])
+        src, which = source_path(e)
         try:
             size = os.path.getsize(src)
         except OSError:
             size = ''
+        # У закреплённых ключей источник — копия корпуса, и записать надо ЕЁ:
+        # сторож обязан сверять то, что читалось на самом деле.
+        rel = (os.path.join('<закреплено>', os.path.basename(src)) if e.get('from_corpus')
+               else os.path.relpath(src, corpus_def.LIB))
         rows.append(dict(
             scope='spectrum', det=st['det'], spectrum=key,
-            source=os.path.relpath(src, corpus_def.LIB),
-            sha256=file_sha(src), bytes=size, result_data=e.get('idx', 0),
+            source=rel,
+            sha256=file_sha(src), bytes=size, result_data=which,
             channels=st['sp'].n, live_s=round(st['sp'].live, 1),
             counts=int(st['sp'].counts.sum()),
             lines=len(st['accepted']), res_c=''))

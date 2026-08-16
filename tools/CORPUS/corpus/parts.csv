@@ -39,6 +39,9 @@ RC103_Cs137_0cm,RC103,known,RC103_point0,"точечный источник, в�
 ASN16_Lu176,ASN16,known,ASN16_lu_side,"банка 50 мл Ø40×h15, СБОКУ у широкой грани"
 ASN16_Lu176_P0,ASN16,known,ASN16_lu_front,"банка 50 мл Ø40×h15, С ТОРЦА"
 AS80_Lu176,AS80x80,known,AS80_lu_front,"банка 50 мл Ø40×h15, ВПРИТЫК к торцу"
+RC103_K40Village,RC103,unknown,,форма и положение пробы не записаны нигде
+RC103_Th232Village,RC103,unknown,,форма и положение пробы не записаны нигде
+RC103_Charoite,RC103,unknown,,форма и положение пробы не записаны нигде
 RC103_Lu176,RC103,known,RC103_lu_front,"банка 50 мл Ø40×h15, ВПРИТЫК к торцу"
 HPGeGMX_Th232,HPGE_GMX,excluded,,германий — вне работы по приказу Amber 08.08.2026
 HPGeGMX_Th228,HPGE_GMX,excluded,,германий — вне работы по приказу Amber 08.08.2026

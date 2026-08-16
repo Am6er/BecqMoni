@@ -1,4 +1,4 @@
-﻿<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <ResultDataFile>
   <FormatVersion>120920</FormatVersion>
   <ResultDataList>
@@ -16,7 +16,6 @@
         <Guid>33100348-421f-475d-adda-33736e6af7f8</Guid>
       </DeviceConfigReference>
       <ROIConfigReference />
-      
       <BackgroundSpectrumFile>Фон деревня.xml</BackgroundSpectrumFile>
       <StartTime>2025-08-07T14:54:21.2567264+03:00</StartTime>
       <EndTime>2025-08-07T23:40:29.7883506+03:00</EndTime>
@@ -16442,6 +16441,6 @@
         <Format>Base64 encoded binary</Format>
         <Pulses />
       </PulseCollection>
-      <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>11954.603626261529</Coefficient><Coefficient>5.926770359373327</Coefficient><Coefficient>0.0</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
+      <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>11555.341304799176</Coefficient><Coefficient>5.956452393153773</Coefficient><Coefficient>0.0</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>
