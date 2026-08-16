@@ -35,11 +35,21 @@ namespace BoxSourceProbe
         static int Main(string[] args)
         {
             int n = 200000;
+            double tolerance = 0.05;
+            var dirs = new System.Collections.Generic.List<string>();
             foreach (string a in args)
             {
                 if (a.StartsWith("--n="))
                 {
                     n = int.Parse(a.Substring(4), CultureInfo.InvariantCulture);
+                }
+                else if (a.StartsWith("--models="))
+                {
+                    dirs.Add(a.Substring(9));
+                }
+                else if (a.StartsWith("--tolerance="))
+                {
+                    tolerance = double.Parse(a.Substring(12), CultureInfo.InvariantCulture);
                 }
             }
 
@@ -47,6 +57,10 @@ namespace BoxSourceProbe
             bad += RoundTrip();
             bad += PointLimit(n);
             bad += EqualArea(n);
+            foreach (string dir in dirs)
+            {
+                bad += Models(dir, n, tolerance);
+            }
 
             Console.WriteLine();
             Console.WriteLine(bad == 0 ? "ВСЕ ПРОВЕРКИ ПРОШЛИ" : "ПРОВАЛОВ: " + bad);
@@ -192,6 +206,59 @@ namespace BoxSourceProbe
                 }
             }
 
+            return bad;
+        }
+
+        /// <summary>
+        /// МАССОВАЯ проверка (X1): каждой цилиндрической сцене строится кювета
+        /// РАВНОЙ ПЛОЩАДИ ДНА, и обе считаются на четырёх энергиях. Ответы
+        /// обязаны сойтись: телесный угол у круга и у квадрата равной площади
+        /// различается только по углам.
+        ///
+        /// Зачем массово, когда есть третья проверка выше. Та стоит на ОДНОЙ
+        /// сцене (40 мм на 50 мм), а «по углам» — величина, растущая с
+        /// отношением размера к расстоянию: у сцены вплотную угол квадрата
+        /// виден совсем не так, как у дальней. Настоящие сцены корпуса и
+        /// поставки покрывают этот разброс — от съёмок впритык до 250 мм, — и
+        /// именно они показывают, где приближение перестаёт работать.
+        ///
+        /// Маринелли и точечные пропускаются: кюветы у них нет по построению.
+        /// </summary>
+        static int Models(string dir, int n, double tolerance)
+        {
+            string[] files = Directory.GetFiles(dir, "*.in");
+            Array.Sort(files, StringComparer.OrdinalIgnoreCase);
+            Console.WriteLine();
+            Console.WriteLine("4. Кювета против цилиндра на настоящих сценах: {0} ({1} файлов)",
+                              dir, files.Length);
+
+            int bad = 0, done = 0;
+            foreach (string path in files)
+            {
+                GeometryModel cyl = GeometryModel.Load(path);
+                if (cyl.SourceType != GeometrySourceType.Cylinder
+                    || !(cyl.BeakerDiameter > 0.0) || !(cyl.SourceHeight > 0.0))
+                {
+                    continue;
+                }
+
+                GeometryModel box = cyl.Clone();
+                box.SourceType = GeometrySourceType.Box;
+                // Равная площадь дна: a² = πD²/4.
+                box.BoxSourceX = box.BoxSourceY = 0.5 * cyl.BeakerDiameter * Math.Sqrt(Math.PI);
+                box.BoxSourceHeight = cyl.SourceHeight;
+                box.BoxToDetectorDistance = cyl.BeakerToDetectorDistance;
+                box.BoxSideWallThickness = cyl.BeakerSideWallThickness;
+                box.BoxEndWallThickness = cyl.BeakerEndWallThickness;
+
+                Console.WriteLine("   {0}  (Ø{1:F0} × {2:F0} мм на {3:F0} мм)",
+                                  Path.GetFileNameWithoutExtension(path), cyl.BeakerDiameter,
+                                  cyl.SourceHeight, cyl.BeakerToDetectorDistance);
+                bad += Compare(cyl, box, n, tolerance);
+                done++;
+            }
+
+            Console.WriteLine("   цилиндрических сцен проверено: {0}", done);
             return bad;
         }
     }
