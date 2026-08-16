@@ -31,6 +31,9 @@ import sys
 import xml.etree.ElementTree as ET
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import corpus_def                                        # noqa: E402
+
 CORPUS = os.path.join(os.path.dirname(HERE), 'corpus')
 GEOM = os.path.join(CORPUS, 'geometries')
 SPECTRA = os.path.join(CORPUS, 'spectra')
@@ -85,10 +88,24 @@ def diagnose(r):
     except (TypeError, ValueError):
         pass
     if str(r['калибровка']).startswith('stored/'):
-        bad.append(u'проверенной энергокалибровки (осталась хранившаяся)')
+        # У ЗАКРЕПЛЁННЫХ спектров (`from_corpus`) хранившаяся калибровка — это
+        # СВОЯ, проверенная прошлой сборкой: копия корпуса тем и получена. Новый
+        # проход не может её побить по построению (она подогнана к этим самым
+        # линиям), и «нет проверенной» здесь было бы ложной тревогой на ровном
+        # месте — а ложная тревога в сводке дороже отсутствующей.
+        if r['спектр'] in PINNED:
+            note.append(u'калибровка своя, проверенная прошлой сборкой '
+                        u'(источник закреплён)')
+        else:
+            bad.append(u'проверенной энергокалибровки (осталась хранившаяся)')
 
     text = u'; '.join([u'нет ' + b for b in bad] + note)
     return (BAD if bad else OK), text
+
+
+PINNED = frozenset(
+    e['key'] for e in (corpus_def.NEW + corpus_def.VIBE + corpus_def.ETALON)
+    if e.get('from_corpus'))
 
 
 def read_csv(path, key=None):
