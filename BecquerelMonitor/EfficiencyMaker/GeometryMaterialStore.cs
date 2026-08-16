@@ -114,7 +114,10 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// 4 (16.08.2026) — четыре набивки поверочных эталонов ЛСРМ
         ///     (ОИСН-06/-10/-16, РИСН-379): состав из заголовков спектров
         ///     поверки, `B12`.
-        public const int CurrentSeedVersion = 4;
+        /// 5 (16.08.2026) — грунт (`Soil`) по решению Amber: без него двум
+        ///     готовым сценам съёмки в поле (`E27`) нечем считать свободный
+        ///     пробег, а по воздуху сцена выходит в сорок метров.
+        public const int CurrentSeedVersion = 5;
 
         static List<GeometryMaterialLibrary.Entry> entries;
         static List<string> removed = new List<string>();

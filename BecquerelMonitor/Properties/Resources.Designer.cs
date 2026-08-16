@@ -3929,6 +3929,73 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string EfficiencyMakerGridEdge {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGridEdge", resourceCulture);
+            }
+        }
+
+
+        public static string GeometryEditorSceneDiameter {
+            get {
+                return ResourceManager.GetString("GeometryEditorSceneDiameter", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSceneDepth {
+            get {
+                return ResourceManager.GetString("GeometryEditorSceneDepth", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSceneGap {
+            get {
+                return ResourceManager.GetString("GeometryEditorSceneGap", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSceneHoleDiameter {
+            get {
+                return ResourceManager.GetString("GeometryEditorSceneHoleDiameter", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSceneHoleDepth {
+            get {
+                return ResourceManager.GetString("GeometryEditorSceneHoleDepth", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSceneStandoff {
+            get {
+                return ResourceManager.GetString("GeometryEditorSceneStandoff", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSourceGround {
+            get {
+                return ResourceManager.GetString("GeometryEditorSourceGround", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSourceBorehole {
+            get {
+                return ResourceManager.GetString("GeometryEditorSourceBorehole", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorScene {
+            get {
+                return ResourceManager.GetString("GeometryEditorScene", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSceneMaterial {
+            get {
+                return ResourceManager.GetString("GeometryEditorSceneMaterial", resourceCulture);
+            }
+        }
+
         public static string EfficiencyMakerSetSkipped {
             get {
                 return ResourceManager.GetString("EfficiencyMakerSetSkipped", resourceCulture);

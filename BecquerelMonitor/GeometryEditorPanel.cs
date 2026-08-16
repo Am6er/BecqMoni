@@ -63,6 +63,61 @@ namespace BecquerelMonitor
         Panel sourceMaterialsPanel;
         Panel cylinderSizePanel, boxSizePanel;
         ComboBox presetCombo;
+        Label sceneLabel;
+
+        /// <summary>
+        /// Строки списка «Тип источника» по порядку: форма плюс вид съёмки
+        /// (E27). Две последние — съёмки в поле; форма у них штатная, и весь
+        /// расчёт идёт прежним кодом, а вид говорит, каким правилом считаются
+        /// размеры. Таблица одна на список, чтение и запись — чтобы порядок
+        /// строк нельзя было развести по трём местам.
+        /// </summary>
+        static readonly KeyValuePair<GeometrySourceType, GeometrySceneKind>[] SourceKinds =
+        {
+            new KeyValuePair<GeometrySourceType, GeometrySceneKind>(
+                GeometrySourceType.Point, GeometrySceneKind.None),
+            new KeyValuePair<GeometrySourceType, GeometrySceneKind>(
+                GeometrySourceType.Cylinder, GeometrySceneKind.None),
+            new KeyValuePair<GeometrySourceType, GeometrySceneKind>(
+                GeometrySourceType.Marinelli, GeometrySceneKind.None),
+            new KeyValuePair<GeometrySourceType, GeometrySceneKind>(
+                GeometrySourceType.Box, GeometrySceneKind.None),
+            new KeyValuePair<GeometrySourceType, GeometrySceneKind>(
+                GeometrySourceType.Cylinder, GeometrySceneKind.Ground),
+            new KeyValuePair<GeometrySourceType, GeometrySceneKind>(
+                GeometrySourceType.Marinelli, GeometrySceneKind.Borehole),
+        };
+
+        static int IndexOfSource(GeometryModel g)
+        {
+            for (int i = 0; i < SourceKinds.Length; i++)
+            {
+                if (SourceKinds[i].Key == g.SourceType && SourceKinds[i].Value == g.Scene)
+                {
+                    return i;
+                }
+            }
+
+            // Вид съёмки, не сошедшийся с формой (файл правили руками): форма
+            // главнее — она и есть то, чем будет считаться сцена.
+            for (int i = 0; i < SourceKinds.Length; i++)
+            {
+                if (SourceKinds[i].Key == g.SourceType && SourceKinds[i].Value == GeometrySceneKind.None)
+                {
+                    return i;
+                }
+            }
+
+            return 0;
+        }
+
+        /// <summary>
+        /// Верхняя энергия расчёта, кэВ — по ней размечаются готовые сцены
+        /// (E27). Умолчание совпадает с заводским полем «до» конструктора
+        /// кривой; настоящее значение подаёт форма, как и подсказку разрешения.
+        /// </summary>
+        double sceneEnergyKev = 3000.0;
+
         GeometrySketch detectorSketch, sourceSketch;
 
         GeometryModel model;
@@ -133,6 +188,25 @@ namespace BecquerelMonitor
             if (this.fwhmSuggestButton != null)
             {
                 this.fwhmSuggestButton.Visible = this.fwhmSuggestionPercent > 0.0;
+            }
+        }
+
+        /// <summary>
+        /// Верхняя энергия расчёта, кэВ (E27). По ней — и только по ней —
+        /// размечаются готовые сцены съёмки в поле: свободный пробег в грунте
+        /// растёт вдвое от 662 к 3000 кэВ, и сцена, посчитанная по середине
+        /// шкалы, занижала бы её верх. Решение Amber 16.08.2026.
+        ///
+        /// Знает это ФОРМА, а не панель: поле «до» стоит в её же настройках
+        /// расчёта, а тянуть их сюда значило бы связать редактор геометрии со
+        /// всем конструктором — тем же доводом, что и у подсказки разрешения.
+        /// </summary>
+        public void SetSceneEnergy(double kev)
+        {
+            if (kev > 0.0)
+            {
+                this.sceneEnergyKev = kev;
+                this.UpdateSceneHint("");
             }
         }
 
@@ -428,10 +502,19 @@ namespace BecquerelMonitor
             return sketch;
         }
 
-        /// <summary>Левая колонка с полями: чертёж занимает всё, что осталось.</summary>
+        /// <summary>
+        /// Левая колонка с полями: чертёж занимает всё, что осталось.
+        ///
+        /// Прокрутка (E27) — потому что колонка стала выше: у маринелли поля
+        /// источника и без того доходили до 440 точек, а строка готовой сцены
+        /// добавила ещё 64, и на форме, ужатой до её же MinimumSize, вещества
+        /// пробы уезжали за нижний край НЕЗАМЕТНО — контрол не пропадает, он
+        /// просто обрезается родителем. Ширина колонки взята с запасом на
+        /// полосу прокрутки: панели полей внутри — 620 точек.
+        /// </summary>
         static Panel FieldColumn(TabPage page)
         {
-            Panel column = new Panel { Dock = DockStyle.Left, Width = 616 };
+            Panel column = new Panel { Dock = DockStyle.Left, Width = 640, AutoScroll = true };
             page.Controls.Add(column);
             column.SendToBack();
             return column;
@@ -454,20 +537,39 @@ namespace BecquerelMonitor
                 Size = new Size(180, 21),
                 DropDownStyle = ComboBoxStyle.DropDownList,
             };
+            // Порядок строк = SourceKinds. Съёмки в поле (E27) стоят ЗДЕСЬ, в
+            // одном списке с формами, а не отдельным списком рядом: для
+            // человека это такая же геометрия пробы, как маринелли, и выбор у
+            // неё один — либо она, либо цилиндр.
             this.sourceTypeCombo.Items.Add(Resources.GeometryEditorSourcePoint);
             this.sourceTypeCombo.Items.Add(Resources.GeometryEditorSourceCylinder);
             this.sourceTypeCombo.Items.Add(Resources.GeometryEditorSourceMarinelli);
             this.sourceTypeCombo.Items.Add(Resources.GeometryEditorSourceBox);
+            this.sourceTypeCombo.Items.Add(Resources.GeometryEditorSourceGround);
+            this.sourceTypeCombo.Items.Add(Resources.GeometryEditorSourceBorehole);
+            this.sourceTypeCombo.Width = 260;
             this.sourceTypeCombo.SelectedIndexChanged += this.SourceTypeChanged;
             page.Controls.Add(typeLabel);
             page.Controls.Add(this.sourceTypeCombo);
 
-            this.pointPanel = new Panel { Location = new Point(0, 44), Size = new Size(620, 40) };
+            // Чем сцена вышла такой. Без этой строки размеры выглядят взятыми с
+            // потолка: полтора метра грунта под прибором объясняются только
+            // свободным пробегом, а его в полях нет. Молчит у обычных сцен.
+            this.sceneLabel = new Label
+            {
+                AutoSize = true,
+                ForeColor = Color.DimGray,
+                Location = new Point(14, 40),
+                MaximumSize = new Size(590, 0),
+            };
+            page.Controls.Add(this.sceneLabel);
+
+            this.pointPanel = new Panel { Location = new Point(0, 76), Size = new Size(620, 40) };
             int y = 0;
             this.Row(this.pointPanel, ref y, "PointDistance", Resources.GeometryEditorPointDistance);
             page.Controls.Add(this.pointPanel);
 
-            this.cylinderPanel = new Panel { Location = new Point(0, 44), Size = new Size(620, 170), Visible = false };
+            this.cylinderPanel = new Panel { Location = new Point(0, 76), Size = new Size(620, 170), Visible = false };
             y = 0;
             this.Row(this.cylinderPanel, ref y, "BeakerDiameter", Resources.GeometryEditorBeakerDiameter);
             this.Row(this.cylinderPanel, ref y, "BeakerHeight", Resources.GeometryEditorBeakerHeight);
@@ -477,7 +579,7 @@ namespace BecquerelMonitor
             this.Row(this.cylinderPanel, ref y, "BeakerToDetectorDistance", Resources.GeometryEditorBeakerToDetector);
             page.Controls.Add(this.cylinderPanel);
 
-            this.marinelliPanel = new Panel { Location = new Point(0, 44), Size = new Size(620, 282), Visible = false };
+            this.marinelliPanel = new Panel { Location = new Point(0, 76), Size = new Size(620, 282), Visible = false };
             y = 0;
             this.Row(this.marinelliPanel, ref y, "MarinelliBeakerDiameter", Resources.GeometryEditorBeakerDiameter);
             this.Row(this.marinelliPanel, ref y, "MarinelliBeakerHeight", Resources.GeometryEditorBeakerHeight);
@@ -493,7 +595,7 @@ namespace BecquerelMonitor
 
             // Прямоугольная кювета. Поля те же, что у цилиндрической, только
             // вместо диаметра две стороны — их и меряют на приборе, полными.
-            this.boxPanel = new Panel { Location = new Point(0, 44), Size = new Size(620, 170), Visible = false };
+            this.boxPanel = new Panel { Location = new Point(0, 76), Size = new Size(620, 170), Visible = false };
             y = 0;
             this.Row(this.boxPanel, ref y, "BoxSourceX", Resources.GeometryEditorBoxSourceX);
             this.Row(this.boxPanel, ref y, "BoxSourceY", Resources.GeometryEditorBoxSourceY);
@@ -535,12 +637,14 @@ namespace BecquerelMonitor
                 throw new InvalidOperationException("нет места в модели для поля " + key);
             }
 
-            parent.Controls.Add(new Label
+            Label label = new Label
             {
                 AutoSize = true,
                 Location = new Point(14, y + 4),
                 Text = caption,
-            });
+            };
+
+            parent.Controls.Add(label);
 
             TextBox box = new TextBox
             {
@@ -557,15 +661,101 @@ namespace BecquerelMonitor
             parent.Controls.Add(box);
             this.fields[key] = box;
 
-            parent.Controls.Add(new Label
+            Label units = new Label
             {
                 AutoSize = true,
                 ForeColor = Color.DimGray,
                 Location = new Point(396, y + 4),
                 Text = unit ?? Resources.GeometryEditorUnitMm,
-            });
+            };
 
+            parent.Controls.Add(units);
+
+            // Строка запоминается ЦЕЛИКОМ и по порядку: у съёмок в поле сосуда
+            // нет вовсе, и его поля с них снимаются (E27) — а снять надо все
+            // три контрола сразу и потом сдвинуть оставшиеся, иначе на месте
+            // убранной строки остаётся дыра.
+            this.rows[key] = new RowControls { Label = label, Box = box, Units = units };
+            this.rowOrder.Add(new KeyValuePair<Control, string>(parent, key));
             y += 28;
+        }
+
+        sealed class RowControls
+        {
+            public Label Label;
+            public TextBox Box;
+            public Label Units;
+            public string Caption;          // подпись «как обычно», для возврата
+
+            /// <summary>
+            /// Показана ли строка ПО НАШЕМУ РЕШЕНИЮ. Спрашивать об этом сам
+            /// контрол нельзя: `Control.Visible` у WinForms — видимость
+            /// ФАКТИЧЕСКАЯ, и пока не выбрана вкладка, она false у всех детей
+            /// разом. На этом уже обожглись: пересборка столбика, случившаяся
+            /// при невыбранной вкладке, сочла невидимыми ВСЕ строки, ужала
+            /// панель до одной точки, и поля источника пропали с экрана совсем.
+            /// </summary>
+            public bool Shown = true;
+        }
+
+        readonly Dictionary<string, RowControls> rows =
+            new Dictionary<string, RowControls>(StringComparer.Ordinal);
+
+        readonly List<KeyValuePair<Control, string>> rowOrder =
+            new List<KeyValuePair<Control, string>>();
+
+        /// <summary>
+        /// Показать строку или снять её, заодно поменяв подпись. Пустая подпись
+        /// — оставить прежнюю.
+        /// </summary>
+        void ShowRow(string key, bool visible, string caption)
+        {
+            RowControls row;
+            if (!this.rows.TryGetValue(key, out row))
+            {
+                return;
+            }
+
+            if (row.Caption == null)
+            {
+                row.Caption = row.Label.Text;
+            }
+
+            row.Label.Text = string.IsNullOrEmpty(caption) ? row.Caption : caption;
+            row.Shown = visible;
+            row.Label.Visible = visible;
+            row.Box.Visible = visible;
+            row.Units.Visible = visible;
+        }
+
+        /// <summary>
+        /// Пересобрать столбик строк панели: видимые встают подряд, снятые не
+        /// оставляют дыры. Панель ужимается по последней строке — под ней стоят
+        /// вещества, и лишняя пустота уехала бы вместе с ними.
+        /// </summary>
+        void Reflow(Control parent)
+        {
+            int y = 0;
+            foreach (KeyValuePair<Control, string> pair in this.rowOrder)
+            {
+                if (pair.Key != parent)
+                {
+                    continue;
+                }
+
+                RowControls row = this.rows[pair.Value];
+                if (!row.Shown)
+                {
+                    continue;
+                }
+
+                row.Label.Top = y + 4;
+                row.Box.Top = y;
+                row.Units.Top = y + 4;
+                y += 28;
+            }
+
+            parent.Height = Math.Max(1, y);
         }
 
         /// <summary>
@@ -601,12 +791,17 @@ namespace BecquerelMonitor
         void MaterialRow(Control parent, ref int y, string key, string caption,
                          GeometryMaterialLibrary.MaterialKind kind)
         {
-            parent.Controls.Add(new Label
+            List<Control> group = new List<Control>();
+            this.materialRows[key] = group;
+            Label title = new Label
             {
                 AutoSize = true,
                 Location = new Point(14, y + 4),
                 Text = caption,
-            });
+            };
+
+            parent.Controls.Add(title);
+            group.Add(title);
 
             ComboBox combo = new ComboBox
             {
@@ -617,6 +812,7 @@ namespace BecquerelMonitor
             FillMaterialCombo(combo, kind);
             combo.SelectedIndexChanged += (s, e) => this.MaterialChanged(key);
             parent.Controls.Add(combo);
+            group.Add(combo);
             this.materials[key] = combo;
             this.materialKinds[key] = kind;
 
@@ -628,15 +824,19 @@ namespace BecquerelMonitor
             };
             density.TextChanged += this.ValueChanged;
             parent.Controls.Add(density);
+            group.Add(density);
             this.fields[key + ".Density"] = density;
 
-            parent.Controls.Add(new Label
+            Label densityUnits = new Label
             {
                 AutoSize = true,
                 ForeColor = Color.DimGray,
                 Location = new Point(472, y + 4),
                 Text = Resources.GeometryEditorUnitDensity,
-            });
+            };
+
+            parent.Controls.Add(densityUnits);
+            group.Add(densityUnits);
 
             // E20: список веществ правится отсюда. Кнопка стоит у КАЖДОЙ строки
             // нарочно: своё вещество заводят тогда, когда в списке его не нашли,
@@ -651,6 +851,7 @@ namespace BecquerelMonitor
             new ToolTip().SetToolTip(edit, Resources.GeometryEditorMaterialsEditHint);
             edit.Click += (s, e) => this.EditMaterials(key, kind);
             parent.Controls.Add(edit);
+            group.Add(edit);
 
             Label composition = new Label
             {
@@ -660,9 +861,66 @@ namespace BecquerelMonitor
                 MaximumSize = new Size(440, 0),
             };
             parent.Controls.Add(composition);
+            group.Add(composition);
             this.compositions[key] = composition;
 
             y += 48;
+        }
+
+        /// <summary>
+        /// Контролы строки вещества — чтобы снимать её целиком: у съёмок в поле
+        /// сосуда НЕТ, и «стенка сосуда — полиэтилен» под ними была неправдой
+        /// (замечание Amber 16.08.2026). Вещество при этом остаётся в модели как
+        /// было: стенка нулевой толщины ничего не меняет, а стирать чужой выбор
+        /// ради вида — хуже.
+        /// </summary>
+        readonly Dictionary<string, List<Control>> materialRows =
+            new Dictionary<string, List<Control>>(StringComparer.Ordinal);
+
+        /// <summary>Показана ли строка вещества по нашему решению — см. RowControls.Shown.</summary>
+        readonly Dictionary<string, bool> materialRowShown =
+            new Dictionary<string, bool>(StringComparer.Ordinal);
+
+        /// <summary>Показать строку вещества или снять её; строки сдвигаются.</summary>
+        void ShowMaterialRow(string key, bool visible)
+        {
+            List<Control> group;
+            if (!this.materialRows.TryGetValue(key, out group))
+            {
+                return;
+            }
+
+            this.materialRowShown[key] = visible;
+            foreach (Control c in group)
+            {
+                c.Visible = visible;
+            }
+        }
+
+        /// <summary>Пересобрать столбик строк веществ, как <see cref="Reflow"/>.</summary>
+        void ReflowMaterials()
+        {
+            int y = 0;
+            foreach (string key in new[] { "BeakerWall", "Source" })
+            {
+                List<Control> group;
+                bool shown;
+                if (!this.materialRows.TryGetValue(key, out group)
+                    || (this.materialRowShown.TryGetValue(key, out shown) && !shown))
+                {
+                    continue;
+                }
+
+                // Подпись строки стоит на четыре точки ниже её верха — сдвиг
+                // считается от неё, а прикладывается ко всей группе разом.
+                int shift = y + 4 - group[0].Top;
+                foreach (Control c in group)
+                {
+                    c.Top += shift;
+                }
+
+                y += 48;
+            }
         }
 
         // ------------------------------------------------------------------
@@ -801,10 +1059,11 @@ namespace BecquerelMonitor
                 this.facingCombo.Enabled = g.Shape == CrystalShape.Box;
                 this.facingCombo.SelectedIndex =
                     g.Facing == GeometryDetectorFacing.Side && g.Shape == CrystalShape.Box ? 1 : 0;
-                this.sourceTypeCombo.SelectedIndex =
-                    g.SourceType == GeometrySourceType.Box ? 3
-                    : g.SourceType == GeometrySourceType.Marinelli ? 2
-                    : g.SourceType == GeometrySourceType.Cylinder ? 1 : 0;
+                // Строка списка — это ПАРА «форма плюс вид съёмки» (E27), и
+                // ищется она по обоим полям сразу: у съёмки в поле форма та же,
+                // что у обычного цилиндра, и по одной форме их не различить.
+                this.sourceTypeCombo.SelectedIndex = IndexOfSource(g);
+                this.sceneShown = g.Scene != GeometrySceneKind.None;
             }
             finally
             {
@@ -1009,6 +1268,7 @@ namespace BecquerelMonitor
                     this.MaterialOf(key, this.Get(key + ".Density")));
             }
 
+            this.UpdateSceneHint("");
             this.RefreshSketch();
         }
 
@@ -1053,6 +1313,47 @@ namespace BecquerelMonitor
             this.presetCombo.SelectedIndex = 0;
         }
 
+        /// <summary>
+        /// Строка под списком сцен: из чего сложились размеры и во что это
+        /// обошлось. Молчит, пока сцену не выбрали, — рассказывать про
+        /// свободный пробег у банки с водой незачем; зато после выбора идёт за
+        /// полями, чтобы не остаться числами, которых в полях уже нет.
+        /// </summary>
+        void UpdateSceneHint(string substituted)
+        {
+            if (this.sceneLabel == null)
+            {
+                return;
+            }
+
+            if (!this.sceneShown)
+            {
+                this.sceneLabel.Text = "";
+                return;
+            }
+
+            GeometryModel g = this.BuildModel();
+            double mfp = GeometryScenes.MeanFreePathMm(g.Source, this.sceneEnergyKev);
+            double volume = GeometryScenes.SampleVolumeCm3(g);
+            double mass = volume * (g.Source != null ? g.Source.Density : 0.0);
+            string text = string.Format(CultureInfo.CurrentCulture, Resources.GeometryEditorScene,
+                                        mfp / GeometryModel.MmPerCm, this.sceneEnergyKev,
+                                        volume / 1000.0, mass / 1000.0);
+            if (substituted.Length > 0)
+            {
+                text += string.Format(CultureInfo.CurrentCulture,
+                                      Resources.GeometryEditorSceneMaterial, substituted);
+            }
+
+            this.sceneLabel.Text = text;
+        }
+
+        /// <summary>Показывать ли строку про сцену — см. UpdateSceneHint.</summary>
+        bool sceneShown;
+
+        /// <summary>Идёт пересчёт сцены — сторож против рекурсии.</summary>
+        bool applyingScene;
+
         void ShapeChanged(object sender, EventArgs e)
         {
             bool box = this.boxRadio.Checked;
@@ -1087,24 +1388,116 @@ namespace BecquerelMonitor
         void SourceTypeChanged(object sender, EventArgs e)
         {
             int index = this.sourceTypeCombo.SelectedIndex;
-            this.pointPanel.Visible = index == 0;
-            this.cylinderPanel.Visible = index == 1;
-            this.marinelliPanel.Visible = index == 2;
-            this.boxPanel.Visible = index == 3;
+            if (index < 0 || index >= SourceKinds.Length)
+            {
+                return;
+            }
+
+            GeometrySourceType type = SourceKinds[index].Key;
+            GeometrySceneKind scene = SourceKinds[index].Value;
+
+            // Выбрали съёмку в поле (E27) — размеры считаются формулой ЗДЕСЬ,
+            // при выборе, а не потом: смысл этих двух строк списка ровно в том,
+            // что руками такую сцену не набирают. Не при загрузке модели:
+            // сохранённые размеры принадлежат человеку, и пересчитывать их за
+            // ним значило бы стирать правку при каждом открытии.
+            if (scene != GeometrySceneKind.None && !this.loading && !this.applyingScene)
+            {
+                // Сторож против рекурсии: LoadFromModel в конце сам зовёт этот
+                // обработчик, и без него пересчёт вызывал бы сам себя без конца.
+                this.applyingScene = true;
+                try
+                {
+                    GeometryModel g = this.BuildModel();
+                    g.Scene = scene;
+                    string substituted = GeometryScenes.Apply(g, this.sceneEnergyKev);
+                    this.model = g;
+                    this.sceneShown = true;
+                    this.LoadFromModel();
+                    this.UpdateSceneHint(substituted);
+                }
+                finally
+                {
+                    this.applyingScene = false;
+                }
+
+                return;
+            }
+
+            this.model.Scene = scene;
+            this.pointPanel.Visible = type == GeometrySourceType.Point;
+            this.cylinderPanel.Visible = type == GeometrySourceType.Cylinder;
+            this.marinelliPanel.Visible = type == GeometrySourceType.Marinelli;
+            this.boxPanel.Visible = type == GeometrySourceType.Box;
+
+            this.ApplySceneFields(scene);
 
             // Вещества подтягиваются под видимый набор полей: стенка сосуда у
             // точечного источника не спрашивается вовсе, но само вещество пробы
             // нужно всегда.
-            Panel shown = index == 1 ? this.cylinderPanel
-                        : index == 2 ? this.marinelliPanel
-                        : index == 3 ? this.boxPanel
+            Panel shown = type == GeometrySourceType.Cylinder ? this.cylinderPanel
+                        : type == GeometrySourceType.Marinelli ? this.marinelliPanel
+                        : type == GeometrySourceType.Box ? this.boxPanel
                         : this.pointPanel;
             if (this.sourceMaterialsPanel != null)
             {
                 this.sourceMaterialsPanel.Top = shown.Bottom + 16;
             }
 
+            this.UpdateSceneHint("");
             this.RefreshSketch();
+        }
+
+        /// <summary>
+        /// Какие поля источника показывать и как их называть при съёмке в поле
+        /// (E27, замечание Amber: «сосуда здесь нет как такового»).
+        ///
+        /// У прибора на земле и в лунке СОСУДА НЕТ: стенки нулевые, и строки про
+        /// них — не «нули по умолчанию», а вопрос ни о чём. Снимаются и они, и
+        /// строка вещества стенки, а оставшиеся размеры называются своими
+        /// именами: сцена, грунт, лунка — а не «сосуд» и «колодец».
+        ///
+        /// Само ВЕЩЕСТВО стенки в модели остаётся нетронутым: при нулевой
+        /// толщине оно ни на что не влияет, а стирать чужой выбор ради вида —
+        /// хуже, чем не показывать его.
+        /// </summary>
+        void ApplySceneFields(GeometrySceneKind scene)
+        {
+            bool ground = scene == GeometrySceneKind.Ground;
+            bool hole = scene == GeometrySceneKind.Borehole;
+            bool vessel = !ground && !hole;
+
+            this.ShowRow("BeakerHeight", vessel, null);
+            this.ShowRow("BeakerSideWallThickness", vessel, null);
+            this.ShowRow("BeakerEndWallThickness", vessel, null);
+            this.ShowRow("BeakerDiameter", true,
+                         ground ? Resources.GeometryEditorSceneDiameter : null);
+            this.ShowRow("SourceHeight", true,
+                         ground ? Resources.GeometryEditorSceneDepth : null);
+            this.ShowRow("BeakerToDetectorDistance", true,
+                         ground ? Resources.GeometryEditorSceneGap : null);
+
+            this.ShowRow("MarinelliBeakerHeight", vessel, null);
+            this.ShowRow("MarinelliSideThickness", vessel, null);
+            this.ShowRow("MarinelliEndWallThickness", vessel, null);
+            this.ShowRow("MarinelliHoleSideThickness", vessel, null);
+            this.ShowRow("MarinelliHoleEndWallThickness", vessel, null);
+            this.ShowRow("MarinelliBeakerDiameter", true,
+                         hole ? Resources.GeometryEditorSceneDiameter : null);
+            this.ShowRow("MarinelliHoleDiameter", true,
+                         hole ? Resources.GeometryEditorSceneHoleDiameter : null);
+            this.ShowRow("MarinelliHoleHeight", true,
+                         hole ? Resources.GeometryEditorSceneHoleDepth : null);
+            this.ShowRow("MarinelliSourceHeight", true,
+                         hole ? Resources.GeometryEditorSceneDepth : null);
+            this.ShowRow("MarinelliToDetectorDistance", true,
+                         hole ? Resources.GeometryEditorSceneStandoff : null);
+
+            this.Reflow(this.cylinderPanel);
+            this.Reflow(this.marinelliPanel);
+
+            this.ShowMaterialRow("BeakerWall", vessel);
+            this.ReflowMaterials();
         }
 
         void Set(string key, double value)
@@ -1232,10 +1625,14 @@ namespace BecquerelMonitor
                 field.Write(g, this.Get(field.Key));
             }
 
-            g.SourceType = this.sourceTypeCombo.SelectedIndex == 3 ? GeometrySourceType.Box
-                : this.sourceTypeCombo.SelectedIndex == 2 ? GeometrySourceType.Marinelli
-                : this.sourceTypeCombo.SelectedIndex == 1 ? GeometrySourceType.Cylinder
-                : GeometrySourceType.Point;
+            int kind = this.sourceTypeCombo.SelectedIndex;
+            if (kind < 0 || kind >= SourceKinds.Length)
+            {
+                kind = 0;
+            }
+
+            g.SourceType = SourceKinds[kind].Key;
+            g.Scene = SourceKinds[kind].Value;
 
             g.Crystal = this.MaterialOf("Crystal", this.Get("Crystal.Density"));
             g.Reflector = this.MaterialOf("Reflector", this.Get("Reflector.Density"));

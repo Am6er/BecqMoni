@@ -246,6 +246,37 @@ namespace BecquerelMonitor.EfficiencyMaker
         Box
     }
 
+    /// <summary>
+    /// Съёмка в поле — НАШЕ расширение формата (E27). Две геометрии, которые
+    /// стоят в списке рядом с точкой, цилиндром и маринелли, но отличаются от
+    /// них не формой, а тем, ОТКУДА берутся размеры: их считает формула из
+    /// свободного пробега в пробе и из выбранного детектора.
+    ///
+    /// Форма при этом остаётся штатной, и это не уловка, а физика:
+    /// полупространства в формате нет, прибор на земле — это цилиндр грунта под
+    /// ним, а прибор в лунке — это в точности маринелли (колодец = лунка, проба
+    /// вокруг и снизу, стенок сосуда нет). Поэтому <see cref="GeometryModel.SourceType"/>
+    /// у них настоящий (<see cref="GeometrySourceType.Cylinder"/> и
+    /// <see cref="GeometrySourceType.Marinelli"/>), весь расчёт идёт прежним
+    /// кодом, а здесь хранится только то, чем сцена НАЗЫВАЕТСЯ и по какому
+    /// правилу пересчитываются её размеры.
+    ///
+    /// В файлах ЛСРМ такого ключа нет; пишется своим `DS_Scene`, которого их
+    /// программа не читает, — тем же приёмом, что <see cref="CrystalShape.Box"/>
+    /// с ключами `SB_*` и <see cref="GeometryDetectorFacing"/> с `DS_Facing`.
+    /// </summary>
+    public enum GeometrySceneKind
+    {
+        /// <summary>Обычная сцена: размеры задал человек.</summary>
+        None,
+
+        /// <summary>Прибор лежит на земле; грунт — цилиндр под ним.</summary>
+        Ground,
+
+        /// <summary>Прибор опущен в лунку; грунт вокруг и снизу.</summary>
+        Borehole
+    }
+
     /// <summary>Форма кристалла.</summary>
     public enum CrystalShape
     {
@@ -314,6 +345,13 @@ namespace BecquerelMonitor.EfficiencyMaker
         public bool IsScintillator;
 
         public GeometrySourceType SourceType;
+
+        /// <summary>
+        /// Съёмка в поле (E27) — см. <see cref="GeometrySceneKind"/>. Умолчание
+        /// <see cref="GeometrySceneKind.None"/>: так читаются все геометрии,
+        /// снятые до 16.08.2026, и все файлы ЛСРМ.
+        /// </summary>
+        public GeometrySceneKind Scene = GeometrySceneKind.None;
 
         // Кристалл, мм
         public double CrystalDiameter;
@@ -674,6 +712,22 @@ namespace BecquerelMonitor.EfficiencyMaker
                 && facing.Trim().Equals("SIDE", StringComparison.OrdinalIgnoreCase))
             {
                 g.Facing = GeometryDetectorFacing.Side;
+            }
+
+            // E27: съёмка в поле. Ключа нет — обычная сцена, то есть прежнее
+            // поведение и все файлы ЛСРМ.
+            string scene;
+            if (kv.TryGetValue("DS_Scene", out scene))
+            {
+                scene = scene.Trim();
+                if (scene.Equals("GROUND", StringComparison.OrdinalIgnoreCase))
+                {
+                    g.Scene = GeometrySceneKind.Ground;
+                }
+                else if (scene.Equals("BOREHOLE", StringComparison.OrdinalIgnoreCase))
+                {
+                    g.Scene = GeometrySceneKind.Borehole;
+                }
             }
 
             // Проценты, не длина: через Num, а не Len.

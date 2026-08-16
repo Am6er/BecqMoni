@@ -309,6 +309,20 @@ namespace BecquerelMonitor.EfficiencyMaker
                 line("DS_Facing = SIDE");
             }
 
+            // E27: съёмка в поле. Форма источника при этом штатная (цилиндр или
+            // маринелли) и написана выше как есть — их программа прочитает файл
+            // целиком и верно; здесь пишется только НАЗВАНИЕ сцены, по которому
+            // наш редактор знает, каким правилом пересчитывать её размеры.
+            if (model.Scene != GeometrySceneKind.None)
+            {
+                line("");
+                line("// Съёмка в поле (наше расширение формата): размеры сцены");
+                line("// считаны формулой из свободного пробега в пробе, см.");
+                line("// GeometrySceneKind. Форма источника выше — настоящая.");
+                line("DS_Scene = " + (model.Scene == GeometrySceneKind.Ground
+                                      ? "GROUND" : "BOREHOLE"));
+            }
+
             if (model.FwhmAt662Percent > 0.0)
             {
                 line("");

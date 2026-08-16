@@ -330,6 +330,7 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="EfficiencyMaker\GeometryPresets.cs" />
+    <Compile Include="EfficiencyMaker\GeometryScenes.cs" />
     <Compile Include="EfficiencyMaker\GeometrySketch.cs">
       <SubType>Component</SubType>
     </Compile>
