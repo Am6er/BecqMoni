@@ -1124,6 +1124,11 @@ def main():
     for a in sys.argv[1:]:
         if a.startswith('--only='):
             only = set(a.split('=', 1)[1].split(','))
+        elif a.startswith('--res-form='):
+            # (`V2`) Форма модели разрешения группы. Умолчание не тронуто:
+            # смена формы двигает ПШПВ-калибровку КАЖДОГО спектра, то есть базу.
+            corpus_calib.FORM = a.split('=', 1)[1]
+            print('форма модели разрешения: %s' % (corpus_calib.FORM or 'нынешняя'))
 
     entries = [e for e in corpus_def.NEW + corpus_def.VIBE + corpus_def.ETALON
                if only is None or e['key'] in only]

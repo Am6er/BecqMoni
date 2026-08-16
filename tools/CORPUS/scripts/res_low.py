@@ -41,12 +41,13 @@ CORPUS = os.path.join(HERE, os.pardir, 'corpus')
 FWHM_SIGMA = 2.3548
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument('--below', type=float, default=200.0, help=u'порог, кэВ')
-    ap.add_argument('--det', default=None, help=u'только эта группа')
-    args = ap.parse_args()
+def measured_points(below=1e9, only_det=None):
+    u"""Точки (группа, спектр, энергия, изм. ПШПВ, модельная ПШПВ, значимость).
 
+    Вынесено из печати нарочно: этими же точками подбирается ФОРМА модели
+    (`res_form.py`), и второй набор, померенный иначе, сравнивал бы инструменты,
+    а не формы.
+    """
     calibrate.sample_lines = sample_lines
 
     dets = {}
@@ -60,13 +61,10 @@ def main():
             r['key'] = list(r.values())[0]
             rows.append(r)
 
-    print(u'модель разрешения ниже %.0f кэВ: измерено против экстраполяции (V2)' % args.below)
-    print(u'%-22s %-9s %8s %10s %9s %8s' % (u'спектр', u'группа', u'E, кэВ',
-                                            u'изм. ПШПВ', u'модель', u'изм/мод'))
-    by_det = {}
+    out = []
     for row in rows:
         det = row['det']
-        if (args.det and det != args.det) or det not in dets:
+        if (only_det and det != only_det) or det not in dets:
             continue
 
         path = os.path.join(CORPUS, 'spectra', row['key'] + '.xml')
@@ -95,16 +93,32 @@ def main():
                                   tol_frac=0.004, min_sig=5.0)
         for a in found:
             energy = ecal.energy(a['ch'])
-            if energy > args.below:
+            if energy > below:
                 continue
-            measured = a['fwhm'] * ecal.dEdch(a['ch'])
+            measured = a['fwhm'] * abs(ecal.dEdch(a['ch']))
             want = model(energy)
-            if not (want > 0):
+            if not (want > 0) or not (measured > 0):
                 continue
-            ratio = measured / want
-            print(u'%-22s %-9s %8.1f %10.2f %9.2f %8.2f'
-                  % (row['key'], det, energy, measured, want, ratio))
-            by_det.setdefault(det, []).append(ratio)
+            out.append(dict(det=det, key=row['key'], energy=energy,
+                            fwhm=measured, model=want, sig=a['sig']))
+    return out
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--below', type=float, default=200.0, help=u'порог, кэВ')
+    ap.add_argument('--det', default=None, help=u'только эта группа')
+    args = ap.parse_args()
+
+    print(u'модель разрешения ниже %.0f кэВ: измерено против экстраполяции (V2)' % args.below)
+    print(u'%-22s %-9s %8s %10s %9s %8s' % (u'спектр', u'группа', u'E, кэВ',
+                                            u'изм. ПШПВ', u'модель', u'изм/мод'))
+    by_det = {}
+    for a in measured_points(args.below, args.det):
+        ratio = a['fwhm'] / a['model']
+        print(u'%-22s %-9s %8.1f %10.2f %9.2f %8.2f'
+              % (a['key'], a['det'], a['energy'], a['fwhm'], a['model'], ratio))
+        by_det.setdefault(a['det'], []).append(ratio)
 
     print()
     print(u'%-10s %6s %9s %9s %9s' % (u'группа', u'точек', u'медиана', u'мин', u'макс'))
