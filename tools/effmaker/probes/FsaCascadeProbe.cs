@@ -417,7 +417,7 @@ namespace FsaCascadeProbe
             // трёх стоит отдельным пиком на пустом месте.
             Console.WriteLine();
             Console.WriteLine("=== остаточные превышения (модель со всем) ===");
-            TopExcess(rd.EnergySpectrum, withCascade, 12);
+            TopExcess(rd.EnergySpectrum, withCascade, 12, rd.FwhmCalibration);
 
             if (scanFrom < scanTo)
             {
@@ -466,9 +466,12 @@ namespace FsaCascadeProbe
         /// в `ResidualScan` — общем файле на эту пробу и корпусную: две копии
         /// одного счёта однажды разъедутся (S37).
         /// </summary>
-        static void TopExcess(EnergySpectrum spectrum, FsaResult result, int top)
+        static void TopExcess(EnergySpectrum spectrum, FsaResult result, int top,
+                              FwhmCalibration fwhm)
         {
-            ResidualScan.Print(spectrum, result, top, "    ");
+            // Окно идёт за ПШПВ (`B17`): фиксированная ширина навязывает данным
+            // свою сетку, и её однажды приняли за периодичность в спектре.
+            ResidualScan.Print(spectrum, result, top, "    ", fwhm);
         }
 
         /// <summary>Почему у компонента нет поправок — по каждому его нуклиду.</summary>

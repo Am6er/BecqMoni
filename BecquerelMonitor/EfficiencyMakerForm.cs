@@ -223,6 +223,11 @@ namespace BecquerelMonitor
             this.calcMinEnergyBox.ValueChanged += this.CalcRangeChanged;
             this.calcMaxEnergyBox.ValueChanged += this.CalcRangeChanged;
 
+            // (E27) Верх диапазона нужен редактору геометрии: по нему считаются
+            // размеры готовых сцен съёмки в поле. Панель создаётся раньше этих
+            // полей, поэтому значение подаётся здесь и потом на каждой правке.
+            this.geometryPanel.SetSceneEnergy((double)this.calcMaxEnergyBox.Value);
+
             // Кнопка съезжает под панель — её место в дизайнере было занято
             // ещё до появления параметров.
             this.calculateButton.Location =
@@ -266,6 +271,11 @@ namespace BecquerelMonitor
         /// </summary>
         void CalcRangeChanged(object sender, EventArgs e)
         {
+            // Сначала отдать верх редактору геометрии (E27), и только потом
+            // разводить границы: у разведения есть ранний выход, и за ним
+            // подача осталась бы несделанной.
+            this.geometryPanel.SetSceneEnergy((double)this.calcMaxEnergyBox.Value);
+
             if (this.calcMaxEnergyBox.Value > this.calcMinEnergyBox.Value)
             {
                 return;

@@ -59,8 +59,99 @@ namespace EffGridRangeProbe
             Grid("2900..3100 — штатных <2", 2900, 3100, EfficiencyGridMode.Standard, 34, false);
             Grid("логарифмическая 20..5000", 20, 5000, EfficiencyGridMode.Logarithmic, 10, false);
 
+            // E24: K-край ВЕЩЕСТВА ПРОБЫ. Штатные узлы идут «…60, 70, 80…», а
+            // край лютеция лежит на 63.31 — между ними, и кривая рисовалась
+            // прямой там, где на деле падает в 4.2 раза. Проверяется, что пара
+            // узлов встала по бокам края, что на самом крае узла НЕТ и что
+            // безобидная проба (воздух) сетку не трогает.
+            Edges("проба — оксид лютеция", "Lutetium oxide", 63.314, true);
+            Edges("проба — вольфрам (WT-20)", "Tungsten", 69.525, true);
+            Edges("проба — воздух", "Air, dry", 0.0, false);
+
             Console.WriteLine(bad == 0 ? "ВСЕ СОШЛИСЬ" : bad + " ПРОВЕРОК ПРОВАЛЕНО");
             return bad == 0 ? 0 : 1;
+        }
+
+        /// <summary>
+        /// Сетка ПО ГЕОМЕТРИИ: сцена берётся у встроенной заготовки редактора,
+        /// детектор — у первого пресета, меняется только вещество пробы. Свои
+        /// числа здесь не набираются нарочно — иначе проба разойдётся с формой
+        /// при первой же правке заготовки.
+        /// </summary>
+        static void Edges(string title, string sampleName, double edgeKev, bool expected)
+        {
+            GeometryMaterialLibrary.Entry entry = GeometryMaterialLibrary.ByName(sampleName);
+            if (entry == null)
+            {
+                Console.WriteLine("    ПЛОХО  {0}: вещества «{1}» нет в библиотеке", title, sampleName);
+                bad++;
+                return;
+            }
+
+            GeometryModel g = BecquerelMonitor.GeometryEditorPanel.Blank();
+            GeometryPresets.Items[0].Apply(g);
+            g.SourceType = GeometrySourceType.Cylinder;
+            g.Source = GeometryMaterialLibrary.Make(entry, entry.Density);
+
+            EfficiencyCalculationOptions options = new EfficiencyCalculationOptions
+            {
+                MinEnergyKev = 40,
+                MaxEnergyKev = 3000,
+                GridMode = EfficiencyGridMode.Standard,
+            };
+
+            System.Collections.Generic.List<string> notes = new System.Collections.Generic.List<string>();
+            double[] plain = options.BuildGrid();
+            double[] grid = options.BuildGrid(g, notes);
+
+            Console.WriteLine("{0,-28} {1,3} узлов (без геометрии {2}), краёв разрешено {3}",
+                              title, grid.Length, plain.Length, notes.Count);
+            foreach (string note in notes)
+            {
+                Console.WriteLine("    " + note);
+            }
+
+            bool ordered = true;
+            for (int i = 1; i < grid.Length; i++)
+            {
+                ordered &= grid[i] > grid[i - 1];
+            }
+
+            Check(title + ": узлы возрастают", ordered);
+
+            bool kept = true;
+            foreach (double energy in plain)
+            {
+                bool found = false;
+                foreach (double node in grid)
+                {
+                    found |= Math.Abs(node - energy) < 1e-9;
+                }
+
+                kept &= found;
+            }
+
+            Check(title + ": прежние узлы целы", kept);
+
+            if (!expected)
+            {
+                Check(title + ": сетка не тронута", grid.Length == plain.Length);
+                return;
+            }
+
+            bool below = false, above = false, onEdge = false;
+            foreach (double node in grid)
+            {
+                double d = (node - edgeKev) / edgeKev;
+                if (Math.Abs(d) < 1e-6) onEdge = true;
+                else if (d < 0.0 && d > -2.0 * EfficiencyCalculationOptions.EdgeOffset) below = true;
+                else if (d > 0.0 && d < 2.0 * EfficiencyCalculationOptions.EdgeOffset) above = true;
+            }
+
+            Check(title + ": узел под краем", below);
+            Check(title + ": узел над краем", above);
+            Check(title + ": на самом крае узла НЕТ", !onEdge);
+            Check(title + ": край назван в журнале", notes.Count > 0);
         }
 
         static void Grid(string title, double lo, double hi,

@@ -104,6 +104,16 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public double[] BuildGrid()
         {
+            return this.BuildGrid(null, null);
+        }
+
+        /// <summary>
+        /// То же, но с ГЕОМЕТРИЕЙ: в сетку добавляются узлы вокруг K-краёв её
+        /// собственных веществ (E24). Второй список, если он не пуст,
+        /// заполняется строками для журнала — какой край чем разрешён.
+        /// </summary>
+        public double[] BuildGrid(GeometryModel geometry, List<string> notes)
+        {
             double lo = Math.Max(1.0, this.MinEnergyKev);
             double hi = Math.Max(lo * 1.01, this.MaxEnergyKev);
 
@@ -120,20 +130,151 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 if (picked.Count >= 2)
                 {
+                    // Дотянуть ДО вставки краёв: продолжение идёт шагом
+                    // крайнего участка сетки, а узлы у края стоят вплотную —
+                    // попав в этот шаг, они растянули бы сетку до границы
+                    // сотнями узлов.
                     Reach(picked, lo, hi);
+                    AddEdges(picked, geometry, lo, hi, notes);
                     return picked.ToArray();
                 }
             }
 
             int n = Math.Max(2, this.NodeCount);
-            double[] grid = new double[n];
+            List<double> grid = new List<double>(n);
             double logLo = Math.Log(lo), logHi = Math.Log(hi);
             for (int i = 0; i < n; i++)
             {
-                grid[i] = Math.Exp(logLo + (logHi - logLo) * i / (n - 1));
+                grid.Add(Math.Exp(logLo + (logHi - logLo) * i / (n - 1)));
             }
 
-            return grid;
+            // Края нужны и логарифмической сетке: она реже штатной внизу шкалы,
+            // и провал в разы попадает между её узлами тем более.
+            AddEdges(grid, geometry, lo, hi, notes);
+            return grid.ToArray();
+        }
+
+        /// <summary>
+        /// Насколько узел отступает от K-края, долей энергии (E24).
+        ///
+        /// Узел ставится ПАРОЙ по обе стороны края и НИКОГДА на сам край: на
+        /// краю коэффициент ослабления разрывен, таблица XCOM держит там две
+        /// точки, и число «на краю» — это выбор одной из них, то есть ответ на
+        /// вопрос, которого никто не задавал. Пара по бокам разрывна честно:
+        /// между этими двумя узлами кривая и падает ступенькой.
+        ///
+        /// Две десятых процента — это 0.13 кэВ на K-крае лютеция (63.3) и
+        /// 0.02 кэВ на крае железа (7.1): меньше любой ширины пика и заведомо
+        /// больше шага интерполяции таблиц.
+        /// </summary>
+        public const double EdgeOffset = 0.002;
+
+        /// <summary>
+        /// Во сколько раз ослабление должно скакнуть на крае, чтобы край
+        /// считался заметным (E24). Десять процентов: ниже этого ступенька
+        /// теряется в шуме розыгрыша, а лишний узел стоит полного прогона
+        /// историй.
+        ///
+        /// Порог по СКАЧКУ, а не по массовой доле, нарочно: доля не говорит
+        /// ничего, пока не известна энергия — у железа при 3 % массы край
+        /// (7.1 кэВ) вне любой рабочей сетки, а у лютеция при той же доле
+        /// край на 63.3 виден в разы.
+        /// </summary>
+        public const double EdgeStep = 1.10;
+
+        /// <summary>
+        /// Добавить узлы вокруг K-краёв веществ геометрии. Берутся ВСЕ вещества
+        /// на пути кванта — проба, стенка сосуда, отражатель и корпус: край
+        /// принадлежит веществу, а не пробе, и стенка из свинца ступит кривую
+        /// ровно так же, как проба из лютеция.
+        ///
+        /// Кристалл сюда НЕ входит: его собственный край — это край СЧЁТА, а не
+        /// пропускания, и он уже сидит в штатных узлах у своих иода и цезия.
+        /// </summary>
+        static void AddEdges(List<double> grid, GeometryModel geometry,
+                             double lo, double hi, List<string> notes)
+        {
+            if (geometry == null)
+            {
+                return;
+            }
+
+            GeometryMaterial[] onPath = { geometry.Source, geometry.BeakerWall,
+                                          geometry.Reflector, geometry.Cladding };
+            List<double> added = new List<double>();
+            HashSet<int> seen = new HashSet<int>();
+
+            foreach (GeometryMaterial material in onPath)
+            {
+                if (material == null || !(material.Density > 0.0))
+                {
+                    continue;
+                }
+
+                foreach (KeyValuePair<int, double> pair in material.Fractions)
+                {
+                    if (!(pair.Value > 0.0) || !seen.Add(pair.Key))
+                    {
+                        continue;
+                    }
+
+                    MaterialDatabase.Fluorescence f = MaterialDatabase.FluorescenceOf(pair.Key);
+                    if (f == null || !(f.KEdgeKev > 0.0))
+                    {
+                        continue;
+                    }
+
+                    double below = f.KEdgeKev * (1.0 - EdgeOffset);
+                    double above = f.KEdgeKev * (1.0 + EdgeOffset);
+                    if (below <= lo || above >= hi)
+                    {
+                        continue;
+                    }
+
+                    double muBelow = material.LinearAttenuation(below);
+                    double muAbove = material.LinearAttenuation(above);
+                    if (!(muBelow > 0.0) || muAbove / muBelow < EdgeStep)
+                    {
+                        continue;
+                    }
+
+                    added.Add(below);
+                    added.Add(above);
+                    if (notes != null)
+                    {
+                        notes.Add(string.Format(CultureInfo.CurrentCulture,
+                            Resources.EfficiencyMakerGridEdge, pair.Key, f.KEdgeKev,
+                            muAbove / muBelow, material.Name));
+                    }
+                }
+            }
+
+            if (added.Count == 0)
+            {
+                return;
+            }
+
+            foreach (double energy in added)
+            {
+                // Узел вплотную к уже стоящему не заводится — тем же доводом,
+                // что и в Reach: это та же точка, а стоит она полного прогона.
+                bool near = false;
+                foreach (double have in grid)
+                {
+                    if (Math.Abs(have - energy) < energy * EdgeOffset * 0.5)
+                    {
+                        near = true;
+                        break;
+                    }
+                }
+
+                if (!near)
+                {
+                    grid.Add(energy);
+                }
+            }
+
+            grid.Sort();
         }
 
         /// <summary>
@@ -251,7 +392,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return result;
             }
 
-            double[] energies = options.BuildGrid();
+            // Сетка строится ПО ГЕОМЕТРИИ (E24): K-край вещества пробы или
+            // обвязки роняет кривую в разы, а штатные узлы идут «…60, 70, 80…»
+            // и край лежит между ними — нарисованная кривая ведёт прямую там,
+            // где на деле ступенька.
+            List<string> gridNotes = new List<string>();
+            double[] energies = options.BuildGrid(geometry, gridNotes);
             EfficiencySimulator simulator = new EfficiencySimulator(geometry)
             {
                 Histories = Math.Max(1000, options.Histories),
@@ -290,6 +436,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                                   ? Resources.EfficiencyMakerGridStandard
                                   : Resources.EfficiencyMakerGridLogarithmic,
                               options.EffectiveThreads));
+            foreach (string note in gridNotes)
+            {
+                log(note);
+            }
+
             log("");
 
             // Точки кривой считаются ОДНОВРЕМЕННО. Они независимы полностью:

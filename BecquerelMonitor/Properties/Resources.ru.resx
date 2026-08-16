@@ -1250,6 +1250,39 @@
   <data name="GeometryEditorPresetPrompt" xml:space="preserve">
     <value>(выбрать и подставить)</value>
   </data>
+  <data name="EfficiencyMakerGridEdge" xml:space="preserve">
+    <value>K-край Z={0} на {1:F2} кэВ разрешён парой узлов: ослабление «{3}» скачет в {2:F1} раза</value>
+  </data>
+  <data name="GeometryEditorSceneDiameter" xml:space="preserve">
+    <value>Диаметр сцены</value>
+  </data>
+  <data name="GeometryEditorSceneDepth" xml:space="preserve">
+    <value>Глубина грунта</value>
+  </data>
+  <data name="GeometryEditorSceneGap" xml:space="preserve">
+    <value>От грунта до торца детектора</value>
+  </data>
+  <data name="GeometryEditorSceneHoleDiameter" xml:space="preserve">
+    <value>Диаметр лунки</value>
+  </data>
+  <data name="GeometryEditorSceneHoleDepth" xml:space="preserve">
+    <value>Глубина лунки</value>
+  </data>
+  <data name="GeometryEditorSceneStandoff" xml:space="preserve">
+    <value>От дна лунки до торца детектора</value>
+  </data>
+  <data name="GeometryEditorSourceGround" xml:space="preserve">
+    <value>Детектор на земле</value>
+  </data>
+  <data name="GeometryEditorSourceBorehole" xml:space="preserve">
+    <value>Детектор в лунке</value>
+  </data>
+  <data name="GeometryEditorScene" xml:space="preserve">
+    <value>Свободный пробег {0:F1} см на {1:F0} кэВ · проба {2:F0} л, {3:F0} кг</value>
+  </data>
+  <data name="GeometryEditorSceneMaterial" xml:space="preserve">
+    <value> · вещество пробы поставлено «{0}»</value>
+  </data>
   <data name="EfficiencyMakerSetSkipped" xml:space="preserve">
     <value>Набор нуклидов «{0}» использовать нельзя: {1}</value>
   </data>

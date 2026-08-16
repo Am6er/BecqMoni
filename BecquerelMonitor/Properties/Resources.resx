@@ -42644,6 +42644,39 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="GeometryEditorPresetPrompt" xml:space="preserve">
     <value>(choose to fill in)</value>
   </data>
+  <data name="EfficiencyMakerGridEdge" xml:space="preserve">
+    <value>K edge of Z={0} at {1:F2} keV resolved by a pair of nodes: attenuation of "{3}" steps up {2:F1} times</value>
+  </data>
+  <data name="GeometryEditorSceneDiameter" xml:space="preserve">
+    <value>Scene diameter</value>
+  </data>
+  <data name="GeometryEditorSceneDepth" xml:space="preserve">
+    <value>Soil depth</value>
+  </data>
+  <data name="GeometryEditorSceneGap" xml:space="preserve">
+    <value>Ground to detector face</value>
+  </data>
+  <data name="GeometryEditorSceneHoleDiameter" xml:space="preserve">
+    <value>Borehole diameter</value>
+  </data>
+  <data name="GeometryEditorSceneHoleDepth" xml:space="preserve">
+    <value>Borehole depth</value>
+  </data>
+  <data name="GeometryEditorSceneStandoff" xml:space="preserve">
+    <value>Borehole bottom to detector face</value>
+  </data>
+  <data name="GeometryEditorSourceGround" xml:space="preserve">
+    <value>Detector on the ground</value>
+  </data>
+  <data name="GeometryEditorSourceBorehole" xml:space="preserve">
+    <value>Detector in a borehole</value>
+  </data>
+  <data name="GeometryEditorScene" xml:space="preserve">
+    <value>Mean free path {0:F1} cm at {1:F0} keV · sample {2:F0} L, {3:F0} kg</value>
+  </data>
+  <data name="GeometryEditorSceneMaterial" xml:space="preserve">
+    <value> · sample material set to "{0}"</value>
+  </data>
   <data name="EfficiencyMakerSetSkipped" xml:space="preserve">
     <value>Nuclide set "{0}" cannot be used: {1}</value>
   </data>

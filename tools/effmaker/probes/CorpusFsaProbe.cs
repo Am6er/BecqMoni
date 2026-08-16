@@ -452,14 +452,16 @@ namespace CorpusFsaProbe
                 if (o.Residuals > 0)
                 {
                     Console.WriteLine("  {0}: крупнейшие невязки", sample.Key);
-                    ResidualScan.Print(rd.EnergySpectrum, result, o.Residuals, "      ");
+                    ResidualScan.Print(rd.EnergySpectrum, result, o.Residuals, "      ",
+                                       rd.FwhmCalibration);
                 }
 
                 if (o.NearTo > o.NearFrom)
                 {
                     ResidualScan.Excess near;
                     row.NearExcess = ResidualScan.Near(rd.EnergySpectrum, result,
-                                                       o.NearFrom, o.NearTo, out near)
+                                                       o.NearFrom, o.NearTo,
+                                                       rd.FwhmCalibration, out near)
                         ? near.Sigmas : double.NaN;
                     row.NearCounts = double.IsNaN(row.NearExcess) ? 0.0 : near.Counts;
                 }
