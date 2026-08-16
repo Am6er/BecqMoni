@@ -22,7 +22,12 @@
 scripts/spectra: их калибровки — те, на которых посчитаны все числа отчёта,
 и пересчитывать их заново значит потерять воспроизводимость.
 
-Запуск:  python build_corpus.py [--only=KEY,KEY]
+⛔ ПЕРЕСБОРКА ТРЕБУЕТ РАЗРЕШЕНИЯ. Корпус держит свои копии сам (corpus/spectra,
+126 файлов в коммите), и всё, что их читает, работает без библиотеки. Лезть в
+рабочую папку сопровождающего (corpus_def.LIB) можно только по явному ключу —
+правило Amber 16.08.2026 «не лезть в мою папку, если я этого не разрешил»:
+
+Запуск:  python build_corpus.py --from-library [--only=KEY,KEY]
 """
 import csv
 import glob
@@ -69,6 +74,39 @@ import sqlite3                                       # noqa: E402
 APPDATA_DEV = os.path.join(os.environ.get('APPDATA', ''), 'BecqMoni', 'config', 'device')
 ASN8_DEV = r'C:\Users\moroz\YandexDisk\Спектры\ASN8_Configs'
 
+#: Личность прибора — guid, имя, тип, — ЗАКРЕПЛЁННАЯ В РЕПОЗИТОРИИ (`B8`).
+#:
+#: ⛔ Зачем. Раньше эти три поля читались из рабочего каталога сопровождающего
+#: (`%AppData%\BecqMoni`) и с Яндекс-диска, то есть состав корпуса зависел от
+#: настроек ОДНОЙ машины: любая правка прибора в приложении заезжала в корпус
+#: при первой же пересборке, без чьего-либо решения и без следа в журнале. На
+#: чужой машине пересборка вообще не воспроизводилась — исходников там нет.
+#:
+#: Настройки поиска пиков сюда НЕ входят и не входили: они считаются из модели
+#: разрешения самого корпуса (см. сборку `pcfg` в `main`). Из чужого каталога
+#: брались ровно эти три поля, и теперь они свои.
+#:
+#: Значения сняты 16.08.2026 с тех самых файлов, на которых корпус и построен,
+#: поэтому guid'ы совпадают с уже лежащими в рабочих копиях и переклеивать
+#: ничего не потребовалось.
+DEVICE_IDENTITY = {
+    'AS80x80':   ('33100348-421f-475d-adda-33736e6af7f8',
+                  'Atom Spectra 80x80', 'AtomSpectraVCP'),
+    'ASN16':     ('1a0651a2-0b84-4c4e-8be8-c2d286eb82eb',
+                  '1.Atom Spectra Nano 16 Pro RadiaScan 701A', 'AtomSpectraVCP'),
+    'ASN8_1024': ('3d3bef77-7c91-47a8-9787-393afc84ad99', 'ASN8 1024 ch', 'AudioInputDevice'),
+    'ASN8_2048': ('04175d72-7429-421e-aa42-7db9f490f5e5', 'ASN8 2048 ch', 'AudioInputDevice'),
+    'ASN8_3000': ('8091632c-f120-451a-9fcf-7880d1b0208d', 'ASN8 3000 ch', 'AudioInputDevice'),
+    'ASN8_4096': ('0590408c-d909-4ce7-87f8-1c6e7f3bc9ed', 'ASN8 4096 ch', 'AudioInputDevice'),
+    'ASN8_8192': ('a6e969ae-9f09-4512-843d-358137b20c5f', 'ASN8 8192 ch', 'AudioInputDevice'),
+    'OBS':       ('cf61ba09-b2fe-46df-97c6-3acac82c9283', 'Obsidian', 'Obsidian'),
+    'RC101':     ('71687ebf-6c58-47b8-85d2-aece957edbdf', 'RC-101', 'RadiaCode'),
+    'RC103':     ('7fe39199-d0fe-455a-aef7-ac98e1cd58ec', 'RC-103', 'RadiaCode'),
+}
+
+#: Откуда эта личность взялась исторически. Пути остались ТОЛЬКО ради сверки:
+#: если файл на месте и разошёлся с закреплённым — пересборка скажет об этом
+#: вслух, но возьмёт закреплённое. Отсутствие файла больше не мешает.
 COPY_DEVICE = {
     'ASN16': (APPDATA_DEV, '1.Atom Spectra Nano 16 Pro RadiaScan 701A.xml'),
     'AS80x80': (APPDATA_DEV, 'Atom Spectra 80x80.xml'),
@@ -578,6 +616,7 @@ def write_devices(state):
     os.makedirs(OUT_DEVICES, exist_ok=True)
     written = []
     drift = []
+    identity_drift = []
     for det in sorted({st['det'] for st in state.values()}):
         ref = max((st for st in state.values() if st['det'] == det),
                   key=lambda st: len(st['accepted']), default=None)
@@ -590,10 +629,18 @@ def write_devices(state):
             guid, name = NEW_DEVICE[det]['guid'], NEW_DEVICE[det]['name']
             dtype = NEW_DEVICE[det]['dtype']
         else:
+            # `B8`: личность прибора берётся ИЗ РЕПОЗИТОРИЯ, а не из рабочего
+            # каталога сопровождающего. Исходник, если он на месте, только
+            # сверяется — разошёлся, значит прибор перенастроили в приложении, и
+            # об этом надо сказать, а не тихо утащить настройку в корпус.
+            guid, name, dtype = DEVICE_IDENTITY[det]
             src = os.path.join(*COPY_DEVICE[det])
-            root = ET.parse(src).getroot()
-            guid, name = root.findtext('Guid'), root.findtext('Name')
-            dtype = root.findtext('DeviceType') or 'AudioInput'
+            if os.path.isfile(src):
+                root = ET.parse(src).getroot()
+                live = (root.findtext('Guid'), root.findtext('Name'),
+                        root.findtext('DeviceType') or 'AudioInput')
+                if live != (guid, name, dtype):
+                    identity_drift.append((det, (guid, name, dtype), live))
         fname = re.sub(r'[\/:*?"<>|]', '-', name) + '.xml'
         coef = list(ecal.coef[:3]) + [0.0, 0.0]
         text = DEVICE_TEMPLATE.format(
@@ -612,6 +659,18 @@ def write_devices(state):
             cfg['Ch_Concat'], cfg['Min_Range'], cfg['Max_Range'])))
         if changes:
             drift.append((det, fname, changes))
+    if identity_drift:
+        # Отдельно от `drift` нарочно: тот про НАСТРОЙКИ, а этот про ЛИЧНОСТЬ.
+        # Разошедшийся guid страшнее разошедшегося порога поиска пиков — по нему
+        # ищется матрица, и подмена оставила бы понятную часть без неё молча.
+        print()
+        print('⚠ ЛИЧНОСТЬ ПРИБОРА В %%AppData%% РАЗОШЛАСЬ С ЗАКРЕПЛЁННОЙ (B8): %d'
+              % len(identity_drift))
+        for det, mine, live in identity_drift:
+            print('   %-10s в корпусе %s / %s / %s' % (det, mine[0][:8], mine[1], mine[2]))
+            print('   %-10s у прибора %s / %s / %s' % ('', (live[0] or '?')[:8], live[1], live[2]))
+        print('   взято ЗАКРЕПЛЁННОЕ: корпус не зависит от настроек одной машины')
+
     if drift:
         # `B8`: пять групп (ASN16, AS80x80, RC103, RC101, OBS) берут имя, guid и
         # НАСТРОЙКИ ПОИСКА ПИКОВ из рабочего каталога сопровождающего
@@ -977,8 +1036,51 @@ def same_setting(fg_coef, bg_coef, n, r662):
 
 
 # ---------------------------------------------------------------------------
+def library_permission(argv):
+    """⛔ В библиотеку сопровождающего — ТОЛЬКО ПО РАЗРЕШЕНИЮ (`B8`).
+
+    Правило Amber 16.08.2026, дословно: «корпус должен хранить СВОИ копии у себя
+    и не лезть в мою папку, если я этого не разрешил».
+
+    Корпус САМОДОСТАТОЧЕН: рабочие копии всех 126 спектров лежат в
+    `corpus/spectra` и в коммите, и разбор читает именно их. Библиотека
+    (`corpus_def.LIB`) нужна ровно одному действию — ПЕРЕСОБРАТЬ эти копии
+    заново, и это действие теперь требует явного `--from-library`.
+
+    ⚠ Почему это не придирка к порядку, а защита данных. 16.08.2026
+    `!AS80x80\\Lu-176.xml` был пересохранён в приложении ПОСРЕДИ РАБОТЫ (14:30),
+    пересборка молча взяла новую версию — и `AS80_Lu176` потерял калибровку
+    целиком: «ни одной линии», ERROR, весь спектр в промах. До того тот же файл
+    так же тихо сдвинул модель разрешения всей группы (`B10`). Корпус — единица
+    измерения; он не может меняться оттого, что рядом открыли файл.
+    """
+    if '--from-library' in argv:
+        return True
+
+    print('⛔ ПЕРЕСБОРКА ИЗ БИБЛИОТЕКИ НЕ РАЗРЕШЕНА')
+    print()
+    print('Корпус держит свои копии сам: %d файлов в %s, все в коммите.'
+          % (len(glob.glob(os.path.join(OUT_SPECTRA, '*.xml'))), OUT_SPECTRA))
+    print('Читать их не мешает ничто — приёмка, раздел, сводка и прогон работают')
+    print('как обычно. Пересборка же берёт исходники из библиотеки')
+    print('    %s' % corpus_def.LIB)
+    print('то есть из рабочей папки сопровождающего, и это делается ТОЛЬКО')
+    print('с разрешения (правило Amber 16.08.2026):')
+    print()
+    print('    python tools/CORPUS/scripts/build_corpus.py --from-library')
+    print()
+    print('⚠ Разрешая, помните: файл в библиотеке мог быть пересохранён между')
+    print('  прогонами. 16.08.2026 так потерялась калибровка AS80_Lu176 целиком,')
+    print('  а до того уехала модель разрешения всей группы AS80x80 (B8, B10).')
+    print('  Что именно поехало, назовёт сторож входа в конце пересборки.')
+    return False
+
+
 def main():
     only = None
+    if not library_permission(sys.argv[1:]):
+        return None
+
     for a in sys.argv[1:]:
         if a.startswith('--only='):
             only = set(a.split('=', 1)[1].split(','))
@@ -1321,5 +1423,11 @@ def report_lost_efficiency(had):
 if __name__ == '__main__':
     had = efficiency_keys()
     result = main()
+    if result is None:
+        # Разрешения не дали — корпус НЕ ТРОНУТ, и это нормальный исход, а не
+        # сбой. Код 2 отличает его от «пересобрал успешно» (0), чтобы скрипт
+        # конвейера не поехал дальше как ни в чём не бывало.
+        sys.exit(2)
+
     print('\nзаписано новых копий: %d' % len(result))
     report_lost_efficiency(had)
