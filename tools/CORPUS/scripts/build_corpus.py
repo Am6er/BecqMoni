@@ -247,9 +247,22 @@ def strip_pulses(rd):
 
 
 def ensure_livetime(es):
+    """Живое время; при его отсутствии принимается мёртвое время = 0.
+
+    ⚠ Литеральный `0` — ТОЖЕ отсутствие, и раньше он им не считался (`B16`,
+    16.08.2026). Проверка была «пусто ли поле», а RadiaCode пишет туда именно
+    ноль: у `RC103_Cs137_0cm` и `RC103_Lu176` в корпусе стояло `live_s = 0.0`,
+    то есть всё, что делится на время — скорости счёта, МДА, пределы `S9`, —
+    считалось от нуля и молча. Ноль живого времени физически невозможен у
+    спектра с сотней тысяч отсчётов, так что это не данные, а пропуск.
+    """
     lt = es.find('LiveTime')
     mt = es.findtext('MeasurementTime')
-    if (lt is None or not (lt.text or '').strip()) and mt:
+    try:
+        have = float((lt.text or '').strip()) if lt is not None else 0.0
+    except ValueError:
+        have = 0.0
+    if have <= 0.0 and mt:
         if lt is None:
             lt = ET.SubElement(es, 'LiveTime')
         lt.text = mt
@@ -388,7 +401,8 @@ def calibrate_one(sp, entry, res_a_hint=None):
     if not lines:
         return stored, [], r662, 'stored/нет линий'
 
-    cal, pairs, res_a, tag = corpus_calib.calibrate(sp.counts, sp.ecal, lines, res_a)
+    cal, pairs, res_a, tag = corpus_calib.calibrate(sp.counts, sp.ecal, lines, res_a,
+                                                    force=bool(entry.get('recal')))
     return cal, pairs, res_a / np.sqrt(662.0), tag
 
 

@@ -60,6 +60,7 @@ class CorpusEffProbe
         string spectraDir = Path.Combine("tools", "CORPUS", "corpus", "spectra");
         string only = null;
         bool dry = false;
+        bool force = false;
         var options = new EfficiencyCalculationOptions();
         foreach (string a in args)
         {
@@ -68,6 +69,7 @@ class CorpusEffProbe
             else if (a.StartsWith("--n=", StringComparison.Ordinal))
                 options.Histories = int.Parse(a.Substring(4), CultureInfo.InvariantCulture);
             else if (a.StartsWith("--only=", StringComparison.Ordinal)) only = a.Substring(7);
+            else if (a == "--force") force = true;
             else if (a == "--dry") dry = true;
             else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
         }
@@ -101,6 +103,7 @@ class CorpusEffProbe
         string responseDir = Path.Combine(dir, "response");
         bool ok = true;
         int attached = 0;
+        int skippedCurves = 0;
 
         Console.WriteLine("Привязка кривой и матрицы к спектрам понятной части (B1)");
         Console.WriteLine("кривая: {0:F0}-{1:F0} кэВ, {2} историй на узел",
@@ -129,6 +132,25 @@ class CorpusEffProbe
 
             GeometryModel geometry = GeometryModel.Load(geomPath);
             string guid = StableGuid(key);
+
+            // ГВАРД ГЛОБАЛЬНОГО ПЕРЕСЧЁТА (указание Amber 16.08.2026), пара к
+            // такому же в `CorpusMatrixProbe`. Кривая — Монте-Карло, и считать
+            // её заново, когда ни геометрия, ни физика не менялись, значит жечь
+            // время (16.08 так ушло 35 минут) и рисковать сдвигом базы.
+            //
+            // Признак «готово» берётся из САМОГО узла в спектре: он хранит и
+            // геометрию, которой посчитан, и клеймо (версия физики, число
+            // историй, сетка). Сошлись обе — считать нечего. Поднимется версия
+            // физики — не сойдётся сразу у всех, и пересчёт станет глобальным
+            // сам, без ключа: ровно тот случай, ради которого глобальный и
+            // нужен.
+            if (!force && CurveIsCurrent(spectraDir, byGeometry[key], geometry, guid, options))
+            {
+                Console.WriteLine("   пропущена: клеймо и геометрия сошлись у всех её спектров");
+                Console.WriteLine();
+                skippedCurves++;
+                continue;
+            }
 
             EfficiencyFitResult result = EfficiencyCalculation.Run(geometry, options, null, null);
             if (!string.IsNullOrEmpty(result.Error))
@@ -187,8 +209,14 @@ class CorpusEffProbe
             Console.WriteLine();
         }
 
-        Console.WriteLine("геометрий: {0}, записей проставлено: {1}{2}",
-                          order.Count, attached, dry ? " (--dry, ничего не записано)" : "");
+        Console.WriteLine("геометрий: {0} — посчитано {1}, пропущено {2} (клеймо и геометрия"
+                          + " сошлись); записей проставлено: {3}{4}",
+                          order.Count, order.Count - skippedCurves, skippedCurves, attached,
+                          dry ? " (--dry, ничего не записано)" : "");
+        if (skippedCurves == order.Count && order.Count > 0)
+        {
+            Console.WriteLine("ничего не изменилось — пересчитывать было нечего");
+        }
         Console.WriteLine(ok ? "ВСЕ СОШЛИСЬ" : "ЕСТЬ НЕСОШЕДШИЕСЯ");
         return ok ? 0 : 1;
     }
@@ -204,6 +232,101 @@ class CorpusEffProbe
         {
             byte[] hash = md5.ComputeHash(Encoding.UTF8.GetBytes("corpus-efficiency:" + key));
             return new Guid(hash).ToString();
+        }
+    }
+
+    /// <summary>
+    /// Кривая геометрии уже посчитана И ровно из этого: у КАЖДОГО её спектра
+    /// стоит узел с тем же guid, тем же клеймом расчёта и той же геометрией.
+    ///
+    /// Сверяется не «есть ли узел», а ЧЕМ он посчитан. Геометрия сравнивается
+    /// отрисовкой тем же писателем, что кладёт её на диск, — так же, как это
+    /// делает отпечаток матрицы; клеймо даёт версию физики и число историй.
+    /// Хватает одного спектра без узла или с чужим, чтобы кривую пересчитать:
+    /// «почти у всех» — это молчаливая дыра, а не готовность.
+    /// </summary>
+    static bool CurveIsCurrent(string spectraDir, List<string> spectra,
+                               GeometryModel geometry, string guid,
+                               EfficiencyCalculationOptions options)
+    {
+        string want;
+        try
+        {
+            want = GeometryWriter.Render(geometry);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+
+        string physWant = "phys=" + ResponseMatrix.PhysicsVersion.ToString(CultureInfo.InvariantCulture) + ";";
+        string histWant = "hist=" + options.Histories.ToString(CultureInfo.InvariantCulture) + ";";
+
+        foreach (string spectrum in spectra)
+        {
+            string path = Path.Combine(spectraDir, spectrum + ".xml");
+            if (!File.Exists(path))
+            {
+                return false;
+            }
+
+            EfficiencyConfigData have = ReadNode(path);
+            if (have == null || have.Geometry == null)
+            {
+                return false;
+            }
+
+            if (!string.Equals(have.Guid, guid, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            string stamp = have.ComputeStamp ?? "";
+            if (stamp.IndexOf(physWant, StringComparison.Ordinal) < 0
+                || stamp.IndexOf(histWant, StringComparison.Ordinal) < 0)
+            {
+                return false;
+            }
+
+            try
+            {
+                if (!string.Equals(GeometryWriter.Render(have.Geometry), want, StringComparison.Ordinal))
+                {
+                    return false;
+                }
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        return spectra.Count > 0;
+    }
+
+    /// <summary>Узел `&lt;Efficiency&gt;` первой записи спектра; null, если его нет.</summary>
+    static EfficiencyConfigData ReadNode(string path)
+    {
+        try
+        {
+            var document = new XmlDocument();
+            document.Load(path);
+            XmlNode node = document.SelectSingleNode("//ResultDataList/ResultData/Efficiency");
+            if (node == null || node.SelectSingleNode("Guid") == null)
+            {
+                return null;
+            }
+
+            var serializer = new XmlSerializer(typeof(EfficiencyConfigData),
+                                               new XmlRootAttribute("Efficiency"));
+            using (var reader = new StringReader(node.OuterXml))
+            {
+                return (EfficiencyConfigData)serializer.Deserialize(reader);
+            }
+        }
+        catch (Exception)
+        {
+            return null;
         }
     }
 

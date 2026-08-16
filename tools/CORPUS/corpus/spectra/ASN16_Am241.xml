@@ -8242,7 +8242,7 @@
         <ValidPulseCount>1961747</ValidPulseCount>
         <TotalPulseCount>1963315</TotalPulseCount>
         <MeasurementTime>497812</MeasurementTime>
-        <LiveTime>0</LiveTime>
+        <LiveTime>497812</LiveTime>
         <NumberOfSamples>0</NumberOfSamples>
         <Spectrum>
           <DataPoint>0</DataPoint>
