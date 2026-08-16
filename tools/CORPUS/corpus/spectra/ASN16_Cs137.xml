@@ -1,4 +1,4 @@
-﻿<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <ResultDataFile>
   <FormatVersion>120920</FormatVersion>
   <ResultDataList>
@@ -16,7 +16,6 @@
         <Guid>1a0651a2-0b84-4c4e-8be8-c2d286eb82eb</Guid>
       </DeviceConfigReference>
       <ROIConfigReference />
-      
       <BackgroundSpectrumFile>Фон в домике дома nos 12. 09.10.2022.xml</BackgroundSpectrumFile>
       <StartTime>2022-11-28T10:07:57.379976+03:00</StartTime>
       <EndTime>2022-11-28T12:14:42.3665653+03:00</EndTime>
@@ -16469,6 +16468,6 @@
         <VoigtChi2Total>181142.12264365342</VoigtChi2Total>
         <Chi2pNdp>319.9694997431468</Chi2pNdp>
       </SimpleSqrtFwhmCalibration>
-    <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-352.03244826412293</Coefficient><Coefficient>4.645345330477389</Coefficient><Coefficient>0.000351329948581036</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
+    <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-352.07768623069035</Coefficient><Coefficient>4.650756888237803</Coefficient><Coefficient>0.00035059644465374156</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>
