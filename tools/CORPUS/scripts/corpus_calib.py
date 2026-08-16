@@ -235,13 +235,21 @@ def gain_drift(cal, stored, nmax):
     return abs(g - g0) / g0 if g0 > 0 else 0.0
 
 
-def choose(stored, pairs, res_a, nmax, max_order=2, keep_margin=0.9):
+def choose(stored, pairs, res_a, nmax, max_order=2, keep_margin=0.9, force=False):
     """Хранившаяся калибровка остаётся, если поправка не улучшила невязку
     заметно (на десятую часть): менять калибровку ради шума незачем.
 
     У каждого кандидата должна остаться хотя бы одна степень свободы. Иначе
     прямая по двум точкам проходит через них ровно, получает нулевую невязку и
     побеждает всегда — а за пределами этих двух точек может уходить куда угодно.
+
+    `force` снимает привилегию хранившейся: она перестаёт быть точкой отсчёта и
+    участвует наравне с остальными (`B16`, указание Amber 16.08.2026 —
+    «перекалибровать»). Нужно там, где хранившаяся заведомо плоха, но
+    выигрывает по формальному порогу: у `G1S24_Am241_P5` она давала −14.97 кэВ
+    на K-40 и промах 0.27 ПШПВ на самой линии Am-241, из-за чего разбор её и не
+    видел. ⚠ Совсем выбросить хранившуюся нельзя: когда линий мало, кандидатов
+    может не оказаться вовсе — тогда возвращается она же, и метка это назовёт.
     """
     n = len(pairs)
     cands = [('stored', stored)]
@@ -266,19 +274,35 @@ def choose(stored, pairs, res_a, nmax, max_order=2, keep_margin=0.9):
         if cal is not None:
             cands.append(('poly%d' % order, cal))
 
-    base = residual_fwhm(stored, pairs, res_a)
-    best_tag, best_cal, best_score = 'stored', stored, base
-    for tag, cal in cands[1:]:
+    def scored(tag, cal):
         score = residual_fwhm(cal, pairs, res_a)
         drift = gain_drift(cal, stored, nmax)
         if drift > 0.06:
             score += 20.0 * (drift - 0.06)       # усиление врёт на проценты, не в разы
+        return score
+
+    if force and len(cands) > 1:
+        # Хранившаяся снята с пьедестала: побеждает лучший ПОДОБРАННЫЙ кандидат,
+        # порог `keep_margin` к нему не применяется — он и заведён затем, чтобы
+        # не менять калибровку ради шума, а здесь смена как раз и требуется.
+        best_tag, best_cal = cands[1][0], cands[1][1]
+        best_score = scored(*cands[1])
+        for tag, cal in cands[2:]:
+            score = scored(tag, cal)
+            if score < best_score:
+                best_tag, best_cal, best_score = tag, cal, score
+        return best_tag + '/recal', best_cal, best_score
+
+    base = residual_fwhm(stored, pairs, res_a)
+    best_tag, best_cal, best_score = 'stored', stored, base
+    for tag, cal in cands[1:]:
+        score = scored(tag, cal)
         if score < best_score * keep_margin:
             best_tag, best_cal, best_score = tag, cal, score
     return best_tag, best_cal, best_score
 
 
-def calibrate(counts, stored_coef, lines, res_a, max_order=2):
+def calibrate(counts, stored_coef, lines, res_a, max_order=2, force=False):
     """Полный цикл: грубое сопоставление -> поправка -> точное сопоставление.
 
     Возвращает (Ecal, пары, res_a, метка режима).
@@ -300,7 +324,8 @@ def calibrate(counts, stored_coef, lines, res_a, max_order=2):
                for a in found if a['purity'] > 0.85]
         if len(red) >= 2:
             res_a = float(np.median(red))
-        step_tag, step_cal, _ = choose(stored, pairs, res_a, nmax, max_order)
+        step_tag, step_cal, _ = choose(stored, pairs, res_a, nmax, max_order,
+                                       force=force)
         cal, tag = step_cal, step_tag
     if pairs:
         final = match_lines(counts, cal, lines, res_a, tol_fwhm=0.7,
@@ -323,7 +348,7 @@ def calibrate(counts, stored_coef, lines, res_a, max_order=2):
                 [a['e_ref'] for a in pairs])))
             keep = [a for a, dd in zip(pairs, d) if abs(dd - np.median(d)) <= limit]
             if 4 <= len(keep) < len(pairs):
-                t2, c2, _ = choose(stored, keep, res_a, nmax, max_order)
+                t2, c2, _ = choose(stored, keep, res_a, nmax, max_order, force=force)
                 if residual_fwhm(c2, keep, res_a) < residual_fwhm(cal, pairs, res_a):
                     cal, tag = c2, t2 + '/robust'
                     pairs = match_lines(counts, cal, lines, res_a, tol_fwhm=0.7,

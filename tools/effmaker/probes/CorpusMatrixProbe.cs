@@ -35,6 +35,7 @@ class CorpusMatrixProbe
 
         string dir = Path.Combine("tools", "CORPUS", "corpus", "geometries");
         string only = null;
+        bool force = false;
         var options = new ResponseMatrixOptions();
         foreach (string a in args)
         {
@@ -44,6 +45,7 @@ class CorpusMatrixProbe
                 options.Histories = int.Parse(a.Substring(4), CultureInfo.InvariantCulture);
             else if (a.StartsWith("--nodes=", StringComparison.Ordinal))
                 options.NodeCount = int.Parse(a.Substring(8), CultureInfo.InvariantCulture);
+            else if (a == "--force") force = true;
             else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
         }
 
@@ -74,11 +76,71 @@ class CorpusMatrixProbe
         Console.WriteLine();
 
         bool quiet = true;
+        int skipped = 0, built = 0;
         var total = Stopwatch.StartNew();
         foreach (string path in files)
         {
             string key = Path.GetFileNameWithoutExtension(path);
             GeometryModel geometry = GeometryModel.Load(path);
+
+            // ГВАРД ГЛОБАЛЬНОГО ПЕРЕСЧЁТА (указание Amber 16.08.2026).
+            //
+            // Считать надо ТОЛЬКО то, что изменилось. Глобальный пересчёт
+            // осмыслен, когда изменилась картина целиком — например поднялась
+            // версия физики переноса; тогда клеймо не сойдётся СРАЗУ У ВСЕХ, и
+            // пропусков не будет ни одного. Отдельный ключ на это не нужен, и
+            // в этом суть: признак «пора считать всё» вычисляется, а не
+            // объявляется руками.
+            //
+            // Клеймо (`ResponseMatrix.ComputeStamp`) покрывает версию физики,
+            // ВСЕ параметры расчёта и полный текст геометрии, поэтому «сошлось»
+            // значит «эта матрица посчитана ровно из этого и ровно так».
+            //
+            // ⚠ Зачем это заведено. Прогон без `--only` пересчитывал ВСЁ
+            // подряд: 16.08.2026 так ушло 35 минут на кривые, которые не
+            // менялись (и `T36` — тем же способом гущая матрица молча вернулась
+            // к штатной густоте). Ручной `--only` для этого не годится: он
+            // требует, чтобы человек ЗАРАНЕЕ знал список изменившегося, а
+            // ошибка в списке молчит.
+            string outPathExisting = Path.Combine(dir, key + ".rmx");
+            if (!force && File.Exists(outPathExisting))
+            {
+                ResponseMatrix have = ResponseMatrix.Load(outPathExisting);
+                if (have != null && have.IsValidFor(geometry, options))
+                {
+                    Console.WriteLine("== {0} ==", key);
+                    Console.WriteLine("   пропущена: клеймо сошлось, пересчитывать нечего");
+                    Console.WriteLine();
+                    skipped++;
+                    continue;
+                }
+
+                // ⛔ ГУЩЕ ШТАТНОЙ — НЕ ТРОГАТЬ. Это `T36` дословно: «проба
+                // должна отказываться понижать густоту без ключа».
+                //
+                // Клеймо не сходится и тогда, когда матрица посчитана ЛУЧШЕ
+                // требуемого — историй в ней больше, чем в умолчаниях. Считать
+                // такую «устаревшей» и молча переписывать штатной — это ровно
+                // та потеря, ради которой строка `T36` и заведена: 16.08.2026
+                // густая `G1S_point25` (1.2 М историй, шум 2.84 %) была так
+                // затёрта штатной (300 к, 5.67 %) ДВАЖДЫ — второй раз этим
+                // самым гвардом, пока в нём не было этой ветки.
+                //
+                // Проверяется годность по ЕЁ СОБСТВЕННЫМ параметрам: геометрия
+                // и версия физики те же, разошлись только историй. Тогда она не
+                // устарела, а лучше, и пересчёт был бы понижением.
+                if (have != null && have.IsValidFor(geometry) && have.Histories > options.Histories)
+                {
+                    Console.WriteLine("== {0} ==", key);
+                    Console.WriteLine("   пропущена: посчитана ГУЩЕ штатной ({0} историй против {1}),"
+                                      + " понижать без --force не буду (T36)",
+                                      have.Histories, options.Histories);
+                    Console.WriteLine();
+                    skipped++;
+                    continue;
+                }
+            }
+
             TimeSpan cpuBefore = Process.GetCurrentProcess().TotalProcessorTime;
             var watch = Stopwatch.StartNew();
             ResponseMatrix matrix = ResponseMatrixBuilder.Build(
@@ -89,6 +151,7 @@ class CorpusMatrixProbe
 
             string outPath = Path.Combine(dir, key + ".rmx");
             matrix.Save(outPath);
+            built++;
 
             bool noisy = matrix.ContinuumWeightedError > 5.0;
             quiet &= !noisy;
@@ -124,7 +187,21 @@ class CorpusMatrixProbe
         }
 
         total.Stop();
-        Console.WriteLine("матриц: {0}, всего {1:F1} мин", files.Count, total.Elapsed.TotalMinutes);
+        // Пропущенное называется ЧИСЛОМ, а не молчанием: «посчитано 0 из 45» —
+        // это нормальный исход, когда ничего не менялось, и он должен читаться
+        // как нормальный, а не как «проба не сработала».
+        Console.WriteLine("матриц: {0} — посчитано {1}, пропущено {2} (клеймо сошлось); всего {3:F1} мин",
+                          files.Count, built, skipped, total.Elapsed.TotalMinutes);
+        if (built == 0 && skipped > 0)
+        {
+            Console.WriteLine("ничего не изменилось — пересчитывать было нечего");
+        }
+        else if (skipped == 0 && built > 1)
+        {
+            Console.WriteLine("пересчитаны ВСЕ — значит изменилась картина целиком"
+                              + " (версия физики или параметры расчёта)");
+        }
+
         Console.WriteLine(quiet ? "ВСЕ СОШЛИСЬ" : "ЕСТЬ ШУМНЫЕ");
         return quiet ? 0 : 1;
     }
