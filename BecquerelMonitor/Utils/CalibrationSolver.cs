@@ -85,6 +85,49 @@ namespace BecquerelMonitor.Utils
             return retvalue;
         }
 
+        /// <summary>
+        /// Степенная модель разрешения: FWHM = a · ch^p (V2).
+        ///
+        /// Подгонка идёт по ЛОГАРИФМАМ — ln FWHM = ln a + p · ln ch, — потому
+        /// что в них задача линейная и решается тем же наименьшим квадратом,
+        /// что и остальные кривые. Прямая подгонка степени потребовала бы
+        /// итераций и начального приближения, а выигрыша не дала бы: точек
+        /// калибровки единицы, и разница между весами в логарифмах и в
+        /// линейной шкале меньше их разброса.
+        ///
+        /// Точки с нулевым или отрицательным каналом и шириной отбрасываются:
+        /// логарифма у них нет. Ноль канала — это не редкость, а обычная первая
+        /// опорная точка (`FWHM_AT_0`), поэтому молчаливое NaN здесь было бы
+        /// самым частым исходом.
+        /// </summary>
+        public static double[] SolvePower(List<CalibrationPeak> peak)
+        {
+            List<double> x = new List<double>();
+            List<double> y = new List<double>();
+            foreach (CalibrationPeak p in peak)
+            {
+                if (p.Channel <= 0 || p.FWHM <= 0.0) continue;
+                x.Add(Math.Log(p.Channel));
+                y.Add(Math.Log(p.FWHM));
+            }
+
+            if (x.Count < 2) return new double[2];
+
+            double[,] dense_matrix = new double[x.Count, 2];
+            double[] dense_vector = new double[x.Count];
+            for (int i = 0; i < x.Count; i++)
+            {
+                dense_matrix[i, 0] = 1.0;
+                dense_matrix[i, 1] = x[i];
+                dense_vector[i] = y[i];
+            }
+
+            Matrix<double> matrix = Matrix<double>.Build.DenseOfArray(dense_matrix);
+            Vector<double> vector = Vector<double>.Build.Dense(dense_vector);
+            double[] fit = matrix.Solve(vector).ToArray();
+            return new double[] { Math.Exp(fit[0]), fit[1] };
+        }
+
         public static double[] SolveWeighted (List<CalibrationPoint> points, int PolynomialOrder)
         {
             Matrix<double> matrix;

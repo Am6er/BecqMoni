@@ -225,6 +225,9 @@
   <data name="selectCurveComboBox.Items" xml:space="preserve">
     <value>Simple Square root</value>
   </data>
+  <data name="selectCurveComboBox.Items2" xml:space="preserve">
+    <value>Power law</value>
+  </data>
   <data name="selectCurveComboBox.Items1" xml:space="preserve">
     <value>Square root polynomial</value>
   </data>

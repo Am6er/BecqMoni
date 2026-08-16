@@ -152,7 +152,8 @@
             this.selectCurveComboBox.FormattingEnabled = true;
             this.selectCurveComboBox.Items.AddRange(new object[] {
             resources.GetString("selectCurveComboBox.Items"),
-            resources.GetString("selectCurveComboBox.Items1")});
+            resources.GetString("selectCurveComboBox.Items1"),
+            resources.GetString("selectCurveComboBox.Items2")});
             resources.ApplyResources(this.selectCurveComboBox, "selectCurveComboBox");
             this.selectCurveComboBox.Name = "selectCurveComboBox";
             this.toolTip1.SetToolTip(this.selectCurveComboBox, resources.GetString("selectCurveComboBox.ToolTip"));
