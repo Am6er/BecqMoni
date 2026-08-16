@@ -47,11 +47,11 @@ pdistance = 10 cm
 
 //Cylindrical source
 SC_BeakerToDetectorFrontDistance = 0 cm
-SC_BeakerDiameter = 7.0043824 cm
-SC_BeakerHeight = 3.4 cm
+SC_BeakerDiameter = 8.9403874 cm
+SC_BeakerHeight = 1.1 cm
 SC_BeakerSideWallThickness = 0.1 cm
 SC_BeakerEndWallThickness = 0.1 cm
-SC_SourceHeight = 3.3 cm
+SC_SourceHeight = 1 cm
 
 //Marinelli beaker source
 SM_BeakerToDetectorFrontDistance = 0.1 cm
@@ -205,21 +205,21 @@ M_SC_Beaker.MatRelWeight[0] = 1
 
 //Source 
 SC_nSourceElements = 5
-SC_RoSource = 1.6666667
+SC_RoSource = 0.64
 SC_ZSource[0] = 1
-SC_FractionsSource[0] = 0.0248262
+SC_FractionsSource[0] = 0.064
 SC_ZSource[1] = 6
-SC_FractionsSource[1] = 0.218471
+SC_FractionsSource[1] = 0.612
 SC_ZSource[2] = 7
-SC_FractionsSource[2] = 0.0228401
+SC_FractionsSource[2] = 0.021
 SC_ZSource[3] = 8
-SC_FractionsSource[3] = 0.0784508
+SC_FractionsSource[3] = 0.151
 SC_ZSource[4] = 26
-SC_FractionsSource[4] = 0.655412
+SC_FractionsSource[4] = 0.151
 SC_FractionTypeSource = MASS
-M_SC_Source.MName = Œ»—Õ-16
+M_SC_Source.MName = Œ»—Õ-06
 M_SC_Source.Nmaterials = 1
-M_SC_Source.Name[0] = Œ»—Õ-16                                  
+M_SC_Source.Name[0] = Œ»—Õ-06                                  
 M_SC_Source.MatRelWeight[0] = 1
 
 
@@ -258,21 +258,21 @@ M_SM_Beaker.MatRelWeight[0] = 1
 
 //Source  
 SM_nSourceElements = 5
-SM_RoSource = 1.6666667
+SM_RoSource = 0.64
 SM_ZSource[0] = 1
-SM_FractionsSource[0] = 0.0248262
+SM_FractionsSource[0] = 0.064
 SM_ZSource[1] = 6
-SM_FractionsSource[1] = 0.218471
+SM_FractionsSource[1] = 0.612
 SM_ZSource[2] = 7
-SM_FractionsSource[2] = 0.0228401
+SM_FractionsSource[2] = 0.021
 SM_ZSource[3] = 8
-SM_FractionsSource[3] = 0.0784508
+SM_FractionsSource[3] = 0.151
 SM_ZSource[4] = 26
-SM_FractionsSource[4] = 0.655412
+SM_FractionsSource[4] = 0.151
 SM_FractionTypeSource = MASS
-M_SM_Source.MName = Œ»—Õ-16
+M_SM_Source.MName = Œ»—Õ-06
 M_SM_Source.Nmaterials = 1
-M_SM_Source.Name[0] = Œ»—Õ-16                                  
+M_SM_Source.Name[0] = Œ»—Õ-06                                  
 M_SM_Source.MatRelWeight[0] = 1
 
 

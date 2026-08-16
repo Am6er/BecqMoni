@@ -239,6 +239,71 @@ def check_composition():
     return True
 
 
+#: Guid узла привязки — по нему разбор ИЩЕТ ФАЙЛ МАТРИЦЫ.
+EFF_NODE_GUID = re.compile(r'<Efficiency>\s*<Guid>([^<]*)</Guid>')
+
+
+def check_response_store():
+    """`B14`: матрица лежит там, откуда её берёт РАЗБОР, а не там, где удобно.
+
+    Сторож заведён 16.08.2026, и он про два разных файла. `check_parts` выше
+    проверяет `geometries/<геометрия>.rmx` — тот, что пишет `CorpusMatrixProbe`.
+    А разбор берёт матрицу совсем иначе: `ResponseMatrixStore.Load(Guid)` →
+    `geometries/response/<guid>.rmx`, по guid из узла `<Efficiency>` самого
+    спектра. Пути разошлись, и 16.08.2026 это стоило дорого: у всех 37 сосудных
+    спектров первый файл лежал на месте, второго не было ни одного, и понятная
+    часть почти наполовину считалась БЕЗ матрицы — молча, потому что смотрели
+    не туда. Узлы при этом были: их проставил `restore_eff_nodes.py`, который
+    матрицу не трогает по построению.
+
+    Это ОТКАЗ, а не напоминание: спектр понятной части без матрицы называет
+    себя понятным и смешивает две модели внутри одной части — то, ради чего
+    раздел и заводился.
+    """
+    import csv
+    geom_dir = os.path.join(LAB, 'corpus', 'geometries')
+    store = os.path.join(geom_dir, 'response')
+    parts_path = os.path.join(LAB, 'corpus', 'parts.csv')
+    print('\n== матрица там, откуда её берёт разбор (B14) ==')
+    if not os.path.isfile(parts_path):
+        print('  нет parts.csv — проверка не делалась')
+        return True
+
+    with open(parts_path, encoding='utf-8-sig', newline='') as fh:
+        rows = [r for r in csv.DictReader(fh) if r['part'] == 'known']
+
+    missing, noguid, checked = [], [], 0
+    for row in rows:
+        path = os.path.join(SPECTRA, row['spectrum'] + '.xml')
+        if not os.path.isfile(path):
+            continue
+        with open(path, encoding='utf-8-sig') as fh:
+            text = fh.read()
+        m = EFF_NODE_GUID.search(text)
+        if m is None or not m.group(1).strip():
+            noguid.append(row['spectrum'])
+            continue
+        checked += 1
+        guid = m.group(1).strip()
+        if not os.path.isfile(os.path.join(store, guid + '.rmx')):
+            missing.append('%s (guid %s, геометрия %s)'
+                           % (row['spectrum'], guid[:8], row['geometry']))
+
+    print('  сверено спектров понятной части: %d' % checked)
+    if noguid:
+        print('  БЕЗ GUID в узле: %d — %s' % (len(noguid), ', '.join(noguid)))
+    if missing:
+        print('  НЕТ ФАЙЛА В response/: %d' % len(missing))
+        for line in missing:
+            print('    %s' % line)
+        print('     эти спектры разберутся БЕЗ матрицы, назвавшись понятными;')
+        print('     положить туда матрицы: CorpusEffProbe.exe (ПОСЛЕ CorpusMatrixProbe)')
+        return False
+    if not noguid:
+        print('  СОШЛОСЬ')
+    return not noguid
+
+
 def check_parts():
     """Раздел корпуса (B1): у каждого спектра назван part, у понятного —
     существующая геометрия и посчитанная под неё матрица.
@@ -402,6 +467,9 @@ def main():
     # нарушение целостности: пропавшая строка parts.csv, лишняя строка,
     # отсутствующая геометрия, потерянный узел `<Efficiency>`.
     ok = check_parts()
+    # `B14` — ОТКАЗ и входит в код возврата: спектр понятной части без матрицы
+    # называет себя понятным, а это порча самой сводки, не «числа сдвинутся».
+    ok &= check_response_store()
     # Порядок намеренный: состав печатается ПОСЛЕ раздела, чтобы напоминание не
     # тонуло выше вердикта, и в код возврата не входит (см. `check_composition`).
     check_composition()
