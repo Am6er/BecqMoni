@@ -138,9 +138,12 @@ namespace BecquerelMonitor
 
         void UpdateSelectedCurveInfo()
         {
-            int targetSelectedIndex = fwhmCalibration is SimpleSqrtFwhmCalibration
-                ? (int)FwhmCalibration.FwhmCalibrationCurve.SimpleSqrtFwhmCalibration
-                : (int)FwhmCalibration.FwhmCalibrationCurve.SqrtFwhmCalibration;
+            int targetSelectedIndex =
+                fwhmCalibration is SimpleSqrtFwhmCalibration
+                    ? (int)FwhmCalibration.FwhmCalibrationCurve.SimpleSqrtFwhmCalibration
+                : fwhmCalibration is PowerFwhmCalibration
+                    ? (int)FwhmCalibration.FwhmCalibrationCurve.PowerFwhmCalibration
+                    : (int)FwhmCalibration.FwhmCalibrationCurve.SqrtFwhmCalibration;
 
             if (selectCurveComboBox.SelectedIndex != targetSelectedIndex)
             {
@@ -221,7 +224,13 @@ namespace BecquerelMonitor
             if (selectCurveComboBox.SelectedIndex == (int)FwhmCalibration.FwhmCalibrationCurve.SimpleSqrtFwhmCalibration)
             {
                 fwhmCalibration = new SimpleSqrtFwhmCalibration { CalibrationPeaks = fwhmCalibration.ClonePeaks() };
-            } else
+            }
+            else if (selectCurveComboBox.SelectedIndex == (int)FwhmCalibration.FwhmCalibrationCurve.PowerFwhmCalibration)
+            {
+                // V2: степенная FWHM = a * ch^p — см. PowerFwhmCalibration.
+                fwhmCalibration = new PowerFwhmCalibration { CalibrationPeaks = fwhmCalibration.ClonePeaks() };
+            }
+            else
             {
                 fwhmCalibration = new SqrtFwhmCalibration { CalibrationPeaks = fwhmCalibration.ClonePeaks() };
             }

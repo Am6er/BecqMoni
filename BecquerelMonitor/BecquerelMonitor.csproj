@@ -594,6 +594,7 @@
       <DependentUpon>SpectrumCutOffDialog.cs</DependentUpon>
     </Compile>
     <Compile Include="SpecUtilsNative.cs" />
+    <Compile Include="PowerFwhmCalibration.cs" />
     <Compile Include="SqrtFwhmCalibration.cs" />
     <Compile Include="StabilizerConfig.cs" />
     <Compile Include="StandardPulseRecorder.cs" />

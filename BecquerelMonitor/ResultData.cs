@@ -383,6 +383,7 @@ namespace BecquerelMonitor
 
         [XmlElement(typeof(SimpleSqrtFwhmCalibration))]
         [XmlElement(typeof(SqrtFwhmCalibration))]
+        [XmlElement(typeof(PowerFwhmCalibration))]
         public FwhmCalibration FwhmCalibration { get => fwhmCalibration; set => fwhmCalibration = value; }
 
         public ResultData()

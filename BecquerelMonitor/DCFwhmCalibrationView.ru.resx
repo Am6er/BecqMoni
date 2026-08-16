@@ -4456,6 +4456,9 @@
   <data name="$this.TabText" xml:space="preserve">
     <value>FWHM Калибровка</value>
   </data>
+  <data name="selectCurveComboBox.Items2" xml:space="preserve">
+    <value>Степенная</value>
+  </data>
   <data name="selectCurveComboBox.Items1" xml:space="preserve">
     <value>Квадратный корень полинома</value>
   </data>

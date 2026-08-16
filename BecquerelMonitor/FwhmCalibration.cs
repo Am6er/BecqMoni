@@ -24,7 +24,13 @@ namespace BecquerelMonitor
             SimpleSqrtFwhmCalibration,
 
             [XmlEnum(Name = "Square root polynomial")]
-            SqrtFwhmCalibration
+            SqrtFwhmCalibration,
+
+            // V2: степенная FWHM = a * ch^p. Заведена ТРЕТЬЕЙ, а не взамен:
+            // корпус измерил, что показатель у сцинтилляторов выше половины,
+            // но у германия ниже, и одной формой оба класса не описать.
+            [XmlEnum(Name = "Power law")]
+            PowerFwhmCalibration
         }
 
         public static SimpleSqrtFwhmCalibration DefaultCalibration(FWHMPeakDetectionMethodConfig fwhmConfig, EnergyCalibration energyCalibration)

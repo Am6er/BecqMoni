@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Xml;
 
@@ -72,6 +72,7 @@ namespace BecquerelMonitor.Utils
                         {
                             case "SimpleSqrtFwhmCalibration":
                             case "SqrtFwhmCalibration":
+                            case "PowerFwhmCalibration":
                                 hasFwhm = true;
                                 reader.Skip();
                                 break;
