@@ -386,6 +386,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
 
                 // Рулетка — по тому же правилу: пишется, только если включена.
+                if (!options.SampleFluorescence)
+                {
+                    sb.Append("nofluo=1;");
+                }
+
                 if (options.ScatterRoulette > 0.0)
                 {
                     sb.Append("roul=")
@@ -1015,6 +1020,13 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// бы все посчитанные матрицы разом.
         /// </summary>
         public double ScatterRoulette;
+
+        /// <summary>
+        /// Флуоресценция пробы и обвязки (`F27`); умолчание — включена.
+        /// АБЛЯЦИОННЫЙ ключ: в клеймо пишется только ВЫКЛЮЧЕННОЕ состояние
+        /// (правило `T42`), поэтому штатные матрицы клейма не меняют.
+        /// </summary>
+        public bool SampleFluorescence = true;
 
         /// <summary>Потоков; 0 — по числу ядер минус один.</summary>
         public int Threads;

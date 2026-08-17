@@ -447,6 +447,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 RayleighScatter = options.BoundScattering,
                 BremFromData = options.BremFromData,
                 ScatterRouletteWeight = options.ScatterRoulette,
+                SampleFluorescenceOutside = options.SampleFluorescence,
                 PeakHalfWidthKev = 0.0
             };
 
