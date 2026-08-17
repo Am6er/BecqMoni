@@ -53,6 +53,13 @@ namespace BecquerelMonitor.EfficiencyMaker
         const double Avogadro = 6.02214076e23;
         const double Eps = 1e-9;
 
+        /// <summary>
+        /// «Бесконечность» разбиения луча (`T43`): луч, идущий ВДОЛЬ слоя, не
+        /// покидает его никогда. Не `double.MaxValue` нарочно — по этому числу
+        /// потом считается разность, и переполнение было бы тихим.
+        /// </summary>
+        const double Far = 1e300;
+
         /// <summary>Историй на точку кривой.</summary>
         public int Histories = 200000;
 
@@ -290,6 +297,18 @@ namespace BecquerelMonitor.EfficiencyMaker
         public bool SingleScatter = true;
 
         /// <summary>
+        /// Порог русской рулетки по весу поправки на однократное рассеяние;
+        /// 0 — без рулетки (умолчание, прежний счёт побитово).
+        ///
+        /// История, у которой доля провзаимодействовавших `1 - exp(-tau)` ниже
+        /// порога, доживает с вероятностью «доля/порог», а дожив — считается с
+        /// весом, делённым на неё. Оценка остаётся несмещённой; смысл в том, что
+        /// поправка стоит около 60 % счёта (`T43`), а вес её у большинства
+        /// историй мал.
+        /// </summary>
+        public double ScatterRouletteWeight;
+
+        /// <summary>
         /// Континуум отклика — АНАЛОГОВОЙ веткой (физика 6, F14).
         ///
         /// Взвешенная проводка (конус + exp(−τ) + одно рассеяние) хороша для
@@ -386,6 +405,9 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         readonly GeometryModel geometry;
         readonly List<Region> regions = new List<Region>();
+
+        // Та же сцена массивом — для горячих проходов (`T43`), см. EnsureBuilt.
+        Region[] regionArray;
         Region crystal;
         double sphereZ, sphereR;         // объемлющая сфера детектора — для сужения конуса
         Sampler source;
@@ -452,6 +474,25 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             this.Build();
+
+            // Разбиение луча держит накрывающие области битовой маской (`T43`),
+            // а в ней 64 места. Сцена строится по жёсткой раскладке — шесть
+            // областей детектора и до пяти у пробы, — так что упереться в предел
+            // может только новый вид сцены. Тогда пусть падает громко здесь, а
+            // не считает молча чужую область: сдвиг на 64 в C# заворачивается.
+            if (this.regions.Count > 64)
+            {
+                throw new InvalidOperationException(
+                    "областей сцены " + this.regions.Count + " — больше 64, "
+                    + "разбиение луча (T43) столько не держит");
+            }
+
+            // Массивом, а не списком: по областям проходят на каждом разборе
+            // луча и на каждом поиске области мимо кэша, а индексатор `List`
+            // на каждое обращение проверяет границы и версию коллекции. Сцена
+            // после сборки не меняется, так что копия безопасна.
+            this.regionArray = this.regions.ToArray();
+
             this.crystalHasPartials = this.CrystalHasPartials();
             this.electron = ElectronData.Match(this.geometry.Crystal);
             this.BuildFluorescence();
@@ -589,7 +630,110 @@ namespace BecquerelMonitor.EfficiencyMaker
             public GeometryMaterial Material;
             public bool IsCrystal;
 
+            // --- кэш ослабления на ОДНУ энергию (`T43`) ---
+            //
+            // Каждая из четырёх величин считается ПО ТРЕБОВАНИЮ, а не все разом:
+            // проводке к кристаллу нужна одна, аналоговой ветке на шаге тоже
+            // одна, а остальные три пригождаются только там, где взаимодействие
+            // состоялось. Считать их наперёд значило бы для рассеявшегося
+            // кванта — у которого энергия своя на каждом шаге и кэш всё равно
+            // мимо — платить вчетверо.
+            double muEnergy = -1.0;
+            double muTotal, muNoCoherent, muIncoherent, muCoherent;
+            bool hasTotal, hasNoCoherent, hasIncoherent, hasCoherent;
+
+            /// <summary>
+            /// Линейное ослабление области на этой энергии, с кэшем на одно
+            /// значение (`T43`, 17.08.2026).
+            ///
+            /// Зачем. Обход спрашивал ослабление 16 раз на историю, а для
+            /// составного вещества каждый ответ — сумма интерполяций по всем его
+            /// элементам. При этом внутри одного узла матрицы энергия первичного
+            /// кванта ПОСТОЯННА, и все эти запросы возвращали одно и то же число.
+            ///
+            /// Кэш на одну энергию, а не таблица: у первичного транспорта энергия
+            /// одна и попадание почти стопроцентное, а рассеявшиеся кванты
+            /// приходят с разными энергиями, и таблица под них только росла бы.
+            ///
+            /// ⚠ Область создаётся в `EnsureBuilt` СВОЕГО симулятора, а симулятор
+            /// узла живёт в одном потоке — поэтому кэш без блокировок. Класть его
+            /// в `GeometryMaterial` было бы нельзя: вещества могут быть общими.
+            /// </summary>
+            public double Mu(double energyKev, bool withoutCoherent)
+            {
+                this.Retune(energyKev);
+                if (withoutCoherent)
+                {
+                    if (!this.hasNoCoherent)
+                    {
+                        this.muNoCoherent = this.Material.LinearAttenuationWithoutCoherent(energyKev);
+                        this.hasNoCoherent = true;
+                    }
+
+                    return this.muNoCoherent;
+                }
+
+                if (!this.hasTotal)
+                {
+                    this.muTotal = this.Material.LinearAttenuation(energyKev);
+                    this.hasTotal = true;
+                }
+
+                return this.muTotal;
+            }
+
+            /// <summary>Только некогерентное (комптоновское), 1/см, из того же кэша.</summary>
+            public double Incoherent(double energyKev)
+            {
+                this.Retune(energyKev);
+                if (!this.hasIncoherent)
+                {
+                    this.muIncoherent = this.Material.LinearIncoherent(energyKev);
+                    this.hasIncoherent = true;
+                }
+
+                return this.muIncoherent;
+            }
+
+            /// <summary>Только когерентное (рэлеевское), 1/см, из того же кэша.</summary>
+            public double Coherent(double energyKev)
+            {
+                this.Retune(energyKev);
+                if (!this.hasCoherent)
+                {
+                    this.muCoherent = this.Material.LinearCoherent(energyKev);
+                    this.hasCoherent = true;
+                }
+
+                return this.muCoherent;
+            }
+
+            void Retune(double energyKev)
+            {
+                if (energyKev == this.muEnergy)
+                {
+                    return;
+                }
+
+                this.muEnergy = energyKev;
+                this.hasTotal = false;
+                this.hasNoCoherent = false;
+                this.hasIncoherent = false;
+                this.hasCoherent = false;
+            }
+
             public bool Contains(double x, double y, double z)
+            {
+                return this.Contains(x, y, z, Math.Sqrt(x * x + y * y));
+            }
+
+            /// <summary>
+            /// То же, но радиус ПЕРЕДАН (`T43`). Поиск области перебирает
+            /// регионы, и корень в каждой проверке считался заново — до десяти
+            /// раз на один вызов вместо одного. Значение не меняется: тот же
+            /// корень, те же сравнения.
+            /// </summary>
+            public bool Contains(double x, double y, double z, double r)
             {
                 if (z < this.ZMin - Eps || z >= this.ZMax - Eps)
                 {
@@ -601,8 +745,167 @@ namespace BecquerelMonitor.EfficiencyMaker
                     return Math.Abs(x) < this.AX - Eps && Math.Abs(y) < this.AY - Eps;
                 }
 
-                double r = Math.Sqrt(x * x + y * y);
                 return r >= this.RIn - Eps && r < this.ROut - Eps;
+            }
+
+            /// <summary>
+            /// Отрезки луча ВНУТРИ области, в параметре t от точки запуска
+            /// (`T43`, 17.08.2026). Возвращает их число: 0, 1 или 2, — и
+            /// заполняет `into` парами t0,t1.
+            ///
+            /// Зачем. `Contains` отвечает про ОДНУ точку, и обход спрашивал его
+            /// у каждой области на каждом шаге — 46 поисков области на историю,
+            /// каждый линейным перебором. Между тем «где луч внутри этой
+            /// области» решается один раз на луч и в замкнутом виде: слой по z
+            /// пересекается с кругом (или с двумя слоями по x и y), а дырка
+            /// кольца ВЫЧИТАЕТСЯ — отсюда и второй отрезок.
+            ///
+            /// ⚠ Все поверхности берутся ТЕМИ ЖЕ, что проверяет `Contains`, то
+            /// есть сдвинутыми на -Eps. Иначе на самой границе два ответа
+            /// разойдутся, а обход именно по границам и ходит.
+            ///
+            /// Двух отрезков не бывает у бруса: он выпуклый. У кольца дырка
+            /// делит отрезок надвое, когда луч проходит сквозь неё насквозь.
+            /// </summary>
+            public int SpanAlong(double x, double y, double z,
+                                 double ux, double uy, double uz, double[] into)
+            {
+                double lo, hi;
+                if (!Slab(z, uz, this.ZMin - Eps, this.ZMax - Eps, out lo, out hi))
+                {
+                    return 0;
+                }
+
+                double a, b;
+                if (this.IsBox)
+                {
+                    if (!Slab(x, ux, -(this.AX - Eps), this.AX - Eps, out a, out b))
+                    {
+                        return 0;
+                    }
+
+                    if (a > lo) lo = a;
+                    if (b < hi) hi = b;
+                    if (!Slab(y, uy, -(this.AY - Eps), this.AY - Eps, out a, out b))
+                    {
+                        return 0;
+                    }
+
+                    if (a > lo) lo = a;
+                    if (b < hi) hi = b;
+                    if (!(hi > lo))
+                    {
+                        return 0;
+                    }
+
+                    into[0] = lo;
+                    into[1] = hi;
+                    return 1;
+                }
+
+                if (!Disk(x, y, ux, uy, this.ROut - Eps, out a, out b))
+                {
+                    return 0;
+                }
+
+                if (a > lo) lo = a;
+                if (b < hi) hi = b;
+                if (!(hi > lo))
+                {
+                    return 0;
+                }
+
+                double h0, h1;
+                if (this.RIn - Eps > 0.0 && Disk(x, y, ux, uy, this.RIn - Eps, out h0, out h1)
+                    && h1 > lo && h0 < hi)
+                {
+                    if (h0 <= lo && h1 >= hi)
+                    {
+                        return 0;                       // отрезок целиком в дырке
+                    }
+
+                    if (h0 <= lo)
+                    {
+                        into[0] = h1;
+                        into[1] = hi;
+                        return 1;
+                    }
+
+                    if (h1 >= hi)
+                    {
+                        into[0] = lo;
+                        into[1] = h0;
+                        return 1;
+                    }
+
+                    into[0] = lo;
+                    into[1] = h0;
+                    into[2] = h1;
+                    into[3] = hi;
+                    return 2;
+                }
+
+                into[0] = lo;
+                into[1] = hi;
+                return 1;
+            }
+
+            /// <summary>
+            /// Отрезок луча внутри слоя lo..hi по одной оси. false — не попадает
+            /// вовсе. Луч ВДОЛЬ слоя (|d| меньше Eps — тот же порог, по которому
+            /// прежний сбор пропускал плоскость) либо лежит в нём весь, либо не
+            /// лежит нигде.
+            /// </summary>
+            static bool Slab(double c, double d, double lo, double hi,
+                             out double t0, out double t1)
+            {
+                if (Math.Abs(d) < Eps)
+                {
+                    t0 = -Far;
+                    t1 = Far;
+                    return c >= lo && c < hi;
+                }
+
+                double a = (lo - c) / d, b = (hi - c) / d;
+                if (a <= b) { t0 = a; t1 = b; }
+                else { t0 = b; t1 = a; }
+                return true;
+            }
+
+            /// <summary>
+            /// Отрезок луча внутри круга радиуса r вокруг оси z. Луч вдоль оси
+            /// радиуса не меняет — он либо внутри всегда, либо никогда.
+            /// </summary>
+            static bool Disk(double x, double y, double ux, double uy, double radius,
+                             out double t0, out double t1)
+            {
+                t0 = 0.0;
+                t1 = 0.0;
+                if (!(radius > 0.0))
+                {
+                    return false;
+                }
+
+                double a = ux * ux + uy * uy;
+                double c = x * x + y * y - radius * radius;
+                if (a < Eps)
+                {
+                    t0 = -Far;
+                    t1 = Far;
+                    return c < 0.0;
+                }
+
+                double b = 2.0 * (x * ux + y * uy);
+                double disc = b * b - 4.0 * a * c;
+                if (disc <= 0.0)
+                {
+                    return false;                       // мимо или по касательной
+                }
+
+                double sq = Math.Sqrt(disc), inv = 0.5 / a;
+                t0 = (-b - sq) * inv;
+                t1 = (-b + sq) * inv;
+                return true;
             }
         }
 
@@ -1023,6 +1326,11 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// размазанным порогом. Оно завышает поглощение и оставлено только
         /// чтобы расчёт не падал на неизвестном кристалле.
         /// </summary>
+        // ⚠ Кэш каналов на одну энергию здесь ПРОБОВАЛСЯ и дал НОЛЬ (`T43`,
+        // 17.08.2026: 30.42 против 30.56 мкс на историю — шум). Приём тот же,
+        // что спас ослабление области, но здесь спрашивают редко: каналы нужны
+        // раз-другой за историю против трёх десятков геометрических запросов.
+        // Снято, чтобы не держать сложность, за которую не заплачено.
         void CrystalChannels(double energyKev, out double photo, out double compton, out double pair)
         {
             GeometryMaterial m = this.geometry.Crystal;
@@ -1093,43 +1401,378 @@ namespace BecquerelMonitor.EfficiencyMaker
         // Трассировка
         // ------------------------------------------------------------------
 
+        /// <summary>
+        /// Счётчики работы геометрии (`T43`, 17.08.2026). Не для отчёта, а для
+        /// приоритета: замер показал 100 мкс на историю почти НЕЗАВИСИМО от
+        /// энергии — значит время съедает не транспорт, а обход сцены, и надо
+        /// знать, сколько его. Считаются без блокировок: симулятор узла живёт в
+        /// одном потоке, а в общую сумму складываются один раз на узел.
+        /// </summary>
+        public long CountAt, CountStep, CountMu, CountWalk;
+
+        /// <summary>
+        /// ЗАМЕРНЫЙ ключ (`T43`): выбросить кэш луча и разбирать его заново на
+        /// КАЖДОМ шаге. Считает то же самое, только дороже, — нужен затем, что
+        /// цену разбора иначе не узнать: профиль требует прав администратора, а
+        /// их может не оказаться. Разность времени, делённая на разность числа
+        /// разборов, и есть цена одного. В счёте всегда false.
+        /// </summary>
+        public static bool MeasureCollectCost;
+
+        /// <summary>
+        /// Область в точке.
+        ///
+        /// ⚡ У точки НА РАЗОБРАННОМ ЛУЧЕ ответ уже посчитан (`T43`,
+        /// 17.08.2026): разбиение хранит область каждого отрезка, и остаётся
+        /// двоичный поиск отрезка. Прежде это был линейный перебор всех
+        /// областей с корнем — 46.4 вызова на историю, 22 % профиля вместе с
+        /// `Contains`.
+        ///
+        /// ⚠ Направление здесь не спрашивается, и не должно: область — свойство
+        /// ТОЧКИ. Поэтому кэш годится и после рассеяния, пока точка не сошла с
+        /// прежнего луча, — а сошла, считается перебором, как раньше.
+        /// </summary>
         Region At(double x, double y, double z)
         {
-            for (int i = 0; i < this.regions.Count; i++)
+            this.CountAt++;
+            double along;
+            if (this.OnCachedRay(x, y, z, out along))
             {
-                if (this.regions[i].Contains(x, y, z))
+                return this.raySeg[this.SegmentAt(along)];
+            }
+
+            // Корень считается ОДИН раз на вызов, а не в каждой проверяемой
+            // области (`T43`): областей до десятка, и на обходе это был второй
+            // по величине расход после поиска границ.
+            double r = Math.Sqrt(x * x + y * y);
+            Region[] all = this.regionArray;
+            for (int i = 0; i < all.Length; i++)
+            {
+                if (all[i].Contains(x, y, z, r))
                 {
-                    return this.regions[i];
+                    return all[i];
                 }
             }
 
             return null;
         }
 
-        /// <summary>Расстояние до ближайшей границы любой области, вдоль луча.</summary>
-        double StepToBoundary(double x, double y, double z, double ux, double uy, double uz)
+        /// <summary>
+        /// Номер отрезка разбиения, в котором лежит параметр `bound`: первый
+        /// отрезок, ПРАВАЯ граница которого дальше него. Отрезков на единицу
+        /// больше, чем границ, поэтому ответ всегда индексирует `raySeg`.
+        /// </summary>
+        int SegmentAt(double bound)
         {
-            double best = double.MaxValue;
-            for (int i = 0; i < this.regions.Count; i++)
+            int lo = 0, hi = this.rayCount;
+            while (lo < hi)
             {
-                Region g = this.regions[i];
-                Plane(z, uz, g.ZMin, ref best);
-                Plane(z, uz, g.ZMax, ref best);
-                if (g.IsBox)
+                int mid = (lo + hi) >> 1;
+                if (this.rayCross[mid] > bound)
                 {
-                    Plane(x, ux, g.AX, ref best);
-                    Plane(x, ux, -g.AX, ref best);
-                    Plane(y, uy, g.AY, ref best);
-                    Plane(y, uy, -g.AY, ref best);
+                    hi = mid;
                 }
                 else
                 {
-                    Cylinder(x, y, ux, uy, g.RIn, ref best);
-                    Cylinder(x, y, ux, uy, g.ROut, ref best);
+                    lo = mid + 1;
                 }
             }
 
-            return best;
+            return lo;
+        }
+
+        /// <summary>Расстояние до ближайшей границы любой области, вдоль луча.</summary>
+        /// <summary>
+        /// Расстояние до ближайшей границы любой области, вдоль луча.
+        ///
+        /// ⚡ Считается ОДИН РАЗ НА ЛУЧ, а не на каждый шаг обхода (`T43`,
+        /// 17.08.2026). Измерено на самой тяжёлой сцене корпуса: 45.9 вызова
+        /// этой функции и 46.4 поиска области на КАЖДУЮ историю против 2.3
+        /// интерполяций ослабления, а вся история стоила 104 мкс — то есть время
+        /// съедала не физика, а перебор геометрии. Каждый вызов решал две
+        /// плоскости и два цилиндра (квадратное уравнение с корнем) у КАЖДОЙ
+        /// области сцены, и делал это заново на каждом шаге одного и того же
+        /// луча.
+        ///
+        /// Между тем набор пересечений луча со сценой от шага не зависит: он
+        /// определён точкой запуска и направлением. Поэтому пересечения
+        /// собираются один раз, сортируются, и шаг берётся курсором по списку.
+        /// Обход перестаёт быть O(шаги × области) и становится O(области + шаги).
+        ///
+        /// ⚠ Ответ тот же с точностью до порядка сложения: список содержит те же
+        /// корни с тем же допуском `t > 1e-7`, что искал прежний минимум. Розыгрыш
+        /// не затронут вовсе — обход не тянет случайных чисел, — но накопленная
+        /// оптическая толщина складывается в другом порядке, и последние разряды
+        /// разойдутся. Приёмка та же, что у любой правки счёта: матрица обязана
+        /// совпасть с прежней в пределах шума ГСЧ.
+        ///
+        /// Кэш проверяется, а не предполагается: направление обязано совпасть, а
+        /// точка — лежать НА кэшированном луче. Иначе список собирается заново.
+        /// Именно поэтому шесть циклов обхода менять не пришлось.
+        /// </summary>
+        double StepToBoundary(double x, double y, double z, double ux, double uy, double uz)
+        {
+            this.CountStep++;
+
+            double along;
+            if (MeasureCollectCost || !this.RayCacheHit(x, y, z, ux, uy, uz, out along))
+            {
+                this.CollectCrossings(x, y, z, ux, uy, uz);
+                along = 0.0;
+            }
+
+            // ⛔ Курсором «только вперёд» тут нельзя, и это не мелочь: по ОДНОМУ
+            // И ТОМУ ЖЕ лучу от одной и той же точки обход идёт дважды — сперва
+            // `ToCrystal`, потом `ScatteredContribution`, — и монотонный курсор
+            // к началу второго обхода стоял бы в конце списка. Второй обход
+            // получил бы «границ впереди нет», вклад однократного рассеяния
+            // исчез бы МОЛЧА, а он даёт около 15 % полной эффективности.
+            // Поэтому поиск двоичный: он всегда верен и стоит шесть сравнений.
+            int lo = this.SegmentAt(along + 1e-7);
+            return lo < this.rayCount ? this.rayCross[lo] - along : double.MaxValue;
+        }
+
+        // --- разбиение луча на отрезки постоянной области (`T43`) ---
+        //
+        // `rayCross[k]` — граница между отрезком k и k+1, по возрастанию;
+        // `raySeg[k]` — область отрезка k, то есть куска луча левее `rayCross[k]`.
+        // Отрезков на единицу больше, чем границ: последний уходит в
+        // бесконечность и почти всегда пуст (сцена кончилась).
+        double[] rayCross;
+        Region[] raySeg;
+        int rayCount;
+        double rayX, rayY, rayZ, rayUx, rayUy, rayUz;
+        bool rayValid;
+
+        // рабочие буферы сбора: события «вход/выход» и отрезки одной области
+        double[] eventT;
+        int[] eventCode;
+        readonly double[] spanBuf = new double[4];
+
+        /// <summary>
+        /// Годен ли кэш для этой точки и направления, и на каком она расстоянии
+        /// от точки сбора. Направление сравнивается точно (оно передаётся тем же
+        /// значением по всему обходу), положение — по отклонению от луча.
+        /// </summary>
+        bool RayCacheHit(double x, double y, double z, double ux, double uy, double uz,
+                         out double along)
+        {
+            along = 0.0;
+            if (!this.rayValid || ux != this.rayUx || uy != this.rayUy || uz != this.rayUz)
+            {
+                return false;
+            }
+
+            return this.OnCachedRay(x, y, z, out along);
+        }
+
+        /// <summary>
+        /// Лежит ли точка на разобранном луче, и где именно. Без направления:
+        /// область — свойство точки, и поиск области годится по разбиению даже
+        /// тогда, когда квант уже повернул (`T43`).
+        /// </summary>
+        bool OnCachedRay(double x, double y, double z, out double along)
+        {
+            along = 0.0;
+            if (!this.rayValid)
+            {
+                return false;
+            }
+
+            double dx = x - this.rayX, dy = y - this.rayY, dz = z - this.rayZ;
+            along = dx * this.rayUx + dy * this.rayUy + dz * this.rayUz;
+            if (along < -1e-9)
+            {
+                return false;      // назад по лучу обход не ходит
+            }
+
+            // Точка обязана лежать НА луче: обход двигает её только вдоль
+            // направления, но между вызовами могло случиться рассеяние.
+            double ox = dx - along * this.rayUx, oy = dy - along * this.rayUy,
+                   oz = dz - along * this.rayUz;
+            return ox * ox + oy * oy + oz * oz < 1e-12;
+        }
+
+        /// <summary>
+        /// Разобрать луч на отрезки постоянной области (`T43`, 17.08.2026).
+        ///
+        /// Что здесь изменилось и почему. Прежде собирались ПЕРЕСЕЧЕНИЯ луча с
+        /// поверхностями — с каждой плоскостью и каждым цилиндром, продолженными
+        /// в бесконечность. Таких точек выходило под полтора десятка на луч, и
+        /// БОЛЬШИНСТВО ИЗ НИХ НЕ БЫЛИ ГРАНИЦАМИ: луч пересекал продолжение дна
+        /// кюветы далеко в стороне от самой кюветы, шаг останавливался, обход
+        /// заново искал область — и находил ту же самую. Каждый такой пустой шаг
+        /// стоил поиска области линейным перебором.
+        ///
+        /// Теперь считается сразу то, что нужно обходу: где луч ВНУТРИ каждой
+        /// области (`Region.SpanAlong`, замкнутая формула), события «вход» и
+        /// «выход» сортируются, и по ним идёт развёртка. Область отрезка —
+        /// ПЕРВАЯ по списку из накрывающих его: ровно то правило, по которому
+        /// ищет `Contains`, потому что области вложены и порядок значим.
+        /// Соседние отрезки с одной и той же областью СЛИВАЮТСЯ — граница между
+        /// ними не граница, и шага там быть не должно.
+        ///
+        /// ⚠ Ответ тот же с точностью до порядка сложения. Оптическая толщина
+        /// слитого отрезка — одно произведение вместо суммы нескольких, и
+        /// последние разряды разойдутся; в `ScatteredContribution` на этой
+        /// величине стоит ветвление, поэтому единичные истории пойдут другим
+        /// путём. Приёмка та же, что у любой правки счёта: матрица обязана
+        /// совпасть с прежней в пределах шума узла (`MatrixDiffProbe`).
+        /// </summary>
+        void CollectCrossings(double x, double y, double z, double ux, double uy, double uz)
+        {
+            this.CountWalk++;
+            Region[] all = this.regionArray;
+            int count = all.Length;
+            if (this.eventT == null || this.eventT.Length < 4 * count + 4)
+            {
+                // Область даёт не больше двух отрезков (кольцо, разрезанное
+                // дыркой), то есть не больше четырёх событий.
+                this.eventT = new double[4 * count + 4];
+                this.eventCode = new int[4 * count + 4];
+                this.rayCross = new double[4 * count + 4];
+                this.raySeg = new Region[4 * count + 5];
+            }
+
+            int m = 0;
+            ulong active = 0UL;
+            for (int i = 0; i < count; i++)
+            {
+                int parts = all[i].SpanAlong(x, y, z, ux, uy, uz, this.spanBuf);
+                for (int p = 0; p < parts; p++)
+                {
+                    double t0 = this.spanBuf[2 * p], t1 = this.spanBuf[2 * p + 1];
+                    if (t1 <= 1e-7)
+                    {
+                        continue;                       // отрезок позади точки сбора
+                    }
+
+                    if (t0 <= 1e-7)
+                    {
+                        active |= 1UL << i;             // область накрывает саму точку
+                    }
+                    else
+                    {
+                        this.eventT[m] = t0;
+                        this.eventCode[m] = i + 1;
+                        m++;
+                    }
+
+                    if (t1 < Far)
+                    {
+                        this.eventT[m] = t1;
+                        this.eventCode[m] = -(i + 1);
+                        m++;
+                    }
+                }
+            }
+
+            // Сортировка ВСТАВКАМИ, а не `Array.Sort` (`T43`, замер 17.08.2026:
+            // разбор луча стоил 0.91 мкс и съедал 19 % счёта). Событий два
+            // десятка, и на такой длине общая сортировка проигрывает: она тянет
+            // сравнение через `Comparer<double>.Default`, то есть виртуальный
+            // вызов на каждое из семи десятков сравнений. Вставками это простой
+            // цикл по двум массивам.
+            //
+            // ⚠ Порядок РАВНЫХ t от замены может измениться — и не меняет
+            // ничего: развёртка применяет все события одного t и только потом
+            // спрашивает, сменилась ли область. Приёмка это подтвердила —
+            // матрица вышла побитово той же.
+            for (int i = 1; i < m; i++)
+            {
+                double t = this.eventT[i];
+                int code = this.eventCode[i];
+                int j = i - 1;
+                while (j >= 0 && this.eventT[j] > t)
+                {
+                    this.eventT[j + 1] = this.eventT[j];
+                    this.eventCode[j + 1] = this.eventCode[j];
+                    j--;
+                }
+
+                this.eventT[j + 1] = t;
+                this.eventCode[j + 1] = code;
+            }
+
+            int n = 0;
+            Region current = this.Winner(active);
+            for (int k = 0; k < m; k++)
+            {
+                int code = this.eventCode[k];
+                if (code > 0)
+                {
+                    active |= 1UL << (code - 1);
+                }
+                else
+                {
+                    active &= ~(1UL << (-code - 1));
+                }
+
+                // События в одной точке применяются ВСЕ, и только потом решается,
+                // сменилась ли область: иначе выход из внешнего слоя, совпавший с
+                // входом во внутренний, дал бы отрезок нулевой длины.
+                if (k + 1 < m && this.eventT[k + 1] == this.eventT[k])
+                {
+                    continue;
+                }
+
+                Region next = this.Winner(active);
+                if (!ReferenceEquals(next, current))
+                {
+                    this.rayCross[n] = this.eventT[k];
+                    this.raySeg[n] = current;
+                    n++;
+                    current = next;
+                }
+            }
+
+            this.raySeg[n] = current;
+            this.rayCount = n;
+            this.rayX = x;
+            this.rayY = y;
+            this.rayZ = z;
+            this.rayUx = ux;
+            this.rayUy = uy;
+            this.rayUz = uz;
+            this.rayValid = true;
+        }
+
+        // Номер младшего установленного бита по последовательности де Брёйна.
+        // Таблица считается из самой константы, а не переписывается руками:
+        // ошибиться в шестидесяти четырёх числах легко, а поймать такую ошибку
+        // потом нечем — она проявится одной областью не из той сцены.
+        const ulong DeBruijn64 = 0x07EDD5E59A4E28C2UL;
+        static readonly int[] LowBitIndex = BuildLowBitIndex();
+
+        static int[] BuildLowBitIndex()
+        {
+            var table = new int[64];
+            for (int i = 0; i < 64; i++)
+            {
+                table[(1UL << i) * DeBruijn64 >> 58] = i;
+            }
+
+            return table;
+        }
+
+        /// <summary>
+        /// Область отрезка: ПЕРВАЯ по списку из накрывающих его. То же правило,
+        /// что у <see cref="At"/> перебором, — области вложены, и побеждает
+        /// положенная раньше (кристалл лежит раньше своей обвязки).
+        ///
+        /// ⚡ «Первая по списку» — это младший установленный бит маски, и берётся
+        /// он сразу, а не перебором (`T43`): развёртка зовёт это на каждое
+        /// событие, а событий два десятка на луч.
+        /// </summary>
+        Region Winner(ulong active)
+        {
+            if (active == 0UL)
+            {
+                return null;
+            }
+
+            ulong low = active & (0UL - active);
+            return this.regionArray[LowBitIndex[low * DeBruijn64 >> 58]];
         }
 
         static void Plane(double z, double uz, double plane, ref double best)
@@ -1207,9 +1850,8 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 if (here != null)
                 {
-                    tau += (this.CoherentPassesThrough
-                            ? here.Material.LinearAttenuationWithoutCoherent(energyKev)
-                            : here.Material.LinearAttenuation(energyKev)) * step;
+                    this.CountMu++;
+                    tau += here.Mu(energyKev, this.CoherentPassesThrough) * step;
                     if (tau > 60.0)
                     {
                         return false;      // exp(-60) — заведомо ноль
@@ -1336,6 +1978,36 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             double interacted = 1.0 - Math.Exp(-tauKill);
+
+            // РУЛЕТКА ПО ВЕСУ ПОПРАВКИ (`T43`, решение Amber 17.08.2026).
+            //
+            // Зачем. Замер показал: эта поправка стоит ~60 % всего счёта, а даёт
+            // около 15 % полной эффективности. Вес её пропорционален `interacted`
+            // — доле историй, которые вообще провзаимодействовали по дороге, — и
+            // на тонком слое он мал У БОЛЬШИНСТВА историй, тогда как цена
+            // платится полная: проводка до точки, переброс угла с доплеровским
+            // размытием, проводка рассеявшегося кванта и его судьба в кристалле.
+            //
+            // Русская рулетка это выправляет, НЕ СМЕЩАЯ оценку: история с малым
+            // весом доживает с вероятностью p = interacted/порог, а выжившая
+            // считается с весом, делённым на p. Матожидание то же — меняется
+            // только дисперсия, и меняется в обе стороны: реже считаем, но
+            // громче каждый раз. Поэтому судить рулетку временем прогона нельзя,
+            // судят её ВРЕМЕНЕМ ДО ЦЕЛИ ПО ШУМУ.
+            //
+            // ⚠ При выключенной рулетке (порог 0 — умолчание) случайное число
+            // НЕ ТЯНЕТСЯ, поэтому поток розыгрышей остаётся прежним и матрица
+            // выходит побитово той же. Это и делает ключ безопасным.
+            double survival = 1.0;
+            if (this.ScatterRouletteWeight > 0.0 && interacted < this.ScatterRouletteWeight)
+            {
+                survival = interacted / this.ScatterRouletteWeight;
+                if (this.Uniform() >= survival)
+                {
+                    return false;              // история выбыла, вклад ноль
+                }
+            }
+
             // точка первого взаимодействия: tau_целевое из усечённой экспоненты
             double tauTarget = -Math.Log(1.0 - this.Uniform() * interacted);
 
@@ -1360,17 +2032,15 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 if (here != null)
                 {
-                    double mu = this.CoherentPassesThrough
-                        ? here.Material.LinearAttenuationWithoutCoherent(energyKev)
-                        : here.Material.LinearAttenuation(energyKev);
+                    this.CountMu++;
+                    double mu = here.Mu(energyKev, this.CoherentPassesThrough);
                     if (mu > 0.0 && accumulated + mu * step >= tauTarget)
                     {
                         double advance = (tauTarget - accumulated) / mu;
                         px += ux * advance;
                         py += uy * advance;
                         pz += uz * advance;
-                        double incoherent = here.Material.LinearIncoherent(energyKev);
-                        double share = incoherent / mu;
+                        double share = here.Incoherent(energyKev) / mu;
                         if (!(share > 0.0))
                         {
                             return false;     // взаимодействие было, но не комптон
@@ -1387,7 +2057,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                             return false;
                         }
 
-                        weight = interacted * share * Math.Exp(-tau2);
+                        // Делится на вероятность дожития — тем и держится
+                        // несмещённость: выбывшие дали ноль, выжившая говорит за
+                        // них. При выключенной рулетке survival = 1.
+                        weight = interacted * share * Math.Exp(-tau2) / survival;
                         scatteredEnergy = scattered;
                         escapedEnergy = this.InCrystal(px, py, pz, sx, sy, sz, scattered, 0);
                         return true;
@@ -1428,9 +2101,8 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 if (here != null)
                 {
-                    tau += (this.CoherentPassesThrough
-                            ? here.Material.LinearAttenuationWithoutCoherent(energyKev)
-                            : here.Material.LinearAttenuation(energyKev)) * step;
+                    this.CountMu++;
+                    tau += here.Mu(energyKev, this.CoherentPassesThrough) * step;
                     if (tau > 60.0)
                     {
                         return 60.0;
@@ -1497,7 +2169,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // Когерентное — отдельным каналом: энергии не оставляет, но
                 // поворачивает квант, а значит меняет и путь до выхода.
                 double coherent = this.RayleighScatter
-                    ? this.geometry.Crystal.LinearCoherent(e) : 0.0;
+                    ? this.crystal.Coherent(e) : 0.0;
                 double total = photo + compton + pair + coherent;
                 if (!(total > 0.0))
                 {
@@ -1870,12 +2542,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// прежнее приближение <see cref="CoherentPassesThrough"/>. Обе крайности
         /// — «убить» и «не заметить» — заменяются розыгрышем только здесь;
         /// взвешенная проводка к кристаллу углов не разыгрывает вовсе.
+        ///
+        /// ⚡ Спрашивается У ОБЛАСТИ, а не у вещества (`T43`, 17.08.2026): у
+        /// области есть кэш на энергию, и на шагах до первого рассеяния — а их
+        /// большинство — ответ уже посчитан. Число то же самое, функция та же.
         /// </summary>
-        double AnalogMu(GeometryMaterial material, double energyKev)
+        double AnalogMu(Region region, double energyKev)
         {
-            return this.RayleighScatter
-                ? material.LinearAttenuation(energyKev)
-                : material.LinearAttenuationWithoutCoherent(energyKev);
+            return region.Mu(energyKev, !this.RayleighScatter);
         }
 
         /// <summary>Угловые данные элементов вещества; строится один раз на вещество.</summary>
@@ -2321,7 +2995,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         break;              // ушёл из сцены
                     }
 
-                    double muKill = here == null ? 0.0 : this.AnalogMu(here.Material, e);
+                    double muKill = here == null ? 0.0 : this.AnalogMu(here, e);
                     if (muKill > 0.0)
                     {
                         double free = -Math.Log(1.0 - this.Uniform()) / muKill;
@@ -2331,9 +3005,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                             y += uy * free;
                             z += uz * free;
                             travelled += free;
-                            double incoherent = here.Material.LinearIncoherent(e);
+                            double incoherent = here.Incoherent(e);
                             double coherent = this.RayleighScatter
-                                ? here.Material.LinearCoherent(e) : 0.0;
+                                ? here.Coherent(e) : 0.0;
                             double channel = this.Uniform() * muKill;
                             if (channel < coherent)
                             {
@@ -2986,7 +3660,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         break;              // ушёл из сцены
                     }
 
-                    double muKill = here == null ? 0.0 : this.AnalogMu(here.Material, e);
+                    double muKill = here == null ? 0.0 : this.AnalogMu(here, e);
                     if (muKill > 0.0)
                     {
                         double free = -Math.Log(1.0 - this.Uniform()) / muKill;
@@ -2996,9 +3670,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                             y += uy * free;
                             z += uz * free;
                             travelled += free;
-                            double incoherent = here.Material.LinearIncoherent(e);
+                            double incoherent = here.Incoherent(e);
                             double coherent = this.RayleighScatter
-                                ? here.Material.LinearCoherent(e) : 0.0;
+                                ? here.Coherent(e) : 0.0;
                             double carried;
                             double channel = this.Uniform() * muKill;
                             if (channel < coherent)

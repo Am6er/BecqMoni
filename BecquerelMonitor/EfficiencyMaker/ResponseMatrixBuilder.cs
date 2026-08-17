@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -43,6 +45,22 @@ namespace BecquerelMonitor.EfficiencyMaker
     /// Оценка остатка считается по факту: узлы наверху шкалы дороже нижних
     /// (больше рассеяний до полного поглощения), поэтому пропорция «сделано к
     /// общему» врёт, и остаток берётся от среднего времени УЖЕ посчитанных.
+    ///
+    /// 3. **Узлы раздаются ПО ОДНОМУ и дорогими вперёд** (`T35`, 17.08.2026).
+    ///    Это не украшение: `Parallel.For` по диапазону нарезает его статически,
+    ///    кусками подряд идущих номеров, — а стоимость узла растёт с энергией.
+    ///    Работник, которому достался нижний кусок, отрабатывал его быстро и
+    ///    ПАРКОВАЛСЯ до конца прогона. Измерено на живом счёте: стабильно 10–11
+    ///    потоков Running и 9–10 в ожидании `UserRequest` (то есть без работы), и
+    ///    доля занятых ядер держалась 11.2 из 15 на всех девяноста прогонах — от
+    ///    12-секундных сцен до 133-секундных. Постоянство и обмануло сначала:
+    ///    перекос от статической нарезки пропорционален, поэтому от масштаба
+    ///    сцены не зависит и на «хвост» не похож.
+    ///
+    ///    Лечится раздачей по одному узлу (`Partitioner.Create(..., 1)`) плюс
+    ///    порядком «дорогие первыми»: это классическая LPT-раскладка, при ней
+    ///    хвост не длиннее одного самого дорогого узла. Порядок на РЕЗУЛЬТАТ не
+    ///    влияет по пункту 2 — зерно у узла от его номера, а не от очереди.
     /// </summary>
     public static class ResponseMatrixBuilder
     {
@@ -82,15 +100,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                 CancellationToken = cancellation
             };
 
-            Parallel.For(0, grid.Length, parallel, index =>
+            long[] nodeHistories = new long[grid.Length];
+            double[] nodeSeconds = new double[grid.Length];
+            int[] nodeLast = new int[grid.Length];
+
+            // Уложить гистограммы узла в строки матрицы.
+            Action<int, double[][]> store = (index, histograms) =>
             {
-                cancellation.ThrowIfCancellationRequested();
-
-                EfficiencySimulator sim = MakeSimulator(geometry, options, index);
-                double relativeError;
-                double[][] histograms = sim.ResponseByChannel(grid[index], options.BinKev, out relativeError);
-                continuumError[index] = sim.LastContinuumRelativeError;
-
                 for (int c = 0; c < histograms.Length; c++)
                 {
                     double[] histogram = histograms[c];
@@ -111,23 +127,133 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                     channelRows[c][index] = row;
                 }
+            };
 
-                if (progress != null)
+            Action<int> report = index =>
+            {
+                if (progress == null)
                 {
-                    int completed = Interlocked.Increment(ref done);
-                    double elapsed = watch.Elapsed.TotalSeconds;
-                    progress.Report(new ResponseMatrixProgress
-                    {
-                        Done = completed,
-                        Total = grid.Length,
-                        ElapsedSeconds = elapsed,
-                        LastEnergyKev = grid[index],
-                        RemainingSeconds = completed > 0
-                            ? elapsed / completed * (grid.Length - completed)
-                            : -1.0
-                    });
+                    return;
                 }
-            });
+
+                int completed = Interlocked.Increment(ref done);
+                double elapsed = watch.Elapsed.TotalSeconds;
+                progress.Report(new ResponseMatrixProgress
+                {
+                    Done = completed,
+                    Total = grid.Length,
+                    ElapsedSeconds = elapsed,
+                    LastEnergyKev = grid[index],
+                    RemainingSeconds = completed > 0
+                        ? elapsed / completed * (grid.Length - completed)
+                        : -1.0
+                });
+            };
+
+            // Раздача по одному узлу — см. пункт 3 в шапке класса. `order`
+            // задаёт, в каком порядке узлы уходят в работу: дорогими вперёд.
+            Action<int[], Func<int, int>> run = (order, historiesOf) =>
+                Parallel.ForEach(Partitioner.Create(0, order.Length, 1), parallel, chunk =>
+                {
+                    for (int slot = chunk.Item1; slot < chunk.Item2; slot++)
+                    {
+                        int index = order[slot];
+                        cancellation.ThrowIfCancellationRequested();
+
+                        int histories = historiesOf(index);
+                        double achieved;
+                        // ⚠ Время узла — ПО ЧАСАМ его собственного прохода. При
+                        // 15 потоках на 8 физических ядрах оно завышено (поток
+                        // снимают с ядра), зато узлы между собой сравнимы — а для
+                        // приоритета оптимизации нужно именно это. Числом ЦП его
+                        // называть нельзя, и в раскладке оно так и подписано.
+                        long ticks0 = Stopwatch.GetTimestamp();
+                        double[][] histograms = RunNode(geometry, options, grid[index], index,
+                                                        histories, out achieved);
+                        nodeSeconds[index] += (double)(Stopwatch.GetTimestamp() - ticks0)
+                                              / Stopwatch.Frequency;
+                        continuumError[index] = achieved;
+                        // Всего потрачено — с учётом выброшенных проходов: только
+                        // так видно настоящую цену останова. Последний проход
+                        // держится отдельно: от него считается следующий.
+                        nodeHistories[index] += histories;
+                        nodeLast[index] = histories;
+                        store(index, histograms);
+                        report(index);
+                    }
+                });
+
+            int nominal = Math.Max(1, options.Histories);
+            bool adaptive = options.ContinuumErrorTarget > 0.0;
+
+            if (!adaptive)
+            {
+                // Плоский счёт: дорогие узлы наверху шкалы, поэтому вперёд идут
+                // они — порядок обратный номерам.
+                int[] order = new int[grid.Length];
+                for (int i = 0; i < order.Length; i++)
+                {
+                    order[i] = grid.Length - 1 - i;
+                }
+
+                run(order, index => nominal);
+            }
+            else
+            {
+                // ⛔ ДВЕ ФАЗЫ, и порядок берётся из ИЗМЕРЕНИЯ, а не из догадки
+                // о том, какие узлы дороже (`T35`, решение Amber 17.08.2026).
+                //
+                // Догадка уже подвела: при плоском счёте дороже узлы НАВЕРХУ
+                // шкалы, а при останове по шуму — ВНИЗУ (внизу мало континуума,
+                // шум высокий, узел упирается в потолок), то есть профиль
+                // стоимости переворачивается вместе с режимом. Раздача «сверху
+                // вниз» в режиме останова отдавала самые тяжёлые узлы последними
+                // и роняла занятость ядер.
+                //
+                // Поэтому: фаза 1 — проба ПО ВСЕМ узлам, она и так считалась,
+                // только выбрасывалась; из неё известны и достигнутый шум, и
+                // нужное число историй. Узлы, которым пробы хватило, готовы — им
+                // второй проход не нужен вовсе. Фаза 2 — остальные, В ПОРЯДКЕ
+                // УБЫВАНИЯ нужного N, то есть настоящая LPT-раскладка.
+                int pilot = Math.Min(nominal, Math.Max(MinPilotHistories,
+                                                       nominal / Math.Max(1, options.PilotDivisor)));
+                int cap = (int)Math.Min(int.MaxValue,
+                                        (long)nominal * Math.Max(1, options.MaxHistoriesFactor));
+
+                int[] all = new int[grid.Length];
+                for (int i = 0; i < all.Length; i++)
+                {
+                    all[i] = grid.Length - 1 - i;
+                }
+
+                run(all, index => pilot);
+
+                // Уточняющих раундов не больше двух: оценка нужного N сама
+                // шумная, и один промах мимо цели она обычно исправляет, а
+                // бесконечно догонять — значит потерять предсказуемость времени.
+                int[] want = new int[grid.Length];
+                for (int round = 1; round < MaxNodePasses; round++)
+                {
+                    var heavy = new List<int>();
+                    for (int i = 0; i < grid.Length; i++)
+                    {
+                        want[i] = NeededHistories(nodeLast[i], continuumError[i],
+                                                  options.ContinuumErrorTarget, cap);
+                        if (want[i] > nodeLast[i])
+                        {
+                            heavy.Add(i);
+                        }
+                    }
+
+                    if (heavy.Count == 0)
+                    {
+                        break;
+                    }
+
+                    heavy.Sort((a, b) => want[b].CompareTo(want[a]));
+                    run(heavy.ToArray(), index => want[index]);
+                }
+            }
 
             watch.Stop();
             double worstContinuum = 0.0;
@@ -151,10 +277,26 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
             }
 
+            long spentTotal = 0;
+            long capNode = 0;
+            foreach (long h in nodeHistories)
+            {
+                spentTotal += h;
+                if (h > capNode)
+                {
+                    capNode = h;
+                }
+            }
+
             ResponseMatrix matrix = new ResponseMatrix
             {
                 ContinuumRelativeError = worstContinuum,
                 ContinuumWeightedError = sumWeight > 0.0 ? sumInverse / sumWeight : 0.0,
+                HistoriesSpent = spentTotal,
+                HistoriesWorstNode = capNode,
+                NodeHistories = nodeHistories,
+                NodeErrors = continuumError,
+                NodeSeconds = nodeSeconds,
                 Energies = grid,
                 BinKev = options.BinKev,
                 ChannelRows = channelRows,
@@ -167,6 +309,100 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             matrix.RebuildTotals();
             return matrix;
+        }
+
+        /// <summary>Минимум историй на пробный проход: по десятку событий шум не измерить.</summary>
+        const int MinPilotHistories = 2000;
+
+        /// <summary>Проходов на узел: пробный плюс два уточняющих.</summary>
+        const int MaxNodePasses = 3;
+
+        /// <summary>
+        /// Запас к расчётному числу историй. Сама оценка шумная (её точность —
+        /// √2/√N событий пробного прохода), и без запаса половина узлов
+        /// промахивалась бы мимо цели на волосок и уходила в лишний проход.
+        /// </summary>
+        const double HistoriesMargin = 1.15;
+
+        /// <summary>
+        /// Один узел до заданного шума (`T35`). Возвращает гистограммы, а через
+        /// параметры — достигнутый шум и потраченные истории.
+        ///
+        /// Почему счёт, а не подбор блоками. Шум узла по построению равен
+        /// 100/√N по НАБРАННЫМ событиям континуума
+        /// (<see cref="EfficiencySimulator.LastContinuumRelativeError"/>), то есть
+        /// зависит от числа историй ровно как 1/√N. Значит по одному дешёвому
+        /// проходу нужное число историй вычисляется в лоб:
+        /// N = N_пробы · (шум_пробы / цель)². Блочное наращивание давало бы то
+        /// же самое за много проходов и с непредсказуемым временем.
+        ///
+        /// ⚠ Повторный проход считает узел ЗАНОВО, а не досчитывает: зерно у
+        /// узла одно и то же (<see cref="MakeSimulator"/> берёт его от номера),
+        /// поэтому длинный проход повторяет пробный первыми историями и
+        /// результат остаётся воспроизводимым побитово при любом числе потоков.
+        /// Цена — выброшенный пробный проход, то есть не больше десятой доли.
+        ///
+        /// ⚠ Достигнутый шум возвращается ФАКТИЧЕСКИЙ. Узел, которому и потолка
+        /// не хватило, остаётся шумным и говорит об этом числом, а не молчит:
+        /// на этом стоит вся приёмка матриц (`ContinuumWeightedError`).
+        /// </summary>
+        static double[][] RunNode(GeometryModel geometry, ResponseMatrixOptions options,
+                                  double energyKev, int index, int histories,
+                                  out double achieved)
+        {
+            EfficiencySimulator sim = MakeSimulator(geometry, options, index);
+            sim.Histories = Math.Max(1, histories);
+            double relativeError;
+            double[][] histograms = sim.ResponseByChannel(energyKev, options.BinKev,
+                                                          out relativeError);
+            achieved = sim.LastContinuumRelativeError;
+
+            // Счётчики работы геометрии — в общую сумму РАЗ на узел, а не на
+            // вызов: внутри узла они считаются без блокировок (`T43`).
+            Interlocked.Add(ref WalkAt, sim.CountAt);
+            Interlocked.Add(ref WalkStep, sim.CountStep);
+            Interlocked.Add(ref WalkMu, sim.CountMu);
+            Interlocked.Add(ref WalkCollect, sim.CountWalk);
+            Interlocked.Add(ref WalkHistories, sim.Histories);
+            return histograms;
+        }
+
+        /// <summary>
+        /// Сколько раз обход сцены спросил область, границу и ослабление —
+        /// суммарно по последнему построению (`T43`). Публичные и обнуляемые:
+        /// это мерка для оптимизации, а не свойство матрицы.
+        /// </summary>
+        public static long WalkAt, WalkStep, WalkMu, WalkHistories, WalkCollect;
+
+        /// <summary>Обнулить счётчики обхода перед построением.</summary>
+        public static void ResetWalkCounters()
+        {
+            WalkAt = 0;
+            WalkStep = 0;
+            WalkMu = 0;
+            WalkHistories = 0;
+            WalkCollect = 0;
+        }
+
+        /// <summary>
+        /// Сколько историй нужно узлу, чтобы дойти до цели (`T35`). Возвращает
+        /// прежнее число, если цель уже взята или расти некуда.
+        ///
+        /// Шум узла по построению равен 100/√N по набранным событиям континуума,
+        /// то есть зависит от историй как 1/√N, — значит нужное число считается
+        /// В ЛОБ, а не подбирается блоками: N = N₀·(шум₀/цель)². Запас нужен
+        /// потому, что сама оценка шумная (её точность — порядка 1/√(2N₀)).
+        /// </summary>
+        static int NeededHistories(int histories, double achieved, double target, int cap)
+        {
+            if (histories <= 0 || !(target > 0.0) || !(achieved > target) || histories >= cap)
+            {
+                return Math.Max(histories, 0);
+            }
+
+            double ratio = achieved / target;
+            long want = (long)Math.Ceiling(histories * ratio * ratio * HistoriesMargin);
+            return (int)Math.Min(cap, Math.Max((long)histories + 1, want));
         }
 
         /// <summary>
@@ -189,12 +425,17 @@ namespace BecquerelMonitor.EfficiencyMaker
                 DopplerBroadening = options.BoundScattering,
                 RayleighScatter = options.BoundScattering,
                 BremFromData = options.BremFromData,
+                ScatterRouletteWeight = options.ScatterRoulette,
                 PeakHalfWidthKev = 0.0
             };
 
             // Зерно от номера узла: результат не должен зависеть от того, какой
-            // поток дошёл до этого узла первым.
-            sim.ResetStream((ulong)sim.Seed + (ulong)(index + 1) * 0x9E3779B97F4A7C15UL);
+            // поток дошёл до этого узла первым. Ноль в настройках — штатное
+            // зерно симулятора; иным задаётся НЕЗАВИСИМАЯ выборка тем же кодом,
+            // и она — единственная мерка для приёмки «в пределах шума ГСЧ»
+            // (`T43`).
+            int seed = options.Seed != 0 ? options.Seed : sim.Seed;
+            sim.ResetStream((ulong)seed + (ulong)(index + 1) * 0x9E3779B97F4A7C15UL);
             return sim;
         }
 
