@@ -50,7 +50,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return 0.0;
             }
 
-            return MaterialDatabase.Interpolate(element.EnergyKev, element.Total, energyKev);
+            // С готовыми логарифмами (`T43`): значения в таблице не меняются,
+            // а брать от них логарифм на каждый вызов — четыре из пяти вызовов
+            // `Math.Log` в самой горячей точке счёта.
+            return MaterialDatabase.Interpolate(element.EnergyKev, element.LogEnergyKev,
+                                                element.Total, element.LogTotal, energyKev);
         }
     }
 }

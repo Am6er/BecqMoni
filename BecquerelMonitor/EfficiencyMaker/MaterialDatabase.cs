@@ -44,6 +44,53 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             /// <summary>Сумма каналов, см2/г, — полное ослабление.</summary>
             public double[] Total;
+
+            // --- логарифмы сетки и значений, посчитанные РАЗ при загрузке (`T43`) ---
+            //
+            // Зачем. Интерполяция здесь лог-логарифмическая, и в прежнем виде она
+            // брала ПЯТЬ логарифмов на каждый вызов: от энергии, от двух узлов
+            // сетки и от двух значений. Четыре из пяти — от чисел, лежащих в
+            // таблице и не меняющихся никогда. Профиль 17.08.2026 (узел 30 кэВ,
+            // один поток) показал 22.4 % времени в математике ucrt, и это её
+            // главный поставщик: `MassCrossSection` 5.78 % плюс `Interpolate`
+            // 3.27 % сверху зовут по пять логарифмов каждый.
+            //
+            // Теперь на вызов остаётся один логарифм (от энергии) и одна
+            // экспонента. Числа те же до последнего разряда: та же функция от
+            // того же аргумента, посчитанная раньше по времени.
+            //
+            // ⚠ Где значение неположительно (канал не открылся — пары ниже
+            // 1.022 МэВ), логарифма нет, и в ячейке лежит NaN. Читать её нельзя,
+            // и никто не читает: обе интерполяции проверяют САМО значение и на
+            // таком участке переходят на линейную ветку.
+
+            /// <summary>Логарифмы энергий сетки.</summary>
+            public double[] LogEnergyKev;
+
+            /// <summary>Логарифмы полного ослабления.</summary>
+            public double[] LogTotal;
+
+            /// <summary>
+            /// Логарифмы каналов В ТОМ ЖЕ ПОРЯДКЕ, что у
+            /// <see cref="PhotonProcess"/>: 0 когерентное, 1 некогерентное,
+            /// 2 фотоэффект, 3 пары. ⚠ Пары здесь ОДНОЙ строкой — логарифм
+            /// СУММЫ ядерного и электронного каналов, потому что спрашивают
+            /// именно сумму, а логарифм суммы из логарифмов слагаемых не
+            /// собрать.
+            /// </summary>
+            public double[][] LogChannels;
+        }
+
+        /// <summary>Логарифмы значений; у неположительных — NaN, см. Element.</summary>
+        static double[] LogsOf(double[] values)
+        {
+            var logs = new double[values.Length];
+            for (int i = 0; i < values.Length; i++)
+            {
+                logs[i] = values[i] > 0.0 ? Math.Log(values[i]) : double.NaN;
+            }
+
+            return logs;
         }
 
         /// <summary>
@@ -822,6 +869,23 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                                 element.Total[i] = sum;
                             }
+
+                            // Логарифмы — здесь, один раз на элемент (`T43`).
+                            element.LogEnergyKev = LogsOf(element.EnergyKev);
+                            element.LogTotal = LogsOf(element.Total);
+                            element.LogChannels = new double[4][];
+                            for (int c = 0; c < 3; c++)
+                            {
+                                element.LogChannels[c] = LogsOf(element.Channels[c]);
+                            }
+
+                            var pairSum = new double[n];
+                            for (int i = 0; i < n; i++)
+                            {
+                                pairSum[i] = element.Channels[3][i] + element.Channels[4][i];
+                            }
+
+                            element.LogChannels[3] = LogsOf(pairSum);
                         }
                     }
                 }
@@ -854,6 +918,23 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// нельзя, а вверх сечения уже почти постоянны.
         /// </summary>
         public static double Interpolate(double[] grid, double[] values, double x)
+        {
+            return Interpolate(grid, null, values, null, x);
+        }
+
+        /// <summary>
+        /// То же, но с ГОТОВЫМИ логарифмами сетки и значений (`T43`,
+        /// 17.08.2026). Их четыре на вызов, они от чисел, которые после
+        /// загрузки не меняются, и в профиле это был главный поставщик
+        /// математики ucrt (22.4 % времени). Остаётся один логарифм — от
+        /// энергии — и одна экспонента.
+        ///
+        /// Числа побитово прежние: та же функция от того же аргумента, только
+        /// посчитанная при загрузке. `null` вместо логарифмов — считать на
+        /// месте, как раньше.
+        /// </summary>
+        public static double Interpolate(double[] grid, double[] logGrid,
+                                         double[] values, double[] logValues, double x)
         {
             int n = grid.Length;
             if (n == 0)
@@ -902,8 +983,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return y0 + f * (y1 - y0);
             }
 
-            double t = (Math.Log(x) - Math.Log(x0)) / (Math.Log(x1) - Math.Log(x0));
-            return Math.Exp(Math.Log(y0) + t * (Math.Log(y1) - Math.Log(y0)));
+            double lx0 = logGrid != null ? logGrid[lo] : Math.Log(x0);
+            double lx1 = logGrid != null ? logGrid[hi] : Math.Log(x1);
+            double ly0 = logValues != null ? logValues[lo] : Math.Log(y0);
+            double ly1 = logValues != null ? logValues[hi] : Math.Log(y1);
+            double t = (Math.Log(x) - lx0) / (lx1 - lx0);
+            return Math.Exp(ly0 + t * (ly1 - ly0));
         }
     }
 }
