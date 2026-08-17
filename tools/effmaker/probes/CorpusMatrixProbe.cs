@@ -1,4 +1,4 @@
-using BecquerelMonitor;
+﻿using BecquerelMonitor;
 using BecquerelMonitor.EfficiencyMaker;
 using System;
 using System.Collections.Generic;
@@ -35,6 +35,7 @@ class CorpusMatrixProbe
 
         string dir = Path.Combine("tools", "CORPUS", "corpus", "geometries");
         string only = null;
+        string dump = null;
         bool force = false;
         var options = new ResponseMatrixOptions();
         foreach (string a in args)
@@ -50,6 +51,63 @@ class CorpusMatrixProbe
                 // сцены. Ключ нужен, чтобы запустить несколько процессов по
                 // нескольку потоков и замерить, что выходит быстрее.
                 options.Threads = int.Parse(a.Substring(10), CultureInfo.InvariantCulture);
+            else if (a.StartsWith("--target=", StringComparison.Ordinal))
+                // T35, дешёвый выигрыш №3: считать узел ДО ЗАДАННОГО ШУМА, а не
+                // плоским числом историй. Ноль — прежний плоский счёт, для A/B.
+                options.ContinuumErrorTarget = double.Parse(a.Substring(9), CultureInfo.InvariantCulture);
+            else if (a.StartsWith("--edges=", StringComparison.Ordinal))
+                // `E31`: разрешать K-края веществ сцены в сетке. Включено
+                // умолчанием; ключ нужен, чтобы выделить вклад краёв отдельно от
+                // остального — иначе пересчёт меняет две вещи разом.
+                options.ResolveEdges = a.Substring(8) != "0";
+            else if (a.StartsWith("--emin=", StringComparison.Ordinal))
+                // Диапазон сетки — чтобы профилировать ОДИН узел, как требует
+                // раздел Profiling в CLAUDE.md: профиль всей сцены смешивает
+                // низкие узлы (одно взаимодействие) с высокими (пары, вторички).
+                options.MinEnergyKev = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
+            else if (a.StartsWith("--emax=", StringComparison.Ordinal))
+                options.MaxEnergyKev = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
+            else if (a.StartsWith("--seed=", StringComparison.Ordinal))
+                // `T43`: независимая выборка тем же кодом. Нужна для приёмки
+                // правок, меняющих ЧИСЛО розыгрышей: сравнивать «было/стало»
+                // можно только с шумом ГСЧ, а его измеряет второе зерно.
+                options.Seed = int.Parse(a.Substring(7), CultureInfo.InvariantCulture);
+            else if (a.StartsWith("--dump=", StringComparison.Ordinal))
+                // `T43`: поузловая раскладка в CSV. Сводных чисел мало — надо
+                // видеть, ГДЕ потрачены истории и какой узел не дотянул.
+                dump = a.Substring(7);
+            else if (a.StartsWith("--acont=", StringComparison.Ordinal))
+                // АБЛЯЦИЯ, не режим счёта: выключенный ключ возвращает прежний
+                // взвешенный континуум с его измеренным недобором. Нужен, чтобы
+                // узнать, во что обходится аналоговая ветка — она гонит СВОИ n
+                // историй поверх взвешенных, и без замера доля её работы
+                // неизвестна. Матрицу, посчитанную так, в дело не пускать.
+                options.AnalogContinuum = a.Substring(8) != "0";
+            else if (a.StartsWith("--scat=", StringComparison.Ordinal))
+                // АБЛЯЦИЯ, как и `--acont=`: выключает однократное рассеяние по
+                // дороге к кристаллу (и вместе с ним проводку промахнувшихся
+                // лучей до выхода из сцены). Даёт долю времени, которую эта
+                // поправка стоит; вклад её в полную эффективность ~15 %.
+                options.SingleScatter = a.Substring(7) != "0";
+            else if (a.StartsWith("--bound=", StringComparison.Ordinal))
+                // АБЛЯЦИЯ: рассеяние на СВЯЗАННОМ электроне (физика 7) — угол со
+                // множителем отбора, доплеровское размытие, когерентное своим
+                // каналом. Всё это отбором с перебросом, то есть недёшево;
+                // ключ показывает, сколько именно оно стоит.
+                options.BoundScattering = a.Substring(8) != "0";
+            else if (a.StartsWith("--roulette=", StringComparison.Ordinal))
+                // `T43`, решение Amber: рулетка по весу поправки на однократное
+                // рассеяние. Ноль — прежний счёт. ⚠ Судить её временем прогона
+                // НЕЛЬЗЯ: она размен времени на шум, и мерилом служит время до
+                // цели по шуму (гнать с `--target=`).
+                options.ScatterRoulette = double.Parse(a.Substring(11), CultureInfo.InvariantCulture);
+            else if (a == "--recollect")
+                // `T43`, ЗАМЕР: разбирать луч заново на каждом шаге. Считается
+                // то же самое, но разборов становится столько же, сколько шагов;
+                // по разности времени и разности их числа видно, чего стоит один
+                // разбор. Нужно потому, что профиль требует прав, а их может не
+                // быть. В счёте не применять.
+                EfficiencySimulator.MeasureCollectCost = true;
             else if (a == "--force") force = true;
             else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
         }
@@ -82,6 +140,19 @@ class CorpusMatrixProbe
         Console.WriteLine("сетка: {0} узлов {1:F0}-{2:F0} кэВ, бин {3:F0} кэВ, {4} историй на узел",
                           options.NodeCount, options.MinEnergyKev, options.MaxEnergyKev,
                           options.BinKev, options.Histories);
+        if (options.ContinuumErrorTarget > 0.0)
+        {
+            Console.WriteLine("останов по шуму: цель {0:F1} % на узел, проба 1/{1}, потолок x{2} (T35)",
+                              options.ContinuumErrorTarget, options.PilotDivisor,
+                              options.MaxHistoriesFactor);
+            Console.WriteLine("  «историй на узел» выше — НОМИНАЛ, от которого считаются проба и потолок;");
+            Console.WriteLine("  сколько потрачено на самом деле, печатается у каждой сцены");
+        }
+        else
+        {
+            Console.WriteLine("останов по шуму ВЫКЛЮЧЕН — плоский счёт (T35)");
+        }
+
         Console.WriteLine();
 
         bool quiet = true;
@@ -150,6 +221,7 @@ class CorpusMatrixProbe
                 }
             }
 
+            ResponseMatrixBuilder.ResetWalkCounters();
             TimeSpan cpuBefore = Process.GetCurrentProcess().TotalProcessorTime;
             var watch = Stopwatch.StartNew();
             ResponseMatrix matrix = ResponseMatrixBuilder.Build(
@@ -162,7 +234,14 @@ class CorpusMatrixProbe
             matrix.Save(outPath);
             built++;
 
-            bool noisy = matrix.ContinuumWeightedError > 5.0;
+            // Порог приёмки — та цель, до которой считали, а не назначенные
+            // когда-то 5 %: с 17.08.2026 цель по измерению 3 % (`T35`), и
+            // сравнивать достигнутое надо с ней. При выключенном останове
+            // остаётся прежний порог — иначе плоские прогоны для A/B стали бы
+            // «шумными» задним числом.
+            double noiseLimit = options.ContinuumErrorTarget > 0.0
+                ? options.ContinuumErrorTarget : 5.0;
+            bool noisy = matrix.ContinuumWeightedError > noiseLimit;
             quiet &= !noisy;
             Console.WriteLine("== {0} ==", key);
             Console.WriteLine("   клеймо   : {0}", matrix.Stamp);
@@ -181,15 +260,70 @@ class CorpusMatrixProbe
                 : Math.Max(1, Environment.ProcessorCount - 1);
             double share = watch.Elapsed.TotalSeconds > 0.0
                 ? cpuSeconds / watch.Elapsed.TotalSeconds : 0.0;
-            double histories = (double)options.NodeCount * options.Histories;
+            // ⚠ Историй берётся ПОТРАЧЕННОЕ, а не «узлы × номинал»: при останове
+            // по шуму (`T35`) у каждого узла своё число, и произведение врёт в
+            // разы — а на нём стоит единственная величина, которой меряют код.
+            double histories = matrix.HistoriesSpent > 0
+                ? matrix.HistoriesSpent
+                : (double)options.NodeCount * options.Histories;
+            double flat = (double)matrix.Energies.Length * options.Histories;
             Console.WriteLine("   время    : {0:F1} с на часах, ядер {1:F1} из {2}{3}",
                               watch.Elapsed.TotalSeconds, share, threads,
                               share < 0.5 * threads ? "  — МАШИНУ ДЕЛИМ" : "");
             Console.WriteLine("   счёт     : {0:F1} с ЦП, {1:F2} мкс на историю  <- сравнивать надо ЭТО",
                               cpuSeconds, histories > 0.0 ? 1.0E6 * cpuSeconds / histories : 0.0);
+            if (options.ContinuumErrorTarget > 0.0)
+            {
+                Console.WriteLine("   историй  : {0:N0} против {1:N0} плоских — в {2:F1} раза дешевле; "
+                                  + "самый дорогой узел {3:N0}",
+                                  (double)matrix.HistoriesSpent, flat,
+                                  matrix.HistoriesSpent > 0 ? flat / matrix.HistoriesSpent : 0.0,
+                                  (double)matrix.HistoriesWorstNode);
+            }
+
+            // `T43`: цена истории почти не зависит от энергии — значит время
+            // съедает обход сцены, а не транспорт. Эти три числа говорят, сколько
+            // его: сколько раз на историю спрошены область, граница и ослабление.
+            if (ResponseMatrixBuilder.WalkHistories > 0)
+            {
+                double perHistory = (double)ResponseMatrixBuilder.WalkHistories;
+                Console.WriteLine("   обход    : на историю {0:F1} шага границ, {1:F1} поиска области, "
+                                  + "{2:F1} интерполяции μ, {3:F2} сбора пересечений",
+                                  ResponseMatrixBuilder.WalkStep / perHistory,
+                                  ResponseMatrixBuilder.WalkAt / perHistory,
+                                  ResponseMatrixBuilder.WalkMu / perHistory,
+                                  ResponseMatrixBuilder.WalkCollect / perHistory);
+            }
+
             Console.WriteLine("   шум конт.: взвешенная {0:F2} %  {1}",
                               matrix.ContinuumWeightedError,
-                              noisy ? "ВЫШЕ ПОРОГА 5 %" : "тихо");
+                              noisy ? string.Format(CultureInfo.InvariantCulture,
+                                                    "ВЫШЕ ПОРОГА {0:F1} %", noiseLimit)
+                                    : "тихо");
+            if (dump != null && matrix.NodeHistories != null)
+            {
+                string dumpPath = files.Count > 1
+                    ? Path.Combine(Path.GetDirectoryName(dump) ?? ".",
+                                   Path.GetFileNameWithoutExtension(dump) + "-" + key + ".csv")
+                    : dump;
+                using (var w = new StreamWriter(dumpPath, false, new UTF8Encoding(true)))
+                {
+                    // `seconds_wall` — время прохода узла по часам, не ЦП: при 15
+                    // потоках на 8 ядрах завышено, но узлы между собой сравнимы.
+                    w.WriteLine("node,energy_kev,histories,error_pct,seconds_wall");
+                    for (int i = 0; i < matrix.Energies.Length; i++)
+                    {
+                        w.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                            "{0},{1:F3},{2},{3:F3},{4:F3}", i, matrix.Energies[i],
+                            matrix.NodeHistories[i],
+                            matrix.NodeErrors != null ? matrix.NodeErrors[i] : 0.0,
+                            matrix.NodeSeconds != null ? matrix.NodeSeconds[i] : 0.0));
+                    }
+                }
+
+                Console.WriteLine("   раскладка: {0}", dumpPath);
+            }
+
             Console.WriteLine("   файл     : {0} ({1:F1} МБ)",
                               outPath, new FileInfo(outPath).Length / 1048576.0);
             Console.WriteLine();
