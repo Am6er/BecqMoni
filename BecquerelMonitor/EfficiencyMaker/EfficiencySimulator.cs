@@ -426,21 +426,33 @@ namespace BecquerelMonitor.EfficiencyMaker
         ThickTargetBrem bremTable;
 
         /// <summary>Элементы кристалла, у которых есть данные о K-флуоресценции.</summary>
-        int[] fluoZ;
-        double[] fluoFraction;
-        MaterialDatabase.Fluorescence[] fluoData;
 
         /// <summary>
         /// Пооболочечный фотоэффект тех же элементов; null в ячейке — данных
         /// EPICS для элемента нет, доля K берётся константой, как раньше.
         /// </summary>
-        MaterialDatabase.PhotoShellModel[] fluoShells;
 
         /// <summary>
         /// Угловые данные рассеяния по веществам сцены. Кэш на ЭКЗЕМПЛЯР, без
         /// замка: один экземпляр — один поток (см. шапку класса), а сама
         /// <see cref="ScatteringData"/> общий кэш стережёт своим.
         /// </summary>
+        /// <summary>
+        /// Кто в веществе способен ответить характеристическим квантом (`F27`).
+        /// Строится на вещество один раз и кэшируется — как <see cref="Scatterers"/>.
+        /// </summary>
+        sealed class Fluorescers
+        {
+            public GeometryMaterial Material;
+            public int[] Z;
+            public double[] Fraction;
+            public MaterialDatabase.Fluorescence[] Data;
+            public MaterialDatabase.PhotoShellModel[] Shells;
+        }
+
+        readonly Dictionary<GeometryMaterial, Fluorescers> fluorescers =
+            new Dictionary<GeometryMaterial, Fluorescers>();
+
         readonly Dictionary<GeometryMaterial, Scatterers> scatterers =
             new Dictionary<GeometryMaterial, Scatterers>();
 
@@ -495,7 +507,6 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             this.crystalHasPartials = this.CrystalHasPartials();
             this.electron = ElectronData.Match(this.geometry.Crystal);
-            this.BuildFluorescence();
             this.lightYield = this.LightNonproportionality && this.electron != null
                 ? MaterialDatabase.LightYieldOf(ScintillatorNameOf(this.electron))
                 : null;
@@ -555,13 +566,35 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// K-край у них ниже сетки сечений, а рентген в килоэлектронвольт
         /// поглощается в микронах от места рождения.
         /// </summary>
-        void BuildFluorescence()
+        /// <summary>
+        /// Таблица флуоресценции вещества; строится один раз на вещество (`F27`).
+        ///
+        /// Прежде такая таблица была ОДНА и только для кристалла — оттого квант,
+        /// поглотившийся в пробе или в обвязке, просто умирал, и характеристический
+        /// рентген самой пробы в модель не попадал вовсе. У тяжёлой пробы это
+        /// заметная линия: оксид лютеция под собственными гаммами 88/202/307 кэВ
+        /// обязан светить K-рентгеном лютеция 52.97…63.21 кэВ.
+        /// </summary>
+        Fluorescers FluorescersOf(GeometryMaterial material)
+        {
+            Fluorescers found;
+            if (this.fluorescers.TryGetValue(material, out found))
+            {
+                return found;
+            }
+
+            found = BuildFluorescers(material);
+            this.fluorescers[material] = found;
+            return found;
+        }
+
+        Fluorescers BuildFluorescers(GeometryMaterial material)
         {
             List<int> zs = new List<int>();
             List<double> fractions = new List<double>();
             List<MaterialDatabase.Fluorescence> data = new List<MaterialDatabase.Fluorescence>();
             List<MaterialDatabase.PhotoShellModel> shells = new List<MaterialDatabase.PhotoShellModel>();
-            foreach (KeyValuePair<int, double> pair in this.geometry.Crystal.Fractions)
+            foreach (KeyValuePair<int, double> pair in material.Fractions)
             {
                 if (!(pair.Value > 0.0))
                 {
@@ -582,10 +615,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                     : null);
             }
 
-            this.fluoZ = zs.ToArray();
-            this.fluoFraction = fractions.ToArray();
-            this.fluoData = data.ToArray();
-            this.fluoShells = shells.ToArray();
+            return new Fluorescers
+            {
+                Material = material,
+                Z = zs.ToArray(),
+                Fraction = fractions.ToArray(),
+                Data = data.ToArray(),
+                Shells = shells.ToArray(),
+            };
         }
 
         /// <summary>
@@ -2221,7 +2258,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // фотоэлектрон, оже-каскад, мягкие линии). Сумма всегда
                     // равна энергии поглощённого кванта, ничего не теряется и
                     // не появляется.
-                    double xray = this.SampleFluorescence(e);
+                    double xray = this.SampleFluorescence(this.geometry.Crystal, e);
                     if (xray > 0.0)
                     {
                         double kx, ky, kz;
@@ -2443,25 +2480,26 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Дальше — попала ли дырка в K-оболочку (доля из скачка сечения на
         /// крае) и ответил ли атом квантом (выход флуоресценции).
         /// </summary>
-        double SampleFluorescence(double energyKev)
+        double SampleFluorescence(GeometryMaterial material, double energyKev)
         {
-            if (!this.XrayEscape || this.fluoZ == null || this.fluoZ.Length == 0)
+            Fluorescers f0 = this.FluorescersOf(material);
+            if (!this.XrayEscape || f0.Z.Length == 0)
             {
                 return 0.0;
             }
 
             // вес элемента — его вклад в фотопоглощение на этой энергии
             double sum = 0.0;
-            double[] weight = new double[this.fluoZ.Length];
-            for (int i = 0; i < this.fluoZ.Length; i++)
+            double[] weight = new double[f0.Z.Length];
+            for (int i = 0; i < f0.Z.Length; i++)
             {
-                if (energyKev <= this.fluoData[i].KEdgeKev)
+                if (energyKev <= f0.Data[i].KEdgeKev)
                 {
                     continue;               // K-оболочка ещё недоступна
                 }
 
-                weight[i] = this.fluoFraction[i] * PartialCrossSections.MassCrossSection(
-                    this.fluoZ[i], energyKev, PhotonProcess.Photoelectric);
+                weight[i] = f0.Fraction[i] * PartialCrossSections.MassCrossSection(
+                    f0.Z[i], energyKev, PhotonProcess.Photoelectric);
                 sum += weight[i];
             }
 
@@ -2474,7 +2512,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             // K-края на этой энергии: они тоже поглощают, и их доля обязана
             // уменьшать вероятность рентгена, а не выпадать из счёта.
             double all = 0.0;
-            foreach (KeyValuePair<int, double> pair in this.geometry.Crystal.Fractions)
+            foreach (KeyValuePair<int, double> pair in material.Fractions)
             {
                 all += pair.Value * PartialCrossSections.MassCrossSection(
                     pair.Key, energyKev, PhotonProcess.Photoelectric);
@@ -2493,13 +2531,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                 k++;
             }
 
-            MaterialDatabase.Fluorescence f = this.fluoData[k];
+            MaterialDatabase.Fluorescence f = f0.Data[k];
 
             // Доля K-оболочки: по энергии из EPICS2017, если данные есть;
             // иначе — константа со скачка на крае, как раньше. Число случайных
             // чисел от выбора не меняется — меняется только порог сравнения.
-            double kFraction = this.fluoShells[k] != null
-                ? this.fluoShells[k].KFraction(energyKev)
+            double kFraction = f0.Shells[k] != null
+                ? f0.Shells[k].KFraction(energyKev)
                 : f.KFraction;
 
             // Выход флуоресценции: измеренный, если он есть и ключ включён,
@@ -3046,8 +3084,35 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                             if (channel >= coherent + incoherent)
                             {
-                                // Фотопоглощение или пары вне кристалла: сам
-                                // фотон погиб, но электрон может занести (F1).
+                                // Фотопоглощение или пары вне кристалла (`F27`).
+                                //
+                                // Прежде фотон здесь просто ПОГИБАЛ, и с ним
+                                // пропадал характеристический квант вещества —
+                                // а у тяжёлой пробы это заметная линия: оксид
+                                // лютеция под собственными гаммами 88/202/307
+                                // кэВ обязан светить K-рентгеном лютеция
+                                // 52.97…63.21 кэВ. В кристалле это считалось
+                                // всегда, вне его — нет; измерено 17.08.2026 на
+                                // `ASN16_Lu176`, невязка 274σ и 275σ на 51.1 и
+                                // 60.8 кэВ.
+                                //
+                                // Порядок розыгрышей ТОТ ЖЕ, что в кристалле:
+                                // рентген, направление, потом электрон. Остаток
+                                // энергии уносит электрон, сумма сохраняется.
+                                double xrayOut = this.SampleFluorescence(here.Material, e);
+                                if (xrayOut > 0.0)
+                                {
+                                    this.Isotropic(out ux, out uy, out uz);
+                                    if (this.ElectronReachesCrystal(x, y, z, ux, uy, uz, e - xrayOut))
+                                    {
+                                        score = weight;
+                                        break;
+                                    }
+
+                                    e = xrayOut;
+                                    continue;           // квант летит дальше
+                                }
+
                                 if (this.ElectronReachesCrystal(x, y, z, ux, uy, uz, e))
                                 {
                                     score = weight;
@@ -3712,8 +3777,35 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                             if (channel >= coherent + incoherent)
                             {
-                                // Фотопоглощение или пары вне кристалла: фотон
-                                // погиб, электрон может донести остаток (F1).
+                                // Фотопоглощение или пары вне кристалла (`F27`).
+                                //
+                                // Прежде фотон здесь просто ПОГИБАЛ, и с ним
+                                // пропадал характеристический квант вещества —
+                                // а у тяжёлой пробы это заметная линия: оксид
+                                // лютеция под собственными гаммами 88/202/307
+                                // кэВ обязан светить K-рентгеном лютеция
+                                // 52.97…63.21 кэВ. В кристалле это считалось
+                                // всегда, вне его — нет; измерено 17.08.2026 на
+                                // `ASN16_Lu176`, невязка 274σ и 275σ на 51.1 и
+                                // 60.8 кэВ.
+                                //
+                                // Порядок розыгрышей ТОТ ЖЕ, что в кристалле:
+                                // рентген, направление, потом электрон. Остаток
+                                // энергии уносит электрон, сумма сохраняется.
+                                double xrayOut = this.SampleFluorescence(here.Material, e);
+                                if (xrayOut > 0.0)
+                                {
+                                    this.Isotropic(out ux, out uy, out uz);
+                                    if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz,
+                                                                  e - xrayOut, out carried))
+                                    {
+                                        deposited += carried;
+                                    }
+
+                                    e = xrayOut;
+                                    continue;           // квант летит дальше
+                                }
+
                                 if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz, e, out carried))
                                 {
                                     deposited += carried;

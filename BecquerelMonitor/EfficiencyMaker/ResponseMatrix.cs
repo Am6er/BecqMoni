@@ -118,7 +118,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         //     цена мала, а у пробы и обвязки из железа, меди и цинка нет (F16).
         //     Вылет рентгена входит в форму отклика, поэтому матрицы прошлых
         //     поколений устарели даже там, где сдвиг мал.
-        public const int PhysicsVersion = 11;
+        public const int PhysicsVersion = 12;
 
         /// <summary>Узлы сетки входных энергий, кэВ, по возрастанию.</summary>
         public double[] Energies { get; set; }
