@@ -101,6 +101,13 @@ class CorpusMatrixProbe
                 // НЕЛЬЗЯ: она размен времени на шум, и мерилом служит время до
                 // цели по шуму (гнать с `--target=`).
                 options.ScatterRoulette = double.Parse(a.Substring(11), CultureInfo.InvariantCulture);
+            else if (a.StartsWith("--npl=", StringComparison.Ordinal))
+                // АБЛЯЦИЯ (`F11`): отклик в шкале СВЕТА — каждый электронный
+                // вклад взвешивается кривой L(E), бины пересчитываются с якорем
+                // по пику. Выключенный ключ возвращает шкалу энергии. Нужен,
+                // чтобы понять, отчего линия флуоресценции в строке матрицы
+                // стоит не на своей энергии (`F27`).
+                options.LightNonproportionality = a.Substring(6) != "0";
             else if (a.StartsWith("--fluo=", StringComparison.Ordinal))
                 // `F27`, АБЛЯЦИЯ: флуоресценция пробы и обвязки. Выключенный
                 // ключ возвращает прежнее «фотон погиб вне кристалла» — только
