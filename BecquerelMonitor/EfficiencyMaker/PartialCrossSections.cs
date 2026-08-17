@@ -97,7 +97,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return b;
             }
 
-            double f = (Math.Log(energyKev) - Math.Log(x0)) / (Math.Log(x1) - Math.Log(x0));
+            // Логарифмы узлов и значений взяты из таблицы, а не посчитаны заново
+            // (`T43`): их четыре на вызов, они от чисел, которые не меняются, и
+            // в профиле это был главный поставщик математики ucrt. Результат
+            // побитово прежний — та же функция от того же аргумента.
+            double[] logGrid = element.LogEnergyKev;
+            double f = (Math.Log(energyKev) - logGrid[lo]) / (logGrid[hi] - logGrid[lo]);
             if (!(a > 0.0) || !(b > 0.0))
             {
                 // канал открывается не с нуля шкалы: рождение пар ниже 1.022 МэВ
@@ -109,7 +114,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             // интерполяция круто падающего фотоэффекта между узлами его
             // ЗАВЫШАЕТ, а завышенный фотоэффект — это завышенная доля полного
             // поглощения, то есть завышенная эффективность в пике.
-            return Math.Exp(Math.Log(a) + f * (Math.Log(b) - Math.Log(a)));
+            double[] logChannel = element.LogChannels[(int)process];
+            return Math.Exp(logChannel[lo] + f * (logChannel[hi] - logChannel[lo]));
         }
 
         static double Channel(MaterialDatabase.Element element, int i, PhotonProcess process)
