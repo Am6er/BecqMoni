@@ -900,8 +900,37 @@ namespace BecquerelMonitor.EfficiencyMaker
             return (ResponseMatrixOptions)this.MemberwiseClone();
         }
 
+        /// <summary>
+        /// Разрешать K-края веществ сцены парой узлов — как это делает сетка
+        /// кривой эффективности (`E24`). ВЫКЛЮЧЕНО умолчанием, и это решение
+        /// Amber 16.08.2026, а не забывчивость.
+        ///
+        /// Дыра настоящая: матрица считается ПО ГЕОМЕТРИИ, проба стоит в той же
+        /// сцене, и на K-крае её вещества ослабление скачет в разы (у оксида
+        /// лютеция на 63.31 кэВ — в 4.5). Логарифмическая сетка края не
+        /// замечает и ведёт между узлами прямую там, где ступенька.
+        ///
+        /// Почему выключено: правка дешёвая, а цена её включения — ВСЕ
+        /// посчитанные матрицы. Клеймо несёт параметры сетки, гвард сочтёт их
+        /// устаревшими, и 45 сцен корпуса уйдут в пересчёт на три с половиной
+        /// часа. Решено ждать другого повода пересчитывать (подъёма версии
+        /// физики), а до тех пор держать правку написанной и проверенной.
+        /// </summary>
+        public bool ResolveEdges;
+
         /// <summary>Узлы сетки, кэВ.</summary>
         public double[] BuildGrid()
+        {
+            return this.BuildGrid(null);
+        }
+
+        /// <summary>
+        /// То же с геометрией: при <see cref="ResolveEdges"/> в сетку
+        /// добавляются узлы вокруг K-краёв её веществ. Правило то же самое, что
+        /// у кривой, и живёт оно в одном месте — `EfficiencyCalculationOptions`:
+        /// вторая копия того же счёта разъехалась бы с первой молча (`S37`).
+        /// </summary>
+        public double[] BuildGrid(GeometryModel geometry)
         {
             int n = Math.Max(2, this.NodeCount);
             double lo = Math.Max(1.0, this.MinEnergyKev);
@@ -913,7 +942,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                 grid[i] = Math.Exp(logLo + (logHi - logLo) * i / (n - 1));
             }
 
-            return grid;
+            if (!this.ResolveEdges || geometry == null)
+            {
+                return grid;
+            }
+
+            List<double> nodes = new List<double>(grid);
+            EfficiencyCalculationOptions.AddSampleEdges(nodes, geometry, lo, hi, null);
+            return nodes.ToArray();
         }
     }
 }

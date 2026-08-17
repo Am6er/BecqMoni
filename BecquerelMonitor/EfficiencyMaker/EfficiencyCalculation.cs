@@ -1,4 +1,4 @@
-using BecquerelMonitor.Properties;
+﻿using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -191,6 +191,17 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Кристалл сюда НЕ входит: его собственный край — это край СЧЁТА, а не
         /// пропускания, и он уже сидит в штатных узлах у своих иода и цезия.
         /// </summary>
+        /// <summary>
+        /// То же правило снаружи — им пользуется сетка МАТРИЦЫ отклика (`E31`),
+        /// где дыра ровно та же. Открыто, а не скопировано: две копии одного
+        /// счёта разъезжаются молча (`S37`).
+        /// </summary>
+        public static void AddSampleEdges(List<double> grid, GeometryModel geometry,
+                                          double lo, double hi, List<string> notes)
+        {
+            AddEdges(grid, geometry, lo, hi, notes);
+        }
+
         static void AddEdges(List<double> grid, GeometryModel geometry,
                              double lo, double hi, List<string> notes)
         {

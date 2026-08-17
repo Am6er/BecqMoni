@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -60,7 +60,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 options = new ResponseMatrixOptions();
             }
 
-            double[] grid = options.BuildGrid();
+            double[] grid = options.BuildGrid(geometry);
             // Ошибка континуума по узлам — своей ячейкой на узел, без общей
             // переменной: Parallel.For, а максимум нужен один раз в конце.
             double[] continuumError = new double[grid.Length];
@@ -215,7 +215,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 options = new ResponseMatrixOptions();
             }
 
-            double[] grid = options.BuildGrid();
+            double[] grid = options.BuildGrid(geometry);
             double probeEnergy = grid[grid.Length / 2];
 
             // Пробный узел считается уменьшенным числом историй: нам нужна

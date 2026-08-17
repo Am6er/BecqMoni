@@ -68,6 +68,12 @@ namespace EffGridRangeProbe
             Edges("проба — вольфрам (WT-20)", "Tungsten", 69.525, true);
             Edges("проба — воздух", "Air, dry", 0.0, false);
 
+            // E31: то же правило у сетки МАТРИЦЫ отклика. Ключ ВЫКЛЮЧЕН
+            // умолчанием (включение обесценивает все посчитанные матрицы), и
+            // проверяется здесь именно это: выключенный не трогает сетку,
+            // включённый ставит ту же пару узлов, что у кривой.
+            MatrixEdges();
+
             Console.WriteLine(bad == 0 ? "ВСЕ СОШЛИСЬ" : bad + " ПРОВЕРОК ПРОВАЛЕНО");
             return bad == 0 ? 0 : 1;
         }
@@ -217,6 +223,50 @@ namespace EffGridRangeProbe
             }
 
             Check(title + ": штатные узлы целы", kept);
+        }
+
+        static void MatrixEdges()
+        {
+            GeometryMaterialLibrary.Entry entry = GeometryMaterialLibrary.ByName("Lutetium oxide");
+            if (entry == null)
+            {
+                Console.WriteLine("    ПЛОХО  сетка матрицы: вещества «Lutetium oxide» нет");
+                bad++;
+                return;
+            }
+
+            GeometryModel g = BecquerelMonitor.GeometryEditorPanel.Blank();
+            GeometryPresets.Items[0].Apply(g);
+            g.SourceType = GeometrySourceType.Cylinder;
+            g.Source = GeometryMaterialLibrary.Make(entry, entry.Density);
+
+            ResponseMatrixOptions off = new ResponseMatrixOptions();
+            ResponseMatrixOptions on = new ResponseMatrixOptions { ResolveEdges = true };
+            double[] plain = off.BuildGrid(g);
+            double[] with = on.BuildGrid(g);
+
+            Console.WriteLine("сетка матрицы                 {0,3} узлов без ключа, {1,3} с ключом",
+                              plain.Length, with.Length);
+            Check("матрица: выключенный ключ сетку не трогает",
+                  plain.Length == off.BuildGrid().Length);
+            // Не «ровно два»: у логарифмической сетки из ста узлов сосед может
+            // сам стоять вплотную к краю (на 63.2 при крае 63.314), и тогда
+            // добавляется один — правило «узел вплотную не заводится» общее с
+            // сеткой кривой. Важно не число, а то, что край взят в вилку.
+            Check("матрица: узлов прибавилось", with.Length > plain.Length);
+
+            bool below = false, above = false, onEdge = false;
+            foreach (double node in with)
+            {
+                double d = (node - 63.314) / 63.314;
+                if (Math.Abs(d) < 1e-6) onEdge = true;
+                else if (d < 0.0 && d > -2.0 * EfficiencyCalculationOptions.EdgeOffset) below = true;
+                else if (d > 0.0 && d < 2.0 * EfficiencyCalculationOptions.EdgeOffset) above = true;
+            }
+
+            Check("матрица: узел под краем", below);
+            Check("матрица: узел над краем", above);
+            Check("матрица: на самом крае узла НЕТ", !onEdge);
         }
 
         static void Check(string title, bool ok)
