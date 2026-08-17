@@ -100,6 +100,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                 CancellationToken = cancellation
             };
 
+            // Поузловые счётчики замера `S55` — заводятся под размер сетки.
+            NodeDropped = new long[grid.Length];
+            NodeScored = new long[grid.Length];
+            NodeDroppedScattered = new long[grid.Length];
+
             long[] nodeHistories = new long[grid.Length];
             double[] nodeSeconds = new double[grid.Length];
             int[] nodeLast = new int[grid.Length];
@@ -364,6 +369,14 @@ namespace BecquerelMonitor.EfficiencyMaker
             Interlocked.Add(ref WalkMu, sim.CountMu);
             Interlocked.Add(ref WalkCollect, sim.CountWalk);
             Interlocked.Add(ref WalkHistories, sim.Histories);
+            Interlocked.Add(ref AnalogDropped, sim.CountPeakBinDropped);
+            Interlocked.Add(ref AnalogScored, sim.CountAnalogScored);
+            if (NodeDropped != null && index < NodeDropped.Length)
+            {
+                NodeDropped[index] = sim.CountPeakBinDropped;
+                NodeScored[index] = sim.CountAnalogScored;
+                NodeDroppedScattered[index] = sim.CountPeakBinDroppedScattered;
+            }
             return histograms;
         }
 
@@ -374,6 +387,12 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public static long WalkAt, WalkStep, WalkMu, WalkHistories, WalkCollect;
 
+        /// <summary>Замер к `S55`: выброшено в бин пика / зачтено, по всем узлам.</summary>
+        public static long AnalogDropped, AnalogScored;
+
+        /// <summary>То же поузлово — трендом по энергии, а не суммой.</summary>
+        public static long[] NodeDropped, NodeScored, NodeDroppedScattered;
+
         /// <summary>Обнулить счётчики обхода перед построением.</summary>
         public static void ResetWalkCounters()
         {
@@ -382,6 +401,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             WalkMu = 0;
             WalkHistories = 0;
             WalkCollect = 0;
+            AnalogDropped = 0;
+            AnalogScored = 0;
         }
 
         /// <summary>
