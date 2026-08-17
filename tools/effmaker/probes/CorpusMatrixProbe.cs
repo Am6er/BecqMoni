@@ -101,6 +101,11 @@ class CorpusMatrixProbe
                 // НЕЛЬЗЯ: она размен времени на шум, и мерилом служит время до
                 // цели по шуму (гнать с `--target=`).
                 options.ScatterRoulette = double.Parse(a.Substring(11), CultureInfo.InvariantCulture);
+            else if (a.StartsWith("--fluo=", StringComparison.Ordinal))
+                // `F27`, АБЛЯЦИЯ: флуоресценция пробы и обвязки. Выключенный
+                // ключ возвращает прежнее «фотон погиб вне кристалла» — только
+                // так и меряется, что она даёт, без смены версии физики.
+                options.SampleFluorescence = a.Substring(7) != "0";
             else if (a == "--recollect")
                 // `T43`, ЗАМЕР: разбирать луч заново на каждом шаге. Считается
                 // то же самое, но разборов становится столько же, сколько шагов;

@@ -309,6 +309,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         public double ScatterRouletteWeight;
 
         /// <summary>
+        /// Испускать характеристический квант при фотопоглощении ВНЕ кристалла
+        /// (`F27`); умолчание — да. Ключ АБЛЯЦИОННЫЙ: выключенный возвращает
+        /// прежнее поведение «фотон погиб», и только так можно измерить, что
+        /// даёт флуоресценция пробы, не меняя при этом версии физики.
+        /// </summary>
+        public bool SampleFluorescenceOutside = true;
+
+        /// <summary>
         /// Континуум отклика — АНАЛОГОВОЙ веткой (физика 6, F14).
         ///
         /// Взвешенная проводка (конус + exp(−τ) + одно рассеяние) хороша для
@@ -3099,7 +3107,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                                 // Порядок розыгрышей ТОТ ЖЕ, что в кристалле:
                                 // рентген, направление, потом электрон. Остаток
                                 // энергии уносит электрон, сумма сохраняется.
-                                double xrayOut = this.SampleFluorescence(here.Material, e);
+                                double xrayOut = this.SampleFluorescenceOutside
+                                    ? this.SampleFluorescence(here.Material, e) : 0.0;
                                 if (xrayOut > 0.0)
                                 {
                                     this.Isotropic(out ux, out uy, out uz);
@@ -3792,7 +3801,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                                 // Порядок розыгрышей ТОТ ЖЕ, что в кристалле:
                                 // рентген, направление, потом электрон. Остаток
                                 // энергии уносит электрон, сумма сохраняется.
-                                double xrayOut = this.SampleFluorescence(here.Material, e);
+                                double xrayOut = this.SampleFluorescenceOutside
+                                    ? this.SampleFluorescence(here.Material, e) : 0.0;
                                 if (xrayOut > 0.0)
                                 {
                                     this.Isotropic(out ux, out uy, out uz);
