@@ -40,7 +40,6 @@ G1S_point25,G1S24_Y88_P25,Gamma-1S UDS-GC 63x63,"точечный источни
 AS80_point0,AS80_Cs137_0cm,Atom Spectra Pro 80x80,"точечный источник, вплотную к торцу"
 RC103_point0,RC103_Cs137_0cm,RadiaCode-103,"точечный источник, вплотную к торцу"
 ASN16_lu_side,ASN16_Lu176,Atom Spectra Nano 16,"банка 50 мл Ø40×h15, СБОКУ у широкой грани"
-ASN16_lu_front,ASN16_Lu176_P0,Atom Spectra Nano 16,"банка 50 мл Ø40×h15, С ТОРЦА"
 AS80_lu_front,AS80_Lu176,Atom Spectra Pro 80x80,"банка 50 мл Ø40×h15, ВПРИТЫК к торцу"
 RC103_lu_front,RC103_Lu176,RadiaCode-103,"банка 50 мл Ø40×h15, ВПРИТЫК к торцу"
 RC103_marinelli05_kcl,RC103_K40,RadiaCode-103,"маринелли 0.5 л (поставка ЛСРМ, размеры не восстановлены — взяты из шаблона)"
