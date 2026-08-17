@@ -310,14 +310,24 @@ class CorpusMatrixProbe
                 {
                     // `seconds_wall` — время прохода узла по часам, не ЦП: при 15
                     // потоках на 8 ядрах завышено, но узлы между собой сравнимы.
-                    w.WriteLine("node,energy_kev,histories,error_pct,seconds_wall");
+                    // `dropped_pct` — замер к `S55`: доля историй аналоговой
+                    // ветки, выброшенных правилом «округлилось в бин пика».
+                    w.WriteLine("node,energy_kev,histories,error_pct,seconds_wall,dropped,scored,dropped_pct,dropped_scat,scat_pct");
+                    long[] dropped = ResponseMatrixBuilder.NodeDropped;
+                    long[] scored = ResponseMatrixBuilder.NodeScored;
+                    long[] droppedScat = ResponseMatrixBuilder.NodeDroppedScattered;
                     for (int i = 0; i < matrix.Energies.Length; i++)
                     {
+                        long d = dropped != null && i < dropped.Length ? dropped[i] : 0L;
+                        long sc = scored != null && i < scored.Length ? scored[i] : 0L;
+                        long ds = droppedScat != null && i < droppedScat.Length ? droppedScat[i] : 0L;
                         w.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                            "{0},{1:F3},{2},{3:F3},{4:F3}", i, matrix.Energies[i],
+                            "{0},{1:F3},{2},{3:F3},{4:F3},{5},{6},{7:F3},{8},{9:F3}", i, matrix.Energies[i],
                             matrix.NodeHistories[i],
                             matrix.NodeErrors != null ? matrix.NodeErrors[i] : 0.0,
-                            matrix.NodeSeconds != null ? matrix.NodeSeconds[i] : 0.0));
+                            matrix.NodeSeconds != null ? matrix.NodeSeconds[i] : 0.0,
+                            d, sc, d + sc > 0L ? 100.0 * d / (d + sc) : 0.0,
+                            ds, d + sc > 0L ? 100.0 * ds / (d + sc) : 0.0));
                     }
                 }
 

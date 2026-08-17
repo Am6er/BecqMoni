@@ -1411,6 +1411,32 @@ namespace BecquerelMonitor.EfficiencyMaker
         public long CountAt, CountStep, CountMu, CountWalk;
 
         /// <summary>
+        /// ЗАМЕР к `S55`: сколько историй аналоговой ветки выброшено правилом
+        /// «вклад, округлившийся в бин пика, отбрасывается», и сколько зачтено.
+        ///
+        /// Зачем считать. Выброшенная история — это квант, потерявший меньше
+        /// ПОЛОВИНЫ БИНА (при штатных 2 кэВ — меньше килоэлектронвольта). Внизу
+        /// шкалы таких много: комптон на малый угол там почти не отнимает
+        /// энергии, и доля выброшенного обязана расти к низу как 1/E². Если
+        /// растёт — это и есть механизм недобора до пика, о котором говорит
+        /// Amber, потому что взвешенная ветка эти же истории не считает тоже
+        /// (`E34`: у неё нулевой допуск пика).
+        /// </summary>
+        public long CountPeakBinDropped, CountAnalogScored;
+
+        /// <summary>
+        /// Из выброшенных — только те, что КОМПТОН-РАССЕЯЛИСЬ вне кристалла
+        /// (`S55`). Разделение обязательно, иначе замер врёт в разы: прямой
+        /// квант, поглотившийся целиком, выброшен ПРАВИЛЬНО — его считает
+        /// взвешенная ветка. А комптон-рассеявшийся по дороге не считает никто:
+        /// у взвешенной он вычтен из прямого вклада как убитый, а поправка на
+        /// рассеяние возвращает по нему ноль (`E34`, нулевой допуск пика).
+        /// Когерентное сюда НЕ входит: энергии оно не отнимает, и взвешенная
+        /// ветка такой квант считает прошедшим насквозь.
+        /// </summary>
+        public long CountPeakBinDroppedScattered;
+
+        /// <summary>
         /// ЗАМЕРНЫЙ ключ (`T43`): выбросить кэш луча и разбирать его заново на
         /// КАЖДОМ шаге. Считает то же самое, только дороже, — нужен затем, что
         /// цену разбора иначе не узнать: профиль требует прав администратора, а
@@ -3633,6 +3659,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 double e = energyKev;
                 double deposited = 0.0;
                 double travelled = 0.0;
+                bool comptonOutside = false;        // замер `S55`, см. счётчики
                 for (int guard = 0; guard < 400 && e > 1.0; guard++)
                 {
                     Region here = this.At(x, y, z);
@@ -3697,6 +3724,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                             double cos;
                             double after = this.ComptonScatter(here.Material, e, out cos);
+                            comptonOutside = true;              // замер `S55`
                             // Занос комптон-электрона — ДО поворота фотона (см.
                             // шапку ElectronReachesCrystal); фотон летит дальше.
                             if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz, e - after, out carried))
@@ -3725,11 +3753,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                 int bin = (int)(deposited / binKev + 0.5);
                 if (bin >= peak)
                 {
+                    this.CountPeakBinDropped++;
+                    if (comptonOutside)
+                    {
+                        this.CountPeakBinDroppedScattered++;
+                    }
+
                     continue;               // бин пика — за взвешенной оценкой
                 }
 
                 hist[bin] += 1.0;
                 scored++;
+                this.CountAnalogScored++;
                 if (light != null)
                 {
                     light[bin] += this.lightDeposit;
