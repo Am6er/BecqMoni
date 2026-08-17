@@ -25,7 +25,7 @@ using System.Threading;
 // предупреждает о шуме. Порог там 5 %.
 //
 //   corpusmatrixprobe [--dir=tools\CORPUS\corpus\geometries] [--only=<ключ>]
-//                     [--n=300000] [--nodes=100]
+//                     [--n=300000] [--nodes=100] [--threads=N] [--force]
 class CorpusMatrixProbe
 {
     static int Main(string[] args)
@@ -45,6 +45,11 @@ class CorpusMatrixProbe
                 options.Histories = int.Parse(a.Substring(4), CultureInfo.InvariantCulture);
             else if (a.StartsWith("--nodes=", StringComparison.Ordinal))
                 options.NodeCount = int.Parse(a.Substring(8), CultureInfo.InvariantCulture);
+            else if (a.StartsWith("--threads=", StringComparison.Ordinal))
+                // T35, дешёвый выигрыш №4: параллелить ПО СЦЕНАМ, а не внутри
+                // сцены. Ключ нужен, чтобы запустить несколько процессов по
+                // нескольку потоков и замерить, что выходит быстрее.
+                options.Threads = int.Parse(a.Substring(10), CultureInfo.InvariantCulture);
             else if (a == "--force") force = true;
             else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
         }
@@ -61,10 +66,14 @@ class CorpusMatrixProbe
         files.Sort(StringComparer.Ordinal);
         if (only != null)
         {
-            files.RemoveAll(f => Path.GetFileNameWithoutExtension(f) != only);
+            // Список через запятую — как у `CorpusFsaProbe`. Нужен, чтобы
+            // раздать сцены нескольким процессам (T35, дешёвый выигрыш №4):
+            // по одному ключу за запуск это столько же запусков, сколько сцен.
+            List<string> wanted = new List<string>(only.Split(','));
+            files.RemoveAll(f => !wanted.Contains(Path.GetFileNameWithoutExtension(f)));
             if (files.Count == 0)
             {
-                Console.Error.WriteLine("нет геометрии «" + only + "» в " + dir);
+                Console.Error.WriteLine("нет геометрий «" + only + "» в " + dir);
                 return 2;
             }
         }
