@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Deployment.Application;
+using System.Diagnostics;
 using System.IO;
 using System.Windows.Forms;
 using System.Xml.Serialization;
@@ -247,6 +248,68 @@ namespace BecquerelMonitor
             {
                 this.DeviceConfigListChanged(this, new DeviceConfigChangedEventArgs(deviceConfigInfo.Guid));
             }
+            devConfig.Dirty = false;
+            return true;
+        }
+
+        /// <summary>
+        /// Записать конфигурацию прибора на диск ТИХО — не перестраивая список и
+        /// НЕ РАССЫЛАЯ <see cref="DeviceConfigListChanged"/> (`S70`).
+        ///
+        /// ⛔ Молчание здесь — суть, а не оптимизация. Обычный
+        /// <see cref="SaveConfig"/> извещает всех, а слушатель
+        /// (<c>MainForm.ApplyDeviceConfigToDocuments</c>) переносит сохранённые
+        /// настройки поиска пиков во ВСЕ открытые спектры этого прибора через
+        /// <see cref="FWHMPeakDetectionMethodConfig.AdoptFrom"/>, оставляя
+        /// спектру только его ПШПВ и кнопку показа. Для галок панели поиска
+        /// пиков это ровно то, чего делать НЕЛЬЗЯ: решение Amber 18.08.2026 —
+        /// «умолчание прибора меняем, а уже сохранённую копию спектра не
+        /// трогаем», и нажатие в одном документе не должно менять разложение в
+        /// соседних.
+        ///
+        /// ⚠ Поверки калибровки здесь тоже нет, и это осознанно: обычный путь
+        /// её делает и при отказе показывает модальное окно, а поднимать окно на
+        /// щелчок по галке нельзя. Приведение <c>EnergyCalibration</c> к
+        /// полиномиальной в том пути к тому же не защищено — на приборе с
+        /// нелинейной калибровкой оно бросило бы прямо из обработчика.
+        ///
+        /// Писать полагается ТУ ЖЕ запись, что лежит в
+        /// <see cref="DeviceConfigMap"/>: у неё имя файла совпадает с исходным,
+        /// а незаписанного переименования не висит.
+        /// </summary>
+        public bool SaveConfigQuiet(DeviceConfigInfo devConfig)
+        {
+            if (devConfig == null || string.IsNullOrEmpty(devConfig.Filename))
+            {
+                return false;
+            }
+
+            // Незаписанное переименование: писать под новым именем — значит
+            // оставить на диске два файла. Такое сохраняет только полный путь.
+            if (!string.IsNullOrEmpty(devConfig.OriginalFilename)
+                && devConfig.OriginalFilename != devConfig.Filename)
+            {
+                return false;
+            }
+
+            devConfig.LastUpdated = DateTime.Now;
+            try
+            {
+                string path = userDirectoryConfigDevice + devConfig.Filename;
+                Utils.AtomicFileWriter.Write(path, fileStream =>
+                {
+                    XmlSerializer xmlSerializer = new XmlSerializer(typeof(DeviceConfigInfo));
+                    xmlSerializer.Serialize(fileStream, devConfig);
+                });
+            }
+            catch (Exception ex)
+            {
+                // Молча — но не бесследно: окно на щелчок по галке не поднимаем,
+                // а отказ обязан быть виден тому, кто разбирается.
+                Trace.WriteLine("device config quiet save failed: " + ex);
+                return false;
+            }
+
             devConfig.Dirty = false;
             return true;
         }

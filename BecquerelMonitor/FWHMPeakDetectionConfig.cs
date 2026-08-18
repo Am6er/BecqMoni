@@ -208,6 +208,37 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// РАВНОВЕСИЕ: ряд идёт в разбор одной колонкой с одной свободной
+        /// амплитудой, относительные веса членов закреплены ветвлением
+        /// (`S70`, решение Amber 18.08.2026). Живёт рядом с
+        /// <see cref="DbLookupsForFsa"/> и по той же причине: обе — про то, что
+        /// делать с результатом поиска пиков, и галки стоят в его панели.
+        ///
+        /// ⛔ Умолчание — ВКЛЮЧЕНО, в отличие от <see cref="DbLookupsForFsa"/>.
+        /// Разница намеренная: та галка выключена ради совместимости с уже
+        /// снятыми числами, а эта чинит названную и измеренную неправду — на
+        /// `Th232_29.07.2022.xml` свободные амплитуды дали Ra-224 8.22 % против
+        /// положенных равновесию ≈0.9 %, потому что его единственная гамма
+        /// 240.986 кэВ стоит в 2.4 кэВ от 238.632 кэВ Pb-212, вдесятеро более
+        /// сильной, и при ПШПВ прибора в 52 канала обе линии — один бугор.
+        ///
+        /// Выключенная возвращает прежнее поведение: у каждого члена ряда своя
+        /// свободная амплитуда, «разрез цепочки получается сам», — им и видно
+        /// НЕРАВНОВЕСИЕ (оборванный ряд уранового стекла, `S65`).
+        /// </summary>
+        public bool ChainEquilibrium
+        {
+            get
+            {
+                return this.chain_equilibrium;
+            }
+            set
+            {
+                this.chain_equilibrium = value;
+            }
+        }
+
         [XmlElement(typeof(SimpleSqrtFwhmCalibration))]
         [XmlElement(typeof(SqrtFwhmCalibration))]
         [XmlElement(typeof(PowerFwhmCalibration))]
@@ -234,6 +265,7 @@ namespace BecquerelMonitor
             this.peak_width_widen_factor = config.peak_width_widen_factor;
             this.use_center_of_mass_centroid = config.use_center_of_mass_centroid;
             this.db_lookups_for_fsa = config.db_lookups_for_fsa;
+            this.chain_equilibrium = config.chain_equilibrium;
             if (config.fwhmCalibration != null)
             {
                 this.fwhmCalibration = config.fwhmCalibration.Clone();
@@ -317,6 +349,10 @@ namespace BecquerelMonitor
         bool use_center_of_mass_centroid = true;
 
         bool db_lookups_for_fsa = false;
+
+        // Умолчание ВКЛЮЧЕНО — см. ChainEquilibrium. Старые файлы конфигурации
+        // элемента не несут, и им достаётся это же значение поля.
+        bool chain_equilibrium = true;
 
         bool enabled = true;
 

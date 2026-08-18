@@ -2963,11 +2963,38 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to &lt; {0} cps.
+        ///   Looks up a localized string similar to &lt; {0} %.
         /// </summary>
         public static string FSAMdaValue {
             get {
                 return ResourceManager.GetString("FSAMdaValue", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to FSASuppressedMark.
+        /// </summary>
+        public static string FSASuppressedMark {
+            get {
+                return ResourceManager.GetString("FSASuppressedMark", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to FSASuppressedMore.
+        /// </summary>
+        public static string FSASuppressedMore {
+            get {
+                return ResourceManager.GetString("FSASuppressedMore", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to FSAUndetectedFoldedRow.
+        /// </summary>
+        public static string FSAUndetectedFoldedRow {
+            get {
+                return ResourceManager.GetString("FSAUndetectedFoldedRow", resourceCulture);
             }
         }
 
@@ -4734,6 +4761,15 @@ namespace BecquerelMonitor.Properties {
         public static string ResponseMatrixProgress {
             get {
                 return ResourceManager.GetString("ResponseMatrixProgress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixProgressNoEta.
+        /// </summary>
+        public static string ResponseMatrixProgressNoEta {
+            get {
+                return ResourceManager.GetString("ResponseMatrixProgressNoEta", resourceCulture);
             }
         }
         

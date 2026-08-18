@@ -69,6 +69,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Z элементов КРИСТАЛЛА — иод и цезий у CsI, иод у NaI.</summary>
         public readonly List<int> CrystalElements = new List<int>();
 
+        /// <summary>
+        /// МАССОВЫЕ доли элементов кристалла, Z → доля (`S84`, 19.08.2026).
+        /// Пусто — доли неизвестны, и тогда образ вылета считает их равными.
+        ///
+        /// Заведены потому, что вылет у кристалла ОДИН на все его элементы, а
+        /// соотношение членов внутри него задаётся не данными, а веществом:
+        /// вероятность того, что первое взаимодействие оказалось K-поглощением
+        /// именно в элементе i, равна w_i·τ_i,K / Σ_j w_j·μ_j. Доли лежат прямо
+        /// в геометрии (<c>GeometryMaterial.Fractions</c>), и до 19.08.2026
+        /// <see cref="HeavyElementsOf"/> их просто выбрасывала, оставляя одни
+        /// номера.
+        /// </summary>
+        public readonly Dictionary<int, double> CrystalFractions =
+            new Dictionary<int, double>();
+
+        /// <summary>
+        /// Короткое имя вещества кристалла — «CsI», «NaI», «LaBr3». Им зовётся
+        /// образ вылета (`Esc-CsI`), чтобы читатель видел, из чего прибор
+        /// считает вылет, а не только то, что вылет есть. Пусто — имя
+        /// собирается из символов элементов по убыванию доли.
+        /// </summary>
+        public string CrystalName = "";
+
         /// <summary>Z элементов ЗАЩИТЫ И ОБВЯЗКИ — свинец домика, железо корпуса.</summary>
         public readonly List<int> ShieldElements = new List<int>();
 
@@ -122,6 +145,32 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// 1.0000 либо 0.3594) и снимает хвосты редких ветвей.
         /// </summary>
         public double MinChainBranch = 1.0e-3;
+
+        /// <summary>
+        /// РАВНОВЕСИЕ: ряд идёт в разбор ОДНОЙ колонкой с одной свободной
+        /// амплитудой, а относительные веса его членов закреплены накопленной
+        /// долей ветвления (решение Amber 18.08.2026, `S70`; умолчание —
+        /// ВКЛЮЧЕНО).
+        ///
+        /// ⛔ Выключено — прежнее поведение: у каждого члена ряда СВОЯ свободная
+        /// амплитуда, «разрез цепочки получается сам», и именно так видно
+        /// НЕРАВНОВЕСИЕ — оборванный ряд уранового стекла (`S65`), ушедшая
+        /// эманация радона. Ради этого случая свободные амплитуды и оставлены,
+        /// и убирать их насовсем нельзя.
+        ///
+        /// Цена свободных амплитуд измерена и она не мала. На
+        /// `Th232_29.07.2022.xml` — чистый ториевый источник, ряд заведомо
+        /// равновесный — Ra-224 получил 8.22 % против положенных ему по
+        /// равновесию ≈0.9 %: у него единственная гамма 240.986 кэВ с выходом
+        /// 4.1 %, в 2.4 кэВ от 238.632 кэВ Pb-212 с выходом 43.6 %, и при ПШПВ
+        /// прибора в 52 канала обе линии — один бугор. Свободная амплитуда
+        /// раздаёт этот бугор как угодно, связка одной амплитудой снимает
+        /// вопрос по построению.
+        ///
+        /// ⚠ Отбором списка это НЕ является: у Th-232 равновесны ВСЕ члены, и
+        /// никакой отсев на том спектре не изменил бы ничего.
+        /// </summary>
+        public bool Equilibrium = true;
 
         /// <summary>
         /// Верхняя энергия родительской линии, которой ещё строится пик вылета,
@@ -293,6 +342,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // нуклида больше, а свободная амплитуда всё равно перекроет разницу.
             var branch = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
 
+            // Хозяин члена — корень ряда, от которого посчитана его доля. При
+            // равновесии (`S70`) по нему члены и связываются в одну колонку;
+            // без равновесия он не используется вовсе.
+            var owner = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
             foreach (FsaSampleChain chain in spec.Chains)
             {
                 if (chain == null || string.IsNullOrEmpty(chain.Root))
@@ -300,7 +354,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                CollectChain(chain, spec.MinChainBranch, branch, report);
+                CollectChain(chain, spec.MinChainBranch, branch, owner, report);
             }
 
             foreach (string nucid in spec.Nuclides)
@@ -319,8 +373,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 // Одиночный нуклид объявлен САМ, значит его выход дан на его
-                // собственный распад — доля ветвления единица.
-                Remember(branch, nucid, 1.0);
+                // собственный распад — доля ветвления единица, и хозяин он сам.
+                Remember(branch, owner, nucid, 1.0, nucid);
             }
 
             // Кто пришёл из ОБЪЯВЛЕННОГО состава, а кто добавлен комнатой.
@@ -330,6 +384,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // бы вровень с лютециевыми. Измерено 18.08.2026: без этого деления
             // гребёнка вылета иода выходила в 66 линий на весь спектр.
             var declared = new HashSet<string>(branch.Keys, StringComparer.OrdinalIgnoreCase);
+
+            // Сколько членов у каждого хозяина: колонкой ряда компонент
+            // становится, только если членов больше одного. Одинокий корень
+            // остаётся обычным одиночным нуклидом, и звать его «рядом» было бы
+            // неправдой.
+            var groupSize = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
             if (spec.Room)
             {
@@ -343,13 +403,40 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         // значит изомеров здесь не держим вовсе.
                         if (member.Value >= spec.MinChainBranch && !IsIsomer(member.Key))
                         {
-                            Remember(branch, member.Key, member.Value);
+                            Remember(branch, owner, member.Key, member.Value, root);
                         }
                     }
                 }
 
-                Remember(branch, "40K", 1.0);
+                Remember(branch, owner, "40K", 1.0, "40K");
             }
+
+            // ⚠ Считаются ТОЛЬКО излучающие члены. Обход `decay_chain` доводит
+            // ряд до стабильного конца, и у калия в «ряду» лежат ещё аргон с
+            // кальцием — они не излучают, образа не дают и членами ряда для
+            // связки не являются. Без этой оговорки K-40 становился колонкой
+            // РЯДА из одного нуклида: имя то же, а вид `Chain`, и подпись пиков
+            // уходила по ветке ряда. `DecayLines` кэширован, второй проход
+            // ничего не стоит.
+            if (spec.Equilibrium)
+            {
+                foreach (string nucid in branch.Keys)
+                {
+                    if (DecayLines(nucid, report).Count == 0)
+                    {
+                        continue;
+                    }
+
+                    string root = OwnerOf(owner, nucid);
+                    int have;
+                    groupSize[root] = groupSize.TryGetValue(root, out have) ? have + 1 : 1;
+                }
+            }
+
+            // Имя компонента, доставшееся нуклиду: по нему потом собираются
+            // родительские линии пиков вылета. При равновесии член ряда лежит в
+            // колонке корня, и искать его под собственным именем уже нельзя.
+            var componentOf = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (KeyValuePair<string, double> member in branch)
             {
@@ -359,8 +446,40 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                string name = PrettyName(member.Key);
-                FsaComponent component = Take(byName, order, name, FsaComponentKind.Single);
+                // ⛔ Суммарный выход считается по ВСЕМ линиям распада, до
+                // отсева по рабочему окну прибора: это априорное свойство
+                // нуклида (`S69`), а не образа. У Ra-228 обе линии — 13.52 и
+                // 16.2 кэВ — ниже порога сцинтиллятора, и «выход мал» с «линии
+                // вне шкалы» смешивать нельзя.
+                double yield = 0.0;
+                foreach (double[] line in lines)
+                {
+                    yield += line[1];
+                }
+
+                // Своя линия каждого члена подписана ЕГО именем и при
+                // равновесии тоже: каскадное суммирование и совпадения работают
+                // по нуклиду линии, а не по имени колонки.
+                string self = PrettyName(member.Key);
+                string root = spec.Equilibrium ? OwnerOf(owner, member.Key) : member.Key;
+                bool grouped = spec.Equilibrium && GroupCount(groupSize, root) > 1;
+                string name = grouped ? PrettyName(root) : self;
+                componentOf[member.Key] = name;
+
+                FsaComponent component = Take(byName, order, name,
+                                              grouped ? FsaComponentKind.Chain
+                                                      : FsaComponentKind.Single);
+
+                // В колонку ряда попадают несколько нуклидов; априорным выходом
+                // колонки берётся НАИБОЛЬШИЙ из них — вопрос, на который этот
+                // выход отвечает, звучит «может ли эта строка вообще что-то
+                // показать», и одного видимого члена для «да» довольно.
+                if (double.IsNaN(component.TotalYieldPercent)
+                    || yield > component.TotalYieldPercent)
+                {
+                    component.TotalYieldPercent = yield;
+                }
+
                 foreach (double[] line in lines)
                 {
                     if (line[0] < spec.MinEnergyKev || line[0] > spec.MaxEnergyKev)
@@ -368,7 +487,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         continue;
                     }
 
-                    AddLine(component, name, line[0], line[1] * member.Value);
+                    AddLine(component, self, line[0], line[1] * member.Value);
                 }
             }
 
@@ -389,10 +508,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             if (spec.AtomicXray)
             {
                 int before = result.Count;
+
+                // ⚠ Имя берётся то, под которым нуклид РЕАЛЬНО лёг в состав, а
+                // не `PrettyName` его самого: при равновесии член ряда лежит в
+                // колонке корня, и поиск по собственному имени не нашёл бы его
+                // вовсе — гребёнка вылета осталась бы без родительских линий.
                 var declaredNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (string nucid in declared)
                 {
-                    declaredNames.Add(PrettyName(nucid));
+                    string name;
+                    declaredNames.Add(componentOf.TryGetValue(nucid, out name)
+                                      ? name : PrettyName(nucid));
                 }
 
                 AddAtomic(spec, result, declaredNames, report);
@@ -443,6 +569,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         internal static void CollectChain(FsaSampleChain chain, double minBranch,
                                           Dictionary<string, double> branch, Report report)
         {
+            CollectChain(chain, minBranch, branch, null, report);
+        }
+
+        /// <summary>
+        /// То же, с записью хозяина каждого члена (корня ряда) — нужна связке
+        /// равновесия (`S70`). Читателю, которому хозяин не нужен, годится
+        /// перегрузка выше.
+        /// </summary>
+        internal static void CollectChain(FsaSampleChain chain, double minBranch,
+                                          Dictionary<string, double> branch,
+                                          Dictionary<string, string> owner, Report report)
+        {
             if (chain == null || string.IsNullOrEmpty(chain.Root))
             {
                 return;
@@ -469,7 +607,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                Remember(branch, member.Key, member.Value);
+                Remember(branch, owner, member.Key, member.Value, chain.Root);
             }
         }
 
@@ -791,15 +929,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // Родительские линии берутся из уже собранного состава распада: это
             // ровно те кванты, которые в кристалл прилетят.
             var parents = new List<double[]>();
-            foreach (FsaComponent component in result)
+            foreach (FsaComponent source in result)
             {
-                if (component.Kind != FsaComponentKind.Single
-                    || !declared.Contains(component.Name))
+                // Мешающие образы отсекаются по виду, нуклидные — по имени.
+                // Ряд, связанный равновесием, имеет вид `Chain`, и проверять
+                // «ровно `Single`» нельзя: объявленный ториевый источник ушёл
+                // бы из родителей целиком.
+                if (source.Kind == FsaComponentKind.Nuisance
+                    || !declared.Contains(source.Name))
                 {
                     continue;
                 }
 
-                foreach (FsaLine line in component.Lines)
+                foreach (FsaLine line in source.Lines)
                 {
                     if (line.Energy <= spec.EscapeParentMaxKev && line.Intensity > 0.0)
                     {
@@ -813,34 +955,37 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return;
             }
 
-            var done = new HashSet<int>();
-            foreach (int z in spec.CrystalElements)
+            // ⛔ ОБРАЗ ВЫЛЕТА У КРИСТАЛЛА ОДИН (`S84`, решение Amber 19.08.2026),
+            // а не по одному на элемент. Прежде их было столько, сколько
+            // элементов, и каждому доставалась СВОЯ свободная амплитуда — а
+            // различить их данные не могут: Kα цезия 30.97 и иода 28.612 кэВ
+            // разводят гребёнки на 2.4 кэВ при ПШПВ прибора в десятки, и после
+            // правки `S80` обе сжались в одну и ту же полосу 44…61 кэВ. Измерено
+            // 19.08.2026: на одном и том же чароите выживал то `Esc-Cs`, то
+            // `Esc-I`, смотря по мелочам обстановки, — то есть выбор между ними
+            // не нёс физического смысла вовсе.
+            //
+            // Довод тот же, что у связки ряда: данные различают образ целиком, а
+            // не его половину. Соотношение членов теперь задаёт ВЕЩЕСТВО —
+            // массовые доли элементов кристалла, — и амплитуда у образа одна.
+            CrystalMix mix = CrystalMix.Of(spec, report);
+            if (mix == null)
             {
-                if (z <= 0 || !done.Add(z))
-                {
-                    continue;
-                }
+                return;
+            }
 
-                MaterialDatabase.Fluorescence fluorescence = MaterialDatabase.FluorescenceOf(z);
-                MaterialDatabase.PhotoShellModel shells = MaterialDatabase.PhotoShellOf(z);
-                MaterialDatabase.Element element;
-                if (fluorescence == null || !MaterialDatabase.TryGet(z, out element))
-                {
-                    report.Notes.Add("вылет: нет данных для Z="
-                                     + z.ToString(CultureInfo.InvariantCulture));
-                    continue;
-                }
-
+            var component = new FsaComponent("Esc-" + mix.Name, FsaComponentKind.Nuisance);
+            foreach (CrystalMix.Part part in mix.Parts)
+            {
+                MaterialDatabase.Fluorescence fluorescence = part.Fluorescence;
+                MaterialDatabase.PhotoShellModel shells = part.Shells;
+                MaterialDatabase.Element element = part.Element;
                 double omega = fluorescence.Omega(true);
-                double kAlpha = fluorescence.LineKev != null && fluorescence.LineKev.Length > 0
-                    ? fluorescence.LineKev[0] : 0.0;
-                if (!(omega > 0.0) || !(kAlpha > 0.0))
-                {
-                    continue;
-                }
+                double kAlpha = fluorescence.LineKev[0];
 
-                var component = new FsaComponent("Esc-" + MaterialDatabase.SymbolOf(z),
-                                                 FsaComponentKind.Nuisance);
+                // Ослабление СВОЕГО рентгена в веществе кристалла — одно на все
+                // линии этого члена, поэтому считается здесь, а не в цикле.
+                double muXray = mix.Attenuation(kAlpha);
                 foreach (double[] parent in parents)
                 {
                     // Ниже K-края дырки в K-оболочке не бывает, и вылета нет.
@@ -855,10 +1000,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         continue;
                     }
 
-                    double photo = MaterialDatabase.Interpolate(element.EnergyKev,
-                                                                element.Channels[2], parent[0]);
-                    double total = MaterialDatabase.Interpolate(element.EnergyKev,
-                                                                element.Total, parent[0]);
+                    // Числитель — K-поглощение ИМЕННО В ЭТОМ элементе, со своей
+                    // массовой долей; знаменатель — полное ослабление ВЕЩЕСТВА
+                    // кристалла. Отсюда и берётся закреплённое соотношение
+                    // членов образа: у элемента, которого в кристалле вдвое
+                    // меньше, вклад вдвое меньше, и фиту тут решать нечего.
+                    double photo = part.Fraction
+                                   * MaterialDatabase.Interpolate(element.EnergyKev,
+                                                                  element.Channels[2], parent[0]);
+                    double total = mix.Attenuation(parent[0]);
                     if (!(photo > 0.0) || !(total > 0.0))
                     {
                         continue;
@@ -866,20 +1016,239 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                     double kShare = shells != null ? shells.KFraction(parent[0])
                                                    : fluorescence.KFraction;
-                    double weight = parent[1] * (photo / total) * kShare * omega;
+
+                    // ⛔ ЧЕТВЁРТЫЙ множитель — вероятность рентгену ВЫЙТИ из
+                    // кристалла (`S80`). Без него в весе стояла вероятность
+                    // родить K-дырку и только она, а вылет тем самым считался
+                    // одинаково возможным с любой глубины. Отсюда и брался
+                    // перекос, найденный по печати линий 19.08.2026: на
+                    // `Th232_29.07.2022.xml` сильнейшей линией образа выходила
+                    // 210.020 кэВ (вылет из 238.632 кэВ Pb-212) с весом 18.05
+                    // против 11.73 у 48.496 кэВ — то есть гребёнка была тяжелее
+                    // ВВЕРХУ шкалы, где вылета быть не может вовсе.
+                    double weight = parent[1] * (photo / total) * kShare * omega
+                                    * EscapeFraction(muXray, total);
                     if (weight > 0.0)
                     {
-                        AddLine(component, component.Name, energy, weight);
+                        // ⚠ Линия помечается СВОИМ членом, а не именем образа, и
+                        // это не украшение. Отсев дубля в `AddLine` сверяет пару
+                        // «метка + энергия», а вылеты разных элементов
+                        // расходятся ровно на разницу их Kα (у CsI 2.36 кэВ) —
+                        // значит две родительские линии, отстоящие на те же
+                        // 2.36 кэВ, дают ОДНУ энергию вылета. У ториевого ряда
+                        // такая пара есть прямо в середине: 238.632 Pb-212 и
+                        // 240.986 Ra-224 дают через иод и цезий 210.020 и
+                        // 210.013 кэВ. С общей меткой вторая пропала бы молча.
+                        AddLine(component, part.Tag, energy, weight);
                     }
                 }
-
-                Prune(component, spec.EscapeMinRelativeWeight);
-                if (component.Lines.Count > 0)
-                {
-                    result.Add(component);
-                    report.Lines += component.Lines.Count;
-                }
             }
+
+            Prune(component, spec.EscapeMinRelativeWeight);
+            if (component.Lines.Count > 0)
+            {
+                result.Add(component);
+                report.Lines += component.Lines.Count;
+            }
+        }
+
+        /// <summary>
+        /// Вещество кристалла для образа вылета: члены с их МАССОВЫМИ долями,
+        /// полное ослабление смеси и короткое имя (`S84`, 19.08.2026).
+        ///
+        /// Заведено потому, что образ вылета у кристалла ОДИН, а соотношение его
+        /// членов задаётся веществом, а не фитом. Всё, что для этого нужно, уже
+        /// лежит в геометрии — <c>GeometryMaterial.Fractions</c>; раньше
+        /// <see cref="HeavyElementsOf"/> оставляла от неё одни номера элементов.
+        /// </summary>
+        sealed class CrystalMix
+        {
+            internal sealed class Part
+            {
+                public string Tag;
+                public double Fraction;
+                public MaterialDatabase.Element Element;
+                public MaterialDatabase.Fluorescence Fluorescence;
+                public MaterialDatabase.PhotoShellModel Shells;
+            }
+
+            public readonly List<Part> Parts = new List<Part>();
+
+            public string Name = "";
+
+            /// <summary>
+            /// Полное массовое ослабление СМЕСИ, см²/г: Σ w_i·(μ/ρ)_i. Плотность
+            /// не нужна — в вес линии оно входит только отношением.
+            ///
+            /// ⚠ Считается по тем же членам, что и вылет, то есть по элементам,
+            /// прошедшим отбор <see cref="HeavyElementsOf"/>. Лёгкая примесь
+            /// (активатор, натрий ниже порога доли) в сумму не попадает, и на
+            /// её долю ослабление занижено. Для CsI отбор берёт оба элемента и
+            /// сумма полна.
+            /// </summary>
+            public double Attenuation(double kev)
+            {
+                double mu = 0.0;
+                for (int k = 0; k < this.Parts.Count; k++)
+                {
+                    Part part = this.Parts[k];
+                    mu += part.Fraction * MaterialDatabase.Interpolate(
+                        part.Element.EnergyKev, part.Element.Total, kev);
+                }
+
+                return mu;
+            }
+
+            /// <summary>
+            /// Собрать смесь по объявленным элементам кристалла. Доли берутся из
+            /// <see cref="FsaSampleSpec.CrystalFractions"/> и нормируются на
+            /// сумму ВОШЕДШИХ; доли нет — считаются равными, и об этом говорится
+            /// в отчёте, а не молчится. null — строить нечего.
+            /// </summary>
+            public static CrystalMix Of(FsaSampleSpec spec, Report report)
+            {
+                var mix = new CrystalMix();
+                var done = new HashSet<int>();
+                double sum = 0.0;
+                bool declared = spec.CrystalFractions.Count > 0;
+                foreach (int z in spec.CrystalElements)
+                {
+                    if (z <= 0 || !done.Add(z))
+                    {
+                        continue;
+                    }
+
+                    MaterialDatabase.Fluorescence fluorescence = MaterialDatabase.FluorescenceOf(z);
+                    MaterialDatabase.Element element;
+                    if (fluorescence == null || !MaterialDatabase.TryGet(z, out element))
+                    {
+                        report.Notes.Add("вылет: нет данных для Z="
+                                         + z.ToString(CultureInfo.InvariantCulture));
+                        continue;
+                    }
+
+                    if (!(fluorescence.Omega(true) > 0.0)
+                        || fluorescence.LineKev == null || fluorescence.LineKev.Length == 0
+                        || !(fluorescence.LineKev[0] > 0.0))
+                    {
+                        continue;
+                    }
+
+                    // ⚠ Доли объявлены — значит объявлен и СОСТАВ: элемента, в
+                    // них не названного, в кристалле нет, и брать его с долей
+                    // «по умолчанию» нельзя. Так бывает, когда список элементов
+                    // пополняется из второго источника (у пробы — `materials.csv`
+                    // поверх геометрии), и незваный элемент с долей 1.0 забрал бы
+                    // образ себе.
+                    double fraction;
+                    bool known = spec.CrystalFractions.TryGetValue(z, out fraction)
+                                 && fraction > 0.0;
+                    if (!known)
+                    {
+                        if (declared)
+                        {
+                            report.Notes.Add("вылет: Z="
+                                             + z.ToString(CultureInfo.InvariantCulture)
+                                             + " не назван в составе кристалла, пропущен");
+                            continue;
+                        }
+
+                        fraction = 1.0;
+                    }
+
+                    sum += fraction;
+                    mix.Parts.Add(new Part
+                    {
+                        Tag = "Esc-" + MaterialDatabase.SymbolOf(z),
+                        Fraction = fraction,
+                        Element = element,
+                        Fluorescence = fluorescence,
+                        Shells = MaterialDatabase.PhotoShellOf(z)
+                    });
+                }
+
+                if (mix.Parts.Count == 0 || !(sum > 0.0))
+                {
+                    return null;
+                }
+
+                if (!declared)
+                {
+                    report.Notes.Add("вылет: долей кристалла нет, считаны равными");
+                }
+
+                var order = new List<Part>(mix.Parts);
+                order.Sort((x, y) => y.Fraction != x.Fraction
+                    ? y.Fraction.CompareTo(x.Fraction)
+                    : string.CompareOrdinal(x.Tag, y.Tag));
+
+                var name = new StringBuilder();
+                foreach (Part part in order)
+                {
+                    part.Fraction /= sum;
+                    name.Append(part.Tag.Substring(4));
+                }
+
+                mix.Name = string.IsNullOrEmpty(spec.CrystalName)
+                    ? name.ToString() : spec.CrystalName;
+                return mix;
+            }
+        }
+
+        /// <summary>
+        /// Доля K-рентгена, которая УСПЕВАЕТ ВЫЙТИ из кристалла, — четвёртый
+        /// множитель веса линии вылета (`S80`, 19.08.2026).
+        ///
+        /// Считается точно, а не поправкой. Квант первый раз взаимодействует на
+        /// глубине z с плотностью μ_E·exp(−μ_E·z); рождённый там рентген летит
+        /// изотропно и уходит назад через переднюю грань, если пройдёт z/cosθ
+        /// без поглощения. Интеграл по глубине и по задней полусфере берётся в
+        /// замкнутом виде и зависит ТОЛЬКО от отношения ослаблений
+        /// a = μ(рентгена) / μ(кванта):
+        ///
+        ///     f = ½ · [ 1 − a · ln(1 + 1/a) ]
+        ///
+        /// Отношение берётся от МАССОВЫХ коэффициентов, поэтому плотность в него
+        /// не входит и знать её не нужно.
+        ///
+        /// Пределы читаются физикой. Сразу над K-краем μ_E огромно, квант
+        /// садится в первые доли миллиметра, a → 0 и f → ½: наружу уходит
+        /// ровно та половина рентгена, что полетела назад. Вверху шкалы μ_E
+        /// мало, a велико, f → 1/(4a) → 0: квант поглощается в сантиметрах от
+        /// поверхности, а пробег 28.6-кэВ рентгена иода в CsI ≈ 0.25 мм, и
+        /// выйти оттуда он не может. На CsI это даёт f ≈ 0.10 при 78 кэВ и
+        /// ≈ 0.011 при 238.6 кэВ — то самое подавление в десять раз, которого
+        /// в весе не было.
+        ///
+        /// ⚠ **Кристалл считается полубесконечным, и вылет назад — весь вылет.**
+        /// Там, где вылет вообще заметен, это верно с запасом: при 78 кэВ квант
+        /// садится в первый миллиметр, до задней грани ему далеко. Наверху
+        /// шкалы тонкий кристалл дал бы ещё и вылет вперёд, но там f и без того
+        /// пренебрежимо мала. Толщины у <see cref="FsaSampleSpec"/> нет вовсе,
+        /// и заводить её ради поправки к пренебрежимому не стоит.
+        ///
+        /// ⚠ Оба ослабления берутся у ВЕЩЕСТВА кристалла, а не у элемента
+        /// (`S83`, снято 19.08.2026 вместе с `S84`): массовые доли лежат в
+        /// геометрии, и смесь считается прямо по ним. Для CsI разница была
+        /// невелика (Z 55 и 53 рядом), для NaI лёгкий натрий ослабление
+        /// разбавляет, и элементное отношение было смещено.
+        /// </summary>
+        static double EscapeFraction(double totalAtXray, double totalAtParent)
+        {
+            if (!(totalAtXray > 0.0) || !(totalAtParent > 0.0))
+            {
+                return 0.0;
+            }
+
+            double a = totalAtXray / totalAtParent;
+
+            // ⚠ При большом a разность 1 − a·ln(1+1/a) — вычитание близких
+            // чисел, и на краю двойной точности от неё ничего не осталось бы.
+            // Ряд там сходится быстро: a·ln(1+1/a) = 1 − 1/(2a) + 1/(3a²) − …
+            double f = a > 1.0e4
+                ? 0.5 * (1.0 / (2.0 * a) - 1.0 / (3.0 * a * a))
+                : 0.5 * (1.0 - a * Math.Log(1.0 + 1.0 / a));
+            return f > 0.0 ? f : 0.0;
         }
 
         /// <summary>
@@ -971,7 +1340,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 foreach (FsaLine line in component.Lines)
                 {
                     var definition = new NuclideDefinition();
-                    definition.Name = component.Name;
+
+                    // ⚠ У колонки ряда (равновесие, `S70`) имя компонента —
+                    // корень, а линии принадлежат РАЗНЫМ его членам. Пик
+                    // подписывается тем, кто эту линию излучил: подписать
+                    // 583.19 кэВ «Th-232» вместо «Tl-208» значило бы отнять у
+                    // таблицы пиков то единственное, чего связка не отменяет, —
+                    // знание, кто в ряду светит. У всех прочих образов нуклид
+                    // линии и имя компонента совпадают, и правило для них
+                    // ничего не меняет.
+                    definition.Name = component.Kind == FsaComponentKind.Chain
+                                      && !string.IsNullOrEmpty(line.Nuclide)
+                        ? line.Nuclide : component.Name;
                     definition.Energy = line.Energy;
                     definition.Intencity = line.Intensity;
                     definition.Visible = true;
@@ -1046,6 +1426,53 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
+        /// Кристалл — в спецификацию целиком: элементы, их МАССОВЫЕ доли и
+        /// короткое имя вещества (`S84`, 19.08.2026).
+        ///
+        /// Заведено взамен голого <see cref="HeavyElementsOf"/> у кристалла:
+        /// образ вылета один на вещество, и соотношение его членов задают доли,
+        /// которые лежали тут же и выбрасывались. Прочие вещества (проба,
+        /// защита) долей не требуют — у них каждый элемент светит сам за себя и
+        /// получает свой образ со своей амплитудой.
+        ///
+        /// ⚠ У КРИСТАЛЛА окна по Kα нет, и это не оплошность: элемент кристалла
+        /// не только светит сам, но и уносит энергию вылетом, а пик вылета стоит
+        /// на E − Kα, то есть внутри окна даже когда сама Kα ниже его низа
+        /// (измерено 18.08.2026 на ASN16).
+        /// </summary>
+        public static void DescribeCrystal(FsaSampleSpec spec, GeometryMaterial crystal,
+                                           double minFraction, string shortName)
+        {
+            spec.CrystalElements.AddRange(HeavyElementsOf(crystal, minFraction, 0.0, double.MaxValue));
+            if (!string.IsNullOrEmpty(shortName))
+            {
+                // Активатор в имени вещества не нужен: «CsI:Tl» → «CsI».
+                int mark = shortName.IndexOf(':');
+                spec.CrystalName = mark > 0 ? shortName.Substring(0, mark) : shortName;
+            }
+
+            if (crystal == null)
+            {
+                return;
+            }
+
+            Dictionary<int, double> fractions = crystal.Fractions;
+            if (fractions.Count == 0 && !string.IsNullOrEmpty(crystal.Name))
+            {
+                GeometryMaterialLibrary.Entry entry = GeometryMaterialLibrary.ByName(crystal.Name);
+                if (entry != null)
+                {
+                    fractions = GeometryMaterialLibrary.Make(entry, crystal.Density).Fractions;
+                }
+            }
+
+            foreach (KeyValuePair<int, double> pair in fractions)
+            {
+                spec.CrystalFractions[pair.Key] = pair.Value;
+            }
+        }
+
+        /// <summary>
         /// Возбуждённое состояние: у `nucid` есть метка состояния строчными
         /// буквами («234PAm1», «108AGm», «105PDe»).
         ///
@@ -1062,10 +1489,51 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                    && state.Length > 0;
         }
 
-        static void Remember(Dictionary<string, double> branch, string nucid, double value)
+        /// <summary>
+        /// Долю ветвления нуклида — в накопитель, БОЛЬШУЮ из встреченных.
+        /// Вместе с долей запоминается и ХОЗЯИН — тот корень, от которого эта
+        /// доля посчитана: по нему связываются члены при
+        /// <see cref="FsaSampleSpec.Equilibrium"/>.
+        ///
+        /// ⚠ Тот же нуклид приходит из двух рядов сразу (Ra-226 объявлен сам по
+        /// себе и лежит внутри U-238; Th-228 — сам по себе и внутри Th-232), и
+        /// доли у него разные. Побеждает бо́льшая, и хозяином становится её
+        /// корень: объявленный САМ нуклид держит долю 1.0, то есть отбирает
+        /// себя и своих потомков у объемлющего ряда — ровно то, чего человек и
+        /// хотел, объявив его отдельно. При равенстве побеждает ПЕРВЫЙ, поэтому
+        /// объявленный ряд не отбирается вездесущим (<see cref="RoomChains"/>).
+        /// </summary>
+        static void Remember(Dictionary<string, double> branch, Dictionary<string, string> owner,
+                             string nucid, double value, string root)
         {
             double have;
-            branch[nucid] = branch.TryGetValue(nucid, out have) && have > value ? have : value;
+            if (branch.TryGetValue(nucid, out have) && have >= value)
+            {
+                return;
+            }
+
+            branch[nucid] = value;
+            if (owner != null)
+            {
+                owner[nucid] = root;
+            }
+        }
+
+        /// <summary>
+        /// Хозяин нуклида: корень ряда, от которого посчитана его доля. Не
+        /// записан — сам себе хозяин (так выходит у одиночных нуклидов и у
+        /// читателей, которым хозяин не нужен).
+        /// </summary>
+        static string OwnerOf(Dictionary<string, string> owner, string nucid)
+        {
+            string root;
+            return owner != null && owner.TryGetValue(nucid, out root) ? root : nucid;
+        }
+
+        static int GroupCount(Dictionary<string, int> groupSize, string root)
+        {
+            int count;
+            return groupSize.TryGetValue(root, out count) ? count : 1;
         }
 
         static FsaComponent Take(Dictionary<string, FsaComponent> byName, List<string> order,
@@ -1088,11 +1556,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// а запись той же линии с иной точностью удвоила бы её вес и уронила
         /// амплитуду образа вдвое.
         /// </summary>
+        /// <summary>
+        /// Линию — в образ, если такой у ЭТОГО ЖЕ нуклида ещё нет.
+        ///
+        /// ⚠ Совпадение проверяется по паре «нуклид + энергия», а не по одной
+        /// энергии, и это существенно с приходом связки равновесия (`S70`): в
+        /// колонке ряда лежат линии НЕСКОЛЬКИХ нуклидов, и две близкие линии
+        /// разных членов — это две настоящие линии, обе в спектре есть. Отсев
+        /// по одной энергии выбросил бы вторую молча. У всех прочих читателей
+        /// (<see cref="AddFluorescence"/>, <see cref="AddEscape"/>, состав без
+        /// равновесия) нуклид у линий образа один и тот же, поэтому для них
+        /// правило не изменилось ни на волос.
+        ///
+        /// Отсев нужен затем, зачем и заводился: одна линия бывает записана в
+        /// базе дважды — своей строкой и строкой «в цепочке», либо копией с
+        /// округлённой энергией, — и в образе она удваивает вес. Порог 0.05 кэВ:
+        /// раздельных линий ближе не бывает.
+        /// </summary>
         static void AddLine(FsaComponent component, string nuclide, double energy, double intensity)
         {
             foreach (FsaLine line in component.Lines)
             {
-                if (Math.Abs(line.Energy - energy) < 0.05)
+                if (Math.Abs(line.Energy - energy) < 0.05
+                    && string.Equals(line.Nuclide, nuclide, StringComparison.OrdinalIgnoreCase))
                 {
                     return;
                 }

@@ -141,6 +141,55 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// назван, остаток записан в строке S9.
         /// </summary>
         public double Collinearity { get; set; }
+
+        /// <summary>
+        /// Отсчёты образа в его пиковых окнах, если бы амплитуда стояла НА
+        /// ПРЕДЕЛЕ ОБНАРУЖЕНИЯ a# (`S68`). NaN — предел не определён.
+        ///
+        /// Это ЧИСЛИТЕЛЬ доли, которую кандидат занял бы в составе; знаменатель
+        /// — <see cref="FsaResult.StackTotal"/>, тот же, которым считаются доли
+        /// строк состава (решение Amber 18.08.2026). Числом в имп/с колонка
+        /// пределов подписана быть не может: вес линии в образе равен
+        /// <c>I/100 × ε(E)</c> при профилях единичной площади, то есть амплитуда
+        /// выражена в РАСПАДАХ, и <c>amplitude/liveTime</c> есть активность в
+        /// шкале поданной кривой эффективности, а не скорость счёта. На
+        /// `Th232_29.07.2022.xml` это было видно прямо: полная скорость счёта
+        /// спектра 416.37 имп/с против напечатанного у Th-232 «&lt; 607 cps».
+        ///
+        /// ⚠ Сама величина в имп/с (<see cref="DetectionLimitRate"/>) остаётся
+        /// и в модели, и в корпусных таблицах — из ЛЕГЕНДЫ убрана она, а не из
+        /// расчёта.
+        /// </summary>
+        public double DetectionLimitPeakCounts { get; set; } = double.NaN;
+
+        /// <summary>
+        /// Суммарный выход всех излучений нуклида на собственный распад, %
+        /// (`S69`) — копия <see cref="FsaComponent.TotalYieldPercent"/>. NaN —
+        /// неизвестен.
+        /// </summary>
+        public double TotalYieldPercent { get; set; } = double.NaN;
+    }
+
+    /// <summary>
+    /// Образ, который БЫЛ построен и предъявлен фиту, но в отчёт не вошёл
+    /// (`S78`). Заведено потому, что «не строился» и «построен и признан
+    /// незначимым» на экране были неразличимы: отсев по значимости
+    /// (<c>FsaAnalyzer.RefitZ</c>, умолчание 3.0) убирает колонку из
+    /// <c>FitResult.Columns</c> целиком, и следа не остаётся ни в легенде, ни в
+    /// корпусной сводке.
+    ///
+    /// Молчаливый ноль уже стоил дорого однажды: `Ann-511` с 70 542 пиковыми
+    /// отсчётами при z = 57.7 печаталась нулём и выглядела отсутствующей, и
+    /// подмену пришлось доказывать четырьмя независимыми путями (`S49`).
+    /// </summary>
+    public sealed class FsaSuppressedImage
+    {
+        public string Name { get; set; }
+
+        public FsaComponentKind Kind { get; set; }
+
+        /// <summary>Значимость, с которой образ был выброшен; NaN — неизвестна.</summary>
+        public double Z { get; set; } = double.NaN;
     }
 
     /// <summary>Слой стека для отрисовки: кривая и подпись с долей.</summary>
@@ -272,10 +321,30 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public bool CascadeSummingUsed { get; set; }
 
+        /// <summary>
+        /// Знаменатель долей стека: Σ по слоям от последнего
+        /// <see cref="BuildStackedLayers"/>. Заполняется им же и до первого его
+        /// вызова равен нулю.
+        ///
+        /// Заведён ради `S68`: у НЕ вошедшего в состав кандидата ленты нет, а
+        /// доля, которую он занял бы на пределе обнаружения, обязана считаться
+        /// ТЕМ ЖЕ знаменателем, что и строки состава над ней (решение Amber
+        /// 18.08.2026). Пересчитать этот знаменатель на стороне читателя значило
+        /// бы завести второе правило для одного числа.
+        /// </summary>
+        public double StackTotal { get; private set; }
+
+        /// <summary>
+        /// (S78) Образы, построенные и предъявленные фиту, но выброшенные до
+        /// отчёта. Пусто — выброшенных нет; null не бывает.
+        /// </summary>
+        public List<FsaSuppressedImage> SuppressedImages { get; set; }
+
         public FsaResult()
         {
             this.Components = new List<FsaComponentResult>();
             this.CharacteristicLimits = new List<FsaCharacteristicLimit>();
+            this.SuppressedImages = new List<FsaSuppressedImage>();
         }
 
         /// <summary>
@@ -289,10 +358,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// кого, и разносить подложку не по чему. Там она остаётся отдельным
         /// серым слоем, иначе на пустом месте рисовался бы состав, которого
         /// модель не знает.
+        ///
+        /// ⛔ И ОТБОР девятки, и ПОРЯДОК строк идут по ТОЙ ЖЕ МЕРЕ, которая
+        /// печатается, — по ДОЛЕ (<see cref="FsaStackLayer.SharePercent"/>), а
+        /// не по высоте ленты (решение Amber 18.08.2026, `S71`). Прежде и то и
+        /// другое решал <c>Max(Curve)</c>, отчего узкий высокий образ вытеснял
+        /// широкий, но более весомый, а в легенде `Th232_29.07.2022.xml` Ac-228
+        /// с 23.09 % стоял ТРЕТЬИМ, после Pb-212 18.89 % и Ra-224 8.22 %.
+        ///
+        /// ⚠ Потому же подложка разносится ДО отбора и по ВСЕМ компонентам, а
+        /// не после: доля считается уже с разнесённой подложкой, и отбирать по
+        /// сумме без неё значило бы снова мерить одним, а печатать другое.
+        /// Свернуть «прочее» можно и после разноса — правило разноса линейно по
+        /// накопленному счёту выше канала, поэтому сумма разнесённых кривых
+        /// равна разносу по их сумме, и «прочее» от перестановки не меняется.
         /// </summary>
         public List<FsaStackLayer> BuildStackedLayers(int maxNamedLayers)
         {
             List<FsaStackLayer> layers = new List<FsaStackLayer>();
+            this.StackTotal = 0.0;
             if (this.Components == null || this.Components.Count == 0)
             {
                 return layers;
@@ -306,37 +390,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             List<FsaComponentResult> ordered = new List<FsaComponentResult>(this.Components);
             ordered.RemoveAll(c => c.Curve == null || Max(c.Curve) <= 0.0);
-            ordered.Sort((a, b) => Max(b.Curve).CompareTo(Max(a.Curve)));
-
-            // Мешающие образы (рентген, пики вылета) показываются всегда и в
-            // лимит НЕ входят: лимит отмеряет, сколько нуклидов названо
-            // поимённо. Общий счётчик их смешивал — при обычном составе четыре
-            // мешающих (рентген W и Pb, SE- и DE-2614, последние два в
-            // библиотеке всегда) съедали четыре слота из шести, и нуклиды
-            // сверх двух схлопывались в «other».
-            List<FsaComponentResult> named = new List<FsaComponentResult>();
-            List<FsaComponentResult> rest = new List<FsaComponentResult>();
-            int namedNuclides = 0;
-            foreach (FsaComponentResult component in ordered)
+            if (ordered.Count == 0)
             {
-                if (component.Kind == FsaComponentKind.Nuisance)
-                {
-                    named.Add(component);
-                }
-                else if (namedNuclides < maxNamedLayers)
-                {
-                    named.Add(component);
-                    namedNuclides++;
-                }
-                else
-                {
-                    rest.Add(component);
-                }
+                return layers;
             }
 
-            foreach (FsaComponentResult component in named)
+            // Сперва слой на КАЖДЫЙ компонент — отбор идёт после разноса
+            // подложки, см. шапку метода.
+            List<FsaStackLayer> full = new List<FsaStackLayer>(ordered.Count);
+            foreach (FsaComponentResult component in ordered)
             {
-                layers.Add(new FsaStackLayer
+                full.Add(new FsaStackLayer
                 {
                     Name = component.Name,
                     Kind = component.Kind,
@@ -347,18 +411,81 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 });
             }
 
+            double[] leftover = DistributeContinuum(full, channels);
+
+            // Мера отбора и порядка — та же сумма, из которой потом считается
+            // доля. Хранится отдельно, чтобы не пересчитывать её на каждое
+            // сравнение внутри сортировки.
+            double[] weight = new double[full.Count];
+            double total = 0.0;
+            for (int k = 0; k < full.Count; k++)
+            {
+                weight[k] = Sum(full[k].Curve);
+                total += weight[k];
+            }
+
+            if (leftover != null)
+            {
+                total += Sum(leftover);
+            }
+
+            this.StackTotal = total;
+
+            // Мешающие образы (рентген, пики вылета) показываются всегда и в
+            // лимит НЕ входят: лимит отмеряет, сколько нуклидов названо
+            // поимённо. Общий счётчик их смешивал — при обычном составе четыре
+            // мешающих (рентген W и Pb, SE- и DE-2614, последние два в
+            // библиотеке всегда) съедали четыре слота из шести, и нуклиды
+            // сверх двух схлопывались в «other».
+            //
+            // Порядок обхода держится на исходном номере: Array.Sort
+            // неустойчива, и без него компоненты равного веса перемешивались бы
+            // от запуска к запуску.
+            int[] byWeight = new int[full.Count];
+            for (int k = 0; k < byWeight.Length; k++)
+            {
+                byWeight[k] = k;
+            }
+
+            Array.Sort(byWeight, (x, y) =>
+            {
+                int c = weight[y].CompareTo(weight[x]);
+                return c != 0 ? c : x.CompareTo(y);
+            });
+
+            List<int> rest = new List<int>();
+            int namedNuclides = 0;
+            foreach (int k in byWeight)
+            {
+                if (full[k].Kind == FsaComponentKind.Nuisance)
+                {
+                    layers.Add(full[k]);
+                }
+                else if (namedNuclides < maxNamedLayers)
+                {
+                    layers.Add(full[k]);
+                    namedNuclides++;
+                }
+                else
+                {
+                    rest.Add(k);
+                }
+            }
+
             if (rest.Count > 0)
             {
                 double[] other = new double[channels];
                 double[] otherSums = null;
-                foreach (FsaComponentResult component in rest)
+                foreach (int k in rest)
                 {
-                    for (int i = 0; i < channels && i < component.Curve.Length; i++)
+                    double[] curve = full[k].Curve;
+                    for (int i = 0; i < channels && i < curve.Length; i++)
                     {
-                        other[i] += component.Curve[i];
+                        other[i] += curve[i];
                     }
 
-                    if (component.SumPeakCurve == null)
+                    double[] sums = full[k].SumPeakCurve;
+                    if (sums == null)
                     {
                         continue;
                     }
@@ -368,9 +495,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         otherSums = new double[channels];
                     }
 
-                    for (int i = 0; i < channels && i < component.SumPeakCurve.Length; i++)
+                    for (int i = 0; i < channels && i < sums.Length; i++)
                     {
-                        otherSums[i] += component.SumPeakCurve[i];
+                        otherSums[i] += sums[i];
                     }
                 }
 
@@ -383,22 +510,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 });
             }
 
-            double[] leftover = DistributeContinuum(layers, channels);
             if (leftover != null)
             {
                 // Неразнесённый остаток — только хвост выше последней линии.
-                layers.Insert(0, new FsaStackLayer
+                layers.Add(new FsaStackLayer
                 {
                     Name = ContinuumLayerName,
                     Kind = FsaComponentKind.Nuisance,
                     Curve = leftover
                 });
-            }
-
-            double total = 0.0;
-            foreach (FsaStackLayer layer in layers)
-            {
-                total += Sum(layer.Curve);
             }
 
             foreach (FsaStackLayer layer in layers)
@@ -410,11 +530,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (рассеяние, вылеты, рентген), «прочее» и подложка. Список задаёт и
             // стопку, и легенду разом, поэтому раскладывать их порознь нельзя:
             // легенда, идущая не в том порядке, в каком нарисованы ленты, —
-            // отдельный способ ошибиться. Внутри каждой группы порядок прежний,
-            // по убыванию высоты.
-            // Порядок внутри группы держится на исходном номере: List.Sort
-            // неустойчива, и без него слои равного ранга перемешивались бы от
-            // запуска к запуску.
+            // отдельный способ ошибиться. Внутри каждой группы порядок — по
+            // убыванию ДОЛИ, той же, что напечатана.
+            // Разбиение по рангам не трогается: строки состава обязаны идти
+            // выше приборных образов, как бы ни легли доли.
             int[] order = new int[layers.Count];
             for (int k = 0; k < order.Length; k++)
             {
@@ -425,7 +544,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             Array.Sort(order, (x, y) =>
             {
                 int rx = LayerRank(source[x]), ry = LayerRank(source[y]);
-                return rx != ry ? rx.CompareTo(ry) : x.CompareTo(y);
+                if (rx != ry)
+                {
+                    return rx.CompareTo(ry);
+                }
+
+                int c = source[y].SharePercent.CompareTo(source[x].SharePercent);
+                return c != 0 ? c : x.CompareTo(y);
             });
 
             layers.Clear();

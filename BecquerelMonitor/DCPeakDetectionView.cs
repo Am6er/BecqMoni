@@ -118,6 +118,7 @@ namespace BecquerelMonitor
             // галку не «редактируют», а щёлкают, и присвоение того же значения
             // события не поднимает.
             this.checkBoxDbLookups.Checked = fwhmPeakDetectionMethodConfig.DbLookupsForFsa;
+            this.checkBoxEquilibrium.Checked = fwhmPeakDetectionMethodConfig.ChainEquilibrium;
 
             this.FormLoading = false;
             this.UpdatePeakDetectionResult();
@@ -431,6 +432,42 @@ namespace BecquerelMonitor
         /// </summary>
         void checkBoxDbLookups_CheckedChanged(object sender, EventArgs e)
         {
+            this.ApplyFsaFlag((config, view) => config.DbLookupsForFsa = view.checkBoxDbLookups.Checked);
+        }
+
+        /// <summary>
+        /// «Равновесие» (`S70`): ряд идёт в разбор ОДНОЙ колонкой с одной
+        /// свободной амплитудой, относительные веса членов закреплены
+        /// ветвлением. Умолчание — ВКЛЮЧЕНО, в отличие от соседней галки.
+        ///
+        /// Поиска пиков не касается ровно так же, как и соседняя, — меняется
+        /// состав библиотеки разбора, а не найденные пики.
+        /// </summary>
+        void checkBoxEquilibrium_CheckedChanged(object sender, EventArgs e)
+        {
+            this.ApplyFsaFlag((config, view) => config.ChainEquilibrium = view.checkBoxEquilibrium.Checked);
+        }
+
+        /// <summary>
+        /// Обе галки разбора устроены одинаково, и обработчик у них общий: путь
+        /// «в копию спектра, в умолчание прибора, на диск, перечитать вид»
+        /// длинный, и написанный дважды он однажды разошёлся бы.
+        ///
+        /// ⛔ Пишется В ДВА МЕСТА (решение Amber 18.08.2026). В копию СПЕКТРА —
+        /// иначе нажатие не влияет на то, что человек сейчас видит. В умолчание
+        /// ПРИБОРА и на диск — иначе положение галки не переживает ни следующий
+        /// спектр, ни перезапуск; до `S70` не делалось ни того, ни другого, и в
+        /// этом была вся строка.
+        ///
+        /// ⛔ Прибор сохраняется ТИХО
+        /// (<see cref="DeviceConfigManager.SaveConfigQuiet"/>): обычное
+        /// сохранение рассылает событие, а по нему настройки прибора
+        /// переносятся во ВСЕ открытые спектры этого прибора. Решение то же:
+        /// «умолчание прибора меняем, а уже сохранённую копию спектра не
+        /// трогаем» — соседние документы остаются при своём.
+        /// </summary>
+        void ApplyFsaFlag(Action<FWHMPeakDetectionMethodConfig, DCPeakDetectionView> set)
+        {
             if (this.FormLoading)
             {
                 return;
@@ -448,7 +485,8 @@ namespace BecquerelMonitor
                 return;
             }
 
-            fwhmPeakDetectionMethodConfig.DbLookupsForFsa = this.checkBoxDbLookups.Checked;
+            set(fwhmPeakDetectionMethodConfig, this);
+            this.SaveFsaFlagsToDevice(activeDocument.ActiveResultData, fwhmPeakDetectionMethodConfig);
 
             // Режим фона смотрим у ВИДА этого документа, а не у панели: панель
             // одна, документов много, и переключение «Show FSA» живёт там (R9).
@@ -458,10 +496,44 @@ namespace BecquerelMonitor
                 return;
             }
 
-            // Перечитать заново. Отпечаток разложения содержит эту галку,
+            // Перечитать заново. Отпечаток разложения содержит обе галки,
             // поэтому подготовка данных вида увидит, что готовый результат
             // устарел, и закажет счёт; сам счёт идёт в фоне и окна не держит.
             activeDocument.RefreshView();
+        }
+
+        /// <summary>
+        /// Обе галки — в умолчание прибора и на диск. Прибор берётся из
+        /// менеджера по Guid: именно ту запись читает
+        /// <see cref="FWHMPeakDetectionMethodConfig.AdoptFrom"/> при открытии
+        /// следующего спектра, и правка её копии никуда бы не дошла.
+        /// </summary>
+        void SaveFsaFlagsToDevice(ResultData resultData, FWHMPeakDetectionMethodConfig source)
+        {
+            if (resultData.DeviceConfigReference == null
+                || string.IsNullOrEmpty(resultData.DeviceConfigReference.Guid))
+            {
+                return;
+            }
+
+            DeviceConfigManager manager = DeviceConfigManager.GetInstance();
+            DeviceConfigInfo device;
+            if (!manager.DeviceConfigMap.TryGetValue(resultData.DeviceConfigReference.Guid, out device)
+                || device == null
+                || !(device.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig devicePeak))
+            {
+                return;
+            }
+
+            if (devicePeak.DbLookupsForFsa == source.DbLookupsForFsa
+                && devicePeak.ChainEquilibrium == source.ChainEquilibrium)
+            {
+                return;
+            }
+
+            devicePeak.DbLookupsForFsa = source.DbLookupsForFsa;
+            devicePeak.ChainEquilibrium = source.ChainEquilibrium;
+            manager.SaveConfigQuiet(device);
         }
 
         void ToolStripMenuItem1_Click(object sender, EventArgs e)

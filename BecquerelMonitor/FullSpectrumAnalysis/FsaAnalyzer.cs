@@ -725,6 +725,33 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return null;
             }
 
+            // (S78) Всё, что было ПРЕДЪЯВЛЕНО фиту, и с какой значимостью его
+            // видели в последний раз. Отсев по значимости и гейт по парциальной
+            // невязке убирают колонку из `Columns` ЦЕЛИКОМ, и без этого следа
+            // «образ не строился» и «образ построен и признан незначимым»
+            // становятся на экране одним и тем же — молчаливым отсутствием
+            // строки. Словарь, а не список: один и тот же образ переживает
+            // несколько проходов, и нужна ПОСЛЕДНЯЯ значимость, с которой его
+            // видели живым.
+            var offeredZ = new Dictionary<string, double>(StringComparer.Ordinal);
+            var offeredKind = new Dictionary<string, FsaComponentKind>(StringComparer.Ordinal);
+            Action<FitResult> remember = fit =>
+            {
+                for (int k = 0; k < fit.Columns.Count; k++)
+                {
+                    FsaComponent component = fit.Columns[k].Component;
+                    if (component == null)
+                    {
+                        continue;
+                    }
+
+                    offeredZ[component.Name] = fit.Z[k];
+                    offeredKind[component.Name] = component.Kind;
+                }
+            };
+
+            remember(best);
+
             // Образ обратного рассеяния по найденному составу — до отсева по z:
             // отсев решает, какие компоненты дожили, и решать это надо уже при
             // закрытой области рассеяния.
@@ -743,6 +770,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         best = refit;
                         working = extended;
                     }
+
+                    remember(best);
                 }
             }
 
@@ -774,6 +803,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     if (refit != null)
                     {
                         best = refit;
+                        remember(best);
                     }
                 }
             }
@@ -801,6 +831,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     if (refit != null)
                     {
                         best = refit;
+                        remember(best);
                     }
                 }
             }
@@ -885,15 +916,46 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     if (refit != null)
                     {
                         best = refit;
+                        remember(best);
                     }
                 }
             }
 
             FsaResult result = BuildResult(best, spectrum, fwhmCalibration, backgroundCurve, snipContinuum,
                                chLo, chHi, channels,
-                               bestGain, bestOffset, liveTime, efficiency != null,
+                               bestGain, bestOffset, liveTime, efficiency,
                                gainSteps > 1 && (bestGainIndex == 0 || bestGainIndex == gainSteps - 1),
                                offsetSteps > 1 && (bestOffsetIndex == 0 || bestOffsetIndex == offsetSteps - 1));
+
+            // (S78) Кто был предъявлен, но до отчёта не дожил. Считается
+            // ПОСЛЕ всех проходов и по фактическому составу результата, а не по
+            // одному из гейтов: убрать колонку могут двое (отсев по значимости
+            // `RefitZ` и гейт по парциальной невязке), и правило, знающее только
+            // про одного, однажды промолчит про второго.
+            var reported = new HashSet<string>(StringComparer.Ordinal);
+            foreach (FsaComponentResult component in result.Components)
+            {
+                reported.Add(component.Name);
+            }
+
+            foreach (KeyValuePair<string, double> pair in offeredZ)
+            {
+                if (reported.Contains(pair.Key))
+                {
+                    continue;
+                }
+
+                FsaComponentKind kind;
+                result.SuppressedImages.Add(new FsaSuppressedImage
+                {
+                    Name = pair.Key,
+                    Kind = offeredKind.TryGetValue(pair.Key, out kind) ? kind : FsaComponentKind.Single,
+                    Z = pair.Value
+                });
+            }
+
+            result.SuppressedImages.Sort(
+                (left, right) => string.CompareOrdinal(left.Name, right.Name));
             result.BackgroundRejected = backgroundRejected;
             result.BackgroundUsed = background != null && backgroundScale > 0.0;
             // Пределы считаются по ТОЙ библиотеке, что пошла в фит (S47): образ,
@@ -1029,7 +1091,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     Detected = col >= 0 && amplitude > 0.0,
                     CountRate = amplitude / liveTime,
                     DecisionThresholdRate = Double.NaN,
-                    DetectionLimitRate = Double.NaN
+                    DetectionLimitRate = Double.NaN,
+                    TotalYieldPercent = component.TotalYieldPercent
                 };
                 result.CharacteristicLimits.Add(limit);
 
@@ -1181,6 +1244,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double detection = 2.0 * k1 * s0 + k1 * k1 * inflate * inflate * varianceSlope;
                 limit.DecisionThresholdRate = threshold / liveTime;
                 limit.DetectionLimitRate = detection / liveTime;
+
+                // (S68) Тот же предел, но НЕ в имп/с, а пиковыми отсчётами:
+                // сколько кандидат набрал бы в своих окнах, стой его амплитуда
+                // на a#. Счёт по окнам линеен по амплитуде (профили единичной
+                // площади, окно от неё не зависит), поэтому берётся при
+                // единичной амплитуде и умножается — второго прохода по каналам
+                // не нужно.
+                //
+                // ⚠ `detection`, а не `DetectionLimitRate`: первое — амплитуда,
+                // второе уже поделено на живое время, и делить второй раз
+                // значило бы применить его дважды.
+                limit.DetectionLimitPeakCounts = detection
+                    * this.PeakWindowCounts(component, phi, calibration, fwhmCalibration,
+                                            gain, offset, chLo, chHi, channels);
             }
 
             // Те же числа — на строках состава, чтобы читателю не соединять два
@@ -1224,7 +1301,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         FsaResult BuildResult(FitResult fit, EnergySpectrum spectrum, FwhmCalibration fwhmCalibration,
                               double[] backgroundCurve, int[] snipContinuum,
                               int chLo, int chHi, int channels, double gain, double offset, double liveTime,
-                              bool efficiencyUsed, bool gainOnEdge, bool offsetOnEdge)
+                              FsaEfficiency efficiency, bool gainOnEdge, bool offsetOnEdge)
         {
             // Калибровка — та же, по которой строились образы; берётся у
             // спектра, как в Analyze. ПШПВ приходит параметром: у спектра её
@@ -1241,7 +1318,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 Gain = gain,
                 OffsetChannels = offset,
                 LiveTime = liveTime,
-                EfficiencyUsed = efficiencyUsed,
+                EfficiencyUsed = efficiency != null,
                 ResponseMatrixUsed = fit.FromResponseMatrix,
                 CascadeSummingUsed = this.cascadeApplied,
                 GainOnGridEdge = gainOnEdge,
@@ -1288,6 +1365,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 for (int i = chLo; i <= chHi; i++)
                 {
                     curve[i] = amplitude * column.Values[i];
+                }
+
+                // ⛔ РЯД, СВЯЗАННЫЙ РАВНОВЕСИЕМ, ОСТАЁТСЯ В ОТЧЁТЕ ПОЧЛЕННО
+                // (указание Amber 18.08.2026, поправка к `S70`). Связка меняет
+                // ЧИСЛО СВОБОДНЫХ АМПЛИТУД, а не список компонентов: у ряда одна
+                // колонка и одна амплитуда на весь ряд, но в таблице обязаны
+                // остаться те же строки, что и без связки, — и с долями. Иначе
+                // галка не «убирает неустойчивых кандидатов», а сокращает
+                // состав, чего от неё не просили.
+                //
+                // Разделяется по НУКЛИДУ ЛИНИИ: в колонке ряда линии помечены
+                // своим членом (`FsaLine.Nuclide`), и большего не нужно.
+                if (this.SplitChainMembers(column.Component, curve, amplitude, calibration,
+                                           fwhmCalibration, efficiency, gain, offset,
+                                           chLo, chHi, channels, liveTime, fit.Z[k],
+                                           result, ref totalPeakCounts, ref allPeakCounts))
+                {
+                    continue;
                 }
 
                 // Та часть кривой, что пришла от сумм-пиков: та же амплитуда,
@@ -1351,6 +1446,154 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Разложить колонку СВЯЗАННОГО РАВНОВЕСИЕМ ряда на строки его членов
+        /// (`S70`, поправка Amber 18.08.2026). Возвращает false, если колонка
+        /// рядом не является и её надо отчитать как обычно.
+        ///
+        /// Связка равновесия трогает ЧИСЛО СВОБОДНЫХ АМПЛИТУД, а не состав: у
+        /// ряда одна колонка в фите, но читателю полагаются те же строки, что и
+        /// без неё. Доли между членами при этом не подгоняются данными — они
+        /// закреплены накопленной долей ветвления, и в этом весь смысл галки.
+        ///
+        /// ⚠ Члены раскладываются так, чтобы их сумма ТОЧНО равнялась кривой
+        /// колонки: доля канала раздаётся по весу образов членов в этом канале.
+        /// Строить членам образы независимо и класть их как есть нельзя — у
+        /// матричного образа подпороговый хвост отвязывается от ПОЛНОЙ колонки
+        /// (<see cref="ResponseContinuumTrustFloorKev"/>), и сумма независимо
+        /// построенных членов разошлась бы с ней на этот хвост. Верх стека
+        /// обязан сходиться с моделью.
+        /// </summary>
+        bool SplitChainMembers(FsaComponent component, double[] curve, double amplitude,
+                               EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
+                               FsaEfficiency efficiency, double gain, double offset,
+                               int chLo, int chHi, int channels, double liveTime, double z,
+                               FsaResult result, ref double totalPeakCounts, ref double allPeakCounts)
+        {
+            if (component.Kind != FsaComponentKind.Chain || component.Lines.Count == 0)
+            {
+                return false;
+            }
+
+            // Члены — в порядке первого появления линии: так строки идут в том
+            // же порядке, в каком ряд обходится от корня.
+            List<string> order = new List<string>();
+            Dictionary<string, FsaComponent> parts =
+                new Dictionary<string, FsaComponent>(StringComparer.OrdinalIgnoreCase);
+            foreach (FsaLine line in component.Lines)
+            {
+                string name = string.IsNullOrEmpty(line.Nuclide) ? component.Name : line.Nuclide;
+                FsaComponent part;
+                if (!parts.TryGetValue(name, out part))
+                {
+                    part = new FsaComponent(name, FsaComponentKind.Single)
+                    {
+                        WeightsAreFinal = component.WeightsAreFinal
+                    };
+                    parts[name] = part;
+                    order.Add(name);
+                }
+
+                part.Lines.Add(line);
+            }
+
+            if (order.Count < 2)
+            {
+                return false;
+            }
+
+            // Образ каждого члена и их сумма по каналам.
+            List<double[]> images = new List<double[]>(order.Count);
+            double[] sum = new double[channels];
+            foreach (string name in order)
+            {
+                double[] image = this.MemberTemplate(parts[name], calibration, fwhmCalibration,
+                                                     efficiency, gain, offset, chLo, chHi, channels);
+                images.Add(image);
+                if (image == null)
+                {
+                    continue;
+                }
+
+                for (int i = chLo; i <= chHi; i++)
+                {
+                    sum[i] += image[i];
+                }
+            }
+
+            for (int m = 0; m < order.Count; m++)
+            {
+                double[] image = images[m];
+                if (image == null)
+                {
+                    continue;
+                }
+
+                double[] part = new double[channels];
+                for (int i = chLo; i <= chHi; i++)
+                {
+                    if (sum[i] > 0.0)
+                    {
+                        part[i] = curve[i] * image[i] / sum[i];
+                    }
+                }
+
+                FsaComponent source = parts[order[m]];
+                double[] sumOnly = this.BuildSumPeakCurve(source, calibration, fwhmCalibration,
+                                                          gain, offset, chLo, chHi, channels);
+                if (sumOnly != null)
+                {
+                    for (int i = 0; i < channels; i++)
+                    {
+                        sumOnly[i] *= amplitude;
+                    }
+                }
+
+                FsaComponentResult member = new FsaComponentResult
+                {
+                    Name = source.Name,
+                    Kind = FsaComponentKind.Single,
+                    Curve = part,
+                    SumPeakCurve = sumOnly,
+                    PeakCounts = this.PeakWindowCounts(source, part, calibration, fwhmCalibration,
+                                                       gain, offset, chLo, chHi, channels),
+                    CountRate = amplitude / liveTime,
+
+                    // ⚠ Значимость у всех членов ОДНА — колонки-то одна. Это не
+                    // упущение, а прямое следствие связки: данные различают ряд
+                    // целиком, а не его члена, и делать вид, что у Ra-224 своя
+                    // значимость, значило бы вернуть ровно ту неправду, ради
+                    // снятия которой связка и заведена.
+                    Z = z
+                };
+
+                result.Components.Add(member);
+                totalPeakCounts += member.PeakCounts;
+                allPeakCounts += member.PeakCounts;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Образ ОДНОГО члена связанного ряда — тем же построителем, что и
+        /// целая колонка, чтобы форма линий и уширение совпадали.
+        /// </summary>
+        double[] MemberTemplate(FsaComponent part, EnergyCalibration calibration,
+                                FwhmCalibration fwhmCalibration, FsaEfficiency efficiency,
+                                double gain, double offset, int chLo, int chHi, int channels)
+        {
+            if (this.ResponseMatrix != null && !part.WeightsAreFinal)
+            {
+                double[] lowTail;
+                return this.BuildTemplateFromResponse(part, calibration, fwhmCalibration,
+                                                      gain, offset, chLo, chHi, channels, out lowTail);
+            }
+
+            return BuildTemplate(part, calibration, fwhmCalibration, efficiency,
+                                 gain, offset, chLo, chHi, channels);
         }
 
         /// <summary>
@@ -2294,30 +2537,56 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return energy > 0.0 ? energy : 0.0;
         }
 
+        /// <summary>
+        /// Образ обратного рассеяния — ОДИН, 110°…180° (`S81`, решение Amber
+        /// 19.08.2026).
+        ///
+        /// ⛔ Прежде их было два, `Backscatter` со 110° и `Backscatter180` со
+        /// 179°, и оба со СВОЕЙ свободной амплитудой. Дефекта там было два, и
+        /// оба измерены 19.08.2026. Первый: интегрировали от своей границы до
+        /// 180°, то есть широкий СОДЕРЖАЛ острый целиком — пара почти
+        /// сонаправленных столбцов, между которыми амплитуда перетекает, не
+        /// меняя невязки. Второй, тяжелее: каждый нормировался на СВОЙ максимум,
+        /// а острый — срез шириной в один градус, в котором ничтожная доля
+        /// рассеянного потока; после нормировки он выходил в фит наравне с
+        /// широким. Процесс физически ОДИН, и масштаб у него должен быть один.
+        ///
+        /// Следствие на экране было такое: на `Th232_29.07.2022.xml` весь вес
+        /// забирал `Backscatter180` (1.895 %) при `Backscatter` z = 0.00, на
+        /// `Чароит в домике.xml` наоборот, — а читатель видит это как «одного из
+        /// двух обратных рассеяний нет».
+        ///
+        /// Теперь угол берётся весь, 110°…180°, одной колонкой: Клейн — Нишина
+        /// и без того даёт там резкий пик у 180° поверх широкого плеча, и
+        /// отдельная свободная амплитуда была не физикой, а ручкой, которой фит
+        /// подгонял остроту бугра.
+        /// </summary>
         static List<FsaComponent> BuildBackscatterComponents(FitResult fit, FsaEfficiency efficiency)
         {
             List<FsaComponent> made = new List<FsaComponent>();
-            FsaComponent broad = BuildBackscatter(fit, efficiency, "Backscatter", 110.0);
-            if (broad != null)
+            FsaComponent all = BuildBackscatter(fit, efficiency, "Backscatter", 110.0, 180.0);
+            if (all != null)
             {
-                made.Add(broad);
-            }
-
-            FsaComponent sharp = BuildBackscatter(fit, efficiency, "Backscatter180", 179.0);
-            if (sharp != null)
-            {
-                made.Add(sharp);
+                made.Add(all);
             }
 
             return made;
         }
 
         static FsaComponent BuildBackscatter(FitResult fit, FsaEfficiency efficiency,
-                                             string name, double thetaMinDegrees)
+                                             string name, double thetaMinDegrees,
+                                             double thetaMaxDegrees)
         {
-            const int Steps = 24;
+            // Шагов по углу стало 180 вместо 24, и это часть той же правки
+            // `S81`: острый срез 179°…180° больше не считается отдельно, значит
+            // край бугра обязан разрешаться самим обходом. При 24 шагах на
+            // 70° один шаг давал до 2.2 кэВ по энергии рассеянного (на 609 кэВ
+            // область 180…234 кэВ), то есть шире бина гистограммы, — гребёнка с
+            // дырами. Цена ничтожна: обход идёт по линиям уже посчитанного фита.
+            const int Steps = 180;
             const double BinKev = 1.0;
             double thetaMin = thetaMinDegrees * Math.PI / 180.0;
+            double thetaMax = thetaMaxDegrees * Math.PI / 180.0;
             Dictionary<int, double> histogram = new Dictionary<int, double>();
 
             for (int k = 0; k < fit.Columns.Count; k++)
@@ -2357,7 +2626,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     double alpha = line.Energy / ElectronMassKev;
                     for (int s = 0; s < Steps; s++)
                     {
-                        double theta = thetaMin + (Math.PI - thetaMin) * (s + 0.5) / Steps;
+                        double theta = thetaMin + (thetaMax - thetaMin) * (s + 0.5) / Steps;
                         double sin = Math.Sin(theta);
                         double ratio = 1.0 / (1.0 + alpha * (1.0 - Math.Cos(theta)));
                         // Клейн — Нишина на телесный угол без общего множителя,
