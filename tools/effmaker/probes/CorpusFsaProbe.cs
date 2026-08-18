@@ -38,7 +38,9 @@ namespace CorpusFsaProbe
     /// себе. Прогоны двух режимов между собой не сравниваются.
     ///
     ///   corpusfsaprobe --corpus=&lt;…\CORPUS\corpus&gt; [--out=out] [--part=all]
-    ///                  [--lib=sample|peaks] [--no-atomic] [--no-room] [--audit]
+    ///                  [--lib=sample|peaks|infer] [--infer-theta=D] [--no-infer-anchor]
+    ///                  [--no-infer-novel]
+    ///                  [--no-atomic] [--no-room] [--audit]
     ///                  [--groups=G1S,ASN16] [--only=G1S24_Th232_Denta120_2]
     ///                  [--mode=spline|snip] [--no-matrix] [--no-cascade]
     ///                  [--no-pileup] [--no-background] [--limit=N] [--quiet]
@@ -98,6 +100,15 @@ namespace CorpusFsaProbe
                 // считается ОДНИМ двоичным файлом.
                 if (a == "--lib=sample") { o.Library = "sample"; continue; }
                 if (a == "--lib=peaks") { o.Library = "peaks"; continue; }
+                if (a == "--lib=infer") { o.Library = "infer"; continue; }
+                if (a == "--no-infer-anchor") { o.InferAnchors = false; continue; }
+                if (a == "--no-infer-novel") { o.InferNovelty = false; continue; }
+                if (a.StartsWith("--infer-theta=", StringComparison.Ordinal))
+                {
+                    o.InferTheta = double.Parse(a.Substring(14), CultureInfo.InvariantCulture);
+                    continue;
+                }
+
                 // S56: атомные образы (рентген пробы, кристалла, защиты и пики
                 // вылета кристалла) и вездесущие ряды комнаты — обе половины
                 // разводятся ключами, потому что цена у них разная и на разных
@@ -233,9 +244,9 @@ namespace CorpusFsaProbe
                 return 2;
             }
 
-            if (o.Library != "sample" && o.Library != "peaks")
+            if (o.Library != "sample" && o.Library != "peaks" && o.Library != "infer")
             {
-                Console.Error.WriteLine("--lib= только sample или peaks");
+                Console.Error.WriteLine("--lib= только sample, peaks или infer");
                 return 2;
             }
 
@@ -268,6 +279,11 @@ namespace CorpusFsaProbe
                 return 2;
             }
 
+            if (o.Library == "infer" && !ReadMatter(o, samples))
+            {
+                return 2;
+            }
+
             Directory.CreateDirectory(o.Out);
 
             GlobalConfigManager.GetInstance();
@@ -290,12 +306,17 @@ namespace CorpusFsaProbe
             Console.WriteLine("библиотека: {0}{1}",
                               o.Library == "sample"
                                   ? "ПО ОБЪЯВЛЕННОЙ ПРОБЕ (S56, manifest.csv + materials.csv)"
-                                  : "по подписям поиска пиков (как до 18.08.2026)",
-                              o.Library == "sample"
+                                  : o.Library == "infer"
+                                      ? "ВЫВЕДЕНА ИЗ ПОИСКА ПИКОВ по цепочке родителя (S57), порог доли "
+                                        + InferTheta(o).ToString("P0", CultureInfo.InvariantCulture)
+                                        + ", якоря " + (o.InferAnchors ? "вкл" : "ВЫКЛ")
+                                        + ", новизна " + (o.InferNovelty ? "вкл" : "ВЫКЛ")
+                                      : "по подписям поиска пиков (как до 18.08.2026)",
+                              o.Library != "peaks"
                                   ? "; атомные образы " + (o.Atomic ? "вкл" : "ВЫКЛ")
                                     + ", вездесущие ряды " + (o.Room ? "вкл" : "ВЫКЛ")
                                   : "");
-            if (o.Library == "sample")
+            if (o.Library != "peaks")
             {
                 Console.WriteLine("⚠ мерки сменили смысл: recall и фантомы считаются относительно"
                                   + " ПРЕДЪЯВЛЕННОГО списка — с прежней базой напрямую не сравнивать");
@@ -386,8 +407,34 @@ namespace CorpusFsaProbe
                     peaks = new PeakDetector().DetectPeak(
                         rd, BackgroundMode.Invisible, SmoothingMethod.None,
                         nuclides.ActiveSet, nuclides.NuclideDefinitions);
-                    library = FsaLibrary.BuildFromPeaks(peaks, nuclides.NuclideDefinitions);
-                    row.LibraryNote = "по подписям поиска пиков";
+                    if (o.Library == "infer")
+                    {
+                        // S57: манифест здесь НЕ ЧИТАЕТСЯ — в этом весь замер.
+                        // Кандидатов даёт общая библиотека прибора (та же, что
+                        // и у `--lib=peaks`), состав — `nucdb`/`matdb`, а
+                        // истина из `manifest.csv` участвует только в МЕРКЕ,
+                        // после прогона.
+                        FsaCompositionInference.Report inferred;
+                        FsaSampleSpec spec = FsaCompositionInference.Infer(
+                            peaks, rd, InferTheta(o), o.InferAnchors, o.InferNovelty,
+                            out inferred);
+                        SpecMatter(spec, rd, sample);
+                        library = FsaSampleLibrary.Build(spec);
+                        row.LibraryNote = inferred.ToString();
+
+                        // Подписи пиков пересобираются из ВЫВЕДЕННОГО состава,
+                        // как и у `--lib=sample`: иначе таблица пиков спорила
+                        // бы с разложением, а кривая эффективности строится по
+                        // площади ПОДПИСАННОГО пика.
+                        peaks = new PeakDetector().DetectPeak(
+                            rd, BackgroundMode.Invisible, SmoothingMethod.None,
+                            null, FsaSampleLibrary.AsDefinitions(library));
+                    }
+                    else
+                    {
+                        library = FsaLibrary.BuildFromPeaks(peaks, nuclides.NuclideDefinitions);
+                        row.LibraryNote = "по подписям поиска пиков";
+                    }
                 }
 
                 row.Peaks = peaks.Count;
@@ -422,7 +469,9 @@ namespace CorpusFsaProbe
                     // причина пишется отдельным словом.
                     row.Error = o.Library == "sample"
                         ? "библиотека пуста (объявленный состав не дал линий в диапазоне)"
-                        : "библиотека пуста (пиков подписано 0)";
+                        : o.Library == "infer"
+                            ? "библиотека пуста (вывод состава не дал ни одного родителя)"
+                            : "библиотека пуста (пиков подписано 0)";
                     row.Ms = clock.Elapsed.TotalMilliseconds;
                 row.CpuMs = (System.Diagnostics.Process.GetCurrentProcess().TotalProcessorTime
                              - cpuBefore).TotalMilliseconds;
@@ -707,6 +756,34 @@ namespace CorpusFsaProbe
             return spec;
         }
 
+        /// <summary>Порог доли прогона: свой или умолчание вывода.</summary>
+        static double InferTheta(Options o)
+        {
+            return o.InferTheta >= 0.0
+                ? o.InferTheta
+                : FsaCompositionInference.DefaultCoverage;
+        }
+
+        /// <summary>
+        /// Вещества ПРИБОРА в выведенный состав — кристалл и защита, и только
+        /// они.
+        ///
+        /// ⛔ Проба сюда НЕ ДОБИРАЕТСЯ, и это существо замера. В поле неизвестен
+        /// СОСТАВ ОБРАЗЦА — прибор же свой, и из чего сделан его кристалл и его
+        /// домик, знает всякий, кто его держит. `materials.csv` для этих двух
+        /// колонок есть законный источник, `manifest.csv` не читается вовсе.
+        ///
+        /// ⚠ Без этого сравнение с `--lib=sample` было бы нечестным в другую
+        /// сторону: у сорока семи спектров корпуса геометрии нет, кристалл и
+        /// защиту им даёт только эта таблица, и выведенный состав проиграл бы
+        /// им атомными образами, а не составом. Разводить надо то, что мерим.
+        /// </summary>
+        static void SpecMatter(FsaSampleSpec spec, ResultData rd, Sample sample)
+        {
+            AddElements(spec.CrystalElements, sample.Crystal);
+            AddElements(spec.ShieldElements, sample.Shield);
+        }
+
         static void AddElements(List<int> into, List<string> symbols)
         {
             foreach (string symbol in symbols)
@@ -811,6 +888,45 @@ namespace CorpusFsaProbe
                 Console.Error.WriteLine("в манифесте нет состава для: "
                                         + string.Join(", ", silent.ToArray()));
                 return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Только `materials.csv`, и только колонки прибора, — для `--lib=infer`.
+        ///
+        /// Отдельный читатель, а не флаг у <see cref="ReadTruth"/>, нарочно:
+        /// тот обязан ОТКАЗАТЬ без манифеста, а этому манифест не нужен и
+        /// брать его нельзя. Один метод с двумя такими режимами рано или поздно
+        /// прочитал бы истину там, где её знать не полагается.
+        /// </summary>
+        static bool ReadMatter(Options o, List<Sample> samples)
+        {
+            string materials = Path.Combine(o.Corpus, "materials.csv");
+            if (!File.Exists(materials))
+            {
+                Console.Error.WriteLine("нет " + materials
+                    + " — соберите его: python tools/CORPUS/scripts/mk_materials.py");
+                return false;
+            }
+
+            var byKey = new Dictionary<string, Sample>(StringComparer.Ordinal);
+            foreach (Sample s in samples)
+            {
+                byKey[s.Key] = s;
+            }
+
+            foreach (Dictionary<string, string> row in ReadTable(materials))
+            {
+                Sample s;
+                if (!byKey.TryGetValue(Value(row, "spectrum"), out s))
+                {
+                    continue;
+                }
+
+                s.Crystal.AddRange(Split(Value(row, "crystal")));
+                s.Shield.AddRange(Split(Value(row, "shield")));
             }
 
             return true;
@@ -1853,11 +1969,39 @@ namespace CorpusFsaProbe
             public bool RebinBackground = true;
 
             /// <summary>
-            /// (S56) Чем задан состав библиотеки: `sample` — объявленной пробой
-            /// (первый постулат Amber, умолчание с 18.08.2026), `peaks` —
-            /// подписями поиска пиков (как было). A/B-сторона — `--lib=peaks`.
+            /// (S56, S57) Чем задан состав библиотеки: `sample` — объявленной
+            /// пробой (первый постулат Amber, умолчание с 18.08.2026), `peaks` —
+            /// подписями поиска пиков (как было), `infer` — ВЫВЕДЕН из поиска
+            /// пиков по цепочке родителя (`S57`, прибор в поле).
+            ///
+            /// ⛔ Три эти числа НЕ ОДНОГО СМЫСЛА и рядом не ставятся без оговорки.
+            /// `sample` знает истину из `manifest.csv` — это верхняя граница
+            /// того, что вывод может дать; `peaks` — нижняя, состав как есть.
+            /// `infer` меряется ПРОТИВ ОБЕИХ: он обязан подойти к первой и
+            /// заметно обойти вторую, иначе выводить нечего.
             /// </summary>
             public string Library = "sample";
+
+            /// <summary>
+            /// (S57) Порог доли ожидаемо-различимых линий; отрицательный —
+            /// умолчание <c>FsaCompositionInference.DefaultCoverage</c>. Ключ
+            /// заведён ради РАЗВЁРТКИ: величина порога обязана быть выведена
+            /// замером по корпусу, а не назначена.
+            /// </summary>
+            public double InferTheta = -1.0;
+
+            /// <summary>
+            /// (S57) Второй путь в состав — неспутываемая главная линия.
+            /// A/B-сторона <c>--no-infer-anchor</c>: якорь оправдан, только если он
+            /// НАБИРАЕТ recall быстрее, чем набирает фантомов.
+            /// </summary>
+            public bool InferAnchors = true;
+
+            /// <summary>
+            /// (S57) Третье условие приёма — кандидат обязан принести СВОЮ
+            /// структуру, а не сесть на чужую. A/B-сторона <c>--no-infer-novel</c>.
+            /// </summary>
+            public bool InferNovelty = true;
 
             /// <summary>(S56) Атомные образы: рентген и пики вылета. A/B — `--no-atomic`.</summary>
             public bool Atomic = true;

@@ -43,6 +43,7 @@ namespace BecquerelMonitor
             this.textColumn6 = new XPTable.Models.TextColumn();
             this.tableModel1 = new XPTable.Models.TableModel();
             this.numericUpDown1 = new System.Windows.Forms.NumericUpDown();
+            this.checkBoxDbLookups = new System.Windows.Forms.CheckBox();
             this.label1 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
@@ -132,6 +133,13 @@ namespace BecquerelMonitor
             this.numericUpDown1.Name = "numericUpDown1";
             this.numericUpDown1.ValueChanged += new System.EventHandler(this.numericUpDown1_ValueChanged);
             //
+            // checkBoxDbLookups
+            //
+            resources.ApplyResources(this.checkBoxDbLookups, "checkBoxDbLookups");
+            this.checkBoxDbLookups.Name = "checkBoxDbLookups";
+            this.checkBoxDbLookups.UseVisualStyleBackColor = true;
+            this.checkBoxDbLookups.CheckedChanged += new System.EventHandler(this.checkBoxDbLookups_CheckedChanged);
+            //
             // label1
             // 
             resources.ApplyResources(this.label1, "label1");
@@ -212,6 +220,7 @@ namespace BecquerelMonitor
             this.Controls.Add(this.numericUpDown3);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.label1);
+            this.Controls.Add(this.checkBoxDbLookups);
             this.Controls.Add(this.numericUpDown1);
             this.Controls.Add(this.table1);
             this.HideOnClose = true;
@@ -236,6 +245,7 @@ namespace BecquerelMonitor
         private XPTable.Models.NumberColumn textColumn5;
         private XPTable.Models.TextColumn textColumn6;
         private System.Windows.Forms.NumericUpDown numericUpDown1;
+        private System.Windows.Forms.CheckBox checkBoxDbLookups;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.NumericUpDown numericUpDown3;
