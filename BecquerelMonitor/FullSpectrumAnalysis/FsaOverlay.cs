@@ -189,10 +189,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 analyzer.MaxEnergy = peakConfig.Max_Range;
             }
 
-            // Галка читается ЗДЕСЬ, на UI-потоке, вместе со всеми прочими
-            // снимками: тот же самый флаг решает и отпечаток, и ветку счёта, и
-            // прочитанный дважды в разные моменты он развёл бы их.
+            // Галки читаются ЗДЕСЬ, на UI-потоке, вместе со всеми прочими
+            // снимками: те же самые флаги решают и отпечаток, и ветку счёта, и
+            // прочитанные дважды в разные моменты они развели бы их.
             bool dbLookups = DbLookups(resultData);
+            bool equilibrium = ChainEquilibrium(resultData);
 
             Task.Run(() =>
             {
@@ -212,6 +213,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     {
                         FsaCompositionInference.Report inferred;
                         FsaSampleSpec spec = FsaCompositionInference.Infer(peaks, resultData, out inferred);
+                        spec.Equilibrium = equilibrium;
                         Trace.WriteLine("FSA composition: " + inferred);
                         library = FsaSampleLibrary.Build(spec);
                     }
@@ -274,6 +276,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return config != null && config.DbLookupsForFsa;
         }
 
+        /// <summary>
+        /// Ряд связывать равновесием — одна колонка, одна свободная амплитуда
+        /// (`S70`). Настройка живёт там же, где и соседняя, — см.
+        /// <see cref="FWHMPeakDetectionMethodConfig.ChainEquilibrium"/>.
+        ///
+        /// ⚠ Умолчание ВКЛЮЧЕНО, поэтому отсутствие конфигурации у спектра
+        /// читается как «связывать», а не как «нет».
+        /// </summary>
+        static bool ChainEquilibrium(ResultData resultData)
+        {
+            var config = resultData.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
+            return config == null || config.ChainEquilibrium;
+        }
+
         static string BuildStamp(ResultData resultData, bool subtractBackground)
         {
             EnergySpectrum spectrum = resultData.EnergySpectrum;
@@ -307,6 +323,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // библиотеки, и без неё готовое разложение по подписям висело
                 // бы на экране после включения вывода (и наоборот).
                 "|", DbLookups(resultData) ? "db" : "peaks",
+                // Галка «Равновесие» (S70) — по той же причине: ею ряд из
+                // нескольких свободных колонок становится одной, то есть меняется
+                // САМА библиотека, и без неё в отпечатке на экране висело бы
+                // прежнее разложение.
+                "|", ChainEquilibrium(resultData) ? "eq" : "free",
                 "|", peakStamp.ToString());
         }
 

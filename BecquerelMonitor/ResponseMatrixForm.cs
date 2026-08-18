@@ -385,7 +385,14 @@ namespace BecquerelMonitor
             this.cancellation = new CancellationTokenSource();
             this.SetBusy(true);
             this.progressBar.Value = 0;
-            this.progressBar.Maximum = Math.Max(1, options.NodeCount);
+
+            // Полоса — в ТЫСЯЧНЫХ ДОЛЯХ, а не в узлах (`W27`). Узлами её мерить
+            // нельзя по двум причинам сразу: при останове по шуму узел
+            // проходится до трёх раз, и полоса замирала полной с сотого прогона
+            // из трёхсот; а сетка при `ResolveEdges` (умолчание) добирает узлы
+            // на К-краях вещества, и `NodeCount` из поля формы меньше
+            // фактической длины сетки даже при одном проходе.
+            this.progressBar.Maximum = ProgressScale;
 
             var progress = new Progress<ResponseMatrixProgress>(this.ShowProgress);
             try
@@ -439,6 +446,9 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>Делений у полосы хода: доля ведётся по историям, а не по узлам (`W27`).</summary>
+        const int ProgressScale = 1000;
+
         void ShowProgress(ResponseMatrixProgress p)
         {
             if (this.IsDisposed)
@@ -446,10 +456,20 @@ namespace BecquerelMonitor
                 return;
             }
 
-            this.progressBar.Value = Math.Min(this.progressBar.Maximum, p.Done);
-            this.progressLabel.Text = string.Format(CultureInfo.CurrentCulture,
-                Resources.ResponseMatrixProgress, p.Done, p.Total, p.LastEnergyKev,
-                Duration(p.ElapsedSeconds), Duration(p.RemainingSeconds));
+            int value = (int)Math.Round(p.Percent * (ProgressScale / 100.0));
+            this.progressBar.Value = Math.Min(this.progressBar.Maximum, Math.Max(0, value));
+
+            // ⛔ Отрицательный остаток НЕ ПОКАЗЫВАЕТСЯ ВОВСЕ (решение по `W27`),
+            // а не рисуется вопросительным знаком: «около ? осталось» читатель
+            // принимал за сбой счёта, а это всего лишь «судить пока не по чему»
+            // — первые доли секунды, до первой сосчитанной истории.
+            this.progressLabel.Text = p.RemainingSeconds >= 0.0
+                ? string.Format(CultureInfo.CurrentCulture,
+                    Resources.ResponseMatrixProgress, p.Done, p.Total, p.LastEnergyKev,
+                    Duration(p.ElapsedSeconds), Duration(p.RemainingSeconds))
+                : string.Format(CultureInfo.CurrentCulture,
+                    Resources.ResponseMatrixProgressNoEta, p.Done, p.Total, p.LastEnergyKev,
+                    Duration(p.ElapsedSeconds));
         }
 
         void CancelClick(object sender, EventArgs e)

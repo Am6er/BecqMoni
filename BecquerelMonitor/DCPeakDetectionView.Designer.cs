@@ -1,4 +1,4 @@
-namespace BecquerelMonitor
+﻿namespace BecquerelMonitor
 {
     partial class DCPeakDetectionView
     {
@@ -44,6 +44,7 @@ namespace BecquerelMonitor
             this.tableModel1 = new XPTable.Models.TableModel();
             this.numericUpDown1 = new System.Windows.Forms.NumericUpDown();
             this.checkBoxDbLookups = new System.Windows.Forms.CheckBox();
+            this.checkBoxEquilibrium = new System.Windows.Forms.CheckBox();
             this.label1 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
@@ -140,6 +141,15 @@ namespace BecquerelMonitor
             this.checkBoxDbLookups.UseVisualStyleBackColor = true;
             this.checkBoxDbLookups.CheckedChanged += new System.EventHandler(this.checkBoxDbLookups_CheckedChanged);
             //
+            // checkBoxEquilibrium
+            //
+            resources.ApplyResources(this.checkBoxEquilibrium, "checkBoxEquilibrium");
+            this.checkBoxEquilibrium.Name = "checkBoxEquilibrium";
+            this.checkBoxEquilibrium.Checked = true;
+            this.checkBoxEquilibrium.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.checkBoxEquilibrium.UseVisualStyleBackColor = true;
+            this.checkBoxEquilibrium.CheckedChanged += new System.EventHandler(this.checkBoxEquilibrium_CheckedChanged);
+            //
             // label1
             // 
             resources.ApplyResources(this.label1, "label1");
@@ -221,6 +231,7 @@ namespace BecquerelMonitor
             this.Controls.Add(this.label3);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.checkBoxDbLookups);
+            this.Controls.Add(this.checkBoxEquilibrium);
             this.Controls.Add(this.numericUpDown1);
             this.Controls.Add(this.table1);
             this.HideOnClose = true;
@@ -246,6 +257,7 @@ namespace BecquerelMonitor
         private XPTable.Models.TextColumn textColumn6;
         private System.Windows.Forms.NumericUpDown numericUpDown1;
         private System.Windows.Forms.CheckBox checkBoxDbLookups;
+        private System.Windows.Forms.CheckBox checkBoxEquilibrium;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.NumericUpDown numericUpDown3;

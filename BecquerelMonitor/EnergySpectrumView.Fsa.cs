@@ -19,7 +19,16 @@ namespace BecquerelMonitor
     /// </summary>
     public partial class EnergySpectrumView
     {
-        const int FsaMaxNamedLayers = 6;
+        /// <summary>
+        /// Сколько нуклидов называется в легенде поимённо; остальные идут одной
+        /// строкой «other». Мешающие образы (рентген, пики вылета) сюда НЕ
+        /// считаются и показываются сверх лимита.
+        ///
+        /// Шесть → девять, решение Amber 18.08.2026 (`S71`): на
+        /// `Th232_29.07.2022.xml` «other» набрал 8.30 % — больше трёх
+        /// показанных строк вместе взятых.
+        /// </summary>
+        const int FsaMaxNamedLayers = 9;
 
         readonly FsaOverlay fsaOverlay = new FsaOverlay();
 
@@ -619,18 +628,22 @@ namespace BecquerelMonitor
             // +2 — строка качества и строка невязки модели (S51), плюс по
             // строке на каждый слой со своими сумм-пиками, плюс по строке
             // «< МДА» на каждого НЕвошедшего кандидата (S9, решение Amber
-            // 14.08.2026 «показывай»), плюс строка «БЕЗ ФОНА», когда фон не
+            // 14.08.2026 «показывай») и ещё одна, если кто-то из них свёрнут
+            // порогом выхода (S69), плюс строка «БЕЗ ФОНА», когда фон не
             // вычитался (S44).
             return this.GetFsaLayers(result).Count + 2 + this.FsaSumPeakLayers(result).Count
-                   + FsaUndetected(result).Count
+                   + FsaUndetectedNamed(result).Count
+                   + (FsaUndetectedFolded(result).Count > 0 ? 1 : 0)
+                   + (result.SuppressedImages != null
+                      && result.SuppressedImages.Count > 0 ? 1 : 0)
                    + (result.BackgroundUsed ? 0 : 1);
         }
 
         /// <summary>
         /// НЕ вошедшие в состав кандидаты библиотеки с определённым пределом
-        /// обнаружения (S9). Строка «Cs-137 &lt; 192 имп/с» — метрологический
-        /// ответ «не обнаружен»: без МДА он полответа, потому что «не нашли»
-        /// и «не могли найти» — разные вещи. Вырожденные и без МДА не
+        /// обнаружения (S9). Строка «Cs-137 &lt; 0.3 %» — метрологический
+        /// ответ «не обнаружен»: без предела он полответа, потому что «не нашли»
+        /// и «не могли найти» — разные вещи. Вырожденные и без предела не
         /// показываются: врать порогом, которого нет, хуже, чем молчать.
         /// </summary>
         static List<FsaCharacteristicLimit> FsaUndetected(FsaResult result)
@@ -652,6 +665,158 @@ namespace BecquerelMonitor
             }
 
             return found;
+        }
+
+        /// <summary>
+        /// Наименьший суммарный выход излучений нуклида (γ и X на собственный
+        /// распад, %), при котором кандидат ещё показывается СВОЕЙ строкой.
+        ///
+        /// ⛔ Величина НАЗНАЧЕНА Amber 18.08.2026 (`S69`), а не выведена
+        /// разверткой по корпусу, — в отличие от порога `S57`. Кто станет
+        /// «уточнять» её замером, пусть знает это заранее.
+        ///
+        /// Что она делает, посчитано по `nucdb` для обоих природных рядов:
+        /// выбывают Rn-220 (0.114), Po-216 (0.0019), Po-212 (0), Rn-222 (0.079),
+        /// Po-218 (0), Po-214 (0.010), Bi-210 (0), Po-210 (0.001) — ровно
+        /// α-излучатели и эманации; остаются Th-232 (7.42), Ra-228 (3.83),
+        /// Th-228 (10.11), Ra-224 (5.01), Ra-226 (5.28), Pb-210 (26.92),
+        /// K-40 (11.75).
+        ///
+        /// ⚠ Th-232 держится в списке K-рентгеном: по одним гаммам у него
+        /// 0.284 % и он выбыл бы. Потому и считается сумма по γ И ПО X — правило
+        /// априорное, свойство нуклида, а не прибора. То, что этот рентген ниже
+        /// порога большинства сцинтилляторов, — вопрос ДРУГОЙ и здесь не
+        /// решается.
+        ///
+        /// ⛔ Порог — ТОЛЬКО НА ПОКАЗ. Колонка кандидата из фита не убирается:
+        /// эманацией радона видно неравновесие, когда связка `S70` выключена, —
+        /// и ровно ради этого случая свободные амплитуды и оставлены.
+        /// </summary>
+        public const double FsaMinTotalYieldPercent = 1.0;
+
+        /// <summary>
+        /// Кандидат показывается СВОЕЙ строкой: выход у него либо приличный,
+        /// либо НЕИЗВЕСТЕН.
+        ///
+        /// ⚠ Неизвестный выход — это не «мал», и молча прятать по нему нельзя.
+        /// Априорную сумму заполняет только сборка из баз
+        /// (<see cref="FsaSampleLibrary"/>); на прежнем пути состава
+        /// (<see cref="FsaLibrary.BuildFromPeaks"/>, галка «состав из баз»
+        /// выключена — умолчание) её нет, и там список остаётся ровно таким,
+        /// каким был. Практической разницы это не делает: туда кандидат
+        /// попадает, только если поиск пиков уже подписал им пик, то есть
+        /// линии у него заведомо видны.
+        /// </summary>
+        static bool FsaNamedUndetected(FsaCharacteristicLimit limit)
+        {
+            return double.IsNaN(limit.TotalYieldPercent)
+                   || limit.TotalYieldPercent >= FsaMinTotalYieldPercent;
+        }
+
+        static List<FsaCharacteristicLimit> FsaUndetectedNamed(FsaResult result)
+        {
+            List<FsaCharacteristicLimit> found = new List<FsaCharacteristicLimit>();
+            foreach (FsaCharacteristicLimit limit in FsaUndetected(result))
+            {
+                if (FsaNamedUndetected(limit))
+                {
+                    found.Add(limit);
+                }
+            }
+
+            return found;
+        }
+
+        /// <summary>
+        /// Кандидаты, свёрнутые порогом выхода в одну строку (`S69`).
+        /// </summary>
+        static List<FsaCharacteristicLimit> FsaUndetectedFolded(FsaResult result)
+        {
+            List<FsaCharacteristicLimit> found = new List<FsaCharacteristicLimit>();
+            foreach (FsaCharacteristicLimit limit in FsaUndetected(result))
+            {
+                if (!FsaNamedUndetected(limit))
+                {
+                    found.Add(limit);
+                }
+            }
+
+            return found;
+        }
+
+        /// <summary>
+        /// Доля, которую кандидат занял бы в составе, стой его амплитуда на
+        /// пределе обнаружения, % (`S68`).
+        ///
+        /// ⛔ Знаменатель — <see cref="FsaResult.StackTotal"/>, ТОТ ЖЕ, которым
+        /// считаются доли строк состава (решение Amber 18.08.2026): колонка
+        /// читается сверху вниз одной мерой, «Ra-224 8.22 % — Rn-222 &lt; 0.3 %».
+        /// Прежде здесь печатался предел в имп/с, а это не зарегистрированные
+        /// импульсы вовсе: вес линии в образе равен I/100 × ε(E) при профилях
+        /// единичной площади, то есть амплитуда выражена в РАСПАДАХ, и
+        /// «amplitude/liveTime» есть активность в шкале поданной кривой
+        /// эффективности. На `Th232_29.07.2022.xml` подпись прямо приглашала
+        /// сложить несложимое: полная скорость счёта спектра 416.37 имп/с, а у
+        /// Th-232 напечатано «&lt; 607 cps».
+        ///
+        /// NaN — считать нечем (нет предела либо стек пуст).
+        /// </summary>
+        static double FsaLimitSharePercent(FsaResult result, double peakCounts)
+        {
+            return result.StackTotal > 0.0 && !double.IsNaN(peakCounts)
+                ? 100.0 * peakCounts / result.StackTotal
+                : double.NaN;
+        }
+
+        /// <summary>
+        /// Длина списка подавленных имён в знаках. Ограничение по ЗНАКАМ, а
+        /// не по числу имён: «Backscatter180» вчетверо длиннее «W», и три
+        /// имени то помещаются в строку таблицы, то вылезают за подложку.
+        /// Пойман снимком дважды — сперва хвостом у строки качества, потом
+        /// своей строкой при трёх длинных именах.
+        /// </summary>
+        const int FsaMaxSuppressedChars = 24;
+
+        /// <summary>
+        /// Имена подавленных образов (`S78`) для строки «подавлено: …».
+        /// Строки не бывает вовсе, когда подавленных нет: пометка о пустоте — шум.
+        ///
+        /// Имена ОБРЕЗАЮТСЯ по <see cref="FsaMaxSuppressedNames"/>, а хвост
+        /// показывается числом: строка качества и без того несёт χ²/ndf и до
+        /// пяти пометок, а состав из десятка образов вытолкнул бы строку за
+        /// ширину таблицы. Число вместо имён — не сокрытие: читателю сказано,
+        /// СКОЛЬКО их, и по ключу `--lib-dump` пробы список выписывается целиком.
+        /// </summary>
+        static List<string> FsaSuppressedNames(FsaResult result)
+        {
+            List<string> names = new List<string>();
+            int used = 0;
+            for (int k = 0; k < result.SuppressedImages.Count; k++)
+            {
+                string name = FsaPalette.DisplayName(result.SuppressedImages[k].Name);
+                if (names.Count > 0 && used + name.Length > FsaMaxSuppressedChars)
+                {
+                    names.Add(string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                                            Resources.FSASuppressedMore,
+                                            result.SuppressedImages.Count - k));
+                    break;
+                }
+                names.Add(name);
+                used += name.Length + 2;
+            }
+
+            return names;
+        }
+
+        /// <summary>Формат предела в легенде: три значащие цифры, как и прежде.</summary>
+        static string FsaLimitText(double sharePercent)
+        {
+            return string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                                 Resources.FSAMdaValue,
+                                 double.IsNaN(sharePercent)
+                                     ? "?"
+                                     : sharePercent.ToString("G3",
+                                           System.Globalization.CultureInfo.CurrentCulture));
         }
 
         /// <summary>
@@ -729,16 +894,50 @@ namespace BecquerelMonitor
 
             // «Не обнаружен» с пределом обнаружения (S9): имя серым — у
             // кандидата нет ленты и нет цвета, чёрное имя читалось бы как
-            // строка состава; справа «< МДА» в имп/с, той же колонкой, что
-            // доли. Формат G3 — три значащие цифры, точность пределов выше
-            // трёх цифр была бы враньём.
-            foreach (FsaCharacteristicLimit limit in FsaUndetected(result))
+            // строка состава; справа «< доля» той же колонкой и той же мерой,
+            // что доли состава (S68). Формат G3 — три значащие цифры, точность
+            // пределов выше трёх цифр была бы враньём.
+            foreach (FsaCharacteristicLimit limit in FsaUndetectedNamed(result))
             {
                 g.DrawString(FsaPalette.DisplayName(limit.Name), this.Font, Brushes.Gray, nameRect);
+                g.DrawString(FsaLimitText(FsaLimitSharePercent(result, limit.DetectionLimitPeakCounts)),
+                             this.Font, Brushes.Gray, r, this.farFormat);
+                r.Y += FsaTableRowHeight;
+                nameRect.Y += FsaTableRowHeight;
+            }
+
+            // (S69) Кандидаты, которые АПРИОРИ не могут показать себя гаммой, —
+            // одной строкой с суммарным пределом. Их предел не ограничивает
+            // содержание ничем, и печатать его отдельным числом на каждого
+            // значило бы выдавать за измерение то, что измерением не является:
+            // у Po-216 гамма одна, 804.9 кэВ с выходом 0.0019 %, у Po-212
+            // излучений в таблице нет вовсе.
+            //
+            // ⛔ Это ВТОРАЯ «прочие» в таблице, и она НЕ ТА, что в составе
+            // (S71): та сворачивает ОБНАРУЖЕННЫХ сверх лимита названных, эта —
+            // НЕ обнаруженных ниже порога выхода. Поэтому у неё своя подпись со
+            // своим числом свёрнутых имён — сложить два разных числа читатель
+            // не должен даже случайно.
+            //
+            // ⚠ Сумма пределов как верхняя граница законна (если каждое
+            // a_i < L_i, то Σa_i < ΣL_i), но доверительный уровень у суммы уже
+            // не 95 %, и подпись этого не обещает.
+            List<FsaCharacteristicLimit> folded = FsaUndetectedFolded(result);
+            if (folded.Count > 0)
+            {
+                double sum = 0.0;
+                foreach (FsaCharacteristicLimit limit in folded)
+                {
+                    if (!double.IsNaN(limit.DetectionLimitPeakCounts))
+                    {
+                        sum += limit.DetectionLimitPeakCounts;
+                    }
+                }
+
                 g.DrawString(string.Format(System.Globalization.CultureInfo.CurrentCulture,
-                                           Resources.FSAMdaValue,
-                                           limit.DetectionLimitRate.ToString("G3",
-                                               System.Globalization.CultureInfo.CurrentCulture)),
+                                           Resources.FSAUndetectedFoldedRow, folded.Count),
+                             this.Font, Brushes.Gray, nameRect);
+                g.DrawString(FsaLimitText(FsaLimitSharePercent(result, sum)),
                              this.Font, Brushes.Gray, r, this.farFormat);
                 r.Y += FsaTableRowHeight;
                 nameRect.Y += FsaTableRowHeight;
@@ -755,6 +954,29 @@ namespace BecquerelMonitor
             if (!result.BackgroundUsed)
             {
                 g.DrawString(Resources.FSANoBackgroundMark, this.Font, Brushes.Firebrick, nameRect);
+                r.Y += FsaTableRowHeight;
+                nameRect.Y += FsaTableRowHeight;
+            }
+
+            // (S78) Образы, построенные и предъявленные фиту, но не дожившие до
+            // отчёта, — СВОЕЙ строкой, серым, БЕЗ ЧИСЛА (решение Amber
+            // 18.08.2026: «числа состава ему не давать, доля у него ноль»).
+            // Строка отдельная, а не хвост строки качества: приписанная к χ²
+            // пометка не помещалась в ширину таблицы и вылезала за подложку —
+            // ровно то, чем `S44` уже платила однажды.
+            //
+            // Молчание тут стоило дорого дважды. `S49`: `Ann-511` с 70 542
+            // пиковыми отсчётами печаталась нулём и выглядела отсутствующей.
+            // `S78`: на чароите ни `Backscatter`, ни `Esc-Cs`, ни рентген иода
+            // при кристалле CsI — а построены были все, просто отсев по
+            // значимости (`FsaAnalyzer.RefitZ`, умолчание 3) убирает колонку из
+            // результата целиком, вместе со следом.
+            if (result.SuppressedImages != null && result.SuppressedImages.Count > 0)
+            {
+                g.DrawString(string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                                           Resources.FSASuppressedMark,
+                                           string.Join(", ", FsaSuppressedNames(result).ToArray())),
+                             this.Font, Brushes.Gray, nameRect);
                 r.Y += FsaTableRowHeight;
                 nameRect.Y += FsaTableRowHeight;
             }

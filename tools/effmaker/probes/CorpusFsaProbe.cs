@@ -40,7 +40,7 @@ namespace CorpusFsaProbe
     ///   corpusfsaprobe --corpus=&lt;…\CORPUS\corpus&gt; [--out=out] [--part=all]
     ///                  [--lib=sample|peaks|infer] [--infer-theta=D] [--no-infer-anchor]
     ///                  [--no-infer-novel]
-    ///                  [--no-atomic] [--no-room] [--audit]
+    ///                  [--no-atomic] [--no-room] [--no-equilibrium] [--audit] [--lib-dump]
     ///                  [--groups=G1S,ASN16] [--only=G1S24_Th232_Denta120_2]
     ///                  [--mode=spline|snip] [--no-matrix] [--no-cascade]
     ///                  [--no-pileup] [--no-background] [--limit=N] [--quiet]
@@ -119,6 +119,8 @@ namespace CorpusFsaProbe
                 // состава и пишет свой файл, а нужна не каждому прогону.
                 if (a == "--audit") { o.Audit = true; continue; }
                 if (a == "--no-room") { o.Room = false; continue; }
+                if (a == "--no-equilibrium") { o.Equilibrium = false; continue; }
+                if (a == "--lib-dump") { o.LibDump = true; continue; }
                 if (a == "--quiet") { o.Quiet = true; continue; }
                 if (a == "--peaks") { o.Peaks = true; continue; }
                 if (a == "--partial") { o.Partial = true; continue; }
@@ -419,6 +421,7 @@ namespace CorpusFsaProbe
                             peaks, rd, InferTheta(o), o.InferAnchors, o.InferNovelty,
                             out inferred);
                         SpecMatter(spec, rd, sample);
+                        spec.Equilibrium = o.Equilibrium;
                         library = FsaSampleLibrary.Build(spec);
                         row.LibraryNote = inferred.ToString();
 
@@ -439,6 +442,24 @@ namespace CorpusFsaProbe
 
                 row.Peaks = peaks.Count;
                 row.LibrarySize = library.Count;
+
+                // (S70) Состав библиотеки построчно — мерка приёмки связки
+                // равновесия. Печатается ДО разбора: сравнивать надо то, что
+                // предъявлено фиту, а не то, что из фита вышло, — иначе
+                // разница отсева по значимости выдаёт себя за разницу состава.
+                if (o.LibDump)
+                {
+                    foreach (FsaComponent c in library)
+                    {
+                        Console.WriteLine("LIB	{0}	{1}	{2}	{3}",
+                                          row.Key, c.Name, c.Kind, c.Lines.Count);
+                    }
+                }
+
+                // (S78) И кто из построенного до отчёта не дожил, с той
+                // значимостью, с которой его видели живым в последний раз.
+                // Печатается ПОСЛЕ разбора, поэтому строка идёт ниже; здесь
+                // только оговорка, чтобы её искали рядом.
 
                 // Состав ДО фита: без него «компонента нет в разложении» значит
                 // разом три разных случая — финдер не нашёл пика, финдер нашёл
@@ -591,6 +612,20 @@ namespace CorpusFsaProbe
                 }
 
                 row.Result = result;
+
+                // (S78) Кто был построен и предъявлен фиту, но до отчёта не
+                // дожил — с той значимостью, с которой его видели живым в
+                // последний раз. Без этой строки «образ не строился» и
+                // «образ признан незначимым» в сводке неразличимы.
+                if (o.LibDump && result.SuppressedImages != null)
+                {
+                    foreach (FsaSuppressedImage s in result.SuppressedImages)
+                    {
+                        Console.WriteLine("CUT	{0}	{1}	{2}	{3}",
+                                          row.Key, s.Name, s.Kind,
+                                          s.Z.ToString("F2", CultureInfo.InvariantCulture));
+                    }
+                }
                 row.Chi2Ndf = result.Chi2Ndf;
                 row.Chi2NdfPoisson = result.Chi2NdfPoisson;
                 row.ModelResidual = result.ModelResidual;
@@ -703,7 +738,12 @@ namespace CorpusFsaProbe
         /// </summary>
         static FsaSampleSpec SpecOf(ResultData rd, Sample sample, Options o)
         {
-            var spec = new FsaSampleSpec { Room = o.Room, AtomicXray = o.Atomic };
+            var spec = new FsaSampleSpec
+            {
+                Room = o.Room,
+                AtomicXray = o.Atomic,
+                Equilibrium = o.Equilibrium
+            };
             foreach (string label in sample.Chains)
             {
                 FsaSampleChain chain = ChainOf(label);
@@ -741,8 +781,11 @@ namespace CorpusFsaProbe
                 // его низа. Поймано измерением 18.08.2026: у ASN16 нижняя
                 // граница выше 28.6 кэВ, и иод CsI отсеивался целиком — вместе
                 // со своими пиками вылета, которые видны прекрасно.
-                spec.CrystalElements.AddRange(FsaSampleLibrary.HeavyElementsOf(
-                    geometry.Crystal, 0.01, 0.0, double.MaxValue));
+                // Кристалл целиком — с массовыми долями и именем вещества
+                // (`S84`): образ вылета у него ОДИН, соотношение его членов
+                // задаёт вещество.
+                FsaSampleLibrary.DescribeCrystal(spec, geometry.Crystal, 0.01,
+                    EfficiencySimulator.ScintillatorNameOf(geometry));
 
                 // У ПРОБЫ окно ставится: она вне кристалла, вылета не даёт, и
                 // элемент, чья K-серия ниже рабочего низа, не даёт ничего.
@@ -1463,12 +1506,29 @@ namespace CorpusFsaProbe
                     // ВСЕХ образов, она есть у каждого (S49). Читать «сколько
                     // занимает компонент» надо по второй: `Ann-511` с 3.1 %
                     // отсчётов по первой выглядела отсутствующей.
-                    comps.WriteLine("spectrum,det,part,component,kind,share_pct,z,count_rate,peak_counts,"
-                                    + "dt_cps,mda_cps,zone_chi2ndf,zone_dd,zone_n,peak_share_pct");
+                    // ⛔ Колонки величины пределов подписаны НЕ «cps», и это не
+                    // косметика (`S68`): вес линии в образе равен I/100 × ε(E) при
+                    // профилях единичной площади, значит амплитуда выражена в
+                    // РАСПАДАХ, а `amplitude/liveTime` есть распадов в секунду В ШКАЛЕ
+                    // ПОДАННОЙ КРИВОЙ ЭФФЕКТИВНОСТИ — не зарегистрированные импульсы.
+                    // На `Th232_29.07.2022.xml` разница была видна прямо: полная
+                    // скорость счёта спектра 416.37, а у Th-232 предел 607.
+                    // ⚠ Беккерелями это НЕ называется по другой причине и она
+                    // остаётся в силе: абсолютный уровень кривой недостоверен
+                    // (`E1`, `V1`).
+                    comps.WriteLine("spectrum,det,part,component,kind,share_pct,z,decay_s,peak_counts,"
+                                    + "dt_decay_s,mda_decay_s,zone_chi2ndf,zone_dd,zone_n,peak_share_pct");
                     // Пределы S9 — по ВСЕМ кандидатам библиотеки, включая не
                     // вошедших в состав: у «не обнаружен» без МДА нет смысла.
-                    limits.WriteLine("spectrum,det,part,component,kind,detected,count_rate,"
-                                     + "dt_cps,mda_cps,degenerate,collinearity");
+                    // `mda_peak_counts` (`S68`) — отсчёты образа в его пиковых окнах
+                    // при амплитуде НА ПРЕДЕЛЕ: числитель той доли, которую легенда
+                    // теперь и печатает вместо величины в имп/с. `total_yield_pct`
+                    // (`S69`) — суммарный выход всех γ и X на СОБСТВЕННЫЙ распад
+                    // нуклида, по нему легенда решает, показывать ли кандидата
+                    // своей строкой; пусто — сборка библиотеки его не знает.
+                    limits.WriteLine("spectrum,det,part,component,kind,detected,decay_s,"
+                                     + "dt_decay_s,mda_decay_s,degenerate,collinearity,"
+                                     + "mda_peak_counts,total_yield_pct");
                     foreach (Row r in rows)
                     {
                         if (r.Det != group)
@@ -1521,7 +1581,9 @@ namespace CorpusFsaProbe
                                 L.Detected ? "1" : "0",
                                 F(L.CountRate, "E4"),
                                 F(L.DecisionThresholdRate, "E4"), F(L.DetectionLimitRate, "E4"),
-                                L.Degenerate ? "1" : "0", F(L.Collinearity, "F4")));
+                                L.Degenerate ? "1" : "0", F(L.Collinearity, "F4"),
+                                F(L.DetectionLimitPeakCounts, "F1"),
+                                F(L.TotalYieldPercent, "F4")));
                         }
                     }
                 }
@@ -2008,6 +2070,21 @@ namespace CorpusFsaProbe
 
             /// <summary>(S56) Вездесущие K-40 / Th-232 / Ra-226. A/B — `--no-room`.</summary>
             public bool Room = true;
+
+            /// <summary>
+            /// (S70) Ряд связан равновесием: одна колонка, одна свободная
+            /// амплитуда, относительные веса от ветвления. A/B-сторона
+            /// `--no-equilibrium` возвращает свободную амплитуду каждому члену.
+            /// </summary>
+            public bool Equilibrium = true;
+
+            /// <summary>
+            /// (S70) Печатать СОСТАВ БИБЛИОТЕКИ построчно — мерка приёмки
+            /// связки равновесия: она не смеет убирать ни одного компонента,
+            /// кроме слияния членов ряда, и проверяется это сравнением двух
+            /// таких распечаток, а не рассуждением. `--lib-dump`.
+            /// </summary>
+            public bool LibDump;
 
             /// <summary>(S60) Сверять линии, которые обязаны быть, — `--audit`.</summary>
             public bool Audit;

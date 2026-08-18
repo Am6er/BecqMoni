@@ -290,8 +290,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // кристалла не только светит сам, но и уносит энергию вылетом,
                 // а пик вылета стоит на E − Kα, то есть внутри окна даже когда
                 // сама Kα ниже его низа (измерено 18.08.2026 на ASN16).
-                spec.CrystalElements.AddRange(FsaSampleLibrary.HeavyElementsOf(
-                    geometry.Crystal, 0.01, 0.0, double.MaxValue));
+                // Кристалл идёт целиком — с долями и именем вещества (`S84`):
+                // образ вылета у него ОДИН, и соотношение его членов задаёт
+                // вещество, а не фит.
+                FsaSampleLibrary.DescribeCrystal(spec, geometry.Crystal, 0.01,
+                    EfficiencySimulator.ScintillatorNameOf(geometry));
                 spec.SampleElements.AddRange(FsaSampleLibrary.HeavyElementsOf(
                     geometry.Source, 0.01, spec.MinEnergyKev, spec.MaxEnergyKev));
             }

@@ -139,6 +139,9 @@
   <data name="checkBoxDbLookups.Text" xml:space="preserve">
     <value>Искать состав FSA в базах</value>
   </data>
+  <data name="checkBoxEquilibrium.Text" xml:space="preserve">
+    <value>Равновесие</value>
+  </data>
   <data name="label3.Text" xml:space="preserve">
     <value>Допуск</value>
   </data>

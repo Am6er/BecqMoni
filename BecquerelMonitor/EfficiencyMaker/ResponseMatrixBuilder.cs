@@ -7,12 +7,46 @@ using System.Threading.Tasks;
 
 namespace BecquerelMonitor.EfficiencyMaker
 {
-    /// <summary>Ход построения — для прогрессбара и оценки остатка.</summary>
+    /// <summary>
+    /// Ход построения — для прогрессбара и оценки остатка.
+    ///
+    /// ⛔ <see cref="Done"/> и <see cref="Total"/> считают ПРОГОНЫ УЗЛОВ, а не
+    /// узлы, и это не придирка к слову (`W27`). При останове по шуму — а это
+    /// УМОЛЧАНИЕ (<c>ContinuumErrorTarget = 3.0</c>) — сетка проходится не один
+    /// раз: проба по всем узлам плюс до двух уточняющих раундов по недобравшим
+    /// (<c>MaxNodePasses</c>). Прежде <see cref="Done"/> считал прогоны, а
+    /// <see cref="Total"/> стоял на числе узлов, отчего на экране появлялось
+    /// «Node 121 of 100», полоса замирала полной с сотого прогона, а остаток
+    /// уходил в минус и рисовался знаком вопроса — ровно в той фазе, где он и
+    /// нужен.
+    ///
+    /// План работ заранее НЕ ИЗВЕСТЕН и известен быть не может: сколько узлов
+    /// попросит второго прохода, видно только по достигнутому ими шуму. Поэтому
+    /// <see cref="Total"/> и <see cref="TotalHistories"/> РАСТУТ по ходу счёта:
+    /// закончив прогон узла, строитель тут же считает, нужен ли узлу следующий,
+    /// и добавляет его в план. Так план не прыгает ступенькой на границе фаз, а
+    /// расширяется по одному узлу — и знаменатель всегда честен на один раунд
+    /// вперёд.
+    /// </summary>
     public sealed class ResponseMatrixProgress
     {
+        /// <summary>Прогонов узлов закончено.</summary>
         public int Done;
 
+        /// <summary>Прогонов узлов в плане на этот момент; растёт по ходу счёта.</summary>
         public int Total;
+
+        /// <summary>
+        /// Историй сосчитано. Долю ведём по ним, а не по прогонам: пробный
+        /// проход идёт по <c>Histories/PilotDivisor</c> (вдесятеро меньше), а
+        /// уточняющий — до <c>Histories × MaxHistoriesFactor</c> (в восемь раз
+        /// больше), то есть прогон прогону дороже в восемьдесят раз и мерить
+        /// время их числом нельзя.
+        /// </summary>
+        public long DoneHistories;
+
+        /// <summary>Историй в плане на этот момент; растёт вместе с <see cref="Total"/>.</summary>
+        public long TotalHistories;
 
         public double ElapsedSeconds;
 
@@ -22,9 +56,15 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>Энергия последнего посчитанного узла, кэВ.</summary>
         public double LastEnergyKev;
 
+        /// <summary>Доля сделанного, % — ПО ИСТОРИЯМ (см. <see cref="DoneHistories"/>).</summary>
         public double Percent
         {
-            get { return this.Total > 0 ? 100.0 * this.Done / this.Total : 0.0; }
+            get
+            {
+                return this.TotalHistories > 0L
+                    ? 100.0 * this.DoneHistories / this.TotalHistories
+                    : 0.0;
+            }
         }
     }
 
@@ -88,7 +128,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                 channelRows[c] = new float[grid.Length][];
             }
             var watch = Stopwatch.StartNew();
+
+            // Счётчики хода (`W27`). Прогоны и истории ведутся ПОРОЗНЬ: подпись
+            // «узел такой-то из стольких-то» читается прогонами, а полоса и
+            // остаток — историями, потому что прогон прогону не ровня.
             int done = 0;
+            int planned = 0;
+            long doneHistories = 0L;
+            long plannedHistories = 0L;
 
             int threads = options.Threads > 0
                 ? options.Threads
@@ -134,30 +181,62 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
             };
 
-            Action<int> report = index =>
+            int nominal = Math.Max(1, options.Histories);
+            bool adaptive = options.ContinuumErrorTarget > 0.0;
+            int pilot = adaptive
+                ? Math.Min(nominal, Math.Max(MinPilotHistories,
+                                             nominal / Math.Max(1, options.PilotDivisor)))
+                : nominal;
+            int cap = (int)Math.Min(int.MaxValue,
+                                    (long)nominal * Math.Max(1, options.MaxHistoriesFactor));
+
+            // Прогон узла закончен. `nextHistories` — сколько историй узлу
+            // понадобится СЛЕДУЮЩИМ проходом (0 — следующего не будет): узел
+            // сам себя и досчитывает до плана, поэтому знаменатель растёт ровно
+            // тогда, когда становится известен, а не ступенькой на границе фаз.
+            Action<int, int, int> report = (index, histories, nextHistories) =>
             {
                 if (progress == null)
                 {
                     return;
                 }
 
+                if (nextHistories > 0)
+                {
+                    Interlocked.Increment(ref planned);
+                    Interlocked.Add(ref plannedHistories, nextHistories);
+                }
+
                 int completed = Interlocked.Increment(ref done);
+                long spent = Interlocked.Add(ref doneHistories, histories);
+                int total = Volatile.Read(ref planned);
+                long plan = Interlocked.Read(ref plannedHistories);
                 double elapsed = watch.Elapsed.TotalSeconds;
+
+                // ⚠ Остаток берётся от историй, а не от прогонов, и уйти в
+                // минус больше не может: план по построению не меньше
+                // сделанного. Отрицательным он остаётся только пока судить не
+                // по чему (ни одной истории), и такой остаток форма не
+                // показывает вовсе.
                 progress.Report(new ResponseMatrixProgress
                 {
                     Done = completed,
-                    Total = grid.Length,
+                    Total = total,
+                    DoneHistories = spent,
+                    TotalHistories = plan,
                     ElapsedSeconds = elapsed,
                     LastEnergyKev = grid[index],
-                    RemainingSeconds = completed > 0
-                        ? elapsed / completed * (grid.Length - completed)
+                    RemainingSeconds = spent > 0L && plan >= spent
+                        ? elapsed / spent * (plan - spent)
                         : -1.0
                 });
             };
 
             // Раздача по одному узлу — см. пункт 3 в шапке класса. `order`
             // задаёт, в каком порядке узлы уходят в работу: дорогими вперёд.
-            Action<int[], Func<int, int>> run = (order, historiesOf) =>
+            // `pass` — номер прохода, от нуля: по нему узел решает, положен ли
+            // ему следующий (<see cref="MaxNodePasses"/>).
+            Action<int[], Func<int, int>, int> run = (order, historiesOf, pass) =>
                 Parallel.ForEach(Partitioner.Create(0, order.Length, 1), parallel, chunk =>
                 {
                     for (int slot = chunk.Item1; slot < chunk.Item2; slot++)
@@ -184,12 +263,34 @@ namespace BecquerelMonitor.EfficiencyMaker
                         nodeHistories[index] += histories;
                         nodeLast[index] = histories;
                         store(index, histograms);
-                        report(index);
+
+                        // Нужен ли узлу ещё проход — считается ЗДЕСЬ, тем же
+                        // правилом, по которому вторая фаза его и отберёт
+                        // (<see cref="NeededHistories"/>). Второго правила быть
+                        // не должно: разойдясь, они дали бы план, по которому
+                        // никто не работает.
+                        int next = 0;
+                        if (adaptive && pass + 1 < MaxNodePasses)
+                        {
+                            int need = NeededHistories(histories, achieved,
+                                                       options.ContinuumErrorTarget, cap);
+                            if (need > histories)
+                            {
+                                next = need;
+                            }
+                        }
+
+                        report(index, histories, next);
                     }
                 });
 
-            int nominal = Math.Max(1, options.Histories);
-            bool adaptive = options.ContinuumErrorTarget > 0.0;
+            // План на первый проход известен целиком: он идёт по всем узлам.
+            // Дальше план дописывают сами узлы, из `report`.
+            if (progress != null)
+            {
+                planned = grid.Length;
+                plannedHistories = (long)grid.Length * pilot;
+            }
 
             if (!adaptive)
             {
@@ -201,7 +302,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     order[i] = grid.Length - 1 - i;
                 }
 
-                run(order, index => nominal);
+                run(order, index => nominal, 0);
             }
             else
             {
@@ -220,18 +321,17 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // нужное число историй. Узлы, которым пробы хватило, готовы — им
                 // второй проход не нужен вовсе. Фаза 2 — остальные, В ПОРЯДКЕ
                 // УБЫВАНИЯ нужного N, то есть настоящая LPT-раскладка.
-                int pilot = Math.Min(nominal, Math.Max(MinPilotHistories,
-                                                       nominal / Math.Max(1, options.PilotDivisor)));
-                int cap = (int)Math.Min(int.MaxValue,
-                                        (long)nominal * Math.Max(1, options.MaxHistoriesFactor));
-
+                //
+                // `pilot` и `cap` подняты в тело метода (`W27`): по ним же
+                // считает план счётчик хода, и два вычисления одного числа
+                // однажды разошлись бы.
                 int[] all = new int[grid.Length];
                 for (int i = 0; i < all.Length; i++)
                 {
                     all[i] = grid.Length - 1 - i;
                 }
 
-                run(all, index => pilot);
+                run(all, index => pilot, 0);
 
                 // Уточняющих раундов не больше двух: оценка нужного N сама
                 // шумная, и один промах мимо цели она обычно исправляет, а
@@ -256,7 +356,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     }
 
                     heavy.Sort((a, b) => want[b].CompareTo(want[a]));
-                    run(heavy.ToArray(), index => want[index]);
+                    run(heavy.ToArray(), index => want[index], round);
                 }
             }
 
@@ -463,8 +563,29 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         /// <summary>
         /// Грубая оценка времени до счёта — чтобы форма могла сказать «около
-        /// стольки-то», не запуская построение. Меряется одним узлом в середине
-        /// шкалы и умножается на число узлов с поправкой на потоки.
+        /// стольки-то», не запуская построение.
+        ///
+        /// ⛔ Считает ПО ФАКТИЧЕСКОМУ ПЛАНУ, а не по «узел = <c>Histories</c>
+        /// историй» (`W27`). Прежняя оценка брала ровно `grid.Length` прогонов
+        /// по номиналу каждый и промахивалась вдвойне: при останове по шуму —
+        /// а это умолчание — пробный проход идёт по <c>Histories/PilotDivisor</c>
+        /// (вдесятеро меньше), а уточняющий доходит до
+        /// <c>Histories × MaxHistoriesFactor</c> (в восемь раз больше). На
+        /// экране Amber 18.08.2026 это дало «около 0:32» против записанных у
+        /// матрицы 40 с.
+        ///
+        /// ⛔ И узел брался ОДИН, из середины сетки, а в режиме останова он не
+        /// представителен: стоимость узла там U-образна — внизу шкалы мало
+        /// континуума и узел упирается в потолок историй (`T35`), наверху дорога
+        /// сама история (больше рассеяний до поглощения). Поэтому проб ТРИ — низ,
+        /// середина, верх, — а по сетке стоимость разносится линейно в
+        /// логарифме энергии.
+        ///
+        /// ⚠ Достигнутый пробой шум пересчитывается на пробный проход законом
+        /// 1/√N — тем же, на котором стоит <see cref="NeededHistories"/>. Сама
+        /// проба короткая, и точность этой оценки шума порядка 1/√(2N); для
+        /// «около стольки-то» этого довольно, для приёмки матрицы — нет, и
+        /// приёмка на ней не стоит.
         /// </summary>
         public static double EstimateSeconds(GeometryModel geometry, ResponseMatrixOptions options)
         {
@@ -479,24 +600,154 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             double[] grid = options.BuildGrid(geometry);
-            double probeEnergy = grid[grid.Length / 2];
+            if (grid == null || grid.Length == 0)
+            {
+                return 0.0;
+            }
+
+            int nominal = Math.Max(1, options.Histories);
+            bool adaptive = options.ContinuumErrorTarget > 0.0;
+            int pilot = adaptive
+                ? Math.Min(nominal, Math.Max(MinPilotHistories,
+                                             nominal / Math.Max(1, options.PilotDivisor)))
+                : nominal;
+            int cap = (int)Math.Min(int.MaxValue,
+                                    (long)nominal * Math.Max(1, options.MaxHistoriesFactor));
+
+            int[] samples = SampleNodes(grid.Length);
 
             // Пробный узел считается уменьшенным числом историй: нам нужна
-            // скорость, а не число.
+            // скорость, а не число. Делитель учитывает, что проб теперь
+            // несколько, — общая работа оценки осталась прежней.
             ResponseMatrixOptions probe = options.Clone();
-            probe.Histories = Math.Max(2000, options.Histories / 50);
+            probe.Histories = Math.Max(MinPilotHistories, nominal / (50 * samples.Length));
 
-            EfficiencySimulator sim = MakeSimulator(geometry, probe, 0);
-            var watch = Stopwatch.StartNew();
-            double relativeError;
-            sim.Response(probeEnergy, options.BinKev, out relativeError);
-            watch.Stop();
+            // ⛔ Фазы считаются ПОРОЗНЬ, и не ради точности ради точности.
+            // Пробу видят ВСЕ узлы, а уточнение — только недобравшие, и делить
+            // обе на одно число потоков нельзя: на сетке из двенадцати узлов
+            // при пятнадцати потоках такая оценка занижала втрое. Занятость
+            // фазы ограничена числом узлов В НЕЙ, а не в сетке.
+            double[] energies = new double[samples.Length];
+            double[] pilotCost = new double[samples.Length];
+            double[] refineCost = new double[samples.Length];
+            double[] refineShare = new double[samples.Length];
+            for (int p = 0; p < samples.Length; p++)
+            {
+                int index = samples[p];
+                EfficiencySimulator sim = MakeSimulator(geometry, probe, index);
+                var watch = Stopwatch.StartNew();
+                double relativeError;
+                sim.Response(grid[index], options.BinKev, out relativeError);
+                watch.Stop();
 
-            double perNode = watch.Elapsed.TotalSeconds * options.Histories / probe.Histories;
+                double perHistory = watch.Elapsed.TotalSeconds / probe.Histories;
+                energies[p] = grid[index];
+                pilotCost[p] = perHistory * pilot;
+                if (!adaptive)
+                {
+                    continue;
+                }
+
+                double achieved = sim.LastContinuumRelativeError > 0.0
+                    ? sim.LastContinuumRelativeError
+                      * Math.Sqrt((double)probe.Histories / Math.Max(1, pilot))
+                    : 0.0;
+                int need = NeededHistories(pilot, achieved, options.ContinuumErrorTarget, cap);
+                if (need > pilot)
+                {
+                    // Уточняющий проход считает узел ЗАНОВО, а не досчитывает, —
+                    // значит его истории идут отдельной ценой целиком, а не
+                    // разностью.
+                    refineCost[p] = perHistory * need;
+                    refineShare[p] = 1.0;
+                }
+            }
+
+            double pilotTotal = 0.0, refineTotal = 0.0, heavyNodes = 0.0;
+            for (int i = 0; i < grid.Length; i++)
+            {
+                pilotTotal += InterpolateCost(energies, pilotCost, grid[i]);
+                refineTotal += InterpolateCost(energies, refineCost, grid[i]);
+                heavyNodes += InterpolateCost(energies, refineShare, grid[i]);
+            }
+
             int threads = options.Threads > 0
                 ? options.Threads
                 : Math.Max(1, Environment.ProcessorCount - 1);
-            return perNode * grid.Length / threads;
+            double seconds = pilotTotal / Math.Min(threads, Math.Max(1, grid.Length));
+            if (refineTotal > 0.0)
+            {
+                int heavy = (int)Math.Ceiling(heavyNodes);
+                seconds += refineTotal / Math.Min(threads, Math.Max(1, heavy));
+            }
+
+            return seconds;
+        }
+
+        /// <summary>
+        /// Узлы под пробу — поровну по шкале, от нижнего до верхнего.
+        ///
+        /// Их пять, а не один и не три. Один (как было до `W27`) не годится
+        /// потому, что стоимость узла в режиме останова U-образна: внизу шкалы
+        /// узел упирается в потолок историй, наверху дорога сама история.
+        /// Трёх мало по другой причине: нужное число историй меняется с энергией
+        /// на порядки и выпукло, а линейная прокладка между редкими точками
+        /// выпуклую кривую систематически занижает.
+        /// </summary>
+        static int[] SampleNodes(int count)
+        {
+            if (count <= EstimateSamples)
+            {
+                int[] all = new int[Math.Max(1, count)];
+                for (int i = 0; i < all.Length; i++)
+                {
+                    all[i] = i;
+                }
+
+                return all;
+            }
+
+            int[] samples = new int[EstimateSamples];
+            for (int i = 0; i < EstimateSamples; i++)
+            {
+                samples[i] = (int)Math.Round((double)i * (count - 1) / (EstimateSamples - 1));
+            }
+
+            return samples;
+        }
+
+        /// <summary>Проб под оценку времени; см. <see cref="SampleNodes"/>.</summary>
+        const int EstimateSamples = 5;
+
+        /// <summary>
+        /// Стоимость узла на энергии <paramref name="energyKev"/> — линейно по
+        /// логарифму энергии между пробами; за краями — крайняя проба.
+        /// </summary>
+        static double InterpolateCost(double[] energies, double[] costs, double energyKev)
+        {
+            int last = energies.Length - 1;
+            if (last <= 0 || energyKev <= energies[0])
+            {
+                return costs[0];
+            }
+
+            if (energyKev >= energies[last])
+            {
+                return costs[last];
+            }
+
+            for (int i = 1; i <= last; i++)
+            {
+                if (energyKev <= energies[i])
+                {
+                    double lo = Math.Log(energies[i - 1]);
+                    double hi = Math.Log(energies[i]);
+                    double t = hi > lo ? (Math.Log(energyKev) - lo) / (hi - lo) : 0.0;
+                    return costs[i - 1] + t * (costs[i] - costs[i - 1]);
+                }
+            }
+
+            return costs[last];
         }
     }
 }

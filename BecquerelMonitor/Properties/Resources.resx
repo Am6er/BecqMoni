@@ -8486,7 +8486,16 @@ http://xptable.sourceforge.net/</value>
     <value>{0} %</value>
   </data>
   <data name="FSAMdaValue" xml:space="preserve">
-    <value>&lt; {0} cps</value>
+    <value>&lt; {0} %</value>
+  </data>
+  <data name="FSASuppressedMark" xml:space="preserve">
+    <value>suppressed: {0}</value>
+  </data>
+  <data name="FSASuppressedMore" xml:space="preserve">
+    <value>and {0} more</value>
+  </data>
+  <data name="FSAUndetectedFoldedRow" xml:space="preserve">
+    <value>not determined ({0})</value>
   </data>
   <data name="FSAPileUpName" xml:space="preserve">
     <value>Pile-up</value>
@@ -42994,6 +43003,9 @@ Computed: {7}, took {8:F0} s</value>
   </data>
   <data name="ResponseMatrixProgress" xml:space="preserve">
     <value>Node {0} of {1}, {2:F0} keV. Elapsed {3}, about {4} left.</value>
+  </data>
+  <data name="ResponseMatrixProgressNoEta" xml:space="preserve">
+    <value>Node {0} of {1}, {2:F0} keV. Elapsed {3}.</value>
   </data>
   <data name="ResponseMatrixDone" xml:space="preserve">
     <value>Done in {0}. Not saved yet.</value>
