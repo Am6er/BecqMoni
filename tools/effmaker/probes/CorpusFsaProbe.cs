@@ -28,10 +28,21 @@ namespace CorpusFsaProbe
     /// было бы средним двух разных вещей. Поэтому итог печатается ПО ЧАСТЯМ, и
     /// имя части идёт в каждую строку `runs.csv`.
     ///
+    /// ⛔ **Состав библиотеки с 18.08.2026 задаёт ОБЪЯВЛЕННАЯ ПРОБА** (`S56`,
+    /// первый постулат Amber): `--lib=sample` — умолчание, линии собираются
+    /// `FsaSampleLibrary` из `nucdb`/`matdb` по `manifest.csv` и
+    /// `materials.csv`. Прежний порядок (состав задают подписи поиска пиков)
+    /// остался ключом `--lib=peaks` — это A-сторона замера, а не запасной путь.
+    /// ⚠ Мерки при этом сменили смысл: recall и число фантомов считаются
+    /// относительно ПРЕДЪЯВЛЕННОГО списка, и сужение списка улучшает их само по
+    /// себе. Прогоны двух режимов между собой не сравниваются.
+    ///
     ///   corpusfsaprobe --corpus=&lt;…\CORPUS\corpus&gt; [--out=out] [--part=all]
+    ///                  [--lib=sample|peaks] [--no-atomic] [--no-room] [--audit]
     ///                  [--groups=G1S,ASN16] [--only=G1S24_Th232_Denta120_2]
     ///                  [--mode=spline|snip] [--no-matrix] [--no-cascade]
     ///                  [--no-pileup] [--no-background] [--limit=N] [--quiet]
+    ///                  [--no-xray] [--no-ann] [--no-isomer] [--window=<секунды>]
     ///                  [--limits-mc=N [--mc-component=Имя]] [--huber=M] [--refit-z=Z]
     ///                  [--no-escape-gate]
     ///                  [--partial] [--no-pr-gate] [--gamma=G] [--beta=B]
@@ -71,8 +82,32 @@ namespace CorpusFsaProbe
                 if (a == "--no-matrix") { o.Matrix = false; continue; }
                 if (a == "--no-cascade") { o.Cascade = false; continue; }
                 if (a == "--no-pileup") { o.PileUp = false; continue; }
+                // S27: атомные партнёры каскада. Ключи РАЗДЕЛЯЮЩИЕ — цена
+                // правки снимается одним двоичным файлом, «было/стало» при
+                // одной версии физики. Матрицу они не трогают вовсе (слой
+                // стоит поверх неё), поэтому в клеймо не идут и идти не
+                // должны — правило T42 сюда не относится.
+                if (a == "--no-xray") { o.Xray = false; continue; }
+                if (a == "--no-ann") { o.Annihilation = false; continue; }
+                if (a == "--no-isomer") { o.Isomers = false; continue; }
                 if (a == "--no-backscatter") { o.Backscatter = false; continue; }
                 if (a == "--no-background") { o.Background = false; continue; }
+                // S56: чем задаётся состав библиотеки. `sample` — объявленным
+                // составом пробы (первый постулат), `peaks` — подписями поиска
+                // пиков, как было до 18.08.2026. Ключ, а не пересборка: A/B
+                // считается ОДНИМ двоичным файлом.
+                if (a == "--lib=sample") { o.Library = "sample"; continue; }
+                if (a == "--lib=peaks") { o.Library = "peaks"; continue; }
+                // S56: атомные образы (рентген пробы, кристалла, защиты и пики
+                // вылета кристалла) и вездесущие ряды комнаты — обе половины
+                // разводятся ключами, потому что цена у них разная и на разных
+                // частях корпуса.
+                if (a == "--no-atomic") { o.Atomic = false; continue; }
+                // S60: кросс-проверка по линиям, которые ОБЯЗАНЫ быть.
+                // Ключ, а не умолчание: она стоит прохода по всем линиям
+                // состава и пишет свой файл, а нужна не каждому прогону.
+                if (a == "--audit") { o.Audit = true; continue; }
+                if (a == "--no-room") { o.Room = false; continue; }
                 if (a == "--quiet") { o.Quiet = true; continue; }
                 if (a == "--peaks") { o.Peaks = true; continue; }
                 if (a == "--partial") { o.Partial = true; continue; }
@@ -80,6 +115,16 @@ namespace CorpusFsaProbe
                 if (a == "--no-pr-gate") { o.PartialGate = false; continue; }
                 if (a == "--bg-rebin") { o.RebinBackground = true; continue; }
                 if (a == "--no-bg-rebin") { o.RebinBackground = false; continue; }
+                if (a.StartsWith("--window=", StringComparison.Ordinal))
+                {
+                    // S27: окно совпадения, секунды. У корпусных конфигураций
+                    // мёртвого времени нет (они заглушки нарочно), поэтому
+                    // задать его можно только отсюда. Ноль — умолчание
+                    // суммирователя.
+                    o.WindowSec = double.Parse(a.Substring(9), CultureInfo.InvariantCulture);
+                    continue;
+                }
+
                 if (a.StartsWith("--knots=", StringComparison.Ordinal))
                 {
                     // `B17`: делитель диапазона, задающий самый редкий шаг узлов
@@ -188,6 +233,12 @@ namespace CorpusFsaProbe
                 return 2;
             }
 
+            if (o.Library != "sample" && o.Library != "peaks")
+            {
+                Console.Error.WriteLine("--lib= только sample или peaks");
+                return 2;
+            }
+
             if (o.Part != "all" && o.Part != "known" && o.Part != "unknown")
             {
                 Console.Error.WriteLine("--part= только all, known или unknown");
@@ -208,6 +259,15 @@ namespace CorpusFsaProbe
                 return 2;
             }
 
+            // S56: объявленный состав и вещества вокруг кванта. Читается ДО
+            // прогона и падает, если чего-то нет: молча посчитать «свою базу»
+            // без манифеста значит посчитать не то и не сказать об этом. Ровно
+            // так прожили `E31` и `B14`.
+            if (o.Library == "sample" && !ReadTruth(o, samples))
+            {
+                return 2;
+            }
+
             Directory.CreateDirectory(o.Out);
 
             GlobalConfigManager.GetInstance();
@@ -222,6 +282,33 @@ namespace CorpusFsaProbe
                               o.Cascade ? "вкл" : "выкл", o.PileUp ? "вкл" : "выкл",
                               o.Backscatter ? "вкл" : "выкл",
                               o.Background ? "вычитается, если есть" : "НЕ вычитается");
+            // S56: чем задан состав. Печатается ПЕРВЫМ среди настроек нарочно —
+            // это единица измерения всего прогона: recall и число фантомов
+            // считаются ОТНОСИТЕЛЬНО предъявленного списка, и сужение списка
+            // улучшает обе мерки само по себе. Прогон, у которого эта строка не
+            // записана, с прежней базой сравнивать нельзя.
+            Console.WriteLine("библиотека: {0}{1}",
+                              o.Library == "sample"
+                                  ? "ПО ОБЪЯВЛЕННОЙ ПРОБЕ (S56, manifest.csv + materials.csv)"
+                                  : "по подписям поиска пиков (как до 18.08.2026)",
+                              o.Library == "sample"
+                                  ? "; атомные образы " + (o.Atomic ? "вкл" : "ВЫКЛ")
+                                    + ", вездесущие ряды " + (o.Room ? "вкл" : "ВЫКЛ")
+                                  : "");
+            if (o.Library == "sample")
+            {
+                Console.WriteLine("⚠ мерки сменили смысл: recall и фантомы считаются относительно"
+                                  + " ПРЕДЪЯВЛЕННОГО списка — с прежней базой напрямую не сравнивать");
+            }
+
+            Console.WriteLine("изомеры по sandia_symbol: {0}", o.Isomers ? "вкл" : "ВЫКЛ");
+            Console.WriteLine("атомные партнёры каскада: рентген {0}, аннигиляция {1};"
+                              + " окно совпадения {2:E3} с{3}",
+                              o.Xray ? "вкл" : "ВЫКЛ", o.Annihilation ? "вкл" : "ВЫКЛ",
+                              o.WindowSec > 0.0
+                                  ? o.WindowSec
+                                  : FsaCascadeSummer.DefaultCoincidenceWindowSec,
+                              o.WindowSec > 0.0 ? "" : " (умолчание)");
             Console.WriteLine("сетка дрейфа: ноль ±{0:F2} кэВ, узлов {1} (шаг {2:F3} кэВ);"
                               + " усиление ±{3:P2}, узлов {4}",
                               o.OffsetRangeKev > 0.0 ? o.OffsetRangeKev : 3.0,
@@ -270,12 +357,40 @@ namespace CorpusFsaProbe
                 EnergySpectrum background = o.Background ? rd.BackgroundEnergySpectrum : null;
                 row.HasBackground = background != null;
 
-                List<Peak> peaks = new PeakDetector().DetectPeak(
-                    rd, BackgroundMode.Invisible, SmoothingMethod.None,
-                    nuclides.ActiveSet, nuclides.NuclideDefinitions);
-                row.Peaks = peaks.Count;
+                // ⛔ S56, первый постулат (Amber 17.08.2026). Состав библиотеки
+                // задаёт ОБЪЯВЛЕННАЯ проба, а не подписи поиска пиков: корпус
+                // знает, что снято (`manifest.csv`), и предъявлять спектру всю
+                // поставочную библиотеку значит отдавать необъяснённую структуру
+                // первому подходящему кандидату (`N18`: Pu-238 долей 1.7 % на
+                // одной линии 152 кэВ в 0.0009 %).
+                //
+                // Порядок при этом ПЕРЕВЁРНУТ против прежнего: сперва
+                // библиотека, потом поиск пиков — потому что подписывать пики
+                // он обязан из той же своей базы. Счёт найденных пиков от этого
+                // не меняется (финдер работает до всякой подписи, а вычёркивать
+                // неподписанные некому: `nuclideSet` подаётся пустым), так что
+                // колонка `peaks` остаётся неподвижным контролем.
+                List<FsaComponent> library;
+                List<Peak> peaks;
+                if (o.Library == "sample")
+                {
+                    FsaSampleLibrary.Report built;
+                    library = FsaSampleLibrary.Build(SpecOf(rd, sample, o), out built);
+                    row.LibraryNote = built.ToString();
+                    peaks = new PeakDetector().DetectPeak(
+                        rd, BackgroundMode.Invisible, SmoothingMethod.None,
+                        null, FsaSampleLibrary.AsDefinitions(library));
+                }
+                else
+                {
+                    peaks = new PeakDetector().DetectPeak(
+                        rd, BackgroundMode.Invisible, SmoothingMethod.None,
+                        nuclides.ActiveSet, nuclides.NuclideDefinitions);
+                    library = FsaLibrary.BuildFromPeaks(peaks, nuclides.NuclideDefinitions);
+                    row.LibraryNote = "по подписям поиска пиков";
+                }
 
-                List<FsaComponent> library = FsaLibrary.BuildFromPeaks(peaks, nuclides.NuclideDefinitions);
+                row.Peaks = peaks.Count;
                 row.LibrarySize = library.Count;
 
                 // Состав ДО фита: без него «компонента нет в разложении» значит
@@ -285,8 +400,8 @@ namespace CorpusFsaProbe
                 // в это.
                 if (o.Peaks)
                 {
-                    Console.WriteLine("  {0}: пиков {1}, компонентов {2}",
-                                      sample.Key, peaks.Count, library.Count);
+                    Console.WriteLine("  {0}: пиков {1}, компонентов {2} ({3})",
+                                      sample.Key, peaks.Count, library.Count, row.LibraryNote);
                     foreach (Peak peak in peaks)
                     {
                         Console.WriteLine("      пик {0,9:F2} кэВ  {1}", peak.Energy,
@@ -305,7 +420,9 @@ namespace CorpusFsaProbe
                     // не подписал ни одного пика. Молчаливый ноль уже принимали
                     // за «пиков нет» (см. hpge-peak-search-finds-nothing), потому
                     // причина пишется отдельным словом.
-                    row.Error = "библиотека пуста (пиков подписано 0)";
+                    row.Error = o.Library == "sample"
+                        ? "библиотека пуста (объявленный состав не дал линий в диапазоне)"
+                        : "библиотека пуста (пиков подписано 0)";
                     row.Ms = clock.Elapsed.TotalMilliseconds;
                 row.CpuMs = (System.Diagnostics.Process.GetCurrentProcess().TotalProcessorTime
                              - cpuBefore).TotalMilliseconds;
@@ -319,6 +436,10 @@ namespace CorpusFsaProbe
                     : FsaAnalyzer.ContinuumMode.Spline;
                 analyzer.CascadeSumming = o.Cascade;
                 analyzer.CascadeSumPeaks = o.Cascade;
+                analyzer.CascadeXrayPartners = o.Xray;
+                analyzer.CascadeAnnihilationPartners = o.Annihilation;
+                analyzer.CascadeIsomerPartners = o.Isomers;
+                analyzer.CoincidenceWindowSec = o.WindowSec;
                 analyzer.PileUp = o.PileUp;
                 analyzer.Backscatter = o.Backscatter;
                 if (o.RefitZ >= 0.0)
@@ -449,6 +570,15 @@ namespace CorpusFsaProbe
                 // Карта невязки: где измерение выше модели. Правило общее с
                 // `FsaCascadeProbe` (`ResidualScan`), чтобы числа одного и того
                 // же спектра в двух пробах совпадали.
+                // S60: сверка по линиям, которые обязаны быть. Считается
+                // ПОСЛЕ разбора и его не трогает — это поверка результата, а
+                // не часть модели.
+                if (o.Audit)
+                {
+                    row.Audit = FsaLineAudit.Run(rd.EnergySpectrum, result,
+                                                 rd.FwhmCalibration, library);
+                }
+
                 if (o.Residuals > 0)
                 {
                     Console.WriteLine("  {0}: крупнейшие невязки", sample.Key);
@@ -481,6 +611,261 @@ namespace CorpusFsaProbe
 
             Report(row, o);
             return row;
+        }
+
+        // ------------------------------------------------------------------
+        // S56: объявленный состав спектра -> вход сборщика библиотеки
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Метка ряда в `manifest.csv` -> корень ряда в `nucdb`.
+        ///
+        /// `U-238u` стоит особняком нарочно: это урановое СТЕКЛО, где ряд
+        /// оборван на радии — уран попал в стекло химически очищенным, и
+        /// равновесия ниже Ra-226 нет. Список членов повторяет
+        /// `build_corpus.sample_lines`, где то же самое сделано для калибровки;
+        /// два разных ответа на вопрос «что излучает урановое стекло» в проекте
+        /// держать нельзя.
+        /// </summary>
+        static FsaSampleChain ChainOf(string label)
+        {
+            switch (label)
+            {
+                case "Th-232": return new FsaSampleChain("232TH");
+                case "Th-228": return new FsaSampleChain("228TH");
+                case "Ra-226": return new FsaSampleChain("226RA");
+                case "U-238": return new FsaSampleChain("238U");
+                case "U-235": return new FsaSampleChain("235U");
+                case "U-238u":
+                    return new FsaSampleChain("238U", "238U", "234TH", "234PAm1", "234PA", "234U");
+                default: return null;
+            }
+        }
+
+        /// <summary>
+        /// Объявленный состав спектра плюс вещества вокруг кванта.
+        ///
+        /// Кристалл и проба берутся ИЗ ГЕОМЕТРИИ, если она есть: там они
+        /// записаны веществом, а не догадкой, и второй источник правды завёл бы
+        /// расхождение, которое двигает линии (энергия пика вылета — разность с
+        /// Kα кристалла). `materials.csv` добирает то, чего геометрия не знает
+        /// вовсе: защиту — у всех, кристалл и пробу — у сорока семи спектров
+        /// без геометрии.
+        /// </summary>
+        static FsaSampleSpec SpecOf(ResultData rd, Sample sample, Options o)
+        {
+            var spec = new FsaSampleSpec { Room = o.Room, AtomicXray = o.Atomic };
+            foreach (string label in sample.Chains)
+            {
+                FsaSampleChain chain = ChainOf(label);
+                if (chain != null)
+                {
+                    spec.Chains.Add(chain);
+                }
+            }
+
+            foreach (string nucid in sample.Nuclides)
+            {
+                spec.Nuclides.Add(nucid);
+            }
+
+            if (rd.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig peakConfig
+                && peakConfig.Max_Range > peakConfig.Min_Range)
+            {
+                spec.MinEnergyKev = peakConfig.Min_Range;
+                spec.MaxEnergyKev = peakConfig.Max_Range;
+            }
+
+            // Порог по массовой доле 1 %: ниже него элемент — примесь, а образ
+            // примеси со свободной амплитудой ведёт себя как фантом. Окно по
+            // Kα — рабочий диапазон самого спектра, потому что образ из линий
+            // вне окна фита есть вырожденный столбец в NNLS.
+            GeometryModel geometry = rd.Efficiency != null && rd.Efficiency.HasGeometry
+                ? rd.Efficiency.Geometry : null;
+            if (geometry != null)
+            {
+                // ⚠ У КРИСТАЛЛА окно по Kα не ставится, и это не оплошность.
+                // Элемент кристалла делает ДВЕ разные вещи: светит сам (тогда
+                // его Kα обязана попасть в окно — это проверяется построчно при
+                // сборке образа) и уносит энергию ВЫЛЕТОМ, а пик вылета стоит на
+                // E − Kα, то есть глубоко внутри окна даже когда сама Kα ниже
+                // его низа. Поймано измерением 18.08.2026: у ASN16 нижняя
+                // граница выше 28.6 кэВ, и иод CsI отсеивался целиком — вместе
+                // со своими пиками вылета, которые видны прекрасно.
+                spec.CrystalElements.AddRange(FsaSampleLibrary.HeavyElementsOf(
+                    geometry.Crystal, 0.01, 0.0, double.MaxValue));
+
+                // У ПРОБЫ окно ставится: она вне кристалла, вылета не даёт, и
+                // элемент, чья K-серия ниже рабочего низа, не даёт ничего.
+                spec.SampleElements.AddRange(FsaSampleLibrary.HeavyElementsOf(
+                    geometry.Source, 0.01, spec.MinEnergyKev, spec.MaxEnergyKev));
+            }
+
+            AddElements(spec.CrystalElements, sample.Crystal);
+            AddElements(spec.SampleElements, sample.SampleMatter);
+            AddElements(spec.ShieldElements, sample.Shield);
+            return spec;
+        }
+
+        static void AddElements(List<int> into, List<string> symbols)
+        {
+            foreach (string symbol in symbols)
+            {
+                int z = MaterialDatabase.ZOf(symbol);
+                if (z > 0 && !into.Contains(z))
+                {
+                    into.Add(z);
+                }
+            }
+        }
+
+        /// <summary>
+        /// `manifest.csv` (что снято) и `materials.csv` (чем снято и что вокруг)
+        /// в отобранные спектры.
+        ///
+        /// ⛔ Отсутствие любой из таблиц — ОТКАЗ, а не «поработаем без неё».
+        /// Спектр без объявленного состава получил бы пустую библиотеку и
+        /// строку «библиотека пуста», а спектр без веществ — молча потерял бы
+        /// атомные образы; и то и другое выглядит как результат.
+        /// </summary>
+        static bool ReadTruth(Options o, List<Sample> samples)
+        {
+            string manifest = Path.Combine(o.Corpus, "manifest.csv");
+            string materials = Path.Combine(o.Corpus, "materials.csv");
+            if (!File.Exists(manifest))
+            {
+                Console.Error.WriteLine("нет " + manifest + " — с --lib=sample он обязателен");
+                return false;
+            }
+
+            if (!File.Exists(materials))
+            {
+                Console.Error.WriteLine("нет " + materials
+                    + " — соберите его: python tools/CORPUS/scripts/mk_materials.py");
+                return false;
+            }
+
+            var byKey = new Dictionary<string, Sample>(StringComparer.Ordinal);
+            foreach (Sample s in samples)
+            {
+                byKey[s.Key] = s;
+            }
+
+            var declared = new HashSet<string>(StringComparer.Ordinal);
+            foreach (Dictionary<string, string> row in ReadTable(manifest))
+            {
+                Sample s;
+                string key = Value(row, "key");
+                if (!byKey.TryGetValue(key, out s))
+                {
+                    continue;
+                }
+
+                declared.Add(key);
+                foreach (string label in Split(Value(row, "chains")))
+                {
+                    if (ChainOf(label) == null)
+                    {
+                        Console.Error.WriteLine("манифест: неизвестный ряд '" + label
+                                                + "' у " + key);
+                        return false;
+                    }
+
+                    s.Chains.Add(label);
+                }
+
+                foreach (string nucid in Split(Value(row, "nuclides")))
+                {
+                    s.Nuclides.Add(nucid);
+                }
+            }
+
+            foreach (Dictionary<string, string> row in ReadTable(materials))
+            {
+                Sample s;
+                if (!byKey.TryGetValue(Value(row, "spectrum"), out s))
+                {
+                    continue;
+                }
+
+                s.Crystal.AddRange(Split(Value(row, "crystal")));
+                s.SampleMatter.AddRange(Split(Value(row, "sample")));
+                s.Shield.AddRange(Split(Value(row, "shield")));
+            }
+
+            var silent = new List<string>();
+            foreach (Sample s in samples)
+            {
+                if (!declared.Contains(s.Key))
+                {
+                    silent.Add(s.Key);
+                }
+                else if (s.Chains.Count == 0 && s.Nuclides.Count == 0)
+                {
+                    silent.Add(s.Key + " (состав пуст)");
+                }
+            }
+
+            if (silent.Count > 0)
+            {
+                Console.Error.WriteLine("в манифесте нет состава для: "
+                                        + string.Join(", ", silent.ToArray()));
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>Строки CSV словарями по шапке.</summary>
+        static List<Dictionary<string, string>> ReadTable(string path)
+        {
+            var rows = new List<Dictionary<string, string>>();
+            string[] lines = File.ReadAllLines(path, Encoding.UTF8);
+            if (lines.Length == 0)
+            {
+                return rows;
+            }
+
+            List<string> head = SplitCsv(lines[0].TrimStart('﻿'));
+            for (int i = 1; i < lines.Length; i++)
+            {
+                if (lines[i].Length == 0)
+                {
+                    continue;
+                }
+
+                List<string> cells = SplitCsv(lines[i]);
+                var row = new Dictionary<string, string>(StringComparer.Ordinal);
+                for (int c = 0; c < head.Count && c < cells.Count; c++)
+                {
+                    row[head[c]] = cells[c];
+                }
+
+                rows.Add(row);
+            }
+
+            return rows;
+        }
+
+        static string Value(Dictionary<string, string> row, string column)
+        {
+            string value;
+            return row.TryGetValue(column, out value) ? value.Trim() : "";
+        }
+
+        static List<string> Split(string cell)
+        {
+            var parts = new List<string>();
+            foreach (string piece in cell.Split(';'))
+            {
+                string trimmed = piece.Trim();
+                if (trimmed.Length > 0)
+                {
+                    parts.Add(trimmed);
+                }
+            }
+
+            return parts;
         }
 
         /// <summary>
@@ -956,7 +1341,7 @@ namespace CorpusFsaProbe
                                    + "offset_edge,matrix,"
                                    + "matrix_note,cascade,efficiency,background,peaks,components,"
                                    + "ms,cpu_ms,near_sigmas,near_counts,error,chi2ndf_pois,bg_rejected,"
-                                   + "model_residual_pct");
+                                   + "model_residual_pct,library,library_note");
                     // `share_pct` — доля в «пироге», у служебных образов ноль
                     // НАРОЧНО; `peak_share_pct` — доля пиковых отсчётов среди
                     // ВСЕХ образов, она есть у каждого (S49). Читать «сколько
@@ -991,7 +1376,8 @@ namespace CorpusFsaProbe
                             Csv(r.Error ?? ""),
                             r.Error != null ? "" : F(r.Chi2NdfPoisson, "F4"),
                             Csv(r.BackgroundNote),
-                            r.Error != null ? "" : F(100.0 * r.ModelResidual, "F3")));
+                            r.Error != null ? "" : F(100.0 * r.ModelResidual, "F3"),
+                            Csv(o.Library), Csv(r.LibraryNote)));
 
                         if (r.Result == null)
                         {
@@ -1025,8 +1411,143 @@ namespace CorpusFsaProbe
                 }
             }
 
+            if (o.Audit)
+            {
+                WriteAudit(rows, o);
+            }
+
             Console.WriteLine();
             Console.WriteLine("записано групп: {0} -> {1}", groups.Count, Path.GetFullPath(o.Out));
+        }
+
+        /// <summary>
+        /// (S60) Сверка по линиям, которые обязаны быть: файл со всеми строками
+        /// и итог ПОЛОСАМИ ЭНЕРГИИ.
+        ///
+        /// ⛔ Итог печатается медианой ОТНОШЕНИЯ (измерено/ожидание), а не
+        /// медианой Z, и это не косметика. Z растёт со статистикой: на спектре в
+        /// сто миллионов отсчётов он кричит там, где расхождение ничтожно, а на
+        /// слабом молчит при расхождении вдвое. Отношение сравнимо поперёк
+        /// корпуса, где счета разнятся в тысячи раз. Z печатается рядом — им
+        /// читается ЗНАЧИМОСТЬ расхождения, а не его величина.
+        ///
+        /// ⚠ В итог идут только линии с чистотой ≥ 0.5, то есть те, где больше
+        /// половины ожидаемой площади принадлежит своему компоненту. Иначе в
+        /// сводку попадёт чужое расхождение под чужим именем.
+        /// </summary>
+        static void WriteAudit(List<Row> rows, Options o)
+        {
+            string path = Path.Combine(o.Out, "lines_" + o.Mode + ".csv");
+            int bands = FsaLineAudit.Bands.Length - 1;
+            var ratioAll = new List<double>[bands];
+            var ratioMatrix = new List<double>[bands];
+            var ratioNoMatrix = new List<double>[bands];
+            var absZ = new List<double>[bands];
+            for (int i = 0; i < bands; i++)
+            {
+                ratioAll[i] = new List<double>();
+                ratioMatrix[i] = new List<double>();
+                ratioNoMatrix[i] = new List<double>();
+                absZ[i] = new List<double>();
+            }
+
+            int total = 0, obligatory = 0, agreed = 0, missing = 0;
+            using (var file = new StreamWriter(path, false, new UTF8Encoding(true)))
+            {
+                file.WriteLine("spectrum,det,part,matrix,component,energy_kev,lines,intensity_pct,"
+                               + "expected,measured,sigma,z,ratio,purity,decision,obligatory");
+                foreach (Row r in rows)
+                {
+                    if (r.Audit == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (FsaLineAudit.LineCheck c in r.Audit)
+                    {
+                        total++;
+                        file.WriteLine(string.Join(",",
+                            Csv(r.Key), Csv(r.Det), Csv(r.Part), r.MatrixUsed ? "1" : "0",
+                            Csv(c.Component), F(c.EnergyKev, "F2"),
+                            c.Lines.ToString(CultureInfo.InvariantCulture),
+                            F(c.IntensityPct, "F4"),
+                            F(c.Expected, "F1"), F(c.Measured, "F1"), F(c.Sigma, "F1"),
+                            F(c.Z, "F2"), F(c.Ratio, "F4"), F(c.Purity, "F3"),
+                            F(c.DecisionThreshold, "F1"), c.Obligatory ? "1" : "0"));
+
+                        if (!c.Obligatory)
+                        {
+                            continue;
+                        }
+
+                        obligatory++;
+                        if (Math.Abs(c.Z) <= 3.0)
+                        {
+                            agreed++;
+                        }
+
+                        // «Обязана быть, а её нет»: измеренная площадь ниже
+                        // порога решения. Это самый резкий сигнал сверки — он
+                        // означает, что предсказание не подтвердилось вовсе.
+                        if (c.Measured < c.DecisionThreshold)
+                        {
+                            missing++;
+                        }
+
+                        int band = FsaLineAudit.BandOf(c.EnergyKev);
+                        if (band < 0 || !(c.Purity >= 0.5) || double.IsNaN(c.Ratio))
+                        {
+                            continue;
+                        }
+
+                        ratioAll[band].Add(c.Ratio);
+                        absZ[band].Add(Math.Abs(c.Z));
+                        if (r.MatrixUsed)
+                        {
+                            ratioMatrix[band].Add(c.Ratio);
+                        }
+                        else
+                        {
+                            ratioNoMatrix[band].Add(c.Ratio);
+                        }
+                    }
+                }
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("=== S60: сверка по линиям, которые ОБЯЗАНЫ быть ===");
+            Console.WriteLine("строк всего {0}; обязательных {1} (порог решения Карри, k = {2});",
+                              total, obligatory, FsaLineAudit.DecisionK);
+            Console.WriteLine("  из них |Z| <= 3: {0} ({1:P1}); НЕ подтвердилось вовсе: {2} ({3:P1})",
+                              agreed, obligatory > 0 ? (double)agreed / obligatory : 0.0,
+                              missing, obligatory > 0 ? (double)missing / obligatory : 0.0);
+            Console.WriteLine();
+            Console.WriteLine("{0,-12} {1,7} {2,10} {3,10} {4,10} {5,9}",
+                              "полоса, кэВ", "линий", "изм/ожид", "с матрицей", "без неё", "мед.|Z|");
+            for (int i = 0; i < bands; i++)
+            {
+                if (ratioAll[i].Count == 0)
+                {
+                    continue;
+                }
+
+                Console.WriteLine("{0,-12} {1,7} {2,10:F3} {3,10} {4,10} {5,9:F1}",
+                                  FsaLineAudit.BandName(i), ratioAll[i].Count,
+                                  FsaLineAudit.Median(ratioAll[i]),
+                                  ratioMatrix[i].Count > 0
+                                      ? FsaLineAudit.Median(ratioMatrix[i]).ToString("F3", CultureInfo.InvariantCulture)
+                                      : "—",
+                                  ratioNoMatrix[i].Count > 0
+                                      ? FsaLineAudit.Median(ratioNoMatrix[i]).ToString("F3", CultureInfo.InvariantCulture)
+                                      : "—",
+                                  FsaLineAudit.Median(absZ[i]));
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("⚠ читать колонку «изм/ожид»: единица — модель предсказала площадь верно.");
+            Console.WriteLine("  ХОД этой колонки по энергии и есть проверка матрицы — доля пика падает");
+            Console.WriteLine("  с энергией, и ошибка в ней перекошена туда же. Одно число ничего не скажет.");
+            Console.WriteLine("построчно: {0}", Path.GetFullPath(path));
         }
 
         static string F(double value, string format)
@@ -1146,13 +1667,63 @@ namespace CorpusFsaProbe
         /// как это делает `DocEnergySpectrum`. Иначе числа проб на одном файле
         /// не сойдутся, а разница будет не в том, что мерили.
         /// </summary>
+        /// <summary>
+        /// Узлы, которые сборка законно не знает и о которых кричать НЕ НАДО.
+        ///
+        /// `Pulses` — узел АУДИО-спектрометров (решение Amber 18.08.2026: в
+        /// корпусе только Digital MCA, единственный аудио-прибор — ASN8).
+        /// Лежит в 44 спектрах из 129 и ВЕЗДЕ пуст (`&lt;Pulses /&gt;`), теряться
+        /// нечему. Держать его в крике значило бы ругаться на каждый третий
+        /// спектр и приучить не смотреть на предупреждение — ровно тот вред,
+        /// ради устранения которого читатель и заведён (родня `T47`).
+        /// </summary>
+        static readonly List<string> KnownHarmlessNodes = new List<string> { "Pulses" };
+
         static ResultData Load(string path)
         {
             var serializer = new XmlSerializer(typeof(ResultDataFile));
             ResultDataFile file;
+
+            // T41: НЕИЗВЕСТНЫЙ ЭЛЕМЕНТ XML-десериализатор пропускает МОЛЧА, и это
+            // уже стоило ложного вывода. 16.08.2026 в рабочем каталоге лежала
+            // сборка СТАРШЕ исходников: `PowerFwhmCalibration` ей был неизвестен,
+            // узел кривой ПШПВ выпал, `rd.FwhmCalibration` осталась null, проба
+            // законно откатилась на калибровку прибора — и прогон отработал без
+            // единой ошибки, выдав правдоподобные числа (понятная 1766.1 при
+            // невязке 53 %), из которых был сделан вывод «дефект в самом узле».
+            // На свежей сборке узел работает. Признак отказа теперь имеет
+            // читателя: каждый пропущенный узел называется вслух вместе с ИМЕНЕМ
+            // СПЕКТРА — этого и не хватало, чтобы увидеть причину, а не следствие.
+            // ⚠ Подписка на `UnknownNode`, а НЕ на `UnknownElement`: первое
+            // событие приходит на узел ЛЮБОГО вида, второе — только на элемент,
+            // и оба они на неизвестный элемент срабатывают вместе. Одной
+            // подписки хватает, а имена всё равно копятся без повторов.
+            var skipped = new List<string>();
+            XmlNodeEventHandler onUnknown = (sender, e) =>
+            {
+                if (e.NodeType == System.Xml.XmlNodeType.Element
+                    && !string.IsNullOrEmpty(e.Name)
+                    && !KnownHarmlessNodes.Contains(e.Name)
+                    && !skipped.Contains(e.Name))
+                {
+                    skipped.Add(e.Name);
+                }
+            };
+            serializer.UnknownNode += onUnknown;
+
             using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 file = (ResultDataFile)serializer.Deserialize(stream);
+            }
+
+            serializer.UnknownNode -= onUnknown;
+
+            if (skipped.Count > 0)
+            {
+                Console.Error.WriteLine("⚠ " + Path.GetFileNameWithoutExtension(path)
+                                        + ": сборка не знает узлов "
+                                        + string.Join(", ", skipped.ToArray())
+                                        + " — они ПРОПУЩЕНЫ молча (T41: сборка старше исходников?)");
             }
 
             ResultData rd = file.ResultDataList[0];
@@ -1202,6 +1773,10 @@ namespace CorpusFsaProbe
             public string Mode = "spline";
             public bool Matrix = true;
             public bool Cascade = true;
+            public bool Xray = true;            // S27: K-рентген партнёром
+            public bool Annihilation = true;    // S27: кванты 511 партнёром
+            public bool Isomers = true;         // S27: изомеры по sandia_symbol
+            public double WindowSec;            // S27: окно совпадения, с; 0 — умолчание
             public bool PileUp = true;
             public bool Backscatter = true;
             public bool Background = true;
@@ -1276,6 +1851,22 @@ namespace CorpusFsaProbe
             /// прогон «с новым умолчанием» тихо повторил старые числа.
             /// </summary>
             public bool RebinBackground = true;
+
+            /// <summary>
+            /// (S56) Чем задан состав библиотеки: `sample` — объявленной пробой
+            /// (первый постулат Amber, умолчание с 18.08.2026), `peaks` —
+            /// подписями поиска пиков (как было). A/B-сторона — `--lib=peaks`.
+            /// </summary>
+            public string Library = "sample";
+
+            /// <summary>(S56) Атомные образы: рентген и пики вылета. A/B — `--no-atomic`.</summary>
+            public bool Atomic = true;
+
+            /// <summary>(S56) Вездесущие K-40 / Th-232 / Ra-226. A/B — `--no-room`.</summary>
+            public bool Room = true;
+
+            /// <summary>(S60) Сверять линии, которые обязаны быть, — `--audit`.</summary>
+            public bool Audit;
             public List<string> Groups;
             public List<string> Only;
         }
@@ -1285,6 +1876,21 @@ namespace CorpusFsaProbe
             public string Key;
             public string Det;
             public string Part;
+
+            /// <summary>(S56) Метки рядов из `manifest.csv`: «Th-232», «U-238u».</summary>
+            public readonly List<string> Chains = new List<string>();
+
+            /// <summary>(S56) Одиночные нуклиды из `manifest.csv`: «40K», «176LU».</summary>
+            public readonly List<string> Nuclides = new List<string>();
+
+            /// <summary>(S56) Символы элементов кристалла из `materials.csv`.</summary>
+            public readonly List<string> Crystal = new List<string>();
+
+            /// <summary>(S56) Символы элементов пробы из `materials.csv`.</summary>
+            public readonly List<string> SampleMatter = new List<string>();
+
+            /// <summary>(S56) Символы элементов защиты и обвязки из `materials.csv`.</summary>
+            public readonly List<string> Shield = new List<string>();
         }
 
         sealed class Row
@@ -1295,6 +1901,12 @@ namespace CorpusFsaProbe
             public string Error;
             public string MatrixNote = "";
             public string EfficiencyName = "";
+
+            /// <summary>(S56) Чем задана библиотека и что в неё вошло.</summary>
+            public string LibraryNote = "";
+
+            /// <summary>(S60) Сверка по обязательным линиям; null — не считалась.</summary>
+            public List<FsaLineAudit.LineCheck> Audit;
             public int Peaks;
             public int LibrarySize;
             public double Chi2Ndf;

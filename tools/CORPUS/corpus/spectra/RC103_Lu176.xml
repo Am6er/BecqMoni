@@ -1,4 +1,4 @@
-﻿<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <ResultDataFile>
   <FormatVersion />
   <ResultDataList>
@@ -2107,58 +2107,6 @@
         <Format>Base64 encoded binary</Format>
         <Pulses />
       </PulseCollection>
-      <SimpleSqrtFwhmCalibration>
-        <CalibrationPeaks>
-          <Peak>
-            <Channel>13</Channel>
-            <Energy>25.442123276123361</Energy>
-            <FWHM>4</FWHM>
-          </Peak>
-          <Peak>
-            <Channel>24</Channel>
-            <Energy>53.083822663873534</Energy>
-            <FWHM>6</FWHM>
-          </Peak>
-          <Peak>
-            <Channel>26</Channel>
-            <Energy>58.117197919404234</Energy>
-            <FWHM>5</FWHM>
-          </Peak>
-          <Peak>
-            <Channel>85</Channel>
-            <Energy>207.65540711203391</Energy>
-            <FWHM>10</FWHM>
-          </Peak>
-          <Peak>
-            <Channel>128</Channel>
-            <Energy>317.92492198944143</Energy>
-            <FWHM>14</FWHM>
-          </Peak>
-          <Peak>
-            <Channel>266</Channel>
-            <Energy>679.12566345161861</Energy>
-            <FWHM>21</FWHM>
-          </Peak>
-          <Peak>
-            <Channel>567</Channel>
-            <Energy>1505.6469269454851</Energy>
-            <FWHM>30</FWHM>
-          </Peak>
-          <Peak>
-            <Channel>971</Channel>
-            <Energy>2698.3813056647232</Energy>
-            <FWHM>35</FWHM>
-          </Peak>
-        </CalibrationPeaks>
-        <Coefficients>
-          <Coefficient>22.031738059552005</Coefficient>
-          <Coefficient>1.3282433151555688</Coefficient>
-        </Coefficients>
-        <PeakType>0</PeakType>
-        <ExpGaussExpLeftTail>1</ExpGaussExpLeftTail>
-        <ExpGaussExpRightTail>1</ExpGaussExpRightTail>
-        <Chi2pNdp>0</Chi2pNdp>
-      </SimpleSqrtFwhmCalibration>
-    <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-0.08466897985691997</Coefficient><Coefficient>1.6892138867288635</Coefficient><Coefficient>-0.00024629907424952245</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
+      <PowerFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>0.8856755050578626</Coefficient><Coefficient>0.5577418278717576</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></PowerFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

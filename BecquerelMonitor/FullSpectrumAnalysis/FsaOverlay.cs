@@ -178,6 +178,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            analyzer.CoincidenceWindowSec = DeadTimeOf(resultData);
+
             if (resultData.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig peakConfig)
             {
                 // Диапазон поиска пиков передаётся анализатору, но при
@@ -353,6 +355,39 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return sb.ToString();
+        }
+
+        /// <summary>
+        /// Мёртвое время прибора, снявшего спектр, — оно же ОКНО СОВПАДЕНИЯ
+        /// каскадного суммирования (S27): длительность импульса и есть тот
+        /// промежуток, внутри которого два кванта складываются в один отсчёт.
+        /// Ноль — прибор его не назвал, суммирователь возьмёт своё умолчание.
+        ///
+        /// ⚠ Вызов обёрнут НЕ на всякий случай: `SerialInputDeviceConfig.DeadTime()`
+        /// — заглушка декомпилятора и бросает `NotImplementedException`, а класс
+        /// объявлен одним из вариантов `[XmlElement]` для `InputDeviceConfig`,
+        /// то есть такая конфигурация читается штатно (TODO T48). Ронять из-за
+        /// этого разложение нельзя: мёртвое время — уточнение поправки, а не
+        /// условие её существования.
+        /// </summary>
+        static double DeadTimeOf(ResultData resultData)
+        {
+            try
+            {
+                if (resultData == null || resultData.DeviceConfig == null
+                    || resultData.DeviceConfig.InputDeviceConfig == null)
+                {
+                    return 0.0;
+                }
+
+                double deadTime = resultData.DeviceConfig.InputDeviceConfig.DeadTime();
+                return deadTime > 0.0 ? deadTime : 0.0;
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine("FSA: мёртвое время недоступно, окно совпадения по умолчанию: " + ex.Message);
+                return 0.0;
+            }
         }
     }
 }

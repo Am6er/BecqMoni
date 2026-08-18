@@ -3851,6 +3851,42 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string GeometryEditorErrorLinked {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorLinked", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorErrorHoleNarrow {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorHoleNarrow", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorErrorRingGone {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorRingGone", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorErrorHoleDeeper {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorHoleDeeper", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorErrorSampleTaller {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorSampleTaller", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorErrorWallEatsSample {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorWallEatsSample", resourceCulture);
+            }
+        }
+
         public static string GeometryEditorErrorSourceSize {
             get {
                 return ResourceManager.GetString("GeometryEditorErrorSourceSize", resourceCulture);

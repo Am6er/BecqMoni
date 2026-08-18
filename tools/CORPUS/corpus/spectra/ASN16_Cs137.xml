@@ -16441,33 +16441,6 @@
         <Format>Base64 encoded binary</Format>
         <Pulses />
       </PulseCollection>
-      <SimpleSqrtFwhmCalibration>
-        <CalibrationPeaks>
-          <Peak>
-            <Channel>99</Channel>
-            <Energy>31.062023958622188</Energy>
-            <FWHM>23</FWHM>
-          </Peak>
-          <Peak>
-            <Channel>1717</Channel>
-            <Energy>655.24875461037425</Energy>
-            <FWHM>106</FWHM>
-          </Peak>
-        </CalibrationPeaks>
-        <Coefficients>
-          <Coefficient>-126.12546353522862</Coefficient>
-          <Coefficient>6.6174289245982694</Coefficient>
-        </Coefficients>
-        <PeakType>1</PeakType>
-        <ExpGaussExpLeftTail>1.8</ExpGaussExpLeftTail>
-        <ExpGaussExpRightTail>4.9</ExpGaussExpRightTail>
-        <VoigtSigma>1</VoigtSigma>
-        <VoigtGamma>1</VoigtGamma>
-        <GaussianChi2Total>205842.7826002884</GaussianChi2Total>
-        <ExpGaussExpChi2Total>158704.87187260081</ExpGaussExpChi2Total>
-        <VoigtChi2Total>181142.12264365342</VoigtChi2Total>
-        <Chi2pNdp>319.9694997431468</Chi2pNdp>
-      </SimpleSqrtFwhmCalibration>
-    <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-352.07768623069035</Coefficient><Coefficient>4.650756888237803</Coefficient><Coefficient>0.00035059644465374156</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
+      <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-260.3262565953544</Coefficient><Coefficient>4.544350976599771</Coefficient><Coefficient>0.00036637333720378396</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

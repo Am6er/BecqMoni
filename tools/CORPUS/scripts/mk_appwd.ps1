@@ -29,6 +29,31 @@ if (-not (Test-Path (Join-Path $Bin 'BecquerelMonitor.exe'))) {
     throw "нет $Bin\BecquerelMonitor.exe — сначала соберите приложение"
 }
 
+# T41: СБОРКА СТАРШЕ ИСХОДНИКОВ — и это молчит. 16.08.2026 в `wd_app` лежал
+# exe от 17:25, а `PowerFwhmCalibration.cs` написан в 23:35 того же дня: типа
+# класс не знал, XML-десериализатор пропустил неизвестный элемент МОЛЧА,
+# `rd.FwhmCalibration` осталась null, проба законно откатилась на калибровку
+# прибора — и прогон отработал без единой ошибки, дав правдоподобные числа
+# (понятная 1766.1 при невязке 53 %), из которых был сделан вывод «дефект в
+# самом узле». На свежей сборке узел работает: 692.3 при 17.9 %.
+# Грабля не новая (T31, и строка «сборка → рабочие каталоги» в шапке README
+# стоит с 14.08), но обе прежние полагались на то, что человек СРАВНИТ даты
+# сам. Здесь их сравнивает скрипт и говорит вслух.
+$exeTime = (Get-Item (Join-Path $Bin 'BecquerelMonitor.exe')).LastWriteTime
+$newestSrc = Get-ChildItem (Join-Path $repo 'BecquerelMonitor') -Recurse -File -Filter '*.cs' |
+             Where-Object { $_.FullName -notmatch '\\(bin|obj)\\' } |
+             Sort-Object LastWriteTime -Descending | Select-Object -First 1
+if ($newestSrc -and $newestSrc.LastWriteTime -gt $exeTime) {
+    Write-Host ""
+    Write-Host "⚠⚠ СБОРКА СТАРШЕ ИСХОДНИКОВ (T41)" -ForegroundColor Yellow
+    Write-Host ("   $Bin\BecquerelMonitor.exe    " + $exeTime.ToString('dd.MM HH:mm'))
+    Write-Host ("   " + $newestSrc.FullName.Substring($repo.Length + 1) + "    " +
+                $newestSrc.LastWriteTime.ToString('dd.MM HH:mm'))
+    Write-Host "   Незнакомый узел XML пропускается МОЛЧА: прогон отработает без ошибок" -ForegroundColor Yellow
+    Write-Host "   и даст правдоподобные числа не про то. Пересоберите приложение." -ForegroundColor Yellow
+    Write-Host ""
+}
+
 $corpus = Join-Path $repo 'tools\CORPUS\corpus'
 $response = Join-Path $corpus 'geometries\response'
 if (-not (Test-Path $response)) {

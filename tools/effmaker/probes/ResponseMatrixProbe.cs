@@ -1,4 +1,4 @@
-using BecquerelMonitor.EfficiencyMaker;
+﻿using BecquerelMonitor.EfficiencyMaker;
 using System;
 using System.Diagnostics;
 using System.Globalization;
@@ -61,6 +61,20 @@ namespace ResponseMatrixProbe
                               options.NodeCount, options.MinEnergyKev, options.MaxEnergyKev,
                               options.BinKev, options.Histories);
 
+            // T47, вторая половина: РЕДКАЯ СЕТКА И МАЛАЯ СТАТИСТИКА РОНЯЮТ ТРИ
+            // ПРОВЕРКИ ЗАКОННО, а по выводу этого не видно — «ПРОВАЛ» читается
+            // одинаково и там, где сломана матрица, и там, где просто мало
+            // историй. Умолчания (12 узлов, 20 тыс. историй) подобраны так,
+            // чтобы допуски проверок 6–8 были им по силам; ниже них проверки
+            // остаются, но их вывод помечается «не показательно».
+            bool thinGrid = options.NodeCount < 12 || options.Histories < 20000;
+            if (thinGrid)
+            {
+                Console.WriteLine("⚠ сетка/статистика НИЖЕ умолчаний (12 узлов, 20 000 историй):");
+                Console.WriteLine("  проверки 6–8 (пик против кривой, интерполяция) при этом валятся");
+                Console.WriteLine("  ЗАКОННО — это разрешение сетки и шум ГСЧ, а не дефект матрицы (T47).");
+            }
+
             int bad = 0;
 
             // --- 1. Один поток против всех ---------------------------------
@@ -94,12 +108,58 @@ namespace ResponseMatrixProbe
                    fileSize / 1024.0);
             bad += sameAfterFile ? 0 : 1;
 
+            // --- 2а. Достигнутый шум переживает файл (`T46`) --------------
+            // До этой строки посчитанной матрице нельзя было задать вопрос
+            // «какого шума ты добилась»: числа жили в консоли пробы и терялись.
+            // Здесь у хвоста появляется читатель, иначе он сгниёт молча.
+            bool noiseKept = loaded != null
+                             && loaded.ContinuumWeightedError == parallel.ContinuumWeightedError
+                             && loaded.ContinuumRelativeError == parallel.ContinuumRelativeError
+                             && loaded.HistoriesSpent == parallel.HistoriesSpent
+                             && loaded.HistoriesWorstNode == parallel.HistoriesWorstNode
+                             && SameLongs(loaded.NodeHistories, parallel.NodeHistories)
+                             && SameDoubles(loaded.NodeErrors, parallel.NodeErrors)
+                             && SameDoubles(loaded.NodeSeconds, parallel.NodeSeconds);
+            Report(noiseKept, "достигнутый шум пережил файл: взвешенный {0:P2}, худший {1:P2}, историй {2}",
+                   loaded == null ? 0.0 : loaded.ContinuumWeightedError,
+                   loaded == null ? 0.0 : loaded.ContinuumRelativeError,
+                   loaded == null ? 0L : loaded.HistoriesSpent);
+            bad += noiseKept ? 0 : 1;
+
             // --- 3. Отпечаток ловит правку геометрии -----------------------
+            // ⛔ T47: двигать надо поле, которое у ЭТОЙ геометрии РАБОТАЕТ.
+            // Проба двигала `CrystalHeight` всегда, а у БРУСКА это поле не
+            // участвует ни в чём: сцену строит `CrystalBoxInScene`, а в файл
+            // пишется эквивалентный цилиндр, посчитанный из `CrystalBoxX/Y/Z`.
+            // Матрица от такой правки не изменилась бы, отпечаток по правилу
+            // T42 обязан совпасть — и «ПРОВАЛ» пробы был про ВЕРНОЕ поведение.
+            // Виновата проба, а не приложение; приучала не смотреть на вывод.
             GeometryModel moved = geometry.Clone();
-            moved.CrystalHeight += 1.0;         // миллиметр
+            string movedField;
+            if (moved.Shape == CrystalShape.Box)
+            {
+                moved.CrystalBoxZ += 1.0;       // миллиметр
+                movedField = "CrystalBoxZ";
+            }
+            else
+            {
+                moved.CrystalHeight += 1.0;     // миллиметр
+                movedField = "CrystalHeight";
+            }
+
+            // Контроль на ложный ПРОПУСК: НЕТРОНУТЫЙ клон обязан остаться годным.
+            // `Clone` намеренно не переносит `Raw`, а `Render` из `Raw` берёт
+            // коаксиальный блок и чужие вещества — на ввезённом файле ЛСРМ
+            // отпечаток разошёлся бы САМ, и проверка сдвига «сходилась» бы,
+            // ничего не проверив.
+            bool cloneStable = parallel.IsValidFor(geometry.Clone(), options);
+            Report(cloneStable, "клон без правок остаётся годным (иначе проверка сдвига слепа)");
+            bad += cloneStable ? 0 : 1;
+
             bool caughtGeometry = !parallel.IsValidFor(moved, options)
                                   && parallel.IsValidFor(geometry, options);
-            Report(caughtGeometry, "отпечаток: годен своей геометрии и не годен сдвинутой на 1 мм");
+            Report(caughtGeometry, "отпечаток: годен своей геометрии и не годен сдвинутой на 1 мм ({0})",
+                   movedField);
             bad += caughtGeometry ? 0 : 1;
 
             // --- 4. Отпечаток ловит правку параметров ----------------------
@@ -153,9 +213,9 @@ namespace ResponseMatrixProbe
             double peak = row[row.Length - 1];
             double diff = curve > 0.0 ? Math.Abs(peak - curve) / curve : 0.0;
             bool peakOk = diff < 0.02;
-            Report(peakOk, "пик матрицы против кривой на {0:F0} кэВ: {1:E4} против {2:E4}, расхождение {3:P2}",
-                   energy, peak, curve, diff);
-            bad += peakOk ? 0 : 1;
+            Report(peakOk, "пик матрицы против кривой на {0:F0} кэВ: {1:E4} против {2:E4}, расхождение {3:P2}{4}",
+                   energy, peak, curve, diff, thinGrid && !peakOk ? "  — НЕ ПОКАЗАТЕЛЬНО (редкая сетка/мало историй)" : "");
+            bad += (peakOk || thinGrid) ? 0 : 1;
 
             // --- 7. Интерполяция между узлами -------------------------------
             // Перенос строки на шкалу линии придуман здесь и должен быть
@@ -210,9 +270,10 @@ namespace ResponseMatrixProbe
                 // процентов. Порог держится ниже того, что ловил настоящие
                 // поломки: потеря четверти пика давала 35 %, а не 5.
                 bool ok = sumDiff < 0.06 && peakDiff < 0.08;
-                Report(ok, "интерполяция на {0:F0} кэВ (шаг сетки {1:F0} кэВ): сумма {2:P2}, пик {3:P2}",
-                       middle, parallel.Energies[left + 1] - parallel.Energies[left], sumDiff, peakDiff);
-                bad += ok ? 0 : 1;
+                Report(ok, "интерполяция на {0:F0} кэВ (шаг сетки {1:F0} кэВ): сумма {2:P2}, пик {3:P2}{4}",
+                       middle, parallel.Energies[left + 1] - parallel.Energies[left], sumDiff, peakDiff,
+                       thinGrid && !ok ? "  — НЕ ПОКАЗАТЕЛЬНО (редкая сетка/мало историй)" : "");
+                bad += (ok || thinGrid) ? 0 : 1;
             }
 
             // --- размер и содержание ---------------------------------------
@@ -224,8 +285,60 @@ namespace ResponseMatrixProbe
 
             File.Delete(path);
             Console.WriteLine();
+            if (thinGrid)
+            {
+                Console.WriteLine("⚠ проверки 6–8 НЕ ЗАСЧИТАНЫ: сетка/статистика ниже умолчаний (T47).");
+                Console.WriteLine("  За приёмкой гонять без --nodes/--n либо с --nodes=12 --n=20000 и выше.");
+            }
+
             Console.WriteLine(bad == 0 ? "ВСЕ СОШЛИСЬ" : "ПРОВАЛОВ: " + bad);
             return bad == 0 ? 0 : 1;
+        }
+
+        static bool SameLongs(long[] a, long[] b)
+        {
+            if (a == null || b == null)
+            {
+                return a == null && b == null;
+            }
+
+            if (a.Length != b.Length)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < a.Length; i++)
+            {
+                if (a[i] != b[i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        static bool SameDoubles(double[] a, double[] b)
+        {
+            if (a == null || b == null)
+            {
+                return a == null && b == null;
+            }
+
+            if (a.Length != b.Length)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < a.Length; i++)
+            {
+                if (a[i] != b[i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         static int Compare(ResponseMatrix a, ResponseMatrix b)

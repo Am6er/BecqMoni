@@ -28,6 +28,7 @@ import calibrate                                      # noqa: E402
 import corpus_calib                                   # noqa: E402
 import corpus_def                                     # noqa: E402
 import build_corpus                                   # noqa: E402
+import spectrum                                       # noqa: E402
 from gaussfit import fit_peak, FWHM_SIGMA             # noqa: E402
 
 calibrate.sample_lines = build_corpus.sample_lines
@@ -65,14 +66,16 @@ def load(path):
     es = rd.find('EnergySpectrum')
     counts = np.array([int(d.text) for d in es.findall('Spectrum/DataPoint')], dtype=float)
     ecal = [float(x.text) for x in es.findall('EnergyCalibration/Coefficients/Coefficient')]
+    # Оба вида кривой ПШПВ (`V2`): корневая тройкой, степенная парой.
     fw = rd.find('SqrtFwhmCalibration')
+    if fw is None:
+        fw = rd.find('PowerFwhmCalibration')
     fwhm = [float(x.text) for x in fw.findall('Coefficients/Coefficient')] if fw is not None else None
     return counts, ecal, fwhm, rd
 
 
 def fwhm_ch_at(coef, ch):
-    v = coef[0] + coef[1] * ch + coef[2] * ch * ch
-    return float(np.sqrt(max(v, 1e-6)))
+    return float(max(spectrum.fwhm_from_coef(coef, ch), 1e-3))
 
 
 def check(entry, verbose=False):
@@ -82,7 +85,7 @@ def check(entry, verbose=False):
     counts, ecal_coef, fwhm_coef, rd = load(path)
     cal = corpus_calib.Ecal(ecal_coef, len(counts))
     if fwhm_coef is None:
-        return dict(key=entry['key'], err='нет SqrtFwhmCalibration')
+        return dict(key=entry['key'], err='нет кривой ПШПВ (ни корневой, ни степенной)')
 
     ent = dict(entry)
     ent['wanted'] = build_corpus.wanted_lines(entry)

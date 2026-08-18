@@ -34,11 +34,19 @@ class Spectrum(object):
         self.guid = _text(rd.find('DeviceConfigReference/Guid'))
         lt = es.find('LiveTime')
         self.live = float(lt.text) if lt is not None and lt.text else float(es.find('MeasurementTime').text)
+        # Кривая ПШПВ бывает двух видов, и различает их ЧИСЛО коэффициентов
+        # (`V2`, 17.08.2026): корневая `SqrtFwhmCalibration` хранит тройку
+        # ПШПВ² = c0 + c1·ch + c2·ch², степенная `PowerFwhmCalibration` — пару
+        # ПШПВ = a·ch^p. Читать надо оба: с 17.08.2026 в корпусе есть и те, и
+        # другие, а молчаливое «узла нет» превращало бы модель в None и уводило
+        # приёмку с проверки на пропуск.
         fw = rd.find('SqrtFwhmCalibration')
+        if fw is None:
+            fw = rd.find('PowerFwhmCalibration')
         self.fwhm_coef = None
         if fw is not None:
             cs = [float(x.text) for x in fw.findall('Coefficients/Coefficient')]
-            if len(cs) == 3 and any(cs):
+            if len(cs) in (2, 3) and any(cs):
                 self.fwhm_coef = np.array(cs)
 
     # --- calibration ---
@@ -59,8 +67,21 @@ class Spectrum(object):
     def fwhm_ch(self, ch):
         if self.fwhm_coef is None:
             return None
-        v = self.fwhm_coef[0] + self.fwhm_coef[1] * ch + self.fwhm_coef[2] * ch * ch
-        return np.sqrt(np.maximum(v, 0.0))
+        return fwhm_from_coef(self.fwhm_coef, ch)
+
+
+def fwhm_from_coef(coef, ch):
+    u"""ПШПВ в каналах по коэффициентам узла — вид различает их ЧИСЛО (`V2`).
+
+    Пара — степенная ПШПВ = a·ch^p (`PowerFwhmCalibration`), тройка — корневая
+    ПШПВ² = c0 + c1·ch + c2·ch² (`SqrtFwhmCalibration`). Правило одно на всех
+    читателей корпуса: разойдясь, они мерили бы разными моделями один файл.
+    """
+    ch = np.asarray(ch, dtype=float)
+    if len(coef) == 2:
+        return coef[0] * np.maximum(ch, 0.0) ** coef[1]
+    v = coef[0] + coef[1] * ch + coef[2] * ch * ch
+    return np.sqrt(np.maximum(v, 0.0))
 
 
 def snip(counts, iterations=24):

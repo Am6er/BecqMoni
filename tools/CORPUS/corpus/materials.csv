@@ -1,0 +1,130 @@
+﻿spectrum,det,part,crystal,sample,shield,source,doubt,why
+ASN16_Th232,ASN16,unknown,Cs;I,W,,таблица mk_materials.py,,"геометрия ASN16_lu_side: Cesium iodide; corpus_def: extra='WT', электрод WT-20"
+ASN16_Charoite,ASN16,unknown,Cs;I,,Pb,таблица mk_materials.py,,геометрия ASN16_lu_side: Cesium iodide; corpus_def: «Чароит в домике»
+ASN16_UGlass,ASN16,unknown,Cs;I,U,,таблица mk_materials.py,,геометрия ASN16_lu_side: Cesium iodide; урановое стекло: U Kα 94.65/98.43; долю урана НЕ УЗНАЕМ (Amber 18.08.2026) — берём
+ASN16_Granite,ASN16,unknown,Cs;I,,,таблица mk_materials.py,,геометрия ASN16_lu_side: Cesium iodide; гранит: тяжелее железа в заметной доле нет — клетка пуста осознанно
+AS80_Th232_v2,AS80x80,unknown,Na;I,,,таблица mk_materials.py,,геометрия AS80_lu_front: Sodium iodide; плюс прямое слово Amber 15.08.2026 «кристалл NaI»
+AS80_UGlass,AS80x80,unknown,Na;I,U,,таблица mk_materials.py,,геометрия AS80_lu_front: Sodium iodide; плюс прямое слово Amber 15.08.2026 «кристалл NaI»; урановое стекло: U Kα 94.65/98.43; долю урана НЕ УЗНАЕМ (Amber 18.08.2026) — берём
+AS80_Charoite,AS80x80,unknown,Na;I,Ba;Sr,,таблица mk_materials.py,,"геометрия AS80_lu_front: Sodium iodide; плюс прямое слово Amber 15.08.2026 «кристалл NaI»; чароит: Ba Kα 32.19, Sr Kα 14.16; состав камня НЕ УЗНАЕМ (Amber 18.08.2026) — берём"
+HPGE_Uranium,HPGE,excluded,Ge,U,,таблица mk_materials.py,,"германий; часть excluded, в счёт не идёт; урановые пуговицы; часть excluded, в счёт не идёт"
+GS4000_Ra226,GS4000,unknown,Cs;I,,,таблица mk_materials.py,,CsI — прямое слово Amber 18.08.2026 («там везде CsI»); было принято NaI по имени прибора — ОШИБОЧНО
+GS4000_Th232,GS4000,unknown,Cs;I,,,таблица mk_materials.py,,CsI — прямое слово Amber 18.08.2026 («там везде CsI»); было принято NaI по имени прибора — ОШИБОЧНО
+GS4000_U,GS4000,unknown,Cs;I,U,,таблица mk_materials.py,,CsI — прямое слово Amber 18.08.2026 («там везде CsI»); было принято NaI по имени прибора — ОШИБОЧНО; урановое стекло: U Kα 94.65/98.43; долю урана НЕ УЗНАЕМ (Amber 18.08.2026) — берём
+GS4000_Lu176,GS4000,unknown,Cs;I,,,таблица mk_materials.py,,CsI — прямое слово Amber 18.08.2026 («там везде CsI»); было принято NaI по имени прибора — ОШИБОЧНО
+ASN3_Tile,ASN3,unknown,Cs;I,,,таблица mk_materials.py,,"CsI — прямое слово Amber 18.08.2026 («там везде CsI»); глазурь строительной плитки: состав НЕ УЗНАЕМ (Amber 18.08.2026) — клетка остаётся пустой; цирконий глазури (Zr Kα 15.77) в образе не появится, и это принятая невязка"
+ASN8_Th232_1024,ASN8_1024,unknown,Cs;I,,,таблица mk_materials.py,,CsI — прямое слово Amber 18.08.2026 («там везде CsI»)
+ASN8_Th232_2048,ASN8_2048,unknown,Cs;I,,,таблица mk_materials.py,,CsI — прямое слово Amber 18.08.2026 («там везде CsI»)
+ASN8_Th232_3000,ASN8_3000,unknown,Cs;I,,,таблица mk_materials.py,,CsI — прямое слово Amber 18.08.2026 («там везде CsI»)
+ASN8_Th232_4096,ASN8_4096,unknown,Cs;I,,,таблица mk_materials.py,,CsI — прямое слово Amber 18.08.2026 («там везде CsI»)
+ASN8_Th232_8192,ASN8_8192,unknown,Cs;I,,,таблица mk_materials.py,,CsI — прямое слово Amber 18.08.2026 («там везде CsI»)
+ASN8_UGlass,ASN8_8192,unknown,Cs;I,U,,таблица mk_materials.py,,CsI — прямое слово Amber 18.08.2026 («там везде CsI»); урановое стекло: U Kα 94.65/98.43; долю урана НЕ УЗНАЕМ (Amber 18.08.2026) — берём
+ASN8_Am241,ASN8_8192,unknown,Cs;I,,,таблица mk_materials.py,,CsI — прямое слово Amber 18.08.2026 («там везде CsI»)
+OBS_UGlass,OBS,unknown,Cs;I,U,,таблица mk_materials.py,,CsI — прямое слово Amber 18.08.2026 («там везде CsI»); урановое стекло: U Kα 94.65/98.43; долю урана НЕ УЗНАЕМ (Amber 18.08.2026) — берём
+RC101_I131,RC101,unknown,Cs;I,,,таблица mk_materials.py,,CsI — прямое слово Amber 18.08.2026 («там везде CsI»)
+AS1Pro_Ra226,AS1PRO,unknown,Cs;I,,,таблица mk_materials.py,,CsI — прямое слово Amber 18.08.2026 («там везде CsI»)
+ASN16_Charoite_v2,ASN16,unknown,Cs;I,,,таблица mk_materials.py,,геометрия ASN16_lu_side: Cesium iodide; corpus_def: «Чароит БЕЗ свинцовой защиты» — свинца нет
+ASN16_Th232_Am241,ASN16,unknown,Cs;I,,,таблица mk_materials.py,,геометрия ASN16_lu_side: Cesium iodide
+ASN16_Am241,ASN16,unknown,Cs;I,,,таблица mk_materials.py,,геометрия ASN16_lu_side: Cesium iodide
+ASN16_Cs137,ASN16,unknown,Cs;I,,Pb,таблица mk_materials.py,,геометрия ASN16_lu_side: Cesium iodide; corpus_def: съёмка в домике
+ASN16_Cs137_10cm,ASN16,unknown,Cs;I,,,таблица mk_materials.py,,геометрия ASN16_lu_side: Cesium iodide
+ASN16_BrazilNuts,ASN16,unknown,Cs;I,,Pb,таблица mk_materials.py,,геометрия ASN16_lu_side: Cesium iodide; орехи — лёгкая органика; защита оставлена от домика
+RC103_Th232WT20,RC103,unknown,Cs;I,W,,таблица mk_materials.py,,"геометрия RC103_lu_front: Cesium iodide; corpus_def: extra='WT', электрод WT-20"
+AS80_Th232Medal,AS80x80,unknown,Na;I,,,таблица mk_materials.py,,"геометрия AS80_lu_front: Sodium iodide; плюс прямое слово Amber 15.08.2026 «кристалл NaI»; ториевый медальон: состав оправы НЕ УЗНАЕМ (Amber 18.08.2026) — клетка остаётся пустой; если там серебро или золото, их K-серия (22 и 68 кэВ) в образе не появится, и это принятая невязка"
+AS80_Onyx,AS80x80,unknown,Na;I,,,таблица mk_materials.py,,геометрия AS80_lu_front: Sodium iodide; плюс прямое слово Amber 15.08.2026 «кристалл NaI»; оникс — карбонат кальция; Ca Kα 3.69 ниже рабочего низа
+AS80_K40,AS80x80,unknown,Na;I,,,таблица mk_materials.py,,геометрия AS80_lu_front: Sodium iodide; плюс прямое слово Amber 15.08.2026 «кристалл NaI»
+AS80_Th232WT20,AS80x80,unknown,Na;I,W,,таблица mk_materials.py,,"геометрия AS80_lu_front: Sodium iodide; плюс прямое слово Amber 15.08.2026 «кристалл NaI»; corpus_def: extra='WT', электрод WT-20"
+RC103_K40,RC103,known,,,,из геометрии спектра,,
+AS80_Cs137_0cm,AS80x80,known,,,,из геометрии спектра,,
+RC103_Cs137_0cm,RC103,known,,,,из геометрии спектра,,
+ASN16_Lu176,ASN16,known,,,,из геометрии спектра,,
+ASN16_Lu176_P0,ASN16,unknown,Cs;I,,,таблица mk_materials.py,,геометрия ASN16_lu_side: Cesium iodide
+AS80_Lu176,AS80x80,known,,,,из геометрии спектра,,
+RC103_K40Village,RC103,unknown,Cs;I,,,таблица mk_materials.py,,геометрия RC103_lu_front: Cesium iodide
+RC103_Th232Village,RC103,unknown,Cs;I,,,таблица mk_materials.py,,геометрия RC103_lu_front: Cesium iodide
+RC103_Charoite,RC103,unknown,Cs;I,,Pb,таблица mk_materials.py,,геометрия RC103_lu_front: Cesium iodide; corpus_def: съёмка в домике
+RC103_Lu176,RC103,known,,,,из геометрии спектра,,
+HPGeGMX_Th232,HPGE_GMX,excluded,Ge,,,таблица mk_materials.py,,"германий; часть excluded, в счёт не идёт"
+HPGeGMX_Th228,HPGE_GMX,excluded,Ge,,,таблица mk_materials.py,,"германий; часть excluded, в счёт не идёт"
+HPGeGMX_Eu152,HPGE_GMX,excluded,Ge,,,таблица mk_materials.py,,"германий; часть excluded, в счёт не идёт"
+HPGeGMX_Background,HPGE_GMX,excluded,Ge,,,таблица mk_materials.py,,"германий; часть excluded, в счёт не идёт"
+HPGeGEM_Th232,HPGE_GEM,excluded,Ge,,,таблица mk_materials.py,,"германий; часть excluded, в счёт не идёт"
+HPGeGEM_Ra226,HPGE_GEM,excluded,Ge,,,таблица mk_materials.py,,"германий; часть excluded, в счёт не идёт"
+HPGeGEM_K40,HPGE_GEM,excluded,Ge,,,таблица mk_materials.py,,"германий; часть excluded, в счёт не идёт"
+LaBrBril_Th228,LABR_BRIL,unknown,La;Br,,,таблица mk_materials.py,,имя прибора: LaBr3 BrilLanCe 380
+LaBrBril_Eu152,LABR_BRIL,unknown,La;Br,,,таблица mk_materials.py,,имя прибора: LaBr3 BrilLanCe 380
+G1S16_Th232_Mar,G1S16,unknown,Na;I,,,таблица mk_materials.py,,геометрия G1S_*: Sodium iodide; Гамма-1С УДС-ГЦ-63×63 NaI(Tl)
+G1S16_Mix_Denta100,G1S16,known,,,,из геометрии спектра,,
+G1S16_Th232_Denta100,G1S16,known,,,,из геометрии спектра,,
+G1S16_Mix_Mar,G1S16,known,,,,из геометрии спектра,,
+G1S16_Cs137_Mar,G1S16,known,,,,из геометрии спектра,,
+G1S16_Cs137_Mar_2,G1S16,known,,,,из геометрии спектра,,
+G1S16_K40_Mar,G1S16,known,,,,из геометрии спектра,,
+G1S16_K40_Mar_2,G1S16,known,,,,из геометрии спектра,,
+G1S16_Ra226_Mar,G1S16,known,,,,из геометрии спектра,,
+G1S16_Ra226_Mar_2,G1S16,known,,,,из геометрии спектра,,
+G1S16_Th232_Mar_2,G1S16,known,,,,из геометрии спектра,,
+G1S16_Th232_Mar_3,G1S16,known,,,,из геометрии спектра,,
+G1S16_Mix_Petri,G1S16,known,,,,из геометрии спектра,,
+G1S16_Th232_Petri,G1S16,known,,,,из геометрии спектра,,
+G1S16_Am241_P25,G1S16,known,,,,из геометрии спектра,,
+G1S16_Ba133_P25,G1S16,known,,,,из геометрии спектра,,
+G1S16_Cd109_P25,G1S16,known,,,,из геометрии спектра,,
+G1S16_Ce139_P25,G1S16,known,,,,из геометрии спектра,,
+G1S16_Co60_P25,G1S16,known,,,,из геометрии спектра,,
+G1S16_Cs137_P25,G1S16,known,,,,из геометрии спектра,,
+G1S16_Eu152_P25,G1S16,known,,,,из геометрии спектра,,
+G1S16_Mn54_P25,G1S16,known,,,,из геометрии спектра,,
+G1S16_Na22_P25,G1S16,known,,,,из геометрии спектра,,
+G1S16_Th228_P25,G1S16,known,,,,из геометрии спектра,,
+G1S16_Y88_P25,G1S16,known,,,,из геометрии спектра,,
+G1S16_Am241_P5,G1S16,known,,,,из геометрии спектра,,
+G1S16_Ba133_P5,G1S16,known,,,,из геометрии спектра,,
+G1S16_Cd109_P5,G1S16,known,,,,из геометрии спектра,,
+G1S16_Ce139_P5,G1S16,known,,,,из геометрии спектра,,
+G1S16_Co57_P5,G1S16,known,,,,из геометрии спектра,,
+G1S16_Co60_P5,G1S16,known,,,,из геометрии спектра,,
+G1S16_Cs137_P5,G1S16,known,,,,из геометрии спектра,,
+G1S16_Eu152_P5,G1S16,known,,,,из геометрии спектра,,
+G1S16_Mn54_P5,G1S16,known,,,,из геометрии спектра,,
+G1S16_Na22_P5,G1S16,known,,,,из геометрии спектра,,
+G1S16_Th228_P5,G1S16,known,,,,из геометрии спектра,,
+G1S16_Y88_P5,G1S16,known,,,,из геометрии спектра,,
+G1S24_Cs137_Denta120,G1S24,known,,,,из геометрии спектра,,
+G1S24_Cs137_Denta120_2,G1S24,known,,,,из геометрии спектра,,
+G1S24_K40_Denta120,G1S24,known,,,,из геометрии спектра,,
+G1S24_K40_Denta120_2,G1S24,known,,,,из геометрии спектра,,
+G1S24_Ra226_Denta120,G1S24,known,,,,из геометрии спектра,,
+G1S24_Ra226_Denta120_2,G1S24,known,,,,из геометрии спектра,,
+G1S24_Th232_Denta120,G1S24,known,,,,из геометрии спектра,,
+G1S24_Th232_Denta120_2,G1S24,known,,,,из геометрии спектра,,
+G1S24_Cs137_Mar,G1S24,known,,,,из геометрии спектра,,
+G1S24_Cs137_Mar_2,G1S24,known,,,,из геометрии спектра,,
+G1S24_K40_Mar,G1S24,known,,,,из геометрии спектра,,
+G1S24_K40_Mar_2,G1S24,known,,,,из геометрии спектра,,
+G1S24_Ra226_Mar,G1S24,known,,,,из геометрии спектра,,
+G1S24_Ra226_Mar_2,G1S24,known,,,,из геометрии спектра,,
+G1S24_Th232_Mar,G1S24,known,,,,из геометрии спектра,,
+G1S24_Th232_Mar_2,G1S24,known,,,,из геометрии спектра,,
+G1S24_Cs137_Petri,G1S24,known,,,,из геометрии спектра,,
+G1S24_Cs137_Petri_2,G1S24,known,,,,из геометрии спектра,,
+G1S24_K40_Petri,G1S24,known,,,,из геометрии спектра,,
+G1S24_K40_Petri_2,G1S24,known,,,,из геометрии спектра,,
+G1S24_Ra226_Petri,G1S24,known,,,,из геометрии спектра,,
+G1S24_Ra226_Petri_2,G1S24,known,,,,из геометрии спектра,,
+G1S24_Th232_Petri,G1S24,known,,,,из геометрии спектра,,
+G1S24_Th232_Petri_2,G1S24,known,,,,из геометрии спектра,,
+G1S24_Cs137_P25,G1S24,known,,,,из геометрии спектра,,
+G1S24_Na22_P25,G1S24,known,,,,из геометрии спектра,,
+G1S24_Th228_P25,G1S24,known,,,,из геометрии спектра,,
+G1S24_Y88_P25,G1S24,known,,,,из геометрии спектра,,
+G1S24_Am241_P5,G1S24,known,,,,из геометрии спектра,,
+G1S24_Ba133_P5,G1S24,known,,,,из геометрии спектра,,
+G1S24_Bi207_P5,G1S24,known,,,,из геометрии спектра,,
+G1S24_Cd109_P5,G1S24,known,,,,из геометрии спектра,,
+G1S24_Co60_P5,G1S24,known,,,,из геометрии спектра,,
+G1S24_Cs137_P5,G1S24,known,,,,из геометрии спектра,,
+G1S24_Eu152_P5,G1S24,known,,,,из геометрии спектра,,
+G1S24_Na22_P5,G1S24,known,,,,из геометрии спектра,,
+G1S24_Th228_P5,G1S24,known,,,,из геометрии спектра,,
+G1S24_Y88_P5,G1S24,known,,,,из геометрии спектра,,
+G1S24_Zn65_P5,G1S24,known,,,,из геометрии спектра,,

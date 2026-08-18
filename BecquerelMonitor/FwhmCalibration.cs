@@ -84,6 +84,33 @@ namespace BecquerelMonitor
 
         public abstract FwhmCalibration Clone();
 
+        /// <summary>
+        /// Пересчёт коэффициентов кривой под другой масштаб канала:
+        /// <c>mul</c> — во сколько раз новый канал ШИРЕ старого. Реализация
+        /// зависит от формы кривой, поэтому метод абстрактный, а не общий:
+        /// формула корневых для степенной неверна, и наоборот.
+        /// </summary>
+        public abstract void RescaleCoefficients(double mul);
+
+        /// <summary>
+        /// Кривая ПШПВ под другое число каналов.
+        ///
+        /// ⚠ `S54`: раньше здесь пересчитывались ТОЛЬКО опорные точки, а
+        /// результат <see cref="PerformCalibration"/> отбрасывался — и у
+        /// кривой БЕЗ опорных точек (а корпус пишет именно такие,
+        /// <c>&lt;CalibrationPeaks /&gt;</c>) наружу МОЛЧА уходила кривая для
+        /// ПРЕЖНЕГО числа каналов. Хуже: неудачная подгонка успевала записать
+        /// в клон мусор от решателя — <c>PerformCalibration</c> кладёт ответ
+        /// решателя ДО проверки, — то есть «ничего не поменялось» было не
+        /// худшим исходом.
+        ///
+        /// Теперь: есть точки и подгонка прошла — берём подгонку, как раньше;
+        /// иначе считаем коэффициенты ТОЧНО, от ИСХОДНОЙ кривой (клон к этому
+        /// моменту мог быть испорчен). Пересчёт точный и приближением не
+        /// является: и канал, и ширина меряются в каналах, значит
+        /// F'(ch') = F(ch'·mul)/mul — ровно тем же приёмом пересчитывается
+        /// энергетическая кривая.
+        /// </summary>
         public FwhmCalibration RecalcWithNewChannelNum(int oldchannelnum, int newchannelnum)
         {
             FwhmCalibration newFwhmCalibration = Clone();
@@ -96,7 +123,17 @@ namespace BecquerelMonitor
                 peak.Channel = (int)Math.Round(peak.Channel / mul);
                 peak.FWHM = peak.FWHM / mul;
             }
-            newFwhmCalibration.PerformCalibration(newchannelnum);
+
+            if (newFwhmCalibration.CalibrationPeaks.Count >= MinPeaksRequirement()
+                && newFwhmCalibration.PerformCalibration(newchannelnum))
+            {
+                return newFwhmCalibration;
+            }
+
+            // Точек нет или подгонка не прошла: коэффициенты берём у СЕБЯ, а не
+            // у клона, и пересчитываем по форме кривой.
+            newFwhmCalibration.Coefficients = (double[])this.Coefficients.Clone();
+            newFwhmCalibration.RescaleCoefficients(mul);
             return newFwhmCalibration;
         }
 

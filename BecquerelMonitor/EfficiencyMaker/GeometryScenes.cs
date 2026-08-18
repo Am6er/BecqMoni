@@ -257,6 +257,158 @@ namespace BecquerelMonitor.EfficiencyMaker
             return g.CrystalDiameter + 2.0 * side;
         }
 
+        // ------------------------------------------------------------------
+        // Связки размеров (E33)
+        // ------------------------------------------------------------------
+
+        /// <summary>Несогласованный размер: за какое поле держаться и что не так.</summary>
+        public sealed class Issue
+        {
+            /// <summary>Ключ поля редактора — по нему поле подсвечивается.</summary>
+            public string Field;
+
+            /// <summary>Имя строки ресурсов с текстом.</summary>
+            public string Resource;
+
+            /// <summary>Числа для подстановки в текст: что стоит и чему мешает.</summary>
+            public double Value;
+
+            /// <summary>Предел, в который размер обязан уложиться.</summary>
+            public double Limit;
+        }
+
+        /// <summary>
+        /// Размеры, которые поодиночке годны, а вместе невозможны (E33, задача
+        /// Amber 17.08.2026).
+        ///
+        /// Зачем отдельной функцией, а не в <c>GeometryEditorPanel.Validate</c>.
+        /// Проверка перед сохранением ловила только вырожденное — нулевой
+        /// кристалл, нулевую плотность, колодец шире стакана, — и невозможная
+        /// сцена принималась молча: расчёт доводился до конца и выдавал
+        /// правдоподобную ЧУЖУЮ кривую. Правило же тут не про форму ввода, а про
+        /// геометрию, поэтому живёт рядом с ней и проверяется пробой
+        /// (<c>GeometryLimitsProbe</c>), а не глазами по экрану.
+        ///
+        /// ⚠ Смысл размеров взят у того, кто по ним СЧИТАЕТ (<see cref="SampleVolumeCm3"/>
+        /// и <c>EfficiencySimulator</c>), а не у их названий: у цилиндра и короба
+        /// размер ВНЕШНИЙ, и проба занимает просвет за вычетом стенок, а у
+        /// маринелли проба — кольцо между колодцем и стенкой стакана.
+        ///
+        /// Чего здесь нет нарочно: «прибор длиннее лунки». Хвост прибора,
+        /// торчащий наружу, — не ошибка, а обычная полевая съёмка, и
+        /// <see cref="Borehole"/> глубину под прибор нарочно не подгоняет.
+        /// </summary>
+        public static List<Issue> Inconsistencies(GeometryModel g)
+        {
+            List<Issue> issues = new List<Issue>();
+            if (g == null)
+            {
+                return issues;
+            }
+
+            if (g.SourceType == GeometrySourceType.Marinelli)
+            {
+                // (а) В колодец прибор обязан пролезть. У бруска — диагональю:
+                // именно ею он входит в круглую лунку.
+                double outer = DetectorOuterDiameterMm(g);
+                if (outer > 0.0 && g.MarinelliHoleDiameter < outer)
+                {
+                    issues.Add(new Issue
+                    {
+                        Field = "MarinelliHoleDiameter",
+                        Resource = "GeometryEditorErrorHoleNarrow",
+                        Value = g.MarinelliHoleDiameter,
+                        Limit = outer,
+                    });
+                }
+
+                // (б, г) Кольцо пробы обязано существовать: внешний радиус за
+                // вычетом стенки больше внутреннего вместе со стенкой колодца.
+                double rIn = 0.5 * g.MarinelliHoleDiameter + g.MarinelliHoleSideThickness;
+                double rOut = 0.5 * g.MarinelliBeakerDiameter - g.MarinelliSideThickness;
+                if (!(rOut > rIn))
+                {
+                    issues.Add(new Issue
+                    {
+                        Field = "MarinelliBeakerDiameter",
+                        Resource = "GeometryEditorErrorRingGone",
+                        Value = 2.0 * rOut,
+                        Limit = 2.0 * rIn,
+                    });
+                }
+
+                // (в) Колодец не может быть глубже пробы: ниже его дна лежит
+                // столб пробы, и отрицательным он не бывает.
+                if (g.MarinelliHoleHeight > g.MarinelliSourceHeight)
+                {
+                    issues.Add(new Issue
+                    {
+                        Field = "MarinelliHoleHeight",
+                        Resource = "GeometryEditorErrorHoleDeeper",
+                        Value = g.MarinelliHoleHeight,
+                        Limit = g.MarinelliSourceHeight,
+                    });
+                }
+
+                // ...а стакан — ниже своей пробы.
+                if (g.MarinelliBeakerHeight > 0.0
+                    && g.MarinelliSourceHeight > g.MarinelliBeakerHeight)
+                {
+                    issues.Add(new Issue
+                    {
+                        Field = "MarinelliSourceHeight",
+                        Resource = "GeometryEditorErrorSampleTaller",
+                        Value = g.MarinelliSourceHeight,
+                        Limit = g.MarinelliBeakerHeight,
+                    });
+                }
+            }
+            else if (g.SourceType == GeometrySourceType.Cylinder)
+            {
+                // (г) Стенка не может съесть весь просвет: радиус пробы — это
+                // ПОЛОВИНА диаметра за вычетом стенки (см. SampleVolumeCm3).
+                if (!(0.5 * g.BeakerDiameter > g.BeakerSideWallThickness))
+                {
+                    issues.Add(new Issue
+                    {
+                        Field = "BeakerSideWallThickness",
+                        Resource = "GeometryEditorErrorWallEatsSample",
+                        Value = g.BeakerSideWallThickness,
+                        Limit = 0.5 * g.BeakerDiameter,
+                    });
+                }
+
+                if (g.BeakerHeight > 0.0 && g.SourceHeight > g.BeakerHeight)
+                {
+                    issues.Add(new Issue
+                    {
+                        Field = "SourceHeight",
+                        Resource = "GeometryEditorErrorSampleTaller",
+                        Value = g.SourceHeight,
+                        Limit = g.BeakerHeight,
+                    });
+                }
+            }
+            else if (g.SourceType == GeometrySourceType.Box)
+            {
+                // (б) У короба стенка снимается с ОБЕИХ сторон, поэтому предел
+                // вдвое строже, чем у цилиндра с его радиусом.
+                if (!(g.BoxSourceX > 2.0 * g.BoxSideWallThickness)
+                    || !(g.BoxSourceY > 2.0 * g.BoxSideWallThickness))
+                {
+                    issues.Add(new Issue
+                    {
+                        Field = "BoxSideWallThickness",
+                        Resource = "GeometryEditorErrorWallEatsSample",
+                        Value = g.BoxSideWallThickness,
+                        Limit = 0.5 * Math.Min(g.BoxSourceX, g.BoxSourceY),
+                    });
+                }
+            }
+
+            return issues;
+        }
+
         /// <summary>
         /// Объём пробы сцены, см³. Считается по тем же областям, что строит
         /// расчёт (<c>EfficiencySimulator.Build</c>): у маринелли это кольцо
