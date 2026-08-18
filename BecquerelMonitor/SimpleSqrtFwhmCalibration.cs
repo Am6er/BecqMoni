@@ -56,6 +56,18 @@ namespace BecquerelMonitor
 
 
 
+        /// <summary>
+        /// F² = c0 + c1·ch — тот же ход, что у <see cref="SqrtFwhmCalibration"/>
+        /// без квадратичного члена: c_i' = c_i·mul^(i−2) (`S54`).
+        /// </summary>
+        public override void RescaleCoefficients(double mul)
+        {
+            for (int i = 0; i < coefficients.Length; i++)
+            {
+                coefficients[i] = coefficients[i] * Math.Pow(mul, i - 2);
+            }
+        }
+
         public override int MinPeaksRequirement()
         {
             return 2;

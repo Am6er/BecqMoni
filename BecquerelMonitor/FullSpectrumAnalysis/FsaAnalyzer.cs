@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -264,6 +264,43 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public string ScintillatorMaterial { get; set; }
 
+        /// <summary>
+        /// ОКНО СОВПАДЕНИЯ, секунды: мёртвое время прибора, оно же длительность
+        /// импульса (S27). Два кванта складываются в один отсчёт, только если
+        /// разошлись во времени меньше, чем на неё, — а разводит их время жизни
+        /// промежуточного уровня. Без этого модель ставит Cd-109 сумму
+        /// 22 + 88 = 110 кэВ, которой не бывает: уровень Ag-109 88 кэВ живёт
+        /// 39.79 с.
+        ///
+        /// Ноль означает «прибор своего мёртвого времени не назвал» и заменяется
+        /// на <see cref="FsaCascadeSummer.DefaultCoincidenceWindowSec"/>.
+        /// Источник — `InputDeviceConfig.DeadTime()`; у AtomSpectra это прямо
+        /// `(rise + fall + 1)/f`, измерено 1.357 мкс на AS80x80.
+        /// </summary>
+        public double CoincidenceWindowSec { get; set; }
+
+        /// <summary>
+        /// Считать ли K-рентген дочернего атома партнёром совпадения (S27).
+        /// Выключатель — для РАЗДЕЛЯЮЩЕГО замера, как
+        /// <see cref="CascadeSumPeaks"/>: цену правки надо снимать при одной
+        /// версии физики, иначе «стало лучше» ничего не значит.
+        /// </summary>
+        public bool CascadeXrayPartners { get; set; }
+
+        /// <summary>
+        /// Считать ли аннигиляционные кванты партнёром совпадения (S27).
+        /// ⛔ Пара 511 + 511 не заводится ни при каком значении — кванты летят
+        /// спина к спине, см. <see cref="CascadeAtomicData.AnnihilationQuanta"/>.
+        /// </summary>
+        public bool CascadeAnnihilationPartners { get; set; }
+
+        /// <summary>
+        /// Искать ли ИЗОМЕРЫ по символу Sandia (S27). Выключено — прежнее
+        /// поведение: имя вида «Ag-108m» не разбирается и компонент остаётся
+        /// без поправки. Выключатель — для разделяющего замера.
+        /// </summary>
+        public bool CascadeIsomerPartners { get; set; }
+
         /// <summary>Живёт один разбор: матрицу могли подменить между вызовами.</summary>
         FsaCascadeSummer cascade;
 
@@ -330,6 +367,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.Backscatter = true;
             this.CascadeSumming = true;
             this.CascadeSumPeaks = true;
+            // S27: атомные партнёры каскада включены умолчанием. Окно
+            // совпадения ноль — «прибор не назвал»; кто знает мёртвое время,
+            // ставит его сам (FsaOverlay берёт у InputDeviceConfig.DeadTime()).
+            this.CascadeXrayPartners = true;
+            this.CascadeAnnihilationPartners = true;
+            this.CascadeIsomerPartners = true;
+            this.CoincidenceWindowSec = 0.0;
             this.PileUp = true;
             this.PartialResidualGate = true;
 
@@ -385,7 +429,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // обе эффективности. Кэш поправок внутри живёт один разбор, потому
             // что матрица между вызовами могла смениться.
             this.cascade = this.CascadeSumming
-                ? FsaCascadeSummer.Create(this.ResponseMatrix, this.ScintillatorMaterial)
+                ? FsaCascadeSummer.Create(this.ResponseMatrix, this.ScintillatorMaterial,
+                                          this.CoincidenceWindowSec, this.CascadeXrayPartners,
+                                          this.CascadeAnnihilationPartners,
+                                          this.CascadeIsomerPartners)
                 : null;
             this.cascadeApplied = false;
 

@@ -44,13 +44,35 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     /// теряют наравне с пиком, но их поправка здесь НЕ применяется — они малы,
     /// а разделять правило на три случая ради этого рано.
     ///
+    /// РЕНТГЕН И АННИГИЛЯЦИЯ В ПАРАХ (S27, 18.08.2026). Таблицы SandiaDecay
+    /// держат только пары γ-γ, а из распада вылетает и не-гамма: K-рентген
+    /// дочернего атома (до 115 % на распад у захватных) и два кванта по
+    /// 511 кэВ у β⁺. Они заводятся в те же `Pairs` и `Partners`, что и ядерные
+    /// пары, — поэтому весь счёт ниже (CF, сумм-пики, тройные суммы,
+    /// сумм-континуум) работает над ними БЕЗ ЕДИНОЙ ПРАВКИ. Откуда берутся
+    /// вероятности — см. <see cref="CascadeAtomicData"/>.
+    ///
+    /// ГЕЙТ ПО ВРЕМЕНИ. Совпадение — это два кванта в ОДНОМ импульсе, а
+    /// длительность импульса и есть мёртвое время прибора
+    /// (`InputDeviceConfig.DeadTime()`; у AtomSpectra оно прямо считается как
+    /// `(rise + fall + 1)/f` и на AS80x80 измерено 1.357 мкс). Кванты,
+    /// разделённые долгоживущим уровнем, в один импульс не попадают, и пара
+    /// между ними — выдумка. Разводится это начисто: у Hf-176 уровень 88 кэВ
+    /// живёт 1.43 нс (совпадение есть), у Ag-109 тот же по энергии уровень —
+    /// 39.79 с, а у Ba-137 уровень 661.7 кэВ — 153 с (совпадений нет). Без
+    /// гейта модель поставила бы Cd-109 сумму 22 + 88 = 110 кэВ, которой не
+    /// бывает. ⚠ Порог НЕ безразличен: 1.04 % уровней `g4_level` лежат в полосе
+    /// 1…10 мкс, и среди них Sc-44 146 кэВ (51 мкс) — из-за него рентген Ti-44
+    /// не совпадает с его же гаммами 67.9 и 78.3.
+    ///
     /// ЧЕГО НЕТ, сознательно (наследуется от пробы):
     ///   * тройных влётов (E_i+E_j+E_m = E_k) — на два порядка мельче;
-    ///   * рентгена и аннигиляционных квантов в парах: пары только γ-γ, у
-    ///     EC-нуклидов (Ba-133) CF занижен;
-    ///   * угловых корреляций (`database/scheme.md`, D-1) — совпадения изотропны;
-    ///   * изомеров: у них своя нумерация Sandia, искать надо по `sandia_symbol`
-    ///     (§8 схемы базы), поэтому имена вида «Ba-137m» пропускаются;
+    ///   * пары 511 + 511 — кванты летят спина к спине, изотропная формула
+    ///     завышает их совместное попадание в разы (решение Amber 18.08.2026,
+    ///     разобрано в <see cref="CascadeAtomicData.AnnihilationQuanta"/>);
+    ///   * L-серии рентгена — у неё своя бухгалтерия вакансий, TODO S58;
+    ///   * угловых корреляций (`database/scheme.md`, D-1) — совпадения
+    ///     изотропны; геометрическая половина живёт своей строкой, TODO N14;
     ///   * сумм-континуума (полное + частичное поглощение пары): сумм-пик
     ///     ставится только на полное поглощение обоих квантов.
     /// </summary>
@@ -264,20 +286,58 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static string Failure { get; private set; }
 
+        /// <summary>
+        /// Окно совпадения по умолчанию, секунды, — когда прибор своего
+        /// мёртвого времени не назвал (`DeadTime()` вернул 0 или конфигурация
+        /// его не держит вовсе, как все заглушки корпуса).
+        ///
+        /// Величина выбрана НЕ из середины, а с узкого края семейства: у
+        /// RadiaCode и Obsidian в коде стоит 5 мкс, у AS80x80 измерено 1.357,
+        /// у AudioInput это длина формы импульса. Узкое окно даёт МЕНЬШЕ
+        /// совпадений, то есть меньшую поправку, — и ошибается в сторону «не
+        /// выдумать суммирования», а не наоборот.
+        /// </summary>
+        public const double DefaultCoincidenceWindowSec = 1.0E-6;
+
         readonly ResponseMatrix matrix;
         readonly double[] peakAtNode;
         readonly double[] totalAtNode;
         readonly MaterialDatabase.LightYieldCurve light;
+        readonly double windowSec;
+        readonly bool withXrays;
+        readonly bool withAnnihilation;
+        readonly bool withIsomers;
         readonly Dictionary<FsaComponent, Correction> corrections =
             new Dictionary<FsaComponent, Correction>();
 
+        /// <summary>
+        /// Данные нуклида, уже дополненные рентгеном и аннигиляцией. Кэш
+        /// ЭКЗЕМПЛЯРА, а не общий: дополнение зависит от окна совпадения и от
+        /// абляционных ключей, а они у каждого разбора свои. Общий кэш
+        /// (<see cref="Cache"/>) держит то, что от них не зависит, — поставку
+        /// SandiaDecay.
+        /// </summary>
+        readonly Dictionary<string, NuclideData> augmented =
+            new Dictionary<string, NuclideData>(StringComparer.OrdinalIgnoreCase);
+
         FsaCascadeSummer(ResponseMatrix matrix, double[] peakAtNode, double[] totalAtNode,
-                         MaterialDatabase.LightYieldCurve light)
+                         MaterialDatabase.LightYieldCurve light, double windowSec,
+                         bool withXrays, bool withAnnihilation, bool withIsomers)
         {
             this.matrix = matrix;
             this.peakAtNode = peakAtNode;
             this.totalAtNode = totalAtNode;
             this.light = light;
+            this.windowSec = windowSec > 0.0 ? windowSec : DefaultCoincidenceWindowSec;
+            this.withXrays = withXrays;
+            this.withAnnihilation = withAnnihilation;
+            this.withIsomers = withIsomers;
+        }
+
+        /// <summary>Окно совпадения этого разбора, секунды — для отчёта проб.</summary>
+        public double CoincidenceWindowSec
+        {
+            get { return this.windowSec; }
         }
 
         /// <summary>Имя кривой света, по которой ставятся суммы; пусто — по энергии.</summary>
@@ -307,6 +367,26 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// от геометрии только необратимый отпечаток (`ResponseMatrix.Stamp`).
         /// </summary>
         public static FsaCascadeSummer Create(ResponseMatrix matrix, string scintillator)
+        {
+            return Create(matrix, scintillator, 0.0, true, true, true);
+        }
+
+        /// <summary>
+        /// То же, но с ОКНОМ СОВПАДЕНИЯ и абляционными ключами (S27).
+        ///
+        /// `windowSec` — мёртвое время прибора, то есть длительность импульса:
+        /// два кванта попадают в один импульс и складываются, только если
+        /// разошлись во времени меньше, чем на неё. Ноль означает «прибор не
+        /// сказал» и заменяется <see cref="DefaultCoincidenceWindowSec"/>.
+        ///
+        /// `withXrays` / `withAnnihilation` — выключатели для РАЗДЕЛЯЮЩЕГО
+        /// замера: цена правки меряется при одной версии физики, «было/стало»
+        /// на одном бинаре. По правилу T42 в клеймо матрицы они не идут — и не
+        /// должны: матрицу они не трогают вовсе, это слой поверх неё.
+        /// </summary>
+        public static FsaCascadeSummer Create(ResponseMatrix matrix, string scintillator,
+                                              double windowSec, bool withXrays,
+                                              bool withAnnihilation, bool withIsomers)
         {
             if (matrix == null || !matrix.HasChannels || matrix.Energies == null
                 || matrix.Energies.Length == 0 || matrix.Rows == null)
@@ -345,7 +425,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
-            return new FsaCascadeSummer(matrix, peak, total, curve);
+            return new FsaCascadeSummer(matrix, peak, total, curve, windowSec,
+                                        withXrays, withAnnihilation, withIsomers);
         }
 
         /// <summary>
@@ -1068,32 +1149,149 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         // ------------------------------------------------------------------
 
         /// <summary>
-        /// Пары и выходы нуклида; null — имя не разбирается (рентген, пики
-        /// вылета, изомер) или совпадений у нуклида нет (Cs-137, K-40).
+        /// Пары и выходы нуклида, УЖЕ дополненные рентгеном и аннигиляцией;
+        /// null — имя не разбирается (пики вылета) либо у нуклида нет ни
+        /// совпадений, ни атомных партнёров (K-40).
+        ///
+        /// ⚠ Стала методом ЭКЗЕМПЛЯРА при S27: дополнение зависит от окна
+        /// совпадения прибора и от абляционных ключей, а они принадлежат
+        /// разбору, не процессу. Поставка SandiaDecay по-прежнему лежит в общем
+        /// статическом кэше — она от разбора не зависит.
         /// </summary>
-        static NuclideData Data(string nuclide)
+        NuclideData Data(string nuclide)
         {
-            string nucid = Nucid(nuclide);
-            if (nucid == null)
+            string key = ParentKey(nuclide);
+            if (key == null)
             {
                 return null;
             }
 
+            // Выключатель прежнего поведения (S27, пункт «изомеры»): до правки
+            // `Nucid` возвращал на именах вида «Ba-137m» null, и такой
+            // компонент оставался без поправки молча. Ключ нужен, чтобы цену
+            // именно этой половины можно было снять отдельно.
+            if (!this.withIsomers && key.StartsWith(IsomerPrefix, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            NuclideData ready;
+            if (this.augmented.TryGetValue(key, out ready))
+            {
+                return ready;
+            }
+
+            NuclideData raw = BaseData(key);
+            ready = this.Augment(key, raw);
+            this.augmented[key] = ready;
+            return ready;
+        }
+
+        /// <summary>Поставка SandiaDecay как есть; кэш общий на процесс.</summary>
+        static NuclideData BaseData(string key)
+        {
             lock (Gate)
             {
                 NuclideData data;
-                if (Cache.TryGetValue(nucid, out data))
+                if (Cache.TryGetValue(key, out data))
                 {
                     return data;
                 }
 
-                data = Load(nucid);
-                Cache[nucid] = data;
+                data = Load(key);
+                Cache[key] = data;
                 return data;
             }
         }
 
-        static NuclideData Load(string nucid)
+        /// <summary>
+        /// Ключ родителя совпадений по имени нуклида: либо наш `nucid`
+        /// («Pb-214» → «214PB»), либо — для ИЗОМЕРОВ — символ Sandia
+        /// («Ba-137m» → «Ba137m»), с приставкой, отличающей одно от другого.
+        ///
+        /// ⚠ Почему у изомеров отдельный путь (S27, пункт «изомеры
+        /// пропускаются»). Наш `l_seqno` — это НОМЕР УРОВНЯ в схеме, а не
+        /// порядковый номер изомера: у Sandia он лежит отдельным полем
+        /// `isomer`, и 418 изомеров поставки нашей нумерации не приписаны
+        /// вовсе (`database/scheme.md`, §8). Искать их поэтому надо по
+        /// `sandia_symbol`. До S27 <see cref="Nucid"/> возвращал на таких
+        /// именах null, и «Ba-137m» молча оставался без поправки.
+        /// </summary>
+        public static string ParentKey(string name)
+        {
+            string nucid = Nucid(name);
+            if (nucid != null)
+            {
+                return nucid;
+            }
+
+            string symbol = SandiaSymbol(name);
+            return symbol != null ? IsomerPrefix + symbol : null;
+        }
+
+        /// <summary>
+        /// Приставка ключа изомера. Нужна, чтобы «Ba137m» нельзя было спутать с
+        /// нашим `nucid`: пространство ключей одно, а таблицы разные.
+        /// </summary>
+        const string IsomerPrefix = "sandia:";
+
+        /// <summary>
+        /// Имя изомера в символ Sandia: «Ba-137m» → «Ba137m», «Tb-154m2» →
+        /// «Tb154m2». Не изомер (нет буквенного хвоста после массы) — null:
+        /// такие имена идут обычным путём, через `nucid`.
+        /// </summary>
+        public static string SandiaSymbol(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return null;
+            }
+
+            int dash = name.IndexOf('-');
+            if (dash <= 0 || dash + 1 >= name.Length)
+            {
+                return null;
+            }
+
+            string element = name.Substring(0, dash);
+            string tail = name.Substring(dash + 1);
+            foreach (char c in element)
+            {
+                if (!char.IsLetter(c))
+                {
+                    return null;
+                }
+            }
+
+            // Масса, затем хвост изомера: «137m», «154m2». Без хвоста это не
+            // изомер, и сюда попадать не должно.
+            int digits = 0;
+            while (digits < tail.Length && char.IsDigit(tail[digits]))
+            {
+                digits++;
+            }
+
+            if (digits == 0 || digits == tail.Length)
+            {
+                return null;
+            }
+
+            string suffix = tail.Substring(digits);
+            foreach (char c in suffix)
+            {
+                if (!char.IsLetterOrDigit(c))
+                {
+                    return null;
+                }
+            }
+
+            return char.ToUpperInvariant(element[0])
+                   + element.Substring(1).ToLowerInvariant()
+                   + tail.Substring(0, digits)
+                   + suffix.ToLowerInvariant();
+        }
+
+        static NuclideData Load(string key)
         {
             NuclideData data = new NuclideData
             {
@@ -1110,10 +1308,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     connection.Open();
                     using (SqliteCommand command = connection.CreateCommand())
                     {
+                        // Изомер ищется по символу Sandia, обычный нуклид — по
+                        // нашему `nucid` при `isomer = 0`. Разные столбцы, одни
+                        // и те же представления.
+                        bool isomer = key.StartsWith(IsomerPrefix, StringComparison.Ordinal);
+                        string parameter = isomer ? key.Substring(IsomerPrefix.Length) : key;
+                        string filter = isomer
+                            ? " where sandia_symbol = $n"
+                            : " where nucid = $n and isomer = 0";
+
                         command.CommandText =
                             "select energy_kev, intensity_pct from v_gamma_coincidence_line"
-                            + " where nucid = $n and isomer = 0";
-                        command.Parameters.AddWithValue("$n", nucid);
+                            + filter;
+                        command.Parameters.AddWithValue("$n", parameter);
                         using (SqliteDataReader reader = command.ExecuteReader())
                         {
                             while (reader.Read())
@@ -1124,7 +1331,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                         command.CommandText =
                             "select energy_kev, coinc_energy_kev, fraction from v_gamma_coincidence"
-                            + " where nucid = $n and isomer = 0";
+                            + filter;
                         using (SqliteDataReader reader = command.ExecuteReader())
                         {
                             while (reader.Read())
@@ -1144,14 +1351,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // без неё, как работали до неё. Но МОЛЧА этого делать нельзя:
                 // «поправка ничего не сделала» и «поправка не смогла» с виду
                 // одно и то же, и без записанной причины разница теряется.
-                Failure = nucid + ": " + error.Message;
+                Failure = key + ": " + error.Message;
                 return null;
             }
 
-            if (data.Pairs.Count == 0)
-            {
-                return null;
-            }
+            // ⚠ Пустой набор пар БОЛЬШЕ НЕ ЗНАЧИТ «поправлять нечего» (S27): у
+            // нуклида с одной гаммой (Ce-139, Cd-109, Na-22) пар γ-γ нет и в
+            // поставке его нет вовсе, а совпадение с рентгеном или с
+            // аннигиляционным квантом у него есть. Решение «ничего нет»
+            // принимается теперь ПОСЛЕ дополнения, в Augment.
 
             // Пара лежит в базе ОДИН раз и направленно; обратная условная
             // считается через отношение выходов: P(A|B) = P(B|A)·I(A)/I(B)
@@ -1165,6 +1373,356 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     Put(data, pair[1], pair[0], pair[2] * ia / ib);
                 }
+            }
+
+            return data;
+        }
+
+        /// <summary>
+        /// Дополнить ядерные пары АТОМНЫМИ участниками распада: K-рентгеном
+        /// дочернего атома и аннигиляционными квантами (S27).
+        ///
+        /// ГЛАВНЫЙ ХОД. Новые партнёры кладутся в те же `Pairs`, `Partners` и
+        /// `Intensity`, что и ядерные, — и после этого весь счёт выше
+        /// (CF, сумм-пики, тройные суммы, сумм-континуум, защита от двойного
+        /// счёта) работает над ними без единой правки. Отдельной ветки «а тут
+        /// у нас рентген» в формулах нет нигде, и это сознательно: две ветки
+        /// разошлись бы при первой же правке одной из них.
+        ///
+        /// ВЕРОЯТНОСТЬ РЕНТГЕНА ПРИ ГАММЕ k. Складывается из двух источников
+        /// вакансии, и они совпадают по-разному (см.
+        /// <see cref="CascadeAtomicData"/>):
+        ///
+        ///     P(K-вакансия | γ_k) = V_захв·[γ_k пришла вовремя]
+        ///                         + Σ_{T ≠ k} P(γ_T | γ_k)·α_K(T)·[T и k рядом]
+        ///
+        /// Второе слагаемое выводится так: доля событий, где ПЕРЕХОД T вообще
+        /// случился, при известной γ_k равна P(γ_T|γ_k)·(1 + α_tot(T)), а
+        /// вакансию он даёт с вероятностью α_K(T)/(1 + α_tot(T)) — полные
+        /// коэффициенты сокращаются, и остаётся ровно P(γ_T|γ_k)·α_K(T).
+        /// Слагаемого T = k нет НАРОЧНО: если k вылетела гаммой, значит она не
+        /// конвертировала, и вакансии от неё в этом событии не было.
+        /// </summary>
+        NuclideData Augment(string key, NuclideData raw)
+        {
+            bool hasPairs = raw != null && raw.Pairs.Count > 0;
+            if (!this.withXrays && !this.withAnnihilation)
+            {
+                return hasPairs ? raw : null;
+            }
+
+            // Изомеру своей строки в `decay_radiations` нет: выходы у нас
+            // сложены на родителя цепочки (Cs-137 держит и линию Ba-137m).
+            // Значит атомных данных для него взять неоткуда, и это не отказ.
+            if (key.StartsWith(IsomerPrefix, StringComparison.Ordinal))
+            {
+                return hasPairs ? raw : null;
+            }
+
+            CascadeAtomicData atomic = CascadeAtomicData.Of(key);
+            if (atomic == null)
+            {
+                return hasPairs ? raw : null;
+            }
+
+            if (!string.IsNullOrEmpty(atomic.Note))
+            {
+                Failure = key + ": " + atomic.Note;
+            }
+
+            // Копия, а не правка на месте: `raw` лежит в ОБЩЕМ кэше, и дописать
+            // в него окно этого разбора значило бы отдать его следующему.
+            NuclideData data = Copy(raw);
+
+            // Выходы гамма-линий: у кого нет строки в поставке SandiaDecay,
+            // берутся из `decay_radiations`. Уже имеющиеся НЕ трогаем — иначе
+            // прежние замеры сдвинулись бы без всякой связи с S27 (у Lu-176
+            // поставки расходятся: 91.0 % против 77.97 на линии 201.83).
+            foreach (double[] line in atomic.GammaIntensity)
+            {
+                double had;
+                if (!Match(data.Intensity, line[0], out had))
+                {
+                    data.Intensity[line[0]] = line[1];
+                }
+            }
+
+            // Носитель: энергия, доля внутри своей серии и признак «это
+            // вакансия» (рентген) против «это аннигиляция».
+            var carriers = new List<Carrier>();
+            if (this.withXrays && atomic.KIntensityPct > 0.0 && atomic.OmegaK > 0.0)
+            {
+                foreach (double[] line in atomic.KLines)
+                {
+                    // Вакансия одна, а ответить она может любой линией серии —
+                    // отсюда доля.
+                    carriers.Add(new Carrier
+                    {
+                        EnergyKev = line[0],
+                        IntensityPct = line[1],
+                        Share = line[1] / atomic.KIntensityPct,
+                        FromVacancy = true
+                    });
+                }
+            }
+
+            if (this.withAnnihilation && atomic.AnnihilationQuanta > 0.0)
+            {
+                carriers.Add(new Carrier
+                {
+                    EnergyKev = AnnihilationKev,
+                    IntensityPct = atomic.AnnihilationQuanta * 100.0,
+                    Share = 1.0,
+                    FromVacancy = false
+                });
+            }
+
+            if (carriers.Count == 0)
+            {
+                return data.Pairs.Count > 0 ? data : null;
+            }
+
+            // ⛔ НОСИТЕЛЬ НИЖЕ СЕТКИ МАТРИЦЫ НЕ БЕРЁТСЯ ВОВСЕ, и это не мелочь.
+            // `Interpolate` за нижним краем ЗАЖИМАЕТ значение первым узлом —
+            // для линии самого нуклида это осторожно, а для партнёра совпадения
+            // это выдумка: квант в 2.96 кэВ (Ar K у K-40) из пробы и корпуса не
+            // выйдет никогда, а зажим выдаёт ему полную эффективность НИЖНЕГО
+            // УЗЛА, то есть десятки процентов. Померено: K-40, у которого
+            // никакого совпадения быть не может, ехал на 0.65 % χ²/ndf — ровно
+            // отсюда. Матрица про такие энергии не знает ничего, и честный
+            // ответ «не знаю» здесь — не заводить пару.
+            //
+            // Заодно это объясняет, у кого правка обязана быть невидимой:
+            // Mn-54 (5.4 кэВ), Ti-44 (4.1), Co-57 (6.4), Zn-65 (8.0), Y-88
+            // (14.1) — их K-рентген слишком мягок, чтобы дойти до кристалла, и
+            // ноль у них ФИЗИЧЕСКИЙ, а не признак поломки.
+            double lowestNode = this.matrix.Energies.Length > 0
+                ? this.matrix.Energies[0]
+                : 0.0;
+            carriers.RemoveAll(c => c.EnergyKev < lowestNode);
+            if (carriers.Count == 0)
+            {
+                return data.Pairs.Count > 0 ? data : null;
+            }
+
+            // Выходы носителей — в таблицу выходов ДО построения пар: обратная
+            // условная считается через них, и на полпути их там быть уже
+            // должно.
+            foreach (Carrier carrier in carriers)
+            {
+                double had;
+                if (!Match(data.Intensity, carrier.EnergyKev, out had))
+                {
+                    data.Intensity[carrier.EnergyKev] = carrier.IntensityPct;
+                }
+            }
+
+            foreach (double[] gamma in atomic.GammaIntensity)
+            {
+                double decayEnergy = gamma[0];
+
+                // ⛔ КЛЮЧ ПАРЫ — ТОТ ЖЕ, ЧТО У ЯДЕРНЫХ ПАР, а он приходит из
+                // ДРУГОЙ поставки и округлён иначе: у Lu-176 линия 306.780 в
+                // `decay_radiations` против 306.880 в таблицах совпадений.
+                // `Partners` и `PairBase` ищут по ТОЧНОМУ ключу, поэтому пара,
+                // положенная под энергией распада, для них не существует —
+                // проверено измерением: первый прогон дал побитово те же
+                // невязки, что и с выключенным ключом. Величина, не
+                // шелохнувшаяся там, где обязана была двинуться, — это про
+                // инструмент, а не про правку.
+                double pairKey;
+                if (!Match(data.Intensity, decayEnergy, out pairKey))
+                {
+                    pairKey = decayEnergy;
+                }
+
+                double delay = DelayOf(atomic, decayEnergy);
+                if (delay < 0.0)
+                {
+                    // Перехода в схеме не нашлось — времени вылета не знаем.
+                    // Считаем квант мгновенным: это сторона, где совпадение
+                    // остаётся, а сам факт виден в отчёте пробы.
+                    delay = 0.0;
+                }
+
+                foreach (Carrier carrier in carriers)
+                {
+                    double probability = carrier.FromVacancy
+                        ? carrier.Share * this.VacancyGiven(atomic, raw, decayEnergy, delay)
+                        : (delay < this.windowSec ? atomic.AnnihilationQuanta : 0.0);
+                    if (!(probability > 0.0))
+                    {
+                        continue;
+                    }
+
+                    double carrierKey;
+                    if (!Match(data.Intensity, carrier.EnergyKev, out carrierKey))
+                    {
+                        carrierKey = carrier.EnergyKev;
+                    }
+
+                    data.Pairs.Add(new[] { pairKey, carrierKey, probability });
+                    Put(data, pairKey, carrierKey, probability);
+
+                    // Обратная условная — тем же правилом, что у ядерных пар:
+                    // P(A|B) = P(B|A)·I(A)/I(B).
+                    double ia, ib;
+                    if (data.Intensity.TryGetValue(pairKey, out ia)
+                        && data.Intensity.TryGetValue(carrierKey, out ib) && ib > 0.0)
+                    {
+                        Put(data, carrierKey, pairKey, probability * ia / ib);
+                    }
+                }
+            }
+
+            return data.Pairs.Count > 0 ? data : null;
+        }
+
+        /// <summary>Неядерный участник каскада: линия рентгена или 511.</summary>
+        sealed class Carrier
+        {
+            public double EnergyKev;
+
+            /// <summary>Выход на распад, %.</summary>
+            public double IntensityPct;
+
+            /// <summary>Доля внутри своей серии; у аннигиляции единица.</summary>
+            public double Share;
+
+            /// <summary>
+            /// true — квант родился из K-вакансии (тогда вероятность считает
+            /// <see cref="VacancyGiven"/>), false — из аннигиляции позитрона.
+            /// </summary>
+            public bool FromVacancy;
+        }
+
+        /// <summary>Аннигиляционная линия, кэВ.</summary>
+        const double AnnihilationKev = 511.0;
+
+        /// <summary>
+        /// Число K-вакансий, приходящееся на событие с гаммой `energyKev`, —
+        /// формула из шапки <see cref="Augment"/>, уже с гейтом по времени.
+        /// </summary>
+        double VacancyGiven(CascadeAtomicData atomic, NuclideData raw,
+                            double energyKev, double delaySec)
+        {
+            double vacancy = 0.0;
+            if (delaySec < this.windowSec)
+            {
+                // Захватная вакансия рождается в момент распада, значит от неё
+                // до гаммы прошло ровно `delaySec`.
+                vacancy += atomic.PromptVacancy;
+            }
+
+            foreach (double[] other in atomic.GammaIntensity)
+            {
+                if (Math.Abs(other[0] - energyKev) < SamePairLineKev)
+                {
+                    continue;
+                }
+
+                CascadeAtomicData.Transition transition;
+                if (!atomic.Gammas.TryGetValue(other[0], out transition)
+                    || !(transition.AlphaK > 0.0))
+                {
+                    continue;
+                }
+
+                if (Math.Abs(transition.EmitDelaySec - delaySec) >= this.windowSec)
+                {
+                    continue;
+                }
+
+                vacancy += Conditional(atomic, raw, energyKev, other[0]) * transition.AlphaK;
+            }
+
+            return vacancy * atomic.OmegaK;
+        }
+
+        /// <summary>
+        /// P(γ_other | γ_energy) — из поставки совпадений, если пара там есть.
+        ///
+        /// Пары нет — берём безусловный выход другой линии. Это НЕ уклонение:
+        /// у нуклида с одной гаммой других слагаемых не бывает вовсе, а у
+        /// многогаммового отсечка поставки (обе линии ≥0.1 %, доля ≥0.1 %)
+        /// отбрасывает как раз слабые пары, где приближение независимости
+        /// стоит меньше самого слагаемого.
+        /// </summary>
+        static double Conditional(CascadeAtomicData atomic, NuclideData raw,
+                                  double energyKev, double otherKev)
+        {
+            if (raw != null)
+            {
+                double have;
+                if (Match(raw.Intensity, energyKev, out have))
+                {
+                    Dictionary<double, double> bag;
+                    if (raw.Partners.TryGetValue(have, out bag))
+                    {
+                        foreach (KeyValuePair<double, double> entry in bag)
+                        {
+                            if (Math.Abs(entry.Key - otherKev) < SameLineKev)
+                            {
+                                return entry.Value;
+                            }
+                        }
+                    }
+                }
+            }
+
+            foreach (double[] line in atomic.GammaIntensity)
+            {
+                if (Math.Abs(line[0] - otherKev) < SamePairLineKev)
+                {
+                    return line[1] / 100.0;
+                }
+            }
+
+            return 0.0;
+        }
+
+        /// <summary>Через сколько секунд после распада вылетает эта гамма; −1 — не знаем.</summary>
+        static double DelayOf(CascadeAtomicData atomic, double energyKev)
+        {
+            CascadeAtomicData.Transition transition;
+            return atomic.Gammas.TryGetValue(energyKev, out transition)
+                ? transition.EmitDelaySec
+                : -1.0;
+        }
+
+        static NuclideData Copy(NuclideData source)
+        {
+            NuclideData data = new NuclideData
+            {
+                Intensity = new Dictionary<double, double>(),
+                Pairs = new List<double[]>(),
+                Partners = new Dictionary<double, Dictionary<double, double>>()
+            };
+
+            if (source == null)
+            {
+                return data;
+            }
+
+            foreach (KeyValuePair<double, double> entry in source.Intensity)
+            {
+                data.Intensity[entry.Key] = entry.Value;
+            }
+
+            foreach (double[] pair in source.Pairs)
+            {
+                data.Pairs.Add(new[] { pair[0], pair[1], pair[2] });
+            }
+
+            foreach (KeyValuePair<double, Dictionary<double, double>> entry in source.Partners)
+            {
+                var bag = new Dictionary<double, double>();
+                foreach (KeyValuePair<double, double> inner in entry.Value)
+                {
+                    bag[inner.Key] = inner.Value;
+                }
+
+                data.Partners[entry.Key] = bag;
             }
 
             return data;

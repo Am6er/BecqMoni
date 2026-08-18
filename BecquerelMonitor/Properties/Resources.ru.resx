@@ -1211,6 +1211,24 @@
   <data name="GeometryEditorErrorMarinelliHole" xml:space="preserve">
     <value>Диаметр стакана Маринелли должен быть больше диаметра колодца.</value>
   </data>
+  <data name="GeometryEditorErrorLinked" xml:space="preserve">
+    <value>Эти размеры не могут стоять вместе:</value>
+  </data>
+  <data name="GeometryEditorErrorHoleNarrow" xml:space="preserve">
+    <value>Колодец у́же прибора: {0:F1} мм против {1:F1} мм внешнего поперечника.</value>
+  </data>
+  <data name="GeometryEditorErrorRingGone" xml:space="preserve">
+    <value>Между колодцем и стенкой стакана пробы не остаётся: {0:F1} мм снаружи против {1:F1} мм внутри.</value>
+  </data>
+  <data name="GeometryEditorErrorHoleDeeper" xml:space="preserve">
+    <value>Колодец глубже пробы: {0:F1} мм против {1:F1} мм.</value>
+  </data>
+  <data name="GeometryEditorErrorSampleTaller" xml:space="preserve">
+    <value>Проба выше своего сосуда: {0:F1} мм против {1:F1} мм.</value>
+  </data>
+  <data name="GeometryEditorErrorWallEatsSample" xml:space="preserve">
+    <value>Стенка съедает весь просвет: {0:F1} мм при пределе {1:F1} мм.</value>
+  </data>
   <data name="GeometryEditorErrorSourceSize" xml:space="preserve">
     <value>Размер источника должен быть больше нуля.</value>
   </data>

@@ -42605,6 +42605,24 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="GeometryEditorErrorMarinelliHole" xml:space="preserve">
     <value>The Marinelli beaker diameter must be greater than the hole diameter.</value>
   </data>
+  <data name="GeometryEditorErrorLinked" xml:space="preserve">
+    <value>These sizes cannot hold together:</value>
+  </data>
+  <data name="GeometryEditorErrorHoleNarrow" xml:space="preserve">
+    <value>The well is narrower than the probe: {0:F1} mm against an outer size of {1:F1} mm.</value>
+  </data>
+  <data name="GeometryEditorErrorRingGone" xml:space="preserve">
+    <value>No sample is left between the well and the beaker wall: {0:F1} mm outside against {1:F1} mm inside.</value>
+  </data>
+  <data name="GeometryEditorErrorHoleDeeper" xml:space="preserve">
+    <value>The well is deeper than the sample: {0:F1} mm against {1:F1} mm.</value>
+  </data>
+  <data name="GeometryEditorErrorSampleTaller" xml:space="preserve">
+    <value>The sample is taller than its vessel: {0:F1} mm against {1:F1} mm.</value>
+  </data>
+  <data name="GeometryEditorErrorWallEatsSample" xml:space="preserve">
+    <value>The wall eats the whole clearance: {0:F1} mm against a limit of {1:F1} mm.</value>
+  </data>
   <data name="GeometryEditorErrorSourceSize" xml:space="preserve">
     <value>Source size must be greater than zero.</value>
   </data>

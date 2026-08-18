@@ -41,11 +41,30 @@ New-Item -ItemType Directory -Force $Out | Out-Null
 # где собираются пробы, — тем же движением (грабля класса mk_appwd).
 # Базы — тем же правилом: рядом лежали matdb/nucdb/schemedb от 09.08 01:25 —
 # ДО импорта fluorescence_k (01:46), и физика 11 падала на «no such table».
-foreach ($dep in 'BecquerelMonitor.exe', 'BecquerelMonitor.pdb', 'BecquerelMonitor.exe.config',
-                 'matdb.sqlite', 'nucdb.sqlite', 'schemedb.sqlite') {
-    $src = Join-Path $Bin $dep
-    if (Test-Path $src) { Copy-Item $src (Join-Path $Out $dep) -Force }
+#
+# ⚠ T45: список копируемого был ПОИМЁННЫМ и не включал зависимостей NuGet
+# (`Microsoft.Data.Sqlite.dll`, `SQLitePCLRaw.*`, `SpecUtilsNet.dll`) и нативной
+# `runtimes\win-x64\native\e_sqlite3.dll`. Рабочий `probes\build` жил только
+# потому, что их туда положили когда-то давно; в ЧИСТЫЙ каталог (`build_rel`,
+# T44) скрипт клал пробы, которые собираются и не запускаются: компилятор
+# молчит, а первое обращение к базе валится `FileNotFoundException`, следом
+# `TypeInitializationException` / «Library e_sqlite3 not found». Признак отказа
+# не там, где причина, — и выглядит как поломка пробы.
+# Поэтому здесь МАСКИ, а не имена, и ровно те же, что у `mk_appwd.ps1`: новая
+# зависимость приложения подхватывается сама, без второго места, где о ней надо
+# помнить.
+$flat = @('BecquerelMonitor.exe', 'BecquerelMonitor.pdb', 'BecquerelMonitor.exe.config',
+          '*.dll', '*.sqlite')
+foreach ($mask in $flat) {
+    Get-ChildItem (Join-Path $Bin $mask) -File -ErrorAction SilentlyContinue |
+        Copy-Item -Destination $Out -Force
 }
+
+# Нативный провайдер SQLite лежит ПОДКАТАЛОГОМ (`runtimes\win-x64\native\
+# e_sqlite3.dll`) и маской выше не берётся: без него SQLitePCLRaw находит
+# управляемую обёртку и не находит саму библиотеку.
+$rtSrc = Join-Path $Bin 'runtimes'
+if (Test-Path $rtSrc) { Copy-Item $rtSrc $Out -Recurse -Force }
 
 # Сателлит с русскими строками — той же копией и по той же причине (W22).
 # Он лежит ОТДЕЛЬНОЙ папкой, и без неё проба, проверяющая обе локализации,
@@ -53,10 +72,10 @@ foreach ($dep in 'BecquerelMonitor.exe', 'BecquerelMonitor.pdb', 'BecquerelMonit
 # этом было написано в README пробы FsaStackShot — предупреждение в тексте
 # читателя не заменяет.
 # ⚠ Копируются ФАЙЛЫ, а не сама папка: `Copy-Item <папка> <папка>` при уже
-# существующем назначении кладёт копию ВНУТРЬ — получается `builduu`, а
+# существующем назначении кладёт копию ВНУТРЬ — получается `build\ru\ru`, а
 # грузится при этом внешняя, то есть та, что лежала там с прошлого раза. Ровно
 # так 16.08.2026 проба печатала английские строки при выставленной ru-RU: свежий
-# сателлит уезжал в `ruu`, а читался лежалый.
+# сателлит уезжал в `ru\ru`, а читался лежалый.
 $ruSrc = Join-Path $Bin 'ru'
 if (Test-Path $ruSrc) {
     $ruDst = Join-Path $Out 'ru'
@@ -79,6 +98,7 @@ $refs = @(
 )
 
 $fail = @()
+$locked = @()
 $built = 0
 $sources = @(Get-ChildItem (Join-Path $repo 'tools\effmaker\*.cs')) +
            @(Get-ChildItem (Join-Path $PSScriptRoot '*.cs'))
@@ -93,11 +113,36 @@ foreach ($f in $sources) {
         $extra = @(Join-Path $PSScriptRoot 'ResidualScan.cs')
     }
     $exe = Join-Path $Out ($f.BaseName + '.exe')
+
+    # T41, вторая половина: ПЕРЕСБОРКА ПОВЕРХ РАБОТАЮЩЕЙ ПРОБЫ ОСТАВЛЯЕТ ОТ НЕЁ
+    # ПУСТОЕ МЕСТО. 17.08.2026 `CorpusMatrixProbe.exe` считал матрицы в фоне,
+    # csc не смог его переписать («файл используется») — и exe ИСЧЕЗ; следующий
+    # фоновый запуск умер строкой «команда не распознана» и вышел с кодом 0,
+    # то есть выглядел как успешный счёт. Занятый файл поэтому не трогаем вовсе:
+    # проверяем ДО компиляции, называем поимённо и валим прогон в конце. Дыры
+    # на месте рабочей пробы не остаётся.
+    if (Test-Path $exe) {
+        try {
+            $h = [System.IO.File]::Open($exe, 'Open', 'ReadWrite', 'None')
+            $h.Close()
+        } catch {
+            $locked += $f.BaseName
+            Write-Host "ЗАНЯТ $($f.Name) — $($f.BaseName).exe запущен, не трогаю" -ForegroundColor Yellow
+            continue
+        }
+    }
+
     $log = & $csc /nologo /target:exe /langversion:7.3 "/out:$exe" @refs $f.FullName @extra 2>&1
     if ($LASTEXITCODE -ne 0) {
         $fail += $f.Name
         Write-Host "FAIL $($f.Name)"
         $log | Select-Object -First 6 | ForEach-Object { Write-Host "    $_" }
+        # Компилятор сносит цель ДО того, как убедится, что может её записать:
+        # неудача оставляет не старый exe, а его отсутствие. Об этом надо сказать
+        # отдельно — «FAIL» читается как «осталось как было».
+        if (-not (Test-Path $exe)) {
+            Write-Host "    ⚠ $($f.BaseName).exe при этом ИСЧЕЗ — прежней сборки на месте больше нет" -ForegroundColor Yellow
+        }
     } else {
         # T32: конфиг кладётся ТУТ ЖЕ, тем же движением, что и сборка. Отдельный
         # проход по каталогу был бы вторым местом, где о пробе надо помнить.
@@ -108,7 +153,11 @@ foreach ($f in $sources) {
     }
 }
 Write-Host "----"
+# Занятые пробы — НЕ успех (T41): в каталоге осталась СТАРАЯ сборка,
+# а выглядело бы это как «все собрались» — тот же класс ошибки, что и исчезнувший exe.
+if ($locked.Count) { Write-Host "ЗАНЯТЫ (старая сборка на месте): $($locked -join ', ')" }
 if ($fail.Count) { Write-Host "СЛОМАНО: $($fail -join ', ')"; exit 1 }
+if ($locked.Count) { exit 1 }
 # Считаем СОБРАННОЕ, а не «всего минус один»: довесков без `Main` стало два, и
 # прежняя формула начала врать ровно в тот день, когда появился второй.
 Write-Host "все собрались: $built файлов (плюс $($sources.Count - $built) без Main, идут довеском)"

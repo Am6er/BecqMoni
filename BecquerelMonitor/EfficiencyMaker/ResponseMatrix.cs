@@ -756,6 +756,29 @@ namespace BecquerelMonitor.EfficiencyMaker
                         }
                     }
                 }
+
+                // ДОСТИГНУТЫЙ ШУМ И ЦЕНА ПРОГОНА — ХВОСТОМ, ЗА ДАННЫМИ (`T46`).
+                // Прежде их не было в файле вовсе: посчитанной матрице нельзя
+                // было задать вопрос «а какого шума ты добилась и чем за него
+                // заплатила», ответ жил только в консоли пробы и терялся.
+                //
+                // ⛔ `FormatVersion` НЕ ПОДНЯТ, и это не забывчивость. `Load`
+                // сверяет версию НА РАВЕНСТВО (строка ниже) — плюс один объявил
+                // бы нечитаемыми все уже посчитанные матрицы, а это 45 сцен
+                // корпуса в пересчёт ради трёх чисел, при том что сами числа
+                // матрицы не меняются ни на бит. Хвост устроен так, что старую
+                // и новую поставку можно смешивать: у старого файла его просто
+                // нет, а старый exe до него не доходит — он останавливается
+                // там, где кончились данные. Метка `NOIS` отличает хвост от
+                // случайного мусора в обрубке.
+                writer.Write(Encoding.ASCII.GetBytes("NOIS"));
+                writer.Write(this.ContinuumRelativeError);
+                writer.Write(this.ContinuumWeightedError);
+                writer.Write(this.HistoriesSpent);
+                writer.Write(this.HistoriesWorstNode);
+                WriteLongs(writer, this.NodeHistories);
+                WriteDoubles(writer, this.NodeErrors);
+                WriteDoubles(writer, this.NodeSeconds);
             }
 
             if (File.Exists(path))
@@ -764,6 +787,71 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             File.Move(temp, path);
+        }
+
+        // Помощники хвоста `T46`: длина, затем значения; null пишется нулевой
+        // длиной и читается обратно как null — «не считалось», а не пустой
+        // массив, который выглядел бы как «посчитано и вышло ноль».
+        static void WriteLongs(BinaryWriter writer, long[] a)
+        {
+            writer.Write(a == null ? 0 : a.Length);
+            if (a == null)
+            {
+                return;
+            }
+
+            foreach (long v in a)
+            {
+                writer.Write(v);
+            }
+        }
+
+        static void WriteDoubles(BinaryWriter writer, double[] a)
+        {
+            writer.Write(a == null ? 0 : a.Length);
+            if (a == null)
+            {
+                return;
+            }
+
+            foreach (double v in a)
+            {
+                writer.Write(v);
+            }
+        }
+
+        static long[] ReadLongs(BinaryReader reader)
+        {
+            int n = reader.ReadInt32();
+            if (n <= 0)
+            {
+                return null;
+            }
+
+            long[] a = new long[n];
+            for (int i = 0; i < n; i++)
+            {
+                a[i] = reader.ReadInt64();
+            }
+
+            return a;
+        }
+
+        static double[] ReadDoubles(BinaryReader reader)
+        {
+            int n = reader.ReadInt32();
+            if (n <= 0)
+            {
+                return null;
+            }
+
+            double[] a = new double[n];
+            for (int i = 0; i < n; i++)
+            {
+                a[i] = reader.ReadDouble();
+            }
+
+            return a;
         }
 
         static void WriteOptions(BinaryWriter writer, ResponseMatrixOptions o)
@@ -920,6 +1008,30 @@ namespace BecquerelMonitor.EfficiencyMaker
                         }
 
                         matrix.ChannelRows[c] = rows;
+                    }
+
+                    // Хвост с достигнутым шумом (`T46`). У файлов, записанных
+                    // раньше, его нет — поля остаются нулями и null, ровно тем
+                    // значением, которое их описание уже называет «не считалось».
+                    // Хвост читается ПОСЛЕ данных и на них не влияет: битый или
+                    // обрезанный хвост оставляет матрицу годной, а не роняет её.
+                    try
+                    {
+                        if (stream.Length - stream.Position >= 4
+                            && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "NOIS")
+                        {
+                            matrix.ContinuumRelativeError = reader.ReadDouble();
+                            matrix.ContinuumWeightedError = reader.ReadDouble();
+                            matrix.HistoriesSpent = reader.ReadInt64();
+                            matrix.HistoriesWorstNode = reader.ReadInt64();
+                            matrix.NodeHistories = ReadLongs(reader);
+                            matrix.NodeErrors = ReadDoubles(reader);
+                            matrix.NodeSeconds = ReadDoubles(reader);
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // Хвост — уточнение, а не условие годности матрицы.
                     }
 
                     matrix.RebuildTotals();

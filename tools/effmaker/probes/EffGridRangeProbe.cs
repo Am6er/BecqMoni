@@ -1,6 +1,8 @@
 using BecquerelMonitor.EfficiencyMaker;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 
@@ -73,6 +75,7 @@ namespace EffGridRangeProbe
             // проверяется здесь именно это: выключенный не трогает сетку,
             // включённый ставит ту же пару узлов, что у кривой.
             MatrixEdges();
+            StampCoversOptions();
 
             Console.WriteLine(bad == 0 ? "ВСЕ СОШЛИСЬ" : bad + " ПРОВЕРОК ПРОВАЛЕНО");
             return bad == 0 ? 0 : 1;
@@ -240,13 +243,18 @@ namespace EffGridRangeProbe
             g.SourceType = GeometrySourceType.Cylinder;
             g.Source = GeometryMaterialLibrary.Make(entry, entry.Density);
 
-            ResponseMatrixOptions off = new ResponseMatrixOptions();
-            ResponseMatrixOptions on = new ResponseMatrixOptions { ResolveEdges = true };
+            // ⚠ Ключ ВКЛЮЧЁН умолчанием с 17.08.2026 (`E31`), поэтому «без ключа»
+            // здесь выставляется явно. Прежде выключенным считалось умолчание —
+            // и после его смены обе стороны сравнения стали бы одной и той же,
+            // а проба продолжала бы печатать «ВСЕ СОШЛИСЬ», ничего не проверяя.
+            ResponseMatrixOptions off = new ResponseMatrixOptions { ResolveEdges = false };
+            ResponseMatrixOptions on = new ResponseMatrixOptions();
             double[] plain = off.BuildGrid(g);
             double[] with = on.BuildGrid(g);
 
-            Console.WriteLine("сетка матрицы                 {0,3} узлов без ключа, {1,3} с ключом",
+            Console.WriteLine("сетка матрицы                 {0,3} узлов без ключа, {1,3} с ключом (умолчание)",
                               plain.Length, with.Length);
+            Check("матрица: умолчание края РАЗРЕШАЕТ", on.ResolveEdges);
             Check("матрица: выключенный ключ сетку не трогает",
                   plain.Length == off.BuildGrid().Length);
             // Не «ровно два»: у логарифмической сетки из ста узлов сосед может
@@ -267,6 +275,118 @@ namespace EffGridRangeProbe
             Check("матрица: узел под краем", below);
             Check("матрица: узел над краем", above);
             Check("матрица: на самом крае узла НЕТ", !onEdge);
+        }
+
+        /// <summary>
+        /// Каждый параметр счёта матрицы обязан входить в её отпечаток (`E31`).
+        ///
+        /// Зачем перебором, а не глазами. Список полей в `ComputeStamp` набран
+        /// руками, и 17.08.2026 из него выпал `ResolveEdges` — ключ, МЕНЯЮЩИЙ
+        /// сетку: матрица, посчитанная без K-краёв, проходила проверку годности
+        /// наравне с новой, то есть включение ключа тихо ни на что не влияло.
+        /// Глазами это не ловится: строк тринадцать, поля добавляются по одному.
+        ///
+        /// Проверка простая и не требует ухода: у каждого поля значение
+        /// меняется, и отпечаток ОБЯЗАН стать другим. Добавят завтра ключ —
+        /// проба скажет о нём сама.
+        /// </summary>
+        static void StampCoversOptions()
+        {
+            GeometryModel g = BecquerelMonitor.GeometryEditorPanel.Blank();
+            GeometryPresets.Items[0].Apply(g);
+
+            // Вне отпечатка — то, что описывает УСИЛИЕ, а не содержание матрицы.
+            //
+            // `Threads`: влияет на то, во сколько потоков получен результат, а не
+            // на результат.
+            //
+            // Цели останова по шуму (`T42`): матрица, посчитанная плоским числом
+            // историй, для цели 3 % не устарела — она ЛУЧШЕ, чем дал бы останов.
+            // Внеси их в отпечаток — и включение останова отправит в пересчёт все
+            // 45 сцен корпуса ради матриц, которые от этого станут ХУЖЕ. Годность
+            // усилия судит ветка гварда «посчитана гуще штатной» (`T36`).
+            //
+            // ⚠ `ResolveEdges` тоже вне отпечатка — но по другой причине: в него
+            // идёт САМА СЕТКА (`grid=`), и ключ учтён через неё. Проверяется это
+            // ниже отдельно, а не по этому списку.
+            var skip = new HashSet<string>
+            {
+                "Threads", "ContinuumErrorTarget", "PilotDivisor", "MaxHistoriesFactor",
+                "ResolveEdges",
+            };
+
+            int checked_ = 0;
+            foreach (FieldInfo field in typeof(ResponseMatrixOptions).GetFields(
+                         BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (skip.Contains(field.Name))
+                {
+                    continue;
+                }
+
+                ResponseMatrixOptions a = new ResponseMatrixOptions();
+                ResponseMatrixOptions b = new ResponseMatrixOptions();
+                object was = field.GetValue(b);
+                if (field.FieldType == typeof(bool))
+                {
+                    field.SetValue(b, !(bool)was);
+                }
+                else if (field.FieldType == typeof(int))
+                {
+                    field.SetValue(b, (int)was + 7);
+                }
+                else if (field.FieldType == typeof(double))
+                {
+                    field.SetValue(b, (double)was * 1.5 + 1.0);
+                }
+                else
+                {
+                    Console.WriteLine("    ПЛОХО  отпечаток: поле {0} типа {1} проба менять не умеет",
+                                      field.Name, field.FieldType.Name);
+                    bad++;
+                    continue;
+                }
+
+                checked_++;
+                Check("отпечаток замечает " + field.Name,
+                      ResponseMatrix.ComputeStamp(g, a) != ResponseMatrix.ComputeStamp(g, b));
+            }
+
+            Console.WriteLine("отпечаток матрицы             проверено полей {0}, без {1}",
+                              checked_, string.Join(", ", skip));
+
+            // Края учтены СЕТКОЙ, и в этом весь смысл (`T42`): у пробы с K-краем
+            // отпечаток обязан измениться, а у пробы без края — ОБЯЗАН ОСТАТЬСЯ
+            // ТЕМ ЖЕ, иначе включение ключа гонит в пересчёт сцены, у которых
+            // матрица вышла бы побитово той же.
+            var edgesOff = new ResponseMatrixOptions { ResolveEdges = false };
+            var edgesOn = new ResponseMatrixOptions { ResolveEdges = true };
+
+            GeometryModel withEdge = BecquerelMonitor.GeometryEditorPanel.Blank();
+            GeometryPresets.Items[0].Apply(withEdge);
+            withEdge.SourceType = GeometrySourceType.Cylinder;
+            withEdge.Source = GeometryMaterialLibrary.Make(
+                GeometryMaterialLibrary.ByName("Lutetium oxide"), 0.0);
+            Check("отпечаток: у пробы с K-краем края меняют его",
+                  ResponseMatrix.ComputeStamp(withEdge, edgesOff)
+                  != ResponseMatrix.ComputeStamp(withEdge, edgesOn));
+
+            GeometryModel noEdge = BecquerelMonitor.GeometryEditorPanel.Blank();
+            GeometryPresets.Items[0].Apply(noEdge);
+            noEdge.SourceType = GeometrySourceType.Cylinder;
+            noEdge.Source = GeometryMaterialLibrary.Make(
+                GeometryMaterialLibrary.ByName("Water, liquid"), 0.0);
+            Check("отпечаток: у пробы БЕЗ края края его не меняют",
+                  ResponseMatrix.ComputeStamp(noEdge, edgesOff)
+                  == ResponseMatrix.ComputeStamp(noEdge, edgesOn));
+
+            // И наоборот: цели останова содержания не меняют, значит отпечаток
+            // на них не реагирует — иначе включение останова обесценит всё.
+            var cheap = new ResponseMatrixOptions { ContinuumErrorTarget = 0.0 };
+            var strict = new ResponseMatrixOptions { ContinuumErrorTarget = 3.0 };
+            Check("отпечаток: цель останова его НЕ меняет",
+                  ResponseMatrix.ComputeStamp(withEdge, cheap)
+                  == ResponseMatrix.ComputeStamp(withEdge, strict));
         }
 
         static void Check(string title, bool ok)

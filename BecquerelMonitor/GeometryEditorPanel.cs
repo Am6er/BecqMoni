@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
 using System.IO;
+using System.Text;
 using System.Windows.Forms;
 using BecquerelMonitor.EfficiencyMaker;
 using BecquerelMonitor.Properties;
@@ -657,7 +658,7 @@ namespace BecquerelMonitor
             // чисел иначе не понять, какое из них сейчас правишь, — а у тонких
             // слоёв подписи стоят вплотную друг к другу.
             box.Enter += (s, e) => this.SetHighlight(key);
-            box.Leave += (s, e) => this.SetHighlight(null);
+            box.Leave += (s, e) => this.FieldLeft(key);
             parent.Controls.Add(box);
             this.fields[key] = box;
 
@@ -1311,6 +1312,11 @@ namespace BecquerelMonitor
             this.model = g;
             this.LoadFromModel();
             this.presetCombo.SelectedIndex = 0;
+
+            // Сцена считается ИЗ ДЕТЕКТОРА, а пресет его целиком и подменяет
+            // (E32): без пересчёта в полях остались бы размеры от прежнего
+            // прибора — молча, и это худший вид ошибки.
+            this.RecomputeScene();
         }
 
         /// <summary>
@@ -1354,6 +1360,97 @@ namespace BecquerelMonitor
         /// <summary>Идёт пересчёт сцены — сторож против рекурсии.</summary>
         bool applyingScene;
 
+        /// <summary>
+        /// Поля ДЕТЕКТОРА, из которых формула считает размеры сцены (E32).
+        ///
+        /// Список поимённый, а не «все поля»: пересчёт переписывает размеры
+        /// ИСТОЧНИКА, и запускать его от правки самого источника значило бы
+        /// стирать её на месте. Сюда входит ровно то, что читают
+        /// <c>GeometryScenes.DetectorOuterDiameterMm</c> (лунка) и
+        /// <c>CrystalHeightAboveSampleMm</c> (радиус на земле).
+        /// </summary>
+        static readonly string[] SceneDetectorFields =
+        {
+            "CrystalDiameter", "CrystalHeight",
+            "CrystalBoxX", "CrystalBoxY", "CrystalBoxZ",
+            "FrontReflectorThickness", "SideReflectorThickness",
+            "FrontCladdingThickness", "SideCladdingThickness",
+        };
+
+        /// <summary>
+        /// Пересчитать размеры сцены, если выбран автосчитаемый источник (E32,
+        /// задача Amber 17.08.2026).
+        ///
+        /// Зачем. Формула срабатывала ровно один раз — когда строку выбрали в
+        /// списке источников. После этого можно было сменить пресет детектора
+        /// или набрать другой кристалл, и сцена оставалась от ПРЕЖНЕГО прибора:
+        /// поля заполнены, числа правдоподобны, а посчитаны по чужому детектору.
+        ///
+        /// ⛔ При ЗАГРУЗКЕ геометрии не зовётся никогда. Сохранённые размеры
+        /// принадлежат человеку — он мог поправить их руками, — и пересчёт за
+        /// ним при каждом открытии стирал бы правку. Отсюда же и сторож
+        /// <c>loading</c>: <c>LoadFromModel</c> сам двигает поля и без него
+        /// пересчёт вызывал бы себя без конца.
+        /// </summary>
+        void RecomputeScene()
+        {
+            if (this.loading || this.applyingScene)
+            {
+                return;
+            }
+
+            int index = this.sourceTypeCombo.SelectedIndex;
+            if (index < 0 || index >= SourceKinds.Length)
+            {
+                return;
+            }
+
+            GeometrySceneKind scene = SourceKinds[index].Value;
+            if (scene == GeometrySceneKind.None)
+            {
+                return;
+            }
+
+            // Пересчитывать по недочитанным полям нельзя: на месте опечатки
+            // стоял бы ноль, и сцена вышла бы нулевого размера молча.
+            if (!this.MarkBadValues())
+            {
+                return;
+            }
+
+            this.applyingScene = true;
+            try
+            {
+                GeometryModel g = this.BuildModel();
+                g.Scene = scene;
+                string substituted = GeometryScenes.Apply(g, this.sceneEnergyKev);
+                this.model = g;
+                this.sceneShown = true;
+                this.LoadFromModel();
+                this.UpdateSceneHint(substituted);
+            }
+            finally
+            {
+                this.applyingScene = false;
+            }
+
+            this.RaiseChanged();
+        }
+
+        /// <summary>
+        /// Правка поля закончена (фокус ушёл). Пересчёт сцены висит именно здесь,
+        /// а не на <c>TextChanged</c>: пересчёт переписывает ВСЕ поля, и на
+        /// каждом нажатии клавиши он выдёргивал бы число из-под набирающего.
+        /// </summary>
+        void FieldLeft(string key)
+        {
+            this.SetHighlight(null);
+            if (Array.IndexOf(SceneDetectorFields, key) >= 0)
+            {
+                this.RecomputeScene();
+            }
+        }
+
         void ShapeChanged(object sender, EventArgs e)
         {
             bool box = this.boxRadio.Checked;
@@ -1377,6 +1474,11 @@ namespace BecquerelMonitor
             }
 
             this.RefreshSketch();
+
+            // Форма кристалла — тоже размер детектора (E32): в лунку брусок
+            // входит ДИАГОНАЛЬЮ обвязки, цилиндр — диаметром, и переключение
+            // формы меняет поперечник, из которого лунка и посчитана.
+            this.RecomputeScene();
         }
 
         void FacingChanged(object sender, EventArgs e)
@@ -1551,23 +1653,30 @@ namespace BecquerelMonitor
             {
                 this.boxRadio.Checked ? this.cylinderSizePanel : this.boxSizePanel,
             };
-            int source = this.sourceTypeCombo.SelectedIndex;
-            if (source != 0)
+            // ⚠ По НОМЕРУ строки списка судить нельзя, только по её типу
+            // источника. С появлением съёмок в поле (E27) строк стало шесть, и
+            // номера 4 и 5 — это тоже цилиндр и маринелли: сравнение с 1 и 2
+            // объявляло их панели неотносящимися, и опечатка в размерах сцены
+            // снова молча уезжала нулём. Найдено 17.08.2026 при E33.
+            int index = this.sourceTypeCombo.SelectedIndex;
+            GeometrySourceType source = index >= 0 && index < SourceKinds.Length
+                ? SourceKinds[index].Key : GeometrySourceType.Point;
+            if (source != GeometrySourceType.Point)
             {
                 inactive.Add(this.pointPanel);
             }
 
-            if (source != 1)
+            if (source != GeometrySourceType.Cylinder)
             {
                 inactive.Add(this.cylinderPanel);
             }
 
-            if (source != 2)
+            if (source != GeometrySourceType.Marinelli)
             {
                 inactive.Add(this.marinelliPanel);
             }
 
-            if (source != 3)
+            if (source != GeometrySourceType.Box)
             {
                 inactive.Add(this.boxPanel);
             }
@@ -1581,6 +1690,29 @@ namespace BecquerelMonitor
                 if (!good && !IsUnder(pair.Value, inactive))
                 {
                     ok = false;
+                }
+            }
+
+            // Связки размеров подсвечиваются ТУТ ЖЕ, а не только при сохранении
+            // (E33, вопрос Amber «ограничивать ввод или предъявлять список»):
+            // ограничение на месте не даёт набрать промежуточное число, а один
+            // только список при сохранении оставляет человека гадать, какое из
+            // двадцати полей спорит. Подсветка не мешает набирать и показывает
+            // поле; список при сохранении остаётся и называет причину словами.
+            //
+            // Возвращаемое значение при этом НЕ трогается: несогласованные
+            // размеры — не «поле не читается», их ловит Validate.
+            if (ok)
+            {
+                foreach (GeometryScenes.Issue issue in
+                         GeometryScenes.Inconsistencies(this.BuildModel()))
+                {
+                    TextBox box;
+                    if (issue.Field != null && this.fields.TryGetValue(issue.Field, out box)
+                        && !IsUnder(box, inactive))
+                    {
+                        box.BackColor = BadValueColor;
+                    }
                 }
             }
 
@@ -1696,7 +1828,36 @@ namespace BecquerelMonitor
                 return Resources.GeometryEditorErrorSourceSize;
             }
 
+            // Связки «детектор — источник» и «сосуд — проба» (E33). Списком, а
+            // не первой попавшейся: несогласованность обычно не одна, и человек,
+            // поправив названную, тут же получал бы следующую.
+            List<GeometryScenes.Issue> issues = GeometryScenes.Inconsistencies(g);
+            if (issues.Count > 0)
+            {
+                StringBuilder text = new StringBuilder(Resources.GeometryEditorErrorLinked);
+                foreach (GeometryScenes.Issue issue in issues)
+                {
+                    text.AppendLine();
+                    text.Append("   • ");
+                    text.Append(IssueText(issue));
+                }
+
+                return text.ToString();
+            }
+
             return null;
+        }
+
+        /// <summary>Текст несогласованности своей строкой ресурсов (E33).</summary>
+        static string IssueText(GeometryScenes.Issue issue)
+        {
+            string format = Resources.ResourceManager.GetString(issue.Resource);
+            if (string.IsNullOrEmpty(format))
+            {
+                return issue.Resource;
+            }
+
+            return string.Format(CultureInfo.CurrentCulture, format, issue.Value, issue.Limit);
         }
 
     }

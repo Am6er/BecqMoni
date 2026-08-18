@@ -68,6 +68,19 @@ namespace BecquerelMonitor
             return CheckCalibration(maxchannels);
         }
 
+        /// <summary>
+        /// F² = c0 + c1·ch + c2·ch². Подставив ch = ch'·mul и поделив ширину на
+        /// mul: F'(ch')² = c0/mul² + (c1/mul)·ch' + c2·ch'², то есть
+        /// c_i' = c_i·mul^(i−2). Пересчёт точный (`S54`).
+        /// </summary>
+        public override void RescaleCoefficients(double mul)
+        {
+            for (int i = 0; i < coefficients.Length; i++)
+            {
+                coefficients[i] = coefficients[i] * Math.Pow(mul, i - 2);
+            }
+        }
+
         public override int MinPeaksRequirement()
         {
             return 3;

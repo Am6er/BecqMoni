@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Xml.Serialization;
 
@@ -82,6 +82,17 @@ namespace BecquerelMonitor
         public override string GetFormula()
         {
             return String.Format(formula, "a", "p");
+        }
+
+        /// <summary>
+        /// F = a·ch^p. Подставив ch = ch'·mul и поделив ширину на mul:
+        /// F'(ch') = a·mul^(p−1)·ch'^p — меняется ТОЛЬКО множитель, показатель
+        /// остаётся (`S54`). Он и не должен меняться: p — свойство детектора, а
+        /// не разбиения шкалы.
+        /// </summary>
+        public override void RescaleCoefficients(double mul)
+        {
+            coefficients[0] = coefficients[0] * Math.Pow(mul, coefficients[1] - 1.0);
         }
 
         public override int MinPeaksRequirement()

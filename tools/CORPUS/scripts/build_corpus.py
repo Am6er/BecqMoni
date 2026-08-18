@@ -571,9 +571,18 @@ def write_copy(raw_path, dest, fg_coef, bg_coef, fwhm_coef, peak_type=0):
     bg = rd.find('BackgroundEnergySpectrum')
     if bg is not None and bg_coef is not None:
         apply_ecal(bg, bg_coef)
-    old = rd.find('SqrtFwhmCalibration')
-    if old is not None:
-        rd.remove(old)
+    # ⛔ Снимать надо ВСЕ ТРИ вида кривой, а не одну корневую. Видов у поля
+    # `ResultData.FwhmCalibration` три — `SimpleSqrtFwhmCalibration`,
+    # `SqrtFwhmCalibration`, `PowerFwhmCalibration`, — и в исходном файле стоит
+    # тот, которым пользовался человек. Снимая только `SqrtFwhmCalibration`, мы
+    # оставляли чужой узел рядом со своим, а разбор брал ЧУЖОЙ: измерено
+    # 17.08.2026 на трёх спектрах (`ASN16_Cs137`, `AS80_Cs137_0cm`,
+    # `RC103_Lu176`) — проба печатала `SimpleSqrtFwhmCalibration`, и у
+    # `AS80_Cs137_0cm` ядро поиска пиков выходило 163 канала вместо 243.
+    for name in ('SimpleSqrtFwhmCalibration', 'SqrtFwhmCalibration',
+                 'PowerFwhmCalibration'):
+        for old in rd.findall(name):
+            rd.remove(old)
     fw = ET.SubElement(rd, 'SqrtFwhmCalibration')
     ET.SubElement(fw, 'CalibrationPeaks')
     cs = ET.SubElement(fw, 'Coefficients')
