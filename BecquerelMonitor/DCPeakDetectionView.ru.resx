@@ -136,6 +136,9 @@
   <data name="label1.Text" xml:space="preserve">
     <value>Мин SNR</value>
   </data>
+  <data name="checkBoxDbLookups.Text" xml:space="preserve">
+    <value>Искать состав FSA в базах</value>
+  </data>
   <data name="label3.Text" xml:space="preserve">
     <value>Допуск</value>
   </data>

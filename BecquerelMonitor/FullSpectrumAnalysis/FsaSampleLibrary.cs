@@ -300,45 +300,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                // ⛔ Изомеры в состав НЕ идут — кроме ряда урана-238 (указание
-                // Amber 18.08.2026). Исключение здесь не поблажка, а физика:
-                // Pa-234m1 несёт линию 1001.03 кэВ, классический «урановый
-                // монопик», по которому уран и опознают; выбросив изомер, ряд
-                // U-238 остался бы вовсе без сильной линии. В остальных рядах
-                // изомер — отдельное состояние с собственным временем жизни, и
-                // отдельным свободным образом он делает то же, что делают
-                // хвосты редких ветвей: даёт фиту свободные линии там, где
-                // равновесия нет.
-                //
-                // Основание у правила не только формальное. Слова Amber в тот
-                // же день: на приборах AtomSpectra (ASN16, AS80x80 и прочие «на
-                // A») изомеры в спектрах встречаются ТОЛЬКО в урановом стекле;
-                // у америция там линии стабильные, при активности порядка
-                // 65 кБк и ниже (оценка для понимания порядка). То есть
-                // исключение ровно одно и оно названо, а не выведено.
-                bool keepIsomers = string.Equals(chain.Root, "238U",
-                                                 StringComparison.OrdinalIgnoreCase);
-                Dictionary<string, double> members = ChainBranches(chain.Root, report);
-                foreach (KeyValuePair<string, double> member in members)
-                {
-                    if (chain.Only.Count > 0 && !chain.Only.Contains(member.Key))
-                    {
-                        continue;
-                    }
-
-                    if (!keepIsomers && IsIsomer(member.Key))
-                    {
-                        continue;
-                    }
-
-                    if (member.Value < spec.MinChainBranch)
-                    {
-                        report.ChainMembersDropped++;
-                        continue;
-                    }
-
-                    Remember(branch, member.Key, member.Value);
-                }
+                CollectChain(chain, spec.MinChainBranch, branch, report);
             }
 
             foreach (string nucid in spec.Nuclides)
@@ -452,6 +414,66 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         static readonly string[] RoomChains = { "232TH", "226RA" };
 
         /// <summary>
+        /// Члены ряда, прошедшие оба правила отбора, — в накопитель долей.
+        ///
+        /// Вынесено отдельным методом, потому что читателей у правила стало
+        /// ДВА: сборка библиотеки по объявленному составу
+        /// (<see cref="Build"/>) и вывод состава из поиска пиков
+        /// (<see cref="FsaCompositionInference"/>, `S57`). Второй обязан
+        /// считать «ожидаемые линии родителя» ровно по тому составу, который
+        /// потом и будет собран, — иначе критерий значимости мерит один список,
+        /// а фиту предъявляется другой.
+        ///
+        /// ⛔ Изомеры в состав НЕ идут — кроме ряда урана-238 (указание
+        /// Amber 18.08.2026). Исключение здесь не поблажка, а физика:
+        /// Pa-234m1 несёт линию 1001.03 кэВ, классический «урановый монопик»,
+        /// по которому уран и опознают; выбросив изомер, ряд U-238 остался бы
+        /// вовсе без сильной линии. В остальных рядах изомер — отдельное
+        /// состояние с собственным временем жизни, и отдельным свободным
+        /// образом он делает то же, что делают хвосты редких ветвей: даёт фиту
+        /// свободные линии там, где равновесия нет.
+        ///
+        /// Основание у правила не только формальное. Слова Amber в тот же день:
+        /// на приборах AtomSpectra (ASN16, AS80x80 и прочие «на A») изомеры в
+        /// спектрах встречаются ТОЛЬКО в урановом стекле; у америция там линии
+        /// стабильные, при активности порядка 65 кБк и ниже (оценка для
+        /// понимания порядка). То есть исключение ровно одно и оно названо, а
+        /// не выведено.
+        /// </summary>
+        internal static void CollectChain(FsaSampleChain chain, double minBranch,
+                                          Dictionary<string, double> branch, Report report)
+        {
+            if (chain == null || string.IsNullOrEmpty(chain.Root))
+            {
+                return;
+            }
+
+            bool keepIsomers = string.Equals(chain.Root, "238U",
+                                             StringComparison.OrdinalIgnoreCase);
+            Dictionary<string, double> members = ChainBranches(chain.Root, report);
+            foreach (KeyValuePair<string, double> member in members)
+            {
+                if (chain.Only.Count > 0 && !chain.Only.Contains(member.Key))
+                {
+                    continue;
+                }
+
+                if (!keepIsomers && IsIsomer(member.Key))
+                {
+                    continue;
+                }
+
+                if (member.Value < minBranch)
+                {
+                    report.ChainMembersDropped++;
+                    continue;
+                }
+
+                Remember(branch, member.Key, member.Value);
+            }
+        }
+
+        /// <summary>
         /// {nucid → накопленная доля ветвления от корня}, только основные
         /// состояния родителя.
         ///
@@ -462,7 +484,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// при этом имеет собственный `nucid` (234PAm1), поэтому наименьший
         /// присутствующий уровень и есть физический распад.
         /// </summary>
-        static Dictionary<string, double> ChainBranches(string root, Report report)
+        internal static Dictionary<string, double> ChainBranches(string root, Report report)
         {
             lock (Gate)
             {
@@ -558,7 +580,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Типы `G` и `X`; K-серия по правилу <see cref="KBetaTotal"/>,
         /// L-серия — подробными строками, если они есть, иначе обобщённой.
         /// </summary>
-        static List<double[]> DecayLines(string nucid, Report report)
+        internal static List<double[]> DecayLines(string nucid, Report report)
         {
             lock (Gate)
             {

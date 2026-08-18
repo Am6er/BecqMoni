@@ -189,13 +189,37 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 analyzer.MaxEnergy = peakConfig.Max_Range;
             }
 
+            // Галка читается ЗДЕСЬ, на UI-потоке, вместе со всеми прочими
+            // снимками: тот же самый флаг решает и отпечаток, и ветку счёта, и
+            // прочитанный дважды в разные моменты он развёл бы их.
+            bool dbLookups = DbLookups(resultData);
+
             Task.Run(() =>
             {
                 FsaResult computed = null;
                 string message = null;
                 try
                 {
-                    List<FsaComponent> library = FsaLibrary.BuildFromPeaks(peaks, definitions);
+                    // ⛔ Сборка библиотеки здесь ОДНА на обе ветки, и вторую
+                    // заводить нельзя. Развилка касается только того, ОТКУДА
+                    // берётся состав: подписи пиков как есть (прежний путь) или
+                    // цепочка родителя из баз (`S57`). Собирает образы в обоих
+                    // случаях `FsaSampleLibrary`/`FsaLibrary` — двух сборок с
+                    // разными правилами о линиях и рентгене в проекте быть не
+                    // должно.
+                    List<FsaComponent> library;
+                    if (dbLookups)
+                    {
+                        FsaCompositionInference.Report inferred;
+                        FsaSampleSpec spec = FsaCompositionInference.Infer(peaks, resultData, out inferred);
+                        Trace.WriteLine("FSA composition: " + inferred);
+                        library = FsaSampleLibrary.Build(spec);
+                    }
+                    else
+                    {
+                        library = FsaLibrary.BuildFromPeaks(peaks, definitions);
+                    }
+
                     if (library.Count == 0)
                     {
                         message = Properties.Resources.FSANoComponents;
@@ -239,6 +263,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             });
         }
 
+        /// <summary>
+        /// Состав библиотеки выводить из баз по цепочке родителя, а не брать
+        /// подписями пиков (`S57`). Настройка принадлежит спектру, а не
+        /// разбору — см. <see cref="FWHMPeakDetectionMethodConfig.DbLookupsForFsa"/>.
+        /// </summary>
+        static bool DbLookups(ResultData resultData)
+        {
+            var config = resultData.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
+            return config != null && config.DbLookupsForFsa;
+        }
+
         static string BuildStamp(ResultData resultData, bool subtractBackground)
         {
             EnergySpectrum spectrum = resultData.EnergySpectrum;
@@ -267,6 +302,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 "|", EfficiencyStamp(resultData.Efficiency),
                 "|", MatrixFileStamp(resultData.Efficiency),
                 "|", CalibrationStamp(spectrum, resultData.FwhmCalibration),
+                // Галка «состав из баз» (S57) — часть отпечатка по той же
+                // причине, что и выключатель матрицы: она меняет СОСТАВ
+                // библиотеки, и без неё готовое разложение по подписям висело
+                // бы на экране после включения вывода (и наоборот).
+                "|", DbLookups(resultData) ? "db" : "peaks",
                 "|", peakStamp.ToString());
         }
 

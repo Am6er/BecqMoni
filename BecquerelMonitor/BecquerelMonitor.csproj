@@ -353,6 +353,7 @@
     <Compile Include="FullSpectrumAnalysis\AngularCorrelation.cs" />
     <Compile Include="FullSpectrumAnalysis\CascadeAtomicData.cs" />
     <Compile Include="FullSpectrumAnalysis\FsaCascadeSummer.cs" />
+    <Compile Include="FullSpectrumAnalysis\FsaCompositionInference.cs" />
     <Compile Include="FullSpectrumAnalysis\FsaComponent.cs" />
     <Compile Include="FullSpectrumAnalysis\FsaEfficiency.cs" />
     <Compile Include="FullSpectrumAnalysis\FsaLibrary.cs" />

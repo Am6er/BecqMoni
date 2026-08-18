@@ -112,6 +112,13 @@ namespace BecquerelMonitor
                 }
             }
 
+            // Галка ставится под поднятым FormLoading, как и оба числа выше:
+            // подстановка кодом выбором человека не является и ни пересчёта,
+            // ни перерисовки за собой не тянет. Фокус здесь проверять нечего —
+            // галку не «редактируют», а щёлкают, и присвоение того же значения
+            // события не поднимает.
+            this.checkBoxDbLookups.Checked = fwhmPeakDetectionMethodConfig.DbLookupsForFsa;
+
             this.FormLoading = false;
             this.UpdatePeakDetectionResult();
             this.RefreshTable();
@@ -409,6 +416,52 @@ namespace BecquerelMonitor
                 this.UpdatePeakDetectionResult();
                 activeDocument.EnergySpectrumView.Invalidate();
             }
+        }
+
+        /// <summary>
+        /// «Состав FSA из баз» (`S57`): библиотеку полноспектрального разбора
+        /// собирать не по подписям найденных пиков, а по цепочке родителя из
+        /// `nucdb`/`matdb`.
+        ///
+        /// Поиска пиков галка НЕ КАСАЕТСЯ — ни одного пика от неё не появится и
+        /// не исчезнет, — поэтому детекция здесь не перезапускается. Касается
+        /// она разложения, и только если оно сейчас на экране: в остальных
+        /// режимах фона считать нечего, а включённое позже разложение возьмёт
+        /// новое значение само (галка входит в отпечаток `FsaOverlay`).
+        /// </summary>
+        void checkBoxDbLookups_CheckedChanged(object sender, EventArgs e)
+        {
+            if (this.FormLoading)
+            {
+                return;
+            }
+
+            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+            if (activeDocument == null || activeDocument.ActiveResultData == null)
+            {
+                return;
+            }
+
+            if (!(activeDocument.ActiveResultData.PeakDetectionMethodConfig
+                    is FWHMPeakDetectionMethodConfig fwhmPeakDetectionMethodConfig))
+            {
+                return;
+            }
+
+            fwhmPeakDetectionMethodConfig.DbLookupsForFsa = this.checkBoxDbLookups.Checked;
+
+            // Режим фона смотрим у ВИДА этого документа, а не у панели: панель
+            // одна, документов много, и переключение «Show FSA» живёт там (R9).
+            if (activeDocument.EnergySpectrumView == null
+                || activeDocument.EnergySpectrumView.BackgroundMode != BackgroundMode.ShowFSA)
+            {
+                return;
+            }
+
+            // Перечитать заново. Отпечаток разложения содержит эту галку,
+            // поэтому подготовка данных вида увидит, что готовый результат
+            // устарел, и закажет счёт; сам счёт идёт в фоне и окна не держит.
+            activeDocument.RefreshView();
         }
 
         void ToolStripMenuItem1_Click(object sender, EventArgs e)

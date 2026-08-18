@@ -179,6 +179,35 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// Состав библиотеки полноспектрального разбора выводится ИЗ ПОИСКА
+        /// ПИКОВ по цепочке родителя, а не берётся подписями пиков как есть
+        /// (`S57`, правило Amber 17.08.2026).
+        ///
+        /// Настройка живёт здесь, а не рядом с разбором, по двум причинам.
+        /// Во-первых, она про то, ЧТО ДЕЛАТЬ С РЕЗУЛЬТАТОМ ПОИСКА ПИКОВ, и
+        /// галка стоит в его же панели. Во-вторых, эти настройки уже устроены
+        /// как надо: у прибора умолчание, у спектра своя копия
+        /// (<see cref="AdoptFrom"/>), и человек, включивший вывод для одного
+        /// спектра, не включает его всем разом.
+        ///
+        /// ⛔ Умолчание — ВЫКЛЮЧЕНО, и это не осторожность, а совместимость:
+        /// выключенным разбор работает ровно так, как работал до `S57`
+        /// (<see cref="FullSpectrumAnalysis.FsaLibrary.BuildFromPeaks"/>), и
+        /// ни одно уже снятое число само собой не сдвинется.
+        /// </summary>
+        public bool DbLookupsForFsa
+        {
+            get
+            {
+                return this.db_lookups_for_fsa;
+            }
+            set
+            {
+                this.db_lookups_for_fsa = value;
+            }
+        }
+
         [XmlElement(typeof(SimpleSqrtFwhmCalibration))]
         [XmlElement(typeof(SqrtFwhmCalibration))]
         [XmlElement(typeof(PowerFwhmCalibration))]
@@ -204,6 +233,7 @@ namespace BecquerelMonitor
             this.ch_concat = config.ch_concat;
             this.peak_width_widen_factor = config.peak_width_widen_factor;
             this.use_center_of_mass_centroid = config.use_center_of_mass_centroid;
+            this.db_lookups_for_fsa = config.db_lookups_for_fsa;
             if (config.fwhmCalibration != null)
             {
                 this.fwhmCalibration = config.fwhmCalibration.Clone();
@@ -285,6 +315,8 @@ namespace BecquerelMonitor
         double peak_width_widen_factor = 1.2;
 
         bool use_center_of_mass_centroid = true;
+
+        bool db_lookups_for_fsa = false;
 
         bool enabled = true;
 
