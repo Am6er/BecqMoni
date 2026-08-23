@@ -120,29 +120,31 @@ Copy-Item (Join-Path $corpus 'devices\*.xml') (Join-Path $Wd 'config\device') -F
 $rmx = Get-ChildItem (Join-Path $response '*.rmx') -File
 Copy-Item $rmx (Join-Path $Wd 'config\device\response') -Force
 
-# 4. Сама проба. Довески без Main перечисляются ПОИМЁННО, и список этот
-#    приходится держать руками — проекта у проб нет (см. `probes/README`).
-#    `ResidualScan.cs` нужен карте невязок (`--residuals`/`--near`),
-#    `ProbeDeviceConfig.cs` — разбору ссылки на прибор (`S82`).
+# 4. Сама проба. ДОВЕСКИ ВЫВОДЯТСЯ ИЗ ДЕРЕВА, а не перечисляются (`T57`,
+#    23.08.2026): файл каталога проб без `Main` — не проба, а общий кусок, и
+#    идёт довеском.
 #
-#    ⛔ Ровно на этом списке скрипт и сломался: `ProbeDeviceConfig.cs` завели
-#    19.08.2026, сюда не вписали, и `mk_appwd.ps1` с тех пор падал на
-#    «Имя "ProbeDeviceConfig" не существует в текущем контексте» (найдено
-#    23.08.2026). Отказ ГРОМКИЙ, и это единственное, что спасло. Строка о том,
-#    чтобы список не держать руками вовсе, — `T57`.
+#    ⛔ Прежде здесь лежал список имён руками, и он устарел молча:
+#    `ProbeDeviceConfig.cs` завели 19.08.2026 при `S82`, сюда не вписали, и
+#    рабочий каталог корпуса не собирался четыре дня — `csc` валился на
+#    «Имя "ProbeDeviceConfig" не существует в текущем контексте». Отказ был
+#    ГРОМКИЙ, и только это спасло; правило то же, что в `build_all.ps1`.
 if (-not $SkipBuild) {
     $csc = 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\Roslyn\csc.exe'
     $facades = 'C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.8\Facades'
     $src = Join-Path $repo 'tools\effmaker\probes\CorpusFsaProbe.cs'
-    $scan = Join-Path $repo 'tools\effmaker\probes\ResidualScan.cs'
-    $devcfg = Join-Path $repo 'tools\effmaker\probes\ProbeDeviceConfig.cs'
+    $companions = @(Get-ChildItem (Join-Path $repo 'tools\effmaker\probes\*.cs') |
+        Where-Object {
+            -not (Select-String -Path $_.FullName -Pattern 'static\s+(int|void)\s+Main\s*\(' -Quiet)
+        } | ForEach-Object { $_.FullName })
+    Write-Host ("  довески без Main: " + (($companions | Split-Path -Leaf) -join ', '))
     $exe = Join-Path $Wd 'CorpusFsaProbe.exe'
     & $csc /nologo /target:exe /platform:anycpu /langversion:7.3 "/out:$exe" `
         "/r:$Wd\BecquerelMonitor.exe" `
         /r:System.dll /r:System.Core.dll /r:System.Xml.dll `
         /r:System.Drawing.dll /r:System.Windows.Forms.dll `
         "/r:$Wd\Microsoft.Data.Sqlite.dll" "/r:$facades\netstandard.dll" `
-        $src $scan $devcfg
+        $src $companions
     if ($LASTEXITCODE -ne 0) { throw "csc failed" }
     # Пробам, читающим базы, нужен свой exe.config — иначе binding redirect
     # SQLitePCLRaw не применяется и чтение падает уже на месте.

@@ -1,4 +1,4 @@
-using BecquerelMonitor;
+﻿using BecquerelMonitor;
 using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
@@ -467,11 +467,29 @@ namespace PeakOriginProbe
             // берёт их у конфигурации прибора (DCPeakDetectionView), и проба
             // обязана делать то же: иначе поиск падает на null, спектр молча
             // выпадает, и целый конец корпуса оказывается не измерен.
-            if (!(rd.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig)
-                && rd.DeviceConfig != null
-                && rd.DeviceConfig.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig fromDevice)
+            // ПРИБОР И ЕГО НАСТРОЙКИ ПОИСКА — ОБЩИМ ПРАВИЛОМ (`S82`, `T59`).
+            //
+            // ⛔ Прежде здесь стояла своя проверка «а нет ли настроек у прибора», и
+            // она НЕ РАБОТАЛА НИКОГДА: `ResultData.DeviceConfig` помечен `[XmlIgnore]`
+            // и заведён полем `= new DeviceConfigInfo()`, то есть после чтения файла
+            // там лежит ПУСТОЙ прибор — не null, поэтому условие проходило, а настроек
+            // в нём не было, и проба молча брала умолчания библиотеки (SNR 10 вместо
+            // приборных 4, диапазон от 30 кэВ вместо 15…20). Настройки поиска задают
+            // подписи пиков, подписи — состав библиотеки (`S57`), состав — разложение:
+            // картинка получалась про НЕ ТОТ спектр, который видит человек.
+            //
+            // Отказ печатается, а не глотается: молчаливый откат на умолчания и есть
+            // то, чем `S82` стоила двух сессий.
+            // ⚠ Печатается ТОЛЬКО отказ: эта проба обходит весь корпус, и
+            // строка «прибор такой-то» на каждый из 126 спектров утопила бы
+            // в себе тот единственный случай, ради которого печать и нужна.
+            // У однопрогонных проб наоборот — там имя прибора печатается
+            // всегда, потому что читатель смотрит именно на этот спектр.
+            string deviceNote = ProbeDeviceConfig.Attach(rd);
+            if (deviceNote.Contains("НЕТ") || deviceNote.Contains("нет"))
             {
-                rd.PeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)fromDevice.Clone();
+                Console.Error.WriteLine("⚠ " + Path.GetFileNameWithoutExtension(path)
+                                        + ": " + deviceNote);
             }
             if (!(rd.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig))
                 throw new InvalidDataException("нет настроек поиска пиков ни в спектре, ни в приборе");

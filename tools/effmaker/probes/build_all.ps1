@@ -102,20 +102,30 @@ $locked = @()
 $built = 0
 $sources = @(Get-ChildItem (Join-Path $repo 'tools\effmaker\*.cs')) +
            @(Get-ChildItem (Join-Path $PSScriptRoot '*.cs'))
+
+# ДОВЕСКИ ВЫВОДЯТСЯ, А НЕ ПЕРЕЧИСЛЯЮТСЯ (`T57`, 23.08.2026). Файл без `Main` —
+# не проба, а общий кусок; такие идут довеском ко ВСЕМ пробам и сами не
+# собираются.
+#
+# ⛔ Прежде и здесь, и в `mk_appwd.ps1` лежали списки имён РУКАМИ, и второй уже
+# устарел молча: `ProbeDeviceConfig.cs` завели 19.08.2026 при `S82`, вписать
+# забыли, и рабочий каталог корпуса не собирался четыре дня. Список, который
+# надо помнить, однажды забывают — поэтому его больше нет.
+#
+# ⚠ Довесок кладётся КАЖДОЙ пробе, а не той, что его зовёт: лишний класс в
+# сборке не стоит ничего, а «кому какой довесок» — ровно та таблица, которая и
+# устаревала. Цена — секунды на прогон, и она измерена.
+$companions = @($sources | Where-Object {
+    -not (Select-String -Path $_.FullName -Pattern 'static\s+(int|void)\s+Main\s*\(' -Quiet)
+})
+$companionPaths = @($companions | ForEach-Object { $_.FullName })
+if ($companionPaths.Count -gt 0) {
+    Write-Host ("довески без Main: " + (($companions | ForEach-Object { $_.Name }) -join ', '))
+}
+
 foreach ($f in $sources) {
-    # Файлы без `Main` идут довеском к своим пробам, а сами не собираются.
-    if ($f.Name -in @('GadrasDetector.cs', 'ResidualScan.cs', 'ProbeDeviceConfig.cs')) { continue }
-    $extra = @()
-    if ($f.Name -in @('GadrasProbe.cs', 'ResponseProbe.cs')) {
-        $extra = @(Join-Path $PSScriptRoot 'GadrasDetector.cs')
-    }
-    if ($f.Name -in @('FsaCascadeProbe.cs', 'CorpusFsaProbe.cs')) {
-        $extra = @(Join-Path $PSScriptRoot 'ResidualScan.cs')
-    }
-    # `S82`: разбор ссылки на прибор — один на все пробы, что его зовут.
-    if ($f.Name -in @('FsaStackShot.cs', 'CorpusFsaProbe.cs')) {
-        $extra += (Join-Path $PSScriptRoot 'ProbeDeviceConfig.cs')
-    }
+    if ($f.FullName -in $companionPaths) { continue }
+    $extra = @($companionPaths)
     $exe = Join-Path $Out ($f.BaseName + '.exe')
 
     # T41, вторая половина: ПЕРЕСБОРКА ПОВЕРХ РАБОТАЮЩЕЙ ПРОБЫ ОСТАВЛЯЕТ ОТ НЕЁ
