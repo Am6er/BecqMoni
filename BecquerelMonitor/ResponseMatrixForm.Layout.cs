@@ -1,4 +1,4 @@
-using BecquerelMonitor.Properties;
+﻿using BecquerelMonitor.Properties;
 using System;
 using System.Drawing;
 using System.Windows.Forms;
@@ -102,12 +102,17 @@ namespace BecquerelMonitor
             this.Controls.Add(box);
 
             int row = 20;
-            this.minEnergyBox = this.Field(box, Resources.ResponseMatrixMinEnergy, Pad, row, 10, 500, 0, 30);
+            // Нижняя граница поля 10 → 5 вместе с умолчанием сетки (`T49`):
+            // поле, которое не даёт ввести умолчание, зажало бы его при первом
+            // же открытии формы, и «Пересчитать» дало бы ДРУГУЮ матрицу.
+            this.minEnergyBox = this.Field(box, Resources.ResponseMatrixMinEnergy, Pad, row, 5, 500, 0, 5);
             this.maxEnergyBox = this.Field(box, Resources.ResponseMatrixMaxEnergy,
                                            Pad + LabelWidth + FieldWidth + 24, row, 500, 10000, 0, 3000);
 
             row += 28;
-            this.nodesBox = this.Field(box, Resources.ResponseMatrixNodes, Pad, row, 8, 500, 0, 100);
+            // Умолчание поля идёт за умолчанием сетки (`T49`): сто узлов при
+            // крае 5 кэВ дают шаг 6.67 % на узел вместо прежних 4.76 %.
+            this.nodesBox = this.Field(box, Resources.ResponseMatrixNodes, Pad, row, 8, 500, 0, 140);
             this.binBox = this.Field(box, Resources.ResponseMatrixBin,
                                      Pad + LabelWidth + FieldWidth + 24, row, 1, 20, 0, 2);
 
