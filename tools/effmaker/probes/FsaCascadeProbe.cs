@@ -629,12 +629,21 @@ namespace FsaCascadeProbe
                 s.ValidPulseCount = total;
             }
 
-            if (!(rd.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig)
-                && rd.DeviceConfig != null
-                && rd.DeviceConfig.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig fromDevice)
-            {
-                rd.PeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)fromDevice.Clone();
-            }
+            // ПРИБОР И ЕГО НАСТРОЙКИ ПОИСКА — ОБЩИМ ПРАВИЛОМ (`S82`, `T59`).
+            //
+            // ⛔ Прежде здесь стояла своя проверка «а нет ли настроек у прибора», и
+            // она НЕ РАБОТАЛА НИКОГДА: `ResultData.DeviceConfig` помечен `[XmlIgnore]`
+            // и заведён полем `= new DeviceConfigInfo()`, то есть после чтения файла
+            // там лежит ПУСТОЙ прибор — не null, поэтому условие проходило, а настроек
+            // в нём не было, и проба молча брала умолчания библиотеки (SNR 10 вместо
+            // приборных 4, диапазон от 30 кэВ вместо 15…20). Настройки поиска задают
+            // подписи пиков, подписи — состав библиотеки (`S57`), состав — разложение:
+            // картинка получалась про НЕ ТОТ спектр, который видит человек.
+            //
+            // Отказ печатается, а не глотается: молчаливый откат на умолчания и есть
+            // то, чем `S82` стоила двух сессий.
+            string deviceNote = ProbeDeviceConfig.Attach(rd);
+            Console.WriteLine("прибор: {0}", deviceNote);
 
             if (rd.FwhmCalibration == null
                 && rd.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig cfg)
