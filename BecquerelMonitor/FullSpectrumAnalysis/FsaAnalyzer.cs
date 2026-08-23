@@ -1426,9 +1426,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             foreach (FsaComponentResult component in result.Components)
             {
-                component.SharePercent = component.Kind != FsaComponentKind.Nuisance && totalPeakCounts > 0.0
-                    ? 100.0 * component.PeakCounts / totalPeakCounts
-                    : 0.0;
                 component.PeakSharePercent = allPeakCounts > 0.0
                     ? 100.0 * component.PeakCounts / allPeakCounts
                     : 0.0;
@@ -1444,6 +1441,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 result.Model[i] = sum;
             }
+
+            // ДОЛЯ — ОДНА МЕРА НА ВЕСЬ ПРОЕКТ, доля СЛОЯ (`S76`, решение Amber
+            // 23.08.2026), и считается она там же, где строятся слои.
+            //
+            // ⛔ Прежде здесь стоял «пирог» по ПИКОВЫМ отсчётам среди нуклидных
+            // образов: знаменатель — `totalPeakCounts`, у мешающих ноль. Экран
+            // печатал ДРУГОЕ число под тем же словом, и сверить их было нечем.
+            // Считать долю раньше модели теперь нельзя: разнос подложки идёт по
+            // готовым кривым, поэтому вызов стоит ПОСЛЕ сборки `result.Model`.
+            //
+            // ⚠ `totalPeakCounts` остался при `SplitChainMembers` — там он
+            // делит колонку ряда между членами, и это другая арифметика.
+            result.ComputeComponentShares();
 
             return result;
         }

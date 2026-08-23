@@ -35,17 +35,26 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double Z { get; set; }
 
         /// <summary>
-        /// Доля в «пироге» — по объяснённым пиковым отсчётам, %.
+        /// ДОЛЯ СЛОЯ: вклад компонента в ПОЛНЫЙ счёт модели с разнесённой на
+        /// него подложкой, %. ТА ЖЕ величина, что печатает легенда
+        /// (<see cref="FsaStackLayer.SharePercent"/>), — по построению, а не по
+        /// совпадению: обе берутся из одного расчёта
+        /// (<see cref="FsaResult.ComputeComponentShares"/>).
         ///
-        /// ⚠ Считается ТОЛЬКО по нуклидным компонентам и у служебных образов
-        /// (<see cref="FsaComponentKind.Nuisance"/> — `Ann-511`, `SE`/`DE`,
-        /// обратное рассеяние, рентген) равна нулю НАРОЧНО: «пирог» отвечает на
-        /// вопрос «из чего проба», а вылет и аннигиляция — не вещество.
+        /// ⛔ ДО 23.08.2026 ЗДЕСЬ БЫЛА ДРУГАЯ ВЕЛИЧИНА под тем же именем
+        /// (`S76`): «пирог» по ПИКОВЫМ отсчётам среди нуклидных компонентов, у
+        /// мешающих образов ноль. Про один и тот же компонент экран и корпусная
+        /// таблица говорили РАЗНЫЕ числа, и сверить их было нечем. Решением
+        /// Amber мера теперь одна — эта.
         ///
-        /// Читать её как «сколько занимает компонент» НЕЛЬЗЯ — для этого есть
-        /// <see cref="PeakSharePercent"/>. Ноль здесь означает «не вещество», а
-        /// не «пусто», и ровно на этом `Ann-511` с 3.1 % пиковых отсчётов
-        /// выглядела в сводке ОТСУТСТВУЮЩЕЙ (S49).
+        /// ⚠ Следствие, которое надо знать: у мешающих образов (`Ann-511`,
+        /// `SE`/`DE`, обратное рассеяние, рентген) доля БОЛЬШЕ НЕ НОЛЬ. Ноль
+        /// прежде означал «не вещество», а не «пусто», и на этом `Ann-511` с
+        /// 3.1 % пиковых отсчётов выглядела в сводке отсутствующей (`S49`);
+        /// теперь «не вещество» отличают по <see cref="Kind"/>, как и следовало.
+        ///
+        /// ⚠ Вопрос «сколько компонент занимает В ПИКАХ» — другой, и на него
+        /// по-прежнему отвечает <see cref="PeakSharePercent"/>.
         /// </summary>
         public double SharePercent { get; set; }
 
@@ -211,7 +220,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public double[] SumPeakCurve { get; set; }
 
-        /// <summary>Доля слоя в полном счёте модели, %.</summary>
+        /// <summary>
+        /// Доля слоя в полном счёте модели, %. ОДНА МЕРА на весь проект
+        /// (`S76`): у компонента, из которого слой сделан, в
+        /// <see cref="FsaComponentResult.SharePercent"/> лежит ровно она же.
+        /// Исключение — свёрнутые строки («прочее», подложка): у них своего
+        /// компонента нет.
+        /// </summary>
         public double SharePercent { get; set; }
     }
 
@@ -393,30 +408,58 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// накопленному счёту выше канала, поэтому сумма разнесённых кривых
         /// равна разносу по их сумме, и «прочее» от перестановки не меняется.
         /// </summary>
-        public List<FsaStackLayer> BuildStackedLayers(int maxNamedLayers)
+        /// <summary>
+        /// ОДНА МЕРА ДОЛИ НА ВЕСЬ ПРОЕКТ (`S76`, решение Amber 23.08.2026):
+        /// доля СЛОЯ — вклад компонента в ПОЛНЫЙ счёт модели с разнесённой
+        /// подложкой.
+        ///
+        /// ⛔ До 23.08.2026 «долей» назывались ДВЕ разные величины.
+        /// `FsaComponentResult.SharePercent` был «пирогом» по ПИКОВЫМ отсчётам
+        /// среди нуклидных образов (знаменатель — сумма пиковых отсчётов
+        /// нуклидов, у мешающих ноль), и его читала корпусная мерка;
+        /// `FsaStackLayer.SharePercent` — вот эта, и её печатала легенда. Про
+        /// один и тот же компонент экран и таблица пробы говорили РАЗНЫЕ числа
+        /// под одним словом, и свести их было нечем.
+        ///
+        /// Здесь разнос подложки и знаменатель считаются ОДИН раз, и из них
+        /// берут долю и компоненты, и слои: разойтись им теперь негде.
+        ///
+        /// ⚠ Второй мерой остаётся <see cref="FsaComponentResult.PeakSharePercent"/>
+        /// — доля пиковых отсчётов среди ВСЕХ образов (`S49`). Она отвечает на
+        /// другой вопрос («сколько компонент занимает в пиках») и потому живёт
+        /// отдельно; путать её с долей слоя нельзя, и имена у них теперь разные
+        /// не только по букве.
+        ///
+        /// Возвращает слои на КАЖДЫЙ компонент (до отбора и свёртки) либо null,
+        /// если считать нечего; `leftover` — неразнесённый хвост подложки.
+        /// </summary>
+        List<FsaStackLayer> SpreadContinuum(out double[] leftover, out double[] weight,
+                                            out double total, out List<FsaComponentResult> ordered)
         {
-            List<FsaStackLayer> layers = new List<FsaStackLayer>();
-            this.StackTotal = 0.0;
+            leftover = null;
+            weight = null;
+            total = 0.0;
+            ordered = null;
             if (this.Components == null || this.Components.Count == 0)
             {
-                return layers;
+                return null;
             }
 
             int channels = this.Model != null ? this.Model.Length : 0;
             if (channels == 0)
             {
-                return layers;
+                return null;
             }
 
-            List<FsaComponentResult> ordered = new List<FsaComponentResult>(this.Components);
+            ordered = new List<FsaComponentResult>(this.Components);
             ordered.RemoveAll(c => c.Curve == null || Max(c.Curve) <= 0.0);
             if (ordered.Count == 0)
             {
-                return layers;
+                return null;
             }
 
-            // Сперва слой на КАЖДЫЙ компонент — отбор идёт после разноса
-            // подложки, см. шапку метода.
+            // Слой на КАЖДЫЙ компонент — отбор идёт после разноса подложки, см.
+            // шапку BuildStackedLayers.
             List<FsaStackLayer> full = new List<FsaStackLayer>(ordered.Count);
             foreach (FsaComponentResult component in ordered)
             {
@@ -431,13 +474,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 });
             }
 
-            double[] leftover = DistributeContinuum(full, channels);
+            leftover = DistributeContinuum(full, channels);
 
-            // Мера отбора и порядка — та же сумма, из которой потом считается
-            // доля. Хранится отдельно, чтобы не пересчитывать её на каждое
-            // сравнение внутри сортировки.
-            double[] weight = new double[full.Count];
-            double total = 0.0;
+            weight = new double[full.Count];
             for (int k = 0; k < full.Count; k++)
             {
                 weight[k] = Sum(full[k].Curve);
@@ -449,6 +488,57 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 total += Sum(leftover);
             }
 
+            return full;
+        }
+
+        /// <summary>
+        /// Проставить компонентам долю СЛОЯ (`S76`). Зовётся разбором сразу по
+        /// сборке результата, чтобы число было готово и у того, кто слоёв не
+        /// строит вовсе, — например у корпусной пробы.
+        /// </summary>
+        public void ComputeComponentShares()
+        {
+            double[] leftover, weight;
+            double total;
+            List<FsaComponentResult> ordered;
+            List<FsaStackLayer> full = this.SpreadContinuum(out leftover, out weight,
+                                                            out total, out ordered);
+            this.StackTotal = total;
+            if (this.Components != null)
+            {
+                foreach (FsaComponentResult component in this.Components)
+                {
+                    component.SharePercent = 0.0;
+                }
+            }
+
+            if (full == null || !(total > 0.0))
+            {
+                return;
+            }
+
+            for (int k = 0; k < ordered.Count; k++)
+            {
+                ordered[k].SharePercent = 100.0 * weight[k] / total;
+            }
+        }
+
+        public List<FsaStackLayer> BuildStackedLayers(int maxNamedLayers)
+        {
+            List<FsaStackLayer> layers = new List<FsaStackLayer>();
+            this.StackTotal = 0.0;
+
+            double[] leftover, weight;
+            double total;
+            List<FsaComponentResult> ordered;
+            List<FsaStackLayer> full = this.SpreadContinuum(out leftover, out weight,
+                                                            out total, out ordered);
+            if (full == null)
+            {
+                return layers;
+            }
+
+            int channels = this.Model.Length;
             this.StackTotal = total;
 
             // Мешающие образы (рентген, пики вылета) показываются всегда и в

@@ -613,12 +613,25 @@ namespace BecquerelMonitor
 
         const int FsaTableRowHeight = 16;
 
-        /// <summary>Сколько строк займёт разложение в таблице курсора.</summary>
-        int FsaTableRowCount(FsaResult result, string status)
+        /// <summary>
+        /// Сколько строк займёт разложение в таблице курсора. `budget` —
+        /// потолок для СВОРАЧИВАЕМОЙ части (см.
+        /// <see cref="FsaCollapsibleBudget"/>); `int.MaxValue` — потолка нет.
+        /// </summary>
+        int FsaTableRowCount(FsaResult result, string status,
+                             int budget = int.MaxValue)
         {
             if (result == null)
             {
                 return string.IsNullOrEmpty(status) ? 0 : 1;
+            }
+
+            if (budget < int.MaxValue)
+            {
+                int collapsible = this.FsaCollapsibleRowCount(result);
+                int shown = Math.Min(collapsible, budget);
+                return shown + (collapsible > shown ? 1 : 0)
+                       + FsaFixedRowCount(result);
             }
 
             // +2 — строка качества и строка невязки модели (S51), плюс по
@@ -632,6 +645,80 @@ namespace BecquerelMonitor
                    + (FsaUndetectedFolded(result).Count > 0 ? 1 : 0)
                    + (result.BackgroundUsed ? 0 : 1);
         }
+
+        /// <summary>
+        /// Строки, которые уступают место первыми: состав, сумм-пики и серая
+        /// колонка «не обнаружен». Порядок сворачивания — обратный порядку
+        /// показа, то есть первой уходит серая колонка, последними строки
+        /// состава: «не обнаружен, &lt; X» без числа рядом читатель восстановит,
+        /// а пропавший нуклид состава — нет.
+        /// </summary>
+        int FsaCollapsibleRowCount(FsaResult result)
+        {
+            return this.GetFsaLayers(result).Count + this.FsaSumPeakLayers(result).Count
+                   + FsaUndetectedNamed(result).Count
+                   + (FsaUndetectedFolded(result).Count > 0 ? 1 : 0);
+        }
+
+        /// <summary>
+        /// Строки, которые не сворачиваются НИКОГДА: невязка модели, качество и
+        /// «БЕЗ ФОНА». Первые две — то, ради чего таблицу читают; третья —
+        /// предупреждение, а спрятанное предупреждение хуже отсутствующего.
+        /// </summary>
+        static int FsaFixedRowCount(FsaResult result)
+        {
+            return 2 + (result.BackgroundUsed ? 0 : 1);
+        }
+
+        /// <summary>
+        /// Сколько сворачиваемых строк помещается под таблицу, если её низ не
+        /// должен уйти за нижний край видимого поля (`S73`). `int.MaxValue` —
+        /// помещается всё, обрезать нечего.
+        ///
+        /// Одна строка удерживается под пометку о свёрнутом: таблица, из
+        /// которой строки пропали молча, — ровно та ошибка, ради которой
+        /// правило и заведено.
+        /// </summary>
+        int FsaCollapsibleBudget(FsaResult result, int top)
+        {
+            if (result == null)
+            {
+                return int.MaxValue;
+            }
+
+            return FsaTableBudget(this.FsaCollapsibleRowCount(result),
+                                  FsaFixedRowCount(result), top,
+                                  base.ClientSize.Height
+                                  - (this.hScrollBar1 != null ? this.hScrollBar1.Height : 0)
+                                  - FsaTableBottomMargin);
+        }
+
+        /// <summary>
+        /// САМА АРИФМЕТИКА ПОТОЛКА, отдельно от вида и от результата (`S73`).
+        /// Вынесена ради читателя: проверять правило на настоящем окне значило
+        /// бы мерить пиксели, а мерить надо правило. Читатель —
+        /// `FsaPaletteProbe`, раздел «потолок таблицы».
+        ///
+        /// <paramref name="top"/> — верх таблицы, <paramref name="limit"/> —
+        /// нижняя граница, за которую ей нельзя. Возвращается, сколько
+        /// СВОРАЧИВАЕМЫХ строк помещается; `int.MaxValue` — помещается всё.
+        /// Одна строка удерживается под пометку о свёрнутом: таблица, из
+        /// которой строки пропали молча, — ровно та ошибка, ради которой
+        /// правило и заведено.
+        /// </summary>
+        public static int FsaTableBudget(int collapsible, int fixedRows, int top, int limit)
+        {
+            int room = (limit - top - 8) / FsaTableRowHeight;
+            if (room >= collapsible + fixedRows)
+            {
+                return int.MaxValue;
+            }
+
+            return Math.Max(0, room - fixedRows - 1);
+        }
+
+        /// <summary>Отступ таблицы от нижнего края поля, пикселей.</summary>
+        const int FsaTableBottomMargin = 4;
 
         /// <summary>
         /// НЕ вошедшие в состав кандидаты библиотеки с определённым пределом
@@ -799,7 +886,8 @@ namespace BecquerelMonitor
         /// качество описания, с пометками об отсутствии кривой эффективности и
         /// об упёршемся в границу сетки дрейфе.
         /// </summary>
-        void DrawFsaRows(Graphics g, Rectangle r, FsaResult result, string status)
+        void DrawFsaRows(Graphics g, Rectangle r, FsaResult result, string status,
+                         int budget = int.MaxValue)
         {
             if (result == null)
             {
@@ -807,10 +895,24 @@ namespace BecquerelMonitor
                 return;
             }
 
+            // (`S73`) Сворачиваемые строки идут, пока хватает бюджета; сколько
+            // не поместилось — считается и говорится отдельной строкой ниже.
+            // Сворачивать с КОНЦА, а не с начала: последними уходят строки
+            // состава, первой — серая колонка «не обнаружен».
+            int left = budget;
+            int dropped = 0;
+
             List<FsaStackLayer> layers = this.GetFsaLayers(result);
             Rectangle nameRect = new Rectangle(r.X + 14, r.Y, r.Width - 14, r.Height);
             for (int k = 0; k < layers.Count; k++)
             {
+                if (left <= 0)
+                {
+                    dropped += layers.Count - k;
+                    break;
+                }
+
+                left--;
                 using (Brush swatch = new SolidBrush(this.FsaColorOf(layers[k].Name)))
                 {
                     g.FillRectangle(swatch, r.Left, r.Top + 4, 10, 8);
@@ -829,8 +931,17 @@ namespace BecquerelMonitor
             // нуклидах с каскадами непонятно, чья штриховка какая.
             // Доля не печатается нарочно: сумм-пики уже посчитаны внутри доли
             // своего нуклида, и второе число рядом складывали бы с первым.
-            foreach (FsaStackLayer layer in this.FsaSumPeakLayers(result))
+            List<FsaStackLayer> sumPeaks = this.FsaSumPeakLayers(result);
+            for (int k = 0; k < sumPeaks.Count; k++)
             {
+                if (left <= 0)
+                {
+                    dropped += sumPeaks.Count - k;
+                    break;
+                }
+
+                left--;
+                FsaStackLayer layer = sumPeaks[k];
                 Color color = this.FsaColorOf(layer.Name);
                 using (Brush swatch = new HatchBrush(HatchStyle.DarkUpwardDiagonal,
                                                      FsaSumPeakHatchColor(color), color))
@@ -851,8 +962,17 @@ namespace BecquerelMonitor
             // строка состава; справа «< доля» той же колонкой и той же мерой,
             // что доли состава (S68). Формат G3 — три значащие цифры, точность
             // пределов выше трёх цифр была бы враньём.
-            foreach (FsaCharacteristicLimit limit in FsaUndetectedNamed(result))
+            List<FsaCharacteristicLimit> undetected = FsaUndetectedNamed(result);
+            for (int k = 0; k < undetected.Count; k++)
             {
+                if (left <= 0)
+                {
+                    dropped += undetected.Count - k;
+                    break;
+                }
+
+                left--;
+                FsaCharacteristicLimit limit = undetected[k];
                 g.DrawString(FsaPalette.DisplayName(limit.Name), this.Font, Brushes.Gray, nameRect);
                 g.DrawString(FsaLimitText(FsaLimitSharePercent(result, limit.DetectionLimitPeakCounts)),
                              this.Font, Brushes.Gray, r, this.farFormat);
@@ -877,8 +997,13 @@ namespace BecquerelMonitor
             // a_i < L_i, то Σa_i < ΣL_i), но доверительный уровень у суммы уже
             // не 95 %, и подпись этого не обещает.
             List<FsaCharacteristicLimit> folded = FsaUndetectedFolded(result);
-            if (folded.Count > 0)
+            if (folded.Count > 0 && left <= 0)
             {
+                dropped++;
+            }
+            else if (folded.Count > 0)
+            {
+                left--;
                 double sum = 0.0;
                 foreach (FsaCharacteristicLimit limit in folded)
                 {
@@ -905,6 +1030,20 @@ namespace BecquerelMonitor
             // для читающего разницы нет, разбор в обоих случаях идёт по
             // неочищенному спектру. Молчание здесь уже стоило одиннадцати
             // спектров корпуса, разобранных без фона так, что никто не видел.
+            // (`S73`) ТРЕТЬЯ «прочие» в таблице, и подпись у неё своя нарочно.
+            // Первая сворачивает ОБНАРУЖЕННЫХ сверх лимита названных (`S71`),
+            // вторая — НЕ обнаруженных ниже порога выхода (`S69`), а эта — то,
+            // что не поместилось по высоте поля. Числа у них разной природы, и
+            // складывать их читатель не должен даже случайно.
+            if (dropped > 0)
+            {
+                g.DrawString(string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                                           Resources.FSARowsDidNotFit, dropped),
+                             this.Font, Brushes.Gray, nameRect);
+                r.Y += FsaTableRowHeight;
+                nameRect.Y += FsaTableRowHeight;
+            }
+
             if (!result.BackgroundUsed)
             {
                 g.DrawString(Resources.FSANoBackgroundMark, this.Font, Brushes.Firebrick, nameRect);
@@ -987,6 +1126,18 @@ namespace BecquerelMonitor
                 return;
             }
 
+            // ⛔ ПОТОЛОК ПО ВЫСОТЕ ПОЛЯ (`S73`, решение Amber 23.08.2026).
+            // Прежде высота подложки бралась прямо из числа строк, и на богатом
+            // составе таблица уходила за низ графика — молча, потому что
+            // проверки «помещается ли» не было вовсе. Считается она от нижнего
+            // края видимого поля, а не от области графика: таблица и так стоит
+            // ниже неё, под панелями курсора.
+            int budget = this.FsaCollapsibleBudget(result, y);
+            if (budget < int.MaxValue)
+            {
+                rows = this.FsaTableRowCount(result, status, budget);
+            }
+
             // Сообщение о состоянии переносится по ширине панели на несколько
             // строк — подложка обязана вместить фактическую высоту текста, а не
             // одну табличную строку.
@@ -998,7 +1149,7 @@ namespace BecquerelMonitor
             g.DrawRectangle(Pens.Black, x, y, width, height);
 
             Rectangle r = new Rectangle(x + 8, y + 4, width - 12, height - 8);
-            this.DrawFsaRows(g, r, result, status);
+            this.DrawFsaRows(g, r, result, status, budget);
         }
     }
 }

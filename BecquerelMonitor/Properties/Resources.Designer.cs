@@ -2999,6 +2999,24 @@ namespace BecquerelMonitor.Properties {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to does not fit: {0} row(s).
+        /// </summary>
+        public static string FSARowsDidNotFit {
+            get {
+                return ResourceManager.GetString("FSARowsDidNotFit", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Equilibrium works only when the composition comes from the databases: turn on &quot;Enable DB lookups for FSA&quot;. The other path builds components from peak labels and knows nothing about decay chains.
+        /// </summary>
+        public static string FSAEquilibriumNeedsDbLookups {
+            get {
+                return ResourceManager.GetString("FSAEquilibriumNeedsDbLookups", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Pile-up.
         /// </summary>
         public static string FSAPileUpName {
