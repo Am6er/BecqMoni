@@ -786,7 +786,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// при одинаковых с виду числах, `T50`). L-серия — подробными
         /// строками, если они есть, иначе обобщённой.
         /// </summary>
-        internal static List<double[]> DecayLines(string nucid, Report report)
+        /// ⚠ Открыт наружу РАДИ ЧИТАТЕЛЯ (`S89`): два места в проекте читают
+        /// `decay_radiations` с разными зажимами, и «оба обязаны давать один
+        /// I_K» — утверждение, которое надо проверять прогоном, а не глазами.
+        /// Проверяет `DecayReadersProbe`; внутри приложения зовут его только
+        /// отсюда.
+        public static List<double[]> DecayLines(string nucid, Report report)
         {
             lock (Gate)
             {

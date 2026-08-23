@@ -65,11 +65,16 @@ namespace RoiActivityProbe
                 return 2;
             }
 
+            // ⛔ ОБЕ карты примитивов ROI и ДО менеджеров (`T60`): половина
+            // пары и порядок «сначала менеджер» — одна и та же грабля.
+            // `GlobalConfigManager` тянет `ROIConfigManager`, тот подставляет
+            // из обеих карт, и отказ выходит МОДАЛЬНЫМ окном, вешающим
+            // безоконный прогон навсегда.
+            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
+            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
+
             GlobalConfigManager.GetInstance();
             DeviceConfigManager.GetInstance();
-            // Порядок старта как в Program.cs: карту операций заполняет
-            // отдельный вызов, без него конструктор менеджера падает.
-            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
 
             ResultData rd = Load(spectrumPath);
             ROIConfigData roi;

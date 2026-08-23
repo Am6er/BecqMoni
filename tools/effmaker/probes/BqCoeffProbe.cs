@@ -183,7 +183,17 @@ namespace BqCoeffProbe
             // Список примитивов зоны заводит MainForm при запуске, а формы он
             // нужен уже конструктору. Без этого проба падает на первой строке
             // конструктора, не дойдя до проверки.
+            //
+            // ⛔ ОБЕ ПОЛОВИНЫ, а не одна: `MainForm` зовёт их подряд, и
+            // `ROIConfigManager` подставляет из ОБЕИХ карт. С одними
+            // определениями проба 23.08.2026 вешалась НАВСЕГДА на модальном
+            // «Не удалось загрузить конфигурационный файл ROI»: карта операций
+            // была null, подстановка падала, а причину `catch (Exception)`
+            // проглатывал. Файлы без примитивов при этом грузились, поэтому
+            // окно вылезало на первом файле, у которого они есть, — и выглядело
+            // как беда конкретного файла (`T60`).
             ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
+            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
             using (ROIConfigForm form = new ROIConfigForm())
             {
                 CheckBox check = (CheckBox)Field(form, "autoBqCheckBox");
