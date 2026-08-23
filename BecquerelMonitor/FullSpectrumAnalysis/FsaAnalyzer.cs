@@ -87,6 +87,43 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public double ContinuumKnotFwhm = 4.0;
 
+        /// <summary>
+        /// ШТРАФ НА ИЗЛОМ КОНТИНУУМА (`S85`, решение Amber 24.08.2026): вес
+        /// слагаемого λ·Σ(c[k−1] − 2c[k] + c[k+1])² на коэффициентах шапок
+        /// сплайна. 0 — штрафа нет.
+        ///
+        /// Зачем. Амплитуда обратного рассеяния данными НЕ ОПРЕДЕЛЯЕТСЯ: от
+        /// одной только густоты узлов образ пропадает у двадцати спектров
+        /// корпуса, а где выживает — ходит десятками процентов. Спорит он со
+        /// СПЛАЙНОМ: тот свободен настолько, что повторяет бугор шириной с пик,
+        /// и модель раскладывает одну и ту же форму двумя способами с одинаковой
+        /// невязкой. Запрет по ШАГУ УЗЛОВ эту свободу режет грубо — вместе со
+        /// способностью описывать настоящий континуум (`S92`: порог 4·ПШПВ
+        /// стоит 39 % корпусного χ²). Штраф на вторую разность режет иначе:
+        /// медленно меняющуюся подложку он пропускает даром, а излом — тем
+        /// дороже, чем он резче.
+        ///
+        /// ⚠ Величина БЕЗРАЗМЕРНА: внутри домножается на среднее диагональное
+        /// значение Грама по блоку шапок, иначе один и тот же λ значил бы разное
+        /// на жирном и тощем спектре.
+        /// </summary>
+        public double ContinuumRoughness = 0.0;
+
+        /// <summary>
+        /// Сколько ПЕРВЫХ колонок в `fixedColumns` — шапки континуума. Нужно
+        /// затем, что штраф <see cref="ContinuumRoughness"/> ложится на их
+        /// коэффициенты и только на них, а в `fixedColumns` за ними идут другие
+        /// (наложения, хвосты матричных образов).
+        /// </summary>
+        int continuumColumns;
+
+        /// <summary>
+        /// Каналы узлов континуума последней сборки базиса — для штрафа на
+        /// излом (`S85`). Шаг узлов неравномерен, и вторая производная берётся
+        /// по шкале, а не по номеру.
+        /// </summary>
+        List<int> continuumKnots;
+
         public double MinEnergy { get; set; }
 
         public double MaxEnergy { get; set; }
@@ -379,10 +416,28 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // 27 -> 31 — там образ строится из одних пиков и конкурирует с
             // густым континуумом напрямую. Ключ A/B — `--knots=<делитель>`.
             this.ContinuumKnotDivisor = 128;
-            this.GainRange = 0.008;
-            this.GainSteps = 9;
-            this.OffsetRangeKev = 3.0;
-            this.OffsetSteps = 9;
+            // ⛔ СЕТКА ДРЕЙФА РАСШИРЕНА 24.08.2026 решением Amber (`S93`).
+            // Прежняя (±0.8 %, ±3 кэВ, 9×9) была УЗКА для половины корпуса: 46
+            // спектров из 81 упирались в край нуля, 17 — в край усиления, 12 —
+            // в оба, и значения стояли ровно на ограничении, то есть дрейф у
+            // них не подбирался, а обрезался.
+            //
+            // Замер на понятной части (81 спектр), прежняя сетка -> эта:
+            // Σχ² 575.1 -> 535.0, медиана χ²/ndf 3.34 -> 3.05, медиана невязки
+            // модели 12.6 -> 11.4 %, верхняя четверть 24.8 -> 19.8 %, на краю
+            // 17/46 -> 11/15. Лучше у 41 спектра, хуже у 11.
+            //
+            // ⚠ Цена названа и принята: фантомов по-прежнему 0, но recall
+            // 99 -> 98 % (теряется один спектр в G1S16), а сетка 17×17 стоит
+            // вчетверо больше счёта, чем 9×9.
+            //
+            // ⚠ Шаг при этом ЗАГРУБЛЁН, и это не упущение: 1.00 кэВ против
+            // 0.75 и 0.25 % против 0.2. Мерено именно так; узлы добавлены ради
+            // ОХВАТА, а не разрешения — упирались в границу, а не в шаг.
+            this.GainRange = 0.02;
+            this.GainSteps = 17;
+            this.OffsetRangeKev = 8.0;
+            this.OffsetSteps = 17;
             this.Backscatter = true;
             this.CascadeSumming = true;
             this.CascadeSumPeaks = true;
@@ -605,10 +660,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             List<double[]> fixedColumns = new List<double[]>();
             if (this.Mode == ContinuumMode.Spline)
             {
+                List<int> knots;
                 fixedColumns.AddRange(BuildHatBasis(fwhmCalibration, chLo, chHi, channels,
                                                    this.ContinuumKnotDivisor,
-                                                   this.ContinuumKnotFwhm));
+                                                   this.ContinuumKnotFwhm, out knots));
+                this.continuumKnots = knots;
             }
+            else
+            {
+                this.continuumKnots = null;
+            }
+
+            // Шапки идут ПЕРВЫМИ и подряд — на этом держится штраф на излом
+            // (`S85`): вторая разность берётся по соседям, а соседство здесь
+            // задаёт порядок узлов по шкале.
+            this.continuumColumns = fixedColumns.Count;
 
             // Наложения участвуют с САМОГО начала, вместе с сеткой дрейфа:
             // на загруженном спектре они держат целый пик (662+662 у цезия), и
@@ -2130,6 +2196,92 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                     gram[a, b] = value;
                     gram[b, a] = value;
+                }
+            }
+
+            // (`S85`) ШТРАФ НА ИЗЛОМ КОНТИНУУМА — прибавкой к нормальным
+            // уравнениям, а не отдельным проходом: минимизируемое становится
+            // Σw·(y − Φx)² + λ·Σ(c[k−1] − 2c[k] + c[k+1])², и вторая сумма даёт
+            // ровно λ·DᵀD в Грам. Правая часть не меняется — целевое значение
+            // второй разности ноль.
+            //
+            // Блок шапок лежит подряд и ПЕРВЫМ среди `fixedColumns`, а те
+            // приписаны в конец `columns`, — отсюда и смещение.
+            //
+            // ⚠ DᵀD неотрицательно определена, поэтому NNLS остаётся корректен:
+            // прибавка не может сделать Грам знаконеопределённым.
+            if (this.ContinuumRoughness > 0.0 && this.continuumColumns >= 3
+                && fixedColumns.Count > 0)
+            {
+                int first = m - fixedColumns.Count;
+                int last = first + this.continuumColumns - 1;
+
+                // Масштаб: средняя диагональ блока. Без него один и тот же λ
+                // значил бы разное на жирном и тощем спектре — Грам растёт со
+                // счётом, а штраф остался бы прежним.
+                double scale = 0.0;
+                for (int k = first; k <= last; k++)
+                {
+                    scale += gram[k, k];
+                }
+
+                scale /= this.continuumColumns;
+                double lambda = this.ContinuumRoughness * scale;
+                List<int> knots = this.continuumKnots;
+                bool spaced = knots != null && knots.Count == this.continuumColumns;
+
+                // Средний шаг узлов — тем же им и обезразмеривается вторая
+                // производная. Без этого λ значил бы разное у прибора на 1024
+                // канала и на 16384.
+                double meanStep = 1.0;
+                if (spaced && knots.Count > 1)
+                {
+                    meanStep = Math.Max(1.0,
+                        (knots[knots.Count - 1] - knots[0]) / (double)(knots.Count - 1));
+                }
+
+                if (lambda > 0.0)
+                {
+                    for (int k = first + 1; k <= last - 1; k++)
+                    {
+                        int j = k - first;
+                        double[] w;
+                        double rowWeight = 1.0;
+                        if (spaced)
+                        {
+                            double h1 = Math.Max(1.0, knots[j] - knots[j - 1]);
+                            double h2 = Math.Max(1.0, knots[j + 1] - knots[j]);
+
+                            // Вторая производная на неравномерной сетке,
+                            // обезразмеренная средним шагом. На равномерной
+                            // сетке выражение вырождается ровно в (+1, −2, +1).
+                            double s = meanStep * meanStep;
+                            w = new[]
+                            {
+                                s * 2.0 / ((h1 + h2) * h1),
+                                -s * 2.0 / (h1 * h2),
+                                s * 2.0 / ((h1 + h2) * h2)
+                            };
+
+                            // Длина интервала — вес строки: штраф есть интеграл
+                            // квадрата кривизны, а не сумма по узлам, иначе
+                            // густой низ шкалы платил бы вдвое ни за что.
+                            rowWeight = 0.5 * (h1 + h2) / meanStep;
+                        }
+                        else
+                        {
+                            w = new[] { 1.0, -2.0, 1.0 };
+                        }
+
+                        int[] at = { k - 1, k, k + 1 };
+                        for (int a2 = 0; a2 < 3; a2++)
+                        {
+                            for (int b2 = 0; b2 < 3; b2++)
+                            {
+                                gram[at[a2], at[b2]] += lambda * rowWeight * w[a2] * w[b2];
+                            }
+                        }
+                    }
                 }
             }
 
@@ -3819,6 +3971,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         static List<double[]> BuildHatBasis(FwhmCalibration fwhmCalibration, int chLo, int chHi,
                                             int channels, int knotDivisor, double knotFwhm)
         {
+            List<int> unused;
+            return BuildHatBasis(fwhmCalibration, chLo, chHi, channels, knotDivisor, knotFwhm,
+                                 out unused);
+        }
+
+        /// <summary>
+        /// То же, но с положениями узлов наружу (`S85`). Штраф на излом берётся
+        /// по ВТОРОЙ ПРОИЗВОДНОЙ ПО ШКАЛЕ, а не по номеру узла: шаг узлов
+        /// растёт с энергией (`max(k·ПШПВ, minStep)`), и вторая разность по
+        /// номеру штрафовала бы низ шкалы, где узлы гуще, — ровно там, где
+        /// стоит бугор обратного рассеяния, ради которого штраф и заводится.
+        /// </summary>
+        static List<double[]> BuildHatBasis(FwhmCalibration fwhmCalibration, int chLo, int chHi,
+                                            int channels, int knotDivisor, double knotFwhm,
+                                            out List<int> knotChannels)
+        {
             List<int> knots = new List<int>();
             // Ноль и отрицательное — от невыставленного свойства (структура
             // собрана не через конструктор); тогда берётся историческое 64.
@@ -3880,6 +4048,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 hats.Add(hat);
             }
 
+            knotChannels = knots;
             return hats;
         }
 

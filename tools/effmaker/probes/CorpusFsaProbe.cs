@@ -42,6 +42,7 @@ namespace CorpusFsaProbe
     ///                  [--no-infer-novel]
     ///                  [--no-atomic] [--no-room] [--no-equilibrium] [--audit] [--lib-dump]
     ///                  [--dump-curves=&lt;каталог&gt;] [--knot-fwhm=&lt;ПШПВ&gt;]
+    ///                  [--roughness=&lt;вес&gt;]
     ///                  [--groups=G1S,ASN16] [--only=G1S24_Th232_Denta120_2]
     ///                  [--mode=spline|snip] [--no-matrix] [--no-cascade]
     ///                  [--no-pileup] [--no-background] [--limit=N] [--quiet]
@@ -152,6 +153,13 @@ namespace CorpusFsaProbe
                     // умолчания, нарочно: A/B считается ОДНИМ двоичным файлом, и
                     // разница тогда принадлежит только узлам.
                     o.Knots = int.Parse(a.Substring(8), CultureInfo.InvariantCulture);
+                    continue;
+                }
+
+                if (a.StartsWith("--roughness=", StringComparison.Ordinal))
+                {
+                    // (`S85`) Вес штрафа на излом континуума; 0 — без штрафа.
+                    o.Roughness = double.Parse(a.Substring(12), CultureInfo.InvariantCulture);
                     continue;
                 }
 
@@ -602,6 +610,13 @@ namespace CorpusFsaProbe
                 if (o.KnotFwhm > 0.0)
                 {
                     analyzer.ContinuumKnotFwhm = o.KnotFwhm;
+                }
+
+                // (`S85`) Ноль — ЗНАЧАЩЕЕ значение («штрафа нет»), поэтому
+                // ключ отличается от умолчания отрицательным, а не нулём.
+                if (o.Roughness >= 0.0)
+                {
+                    analyzer.ContinuumRoughness = o.Roughness;
                 }
                 analyzer.PartialResidualGate = o.PartialGate;
                 analyzer.RebinBackgroundToSpectrum = o.RebinBackground;
@@ -2204,6 +2219,12 @@ namespace CorpusFsaProbe
             /// умолчание анализатора (4). ⚠ Абляция, а не настройка.
             /// </summary>
             public double KnotFwhm;
+
+            /// <summary>
+            /// (`S85`) Вес штрафа на излом континуума; отрицательный — не
+            /// трогать умолчание анализатора.
+            /// </summary>
+            public double Roughness = -1.0;
 
             /// <summary>(S60) Сверять линии, которые обязаны быть, — `--audit`.</summary>
             public bool Audit;
