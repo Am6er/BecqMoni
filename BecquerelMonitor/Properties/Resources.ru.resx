@@ -441,12 +441,6 @@
   <data name="FSAMdaValue" xml:space="preserve">
     <value>&lt; {0} %</value>
   </data>
-  <data name="FSASuppressedMark" xml:space="preserve">
-    <value>подавлено: {0}</value>
-  </data>
-  <data name="FSASuppressedMore" xml:space="preserve">
-    <value>и ещё {0}</value>
-  </data>
   <data name="FSAUndetectedFoldedRow" xml:space="preserve">
     <value>не определяются ({0})</value>
   </data>

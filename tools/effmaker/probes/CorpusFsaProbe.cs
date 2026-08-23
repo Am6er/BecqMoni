@@ -1918,11 +1918,16 @@ namespace CorpusFsaProbe
                 s.ValidPulseCount = total;
             }
 
-            if (!(rd.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig)
-                && rd.DeviceConfig != null
-                && rd.DeviceConfig.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig fromDevice)
+            // ⛔ Прибор и его настройки поиска пиков — ОДНИМ правилом на все
+            // пробы (`ProbeDeviceConfig`, строка `S82`). Прежде здесь стояла
+            // своя копия, и она молча брала умолчания библиотеки: SNR 10 против
+            // корпусных 4, диапазон от 30 кэВ против 15 и 20 у половины групп.
+            // Отказ называется поимённо и НЕ глотается — иначе он выглядит как
+            // работающий прогон, чем `S82` и была.
+            string device = ProbeDeviceConfig.Attach(rd);
+            if (device.Contains("НЕТ") || device.Contains("нет"))
             {
-                rd.PeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)fromDevice.Clone();
+                Console.Error.WriteLine("⚠ " + Path.GetFileNameWithoutExtension(path) + ": " + device);
             }
 
             if (rd.FwhmCalibration == null

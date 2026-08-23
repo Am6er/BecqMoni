@@ -2611,18 +2611,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         continue;
                     }
 
+                    // ⛔ Кривой эффективности здесь НЕТ на энергии родителя, и
+                    // это правка `S85` от 19.08.2026. Прежде стояло
+                    // `flux *= efficiency.Eval(line.Energy)` — эффективность
+                    // РЕГИСТРАЦИИ кванта, который в детектор не попадал: он
+                    // ушёл в обстановку и рассеялся там. Доля потока, ушедшая
+                    // на рассеяние, пропорциональна ИСПУЩЕННОЙ интенсивности и
+                    // ни от какой ε не зависит; регистрируется же квант с
+                    // ЭНЕРГИЕЙ РАССЕЯННОГО, и ε надо брать у него — она стоит
+                    // ниже, внутри обхода по углу.
+                    //
+                    // Цена ошибки измерена на `Cs 137 в домике 24.11.2022.xml`:
+                    // ε(184.4) = 0.200 против ε(241.5) = 0.146, то есть у
+                    // образа не было множителя, который прижимает его ХВОСТ.
+                    // А хвост и есть причина, по которой NNLS давал образу ровно
+                    // ноль: недостача модели там — пик на 195.7 кэВ шириной
+                    // 30 кэВ, уходящий в минус выше 215, а образ тянется до
+                    // 242 кэВ и при любой амплитуде перебирал бы ровно там, где
+                    // модель и без него завышена.
                     double flux = amplitude * line.Intensity;
-                    if (efficiency != null)
-                    {
-                        double e = efficiency.Eval(line.Energy);
-                        if (!(e > 0.0))
-                        {
-                            continue;
-                        }
-
-                        flux *= e;
-                    }
-
                     double alpha = line.Energy / ElectronMassKev;
                     for (int s = 0; s < Steps; s++)
                     {
@@ -2637,6 +2644,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         if (!(weight > 0.0) || !(scattered > 0.0))
                         {
                             continue;
+                        }
+
+                        if (efficiency != null)
+                        {
+                            double e = efficiency.Eval(scattered);
+                            if (!(e > 0.0))
+                            {
+                                continue;
+                            }
+
+                            weight *= e;
                         }
 
                         int bin = (int)(scattered / BinKev);

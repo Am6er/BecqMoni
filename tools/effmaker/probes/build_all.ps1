@@ -104,13 +104,17 @@ $sources = @(Get-ChildItem (Join-Path $repo 'tools\effmaker\*.cs')) +
            @(Get-ChildItem (Join-Path $PSScriptRoot '*.cs'))
 foreach ($f in $sources) {
     # Файлы без `Main` идут довеском к своим пробам, а сами не собираются.
-    if ($f.Name -in @('GadrasDetector.cs', 'ResidualScan.cs')) { continue }
+    if ($f.Name -in @('GadrasDetector.cs', 'ResidualScan.cs', 'ProbeDeviceConfig.cs')) { continue }
     $extra = @()
     if ($f.Name -in @('GadrasProbe.cs', 'ResponseProbe.cs')) {
         $extra = @(Join-Path $PSScriptRoot 'GadrasDetector.cs')
     }
     if ($f.Name -in @('FsaCascadeProbe.cs', 'CorpusFsaProbe.cs')) {
         $extra = @(Join-Path $PSScriptRoot 'ResidualScan.cs')
+    }
+    # `S82`: разбор ссылки на прибор — один на все пробы, что его зовут.
+    if ($f.Name -in @('FsaStackShot.cs', 'CorpusFsaProbe.cs')) {
+        $extra += (Join-Path $PSScriptRoot 'ProbeDeviceConfig.cs')
     }
     $exe = Join-Path $Out ($f.BaseName + '.exe')
 

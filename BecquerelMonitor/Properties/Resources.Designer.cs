@@ -2972,24 +2972,6 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to FSASuppressedMark.
-        /// </summary>
-        public static string FSASuppressedMark {
-            get {
-                return ResourceManager.GetString("FSASuppressedMark", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to FSASuppressedMore.
-        /// </summary>
-        public static string FSASuppressedMore {
-            get {
-                return ResourceManager.GetString("FSASuppressedMore", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to FSAUndetectedFoldedRow.
         /// </summary>
         public static string FSAUndetectedFoldedRow {

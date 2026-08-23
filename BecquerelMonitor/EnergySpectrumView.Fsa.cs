@@ -634,8 +634,6 @@ namespace BecquerelMonitor
             return this.GetFsaLayers(result).Count + 2 + this.FsaSumPeakLayers(result).Count
                    + FsaUndetectedNamed(result).Count
                    + (FsaUndetectedFolded(result).Count > 0 ? 1 : 0)
-                   + (result.SuppressedImages != null
-                      && result.SuppressedImages.Count > 0 ? 1 : 0)
                    + (result.BackgroundUsed ? 0 : 1);
         }
 
@@ -766,46 +764,6 @@ namespace BecquerelMonitor
             return result.StackTotal > 0.0 && !double.IsNaN(peakCounts)
                 ? 100.0 * peakCounts / result.StackTotal
                 : double.NaN;
-        }
-
-        /// <summary>
-        /// Длина списка подавленных имён в знаках. Ограничение по ЗНАКАМ, а
-        /// не по числу имён: «Backscatter180» вчетверо длиннее «W», и три
-        /// имени то помещаются в строку таблицы, то вылезают за подложку.
-        /// Пойман снимком дважды — сперва хвостом у строки качества, потом
-        /// своей строкой при трёх длинных именах.
-        /// </summary>
-        const int FsaMaxSuppressedChars = 24;
-
-        /// <summary>
-        /// Имена подавленных образов (`S78`) для строки «подавлено: …».
-        /// Строки не бывает вовсе, когда подавленных нет: пометка о пустоте — шум.
-        ///
-        /// Имена ОБРЕЗАЮТСЯ по <see cref="FsaMaxSuppressedNames"/>, а хвост
-        /// показывается числом: строка качества и без того несёт χ²/ndf и до
-        /// пяти пометок, а состав из десятка образов вытолкнул бы строку за
-        /// ширину таблицы. Число вместо имён — не сокрытие: читателю сказано,
-        /// СКОЛЬКО их, и по ключу `--lib-dump` пробы список выписывается целиком.
-        /// </summary>
-        static List<string> FsaSuppressedNames(FsaResult result)
-        {
-            List<string> names = new List<string>();
-            int used = 0;
-            for (int k = 0; k < result.SuppressedImages.Count; k++)
-            {
-                string name = FsaPalette.DisplayName(result.SuppressedImages[k].Name);
-                if (names.Count > 0 && used + name.Length > FsaMaxSuppressedChars)
-                {
-                    names.Add(string.Format(System.Globalization.CultureInfo.CurrentCulture,
-                                            Resources.FSASuppressedMore,
-                                            result.SuppressedImages.Count - k));
-                    break;
-                }
-                names.Add(name);
-                used += name.Length + 2;
-            }
-
-            return names;
         }
 
         /// <summary>Формат предела в легенде: три значащие цифры, как и прежде.</summary>
@@ -958,28 +916,14 @@ namespace BecquerelMonitor
                 nameRect.Y += FsaTableRowHeight;
             }
 
-            // (S78) Образы, построенные и предъявленные фиту, но не дожившие до
-            // отчёта, — СВОЕЙ строкой, серым, БЕЗ ЧИСЛА (решение Amber
-            // 18.08.2026: «числа состава ему не давать, доля у него ноль»).
-            // Строка отдельная, а не хвост строки качества: приписанная к χ²
-            // пометка не помещалась в ширину таблицы и вылезала за подложку —
-            // ровно то, чем `S44` уже платила однажды.
-            //
-            // Молчание тут стоило дорого дважды. `S49`: `Ann-511` с 70 542
-            // пиковыми отсчётами печаталась нулём и выглядела отсутствующей.
-            // `S78`: на чароите ни `Backscatter`, ни `Esc-Cs`, ни рентген иода
-            // при кристалле CsI — а построены были все, просто отсев по
-            // значимости (`FsaAnalyzer.RefitZ`, умолчание 3) убирает колонку из
-            // результата целиком, вместе со следом.
-            if (result.SuppressedImages != null && result.SuppressedImages.Count > 0)
-            {
-                g.DrawString(string.Format(System.Globalization.CultureInfo.CurrentCulture,
-                                           Resources.FSASuppressedMark,
-                                           string.Join(", ", FsaSuppressedNames(result).ToArray())),
-                             this.Font, Brushes.Gray, nameRect);
-                r.Y += FsaTableRowHeight;
-                nameRect.Y += FsaTableRowHeight;
-            }
+            // ⛔ Строки «подавлено: …» здесь БОЛЬШЕ НЕТ — снята по прямому
+            // указанию Amber 19.08.2026 (`S86`). Заведена она была `S78` и
+            // сообщала об образах, построенных и предъявленных фиту, но
+            // выброшенных отсевом по значимости (`FsaAnalyzer.RefitZ`,
+            // умолчание 3) до отчёта. Сам список никуда не делся: он лежит в
+            // <see cref="FsaResult.SuppressedImages"/> и печатается строками
+            // `CUT` у проб (`FsaStackShot`, `CorpusFsaProbe`), так что мерка
+            // `S78` цела — убрана ровно СТРОКА ЛЕГЕНДЫ, а не сведения.
 
             // (S51) НЕВЯЗКА МОДЕЛИ — первой строкой, потому что читать надо её,
             // а не χ²/ndf. χ²/ndf между спектрами несравним: он растёт со
