@@ -8488,12 +8488,6 @@ http://xptable.sourceforge.net/</value>
   <data name="FSAMdaValue" xml:space="preserve">
     <value>&lt; {0} %</value>
   </data>
-  <data name="FSASuppressedMark" xml:space="preserve">
-    <value>suppressed: {0}</value>
-  </data>
-  <data name="FSASuppressedMore" xml:space="preserve">
-    <value>and {0} more</value>
-  </data>
   <data name="FSAUndetectedFoldedRow" xml:space="preserve">
     <value>not determined ({0})</value>
   </data>

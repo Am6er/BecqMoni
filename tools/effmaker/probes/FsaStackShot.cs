@@ -27,9 +27,22 @@ namespace FsaStackShot
     ///                [--set=Ra-226] [--lines=Esc-I]
     ///                [--no-atomic] [--no-room] [--no-backscatter] [--refit-z=0]
     ///                [--from=200] [--to=700] [--ceiling=2000] [--width=1400]
+    ///                [--scale=pow] [--pow=4] [--dump=curves.csv]
     ///
     /// `--ceiling` подрезает шкалу отсчётов: без него высокие пики забирают всё
     /// поле, и мелкая структура (сумм-пики) сливается с осью.
+    ///
+    /// `--scale=` — вертикальная шкала: `lin` (умолчание), `pow` (корень
+    /// степени `--pow=`, ровно кнопка «POW» под графиком) или `log`. Заведён
+    /// `S88`: человек смотрит на спектр в шкале POW 4, где видна вся мелочь
+    /// внизу, а снимок в линейной шкале показывает почти пустое поле — по нему
+    /// нельзя ни подтвердить наблюдение, ни опровергнуть.
+    ///
+    /// `--dump=` — кривые ПО КАНАЛАМ в csv: измерение за вычетом фона, модель и
+    /// по колонке на каждый слой стека. Спор «модель кривая или спектр такой»
+    /// картинкой не решается: на ней обе кривые в пикселе друг от друга.
+    /// Измерение берётся у ВИДА (`fsaNetSpectrum`), а не считается заново, —
+    /// выгружено то же, что нарисовано.
     ///
     /// `--set=` — тот самый выбор «Use set:» из панели поиска пиков. Без него
     /// проба берёт `ActiveSet` = null, то есть ВСЕ нуклиды, и подписи пиков
@@ -62,6 +75,8 @@ namespace FsaStackShot
             bool infer = false, equilibrium = true, needMatrix = true, libDump = false;
             double fromKev = 0.0, toKev = 0.0, ceiling = 0.0;
             int width = 1400, height = 700;
+            string scale = "lin", dumpPath = null;
+            double pownum = 4.0;
             foreach (string a in args)
             {
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) spectrumPath = a.Substring(11);
@@ -81,6 +96,9 @@ namespace FsaStackShot
                 else if (a.StartsWith("--refit-z=", StringComparison.Ordinal))
                     refitZ = double.Parse(a.Substring(10), CultureInfo.InvariantCulture);
                 else if (a == "--no-equilibrium") equilibrium = false;
+                else if (a.StartsWith("--scale=", StringComparison.Ordinal)) scale = a.Substring(8);
+                else if (a.StartsWith("--pow=", StringComparison.Ordinal)) pownum = double.Parse(a.Substring(6), CultureInfo.InvariantCulture);
+                else if (a.StartsWith("--dump=", StringComparison.Ordinal)) dumpPath = a.Substring(7);
                 else if (a.StartsWith("--width=", StringComparison.Ordinal)) width = int.Parse(a.Substring(8), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--height=", StringComparison.Ordinal)) height = int.Parse(a.Substring(9), CultureInfo.InvariantCulture);
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
@@ -110,9 +128,24 @@ namespace FsaStackShot
                 return 2;
             }
 
+            // (S82) Настройки, которыми проба СЕЙЧАС ищет пики, — строкой, до
+            // всякого счёта. Вопрос «то же ли самое видит человек» иначе не
+            // задать: панель поиска пиков показывает SNR, допуск и диапазон, а
+            // проба до 19.08.2026 брала их молча и не называла.
+            FWHMPeakDetectionMethodConfig used = rd.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
+            Console.WriteLine("SETUP\tSNR={0}\tдопуск={1}\tдиапазон={2}…{3} кэВ\tмёртвое={4} с",
+                              used != null ? used.Min_SNR.ToString("G", CultureInfo.InvariantCulture) : "?",
+                              used != null ? used.Tolerance.ToString("G", CultureInfo.InvariantCulture) : "?",
+                              used != null ? used.Min_Range.ToString("G", CultureInfo.InvariantCulture) : "?",
+                              used != null ? used.Max_Range.ToString("G", CultureInfo.InvariantCulture) : "?",
+                              rd.DeviceConfig != null && rd.DeviceConfig.InputDeviceConfig != null
+                                  ? rd.DeviceConfig.InputDeviceConfig.DeadTime().ToString("G4", CultureInfo.InvariantCulture)
+                                  : "?");
+
             List<Peak> peaks = new PeakDetector().DetectPeak(
                 rd, BackgroundMode.Invisible, SmoothingMethod.None,
                 nuclides.ActiveSet, nuclides.NuclideDefinitions);
+            Console.WriteLine("SETUP\tнайдено пиков: {0}", peaks.Count);
             List<FsaComponent> library;
             if (infer)
             {
@@ -296,7 +329,20 @@ namespace FsaStackShot
                 Set(view, "backgroundMode", BackgroundMode.ShowFSA);
                 Set(view, "horizontalUnit", HorizontalUnit.Energy);
                 Set(view, "verticalUnit", VerticalUnit.Counts);
-                Set(view, "verticalScaleType", VerticalScaleType.LinearScale);
+
+                // Шкала: те же три поля, что считает `RecalcChartParameters`
+                // для выбранного вида. Низ шкалы — ноль, поэтому `totalMin*`
+                // обращаются в ноль по определению самих `Pow`/`Log10` вида
+                // (у них x ≤ 0 даёт 0), и остаётся выставить размах.
+                Set(view, "verticalScaleType",
+                    scale == "pow" ? VerticalScaleType.PowerScale
+                    : scale == "log" ? VerticalScaleType.LogarithmicScale
+                    : VerticalScaleType.LinearScale);
+                Set(view, "pownum", pownum);
+                Set(view, "totalMinValuePow", 0.0);
+                Set(view, "valueRangePow", Math.Pow(ceiling, 1.0 / pownum));
+                Set(view, "totalMinValueLog", 0.0);
+                Set(view, "valueRangeLog", Math.Log10(ceiling));
                 Set(view, "height", height);
                 Set(view, "width", width - left);
                 Set(view, "left", left);
@@ -342,10 +388,60 @@ namespace FsaStackShot
                 }
 
                 image.Save(outPath, ImageFormat.Png);
-                Console.WriteLine("{0}: {1}–{2:F0} кэВ, потолок {3:F0}", outPath, fromKev, toKev, ceiling);
+                Console.WriteLine("{0}: {1}–{2:F0} кэВ, потолок {3:F0}, шкала {4}",
+                                  outPath, fromKev, toKev, ceiling, scale);
+
+                if (dumpPath != null)
+                {
+                    Dump(dumpPath, view, spectrum, calibration, result, shot);
+                    Console.WriteLine("{0}: {1} каналов, колонок слоёв {2}",
+                                      dumpPath, spectrum.NumberOfChannels, shot.Count);
+                }
             }
 
             return 0;
+        }
+
+        /// <summary>
+        /// Кривые по каналам в csv. Измерение берётся у ВИДА — поле
+        /// `fsaNetSpectrum`, которое он и рисует линией, — а не пересчитывается
+        /// пробой: вычитание фона живёт в одном месте, и второе такое же
+        /// правило рядом разъехалось бы молча (та же беда, что у `S37`).
+        /// </summary>
+        static void Dump(string path, EnergySpectrumView view, EnergySpectrum spectrum,
+                         EnergyCalibration calibration, FsaResult result, List<FsaStackLayer> layers)
+        {
+            double[] net = (double[])Field(typeof(EnergySpectrumView), "fsaNetSpectrum").GetValue(view);
+            var head = new StringBuilder("ch,keV,net,model,continuum");
+            foreach (FsaStackLayer layer in layers)
+            {
+                head.Append(',').Append(layer.Name.Replace(',', ';'));
+            }
+
+            using (var w = new StreamWriter(path, false, new UTF8Encoding(false)))
+            {
+                w.WriteLine(head.ToString());
+                for (int i = 0; i < spectrum.NumberOfChannels; i++)
+                {
+                    var line = new StringBuilder();
+                    line.Append(i.ToString(CultureInfo.InvariantCulture)).Append(',')
+                        .Append(calibration.ChannelToEnergy(i).ToString("F3", CultureInfo.InvariantCulture)).Append(',')
+                        .Append(At(net, i).ToString("F3", CultureInfo.InvariantCulture)).Append(',')
+                        .Append(At(result.Model, i).ToString("F3", CultureInfo.InvariantCulture)).Append(',')
+                        .Append(At(result.Continuum, i).ToString("F3", CultureInfo.InvariantCulture));
+                    foreach (FsaStackLayer layer in layers)
+                    {
+                        line.Append(',').Append(At(layer.Curve, i).ToString("F3", CultureInfo.InvariantCulture));
+                    }
+
+                    w.WriteLine(line.ToString());
+                }
+            }
+        }
+
+        static double At(double[] a, int i)
+        {
+            return a != null && i < a.Length ? a[i] : 0.0;
         }
 
         static FieldInfo Field(Type type, string name)
@@ -438,19 +534,14 @@ namespace FsaStackShot
                 s.ValidPulseCount = total;
             }
 
-            // ⛔ Настройки поиска пиков — ИЗ КОНФИГУРАЦИИ ПРИБОРА, если своих у
-            // спектра в файле нет. В приложении это делает `DocumentManager`
-            // через `FWHMPeakDetectionMethodConfig.AdoptFrom` при открытии
-            // документа, и без этого проба ищет пики другим SNR и другим
-            // допуском, а анализатор получает другой диапазон, — то есть
-            // показывает разбор не того спектра, который человек видит на
-            // экране. То же самое и по той же причине делает `CorpusFsaProbe`.
-            if (!(rd.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig)
-                && rd.DeviceConfig != null
-                && rd.DeviceConfig.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig fromDevice)
-            {
-                rd.PeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)fromDevice.Clone();
-            }
+            // ⛔ Прибор и его настройки поиска пиков — ОДНИМ правилом на все
+            // пробы (`ProbeDeviceConfig`, строка `S82`). Прежде здесь стояла
+            // своя копия правила, и она молча брала умолчания библиотеки:
+            // `ResultData.DeviceConfig` заведён полем `= new DeviceConfigInfo()`,
+            // то есть после чтения файла НЕ null, а пустой, и проверка «прибор
+            // есть?» проходила. Проба искала пики допуском 10 в диапазоне
+            // 30…2800 кэВ там, где у человека 11 и от 5 кэВ.
+            Console.WriteLine("SETUP\tприбор: {0}", ProbeDeviceConfig.Attach(rd));
 
             if (rd.FwhmCalibration == null
                 && rd.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig cfg)
