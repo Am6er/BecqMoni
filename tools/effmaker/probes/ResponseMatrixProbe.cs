@@ -28,7 +28,9 @@ namespace ResponseMatrixProbe
     ///    считаются одним и тем же переносом, и пик в матрице обязан сойтись с
     ///    тем, что возвращает `Efficiency`.
     ///
-    ///     responsematrixprobe --geometry=X.in [--nodes=24] [--n=20000] [--bin=2]
+    ///     responsematrixprobe --geometry=X.in [--nodes=34] [--n=20000] [--bin=2]
+    ///                         [--maxn=100000]
+    ///                         [--emin=30] [--emax=3000]
     ///
     /// Ожидание: «ВСЕ СОШЛИСЬ».
     /// </summary>
@@ -40,13 +42,21 @@ namespace ResponseMatrixProbe
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
             string geometryPath = null;
-            var options = new ResponseMatrixOptions { NodeCount = 24, Histories = 20000, BinKev = 2.0 };
+            bool historiesGiven = false;
+            int maxAuto = MaxAutoHistories;
+            var options = new ResponseMatrixOptions { NodeCount = 34, Histories = 20000, BinKev = 2.0 };
             foreach (string a in args)
             {
                 if (a.StartsWith("--geometry=", StringComparison.Ordinal)) geometryPath = a.Substring(11);
                 else if (a.StartsWith("--nodes=", StringComparison.Ordinal)) options.NodeCount = int.Parse(a.Substring(8));
-                else if (a.StartsWith("--n=", StringComparison.Ordinal)) options.Histories = int.Parse(a.Substring(4));
+                else if (a.StartsWith("--n=", StringComparison.Ordinal)) { options.Histories = int.Parse(a.Substring(4)); historiesGiven = true; }
+                else if (a.StartsWith("--maxn=", StringComparison.Ordinal)) maxAuto = int.Parse(a.Substring(7));
                 else if (a.StartsWith("--bin=", StringComparison.Ordinal)) options.BinKev = double.Parse(a.Substring(6), CultureInfo.InvariantCulture);
+                // Края сетки ключами — заведены 23.08.2026 под `T49`: решение
+                // «расширить сетку вниз» без возможности померить обе стороны
+                // на месте пришлось бы принимать вслепую.
+                else if (a.StartsWith("--emin=", StringComparison.Ordinal)) options.MinEnergyKev = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
+                else if (a.StartsWith("--emax=", StringComparison.Ordinal)) options.MaxEnergyKev = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
             }
 
             if (geometryPath == null || !File.Exists(geometryPath))
@@ -57,6 +67,11 @@ namespace ResponseMatrixProbe
 
             GeometryModel geometry = GeometryModel.Load(geometryPath);
             Console.WriteLine("геометрия: {0}", geometry.Name);
+            if (!historiesGiven)
+            {
+                AutoHistories(geometry, options, maxAuto);
+            }
+
             Console.WriteLine("сетка: {0} узлов {1:F0}–{2:F0} кэВ, бин {3:F0} кэВ, {4} историй на узел",
                               options.NodeCount, options.MinEnergyKev, options.MaxEnergyKev,
                               options.BinKev, options.Histories);
@@ -68,6 +83,12 @@ namespace ResponseMatrixProbe
             // им по силам; ниже них проверки остаются, но их вывод помечается
             // «не показательно».
             //
+            // ⛔ Двадцать четыре → ТРИДЦАТЬ ЧЕТЫРЕ в тот же день (`T49`): край
+            // сетки опущен 30 → 5 кэВ, и при прежнем числе узлов шаг вырос бы с
+            // 4.76 до 6.67 % на узел, то есть смоук-прогон стал бы мерить не то.
+            // Тридцать четыре возвращают прежний шаг; цена 41.0 с против 26.8 на
+            // `ASN16_lu_side`, и все проверки сходятся.
+            //
             // ⛔ Двенадцать узлов → ДВАДЦАТЬ ЧЕТЫРЕ, 23.08.2026 (`T52`): на
             // `RC103_point0` — мелкий кристалл В УПОР — двенадцати не хватало
             // по существу, и это не шум. Развёртка по узлам на низкой точке
@@ -77,10 +98,10 @@ namespace ResponseMatrixProbe
             // пол ≈ 11 % и ГСЧ тут ни при чём. Цена умолчания — 8.9 с против
             // 6.0 с на смоук-прогон, у цилиндра (`AS80_lu_front`) сходилось и
             // при двенадцати. В поставке матрицы считаются на ~100 узлах.
-            bool thinGrid = options.NodeCount < 24 || options.Histories < 20000;
+            bool thinGrid = options.NodeCount < 34 || options.Histories < 20000;
             if (thinGrid)
             {
-                Console.WriteLine("⚠ сетка/статистика НИЖЕ умолчаний (24 узла, 20 000 историй):");
+                Console.WriteLine("⚠ сетка/статистика НИЖЕ умолчаний (34 узла, 20 000 историй):");
                 Console.WriteLine("  проверки 6–8 (пик против кривой, интерполяция) при этом валятся");
                 Console.WriteLine("  ЗАКОННО — это разрешение сетки и шум ГСЧ, а не дефект матрицы (T47).");
             }
@@ -335,7 +356,7 @@ namespace ResponseMatrixProbe
             if (thinGrid)
             {
                 Console.WriteLine("⚠ проверки 6–8 НЕ ЗАСЧИТАНЫ: сетка/статистика ниже умолчаний (T47).");
-                Console.WriteLine("  За приёмкой гонять без --nodes/--n либо с --nodes=24 --n=20000 и выше.");
+                Console.WriteLine("  За приёмкой гонять без --nodes/--n либо с --nodes=34 --n=20000 и выше.");
             }
 
             Console.WriteLine(bad == 0 ? "ВСЕ СОШЛИСЬ" : "ПРОВАЛОВ: " + bad);
@@ -358,6 +379,80 @@ namespace ResponseMatrixProbe
             }
 
             return Math.Sqrt(1.0 / nA + 1.0 / nB);
+        }
+
+        /// <summary>Историй на пилотный прогон — только чтобы оценить порядок ε.</summary>
+        const int PilotHistories = 4000;
+
+        /// <summary>
+        /// Потолок автоматической статистики, историй на узел. Смоук-прогон не
+        /// должен превращаться в часы: на `RC103_lu_front` допуск требует
+        /// 8.1 млн историй на узел, то есть 275 млн на матрицу и часы счёта.
+        /// Сто тысяч — это ~112 с на `ASN16_lu_side` (34 узла), и порог проверки
+        /// 6 там опускается с 13.0 до 8.4 %. Поднимается ключом `--maxn=`.
+        /// </summary>
+        const int MaxAutoHistories = 100000;
+
+        /// <summary>
+        /// СТАТИСТИКА ОТ ГЕОМЕТРИИ (`T56`, решение Amber 23.08.2026).
+        ///
+        /// ⛔ Допуск проверок 6–7 (2 и 8 %) достижим не всегда: эффективность
+        /// здесь ДОЛЯ историй, значит за числом стоит счёт, и на слабой
+        /// геометрии в пике его единицы. Порог `max(допуск, 3σ)` честен, но на
+        /// `RC103_lu_front` он выходит 36.7 % — формально «СОШЛОСЬ», фактически
+        /// ловится только грубая поломка.
+        ///
+        /// Здесь проба СЧИТАЕТ, сколько историй нужно, чтобы три сигмы ушли
+        /// ниже допуска: сравниваются две независимые оценки, σ/n = √(2/n),
+        /// значит 3·√(2/n) &lt; 0.02 даёт n &gt; 45 000 историй В ПИКЕ, а историй
+        /// на узел — n/ε. ε берётся пилотным прогоном на середине сетки
+        /// (геометрическое среднее краёв), он дешёвый: одна энергия.
+        ///
+        /// ⚠ Потолок обязателен и назван вслух: нужное число доходит до
+        /// 8.1 млн на узел, а это часы. Когда потолок связывает, проба говорит
+        /// об этом прямо — «проверки останутся шумовыми» лучше, чем молчаливое
+        /// «СОШЛОСЬ» при пороге 37 %.
+        ///
+        /// ⚠ Ключ `--n=` отменяет расчёт целиком: если человек назвал число,
+        /// проба считает им, а не спорит.
+        /// </summary>
+        static void AutoHistories(GeometryModel geometry, ResponseMatrixOptions options, int maxAuto)
+        {
+            double energy = Math.Sqrt(options.MinEnergyKev * options.MaxEnergyKev);
+            var pilot = new EfficiencySimulator(geometry.Clone())
+            {
+                Histories = PilotHistories,
+                XrayEscape = options.XrayEscape,
+                CoherentPassesThrough = options.CoherentPassesThrough,
+                Bremsstrahlung = options.Bremsstrahlung,
+                SingleScatter = options.SingleScatter,
+                PeakHalfWidthKev = 0.0
+            };
+
+            double err;
+            double eps = pilot.Efficiency(energy, out err);
+            if (!(eps > 0.0))
+            {
+                Console.WriteLine("пилот на {0:F0} кэВ: пик пуст — статистику от геометрии не считаем", energy);
+                return;
+            }
+
+            // 3·√(2/n) < допуск  =>  n > 2·(3/допуск)²
+            const double tolerance = 0.02;
+            double needPeak = 2.0 * (3.0 / tolerance) * (3.0 / tolerance);
+            double needNode = needPeak / eps;
+            int taken = (int)Math.Min(maxAuto, Math.Max(options.Histories, Math.Ceiling(needNode)));
+            bool capped = needNode > maxAuto + 0.5;
+            Console.WriteLine("статистика от геометрии: пилот ε_пик = {0:E3} на {1:F0} кэВ,"
+                              + " допуску нужно {2:N0} историй на узел, берём {3:N0}{4}",
+                              eps, energy, needNode, taken,
+                              capped ? "  — ПОТОЛОК, проверки 6–7 останутся шумовыми" : "");
+            if (capped)
+            {
+                Console.WriteLine("  (снять потолок: --maxn=<историй>; счёт растёт линейно по числу историй)");
+            }
+
+            options.Histories = taken;
         }
 
         static bool SameLongs(long[] a, long[] b)
