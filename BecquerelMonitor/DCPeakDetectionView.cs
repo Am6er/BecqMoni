@@ -119,6 +119,7 @@ namespace BecquerelMonitor
             // события не поднимает.
             this.checkBoxDbLookups.Checked = fwhmPeakDetectionMethodConfig.DbLookupsForFsa;
             this.checkBoxEquilibrium.Checked = fwhmPeakDetectionMethodConfig.ChainEquilibrium;
+            this.UpdateEquilibriumEnabled();
 
             this.FormLoading = false;
             this.UpdatePeakDetectionResult();
@@ -432,7 +433,45 @@ namespace BecquerelMonitor
         /// </summary>
         void checkBoxDbLookups_CheckedChanged(object sender, EventArgs e)
         {
+            this.UpdateEquilibriumEnabled();
             this.ApplyFsaFlag((config, view) => config.DbLookupsForFsa = view.checkBoxDbLookups.Checked);
+        }
+
+        /// <summary>
+        /// Подсказка у погашенной галки. Заводится кодом, а не конструктором
+        /// формы: одна подсказка на одну галку — не повод трогать `.Designer.cs`
+        /// и обе `.resx` конструктора (`W21` — про то, чем это кончается).
+        /// </summary>
+        ToolTip fsaToolTip;
+
+        /// <summary>
+        /// «Равновесие» доступно ТОЛЬКО при выводе состава из баз (`S77`,
+        /// решение Amber 23.08.2026).
+        ///
+        /// ⛔ Причина не в обвязке, а в существе: связывать ряд можно там, где
+        /// ряд ЕСТЬ. Состав из баз (`FsaSampleLibrary`) собирает его обходом
+        /// `nucdb.decay_chain`; прежний путь (`FsaLibrary.BuildFromPeaks`)
+        /// строит компоненты по ПОДПИСЯМ найденных пиков, и структуры ряда там
+        /// нет вовсе. До этой правки в поставке обе галки стояли ровно в тех
+        /// положениях, при которых видимая не делала НИЧЕГО: «Равновесие»
+        /// включено умолчанием, вывод из баз — выключен.
+        ///
+        /// ⚠ Само ЗНАЧЕНИЕ галки при этом не трогается и в конфиг не пишется:
+        /// погашенная галка помнит свой выбор и оживает вместе с соседней.
+        /// Гасить и обнулять — разные вещи, и второе потеряло бы настройку
+        /// человека молча.
+        /// </summary>
+        void UpdateEquilibriumEnabled()
+        {
+            bool available = this.checkBoxDbLookups.Checked;
+            this.checkBoxEquilibrium.Enabled = available;
+            if (this.fsaToolTip == null)
+            {
+                this.fsaToolTip = new ToolTip();
+            }
+
+            this.fsaToolTip.SetToolTip(this.checkBoxEquilibrium,
+                                       available ? string.Empty : Resources.FSAEquilibriumNeedsDbLookups);
         }
 
         /// <summary>
