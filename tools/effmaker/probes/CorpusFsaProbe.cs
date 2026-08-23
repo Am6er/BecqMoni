@@ -41,6 +41,7 @@ namespace CorpusFsaProbe
     ///                  [--lib=sample|peaks|infer] [--infer-theta=D] [--no-infer-anchor]
     ///                  [--no-infer-novel]
     ///                  [--no-atomic] [--no-room] [--no-equilibrium] [--audit] [--lib-dump]
+    ///                  [--dump-curves=&lt;каталог&gt;] [--knot-fwhm=&lt;ПШПВ&gt;]
     ///                  [--groups=G1S,ASN16] [--only=G1S24_Th232_Denta120_2]
     ///                  [--mode=spline|snip] [--no-matrix] [--no-cascade]
     ///                  [--no-pileup] [--no-background] [--limit=N] [--quiet]
@@ -121,6 +122,11 @@ namespace CorpusFsaProbe
                 if (a == "--no-room") { o.Room = false; continue; }
                 if (a == "--no-equilibrium") { o.Equilibrium = false; continue; }
                 if (a == "--lib-dump") { o.LibDump = true; continue; }
+                if (a.StartsWith("--dump-curves=", StringComparison.Ordinal))
+                {
+                    o.DumpCurves = a.Substring(14);
+                    continue;
+                }
                 if (a == "--quiet") { o.Quiet = true; continue; }
                 if (a == "--peaks") { o.Peaks = true; continue; }
                 if (a == "--partial") { o.Partial = true; continue; }
@@ -146,6 +152,15 @@ namespace CorpusFsaProbe
                     // умолчания, нарочно: A/B считается ОДНИМ двоичным файлом, и
                     // разница тогда принадлежит только узлам.
                     o.Knots = int.Parse(a.Substring(8), CultureInfo.InvariantCulture);
+                    continue;
+                }
+
+                if (a.StartsWith("--knot-fwhm=", StringComparison.Ordinal))
+                {
+                    // (`S88`) Густой край шага узлов в ПШПВ; умолчание 4.
+                    // ⚠ АБЛЯЦИЯ: меньше 4 ломает состав, читать после этого
+                    // можно форму невязки, а не разложение.
+                    o.KnotFwhm = double.Parse(a.Substring(12), CultureInfo.InvariantCulture);
                     continue;
                 }
 
@@ -354,6 +369,56 @@ namespace CorpusFsaProbe
             return 0;
         }
 
+        /// <summary>
+        /// (`S88`) Кривые ОДНОГО спектра по каналам в csv — тем же форматом, что
+        /// у `FsaStackShot --dump=`, чтобы разбирал их один и тот же читатель
+        /// (`tools/CORPUS/scripts/wave_shape.py`).
+        ///
+        /// Измерение берётся у РЕЗУЛЬТАТА (<c>FsaResult.NetSpectrum</c>), а не
+        /// считается здесь заново: правило «спектр минус вычтенный фон» одно на
+        /// вид и на пробы, и вторая его копия рядом разъехалась бы молча.
+        /// </summary>
+        static void DumpCurves(string dir, string key, EnergySpectrum spectrum, FsaResult result)
+        {
+            Directory.CreateDirectory(dir);
+            List<FsaStackLayer> layers = result.BuildStackedLayers(FsaResult.DefaultMaxNamedLayers);
+            double[] net = result.NetSpectrum(spectrum.Spectrum);
+            EnergyCalibration calibration = spectrum.EnergyCalibration;
+
+            var head = new StringBuilder("ch,keV,net,model,continuum");
+            foreach (FsaStackLayer layer in layers)
+            {
+                head.Append(',').Append(layer.Name.Replace(',', ';'));
+            }
+
+            string path = Path.Combine(dir, key + "_curves.csv");
+            using (var w = new StreamWriter(path, false, new UTF8Encoding(false)))
+            {
+                w.WriteLine(head.ToString());
+                for (int i = 0; i < spectrum.NumberOfChannels; i++)
+                {
+                    var line = new StringBuilder();
+                    line.Append(i.ToString(CultureInfo.InvariantCulture)).Append(',')
+                        .Append(calibration.ChannelToEnergy(i).ToString("F3", CultureInfo.InvariantCulture)).Append(',')
+                        .Append(Cell(net, i)).Append(',')
+                        .Append(Cell(result.Model, i)).Append(',')
+                        .Append(Cell(result.Continuum, i));
+                    foreach (FsaStackLayer layer in layers)
+                    {
+                        line.Append(',').Append(Cell(layer.Curve, i));
+                    }
+
+                    w.WriteLine(line.ToString());
+                }
+            }
+        }
+
+        static string Cell(double[] a, int i)
+        {
+            double v = a != null && i < a.Length ? a[i] : 0.0;
+            return v.ToString("F3", CultureInfo.InvariantCulture);
+        }
+
         /// <summary>Один спектр: пики, библиотека, матрица, разложение.</summary>
         static Row RunOne(Sample sample, Options o, NuclideDefinitionManager nuclides)
         {
@@ -528,6 +593,16 @@ namespace CorpusFsaProbe
                 analyzer.NoiseBeta = o.NoiseBeta;
                 analyzer.PartialResiduals = o.Partial;
                 analyzer.ContinuumKnotDivisor = o.Knots;
+
+                // (`S88`) A/B-ручка густоты узлов: сплайн со штатным порогом
+                // 4·ПШПВ волну 50…130 кэВ повторить не может, и надо знать —
+                // это потому, что волны там нет, или потому, что её нечем
+                // взять. ⚠ Значение меньше 4 ломает состав, читать после него
+                // можно форму невязки, а не разложение.
+                if (o.KnotFwhm > 0.0)
+                {
+                    analyzer.ContinuumKnotFwhm = o.KnotFwhm;
+                }
                 analyzer.PartialResidualGate = o.PartialGate;
                 analyzer.RebinBackgroundToSpectrum = o.RebinBackground;
 
@@ -612,6 +687,13 @@ namespace CorpusFsaProbe
                 }
 
                 row.Result = result;
+
+                // (`S88`) Кривые по каналам — до всех сводок: спор о форме
+                // модели решается ими, а не числом в таблице.
+                if (!string.IsNullOrEmpty(o.DumpCurves))
+                {
+                    DumpCurves(o.DumpCurves, row.Key, rd.EnergySpectrum, result);
+                }
 
                 // (S78) Кто был построен и предъявлен фиту, но до отчёта не
                 // дожил — с той значимостью, с которой его видели живым в
@@ -2103,6 +2185,25 @@ namespace CorpusFsaProbe
             /// таких распечаток, а не рассуждением. `--lib-dump`.
             /// </summary>
             public bool LibDump;
+
+            /// <summary>
+            /// (`S88`) Каталог, куда класть кривые ПО КАНАЛАМ на каждый
+            /// разобранный спектр: измерение за вычетом фона, модель, континуум
+            /// и по колонке на слой. Пусто — не выгружать.
+            ///
+            /// Заведено потому, что спор «модель кривая или спектр такой»
+            /// решается только счётом по каналам, а до сегодня такую выгрузку
+            /// умела ОДНА проба на ОДНОМ спектре (`FsaStackShot --dump=`), то
+            /// есть на корпусе вопрос было нечем задать. Формат тот же, что у
+            /// неё, — и разбирает обе `tools/CORPUS/scripts/wave_shape.py`.
+            /// </summary>
+            public string DumpCurves;
+
+            /// <summary>
+            /// (`S88`) Густой край шага узлов континуума в ПШПВ; 0 — не трогать
+            /// умолчание анализатора (4). ⚠ Абляция, а не настройка.
+            /// </summary>
+            public double KnotFwhm;
 
             /// <summary>(S60) Сверять линии, которые обязаны быть, — `--audit`.</summary>
             public bool Audit;
