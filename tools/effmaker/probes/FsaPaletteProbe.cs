@@ -194,8 +194,11 @@ namespace FsaPaletteProbe
                 Console.WriteLine("{0,-16} {1,12:F0} {2,12:F0}", "мс", withoutMs, withMs);
                 if (without != null && with != null)
                 {
-                    var a = without.BuildStackedLayers(6);
-                    var b = with.BuildStackedLayers(6);
+                    // Лимит — общий с приложением (`T55`): проба смотрит на
+                    // ту же легенду, что человек, и свой лимит здесь означал бы
+                    // молчаливое расхождение картинки с экраном.
+                    var a = without.BuildStackedLayers(FsaResult.DefaultMaxNamedLayers);
+                    var b = with.BuildStackedLayers(FsaResult.DefaultMaxNamedLayers);
                     foreach (var layer in a)
                     {
                         var mate = b.Find(l => l.Name == layer.Name);
@@ -223,7 +226,7 @@ namespace FsaPaletteProbe
                 return 1;
             }
 
-            List<FsaStackLayer> layers = result.BuildStackedLayers(6);
+            List<FsaStackLayer> layers = result.BuildStackedLayers(FsaResult.DefaultMaxNamedLayers);
             Console.WriteLine("слоёв: {0}, chi2/ndf {1:F2}", layers.Count, result.Chi2Ndf);
 
             Directory.CreateDirectory(outDir);

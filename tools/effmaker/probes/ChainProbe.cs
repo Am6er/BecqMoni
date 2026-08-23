@@ -57,6 +57,8 @@ namespace ChainProbe
             bad += CheckPersistence();
             bad += CheckConsumers();
             bad += CheckBranches();
+            bad += CheckTwoWalks();
+            bad += CheckKSeriesEditor();
             bad += CheckSearch();
             bad += CheckForm();
 
@@ -319,6 +321,150 @@ namespace ChainProbe
                 Set(form, "IsotopeTextBox", "Tl-208");
                 Call(form, "DoSearch");
                 bad += Near("без ряда: Tl-208 2614.51 свой выход", 99.754, Cell(grid, 2614.51));
+            }
+
+            return bad;
+        }
+
+        /// <summary>
+        /// ЛОВУШКА K-СЕРИИ ВИДНА В РЕДАКТОРЕ (`D33`). Kβ лежит в
+        /// `decay_radiations` дважды — итогом `KB` и разложением `KpB1`+`KpB2`,
+        /// — и до 23.08.2026 обе записи стояли в таблице как равноправные
+        /// линии: наивное сложение всех `K*` завышало K-выход Lu-176 до 40.53 %
+        /// вместо 33.49 %, в 1.21 раза, и ничто об этом не говорило.
+        ///
+        /// Проверяется то, что видит человек: помечена ли лишняя половина и
+        /// сходится ли сумма НЕПОМЕЧЕННЫХ строк с верным числом.
+        /// </summary>
+        static int CheckKSeriesEditor()
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== ловушка K-серии в редакторе ===");
+            int bad = 0;
+            BecquerelMonitor.NucBase.NucBaseFramework fw = new BecquerelMonitor.NucBase.NucBaseFramework();
+            List<BecquerelMonitor.NucBase.DecayRad> lines = fw.getDecayRad("176LU");
+            if (lines == null)
+            {
+                Console.WriteLine("  линий Lu-176 не пришло — сверять нечем");
+                return 1;
+            }
+
+            double all = 0.0, kept = 0.0;
+            int marked = 0;
+            foreach (BecquerelMonitor.NucBase.DecayRad line in lines)
+            {
+                if (line.DecayLine != "X" || string.IsNullOrEmpty(line.XrayType)
+                    || line.XrayType[0] != 'K')
+                {
+                    continue;
+                }
+
+                all += line.Intensity;
+                if (line.Redundant) marked++; else kept += line.Intensity;
+            }
+
+            Console.WriteLine("  Lu-176: наивная сумма всех K-строк {0:F2} %, без помеченных {1:F2} %, помечено строк {2}",
+                              all, kept, marked);
+            bad += Near("Lu-176: наивная сумма (так было)", 40.53, all);
+            bad += Near("Lu-176: сумма без помеченных", 33.49, kept);
+            bad += Same("Lu-176: помеченных строк", 1, marked);
+
+            // Обратный случай: у Th-227 разложение НЕПОЛНОЕ (одна `KpB1`), и
+            // лишним оказывается оно, а не итог. Правило структурное, и здесь
+            // это видно.
+            List<BecquerelMonitor.NucBase.DecayRad> th = fw.getDecayRad("227TH");
+            string markedAt227 = "";
+            double kept227 = 0.0;
+            if (th != null)
+            {
+                foreach (BecquerelMonitor.NucBase.DecayRad line in th)
+                {
+                    if (line.DecayLine != "X" || string.IsNullOrEmpty(line.XrayType)
+                        || line.XrayType[0] != 'K')
+                    {
+                        continue;
+                    }
+
+                    if (line.Redundant) markedAt227 += (markedAt227.Length > 0 ? "+" : "") + line.XrayType;
+                    else kept227 += line.Intensity;
+                }
+            }
+
+            Console.WriteLine("  Th-227: помечено {0}, сумма без помеченных {1:F3} %",
+                              markedAt227.Length > 0 ? markedAt227 : "ничего", kept227);
+            bad += Same("Th-227: помечено разложение, не итог", "KpB1", markedAt227);
+            bad += Near("Th-227: сумма без помеченных", 4.624, kept227);
+            return bad;
+        }
+
+        /// <summary>
+        /// ДВА ОБХОДА РЯДА ОБЯЗАНЫ СОЙТИСЬ (`S62`). Обходов в дереве три:
+        /// `NucBase.NucBaseFramework.GetChainBranches` (форма базы и ввоз),
+        /// `FullSpectrumAnalysis.FsaSampleLibrary.ChainBranches` (состав
+        /// библиотеки разбора) и `tools/CORPUS/scripts/chains.py` (сборка
+        /// корпуса). Сверять их было нечем, и они разошлись: до 23.08.2026
+        /// второй раскрывал узел ОДИН РАЗ — значением, какое у того было в
+        /// момент раскрытия, — и вклад, пришедший позже, детям не передавал.
+        /// В радиевом ряду Pb-210 стоит в очереди раньше Po-214, который даёт
+        /// ему почти всю долю: сам Pb-210 выходил верным, а 210BI, 210PO и
+        /// 206PB получали 3e-5 вместо 1.0 и выпадали из библиотеки порогом
+        /// 1e-3. Здесь появился читатель, которого у этого расхождения не было.
+        /// </summary>
+        static int CheckTwoWalks()
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== два обхода ряда: NucBase против FsaSampleLibrary ===");
+            int bad = 0;
+            BecquerelMonitor.NucBase.NucBaseFramework fw = new BecquerelMonitor.NucBase.NucBaseFramework();
+            var report = new FsaSampleLibrary.Report();
+
+            foreach (string root in new[] { "232TH", "228TH", "226RA", "238U", "235U" })
+            {
+                Dictionary<string, double> mine = FsaSampleLibrary.ChainBranches(root, report);
+                Dictionary<string, double> theirs = fw.GetChainBranches(root);
+
+                // Сверяются только члены выше порога, которым ряд живёт:
+                // ниже 1e-3 обход и так никого не отдаёт (`MinChainBranch`).
+                var names = new List<string>();
+                foreach (KeyValuePair<string, double> row in mine)
+                {
+                    if (row.Value >= 1.0e-3 && !names.Contains(row.Key)) names.Add(row.Key);
+                }
+
+                foreach (KeyValuePair<string, double> row in theirs)
+                {
+                    if (row.Value >= 1.0e-3 && !names.Contains(row.Key)) names.Add(row.Key);
+                }
+
+                names.Sort(StringComparer.Ordinal);
+                int off = 0;
+                string worst = "";
+                double worstGap = 0.0;
+                foreach (string name in names)
+                {
+                    double a = Branch(mine, name), b = Branch(theirs, name);
+                    double gap = Math.Abs(a - b);
+                    if (gap > 1.0e-4)
+                    {
+                        off++;
+                        if (gap > worstGap) { worstGap = gap; worst = name + " " + a.ToString("F5", CultureInfo.InvariantCulture) + " против " + b.ToString("F5", CultureInfo.InvariantCulture); }
+                    }
+                }
+
+                bool ok = off == 0;
+                Console.WriteLine("  {0,-6} членов выше 1e-3: {1,2}, расходится: {2}{3}   {4}",
+                                  root, names.Count, off,
+                                  off > 0 ? "  худший " + worst : "",
+                                  ok ? "ok" : "⛔ РАСХОЖДЕНИЕ");
+                if (!ok) bad++;
+            }
+
+            // Именной случай, на котором ошибка и нашлась: дети Pb-210 в
+            // радиевом ряду стоят на равновесной единице, а не на 3e-5.
+            Dictionary<string, double> ra = FsaSampleLibrary.ChainBranches("226RA", report);
+            foreach (string member in new[] { "210PB", "210BI", "210PO", "206PB" })
+            {
+                bad += Near("Ra-226 → " + member, 1.0, Branch(ra, member));
             }
 
             return bad;

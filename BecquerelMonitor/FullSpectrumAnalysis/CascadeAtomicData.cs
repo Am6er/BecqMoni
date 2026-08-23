@@ -139,22 +139,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>
         /// Полный выход K-рентгена, % на распад. ⚠ `KB` в
-        /// `decay_radiations` — это СУММА `KpB1` и `KpB2`, а не третья линия
-        /// (TODO D30); складывать всё подряд нельзя.
+        /// `decay_radiations` — это ИТОГ по Kβ, а не третья линия рядом с
+        /// `KpB1` и `KpB2` (`D30`); складывать всё подряд нельзя. Выбор между
+        /// итогом и разложением — <see cref="KSeriesRule"/>, одно правило на
+        /// весь проект.
         /// </summary>
         public double KIntensityPct;
-
-        // ------------------------------------------------------------------
-
-        /// <summary>
-        /// Строки `type_c`, которые надо пропускать при сборе K-серии.
-        /// `KB` — итог по Kβ, уже разложенный на `KpB1` и `KpB2`. У лёгких
-        /// элементов `KpB2` не разрешена, и тогда `KB` совпадает с `KpB1`
-        /// побайтно — то есть это дубль, а не соседняя линия. Проверено на
-        /// Lu-176, Ce-139, Bi-207, Cd-109: KpB1 + KpB2 = KB до последнего
-        /// знака.
-        /// </summary>
-        static readonly string[] DuplicateKSeries = { "KB" };
 
         /// <summary>
         /// Выше этого коэффициента конверсии считаем, что гаммы у перехода нет
@@ -229,6 +219,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double betaPlusPct = 0.0;
             string daughter = null;
 
+            // K-серия собирается тремя вёдрами и разбирается ПОСЛЕ цикла:
+            // выбор между итогом `KB` и разложением `KpB*` нельзя сделать «на
+            // лету», не увидев обеих строк (`KSeriesRule`, `T50`).
+            var kAlpha = new List<double[]>();
+            var kBetaSplit = new List<double[]>();
+            var kBetaTotal = new List<double[]>();
+            var kBetaSplitSeries = new HashSet<string>(StringComparer.Ordinal);
+
             using (SqliteConnection connection = OpenRead(NuclideDatabasePath()))
             using (SqliteCommand command = connection.CreateCommand())
             {
@@ -253,10 +251,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         {
                             gammaIntensity.Add(new[] { energy, intensity });
                         }
-                        else if (kind == "X" && energy > 0.0 && IsKSeries(series))
+                        else if (kind == "X" && energy > 0.0 && KSeriesRule.IsSeries(series))
                         {
-                            data.KLines.Add(new[] { energy, intensity });
-                            data.KIntensityPct += intensity;
+                            var line = new[] { energy, intensity };
+                            if (KSeriesRule.IsBetaTotal(series))
+                            {
+                                kBetaTotal.Add(line);
+                            }
+                            else if (KSeriesRule.IsBetaSplit(series))
+                            {
+                                kBetaSplit.Add(line);
+                                kBetaSplitSeries.Add(series);
+                            }
+                            else
+                            {
+                                kAlpha.Add(line);
+                            }
                         }
                         else if (kind == "B+")
                         {
@@ -296,6 +306,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         }
                     }
                 }
+            }
+
+            // K-серия: Kα целиком плюс ОДНО из двух представлений Kβ.
+            data.KLines.AddRange(kAlpha);
+            data.KLines.AddRange(KSeriesRule.Beta(kBetaSplit, kBetaTotal, kBetaSplitSeries.Count));
+            data.KLines.Sort((a, b) => a[0].CompareTo(b[0]));
+            data.KIntensityPct = 0.0;
+            foreach (double[] kLine in data.KLines)
+            {
+                data.KIntensityPct += kLine[1];
             }
 
             // Два кванта на позитрон. Аннигиляция идёт по месту остановки
@@ -363,28 +383,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             data.Note = notes.ToString();
             return data;
-        }
-
-        /// <summary>
-        /// Kα и Kβ, но БЕЗ итоговой `KB`: см. <see cref="DuplicateKSeries"/>.
-        /// L-серия сюда не берётся сознательно (шапка класса).
-        /// </summary>
-        static bool IsKSeries(string series)
-        {
-            if (string.IsNullOrEmpty(series) || series[0] != 'K')
-            {
-                return false;
-            }
-
-            foreach (string duplicate in DuplicateKSeries)
-            {
-                if (string.Equals(series, duplicate, StringComparison.Ordinal))
-                {
-                    return false;
-                }
-            }
-
-            return true;
         }
 
         /// <summary>

@@ -20,15 +20,11 @@ namespace BecquerelMonitor
     public partial class EnergySpectrumView
     {
         /// <summary>
-        /// Сколько нуклидов называется в легенде поимённо; остальные идут одной
-        /// строкой «other». Мешающие образы (рентген, пики вылета) сюда НЕ
-        /// считаются и показываются сверх лимита.
-        ///
-        /// Шесть → девять, решение Amber 18.08.2026 (`S71`): на
-        /// `Th232_29.07.2022.xml` «other» набрал 8.30 % — больше трёх
-        /// показанных строк вместе взятых.
+        /// Сколько нуклидов называется в легенде поимённо. Величина живёт у
+        /// модели (<see cref="FsaResult.DefaultMaxNamedLayers"/>) — одно место
+        /// на вид и на пробы, `T55`.
         /// </summary>
-        const int FsaMaxNamedLayers = 9;
+        const int FsaMaxNamedLayers = FsaResult.DefaultMaxNamedLayers;
 
         readonly FsaOverlay fsaOverlay = new FsaOverlay();
 

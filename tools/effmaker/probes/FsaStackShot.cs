@@ -285,7 +285,7 @@ namespace FsaStackShot
             // берётся у слоёв, а не у компонентов: у приборных образов
             // `SharePercent` компонента считается по пиковым окнам, а печатает
             // экран долю СЛОЯ (`S76`), и сравнивать надо с тем, что видно.
-            List<FsaStackLayer> shot = result.BuildStackedLayers(9);
+            List<FsaStackLayer> shot = result.BuildStackedLayers(FsaResult.DefaultMaxNamedLayers);
             foreach (FsaStackLayer layer in shot)
             {
                 Console.WriteLine("ROW\t{0}\t{1}\t{2}", layer.Name, layer.Kind,

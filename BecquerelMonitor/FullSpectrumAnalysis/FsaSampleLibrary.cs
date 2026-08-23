@@ -1,4 +1,4 @@
-using BecquerelMonitor.EfficiencyMaker;
+﻿using BecquerelMonitor.EfficiencyMaker;
 using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
@@ -281,22 +281,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return text.ToString();
             }
         }
-
-        /// <summary>
-        /// Строки `type_c`, которые при сборе K-серии дублируют соседей.
-        ///
-        /// `KB` — ИТОГ по Kβ, уже разложенный на `KpB1` и `KpB2` (`D30`):
-        /// наивная сумма всех трёх удваивает Kβ на 21 %. Правило то же, что у
-        /// <see cref="CascadeAtomicData"/>, и держится оно одно на двоих
-        /// нарочно — двух соглашений о K-серии в проекте быть не должно.
-        ///
-        /// ⚠ Но правило это неполно, и здесь оно дополнено: у части нуклидов
-        /// `KpB2` в базе НЕТ (лёгкие элементы, где линия не разрешена), и тогда
-        /// `KpB1` меньше `KB` — у 232PA на 26 %, у 235NP на 25 %. Выбросив `KB`
-        /// вслепую, мы теряем эту разницу. Поэтому `KB` выбрасывается, только
-        /// если разложение на месте; иначе берётся он сам.
-        /// </summary>
-        const string KBetaTotal = "KB";
 
         static readonly object Gate = new object();
 
@@ -621,8 +605,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// ветвлением (у 212BI это 35.94 % при нуле и 67 % при пяти). Изомер
         /// при этом имеет собственный `nucid` (234PAm1), поэтому наименьший
         /// присутствующий уровень и есть физический распад.
+        ///
+        /// ⚠ Метод ОТКРЫТ ради проб, а не ради приложения: обходов ряда в
+        /// дереве три (здесь, `NucBase.NucBaseFramework.GetChainBranches` и
+        /// `tools/CORPUS/scripts/chains.py`), и разойтись они уже успели —
+        /// `S62`. Сверять их между собой можно только имея доступ ко всем трём;
+        /// читатель этой сверки — `ChainProbe`, раздел «два обхода ряда».
         /// </summary>
-        internal static Dictionary<string, double> ChainBranches(string root, Report report)
+        public static Dictionary<string, double> ChainBranches(string root, Report report)
         {
             lock (Gate)
             {
@@ -636,8 +626,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var branch = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
             try
             {
-                branch[root] = 1.0;
+                // Шаг 1: РЁБРА. Обход в ширину здесь только открывает узлы, а
+                // доли не считает вовсе — см. шаг 2, почему это принципиально.
+                var edges = new Dictionary<string, List<KeyValuePair<string, double>>>(
+                    StringComparer.OrdinalIgnoreCase);
                 var order = new List<string> { root };
+                var known = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { root };
                 using (SqliteConnection connection = OpenRead(NuclideDatabasePath()))
                 using (SqliteCommand command = connection.CreateCommand())
                 {
@@ -649,7 +643,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         + "                  and x.daughter_nucid = d.daughter_nucid"
                         + "                  and x.dec_type = d.dec_type)";
                     command.Parameters.AddWithValue("$n", root);
-                    for (int i = 0; i < order.Count && order.Count <= 128; i++)
+                    for (int i = 0; i < order.Count && order.Count <= MaxChainNodes; i++)
                     {
                         string current = order[i];
                         command.Parameters["$n"].Value = current;
@@ -667,35 +661,89 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                 }
 
                                 double percent;
-                                if (!TryNumber(reader, 1, out percent))
+                                if (!TryNumber(reader, 1, out percent) || !(percent > 0.0))
                                 {
                                     continue;
                                 }
 
                                 step.Add(new KeyValuePair<string, double>(daughter, percent));
+                                if (known.Add(daughter))
+                                {
+                                    order.Add(daughter);
+                                }
                             }
                         }
 
-                        foreach (KeyValuePair<string, double> row in step)
-                        {
-                            double add = branch[current] * row.Value / 100.0;
-                            if (add < 1.0e-6)
-                            {
-                                continue;
-                            }
+                        edges[current] = step;
+                    }
+                }
 
-                            double have;
-                            if (branch.TryGetValue(row.Key, out have))
-                            {
-                                branch[row.Key] = have + add;
-                            }
-                            else
-                            {
-                                branch[row.Key] = add;
-                                order.Add(row.Key);
-                            }
+                // Шаг 2: ДОЛИ РЕЛАКСАЦИЕЙ ДО НЕПОДВИЖНОЙ ТОЧКИ (`S62`).
+                //
+                // ⛔ Обход в ширину здесь давал ответ НА ПОРЯДКИ НЕВЕРНЫЙ, и
+                // причина в том, что он раскрывает узел один раз — значением,
+                // какое у того было В МОМЕНТ раскрытия. Вклад, пришедший к тому
+                // же узлу позже, детям уже не передавался. В радиевом ряду
+                // Pb-210 попадает в очередь раньше Po-214, который и даёт ему
+                // почти всю долю: сам Pb-210 выходил верным (1.0), а его дети —
+                // 3e-5 вместо 1.0, то есть ниже `MinChainBranch` = 1e-3, и из
+                // библиотеки выпадали вовсе.
+                //
+                // Доля — это СУММА ПО ВСЕМ ПУТЯМ от корня, x = e_root + x*P,
+                // и считается она повторением подстановки: за проход вклад
+                // продвигается на одно ребро, значит сходимость наступает за
+                // число проходов, равное длине самого длинного пути. Ряды
+                // короткие (два десятка членов), но зажим по числу проходов
+                // стоит на случай кольца в поставке.
+                double drift = 0.0;
+                for (int pass = 0; pass < MaxChainPasses; pass++)
+                {
+                    var next = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+                    next[root] = 1.0;
+                    foreach (string parent in order)
+                    {
+                        double have;
+                        List<KeyValuePair<string, double>> outgoing;
+                        if (!branch.TryGetValue(parent, out have) || !(have > 0.0)
+                            || !edges.TryGetValue(parent, out outgoing))
+                        {
+                            continue;
+                        }
+
+                        foreach (KeyValuePair<string, double> edge in outgoing)
+                        {
+                            double add = have * edge.Value / 100.0;
+                            double already;
+                            next[edge.Key] = (next.TryGetValue(edge.Key, out already) ? already : 0.0) + add;
                         }
                     }
+
+                    drift = 0.0;
+                    foreach (KeyValuePair<string, double> row in next)
+                    {
+                        double was;
+                        double gap = Math.Abs(row.Value - (branch.TryGetValue(row.Key, out was) ? was : 0.0));
+                        if (gap > drift)
+                        {
+                            drift = gap;
+                        }
+                    }
+
+                    branch = next;
+                    if (drift <= ChainConverged)
+                    {
+                        break;
+                    }
+                }
+
+                if (drift > ChainConverged)
+                {
+                    // Признак отказа без читателя — не признак. Ряд, не
+                    // сошедшийся за отведённые проходы, означает кольцо в
+                    // поставке, и молчать об этом нельзя.
+                    report.Notes.Add("ряд " + root + ": доли не сошлись за "
+                                     + MaxChainPasses + " проходов, остаток "
+                                     + drift.ToString("E2", CultureInfo.InvariantCulture));
                 }
             }
             catch (Exception error)
@@ -713,10 +761,30 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return branch;
         }
 
+        /// <summary>Сколько членов ряда открывать, зажим против поставки-кольца.</summary>
+        const int MaxChainNodes = 128;
+
+        /// <summary>
+        /// Сколько проходов релаксации отводится ряду. За проход вклад
+        /// продвигается на одно ребро; самый длинный из наших рядов (238U) —
+        /// два десятка звеньев, так что запас здесь десятикратный.
+        /// </summary>
+        const int MaxChainPasses = 256;
+
+        /// <summary>
+        /// Порог сходимости долей. Он на три порядка ниже `MinChainBranch`
+        /// (1e-3), то есть заведомо не влияет на то, кто в ряд попадёт.
+        /// </summary>
+        const double ChainConverged = 1.0e-12;
+
         /// <summary>
         /// Линии распада нуклида: {энергия, выход % на распад ЭТОГО нуклида}.
-        /// Типы `G` и `X`; K-серия по правилу <see cref="KBetaTotal"/>,
-        /// L-серия — подробными строками, если они есть, иначе обобщённой.
+        /// Типы `G` и `X`; K-серия по правилу <see cref="KSeriesRule"/> — ОДНО
+        /// правило на весь проект, общее с <see cref="CascadeAtomicData"/>
+        /// (двух соглашений о Kβ здесь быть не должно: разойдясь в них,
+        /// библиотека и суммирователь совпадений разойдутся в составе пробы
+        /// при одинаковых с виду числах, `T50`). L-серия — подробными
+        /// строками, если они есть, иначе обобщённой.
         /// </summary>
         internal static List<double[]> DecayLines(string nucid, Report report)
         {
@@ -732,6 +800,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var gamma = new List<double[]>();
             var kAlpha = new List<double[]>();
             var kBetaSplit = new List<double[]>();
+            var kBetaSplitSeries = new HashSet<string>(StringComparer.Ordinal);
             var kBetaTotal = new List<double[]>();
             var lLumped = new List<double[]>();
             var lDetailed = new List<double[]>();
@@ -780,13 +849,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                     lDetailed.Add(line);
                                 }
                             }
-                            else if (string.Equals(series, KBetaTotal, StringComparison.Ordinal))
+                            else if (KSeriesRule.IsBetaTotal(series))
                             {
                                 kBetaTotal.Add(line);
                             }
-                            else if (series.StartsWith("Kp", StringComparison.Ordinal))
+                            else if (KSeriesRule.IsBetaSplit(series))
                             {
                                 kBetaSplit.Add(line);
+                                kBetaSplitSeries.Add(series);
                             }
                             else
                             {
@@ -805,10 +875,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             lines.AddRange(gamma);
             lines.AddRange(kAlpha);
 
-            // Kβ: разложение, если оно есть, иначе итог. Сложить и то и другое
-            // значит удвоить Kβ (`D30`); выбросить итог там, где разложения нет,
-            // значит потерять Kβ целиком.
-            lines.AddRange(kBetaSplit.Count > 0 ? kBetaSplit : kBetaTotal);
+            // Kβ: итог `KB`, если он есть, иначе разложение — но там, где
+            // разложение ПОЛНОЕ, берётся именно оно: то же число двумя
+            // энергиями вместо одной усреднённой. Правило и его измерение —
+            // `KSeriesRule` (`T50`); прежнее «разложение, если оно есть»
+            // занижало Kβ у 350 наборов.
+            lines.AddRange(KSeriesRule.Beta(kBetaSplit, kBetaTotal, kBetaSplitSeries.Count));
 
             // L-серия: та же развилка. Подробных строк в базе всего у трёх
             // нуклидов (225RA, 225RN, 229TH), и ни один в корпусе не снят, —

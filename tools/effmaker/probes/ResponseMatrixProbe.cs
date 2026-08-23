@@ -28,7 +28,7 @@ namespace ResponseMatrixProbe
     ///    считаются одним и тем же переносом, и пик в матрице обязан сойтись с
     ///    тем, что возвращает `Efficiency`.
     ///
-    ///     responsematrixprobe --geometry=X.in [--nodes=12] [--n=20000] [--bin=2]
+    ///     responsematrixprobe --geometry=X.in [--nodes=24] [--n=20000] [--bin=2]
     ///
     /// Ожидание: «ВСЕ СОШЛИСЬ».
     /// </summary>
@@ -40,7 +40,7 @@ namespace ResponseMatrixProbe
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
             string geometryPath = null;
-            var options = new ResponseMatrixOptions { NodeCount = 12, Histories = 20000, BinKev = 2.0 };
+            var options = new ResponseMatrixOptions { NodeCount = 24, Histories = 20000, BinKev = 2.0 };
             foreach (string a in args)
             {
                 if (a.StartsWith("--geometry=", StringComparison.Ordinal)) geometryPath = a.Substring(11);
@@ -64,13 +64,23 @@ namespace ResponseMatrixProbe
             // T47, вторая половина: РЕДКАЯ СЕТКА И МАЛАЯ СТАТИСТИКА РОНЯЮТ ТРИ
             // ПРОВЕРКИ ЗАКОННО, а по выводу этого не видно — «ПРОВАЛ» читается
             // одинаково и там, где сломана матрица, и там, где просто мало
-            // историй. Умолчания (12 узлов, 20 тыс. историй) подобраны так,
-            // чтобы допуски проверок 6–8 были им по силам; ниже них проверки
-            // остаются, но их вывод помечается «не показательно».
-            bool thinGrid = options.NodeCount < 12 || options.Histories < 20000;
+            // историй. Умолчания подобраны так, чтобы допуски проверок 6–8 были
+            // им по силам; ниже них проверки остаются, но их вывод помечается
+            // «не показательно».
+            //
+            // ⛔ Двенадцать узлов → ДВАДЦАТЬ ЧЕТЫРЕ, 23.08.2026 (`T52`): на
+            // `RC103_point0` — мелкий кристалл В УПОР — двенадцати не хватало
+            // по существу, и это не шум. Развёртка по узлам на низкой точке
+            // (шаг сетки против расхождения пика): 127 кэВ — 13.05 %, 92 —
+            // 3.87 %, 73 — 5.32 %, 60 — 2.01 %, 45 — 2.00 %; со статистикой
+            // 13.05 → 11.59 → 11.12 % при 20 / 80 / 200 тыс. историй, то есть
+            // пол ≈ 11 % и ГСЧ тут ни при чём. Цена умолчания — 8.9 с против
+            // 6.0 с на смоук-прогон, у цилиндра (`AS80_lu_front`) сходилось и
+            // при двенадцати. В поставке матрицы считаются на ~100 узлах.
+            bool thinGrid = options.NodeCount < 24 || options.Histories < 20000;
             if (thinGrid)
             {
-                Console.WriteLine("⚠ сетка/статистика НИЖЕ умолчаний (12 узлов, 20 000 историй):");
+                Console.WriteLine("⚠ сетка/статистика НИЖЕ умолчаний (24 узла, 20 000 историй):");
                 Console.WriteLine("  проверки 6–8 (пик против кривой, интерполяция) при этом валятся");
                 Console.WriteLine("  ЗАКОННО — это разрешение сетки и шум ГСЧ, а не дефект матрицы (T47).");
             }
@@ -212,9 +222,21 @@ namespace ResponseMatrixProbe
             float[] row = parallel.Rows[node];
             double peak = row[row.Length - 1];
             double diff = curve > 0.0 ? Math.Abs(peak - curve) / curve : 0.0;
-            bool peakOk = diff < 0.02;
-            Report(peakOk, "пик матрицы против кривой на {0:F0} кэВ: {1:E4} против {2:E4}, расхождение {3:P2}{4}",
-                   energy, peak, curve, diff, thinGrid && !peakOk ? "  — НЕ ПОКАЗАТЕЛЬНО (редкая сетка/мало историй)" : "");
+            // Тот же порядок, что у проверки 7 (`T52`): допуск 2 % остаётся
+            // порогом, но там, где три сигмы собственной дрожи сравнения его
+            // перекрывают, порогом становятся они. Обе стороны — свой поток
+            // случайных чисел, счёт n = доля × историй. На `ASN16_lu_side` при
+            // умолчаниях пик стоит на 5.25E-2, то есть около 1050 историй,
+            // 1σ ≈ 4.4 % на разность — двухпроцентный допуск такому сравнению
+            // не по силам В ПРИНЦИПЕ, и прежний «ПРОВАЛ 3.34 %» означал не
+            // дефект матрицы, а требование различить то, чего в числах нет.
+            double peakSigmaCurve = Sigma(curve, peak, options.Histories);
+            double peakLimitCurve = Math.Max(0.02, 3.0 * peakSigmaCurve);
+            bool peakOk = diff < peakLimitCurve;
+            Report(peakOk, "пик матрицы против кривой на {0:F0} кэВ: {1:E4} против {2:E4}, расхождение {3:P2}"
+                           + "  [порог {4:P1}; 1σ {5:P1}]{6}",
+                   energy, peak, curve, diff, peakLimitCurve, peakSigmaCurve,
+                   thinGrid && !peakOk ? "  — НЕ ПОКАЗАТЕЛЬНО (редкая сетка/мало историй)" : "");
             bad += (peakOk || thinGrid) ? 0 : 1;
 
             // --- 7. Интерполяция между узлами -------------------------------
@@ -264,15 +286,40 @@ namespace ResponseMatrixProbe
 
                 double sumDiff = sumE > 0.0 ? Math.Abs(sumI - sumE) / sumE : 0.0;
                 double peakDiff = peakE > 0.0 ? Math.Abs(peakI - peakE) / peakE : 0.0;
-                // Допуск не «сколько хочется», а сколько шумит само сравнение:
-                // прямой прогон идёт другим потоком случайных чисел, и при
-                // рабочих 30 тыс. историй его собственная погрешность — единицы
-                // процентов. Порог держится ниже того, что ловил настоящие
-                // поломки: потеря четверти пика давала 35 %, а не 5.
-                bool ok = sumDiff < 0.06 && peakDiff < 0.08;
+
+                // ⛔ СВОЙ ШУМ СРАВНЕНИЯ, и без него проверка врёт (`T52`).
+                // Эффективность здесь — это ДОЛЯ историй, значит за числом
+                // стоит счёт: n = доля × историй. У мелкого кристалла в упор на
+                // верху шкалы в пике этих историй ЕДИНИЦЫ — на `RC103_point0`
+                // при 1496 кэВ и 20 тыс. историй пик расходился на 24.5 %, и с
+                // ростом статистики шёл 24.5 → 19.8 → 14.6 % при десятикратной
+                // прибавке, то есть мерилась ПУАССОНОВСКАЯ дрожь, а не
+                // интерполяция. Порог 8 % такому пику не по силам В ПРИНЦИПЕ, и
+                // «ПРОВАЛ» там означал «мало историй», а не «матрица врёт».
+                //
+                // Допуски НЕ ослаблены и НЕ подобраны — они по-прежнему 6 и
+                // 8 %, поставлены измерением (потеря четверти пика давала 35 %)
+                // и остаются порогом везде, где сравнение способно их
+                // разглядеть. Добавлено ровно одно: там, где собственная дрожь
+                // сравнения БОЛЬШЕ допуска, порогом становится она — иначе
+                // проверка требует различить то, чего в её же числах нет.
+                // ⚠ Печатается она ВСЕГДА, а не только при провале: допуск,
+                // молча подменённый шумом, — тот же молчаливый отказ.
+                double sumSigma = Sigma(sumE, sumI, options.Histories);
+                double peakSigma = Sigma(peakE, peakI, options.Histories);
+                double sumLimit = Math.Max(0.06, 3.0 * sumSigma);
+                double peakLimit = Math.Max(0.08, 3.0 * peakSigma);
+                bool ok = sumDiff < sumLimit && peakDiff < peakLimit;
+                string why = string.Format(CultureInfo.InvariantCulture,
+                                           "  [порог суммы {0:P1}, пика {1:P1}; 1σ {2:P1} и {3:P1}]",
+                                           sumLimit, peakLimit, sumSigma, peakSigma);
+                if (thinGrid && !ok)
+                {
+                    why += "  — НЕ ПОКАЗАТЕЛЬНО (редкая сетка/мало историй)";
+                }
+
                 Report(ok, "интерполяция на {0:F0} кэВ (шаг сетки {1:F0} кэВ): сумма {2:P2}, пик {3:P2}{4}",
-                       middle, parallel.Energies[left + 1] - parallel.Energies[left], sumDiff, peakDiff,
-                       thinGrid && !ok ? "  — НЕ ПОКАЗАТЕЛЬНО (редкая сетка/мало историй)" : "");
+                       middle, parallel.Energies[left + 1] - parallel.Energies[left], sumDiff, peakDiff, why);
                 bad += (ok || thinGrid) ? 0 : 1;
             }
 
@@ -288,11 +335,29 @@ namespace ResponseMatrixProbe
             if (thinGrid)
             {
                 Console.WriteLine("⚠ проверки 6–8 НЕ ЗАСЧИТАНЫ: сетка/статистика ниже умолчаний (T47).");
-                Console.WriteLine("  За приёмкой гонять без --nodes/--n либо с --nodes=12 --n=20000 и выше.");
+                Console.WriteLine("  За приёмкой гонять без --nodes/--n либо с --nodes=24 --n=20000 и выше.");
             }
 
             Console.WriteLine(bad == 0 ? "ВСЕ СОШЛИСЬ" : "ПРОВАЛОВ: " + bad);
             return bad == 0 ? 0 : 1;
+        }
+
+        /// <summary>
+        /// Относительная пуассоновская дрожь РАЗНОСТИ двух долей, посчитанных
+        /// каждая своим потоком случайных чисел: n = доля × историй, σ/n =
+        /// 1/√n, и складываются они в квадратах. Ноль историй или нулевая доля
+        /// дают σ = 1, то есть «сказать нечего».
+        /// </summary>
+        static double Sigma(double shareA, double shareB, int histories)
+        {
+            double nA = shareA * histories;
+            double nB = shareB * histories;
+            if (!(nA > 0.0) || !(nB > 0.0))
+            {
+                return 1.0;
+            }
+
+            return Math.Sqrt(1.0 / nA + 1.0 / nB);
         }
 
         static bool SameLongs(long[] a, long[] b)

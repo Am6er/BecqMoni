@@ -338,10 +338,13 @@ namespace FsaCascadeProbe
             Console.WriteLine();
             Console.WriteLine("{0,-16} {1,12} {2,12} {3,12} {4,12}", "слой, %",
                               "без матрицы", "матрица", "+только CF", "+сумм-пики");
-            var a1 = plain.BuildStackedLayers(8);
-            var a2 = withMatrix.BuildStackedLayers(8);
-            var a4 = cfOnly.BuildStackedLayers(8);
-            var a3 = withCascade.BuildStackedLayers(8);
+            // Лимит — общий с приложением (`T55`); слой здесь ищется ПО ИМЕНИ,
+            // поэтому от порядка проба не зависит, а от числа названных строк —
+            // зависит.
+            var a1 = plain.BuildStackedLayers(FsaResult.DefaultMaxNamedLayers);
+            var a2 = withMatrix.BuildStackedLayers(FsaResult.DefaultMaxNamedLayers);
+            var a4 = cfOnly.BuildStackedLayers(FsaResult.DefaultMaxNamedLayers);
+            var a3 = withCascade.BuildStackedLayers(FsaResult.DefaultMaxNamedLayers);
             var names = new List<string>();
             foreach (var set in new[] { a1, a2, a4, a3 })
             {

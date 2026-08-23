@@ -20,6 +20,8 @@ namespace BecquerelMonitor.NucBase
         private const int LineColumnIdx = 2;
         private const int EnergyColumnIdx = 3;
         private const int IntencityColumnIdx = 4;
+        private const int SeriesColumnIdx = 5;
+        private const int DecayTypeColumnIdx = 6;
         private const int HalfLifeColumnIdx = 7;
 
         /// <summary>
@@ -329,8 +331,24 @@ namespace BecquerelMonitor.NucBase
             // всех линий рентгена, когда искали именно рентген элемента.
             bool isGamma = decrad.DecayLine == "G"
                            || decrad.DecayLine == NucBaseFramework.FluorescenceLine;
+            // ⛔ Kβ лежит в базе ДВАЖДЫ — итогом `KB` и разложением `KpB1`+`KpB2`
+            // (`D33`). У лишней при сложении половины в колонке серии стоит знак
+            // суммы: складывать её с соседями значит считать Kβ дважды, на
+            // Lu-176 это 40.53 % вместо 33.49 %.
+            //
+            // ⚠ Галочку здесь снимать не надо и НЕ НАДО ПИСАТЬ КОД, который её
+            // снимает: у линий распада типа `X` она и так не ставится — стоит
+            // она у гамм и у рентгена ЭЛЕМЕНТА, когда искали именно его. Ветка
+            // «если лишняя, снять» была бы кодом, который никогда не работает.
+            string series = decrad.XrayType + (decrad.Redundant ? DecayRad.RedundantMark : "");
             string hl = decrad.HalfLife.ToString() + "(" + decrad.HalfLifeUnit + ")";
-            this.ResultDataGridView.Rows.Add(isGamma, decrad.Name, decrad.DecayLine, decrad.Energy, decrad.Intensity, decrad.XrayType, decrad.DecayTypeString, hl);
+            int index = this.ResultDataGridView.Rows.Add(isGamma, decrad.Name, decrad.DecayLine, decrad.Energy, decrad.Intensity, series, decrad.DecayTypeString, hl);
+            if (decrad.Redundant)
+            {
+                DataGridViewRow added = this.ResultDataGridView.Rows[index];
+                added.Cells[SeriesColumnIdx].ToolTipText = Resources.NucBase_KSeriesRedundantHint;
+                added.DefaultCellStyle.ForeColor = System.Drawing.SystemColors.GrayText;
+            }
         }
 
         public void CallSearch(decimal energy)
@@ -518,6 +536,7 @@ namespace BecquerelMonitor.NucBase
             {
                 int updatedCount = 0;
                 int createdCount = 0;
+                int redundantSkipped = 0;
                 NuclideDefinitionManager defManager = NuclideDefinitionManager.GetInstance();
                 // Ряд у всех ввозимых линий один — тот, по которому шёл поиск.
                 // Пишется НЕЗАВИСИМО от «дописать имя родителя»: та галочка
@@ -532,6 +551,16 @@ namespace BecquerelMonitor.NucBase
                 {
                     if ((bool)row.Cells[CheckedColumnIdx].Value == true)
                     {
+                        // ⛔ Обе половины Kβ вместе НЕ ВЫГРУЖАЮТСЯ (`D33`): это
+                        // не запрет взять помеченную строку, а запрет взять её
+                        // ВМЕСТЕ с теми, чью сумму она и есть. Молча пропустить
+                        // нельзя — считается и говорится вслух.
+                        if (IsRedundantSeries(row) && HasCheckedCounterpart(row))
+                        {
+                            redundantSkipped++;
+                            continue;
+                        }
+
                         string name = (string)row.Cells[NameColumnIdx].Value;
                         bool fluorescence = NucBaseFramework.FluorescenceLine.Equals(
                             row.Cells[LineColumnIdx].Value as string, StringComparison.Ordinal);
@@ -589,13 +618,67 @@ namespace BecquerelMonitor.NucBase
                 if (updatedCount > 0 || createdCount > 0)
                 {
                     defManager.SaveDefinitionFile();
-                    MessageBox.Show(string.Format(Resources.NuclideDefImportSuccess, createdCount, updatedCount));
+                    string text = string.Format(Resources.NuclideDefImportSuccess, createdCount, updatedCount);
+                    if (redundantSkipped > 0)
+                    {
+                        text += Environment.NewLine + Environment.NewLine
+                                + string.Format(Resources.NucBase_KSeriesRedundantSkipped, redundantSkipped);
+                    }
+
+                    MessageBox.Show(text);
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show(string.Format(Resources.NuclideDefImportError, ex.Message + ex.StackTrace));
             }
+        }
+
+        /// <summary>Строка помечена как лишняя при сложении (`D33`).</summary>
+        static bool IsRedundantSeries(DataGridViewRow row)
+        {
+            string series = row.Cells[SeriesColumnIdx].Value as string;
+            return series != null && series.EndsWith(DecayRad.RedundantMark, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// Отмечена ли у того же родителя и того же типа распада ХОТЬ ОДНА
+        /// строка той же Kβ с другой стороны — то есть та, чью сумму помеченная
+        /// строка и представляет. Без этой проверки запрет был бы шире, чем
+        /// нужно: взять помеченную строку ОДНУ никто не мешает.
+        /// </summary>
+        bool HasCheckedCounterpart(DataGridViewRow marked)
+        {
+            string name = marked.Cells[NameColumnIdx].Value as string;
+            string decay = marked.Cells[DecayTypeColumnIdx].Value as string;
+            string series = (marked.Cells[SeriesColumnIdx].Value as string) ?? "";
+            bool markedIsTotal = series.StartsWith(FullSpectrumAnalysis.KSeriesRule.BetaTotal,
+                                                   StringComparison.Ordinal);
+            foreach (DataGridViewRow row in this.ResultDataGridView.Rows)
+            {
+                if (ReferenceEquals(row, marked) || !(row.Cells[CheckedColumnIdx].Value is bool)
+                    || !(bool)row.Cells[CheckedColumnIdx].Value)
+                {
+                    continue;
+                }
+
+                if (!string.Equals(row.Cells[NameColumnIdx].Value as string, name, StringComparison.Ordinal)
+                    || !string.Equals(row.Cells[DecayTypeColumnIdx].Value as string, decay, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                string other = (row.Cells[SeriesColumnIdx].Value as string) ?? "";
+                bool otherIsTotal = other.StartsWith(FullSpectrumAnalysis.KSeriesRule.BetaTotal,
+                                                    StringComparison.Ordinal);
+                bool otherIsSplit = other.StartsWith("Kp", StringComparison.Ordinal);
+                if (markedIsTotal ? otherIsSplit : otherIsTotal)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private string FormatIsotopeName(string nameFromDb)
