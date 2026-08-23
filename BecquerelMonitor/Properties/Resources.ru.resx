@@ -447,6 +447,12 @@
   <data name="FSARowsDidNotFit" xml:space="preserve">
     <value>не поместилось строк: {0}</value>
   </data>
+  <data name="FSAChainMemberRow" xml:space="preserve">
+    <value>{0} — ряд {1}</value>
+  </data>
+  <data name="FSAChainRow" xml:space="preserve">
+    <value>{0} — ряд</value>
+  </data>
   <data name="FSAEquilibriumNeedsDbLookups" xml:space="preserve">
     <value>Равновесие работает только при выводе состава из баз: включите «Enable DB lookups for FSA». На прежнем пути компоненты строятся по подписям пиков, и структуры ряда там нет вовсе.</value>
   </data>

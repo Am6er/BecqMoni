@@ -8494,6 +8494,12 @@ http://xptable.sourceforge.net/</value>
   <data name="FSARowsDidNotFit" xml:space="preserve">
     <value>does not fit: {0} row(s)</value>
   </data>
+  <data name="FSAChainMemberRow" xml:space="preserve">
+    <value>{0} — {1} chain</value>
+  </data>
+  <data name="FSAChainRow" xml:space="preserve">
+    <value>{0} — chain</value>
+  </data>
   <data name="FSAEquilibriumNeedsDbLookups" xml:space="preserve">
     <value>Equilibrium works only when the composition comes from the databases: turn on "Enable DB lookups for FSA". The other path builds components from peak labels and knows nothing about decay chains.</value>
   </data>
