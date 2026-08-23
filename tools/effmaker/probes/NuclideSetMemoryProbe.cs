@@ -57,6 +57,16 @@ namespace NuclideSetMemoryProbe
             culture.NumberFormat.NumberDecimalSeparator = ".";
             Thread.CurrentThread.CurrentCulture = culture;
 
+            // ⛔ ОБЕ карты примитивов ROI — ДО ЛЮБОГО менеджера-одиночки
+            // (`T60`). `GlobalConfigManager` тянет за собой `ROIConfigManager`,
+            // тот подставляет из обеих карт, и на пустых падает; отказ выходит
+            // МОДАЛЬНЫМ окном «Не удалось загрузить конфигурационный файл ROI»,
+            // а в безоконном прогоне окно вешает пробу навсегда. В приложении
+            // порядок держит `MainForm` (обе строки подряд, до менеджеров), но
+            // проба, тронувшая менеджер раньше формы, этот порядок обходит.
+            ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
+            ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
+
             NuclideDefinitionManager nuclides = NuclideDefinitionManager.GetInstance();
             List<NuclideSet> sets = nuclides.NuclideSets;
             int originalCount = sets.Count;
