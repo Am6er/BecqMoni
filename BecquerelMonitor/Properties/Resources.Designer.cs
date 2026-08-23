@@ -2871,6 +2871,24 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("FSASumPeakRow", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} — {1} chain.
+        /// </summary>
+        public static string FSAChainMemberRow {
+            get {
+                return ResourceManager.GetString("FSAChainMemberRow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} — chain.
+        /// </summary>
+        public static string FSAChainRow {
+            get {
+                return ResourceManager.GetString("FSAChainRow", resourceCulture);
+            }
+        }
 
         /// <summary>
         ///   Looks up a localized string similar to Calculation parameters restored from the existing curve: {0}.

@@ -259,20 +259,10 @@ namespace BecquerelMonitor
                 running = level;
             }
 
-            double[] net = new double[channels];
-            int[] raw = this.energySpectrum != null ? this.energySpectrum.Spectrum : null;
-            for (int i = 0; raw != null && i < channels && i < raw.Length; i++)
-            {
-                double value = raw[i];
-                if (result.Background != null && i < result.Background.Length)
-                {
-                    value -= result.Background[i];
-                }
-
-                net[i] = value > 0.0 ? value : 0.0;
-            }
-
-            this.fsaNetSpectrum = net;
+            // Правило «чистого спектра» — у результата, одно на вид и на пробы
+            // (`S88`): вторая его копия рядом разъехалась бы молча.
+            this.fsaNetSpectrum = result.NetSpectrum(
+                this.energySpectrum != null ? this.energySpectrum.Spectrum : null);
         }
 
         /// <summary>
@@ -860,6 +850,41 @@ namespace BecquerelMonitor
                 : double.NaN;
         }
 
+        /// <summary>
+        /// (`S72`) ПОДПИСЬ СТРОКИ СОСТАВА, с пометкой связки равновесия.
+        ///
+        /// Связанная амплитуда и свободная — РАЗНЫЕ утверждения о пробе
+        /// (решение Amber 18.08.2026). «Pb-212 23 %» при включённой галке
+        /// значит «столько вышло из ОДНОЙ амплитуды ряда по закреплённой доле
+        /// ветвления», при выключенной — «столько данные дали ЕМУ»; строки,
+        /// выглядящие одинаково, молча выдают первое за второе. Ровно этот
+        /// вопрос человек и задал («почему не отображаются Ac-228, Tl-208»), и
+        /// задал его, читая свой же экран.
+        ///
+        /// Пометка идёт ТЕКСТОМ, а не цветом или значком: цвет квадратика уже
+        /// занят нуклидом, а значок пришлось бы объяснять — тогда как «ряд
+        /// Th-232» рядом с именем читается без пояснений и попадает в снимок
+        /// пробы, то есть проверяемо.
+        ///
+        /// У колонки ряда, чьё имя и есть корень, второе имя не печатается: «Th-232 — ряд
+        /// Th-232» повторяло бы одно и то же дважды в самой узкой колонке таблицы.
+        /// </summary>
+        static string FsaRowName(string name, string chainRoot)
+        {
+            string shown = FsaPalette.DisplayName(name);
+            if (string.IsNullOrEmpty(chainRoot))
+            {
+                return shown;
+            }
+
+            string root = FsaPalette.DisplayName(chainRoot);
+            return string.Equals(root, shown, StringComparison.Ordinal)
+                ? string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                                Resources.FSAChainRow, shown)
+                : string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                                Resources.FSAChainMemberRow, shown, root);
+        }
+
         /// <summary>Формат предела в легенде: три значащие цифры, как и прежде.</summary>
         static string FsaLimitText(double sharePercent)
         {
@@ -929,7 +954,8 @@ namespace BecquerelMonitor
                     g.FillRectangle(swatch, r.Left, r.Top + 4, 10, 8);
                 }
 
-                g.DrawString(FsaPalette.DisplayName(layers[k].Name), this.Font, Brushes.Black, nameRect);
+                g.DrawString(FsaRowName(layers[k].Name, layers[k].ChainRoot),
+                             this.Font, Brushes.Black, nameRect);
                 g.DrawString(layers[k].SharePercent.ToString("n2") + Resources.PercentCharacter,
                              this.Font, Brushes.Black, r, this.farFormat);
                 r.Y += FsaTableRowHeight;
@@ -961,6 +987,11 @@ namespace BecquerelMonitor
                 }
 
                 g.DrawString(string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                                           // Пометка связки (`S72`) сюда НЕ
+                                           // ставится: строка состава этого же
+                                           // нуклида стоит прямо выше и уже
+                                           // сказала её, а колонка таблицы —
+                                           // самая узкая в окне.
                                            Resources.FSASumPeakRow,
                                            FsaPalette.DisplayName(layer.Name)),
                              this.Font, Brushes.Black, nameRect);
@@ -984,7 +1015,9 @@ namespace BecquerelMonitor
 
                 left--;
                 FsaCharacteristicLimit limit = undetected[k];
-                g.DrawString(FsaPalette.DisplayName(limit.Name), this.Font, Brushes.Gray, nameRect);
+                g.DrawString(FsaRowName(limit.Name,
+                                        limit.Kind == FsaComponentKind.Chain ? limit.Name : null),
+                             this.Font, Brushes.Gray, nameRect);
                 g.DrawString(FsaLimitText(FsaLimitSharePercent(result, limit.DetectionLimitPeakCounts)),
                              this.Font, Brushes.Gray, r, this.farFormat);
                 r.Y += FsaTableRowHeight;

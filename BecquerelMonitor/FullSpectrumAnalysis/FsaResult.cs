@@ -35,6 +35,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double Z { get; set; }
 
         /// <summary>
+        /// (`S72`) Имя РЯДА, чьей связкой равновесия закреплена амплитуда этой
+        /// строки; null — амплитуда своя и свободная.
+        ///
+        /// ⛔ Связанная строка и свободная — РАЗНЫЕ утверждения о пробе
+        /// (решение Amber 18.08.2026), и неразличимые они хуже схлопнутой
+        /// строки: «Pb-212 23 %» при включённом равновесии значит «столько
+        /// вышло из ОДНОЙ амплитуды ряда по закреплённой доле ветвления», а при
+        /// выключенном — «столько данные дали ЕМУ». Одинаково выглядящие, они
+        /// молча выдают первое за второе.
+        ///
+        /// У колонки ряда, которая почленно не разложилась (в рабочее окно
+        /// прибора попали линии одного члена), здесь стоит её собственное имя:
+        /// строка всё равно про ряд, а не про нуклид.
+        ///
+        /// ⚠ Не путать с <see cref="Kind"/>: члены ряда выходят
+        /// <see cref="FsaComponentKind.Single"/> нарочно — они идут общим
+        /// списком и сортируются вместе со всеми (`S71`).
+        /// </summary>
+        public string ChainRoot { get; set; }
+
+        /// <summary>
         /// ДОЛЯ СЛОЯ: вклад компонента в ПОЛНЫЙ счёт модели с разнесённой на
         /// него подложкой, %. ТА ЖЕ величина, что печатает легенда
         /// (<see cref="FsaStackLayer.SharePercent"/>), — по построению, а не по
@@ -207,6 +228,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public string Name { get; set; }
 
         public FsaComponentKind Kind { get; set; }
+
+        /// <summary>
+        /// (`S72`) Имя ряда, связкой которого закреплена амплитуда слоя; null —
+        /// амплитуда своя. Копия <see cref="FsaComponentResult.ChainRoot"/>, и
+        /// по той же причине: список слоёв задаёт легенду, а в легенде
+        /// принадлежность к равновесной группе обязана быть видна.
+        /// </summary>
+        public string ChainRoot { get; set; }
 
         /// <summary>Вклад слоя по каналам с разнесённой на него подложкой.</summary>
         public double[] Curve { get; set; }
@@ -467,6 +496,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     Name = component.Name,
                     Kind = component.Kind,
+                    ChainRoot = component.ChainRoot,
                     Curve = PositivePart(component.Curve),
                     SumPeakCurve = component.SumPeakCurve != null
                         ? (double[])component.SumPeakCurve.Clone()
@@ -521,6 +551,33 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 ordered[k].SharePercent = 100.0 * weight[k] / total;
             }
+        }
+
+        /// <summary>
+        /// ИЗМЕРЕНИЕ, С КОТОРЫМ СРАВНИВАЕТСЯ МОДЕЛЬ: спектр за вычетом
+        /// вычтенного фона, отрицательное подрезано нулём.
+        ///
+        /// Правило живёт ЗДЕСЬ, у результата, а не у каждого читателя. Вид
+        /// рисует этой кривой линию поверх стека, пробы выгружают её же в csv,
+        /// и второе такое же правило рядом разъехалось бы молча — ровно та
+        /// беда, которую пришлось ловить счётом в `S37`.
+        /// </summary>
+        public double[] NetSpectrum(int[] raw)
+        {
+            int channels = this.Model != null ? this.Model.Length : (raw != null ? raw.Length : 0);
+            double[] net = new double[channels];
+            for (int i = 0; raw != null && i < channels && i < raw.Length; i++)
+            {
+                double value = raw[i];
+                if (this.Background != null && i < this.Background.Length)
+                {
+                    value -= this.Background[i];
+                }
+
+                net[i] = value > 0.0 ? value : 0.0;
+            }
+
+            return net;
         }
 
         public List<FsaStackLayer> BuildStackedLayers(int maxNamedLayers)

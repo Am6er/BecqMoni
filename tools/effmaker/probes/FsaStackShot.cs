@@ -288,8 +288,14 @@ namespace FsaStackShot
             List<FsaStackLayer> shot = result.BuildStackedLayers(FsaResult.DefaultMaxNamedLayers);
             foreach (FsaStackLayer layer in shot)
             {
-                Console.WriteLine("ROW\t{0}\t{1}\t{2}", layer.Name, layer.Kind,
-                                  layer.SharePercent.ToString("F3", CultureInfo.InvariantCulture));
+                Console.WriteLine("ROW\t{0}\t{1}\t{2}\t{3}", layer.Name, layer.Kind,
+                                  layer.SharePercent.ToString("F3", CultureInfo.InvariantCulture),
+                                  // (`S72`) Ряд, связкой которого закреплена
+                                  // амплитуда строки; «-» — амплитуда своя.
+                                  // Мерка строки — сравнение СПИСКА строк с
+                                  // галкой и без, и различать связанное от
+                                  // свободного надо машинно, а не по картинке.
+                                  string.IsNullOrEmpty(layer.ChainRoot) ? "-" : layer.ChainRoot);
             }
 
             foreach (FsaSuppressedImage cut in result.SuppressedImages)
@@ -412,6 +418,10 @@ namespace FsaStackShot
                          EnergyCalibration calibration, FsaResult result, List<FsaStackLayer> layers)
         {
             double[] net = (double[])Field(typeof(EnergySpectrumView), "fsaNetSpectrum").GetValue(view);
+            if (net == null)
+            {
+                net = result.NetSpectrum(spectrum.Spectrum);
+            }
             var head = new StringBuilder("ch,keV,net,model,continuum");
             foreach (FsaStackLayer layer in layers)
             {

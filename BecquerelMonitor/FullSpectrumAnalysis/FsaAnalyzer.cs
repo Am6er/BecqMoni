@@ -68,6 +68,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public int ContinuumKnotDivisor { get; set; }
 
+        /// <summary>
+        /// Сколько ПШПВ отмеряет ГУСТОЙ край шага узлов (`S88`). Умолчание 4 —
+        /// то, при котором посчитана вся история измерений.
+        ///
+        /// Порог существует затем, чтобы континуум не мог поглотить одиночный
+        /// пик, и трогать его в поставке нельзя. Но ровно он и делает сплайн
+        /// неспособным повторить волну с масштабом 50…130 кэВ, а значит —
+        /// неспособным её ни объяснить, ни спрятать. Чтобы это стало
+        /// утверждением, а не рассуждением, нужен A/B: поле — программная ручка
+        /// для проб, как <see cref="LimitQuantileK"/> и
+        /// <see cref="ResponseContinuumTrustFloorKev"/>; в UI и конфигурацию не
+        /// выводится.
+        ///
+        /// ⚠ Значение меньше 4 ЛОМАЕТ состав: сплайн начинает забирать пики.
+        /// Годится только как абляция, читать после него можно форму невязки, а
+        /// не разложение.
+        /// </summary>
+        public double ContinuumKnotFwhm = 4.0;
+
         public double MinEnergy { get; set; }
 
         public double MaxEnergy { get; set; }
@@ -587,7 +606,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             if (this.Mode == ContinuumMode.Spline)
             {
                 fixedColumns.AddRange(BuildHatBasis(fwhmCalibration, chLo, chHi, channels,
-                                                   this.ContinuumKnotDivisor));
+                                                   this.ContinuumKnotDivisor,
+                                                   this.ContinuumKnotFwhm));
             }
 
             // Наложения участвуют с САМОГО начала, вместе с сеткой дрейфа:
@@ -1401,6 +1421,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     Name = column.Component.Name,
                     Kind = column.Component.Kind,
+
+                    // (`S72`) Колонка ряда, которую разложить почленно не вышло
+                    // (в рабочее окно прибора попали линии одного члена),
+                    // остаётся строкой ПРО РЯД: имя у неё корневое, а амплитуда
+                    // закреплена связкой так же, как у разложенных.
+                    ChainRoot = column.Component.Kind == FsaComponentKind.Chain
+                        ? column.Component.Name : null,
                     Curve = curve,
                     SumPeakCurve = sumOnly,
                     PeakCounts = this.PeakWindowCounts(column.Component, curve, calibration,
@@ -1565,6 +1592,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     Name = source.Name,
                     Kind = FsaComponentKind.Single,
+
+                    // (`S72`) Вид у члена — `Single` нарочно: строки ряда идут
+                    // общим списком и сортируются вместе со всеми (`S71`).
+                    // Связанность амплитуды несёт ОТДЕЛЬНОЕ поле — иначе она
+                    // либо потерялась бы вовсе, либо утащила бы строку в другую
+                    // группу порядка.
+                    ChainRoot = component.Name,
                     Curve = part,
                     SumPeakCurve = sumOnly,
                     PeakCounts = this.PeakWindowCounts(source, part, calibration, fwhmCalibration,
@@ -3783,7 +3817,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// реже чем 1/64 диапазона.
         /// </summary>
         static List<double[]> BuildHatBasis(FwhmCalibration fwhmCalibration, int chLo, int chHi,
-                                            int channels, int knotDivisor)
+                                            int channels, int knotDivisor, double knotFwhm)
         {
             List<int> knots = new List<int>();
             // Ноль и отрицательное — от невыставленного свойства (структура
@@ -3799,7 +3833,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     fwhm = 1.0;
                 }
 
-                ch += (int)Math.Max(1.0, Math.Max(4.0 * fwhm, minStep));
+                ch += (int)Math.Max(1.0, Math.Max((knotFwhm > 0.0 ? knotFwhm : 4.0) * fwhm,
+                                                  minStep));
             }
 
             // Узел в одном канале от верхней границы дал бы «шапку-спицу» —
