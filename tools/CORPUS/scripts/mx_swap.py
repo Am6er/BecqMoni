@@ -17,6 +17,19 @@ u"""Подменить матрицы отклика в каталоге про�
 `geometries/*.rmx`, а разбор берёт `geometries/response/<guid>.rmx`).
 
     python tools/CORPUS/scripts/mx_swap.py --from=<каталог с key.rmx> --wd=<каталог прогона>
+    python tools/CORPUS/scripts/mx_swap.py --from=<каталог с key.rmx> --store
+
+⛔ **`--store` кладёт матрицы В САМ КОРПУС** (`geometries/response/<guid>.rmx`),
+откуда их берёт `mk_appwd.ps1` для КАЖДОГО прогона. Ключ заведён 23.08.2026 при
+`B20`: до него шага «перенести посчитанные матрицы в склад» не было ВООБЩЕ — он
+делался руками, и потому не сделался. Цена этого измерена дважды: 18.08.2026
+весь корпус (81 спектр понятной части) считался БЕЗ МАТРИЦЫ, потому что склад
+остался от физики 11, а матрицы физики 12 лежали в `wd_p12_geom` под именами
+геометрий. Отказ при этом не молчал — `matrix_note` писал «отпечаток НЕ
+сошёлся», — но на него натыкались заново, пока шага не появилось.
+
+⚠ `--wd` и `--store` НЕ взаимозаменяемы: первый правит ОДИН прогон и корпуса не
+трогает (так измеряют A/B), второй меняет то, с чем поедут все следующие.
 """
 import argparse
 import csv
@@ -53,13 +66,27 @@ def key_to_guid():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--from', dest='src', required=True, help=u'каталог с <ключ>.rmx')
-    ap.add_argument('--wd', required=True, help=u'каталог прогона (копия wd_app)')
+    ap.add_argument('--wd', help=u'каталог прогона (копия wd_app)')
+    ap.add_argument('--store', action='store_true',
+                    help=u'класть в СКЛАД КОРПУСА geometries/response, а не в прогон')
     args = ap.parse_args()
 
-    store = os.path.join(os.path.abspath(args.wd), 'config', 'device', 'response')
-    if not os.path.isdir(store):
-        print(u'⛔ нет %s — это не каталог прогона' % store)
-        return 1
+    if bool(args.wd) == bool(args.store):
+        print(u'⛔ нужен РОВНО ОДИН из --wd и --store: первый правит один прогон,'
+              u' второй — склад, с которым поедут все следующие')
+        return 2
+
+    if args.store:
+        store = os.path.join(CORPUS, 'geometries', 'response')
+        if not os.path.isdir(store):
+            os.makedirs(store)
+    else:
+        store = os.path.join(os.path.abspath(args.wd), 'config', 'device', 'response')
+        if not os.path.isdir(store):
+            print(u'⛔ нет %s — это не каталог прогона' % store)
+            return 1
+
+    print(u'куда: %s' % store)
 
     mapping = key_to_guid()
     print(u'геометрий в index.csv с guid: %d' % len(mapping))

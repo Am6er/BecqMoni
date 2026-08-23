@@ -182,7 +182,9 @@ namespace BecquerelMonitor
             int c2 = c1 + CalcLabelWidth + CalcFieldWidth + 24;
             int c3 = c2 + CalcLabelWidth + CalcFieldWidth + 24;
 
-            this.calcMinEnergyBox = CalcField(Resources.ResponseMatrixMinEnergy, c1, 22, 1, 5000, 40);
+            // Умолчание поля идёт за умолчанием расчёта (`E36`): нижняя
+            // граница контрола и так 1 кэВ, менять её не пришлось.
+            this.calcMinEnergyBox = CalcField(Resources.ResponseMatrixMinEnergy, c1, 22, 1, 5000, 5);
             this.calcMaxEnergyBox = CalcField(Resources.ResponseMatrixMaxEnergy, c2, 22, 10, 10000, 3000);
 
             this.calcOptionsGroup.Controls.Add(new Label
