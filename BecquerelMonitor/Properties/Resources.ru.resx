@@ -778,6 +778,12 @@
   <data name="NuclideDefImportSuccess" xml:space="preserve">
     <value>Импорт завершен. Добавлено - {0}, обновлено - {1}.</value>
   </data>
+  <data name="NucBase_KSeriesRedundantHint" xml:space="preserve">
+    <value>Эта строка дублирует соседей по той же Kβ: KB — это итог, а KpB1 + KpB2 — тот же итог, разложенный надвое. Брать надо одно или другое, но не оба сразу: сложение считает Kβ дважды (у Lu-176 40.53 % вместо 33.49 %).</value>
+  </data>
+  <data name="NucBase_KSeriesRedundantSkipped" xml:space="preserve">
+    <value>Пропущено линий Kβ как дубликатов: {0}. Были отмечены и итог (KB), и его разложение (KpB1 + KpB2); ввезено только одно из двух.</value>
+  </data>
   <data name="UpdateDeadTime" xml:space="preserve">
     <value>Обновить Мертвое Время</value>
   </data>

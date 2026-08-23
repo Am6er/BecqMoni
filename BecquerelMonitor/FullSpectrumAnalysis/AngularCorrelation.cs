@@ -390,35 +390,46 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             public List<Transition> Transitions = new List<Transition>();
 
-            /// <summary>Переход, ближайший по энергии в допуске; null — нет такого.
+            /// <summary>
+            /// Переход, отвечающий линии распада; null — нет такого.
             ///
-            /// ⛔ ПРАВИЛО «БЛИЖАЙШИЙ ПО ЭНЕРГИИ» ОПРОВЕРГНУТО ИЗМЕРЕНИЕМ (D31),
-            /// и здесь оно осталось только потому, что этот класс к приложению
-            /// НЕ ПОДКЛЮЧЁН: единственный вызов — `tools/effmaker/probes/
-            /// AngularProbe.cs`, геометрическая половина не сделана (N14).
-            /// У Hf-176 на линию 306.780 кэВ три кандидата, и ближе всех —
+            /// ⛔ «БЛИЖАЙШИЙ ПО ЭНЕРГИИ» — НЕВЕРНОЕ ПРАВИЛО, опровергнуто
+            /// измерением (`D31`) и исправлено 23.08.2026 (`W26`). У Hf-176 на
+            /// линию 306.780 кэВ три кандидата, и ближе всех оказывается
             /// САМОЗВАНЕЦ с уровня 3467.40 кэВ и нулевой интенсивностью
             /// (306.900, промах 0.120), а не настоящий переход 3→2 с уровня
-            /// 596.82 (306.640, промах 0.140). Верное правило —
-            /// «выбросить нулевую интенсивность → взять САМЫЙ НИЖНИЙ уровень →
-            /// и только при равенстве ближайший по энергии», как это делает
-            /// <c>CascadeAtomicData.MatchTransition</c>. ⛔ ПЕРЕД ТЕМ КАК
-            /// ПОДКЛЮЧАТЬ этот класс к приложению — починить (строка `W26`);
-            /// сейчас код не трогается нарочно, чтобы не сдвинуть числа пробы
-            /// без измерения. Разбор — `database/scheme.md`, §5г «Ловушки
-            /// поставки».
+            /// 596.82 (306.640, промах 0.140). Уровень 3467 кэВ β-распад
+            /// Lu-176 (Q = 1194 кэВ) населить не может в принципе.
+            ///
+            /// Правило поэтому такое же, как у
+            /// <c>CascadeAtomicData.MatchTransition</c>, и держится оно одно на
+            /// двоих нарочно: переходы с нулевой относительной интенсивностью
+            /// не грузятся вовсе (<see cref="Load"/>), среди оставшихся берётся
+            /// переход с САМОГО НИЖНЕГО уровня, и лишь при равенстве уровней —
+            /// ближайший по энергии.
+            ///
+            /// ⚠ Допуск здесь по-прежнему задаётся вызывающим, а не константой
+            /// класса: у <c>CascadeAtomicData</c> он свой (0.6 кэВ), и сводить
+            /// их в одно число без измерения нельзя — разные поставки энергий.
             /// </summary>
             public Transition Find(double energyKev, double toleranceKev)
             {
                 Transition best = null;
-                double bestGap = toleranceKev;
+                double bestGap = 0.0;
                 foreach (Transition t in this.Transitions)
                 {
                     double gap = Math.Abs(t.EnergyKev - energyKev);
-                    if (gap <= bestGap)
+                    if (gap > toleranceKev)
                     {
-                        bestGap = gap;
+                        continue;
+                    }
+
+                    if (best == null
+                        || t.FromSeq < best.FromSeq
+                        || (t.FromSeq == best.FromSeq && gap < bestGap))
+                    {
                         best = t;
+                        bestGap = gap;
                     }
                 }
 
@@ -512,12 +523,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         }
 
                         command.CommandText =
-                            "select from_seq, to_seq, energy_ev, multipolarity, mixing_ratio"
+                            "select from_seq, to_seq, energy_ev, multipolarity, mixing_ratio,"
+                            + " intensity_ppm"
                             + " from g4_gamma where z=" + z + " and a=" + a;
                         using (SqliteDataReader reader = command.ExecuteReader())
                         {
                             while (reader.Read())
                             {
+                                // Переход, которого не испускают, кандидатом
+                                // быть не может (`W26`, `D31`): в `g4_gamma`
+                                // рядом с настоящими лежат переходы с нулевой
+                                // относительной интенсивностью, и по энергии
+                                // они бывают БЛИЖЕ настоящего.
+                                if (reader.IsDBNull(5) || reader.GetDouble(5) <= 0.0)
+                                {
+                                    continue;
+                                }
+
                                 scheme.Transitions.Add(new Transition
                                 {
                                     FromSeq = reader.GetInt32(0),

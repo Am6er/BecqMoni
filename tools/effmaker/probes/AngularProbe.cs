@@ -58,6 +58,7 @@ namespace AngularProbe
             int bad = 0;
             bad += Textbook();
             bad += Wigner();
+            bad += Impostors();
             FromDatabase(z, a, e1, e2);
 
             Console.WriteLine();
@@ -153,6 +154,60 @@ namespace AngularProbe
             Console.WriteLine("   {0,-24} {1,14:F10}  ждали {2,14:F10}  {3}",
                               name, got, want, ok ? "ok" : "РАСХОЖДЕНИЕ");
             return ok ? 0 : 1;
+        }
+
+        /// <summary>
+        /// Ловушка самозванца (`W26`, `D31`): «ближайший по энергии» берёт не
+        /// тот переход. Читатель у правки был обязан появиться вместе с ней —
+        /// без него «починено» и «сломано» с виду одно и то же.
+        ///
+        /// У Hf-176 на линию распада 306.780 кэВ в `g4_gamma` три кандидата:
+        /// настоящий 3→2 (306.640 кэВ, уровень 596.82, интенсивность 100 %) и
+        /// два с нулевой интенсивностью — 167→150 (306.900, уровень 3467.40) и
+        /// 191→171 (307.300). Ближе всех по энергии САМОЗВАНЕЦ 306.900
+        /// (промах 0.120 против 0.140), а населить уровень 3467 кэВ β-распад
+        /// Lu-176 с Q = 1194 кэВ не может в принципе.
+        /// </summary>
+        static int Impostors()
+        {
+            Console.WriteLine();
+            Console.WriteLine("2а. Ловушка самозванца: Hf-176, линия 306.780 кэВ");
+            Console.WriteLine();
+
+            AngularCorrelation.Scheme scheme = AngularCorrelation.SchemeOf(72, 176);
+            if (scheme == null)
+            {
+                Console.WriteLine("   схемы Hf-176 нет — сверку сделать нечем");
+                return 1;
+            }
+
+            AngularCorrelation.Transition t = scheme.Find(306.780, 0.6);
+            if (t == null)
+            {
+                Console.WriteLine("   перехода не нашлось вовсе — ⛔ ПРОВАЛ");
+                return 1;
+            }
+
+            bool ok = t.FromSeq == 3 && t.ToSeq == 2;
+            Console.WriteLine("   выбран {0:F3} кэВ, уровень {1} → {2}; ждали 306.640, 3 → 2   {3}",
+                              t.EnergyKev, t.FromSeq, t.ToSeq,
+                              ok ? "ok" : "⛔ САМОЗВАНЕЦ");
+
+            // Второй признак того же: переходы с нулевой интенсивностью не
+            // должны попадать в схему ВОВСЕ.
+            bool impostorLoaded = false;
+            foreach (AngularCorrelation.Transition x in scheme.Transitions)
+            {
+                if (x.FromSeq == 167 && x.ToSeq == 150)
+                {
+                    impostorLoaded = true;
+                }
+            }
+
+            Console.WriteLine("   переход 167 → 150 (интенсивность 0) в схеме: {0}   {1}",
+                              impostorLoaded ? "ЕСТЬ" : "нет",
+                              impostorLoaded ? "⛔ ПРОВАЛ" : "ok");
+            return (ok ? 0 : 1) + (impostorLoaded ? 1 : 0);
         }
 
         static void FromDatabase(int z, int a, double e1, double e2)

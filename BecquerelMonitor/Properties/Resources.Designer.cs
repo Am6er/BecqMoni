@@ -2309,6 +2309,24 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to This line duplicates its neighbours in the same K-beta series: KB is the total, KpB1 + KpB2 is the same total split in two. Take one or the other, never both — adding them counts K-beta twice (Lu-176: 40.53 % instead of 33.49 %)..
+        /// </summary>
+        public static string NucBase_KSeriesRedundantHint {
+            get {
+                return ResourceManager.GetString("NucBase_KSeriesRedundantHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to K-beta lines skipped as duplicates: {0}. The total (KB) and its split (KpB1 + KpB2) were both selected; only one of them is imported..
+        /// </summary>
+        public static string NucBase_KSeriesRedundantSkipped {
+            get {
+                return ResourceManager.GetString("NucBase_KSeriesRedundantSkipped", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Open Spectrum File.
         /// </summary>
         public static string OpenFileDialogTitle {

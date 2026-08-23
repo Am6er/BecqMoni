@@ -5,6 +5,7 @@ using Microsoft.Data.Sqlite;
 using System.Linq;
 using System.Windows.Forms;
 using BecquerelMonitor.EfficiencyMaker;
+using BecquerelMonitor.FullSpectrumAnalysis;
 using BecquerelMonitor.Properties;
 
 namespace BecquerelMonitor.NucBase
@@ -135,7 +136,99 @@ namespace BecquerelMonitor.NucBase
             }
             
             db.Close();
+            MarkRedundantKSeries(decayRads);
             return decayRads;
+        }
+
+        /// <summary>
+        /// ЛОВУШКА K-СЕРИИ В РЕДАКТОРЕ (`D33`). В `decay_radiations` Kβ лежит
+        /// ДВАЖДЫ: итогом `KB` и разложением `KpB1` + `KpB2`. В таблице они
+        /// стоят рядом как равноправные линии, и ничто не говорило, что
+        /// складывать их вместе нельзя, — а наивная сумма всех `K*` завышает
+        /// K-выход: на Lu-176 40.53 % вместо 33.49 %, в 1.21 раза.
+        ///
+        /// Здесь у лишней при сложении половины снимается галочка и в колонке
+        /// серии появляется пометка. Прятать строку нельзя: она в базе есть, и
+        /// взять именно её человек вправе — но взять ОБЕ он теперь может только
+        /// нарочно, и при ввозе ему об этом скажут.
+        ///
+        /// Какая половина лишняя, решает <see cref="KSeriesRule"/> — то же
+        /// правило, что у разбора и у суммирователя совпадений; трёх
+        /// соглашений о Kβ в проекте быть не должно.
+        ///
+        /// ⚠ Набор здесь — «родитель + тип распада», БЕЗ уровня: `getDecayRad`
+        /// уровень не выбирает вовсе. Для показа этого хватает, но общее
+        /// расхождение читателей по зажиму набора — отдельная строка `S89`.
+        /// </summary>
+        static void MarkRedundantKSeries(List<DecayRad> lines)
+        {
+            if (lines == null)
+            {
+                return;
+            }
+
+            var sets = new Dictionary<string, List<DecayRad>>(StringComparer.Ordinal);
+            foreach (DecayRad line in lines)
+            {
+                line.Redundant = false;
+                if (line.DecayLine != "X" || !KSeriesRule.IsSeries(line.XrayType))
+                {
+                    continue;
+                }
+
+                string key = line.Name + "\u0001" + line.DecayType.ToString(CultureInfo.InvariantCulture);
+                List<DecayRad> set;
+                if (!sets.TryGetValue(key, out set))
+                {
+                    set = new List<DecayRad>();
+                    sets[key] = set;
+                }
+
+                set.Add(line);
+            }
+
+            foreach (KeyValuePair<string, List<DecayRad>> pair in sets)
+            {
+                var split = new List<DecayRad>();
+                var total = new List<DecayRad>();
+                var names = new HashSet<string>(StringComparer.Ordinal);
+                foreach (DecayRad line in pair.Value)
+                {
+                    if (KSeriesRule.IsBetaTotal(line.XrayType))
+                    {
+                        total.Add(line);
+                    }
+                    else if (KSeriesRule.IsBetaSplit(line.XrayType))
+                    {
+                        split.Add(line);
+                        names.Add(line.XrayType);
+                    }
+                }
+
+                if (split.Count == 0 || total.Count == 0)
+                {
+                    continue;           // одна половина — выбирать не из чего
+                }
+
+                List<double[]> splitPairs = Numbers(split);
+                List<double[]> chosen = KSeriesRule.Beta(splitPairs, Numbers(total), names.Count);
+                List<DecayRad> loser = ReferenceEquals(chosen, splitPairs) ? total : split;
+                foreach (DecayRad line in loser)
+                {
+                    line.Redundant = true;
+                }
+            }
+        }
+
+        static List<double[]> Numbers(List<DecayRad> lines)
+        {
+            var pairs = new List<double[]>();
+            foreach (DecayRad line in lines)
+            {
+                pairs.Add(new[] { line.Energy, line.Intensity });
+            }
+
+            return pairs;
         }
 
         /// <summary>

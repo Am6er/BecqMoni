@@ -42146,6 +42146,12 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="NuclideDefImportSuccess" xml:space="preserve">
     <value>Import successful. Added - {0} item(s), updated - {1} item(s).</value>
   </data>
+  <data name="NucBase_KSeriesRedundantHint" xml:space="preserve">
+    <value>This line duplicates its neighbours in the same K-beta series: KB is the total, KpB1 + KpB2 is the same total split in two. Take one or the other, never both — adding them counts K-beta twice (Lu-176: 40.53 % instead of 33.49 %).</value>
+  </data>
+  <data name="NucBase_KSeriesRedundantSkipped" xml:space="preserve">
+    <value>K-beta lines skipped as duplicates: {0}. The total (KB) and its split (KpB1 + KpB2) were both selected; only one of them is imported.</value>
+  </data>
   <data name="UpdateDeadTime" xml:space="preserve">
     <value>Update Dead Time</value>
   </data>
