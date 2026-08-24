@@ -885,6 +885,29 @@ namespace BecquerelMonitor
                                 Resources.FSAChainMemberRow, shown, root);
         }
 
+        /// <summary>
+        /// Правая колонка строки состава: доля слоя.
+        ///
+        /// ⛔ У обратного рассеяния доли НЕТ — печатается пометка о наличии
+        /// (`S85`, кандидат (в), решение Amber 24.08.2026). Величина не
+        /// определяется: она зависит от густоты узлов сплайна подложки сильнее,
+        /// чем от самого рассеяния, — от одной смены густоты слой пропадает у
+        /// двадцати спектров корпуса, а где выживает, ходит медианно на 46 %.
+        /// Слой рисуется и называется, потому что на радиевом источнике в
+        /// свинцовом домике рассеяние обязано быть (довод Amber, физический);
+        /// число рядом с ним было бы точностью, которой нет.
+        /// </summary>
+        static string FsaShareText(FsaStackLayer layer)
+        {
+            if (string.Equals(layer.Name, FsaResult.BackscatterLayerName,
+                              StringComparison.Ordinal))
+            {
+                return Resources.FSAPresentNoShare;
+            }
+
+            return layer.SharePercent.ToString("n2") + Resources.PercentCharacter;
+        }
+
         /// <summary>Формат предела в легенде: три значащие цифры, как и прежде.</summary>
         static string FsaLimitText(double sharePercent)
         {
@@ -956,7 +979,7 @@ namespace BecquerelMonitor
 
                 g.DrawString(FsaRowName(layers[k].Name, layers[k].ChainRoot),
                              this.Font, Brushes.Black, nameRect);
-                g.DrawString(layers[k].SharePercent.ToString("n2") + Resources.PercentCharacter,
+                g.DrawString(FsaShareText(layers[k]),
                              this.Font, Brushes.Black, r, this.farFormat);
                 r.Y += FsaTableRowHeight;
                 nameRect.Y += FsaTableRowHeight;

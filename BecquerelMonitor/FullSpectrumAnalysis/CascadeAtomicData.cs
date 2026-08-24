@@ -230,9 +230,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             using (SqliteConnection connection = OpenRead(NuclideDatabasePath()))
             using (SqliteCommand command = connection.CreateCommand())
             {
+                // (`S89`) Тот же зажим по уровню родителя, что и у библиотеки, и
+                // из одного места: без него запрос складывал ВСЕ наборы одного
+                // имени, то есть двоил распад у четырёх изомеров.
                 command.CommandText =
                     "select type_a, type_c, energy_num, intensity_num from decay_radiations"
-                    + " where parent_nucid = $n and intensity_num > 0";
+                    + " where parent_nucid = $n and intensity_num > 0"
+                    + DecayParentRule.LevelClause;
                 command.Parameters.AddWithValue("$n", nucid);
                 using (SqliteDataReader reader = command.ExecuteReader())
                 {

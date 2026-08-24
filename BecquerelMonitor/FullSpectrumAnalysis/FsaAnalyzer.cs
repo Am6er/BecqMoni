@@ -2760,7 +2760,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         static List<FsaComponent> BuildBackscatterComponents(FitResult fit, FsaEfficiency efficiency)
         {
             List<FsaComponent> made = new List<FsaComponent>();
-            FsaComponent all = BuildBackscatter(fit, efficiency, "Backscatter", 110.0, 180.0);
+            FsaComponent all = BuildBackscatter(fit, efficiency,
+                                                FsaResult.BackscatterLayerName, 110.0, 180.0);
             if (all != null)
             {
                 made.Add(all);

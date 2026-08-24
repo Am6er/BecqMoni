@@ -818,12 +818,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // ⚠ Тот же зажим по `parent_l_seqno`, что и у ряда, и по той
                     // же причине: Pa-234m1 несёт линию 1001.03 кэВ на уровне 2, а
                     // не на нуле, поэтому «= 0» здесь потеряло бы её целиком.
+                    // (`S89`) Само правило вынесено в `DecayParentRule` — двух
+                    // соглашений о том, что такое «родитель», в проекте быть не
+                    // должно, ровно как и о K-серии.
                     command.CommandText =
                         "select type_a, type_c, energy_num, intensity_num from decay_radiations"
                         + " where parent_nucid = $n and type_a in ('G', 'X')"
                         + " and energy_num not null and intensity_num > 0"
-                        + " and parent_l_seqno = (select min(parent_l_seqno) from decay_radiations y"
-                        + "                       where y.parent_nucid = $n)";
+                        + DecayParentRule.LevelClause;
                     command.Parameters.AddWithValue("$n", nucid);
                     using (SqliteDataReader reader = command.ExecuteReader())
                     {
